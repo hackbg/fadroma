@@ -8,20 +8,20 @@ use serde::{Serialize, de::DeserializeOwned};
 use super::{ns_load, ns_save, ns_remove};
 
 /// Stores items in a way that allows for iterating over them.
-pub struct IterableStorage<'a ,T: DeserializeOwned + Serialize> {
-    ns: &'a [u8],
+pub struct IterableStorage<'ns ,T: DeserializeOwned + Serialize> {
+    ns: &'ns [u8],
     len: Option<u64>,
     data: PhantomData<T>
 }
 
-impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
+impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     const KEY_INDEX: &'static [u8] = b"index";
 
     /// Creates an instance for the given namespace.
     /// The following namespaces are reserved by `IterableStorage`:
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
-    pub const fn new(ns: &'a [u8]) -> Self {
+    pub fn new(ns: &'ns [u8]) -> Self {
         Self {
             ns,
             len: None,
@@ -30,15 +30,15 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     }
 
     #[inline]
-    pub fn iter<'storage, S: Storage>(
+    pub fn iter<'storage>(
         &self,
-        storage: &'storage S
-    ) -> StdResult<StorageIterator<'storage, '_, T, S>> {
+        storage: &'storage dyn Storage
+    ) -> StdResult<StorageIterator<'storage, '_, T>> {
         Ok(StorageIterator::new(storage, &self.ns, self.len(storage)?))
     }
 
     /// Returns the index at which the item is stored at.
-    pub fn push(&mut self, storage: &mut impl Storage, value: &T) -> StdResult<u64> {
+    pub fn push(&mut self, storage: &mut dyn Storage, value: &T) -> StdResult<u64> {
         let index = self.increment_index(storage)?;
         ns_save(storage, self.ns, &index.to_be_bytes(), value)?;
 
@@ -46,7 +46,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     }
 
     /// Removes the item at the end of the collection.
-    pub fn pop(&mut self, storage: &mut impl Storage) -> StdResult<()> {
+    pub fn pop(&mut self, storage: &mut dyn Storage) -> StdResult<()> {
         let index = self.decrement_index(storage)?;
         ns_remove(storage, self.ns, &index.to_be_bytes());
 
@@ -54,14 +54,14 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     }
 
     #[inline]
-    pub fn get_at(&self, storage: &impl Storage, index: u64) -> StdResult<Option<T>> {
+    pub fn get_at(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<T>> {
         ns_load(storage, self.ns, &index.to_be_bytes())
     }
 
     /// Returns the value returned by the provided `update` closure or [`None`] if nothing is stored at the given `index`.
     pub fn update_at<F>(
         &self,
-        storage: &mut impl Storage,
+        storage: &mut dyn Storage,
         index: u64,
         update: F
     ) -> StdResult<Option<T>>
@@ -84,7 +84,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     /// The removed element is replaced by the last element of the storage.
     /// Does not preserve ordering.
     /// Returns the item that was swapped if such was necessary.
-    pub fn swap_remove(&mut self, storage: &mut impl Storage, index: u64) -> StdResult<Option<T>> {
+    pub fn swap_remove(&mut self, storage: &mut dyn Storage, index: u64) -> StdResult<Option<T>> {
         const ERR_MSG: &str = "IterableStorage: index out of bounds.";
 
         let len = self.len(storage)?;
@@ -111,7 +111,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
         Ok(Some(last_item))
     }
 
-    pub fn len(&self, storage: &impl Storage) -> StdResult<u64> {
+    pub fn len(&self, storage: &dyn Storage) -> StdResult<u64> {
         if let Some(len) = self.len {
             return Ok(len)
         }
@@ -121,7 +121,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
         Ok(result.unwrap_or(0))
     }
 
-    fn increment_index(&mut self, storage: &mut impl Storage) -> StdResult<u64> {
+    fn increment_index(&mut self, storage: &mut dyn Storage) -> StdResult<u64> {
         let current = self.len(storage)?;
         let new = current + 1;
 
@@ -131,7 +131,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
         Ok(current)
     }
 
-    fn decrement_index(&mut self, storage: &mut impl Storage) -> StdResult<u64> {
+    fn decrement_index(&mut self, storage: &mut dyn Storage) -> StdResult<u64> {
         let current = self.len(storage)?;
         let new = current.saturating_sub(1);
 
@@ -142,16 +142,16 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     }
 }
 
-pub struct StorageIterator<'a, 'b, T: DeserializeOwned, S: Storage> {
-    storage: &'a S,
-    ns: &'b [u8],
+pub struct StorageIterator<'storage, 'ns, T: DeserializeOwned> {
+    storage: &'storage dyn Storage,
+    ns: &'ns [u8],
     current: u64,
     end: u64,
     result: PhantomData<T>
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: Storage> StorageIterator<'a, 'b, T, S> {
-    pub fn new(storage: &'a S, ns: &'b [u8], len: u64) -> Self {
+impl<'storage, 'ns, T: DeserializeOwned> StorageIterator<'storage, 'ns, T> {
+    pub fn new(storage: &'storage dyn Storage, ns: &'ns [u8], len: u64) -> Self {
         Self {
             storage,
             ns,
@@ -166,7 +166,7 @@ impl<'a, 'b, T: DeserializeOwned, S: Storage> StorageIterator<'a, 'b, T, S> {
     }
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: Storage> Iterator for StorageIterator<'a, 'b, T, S> {
+impl<'storage, 'ns, T: DeserializeOwned> Iterator for StorageIterator<'storage, 'ns, T> {
     type Item = StdResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -197,7 +197,7 @@ impl<'a, 'b, T: DeserializeOwned, S: Storage> Iterator for StorageIterator<'a, '
     }
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: Storage> DoubleEndedIterator for StorageIterator<'a, 'b, T, S> {
+impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for StorageIterator<'storage, 'ns, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.current >= self.end {
             return None;
@@ -221,7 +221,7 @@ impl<'a, 'b, T: DeserializeOwned, S: Storage> DoubleEndedIterator for StorageIte
     }
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: Storage> ExactSizeIterator for StorageIterator<'a, 'b, T, S> { }
+impl<'storage, 'ns, T: DeserializeOwned> ExactSizeIterator for StorageIterator<'storage, 'ns, T> { }
 
 #[cfg(test)]
 mod tests {
