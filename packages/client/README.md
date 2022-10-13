@@ -1,23 +1,18 @@
+<div align="center">
+
 # Fadroma Core
 
 [![](https://img.shields.io/npm/v/@fadroma/client?color=%2365b34c&label=%40fadroma%2Fclient&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/client)
 
 Base layer for isomorphic dAPI clients.
 
-Models the domain of interacting with Cosmos-like APIs
-in 3 layers of value objects:
+For usage info see the [**Specification**](./client.spec.ts.md).
 
-* API connection and transactions:
-  * [`Chain`](./client.spec.ts.md#Chain)
-  * [`Agent`](./client.spec.ts.md#Agent)
-  * [`Bundle`](./client.spec.ts.md#Bundle)
+Run tests with `pnpm test`. Measure coverage with `pnpm cov`.[^1]
 
-* Contract lifecycle:
-  * [`Source`](./client.spec.ts.md#Source)
-  * [`Template`](./client.spec.ts.md#Template)
-  * [`Client`](./client.spec.ts.md#Client)
+Publish with `pnpm ubik`.
 
-* Contract lifecycle transformers:
-  * [`Builder`](./client.spec.ts.md#Builder)
-  * [`Uploader`](./client.spec.ts.md#Uploader)
-  * [`Contract`](./client.spec.ts.md#Contract)
+</div>
+
+[^1]: Note that stack traces in coverage mode point to the compiled code.
+      To get a same stack trace with line numbers pointing to the source run `pnpm test`.

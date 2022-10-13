@@ -311,7 +311,7 @@ export interface ContractInfo {
 }
 
 /** Create a ContractInfo from compatible objects. */
-export const templateStruct = (template: Hashed & { codeId: CodeId }): ContractInfo => ({
+export const templateStruct = (template: Hashed & { codeId?: CodeId }): ContractInfo => ({
   id:        Number(template.codeId),
   code_hash: codeHashOf(template)
 })
