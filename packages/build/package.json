@@ -9,6 +9,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "ensuite build.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- build.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- build.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {
@@ -29,6 +31,6 @@
     "simple-git": "^3.7.1"
   },
   "devDependencies": {
-    "@hackbg/ensuite": "^1"
+    "@hackbg/ensuite": "^1.1"
   }
 }

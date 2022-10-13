@@ -1,7 +1,15 @@
 # Fadroma Core Specification
 
 This is the core module of the Fadroma dApp framework.
-It contains the following features:
+
+> Run tests with `pnpm test`.
+> Measure coverage with `pnpm cov`.[^1]
+> Publish with `pnpm ubik`.
+> [^1]: Note that stack traces output by `pnpm cov` coverage mode point to line numbers in
+>       the compiled code. This is to get correct line numbers in the coverage report.
+>       To get the same stack trace with correct line numbers, run `pnpm test`.
+
+This module contains the following features:
 
 ## [Connecting to chains and broadcasting transactions](./client-connect.spec.ts.md)
 

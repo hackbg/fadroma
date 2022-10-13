@@ -1,7 +1,7 @@
 import { LocalBuilder, artifactName, sanitize } from './build-base'
 import { BuildConsole } from './build-events'
 import { getGitDir } from './build-history'
-import { Contract, HEAD } from '@fadroma/client'
+import { Contract, ContractSource, HEAD } from '@fadroma/client'
 import $ from '@hackbg/kabinet'
 import { bold } from '@hackbg/konzola'
 import { spawn } from 'node:child_process'
@@ -18,7 +18,7 @@ export class RawBuilder extends LocalBuilder {
   runtime = process.argv[0]
 
   /** Build a Source into a Template */
-  async build (source: Contract<any>): Promise<Contract<any>> {
+  async build (source: ContractSource): Promise<ContractSource & { artifact: URL }> {
     const { workspace, revision = HEAD, crate } = source
     if (!workspace) throw new Error('no workspace')
     if (!crate)     throw new Error('no crate')
