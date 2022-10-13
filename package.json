@@ -36,7 +36,6 @@
 
     "docs:homepage": "node homepage/render.js",
     "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints platforms/* --entryPoints .",
-    "docs:lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve"
@@ -80,7 +79,6 @@
     "@types/prettyjson": "^0.0.30",
     "@types/secure-random": "^1.1.0",
     "body-parser": "^1.20.0",
-    "c8": "^7.12.0",
     "concurrently": "7.2.2",
     "cross-fetch": "^3.1.5",
     "express": "^4.18.1",

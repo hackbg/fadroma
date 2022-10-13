@@ -27,7 +27,6 @@ importers:
       '@types/prettyjson': ^0.0.30
       '@types/secure-random': ^1.1.0
       body-parser: ^1.20.0
-      c8: ^7.12.0
       concurrently: 7.2.2
       cross-fetch: ^3.1.5
       express: ^4.18.1
@@ -62,7 +61,6 @@ importers:
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
-      c8: 7.12.0
       concurrently: 7.2.2
       cross-fetch: 3.1.5
       express: 4.18.1
@@ -493,7 +491,7 @@ importers:
       '@fadroma/client': workspace:^6.1
       '@fadroma/connect': workspace:^2
       '@hackbg/dokeres': workspace:^4.4.2
-      '@hackbg/ensuite': ^1
+      '@hackbg/ensuite': ^1.1
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/kabinet': workspace:^3.2.6
       '@hackbg/komandi': workspace:^6.1.2
@@ -545,7 +543,7 @@ importers:
     specifiers:
       '@fadroma/client': workspace:^6.1.2
       '@fadroma/scrt': workspace:^4.0.1
-      '@hackbg/ensuite': ^1
+      '@hackbg/ensuite': ^1.1
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/konzola': workspace:^2.1
     dependencies:

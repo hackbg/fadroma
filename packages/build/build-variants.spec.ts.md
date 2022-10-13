@@ -27,7 +27,7 @@ equal(builder.dockerfile, config.dockerfile)
 import * as Dokeres from '@hackbg/dokeres'
 ok(builder.docker instanceof Dokeres.Engine)
 
-import { Dokeres, mockDockerode } from '@hackbg/dokeres'
+import { Dokeres, Mock } from '@hackbg/dokeres'
 import { Transform } from 'stream'
 class TestDockerBuilder extends DockerBuilder {
   prebuild (source) { return false }
@@ -40,7 +40,7 @@ const workspace = Symbol('the source workspace')
 const crate = Symbol('the crate to build')
 const source = { workspace, crate }
 let ran = []
-const docker = mockDockerode(({ run: [theImage, cmd, buildLogs, args] }) {
+const docker = Mock.dockerode(({ run: [theImage, cmd, buildLogs, args] }) {
   equal(image, theImage)
   equal(cmd, `bash /build.sh HEAD empty`)
   ok(buildLogs instanceof Transform)
@@ -50,7 +50,7 @@ const docker = mockDockerode(({ run: [theImage, cmd, buildLogs, args] }) {
   ok(args.HostConfig.Binds instanceof Array)
   equal(args.HostConfig.AutoRemove, true)
 })
-image = new Dokeres.Engine(docker).image(' ')
+let image = new Dokeres.Engine(docker).image(' ')
 const script = "build.sh"
 const options = { docker, image: theImage, script }
 builder = new TestDockerBuilder(options)
