@@ -114,7 +114,7 @@ impl<P: Permission> Permit<P> {
             &self.params.permit_name,
         )?;
 
-        Ok(current_contract_addr)
+        Ok(self.address.clone().into())
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -457,6 +457,6 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(result, sender);
+        assert_eq!(Addr::unchecked(result), sender);
     }
 }
