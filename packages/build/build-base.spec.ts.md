@@ -38,6 +38,6 @@ equal(contractWithSource.repository, 'REPO')
 equal(contractWithSource.revision,   'REF')
 equal(contractWithSource.workspace,  'WORKSPACE')
 equal(contractWithSource.crate,      'CRATE')
-equal(contract.revision, 'HEAD')
+equal(contractWithSource.revision, 'REF')
 ```
 

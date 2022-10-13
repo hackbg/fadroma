@@ -1,5 +1,9 @@
 # Fadroma Builder Implementations
 
+```typescript
+import { ok, equal } from 'node:assert'
+```
+
 ## Docker Builder
 
 **DockerBuilder** (the default) launches the [**build script**](./build.impl.mjs)
@@ -11,13 +15,14 @@ in Docker container provided by [`@hackbg/dokeres`](https://www.npmjs.com/packag
   * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
 
 ```typescript
-import { BuilderConfig } from '@fadroma/build'
-builder = new BuilderConfig().getBuilder()
+import { BuilderConfig, Builder } from '@fadroma/build'
+let config: BuilderConfig = new BuilderConfig()
+let builder: Builder = config.getBuilder()
 
 import { DockerBuilder } from '@fadroma/build'
 ok(builder instanceof DockerBuilder)
-equal(builder.image.name, DockerBuilder.image)
-equal(builder.dockerfile, DockerBuilder.dockerfile)
+equal(builder.image.name, config.dockerImage)
+equal(builder.dockerfile, config.dockerfile)
 
 import * as Dokeres from '@hackbg/dokeres'
 ok(builder.docker instanceof Dokeres.Engine)
@@ -30,10 +35,12 @@ class TestDockerBuilder extends DockerBuilder {
 class TestDokeresImage extends Dokeres.Image {
   async ensure () { return theImage }
 }
-const theImage  = Symbol()
-source    = { workspace, crate }
-ran       = []
-const docker    = mockDockerode(({ run: [image, cmd, buildLogs, args] }) {
+const theImage  = Symbol('the build image')
+const workspace = Symbol('the source workspace')
+const crate = Symbol('the crate to build')
+const source = { workspace, crate }
+let ran = []
+const docker = mockDockerode(({ run: [theImage, cmd, buildLogs, args] }) {
   equal(image, theImage)
   equal(cmd, `bash /build.sh HEAD empty`)
   ok(buildLogs instanceof Transform)
@@ -43,10 +50,10 @@ const docker    = mockDockerode(({ run: [image, cmd, buildLogs, args] }) {
   ok(args.HostConfig.Binds instanceof Array)
   equal(args.HostConfig.AutoRemove, true)
 })
-image     = new Dokeres(docker).image(' ')
-const script    = "build.sh"
-const options   = { docker, image, script }
-builder   = new TestDockerBuilder(options)
+image = new Dokeres.Engine(docker).image(' ')
+const script = "build.sh"
+const options = { docker, image: theImage, script }
+builder = new TestDockerBuilder(options)
 
 // build one
 artifact  = await builder.build({ workspace, crate })
@@ -71,12 +78,10 @@ artifacts = await builder.buildMany([
 ```typescript
 import { RawBuilder } from '@fadroma/build'
 ok(new BuilderConfig({ buildRaw: true }).getBuilder() instanceof RawBuilder)
-let ran
 class TestRawBuilder Fadroma.RawBuilder { run = (...args) => ran.push(args) }
 const buildScript    = Symbol()
 const checkoutScript = Symbol()
 builder = new TestRawBuilder(buildScript, checkoutScript)
-const crate = 'empty'
 const ref   = 'ref'
 ran = []
 const sourceFromHead   = { workspace, crate }
@@ -94,7 +99,6 @@ The subclasses of **Builder** perform the builds of the specified **Source**s.
 You can obtain a **Builder** instance using **getBuilder(config: BuilderConfig)**.
 
 ```typescript
-let builder: Fadroma.Builder
 ```
 
 The outputs of builds are called **artifact**s, and are represented by two properties

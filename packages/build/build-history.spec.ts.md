@@ -1,20 +1,19 @@
 # Fadroma Build History
 
+```typescript
+import { ok, throws } from 'node:assert'
+```
+
 If `.git` directory is present, builders can check out and build a past commits of the repo,
 as specifier by `contract.revision`.
 
 ```typescript
-import { getGitDir, DotGit } from '@fadroma/build'
 import { Contract } from '@fadroma/client'
+import { getGitDir, DotGit } from '@fadroma/build'
 
-const contract = new Contract({
-  repo:      '/tmp/fadroma-test',
-  workspace: '/tmp/fadroma-test'
-})
+throws(()=>getGitDir(new Contract()))
 
-throws(()=>getGitDir(contract))
-
-const contractWithSource = contract.define({
+const contractWithSource = new Contract({
   repository: 'REPO',
   revision:   'REF',
   workspace:  'WORKSPACE'
