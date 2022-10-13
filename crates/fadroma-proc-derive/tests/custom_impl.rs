@@ -17,12 +17,12 @@ pub mod string_component {
             Ok(storage.set(KEY_STRING, &to_vec(&string)?))
         }
 
-        #[handle_guard]
+        #[execute_guard]
         fn guard(_msg: &ExecuteMsg) -> StdResult<()> {
             Ok(())
         }
 
-        #[handle]
+        #[execute]
         fn set_string(string: String) -> StdResult<Response> {
             deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
@@ -48,7 +48,7 @@ impl string_component::StringComponent for CustomStringImpl {
         Ok(String::from("hardcoded"))
     }
 
-    #[handle_guard]
+    #[execute_guard]
     fn guard(msg: &string_component::ExecuteMsg) -> StdResult<()> {
         match msg  {
             string_component::ExecuteMsg::SetString { string } => {
@@ -65,7 +65,7 @@ impl string_component::StringComponent for CustomStringImpl {
 mod test_skip {
     use super::*;
 
-    #[contract(component(path = "string_component", custom_impl = "CustomStringImpl", skip(handle)))]
+    #[contract(component(path = "string_component", custom_impl = "CustomStringImpl", skip(execute)))]
     pub trait CustomImplContractWithSkip {
         #[init]
         fn new(string: String) -> StdResult<Response> {

@@ -14,7 +14,7 @@ pub mod string_component {
             Ok(storage.set(KEY_STRING, &to_vec(&string)?))
         }
 
-        #[handle]
+        #[execute]
         fn set_string(string: String) -> StdResult<Response> {
             deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
@@ -38,7 +38,7 @@ pub mod number_interface {
         #[init]
         fn new(number: u8, string: String) -> StdResult<Response>;
 
-        #[handle]
+        #[execute]
         fn set_number(number: u8) -> StdResult<Response>;
 
         #[query]
@@ -62,7 +62,7 @@ pub mod number_contract {
             Ok(Response::default())
         }
 
-        #[handle]
+        #[execute]
         fn set_number(number: u8) -> StdResult<Response> {
             deps.storage.set(KEY_NUMBER, &to_vec(&number)?);
 

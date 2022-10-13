@@ -16,10 +16,10 @@ use crate::utils::to_pascal;
 pub const DEFAULT_IMPL_STRUCT: &str = "DefaultImpl";
 
 const INIT_MSG: &str = "InstantiateMsg";
-pub const HANDLE_MSG: &str = "ExecuteMsg";
+pub const EXECUTE_MSG: &str = "ExecuteMsg";
 const QUERY_MSG: &str = "QueryMsg";
 const INIT_FN: &str = "instantiate";
-const HANDLE_FN: &str = "execute";
+const EXECUTE_FN: &str = "execute";
 const QUERY_FN: &str = "query";
 
 const CONTRACT_ARG: &str = "contract";
@@ -30,9 +30,9 @@ pub struct Contract {
     ident: Ident,
     /// Optional because a component might not want to have an init method.
     init: Option<TraitItemMethod>,
-    handle: Vec<TraitItemMethod>,
+    execute: Vec<TraitItemMethod>,
     query: Vec<TraitItemMethod>,
-    handle_guard: Option<TraitItemMethod>,
+    execute_guard: Option<TraitItemMethod>,
 }
 
 #[derive(Clone, Copy)]
@@ -47,14 +47,14 @@ pub enum ContractType {
 
 #[derive(Clone, Copy)]
 enum MsgType {
-    Handle,
-    Query,
+    Execute,
+    Query
 }
 
 impl MsgType {
     pub fn to_ident(self) -> Ident {
         match self {
-            Self::Handle => Ident::new(HANDLE_MSG, Span::call_site()),
+            Self::Execute => Ident::new(EXECUTE_MSG, Span::call_site()),
             Self::Query => Ident::new(QUERY_MSG, Span::call_site()),
         }
     }
@@ -69,8 +69,8 @@ impl Contract {
         let args = ContractArgs::parse(args, ty)?;
 
         let mut init = None;
-        let mut handle_guard = None;
-        let mut handle = vec![];
+        let mut execute_guard = None;
+        let mut execute = vec![];
         let mut query = vec![];
 
         for item in item_trait.items.into_iter() {
@@ -93,34 +93,34 @@ impl Contract {
                             validate_method(&method, Some(parse_quote!(Response)), ty)?;
                             init = Some(method);
                         }
-                        attr::HANDLE => {
+                        attr::EXECUTE => {
                             validate_method(&method, Some(parse_quote!(Response)), ty)?;
-                            handle.push(method);
+                            execute.push(method);
                         }
                         attr::QUERY => {
                             validate_method(&method, None, ty)?;
                             query.push(method);
                         }
-                        attr::HANDLE_GUARD => {
+                        attr::EXECUTE_GUARD => {
                             if ty.is_interface() {
                                 return Err(syn::Error::new(
                                     Span::call_site(),
                                     format!(
                                         "Interfaces cannot have the \"{}\" attribute. Specify this on the implementing trait instead.",
-                                        attr::HANDLE_GUARD
+                                        attr::EXECUTE_GUARD
                                     )
                                 ));
                             }
 
-                            if handle_guard.is_some() {
+                            if execute_guard.is_some() {
                                 return Err(syn::Error::new(
                                     segment.span(),
-                                    "Only one method can be annotated as #[handle_guard].",
+                                    "Only one method can be annotated as #[execute_guard].",
                                 ));
                             }
 
                             validate_method(&method, Some(parse_quote!(())), ty)?;
-                            handle_guard = Some(method);
+                            execute_guard = Some(method);
                         }
                         _ => continue,
                     }
@@ -150,9 +150,9 @@ impl Contract {
             args,
             ident: item_trait.ident,
             init,
-            handle,
+            execute,
             query,
-            handle_guard,
+            execute_guard,
         })
     }
 
@@ -160,13 +160,13 @@ impl Contract {
         match self.ty {
             ContractType::Contract => {
                 let init_msg = self.generate_init_msg()?;
-                let handle_msg = self.generate_messages(MsgType::Handle)?;
+                let execute_msg = self.generate_messages(MsgType::Execute)?;
                 let query_msg = self.generate_messages(MsgType::Query)?;
 
                 let struct_impl = self.generate_default_impl();
 
                 let init = self.generate_init_fn()?;
-                let handle = self.generate_handle_fn()?;
+                let execute = self.generate_execute_fn()?;
                 let query = self.generate_query_fn()?;
 
                 let entry = self.generate_entry_points();
@@ -174,22 +174,22 @@ impl Contract {
                 Ok(quote! {
                     #struct_impl
                     #init_msg
-                    #handle_msg
+                    #execute_msg
                     #query_msg
                     #init
-                    #handle
+                    #execute
                     #query
                     #entry
                 })
             }
             ContractType::Interface => {
                 let init_msg = self.generate_init_msg()?;
-                let handle_msg = self.generate_messages(MsgType::Handle)?;
+                let execute_msg = self.generate_messages(MsgType::Execute)?;
                 let query_msg = self.generate_messages(MsgType::Query)?;
 
                 Ok(quote! {
                     #init_msg
-                    #handle_msg
+                    #execute_msg
                     #query_msg
                 })
             }
@@ -197,7 +197,7 @@ impl Contract {
                 let struct_impl = self.generate_default_impl();
 
                 let init = self.generate_init_fn()?;
-                let handle = self.generate_handle_fn()?;
+                let execute = self.generate_execute_fn()?;
                 let query = self.generate_query_fn()?;
 
                 let entry = self.generate_entry_points();
@@ -205,7 +205,7 @@ impl Contract {
                 Ok(quote! {
                     #struct_impl
                     #init
-                    #handle
+                    #execute
                     #query
                     #entry
                 })
@@ -227,7 +227,7 @@ impl Contract {
 
     fn generate_messages(&self, msg_type: MsgType) -> syn::Result<ItemEnum> {
         let methods = match msg_type {
-            MsgType::Handle => &self.handle,
+            MsgType::Execute => &self.execute,
             MsgType::Query => &self.query,
         };
 
@@ -254,11 +254,11 @@ impl Contract {
         }
 
         match msg_type {
-            MsgType::Handle => {
-                for component in self.args.handle_components() {
+            MsgType::Execute => {
+                for component in self.args.execute_components() {
                     result
                         .variants
-                        .push(component.create_enum_variant(HANDLE_MSG));
+                        .push(component.create_enum_variant(EXECUTE_MSG));
                 }
             }
             MsgType::Query => {
@@ -333,9 +333,9 @@ impl Contract {
         Ok(TokenStream::new())
     }
 
-    fn generate_handle_fn(&self) -> syn::Result<ItemFn> {
-        let msg = self.args.interface_path_concat(&MsgType::Handle.to_ident());
-        let fn_name = Ident::new(HANDLE_FN, Span::call_site());
+    fn generate_execute_fn(&self) -> syn::Result<ItemFn> {
+        let msg = self.args.interface_path_concat(&MsgType::Execute.to_ident());
+        let fn_name = Ident::new(EXECUTE_FN, Span::call_site());
 
         let ref trait_name = self.ident;
         let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
@@ -350,7 +350,7 @@ impl Contract {
             ) -> cosmwasm_std::StdResult<cosmwasm_std::Response> { }
         };
 
-        if let Some(guard) = &self.handle_guard {
+        if let Some(guard) = &self.execute_guard {
             let ref method_name = guard.sig.ident;
 
             result.block.stmts.push(parse_quote! {
@@ -358,7 +358,7 @@ impl Contract {
             });
         }
 
-        let match_expr = self.create_match_expr(MsgType::Handle)?;
+        let match_expr = self.create_match_expr(MsgType::Execute)?;
         result.block.stmts.push(Stmt::Expr(match_expr));
 
         Ok(result)
@@ -389,7 +389,7 @@ impl Contract {
 
     fn create_match_expr(&self, msg_type: MsgType) -> syn::Result<Expr> {
         let methods = match msg_type {
-            MsgType::Handle => &self.handle,
+            MsgType::Execute => &self.execute,
             MsgType::Query => &self.query,
         };
 
@@ -414,7 +414,7 @@ impl Contract {
             }
 
             match msg_type {
-                MsgType::Handle => {
+                MsgType::Execute => {
                     match_expr.arms.push(
                         parse_quote!(#enum_name::#variant { #args } => #arg_name.#method_name(#args deps, env, info))
                     );
@@ -432,15 +432,15 @@ impl Contract {
         }
 
         match msg_type {
-            MsgType::Handle => {
-                for component in self.args.handle_components() {
+            MsgType::Execute => {
+                for component in self.args.execute_components() {
                     let mod_name = component.mod_ident(true);
                     let ref mod_path = component.path;
                     let impl_struct = component.create_impl_struct();
-                    let handle_fn = Ident::new(HANDLE_FN, Span::call_site());
+                    let execute_fn = Ident::new(EXECUTE_FN, Span::call_site());
 
                     match_expr.arms.push(
-                        parse_quote!(#enum_name::#mod_name(msg) => #mod_path::#handle_fn(deps, env, info, msg, #impl_struct))
+                        parse_quote!(#enum_name::#mod_name(msg) => #mod_path::#execute_fn(deps, env, info, msg, #impl_struct))
                     );
                 }
             }
@@ -467,25 +467,25 @@ impl Contract {
         }
 
         let init_fn = Ident::new(INIT_FN, Span::call_site());
-        let handle_fn = Ident::new(HANDLE_FN, Span::call_site());
+        let execute_fn = Ident::new(EXECUTE_FN, Span::call_site());
         let query_fn = Ident::new(QUERY_FN, Span::call_site());
 
         let init_msg_ident = Ident::new(INIT_MSG, Span::call_site());
-        let handle_msg_ident = MsgType::Handle.to_ident();
+        let execute_msg_ident = MsgType::Execute.to_ident();
         let query_msg_ident = MsgType::Query.to_ident();
 
         // If the contract is an impl, the messages are defined in the module of the interface.
-        let (init_msg, handle_msg, query_msg): (Path, Path, Path) =
+        let (init_msg, execute_msg, query_msg): (Path, Path, Path) =
             if let Some(path) = &self.args.interface_path {
                 (
                     parse_quote!(#path::#init_msg_ident),
-                    parse_quote!(#path::#handle_msg_ident),
+                    parse_quote!(#path::#execute_msg_ident),
                     parse_quote!(#path::#query_msg_ident),
                 )
             } else {
                 (
                     parse_quote!(super::#init_msg_ident),
-                    parse_quote!(super::#handle_msg_ident),
+                    parse_quote!(super::#execute_msg_ident),
                     parse_quote!(super::#query_msg_ident),
                 )
             };
@@ -507,13 +507,13 @@ impl Contract {
                     super::#init_fn(deps, env, info, msg, super::DefaultImpl)
                 }
 
-                pub fn entry_handle(
+                pub fn entry_execute(
                     deps: DepsMut,
                     env: Env,
                     info: MessageInfo,
-                    msg: #handle_msg,
+                    msg: #execute_msg,
                 ) -> StdResult<Response> {
-                    super::#handle_fn(deps, env, info, msg, super::DefaultImpl)
+                    super::#execute_fn(deps, env, info, msg, super::DefaultImpl)
                 }
 
                 fn entry_query(
@@ -533,7 +533,7 @@ impl Contract {
 
                 #[no_mangle]
                 extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
-                    do_execute(&entry_handle, env_ptr, info_ptr, msg_ptr)
+                    do_execute(&entry_execute, env_ptr, info_ptr, msg_ptr)
                 }
 
                 #[no_mangle]

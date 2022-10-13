@@ -7,7 +7,7 @@ const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 
 #[contract]
 pub trait VkAuth {
-    #[handle]
+    #[execute]
     fn create_viewing_key(entropy: String, _padding: Option<String>) -> StdResult<Response> {
         let prng_seed = [
             env.block.time.seconds().to_be_bytes(),
@@ -22,7 +22,7 @@ pub trait VkAuth {
         Ok(Response::new().set_data(to_binary(&AuthExecuteAnswer::CreateViewingKey { key })?))
     }
 
-    #[handle]
+    #[execute]
     fn set_viewing_key(key: String, _padding: Option<String>) -> StdResult<Response> {
         let key = ViewingKey(key);
         let address = deps.api.addr_canonicalize(&info.sender.as_str())?;

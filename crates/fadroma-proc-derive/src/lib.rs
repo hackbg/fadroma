@@ -51,7 +51,7 @@ pub fn init(
 }
 
 #[proc_macro_attribute]
-pub fn handle(
+pub fn execute(
     _args: proc_macro::TokenStream,
     func: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -83,7 +83,7 @@ pub fn query(
 }
 
 #[proc_macro_attribute]
-pub fn handle_guard(
+pub fn execute_guard(
     _args: proc_macro::TokenStream,
     func: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -94,7 +94,7 @@ pub fn handle_guard(
             ast.sig.paren_token.span,
             format!(
                 "Expecting one parameter with the type: &{}",
-                contract::HANDLE_MSG
+                contract::EXECUTE_MSG
             ),
         )
         .to_compile_error();

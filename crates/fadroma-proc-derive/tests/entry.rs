@@ -12,7 +12,7 @@ pub trait StringComponent {
         Ok(Response::default())
     }
 
-    #[handle]
+    #[execute]
     fn set_string(string: String) -> StdResult<Response> {
         deps.storage.set(KEY_STRING, &to_vec(&string)?);
 

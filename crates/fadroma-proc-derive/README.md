@@ -16,13 +16,13 @@ The derive-contract macro supports the following attributes:
 | Attribute         | Description                                                                                                      |
 |-------------------|------------------------------------------------------------------------------------------------------------------|
 | **init**          | The `init` method of the contract. Only one per contract. Can be omitted if not using `entry` (in components).   |
-| **handle**        | The `handle` method of the contract. One per handle method.                                                      |
+| **execute**        | The `execute` method of the contract. One per execute method.                                                      |
 | **query**         | The `query` method of the contract. One per query method.                                                        |
-| **handle_guard**  | A function marked with this will be called before any handle method execution. Only one per contract (optional). |
+| **execute_guard**  | A function marked with this will be called before any execute method execution. Only one per contract (optional). |
 | **component**     | Used to include a component.                                                                                     |
 | **entry**         | Signals that WASM entry points should be generated for the current contract.                                     |
 | **path**          | Specifies a path to a type or a namespace.                                                                       |
-| **skip**          | Used to not include a handle/query of the component.                                                             |
+| **skip**          | Used to not include a execute/query of the component.                                                             |
 | **custom_impl**   | Used to provide a custom implementation of a component instead of using the auto generated default trait impl.   |
 
 ## **Usage**
@@ -30,15 +30,19 @@ Since their usage is always a fact, we decided to implicitly include the `Env` a
 
 |Attribute    |Parameter name|Parameter type    |
 |-------------|--------------|------------------|
-|init         |deps          |&mut Extern<S,A,Q>|
+|init         |deps          |DepsMut           |
 |init         |env           |Env               |
-|handle       |deps          |&mut Extern<S,A,Q>|
-|handle       |env           |Env               |
-|query        |deps          |&Extern<S,A,Q>    |
-|handle_guard |deps          |&mut Extern<S,A,Q>|
-|handle_guard |env           |&Env              |
+|init         |info          |MessageInfo       |
+|execute       |deps          |DepsMut           |
+|execute       |env           |Env               |
+|execute       |info          |MessageInfo       |
+|query        |deps          |Deps              |
+|query        |env           |Env               |
+|execute_guard |deps          |DepsMut           |
+|execute_guard |env           |&Env              |
+|execute_guard |info          |&MessageInfo      |
 
-The names of the methods annotated with `handle` and `query` are used as the enum messsage variants (converted to pascal case) in their respective definitions.
+The names of the methods annotated with `execute` and `query` are used as the enum messsage variants (converted to pascal case) in their respective definitions.
 
 ## **Basic contract**
 ```rust
@@ -46,13 +50,13 @@ The names of the methods annotated with `handle` and `query` are used as the enu
 #[contract(entry)]
 pub trait Contract {
     #[init]
-    fn new(config: Config) -> StdResult<InitResponse> {
-        Ok(InitResponse::default())
+    fn new(config: Config) -> StdResult<Response> {
+        Ok(Response::default())
     }
 
-    #[handle]
-    fn set_config(config: Config) -> StdResult<HandleResponse> {
-        Ok(HandleResponse::default())
+    #[execute]
+    fn set_config(config: Config) -> StdResult<Response> {
+        Ok(Response::default())
     }
 
     #[query]
@@ -67,89 +71,134 @@ pub struct Config;
 To get a better idea of what the macro actually does, the above code is equivalent to the following (without including WASM boilerplate):
 ```rust
 pub trait Contract {
-    fn new<S: Storage, A: Api, Q: Querier>(
+    fn new(
         &self,
         config: Config,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
-    ) -> StdResult<InitResponse> {
-        Ok(InitResponse::default())
+        mut deps: cosmwasm_std::DepsMut,
+        env: cosmwasm_std::Env,
+        info: cosmwasm_std::MessageInfo,
+    ) -> StdResult<Response> {
+        Ok(Response::default())
     }
-    fn set_config<S: Storage, A: Api, Q: Querier>(
+
+    fn set_config(
         &self,
         config: Config,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
-    ) -> StdResult<HandleResponse> {
-        Ok(HandleResponse::default())
+        mut deps: cosmwasm_std::DepsMut,
+        env: cosmwasm_std::Env,
+        info: cosmwasm_std::MessageInfo,
+    ) -> StdResult<Response> {
+        Ok(Response::default())
     }
-    fn get_config<S: Storage, A: Api, Q: Querier>(
-        &self,
-        deps: &Extern<S, A, Q>,
-    ) -> StdResult<Config> {
+
+    fn get_config(&self, deps: cosmwasm_std::Deps, env: cosmwasm_std::Env) -> StdResult<Config> {
         Ok(Config)
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct DefaultImpl;
 
 impl Contract for DefaultImpl {}
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct InitMsg {
+#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema, Debug)]
+pub struct InstantiateMsg {
     pub config: Config,
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
-pub enum HandleMsg {
+pub enum ExecuteMsg {
     SetConfig { config: Config },
 }
 
-#[derive(Serialize, Deserialize, JsonSchema)]
+#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum QueryMsg {
     GetConfig {},
 }
 
-pub fn init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: InitMsg,
+pub fn instantiate(
+    deps: cosmwasm_std::DepsMut,
+    env: cosmwasm_std::Env,
+    info: cosmwasm_std::MessageInfo,
+    msg: InstantiateMsg,
     contract: impl Contract,
-) -> StdResult<InitResponse> {
-    contract.new(msg.config, deps, env)
+) -> cosmwasm_std::StdResult<cosmwasm_std::Response> {
+    contract.new(msg.config, deps, env, info)
 }
-pub fn handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: HandleMsg,
+
+pub fn execute(
+    mut deps: cosmwasm_std::DepsMut,
+    env: cosmwasm_std::Env,
+    info: cosmwasm_std::MessageInfo,
+    msg: ExecuteMsg,
     contract: impl Contract,
-) -> StdResult<HandleResponse> {
+) -> cosmwasm_std::StdResult<cosmwasm_std::Response> {
     match msg {
-        HandleMsg::SetConfig { config } => contract.set_config(config, deps, env),
+        ExecuteMsg::SetConfig { config } => contract.set_config(config, deps, env, info),
     }
 }
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
+
+pub fn query(
+    deps: cosmwasm_std::Deps,
+    env: cosmwasm_std::Env,
     msg: QueryMsg,
     contract: impl Contract,
-) -> StdResult<Binary> {
+) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
     match msg {
         QueryMsg::GetConfig {} => {
-            let result = contract.get_config(deps)?;
-            to_binary(&result)
+            let result = contract.get_config(deps, env)?;
+            cosmwasm_std::to_binary(&result)
         }
     }
 }
 
-#[derive(Serialize, Deserialize, JsonSchema, Debug)]
-pub struct Config;
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    use super::cosmwasm_std::{
+        do_execute, do_instantiate, do_query, to_binary, Deps, DepsMut, Env, MessageInfo,
+        QueryResponse, Response, StdResult,
+    };
 
--- WASM boilerplate omitted --
+    fn entry_init(
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        msg: super::InstantiateMsg,
+    ) -> StdResult<Response> {
+        super::instantiate(deps, env, info, msg, super::DefaultImpl)
+    }
+
+    pub fn entry_execute(
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        msg: super::ExecuteMsg,
+    ) -> StdResult<Response> {
+        super::execute(deps, env, info, msg, super::DefaultImpl)
+    }
+
+    fn entry_query(deps: Deps, env: Env, msg: super::QueryMsg) -> StdResult<QueryResponse> {
+        let result = super::query(deps, env, msg, super::DefaultImpl)?;
+        to_binary(&result)
+    }
+
+    #[no_mangle]
+    extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+        do_instantiate(&entry_init, env_ptr, info_ptr, msg_ptr)
+    }
+
+    #[no_mangle]
+    extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+        do_execute(&entry_execute, env_ptr, info_ptr, msg_ptr)
+    }
+    
+    #[no_mangle]
+    extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
+        do_query(&entry_query, env_ptr, msg_ptr)
+    }
+}
 ```
 
 ## **With an interface**
@@ -158,10 +207,10 @@ pub struct Config;
 #[interface]
 pub trait Contract {
     #[init]
-    pub fn new(config: Config) -> StdResult<InitResponse>;
+    pub fn new(config: Config) -> StdResult<Response>;
 
-    #[handle]
-    pub fn set_config(config: Config) -> StdResult<HandleResponse>;
+    #[execute]
+    pub fn set_config(config: Config) -> StdResult<Response>;
 
     #[query]
     pub fn get_config() -> StdResult<Config>;
@@ -174,13 +223,13 @@ pub struct Config;
 #[contract_impl(entry, path="shared::interfaces::contract")]
 pub trait Contract {
     #[init]
-    fn new(config: Config) -> StdResult<InitResponse> {
-        Ok(InitResponse::default())
+    fn new(config: Config) -> StdResult<Response> {
+        Ok(Response::default())
     }
 
-    #[handle]
-    fn set_config(config: Config) -> StdResult<HandleResponse> {
-        Ok(HandleResponse::default())
+    #[execute]
+    fn set_config(config: Config) -> StdResult<Response> {
+        Ok(Response::default())
     }
 
     #[query]
@@ -191,14 +240,14 @@ pub trait Contract {
 
 // some other contract
 // contracts/other_contract.rs
-use shared::interfaces::contract::{HandleMsg, QueryMsg};
+use shared::interfaces::contract::{ExecuteMsg, QueryMsg};
 -- snip --
 ```
-This code will generate the necessary entry points and dispatch functions using the messages exported by the interface module. The interface definition only generates the `InitMsg`, `HandleMsg` and `QueryMsg` types. In addition, its methods cannot have a default implementation. Note that the interface definition and the implementing contract cannot go out of sync since any deviation between the two will result in compile errors.
+This code will generate the necessary entry points and dispatch functions using the messages exported by the interface module. The interface definition only generates the `InstantiateMsg`, `ExecuteMsg` and `QueryMsg` types. In addition, its methods cannot have a default implementation. Note that the interface definition and the implementing contract cannot go out of sync since any deviation between the two will result in compile errors.
 
-## **Handle guard**
+## **Execute guard**
 
-A handle guard function is a special function that is called before matching the `HandleMsg` enum inside the `handle` function both of which are generated by the macro. It **must** take no arguments, return `StdResult<()>` and is annotated with the `handle_guard` attribute. Only **one** such function can exist per contract definition. It is useful in cases where we want to assert some state before proceeding with executing the incoming message and fail before that if necessary. For example, it should be used with the Fadroma killswitch component. Inside the handle guard we check whether the contract is pausing or migrated and return an `Err(())` if so.
+A execute guard function is a special function that is called before matching the `ExecuteMsg` enum inside the `execute` function both of which are generated by the macro. It **must** take no arguments and be annotated with the `execute_guard` attribute. Only **one** such function can exist per contract definition. It is useful in cases where we want to assert some state before proceeding with executing the incoming message and fail before that if necessary. For example, it should be used with the Fadroma killswitch component. Inside the execute guard we check whether the contract is pausing or migrated and return an `Err(())` if so.
 
 ## **Components**
 
@@ -220,24 +269,24 @@ or when implementing an interface:
     component(path = "fadroma::killswitch")
 )]
 ```
-The macro will include their handle and query message enums in the current message enums as tuple variants. The name of the variant is derived from the last segment in the `path` argument of the component. For example, the above code will generate the following handle message:
+The macro will include their execute and query message enums in the current message enums as tuple variants. The name of the variant is derived from the last segment in the `path` argument of the component. For example, the above code will generate the following execute message:
 
 ```rust
-pub enum HandleMsg {
-    Admin(fadroma::admin::HandleMsg),
-    Killswitch(fadroma::killswitch::HandleMsg)
+pub enum ExecuteMsg {
+    Admin(fadroma::admin::ExecuteMsg),
+    Killswitch(fadroma::killswitch::ExecuteMsg)
     // .. other variants
 }
 ```
 
 ### **skip**
-A component may not implement any query or handle methods (like the Fadroma auth component). In that case those should be skipped in the importing contract messages by specifying the `skip` attribute like so:
+A component may not implement any query or execute methods (like the Fadroma auth component). In that case those should be skipped in the importing contract messages by specifying the `skip` attribute like so:
 ```rust
 #[contract(
     component(path = "fadroma::auth", skip(query)),
 )]
 ```
-Valid tokens are `query` and `handle`. Both can be used at the same time as well.
+Valid tokens are `query` and `execute`. Both can be used at the same time as well.
 
 ## **custom_impl**
 Sometimes we may want to use a component but change the implementation of one (or many) of its methods. In that case all we need to do is implement the component trait on a new empty struct (like we'd normally do in Rust) and specify its name in the component definition using the `custom_impl` attribute. By default the macro will use the `DefaultImpl` struct which it generates for every `contract` and `contract_impl`. If we wanted to use our custom implementation it would look like this:

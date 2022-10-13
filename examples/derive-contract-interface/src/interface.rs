@@ -6,16 +6,16 @@ pub trait Contract {
     #[init]
     fn new(initial_value: u64) -> StdResult<Response>;
 
-    #[handle]
+    #[execute]
     fn add(value: u64) -> StdResult<Response>;
 
-    #[handle]
+    #[execute]
     fn sub(value: u64) -> StdResult<Response>;
 
-    #[handle]
+    #[execute]
     fn mul(value: u64) -> StdResult<Response>;
 
-    #[handle]
+    #[execute]
     fn div(value: u64) -> StdResult<Response>;
 
     #[query]

@@ -20,7 +20,7 @@ pub trait Contract {
         Ok(Response::default())
     }
 
-    #[handle]
+    #[execute]
     fn add(value: u64) -> StdResult<Response> {
         let mut state = State::load_state(deps.storage)?;
 
@@ -30,7 +30,7 @@ pub trait Contract {
         Ok(Response::default())
     }
 
-    #[handle]
+    #[execute]
     fn sub(value: u64) -> StdResult<Response> {
         let mut state = State::load_state(deps.storage)?;
 
@@ -40,7 +40,7 @@ pub trait Contract {
         Ok(Response::default())
     }
 
-    #[handle]
+    #[execute]
     fn mul(value: u64) -> StdResult<Response> {
         let mut state = State::load_state(deps.storage)?;
 
@@ -50,7 +50,7 @@ pub trait Contract {
         Ok(Response::default())
     }
 
-    #[handle]
+    #[execute]
     fn div(value: u64) -> StdResult<Response> {
         let mut state = State::load_state(deps.storage)?;
 

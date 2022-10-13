@@ -19,7 +19,7 @@ pub const PREFIX: &[u8] = b"fadroma_migration_state";
 /// Requires the admin component in order to check for admin.
 #[contract]
 pub trait Killswitch {
-    #[handle]
+    #[execute]
     fn set_status(
         level: ContractStatusLevel,
         reason: String,

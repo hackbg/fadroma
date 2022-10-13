@@ -24,7 +24,7 @@ pub trait Admin {
         Ok(Response::default())
     }
 
-    #[handle]
+    #[execute]
     fn change_admin(address: String) -> StdResult<Response> {
         assert_admin(deps.as_ref(), &info)?;
 
@@ -34,7 +34,7 @@ pub trait Admin {
         Ok(Response::new().add_attribute("pending_admin", address))
     }
 
-    #[handle]
+    #[execute]
     fn accept_admin() -> StdResult<Response> {
         let pending = load_pending_admin(deps.as_ref())?;
 
