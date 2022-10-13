@@ -19,6 +19,9 @@ It defines the following entities:
   from environment variables. Uses `@hackbg/konfizi`.
 * `LocalBuilder`: base class for compiling contracts
   on the developer's workstation.
+  * Implements basic **build caching**: existing build artifacts are reused.
+    Invalidation is manual (delete artifact to rebuild).
+
 * **WIP:** `RemoteBuilder`: base class for compiling
   contracts using remote resources.
 
@@ -26,15 +29,14 @@ It defines the following entities:
 import './build-base.spec.ts.md'
 ```
 
-## Builder variants: [Raw](./build-raw.spec.ts.md), [Dockerized](./build-docker.spec.ts.md)
+## [Builder variants](./build-variants.spec.ts.md)
 
 * `build.impl.js`, the build script
   * `RawBuilder`, which runs it using the local Rust toolchain.
   * `DockerBuilder`, which runs it in a Docker container
 
 ```typescript
-import './build-raw.spec.ts.md'
-import './build-docker.spec.ts.md'
+import './build-variants.spec.ts.md'
 ```
 
 ## [Build from Git history](./build-history.spec.ts.md)
@@ -47,4 +49,19 @@ import './build-docker.spec.ts.md'
 
 ```typescript
 import './build-history.spec.ts.md'
+```
+
+## [Build errors and event logging](./build-events.spec.ts.md)
+
+```typescript
+import './build-events.spec.ts.md'
+```
+
+## WIP: Build CLI
+
+The `buildCrates` entrypoint and `fadroma-build` command
+are to be considered **unstable**.
+
+```typescript
+// import './build.cli.spec.ts.md'
 ```
