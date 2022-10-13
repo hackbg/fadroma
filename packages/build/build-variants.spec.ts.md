@@ -11,8 +11,8 @@ in Docker container provided by [`@hackbg/dokeres`](https://www.npmjs.com/packag
   * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
 
 ```typescript
-import { getBuilder } from '@fadroma/build'
-builder = getBuilder()
+import { BuilderConfig } from '@fadroma/build'
+builder = new BuilderConfig().getBuilder()
 
 import { DockerBuilder } from '@fadroma/build'
 ok(builder instanceof DockerBuilder)
@@ -22,12 +22,12 @@ equal(builder.dockerfile, DockerBuilder.dockerfile)
 import * as Dokeres from '@hackbg/dokeres'
 ok(builder.docker instanceof Dokeres.Engine)
 
-import { Dokeres, DokeresImage, mockDockerode } from '@hackbg/dokeres'
+import { Dokeres, mockDockerode } from '@hackbg/dokeres'
 import { Transform } from 'stream'
 class TestDockerBuilder extends DockerBuilder {
   prebuild (source) { return false }
 }
-class TestDokeresImage extends DokeresImage {
+class TestDokeresImage extends Dokeres.Image {
   async ensure () { return theImage }
 }
 const theImage  = Symbol()
@@ -70,7 +70,7 @@ artifacts = await builder.buildMany([
 
 ```typescript
 import { RawBuilder } from '@fadroma/build'
-ok(getBuilder({ buildRaw: true }) instanceof RawBuilder)
+ok(new BuilderConfig({ buildRaw: true }).getBuilder() instanceof RawBuilder)
 let ran
 class TestRawBuilder Fadroma.RawBuilder { run = (...args) => ran.push(args) }
 const buildScript    = Symbol()
@@ -105,8 +105,7 @@ of **Template**:
     instantiated contracts.
 
 ```typescript
-import { getBuilder } from '.'
-builder = getBuilder()
+builder = new BuildConfig().getBuilder()
 
 import { DockerBuilder } from '.'
 ok(builder instanceof DockerBuilder)
@@ -123,14 +122,14 @@ ok(builder.docker instanceof Dokeres.Engine)
 const artifact: URL = new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm')
 
 const builders = [
-  getBuilder({
+  new BuildConfig({
     docker:     Dokeres.Engine.mock(),
     dockerfile: '/path/to/a/Dockerfile',
     image:      'my-custom/build-image:version'
-  }),
-  getBuilder({
+  }).getBuilder(),
+  new BuildConfig({
     buildRaw: true
-  }),
+  }).getBuilder(),
   new class TestBuilder1 extends Fadroma.Builder {
     async build (source: Source): Promise<Template> {
       return { location: '', codeHash: '', source }
@@ -171,7 +170,7 @@ for (const builder of builders) {
   for a corresponding pre-existing build and reuses it if present.
 
 ```typescript
-equal(typeof getBuilder().caching, 'boolean')
+equal(typeof new BuildConfig().getBuilder().caching, 'boolean')
 ```
 
 ## Build caching

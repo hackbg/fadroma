@@ -38,9 +38,14 @@ Agent variants:
   supported in secretjs 0.17.5 and older.
 
 ```typescript
+const mnemonics = [
+  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
+  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
+]
+
 for (const Chain of supportedChains) {
   const chain    = new Chain('test', {})
-  const mnemonic = Testing.mnemonics[0]
+  const mnemonic = mnemonics[0]
   const agent    = await chain.getAgent({ mnemonic })
   assert.equal(agent.chain,    chain)
   assert.equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
@@ -51,7 +56,7 @@ for (const Chain of [
 ]) {
   await Testing.withMockAPIEndpoint(async endpoint => {
     const chain    = new Chain('test', { url: endpoint.url })
-    const mnemonic = Testing.mnemonics[0]
+    const mnemonic = mnemonics[0]
     const agent    = await chain.getAgent({ mnemonic })
     const [ {header:{height:block1}}, account1, balance1 ] =
       await Promise.all([ agent.block, agent.account, agent.balance ])

@@ -8,7 +8,7 @@ import assert, { ok, equal, deepEqual, throws } from 'assert'
 ## Specifying projects and sources
 
 The `Contract` class has the following properties for specifying the source.
-Use `contract.define({ key: value })` to define their values.
+Use `contract.provide({ key: value })` to define their values.
 This returns a new copy of `contract` without modifying the original one.
 
 * `contract.repository: Path|URL` points to the Git repository containing the contract sources.
@@ -28,7 +28,7 @@ const contract = new Fadroma.Contract({
   repo:      '/tmp/fadroma-test',
   workspace: '/tmp/fadroma-test'
 })
-const contractWithSource = contract.define({
+const contractWithSource = contract.provide({
   repository: 'REPO',
   revision:   'REF',
   workspace:  'WORKSPACE'

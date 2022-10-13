@@ -7,11 +7,14 @@ import { ok, equal, deepEqual, throws } from 'assert'
 ## Token contract client
 
 ```typescript
-import { Snip20, createPermitMsg } from '.'
-
+import { Snip20 } from '@fadroma/tokens'
 new Snip20()
-deepEqual(Snip20.fromDescriptor(null, custom).asDescriptor, custom)
+```
 
+### Query permits
+
+```typescript
+import { createPermitMsg } from '@fadroma/tokens'
 createPermitMsg()
 ```
 
@@ -21,26 +24,22 @@ This object keeps track of token contracts in a deployment,
 and can deploy them on demand.
 
 ```typescript
-import { TokenManager, TokenError } from '.'
+import { TokenManager, TokenError } from '@fadroma/tokens'
 
 const registry = new TokenManager({})
 throws(()=>registry.get())
 throws(()=>registry.get('UNKNOWN'))
 
-const token = Symbol()
+const token = {}
 ok(registry.add('KNOWN', token))
-throws(()=>registry.add('KNOWN', token))
 ok(registry.has('KNOWN'))
-equal(registry.get('KNOWN'), token)
-ok(registry.set('KNOWN', null))
-throws(()=>registry.get('KNOWN'))
-ok(registry.add('KNOWN', token))
 equal(registry.get('KNOWN'), token)
 
 new TokenError()
 
+import { Contract, ContractTemplate } from '@fadroma/client'
 const registry2 = new TokenManager({
-  contract: (options) => new Contract(options)
+  template: (options) => new Contract(options)
 }, new ContractTemplate({
   crate: 'snip20'
 }))

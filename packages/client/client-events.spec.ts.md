@@ -44,4 +44,16 @@ new ClientConsole().warnCodeHashMismatch()
 new ClientConsole().confirmCodeHash()
 new ClientConsole().waitingForNextBlock()
 new ClientConsole().warnEmptyBundle()
+new ClientConsole().chainStatus({})
+new ClientConsole().chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+})
+new ClientConsole().chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] } }
+})
+new ClientConsole().chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] }, active: { name: 4 } }
+})
 ```
