@@ -9,6 +9,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "ensuite connect.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- connect.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- connect.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
