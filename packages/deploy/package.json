@@ -7,10 +7,9 @@
   "bin": { "fadroma-deploy": "deploy.cli.cjs" },
   "description": "Upload and instantiate smart contracts.",
   "scripts": {
-    "test":        "ganesha-node deploy.spec.ts.md",
-    "check":       "tsc --noEmit",
-    "release:dry": "npm test && npm run ts:check && ubik dry",
-    "release:wet": "npm test && npm run ts:check && ubik wet --access=public"
+    "check": "tsc --noEmit",
+    "test":  "ensuite deploy.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5",
@@ -34,7 +33,7 @@
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.2.5",
+    "@hackbg/ensuite": "^1",
     "@hackbg/dokeres": "workspace:^4.4.2"
   }
 }

@@ -1,3 +1,3 @@
-[submodule "toolbox"]
-	path = toolbox
-	url = git@github.com:hackbg/toolbox.git
+[submodule "ensuite"]
+	path = ensuite
+	url = git@github.com:hackbg/ensuite.git

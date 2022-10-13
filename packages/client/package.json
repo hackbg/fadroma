@@ -5,9 +5,9 @@
   "main":    "client.ts",
   "files": [ "*.ts" ],
   "scripts": {
-    "test":  "ganesha-node client-contract.spec.ts.md",
-    "cov":   "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages -n platforms -n toolbox ensuite SPEC.ts.md",
     "check": "tsc --noEmit",
+    "test":  "ensuite client.spec.ts.md",
+    "cov":   "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages -n platforms -n toolbox ensuite SPEC.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
@@ -15,6 +15,6 @@
     "@hackbg/komandi": "^6.1.2"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.2.5"
+    "@hackbg/ensuite": "^1"
   }
 }

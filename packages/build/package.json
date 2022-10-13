@@ -7,8 +7,8 @@
   "description": "Build smart contracts with or without container.",
   "bin": { "fadroma-build": "build.cli.cjs" },
   "scripts": {
-    "test":  "ganesha-node build.spec.ts.md",
     "check": "tsc --noEmit",
+    "test":  "ensuite build.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {
@@ -29,6 +29,6 @@
     "simple-git": "^3.7.1"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.2.5"
+    "@hackbg/ensuite": "^1"
   }
 }

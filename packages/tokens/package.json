@@ -12,10 +12,10 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ganesha-node tokens.spec.ts.md",
+    "test":  "ensuite tokens.spec.ts.md",
     "ubik":  "npm run check && ubik"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.2.5"
+    "@hackbg/ensuite": "^1"
   }
 }

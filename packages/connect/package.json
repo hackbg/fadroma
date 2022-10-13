@@ -7,9 +7,9 @@
   "bin": { "fadroma-connect": "connect.cli.cjs" },
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && ubik dry",
-    "release:wet": "pnpm ts:check && ubik wet --access=public"
+    "check": "tsc --noEmit",
+    "test":  "ensuite connect.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
     "@fadroma/client":     "workspace:^6.1",
@@ -27,5 +27,8 @@
   "peerDependenciesMeta": {
     "@fadroma/devnet": { "optional": true, "description": "For connecting to local devnet." },
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-connect command." }
+  },
+  "devDependencies": {
+    "@hackbg/ensuite": "^1"
   }
 }

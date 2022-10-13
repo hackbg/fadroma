@@ -10,9 +10,12 @@
     "@hackbg/formati": "workspace:^5.1.1",
     "@fadroma/client": "workspace:^6.1"
   },
+  "devDependencies": {
+    "@hackbg/ensuite": "^1.0.2"
+  },
   "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && ubik dry",
-    "release:wet": "pnpm ts:check && ubik wet --access=public"
+    "check": "tsc --noEmit",
+    "ubik":  "npm run check && ubik",
+    "test":  "ensuite scrt-amino.spec.ts.md"
   }
 }
