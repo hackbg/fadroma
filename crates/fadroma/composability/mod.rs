@@ -1,17 +1,17 @@
 //! *Feature flag: `composability`*
 //! Modular contracts using native trait composition.
 
-use serde::{de::DeserializeOwned, Serialize};
-use crate::{
-    prelude::*,
-    storage::{
-        load, save, remove, concat,
-        namespace::{key_prefix, key_prefix_nested}
-    }
-};
-
 #[cfg(not(target_arch = "wasm32"))]
 pub mod tester;
+mod namespace;
+
+use serde::{de::DeserializeOwned, Serialize};
+use namespace::{key_prefix, key_prefix_nested};
+
+use crate::{
+    prelude::*,
+    storage::{load, save, remove, concat}
+};
 
 pub trait Composable:
     StorageWrapper + MutableStorageWrapper + ApiWrapper + QuerierWrap {}

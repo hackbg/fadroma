@@ -9,8 +9,8 @@ use fadroma_platform_scrt::cosmwasm_std::{
 #[inline]
 pub fn save <T: Serialize> (
     storage: &mut dyn Storage,
-    key:     &[u8],
-    value:   &T
+    key: &[u8],
+    value: &T
 ) -> StdResult<()> {
     storage.set(key, &to_vec(value)?);
     Ok(())
@@ -20,7 +20,7 @@ pub fn save <T: Serialize> (
 #[inline]
 pub fn remove (
     storage: &mut dyn Storage,
-    key:     &[u8]
+    key: &[u8]
 ) {
     storage.remove(key);
 }
@@ -29,10 +29,10 @@ pub fn remove (
 #[inline]
 pub fn load <T: DeserializeOwned> (
     storage: &dyn Storage,
-    key:     &[u8]
+    key: &[u8]
 ) -> StdResult<Option<T>> {
     match storage.get(key) {
-        Some(data) => from_slice(&data),
+        Some(data) => Ok(Some(from_slice(&data)?)),
         None => Ok(None)
     }
 }
@@ -42,8 +42,8 @@ pub fn load <T: DeserializeOwned> (
 pub fn ns_save <T: Serialize> (
     storage: &mut dyn Storage,
     namespace: &[u8],
-    key:       &[u8],
-    value:     &T
+    key: &[u8],
+    value: &T
 ) -> StdResult<()> {
     storage.set(&concat(namespace, key), &to_vec(value)?);
     Ok(())
@@ -54,7 +54,7 @@ pub fn ns_save <T: Serialize> (
 pub fn ns_remove(
     storage: &mut dyn Storage,
     namespace: &[u8],
-    key:       &[u8]
+    key: &[u8]
 ) {
     let key = concat(namespace, key);
     storage.remove(&key);
@@ -65,7 +65,7 @@ pub fn ns_remove(
 pub fn ns_load <T: DeserializeOwned> (
     storage: &dyn Storage,
     namespace: &[u8],
-    key:       &[u8]
+    key: &[u8]
 ) -> StdResult<Option<T>> {
     load(storage, &concat(namespace, key))
 }
@@ -74,9 +74,10 @@ pub fn ns_load <T: DeserializeOwned> (
 #[inline]
 pub fn concat(
     namespace: &[u8],
-    key:       &[u8]
+    key: &[u8]
 ) -> Vec<u8> {
     let mut k = namespace.to_vec();
     k.extend_from_slice(key);
+    
     k
 }
