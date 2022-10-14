@@ -1,9 +1,12 @@
 use std::marker::PhantomData;
 
-use crate::prelude::*;
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+
+use crate::{
+    prelude::*,
+    snip20::client::msg::{Tx, RichTx, TxAction}
+};
 
 use super::state::Config;
 
@@ -13,63 +16,6 @@ const NS_TRANSFERS: &[u8] = b"transfers";
 const NS_USER_TX_INDEX: &[u8] = b"u_tx_index";
 
 type UserTxIndex = u32;
-
-// Note that id is a globally incrementing counter.
-// Since it's 64 bits long, even at 50 tx/s it would take
-// over 11 billion years for it to rollback. I'm pretty sure
-// we'll have bigger issues by then.
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
-pub struct Tx {
-    pub id: u64,
-    pub from: Addr,
-    pub sender: Addr,
-    pub receiver: Addr,
-    pub coins: Coin,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub memo: Option<String>,
-    // The block time and block height are optional so that the JSON schema
-    // reflects that some SNIP-20 contracts may not include this info.
-    pub block_time: Option<u64>,
-    pub block_height: Option<u64>,
-}
-
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum TxAction {
-    Transfer {
-        from: Addr,
-        sender: Addr,
-        recipient: Addr,
-    },
-    Mint {
-        minter: Addr,
-        recipient: Addr,
-    },
-    Burn {
-        burner: Addr,
-        owner: Addr,
-    },
-    Deposit {},
-    Redeem {},
-}
-
-// Note that id is a globally incrementing counter.
-// Since it's 64 bits long, even at 50 tx/s it would take
-// over 11 billion years for it to rollback. I'm pretty sure
-// we'll have bigger issues by then.
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub struct RichTx {
-    pub id: u64,
-    pub action: TxAction,
-    pub coins: Coin,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub memo: Option<String>,
-    pub block_time: u64,
-    pub block_height: u64,
-}
-
-// Stored types:
 
 /// This type is the stored version of the legacy transfers
 #[derive(Serialize, Deserialize, Clone, Debug)]

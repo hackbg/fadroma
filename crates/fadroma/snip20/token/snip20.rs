@@ -1,11 +1,16 @@
-use crate::{prelude::*, vk::VIEWING_KEY_SIZE};
+use crate::{
+    prelude::*,
+    vk::VIEWING_KEY_SIZE,
+    snip20::client::msg::{
+        ExecuteAnswer, ExecuteMsg, QueryAnswer, QueryMsg, QueryPermission,
+        QueryWithPermit, ResponseStatus, ContractStatusLevel, MintAction,
+        SendAction, BurnFromAction, SendFromAction, TransferFromAction,
+        TransferAction, TokenInfo
+    }
+};
 
 use super::{
-    batch,
-    msg::{
-        ContractStatusLevel, ExecuteAnswer, ExecuteMsg, InstantiateMsg, QueryAnswer, QueryMsg,
-        QueryPermission, QueryWithPermit, ResponseStatus,
-    },
+    msg::InstantiateMsg,
     receiver::Snip20ReceiveMsg,
     state::{get_admin, set_admin, Account, Allowance, Config, Constants},
     transaction_history::{
@@ -879,7 +884,7 @@ pub trait Snip20 {
         mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        actions: Vec<batch::TransferAction>,
+        actions: Vec<TransferAction>,
     ) -> StdResult<Response> {
         let sender = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
 
@@ -908,7 +913,7 @@ pub trait Snip20 {
         mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        actions: Vec<batch::SendAction>,
+        actions: Vec<SendAction>,
     ) -> StdResult<Response> {
         let sender = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
 
@@ -943,7 +948,7 @@ pub trait Snip20 {
         mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        actions: Vec<batch::TransferFromAction>,
+        actions: Vec<TransferFromAction>,
     ) -> StdResult<Response> {
         let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
 
@@ -974,7 +979,7 @@ pub trait Snip20 {
         mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        actions: Vec<batch::SendFromAction>,
+        actions: Vec<SendFromAction>,
     ) -> StdResult<Response> {
         let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
 
@@ -1011,7 +1016,7 @@ pub trait Snip20 {
         deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        actions: Vec<batch::BurnFromAction>,
+        actions: Vec<BurnFromAction>,
     ) -> StdResult<Response> {
         let constants = Config::get_constants(deps.storage)?;
         if !constants.burn_is_enabled {
@@ -1066,7 +1071,7 @@ pub trait Snip20 {
         deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        actions: Vec<batch::MintAction>,
+        actions: Vec<MintAction>,
     ) -> StdResult<Response> {
         let constants = Config::get_constants(deps.storage)?;
         if !constants.mint_is_enabled {
@@ -1172,12 +1177,12 @@ pub trait Snip20 {
             None
         };
 
-        to_binary(&QueryAnswer::TokenInfo {
+        to_binary(&QueryAnswer::TokenInfo(TokenInfo {
             name: constants.name,
             symbol: constants.symbol,
             decimals: constants.decimals,
             total_supply,
-        })
+        }))
     }
 
     fn query_contract_status(&self, deps: Deps, _env: Env) -> StdResult<Binary> {

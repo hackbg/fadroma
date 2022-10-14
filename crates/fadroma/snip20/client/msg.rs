@@ -1,154 +1,8 @@
-#![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
-
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
-use super::{
-    batch,
-    transaction_history::{RichTx, Tx}
-};
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct InitialBalance {
-    pub address: String,
-    pub amount: Uint128,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct InitialAllowance {
-    pub owner: Addr,
-    pub spender: Addr,
-    pub amount: Uint128,
-    pub expiration: Option<u64>,
-}
-
-#[derive(Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct InstantiateMsg {
-    pub name: String,
-    pub admin: Option<String>,
-    pub symbol: String,
-    pub decimals: u8,
-    pub initial_balances: Option<Vec<InitialBalance>>,
-    pub prng_seed: Binary,
-    pub config: Option<InitConfig>,
-    pub callback: Option<Callback<String>>
-}
-
-/// This type represents optional configuration values which can be overridden.
-/// All values are optional and have defaults which are more private by default,
-/// but can be overridden if necessary
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
-#[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
-pub struct InitConfig {
-    /// Indicates whether the total supply is public or should be kept secret.
-    /// default: False
-    pub public_total_supply: Option<bool>,
-    /// Indicates whether deposit functionality should be enabled
-    /// default: False
-    pub enable_deposit: Option<bool>,
-    /// Indicates whether redeem functionality should be enabled
-    /// default: False
-    pub enable_redeem: Option<bool>,
-    /// Indicates whether mint functionality should be enabled
-    /// default: False
-    pub enable_mint: Option<bool>,
-    /// Indicates whether burn functionality should be enabled
-    /// default: False
-    pub enable_burn: Option<bool>
-}
-
-impl InitConfig {
-    pub fn builder() -> InitConfigBuilder {
-        InitConfigBuilder::new()
-    }
-
-    pub fn public_total_supply(&self) -> bool {
-        self.public_total_supply.unwrap_or(false)
-    }
-
-    pub fn deposit_enabled(&self) -> bool {
-        self.enable_deposit.unwrap_or(false)
-    }
-
-    pub fn redeem_enabled(&self) -> bool {
-        self.enable_redeem.unwrap_or(false)
-    }
-
-    pub fn mint_enabled(&self) -> bool {
-        self.enable_mint.unwrap_or(false)
-    }
-
-    pub fn burn_enabled(&self) -> bool {
-        self.enable_burn.unwrap_or(false)
-    }
-}
-
-#[derive(Default)]
-pub struct InitConfigBuilder {
-    /// Indicates whether the total supply is public or should be kept secret.
-    /// default: False
-    public_total_supply: Option<bool>,
-    /// Indicates whether deposit functionality should be enabled
-    /// default: False
-    enable_deposit: Option<bool>,
-    /// Indicates whether redeem functionality should be enabled
-    /// default: False
-    enable_redeem: Option<bool>,
-    /// Indicates whether mint functionality should be enabled
-    /// default: False
-    enable_mint: Option<bool>,
-    /// Indicates whether burn functionality should be enabled
-    /// default: False
-    enable_burn: Option<bool>
-}
-
-impl InitConfigBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn build(self) -> InitConfig {
-        InitConfig {
-            public_total_supply: self.public_total_supply,
-            enable_deposit: self.enable_deposit,
-            enable_redeem: self.enable_redeem,
-            enable_mint: self.enable_mint,
-            enable_burn: self.enable_burn
-        }
-    }
-
-    pub fn public_total_supply(mut self) -> Self {
-        self.public_total_supply = Some(true);
-        self
-    }
-
-    pub fn enable_deposit(mut self) -> Self {
-        self.enable_deposit = Some(true);
-        self
-    }
-
-    pub fn enable_redeem(mut self) -> Self {
-        self.enable_redeem = Some(true);
-        self
-    }
-
-    pub fn enable_mint(mut self) -> Self {
-        self.enable_mint = Some(true);
-        self
-    }
-
-    pub fn enable_burn(mut self) -> Self {
-        self.enable_burn = Some(true);
-        self
-    }
-}
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum ExecuteMsg {
     // Native coin interactions
     Redeem {
@@ -176,11 +30,11 @@ pub enum ExecuteMsg {
         padding: Option<String>,
     },
     BatchTransfer {
-        actions: Vec<batch::TransferAction>,
+        actions: Vec<TransferAction>,
         padding: Option<String>,
     },
     BatchSend {
-        actions: Vec<batch::SendAction>,
+        actions: Vec<SendAction>,
         padding: Option<String>,
     },
     Burn {
@@ -231,11 +85,11 @@ pub enum ExecuteMsg {
         padding: Option<String>,
     },
     BatchTransferFrom {
-        actions: Vec<batch::TransferFromAction>,
+        actions: Vec<TransferFromAction>,
         padding: Option<String>,
     },
     BatchSendFrom {
-        actions: Vec<batch::SendFromAction>,
+        actions: Vec<SendFromAction>,
         padding: Option<String>,
     },
     BurnFrom {
@@ -245,7 +99,7 @@ pub enum ExecuteMsg {
         padding: Option<String>,
     },
     BatchBurnFrom {
-        actions: Vec<batch::BurnFromAction>,
+        actions: Vec<BurnFromAction>,
         padding: Option<String>,
     },
 
@@ -257,7 +111,7 @@ pub enum ExecuteMsg {
         padding: Option<String>,
     },
     BatchMint {
-        actions: Vec<batch::MintAction>,
+        actions: Vec<MintAction>,
         padding: Option<String>,
     },
     AddMinters {
@@ -292,7 +146,6 @@ pub enum ExecuteMsg {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum ExecuteAnswer {
     // Native
     Deposit {
@@ -321,6 +174,7 @@ pub enum ExecuteAnswer {
     RegisterReceive {
         status: ResponseStatus,
     },
+    #[cfg(feature = "snip20-impl")]
     CreateViewingKey {
         key: ViewingKey,
     },
@@ -391,7 +245,6 @@ pub enum ExecuteAnswer {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum QueryMsg {
     TokenInfo {},
     ContractStatus {},
@@ -418,6 +271,7 @@ pub enum QueryMsg {
         page_size: u32,
     },
     Minters {},
+    #[cfg(feature = "snip20-impl")]
     WithPermit {
         permit: Permit<QueryPermission>,
         query: QueryWithPermit,
@@ -426,7 +280,6 @@ pub enum QueryMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum QueryWithPermit {
     Allowance {
         owner: Addr,
@@ -445,7 +298,6 @@ pub enum QueryWithPermit {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum QueryPermission {
     /// Allowance for SNIP-20 - Permission to query allowance of the owner & spender
     Allowance,
@@ -463,35 +315,10 @@ pub enum QueryPermission {
     Owner,
 }
 
-impl QueryMsg {
-    pub fn get_validation_params(&self) -> (Vec<&String>, ViewingKey) {
-        match self {
-            Self::Balance { address, key } => (vec![address], ViewingKey(key.clone())),
-            Self::TransferHistory { address, key, .. } => (vec![address], ViewingKey(key.clone())),
-            Self::TransactionHistory { address, key, .. } => {
-                (vec![address], ViewingKey(key.clone()))
-            }
-            Self::Allowance {
-                owner,
-                spender,
-                key,
-                ..
-            } => (vec![owner, spender], ViewingKey(key.clone())),
-            _ => panic!("This query type does not require authentication"),
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum QueryAnswer {
-    TokenInfo {
-        name: String,
-        symbol: String,
-        decimals: u8,
-        total_supply: Option<Uint128>,
-    },
+    TokenInfo(TokenInfo),
     ContractStatus {
         status: ContractStatusLevel,
     },
@@ -524,15 +351,22 @@ pub enum QueryAnswer {
     },
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct TokenInfo {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_supply: Option<Uint128>,
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct CreateViewingKeyResponse {
     pub key: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum ResponseStatus {
     Success,
     Failure,
@@ -540,66 +374,113 @@ pub enum ResponseStatus {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum ContractStatusLevel {
     NormalRun,
     StopAllButRedeems,
     StopAll,
 }
 
-pub fn status_level_to_u8(status_level: ContractStatusLevel) -> u8 {
-    match status_level {
-        ContractStatusLevel::NormalRun => 0,
-        ContractStatusLevel::StopAllButRedeems => 1,
-        ContractStatusLevel::StopAll => 2,
-    }
+// Transfer history
+
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+pub struct Tx {
+    pub id: u64,
+    pub from: Addr,
+    pub sender: Addr,
+    pub receiver: Addr,
+    pub coins: Coin,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memo: Option<String>,
+    // The block time and block height are optional so that the JSON schema
+    // reflects that some SNIP-20 contracts may not include this info.
+    pub block_time: Option<u64>,
+    pub block_height: Option<u64>,
 }
 
-pub fn u8_to_status_level(status_level: u8) -> StdResult<ContractStatusLevel> {
-    match status_level {
-        0 => Ok(ContractStatusLevel::NormalRun),
-        1 => Ok(ContractStatusLevel::StopAllButRedeems),
-        2 => Ok(ContractStatusLevel::StopAll),
-        _ => Err(StdError::generic_err("Invalid state level")),
-    }
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub struct RichTx {
+    pub id: u64,
+    pub action: TxAction,
+    pub coins: Coin,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memo: Option<String>,
+    pub block_time: u64,
+    pub block_height: u64,
 }
 
-// Take a Vec<u8> and pad it up to a multiple of `block_size`, using spaces at the end.
-pub fn space_pad(block_size: usize, message: &mut Vec<u8>) -> &mut Vec<u8> {
-    let len = message.len();
-    let surplus = len % block_size;
-    if surplus == 0 {
-        return message;
-    }
-
-    let missing = block_size - surplus;
-    message.reserve(missing);
-    message.extend(std::iter::repeat(b' ').take(missing));
-    message
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum TxAction {
+    Transfer {
+        from: Addr,
+        sender: Addr,
+        recipient: Addr,
+    },
+    Mint {
+        minter: Addr,
+        recipient: Addr,
+    },
+    Burn {
+        burner: Addr,
+        owner: Addr,
+    },
+    Deposit {},
+    Redeem {},
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use fadroma_platform_scrt::cosmwasm_std::from_slice;
+// Batch
 
-    #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
-    #[serde(rename_all = "snake_case")]
-    #[serde(deny_unknown_fields)]
-    pub enum Something {
-        Var { padding: Option<String> },
-    }
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct TransferAction {
+    pub recipient: String,
+    pub amount: Uint128,
+    pub memo: Option<String>,
+}
 
-    #[test]
-    fn test_deserialization_of_missing_option_fields() -> StdResult<()> {
-        let input = b"{ \"var\": {} }";
-        let obj: Something = from_slice(input)?;
-        assert_eq!(
-            obj,
-            Something::Var { padding: None },
-            "unexpected value: {:?}",
-            obj
-        );
-        Ok(())
-    }
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct SendAction {
+    pub recipient: String,
+    pub recipient_code_hash: Option<String>,
+    pub amount: Uint128,
+    pub msg: Option<Binary>,
+    pub memo: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct TransferFromAction {
+    pub owner: String,
+    pub recipient: String,
+    pub amount: Uint128,
+    pub memo: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct SendFromAction {
+    pub owner: String,
+    pub recipient_code_hash: Option<String>,
+    pub recipient: String,
+    pub amount: Uint128,
+    pub msg: Option<Binary>,
+    pub memo: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct MintAction {
+    pub recipient: String,
+    pub amount: Uint128,
+    pub memo: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct BurnFromAction {
+    pub owner: String,
+    pub amount: Uint128,
+    pub memo: Option<String>,
 }

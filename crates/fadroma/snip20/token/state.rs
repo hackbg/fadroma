@@ -1,9 +1,11 @@
-use crate::prelude::{
-    load, ns_load, ns_save, save, Addr, BlockInfo, CanonicalAddr, Deps, Humanize, StdError,
-    StdResult, Storage, Uint128, ViewingKey,
+use crate::{
+    snip20::client::msg::ContractStatusLevel,
+    prelude::{
+        load, ns_load, ns_save, save, Addr, BlockInfo, CanonicalAddr,
+        Deps, Humanize, StdError, StdResult, Storage, Uint128, ViewingKey,
+    }
 };
 
-use super::msg::ContractStatusLevel;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

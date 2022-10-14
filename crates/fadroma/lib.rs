@@ -32,10 +32,7 @@ pub mod vk;
 // Tokenomics primitives
 #[cfg(feature = "math")]
 pub mod math;
-//#[cfg(feature = "snip20-client")]
-//pub mod snip20_client;
-#[cfg(feature = "snip20-impl")]
-pub mod snip20_impl;
+pub mod snip20;
 
 // Data and I/O helpers
 #[cfg(feature = "storage")]
@@ -76,9 +73,6 @@ pub mod prelude {
 
     #[cfg(feature = "storage")]
     pub use crate::storage::{load, ns_load, ns_remove, ns_save, remove, save};
-
-    //#[cfg(feature = "snip20-client")]
-    //pub use crate::snip20_client::ISnip20;
 
     #[cfg(feature = "message")]
     pub use crate::proc_message::message;

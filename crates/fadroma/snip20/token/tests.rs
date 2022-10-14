@@ -1,9 +1,10 @@
 #![cfg(test)]
 
-use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
 use crate::{
     math::sha_256,
-    scrt::cosmwasm_std::{
+    vk::{ViewingKey, VIEWING_KEY_SIZE},
+    snip20::client::msg::*,
+    cosmwasm_std::{
         from_binary,
         testing::{
             mock_dependencies, mock_dependencies_with_balance, mock_env, mock_info, MockApi,
@@ -15,15 +16,15 @@ use crate::{
 };
 
 use super::{
-    assert_valid_symbol, batch,
-    msg::{ContractStatusLevel, *},
+    assert_valid_symbol,
     receiver::Snip20ReceiveMsg,
+    msg::{InitialBalance, InitConfig},
     state::*,
     DefaultSnip20Impl, SymbolValidation,
 };
 use std::any::Any;
 
-use super::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use super::msg::InstantiateMsg;
 
 fn instantiate(
     deps: DepsMut,
@@ -31,15 +32,15 @@ fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
-    crate::snip20_impl::snip20_instantiate(deps, env, info, msg, DefaultSnip20Impl)
+    super::snip20_instantiate(deps, env, info, msg, DefaultSnip20Impl)
 }
 
 fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
-    crate::snip20_impl::snip20_execute(deps, env, info, msg, DefaultSnip20Impl)
+    super::snip20_execute(deps, env, info, msg, DefaultSnip20Impl)
 }
 
 fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    crate::snip20_impl::snip20_query(deps, env, msg, DefaultSnip20Impl)
+    super::snip20_query(deps, env, msg, DefaultSnip20Impl)
 }
 
 // Helper functions
@@ -1084,7 +1085,7 @@ fn test_handle_batch_burn_from() {
     // test when burn disabled
     let actions: Vec<_> = ["bob", "jerry", "mike"]
         .iter()
-        .map(|name| batch::BurnFromAction {
+        .map(|name| BurnFromAction {
             owner: name.to_string(),
             amount: Uint128::new(2500),
             memo: None,
@@ -1147,7 +1148,7 @@ fn test_handle_batch_burn_from() {
     // Burn some of the allowance
     let actions: Vec<_> = [("bob", 200_u128), ("jerry", 300), ("mike", 400)]
         .iter()
-        .map(|(name, amount)| batch::BurnFromAction {
+        .map(|(name, amount)| BurnFromAction {
             owner: name.to_string(),
             amount: Uint128::new(*amount),
             memo: None,
@@ -1184,7 +1185,7 @@ fn test_handle_batch_burn_from() {
     // Burn the rest of the allowance
     let actions: Vec<_> = [("bob", 200_u128), ("jerry", 300), ("mike", 400)]
         .iter()
-        .map(|(name, amount)| batch::BurnFromAction {
+        .map(|(name, amount)| BurnFromAction {
             owner: name.to_string(),
             amount: Uint128::new(allowance_size - *amount),
             memo: None,
@@ -1220,7 +1221,7 @@ fn test_handle_batch_burn_from() {
     // Second burn more than allowance
     let actions: Vec<_> = ["bob", "jerry", "mike"]
         .iter()
-        .map(|name| batch::BurnFromAction {
+        .map(|name| BurnFromAction {
             owner: name.to_string(),
             amount: Uint128::new(1),
             memo: None,
@@ -2378,12 +2379,12 @@ fn test_query_token_info() {
     );
     let query_answer: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
     match query_answer {
-        QueryAnswer::TokenInfo {
+        QueryAnswer::TokenInfo(TokenInfo {
             name,
             symbol,
             decimals,
             total_supply,
-        } => {
+        }) => {
             assert_eq!(name, init_name);
             assert_eq!(symbol, init_symbol);
             assert_eq!(decimals, init_decimals);
@@ -3030,7 +3031,6 @@ fn test_query_transaction_history() {
         other => panic!("Unexpected: {:?}", other),
     };
 
-    use super::transaction_history::{RichTx, TxAction};
     let expected_transfers = [
         RichTx {
             id: 8,
