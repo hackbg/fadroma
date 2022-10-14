@@ -4,7 +4,12 @@
 import assert from 'node:assert'
 ```
 
-## `chain: Chain`
+The innermost core of Fadroma consists of the `Chain` and `Agent`
+abstract base classes. The platform packages (`@fadroma/scrt`, etc.)
+subclass those, calling into the platform API client library
+(e.g. `secretjs`).
+
+## Chain
 
 This package provides the abstract base class, `Chain`.
 
@@ -19,7 +24,7 @@ assert.equal(chain.id,  'id')
 assert.equal(chain.url, 'example.com')
 ```
 
-### `chain.mode: ChainMode`
+### ChainMode
 
 `ChainMode` a.k.a. `Chain.Mode` is an enumeration of the
 different kinds of chains connection modes that are supported:
@@ -38,11 +43,13 @@ assert(new Chain('any', { mode: Chain.Mode.Testnet }).isTestnet)
 assert(new Chain('any', { mode: Chain.Mode.Mainnet }).isMainnet)
 ```
 
-### `chain.devMode: boolean`
+### Dev mode
 
-The `devMode` flag corresponds to whether you can reset the chain
-and start over. This is true for mocknet and devnet, but not for
-testnet or mainnet.
+The `chain.devMode` flag basically corresponds to whether you
+have the ability reset the whole chain and start over.
+  * This is true for mocknet and devnet, but not for testnet or mainnet.
+  * This can be used to determine whether to e.g. deploy mocks of
+    third-party contracts, or to use their official testnet/mainnet addresses.
 
 ```typescript
 assert(new Chain('any', { mode: Chain.Mode.Mocknet }).devMode)
@@ -50,10 +57,6 @@ assert(new Chain('any', { mode: Chain.Mode.Devnet  }).devMode)
 assert(!new Chain('any', { mode: Chain.Mode.Testnet }).devMode)
 assert(!new Chain('any', { mode: Chain.Mode.Mainnet }).devMode)
 ```
-
-`devMode` can be used to determine whether e.g.
-to deploy mocks of 3rd party contracts or use the official
-testnet and mainnet deployments of those.
 
 ## Agent
 
@@ -130,13 +133,16 @@ agent = new class TestAgent5 extends Agent { async query () { return {} } }
 assert(await agent.query())
 ```
 
-### `agent.bundle(): Bundle extends Agent`
+## Transaction bundling
 
 To submit multiple messages as a single transaction, you can
-use Bundles. A `Bundle` is a special kind of `Agent` that
-does not broadcast messages immediately. Instead, messages
-are collected inside the bundle until the caller explicitly
-submits them (or saves them for manual multisig signing).
+use Bundles.
+  * A `Bundle` is a special kind of `Agent` that
+    does not broadcast messages immediately.
+  * Instead, messages are collected inside the bundle until
+    the caller explicitly submits them.
+  * Bundles can also be saved for manual signing of multisig
+    transactions
 
 ```typescript
 import { Bundle } from '.'
@@ -147,10 +153,12 @@ class TestBundle extends Bundle {
 }
 ```
 
-Bundles implement the same overall APIs as Agents.
-Some operations, however, don't make sense in the context of
-a Bundle. Most importantly, querying any state from the chain
-must be done either before or after the bundle.
+A `Bundle` is designed to serve as a stand-in for its corresponding
+`Agent`, and therefore implements the same API methods.
+  * However, some operations don't make sense in the middle of a Bundle.
+  * Most importantly, querying any state from the chain
+    must be done either before or after the bundle.
+  * Trying to query state from a `Bundle` agent will fail.
 
 ```typescript
 import { Client } from '.'

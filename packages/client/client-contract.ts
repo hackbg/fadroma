@@ -114,15 +114,34 @@ export async function fetchCodeId <C extends ContractInstance> (
   return Object.assign(meta, {
     codeId: validated('codeId',
       String(await agent.getCodeId(assertAddress(meta))),
-      String(expected)
+      (expected===undefined) ? undefined : String(expected)
     )
   })
 }
 
 /** Base class for contract lifecycle object. */
-export class ContractBase extends Metadata {
+export class ContractMetadata extends Metadata {
   log = new ClientConsole(this.constructor.name)
-  /** Define a subtask
+  constructor (options: Partial<ContractSource> = {}) {
+    super(options)
+    this.provide(options as object)
+  }
+  /** Copy the data from this object into a new ContractSource.
+    * @returns a new ContractSource with data from this object. */
+  get asSource (): ContractSource {
+    return new ContractSource(this)
+  }
+  /** Copy the data from this object into a new ContractTemplate.
+    * @returns a new ContractTemplate with data from this object. */
+  get asTemplate (): ContractTemplate {
+    return new ContractTemplate(this)
+  }
+  /** Copy the data from this object into a new ContractInstance.
+    * @returns a new ContractInstance with data from this object. */
+  get asInstance (): ContractInstance {
+    return new ContractInstance(this)
+  }
+  /** Define a subtask.
     * @returns A lazily-evaluated Promise. */
   task <T extends this, U> (name: string, cb: (this: T)=>PromiseLike<U>): Task<T, U> {
     const task = new Task(name, cb, this as unknown as T)
@@ -131,14 +150,10 @@ export class ContractBase extends Metadata {
     task.log = this.log ?? task.log
     return task as Task<T, U>
   }
-  constructor (options: Partial<ContractSource> = {}) {
-    super(options)
-    this.provide(options as object)
-  }
 }
 
 /** Contract lifecycle object. Represents a smart contract's lifecycle from source to binary. */
-export class ContractSource extends ContractBase {
+export class ContractSource extends ContractMetadata {
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL = undefined
   /** Branch/tag pointing to the source commit. */
@@ -181,9 +196,15 @@ export class ContractSource extends ContractBase {
     })
   }
 
-  /** @returns a new ContractSource with data from this object. */
-  get asSource (): ContractSource {
-    return new ContractSource(this)
+  /** Upload compiled source code to the selected chain.
+    * @returns task performing the upload */
+  async upload (uploader?: Uploader): Promise<ContractTemplate> {
+    return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
+      await this.compiled
+      const result = await upload(this.asTemplate, uploader, uploader?.agent)
+      this.provide(result as Partial<this>)
+      return this.asTemplate
+    })
   }
 
   /** @returns the data for saving a build receipt. */
@@ -235,17 +256,6 @@ export class ContractTemplate extends ContractSource {
     this.provide(options as object)
   }
 
-  /** Upload compiled source code to the selected chain.
-    * @returns task performing the upload */
-  async upload (uploader?: Uploader): Promise<ContractTemplate> {
-    return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
-      await this.compiled
-      const result = await upload(this.asTemplate, uploader, uploader?.agent)
-      this.provide(result as Partial<this>)
-      return this.asTemplate
-    })
-  }
-
   /** One-shot deployment task. */
   get uploaded (): Promise<ContractTemplate> {
     if (this.codeId) return Promise.resolve(this)
@@ -275,11 +285,6 @@ export class ContractTemplate extends ContractSource {
     return Object.fromEntries(Object.entries(inputs).map(([name, options])=>[
       name, new Contract<C>(this as Partial<Contract<C>>).provide(options as Partial<Contract<C>>)
     ]))
-  }
-
-  /** @returns a new ContractTemplate with data from this object. */
-  get asTemplate (): ContractTemplate {
-    return new ContractTemplate(this)
   }
 
   /** Uploaded templates can be passed to factory contracts in this format. */
@@ -357,11 +362,6 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
   /** Get link to this contract in Fadroma ICC format. */
   get asLink (): ContractLink {
     return { address: assertAddress(this), code_hash: assertCodeHash(this) }
-  }
-
-  /** @returns a new ContractInstance with data from this object. */
-  get asInstance (): ContractInstance {
-    return new ContractInstance(this)
   }
 
   /** @returns the data for saving a deploy receipt */

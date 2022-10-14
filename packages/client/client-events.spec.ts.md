@@ -1,8 +1,10 @@
+# Fadroma Client Events
+
 ```typescript
 import assert from 'node:assert'
 ```
 
-# Client errors
+## Client errors
 
 The `ClientError` class defines custom error subclasses for various error conditions.
 
@@ -15,7 +17,7 @@ for (const subtype of ClientError.subtypes) {
 }
 ```
 
-# Client console
+## Client console
 
 The `ClientConsole` class collects all logging output in one place.
 In the future, this will enable semantic logging and/or GUI notifications.

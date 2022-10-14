@@ -60,7 +60,7 @@ export function fallback <T extends object> (obj: T, options: Partial<T> = {}): 
   for (const [key, val] of Object.entries(options)) {
     if (val === undefined) continue
     const val2 = obj[key as keyof T] as any
-    if (hasField(obj, key as keyof T)) Object.assign(obj, { [key]: val2 })
+    if (hasField(obj, key as keyof T)) Object.assign(obj, { [key]: val ?? val2 })
   }
   return obj
 }
