@@ -41,7 +41,7 @@ export interface DevnetHandle {
 }
 
 /** A constructor for a Chain subclass. */
-export interface ChainClass<C> extends Class<C, [ChainId, ConstructorParameters<typeof Chain>]> {
+export interface ChainClass<C> extends Class<C, ConstructorParameters<typeof Chain>> {
   Agent: AgentClass<Agent> // static
 }
 
@@ -54,6 +54,24 @@ export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): 
 
 /** Represents a particular chain. */
 export abstract class Chain {
+
+  static mainnet <C extends Chain> (id: ChainId, options: Partial<ChainOpts>): C {
+    const self = this as unknown as ChainClass<C>
+    return new self(id, { ...options, mode: Chain.Mode.Mainnet })
+  }
+  static testnet <C extends Chain> (id: ChainId, options: Partial<ChainOpts>): C {
+    const self = this as unknown as ChainClass<C>
+    return new self(id, { ...options, mode: Chain.Mode.Testnet })
+  }
+  static devnet <C extends Chain> (id: ChainId, options: Partial<ChainOpts>): C {
+    const self = this as unknown as ChainClass<C>
+    return new self(id, { ...options, mode: Chain.Mode.Devnet })
+  }
+  static mocknet <C extends Chain> (id: ChainId, options: Partial<ChainOpts>): C {
+    const self = this as unknown as ChainClass<C>
+    return new self(id, { ...options, mode: Chain.Mode.Mocknet })
+  }
+
   constructor (
     readonly id: ChainId,
     options: Partial<ChainOpts> = {}

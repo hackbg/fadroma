@@ -5,9 +5,12 @@ import assert from 'node:assert'
 ```
 
 The innermost core of Fadroma consists of the `Chain` and `Agent`
-abstract base classes. The platform packages (`@fadroma/scrt`, etc.)
-subclass those, calling into the platform API client library
-(e.g. `secretjs`).
+abstract base classes. They provide a unified base layer for querying
+and transacting on append-only transaction-based systems.
+
+The platform packages (`@fadroma/scrt`, etc.) subclass those,
+calling into the platform API client library (e.g. `secretjs`)
+in order to implement the abstract methods.
 
 ## Chain
 
@@ -19,9 +22,10 @@ using the following syntax:
 
 ```typescript
 import { Chain } from '.'
-let chain: Chain = new Chain('id', { url: 'example.com' })
-assert.equal(chain.id,  'id')
-assert.equal(chain.url, 'example.com')
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'lolnet' })
+assert.equal(chain.id,   'id')
+assert.equal(chain.url,  'example.com')
+assert.equal(chain.mode, 'lolnet')
 ```
 
 ### ChainMode
@@ -37,25 +41,26 @@ different kinds of chains connection modes that are supported:
 * **Mainnet** is the production chain where value is stored.
 
 ```typescript
-assert(new Chain('any', { mode: Chain.Mode.Mocknet }).isMocknet)
-assert(new Chain('any', { mode: Chain.Mode.Devnet  }).isDevnet)
-assert(new Chain('any', { mode: Chain.Mode.Testnet }).isTestnet)
-assert(new Chain('any', { mode: Chain.Mode.Mainnet }).isMainnet)
+assert(Chain.mocknet('any').isMocknet)
+assert(Chain.devnet('any').isDevnet)
+assert(Chain.testnet('any').isTestnet)
+assert(Chain.mainnet('any').isMainnet)
 ```
 
-### Dev mode
+#### Dev mode
 
 The `chain.devMode` flag basically corresponds to whether you
-have the ability reset the whole chain and start over.
+have the ability to reset the whole chain and start over.
+
   * This is true for mocknet and devnet, but not for testnet or mainnet.
   * This can be used to determine whether to e.g. deploy mocks of
     third-party contracts, or to use their official testnet/mainnet addresses.
 
 ```typescript
-assert(new Chain('any', { mode: Chain.Mode.Mocknet }).devMode)
-assert(new Chain('any', { mode: Chain.Mode.Devnet  }).devMode)
-assert(!new Chain('any', { mode: Chain.Mode.Testnet }).devMode)
-assert(!new Chain('any', { mode: Chain.Mode.Mainnet }).devMode)
+assert(Chain.mocknet().devMode)
+assert(Chain.devnet().devMode)
+assert(!Chain.testnet().devMode)
+assert(!Chain.mainnet().devMode)
 ```
 
 ## Agent
