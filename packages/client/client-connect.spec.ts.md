@@ -16,22 +16,20 @@ in order to implement the abstract methods.
 
 This package provides the abstract base class, `Chain`.
 
-To interact with a chain, select it by instantiating
-a corresponding subclass provided by e.g. `@fadroma/connect`,
-using the following syntax:
+Platform packages extend `Chain` to represent connections to different chains.
+  * Since the workflow is request-based, no persistent connection is maintained.
+  * The `Chain` object keeps track of the globally unique chain `id` and the connection `url`.
+    * **TODO:** Load balancing between multiple chain endpoints.
 
 ```typescript
 import { Chain } from '.'
-let chain: Chain = new Chain('id', { url: 'example.com', mode: 'lolnet' })
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
 assert.equal(chain.id,   'id')
 assert.equal(chain.url,  'example.com')
-assert.equal(chain.mode, 'lolnet')
+assert.equal(chain.mode, 'mainnet')
 ```
 
-### ChainMode
-
-`ChainMode` a.k.a. `Chain.Mode` is an enumeration of the
-different kinds of chains connection modes that are supported:
+Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`:
 
 * **Mocknet** is a fast, nodeless way of executing contract code
   in the local JS WASM runtime.
@@ -47,7 +45,7 @@ assert(Chain.testnet('any').isTestnet)
 assert(Chain.mainnet('any').isMainnet)
 ```
 
-#### Dev mode
+### Dev mode
 
 The `chain.devMode` flag basically corresponds to whether you
 have the ability to reset the whole chain and start over.
@@ -81,17 +79,6 @@ assert(agent.chain === chain)
 
 Getting an Agent is an asynchronous operation because of the
 underlying platform APIs being async.
-
-### Genesis accounts
-
-On devnet, Fadroma creates named genesis accounts for you,
-which you can use by passing `name` to `getAgent`:
-
-```typescript
-const mockNode = { getGenesisAccount () { return {} }, respawn () {} }
-chain = new Chain('id', { mode: Chain.Mode.Devnet, node: mockNode })
-assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
-```
 
 ### Waiting for block height to increment
 
@@ -136,6 +123,17 @@ agent = new class TestAgent4 extends Agent { async execute () { return {} } }
 assert(await agent.execute())
 agent = new class TestAgent5 extends Agent { async query () { return {} } }
 assert(await agent.query())
+```
+
+### Genesis accounts
+
+On devnet, Fadroma creates named genesis accounts for you,
+which you can use by passing `name` to `getAgent`:
+
+```typescript
+const mockNode = { getGenesisAccount () { return {} }, respawn () {} }
+chain = new Chain('id', { mode: Chain.Mode.Devnet, node: mockNode })
+assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
 ```
 
 ## Transaction bundling
