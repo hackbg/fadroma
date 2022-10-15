@@ -37,7 +37,7 @@ export class RawBuilder extends LocalBuilder {
     }
 
     if ((revision ?? HEAD) !== HEAD) {
-      const gitDir = getGitDir(source)
+      const gitDir = this.getGitDir(source)
       // Provide the build script with the config values that ar
       // needed to make a temporary checkout of another commit
       if (!gitDir?.present) {
@@ -58,9 +58,10 @@ export class RawBuilder extends LocalBuilder {
     }
 
     // Run the build script
-    const cmd = [this.runtime!, this.script!, 'phase1', revision, crate ]
+    const cmd  = this.runtime!
+    const args = [this.script!, 'phase1', revision, crate ]
     const opts = { cwd: source.workspace, env: { ...process.env, ...env }, stdio: 'inherit' }
-    const sub  = spawn(cmd.shift() as string, cmd, opts as any)
+    const sub  = this.spawn(cmd, args, opts as any)
     await new Promise<void>((resolve, reject)=>{
       sub.on('exit', (code: number, signal: any) => {
         const build = `Build of ${source.crate} from ${$(source.workspace!).shortPath} @ ${source.revision}`
@@ -96,10 +97,18 @@ export class RawBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: Contract<any>[]): Promise<Contract<any>[]> {
+  async buildMany (inputs: ContractSource[]): Promise<ContractSource[]> {
     const templates: Contract<any>[] = []
     for (const source of inputs) templates.push(await this.build(source))
     return templates
+  }
+
+  protected spawn (...args: Parameters<typeof spawn>) {
+    return spawn(...args)
+  }
+
+  protected getGitDir (...args: Parameters<typeof getGitDir>) {
+    return getGitDir(...args)
   }
 
 }
