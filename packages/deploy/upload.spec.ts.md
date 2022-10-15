@@ -1,4 +1,10 @@
-## `FSUploader`: uploading local files
+# Fadroma Upload Specification
+
+The abstract base class `Uploader` defined in Fadroma Core is here extended
+to implement the `FSUploader` class.
+
+  * It uploads compiled contracts to the chain.
+  * It needs an `agent` to perform the upload.
 
 ```typescript
 import { Agent, Contract, Uploader } from '@fadroma/client'
