@@ -37,11 +37,6 @@ export class FSUploader extends Uploader {
 
   cache?: Uploads
 
-  assertAgent (): Agent {
-    if (!this.agent) throw new ClientError.NoAgent()
-    return this.agent
-  }
-
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload <T extends ContractTemplate> (contract: T): Promise<T & {
     codeId:   CodeId
