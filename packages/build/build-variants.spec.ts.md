@@ -14,21 +14,18 @@ let builder: Builder
 ```
 
 When inheriting from the `Fadroma` class, a `Builder` should be automatically
-provided, in accordance with the automatically populated `BuildConfig`.
-
-Internally/manually, this happens by calling the `getBuilder`
-method of `BuilderConfig`.
+provided, in accordance with the automatically populated `BuildConfig`. Internally/manually, this
+is done by the `getBuilder` method of a builder config.
 
 ## Docker builder
 
-`DockerBuilder` is the default builder.
+`DockerBuilder` is the default builder. It provides a basic degree of reproducibility
+by using a pre-defined build container.
 
 ```typescript
 import { DockerBuilder } from '@fadroma/build'
 ok(new BuilderConfig().getBuilder() instanceof DockerBuilder)
 ```
-
-It provides a basic degree of reproducibility by using a pre-defined build container.
 
   * DockerBuilder launches the [**build script**](./build.impl.mjs)
     in a Docker container using [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
