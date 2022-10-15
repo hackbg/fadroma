@@ -5,9 +5,9 @@ import { getGitDir } from './build-history'
 
 import * as Dokeres from '@hackbg/dokeres'
 import { bold } from '@hackbg/konzola'
-import $, { OpaqueDirectory } from '@hackbg/kabinet'
+import $, { Path, OpaqueDirectory } from '@hackbg/kabinet'
 
-import { Contract, ContractTemplate, HEAD } from '@fadroma/client'
+import { Contract, ContractSource, ContractTemplate, HEAD } from '@fadroma/client'
 import type { Builder } from '@fadroma/client'
 
 import { homedir } from 'node:os'
@@ -16,8 +16,15 @@ import { default as simpleGit } from 'simple-git'
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends LocalBuilder {
-
   readonly id = 'docker-local'
+  /** Logger */
+  log = new BuildConsole('Builder: Docker')
+  /** Used to launch build container. */
+  docker: Dokeres.Engine
+  /** Tag of the docker image for the build container. */
+  image:  Dokeres.Image
+  /** Path to the dockerfile to build the build container if missing. */
+  dockerfile: string
 
   constructor (opts: Partial<BuilderConfig & { docker?: Dokeres.Engine }> = {}) {
     super(opts)
@@ -46,16 +53,9 @@ export class DockerBuilder extends LocalBuilder {
       'args', 'task', 'before'
     ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
   }
-  /** Logger */
-  log = new BuildConsole('Builder: Docker')
-  /** Used to launch build container. */
-  docker: Dokeres.Engine
-  /** Tag of the docker image for the build container. */
-  image:  Dokeres.Image
-  /** Path to the dockerfile to build the build container if missing. */
-  dockerfile: string
+
   /** Build a Source into a Template. */
-  async build (contract: ContractTemplate): Promise<ContractTemplate> {
+  async build (contract: ContractSource): Promise<ContractSource> {
     const [result] = await this.buildMany([contract])
     return result
   }
@@ -64,7 +64,7 @@ export class DockerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (contracts: ContractTemplate[]): Promise<ContractTemplate[]> {
+  async buildMany (contracts: ContractSource[]): Promise<ContractSource[]> {
     const roots     = new Set<string>()
     const revisions = new Set<string>()
     let longestCrateName = 0
@@ -87,10 +87,9 @@ export class DockerBuilder extends LocalBuilder {
       if (revision !== HEAD) {
         const gitDir = getGitDir({ workspace: path })
         mounted = gitDir.rootRepo
-        //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
         const remote = process.env.FADROMA_PREFERRED_REMOTE || 'origin'
         try {
-          await simpleGit(gitDir.path).fetch(remote)
+          await this.fetch(gitDir, remote)
         } catch (e) {
           console.warn(`Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`)
           console.warn(e)
@@ -127,7 +126,11 @@ export class DockerBuilder extends LocalBuilder {
     return contracts
   }
 
-  private prebuilt (contract: ContractTemplate): boolean {
+  protected async fetch (gitDir: Path, remote: string) {
+    await simpleGit(gitDir.path).fetch(remote)
+  }
+
+  protected prebuilt (contract: ContractSource): boolean {
     const { workspace, revision, crate } = contract
     if (!workspace) throw new Error("Workspace not set, can't build")
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
@@ -148,6 +151,10 @@ export class DockerBuilder extends LocalBuilder {
     gitSubdir: string = '',
     outputDir: string = this.outputDir.path
   ): Promise<(ContractTemplate|null)[]> {
+
+    // Default to building from working tree.
+    revision ??= HEAD
+
     // Create output directory as user if it does not exist
     $(outputDir).as(OpaqueDirectory).make()
 
@@ -248,8 +255,6 @@ export class DockerBuilder extends LocalBuilder {
     const extra   = { Tty: true, AttachStdin: true, }
     const options = { remove: true, readonly, writable, cwd: '/src', env, extra }
 
-    //console.info('Building with command:', bold(command.join(' ')))
-    //console.debug('Building in a container with this configuration:', options)
     // Prepare the log output stream
     const buildLogPrefix = `[${revision}]`.padEnd(16)
     const transformLine  = (line:string)=>`${bold('BUILD')} @ ${revision} │ ${line}`
@@ -279,12 +284,14 @@ export class DockerBuilder extends LocalBuilder {
       )
     }
 
+    const results = outputWasms.map(x=>this.locationToContract(x))
+
     // Return a sparse array of the resulting artifacts
-    return outputWasms.map(x=>this.locationToContract(x))
+    return results
 
   }
 
-  private locationToContract (location: any) {
+  protected locationToContract (location: any) {
     if (location === null) return null
     const artifact = $(location).url
     const codeHash = this.hashPath(location)

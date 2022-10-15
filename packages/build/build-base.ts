@@ -80,7 +80,6 @@ export abstract class LocalBuilder extends Builder {
     this.verbose   = options.verbose   ?? this.verbose
     this.outputDir = $(options.outputDir!).as(OpaqueDirectory)
     if (options.script) this.script = options.script
-    this.command('one', 'build one crate from working tree', this.buildOne.bind(this))
   }
   /** Logger. */
   log = new BuildConsole('Local Builder')
@@ -98,92 +97,11 @@ export abstract class LocalBuilder extends Builder {
   verbose:    boolean     = false
   /** Whether to enable caching. */
   caching:    boolean     = true
-  /** Git reference from which to build sources. */
+  /** Default Git reference from which to build sources. */
   revision:   string = HEAD
 
-  /** Defines a contract, outputting a new `Contract` instance:
-    * works the same as Deployment#contract, but only populates
-    * the `builder` property because we don't have chain or agent in build context. */
-  contract (name?: string): ContractTemplate
-  contract <C extends Client> (options?: Partial<ContractTemplate>): ContractTemplate
-  contract <C extends Client> (arg?: string|Partial<ContractTemplate>) {
-    return new ContractTemplate({
-      builder:    this,
-      revision:   this.revision,
-      workspace:  this.config.project,
-      repository: this.config.project,
-      gitDir:     `${this.config.project}/.git`,
-      ...((typeof arg === 'string') ? { name: arg } : arg)
-    })
-  }
-
-  /** Pass this a Cargo.toml or a directory containing one */
-  buildOne (
-    path: string|Path = process.argv[2],
-    args: string[]    = process.argv.slice(3)
-  ) {
-    path = $(path)
-    if (path.isDirectory()) {
-      path = path.at('Cargo.toml').as(TOMLFile)
-    }
-    if (path.exists() && path.isFile()) {
-      return this.buildFromCargoToml(path as CargoTOML)
-    }
-    return this.printUsage()
-  }
-
-  async buildFromCargoToml (
-    cargoToml:   CargoTOML,
-    repository?: string|Path,
-    workspace?:  string|Path
-  ) {
-    repository = $(repository ?? process.env.FADROMA_BUILD_REPO_ROOT      ?? cargoToml.parent)
-    workspace  = $(workspace  ?? process.env.FADROMA_BUILD_WORKSPACE_ROOT ?? cargoToml.parent)
-    this.log.buildingFromCargoToml(cargoToml)
-    const source = new Contract({
-      repository: repository.path,
-      workspace:  workspace.path,
-      crate: (cargoToml.as(TOMLFile).load() as any).package.name
-    })
-    try {
-      this.caching = false
-      const result = await this.build(source)
-      const { artifact, codeHash } = result
-      this.log.info('Built:    ', bold($(artifact!).shortPath))
-      this.log.info('Code hash:', bold(codeHash!))
-      this.exit(0)
-      return result
-    } catch (e) {
-      this.log.error(`Build failed.`)
-      this.log.error(e)
-      this.exit(5)
-    }
-  }
-
-  async buildFromModule (script: OpaqueFile, args: string[]) {
-    this.log.buildingFromBuildScript(script, args)
-    const {default: BuildContext} = await import(script.path)
-    const commands = new BuildContext(this)
-    const T0 = + new Date()
-    try {
-      const result = await commands.run(args)
-      const T1 = + new Date()
-      this.log.info(`Build finished in ${T1-T0}msec.`)
-      return result
-    } catch (e: any) {
-      const T1 = + new Date()
-      this.log.error(`Build failed in ${T1-T0}msec: ${e.message}`)
-      this.log.error(e)
-      throw e
-    }
-  }
-
   printUsage () {
-    this.log.info(`
-      Usage:
-        fadroma-build path/to/crate
-        fadroma-build path/to/Cargo.toml
-        fadroma-build buildConfig.{js|ts}`)
+    this.log.usage()
     this.exit(6)
     return true
   }

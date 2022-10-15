@@ -29,5 +29,12 @@ export class BuildConsole extends CommandsConsole {
   }
   prebuilt (prebuilt: ContractTemplate) {
     this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
+  },
+  usage () {
+    this.info(`
+      Usage:
+        fadroma-build path/to/crate
+        fadroma-build path/to/Cargo.toml
+        fadroma-build buildConfig.{js|ts}`)
   }
 }

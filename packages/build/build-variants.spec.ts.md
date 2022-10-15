@@ -4,68 +4,90 @@
 import { ok, equal } from 'node:assert'
 ```
 
-## Docker Builder
-
-**DockerBuilder** (the default) launches the [**build script**](./build.impl.mjs)
-in Docker container provided by [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
-
-* DockerBuilder comes with default **build image** and **Dockerfile**,
-  which can be overridden:
-  * **builder.image** is the build image to use (`hackbg/fadroma`)
-  * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
+When implementing your deployer by inheriting from the `Fadroma` class,
+a `Builder` should be automatically provided in accordance with the
+automatically populated `BuildConfig`.
 
 ```typescript
 import { BuilderConfig, Builder } from '@fadroma/build'
-let config: BuilderConfig = new BuilderConfig()
-let builder: Builder = config.getBuilder()
+let config:  BuilderConfig
+let builder: Builder
+```
 
+Internally, this happens by calling the `getBuilder` method of `BuilderConfig`.
+
+The actual builder is a subclass of the `Builder` abstract base class
+defined in Fadroma Core. It may be one of the following:
+
+## Docker Builder
+
+`DockerBuilder` is the default builder.
+
+```typescript
 import { DockerBuilder } from '@fadroma/build'
-ok(builder instanceof DockerBuilder)
+ok(new BuilderConfig().getBuilder() instanceof DockerBuilder)
+```
+
+It provides a basic degree of reproducibility by using a pre-defined build container.
+
+  * DockerBuilder launches the [**build script**](./build.impl.mjs)
+    in a Docker container using [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
+    You can set the following properties:
+      * **builder.dockerSocket** (at construction only) allows you to select
+        the Docker server to connect to.
+      * **builder.docker** lets you configure the entire instance of `Dokeres.Engine`.
+
+```typescript
+import * as Dokeres from '@hackbg/dokeres'
+ok(new DockerBuilder().docker instanceof Dokeres.Engine)
+ok(typeof new DockerBuilder({ docker: Symbol() }).docker === 'symbol')
+ok(new DockerBuilder({ dockerSocket: "test" }).docker instanceof Dokeres.Engine)
+```
+
+  * DockerBuilder comes with default **build image** and **Dockerfile**,
+    which can be overridden by setting the following properties:
+    * **builder.image** is the build image to use (`hackbg/fadroma` by default)
+    * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
+
+```typescript
+config  = new BuilderConfig()
+builder = config.getBuilder()
 equal(builder.image.name, config.dockerImage)
 equal(builder.dockerfile, config.dockerfile)
+```
 
-import * as Dokeres from '@hackbg/dokeres'
-ok(builder.docker instanceof Dokeres.Engine)
+Let's mock out the build image and the stateful methods to simplify the test:
 
-import { Dokeres, Mock } from '@hackbg/dokeres'
-import { Transform } from 'stream'
-class TestDockerBuilder extends DockerBuilder {
-  prebuild (source) { return false }
-}
-class TestDokeresImage extends Dokeres.Image {
-  async ensure () { return theImage }
-}
-const theImage  = Symbol('the build image')
-const workspace = Symbol('the source workspace')
-const crate = Symbol('the crate to build')
-const source = { workspace, crate }
-let ran = []
-const docker = Mock.dockerode(({ run: [theImage, cmd, buildLogs, args] }) {
-  equal(image, theImage)
-  equal(cmd, `bash /build.sh HEAD empty`)
-  ok(buildLogs instanceof Transform)
-  equal(args.Tty, true)
-  equal(args.AttachStdin: true)
-  deepEqual(args.Entrypoint, [ '/bin/sh', '-c' ])
-  ok(args.HostConfig.Binds instanceof Array)
-  equal(args.HostConfig.AutoRemove, true)
-})
-let image = new Dokeres.Engine(docker).image(' ')
-const script = "build.sh"
-const options = { docker, image: theImage, script }
-builder = new TestDockerBuilder(options)
+```typescript
+builder.image        = new Dokeres.Engine().image('test/build:image')
+builder.image.ensure = async () => true
+builder.image.run    = async () => ({ wait: () => Promise.resolve({StatusCode: 0}) })
+builder.hashPath     = () => 'code hash ok'
+builder.prebuilt     = () => false
+builder.fetch        = () => Promise.resolve()
+```
 
-// build one
-artifact  = await builder.build({ workspace, crate })
-equal(artifact.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
-equal(artifact.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+Now, let's build a contract:
 
-// build many
-artifacts = await builder.buildMany([
+```typescript
+import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+const workspace = '/tmp/fadroma-test'
+const crate     = 'crate'
+let { artifact, codeHash } = await builder.build({ workspace, crate })
+console.log({builder})
+equal(fileURLToPath(artifact), builder.outputDir.at(`${crate}@HEAD.wasm`).path)
+equal(codeHash, 'code hash ok')
+```
+
+Building multiple contracts:
+
+```typescript
+ok(await builder.buildMany([
   { workspace, crate: 'crate1' }
   { workspace, ref: 'HEAD', crate: 'crate2' }
   { workspace, ref: 'asdf', crate: 'crate3' }
-])
+]))
 ```
 
 ## Raw Builder
@@ -123,7 +145,7 @@ ok(builder.docker instanceof Dokeres.Engine)
 * Let's create a DockerBuilder and a RawBuilder with mocked values and try them out:
 
 ```typescript
-const artifact: URL = new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm')
+artifact = new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm')
 
 const builders = [
   new BuildConfig({
