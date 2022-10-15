@@ -1,3 +1,9 @@
+# Fadroma Deploy Base Specification
+
+```typescript
+import { ok } from 'node:assert'
+```
+
 ## `DeployConfig`: Deploy configuration options
 
 Interacting with the Fadroma Deploy package starts by creating a `DeployConfig`:
@@ -6,7 +12,7 @@ Interacting with the Fadroma Deploy package starts by creating a `DeployConfig`:
   * It produces configured `Deployer` instances.
 
 ```typescript
-import { DeployConfig } from '.'
+import { DeployConfig, DeployStore } from '@fadroma/deploy'
 let config: DeployConfig = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' }, process.cwd())
 ok(new config.DeployStore() instanceof DeployStore)
 await config.getDeployStore()

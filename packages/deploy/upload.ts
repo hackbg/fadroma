@@ -16,26 +16,26 @@ export class UploadConsole extends ClientConsole {
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Uploader {
 
-  constructor (
-    /** Agent that will sign the upload transactions(s). */
-    public agent?: Agent|null,
-    /** If present, upload receipts are stored in it and reused to save reuploads. */
-    cache?: string|Path|Uploads
-  ) {
-    super(agent)
-    if (cache) this.cache = $(cache).as(Uploads)
-    for (const hide of [
-      'log',
-    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
-  }
-
-  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '-' }
-
   get id () { return 'fs' }
 
   log = new UploadConsole()
 
-  cache?: Uploads
+  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '-' }
+
+  cache?: UploadStore
+
+  constructor (
+    /** Agent that will sign the upload transactions(s). */
+    public agent?: Agent|null,
+    /** If present, upload receipts are stored in it and reused to save reuploads. */
+    cache?: string|Path|UploadStore
+  ) {
+    super(agent)
+    if (cache) this.cache = $(cache).as(UploadStore)
+    for (const hide of [
+      'log',
+    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
+  }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload <T extends ContractTemplate> (contract: T): Promise<T & {
@@ -227,7 +227,7 @@ export class FSUploader extends Uploader {
 /** Directory collecting upload receipts.
   * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
   * and are kept so that we don't reupload the same contracts. */
-export class Uploads extends JSONDirectory<UploadReceipt> {}
+export class UploadStore extends JSONDirectory<UploadReceipt> {}
 
 /** Class that convert itself to a Contract, from which contracts can be instantiated. */
 export class UploadReceipt extends JSONFile<UploadReceiptFormat> {

@@ -1,4 +1,9 @@
 ```typescript
+import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
+new PatchedSigningCosmWasmClient_1_2()
+```
+
+```typescript
 import { isValidPlatform } from '../SPEC.ts.md'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 isValidPlatform(ScrtAmino)

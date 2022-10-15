@@ -22,7 +22,7 @@ Platform packages extend `Chain` to represent connections to different chains.
     * **TODO:** Load balancing between multiple chain endpoints.
 
 ```typescript
-import { Chain } from '.'
+import { Chain } from '@fadroma/client'
 let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
 assert.equal(chain.id,   'id')
 assert.equal(chain.url,  'example.com')
@@ -70,7 +70,7 @@ In Fadroma, you do this by obtaining an `Agent` from the `Chain` object.
   If you don't a random mnemonic and address will be generated.
 
 ```typescript
-import { Agent } from '.'
+import { Agent } from '@fadroma/client'
 let agent: Agent = await chain.getAgent()
 
 assert(agent instanceof Agent)

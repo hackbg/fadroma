@@ -1,18 +1,39 @@
 # Fadroma Upload Specification
 
+```typescript
+import { ok } from 'node:assert'
+```
+
+```typescript
+import { DeployConfig } from '@fadroma/deploy'
+import { Agent, Uploader, ContractTemplate } from '@fadroma/client'
+let config:   DeployConfig
+let uploader: Uploader
+let agent:    Agent
+let template: ContractTemplate
+```
+
 The abstract base class `Uploader` defined in Fadroma Core is here extended
 to implement the `FSUploader` class.
 
   * It uploads compiled contracts to the chain.
-  * It needs an `agent` to perform the upload.
+    * It needs an `agent` to perform the upload.
+
+```typescript
+config = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' })
+uploader = await config.getUploader()
+ok(uploader instanceof Uploader)
+```
+
+  * It writes **upload receipts** to a specified directory,
+    and uses those every subsequent time you request the same contract
+    to be uploaded.
 
 ```typescript
 import { Agent, Contract, Uploader } from '@fadroma/client'
 import { FSUploader } from '.'
-let agent:    Agent    = Testing.mockAgent()
-let template: Contract = null
-let uploader: Uploader
-uploader = new FSUploader(agent, new JSONDirectory())
+agent = Testing.mockAgent()
+uploader  = new FSUploader(agent, new JSONDirectory())
 ok(uploader.agent === agent)
 await uploader.upload(new Contract({ artifact }))
 await uploader.uploadMany([])

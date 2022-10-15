@@ -382,7 +382,7 @@ export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
 export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
   /** Defaults when hydrating Deployment instances from the store. */
   unknown,
-  Partial<Deployment>|undefined,
+  (Partial<Deployment>|undefined)?,
 ]> {}
 
 /** Mapping from deployment format ids to deployment store constructors. */

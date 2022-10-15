@@ -6,7 +6,9 @@ import type { Env } from '@hackbg/konfizi'
 
 import { Connector, ConnectConfig } from '@fadroma/connect'
 import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadroma/client'
-import type { Class, Client, Contract, DeploymentFormat, DeployStoreClass } from '@fadroma/client'
+import type {
+  Class, Client, Contract, DeploymentFormat, DeployStoreClass, UploaderClass
+} from '@fadroma/client'
 
 import { FSUploader } from './upload'
 import { DeployError, DeployConsole } from './deploy-events'
@@ -39,18 +41,11 @@ export class DeployConfig extends ConnectConfig {
   get DeployStore (): DeployStoreClass<DeployStore>|undefined {
     return DeployStore.variants[this.deploymentFormat]
   }
-  async getDeployStore <D extends DeployStore> (
-    $D: DeployStoreClass<D>|undefined = this.DeployStore as DeployStoreClass<D>
-  ): Promise<D> {
-    const { chain, agent } = await super.getConnector()
-    if (!chain) throw new Error('Missing chain')
-    const uploader = new FSUploader(agent, this.uploads)
-    if (!$D) throw new Error('Missing deployment store constructor')
-    return new $D(this.deploys, {
-      chain,
-      agent: agent??undefined/*l8r*/,
-      uploader
-    })
+  async getDeployStore <S extends DeployStore> (
+    $S: DeployStoreClass<S>|undefined = this.DeployStore as DeployStoreClass<D>
+  ): Promise<S> {
+    if (!$S) throw new Error('Missing deployment store constructor')
+    return new $S(this.deploys)
   }
   /** Create a new populated Deployer, with the specified DeployStore.
     * @returns Deployer */
@@ -58,10 +53,20 @@ export class DeployConfig extends ConnectConfig {
     $D: DeployerClass<D> = Deployer as DeployerClass<D>
   ): Promise<D> {
     const store = await this.getDeployStore()
+    store.defaults.uploader = await this.getUploader()
+    store.defaults.agent    = store.defaults.uploader.agent!
+    store.defaults.chain    = store.defaults.uploader.agent!.chain!
     const { chain, agent, uploader } = store.defaults
     if (!chain) throw new Error('Missing chain')
     const defaults = { chain, agent: agent??undefined/*l8r*/, uploader }
     return new $D({ config: this, agent, uploader, store })
+  }
+  async getUploader <U extends Uploader> (
+    $U: UploaderClass<U> = FSUploader as UploaderClass<U>
+  ): Promise<U> {
+    const { chain, agent } = await super.getConnector()
+    if (!chain) throw new Error('Missing chain')
+    return new $U(agent, this.uploads) as U
   }
 }
 
