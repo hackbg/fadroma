@@ -4,9 +4,8 @@
 import { ok, equal } from 'node:assert'
 ```
 
-When implementing your deployer by inheriting from the `Fadroma` class,
-a `Builder` should be automatically provided in accordance with the
-automatically populated `BuildConfig`.
+The subclasses of the abstract base class `Builder` in Fadroma Core
+implement the compilation procedure for contracts.
 
 ```typescript
 import { BuilderConfig, Builder } from '@fadroma/build'
@@ -14,10 +13,11 @@ let config:  BuilderConfig
 let builder: Builder
 ```
 
-Internally, this happens by calling the `getBuilder` method of `BuilderConfig`.
+When inheriting from the `Fadroma` class, a `Builder` should be automatically
+provided, in accordance with the automatically populated `BuildConfig`.
 
-The actual builder is a subclass of the `Builder` abstract base class
-defined in Fadroma Core. It may be one of the following:
+Internally/manually, this happens by calling the `getBuilder`
+method of `BuilderConfig`.
 
 ## Docker builder
 
