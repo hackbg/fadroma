@@ -51,11 +51,19 @@ import assert, { ok, equal, deepEqual, notEqual, throws, rejects } from 'assert'
 import { Deployment } from '.'
 let deployment: Deployment = new Deployment()
 deployment = new Deployment({ builder, uploader, agent })
+deployment.showStatus()
+await deployment.buildMany([])
+await deployment.uploadMany([])
+await deployment.subsystem('', '', class {})
+await deployment.attach({}, '', '')
 contract = deployment.contract()
 equal(contract.context,  deployment)
 equal(contract.builder,  builder)
 equal(contract.uploader, uploader)
 equal(contract.agent,    agent)
+
+import { DeployStore } from '.'
+new DeployStore()
 ```
 
 ### Building and uploading
