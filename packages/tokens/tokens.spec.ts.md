@@ -17,7 +17,7 @@ import { Snip20 } from '@fadroma/tokens'
 
 ok(Snip20.init())
 
-const agent = { getHash: async () => 'gotCodeHash' }
+const agent = { address: 'agent-address', getHash: async () => 'gotCodeHash' }
 const snip20 = new Snip20(agent, 'address', 'codeHash')
 const descriptor = { custom_token: { contract_addr: 'address', token_code_hash: 'codeHash' } }
 deepEqual(snip20.asDescriptor, descriptor)
@@ -66,9 +66,9 @@ This object keeps track of token contracts in a deployment,
 and can deploy them on demand.
 
 ```typescript
-import { TokenManager, TokenError } from '@fadroma/tokens'
+import { TokenManager, TokenPair, TokenError } from '@fadroma/tokens'
 
-const registry = new TokenManager({})
+const registry = new TokenManager({agent})
 throws(()=>registry.get())
 throws(()=>registry.get('UNKNOWN'))
 
@@ -76,6 +76,9 @@ const token = {}
 ok(registry.add('KNOWN', token))
 ok(registry.has('KNOWN'))
 equal(registry.get('KNOWN'), token)
+
+ok(registry.define('DEPLOY'))
+ok(registry.pair('DEPLOY', 'KNOWN') instanceof TokenPair)
 
 new TokenError()
 

@@ -184,26 +184,6 @@ export class TokenManager extends CommandContext {
       return results
     })*/
   }
-  deploy = this.command('deploy', 'deploy a token', async (
-    name:      string|undefined  = this.args[0],
-    symbol:    string|undefined  = this.args[1],
-    decimals:  number|undefined  = Number(this.args[2]??0),
-    admin:     Address|undefined = this.args[3]??this.context.agent?.address,
-    template:  any               = this.args[4]??'amm-snip20'
-  ) => {
-    if (!name)     throw new Error('Specify name')
-    if (!symbol)   throw new Error('Specify symbol')
-    if (!decimals) throw new Error('Specify decimals')
-    const args   = this.args.slice(5)
-    const config = structuredClone(this.defaultConfig)
-    if (args.includes('--no-public-total-supply')) delete config.public_total_supply
-    if (args.includes('--no-mint'))     delete config.enable_mint
-    if (args.includes('--can-burn'))    config.enable_burn    = true
-    if (args.includes('--can-deposit')) config.enable_deposit = true
-    if (args.includes('--can-redeem'))  config.enable_redeem  = true
-    if (typeof template === 'string') template = this.context.contract({ crate: template })
-    return await this.define(symbol, { name, decimals, admin, template })
-  })
   /** Get a TokenPair object from a string like "SYMBOL1-SYMBOL2"
     * where both symbols are registered */
   pair (name: string): TokenPair {
