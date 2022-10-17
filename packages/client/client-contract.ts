@@ -202,8 +202,7 @@ export class ContractSource extends ContractMetadata {
     return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
       await this.compiled
       const result = await upload(this.asTemplate, uploader, uploader?.agent)
-      this.provide(result as Partial<this>)
-      return this.asTemplate
+      return this.asTemplate.provide(result)
     })
   }
 
