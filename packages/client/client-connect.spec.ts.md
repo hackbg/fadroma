@@ -55,10 +55,10 @@ have the ability to reset the whole chain and start over.
     third-party contracts, or to use their official testnet/mainnet addresses.
 
 ```typescript
-assert(Chain.mocknet().devMode)
-assert(Chain.devnet().devMode)
-assert(!Chain.testnet().devMode)
-assert(!Chain.mainnet().devMode)
+assert(Chain.mocknet('any').devMode)
+assert(Chain.devnet('any').devMode)
+assert(!Chain.testnet('any').devMode)
+assert(!Chain.mainnet('any').devMode)
 ```
 
 ## Agent
