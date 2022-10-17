@@ -78,7 +78,7 @@ ok(registry.has('KNOWN'))
 equal(registry.get('KNOWN'), token)
 
 ok(registry.define('DEPLOY'))
-ok(registry.pair('DEPLOY', 'KNOWN') instanceof TokenPair)
+ok(registry.pair('DEPLOY-KNOWN') instanceof TokenPair)
 
 new TokenError()
 

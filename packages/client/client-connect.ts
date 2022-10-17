@@ -36,7 +36,7 @@ export interface DevnetHandle {
   chainId: string
   url: URL
   respawn (): Promise<unknown>
-  terminate (): Promise<void>
+  terminate (): Promise<this>
   getGenesisAccount (name: string): Promise<AgentOpts>
 }
 

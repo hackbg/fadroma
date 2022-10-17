@@ -16,11 +16,12 @@ import { fileURLToPath }                        from 'url'
 import {
   Devnet,
   DevnetConfig,
+  DevnetCommands,
   devnetPortModes,
   resetDevnet
 } from './devnet-base'
 import type { DevnetPlatform, DevnetPortMode } from './devnet-base'
-import { RemoteDevnet } from './devnet-remote'
+//import { RemoteDevnet } from './devnet-remote'
 import { DockerDevnet } from './devnet-docker'
 
 /** Returns the function that goes into Fadroma.Chain.variants (when it's populated
@@ -44,11 +45,11 @@ export function getDevnet (
   chainId?: string,
   dokeres?: Dokeres.Engine
 ): Devnet {
-  if (server) {
-    return RemoteDevnet.getOrCreate(platform, 'TODO', server, undefined, chainId, chainId)
-  } else {
+  //if (server) {
+    //return RemoteDevnet.getOrCreate(platform, 'TODO', server, undefined, chainId, chainId)
+  //} else {
     return DockerDevnet.getOrCreate(platform, dokeres)
-  }
+  //}
 }
 
 export type {
@@ -59,8 +60,9 @@ export type {
 export {
   Devnet,
   DevnetConfig,
+  DevnetCommands,
   devnetPortModes,
   resetDevnet,
-  RemoteDevnet,
+  //RemoteDevnet,
   DockerDevnet,
 }

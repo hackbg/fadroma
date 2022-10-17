@@ -119,6 +119,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     // run the container
     const containerName = `${this.chainId}-${this.port}`
     this.log.info('Creating and starting devnet container:', bold(containerName))
+    console.log(this.image)
     this.container = await this.image.run(
       containerName, this.spawnOptions, ['node', this.initScriptMount], '/usr/bin/env'
     )

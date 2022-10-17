@@ -69,10 +69,10 @@ export abstract class Devnet implements DevnetHandle {
     port,
     portMode,
     ephemeral
-  }: DevnetOpts) {
-    this.ephemeral = ephemeral ?? this.ephemeral
-    this.chainId   = chainId      || this.chainId
-    this.port      = Number(port) || this.port
+  }: Partial<DevnetOpts> = {}) {
+    this.ephemeral = ephemeral    ?? this.ephemeral
+    this.chainId   = chainId      ?? this.chainId
+    this.port      = Number(port) ?? this.port
     this.portMode  = portMode!
     if (!this.chainId) {
       throw new Error(
@@ -104,6 +104,7 @@ export abstract class Devnet implements DevnetHandle {
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL {
     const url = `${this.protocol}://${this.host}:${this.port}`
+      console.log(this, url)
     return new URL(url)
   }
   /** This directory is created to remember the state of the devnet setup. */
@@ -150,6 +151,7 @@ export abstract class Devnet implements DevnetHandle {
   async terminate () {
     await this.kill()
     await this.erase()
+    return this
   }
 
   /** Retrieve an identity */
@@ -171,7 +173,7 @@ export abstract class Devnet implements DevnetHandle {
 
 const log = new ClientConsole('Fadroma.Devnet')
 
-export default class DevnetCommands extends CommandContext {
+export class DevnetCommands extends CommandContext {
 
   constructor (public chain?: Chain) {
     super('Fadroma Devnet')
@@ -179,6 +181,7 @@ export default class DevnetCommands extends CommandContext {
 
   status = this.command('status', 'print the status of the current devnet', () => {
     log.chainStatus(this)
+    return this
   })
 
   reset = this.command('reset', 'erase the current devnet', () => {
@@ -187,7 +190,7 @@ export default class DevnetCommands extends CommandContext {
 
 }
 
-export async function resetDevnet ({ chain }: { chain: Chain }) {
+export async function resetDevnet ({ chain }: { chain?: Chain } = {}) {
   if (!chain) {
     log.info('No active chain.')
   } else if (!chain.isDevnet || !chain.node) {
