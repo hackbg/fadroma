@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::prelude::*;
 use super::{
     EnsembleResult, EnsembleError,
-    response::{StakingResponse, RewardsResponse, ValidatorRewards}
+    response::StakingResponse
 };
 
 #[derive(Clone, Debug)]
@@ -125,54 +125,6 @@ impl Delegations {
 
     pub fn validators(&self) -> &[Validator] {
         &self.validators
-    }
-
-    pub fn unbonding_delegations(&self, delegator: &str) -> Vec<Delegation> {
-        match self.delegators.get(delegator) {
-            Some(delegations) => {
-                let mut return_delegations: Vec<Delegation> = vec![];
-                for delegation_pair in delegations {
-                    let delegation = delegation_pair.1;
-                    return_delegations.push(Delegation {
-                        delegator: Addr::unchecked(delegation.delegator.clone()),
-                        validator: delegation.validator.to_string(),
-                        amount: delegation.unbonding_amount.clone(),
-                    });    
-                }
-                return_delegations
-            },
-            None => vec![]
-        }
-    }
-
-    pub fn rewards(&self, delegator: &str) -> RewardsResponse {
-        match self.delegators.get(delegator) {
-            Some(delegations) => {
-                let mut total = 0u128;
-                let mut rewards = vec![];
-                for delegation_pair in delegations {
-                    let delegation = delegation_pair.1;
-                    total += delegation.accumulated_rewards.amount.u128();
-                    rewards.push(ValidatorRewards{
-                        validator_address: delegation.validator.clone(),
-                        reward: vec![delegation.accumulated_rewards.clone()],
-                    });
-                }
-                
-                // Cannot return any actual ValidatorRewards structs because the struct is
-                // private at the moment.
-                RewardsResponse {
-                    rewards,
-                    total: vec![Coin::new(total, &self.bonded_denom)],
-                }
-            },
-            None => {
-                RewardsResponse {
-                    rewards: vec![],
-                    total: vec![],
-                }
-            },
-        }
     }
 
     // Validator transaction messages 

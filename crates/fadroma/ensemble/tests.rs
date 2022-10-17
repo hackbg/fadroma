@@ -3,8 +3,7 @@ use anyhow::{Result as AnyResult, bail};
 
 use super::{
     ContractEnsemble, ContractHarness, MockDeps,
-    MockEnv, EnsembleResult, EnsembleError,
-    response::{RewardsResponse, ValidatorRewards}
+    MockEnv, EnsembleResult, EnsembleError
 };
 use crate::prelude::*;
 
@@ -900,14 +899,6 @@ fn staking() {
         },
         _ => panic!("Undelegate too much error improperly caught"),
     };
-    assert_eq!(
-        ensemble.ctx.delegations.unbonding_delegations(&addr1),
-        vec![Delegation {
-            delegator: Addr::unchecked(addr1.to_string()),
-            validator: val_addr_1.to_string(),
-            amount: Coin::new(500u128, "uscrt"),
-        }],
-    );
 
     // Redelegate
     ensemble
@@ -1081,29 +1072,6 @@ fn staking() {
             .current
             .query_balances(&addr1, Some("uscrt".to_string())),
         vec![Coin::new(50u128, "uscrt")],
-    );
-
-    let mut rewards_result = ensemble.ctx.delegations.rewards(&addr1);
-    rewards_result.rewards.sort_by(|a, b| {
-        a.validator_address
-            .to_string()
-            .cmp(&b.validator_address.to_string())
-    });
-    assert_eq!(
-        rewards_result,
-        RewardsResponse {
-            rewards: vec![
-                ValidatorRewards {
-                    validator_address: val_addr_1.to_string(),
-                    reward: vec![Coin::new(0u128, "uscrt")],
-                },
-                ValidatorRewards {
-                    validator_address: val_addr_2.to_string(),
-                    reward: vec![Coin::new(50u128, "uscrt")],
-                }
-            ],
-            total: vec![Coin::new(50u128, "uscrt")],
-        },
     );
 
     // Fast forward

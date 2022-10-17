@@ -5,8 +5,6 @@ use crate::{
     cosmwasm_std::{Addr, Binary, Response, Coin}
 };
 
-use serde::{Serialize, Deserialize};
-
 #[derive(Clone, PartialEq, Debug)]
 pub enum ResponseVariants {
     Instantiate(InstantiateResponse),
@@ -61,21 +59,6 @@ pub struct StakingResponse {
     pub validator: String,
     /// The funds that were sent.
     pub amount: Coin,
-}
-
-// Copying struct from cosmwasm because ValidatorRewards is not currently visible, which 
-// is used in RewardsResponse
-/// Rewards response
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct RewardsResponse {
-    pub rewards: Vec<ValidatorRewards>,
-    pub total: Vec<Coin>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct ValidatorRewards {
-    pub validator_address: String,
-    pub reward: Vec<Coin>
 }
 
 pub struct Iter<'a> {
