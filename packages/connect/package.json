@@ -1,26 +1,36 @@
 {
   "name":    "@fadroma/connect",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "type":    "module",
   "main":    "./connect.ts",
-  "files":   [ "connect.ts" ],
+  "files":   [ "*.ts", "*.cli.cjs" ],
+  "bin": { "fadroma-connect": "connect.cli.cjs" },
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "check": "tsc --noEmit",
+    "test":  "ensuite connect.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- connect.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- connect.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
-    "@fadroma/client":     "workspace:^4",
-    "@fadroma/scrt":       "workspace:*",
-    "@fadroma/scrt-amino": "workspace:*",
-    "@fadroma/mocknet":    "workspace:*",
-    "@hackbg/komandi":     "^4.2.8"
+    "@fadroma/client":     "workspace:^6.1",
+    "@fadroma/devnet":     "workspace:^1",
+    "@fadroma/scrt":       "workspace:^4",
+    "@fadroma/scrt-amino": "workspace:^3",
+    "@fadroma/mocknet":    "workspace:^2",
+    "@hackbg/komandi":     "workspace:^6.1.2",
+    "@hackbg/konfizi":     "workspace:^3.0.1"
   },
   "peerDependencies": {
-    "@fadroma/devnet":     "workspace:^1.0.3"
+    "@fadroma/devnet": "workspace:^1.0.3",
+    "@hackbg/ganesha": "^2.2.5"
   },
   "peerDependenciesMeta": {
-    "@fadroma/devnet":   { "optional": true, "description": "For connecting to local devnet." }
+    "@fadroma/devnet": { "optional": true, "description": "For connecting to local devnet." },
+    "@hackbg/ganesha": { "optional": true, "description": "For fadroma-connect command." }
+  },
+  "devDependencies": {
+    "@hackbg/ensuite": "^1"
   }
 }

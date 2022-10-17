@@ -32,7 +32,7 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - name: Generate TypeScript coverage
-        run: pnpm ts:test:lcov
+        run: pnpm ts:test:lcov || true
       - name: Unveil Cargo.toml
         run:  cp _Cargo.toml Cargo.toml
       - name: Generate Rust reference

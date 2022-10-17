@@ -1,18 +1,23 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "3.0.4",
+  "version": "5.1.5",
   "type":    "module",
   "main":    "tokens.ts",
   "files": [ "tokens.ts" ],
-  "dependencies": {
-    "@fadroma/client": "workspace:^4",
-    "@fadroma/scrt":   "workspace:^1",
-    "@hackbg/konzola": "^1.1.2",
-    "@hackbg/formati": "^2.0.1"
-  },
   "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "check": "tsc --noEmit",
+    "test":  "ensuite tokens.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- tokens.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- tokens.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
+  },
+  "dependencies": {
+    "@fadroma/client": "workspace:^6.1.2",
+    "@fadroma/scrt":   "workspace:^4.0.1",
+    "@hackbg/konzola": "workspace:^2.1",
+    "@hackbg/formati": "workspace:^5.1.1"
+  },
+  "devDependencies": {
+    "@hackbg/ensuite": "^1.1"
   }
 }

@@ -1,26 +1,11 @@
+<div align="center">
+
 # Fadroma Build
 
-```typescript
-import { Workspace, Source, Builder, Artifact } from '.'
-```
+[![](https://img.shields.io/npm/v/@fadroma/build?color=%2365b34c&label=%40fadroma%2Fbuild&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/build)
 
-## Crates and workspaces
+This is the builder module of the Fadroma dApp framework.
 
-```typescript
-let workspace: Workspace
-let source:    Source
-```
+For usage info see the [**Specification**](./build.spec.ts.md).
 
-```typescript
-console.info('specify source')
-for (const source of [
-  { crate: 'crate', workspace: { path: Testing.workspace, ref: 'HEAD' } },
-  new Source(new Workspace(Testing.workspace, 'HEAD'), 'crate')
-  new Workspace(Testing.workspace, 'HEAD').crate('crate')
-]) {
-  console.info('.')
-  assert(source.workspace.path === Testing.workspace)
-  assert(source.workspace.ref === 'HEAD')
-  assert(source.crate === 'crate')
-}
-```
+</div>

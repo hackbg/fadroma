@@ -1,6 +1,4 @@
-# was "FROM rust:1.46" for 1.0
-# was FROM rust:1.57
-FROM rust:1.59
+FROM rust:1.61
 ENV REGISTRY /usr/local/cargo/registry
 ENV USER 1000
 ENV GROUP 1000

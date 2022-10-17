@@ -1,10 +1,11 @@
-# Fadroma Client
+<div align="center">
 
-Base layer for isomorphic contract clients.
-
-1. User selects chain by instantiating a `Chain` object.
-2. User authorizes agent by obtaining an `Agent` instance from the `Chain`.
-3. User interacts with contract by obtaining an instance of the
-   appropriate `Client` subclass from the authorized `Agent`.
+# Fadroma Core
 
 [![](https://img.shields.io/npm/v/@fadroma/client?color=%2365b34c&label=%40fadroma%2Fclient&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/client)
+
+Base layer for isomorphic dAPI clients.
+
+For usage info see the [**Specification**](./client.spec.ts.md).
+
+</div>

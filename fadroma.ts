@@ -18,63 +18,115 @@
 
 **/
 
-import * as Komandi          from '@hackbg/komandi'
-import * as FadromaBuild     from '@fadroma/build'
-import * as FadromaDeploy    from '@fadroma/deploy'
-import * as FadromaDevnet    from '@fadroma/devnet'
-import * as FadromaConnect   from '@fadroma/connect'
-import * as FadromaScrtGrpc  from '@fadroma/scrt'
-import * as FadromaScrtAmino from '@fadroma/scrt-amino'
+import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
+import type { DeployStore } from '@fadroma/client'
+import { BuilderConfig } from '@fadroma/build'
+import { DeployConfig, Deployer, DeployConsole } from '@fadroma/deploy'
+import type { DeployerClass } from '@fadroma/deploy'
+import { DevnetConfig } from '@fadroma/devnet'
+import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
+import { TokenManager } from '@fadroma/tokens'
+import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 
-/** Complete environment configuration of Fadroma as flat namespace. */
-export type FadromaConfig =
-  & FadromaBuild.BuilderConfig
-  & FadromaConnect.ChainConfig
-  & FadromaDeploy.DeployConfig
-  & FadromaDevnet.DevnetConfig
-  & FadromaScrtGrpc.ScrtGrpcConfig
-  & FadromaScrtAmino.ScrtAminoConfig
-
-/** Get the combined Fadroma config for all modules from the runtime environment. */
-export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
-  return {
-    ...FadromaBuild.getBuilderConfig(cwd, env),
-    ...FadromaConnect.getChainConfig(cwd, env),
-    ...FadromaDeploy.getDeployConfig(cwd, env),
-    ...FadromaDevnet.getDevnetConfig(cwd, env),
-    ...FadromaScrtGrpc.ScrtGrpc.getConfig(cwd, env),
-    ...FadromaScrtAmino.ScrtAmino.getConfig(cwd, env),
-  }
-}
+import repl from 'node:repl'
+import { createContext } from 'node:vm'
 
 /** Context for Fadroma commands. */
-export type Context =
-  & Komandi.CommandContext
-  & { config: FadromaConfig }
-  & FadromaBuild.BuildContext
-  & FadromaDeploy.DeployContext
+export default class Fadroma extends Deployer {
 
-// Reexport the entirety of the Fadroma suite.
-export * from '@fadroma/build'
-export * from '@fadroma/client'
-export * from '@fadroma/connect'
-export * from '@fadroma/deploy'
-export * from '@fadroma/mocknet'
-export * from '@fadroma/tokens'
-//export * from '@fadroma/schema' // not updated yet
+  /** @returns a function that runs a requested command. */
+  static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
+    const self = this
+    return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
+  }
 
-// Platform support:
-export * from '@fadroma/scrt'
-export { SecretJS } from '@fadroma/scrt'
-export * from '@fadroma/scrt-amino'
-export { SecretJS as SecretJSAmino } from '@fadroma/scrt-amino'
+  /** Constructs a populated instance of the Fadroma context. */
+  static async init (
+    projectName: string = 'Fadroma',
+    options:     Partial<Config> = {}
+  ): Promise<Fadroma> {
+    const config = new Config(process.env, process.cwd(), options)
+    return config.getDeployer(this as DeployerClass<Deployer>) as unknown as Fadroma
+  }
 
-// Reexport some toolbox utilities:
-export * from '@hackbg/komandi'
+  constructor (options: Partial<Fadroma> = { config: new Config() }) {
+    super(options as Partial<Deployer>)
+    this.log.name  = this.projectName
+    this.config    = new Config(this.env, this.cwd, options.config)
+    this.workspace = this.config.project
+    this.builder ??= this.config?.build?.getBuilder()
+    this.addCommand('repl',   'interact with this project from a Node.js REPL',
+                    () => this.startREPL())
+    this.addCommand('update', 'update the current deployment',
+                    () => this.selectDeployment().then(()=>this.update()))
+    this.addCommand('deploy', 'create a new deployment of this project',
+                    () => this.deploy())
+  }
+
+  /** Override this to set your project name. */
+  projectName: string = 'Fadroma'
+
+  /** The current configuration. */
+  config: Config
+
+  /** The token manager API. */
+  tokens: TokenManager = this.commands(
+    'tokens', 'Fadroma Token Manager', new TokenManager(this as Deployment)
+  )
+
+  /** Override this to implement your pre-deploy procedure. */
+  async deploy () {
+    await this.createDeployment()
+    await this.update()
+  }
+
+  /** Override this to implement your deploy/update procedure. */
+  async update (overridden: boolean = false) {
+    if (!overridden) {
+      this.log.info('Fadroma#update: override this method with your deploy/update procedure.')
+    }
+  }
+
+  /** Start an interactive REPL. */
+  async startREPL () {
+    setTimeout(()=>Object.assign(
+      repl.start({ prompt: '\nFadroma> ' }),
+      { context: this.replContext() }
+    ))
+  }
+
+  protected replContext () {
+    return createContext(this)
+  }
+
+}
+
+/** Configuration for the Fadroma environment. */
+export class Config extends DeployConfig {
+  build = new BuilderConfig(this.env, this.cwd, { project: this.project })
+}
+
+/** Default export of command module. */
+export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
+
+export class Console extends DeployConsole {
+  constructor (name = 'Fadroma') { super(name) }
+}
+
 export * from '@hackbg/konzola'
+export * from '@hackbg/komandi'
+export * from '@hackbg/konfizi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
-
-// There's apparently also a decimal in @iov/encoding?
-// Gotta see if it's compatible.
-export type { Decimal } from '@fadroma/client'
+export * from '@fadroma/client'
+export { override } from '@fadroma/client'
+export type { Decimal, Overridable } from '@fadroma/client'
+export * from '@fadroma/build'
+export * from '@fadroma/deploy'
+export * from '@fadroma/devnet'
+export * from '@fadroma/connect'
+export * from '@fadroma/mocknet'
+export * from '@fadroma/tokens'
+export * as ScrtGrpc  from '@fadroma/scrt'
+export * as ScrtAmino from '@fadroma/scrt-amino'
+export { connect } from '@fadroma/connect'

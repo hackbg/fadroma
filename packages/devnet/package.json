@@ -3,18 +3,31 @@
   "version": "1.0.5",
   "type":    "module",
   "main":    "./devnet.ts",
-  "files":   [ "devnet.ts", "devnet-init.mjs" ],
+  "files":   [ "devnet.ts", "devnet.init.mjs" ],
+  "bin": { "fadroma-devnet": "devnet.cli.cjs" },
   "description": "Spawn local instance of blockchain for smart contract development.",
-  "dependencies": {
-    "@hackbg/dokeres": "^4.4.1",
-    "@hackbg/portali": "^1.2.4",
-    "@hackbg/kabinet": "^3.1.2",
-    "@hackbg/komandi": "^4.2.8",
-    "@hackbg/formati": "^2.0.1"
-  },
   "scripts": {
-    "ts:check": "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "check": "tsc --noEmit",
+    "test":  "ensuite devnet.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
+  },
+  "peerDependencies": {
+    "@hackbg/ganesha": "^2.2.5"
+  },
+  "peerDependenciesMeta": {
+    "@hackbg/ganesha": { "optional": true, "description": "For fadroma-devnet command." }
+  },
+  "dependencies": {
+    "@fadroma/client": "workspace:^6.1",
+    "@hackbg/dokeres": "workspace:^4.4.2",
+    "@hackbg/portali": "workspace:^1.2.4",
+    "@hackbg/kabinet": "workspace:^3.2.6",
+    "@hackbg/komandi": "workspace:^6.1.2",
+    "@hackbg/konfizi": "workspace:^3.0.1",
+    "@hackbg/konzola": "workspace:^2.1",
+    "@hackbg/formati": "workspace:^5.1.1"
+  },
+  "devDependencies": {
+    "@hackbg/ensuite": "^1"
   }
 }

@@ -20,7 +20,8 @@ Start exploring:
 
 **Fadroma** aims to take the CosmWasm Compute module and spin it into a fully integrated app platform.
 
-This repository contains assorted **Rust** libraries and a **TypeScript** build and deploy system.
+This repository contains assorted **Rust** libraries for smart contracts
+and a **TypeScript** system for building, deploying, and interacting with them.
 
 Check out our [**example project**](https://github.com/hackbg/fadroma-example) to see how to
 build your dApp with Fadroma.

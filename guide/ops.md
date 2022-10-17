@@ -21,22 +21,23 @@ deployment system, Fadroma Ops.
 #!/usr/bin/env fadroma-deploy
 import Fadroma from '@hackbg/fadroma'
 
-export default new Fadroma.DeployCommands('deploy')
-  .command('deploy', 'deploy an instance of my-contract', deployMyContract)
-  .command('status', 'print status of deployed contract', statusOfContract)
+export class Project extends Fadroma {
 
-const console = Fadroma.Console('MyDeploy')
+  deploy = this.command('deploy', 'deploy an instance of my-contract', async () => {
+    this.log.info('Deploying...')
+    await this.context.contract('MyContract').deploy('my-contract')
+  })
 
-async function deployMyContract (context) {
-  console.info('Deploying...')
-  await context.contract('MyContract').deploy('my-contract')
+  status = this.command('status', 'print status of deployed contract', async () => {
+    this.log.info('Querying status...')
+    const contract = await context.contract('MyContract').get('Deploy the contract first.').populate()
+    console.debug(contract)
+  })
+
 }
 
-async function statusOfContract (context) {
-  console.info('Querying status...')
-  const contract = await context.contract('MyContract').get('Deploy the contract first.').populate()
-  console.debug(contract)
-}
+export default Project.run()
+
 /** add more commands here */
 ```
 
@@ -73,7 +74,7 @@ The **Commands#command(name, info, ...steps)** method declares commands.
   * **info** is a short help description
   * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
 
-**Steps** are run sequentially. The first argument to each step is a `context: DeployContext`.
+**Steps** are run sequentially. The first argument to each step is a `context: Deployer`.
 If a step returns an `Object`, the object's entries are added to the `context` for subsequent
 steps.
 
@@ -84,7 +85,7 @@ steps.
 * Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
 * Fadroma uses [`@hackbg/komandi`](https://github.com/hackbg/toolbox/blob/main/komandi/komandi.ts)
   to parse commands. This is a simple and loose command parser which does not support flags.
-  Arguments to a command are available in `context.cmdArgs` so you can define your own flags.
+  Arguments to a command are available in `context.args` so you can define your own flags.
 :::
 
 ## How to deploy contracts
@@ -174,7 +175,7 @@ Sometimes it is useful to deploy multiple contracts in a single transaction.
 More complex deployments (such as that of a whole subsystem consisting of multiple contracts)
 can be expressed as classes, by inheriting from `Fadroma.DeployTask`.
 
-The semantics of class-based deployments approach a declarative workflow: by using `this.subtask`
+The semantics of class-based deployments approach a declarative workflow: by using `this.task`
 to wrap the individual stages of the deployment and awaiting the result of the deployment in the
 main function defined in the constructor, the structure of the deployment procedure becomes a
 directed acyclic graph.
