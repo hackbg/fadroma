@@ -1,6 +1,10 @@
 # Token descriptors
 
 ```typescript
+import { ok, equal, deepEqual, throws } from 'assert'
+```
+
+```typescript
 import {
   TokenKind, getTokenKind, getTokenId, isTokenDescriptor,
   nativeToken, customToken, isNativeToken, isCustomToken,

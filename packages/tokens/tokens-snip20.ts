@@ -169,11 +169,7 @@ export class Snip20 extends Client implements CustomToken {
     })
   }
 
-  async getAllowance (
-    owner:   Address,
-    spender: Address,
-    key:     string
-  ): Promise<Allowance> {
+  async getAllowance (owner: Address, spender: Address, key: string): Promise<Allowance> {
     const msg = { allowance: { owner, spender, key } }
     const response: { allowance: Allowance } = await this.query(msg)
     return response.allowance
@@ -188,29 +184,17 @@ export class Snip20 extends Client implements CustomToken {
       `${bold(this.agent?.address||'(missing address)')}: increasing allowance of`,
       bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.address))
     )
-    return this.execute({
-      increase_allowance: { amount: String(amount), spender }
-    })
+    return this.execute({ increase_allowance: { amount: String(amount), spender } })
   }
 
   /** Decrease allowance to spender */
-  decreaseAllowance (
-    amount:  string | number | bigint,
-    spender: Address,
-  ) {
-    return this.execute({
-      decrease_allowance: { amount: String(amount), spender }
-    })
+  decreaseAllowance (amount: string | number | bigint, spender: Address,) {
+    return this.execute({ decrease_allowance: { amount: String(amount), spender } })
   }
 
   /** Transfer tokens to address */
-  transfer (
-    amount:    string | number | bigint,
-    recipient: Address,
-  ) {
-    return this.execute({
-      transfer: { amount, recipient }
-    })
+  transfer (amount: string | number | bigint, recipient: Address) {
+    return this.execute({ transfer: { amount, recipient } })
   }
 
   /** Send tokens to address.
