@@ -1,5 +1,4 @@
-use crate::scrt::cosmwasm_std::StdResult;
-use super::uint256::Uint256;
+use crate::scrt::cosmwasm_std::{StdResult, Uint256};
 
 /// Convert between tokens with different decimals.
 ///
@@ -16,10 +15,10 @@ pub fn convert_token(
     output_decimals: u8
 ) -> StdResult<Uint256> {
     // result = amount * rate / one whole output token
-    let amount = amount.into();
-    let rate = rate.into();
+    let amount: Uint256 = amount.into();
+    let rate: Uint256 = rate.into();
 
-    let result = (amount * rate)?;
+    let result = amount.checked_mul(rate)?;
 
     // But, if tokens have different number of decimals, we need to compensate either by 
     // dividing or multiplying (depending on which token has more decimals) by the difference.
@@ -32,7 +31,7 @@ pub fn convert_token(
     };
 
     let whole_token = Uint256::from(one_token(compensation));
-    let result = Uint256::from(result.0 / whole_token.0);
+    let result = Uint256::from(result / whole_token);
 
     Ok(result)
 }
@@ -59,8 +58,8 @@ mod tests {
         // If we want to get 2 of swapped_token, we need to send 3 input_token
         // i.e. amount = 3000000000 (3 * 10 ** 9 decimals)
 
-        let rate = 666_666_666;
-        let amount = 3_000_000_000u128;
+        let rate = 666_666_666u32;
+        let amount = 3_000_000_000u32;
 
         let result = convert_token(amount, rate, 9, 9).unwrap();
         assert_eq!(result, 1_999_999_998u128.into());
@@ -69,26 +68,26 @@ mod tests {
         // Here amount has 3 zeroes less because input_token now has 6 decimals, so
         // 1 input_token = 3000000 (3 * 10 ** 6)
 
-        let rate = 666_666_666;
-        let amount = 3_000_000;
+        let rate = 666_666_666u32;
+        let amount = 3_000_000u32;
 
         let result = convert_token(amount, rate, 6, 9).unwrap();
-        assert_eq!(result, 1_999_999_998.into());
+        assert_eq!(result, 1_999_999_998u32.into());
 
         // And the other way around - when swap_token has 6 decimals.
         // Here the rate and result have 3 less digits - to account for the less decimals
 
-        let rate = 666_666;
-        let amount = 3_000_000_000u64;
+        let rate = 666_666u32;
+        let amount = 3_000_000_000u32;
 
         let result = convert_token(amount, rate, 9, 6).unwrap();
-        assert_eq!(result, 1_999_998.into());
+        assert_eq!(result, 1_999_998u32.into());
 
-        let rate = 150000000;
+        let rate = 150000000u32;
         let amount = 5 * one_token(18);
 
         let result = convert_token(amount, rate, 18, 8).unwrap();
-        assert_eq!(result, 7_5_000_000_0.into());
+        assert_eq!(result, 7_5_000_000_0u32.into());
 
         let rate = 15 * one_token(17); // 1.5
         let amount = 5 * one_token(8);

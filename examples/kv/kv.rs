@@ -1,4 +1,12 @@
-use fadroma::prelude::*;
+use fadroma::{
+    prelude::message,
+    schemars,
+    cosmwasm_std::{
+        Deps, DepsMut, StdResult, Env, StdError,
+        MessageInfo, Response, Binary, to_binary
+    },
+    storage::{load, save, remove}
+};
 
 /// Initial configuration of the register.
 #[message] pub struct InitMsg {
@@ -22,30 +30,39 @@ use fadroma::prelude::*;
 
 const KEY: &'static [u8] = b"value";
 
-pub fn init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>, _env: Env, msg: InitMsg,
-) -> StdResult<InitResponse> {
+pub fn instantiate(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: InitMsg
+) -> StdResult<Response> {
     if let Some(value) = msg.value {
-        save(&mut deps.storage, KEY, &value)?;
+        save(deps.storage, KEY, &value)?;
     }
-    Ok(InitResponse::default())
+
+    Ok(Response::default())
 }
 
-pub fn handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
-) -> StdResult<HandleResponse> {
+pub fn execute(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: HandleMsg
+) -> StdResult<Response> {
     match msg {
-        HandleMsg::Set(value) => save(&mut deps.storage, KEY, &value)?,
-        HandleMsg::Del        => remove(&mut deps.storage, KEY)
+        HandleMsg::Set(value) => save(deps.storage, KEY, &value)?,
+        HandleMsg::Del => remove(deps.storage, KEY)
     };
-    Ok(HandleResponse::default())
+    Ok(Response::default())
 }
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>, msg: QueryMsg,
+pub fn query(
+    deps: Deps,
+    _env: Env,
+    msg: QueryMsg
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Get => if let Some(value) = load::<String, S>(&deps.storage, KEY)? {
+        QueryMsg::Get => if let Some(value) = load::<String>(deps.storage, KEY)? {
             to_binary(&value)
         } else {
             Err(StdError::generic_err("empty"))
@@ -53,4 +70,4 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-fadroma::entrypoint!(fadroma, init, handle, query);
+fadroma::entrypoint!(fadroma, instantiate, execute, query);

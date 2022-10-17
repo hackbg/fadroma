@@ -5,61 +5,59 @@ use std::fmt;
 
 use crate::{
     self as fadroma,
-    prelude::*,
-    cosmwasm_std,
     admin::{assert_admin, require_admin},
+    cosmwasm_std,
     derive_contract::*,
-    impl_canonize_default
+    impl_canonize_default,
+    prelude::*,
 };
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub const PREFIX: &[u8] = b"fadroma_migration_state";
 
 /// Requires the admin component in order to check for admin.
 #[contract]
 pub trait Killswitch {
-    #[handle]
+    #[execute]
     fn set_status(
         level: ContractStatusLevel,
         reason: String,
-        new_address: Option<HumanAddr>
-    ) -> StdResult<HandleResponse> {
-        set_status(deps, env, level, reason, new_address)?;
+        new_address: Option<Addr>,
+    ) -> StdResult<Response> {
+        set_status(deps, info, level, reason, new_address)?;
 
-        Ok(HandleResponse {
-            messages: vec![],
-            log: vec![
-                log("action", "set_status"),
-                log("level", level)
-            ],
-            data: None
-        })
+        Ok(Response::new()
+            .add_attribute("action", "set_status")
+            .add_attribute("level", format!("{}", level))
+        )
     }
 
     #[query]
-    fn get_status() -> StdResult<ContractStatus<HumanAddr>> {
-        let status = load(&deps.storage)?;
+    fn get_status() -> StdResult<ContractStatus<Addr>> {
+        let status = load(deps.storage)?;
 
-        status.humanize(&deps.api)
+        status.humanize(deps.api)
     }
 }
 
+// TODO: should we remove this?
 /// Wrap status levels around the `match` statement that does your handle dispatch.
-#[macro_export] macro_rules! with_status {
-    // by default, assumes the handle msg enum is called `HandleMsg` and imported
-    ($deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
-        with_status!(HandleMsg, $deps, $env, match $msg { $($rest)* })
+#[macro_export]
+macro_rules! with_status {
+    // by default, assumes the execute msg enum is called `ExecuteMsg` and imported
+    ($deps:ident, $env:ident, $info:ident, match $msg:ident { $($rest:tt)* }) => {
+        with_status!(ExecuteMsg, $deps, $env, $info, match $msg { $($rest)* })
     };
     // but an alternative name can be passed
-    ($HandleMsg:ty, $deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
-        if let HandleMsg::SetStatus { level, reason, new_address } = $msg {
-            fadroma::killswitch::set_status($deps, $env, level, reason, new_address)?;
-            Ok(HandleResponse::default())
+    ($ExecuteMsg:ty, $deps:ident, $env:ident, $info:ident, match $msg:ident { $($rest:tt)* }) => {
+        if let ExecuteMsg::SetStatus { level, reason, new_address } = $msg {
+            fadroma::killswitch::set_status($deps, $env, $info, level, reason, new_address)?;
+            Ok(Response::default())
         } else {
-            fadroma::killswitch::is_operational(&$deps)?;
+            fadroma::killswitch::is_operational($deps)?;
             match $msg {
-                HandleMsg::SetStatus { .. } => unreachable!(),
+                ExecuteMsg::SetStatus { .. } => unreachable!(),
                 $($rest)*
             }
         }
@@ -67,28 +65,28 @@ pub trait Killswitch {
 }
 
 macro_rules! migration_message {
-    (paused: $reason:expr) => { format!(
-         "This contract has been paused. Reason: {}",
-         &$reason
-    ) };
-    (migration: $reason:expr, $new_address:expr) => { format!(
-         "This contract is being migrated to {}, please use that address instead. Reason: {}",
-         &$new_address.unwrap_or(HumanAddr::default()),
-         &$reason
-    ) };
+    (paused: $reason:expr) => {
+        format!("This contract has been paused. Reason: {}", &$reason)
+    };
+    (migration: $reason:expr, $new_address:expr) => {
+        format!(
+            "This contract is being migrated to {}, please use that address instead. Reason: {}",
+            &$new_address.unwrap_or(Addr::unchecked("")),
+            &$reason
+        )
+    };
 }
 
-pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<CanonicalAddr>> {
-    let result: Option<ContractStatus<CanonicalAddr>> =
-        crate::storage::load(storage, PREFIX)?;
+pub fn load(storage: &dyn Storage) -> StdResult<ContractStatus<CanonicalAddr>> {
+    let result: Option<ContractStatus<CanonicalAddr>> = crate::storage::load(storage, PREFIX)?;
 
     match result {
         Some(status) => Ok(status),
-        None => Ok(ContractStatus::default())
+        None => Ok(ContractStatus::default()),
     }
 }
 
-pub fn save (storage: &mut impl Storage, status: &ContractStatus<CanonicalAddr>) -> StdResult<()> {
+pub fn save(storage: &mut dyn Storage, status: &ContractStatus<CanonicalAddr>) -> StdResult<()> {
     crate::storage::save(storage, PREFIX, status)
 }
 
@@ -110,7 +108,7 @@ impl fmt::Display for ContractStatusLevel {
         match *self {
             Self::Operational => write!(f, "operational"),
             Self::Paused => write!(f, "paused"),
-            Self::Migrating => write!(f, "migrating")
+            Self::Migrating => write!(f, "migrating"),
         }
     }
 }
@@ -121,51 +119,52 @@ impl fmt::Display for ContractStatusLevel {
 /// Current state of a contract w/ optional description and pointer to new version
 #[derive(Serialize, Deserialize, Canonize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ContractStatus<A> {
-    pub level:       ContractStatusLevel,
-    pub reason:      String,
-    pub new_address: Option<A>
+    pub level: ContractStatusLevel,
+    pub reason: String,
+    pub new_address: Option<A>,
 }
 
 impl<A> Default for ContractStatus<A> {
-    fn default () -> Self { Self {
-        level:       ContractStatusLevel::Operational,
-        reason:      String::new(),
-        new_address: None
-    } }
+    fn default() -> Self {
+        Self {
+            level: ContractStatusLevel::Operational,
+            reason: String::new(),
+            new_address: None,
+        }
+    }
 }
 
 /// Return the current contract status. Defaults to operational if nothing was stored.
-pub fn get_status <S: Storage, A: Api, Q: Querier> (
-    deps: &Extern<S, A, Q>
-) -> StdResult<ContractStatus<HumanAddr>> {
-    load(&deps.storage)?.humanize(&deps.api)
+pub fn get_status(deps: Deps) -> StdResult<ContractStatus<Addr>> {
+    load(deps.storage)?.humanize(deps.api)
 }
 
 /// Fail if the current contract status level is other than `Operational`.
-pub fn is_operational <S: Storage, A: Api, Q: Querier> (
-    deps: &Extern<S, A, Q>
-) -> StdResult<()> {
-    let ContractStatus { level, reason, new_address } = get_status(deps)?;
+pub fn is_operational(deps: Deps) -> StdResult<()> {
+    let ContractStatus {
+        level,
+        reason,
+        new_address,
+    } = get_status(deps)?;
 
     match level {
         ContractStatusLevel::Operational => Ok(()),
         ContractStatusLevel::Paused => Err(StdError::GenericErr {
-            backtrace: None,
-            msg: migration_message!(paused: reason)
+            msg: migration_message!(paused: reason),
         }),
         ContractStatusLevel::Migrating => Err(StdError::GenericErr {
-            backtrace: None,
-            msg: migration_message!(migration: reason, new_address.clone())
+            msg: migration_message!(migration: reason, new_address.clone()),
         }),
     }
 }
 
 /// Fail if trying to return from `Migrating` status.
-pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
-    deps: &Extern<S, A, Q>,
-    to_level: ContractStatusLevel
-) -> StdResult<()> {
-    let ContractStatus { level, reason, new_address } = get_status(deps)?;
+pub fn can_set_status(deps: Deps, to_level: ContractStatusLevel) -> StdResult<()> {
+    let ContractStatus {
+        level,
+        reason,
+        new_address,
+    } = get_status(deps)?;
 
     match level {
         ContractStatusLevel::Operational => Ok(()),
@@ -175,118 +174,144 @@ pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
             ContractStatusLevel::Migrating => Ok(()),
             // but prevent reverting from migration status
             _ => Err(StdError::GenericErr {
-                backtrace: None,
-                msg: migration_message!(migration: reason, new_address.clone())
-            })
-        }
+                msg: migration_message!(migration: reason, new_address.clone()),
+            }),
+        },
     }
 }
 
 /// Store a new contract status. Requires the admin component in order to check for admin.
 #[require_admin]
-pub fn set_status <S: Storage, A: Api, Q: Querier> (
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
+pub fn set_status(
+    deps: DepsMut,
+    info: MessageInfo,
     level: ContractStatusLevel,
     reason: String,
-    new_address: Option<HumanAddr>
+    new_address: Option<Addr>,
 ) -> StdResult<()> {
-    can_set_status(deps, level)?;
-    
-    save(&mut deps.storage, &ContractStatus { level, reason, new_address: match new_address {
-        Some(new_address) => Some(new_address.canonize(&deps.api)?),
-        None => None
-    } })
+    can_set_status(deps.as_ref(), level)?;
+
+    save(
+        deps.storage,
+        &ContractStatus {
+            level,
+            reason,
+            new_address: match new_address {
+                Some(new_address) => Some(deps.api.addr_canonicalize(new_address.as_str())?),
+                None => None,
+            },
+        },
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env};
     use crate::admin::{self, Admin};
+    use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     #[test]
     fn test_migrate() {
-        let ref mut deps = mock_dependencies(20, &[]);
+        let mut deps = mock_dependencies();
         let admin = "admin";
 
-        admin::DefaultImpl.new(Some(admin.into()), deps, mock_env(admin, &[])).unwrap();
+        admin::DefaultImpl
+            .new(
+                Some(admin.into()),
+                deps.as_mut(),
+                mock_env(),
+                mock_info(admin, &[]),
+            )
+            .unwrap();
 
-        let current = get_status(deps).unwrap();
+        let current = get_status(deps.as_ref()).unwrap();
         assert_eq!(current.level, ContractStatusLevel::Operational);
 
-        can_set_status(deps, ContractStatusLevel::Operational).unwrap();
-        can_set_status(deps, ContractStatusLevel::Paused).unwrap();
-        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
-        is_operational(deps).unwrap();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
+        is_operational(deps.as_ref()).unwrap();
 
         let reason = String::from("Reason");
-        let new_address = HumanAddr("new_address".into());
+        let new_address = Addr::unchecked("new_address");
 
         let err = set_status(
-            deps,
-            mock_env("not_admin", &[]),
+            deps.as_mut(),
+            mock_info("not_admin", &[]),
             ContractStatusLevel::Paused,
             "Test reason".into(),
-            None
-        ).unwrap_err();
+            None,
+        )
+        .unwrap_err();
 
-        assert_eq!(err, StdError::unauthorized());
+        assert_eq!(err, StdError::generic_err("Unauthorized"));
 
         set_status(
-            deps,
-            mock_env(admin, &[]),
+            deps.as_mut(),
+            mock_info(admin, &[]),
             ContractStatusLevel::Paused,
             reason.clone(),
-            None
-        ).unwrap();
+            None,
+        )
+        .unwrap();
 
-        can_set_status(deps, ContractStatusLevel::Operational).unwrap();
-        can_set_status(deps, ContractStatusLevel::Paused).unwrap();
-        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
-        is_operational(deps).unwrap_err();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
+        is_operational(deps.as_ref()).unwrap_err();
 
-        let current = get_status(deps).unwrap();
-        assert_eq!(current, ContractStatus {
-            level: ContractStatusLevel::Paused,
-            reason: reason.clone(),
-            new_address: None
-        });
-
-        set_status(
-            deps,
-            mock_env(admin, &[]),
-            ContractStatusLevel::Migrating,
-            reason.clone(),
-            None
-        ).unwrap();
-
-        can_set_status(deps, ContractStatusLevel::Operational).unwrap_err();
-        can_set_status(deps, ContractStatusLevel::Paused).unwrap_err();
-        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
-        is_operational(deps).unwrap_err();
-
-        let current = get_status(deps).unwrap();
-        assert_eq!(current, ContractStatus {
-            level: ContractStatusLevel::Migrating,
-            reason: reason.clone(),
-            new_address: None
-        });
+        let current = get_status(deps.as_ref()).unwrap();
+        assert_eq!(
+            current,
+            ContractStatus {
+                level: ContractStatusLevel::Paused,
+                reason: reason.clone(),
+                new_address: None
+            }
+        );
 
         set_status(
-            deps,
-            mock_env(admin, &[]),
+            deps.as_mut(),
+            mock_info(admin, &[]),
             ContractStatusLevel::Migrating,
             reason.clone(),
-            Some(new_address.clone())
-        ).unwrap();
+            None,
+        )
+        .unwrap();
 
-        let current = get_status(deps).unwrap();
-        assert_eq!(current, ContractStatus {
-            level: ContractStatusLevel::Migrating,
-            reason,
-            new_address: Some(new_address)
-        });
+        can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap_err();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap_err();
+        can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
+        is_operational(deps.as_ref()).unwrap_err();
+
+        let current = get_status(deps.as_ref()).unwrap();
+        assert_eq!(
+            current,
+            ContractStatus {
+                level: ContractStatusLevel::Migrating,
+                reason: reason.clone(),
+                new_address: None
+            }
+        );
+
+        set_status(
+            deps.as_mut(),
+            mock_info("admin", &[]),
+            ContractStatusLevel::Migrating,
+            reason.clone(),
+            Some(new_address.clone()),
+        )
+        .unwrap();
+
+        let current = get_status(deps.as_ref()).unwrap();
+        assert_eq!(
+            current,
+            ContractStatus {
+                level: ContractStatusLevel::Migrating,
+                reason,
+                new_address: Some(new_address)
+            }
+        );
     }
 }

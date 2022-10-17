@@ -1,15 +1,18 @@
 use std::collections::HashMap;
 
-use crate::prelude::*;
-use super::response::BankResponse;
+use crate::cosmwasm_std::{Uint128, Coin, coin};
+use super::{
+    EnsembleResult, EnsembleError,
+    response::BankResponse
+};
 
 pub type Balances = HashMap<String, Uint128>;
 
 #[derive(Clone, Default, Debug)]
-pub(crate) struct Bank(pub(crate) HashMap<HumanAddr, Balances>);
+pub(crate) struct Bank(pub(crate) HashMap<String, Balances>);
 
 impl Bank {
-    pub fn add_funds(&mut self, address: &HumanAddr, coins: Vec<Coin>) {
+    pub fn add_funds(&mut self, address: &str, coins: Vec<Coin>) {
         if coins.is_empty() {
             return;
         }
@@ -25,15 +28,15 @@ impl Bank {
 
     pub fn remove_funds(
         &mut self, 
-        address: &HumanAddr, 
+        address: &str, 
         coins: Vec<Coin>
-    ) -> StdResult<()> {
+    ) -> EnsembleResult<()> {
         if coins.is_empty() {
             return Ok(());
         }
-        
+
         if !self.0.contains_key(address) {
-            return Err(StdError::not_found(
+            return Err(EnsembleError::Bank(
                 format!("Account {} does not exist for remove balance", address)
             ))
         }
@@ -45,25 +48,25 @@ impl Bank {
     
             match balance {
                 Some(amount) => {
-                    if amount.0 >= coin.amount.0 {
-                        amount.0 -= coin.amount.0;
+                    if *amount >= coin.amount {
+                        *amount -= coin.amount;
                     } else {
-                        return Err(StdError::generic_err(format!(
+                        return Err(EnsembleError::Bank(format!(
                             "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}", 
                             address,
                             coin.denom,
-                            amount.0,
-                            coin.amount.0,
+                            amount,
+                            coin.amount
                         )))
                     }
                 },
                 None => {
-                    return Err(StdError::generic_err(format!(
+                    return Err(EnsembleError::Bank(format!(
                         "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}",
                         address,
                         coin.denom,
                         Uint128::zero(),
-                        coin.amount.0,
+                        coin.amount
                     )))
                 }
             }
@@ -74,13 +77,13 @@ impl Bank {
 
     pub fn transfer(
         &mut self,
-        from: &HumanAddr,
-        to: &HumanAddr,
+        from: &str,
+        to: &str,
         coins: Vec<Coin>,
-    ) -> StdResult<BankResponse> {
+    ) -> EnsembleResult<BankResponse> {
         let res = BankResponse {
-            sender: from.clone(),
-            receiver: to.clone(),
+            sender: from.to_string(),
+            receiver: to.to_string(),
             coins: coins.clone()
         };
 
@@ -98,7 +101,7 @@ impl Bank {
                 .unwrap()
                 .get_mut(&coin.denom)
                 .ok_or_else(|| {
-                    StdError::generic_err(format!(
+                    EnsembleError::Bank(format!(
                         "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
                         from,
                         coin.denom,
@@ -107,8 +110,8 @@ impl Bank {
                     ))
                 })?;
 
-            amount.0 = amount.0.checked_sub(coin.amount.0).ok_or_else(|| {
-                StdError::generic_err(format!(
+            *amount = amount.checked_sub(coin.amount).map_err(|_| {
+                EnsembleError::Bank(format!(
                     "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
                     from, coin.denom, amount, coin.amount
                 ))
@@ -120,7 +123,7 @@ impl Bank {
         Ok(res)
     }
 
-    pub fn query_balances(&self, address: &HumanAddr, denom: Option<String>) -> Vec<Coin> {
+    pub fn query_balances(&self, address: &str, denom: Option<String>) -> Vec<Coin> {
         let account = self.0.get(address);
 
         match account {
@@ -128,13 +131,13 @@ impl Bank {
                 Some(denom) => {
                     let amount = account.get(&denom);
 
-                    vec![coin(amount.cloned().unwrap_or_default().0, &denom)]
+                    vec![coin(amount.cloned().unwrap_or_default().u128(), &denom)]
                 }
                 None => {
                     let mut result = Vec::new();
 
                     for (k, v) in account.iter() {
-                        result.push(coin(v.0, &k));
+                        result.push(coin(v.u128(), k));
                     }
 
                     result
@@ -147,9 +150,9 @@ impl Bank {
         }
     }
 
-    fn assert_account_exists(&mut self, address: &HumanAddr) {
+    fn assert_account_exists(&mut self, address: &str) {
         if !self.0.contains_key(address) {
-            self.0.insert(address.clone(), Default::default());
+            self.0.insert(address.to_string(), Default::default());
         }
     }
 }
@@ -158,9 +161,8 @@ fn add_balance(balances: &mut Balances, coin: Coin) {
     let balance = balances.get_mut(&coin.denom);
 
     if let Some(amount) = balance {
-        amount.0 += coin.amount.0;
+        *amount += coin.amount;
     } else {
         balances.insert(coin.denom, coin.amount);
     }
 }
-

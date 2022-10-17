@@ -1,7 +1,7 @@
 use fadroma_proc_derive::*;
 use cosmwasm_std::{
-    StdResult, StdError, InitResponse, HandleResponse, Storage, to_vec, from_slice, from_binary,
-    testing::{mock_dependencies, mock_env}
+    StdResult, StdError, Response, Storage, to_vec, from_slice, from_binary,
+    testing::{mock_dependencies, mock_env, mock_info}
 };
 use schemars;
 use serde;
@@ -13,20 +13,20 @@ pub mod string_component {
 
     #[contract]
     pub trait StringComponent {
-        fn new(storage: &mut impl Storage, string: String) -> StdResult<()> {
+        fn new(storage: &mut dyn Storage, string: String) -> StdResult<()> {
             Ok(storage.set(KEY_STRING, &to_vec(&string)?))
         }
 
-        #[handle_guard]
-        fn guard(_msg: &HandleMsg) -> StdResult<()> {
+        #[execute_guard]
+        fn guard(_msg: &ExecuteMsg) -> StdResult<()> {
             Ok(())
         }
 
-        #[handle]
-        fn set_string(string: String) -> StdResult<HandleResponse> {
+        #[execute]
+        fn set_string(string: String) -> StdResult<Response> {
             deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
-            Ok(HandleResponse::default())
+            Ok(Response::default())
         }
 
         #[query]
@@ -48,10 +48,10 @@ impl string_component::StringComponent for CustomStringImpl {
         Ok(String::from("hardcoded"))
     }
 
-    #[handle_guard]
-    fn guard(msg: &string_component::HandleMsg) -> StdResult<()> {
+    #[execute_guard]
+    fn guard(msg: &string_component::ExecuteMsg) -> StdResult<()> {
         match msg  {
-            string_component::HandleMsg::SetString { string } => {
+            string_component::ExecuteMsg::SetString { string } => {
                 if string.is_empty() {
                     return Err(StdError::generic_err("String cannot be empty."));
                 }
@@ -65,13 +65,13 @@ impl string_component::StringComponent for CustomStringImpl {
 mod test_skip {
     use super::*;
 
-    #[contract(component(path = "string_component", custom_impl = "CustomStringImpl", skip(handle)))]
+    #[contract(component(path = "string_component", custom_impl = "CustomStringImpl", skip(execute)))]
     pub trait CustomImplContractWithSkip {
         #[init]
-        fn new(string: String) -> StdResult<InitResponse> {
-            CustomStringImpl::new(&mut deps.storage, string)?;
+        fn new(string: String) -> StdResult<Response> {
+            CustomStringImpl::new(deps.storage, string)?;
 
-            Ok(InitResponse::default())
+            Ok(Response::default())
         }
     }
 }
@@ -79,29 +79,30 @@ mod test_skip {
 #[contract(component(path = "string_component", custom_impl = "CustomStringImpl"))]
 pub trait CustomImplContract {
     #[init]
-    fn new(string: String) -> StdResult<InitResponse> {
-        CustomStringImpl::new(&mut deps.storage, string)?;
+    fn new(string: String) -> StdResult<Response> {
+        CustomStringImpl::new(deps.storage, string)?;
 
-        Ok(InitResponse::default())
+        Ok(Response::default())
     }
 }
 
 #[test]
 fn uses_custom_impl() {
-    let ref mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("sender", &[]);
+    let mut deps = mock_dependencies();
+    let env = mock_env();
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         string: String::from("test")
     };
 
-    init(deps, env.clone(), msg, DefaultImpl).unwrap();
+    instantiate(deps.as_mut(), env.clone(), mock_info("sender", &[]), msg, DefaultImpl).unwrap();
 
-    let err = handle(
-        deps,
-        env,
-        HandleMsg::StringComponent(
-            string_component::HandleMsg::SetString { string: String::new() }
+    let err = execute(
+        deps.as_mut(),
+        env.clone(),
+        mock_info("sender", &[]),
+        ExecuteMsg::StringComponent(
+            string_component::ExecuteMsg::SetString { string: String::new() }
         ),
         DefaultImpl
     ).unwrap_err();
@@ -109,7 +110,8 @@ fn uses_custom_impl() {
     assert_eq!(err, StdError::generic_err("String cannot be empty."));
 
     let result = query(
-        deps,
+        deps.as_ref(),
+        env,
         QueryMsg::StringComponent(
             string_component::QueryMsg::GetString { padding: None }
         ),

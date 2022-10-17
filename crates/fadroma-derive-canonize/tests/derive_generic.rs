@@ -2,62 +2,115 @@ use std::fmt::Debug;
 
 use fadroma::{
     self,
-    cosmwasm_std::{
-        self,
-        Uint128, HumanAddr,
-        testing::mock_dependencies
-    },
-    prelude::{Canonize, Humanize, save, load}
+    cosmwasm_std::{self, testing::mock_dependencies, Addr, Uint128},
+    prelude::{load, save, Binary, CanonicalAddr, Canonize, Humanize},
 };
-use serde::{Serialize, Deserialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-#[derive(Canonize, PartialEq, Clone, Default, Debug)]
-#[derive(Serialize, Deserialize)]
+#[derive(Canonize, PartialEq, Clone, Debug, Serialize, Deserialize)]
 struct Test<T> {
     addr: T,
-    amount: Uint128
+    amount: Uint128,
 }
 
-#[derive(Canonize, PartialEq, Clone, Default, Debug)]
-#[derive(Serialize, Deserialize)]
-struct TestBounds<T: Clone> where T: Default {
+impl Default for Test<Addr> {
+    fn default() -> Self {
+        Test {
+            addr: Addr::unchecked(""),
+            amount: Uint128::default(),
+        }
+    }
+}
+
+impl Default for Test<CanonicalAddr> {
+    fn default() -> Self {
+        Test {
+            addr: CanonicalAddr(Binary(Vec::new())),
+            amount: Uint128::default(),
+        }
+    }
+}
+
+#[derive(Canonize, PartialEq, Clone, Debug, Serialize, Deserialize)]
+struct TestBounds<T: Clone> {
     addr: T,
-    amount: Uint128
+    amount: Uint128,
 }
 
-#[derive(Canonize, Default, Clone)]
+impl Default for TestBounds<Addr> {
+    fn default() -> Self {
+        TestBounds {
+            addr: Addr::unchecked(""),
+            amount: Uint128::default(),
+        }
+    }
+}
+
+impl Default for TestBounds<CanonicalAddr> {
+    fn default() -> Self {
+        TestBounds {
+            addr: CanonicalAddr(Binary(Vec::new())),
+            amount: Uint128::default(),
+        }
+    }
+}
+#[derive(Canonize, Clone)]
 struct TestTuple<T>(T, Uint128);
 
-#[derive(Canonize, Default, Clone)]
-struct TestTupleBounds<T: Clone>(T, Uint128) where T: Default;
+impl Default for TestTuple<Addr> {
+    fn default() -> Self {
+        TestTuple(Addr::unchecked(""), Uint128::default())
+    }
+}
+
+impl Default for TestTuple<CanonicalAddr> {
+    fn default() -> Self {
+        TestTuple(CanonicalAddr(Binary(Vec::new())), Uint128::default())
+    }
+}
+#[derive(Canonize, Clone)]
+struct TestTupleBounds<T: Clone>(T, Uint128);
+
+impl Default for TestTupleBounds<Addr> {
+    fn default() -> Self {
+        TestTupleBounds(Addr::unchecked(""), Uint128::default())
+    }
+}
+
+impl Default for TestTupleBounds<CanonicalAddr> {
+    fn default() -> Self {
+        TestTupleBounds(CanonicalAddr(Binary(Vec::new())), Uint128::default())
+    }
+}
 
 #[test]
 fn test_derive_generic() {
     do_test(Test::default());
     do_test(TestBounds::default());
 
-    let deps = mock_dependencies(20, &[]);
+    let deps = mock_dependencies();
 
-    let a: Test<HumanAddr> = Test::default();
+    let a: Test<Addr> = Test::default();
     let b = a.clone().canonize(&deps.api).unwrap();
 
     assert_eq!(b.amount, a.amount);
 
-    let a: TestTuple<HumanAddr> = TestTuple::default();
+    let a: TestTuple<Addr> = TestTuple::default();
     let b = a.clone().canonize(&deps.api).unwrap();
 
     assert_eq!(b.1, a.1);
 
-    let a: TestTupleBounds<HumanAddr> = TestTupleBounds::default();
+    let a: TestTupleBounds<Addr> = TestTupleBounds::default();
     let b = a.clone().canonize(&deps.api).unwrap();
 
     assert_eq!(b.1, a.1);
 }
 
 fn do_test<T: Canonize + Clone + PartialEq + Debug + Serialize + DeserializeOwned>(value: T)
-    where <T as Canonize>::Output: Serialize + DeserializeOwned
+where
+    <T as Canonize>::Output: Serialize + DeserializeOwned,
 {
-    let mut deps = mock_dependencies(20, &[]);
+    let mut deps = mock_dependencies();
 
     save(&mut deps.storage, b"store", &value).unwrap();
 

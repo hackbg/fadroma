@@ -1,84 +1,25 @@
-use crate::scrt::{
-    cosmwasm_std::{
-        HumanAddr, CanonicalAddr, Uint128, StdResult, StdError,
-        Storage, ReadonlyStorage, Api, BlockInfo, Coin, debug_print
-    },
-    cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage}
-};
-use secret_toolkit::storage::{AppendStore, AppendStoreMut};
+use std::marker::PhantomData;
 
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+
+use crate::{
+    prelude::*,
+    snip20::client::msg::{Tx, RichTx, TxAction}
+};
 
 use super::state::Config;
 
-const PREFIX_TXS: &[u8] = b"transactions";
-const PREFIX_TRANSFERS: &[u8] = b"transfers";
 
-// Note that id is a globally incrementing counter.
-// Since it's 64 bits long, even at 50 tx/s it would take
-// over 11 billion years for it to rollback. I'm pretty sure
-// we'll have bigger issues by then.
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct Tx {
-    pub id: u64,
-    pub from: HumanAddr,
-    pub sender: HumanAddr,
-    pub receiver: HumanAddr,
-    pub coins: Coin,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub memo: Option<String>,
-    // The block time and block height are optional so that the JSON schema
-    // reflects that some SNIP-20 contracts may not include this info.
-    pub block_time: Option<u64>,
-    pub block_height: Option<u64>,
-}
+const NS_TXS: &[u8] = b"transactions";
+const NS_TRANSFERS: &[u8] = b"transfers";
+const NS_USER_TX_INDEX: &[u8] = b"u_tx_index";
 
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
-#[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
-pub enum TxAction {
-    Transfer {
-        from: HumanAddr,
-        sender: HumanAddr,
-        recipient: HumanAddr,
-    },
-    Mint {
-        minter: HumanAddr,
-        recipient: HumanAddr,
-    },
-    Burn {
-        burner: HumanAddr,
-        owner: HumanAddr,
-    },
-    Deposit {},
-    Redeem {},
-}
-
-// Note that id is a globally incrementing counter.
-// Since it's 64 bits long, even at 50 tx/s it would take
-// over 11 billion years for it to rollback. I'm pretty sure
-// we'll have bigger issues by then.
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
-#[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
-pub struct RichTx {
-    pub id: u64,
-    pub action: TxAction,
-    pub coins: Coin,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub memo: Option<String>,
-    pub block_time: u64,
-    pub block_height: u64,
-}
-
-// Stored types:
+type UserTxIndex = u32;
 
 /// This type is the stored version of the legacy transfers
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 struct StoredLegacyTransfer {
     id: u64,
     from: CanonicalAddr,
@@ -91,12 +32,12 @@ struct StoredLegacyTransfer {
 }
 
 impl StoredLegacyTransfer {
-    pub fn into_humanized<A: Api>(self, api: &A) -> StdResult<Tx> {
+    pub fn into_humanized(self, api: &dyn Api) -> StdResult<Tx> {
         let tx = Tx {
             id: self.id,
-            from: api.human_address(&self.from)?,
-            sender: api.human_address(&self.sender)?,
-            receiver: api.human_address(&self.receiver)?,
+            from: api.addr_humanize(&self.from)?,
+            sender: api.addr_humanize(&self.sender)?,
+            receiver: api.addr_humanize(&self.receiver)?,
             coins: self.coins,
             memo: self.memo,
             block_time: Some(self.block_time),
@@ -122,13 +63,12 @@ impl TxCode {
     }
 
     fn from_u8(n: u8) -> StdResult<Self> {
-        use TxCode::*;
         match n {
-            0 => Ok(Transfer),
-            1 => Ok(Mint),
-            2 => Ok(Burn),
-            3 => Ok(Deposit),
-            4 => Ok(Redeem),
+            0 => Ok(Self::Transfer),
+            1 => Ok(Self::Mint),
+            2 => Ok(Self::Burn),
+            3 => Ok(Self::Deposit),
+            4 => Ok(Self::Redeem),
             other => Err(StdError::generic_err(format!(
                 "Unexpected Tx code in transaction history: {} Storage is corrupted.",
                 other
@@ -139,7 +79,6 @@ impl TxCode {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 struct StoredTxAction {
     tx_type: u8,
     address1: Option<CanonicalAddr>,
@@ -189,7 +128,7 @@ impl StoredTxAction {
         }
     }
 
-    fn into_humanized<A: Api>(self, api: &A) -> StdResult<TxAction> {
+    fn into_humanized(self, api: &dyn Api) -> StdResult<TxAction> {
         let transfer_addr_err = || {
             StdError::generic_err(
                 "Missing address in stored Transfer transaction. Storage is corrupt",
@@ -208,9 +147,9 @@ impl StoredTxAction {
                 let from = self.address1.ok_or_else(transfer_addr_err)?;
                 let sender = self.address2.ok_or_else(transfer_addr_err)?;
                 let recipient = self.address3.ok_or_else(transfer_addr_err)?;
-                let from = api.human_address(&from)?;
-                let sender = api.human_address(&sender)?;
-                let recipient = api.human_address(&recipient)?;
+                let from = api.addr_humanize(&from)?;
+                let sender = api.addr_humanize(&sender)?;
+                let recipient = api.addr_humanize(&recipient)?;
                 TxAction::Transfer {
                     from,
                     sender,
@@ -220,15 +159,15 @@ impl StoredTxAction {
             TxCode::Mint => {
                 let minter = self.address1.ok_or_else(mint_addr_err)?;
                 let recipient = self.address2.ok_or_else(mint_addr_err)?;
-                let minter = api.human_address(&minter)?;
-                let recipient = api.human_address(&recipient)?;
+                let minter = api.addr_humanize(&minter)?;
+                let recipient = api.addr_humanize(&recipient)?;
                 TxAction::Mint { minter, recipient }
             }
             TxCode::Burn => {
                 let burner = self.address1.ok_or_else(burn_addr_err)?;
                 let owner = self.address2.ok_or_else(burn_addr_err)?;
-                let burner = api.human_address(&burner)?;
-                let owner = api.human_address(&owner)?;
+                let burner = api.addr_humanize(&burner)?;
+                let owner = api.addr_humanize(&owner)?;
                 TxAction::Burn { burner, owner }
             }
             TxCode::Deposit => TxAction::Deposit {},
@@ -241,7 +180,6 @@ impl StoredTxAction {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 struct StoredRichTx {
     id: u64,
     action: StoredTxAction,
@@ -264,12 +202,12 @@ impl StoredRichTx {
             action,
             coins,
             memo,
-            block_time: block.time,
+            block_time: block.time.seconds(),
             block_height: block.height,
         }
     }
 
-    fn into_humanized<A: Api>(self, api: &A) -> StdResult<RichTx> {
+    fn into_humanized(self, api: &dyn Api) -> StdResult<RichTx> {
         Ok(RichTx {
             id: self.id,
             action: self.action.into_humanized(api)?,
@@ -295,16 +233,9 @@ impl StoredRichTx {
 
 // Storage functions:
 
-fn increment_tx_count<S: Storage>(store: &mut S) -> StdResult<u64> {
-    let mut config = Config::from_storage(store);
-    let id = config.tx_count() + 1;
-    config.set_tx_count(id)?;
-    Ok(id)
-}
-
 #[allow(clippy::too_many_arguments)] // We just need them
-pub fn store_transfer<S: Storage>(
-    store: &mut S,
+pub fn store_transfer(
+    store: &mut dyn Storage,
     owner: &CanonicalAddr,
     sender: &CanonicalAddr,
     receiver: &CanonicalAddr,
@@ -313,7 +244,7 @@ pub fn store_transfer<S: Storage>(
     memo: Option<String>,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    let id = increment_tx_count(store)?;
+    let id = Config::increment_tx_count(store)?;
     let coins = Coin { denom, amount };
     let transfer = StoredLegacyTransfer {
         id,
@@ -322,33 +253,30 @@ pub fn store_transfer<S: Storage>(
         receiver: receiver.clone(),
         coins,
         memo,
-        block_time: block.time,
+        block_time: block.time.seconds(),
         block_height: block.height,
     };
     let tx = StoredRichTx::from_stored_legacy_transfer(transfer.clone());
 
     // Write to the owners history if it's different from the other two addresses
     if owner != sender && owner != receiver {
-        debug_print("saving transaction history for owner");
         append_tx(store, &tx, owner)?;
         append_transfer(store, &transfer, owner)?;
     }
     // Write to the sender's history if it's different from the receiver
     if sender != receiver {
-        debug_print("saving transaction history for sender");
         append_tx(store, &tx, sender)?;
         append_transfer(store, &transfer, sender)?;
     }
     // Always write to the recipient's history
-    debug_print("saving transaction history for receiver");
     append_tx(store, &tx, receiver)?;
     append_transfer(store, &transfer, receiver)?;
 
     Ok(())
 }
 
-pub fn store_mint<S: Storage>(
-    store: &mut S,
+pub fn store_mint(
+    store: &mut dyn Storage,
     minter: &CanonicalAddr,
     recipient: &CanonicalAddr,
     amount: Uint128,
@@ -356,7 +284,7 @@ pub fn store_mint<S: Storage>(
     memo: Option<String>,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    let id = increment_tx_count(store)?;
+    let id = Config::increment_tx_count(store)?;
     let coins = Coin { denom, amount };
     let action = StoredTxAction::mint(minter.clone(), recipient.clone());
     let tx = StoredRichTx::new(id, action, coins, memo, block);
@@ -369,8 +297,8 @@ pub fn store_mint<S: Storage>(
     Ok(())
 }
 
-pub fn store_burn<S: Storage>(
-    store: &mut S,
+pub fn store_burn(
+    store: &mut dyn Storage,
     owner: &CanonicalAddr,
     burner: &CanonicalAddr,
     amount: Uint128,
@@ -378,7 +306,7 @@ pub fn store_burn<S: Storage>(
     memo: Option<String>,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    let id = increment_tx_count(store)?;
+    let id = Config::increment_tx_count(store)?;
     let coins = Coin { denom, amount };
     let action = StoredTxAction::burn(owner.clone(), burner.clone());
     let tx = StoredRichTx::new(id, action, coins, memo, block);
@@ -391,14 +319,14 @@ pub fn store_burn<S: Storage>(
     Ok(())
 }
 
-pub fn store_deposit<S: Storage>(
-    store: &mut S,
+pub fn store_deposit(
+    store: &mut dyn Storage,
     recipient: &CanonicalAddr,
     amount: Uint128,
     denom: String,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    let id = increment_tx_count(store)?;
+    let id = Config::increment_tx_count(store)?;
     let coins = Coin { denom, amount };
     let action = StoredTxAction::deposit();
     let tx = StoredRichTx::new(id, action, coins, None, block);
@@ -408,14 +336,14 @@ pub fn store_deposit<S: Storage>(
     Ok(())
 }
 
-pub fn store_redeem<S: Storage>(
-    store: &mut S,
+pub fn store_redeem(
+    store: &mut dyn Storage,
     redeemer: &CanonicalAddr,
     amount: Uint128,
     denom: String,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    let id = increment_tx_count(store)?;
+    let id = Config::increment_tx_count(store)?;
     let coins = Coin { denom, amount };
     let action = StoredTxAction::redeem();
     let tx = StoredRichTx::new(id, action, coins, None, block);
@@ -425,89 +353,191 @@ pub fn store_redeem<S: Storage>(
     Ok(())
 }
 
-fn append_tx<S: Storage>(
-    store: &mut S,
-    tx: &StoredRichTx,
-    for_address: &CanonicalAddr,
-) -> StdResult<()> {
-    let mut store = PrefixedStorage::multilevel(&[PREFIX_TXS, for_address.as_slice()], store);
-    let mut store = AppendStoreMut::attach_or_create(&mut store)?;
-    store.push(tx)
-}
-
-fn append_transfer<S: Storage>(
-    store: &mut S,
-    tx: &StoredLegacyTransfer,
-    for_address: &CanonicalAddr,
-) -> StdResult<()> {
-    let mut store = PrefixedStorage::multilevel(&[PREFIX_TRANSFERS, for_address.as_slice()], store);
-    let mut store = AppendStoreMut::attach_or_create(&mut store)?;
-    store.push(tx)
-}
-
-pub fn get_txs<A: Api, S: ReadonlyStorage>(
-    api: &A,
-    storage: &S,
+pub fn get_txs(
+    deps: Deps,
     for_address: &CanonicalAddr,
     page: u32,
     page_size: u32,
 ) -> StdResult<(Vec<RichTx>, u64)> {
-    let store = ReadonlyPrefixedStorage::multilevel(&[PREFIX_TXS, for_address.as_slice()], storage);
+    let iter = TxIterator::<StoredRichTx>::new(
+        deps.storage,
+        create_tx_ns(for_address)
+    )?;
 
-    // Try to access the storage of txs for the account.
-    // If it doesn't exist yet, return an empty list of transfers.
-    let store = AppendStore::<StoredRichTx, _, _>::attach(&store);
-    let store = if let Some(result) = store {
-        result?
-    } else {
-        return Ok((vec![], 0));
-    };
+    let len = iter.len();
 
     // Take `page_size` txs starting from the latest tx, potentially skipping `page * page_size`
     // txs from the start.
-    let tx_iter = store
-        .iter()
+    let tx_iter = iter
+        .into_iter()
         .rev()
         .skip((page * page_size) as _)
         .take(page_size as _);
 
     // The `and_then` here flattens the `StdResult<StdResult<RichTx>>` to an `StdResult<RichTx>`
     let txs: StdResult<Vec<RichTx>> = tx_iter
-        .map(|tx| tx.map(|tx| tx.into_humanized(api)).and_then(|x| x))
+        .map(|tx| tx.map(|tx| tx.into_humanized(deps.api)).and_then(|x| x))
         .collect();
-    txs.map(|txs| (txs, store.len() as u64))
+
+    txs.map(|txs| (txs, len as u64))
 }
 
-pub fn get_transfers<A: Api, S: ReadonlyStorage>(
-    api: &A,
-    storage: &S,
+pub fn get_transfers(
+    deps: Deps,
     for_address: &CanonicalAddr,
     page: u32,
     page_size: u32,
 ) -> StdResult<(Vec<Tx>, u64)> {
-    let store =
-        ReadonlyPrefixedStorage::multilevel(&[PREFIX_TRANSFERS, for_address.as_slice()], storage);
+    let iter = TxIterator::<StoredLegacyTransfer>::new(
+        deps.storage,
+        create_transfer_ns(for_address)
+    )?;
 
-    // Try to access the storage of transfers for the account.
-    // If it doesn't exist yet, return an empty list of transfers.
-    let store = AppendStore::<StoredLegacyTransfer, _, _>::attach(&store);
-    let store = if let Some(result) = store {
-        result?
-    } else {
-        return Ok((vec![], 0));
-    };
+    let len = iter.len();
 
     // Take `page_size` txs starting from the latest tx, potentially skipping `page * page_size`
     // txs from the start.
-    let transfer_iter = store
-        .iter()
+    let transfer_iter = iter
+        .into_iter()
         .rev()
         .skip((page * page_size) as _)
         .take(page_size as _);
 
     // The `and_then` here flattens the `StdResult<StdResult<RichTx>>` to an `StdResult<RichTx>`
     let transfers: StdResult<Vec<Tx>> = transfer_iter
-        .map(|tx| tx.map(|tx| tx.into_humanized(api)).and_then(|x| x))
+        .map(|tx| tx.map(|tx| tx.into_humanized(deps.api)).and_then(|x| x))
         .collect();
-    transfers.map(|txs| (txs, store.len() as u64))
+
+    transfers.map(|txs| (txs, len as u64))
 }
+
+fn append_tx(
+    storage: &mut dyn Storage,
+    tx: &StoredRichTx,
+    for_address: &CanonicalAddr,
+) -> StdResult<()> {
+    let ns = create_tx_ns(for_address);
+
+    let index = load_user_tx_index(storage, &ns)?;
+    ns_save(storage, &ns, &index.to_be_bytes(), &tx)?;
+
+    save_user_tx_index(storage, &ns, index + 1)
+}
+
+fn append_transfer(
+    storage: &mut dyn Storage,
+    tx: &StoredLegacyTransfer,
+    for_address: &CanonicalAddr,
+) -> StdResult<()> {
+    let ns = create_transfer_ns(for_address);
+
+    let index = load_user_tx_index(storage, &ns)?;
+    ns_save(storage, &ns, &index.to_be_bytes(), &tx)?;
+
+    save_user_tx_index(storage, &ns, index + 1)
+}
+
+#[inline]
+fn load_user_tx_index(storage: &dyn Storage, ns: &[u8]) -> StdResult<UserTxIndex> {
+    let result = ns_load(storage, ns, NS_USER_TX_INDEX)?;
+
+    Ok(result.unwrap_or(0))
+}
+
+#[inline]
+fn save_user_tx_index(storage: &mut dyn Storage, ns: &[u8], index: UserTxIndex) -> StdResult<()> {
+    ns_save(storage, ns, NS_USER_TX_INDEX, &index)
+}
+
+#[inline]
+fn create_tx_ns(address: &CanonicalAddr) -> Vec<u8> {
+    [NS_TXS, address.as_slice()].concat()
+}
+
+#[inline]
+fn create_transfer_ns(address: &CanonicalAddr) -> Vec<u8> {
+    [NS_TRANSFERS, address.as_slice()].concat()
+}
+
+struct TxIterator<'a, T: DeserializeOwned> {
+    storage: &'a dyn Storage,
+    ns: Vec<u8>,
+    current: UserTxIndex,
+    end: UserTxIndex,
+    result: PhantomData<T>
+}
+
+impl<'a, T: DeserializeOwned> TxIterator<'a, T> {
+    fn new(storage: &'a dyn Storage, ns: Vec<u8>) -> StdResult<Self> {
+        let end = load_user_tx_index(storage, &ns)?;
+
+        Ok(Self {
+            storage,
+            ns,
+            current: 0,
+            end,
+            result: PhantomData
+        })
+    }
+
+    fn len(&self) -> UserTxIndex {
+        self.end
+    }
+}
+
+impl<'a, T: DeserializeOwned> Iterator for TxIterator<'a, T> {
+    type Item = StdResult<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current >= self.end {
+            return None;
+        }
+
+        let result: Self::Item = ns_load(
+            self.storage,
+            &self.ns,
+            &self.current.to_be_bytes()
+        )
+        .map(|x| x.unwrap());
+
+        self.current += 1;
+
+        Some(result)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = (self.end - self.current) as usize;
+        (len, Some(self.end as usize))
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.current = self.current.saturating_add(n as u32);
+        self.next()
+    }
+}
+
+impl<'a, T: DeserializeOwned> DoubleEndedIterator for TxIterator<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.current >= self.end {
+            return None;
+        }
+
+        self.end -= 1;
+
+        let result: Self::Item = ns_load(
+            self.storage,
+            &self.ns,
+            &self.end.to_be_bytes()
+        )
+        .map(|x| x.unwrap());
+
+        Some(result)
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.end = self.end.saturating_sub(n as u32);
+        self.next_back()
+    }
+}
+
+impl<'a, T: DeserializeOwned> ExactSizeIterator for TxIterator<'a, T> { }

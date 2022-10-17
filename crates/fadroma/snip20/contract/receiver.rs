@@ -2,7 +2,7 @@
 
 use crate::scrt::{
     cosmwasm_std::{
-        HumanAddr, Uint128, Binary, StdResult, CosmosMsg, WasmMsg, to_binary
+        Addr, Uint128, Binary, StdResult, CosmosMsg, WasmMsg, to_binary
     },
     BLOCK_SIZE, space_pad
 };
@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
 pub struct Snip20ReceiveMsg {
-    pub sender: HumanAddr,
-    pub from: HumanAddr,
+    pub sender: Addr,
+    pub from: Addr,
     pub amount: Uint128,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub memo: Option<String>,
@@ -24,8 +24,8 @@ pub struct Snip20ReceiveMsg {
 
 impl Snip20ReceiveMsg {
     pub fn new(
-        sender: HumanAddr,
-        from: HumanAddr,
+        sender: Addr,
+        from: Addr,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
@@ -48,18 +48,20 @@ impl Snip20ReceiveMsg {
     }
 
     /// creates a cosmos_msg sending this struct to the named contract
-    pub fn into_cosmos_msg(
+     pub fn into_cosmos_msg(
         self,
-        callback_code_hash: String,
-        contract_addr: HumanAddr,
+        code_hash: String,
+        contract_addr: String,
     ) -> StdResult<CosmosMsg> {
         let msg = self.into_binary()?;
+
         let execute = WasmMsg::Execute {
             msg,
-            callback_code_hash,
+            code_hash,
             contract_addr,
-            send: vec![],
+            funds: vec![],
         };
+        
         Ok(execute.into())
     }
 }

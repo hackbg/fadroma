@@ -24,7 +24,7 @@ pub struct ContractArgs {
 pub struct Component {
     pub path: Path,
     custom_impl: Option<Path>,
-    skip_handle: bool,
+    skip_execute: bool,
     skip_query: bool,
 }
 
@@ -76,8 +76,8 @@ impl ContractArgs {
         })
     }
 
-    pub fn handle_components(&self) -> impl Iterator<Item = &Component> {
-        self.components.iter().filter(|x| !x.skip_handle)
+    pub fn execute_components(&self) -> impl Iterator<Item = &Component> {
+        self.components.iter().filter(|x| !x.skip_execute)
     }
 
     pub fn query_components(&self) -> impl Iterator<Item = &Component> {
@@ -95,7 +95,7 @@ impl ContractArgs {
 
 impl Component {
     pub fn parse(nested: Punctuated<NestedMeta, Comma>, ty: ContractType) -> syn::Result<Self> {
-        let mut skip_handle = false;
+        let mut skip_execute = false;
         let mut skip_query = false;
 
         let mut parser = MetaNameValueParser::new();
@@ -118,7 +118,7 @@ impl Component {
                                                 let skipable = extract_path_ident_name(&skip_arg)?;
 
                                                 match skipable.as_str() {
-                                                    attr::HANDLE => skip_handle = true,
+                                                    attr::EXECUTE => skip_execute = true,
                                                     attr::QUERY => skip_query = true,
                                                     _ =>{
                                                         return Err(syn::Error::new(
@@ -172,7 +172,7 @@ impl Component {
         Ok(Self {
             path,
             custom_impl,
-            skip_handle,
+            skip_execute,
             skip_query
         })
     }

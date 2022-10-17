@@ -1,8 +1,8 @@
 //! *Feature flag: `admin`*
 //! Transaction authentication by pre-configured admin address.
 
-use crate::prelude::*;
 use crate::derive_contract::*;
+use crate::prelude::*;
 
 pub use fadroma_proc_auth::*;
 
@@ -12,235 +12,240 @@ const PENDING_ADMIN_KEY: &[u8] = b"b5QaJXDibK";
 #[contract]
 pub trait Admin {
     #[init]
-    fn new(admin: Option<HumanAddr>) -> StdResult<InitResponse> {
+    fn new(admin: Option<String>) -> StdResult<Response> {
         let admin = if let Some(addr) = admin {
-            addr
+            deps.api.addr_canonicalize(&addr)?
         } else {
-            env.message.sender
+            deps.api.addr_canonicalize(info.sender.as_str())?
         };
 
-        save_admin(deps, &admin)?;
+        save_admin(deps.storage, &admin);
 
-        Ok(InitResponse::default())
+        Ok(Response::default())
     }
 
-    #[handle]
-    fn change_admin(address: HumanAddr) -> StdResult<HandleResponse> {
-        assert_admin(deps, &env)?;
-        save_pending_admin(deps, &address)?;
-    
-        Ok(HandleResponse {
-            messages: vec![],
-            log: vec![log("pending_admin", address)],
-            data: None
-        })
+    #[execute]
+    fn change_admin(address: String) -> StdResult<Response> {
+        assert_admin(deps.as_ref(), &info)?;
+
+        let canonized_address = deps.api.addr_canonicalize(&address)?;
+        save_pending_admin(deps.storage, &canonized_address);
+
+        Ok(Response::new().add_attribute("pending_admin", address))
     }
 
-    #[handle]
-    fn accept_admin() -> StdResult<HandleResponse> {
-        let pending = load_pending_admin(deps)?;
+    #[execute]
+    fn accept_admin() -> StdResult<Response> {
+        let pending = load_pending_admin(deps.as_ref())?;
 
-        if pending != env.message.sender {
-            return Err(StdError::unauthorized())
+        if let Some(pending_admin) = pending {
+            if pending_admin != info.sender {
+                return Err(StdError::generic_err("Unauthorized"));
+            }
+
+            save_admin(
+                deps.storage,
+                &deps.api.addr_canonicalize(pending_admin.as_str())?,
+            );
+        } else {
+            return Err(StdError::generic_err("New admin is not set."));
         }
 
-        save_admin(deps, &pending)?;
         deps.storage.remove(PENDING_ADMIN_KEY);
 
-        Ok(HandleResponse {
-            messages: vec![],
-            log: vec![log("new_admin", env.message.sender)],
-            data: None
-        })
+        Ok(Response::new().add_attribute("new_admin", info.sender))
     }
 
     #[query]
-    fn admin() -> StdResult<HumanAddr> {
-        let address = load_admin(deps)?;
-
-        Ok(address)
+    fn admin() -> StdResult<Option<Addr>> {
+        load_admin(deps)
     }
 }
 
-pub fn load_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> StdResult<HumanAddr> {
+pub fn load_admin(deps: Deps) -> StdResult<Option<Addr>> {
     let result = deps.storage.get(ADMIN_KEY);
 
     match result {
         Some(bytes) => {
             let admin = CanonicalAddr::from(bytes);
 
-            deps.api.human_address(&admin)
-        },
-        None => {
-            Ok(HumanAddr::default())
+            Ok(Some(deps.api.addr_humanize(&admin)?))
         }
+        None => Ok(None),
     }
 }
 
-pub fn save_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr
-) -> StdResult<()> {
-    let admin = deps.api.canonical_address(address)?;
-    deps.storage.set(ADMIN_KEY, &admin.as_slice());
-
-    Ok(())
+pub fn save_admin(storage: &mut dyn Storage, address: &CanonicalAddr) {
+    storage.set(ADMIN_KEY, address.as_slice())
 }
 
-
-pub fn load_pending_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> StdResult<HumanAddr> {
+pub fn load_pending_admin(deps: Deps) -> StdResult<Option<Addr>> {
     let result = deps.storage.get(PENDING_ADMIN_KEY);
 
     match result {
         Some(bytes) => {
             let admin = CanonicalAddr::from(bytes);
 
-            deps.api.human_address(&admin)
-        },
-        None => {
-            Err(StdError::generic_err("New admin not set."))
+            Ok(Some(deps.api.addr_humanize(&admin)?))
         }
+        None => Ok(None),
     }
 }
 
-pub fn save_pending_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr
-) -> StdResult<()> {
-    let admin = deps.api.canonical_address(address)?;
-    deps.storage.set(PENDING_ADMIN_KEY, &admin.as_slice());
-
-    Ok(())
+pub fn save_pending_admin(storage: &mut dyn Storage, address: &CanonicalAddr) {
+    storage.set(PENDING_ADMIN_KEY, address.as_slice());
 }
 
-pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    env: &Env
-) -> StdResult<()> {
+pub fn assert_admin(deps: Deps, info: &MessageInfo) -> StdResult<()> {
     let admin = load_admin(deps)?;
 
-    if admin == env.message.sender {
-        return Ok(());
+    if let Some(addr) = admin {
+        if addr == info.sender {
+            return Ok(());
+        }
     }
 
-    Err(StdError::unauthorized())
+    Err(StdError::generic_err("Unauthorized"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use fadroma_platform_scrt::cosmwasm_std::{
-        ReadonlyStorage, from_binary,
-        testing::{mock_dependencies, mock_env}
+        from_binary,
+        testing::{mock_dependencies, mock_env, mock_info},
+        Storage,
     };
 
     #[test]
     fn test_handle() {
-        let ref mut deps = mock_dependencies(10, &[]);
+        let mut deps = mock_dependencies();
 
         let admin = "admin";
-        save_admin(deps, &HumanAddr::from(admin)).unwrap();
+        let admin_canon = deps.api.addr_canonicalize(admin).unwrap();
+        save_admin(deps.as_mut().storage, &admin_canon);
 
-        let msg = HandleMsg::ChangeAdmin { 
-            address: HumanAddr::from("will fail")
+        let msg = ExecuteMsg::ChangeAdmin {
+            address: String::from("will fail"),
         };
 
-        let result = handle(
-            deps,
-            mock_env("unauthorized", &[]),
+        let result = execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info("unauthorized", &[]),
             msg,
-            DefaultImpl
-        ).unwrap_err();
-        
+            DefaultImpl,
+        )
+        .unwrap_err();
+
         match result {
-            StdError::Unauthorized { .. } => { },
-            _ => panic!("Expected \"StdError::Unauthorized\"")
+            StdError::GenericErr { msg } => {
+                assert_eq!(msg, "Unauthorized")
+            }
+            _ => panic!("Expected \"StdError::Unauthorized\""),
         };
 
-        let new_admin = HumanAddr::from("new_admin");
+        let new_admin = Addr::unchecked("new_admin");
 
-        let result = handle(
-            deps,
-            mock_env(new_admin.clone(), &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap_err();
+        let result = execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(new_admin.as_str(), &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap_err();
 
         match result {
             StdError::GenericErr { msg, .. } => {
-                assert_eq!(msg, "New admin not set.")
-            },
-            _ => panic!("Expected \"StdError::GenericErr\"")
+                assert_eq!(msg, "New admin is not set.")
+            }
+            _ => panic!("Expected \"StdError::GenericErr\""),
         };
 
-        let msg = HandleMsg::ChangeAdmin { 
-            address: new_admin.clone()
+        let msg = ExecuteMsg::ChangeAdmin {
+            address: new_admin.clone().into(),
         };
 
-        handle(
-            deps,
-            mock_env(admin, &[]),
+        execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(admin, &[]),
             msg,
-            DefaultImpl
-        ).unwrap();
+            DefaultImpl,
+        )
+        .unwrap();
 
-        assert_eq!(load_pending_admin(deps).unwrap(), new_admin);
+        assert_eq!(
+            load_pending_admin(deps.as_ref()).unwrap().unwrap(),
+            new_admin
+        );
 
-        let result = handle(
-            deps,
-            mock_env("unauthorized", &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap_err();
-
-        match result {
-            StdError::Unauthorized { .. } => { },
-            _ => panic!("Expected \"StdError::Unauthorized\"")
-        };
-
-        let result = handle(
-            deps,
-            mock_env(admin, &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap_err();
+        let result = execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info("unauthorized", &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap_err();
 
         match result {
-            StdError::Unauthorized { .. } => { },
-            _ => panic!("Expected \"StdError::Unauthorized\"")
+            StdError::GenericErr { msg, .. } => {
+                assert_eq!(msg, "Unauthorized")
+            }
+            _ => panic!("Expected \"StdError::GenericErr\""),
         };
 
-        assert_eq!(load_admin(deps).unwrap(), HumanAddr::from(admin));
+        let result = execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(admin, &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap_err();
 
-        handle(
-            deps,
-            mock_env(new_admin.clone(), &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap();
+        match result {
+            StdError::GenericErr { msg, .. } => {
+                assert_eq!(msg, "Unauthorized")
+            }
+            _ => panic!("Expected \"StdError::GenericErr\""),
+        };
 
-        assert_eq!(load_admin(deps).unwrap(), new_admin);
+        assert_eq!(
+            load_admin(deps.as_ref()).unwrap().unwrap(),
+            Addr::unchecked(admin)
+        );
+
+        execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(new_admin.as_str(), &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap();
+
+        assert_eq!(load_admin(deps.as_ref()).unwrap().unwrap(), new_admin);
         assert!(deps.storage.get(PENDING_ADMIN_KEY).is_none())
     }
 
     #[test]
     fn test_query() {
-        let ref mut deps = mock_dependencies(10, &[]);
+        let ref mut deps = mock_dependencies();
 
-        let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
+        let result = query(deps.as_ref(), mock_env(), QueryMsg::Admin {}, DefaultImpl).unwrap();
 
-        let address: HumanAddr = from_binary(&result).unwrap();
-        assert!(address == HumanAddr::default());
+        let address: Option<Addr> = from_binary(&result).unwrap();
+        assert!(address.is_none());
 
-        let admin = HumanAddr::from("admin");
-        save_admin(deps, &admin).unwrap();
+        let admin = Addr::unchecked("admin");
+        let admin_canon = deps.api.addr_canonicalize(admin.as_str()).unwrap();
+        save_admin(deps.as_mut().storage, &admin_canon);
 
-        let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
-        let address: HumanAddr = from_binary(&result).unwrap();
+        let result = query(deps.as_ref(), mock_env(), QueryMsg::Admin {}, DefaultImpl).unwrap();
+        let address: Addr = from_binary(&result).unwrap();
         assert!(address == admin);
     }
 }

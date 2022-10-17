@@ -166,7 +166,7 @@ For:
 #[serde(rename_all="snake_case")]
 pub enum LimitOrderQuery {
     GetAsk,
-    GetBid { HumanAddr, String },
+    GetBid { Addr, String },
 }
 ```
 
@@ -343,7 +343,7 @@ impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
         Ok(LimitOrder::ask(self, x))
     }
     #[variant]
-    fn get_bid (self, x: HumanAddr, y: String) {
+    fn get_bid (self, x: Addr, y: String) {
         Ok(LimitOrder::bid(self, x, y))
     }
 }
@@ -357,7 +357,7 @@ Equivalent to:
 #[serde(deny_unknown_fields)]
 pub enum LimitOrderQuery {
     GetAsk,
-    GetBid { HumanAddr, String },
+    GetBid { Addr, String },
 }
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder>
 for LimitOrderQuery where

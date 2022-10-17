@@ -1,13 +1,13 @@
 use fadroma::{
     self,
-    cosmwasm_std::{self, testing::mock_dependencies, HumanAddr, Uint128},
+    cosmwasm_std::{self, testing::mock_dependencies, Addr, Uint128},
     prelude::Canonize,
 };
 
 #[derive(Canonize, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 enum TestEnum {
-    TestVarTwo { from: HumanAddr, to: HumanAddr },
-    TestVar(HumanAddr, Uint128),
+    TestVarTwo { from: Addr, to: Addr },
+    TestVar(Addr, Uint128),
 }
 
 #[derive(Canonize, PartialEq, Clone, serde::Serialize)]
@@ -18,9 +18,9 @@ enum TestEnumGeneric<A> {
 
 #[test]
 fn test_derive_enum() {
-    let addr_1 = HumanAddr::from("Alice");
-    let addr_2 = HumanAddr::from("Bob");
-    let deps = mock_dependencies(20, &[]);
+    let addr_1 = Addr::unchecked("Alice");
+    let addr_2 = Addr::unchecked("Bob");
+    let deps = mock_dependencies();
 
     let test = TestEnum::TestVarTwo {
         from: addr_1.clone(),

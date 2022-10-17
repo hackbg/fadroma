@@ -2,53 +2,51 @@ use std::iter::Iterator;
 
 use crate::{
     prelude::ContractLink,
-    cosmwasm_std::{HumanAddr, Binary, InitResponse, HandleResponse, Coin}
+    cosmwasm_std::{Addr, Binary, Response, Coin}
 };
 
-use serde::{Serialize, Deserialize};
-
 #[derive(Clone, PartialEq, Debug)]
-pub enum Response {
+pub enum ResponseVariants {
     Instantiate(InstantiateResponse),
     Execute(ExecuteResponse),
     Bank(BankResponse),
-    Staking(StakingResponse),
+    Staking(StakingResponse)
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct InstantiateResponse {
     /// The address that triggered the instantiation.
-    pub sender: HumanAddr,
+    pub sender: String,
     /// The address and code hash of the new instance.
-    pub instance: ContractLink<HumanAddr>,
+    pub instance: ContractLink<Addr>,
     /// The init message that was sent.
     pub msg: Binary,
     /// The init response returned by the contract.
-    pub response: InitResponse,
+    pub response: Response,
     /// The responses for any messages that the instantiated contract initiated.
-    pub sent: Vec<Response>
+    pub sent: Vec<ResponseVariants>
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ExecuteResponse {
     /// The address that triggered the instantiation.
-    pub sender: HumanAddr,
+    pub sender: String,
     /// The contract that was called.
-    pub target: HumanAddr,
+    pub target: String,
     /// The execute message that was sent.
     pub msg: Binary,
     /// The execute response returned by the contract.
-    pub response: HandleResponse,
+    pub response: Response,
     /// The responses for any messages that the executed contract initiated.
-    pub sent: Vec<Response>
+    pub sent: Vec<ResponseVariants>
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct BankResponse {
     /// The address that sent the funds.
-    pub sender: HumanAddr,
+    pub sender: String,
     /// The address that the funds were sent to.
-    pub receiver: HumanAddr,
+    pub receiver: String,
     /// The funds that were sent.
     pub coins: Vec<Coin>
 }
@@ -56,32 +54,17 @@ pub struct BankResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct StakingResponse {
     /// The address that delegated the funds.
-    pub sender: HumanAddr,
+    pub sender: String,
     /// The address of the validator where the funds were sent.
-    pub validator: HumanAddr,
+    pub validator: String,
     /// The funds that were sent.
     pub amount: Coin,
 }
 
-// Copying struct from cosmwasm because ValidatorRewards is not currently visible, which 
-// is used in RewardsResponse
-/// Rewards response
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct RewardsResponse {
-    pub rewards: Vec<ValidatorRewards>,
-    pub total: Vec<Coin>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct ValidatorRewards {
-    pub validator_address: HumanAddr,
-    pub reward: Vec<Coin>,
-}
-
 pub struct Iter<'a> {
-    responses: &'a [Response],
+    responses: &'a [ResponseVariants],
     index: usize,
-    stack: Vec<&'a Response>
+    stack: Vec<&'a ResponseVariants>
 }
 
 impl InstantiateResponse {
@@ -100,7 +83,7 @@ impl ExecuteResponse {
     }
 }
 
-impl Response {
+impl ResponseVariants {
     #[inline]
     pub fn is_instantiate(&self) -> bool {
         matches!(&self, Self::Instantiate(_))
@@ -117,21 +100,21 @@ impl Response {
     }
 }
 
-impl From<InstantiateResponse> for Response {
+impl From<InstantiateResponse> for ResponseVariants {
     #[inline]
     fn from(value: InstantiateResponse) -> Self {
         Self::Instantiate(value)
     }
 }
 
-impl From<ExecuteResponse> for Response {
+impl From<ExecuteResponse> for ResponseVariants {
     #[inline]
     fn from(value: ExecuteResponse) -> Self {
         Self::Execute(value)
     }
 }
 
-impl From<BankResponse> for Response {
+impl From<BankResponse> for ResponseVariants {
     #[inline]
     fn from(value: BankResponse) -> Self {
         Self::Bank(value)
@@ -140,18 +123,18 @@ impl From<BankResponse> for Response {
 
 impl<'a> Iter<'a> {
     /// Yields all responses that were initiated by the given `sender`.
-    pub fn by_sender(self, sender: impl Into<HumanAddr>) -> impl Iterator<Item = &'a Response> {
+    pub fn by_sender(self, sender: impl Into<String>) -> impl Iterator<Item = &'a ResponseVariants> {
         let sender = sender.into();
 
         self.filter(move |x| match x {
-            Response::Instantiate(resp) => resp.sender == sender,
-            Response::Execute(resp) => resp.sender == sender,
-            Response::Bank(resp) => resp.sender == sender,
-            Response::Staking(resp) => resp.sender == sender,
+            ResponseVariants::Instantiate(resp) => resp.sender == sender,
+            ResponseVariants::Execute(resp) => resp.sender == sender,
+            ResponseVariants::Bank(resp) => resp.sender == sender,
+            ResponseVariants::Staking(resp) => resp.sender == sender,
         })
     }
 
-    fn new(responses: &'a [Response]) -> Self {
+    fn new(responses: &'a [ResponseVariants]) -> Self {
         Self {
             responses,
             index: 0,
@@ -159,20 +142,20 @@ impl<'a> Iter<'a> {
         }
     }
 
-    fn enqueue_children(&mut self, node: &'a Response) {
+    fn enqueue_children(&mut self, node: &'a ResponseVariants) {
         match node {
-            Response::Execute(resp) =>
+            ResponseVariants::Execute(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
-            Response::Instantiate(resp) =>
+            ResponseVariants::Instantiate(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
-            Response::Bank(_) => { },
-            Response::Staking(_) => { },
+            ResponseVariants::Bank(_) => { },
+            ResponseVariants::Staking(_) => { },
         }
     }
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = &'a Response;
+    type Item = &'a ResponseVariants;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.stack.is_empty() {
@@ -215,26 +198,26 @@ mod tests {
         assert_eq!(resp.sent.len(), 3);
         assert_eq!(iter.next().unwrap(), &resp.sent[0]);
 
-        if let Response::Instantiate(inst) = &resp.sent[0] {
+        if let ResponseVariants::Instantiate(inst) = &resp.sent[0] {
             assert_eq!(inst.sent.len(), 3);
             assert_eq!(iter.next().unwrap(), &inst.sent[0]);
 
-            if let Response::Instantiate(inst_2) = &inst.sent[0] {
+            if let ResponseVariants::Instantiate(inst_2) = &inst.sent[0] {
                 assert_eq!(inst_2.sent.len(), 2);
                 assert_eq!(iter.next().unwrap(), &inst_2.sent[0]);
                 assert_eq!(iter.next().unwrap(), &inst_2.sent[1]);
 
-                if let Response::Execute(exec) = &inst_2.sent[0] {
-                    assert_eq!(exec.sender, "C".into());
-                    assert_eq!(exec.target, "D".into());
+                if let ResponseVariants::Execute(exec) = &inst_2.sent[0] {
+                    assert_eq!(exec.sender, "C");
+                    assert_eq!(exec.target, "D");
                     assert_eq!(exec.sent.len(), 0);
                 } else {
                     panic!()
                 }
 
-                if let Response::Execute(exec) = &inst_2.sent[1] {
-                    assert_eq!(exec.sender, "C".into());
-                    assert_eq!(exec.target, "B".into());
+                if let ResponseVariants::Execute(exec) = &inst_2.sent[1] {
+                    assert_eq!(exec.sender, "C");
+                    assert_eq!(exec.target, "B");
                     assert_eq!(exec.sent.len(), 0);
                 } else {
                     panic!()
@@ -244,18 +227,18 @@ mod tests {
             }
 
             assert_eq!(iter.next().unwrap(), &inst.sent[1]);
-            if let Response::Execute(exec) = &inst.sent[1] {
-                assert_eq!(exec.sender, "B".into());
-                assert_eq!(exec.target, "D".into());
+            if let ResponseVariants::Execute(exec) = &inst.sent[1] {
+                assert_eq!(exec.sender, "B");
+                assert_eq!(exec.target, "D");
                 assert_eq!(exec.sent.len(), 0);
             } else {
                 panic!()
             }
 
             assert_eq!(iter.next().unwrap(), &inst.sent[2]);
-            if let Response::Execute(exec) = &inst.sent[2] {
-                assert_eq!(exec.sender, "B".into());
-                assert_eq!(exec.target, "A".into());
+            if let ResponseVariants::Execute(exec) = &inst.sent[2] {
+                assert_eq!(exec.sender, "B");
+                assert_eq!(exec.target, "A");
                 assert_eq!(exec.sent.len(), 0);
             } else {
                 panic!()
@@ -265,13 +248,13 @@ mod tests {
         }
 
         assert_eq!(iter.next().unwrap(), &resp.sent[1]);
-        if let Response::Execute(exec) = &resp.sent[1] {
+        if let ResponseVariants::Execute(exec) = &resp.sent[1] {
             assert_eq!(exec.sent.len(), 1);
             assert_eq!(iter.next().unwrap(), &exec.sent[0]);
 
-            if let Response::Bank(bank) = &exec.sent[0] {
-                assert_eq!(bank.sender, "C".into());
-                assert_eq!(bank.receiver, "B".into());
+            if let ResponseVariants::Bank(bank) = &exec.sent[0] {
+                assert_eq!(bank.sender, "C");
+                assert_eq!(bank.receiver, "B");
             } else {
                 panic!()
             }
@@ -280,9 +263,9 @@ mod tests {
         }
 
         assert_eq!(iter.next().unwrap(), &resp.sent[2]);
-        if let Response::Bank(bank) = &resp.sent[2] {
-            assert_eq!(bank.sender, "A".into());
-            assert_eq!(bank.receiver, "D".into());
+        if let ResponseVariants::Bank(bank) = &resp.sent[2] {
+            assert_eq!(bank.sender, "A");
+            assert_eq!(bank.receiver, "D");
         } else {
             panic!()
         }
@@ -295,7 +278,7 @@ mod tests {
         let resp = mock_response();
         let mut iter = resp.iter().by_sender("B");
 
-        if let Response::Instantiate(inst) = &resp.sent[0] {
+        if let ResponseVariants::Instantiate(inst) = &resp.sent[0] {
             assert_eq!(iter.next().unwrap(), &inst.sent[0]);
             assert_eq!(iter.next().unwrap(), &inst.sent[1]);
             assert_eq!(iter.next().unwrap(), &inst.sent[2]);
@@ -306,28 +289,28 @@ mod tests {
 
         let mut iter = resp.iter().by_sender("C");
 
-        if let Response::Execute(exec) = iter.next().unwrap() {
-            assert_eq!(exec.sender, "C".into());
-            assert_eq!(exec.target, "D".into());
+        if let ResponseVariants::Execute(exec) = iter.next().unwrap() {
+            assert_eq!(exec.sender, "C");
+            assert_eq!(exec.target, "D");
             assert_eq!(exec.msg, Binary::from(b"message_3"));
             assert_eq!(exec.sent.len(), 0);
         } else {
             panic!()
         }
 
-        if let Response::Execute(exec) = iter.next().unwrap() {
-            assert_eq!(exec.sender, "C".into());
-            assert_eq!(exec.target, "B".into());
+        if let ResponseVariants::Execute(exec) = iter.next().unwrap() {
+            assert_eq!(exec.sender, "C");
+            assert_eq!(exec.target, "B");
             assert_eq!(exec.msg, Binary::from(b"message_4"));
             assert_eq!(exec.sent.len(), 0);
         } else {
             panic!()
         }
 
-        if let Response::Bank(bank) = iter.next().unwrap() {
-            assert_eq!(bank.sender, "C".into());
-            assert_eq!(bank.receiver, "B".into());
-            assert_eq!(bank.coins[0].amount, Uint128(800));
+        if let ResponseVariants::Bank(bank) = iter.next().unwrap() {
+            assert_eq!(bank.sender, "C");
+            assert_eq!(bank.receiver, "B");
+            assert_eq!(bank.coins[0].amount, Uint128::new(800));
         } else {
             panic!()
         }
@@ -372,14 +355,14 @@ mod tests {
         resp
     }
 
-    fn execute_resp(sender: impl Into<HumanAddr>, target: impl Into<HumanAddr>) -> ExecuteResponse {
+    fn execute_resp(sender: impl Into<String>, target: impl Into<String>) -> ExecuteResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = ExecuteResponse {
             sender: sender.into(),
             target: target.into(),
             msg: Binary::from(format!("message_{}", index).as_bytes()),
-            response: HandleResponse::default(),
+            response: Response::default(),
             sent: vec![]
         };
 
@@ -388,14 +371,17 @@ mod tests {
         resp
     }
 
-    fn instantiate_resp(sender: impl Into<HumanAddr>) -> InstantiateResponse {
+    fn instantiate_resp(sender: impl Into<String>) -> InstantiateResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = InstantiateResponse {
             sender: sender.into(),
-            instance: ContractLink::default(),
+            instance: ContractLink {
+                address: Addr::unchecked(""),
+                code_hash: String::new()
+            },
             msg: Binary::from(format!("message_{}", index).as_bytes()),
-            response: InitResponse::default(),
+            response: Response::default(),
             sent: vec![]
         };
 
@@ -404,7 +390,7 @@ mod tests {
         resp
     }
 
-    fn bank_resp(sender: impl Into<HumanAddr>, to: impl Into<HumanAddr>) -> BankResponse {
+    fn bank_resp(sender: impl Into<String>, to: impl Into<String>) -> BankResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         BankResponse {
@@ -412,7 +398,7 @@ mod tests {
             receiver: to.into(),
             coins: vec![Coin {
                 denom: "uscrt".into(),
-                amount: Uint128(100 * index as u128)
+                amount: Uint128::new(100 * index as u128)
             }]
         }
     }

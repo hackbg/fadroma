@@ -1,17 +1,17 @@
-pub use secret_cosmwasm_std as cosmwasm_std;
-pub use secret_cosmwasm_storage as cosmwasm_storage;
+pub use cosmwasm_std;
+pub use cosmwasm_storage;
 pub use cosmwasm_schema;
 
 pub use serde;
 pub use schemars;
 
-use cosmwasm_std::{HumanAddr, StdResult, CosmosMsg, WasmMsg, to_binary};
+use cosmwasm_std::{StdResult, CosmosMsg, WasmMsg, to_binary};
 
 pub const BLOCK_SIZE: usize = 256;
 
 pub fn to_cosmos_msg (
-    contract_addr: HumanAddr,
-    callback_code_hash: String,
+    contract_addr: String,
+    code_hash: String,
     msg: &impl serde::Serialize,
 ) -> StdResult<CosmosMsg> {
     let mut msg = to_binary(msg)?;
@@ -20,8 +20,8 @@ pub fn to_cosmos_msg (
     Ok(WasmMsg::Execute {
         msg,
         contract_addr,
-        callback_code_hash,
-        send: vec![]
+        code_hash,
+        funds: vec![]
     }.into())
 }
 

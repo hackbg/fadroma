@@ -1,36 +1,36 @@
 use fadroma::{
     self,
-    cosmwasm_std::{self, testing::mock_dependencies, HumanAddr, Uint128},
+    cosmwasm_std::{self, testing::mock_dependencies, Addr, Uint128},
     prelude::{save, Canonize, Humanize},
 };
 
 #[derive(Canonize, PartialEq, Clone, serde::Serialize)]
 struct Test {
-    pub addr: HumanAddr,
+    pub addr: Addr,
     amount: Uint128,
 }
 
 #[derive(Canonize, PartialEq, Clone, serde::Deserialize)]
-struct TestTuple(pub HumanAddr, Uint128);
+struct TestTuple(pub Addr, Uint128);
 
 impl Default for Test {
     fn default() -> Self {
         Self {
-            addr: HumanAddr::from("marigold"),
-            amount: Uint128(100),
+            addr: Addr::unchecked("marigold"),
+            amount: Uint128::new(100),
         }
     }
 }
 
 impl Default for TestTuple {
     fn default() -> Self {
-        Self(HumanAddr::from("flatline"), Uint128(200))
+        Self(Addr::unchecked("flatline"), Uint128::new(200))
     }
 }
 
 #[test]
 fn test_derive() {
-    let mut deps = mock_dependencies(20, &[]);
+    let mut deps = mock_dependencies();
 
     let test = Test::default();
 
@@ -56,7 +56,7 @@ fn test_derive() {
 
 #[test]
 fn test_derive_tuple() {
-    let deps = mock_dependencies(20, &[]);
+    let deps = mock_dependencies();
 
     let test = TestTuple::default();
 

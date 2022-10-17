@@ -4,7 +4,6 @@
 pub mod msg;
 pub mod receiver;
 pub mod state;
-pub mod batch;
 pub mod transaction_history;
 
 mod snip20; pub use snip20::*;

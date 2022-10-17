@@ -4,19 +4,19 @@ use serde::{Deserialize, Serialize};
 #[interface]
 pub trait Contract {
     #[init]
-    fn new(initial_value: u64) -> StdResult<InitResponse>;
+    fn new(initial_value: u64) -> StdResult<Response>;
 
-    #[handle]
-    fn add(value: u64) -> StdResult<HandleResponse>;
+    #[execute]
+    fn add(value: u64) -> StdResult<Response>;
 
-    #[handle]
-    fn sub(value: u64) -> StdResult<HandleResponse>;
+    #[execute]
+    fn sub(value: u64) -> StdResult<Response>;
 
-    #[handle]
-    fn mul(value: u64) -> StdResult<HandleResponse>;
+    #[execute]
+    fn mul(value: u64) -> StdResult<Response>;
 
-    #[handle]
-    fn div(value: u64) -> StdResult<HandleResponse>;
+    #[execute]
+    fn div(value: u64) -> StdResult<Response>;
 
     #[query]
     fn state() -> StdResult<StateResponse>;

@@ -2,13 +2,13 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use fadroma_platform_scrt::cosmwasm_std::{
-    Storage, ReadonlyStorage, StdResult, to_vec, from_slice
+    Storage, StdResult, to_vec, from_slice
 };
 
 /// Save something to the storage.
 #[inline]
-pub fn save <T: Serialize, S: Storage> (
-    storage: &mut S,
+pub fn save <T: Serialize> (
+    storage: &mut dyn Storage,
     key: &[u8],
     value: &T
 ) -> StdResult<()> {
@@ -18,8 +18,8 @@ pub fn save <T: Serialize, S: Storage> (
 
 /// Remove something from the storage.
 #[inline]
-pub fn remove <S: Storage> (
-    storage: &mut S,
+pub fn remove (
+    storage: &mut dyn Storage,
     key: &[u8]
 ) {
     storage.remove(key);
@@ -27,8 +27,8 @@ pub fn remove <S: Storage> (
 
 /// Load something from the storage.
 #[inline]
-pub fn load <T: DeserializeOwned, S: ReadonlyStorage> (
-    storage: &S,
+pub fn load <T: DeserializeOwned> (
+    storage: &dyn Storage,
     key: &[u8]
 ) -> StdResult<Option<T>> {
     match storage.get(key) {
@@ -39,8 +39,8 @@ pub fn load <T: DeserializeOwned, S: ReadonlyStorage> (
 
 /// Save something to the storage under a namespaced key.
 #[inline]
-pub fn ns_save <T: Serialize, S: Storage> (
-    storage: &mut S,
+pub fn ns_save <T: Serialize> (
+    storage: &mut dyn Storage,
     namespace: &[u8],
     key: &[u8],
     value: &T
@@ -51,8 +51,8 @@ pub fn ns_save <T: Serialize, S: Storage> (
 
 /// Remove the value of a namespaced key from the storage.
 #[inline]
-pub fn ns_remove <S: Storage> (
-    storage: &mut S,
+pub fn ns_remove(
+    storage: &mut dyn Storage,
     namespace: &[u8],
     key: &[u8]
 ) {
@@ -62,8 +62,8 @@ pub fn ns_remove <S: Storage> (
 
 /// Load the value of a namespaced key.
 #[inline]
-pub fn ns_load <T: DeserializeOwned, S: ReadonlyStorage> (
-    storage: &S,
+pub fn ns_load <T: DeserializeOwned> (
+    storage: &dyn Storage,
     namespace: &[u8],
     key: &[u8]
 ) -> StdResult<Option<T>> {

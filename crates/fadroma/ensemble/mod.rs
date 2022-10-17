@@ -32,28 +32,50 @@ pub use querier::*;
 pub use block::Block;
 #[cfg(not(target_arch = "wasm32"))]
 pub use response::*;
+#[cfg(not(target_arch = "wasm32"))]
+pub use anyhow;
 
-/// Implement ContractHarness for the harness struct.
-/// Use this to enable Fadroma Ensemble for a contract.
+/// Generate a struct and implement ContractHarness for the given contract module.
 #[macro_export]
 macro_rules! impl_contract_harness_default {
-    ($name:ident, $contract:ident) => {
+    ($visibility:vis $name:ident, $module:ident) => {
+        struct $name;
+
         impl ContractHarness for $name {
-            fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
-                $contract::init(deps, env, from_binary(&msg)?, $contract::DefaultImpl)
-            }
-            fn handle(
+            fn instantiate(
                 &self,
-                deps: &mut MockDeps,
-                env: Env,
-                msg: Binary,
-            ) -> StdResult<HandleResponse> {
-                $contract::handle(deps, env, from_binary(&msg)?, $contract::DefaultImpl)
+                deps: &mut ensemble::MockDeps,
+                env: cosmwasm_std::Env,
+                info: cosmwasm_std::MessageInfo,
+                msg: cosmwasm_std::Binary
+            ) -> ensemble::AnyResult<cosmwasm_std::Response> {
+                let result = $module::instantiate(deps.as_mut(), env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+
+                Ok(result)
             }
-            fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
-                $contract::query(deps, from_binary(&msg)?, $contract::DefaultImpl)
+
+            fn execute(
+                &self,
+                deps: &mut ensemble::MockDeps,
+                env: cosmwasm_std::Env,
+                info: cosmwasm_std::MessageInfo,
+                msg: cosmwasm_std::Binary
+            ) -> ensemble::AnyResult<cosmwasm_std::Response> {
+                let result = $module::execute(deps.as_mut(), env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+
+                Ok(result)
+            }
+
+            fn query(
+                &self,
+                deps: &ensemble::MockDeps,
+                env: cosmwasm_std::Env,
+                msg: cosmwasm_std::Binary
+            ) -> ensemble::AnyResult<cosmwasm_std::Binary> {
+                let result = $module::query(deps.as_ref(), env, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+
+                Ok(result)
             }
         }
     };
 }
-

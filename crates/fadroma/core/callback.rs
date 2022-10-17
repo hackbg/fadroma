@@ -1,7 +1,7 @@
 use crate::{
     self as fadroma,
     prelude::Canonize,
-    cosmwasm_std::{self, HumanAddr, Binary, CosmosMsg, WasmMsg},
+    cosmwasm_std::{self, Addr, Binary, CosmosMsg, WasmMsg},
     schemars::{self, JsonSchema}
 };
 use super::link::ContractLink;
@@ -17,13 +17,13 @@ pub struct Callback<A> {
     pub contract: ContractLink<A>
 }
 
-impl Into<CosmosMsg> for Callback<HumanAddr> {
+impl Into<CosmosMsg> for Callback<Addr> {
     fn into(self) -> CosmosMsg {
         CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.contract.address,
-            callback_code_hash: self.contract.code_hash,
+            contract_addr: self.contract.address.to_string(),
+            code_hash: self.contract.code_hash,
             msg: self.msg,
-            send: vec![]
+            funds: vec![]
         })
     }
 }
