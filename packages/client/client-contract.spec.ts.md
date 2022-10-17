@@ -74,9 +74,9 @@ assert.ok(template.asTemplate instanceof ContractTemplate)
 assert.notEqual(template.asTemplate,  template)
 assert.deepEqual(template.asTemplate, template)
 assert.ok(template.asReceipt)
-//assert.ok(template.provide({ codeId: 'id', codeHash: 'hash' }).asInfo)
+assert.ok(template.asTemplate.provide({ codeId: '123', codeHash: 'hash' }).asInfo)
 const uploaded = template.provide({ builder, uploader }).uploaded
-assert.equal(uploaded, template.provide({ builder, uploader }).uploaded)
+assert.equal(uploaded, template.uploaded)
 assert.ok(await uploaded)
 assert.ok(template.instance() instanceof ContractInstance)
 ```
@@ -112,12 +112,37 @@ appropriate `Client` subclass from the authorized `Agent`.
 ```typescript
 import { Client } from '@fadroma/client'
 let client: Client = new Client(agent, 'some-address', 'some-code-hash')
+
 assert.equal(client.agent,    agent)
 assert.equal(client.address,  'some-address')
 assert.equal(client.codeHash, 'some-code-hash')
+
+client.fees = { 'method': 100 }
+
+assert.equal(
+  client.getFee('method'),
+  100
+)
+
+assert.equal(
+  client.getFee({'method':{'parameter':'value'}}),
+  100
+)
+
+let agent2 = Symbol()
+assert.equal(
+  client.as(agent2).agent,
+  agent2
+)
+
+client.agent = { execute: async () => 'ok' }
+assert.equal(
+  await client.execute({'method':{'parameter':'value'}}),
+  'ok'
+)
 ```
 
-## Handling contract properties
+## Handling of contract properties
 
 ```typescript
 let c, a
@@ -171,4 +196,18 @@ a = { getCodeId: () => Promise.resolve('id') }
 assert.ok(await fetchCodeId(c, a))
 assert.ok(await fetchCodeId(c, a, 'id'))
 assert.rejects(fetchCodeId(c, a, 'unexpected'))
+```
+
+### ICC structs
+
+```typescript
+import { templateStruct, linkStruct } from '@fadroma/client'
+assert.deepEqual(
+  templateStruct({ codeId: '123', codeHash: 'hash'}),
+  { id: 123, code_hash: 'hash' }
+)
+assert.deepEqual(
+  linkStruct({ address: 'addr', codeHash: 'hash'}),
+  { address: 'addr', code_hash: 'hash' }
+)
 ```
