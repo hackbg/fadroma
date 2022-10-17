@@ -1,5 +1,6 @@
 use crate::{
     prelude::*,
+    crypto::sha_256,
     vk::VIEWING_KEY_SIZE,
     snip20::client::msg::{
         ExecuteAnswer, ExecuteMsg, QueryAnswer, QueryMsg, QueryPermission,

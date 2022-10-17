@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{
-    math::sha_256,
+    crypto::sha_256,
     vk::{ViewingKey, VIEWING_KEY_SIZE},
     snip20::client::msg::*,
     cosmwasm_std::{
@@ -1274,7 +1274,7 @@ fn test_handle_decrease_allowance() {
         .unwrap();
     assert_eq!(
         allowance,
-        super::state::Allowance {
+        Allowance {
             amount: Uint128::zero(),
             expiration: None
         }
@@ -1311,7 +1311,7 @@ fn test_handle_decrease_allowance() {
         .unwrap();
     assert_eq!(
         allowance,
-        super::state::Allowance {
+        Allowance {
             amount: Uint128::new(1950),
             expiration: None
         }
@@ -1352,7 +1352,7 @@ fn test_handle_increase_allowance() {
 
     assert_eq!(
         allowance,
-        super::state::Allowance {
+        Allowance {
             amount: Uint128::new(2000),
             expiration: None
         }
@@ -1376,7 +1376,7 @@ fn test_handle_increase_allowance() {
         .unwrap();
     assert_eq!(
         allowance,
-        super::state::Allowance {
+        Allowance {
             amount: Uint128::new(4000),
             expiration: None
         }

@@ -11,18 +11,18 @@ pub use scrt::serde;
 #[cfg(feature = "scrt")]
 pub mod core;
 
+pub mod tokens;
+
 // Contract scaffoldings
-#[cfg(feature = "derive")]
+#[cfg(feature = "experimental")]
 pub use fadroma_proc_derive as derive_contract;
-#[cfg(feature = "composability")]
+#[cfg(feature = "experimental")]
 pub mod composability;
 
 // Safety features
-#[cfg(feature = "killswitch")]
 pub mod killswitch;
 
 // Authentication primitives
-#[cfg(feature = "admin")]
 pub mod admin;
 #[cfg(feature = "permit")]
 pub mod permit;
@@ -30,22 +30,17 @@ pub mod permit;
 pub mod vk;
 
 // Tokenomics primitives
-#[cfg(feature = "math")]
-pub mod math;
+#[cfg(feature = "crypto")]
+pub mod crypto;
 pub mod snip20;
 
 // Data and I/O helpers
-#[cfg(feature = "storage")]
 pub mod storage;
-#[cfg(feature = "message")]
+#[cfg(feature = "experimental")]
 pub use fadroma_proc_message as proc_message;
 // Testing system
 #[cfg(all(feature = "ensemble", not(target_arch = "wasm32")))]
 pub mod ensemble;
-
-// TODO: Remove or compartmentalize dependency on this
-#[cfg(feature = "reexport-secret-toolkit")]
-pub use secret_toolkit;
 
 /// **Start here.** `use fadroma::prelude::*` to get the essentials for
 /// writing smart contracts with Fadroma.
@@ -65,16 +60,14 @@ pub mod prelude {
         *,
     };
 
+    pub use crate::tokens::*;
+
     #[cfg(feature = "scrt")]
     pub use schemars::{self, JsonSchema};
 
-    #[cfg(feature = "math")]
-    pub use crate::math::*;
-
-    #[cfg(feature = "storage")]
     pub use crate::storage::{load, ns_load, ns_remove, ns_save, remove, save};
 
-    #[cfg(feature = "message")]
+    #[cfg(feature = "experimental")]
     pub use crate::proc_message::message;
 
     #[cfg(feature = "vk")]
@@ -83,7 +76,7 @@ pub mod prelude {
     #[cfg(feature = "permit")]
     pub use crate::permit::{Permission, Permit};
 
-    #[cfg(feature = "composability")]
+    #[cfg(feature = "experimental")]
     pub use crate::composability::Composable;
 }
 

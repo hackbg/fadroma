@@ -25,19 +25,12 @@ path = "lib.rs"
 [features]
 default = [
   # Features
-  "scrt", "message", "response",
+  "scrt"
 ]
 
 scrt = [
   # Dependencies
   "fadroma-platform-scrt"
-]
-
-admin = [
-  # Features
-  "scrt", "derive", "storage",
-  # Dependencies
-  "fadroma-proc-auth"
 ]
 
 permit = [
@@ -49,34 +42,17 @@ permit = [
 
 vk = [
   # Features
-  "scrt", "derive", "storage", "math",
-  # Dependencies
-  "fadroma-proc-auth"
-]
-
-composability = [
-  # Features
-  "scrt", "storage"
-]
-
-derive = [
-  # Dependencies
-  "fadroma-proc-derive"
+  "scrt", "experimental", "crypto"
 ]
 
 ensemble = [
   # Features
-  "scrt", "storage",
+  "scrt",
   # Dependencies
   "oorandom", "anyhow"
 ]
 
-killswitch = [
-  # Features
-  "scrt", "admin", "storage", "derive"
-]
-
-math = [
+crypto = [
   # Features
   "scrt",
   # Dependencies
@@ -85,23 +61,13 @@ math = [
 
 snip20-impl = [
   # Features
-  "scrt", "admin", "permit", "vk",
+  "scrt", "permit", "vk",
   # Dependencies
-  "storage", "schemars"
+  "schemars"
 ]
 
-storage = [
-  "scrt"
-]
-
-message = [
-  # Dependencies
-  "fadroma-proc-message"
-]
-
-response = [
-  # Features
-  "scrt"
+experimental = [
+  "fadroma-proc-derive", "fadroma-proc-message"
 ]
 
 # Old

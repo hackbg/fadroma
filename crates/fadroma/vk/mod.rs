@@ -4,12 +4,12 @@
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
 use crate::{
     prelude::*,
+    crypto::{Prng, sha_256, compare_slice_ct_time},
     impl_canonize_default
 };
 use std::fmt;
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "derive")]
 pub mod vk_auth;
 
 pub const VIEWING_KEY_SIZE: usize = 32;
