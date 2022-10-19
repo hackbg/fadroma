@@ -1,20 +1,16 @@
 # Fadroma Mocknet Specification
 
-The Fadroma Mocknet is a pure Node.js implementation of the API and environment
-that Cosmos contracts expect.
-
-Because it does not contain a distributed consensus mechanism,
-it allows the interaction of multiple smart contracts to be tested
-much faster than with a devnet or testnet.
-
 ```typescript
+import assert from 'assert'
 import * as Testing from '../../TESTING.ts.md'
-import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
-## Mocknet as Chain
+The Fadroma Mocknet is a pure Node.js implementation of the API and environment
+that Cosmos contracts expect. Because it does not contain a distributed consensus
+mechanism, it allows the interaction of multiple smart contracts to be tested
+much faster than with a devnet or testnet.
 
-* initialize and provide agent:
+## Mocknet as Chain
 
 ```typescript
 import { Chain, Agent, Client, Contract, ContractTemplate } from '@fadroma/client'
@@ -26,14 +22,24 @@ let instance:  Contract
 let client:    Client
 ```
 
+Initialize and spawn agent:
+
 ```typescript
 import { Mocknet } from '.'
 chain = new Mocknet()
+assert.equal(await chain.height, 0)
+
 agent = await chain.getAgent()
-ok(agent instanceof Mocknet.Agent)
+chain.balances[agent.address] = 1000
+assert.ok(agent instanceof Mocknet.Agent)
+assert.equal(await chain.getBalance(agent.address), 1000)
+assert.equal(agent.defaultDenom, chain.defaultDenom)
+assert.ok(await agent.account)
+assert.ok(!await agent.send())
+assert.ok(!await agent.sendMany())
 ```
 
-* upload WASM blob, returning code ID:
+Upload WASM blob, returning code ID:
 
 ```typescript
 import { pathToFileURL } from 'url'
@@ -42,45 +48,35 @@ agent     = await chain.getAgent()
 template  = await agent.upload(Testing.examples['Echo'].data)
 template2 = await agent.upload(Testing.examples['KV'].data)
 
-//equal(template.chainId,  agent.chain.id)
-//equal(template2.chainId, template.chainId)
-equal(template2.codeId,  String(Number(template.codeId) + 1))
+assert.equal(template2.codeId,  String(Number(template.codeId) + 1))
 ```
 
-* instantiate and call a contract
+Instantiate and call a contract:
 
 ```typescript
-agent    = await new Mocknet().getAgent()
-template = { chainId: 'Mocknet', codeId: '2' }
-assert.rejects(agent.instantiate(template, 'test', {}))
-```
-
-* instantiate and call a contract, successfully this time
-
-```typescript
-agent    = await new Mocknet().getAgent()
+chain    = new Mocknet()
+agent    = await chain.getAgent()
 template = await agent.upload(Testing.examples['Echo'].data)
 instance = await agent.instantiate(template.instance({ label: 'test', initMsg: { fail: false } }))
-client   = instance.getClientSync()
-client.agent = agent
-equal(await client.query("echo"), 'echo')
-console.debug(await client.execute("echo"), { data: "echo" })
+client   = Object.assign(instance.getClientSync(), { agent })
+
+assert.equal(await client.query("echo"), 'echo')
+assert.equal(await chain.getLabel(instance.address),   instance.label)
+assert.equal(await chain.getHash(instance.address),    instance.codeHash)
+assert.equal(await chain.getCodeId(instance.codeHash), instance.codeId)
 ```
 
-* contract can use to platform APIs as provided by Mocknet
+Contract can use to platform APIs as provided by Mocknet:
 
 ```typescript
 agent    = await new Mocknet().getAgent()
 template = await agent.upload(Testing.examples['KV'].data)
 instance = await agent.instantiate(template.instance({ label: 'test', initMsg: { value: "foo" } }))
-client   = instance.getClientSync()
-client.agent = agent
-console.log({ instance, client })
-equal(await client.query("get"), "foo")
-console.debug(await client.execute({set: "bar"}))
-equal(await client.query("get"), "bar")
-console.debug(await client.execute("del"))
-assert.rejects(client.query("get"))
+client   = Object.assign(instance.getClientSync(), { agent })
+
+assert.equal(await client.query("get"), "foo")
+assert.ok(await client.execute({"set": "bar"}))
+assert.equal(await client.query("get"), "bar")
 ```
 
 ### Mock of mocknet environment
@@ -105,4 +101,10 @@ export function mockEnv () {
     contract_code_hash: ""
   }
 }
+```
+
+### Backend tests
+
+```typescript
+import './mocknet-backend.spec.ts.md'
 ```

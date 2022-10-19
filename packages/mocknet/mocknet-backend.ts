@@ -6,17 +6,25 @@ const log = new CustomConsole('Fadroma.Mocknet')
 
 /** Hosts MocknetContract instances. */
 export default class MocknetBackend {
-  constructor (readonly chainId: string) {}
-  codeId  = 0
-  uploads: Record<Fadroma.CodeId, unknown> = {}
+  /** Hosts an instance of a WASM code blob and its local storage. */
+  static Contract: typeof MocknetContract
+
+  constructor (
+    readonly chainId:   string,
+    readonly uploads:   Record<Fadroma.CodeId, unknown>          = {},
+    readonly instances: Record<Fadroma.Address, MocknetContract> = {},
+  ) {
+    if (Object.keys(uploads).length > 0) {
+      this.codeId = (Math.max(...Object.keys(uploads).map(x=>Number(x))) ?? 0) + 1
+    }
+  }
+  codeId = 0
   codeIdForCodeHash: Record<Fadroma.CodeHash, Fadroma.CodeId> = {}
   codeIdForAddress:  Record<Fadroma.Address,  Fadroma.CodeId> = {}
   labelForAddress:   Record<Fadroma.Address,  Fadroma.Label>  = {}
   getCode (codeId: Fadroma.CodeId) {
     const code = this.uploads[codeId]
-    if (!code) {
-      throw new Error(`No code with id ${codeId}`)
-    }
+    if (!code) throw new Error(`No code with id ${codeId}`)
     return code
   }
   upload (blob: Uint8Array) {
@@ -27,7 +35,6 @@ export default class MocknetBackend {
     this.codeIdForCodeHash[codeHash] = String(codeId)
     return { codeId, codeHash }
   }
-  instances: Record<Fadroma.Address, MocknetContract> = {}
   getInstance (address?: Fadroma.Address) {
     if (!address) {
       throw new Error(`MocknetBackend#getInstance: can't get instance without address`)
@@ -149,21 +156,6 @@ export default class MocknetBackend {
     const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
     return JSON.parse(result)
   }
-  private resultOf (address: Fadroma.Address, action: string, response: any) {
-    const { Ok, Err } = response
-    if (Err !== undefined) {
-      const errData = JSON.stringify(Err)
-      const message = `MocknetBackend#${action}: contract ${address} returned Err: ${errData}`
-      throw Object.assign(new Error(message), Err)
-    }
-    if (Ok !== undefined) {
-      return Ok
-    }
-    throw new Error(`MocknetBackend#${action}: contract ${address} returned non-Result type`)
-  }
-
-  /** Hosts a WASM contract blob and contains the contract-local storage. */
-  static Contract: typeof MocknetContract
 
 }
 

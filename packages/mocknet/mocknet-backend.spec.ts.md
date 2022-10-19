@@ -1,6 +1,11 @@
 # Fadroma Mocknet Backend
 
 ```typescript
+import assert from 'node:assert'
+import * as Testing from '../../TESTING.ts.md'
+```
+
+```typescript
 import { MocknetBackend, MocknetContract } from './mocknet-backend'
 let backend:  MocknetBackend
 let contract: MocknetContract
@@ -27,29 +32,29 @@ contract = await new MocknetBackend.Contract().load(Testing.examples['Echo'].dat
 response = contract.init(Testing.mockEnv(), { fail: false })
 key      = "Echo"
 value    = utf8toB64(JSON.stringify({ fail: false }))
-deepEqual(response.Err, undefined)
-deepEqual(response.Ok,  { messages: [], log: [{ encrypted: true, key, value }] })
+assert.deepEqual(response.Err, undefined)
+assert.deepEqual(response.Ok,  { messages: [], log: [{ encrypted: true, key, value }] })
 
 response = contract.init(Testing.mockEnv(), { fail: true }))
-deepEqual(response.Ok,  undefined)
-deepEqual(response.Err, { generic_err: { msg: 'caller requested the init to fail' } })
+assert.deepEqual(response.Ok,  undefined)
+assert.deepEqual(response.Err, { generic_err: { msg: 'caller requested the init to fail' } })
 
 response = contract.handle(Testing.mockEnv(), "echo")
 data     = utf8toB64(JSON.stringify("echo"))
-deepEqual(response.Err, undefined)
-deepEqual(response.Ok,  { messages: [], log: [], data })
+assert.deepEqual(response.Err, undefined)
+assert.deepEqual(response.Ok,  { messages: [], log: [], data })
 
 response = contract.handle(Testing.mockEnv(), "fail")
-deepEqual(response.Ok,  undefined)
-deepEqual(response.Err, { generic_err:  { msg: 'this transaction always fails' } })
+assert.deepEqual(response.Ok,  undefined)
+assert.deepEqual(response.Err, { generic_err:  { msg: 'this transaction always fails' } })
 
 response = await contract.query("echo")
-deepEqual(response.Err, undefined)
-deepEqual(response.Ok,  utf8toB64('"echo"'))
+assert.deepEqual(response.Err, undefined)
+assert.deepEqual(response.Ok,  utf8toB64('"echo"'))
 
 response = await contract.query("fail")
-deepEqual(response.Ok, undefined)
-deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
+assert.deepEqual(response.Ok, undefined)
+assert.deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
 ```
 
 ## Base64 IO
@@ -62,6 +67,25 @@ deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
 ```typescript
 import { b64toUtf8, utf8toB64 } from './mocknet-backend'
 
-equal(b64toUtf8('IkVjaG8i'), '"Echo"')
-equal(utf8toB64('"Echo"'), 'IkVjaG8i')
+assert.equal(b64toUtf8('IkVjaG8i'), '"Echo"')
+assert.equal(utf8toB64('"Echo"'), 'IkVjaG8i')
+```
+
+## More tests
+
+```typescript
+assert.throws(()=>new MocknetBackend().getInstance())
+assert.throws(()=>new MocknetBackend().getInstance('foo'))
+assert.throws(()=>new MocknetBackend().makeEnv())
+assert.rejects(new MocknetBackend().passCallbacks())
+assert.ok(new MocknetBackend('mocknet', {
+  123: Testing.examples['Echo'].data
+}, {
+  'someaddr': await new MocknetBackend.Contract().load(Testing.examples['Echo'].data)
+}).passCallbacks('sender', [
+  {wasm:{instantiate:{msg:utf8toB64('{"fail":false}'), code_id: 123}}},
+  {wasm:{execute:    {msg:utf8toB64('"echo"'), contract_addr: 'someaddr'}}},
+  {wasm:{ignored: true}},
+  {ignored: true}
+]))
 ```

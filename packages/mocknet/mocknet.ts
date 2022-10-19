@@ -44,22 +44,21 @@ export class Mocknet extends Fadroma.Chain {
 }
 
 class MocknetAgent extends Fadroma.Agent {
+
+  declare chain: Mocknet
+
   /** Message bundle that warns about unsupported messages. */
   static Bundle: Fadroma.BundleClass<MocknetBundle>
-
-  static async create (options: Fadroma.AgentOpts) {
-    return new MocknetAgent(options)
-  }
-
-  constructor (readonly options: Fadroma.AgentOpts) {
-    super(options)
-  }
 
   name:    string          = 'MocknetAgent'
 
   address: Fadroma.Address = randomBech32(ADDRESS_PREFIX)
 
-  get defaultDenom () {
+  constructor (readonly options: Fadroma.AgentOpts) {
+    super(options)
+  }
+
+  get defaultDenom (): string {
     return Fadroma.assertChain(this).defaultDenom
   }
   get backend (): MocknetBackend {
@@ -70,9 +69,11 @@ class MocknetAgent extends Fadroma.Agent {
   }
   async instantiate (instance: Fadroma.ContractInstance): Promise<Fadroma.ContractInstance> {
     instance.initMsg = await Fadroma.into(instance.initMsg)
-    console.log({instance})
-    const result = await this.backend.instantiate(this.address, instance)
-    return instance.provide({ agent: this, ...result })
+    const result = instance.provide({
+      ...await this.backend.instantiate(this.address, instance),
+      agent: this
+    })
+    return result
   }
   async execute <R> (
     instance: Partial<Fadroma.Client>,
