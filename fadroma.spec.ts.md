@@ -50,8 +50,8 @@ subSpec('Deploy', () => import('./packages/deploy/deploy.spec.ts.md').then(conso
 subSpec('Devnet', () => import('./packages/devnet/devnet.spec.ts.md').then(console.log))
 ```
 
-## [Mocknet](./platforms/mocknet/mocknet.spec.ts.md)
+## [Mocknet](./packages/mocknet/mocknet.spec.ts.md)
 
 ```typescript
-subSpec('Mocknet', () => import('./platforms/mocknet/mocknet.spec.ts.md').then(console.log))
+subSpec('Mocknet', () => import('./packages/mocknet/mocknet.spec.ts.md').then(console.log))
 ```

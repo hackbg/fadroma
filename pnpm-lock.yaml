@@ -42,7 +42,7 @@ importers:
       '@fadroma/connect': link:packages/connect
       '@fadroma/deploy': link:packages/deploy
       '@fadroma/devnet': link:packages/devnet
-      '@fadroma/mocknet': link:platforms/mocknet
+      '@fadroma/mocknet': link:packages/mocknet
       '@fadroma/scrt': link:platforms/scrt
       '@fadroma/scrt-amino': link:platforms/scrt-amino
       '@fadroma/tokens': link:packages/tokens
@@ -264,7 +264,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.8.5
+      '@types/node': 18.11.2
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.8.4
       typescript: 4.8.4
@@ -349,9 +349,6 @@ importers:
       '@types/rimraf': 3.0.2
       '@types/tmp': 0.2.3
       c8: 7.12.0
-
-  ensuite/toolbox/kitenik:
-    specifiers: {}
 
   ensuite/toolbox/komandi:
     specifiers:
@@ -477,7 +474,7 @@ importers:
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/devnet': link:../devnet
-      '@fadroma/mocknet': link:../../platforms/mocknet
+      '@fadroma/mocknet': link:../mocknet
       '@fadroma/scrt': link:../../platforms/scrt
       '@fadroma/scrt-amino': link:../../platforms/scrt-amino
       '@hackbg/komandi': link:../../ensuite/toolbox/komandi
@@ -539,6 +536,19 @@ importers:
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
 
+  packages/mocknet:
+    specifiers:
+      '@fadroma/client': workspace:^6.1
+      '@hackbg/ensuite': ^1.0.2
+      '@hackbg/formati': workspace:^5.1.1
+      '@hackbg/konzola': workspace:^2.1
+    dependencies:
+      '@fadroma/client': link:../client
+      '@hackbg/formati': link:../../ensuite/toolbox/formati
+      '@hackbg/konzola': link:../../ensuite/toolbox/konzola
+    devDependencies:
+      '@hackbg/ensuite': link:../../ensuite
+
   packages/tokens:
     specifiers:
       '@fadroma/client': workspace:^6.1.2
@@ -549,19 +559,6 @@ importers:
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/scrt': link:../../platforms/scrt
-      '@hackbg/formati': link:../../ensuite/toolbox/formati
-      '@hackbg/konzola': link:../../ensuite/toolbox/konzola
-    devDependencies:
-      '@hackbg/ensuite': link:../../ensuite
-
-  platforms/mocknet:
-    specifiers:
-      '@fadroma/client': workspace:^6.1
-      '@hackbg/ensuite': ^1.0.2
-      '@hackbg/formati': workspace:^5.1.1
-      '@hackbg/konzola': workspace:^2.1
-    dependencies:
-      '@fadroma/client': link:../../packages/client
       '@hackbg/formati': link:../../ensuite/toolbox/formati
       '@hackbg/konzola': link:../../ensuite/toolbox/konzola
     devDependencies:
@@ -1356,6 +1353,10 @@ packages:
 
   /@types/node/16.11.55:
     resolution: {integrity: sha512-ZZepNkqPNCBy6PlCjeOY0gI1q91v7l5MUhVc5RMAUV39OxRO8lF8fqGnhY2j8FWz8fxcN8HvAUWoccWpOzl/Ug==}
+
+  /@types/node/18.11.2:
+    resolution: {integrity: sha512-BWN3M23gLO2jVG8g/XHIRFWiiV4/GckeFIqbU/C4V3xpoBBWSMk4OZomouN0wCkfQFPqgZikyLr7DOYDysIkkw==}
+    dev: true
 
   /@types/node/18.7.23:
     resolution: {integrity: sha512-DWNcCHolDq0ZKGizjx2DZjR/PqsYwAcYUJmfMWqtVU2MBMG5Mo+xFZrhGId5r/O5HOuMPyQEcM6KUBp5lBZZBg==}
