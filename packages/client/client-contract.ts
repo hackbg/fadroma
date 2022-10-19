@@ -377,6 +377,33 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
       suffix:  this.suffix
     } as Partial<this>
   }
+
+  /** Async wrapper around getClientSync.
+    * @returns a Client instance pointing to this contract
+    * @throws if the contract address could not be determined */
+  getClient <C extends Client> (
+    $Client: ClientClass<C>|undefined = this.client as ClientClass<C>
+  ): Promise<C> {
+    return Promise.resolve(this.getClientSync($Client))
+  }
+  /** @returns a Client instance pointing to this contract
+    * @throws if the contract address could not be determined */
+  getClientSync <C extends Client> (
+    $Client: ClientClass<C>|undefined = this.client as ClientClass<C>
+  ): C {
+    const client = this.getClientOrNull($Client)
+    if (!client) throw new ClientError.NotFound($Client.name, this.name)
+    return client
+  }
+  /** @returns a Client instance pointing to this contract, or null if
+    * the contract address could not be determined */
+  getClientOrNull <C extends Client> (
+    $Client: ClientClass<C>|undefined = this.client as ClientClass<C>,
+    agent?:  Agent
+  ): C|null {
+    if (!this.address) return null
+    return new $Client(agent, this.address, this.codeHash, this) as C
+  }
 }
 
 /** Convert Fadroma.Instance to address/hash struct (ContractLink) */

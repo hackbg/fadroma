@@ -21,11 +21,11 @@ export default class MocknetBackend {
   }
   upload (blob: Uint8Array) {
     const chainId  = this.chainId
-    const codeId   = ++this.codeId
+    const codeId   = String(++this.codeId)
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
     this.codeIdForCodeHash[codeHash] = String(codeId)
-    return new Fadroma.ContractTemplate({ codeHash, codeId: String(codeId) })
+    return { codeId, codeHash }
   }
   instances: Record<Fadroma.Address, MocknetContract> = {}
   getInstance (address?: Fadroma.Address) {

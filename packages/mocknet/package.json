@@ -5,6 +5,11 @@
   "main":    "./mocknet.ts",
   "files":   [ "mocknet.ts" ],
   "description": "Test smart contracts without the overhead of spawning a real chain.",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test":  "ensuite mocknet.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
+  },
   "dependencies": {
     "@hackbg/konzola": "workspace:^2.1",
     "@hackbg/formati": "workspace:^5.1.1",
@@ -12,10 +17,5 @@
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.0.2"
-  },
-  "scripts": {
-    "check": "tsc --noEmit",
-    "ubik":  "npm run check && ubik",
-    "test":  "ensuite scrt-amino.spec.ts.md"
   }
 }

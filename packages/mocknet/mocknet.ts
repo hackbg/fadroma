@@ -19,7 +19,7 @@ export class Mocknet extends Fadroma.Chain {
   backend = new MocknetBackend(this.id)
   defaultDenom = 'umock'
   async getAgent <A> (options: Fadroma.AgentOpts): Promise<A> {
-    return new MocknetAgent(options) as unknown as A
+    return new MocknetAgent({ ...options, chain: this }) as unknown as A
   }
   async query <T, U> (contract: Partial<Fadroma.Client>, msg: T): Promise<U> {
     return this.backend.query(contract, msg as Fadroma.Message)
@@ -66,11 +66,12 @@ class MocknetAgent extends Fadroma.Agent {
     return (this.chain as unknown as Mocknet).backend
   }
   async upload (blob: Uint8Array) {
-    return await this.backend.upload(blob)
+    return new Fadroma.ContractTemplate(this.backend.upload(blob))
   }
   async instantiate (instance: Fadroma.ContractInstance): Promise<Fadroma.ContractInstance> {
     instance.initMsg = await Fadroma.into(instance.initMsg)
-    const result = await this.backend.instantiate(this.address, instance,)
+    console.log({instance})
+    const result = await this.backend.instantiate(this.address, instance)
     return instance.provide({ agent: this, ...result })
   }
   async execute <R> (

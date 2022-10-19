@@ -17,7 +17,7 @@ import assert, { ok, equal, deepEqual } from 'assert'
 * initialize and provide agent:
 
 ```typescript
-import { Chain, Agent, Client, Contract } from '@fadroma/client'
+import { Chain, Agent, Client, Contract, ContractTemplate } from '@fadroma/client'
 let chain:     Chain
 let agent:     Agent
 let template:  Contract
@@ -60,7 +60,9 @@ assert.rejects(agent.instantiate(template, 'test', {}))
 ```typescript
 agent    = await new Mocknet().getAgent()
 template = await agent.upload(Testing.examples['Echo'].data)
-client   = await agent.instantiate(template, 'test', { fail: false })
+instance = await agent.instantiate(template.instance({ label: 'test', initMsg: { fail: false } }))
+client   = instance.getClientSync()
+client.agent = agent
 equal(await client.query("echo"), 'echo')
 console.debug(await client.execute("echo"), { data: "echo" })
 ```
@@ -70,8 +72,9 @@ console.debug(await client.execute("echo"), { data: "echo" })
 ```typescript
 agent    = await new Mocknet().getAgent()
 template = await agent.upload(Testing.examples['KV'].data)
-instance = await agent.instantiate(template, 'test', { value: "foo" })
-client   = instance.client()
+instance = await agent.instantiate(template.instance({ label: 'test', initMsg: { value: "foo" } }))
+client   = instance.getClientSync()
+client.agent = agent
 console.log({ instance, client })
 equal(await client.query("get"), "foo")
 console.debug(await client.execute({set: "bar"}))
