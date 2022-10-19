@@ -1,5 +1,9 @@
 # Fadroma Deploy Spec
 
+```typescript
+import assert from 'node:assert'
+```
+
 ## Contract slot
 
 ```typescript

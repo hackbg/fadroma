@@ -41,6 +41,7 @@ for (const Chain of supportedChains) {
   assert.equal(chain.node, node)
   assert.equal(chain.url,  node.url)
   assert.equal(chain.id,   node.chainId)
+
 }
 ```
 

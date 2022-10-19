@@ -9,7 +9,7 @@ Contracts start out as source code, which `@fadroma/build` compiles to binary ar
 containing upload metadata, which we call an **upload receipt**.
 
 ```typescript
-import { JSONDirectory } from '@hackbg/kabinet'
+import { JSONDirectory, withTmpDir } from '@hackbg/kabinet'
 import { DeployConfig, FSUploader } from '@fadroma/deploy'
 import { Agent, Uploader, ContractTemplate } from '@fadroma/client'
 import { examples } from '../../TESTING.ts.md'
@@ -27,8 +27,12 @@ if it does, it returns the existing code ID instead of uploading the same file t
 config = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' })
 uploader = await config.getUploader()
 ok(uploader instanceof Uploader)
-uploader = new FSUploader(agent, new JSONDirectory())
-ok(uploader.agent === agent)
-ok(await uploader.upload(template))
-ok(await uploader.uploadMany([]))
+
+await withTmpDir(async path=>{
+  uploader = new FSUploader(agent, new JSONDirectory(path))
+  ok(uploader.agent === agent)
+  ok(await uploader.upload(template))
+  ok(await uploader.upload(template))
+  ok(await uploader.uploadMany([template]))
+})
 ```

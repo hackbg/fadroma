@@ -16,18 +16,27 @@ for (const $DeployStore of [
   //JSON1.JSONDeployments_v1, // TODO
 ]) {
   await withTmpDir(async dir=>{
+
     const deployments = new $DeployStore(dir)
     ok(deployments instanceof DeployStore)
     ok(deployments.root.path === dir)
+
+    assert.rejects(deployments.select('missing'))
+
+    assert(!deployments.active)
+    await deployments.create()
+
     await deployments.create('test-deployment-1')
     await deployments.create('test-deployment-2')
     await deployments.select('test-deployment-1')
+    assert(deployments.active instanceof Deployment)
     await deployments.select('test-deployment-2')
     assert(deployments.active instanceof Deployment)
+
     deployments.get()
     deployments.list()
-    deployments.set('test', 'test')
+    deployments.set('test', { key: 'value' })
+
   })
 }
 ```
-
