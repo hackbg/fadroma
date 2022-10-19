@@ -38,7 +38,7 @@ import './upload.spec.ts.md'
   in a specific `DeployStore` and can load data from them into itself.
 
 ```typescript
-//import './deploy-base.spec.ts.md'
+import './deploy-base.spec.ts.md'
 ```
 
 ## [Deploy store variants](./deploy-variants.spec.ts)
