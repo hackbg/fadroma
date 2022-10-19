@@ -22,8 +22,6 @@ log.selectedChain({ chain: 'x' })
 
 ```typescript
 import { ConnectError } from './connect-events'
-for (const subtype of ConnectError.subtypes) {
-  //console.log(subtype, ConnectError[subtype])
-  assert(new ConnectError[subtype]() instanceof ConnectError)
-}
+assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
+assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
 ```

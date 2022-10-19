@@ -1,32 +1,46 @@
 # Fadroma Connect Variants
 
+```typescript
+import assert from 'node:assert'
+```
+
 * `ScrtAmino`: creates secretjs@0.17.5 based agent using lcd/amino
 * `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
 import { ScrtGrpc } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
+import { Mocknet } from '@fadroma/mocknet'
+
+const mnemonics = [
+  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
+  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
+]
 
 const supportedChains = [
   ScrtGrpc,
-  ScrtAmino
+  ScrtAmino,
+  Mocknet
 ]
 
 for (const Chain of supportedChains) {
-  const chain = new Chain('test')
-  const agent = await chain.getAgent({ mnemonic: Testing.mnemonics[0] })
-  assert(agent instanceof Chain.Agent)
-}
 
-for (const Chain of supportedChains) {
-  ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
-  ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
+  let chain: Chain
+  let agent: Agent
+
+  chain = new Chain('test')
+  agent = await chain.getAgent({ mnemonic: mnemonics[0] })
+  assert(agent instanceof Chain.Agent)
+
+  assert.ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
+  assert.ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
+
   const node = { chainId: 'scrt-devnet', url: 'http://test:0' }
-  const chain = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
-  ok(chain)
-  equal(chain.node, node)
-  equal(chain.url,  node.url)
-  equal(chain.id,   node.chainId)
+  chain = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
+  assert.ok(chain)
+  assert.equal(chain.node, node)
+  assert.equal(chain.url,  node.url)
+  assert.equal(chain.id,   node.chainId)
 }
 ```
 
@@ -38,11 +52,6 @@ Agent variants:
   supported in secretjs 0.17.5 and older.
 
 ```typescript
-const mnemonics = [
-  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
-  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
-]
-
 for (const Chain of supportedChains) {
   const chain    = new Chain('test', {})
   const mnemonic = mnemonics[0]
@@ -63,9 +72,9 @@ for (const Chain of [
     await agent.nextBlock
     const [ {header:{height:block2}}, account2, balance2 ] =
       await Promise.all([ agent.block, agent.account, agent.balance ])
-    equal(block1 + 1, block2)
-    deepEqual(account1, account2)
-    deepEqual(balance1, balance2)
+    assert.equal(block1 + 1, block2)
+    assert.deepEqual(account1, account2)
+    assert.deepEqual(balance1, balance2)
   })
 }
 
@@ -88,14 +97,14 @@ for (const Chain of [
         [agent2.address]: BigInt("3000")
       }
     }
-    equal(await agent1.balance, "2000")
-    equal(await agent2.balance, "3000")
+    assert.equal(await agent1.balance, "2000")
+    assert.equal(await agent2.balance, "3000")
     await agent1.send(agent2.address, "1000")
-    equal(await agent1.balance, "1000")
-    equal(await agent2.balance, "4000")
+    assert.equal(await agent1.balance, "1000")
+    assert.equal(await agent2.balance, "4000")
     await agent2.send(agent1.address, 500)
-    equal(await agent1.balance, "1500")
-    equal(await agent2.balance, "3500")
+    assert.equal(await agent1.balance, "1500")
+    assert.equal(await agent2.balance, "3500")
   })
 }
 
@@ -104,6 +113,6 @@ for (const Chain of supportedChains) {
   const mnemonic = Testing.mnemonics[0]
   const agent    = await new Chain('🤡', {}).getAgent({ mnemonic })
   const bundle   = agent.bundle()
-  ok(bundle instanceof Chain.Agent.Bundle)
+  assert.ok(bundle instanceof Chain.Agent.Bundle)
 }
 ```

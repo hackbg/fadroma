@@ -11,8 +11,50 @@ The `ClientError` class defines custom error subclasses for various error condit
 ```typescript
 // Make sure each error subclass can be created with no arguments:
 import { ClientError } from './client-events'
-for (const subtype of ClientError.subtypes) {
-  //console.log(subtype, ClientError[subtype])
+for (const subtype of [
+  'BalanceNoAddress',
+  'DeployManyFailed',
+  'DifferentHashes',
+  'EmptyBundle',
+  'ExpectedAddress',
+  'ExpectedAgent',
+  'InvalidLabel',
+  'InvalidMessage',
+  'LinkNoAddress',
+  'LinkNoCodeHash',
+  'LinkNoTarget',
+  'NameOutsideDevnet',
+  'NoAgent',
+  'NoArtifact',
+  'NoArtifactURL',
+  'NoBuilder',
+  'NoBuilderNamed',
+  'NoBundleAgent',
+  'NoChain',
+  'NoChainId',
+  'NoCodeHash',
+  'NoContext',
+  'NoCrate',
+  'NoCreator',
+  'NoDeployment',
+  'NoInitCodeId',
+  'NoInitLabel',
+  'NoInitMessage',
+  'NoName',
+  'NoPredicate',
+  'NoSource',
+  'NoTemplate',
+  'NoUploader',
+  'NoUploaderAgent',
+  'NoUploaderNamed',
+  'NoVersion',
+  'NotFound',
+  'NotInBundle',
+  'ProvideBuilder',
+  'ProvideUploader',
+  'Unpopulated',
+  'ValidationFailed'
+]) {
   assert(new ClientError[subtype]() instanceof ClientError)
 }
 ```
@@ -26,7 +68,9 @@ In the future, this will enable semantic logging and/or GUI notifications.
 // Make sure each log message can be created with no arguments:
 import { ClientConsole } from './client-events'
 new ClientConsole().object()
+new ClientConsole().object({foo:'bar',baz(){},quux:[],xyzzy:undefined,fubar:{}})
 new ClientConsole().deployment()
+new ClientConsole().deployment({ state: { foo: {}, bar: {} } })
 new ClientConsole().receipt()
 new ClientConsole().foundDeployedContract()
 new ClientConsole().beforeDeploy()

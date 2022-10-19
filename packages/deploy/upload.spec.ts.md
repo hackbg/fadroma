@@ -4,6 +4,10 @@
 import { ok } from 'node:assert'
 ```
 
+Contracts start out as source code, which `@fadroma/build` compiles to binary artifacts
+(WASM files). The `Uploader` class takes care of uploading them and producing a JSON file
+containing upload metadata, which we call an **upload receipt**.
+
 ```typescript
 import { JSONDirectory } from '@hackbg/kabinet'
 import { DeployConfig, FSUploader } from '@fadroma/deploy'
@@ -16,26 +20,13 @@ let artifact: URL = examples['KV'].url
 let template: ContractTemplate = new ContractTemplate({ artifact })
 ```
 
-The abstract base class `Uploader` defined in Fadroma Core is here extended
-to implement the `FSUploader` class.
-
-  * It uploads compiled contracts to the chain.
-    * It needs an `agent` to perform the upload.
+When trying to upload a binary file, the `Uploader` checks if a corresponding receipt exists;
+if it does, it returns the existing code ID instead of uploading the same file twice.
 
 ```typescript
 config = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' })
 uploader = await config.getUploader()
 ok(uploader instanceof Uploader)
-```
-
-  * It writes **upload receipts** to a specified directory,
-    and uses those every subsequent time you request the same contract
-    to be uploaded.
-
-```typescript
-import { FSUploader } from '.'
-agent = { upload: async x => x }
-agent.chain = { id: 'testing' }
 uploader = new FSUploader(agent, new JSONDirectory())
 ok(uploader.agent === agent)
 ok(await uploader.upload(template))
