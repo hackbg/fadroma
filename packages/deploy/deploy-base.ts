@@ -112,7 +112,7 @@ export class Deployer extends Connector {
     const self = `${this.constructor.name} ${this.name}`
     if (this.store) {
       if (store) {
-        this.log.warn(`Overriding store for ${self}`)
+        this.log.warnOverridingStore(self)
       } else {
         // nop
       }

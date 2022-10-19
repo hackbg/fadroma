@@ -30,7 +30,11 @@ export class YAMLDeployments_v1 extends DeployStore {
     public defaults: Partial<Deployment> = {},
   ) {
     super()
-    this.root = $(storePath).as(YAMLDirectory)
+    const root = this.root = $(storePath).as(YAMLDirectory)
+    Object.defineProperty(this, 'root', {
+      enumerable: true,
+      get () { return root }
+    })
   }
 
   root: YAMLDirectory<unknown>
@@ -42,10 +46,12 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<Deployment> {
-    this.log.log('Creating: deployment', bold(name))
+    this.log.creatingDeployment(name)
+
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.log('Receipt: ', bold(path.shortPath))
+    this.log.locationOfDeployment(path.shortPath)
+
     path.makeParent().as(YAMLFile).save(undefined)
     return this.get(name)!
   }
@@ -58,15 +64,17 @@ export class YAMLDeployments_v1 extends DeployStore {
       if (name === this.KEY) name = active.real.name
       name = basename(name, '.yml')
       active.relLink(`${name}.yml`)
-      this.log.log('Activate:', bold(selected.real.name))
+      this.log.activatingDeployment(selected.real.name)
       return this.get(name)!
-    } else if (name === this.KEY) {
+    }
+
+    if (name === this.KEY) {
       const d = await this.create()
       const name = d.name
       return this.select(name)
-    } else {
-      throw new DeployError.DeploymentDoesNotExist(name)
     }
+
+    throw new DeployError.DeploymentDoesNotExist(name)
   }
 
   // FIXME turn this into a getDeployment(name) factory?
@@ -93,7 +101,7 @@ export class YAMLDeployments_v1 extends DeployStore {
       const list = this.root.as(OpaqueDirectory).list() ?? []
       return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
     } else {
-      log.deployStoreDoesNotExist(this.root.shortPath)
+      this.log.deployStoreDoesNotExist(this.root.shortPath)
       return []
     }
   }
