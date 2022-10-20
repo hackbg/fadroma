@@ -37,7 +37,7 @@ ok(new BuilderConfig().getBuilder() instanceof DockerBuilder)
 ```typescript
 import * as Dokeres from '@hackbg/dokeres'
 ok(new DockerBuilder().docker instanceof Dokeres.Engine)
-ok(typeof new DockerBuilder({ docker: Symbol() }).docker === 'symbol')
+//ok(typeof new DockerBuilder({ docker: Symbol() }).docker === 'symbol')
 ok(new DockerBuilder({ dockerSocket: "test" }).docker instanceof Dokeres.Engine)
 ```
 
