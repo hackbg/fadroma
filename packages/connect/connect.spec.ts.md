@@ -17,10 +17,9 @@ const config = new ConnectConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
 
 ```typescript
 import { Connector, connect } from '.'
-let context: Connector
-//context = connect()
-//context = connect({ config: { chain: 'id' } })
-context = await config.connect()
+ok(await config.getConnector())
+ok(await config.getChain())
+ok(await config.getAgent())
 ```
 
 ## [Connect variants](./connect-variants.spec.ts.md)

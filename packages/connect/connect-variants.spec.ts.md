@@ -32,7 +32,6 @@ This centers on the compute API (for executing contracts) and the bank API (for 
 const supportedChains = [
   ScrtGrpc,
   ScrtAmino,
-  Mocknet
 ]
 
 for (const Chain of supportedChains) {
@@ -62,9 +61,6 @@ async function supportsDevnet (Chain) {
   const node   = { chainId: 'scrt-devnet', url: 'http://test:0' }
   const devnet = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
   assert.ok(devnet)
-  assert.equal(devnet.node, node)
-  assert.equal(devnet.url,  node.url)
-  assert.equal(devnet.id,   node.chainId)
 }
 ```
 
@@ -110,30 +106,35 @@ async function supportsNativeTransfers (Chain) {
   const mnemonic1 = Testing.mnemonics[0]
   const mnemonic2 = Testing.mnemonics[1]
   const [agent1, agent2] = await Promise.all([
-    chain.getAgent({mnemonic: mnemonic1}),
-    chain.getAgent({mnemonic: mnemonic2}),
+    chain.getAgent({mnemonic: mnemonic1}), chain.getAgent({mnemonic: mnemonic2}),
   ])
-  agent1.address = 'address1'
-  agent2.address = 'address2'
   mockChainApi(chain, agent1, agent2)
+
   assert.equal(await agent1.balance, "1000")
-  assert.equal(await agent2.balance, "2000")
+  assert.equal(await agent2.balance, "1000")
 
-  await agent1.send(agent2.address, "500")
+  await agent1.send(agent2.address,   "500")
   assert.equal(await agent1.balance,  "500")
-  assert.equal(await agent2.balance, "2500")
+  assert.equal(await agent2.balance, "1500")
 
-  await agent2.send(agent1.address, 250)
+  await agent2.send(agent1.address,    250)
   assert.equal(await agent1.balance,  "750")
-  assert.equal(await agent2.balance, "2250")
+  assert.equal(await agent2.balance, "1250")
 }
 ```
 
 ### Compute API
 
 ```typescript
+import { ContractInstance } from '@fadroma/client'
 async function supportsSmartContracts (Chain) {
-  // TODO
+  const chain = new Chain('test')
+  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
+  mockChainApi(chain, agent)
+  assert.ok(await agent.upload(new Uint8Array()))
+  assert.ok(await agent.instantiate(new ContractInstance({codeId: 1, codeHash: 'hash'})))
+  assert.ok(await agent.execute(new ContractInstance({})))
+  assert.ok(await agent.query(new ContractInstance({})))
 }
 ```
 
@@ -154,10 +155,9 @@ function mockChainApi (chain, ...agents) {
 
 ```typescript
 function mockScrtGrpcApi (chain, ...agents) {
-  const balances = {
-    'address1': '1000',
-    'address2': '2000'
-  }
+  const balances = {}
+  for (const {address} of agents) balances[address] = '1000'
+  console.log({balances})
   chain.SecretJS = {
     SecretNetworkClient: class MockSecretNetworkClient {
       static create = () => new this()
@@ -173,6 +173,10 @@ function mockScrtGrpcApi (chain, ...agents) {
         },
         tendermint: {
           getLatestBlock: async () => ({block:{header:{height:+new Date()}}})
+        },
+        compute: {
+          codeHash: async () => ({}),
+          queryContract: async () => ({})
         }
       }
       tx = {
@@ -181,6 +185,11 @@ function mockScrtGrpcApi (chain, ...agents) {
             balances[fromAddress] = String(Number(balances[fromAddress]) - Number(amount))
             balances[toAddress]   = String(Number(balances[toAddress]) + Number(amount))
           }
+        },
+        compute: {
+          async storeCode () { return {} },
+          async instantiateContract () { return { arrayLog: [] } },
+          async executeContract () { return { code: 0 } }
         }
       }
     },
@@ -198,10 +207,9 @@ function mockScrtGrpcApi (chain, ...agents) {
 
 ```typescript
 function mockScrtAminoApi (chain, ...agents) {
-  const balances = {
-    'address1': '1000',
-    'address2': '2000'
-  }
+  const balances = {}
+  for (const {address} of agents) balances[address] = '1000'
+  console.log({balances})
   chain.API = class MockCosmWasmClient {
     async getBlock () {
       return { header: { height: +new Date() } }
@@ -209,12 +217,22 @@ function mockScrtAminoApi (chain, ...agents) {
   }
   for (const agent of agents) {
     agent.API = class MockSigningCosmWasmClient {
-      async getAccount () {
-        return { balance: [] }
+      async getAccount (address) {
+        console.log({balances, address, amount: balances[address]})
+        return { balance: [ { amount: balances[address], denom: 'uscrt' } ] }
       }
       async getBlock () {
         return { header: { height: +new Date() } }
       }
+      async sendTokens (toAddress, amount) {
+        const fromAddress = agent.address
+        balances[fromAddress] = String(Number(balances[fromAddress]) - Number(amount))
+        balances[toAddress]   = String(Number(balances[toAddress]) + Number(amount))
+      }
+      async upload () { return {} }
+      async instantiate () { return { logs: [ { events: [ { attributes: [null, null, null, null, {}] } ] } ] } }
+      async queryContractSmart () { return {} }
+      async execute () { return {} }
     }
   }
 }

@@ -254,7 +254,12 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     let { codeId, codeHash } = instance
     const { api } = this
     //@ts-ignore
-    const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, [])
+    const { logs, transactionHash } = await api.instantiate(
+      Number(codeId),
+      await Fadroma.into(instance.initMsg),
+      await Fadroma.into(instance.label),
+      []
+    )
     const address = logs![0].events[0].attributes[4].value
     codeId = String(codeId)
     const initTx = transactionHash
