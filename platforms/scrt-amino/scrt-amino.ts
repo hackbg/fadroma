@@ -59,7 +59,10 @@ export class ScrtAmino extends Fadroma.Scrt {
   }
 
   Agent: Fadroma.AgentClass<ScrtAminoAgent> = ScrtAmino.Agent
-  api = new SecretJS.CosmWasmClient(this.url)
+  API = SecretJS.CosmWasmClient
+  get api () {
+    return new this.API(this.url)
+  }
   get block () {
     return this.api.getBlock()
   }

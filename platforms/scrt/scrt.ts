@@ -199,6 +199,16 @@ export class ScrtGrpc extends Scrt {
   get api () {
     return this.getApi()
   }
+  /** @returns a fresh instance of the anonymous read-only API client. */
+  async getApi (
+    options: Partial<SecretJS.CreateClientOptions> = {}
+  ): Promise<SecretJS.SecretNetworkClient> {
+    return await this.SecretJS.SecretNetworkClient.create({
+      chainId:    this.id,
+      grpcWebUrl: this.url,
+      ...options
+    })
+  }
   async getBalance (denom = this.defaultDenom, address: Address) {
     const api = await this.api
     const response = await api.query.bank.balance({ address, denom })
@@ -232,16 +242,6 @@ export class ScrtGrpc extends Scrt {
     return this.block.then(block=>Number(block.block?.header?.height))
   }
 
-  /** @returns a fresh instance of the anonymous read-only API client. */
-  async getApi (
-    options: Partial<SecretJS.CreateClientOptions> = {}
-  ): Promise<SecretJS.SecretNetworkClient> {
-    return await this.SecretJS.SecretNetworkClient.create({
-      chainId:    this.id,
-      grpcWebUrl: this.url,
-      ...options
-    })
-  }
   /** Create a `ScrtGrpcAgent` on this `chain`.
     * You can optionally pass a compatible subclass as a second argument. */
   async getAgent (
