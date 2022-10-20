@@ -6,6 +6,12 @@ import { bip39, bip39EN } from '@hackbg/formati'
 const mnemonic = bip39.generateMnemonic(bip39EN)
 ```
 
+## Logs and errors
+
+```typescript
+import './scrt-events.spec.ts.md'
+```
+
 ## Overriding the SecretJS implementation
 
 By default the static property `ScrtGrpc.SecretJS` points to the SecretJS module from the

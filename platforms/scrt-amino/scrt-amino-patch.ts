@@ -6,9 +6,10 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
 
   _queryUrl = ''
   _queryClient: AxiosInstance|null = null
+  Axios = Axios
   get queryClient () {
     if (this._queryClient) return this._queryClient
-    return this._queryClient = Axios.create({ baseURL: this._queryUrl })
+    return this._queryClient = this.Axios.create({ baseURL: this._queryUrl })
   }
   async get (path: string|URL) {
     if (path instanceof URL) path = path.toString()
@@ -46,15 +47,6 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
       const now = (await this.getBlock()).header.height
       if (now > sent) break
     }
-  }
-
-  async waitForNextNonce (sent: number) {
-    // TODO
-    //while (true) {
-      //await new Promise(ok=>setTimeout(ok, this.blockQueryInterval))
-      //const now = (await this.getBlock()).header.height
-      //if (now > sent) break
-    //}
   }
 
   // @ts-ignore

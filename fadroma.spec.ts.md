@@ -55,3 +55,10 @@ subSpec('Devnet', () => import('./packages/devnet/devnet.spec.ts.md').then(conso
 ```typescript
 subSpec('Mocknet', () => import('./packages/mocknet/mocknet.spec.ts.md').then(console.log))
 ```
+
+## Platforms
+
+```typescript
+subSpec('ScrtGrpc',  () => import('./platforms/scrt/scrt.spec.ts.md').then(console.log))
+subSpec('ScrtAmino', () => import('./platforms/scrt-amino/scrt-amino.spec.ts.md').then(console.log))
+```
