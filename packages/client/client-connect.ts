@@ -136,18 +136,20 @@ export abstract class Chain {
   abstract get height (): Promise<number>
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
-    this.log.waitingForNextBlock()
-    return this.height.then(async startingHeight=>new Promise(async (resolve, reject)=>{
-      try {
-        while (true) {
-          await new Promise(ok=>setTimeout(ok, 100))
-          const height = await this.height
-          if (height > startingHeight) resolve(height)
+    return this.height.then(async startingHeight=>{
+      this.log.waitingForNextBlock(startingHeight)
+      return new Promise(async (resolve, reject)=>{
+        try {
+          while (true) {
+            await new Promise(ok=>setTimeout(ok, 100))
+            const height = await this.height
+            if (height > startingHeight) return resolve(height)
+          }
+        } catch (e) {
+          reject(e)
         }
-      } catch (e) {
-        reject(e)
-      }
-    }))
+      })
+    })
   }
   /** The default denomination of the chain's native token. */
   abstract defaultDenom: string

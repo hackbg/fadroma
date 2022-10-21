@@ -315,8 +315,8 @@ export class ClientConsole extends CommandsConsole {
     this.info(`Confirmed code hash of ${address}: ${codeHash}`)
   }
 
-  waitingForNextBlock () {
-    this.info('Waiting for next block...')
+  waitingForNextBlock (height: number) {
+    this.info(`Waiting for block height to increment beyond ${height}...`)
   }
 
   warnEmptyBundle () {
