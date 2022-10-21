@@ -210,7 +210,6 @@ function mockScrtGrpcApi (chain, ...agents) {
 function mockScrtAminoApi (chain, ...agents) {
   const balances = {}
   for (const {address} of agents) balances[address] = '1000'
-  console.log({balances})
   chain.API = class MockCosmWasmClient {
     async getBlock () {
       return { header: { height: +new Date() } }
@@ -221,7 +220,6 @@ function mockScrtAminoApi (chain, ...agents) {
     agent.address ??= `agent${i}`
     agent.API = class MockSigningCosmWasmClient {
       async getAccount (address) {
-        console.log({balances, address, amount: balances[address]})
         return { balance: [ { amount: balances[address], denom: 'uscrt' } ] }
       }
       async getBlock () {

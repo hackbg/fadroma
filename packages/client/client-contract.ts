@@ -481,6 +481,7 @@ export class Contract<C extends Client> extends ContractInstance {
     super(options as Partial<ContractInstance>)
     this.provide(options as object)
     if (context) this.attach(context)
+    hide(this, ['log'])
     //if (this.builderId) this.builder  = Builder.get(this.builderId)
     //if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
   }
@@ -543,12 +544,13 @@ export class Contract<C extends Client> extends ContractInstance {
   getClientOrNull (
     $Client: ClientClass<C>|undefined = this.client as ClientClass<C>
   ): C|null {
+    const meta = this as ContractInstance
     if (this.address) {
-      return new $Client(this.agent, this.address, this.codeHash, this) as C
+      return new $Client(this.agent, this.address, this.codeHash, meta) as C
     }
     if (this.context && this.name && this.context.has(this.name)) {
       const { address, codeHash } = this.context.get(this.name)!
-      return new $Client(this.agent, address, codeHash, this) as C
+      return new $Client(this.agent, address, codeHash, meta) as C
     }
     return null
   }
@@ -588,6 +590,7 @@ export class Contracts<C extends Client> extends ContractTemplate {
   ) {
     super(options)
     this.provide(options as object)
+    hide(this, ['log'])
   }
 
   attach (context: Deployment): this {
