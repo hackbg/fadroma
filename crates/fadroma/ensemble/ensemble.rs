@@ -11,7 +11,8 @@ use crate::{
     cosmwasm_std::{
         SubMsg, OwnedDeps, Env, StdError, Response, MessageInfo, Binary, Uint128, Coin,
         FullDelegation, Validator, Delegation, CosmosMsg, WasmMsg, BlockInfo, ContractInfo,
-        StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, from_binary, to_binary,
+        StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, Reply, ReplyOn, SubMsgResult,
+        SubMsgResponse, from_binary, to_binary,
         testing::MockApi
     }
 };
@@ -37,6 +38,10 @@ pub trait ContractHarness {
     fn execute(&self, deps: &mut MockDeps, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
 
     fn query(&self, deps: &MockDeps, env: Env, msg: Binary) -> AnyResult<Binary>;
+
+    fn reply(&self, _deps: &mut MockDeps, _env: Env, _reply: Reply) -> AnyResult<Response> {
+        panic!("Reply entry point not implemented.")
+    }
 }
 
 #[derive(Debug)]

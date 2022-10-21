@@ -1,11 +1,31 @@
-use super::revertable::Revertable;
-use crate::prelude::*;
-use std::collections::BTreeMap;
-use std::iter;
-use std::ops::{Bound, RangeBounds};
+use std::{
+    iter,
+    mem,
+    collections::BTreeMap,
+    ops::{Bound, RangeBounds}
+};
+
+use crate::cosmwasm_std::{
+    Storage, Record, Order
+};
+
+use super::{
+    state::Op,
+    revertable::Revertable
+};
 
 #[derive(Clone, Default, Debug)]
-pub struct TestStorage(BTreeMap<Vec<u8>, Vec<u8>>);
+pub struct TestStorage {
+    pub(crate) storage: BTreeMap<Vec<u8>, Vec<u8>>,
+    pub(crate) ops: Vec<Op>
+}
+
+impl TestStorage {
+    #[inline]
+    pub(crate) fn ops(&mut self) -> Vec<Op> {
+        mem::take(&mut self.ops)
+    }
+}
 
 impl Storage for Revertable<TestStorage> {
     #[inline]
@@ -34,20 +54,26 @@ impl Storage for Revertable<TestStorage> {
     }
 }
 
-// Copying cosmwasm_std::testing::MockStorage implementation,
-// because it doesn't implement clone
-
 impl Storage for TestStorage {
     fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.0.insert(key.to_vec(), value.to_vec());
+        let old = self.get(key);
+        let key = key.to_vec();
+
+        self.storage.insert(key.clone(), value.to_vec());
+        self.ops.push(Op::StorageWrite { key, old });
     }
 
     fn remove(&mut self, key: &[u8]) {
-        self.0.remove(key);
+        if let Some(old) = self.storage.remove(key) {
+            self.ops.push(Op::StorageWrite {
+                key: key.to_vec(),
+                old: Some(old)
+            });
+        }
     }
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.0.get(key).cloned()
+        self.storage.get(key).cloned()
     }
 
     fn range<'a>(
@@ -67,7 +93,7 @@ impl Storage for TestStorage {
             _ => {}
         }
 
-        let iter = self.0.range(bounds);
+        let iter = self.storage.range(bounds);
         match order {
             Order::Ascending => Box::new(iter.map(clone_item)),
             Order::Descending => Box::new(iter.rev().map(clone_item)),
