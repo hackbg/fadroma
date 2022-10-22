@@ -1,12 +1,21 @@
-import { ClientError, ClientConsole } from './client-events'
-import type { Into } from './client-fields'
-import { into } from './client-fields'
-import type { Class } from './client-fields'
-import { Contract, ContractInstance } from './client-contract'
+import {
+  ClientError, ClientConsole
+} from './client-events'
+import type {
+  Into, Class
+} from './client-fields'
+import {
+  into
+} from './client-fields'
+import {
+  ContractInstance 
+} from './client-contract'
 import type {
   Name, CodeId, CodeHash, Client, ClientClass, ContractTemplate, Label
 } from './client-contract'
-import type { Uint128 } from './client-math'
+import type {
+  Uint128
+} from './client-math'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -317,13 +326,13 @@ export abstract class Agent {
   /** Upload code, generating a new code id/hash pair. */
   abstract upload (blob: Uint8Array): Promise<ContractTemplate>
   /** Upload multiple pieces of code, generating multiple CodeID/CodeHash pairs.
-    * @returns Contract[] */
+    * @returns ContractTemplate[] */
   uploadMany (blobs: Uint8Array[] = []): Promise<ContractTemplate[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
   /** Create a new smart contract from a code id, label and init message.
     * @example
-    *   await agent.instantiate(template.provide({ label, initMsg })
+    *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
     *   ContractInstance with no `address` populated yet.
     *   This will be populated after executing the bundle. */
@@ -359,7 +368,7 @@ export abstract class Agent {
       const found = response.find(({ label })=>label===instance.label)
       if (found) {
         const { address, tx, sender } = found // FIXME: implementation dependent
-        instance.provide({ address, initTx: tx, initBy: sender })
+        instance.define({ address, initTx: tx, initBy: sender })
       } else {
         this.log.warn(`Failed to find address for ${instance.label}.`)
         continue
@@ -554,7 +563,7 @@ export abstract class Bundle extends Agent {
   }
   /** Add an init message to the bundle.
     * @example
-    *   await agent.instantiate(template.provide({ label, initMsg })
+    *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
     *   the unmodified input. */
   async instantiate (instance: ContractInstance): Promise<ContractInstance> {

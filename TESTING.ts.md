@@ -66,7 +66,7 @@ function example (name, wasm, hash) {
 ### Mock agent
 
 ```typescript
-import { Agent, Chain, Uploader, Contract, Client } from '@fadroma/client'
+import { Agent, Chain, Uploader, ContractInstance, Client } from '@fadroma/client'
 export const mockAgent = () => new class MockAgent extends Agent {
 
   chain = new (class MockChain extends Chain {
@@ -81,7 +81,7 @@ export const mockAgent = () => new class MockAgent extends Agent {
   async upload () { return {} }
 
   instantiate (template, label, initMsg) {
-    return new Contract({ ...template, label, initMsg, address: 'some address' })
+    return new ContractInstance({ ...template, label, initMsg, address: 'some address' })
   }
 
   async instantiateMany (contract, configs) {

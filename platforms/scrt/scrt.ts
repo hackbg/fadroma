@@ -441,7 +441,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
     const address  = result.arrayLog.find(findAddr)?.value!
     const initTx   = result.transactionHash
-    return instance.provide({ address, initTx, initBy: this.address })
+    return instance.define({ address, initTx, initBy: this.address })
   }
   async execute (
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}

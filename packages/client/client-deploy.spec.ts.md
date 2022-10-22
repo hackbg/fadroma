@@ -7,11 +7,11 @@ import assert from 'node:assert'
 ## Contract slot
 
 ```typescript
-import { Contract } from '@fadroma/client'
-let contract: Contract
+import { ContractSlot } from '@fadroma/client'
+let contract: ContractSlot
 ```
 
-The `Contract` slot class extends [`ContractInstance`](./client-contract.spec.ts.md#ContractInstance)
+The `ContractSlot` slot class extends [`ContractInstance`](./client-contract.spec.ts.md#ContractInstance)
 and has access to all logic and state that is needed
 to build, upload, instantiate, and retrieve contracts.
 
@@ -27,7 +27,7 @@ Contracts are **value objects**. They can be
 * constructed from keyword arguments:
 
 ```typescript
-contract = new Contract({ agent, builder, uploader })
+contract = new ContractSlot({ agent, builder, uploader })
 assert.equal(contract.agent,    agent,    'agent is set')
 assert.equal(contract.builder,  builder,  'builder is set')
 assert.equal(contract.uploader, uploader, 'uploader is set')
@@ -36,10 +36,10 @@ assert.equal(contract.uploader, uploader, 'uploader is set')
 * incrementally populated:
 
 ```typescript
-contract = new Contract().provide({ agent }).provide({ builder }).provide({ uploader })
-assert.equal(contract.agent,    agent,    'agent is provided')
-assert.equal(contract.builder,  builder,  'builder is provided')
-assert.equal(contract.uploader, uploader, 'uploader is provided')
+contract = new ContractSlot().define({ agent }).define({ builder }).define({ uploader })
+assert.equal(contract.agent,    agent,    'agent is defined')
+assert.equal(contract.builder,  builder,  'builder is defined')
+assert.equal(contract.uploader, uploader, 'uploader is defined')
 ```
 
 ```typescript
@@ -75,7 +75,7 @@ new DeployStore()
 * To build a contract, specify at least a `crate`:
 
 ```typescript
-contract = new Contract({ crate: 'crate' })
+contract = new ContractSlot({ crate: 'crate' })
 equal(contract.crate,    'crate')
 equal(contract.revision, undefined)
 ```
@@ -83,7 +83,7 @@ equal(contract.revision, undefined)
 * You can also specify a past `revision` of the crate source by Git reference.
 
 ```typescript
-contract = new Contract({ crate: 'crate', revision: 'ref' })
+contract = new ContractSlot({ crate: 'crate', revision: 'ref' })
 equal(contract.crate,    'crate')
 equal(contract.revision, 'ref')
 ```
@@ -92,7 +92,7 @@ equal(contract.revision, 'ref')
 
 ```typescript
 const artifact = new URL('file:///tmp/artifact.wasm')
-equal(new Contract({ artifact }).artifact, artifact)
+equal(new ContractSlot({ artifact }).artifact, artifact)
 ```
 
 ### Deploying a smart contract
@@ -109,18 +109,18 @@ const options = {
   initMsg: {}
 }
 
-ok(new Contract(options).deploy())
+ok(new ContractSlot(options).deploy())
 
-ok(await new Contract(options).deploy({ init: 'arg' })
+ok(await new ContractSlot(options).deploy({ init: 'arg' })
   'deploy pre-configured contract with init msg')
 
-ok(await new Contract(options).deploy(()=>({ init: 'arg' })),
+ok(await new ContractSlot(options).deploy(()=>({ init: 'arg' })),
   'deploy pre-configured contract with lazy init msg')
 
-ok(await new Contract(options).deploy(async ()=>({ init: 'arg' })),
+ok(await new ContractSlot(options).deploy(async ()=>({ init: 'arg' })),
   'deploy pre-configured contract with laziest init msg')
 
-ok(await new Contract({ ...options, crate: 'crate', ref: 'ref' }).deploy([]),
+ok(await new ContractSlot({ ...options, crate: 'crate', ref: 'ref' }).deploy([]),
   'deploy from source')
 ```
 
@@ -130,7 +130,7 @@ The `Client` class allows you to transact with a specific smart contract
 deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agent.spec.ts.md).
 
 ```typescript
-throws(()=>new Contract('Name').getClient(),
+throws(()=>new ContractSlot('Name').getClient(),
   'naming a contract that is not in the deployment throws')
 ```
 

@@ -56,7 +56,7 @@ let source: ContractSource = new ContractSource()
 assert.ok(source.asSource instanceof ContractSource)
 assert.notEqual(source.asSource, source)
 assert.deepEqual(source.asSource, source)
-assert.ok(await source.provide({ builder }).compiled)
+assert.ok(await source.define({ builder }).compiled)
 ```
 
 ### `ContractTemplate`
@@ -74,8 +74,8 @@ assert.ok(template.asTemplate instanceof ContractTemplate)
 assert.notEqual(template.asTemplate,  template)
 assert.deepEqual(template.asTemplate, template)
 assert.ok(template.asReceipt)
-assert.ok(template.asTemplate.provide({ codeId: '123', codeHash: 'hash' }).asInfo)
-const uploaded = template.provide({ builder, uploader }).uploaded
+assert.ok(template.asTemplate.define({ codeId: '123', codeHash: 'hash' }).asInfo)
+const uploaded = template.define({ builder, uploader }).uploaded
 assert.equal(uploaded, template.uploaded)
 assert.ok(await uploaded)
 assert.ok(template.instance() instanceof ContractInstance)
@@ -95,8 +95,8 @@ let instance: ContractInstance = new ContractInstance()
 assert.ok(instance.asSource   instanceof ContractSource)
 assert.ok(instance.asTemplate instanceof ContractTemplate)
 assert.ok(instance.asReceipt)
-//assert.ok(await instance.provide({ agent }).found)
-//assert.ok(await instance.provide({ agent }).deployed)
+//assert.ok(await instance.define({ agent }).found)
+//assert.ok(await instance.define({ agent }).deployed)
 ```
 
 ## Contract client

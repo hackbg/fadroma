@@ -1,9 +1,7 @@
 import { colors, bold } from '@hackbg/konzola'
 import { Task } from '@hackbg/komandi'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import {
-  Contract, ContractTemplate, ClientConsole, Uploader, ClientError, assertAgent
-} from '@fadroma/client'
+import { ContractTemplate, ClientConsole, Uploader, assertAgent } from '@fadroma/client'
 import type { Agent, CodeHash, CodeId } from '@fadroma/client'
 import { CustomConsole } from '@hackbg/konzola'
 
@@ -236,7 +234,7 @@ export class UploadReceipt extends JSONFile<UploadReceiptFormat> {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
-    return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
+    return new ContractTemplate({ artifact, codeHash, chainId, codeId, uploadTx })
   }
 }
 

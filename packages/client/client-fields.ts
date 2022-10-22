@@ -1,7 +1,6 @@
-import { ClientError } from './client-events'
-import type { Agent } from './client-connect'
-import type { ContractTemplate, ContractInstance, StructuredLabel } from './client-contract'
-import type { Builder, Uploader } from './client-deploy'
+import {
+  ClientError
+} from './client-events'
 
 export function getMaxLength (strings: string[]): number {
   return Math.max(...strings.map(string=>string.length))
@@ -22,11 +21,11 @@ export interface Overridable<T, U> extends Class<T, [Partial<T>?]|[U|Partial<T>,
 
 export class Metadata {
   constructor (options: Partial<Metadata> = {}) {
-    this.provide(options as object)
+    this.define(options as object)
   }
   /** Provide parameters for an existing instance.
     * @returns self with overrides from options */
-  provide <T extends this> (options: Partial<T> = {}): T {
+  define <T extends this> (options: Partial<T> = {}): T {
     return override(this, options as object) as T
   }
 }

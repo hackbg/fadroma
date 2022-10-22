@@ -69,7 +69,7 @@ class MocknetAgent extends Fadroma.Agent {
   }
   async instantiate (instance: Fadroma.ContractInstance): Promise<Fadroma.ContractInstance> {
     instance.initMsg = await Fadroma.into(instance.initMsg)
-    const result = instance.provide({
+    const result = instance.define({
       ...await this.backend.instantiate(this.address, instance),
       agent: this
     })

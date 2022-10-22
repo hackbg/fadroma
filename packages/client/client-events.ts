@@ -84,8 +84,7 @@ export class ClientError extends CustomError {
   static ExpectedAddress = this.define('ExpectedAddress', (name: string) =>
     `${name} has no address and can't operate.`)
   static ExpectedAgent = this.define('ExpectedAgent', (name: string) =>
-    `${name} has no agent and can't operate. `+
-    `Pass an address when calling "new ${name}(agent, addr)"`)
+    `${name} has no agent and can't operate. `)
   static ValidationFailed = this.define('ValidationFailed',
     (kind: string, name: string, expected: any, actual: any) =>
       `Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)

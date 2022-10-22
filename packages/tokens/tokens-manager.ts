@@ -96,7 +96,7 @@ export class TokenManager extends CommandContext {
     const name = options?.name ?? symbol
     if (!name) throw new Error('no name')
     // Define and register a contract; await it to deploy.
-    const instance = this.context.contract(this.template).provide({
+    const instance = this.context.contract(this.template).define({
       name,
       client:  Snip20,
       label:   writeLabel({ prefix: this.context.name, name }),
@@ -156,7 +156,7 @@ export class TokenManager extends CommandContext {
       const symbols   = entries.map(x=>x[0])
       const inits     = entries.map(x=>x[1])
       const template  = this.template as Partial<Contracts<Snip20>>
-      const contracts = this.context.contracts<Snip20>(template).provide({ inits: deployed })
+      const contracts = this.context.contracts<Snip20>(template).define({ inits: deployed })
       const clients   = await contracts
       for (const i in entries) {
         const [symbol] = entries[i]

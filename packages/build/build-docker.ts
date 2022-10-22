@@ -7,7 +7,7 @@ import * as Dokeres from '@hackbg/dokeres'
 import { bold } from '@hackbg/konzola'
 import $, { Path, OpaqueDirectory } from '@hackbg/kabinet'
 
-import { Contract, ContractSource, ContractTemplate, HEAD } from '@fadroma/client'
+import { ContractSource, ContractTemplate, HEAD } from '@fadroma/client'
 import type { Builder } from '@fadroma/client'
 
 import { homedir } from 'node:os'
@@ -150,7 +150,7 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = this.outputDir.path
-  ): Promise<(ContractTemplate|null)[]> {
+  ): Promise<(ContractSource|null)[]> {
 
     // Default to building from working tree.
     revision ??= HEAD
@@ -295,7 +295,7 @@ export class DockerBuilder extends LocalBuilder {
     if (location === null) return null
     const artifact = $(location).url
     const codeHash = this.hashPath(location)
-    return new Contract({ artifact, codeHash })
+    return new ContractSource({ artifact, codeHash })
   }
 
   get [Symbol.toStringTag]() { return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}` }

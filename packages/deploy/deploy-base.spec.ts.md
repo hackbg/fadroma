@@ -89,7 +89,7 @@ let codeId, codeHash, txHash, result
 ## `Deployment`: collection of contracts
 
 ```typescript
-import { ChainId, Contract } from '@fadroma/client'
+import { ChainId, ContractSlot, ContractTemplate } from '@fadroma/client'
 let chainId: ChainId  = 'mocknet'
 
 await inTmpDeployment(async d => {
@@ -105,7 +105,7 @@ await inTmpDeployment(async d => {
 await inTmpDeployment(async deployment => {
 
   const codeId   = 1
-  const template = new Contract({ chainId, codeId })
+  const template = new ContractTemplate({ chainId, codeId })
   const initMsg  = Symbol()
   const name  = 'contract'
   const label = `${deployment.name}/${name}`
@@ -115,7 +115,7 @@ await inTmpDeployment(async deployment => {
   deployment.uploader = { upload: x => x, agent: {} }
 
   const contract = deployment.contract({ template, name, crate })
-  ok(contract instanceof Contract)
+  ok(contract instanceof ContractSlot)
   //equal(contract.deployment, deployment)
 
   //const deployed = await contract.deploy(initMsg, contract => contract.client())
@@ -138,10 +138,10 @@ await inTmpDeployment(async deployment => {
 await inTmpDeployment(async deployment=>{
   const codeId   = 2
   const agent    = { instantiateMany: async () => [] }
-  const template = new Contract({ agent, chainId, codeId })
+  const template = new ContractTemplate({ chainId, codeId })
   const initMsg  = Symbol()
   const configs  = [['contract1', Symbol()], ['contract2', Symbol()]]
-  const receipts = await deployment.contracts(template).deploy(configs)
+  const receipts = await deployment.contracts(template).define({ agent }).deploy(configs)
   /*for (const [name] of configs) {
     equal(deployment.get(name).name,   name)
     equal(deployment.get(name).label,  `${basename(deployment.file.name)}/${name}`)

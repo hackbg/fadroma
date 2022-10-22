@@ -263,7 +263,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     const address = logs![0].events[0].attributes[4].value
     codeId = String(codeId)
     const initTx = transactionHash
-    return instance.provide({ address, codeHash })
+    return instance.define({ address, codeHash })
   }
   async getHash (idOrAddr: number|string): Promise<Fadroma.CodeHash> {
     const { api } = this

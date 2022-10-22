@@ -17,7 +17,7 @@
 **/
 
 import type { TOMLFile } from '@hackbg/kabinet'
-import { Contract, Builder, HEAD } from '@fadroma/client'
+import { ContractSource, Builder, HEAD } from '@fadroma/client'
 
 import { BuilderConfig, LocalBuilder, buildPackage } from './build-base'
 import { BuildConsole }  from './build-events'
@@ -35,7 +35,7 @@ export async function buildCrates (
   config:   Partial<BuilderConfig> = new BuilderConfig(),
   builder:  Builder                = config.getBuilder!()
 ) {
-  return await builder.buildMany(crates.map(crate=>new Contract({
+  return await builder.buildMany(crates.map(crate=>new ContractSource({
     repository: config.project,
     workspace:  config.project,
     crate,

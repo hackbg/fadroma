@@ -8,7 +8,7 @@ import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
 } from '@hackbg/kabinet'
 import {
-  Agent, Contract, ContractInstance, Client, Deployment, DeployStore
+  Agent, ContractInstance, Client, Deployment, DeployStore
 } from '@fadroma/client'
 import {
   DeployConsole, DeployError, log
@@ -88,9 +88,9 @@ export class YAMLDeployments_v1 extends DeployStore {
     if (!file.exists()) return null
     name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })
-    for (const receipt of file.as(YAMLFile).loadAll() as Partial<Contract<any>>[]) {
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<ContractInstance>[]) {
       if (!receipt.name) continue
-      deployment.state[receipt.name] = new Contract(receipt)
+      deployment.state[receipt.name] = new ContractInstance(receipt)
     }
     return deployment
   }
@@ -106,7 +106,7 @@ export class YAMLDeployments_v1 extends DeployStore {
     }
   }
 
-  set (name: string, state: Record<string, Partial<Contract<any>>> = {}) {
+  set (name: string, state: Record<string, Partial<ContractInstance>> = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML

@@ -7,8 +7,8 @@ import assert, { ok, equal, deepEqual, throws } from 'assert'
 
 ## Specifying projects and sources
 
-The `Contract` class has the following properties for specifying the source.
-Use `contract.provide({ key: value })` to define their values.
+The `ContractSource` class has the following properties for specifying the source.
+Use `contract.define({ key: value })` to define their values.
 This returns a new copy of `contract` without modifying the original one.
 
 * `repository: Path|URL` points to the Git repository containing the contract sources.
@@ -29,12 +29,12 @@ The outputs of builds are called **artifact**s, and are represented by two prope
     instantiated contracts.
 
 ```typescript
-import { Contract, HEAD } from '@fadroma/client'
-const contract = new Fadroma.Contract({
+import { ContractSource, HEAD } from '@fadroma/client'
+const contract = new ContractSource({
   repo:      '/tmp/fadroma-test',
   workspace: '/tmp/fadroma-test'
 })
-const contractWithSource = contract.provide({
+const contractWithSource = contract.define({
   repository: 'REPO',
   revision:   'REF',
   workspace:  'WORKSPACE'
