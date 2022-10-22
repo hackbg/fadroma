@@ -50,20 +50,7 @@ export interface UploaderClass<U extends Uploader> extends Overridable<Uploader,
 export abstract class Uploader {
   /** Populated by @fadroma/deploy */
   static variants: Record<string, UploaderClass<Uploader>> = {}
-  /** Get a Builder from a specifier and optional overrides. */
-  static get (specifier: IntoUploader = '', options: Partial<Uploader> = {}): Uploader {
-    if (typeof specifier === 'string') {
-      const U = Uploader.variants[specifier]
-      if (!U) throw new ClientError.NoUploaderNamed(specifier)
-      return new (U as UploaderClass<Uploader>)(options)
-    } else if (typeof specifier === 'function') {
-      if (!options.id) throw new ClientError.NoUploader()
-      return new (specifier as UploaderClass<Uploader>)(options)
-    } else {
-      const U = Uploader.variants[specifier?.id as string]
-      return new (U as UploaderClass<Uploader>)({ ...specifier, ...options })
-    }
-  }
+
   constructor (public agent?: Agent|null) {}
   /** Chain to which this uploader uploads contracts. */
   get chain () { return this.agent?.chain }

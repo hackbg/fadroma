@@ -328,8 +328,6 @@ export class ContractSlot<C extends Client> extends ContractInstance {
     this.define(options as object)
     if (context) this.attach(context)
     hide(this, ['log'])
-    //if (this.builderId) this.builder  = Builder.get(this.builderId)
-    //if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
   }
   /** Attach this contract to a Deployment. */
   attach (context: Deployment): this {

@@ -14,20 +14,6 @@ export interface BuilderClass<B extends Builder> extends Overridable<Builder, In
 export abstract class Builder extends CommandContext {
   /** Populated by @fadroma/build */
   static variants: Record<string, BuilderClass<Builder>> = {}
-  /** Get a Builder from a specifier and optional overrides. */
-  static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}): Builder {
-    if (typeof specifier === 'string') {
-      const B = Builder.variants[specifier]
-      if (!B) throw new ClientError.NoBuilderNamed(specifier)
-      return new (B as BuilderClass<Builder>)(options)
-    } else if (typeof specifier === 'function') {
-      if (!options.id) throw new ClientError.NoBuilder()
-      return new (specifier as BuilderClass<Builder>)(options)
-    } else {
-      const B = Builder.variants[specifier?.id as string]
-      return new (B as BuilderClass<Builder>)({ ...specifier, ...options })
-    }
-  }
   /** Unique identifier of this builder implementation. */
   abstract id: string
   /** Up to the implementation.
