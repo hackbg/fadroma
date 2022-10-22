@@ -29,47 +29,28 @@ The outputs of builds are called **artifact**s, and are represented by two prope
     instantiated contracts.
 
 ```typescript
-import { ContractSource, HEAD } from '@fadroma/client'
+import { ContractSource } from '@fadroma/client'
+
 const contract = new ContractSource({
-  repo:      '/tmp/fadroma-test',
-  workspace: '/tmp/fadroma-test'
-})
-const contractWithSource = contract.define({
   repository: 'REPO',
   revision:   'REF',
   workspace:  'WORKSPACE'
   crate:      'CRATE'
 })
-equal(contractWithSource.repository, 'REPO')
-equal(contractWithSource.revision,   'REF')
-equal(contractWithSource.workspace,  'WORKSPACE')
-equal(contractWithSource.crate,      'CRATE')
-equal(contractWithSource.revision, 'REF')
+
+equal(contract.repository, 'REPO')
+equal(contract.revision,   'REF')
+equal(contract.workspace,  'WORKSPACE')
+equal(contract.crate,      'CRATE')
 ```
 
 ## Build caching
 
-* When **builder.caching == true**, each build call first checks in `./artifacts`
-  for a corresponding pre-existing build and reuses it if present.
+When **builder.caching == true**, each build call first checks in `./artifacts`
+for a corresponding pre-existing build and reuses it if present.
+
+* Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
 
 ```typescript
-/* TODO: equal(typeof new BuildConfig().getBuilder().caching, 'boolean') */
-```
-
-## Build caching
-
-The `LocalBuilder` abstract class makes sure that,
-if a compiled artifact for the requested build
-already exists in the project's `artifacts` directory,
-the build is skipped.
-
-Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
-
-```typescript
-/* TODO: import { LocalBuilder } from '.'
-builder = new class TestLocalBuilder extends LocalBuilder {
-  async build (source) { return {} }
-}
-//await assert.throws(()=>builder.prebuild({}))
-equal(builder.prebuild('', 'empty'), null) */
+// TODO example
 ```
