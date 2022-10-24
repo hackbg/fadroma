@@ -1,8 +1,8 @@
 import { colors, bold } from '@hackbg/konzola'
 import { Task } from '@hackbg/komandi'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import { ContractTemplate, ClientConsole, Uploader, assertAgent } from '@fadroma/client'
-import type { Agent, CodeHash, CodeId } from '@fadroma/client'
+import { ContractSource, ContractTemplate, ClientConsole, Uploader, assertAgent } from '@fadroma/client'
+import type { Agent, CodeHash, CodeId, Uploadable } from '@fadroma/client'
 import { CustomConsole } from '@hackbg/konzola'
 
 export class UploadConsole extends ClientConsole {
@@ -36,10 +36,7 @@ export class FSUploader extends Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload <T extends ContractTemplate> (contract: T): Promise<T & {
-    codeId:   CodeId
-    codeHash: CodeHash,
-  }> {
+  async upload (source: Uploadable) {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
       const name = this.getUploadReceiptName(contract)

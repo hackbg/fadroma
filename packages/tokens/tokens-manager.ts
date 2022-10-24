@@ -1,6 +1,6 @@
 import { CommandContext } from '@hackbg/komandi'
 import { ContractMetadata, ContractInstance, ClientConsole, ContractTemplate, writeLabel } from '@fadroma/client'
-import type { Contract, Address, Deployment } from '@fadroma/client'
+import type { ContractSlot, Address, Deployment } from '@fadroma/client'
 import { Snip20 } from './tokens-snip20'
 import type { Snip20InitConfig } from './tokens-snip20'
 import { TokenPair } from './tokens-desc'
@@ -18,12 +18,14 @@ export interface TokenOptions {
 
 export type Tokens = Record<string, Snip20|Token>
 
+type TokenSlots = Record<TokenSymbol, ContractSlot<Snip20>>
+
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
 export class TokenManager extends CommandContext {
   /* Logger. */
   log = new ClientConsole('Fadroma Token Manager')
   /** Collection of known tokens in descriptor format, keyed by symbol. */
-  tokens: Record<TokenSymbol, Contract<Snip20>> = {}
+  tokens: TokenSlots = {}
 
   constructor (
     /** Function that returns the active deployment. */
@@ -113,9 +115,7 @@ export class TokenManager extends CommandContext {
     return this.add(symbol, instance as ContractInstance)
   }
   /** Define multiple Snip20 tokens, keyed by symbol. */
-  defineMany (inputs: Record<TokenSymbol, Partial<TokenOptions>>):
-    Record<TokenSymbol, Contract<Snip20>>
-  {
+  defineMany (inputs: Record<TokenSymbol, Partial<TokenOptions>>): TokenSlots {
     const outputs: Record<TokenSymbol, ContractInstance> = {}
     for (const [symbol, options] of Object.entries(inputs)) {
       outputs[symbol] = this.define(symbol, options)

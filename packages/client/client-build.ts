@@ -3,12 +3,29 @@ import { ClientError } from './client-events'
 import type { Overridable } from './client-fields'
 import type { ContractSource } from './client-contract'
 
-/** Builders can be specified as ids, class names, or objects. */
-export type IntoBuilder = string|BuilderClass<Builder>|Partial<Builder>
-
-/** A constructor for a Builder subclass. */
-export interface BuilderClass<B extends Builder> extends Overridable<Builder, IntoBuilder> {
+/** For a contract to be buildable, the location of its source must be specified.
+  * For now this means that the `crate` field should be set; however there are multiple
+  * thinkable ways of specifying a contract, which this interface should eventually cover:
+  * - local single-crate project
+  * - crate from local workspace
+  * - remote single-crate project
+  * - crate from remote workspace */
+export interface Buildable {
+  crate:      NonNullable<ContractSource["crate"]>
+  workspace?: ContractSource["workspace"]
+  revision?:  ContractSource["revision"]
 }
+
+/** A successful build populates the `artifact` field of a `ContractSource`. */
+export interface Built extends ContractSource {
+  artifact: NonNullable<ContractSource["artifact"]>
+}
+
+/** Builders can be specified as ids, class names, or objects. */
+/** A constructor for a Builder subclass. */
+export type BuilderClass<B extends Builder> = Overridable<Builder, [
+  string|BuilderClass<Builder>|Partial<Builder>
+]>
 
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder extends CommandContext {
@@ -19,10 +36,10 @@ export abstract class Builder extends CommandContext {
   /** Up to the implementation.
     * `@fadroma/build` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  abstract build <S extends ContractSource> (source: S, ...args: any[]): Promise<S>
+  abstract build (source: Buildable, ...args: any[]): Promise<Built>
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
-  buildMany (sources: ContractSource[], ...args: unknown[]): Promise<ContractSource[]> {
+  buildMany (sources: Buildable[], ...args: unknown[]): Promise<Built[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
 }

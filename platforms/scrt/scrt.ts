@@ -21,7 +21,7 @@ import type {
   ChainClass, ChainOpts, ChainId, Label, Message, ExecOpts, ICoin, IFee,
 } from '@fadroma/client'
 import {
-  Agent, Bundle, Chain, Client, Contract, ContractTemplate, ContractInstance, Fee,
+  Agent, Bundle, Chain, Client, ContractTemplate, ContractInstance, Fee,
   assertChain, into
 } from '@fadroma/client'
 import * as SecretJS from 'secretjs'
