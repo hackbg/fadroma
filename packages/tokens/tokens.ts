@@ -3,6 +3,7 @@ import {
   Agent,
   Client,
   ClientConsole,
+  ClientError,
   CodeHash,
   Coin,
   Contract,
@@ -11,12 +12,11 @@ import {
   ICoin,
   Label,
   Uint128,
+  bold,
+  colors,
 } from '@fadroma/client'
 import type {
   ContractMetadata,
-  ClientError,
-  bold,
-  colors
 } from '@fadroma/client'
 import {
   Permit,
