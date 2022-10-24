@@ -1,12 +1,12 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "type":    "module",
   "main":    "tokens.ts",
   "files": [ "tokens.ts" ],
   "dependencies": {
-    "@fadroma/client": "workspace:^6.3",
-    "@fadroma/scrt":   "workspace:^4.1.1",
+    "@fadroma/client": "workspace:^6.3.1",
+    "@fadroma/scrt":   "workspace:^4.1.2",
     "@hackbg/formati": "^5.1.1"
   },
   "scripts": {
