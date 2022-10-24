@@ -109,18 +109,18 @@ const options = {
   initMsg: {}
 }
 
-ok(new ContractSlot(options).deploy())
+ok(await new ContractSlot(options))
 
-ok(await new ContractSlot(options).deploy({ init: 'arg' })
+ok(await new ContractSlot(options).define({ init: 'arg' })
   'deploy pre-configured contract with init msg')
 
-ok(await new ContractSlot(options).deploy(()=>({ init: 'arg' })),
+ok(await new ContractSlot(options).define(()=>({ init: 'arg' })),
   'deploy pre-configured contract with lazy init msg')
 
-ok(await new ContractSlot(options).deploy(async ()=>({ init: 'arg' })),
+ok(await new ContractSlot(options).define(async ()=>({ init: 'arg' })),
   'deploy pre-configured contract with laziest init msg')
 
-ok(await new ContractSlot({ ...options, crate: 'crate', ref: 'ref' }).deploy([]),
+ok(await new ContractSlot({ ...options, crate: 'crate', ref: 'ref' }),
   'deploy from source')
 ```
 

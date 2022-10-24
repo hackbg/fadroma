@@ -13,7 +13,7 @@ much faster than with a devnet or testnet.
 ## Mocknet as Chain
 
 ```typescript
-import { Chain, Agent, Client, Contract, ContractTemplate } from '@fadroma/client'
+import { Chain, Agent, Client, Contract, ContractTemplate, ContractInstance } from '@fadroma/client'
 let chain:     Chain
 let agent:     Agent
 let template:  Contract
@@ -57,7 +57,7 @@ Instantiate and call a contract:
 chain    = new Mocknet()
 agent    = await chain.getAgent()
 template = await agent.upload(Testing.examples['Echo'].data)
-instance = await agent.instantiate(template.instance({ label: 'test', initMsg: { fail: false } }))
+instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { fail: false } }))
 client   = Object.assign(instance.getClientSync(), { agent })
 
 assert.equal(await client.query("echo"), 'echo')
@@ -71,7 +71,7 @@ Contract can use to platform APIs as provided by Mocknet:
 ```typescript
 agent    = await new Mocknet().getAgent()
 template = await agent.upload(Testing.examples['KV'].data)
-instance = await agent.instantiate(template.instance({ label: 'test', initMsg: { value: "foo" } }))
+instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { value: "foo" } }))
 client   = Object.assign(instance.getClientSync(), { agent })
 
 assert.equal(await client.query("get"), "foo")

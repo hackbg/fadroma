@@ -1,6 +1,5 @@
-import {
-  ClientError
-} from './client-events'
+import { Task } from '@hackbg/komandi'
+import { ClientConsole, ClientError } from './client-events'
 
 export function getMaxLength (strings: string[]): number {
   return Math.max(...strings.map(string=>string.length))
@@ -20,6 +19,7 @@ export interface Overridable<T, U> extends Class<T, [Partial<T>?]|[U|Partial<T>,
 }
 
 export class Metadata {
+  log = new ClientConsole(this.constructor.name)
   constructor (options: Partial<Metadata> = {}) {
     this.define(options as object)
   }
@@ -27,6 +27,15 @@ export class Metadata {
     * @returns self with overrides from options */
   define <T extends this> (options: Partial<T> = {}): T {
     return override(this, options as object) as T
+  }
+  /** Define a task (lazily-evaluated async one-shot field).
+    * @returns A lazily-evaluated Promise. */
+  task <T extends this, U> (name: string, cb: (this: T)=>PromiseLike<U>): Task<T, U> {
+    const task = new Task(name, cb, this as unknown as T)
+    const [_, head, ...body] = (task.stack ?? '').split('\n')
+    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    task.log = this.log ?? task.log
+    return task as Task<T, U>
   }
 }
 

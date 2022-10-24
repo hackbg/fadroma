@@ -1,10 +1,90 @@
 import type { Overridable } from './client-fields'
-import type { Agent, ChainId } from './client-connect'
-import { ContractTemplate } from './client-contract'
-import type { ContractSource } from './client-contract'
+import { Client } from './client-connect'
+import type { Agent, ChainId, ClientClass, Address, TxHash } from './client-connect'
 import { ClientError } from './client-events'
-import type { CodeHash, CodeId } from './client-code'
-import { fetchCodeHash, getSourceSpecifier } from './client-code'
+import type { Hashed, CodeHash, CodeId } from './client-code'
+import { codeHashOf, fetchCodeHash, getSourceSpecifier } from './client-code'
+import { ContractSource } from './client-build'
+
+export function intoTemplate (x: Partial<ContractTemplate>): ContractTemplate {
+  if (x instanceof ContractTemplate) return x
+  return new ContractTemplate(x)
+}
+
+/** Contract lifecycle object. Represents a smart contract's lifecycle from source to upload. */
+export class ContractTemplate extends ContractSource {
+  /** ID of chain on which this contract is uploaded. */
+  chainId?:    ChainId  = undefined
+  /** Object containing upload logic. */
+  uploaderId?: string   = undefined
+  /** Upload procedure implementation. */
+  uploader?:   Uploader = undefined
+  /** Address of agent that performed the upload. */
+  uploadBy?:   Address  = undefined
+  /** TXID of transaction that performed the upload. */
+  uploadTx?:   TxHash   = undefined
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:     CodeId   = undefined
+  /** The Client subclass that exposes the contract's methods.
+    * @default the base Client class. */
+  client?:     ClientClass<Client> = Client
+
+  constructor (options: Partial<ContractTemplate> = {}) {
+    super(options)
+    this.define(options as object)
+  }
+
+  /** One-shot deployment task. */
+  get uploaded (): Promise<ContractTemplate> {
+    if (this.codeId) return Promise.resolve(this)
+    const uploading = this.upload()
+    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
+    return uploading
+  }
+
+  /** Upload compiled source code to the selected chain.
+    * @returns task performing the upload */
+  async upload (uploader?: Uploader): Promise<ContractTemplate> {
+    return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
+      await this.compiled
+      const result = await upload(this as Uploadable, uploader, uploader?.agent)
+      return this.define(result as Partial<this>)
+    })
+  }
+
+  /** Uploaded templates can be passed to factory contracts in this format. */
+  get asInfo (): ContractInfo {
+    if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
+      throw new ClientError.Unpopulated()
+    }
+    return templateStruct(this)
+  }
+
+  /** @returns the data for saving an upload receipt. */
+  get asUploadReceipt (): Partial<this> {
+    return {
+      ...this.asBuildReceipt,
+      chainId:    this.chainId,
+      uploaderId: this.uploader?.id,
+      uploader:   undefined,
+      uploadBy:   this.uploadBy,
+      uploadTx:   this.uploadTx,
+      codeId:     this.codeId
+    } as Partial<this>
+  }
+}
+
+/** Factory contracts may accept contract templates in this format. */
+export interface ContractInfo {
+  id:        number,
+  code_hash: string
+}
+
+/** Create a ContractInfo from compatible objects. */
+export const templateStruct = (template: Hashed & { codeId?: CodeId }): ContractInfo => ({
+  id:        Number(template.codeId),
+  code_hash: codeHashOf(template)
+})
 
 /** For a contract source to be uploadable, it needs to be compiled first,
   * represented by having a populated `artifact` field.
@@ -22,11 +102,6 @@ export interface Uploadable {
 export interface Uploaded extends ContractTemplate {
   chainId: NonNullable<ContractTemplate["chainId"]>
   codeId:  NonNullable<ContractTemplate["chainId"]>
-}
-
-export function intoTemplate (x: Partial<ContractTemplate>) {
-  if (x instanceof ContractTemplate) return x
-  return new ContractTemplate(x)
 }
 
 /** Standalone upload function. */

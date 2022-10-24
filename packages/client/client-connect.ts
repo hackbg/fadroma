@@ -1,21 +1,12 @@
-import {
-  ClientError, ClientConsole
-} from './client-events'
-import type {
-  Into, Class
-} from './client-fields'
-import {
-  into
-} from './client-fields'
-import {
-  ContractInstance 
-} from './client-contract'
-import type {
-  Name, CodeId, CodeHash, Client, ClientClass, ContractTemplate, Label
-} from './client-contract'
-import type {
-  Uint128
-} from './client-math'
+import { ClientError, ClientConsole } from './client-events'
+import type { Into, Class } from './client-fields'
+import { into, validated } from './client-fields'
+import type { Uint128 } from './client-math'
+import type { CodeId, CodeHash } from './client-code'
+import { codeHashOf } from './client-code'
+import type { ContractTemplate } from './client-upload'
+import { ContractInstance } from './client-deploy'
+import type { Name } from './client-labels'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -641,3 +632,129 @@ Agent.Bundle = Bundle as unknown as BundleClass<Bundle>
 
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
+
+/** Convert Fadroma.Instance to address/hash struct (ContractLink) */
+export const linkStruct = (instance: IntoLink): ContractLink => ({
+  address:   assertAddress(instance),
+  code_hash: codeHashOf(instance)
+})
+
+/** Objects that have an address and code hash.
+  * Pass to linkTuple or linkStruct to get either format of link. */
+export interface IntoLink extends Hashed {
+  address: Address
+}
+
+/** Reference to an instantiated smart contract,
+  * in the format of Fadroma ICC. */
+export interface ContractLink {
+  readonly address:   Address
+  readonly code_hash: CodeHash
+}
+
+export interface ContractDeployer<C> extends PromiseLike<C> {
+  /** The group of contracts that contract belongs to. */
+  context?: Deployment
+  /** The agent that will upload and instantiate this contract. */
+  agent?:   Agent
+}
+
+/** A constructor for a Client subclass. */
+export interface ClientClass<C extends Client> extends Class<C, ConstructorParameters<typeof Client>>{
+  new (...args: ConstructorParameters<typeof Client>): C
+}
+
+/** Client: interface to the API of a particular contract instance.
+  * Has an `address` on a specific `chain`, usually also an `agent`.
+  * Subclass this to add the contract's methods. */
+export class Client {
+
+  constructor (
+    /** Agent that will interact with the contract. */
+    public agent?:    Agent,
+    /** Address of the contract on the chain. */
+    public address?:  Address,
+    /** Code hash confirming the contract's integrity. */
+    public codeHash?: CodeHash,
+    /** Contract class containing deployment metadata. */
+    public meta:      ContractInstance = new ContractInstance()
+  ) {
+    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
+    Object.defineProperty(this, 'context', { writable: true, enumerable: false })
+    meta.address  ??= address
+    meta.codeHash ??= codeHash
+    meta.chainId  ??= agent?.chain?.id
+    //if (!agent)    this.log.warnNoAgent(this.constructor.name)
+    //if (!address)  this.log.warnNoAddress(this.constructor.name)
+    //if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
+  }
+
+  /** Logger. */
+  log = new ClientConsole('Fadroma.Client')
+  /** Default fee for all contract transactions. */
+  fee?: IFee = undefined
+  /** Default fee for specific transactions. */
+  fees?: Record<string, IFee> = undefined
+  /** The chain on which this contract exists. */
+  get chain () { return this.agent?.chain }
+  /** Throw if fetched metadata differs from configured. */
+  protected validate (kind: string, expected: any, actual: any) {
+    const name = this.constructor.name
+    if (expected !== actual) throw new ClientError.ValidationFailed(kind, name, expected, actual)
+  }
+  /** Fetch code hash from address. */
+  async fetchCodeHash (expected: CodeHash|undefined = this.codeHash): Promise<this> {
+    const codeHash = await assertAgent(this).getHash(assertAddress(this))
+    return Object.assign(this, { codeHash: validated('codeHash', codeHash, expected) })
+  }
+  /** Legacy, use fetchCodeHash instead. */
+  async populate (): Promise<this> {
+    return await this.fetchCodeHash()
+  }
+  /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
+  get asLink (): ContractLink {
+    return this.meta.asLink
+  }
+  get asInfo (): ContractInfo {
+    return this.meta.asInfo
+  }
+  /** Create a copy of this Client that will execute the transactions as a different Agent. */
+  as (agent: Agent|undefined = this.agent): this {
+    if (!agent || agent === this.agent) return this
+    const Client = this.constructor as ClientClass<typeof this>
+    return new Client(agent, this.address, this.codeHash) as this
+  }
+  /** Creates another Client instance pointing to the same contract. */
+  asClient <C extends Client> (client: ClientClass<C>): C {
+    return new client(this.agent, this.address, this.codeHash, this.meta) as C
+  }
+  /** Execute a query on the specified contract as the specified Agent. */
+  query <U> (msg: Message): Promise<U> {
+    return assertAgent(this).query(this, msg)
+  }
+  /** Get the recommended fee for a specific transaction. */
+  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
+    const fees       = this.fees ?? {}
+    const defaultFee = this.fee ?? this.agent?.fees?.exec
+    if (typeof msg === 'string') {
+      return fees[msg] || defaultFee
+    } else if (typeof msg === 'object') {
+      const keys = Object.keys(msg)
+      if (keys.length !== 1) throw new ClientError.InvalidMessage()
+      return fees[keys[0]] || defaultFee
+    }
+    return this.fee || defaultFee
+  }
+  /** Use the specified fee for all transactions by this Client. */
+  withFee (fee: IFee): this {
+    this.fee  = fee
+    this.fees = {}
+    return this
+  }
+  /** Execute a transaction on the specified contract as the specified Agent. */
+  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
+    assertAddress(this)
+    opt.fee = opt.fee || this.getFee(msg)
+    return await assertAgent(this).execute(this, msg, opt)
+  }
+}

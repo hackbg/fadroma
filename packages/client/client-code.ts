@@ -50,8 +50,8 @@ export async function fetchCodeHash <C extends ContractTemplate & { address?: Ad
 
 /** Objects that have a code hash in either capitalization. */
 export type Hashed = 
-  | { code_hash?: CodeHash, codeHash: undefined }
-  | { codeHash?: CodeHash, code_hash: undefined }
+  | { code_hash: CodeHash, codeHash: undefined }
+  | { codeHash: CodeHash, code_hash: undefined }
 
 /** Allow code hash to be passed with either cap convention; warn if missing or invalid. */
 export function codeHashOf ({ code_hash, codeHash }: Hashed): CodeHash {

@@ -36,7 +36,7 @@ export class FSUploader extends Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (source: Uploadable) {
+  async upload (contract: Uploadable) {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
       const name = this.getUploadReceiptName(contract)
@@ -72,7 +72,7 @@ export class FSUploader extends Uploader {
     Object.assign(contract, { codeId, codeHash, uploadTx })
     // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
-      receipt.save((contract as ContractTemplate).asTemplate.asReceipt)
+      receipt.save((contract as ContractTemplate).asUploadReceipt)
     }
     //await this.agent.nextBlock
     return contract as T & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
@@ -156,8 +156,7 @@ export class FSUploader extends Uploader {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const template = new ContractTemplate(uploaded[i])
         $(this.cache, this.getUploadReceiptName(toUpload[i]))
-          .as(UploadReceipt)
-          .save(template.asReceipt)
+          .as(UploadReceipt).save(template.asUploadReceipt)
         outputs[i] = template
       }
     }

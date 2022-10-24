@@ -1,6 +1,6 @@
 import { CommandContext } from '@hackbg/komandi'
-import { ContractMetadata, ContractInstance, ClientConsole, ContractTemplate, writeLabel } from '@fadroma/client'
-import type { ContractSlot, Address, Deployment } from '@fadroma/client'
+import { intoInstance, ClientConsole, ContractTemplate, writeLabel } from '@fadroma/client'
+import type { ContractInstance, ContractSlot, Address, Deployment } from '@fadroma/client'
 import { Snip20 } from './tokens-snip20'
 import type { Snip20InitConfig } from './tokens-snip20'
 import { TokenPair } from './tokens-desc'
@@ -86,7 +86,7 @@ export class TokenManager extends CommandContext {
     return this.tokens[symbol]
   }
   add (symbol: TokenSymbol, token: ContractInstance): ContractInstance {
-    if (!(token instanceof ContractMetadata)) token = new ContractInstance(token)
+    token = intoInstance(token)
     token.name ??= symbol
     return this.tokens[symbol] = token
   }
