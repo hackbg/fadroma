@@ -49,8 +49,9 @@ fn staking() {
         .ctx
         .bank
         .writable()
-        .remove_funds(&addr1, vec![Coin::new(1000u128, "uscrt")])
+        .remove_funds(&addr1, Coin::new(1000u128, "uscrt"))
         .unwrap();
+
     match ensemble.ctx.delegations.delegate(
         addr1.to_string(),
         val_addr_1.to_string(),
@@ -69,7 +70,7 @@ fn staking() {
         .ctx
         .bank
         .writable()
-        .remove_funds(&addr1, vec![Coin::new(314159u128, "notscrt")])
+        .remove_funds(&addr1, Coin::new(314159u128, "notscrt"))
         .unwrap();
     match ensemble.ctx.delegations.delegate(
         addr1.to_string(),
@@ -91,7 +92,7 @@ fn staking() {
         .ctx
         .bank
         .writable()
-        .remove_funds(&addr1, vec![Coin::new(100u128, "uscrt")])
+        .remove_funds(&addr1, Coin::new(100u128, "uscrt"))
         .unwrap();
     match ensemble
         .ctx
@@ -219,7 +220,7 @@ fn staking() {
         .ctx
         .bank
         .writable()
-        .remove_funds(&addr1, vec![Coin::new(100u128, "uscrt")])
+        .remove_funds(&addr1, Coin::new(100u128, "uscrt"))
         .unwrap();
 
     ensemble
@@ -317,11 +318,13 @@ fn staking() {
         .unwrap()
         .accumulated_rewards;
 
-    ensemble
-        .ctx
-        .bank
-        .current
-        .add_funds(&addr1, withdraw_amount);
+    for amount in withdraw_amount {
+        ensemble
+            .ctx
+            .bank
+            .current
+            .add_funds(&addr1, amount);
+    }
 
     ensemble
         .ctx

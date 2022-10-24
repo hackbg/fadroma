@@ -14,13 +14,22 @@ use super::{
     revertable::Revertable
 };
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct TestStorage {
     pub(crate) storage: BTreeMap<Vec<u8>, Vec<u8>>,
-    pub(crate) ops: Vec<Op>
+    pub(crate) ops: Vec<Op>,
+    address: String
 }
 
 impl TestStorage {
+    pub(crate) fn new(address: impl Into<String>) -> Self {
+        Self {
+            address: address.into(),
+            storage: BTreeMap::default(),
+            ops: vec![]
+        }
+    }
+
     #[inline]
     pub(crate) fn ops(&mut self) -> Vec<Op> {
         mem::take(&mut self.ops)
@@ -56,16 +65,18 @@ impl Storage for Revertable<TestStorage> {
 
 impl Storage for TestStorage {
     fn set(&mut self, key: &[u8], value: &[u8]) {
+        let address = self.address.clone();
         let old = self.get(key);
         let key = key.to_vec();
 
         self.storage.insert(key.clone(), value.to_vec());
-        self.ops.push(Op::StorageWrite { key, old });
+        self.ops.push(Op::StorageWrite { address, key, old });
     }
 
     fn remove(&mut self, key: &[u8]) {
         if let Some(old) = self.storage.remove(key) {
             self.ops.push(Op::StorageWrite {
+                address: self.address.clone(),
                 key: key.to_vec(),
                 old: Some(old)
             });

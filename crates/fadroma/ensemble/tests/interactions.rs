@@ -677,8 +677,9 @@ fn remove_funds() {
     );
 
     ensemble
-        .remove_funds(addr, vec![Coin::new(500u128, "uscrt")])
+        .remove_funds(addr, Coin::new(500u128, "uscrt"))
         .unwrap();
+
     assert_eq!(
         ensemble
             .ctx
@@ -688,7 +689,7 @@ fn remove_funds() {
         vec![Coin::new(500u128, "uscrt")],
     );
 
-    match ensemble.remove_funds(addr, vec![Coin::new(600u128, "uscrt")]) {
+    match ensemble.remove_funds(addr, Coin::new(600u128, "uscrt")) {
         Err(error) => match error {
             EnsembleError::Bank(msg) => assert_eq!(
                 msg,
@@ -699,7 +700,7 @@ fn remove_funds() {
         _ => panic!("No error message"),
     };
 
-    match ensemble.remove_funds(addr, vec![Coin::new(300u128, "notscrt")]) {
+    match ensemble.remove_funds(addr, Coin::new(300u128, "notscrt")) {
         Err(error) => match error {
             EnsembleError::Bank(msg) => assert_eq!(
                 msg,
@@ -712,7 +713,7 @@ fn remove_funds() {
 
     match ensemble.remove_funds(
         "address2",
-        vec![Coin::new(300u128, "uscrt")],
+        Coin::new(300u128, "uscrt"),
     ) {
         Err(error) => match error {
             EnsembleError::Bank(msg) => {
