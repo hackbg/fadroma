@@ -32,7 +32,7 @@ import repl from 'node:repl'
 import { createContext } from 'node:vm'
 
 /** Context for Fadroma commands. */
-export default class Fadroma extends Deployer {
+export class Fadroma extends Deployer {
 
   /** @returns a function that runs a requested command. */
   static run (projectName: string = 'Fadroma'): AsyncEntrypoint {

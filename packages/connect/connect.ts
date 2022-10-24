@@ -51,6 +51,25 @@ export class ConnectConfig extends EnvConfig {
   chain?: keyof ChainRegistry
     = this.getString('FADROMA_CHAIN',   ()=> undefined)
 
+  /** Secret Network configuration for gRPC API */
+  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
+
+  /** Secret Network configuration for legacy Amino API */
+  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
+
+  /** Devnets configuration. */
+  devnet    = new DevnetConfig(this.env, this.cwd)
+
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  devnetAgentName: string
+    = this.getString('FADROMA_AGENT',   ()=>
+      this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
+
+  /** Mnemonic to use for authentication. Hidden by default. */
+  mnemonic?: string
+    = this.getString('FADROMA_MNEMONIC',    ()=>
+      this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
+
   /** Get a chain ID corresponding to the value of `this.chain`.
     * (Used by subclasses to include chain ID in paths.) */
   get chainId (): ChainId {
@@ -68,25 +87,6 @@ export class ConnectConfig extends EnvConfig {
     if (!result) throw new ConnectError.UnknownChainSelected(chainIds, this.chain)
     return result
   }
-
-  /** Secret Network configuration for gRPC API */
-  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
-
-  /** Secret Network configuration for legacy Amino API */
-  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
-
-  /** Devnets configuration. */
-  devnet = new DevnetConfig(this.env, this.cwd)
-
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  devnetAgentName: string
-    = this.getString('FADROMA_AGENT',   ()=>
-      this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
-
-  /** Mnemonic to use for authentication. Hidden by default. */
-  mnemonic?: string
-    = this.getString('FADROMA_MNEMONIC',    ()=>
-      this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
 
   /** Create a `Connector` containing instances of `Chain` and `Agent`
     * as specified by the configuration and return a `Connector with them. */

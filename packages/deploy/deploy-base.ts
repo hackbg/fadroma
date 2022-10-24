@@ -16,8 +16,8 @@ import { DeployError, DeployConsole } from './deploy-events'
 /** Deployment system configuration and Deployer factory. */
 export class DeployConfig extends ConnectConfig {
   constructor (
-    readonly env: Env = {},
-    readonly cwd: string = '',
+    readonly env: Env    = process.env,
+    readonly cwd: string = process.cwd(),
     defaults: Partial<DeployConfig> = {}
   ) {
     super(env, cwd, defaults as Partial<ConnectConfig>)
