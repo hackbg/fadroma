@@ -529,6 +529,16 @@ export class Snip20 extends Client implements CustomToken {
     return new ViewingKeyClient(this.agent, this.address, this.codeHash)
   }
 
+  /** Deposit native tokens into a SNIP-20 contract to get SNIP-20 token. */
+  deposit (sent: Array<{ amount: Uint128, denom: string }>) {
+    return this.execute({ deposit: {} }, { sent })
+  }
+
+  /** Redeem native tokens from SNIP-20 token. */
+  redeem (amount: Uint128, denom: string) {
+    return this.execute({ redeem: { amount, denom } })
+  }
+
 }
 
 export interface Allowance {
