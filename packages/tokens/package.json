@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "5.2.2",
+  "version": "5.2.3",
   "type":    "module",
   "main":    "tokens.ts",
   "files": [ "tokens.ts" ],

@@ -9,6 +9,7 @@ import {
   Contract,
   DeployArgs,
   Deployment,
+  ExecOpts,
   ICoin,
   Label,
   Uint128,
@@ -528,8 +529,8 @@ export class Snip20 extends Client implements CustomToken {
   }
 
   /** Deposit native tokens into a SNIP-20 contract to get SNIP-20 token. */
-  deposit (sent: Array<{ amount: Uint128, denom: string }>) {
-    return this.execute({ deposit: {} }, { sent })
+  deposit (funds: Array<{ amount: Uint128, denom: string }>) {
+    return this.execute({ deposit: {} }, { send: funds } as ExecOpts)
   }
 
   /** Redeem native tokens from SNIP-20 token. */
