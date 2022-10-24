@@ -7,7 +7,7 @@
   "dependencies": {
     "@fadroma/client": "workspace:^6.3",
     "@fadroma/scrt":   "workspace:^4.1.1",
-    "@hackbg/formati": "workspace:^5.1.1"
+    "@hackbg/formati": "^5.1.1"
   },
   "scripts": {
     "check": "tsc --noEmit",

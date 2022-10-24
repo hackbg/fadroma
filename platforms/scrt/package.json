@@ -6,8 +6,8 @@
   "files": [ "*.ts" ],
   "dependencies": {
     "@fadroma/client": "workspace:^6.3.0",
-    "@hackbg/formati": "workspace:^5.1.1",
-    "@hackbg/konfizi": "workspace:^3.0.1",
+    "@hackbg/formati": "^5.1.1",
+    "@hackbg/konfizi": "^3.0.1",
 
     "secretjs": "1.4.3",
 

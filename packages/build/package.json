@@ -20,12 +20,12 @@
   },
   "dependencies": {
     "@fadroma/client": "workspace:^6.0.1",
-    "@hackbg/dokeres": "workspace:^4.4.2",
-    "@hackbg/formati": "workspace:^5.1.1",
-    "@hackbg/kabinet": "workspace:^3.2.6",
-    "@hackbg/konzola": "workspace:^2.1",
-    "@hackbg/komandi": "workspace:^6.1.3",
-    "@hackbg/konfizi": "workspace:^3.0.1",
+    "@hackbg/dokeres": "^4.4.2",
+    "@hackbg/formati": "^5.1.1",
+    "@hackbg/kabinet": "^3.2.6",
+    "@hackbg/konzola": "^2.1",
+    "@hackbg/komandi": "^6.1.3",
+    "@hackbg/konfizi": "^3.0.1",
     "dotenv":     "^16.0.1",
     "simple-git": "^3.7.1"
   },

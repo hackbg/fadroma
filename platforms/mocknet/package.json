@@ -6,8 +6,8 @@
   "files":   [ "mocknet.ts" ],
   "description": "Test smart contracts without the overhead of spawning a real chain.",
   "dependencies": {
-    "@hackbg/konzola": "workspace:^2.1",
-    "@hackbg/formati": "workspace:^5.1.1",
+    "@hackbg/konzola": "^2.1",
+    "@hackbg/formati": "^5.1.1",
     "@fadroma/client": "workspace:^6.1"
   },
   "scripts": {
