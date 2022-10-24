@@ -1,8 +1,7 @@
 import type { Address, ChainId, Fee } from '@fadroma/client'
-import { ClientConsole } from '@fadroma/client'
-import { CustomError, bold } from '@hackbg/konzola'
+import { ClientConsole, ClientError, bold } from '@fadroma/client'
 
-export class ScrtError extends CustomError {
+export class ScrtError extends ClientError {
   static NoAddress = this.define('NoAddress',
     () => 'No address provided')
   static UseAmino = this.define('UseAmino',

@@ -1,6 +1,5 @@
 import { timestamp, bold, colors } from '@hackbg/konzola'
 import { Task, CommandContext } from '@hackbg/komandi'
-
 import { ClientConsole, ClientError } from './client-events'
 
 /// # DRAMATIS PERSONAE ///////////////////////////////////////////////////////////////////////////
@@ -1427,4 +1426,4 @@ export type Duration = number
 /** The default Git ref when not specified. */
 export const HEAD = 'HEAD'
 
-export { ClientConsole, ClientError }
+export { ClientError, ClientConsole, timestamp, bold, colors }

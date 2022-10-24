@@ -13,17 +13,15 @@ import {
   Uint128,
 } from '@fadroma/client'
 import type {
-  ContractMetadata
+  ContractMetadata,
+  ClientError,
+  bold,
+  colors
 } from '@fadroma/client'
 import {
   Permit,
   ViewingKeyClient
 } from '@fadroma/scrt'
-import {
-  CustomError,
-  bold,
-  colors
-} from '@hackbg/konzola'
 import {
   randomBase64
 } from '@hackbg/formati'
@@ -566,7 +564,7 @@ export function createPermitMsg <Q> (
   return { with_permit: { query, permit } }
 }
 
-export class TokenError extends CustomError {
+export class TokenError extends ClientError {
   static NoSymbol = this.define('NoSymbol',
     ()=>'Pass a symbol to get a token')
   static NotFound = this.define('NotFound',
