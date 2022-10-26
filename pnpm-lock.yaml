@@ -10,8 +10,9 @@ importers:
       '@fadroma/deploy': workspace:^2
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
-      '@fadroma/scrt': workspace:^4
+      '@fadroma/scrt': workspace:^5
       '@fadroma/scrt-amino': workspace:^3
+      '@fadroma/scrt-grpc': workspace:^1
       '@fadroma/tokens': workspace:^5.1
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/formati': ^5.1.1
@@ -46,6 +47,7 @@ importers:
       '@fadroma/mocknet': link:platforms/mocknet
       '@fadroma/scrt': link:platforms/scrt
       '@fadroma/scrt-amino': link:platforms/scrt-amino
+      '@fadroma/scrt-grpc': link:platforms/scrt-grpc
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/formati': 5.1.1
       '@hackbg/kabinet': 3.2.7
@@ -127,16 +129,16 @@ importers:
       '@fadroma/client': workspace:^6.1
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
-      '@fadroma/scrt': workspace:^4
       '@fadroma/scrt-amino': workspace:^3
+      '@fadroma/scrt-grpc': workspace:^1
       '@hackbg/komandi': ^6.1.2
       '@hackbg/konfizi': ^3.0.1
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/devnet': link:../devnet
       '@fadroma/mocknet': link:../../platforms/mocknet
-      '@fadroma/scrt': link:../../platforms/scrt
       '@fadroma/scrt-amino': link:../../platforms/scrt-amino
+      '@fadroma/scrt-grpc': link:../../platforms/scrt-grpc
       '@hackbg/komandi': 6.2.0
       '@hackbg/konfizi': 3.0.1
 
@@ -194,7 +196,7 @@ importers:
   packages/tokens:
     specifiers:
       '@fadroma/client': workspace:^6.3.1
-      '@fadroma/scrt': workspace:^4.1.2
+      '@fadroma/scrt': workspace:^5
       '@hackbg/formati': ^5.1.1
     dependencies:
       '@fadroma/client': link:../client
@@ -219,20 +221,18 @@ importers:
       '@hackbg/konfizi': ^3.0.1
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
-      secretjs: 1.4.3
     dependencies:
       '@fadroma/client': link:../../packages/client
       '@hackbg/formati': 5.1.1
       '@hackbg/konfizi': 3.0.1
       '@ungap/structured-clone': 1.0.1
-      secretjs: 1.4.3
     devDependencies:
       '@hackbg/ensuite': 1.0.2
       '@types/ungap__structured-clone': 0.3.0
 
   platforms/scrt-amino:
     specifiers:
-      '@fadroma/scrt': workspace:^4.1.2
+      '@fadroma/scrt': workspace:^5
       '@hackbg/formati': ^5.1.1
       axios: 0.26.0
       exponential-backoff: ^3.1.0
@@ -243,6 +243,25 @@ importers:
       axios: 0.26.0
       exponential-backoff: 3.1.0
       secretjs: 0.17.5
+
+  platforms/scrt-grpc:
+    specifiers:
+      '@fadroma/client': workspace:^6.3.1
+      '@hackbg/ensuite': ^1.0.2
+      '@hackbg/formati': ^5.1.1
+      '@hackbg/konfizi': ^3.0.1
+      '@types/ungap__structured-clone': ^0.3.0
+      '@ungap/structured-clone': ^1.0.1
+      secretjs: 1.4.3
+    dependencies:
+      '@fadroma/client': link:../../packages/client
+      '@hackbg/formati': 5.1.1
+      '@hackbg/konfizi': 3.0.1
+      '@ungap/structured-clone': 1.0.1
+      secretjs: 1.4.3
+    devDependencies:
+      '@hackbg/ensuite': 1.0.2
+      '@types/ungap__structured-clone': 0.3.0
 
   shim:
     specifiers: {}

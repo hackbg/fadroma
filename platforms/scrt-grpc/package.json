@@ -1,13 +1,16 @@
 {
-  "name":    "@fadroma/scrt",
-  "version": "5.0.0",
+  "name":    "@fadroma/scrt-grpc",
+  "version": "1.0.0",
   "type":    "module",
-  "main":    "scrt.ts",
+  "main":    "scrt-grpc.ts",
   "files": [ "*.ts" ],
   "dependencies": {
     "@fadroma/client": "workspace:^6.3.1",
     "@hackbg/formati": "^5.1.1",
     "@hackbg/konfizi": "^3.0.1",
+
+    "secretjs": "1.4.3",
+
     "@ungap/structured-clone": "^1.0.1"
   },
   "devDependencies": {
@@ -17,6 +20,6 @@
   "scripts": {
     "check": "tsc --noEmit",
     "ubik":  "npm run check && ubik",
-    "test":  "ensuite scrt.spec.ts.md"
+    "test":  "ensuite scrt-grpc.spec.ts.md"
   }
 }
