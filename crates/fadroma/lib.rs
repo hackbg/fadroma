@@ -14,7 +14,6 @@ pub mod core;
 pub mod tokens;
 
 // Contract scaffoldings
-#[cfg(feature = "experimental")]
 pub use fadroma_proc_derive as derive_contract;
 #[cfg(feature = "experimental")]
 pub mod composability;

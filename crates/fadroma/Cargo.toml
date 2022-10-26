@@ -67,7 +67,7 @@ snip20-impl = [
 ]
 
 experimental = [
-  "fadroma-proc-derive", "fadroma-proc-message"
+  "fadroma-proc-message"
 ]
 
 # Old
@@ -81,8 +81,8 @@ fadroma-platform-scrt = { optional = true, path = "../fadroma-platform-scrt" }
 
 # Procedural macro crates
 fadroma-derive-canonize = { path = "../fadroma-derive-canonize" }
-fadroma-proc-auth = { optional = true, path = "../fadroma-proc-auth" }
-fadroma-proc-derive = { optional = true, path = "../fadroma-proc-derive" }
+fadroma-proc-derive = { path = "../fadroma-proc-derive" }
+fadroma-proc-auth = { path = "../fadroma-proc-auth" }
 fadroma-proc-message = { optional = true, path = "../fadroma-proc-message" }
 
 # Dependencies
