@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ensemble::{
-    ContractEnsemble, ContractHarness, MockDeps,
+    ContractEnsemble, ContractHarness,
     MockEnv, AnyResult,
     anyhow::{bail, anyhow}
 };
@@ -11,8 +11,7 @@ const SENDER: &str = "sender";
 const A_ADDR: &str = "A";
 const B_ADDR: &str = "B";
 
-struct A;
-struct B;
+struct Contract;
 
 #[derive(Serialize, Deserialize)]
 enum ExecuteMsg {
@@ -21,35 +20,23 @@ enum ExecuteMsg {
     Fail
 }
 
-impl ContractHarness for A {
-    fn instantiate(&self, _deps: &mut MockDeps, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
+impl ContractHarness for Contract {
+    fn instantiate(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
         Ok(Response::default())
     }
 
-    fn execute(&self, deps: &mut MockDeps, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+    fn execute(&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
         let msg: ExecuteMsg = from_binary(&msg)?;
 
-        execute(deps.as_mut(), msg)
+        execute(deps, msg)
     }
 
-    fn query(&self, deps: &MockDeps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
-        query(deps.as_ref())
+    fn query(&self, deps: Deps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
+        query(deps)
     }
-}
 
-impl ContractHarness for B {
-    fn instantiate(&self, _deps: &mut MockDeps, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
+    fn reply(&self, _deps: DepsMut, _env: Env, _reply: Reply) -> AnyResult<Response> {
         Ok(Response::default())
-    }
-
-    fn execute(&self, deps: &mut MockDeps, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
-        let msg: ExecuteMsg = from_binary(&msg)?;
-
-        execute(deps.as_mut(), msg)
-    }
-
-    fn query(&self, deps: &MockDeps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
-        query(deps.as_ref())
     }
 }
 
@@ -75,8 +62,6 @@ fn query(deps: Deps) -> AnyResult<Binary> {
 
 #[test]
 fn correct_message_order() {
-    // https://github.com/CosmWasm/cosmwasm/blob/main/SEMANTICS.md#order-and-rollback
-
     let (mut ensemble, a, _) = init();
 
     let msg = ExecuteMsg::RunMsgs(vec![
@@ -92,15 +77,21 @@ fn correct_message_order() {
         SubMsg::new(b_msg(&ExecuteMsg::SetNumber(3)))
     ]);
 
+    // https://github.com/CosmWasm/cosmwasm/blob/main/SEMANTICS.md#order-and-rollback
+
+    // Contract A returns submessages S1 and S2, and message M1.
+    // Submessage S1 returns message N1.
+    // The order will be: S1, N1, reply(S1), S2, reply(S2), M1
+
     let resp = ensemble.execute(&msg, MockEnv::new(SENDER, a.address)).unwrap();
     let mut resp = resp.iter();
 
-    assert!(resp.next().unwrap().is_execute());
-    assert!(resp.next().unwrap().is_execute());
-    assert!(resp.next().unwrap().is_reply());
-    assert!(resp.next().unwrap().is_execute());
-    assert!(resp.next().unwrap().is_reply());
-    assert!(resp.next().unwrap().is_execute());
+    assert!(resp.next().unwrap().is_execute()); // S1
+    assert!(resp.next().unwrap().is_execute()); // N1
+    assert!(resp.next().unwrap().is_reply()); // reply(S1)
+    assert!(resp.next().unwrap().is_execute()); // S2
+    assert!(resp.next().unwrap().is_reply()); // reply(S2)
+    assert!(resp.next().unwrap().is_execute()); //M1
 }
 
 #[test]
@@ -121,11 +112,10 @@ fn instantiate_child_err_handled_in_reply() {
 fn init() -> (ContractEnsemble, ContractLink<Addr>, ContractLink<Addr>) {
     let mut ensemble = ContractEnsemble::new();
 
-    let a = ensemble.register(Box::new(A));
-    let b = ensemble.register(Box::new(B));
+    let contract = ensemble.register(Box::new(Contract));
 
-    let a = ensemble.instantiate(a, &(), MockEnv::new(SENDER, A_ADDR)).unwrap();
-    let b = ensemble.instantiate(b, &(), MockEnv::new(SENDER, B_ADDR)).unwrap();
+    let a = ensemble.instantiate(contract.clone(), &(), MockEnv::new(SENDER, A_ADDR)).unwrap();
+    let b = ensemble.instantiate(contract, &(), MockEnv::new(SENDER, B_ADDR)).unwrap();
 
     (ensemble, a.instance, b.instance)
 }
@@ -142,7 +132,7 @@ fn a_msg(msg: &ExecuteMsg) -> WasmMsg {
 fn b_msg(msg: &ExecuteMsg) -> WasmMsg {
     WasmMsg::Execute {
         contract_addr: B_ADDR.into(),
-        code_hash: "test_contract_1".into(),
+        code_hash: "test_contract_0".into(),
         msg: to_binary(msg).unwrap(),
         funds: vec![]
     }

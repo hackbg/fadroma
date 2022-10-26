@@ -9,10 +9,7 @@ use crate::cosmwasm_std::{
     Storage, Record, Order
 };
 
-use super::{
-    state::Op,
-    revertable::Revertable
-};
+use super::state::Op;
 
 #[derive(Clone, Debug)]
 pub struct TestStorage {
@@ -33,33 +30,6 @@ impl TestStorage {
     #[inline]
     pub(crate) fn ops(&mut self) -> Vec<Op> {
         mem::take(&mut self.ops)
-    }
-}
-
-impl Storage for Revertable<TestStorage> {
-    #[inline]
-    fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.writable().set(key, value);
-    }
-
-    #[inline]
-    fn remove(&mut self, key: &[u8]) {
-        self.writable().remove(key);
-    }
-
-    #[inline]
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.readable().get(key)
-    }
-
-    #[inline]
-    fn range<'a>(
-        &'a self,
-        start: Option<&[u8]>,
-        end: Option<&[u8]>,
-        order: Order,
-    ) -> Box<dyn Iterator<Item = Record> + 'a> {
-        self.readable().range(start, end, order)
     }
 }
 

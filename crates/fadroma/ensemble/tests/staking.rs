@@ -45,10 +45,11 @@ fn staking() {
     );
 
     // Delegating (while replicating structure of the ensemble.rs execute_message() delegate code)
+    ensemble.ctx.state.push_scope();
     ensemble
         .ctx
+        .state
         .bank
-        .writable()
         .remove_funds(&addr1, Coin::new(1000u128, "uscrt"))
         .unwrap();
 
@@ -59,26 +60,29 @@ fn staking() {
     ) {
         Ok(result) => Ok(result),
         Err(result) => {
-            ensemble.ctx.bank.revert();
+            ensemble.ctx.state.revert_scope();
             Err(result)
         }
     }
     .unwrap();
-    ensemble.ctx.bank.commit();
+    ensemble.ctx.state.commit();
 
+    ensemble.ctx.state.push_scope();
     ensemble
         .ctx
+        .state
         .bank
-        .writable()
         .remove_funds(&addr1, Coin::new(314159u128, "notscrt"))
         .unwrap();
+
     match ensemble.ctx.delegations.delegate(
         addr1.to_string(),
         val_addr_1.to_string(),
         Coin::new(314159u128, "notscrt"),
     ) {
         Err(error) => {
-            ensemble.ctx.bank.revert();
+            ensemble.ctx.state.revert_scope();
+
             match error {
                 EnsembleError::Staking(msg) => assert_eq!("Incorrect coin denom", msg),
                 _ => panic!("Wrong denom error improperly caught"),
@@ -86,21 +90,23 @@ fn staking() {
         }
         _ => panic!("Wrong denom error improperly caught"),
     };
-    ensemble.ctx.bank.commit();
+    ensemble.ctx.state.commit();
 
+    ensemble.ctx.state.push_scope();
     ensemble
         .ctx
+        .state
         .bank
-        .writable()
         .remove_funds(&addr1, Coin::new(100u128, "uscrt"))
         .unwrap();
+        
     match ensemble
         .ctx
         .delegations
         .delegate(addr1.to_string(), val_addr_3.into(), Coin::new(100u128, "uscrt"))
     {
         Err(error) => {
-            ensemble.ctx.bank.revert();
+            ensemble.ctx.state.revert_scope();
             match error {
                 EnsembleError::Staking(msg) => assert_eq!("Validator not found", msg),
                 _ => panic!("Invalid validator error improperly caught"),
@@ -108,7 +114,7 @@ fn staking() {
         }
         _ => panic!("Invalid validator error improperly caught"),
     };
-    ensemble.ctx.bank.commit();
+    ensemble.ctx.state.commit();
 
     match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
         Some(delegation) => assert_eq!(
@@ -218,10 +224,10 @@ fn staking() {
 
     ensemble
         .ctx
+        .state
         .bank
-        .writable()
         .remove_funds(&addr1, Coin::new(100u128, "uscrt"))
-        .unwrap();
+        .unwrap_err();
 
     ensemble
         .ctx
@@ -232,7 +238,8 @@ fn staking() {
             Coin::new(100u128, "uscrt"),
         )
         .unwrap();
-    ensemble.ctx.bank.commit();
+
+    ensemble.ctx.state.commit();
 
     ensemble
         .ctx
@@ -244,6 +251,7 @@ fn staking() {
             Coin::new(50u128, "uscrt"),
         )
         .unwrap();
+
     ensemble
         .ctx
         .delegations
@@ -318,13 +326,7 @@ fn staking() {
         .unwrap()
         .accumulated_rewards;
 
-    for amount in withdraw_amount {
-        ensemble
-            .ctx
-            .bank
-            .current
-            .add_funds(&addr1, amount);
-    }
+    ensemble.add_funds(&addr1, withdraw_amount);
 
     ensemble
         .ctx
@@ -348,8 +350,8 @@ fn staking() {
     assert_eq!(
         ensemble
             .ctx
+            .state
             .bank
-            .current
             .query_balances(&addr1, Some("uscrt".to_string())),
         vec![Coin::new(50u128, "uscrt")],
     );
@@ -386,8 +388,8 @@ fn staking() {
     assert_eq!(
         ensemble
             .ctx
+            .state
             .bank
-            .current
             .query_balances(&addr1, Some("uscrt".to_string())),
         vec![Coin::new(875u128, "uscrt")], // 500 undelegate, 325 undelegate, 50 rewards
     );

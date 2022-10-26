@@ -2,13 +2,14 @@ use std::iter::Iterator;
 
 use crate::{
     prelude::ContractLink,
-    cosmwasm_std::{Addr, Binary, Response, Coin}
+    cosmwasm_std::{Addr, Binary, Response, Coin, Reply, SubMsg}
 };
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum ResponseVariants {
     Instantiate(InstantiateResponse),
     Execute(ExecuteResponse),
+    Reply(ReplyResponse),
     Bank(BankResponse),
     Staking(StakingResponse)
 }
@@ -29,12 +30,24 @@ pub struct InstantiateResponse {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ExecuteResponse {
-    /// The address that triggered the instantiation.
+    /// The address that triggered the execute.
     pub sender: String,
     /// The contract that was called.
-    pub target: String,
+    pub address: String,
     /// The execute message that was sent.
     pub msg: Binary,
+    /// The execute response returned by the contract.
+    pub response: Response,
+    /// The responses for any messages that the executed contract initiated.
+    pub sent: Vec<ResponseVariants>
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct ReplyResponse {
+    /// The contract that was called.
+    pub address: String,
+    /// The execute message that was sent.
+    pub reply: Reply,
     /// The execute response returned by the contract.
     pub response: Response,
     /// The responses for any messages that the executed contract initiated.
@@ -95,8 +108,51 @@ impl ResponseVariants {
     }
 
     #[inline]
+    pub fn is_reply(&self) -> bool {
+        matches!(&self, Self::Reply(_))
+    }
+
+    #[inline]
     pub fn is_bank(&self) -> bool {
         matches!(&self, Self::Bank(_))
+    }
+
+    #[inline]
+    pub fn is_staking(&self) -> bool {
+        matches!(&self, Self::Staking(_))
+    }
+
+    #[inline]
+    pub(crate) fn address(&self) -> &str {
+        match self {
+            Self::Instantiate(resp) => resp.instance.address.as_str(),
+            Self::Execute(resp) => &resp.address,
+            Self::Reply(resp) => &resp.address,
+            Self::Bank(resp) => &resp.receiver,
+            Self::Staking(resp) => &resp.validator
+        }
+    }
+
+    #[inline]
+    pub(crate) fn messages(&self) -> &[SubMsg] {
+        match self {
+            Self::Instantiate(resp) => &resp.response.messages,
+            Self::Execute(resp) => &resp.response.messages,
+            Self::Reply(resp) => &resp.response.messages,
+            Self::Bank(_) => &[],
+            Self::Staking(_) => &[]
+        }
+    }
+
+    #[inline]
+    pub(crate) fn add_response(&mut self, response: Self) {
+        match self {
+            Self::Instantiate(resp) => resp.sent.push(response),
+            Self::Execute(resp) => resp.sent.push(response),
+            Self::Reply(resp) => resp.sent.push(response),
+            Self::Bank(_) => panic!("Trying to add a child response to a BankResponse."),
+            Self::Staking(_) => panic!("Trying to add a child response to a StakingResponse."),
+        }
     }
 }
 
@@ -114,6 +170,13 @@ impl From<ExecuteResponse> for ResponseVariants {
     }
 }
 
+impl From<ReplyResponse> for ResponseVariants {
+    #[inline]
+    fn from(value: ReplyResponse) -> Self {
+        Self::Reply(value)
+    }
+}
+
 impl From<BankResponse> for ResponseVariants {
     #[inline]
     fn from(value: BankResponse) -> Self {
@@ -121,14 +184,22 @@ impl From<BankResponse> for ResponseVariants {
     }
 }
 
+impl From<StakingResponse> for ResponseVariants {
+    #[inline]
+    fn from(value: StakingResponse) -> Self {
+        Self::Staking(value)
+    }
+}
+
 impl<'a> Iter<'a> {
-    /// Yields all responses that were initiated by the given `sender`.
+    /// Yields all responses that were initiated by the given `sender`. Reply responses are not included.
     pub fn by_sender(self, sender: impl Into<String>) -> impl Iterator<Item = &'a ResponseVariants> {
         let sender = sender.into();
 
         self.filter(move |x| match x {
             ResponseVariants::Instantiate(resp) => resp.sender == sender,
             ResponseVariants::Execute(resp) => resp.sender == sender,
+            ResponseVariants::Reply(_) => false,
             ResponseVariants::Bank(resp) => resp.sender == sender,
             ResponseVariants::Staking(resp) => resp.sender == sender,
         })
@@ -145,6 +216,8 @@ impl<'a> Iter<'a> {
     fn enqueue_children(&mut self, node: &'a ResponseVariants) {
         match node {
             ResponseVariants::Execute(resp) =>
+                self.stack.extend(resp.sent.iter().rev()),
+            ResponseVariants::Reply(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
             ResponseVariants::Instantiate(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
@@ -209,7 +282,7 @@ mod tests {
 
                 if let ResponseVariants::Execute(exec) = &inst_2.sent[0] {
                     assert_eq!(exec.sender, "C");
-                    assert_eq!(exec.target, "D");
+                    assert_eq!(exec.address, "D");
                     assert_eq!(exec.sent.len(), 0);
                 } else {
                     panic!()
@@ -217,7 +290,7 @@ mod tests {
 
                 if let ResponseVariants::Execute(exec) = &inst_2.sent[1] {
                     assert_eq!(exec.sender, "C");
-                    assert_eq!(exec.target, "B");
+                    assert_eq!(exec.address, "B");
                     assert_eq!(exec.sent.len(), 0);
                 } else {
                     panic!()
@@ -229,7 +302,7 @@ mod tests {
             assert_eq!(iter.next().unwrap(), &inst.sent[1]);
             if let ResponseVariants::Execute(exec) = &inst.sent[1] {
                 assert_eq!(exec.sender, "B");
-                assert_eq!(exec.target, "D");
+                assert_eq!(exec.address, "D");
                 assert_eq!(exec.sent.len(), 0);
             } else {
                 panic!()
@@ -238,7 +311,7 @@ mod tests {
             assert_eq!(iter.next().unwrap(), &inst.sent[2]);
             if let ResponseVariants::Execute(exec) = &inst.sent[2] {
                 assert_eq!(exec.sender, "B");
-                assert_eq!(exec.target, "A");
+                assert_eq!(exec.address, "A");
                 assert_eq!(exec.sent.len(), 0);
             } else {
                 panic!()
@@ -291,7 +364,7 @@ mod tests {
 
         if let ResponseVariants::Execute(exec) = iter.next().unwrap() {
             assert_eq!(exec.sender, "C");
-            assert_eq!(exec.target, "D");
+            assert_eq!(exec.address, "D");
             assert_eq!(exec.msg, Binary::from(b"message_3"));
             assert_eq!(exec.sent.len(), 0);
         } else {
@@ -300,7 +373,7 @@ mod tests {
 
         if let ResponseVariants::Execute(exec) = iter.next().unwrap() {
             assert_eq!(exec.sender, "C");
-            assert_eq!(exec.target, "B");
+            assert_eq!(exec.address, "B");
             assert_eq!(exec.msg, Binary::from(b"message_4"));
             assert_eq!(exec.sent.len(), 0);
         } else {
@@ -355,12 +428,12 @@ mod tests {
         resp
     }
 
-    fn execute_resp(sender: impl Into<String>, target: impl Into<String>) -> ExecuteResponse {
+    fn execute_resp(sender: impl Into<String>, address: impl Into<String>) -> ExecuteResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = ExecuteResponse {
             sender: sender.into(),
-            target: target.into(),
+            address: address.into(),
             msg: Binary::from(format!("message_{}", index).as_bytes()),
             response: Response::default(),
             sent: vec![]

@@ -1,22 +1,36 @@
 use std::collections::HashMap;
 
-use crate::cosmwasm_std::Coin;
+use crate::{
+    prelude::ContractInstantiationInfo,
+    cosmwasm_std::Coin
+};
 
 use super::{
-    EnsembleResult,
+    EnsembleResult, EnsembleError,
     storage::TestStorage,
     bank::Bank,
     response::BankResponse
 };
 
+#[derive(Default, Debug)]
 pub(crate) struct State {
     pub stores: HashMap<String, TestStorage>,
-    bank: Bank,
+    pub bank: Bank,
+    pub instances: HashMap<String, ContractInstance>,
     scopes: Vec<Scope>
+}
+
+#[derive(Debug)]
+pub(crate) struct ContractInstance {
+    pub code_hash: String,
+    pub index: usize
 }
 
 #[derive(Clone, Debug)]
 pub enum Op {
+    CreateInstance {
+        address: String
+    },
     StorageWrite {
         address: String,
         key: Vec<u8>,
@@ -37,22 +51,48 @@ pub enum Op {
     }
 }
 
+#[derive(Default, Debug)]
 struct Scope(Vec<Op>);
 
 impl State {
     pub fn new() -> Self {
         Self {
+            instances: HashMap::new(),
             stores: HashMap::new(),
             bank: Bank::default(),
             scopes: vec![]
         }
     }
 
-    pub fn push_ops(&mut self, ops: Vec<Op>) {
+    pub fn create_contract_instance(
+        &mut self,
+        address: impl Into<String>,
+        info: ContractInstantiationInfo
+    ) -> EnsembleResult<()> {
         assert!(self.scopes.len() > 0);
-        
-        let scope = self.scopes.last_mut().unwrap();
-        scope.0.extend(ops);
+        let address = address.into();
+
+        if self.instances.contains_key(&address) {
+            return Err(EnsembleError::ContractDuplicateAddress(address));
+        }
+
+        self.instances.insert(address.clone(), ContractInstance::new(info));
+
+        let storage = TestStorage::new(address.clone());
+        self.stores.insert(address.clone(), storage);
+
+        let scope = self.current_scope_mut();
+        scope.0.push(Op::CreateInstance { address });
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn instance(&self, address: &str) -> EnsembleResult<&ContractInstance> {
+        match self.instances.get(address) {
+            Some(instance) => Ok(instance),
+            None => Err(EnsembleError::ContractNotFound(address.to_string()))
+        }
     }
 
     #[inline]
@@ -69,7 +109,7 @@ impl State {
 
     #[inline]
     pub fn push_scope(&mut self) {
-        self.scopes.push(Scope::new());
+        self.scopes.push(Scope::default());
     }
 
     pub fn revert_scope(&mut self) {
@@ -79,6 +119,10 @@ impl State {
 
         for op in scope.0 {
             match op {
+                Op::CreateInstance { address } => {
+                    self.instances.remove(&address);
+                    self.stores.remove(&address);
+                }
                 Op::StorageWrite { address, key, old } => {
                     if let Some(storage) = self.stores.get_mut(&address) {
                         if let Some(old) = old {
@@ -87,17 +131,46 @@ impl State {
                             storage.storage.remove(&key);
                         }
                     }
-                },
+                }
                 Op::BankAddFunds { address, coin } => {
                     self.bank.remove_funds(&address, coin).unwrap();
-                },
+                }
                 Op::BankRemoveFunds { address, coin } => {
                     self.bank.add_funds(&address, coin);
-                },
+                }
                 Op::BankTransferFunds { from, to, coin } => {
                     self.bank.transfer(&to, &from, coin).unwrap();
                 }
             }
+        }
+    }
+
+    #[inline]
+    pub fn borrow_storage<F, T>(&self, address: &str, borrow: F) -> EnsembleResult<T>
+        where F: FnOnce(&TestStorage) -> EnsembleResult<T>
+    {
+        if let Some(storage) = self.stores.get(address) {
+            borrow(storage)
+        } else {
+            Err(EnsembleError::ContractNotFound(address.into()))
+        }
+    }
+
+    pub fn borrow_storage_mut<F, T>(&mut self, address: &str, borrow: F) -> EnsembleResult<T>
+        where F: FnOnce(&mut TestStorage) -> EnsembleResult<T>
+    {
+        if let Some(storage) = self.stores.get_mut(address) {
+            let result = borrow(storage);
+            // We call this regardless of the result because we want to clear any pending ops.
+            let ops = storage.ops();
+
+            if result.is_ok() {
+                self.push_ops(ops);
+            }
+
+            result
+        } else {
+            Err(EnsembleError::ContractNotFound(address.into()))
         }
     }
 
@@ -203,6 +276,11 @@ impl State {
         Ok(res)
     }
 
+    fn push_ops(&mut self, ops: Vec<Op>) {
+        let scope = self.current_scope_mut();
+        scope.0.extend(ops);
+    }
+
     #[inline]
     fn current_scope_mut(&mut self) -> &mut Scope {
         assert!(self.scopes.len() > 0);
@@ -211,9 +289,12 @@ impl State {
     }
 }
 
-impl Scope {
-    fn new() -> Self {
-        Scope(vec![])
+impl ContractInstance {
+    fn new(info: ContractInstantiationInfo) -> Self {
+        Self {
+            code_hash: info.code_hash,
+            index: info.id as usize
+        }
     }
 }
 
@@ -236,6 +317,7 @@ mod tests {
 
         let ops = store.ops();
         assert_eq!(ops.len(), 2);
+        assert_eq!(store.ops().len(), 0);
 
         drop(store);
 
