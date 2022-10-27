@@ -27,6 +27,8 @@ impl Block {
     /// Will increase the block height by `height` and
     /// block time by `height` * `time` for each increment.
     /// 
+    /// `time` is in seconds.
+    /// 
     /// This is the default strategy.
     pub fn exact_increments(&mut self, height: u64, time: u64) {
         assert!(height > 0 && time > 0, "Height and time must be bigger than 0. Call \"freeze\" if you want to stop incrementing blocks.");
@@ -36,6 +38,8 @@ impl Block {
 
     /// Will increase the block height by a number within the range of `height` and
     /// block time by that same `height` * `time` for each increment.
+    /// 
+    /// `time` is in seconds.
     pub fn random_increments(&mut self, height: Range<u64>, time: Range<u64>) {
         assert!(height.start > 0 && time.start > 0, "Height and time range start must be bigger than 0.");
 

@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    prelude::ContractInstantiationInfo,
-    cosmwasm_std::Coin
-};
+use crate::cosmwasm_std::{Coin, Storage};
 
 use super::{
     EnsembleResult, EnsembleError,
@@ -14,15 +11,14 @@ use super::{
 
 #[derive(Default, Debug)]
 pub(crate) struct State {
-    pub stores: HashMap<String, TestStorage>,
-    pub bank: Bank,
     pub instances: HashMap<String, ContractInstance>,
+    pub bank: Bank,
     scopes: Vec<Scope>
 }
 
 #[derive(Debug)]
 pub(crate) struct ContractInstance {
-    pub code_hash: String,
+    pub storage: TestStorage,
     pub index: usize
 }
 
@@ -58,7 +54,6 @@ impl State {
     pub fn new() -> Self {
         Self {
             instances: HashMap::new(),
-            stores: HashMap::new(),
             bank: Bank::default(),
             scopes: vec![]
         }
@@ -67,7 +62,7 @@ impl State {
     pub fn create_contract_instance(
         &mut self,
         address: impl Into<String>,
-        info: ContractInstantiationInfo
+        index: usize
     ) -> EnsembleResult<()> {
         assert!(self.scopes.len() > 0);
         let address = address.into();
@@ -76,10 +71,11 @@ impl State {
             return Err(EnsembleError::ContractDuplicateAddress(address));
         }
 
-        self.instances.insert(address.clone(), ContractInstance::new(info));
-
         let storage = TestStorage::new(address.clone());
-        self.stores.insert(address.clone(), storage);
+        self.instances.insert(
+            address.clone(),
+            ContractInstance { index, storage }
+        );
 
         let scope = self.current_scope_mut();
         scope.0.push(Op::CreateInstance { address });
@@ -92,6 +88,24 @@ impl State {
         match self.instances.get(address) {
             Some(instance) => Ok(instance),
             None => Err(EnsembleError::ContractNotFound(address.to_string()))
+        }
+    }
+
+    pub fn borrow_storage_mut<F, T>(&mut self, address: &str, borrow: F) -> EnsembleResult<T>
+        where F: FnOnce(&mut dyn Storage) -> EnsembleResult<T>
+    {
+        if let Some(instance) = self.instances.get_mut(address) {
+            let result = borrow(&mut instance.storage as &mut dyn Storage);
+            // We call this regardless of the result because we want to clear any pending ops.
+            let ops = instance.storage.ops();
+
+            if result.is_ok() {
+                self.push_ops(ops);
+            }
+
+            result
+        } else {
+            Err(EnsembleError::ContractNotFound(address.into()))
         }
     }
 
@@ -121,14 +135,13 @@ impl State {
             match op {
                 Op::CreateInstance { address } => {
                     self.instances.remove(&address);
-                    self.stores.remove(&address);
                 }
                 Op::StorageWrite { address, key, old } => {
-                    if let Some(storage) = self.stores.get_mut(&address) {
+                    if let Some(instance) = self.instances.get_mut(&address) {
                         if let Some(old) = old {
-                            storage.storage.insert(key, old);
+                            instance.storage.backing.insert(key, old);
                         } else {
-                            storage.storage.remove(&key);
+                            instance.storage.backing.remove(&key);
                         }
                     }
                 }
@@ -142,35 +155,6 @@ impl State {
                     self.bank.transfer(&to, &from, coin).unwrap();
                 }
             }
-        }
-    }
-
-    #[inline]
-    pub fn borrow_storage<F, T>(&self, address: &str, borrow: F) -> EnsembleResult<T>
-        where F: FnOnce(&TestStorage) -> EnsembleResult<T>
-    {
-        if let Some(storage) = self.stores.get(address) {
-            borrow(storage)
-        } else {
-            Err(EnsembleError::ContractNotFound(address.into()))
-        }
-    }
-
-    pub fn borrow_storage_mut<F, T>(&mut self, address: &str, borrow: F) -> EnsembleResult<T>
-        where F: FnOnce(&mut TestStorage) -> EnsembleResult<T>
-    {
-        if let Some(storage) = self.stores.get_mut(address) {
-            let result = borrow(storage);
-            // We call this regardless of the result because we want to clear any pending ops.
-            let ops = storage.ops();
-
-            if result.is_ok() {
-                self.push_ops(ops);
-            }
-
-            result
-        } else {
-            Err(EnsembleError::ContractNotFound(address.into()))
         }
     }
 
@@ -289,15 +273,6 @@ impl State {
     }
 }
 
-impl ContractInstance {
-    fn new(info: ContractInstantiationInfo) -> Self {
-        Self {
-            code_hash: info.code_hash,
-            index: info.id as usize
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::cosmwasm_std::Storage;
@@ -310,7 +285,7 @@ mod tests {
         let mut state = setup_storage();
 
         state.push_scope();
-        let store = state.stores.get_mut(CONTRACTS[0]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[0]);
         store.remove(b"a");
         store.set(b"b", b"yyz");
         store.remove(b"c");
@@ -324,7 +299,7 @@ mod tests {
         state.push_ops(ops);
         state.revert();
 
-        let store = state.stores.get_mut(CONTRACTS[0]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[0]);
         assert_eq!(store.get(b"a"), Some(b"abc".to_vec()));
         assert_eq!(store.get(b"b"), None);
     }
@@ -334,7 +309,7 @@ mod tests {
         let mut state = setup_storage();
 
         state.push_scope();
-        let store = state.stores.get_mut(CONTRACTS[0]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[0]);
         store.remove(b"a");
         store.set(b"b", b"yyz");
 
@@ -346,7 +321,7 @@ mod tests {
 
         assert_eq!(state.scopes.len(), 0);
 
-        let store = state.stores.get_mut(CONTRACTS[0]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[0]);
         assert_eq!(store.get(b"a"), None);
         assert_eq!(store.get(b"b"), Some(b"yyz".to_vec()));
     }
@@ -356,7 +331,7 @@ mod tests {
         let mut state = setup_storage();
 
         state.push_scope();
-        let store = state.stores.get_mut(CONTRACTS[0]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[0]);
         store.remove(b"a");
         store.set(b"b", b"yyz");
 
@@ -366,7 +341,7 @@ mod tests {
         state.push_ops(ops);
 
         state.push_scope();
-        let store = state.stores.get_mut(CONTRACTS[1]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[1]);
         store.set(b"a", b"yyz");
 
         let ops = store.ops();
@@ -375,10 +350,10 @@ mod tests {
         state.push_ops(ops);
         state.revert_scope();
 
-        let store = state.stores.get_mut(CONTRACTS[1]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[1]);
         assert_eq!(store.get(b"a"), None);
 
-        let store = state.stores.get_mut(CONTRACTS[0]).unwrap();
+        let store = storage_mut(&mut state, CONTRACTS[0]);
         assert_eq!(store.get(b"a"), None);
         assert_eq!(store.get(b"b"), Some(b"yyz".to_vec()));
 
@@ -456,15 +431,25 @@ mod tests {
         balances.pop().unwrap().amount.u128()
     }
 
+    fn storage_mut<'a>(state: &'a mut State, address: &str) -> &'a mut TestStorage {
+        &mut state.instances.get_mut(address).unwrap().storage
+    }
+
     fn setup_storage() -> State {
         let mut state = State::new();
 
-        let mut storage = TestStorage::new(CONTRACTS[0]);
-        storage.storage.insert(b"a".to_vec(), b"abc".to_vec());
+        state.push_scope();
 
-        state.stores.insert(CONTRACTS[0].into(), storage);
-        state.stores.insert(CONTRACTS[1].into(), TestStorage::new(CONTRACTS[1]));
-        state.stores.insert(CONTRACTS[2].into(), TestStorage::new(CONTRACTS[2]));
+        state.create_contract_instance(CONTRACTS[0], 0).unwrap();
+        state.create_contract_instance(CONTRACTS[1], 1).unwrap();
+        state.create_contract_instance(CONTRACTS[2], 2).unwrap();
+
+        state.commit();
+
+        let mut storage = TestStorage::new(CONTRACTS[0]);
+        storage.backing.insert(b"a".to_vec(), b"abc".to_vec());
+
+        state.instances.get_mut(CONTRACTS[0]).unwrap().storage = storage;
 
         state
     }

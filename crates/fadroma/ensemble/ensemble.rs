@@ -22,7 +22,6 @@ use super::{
     querier::EnsembleQuerier,
     response::{ResponseVariants, ExecuteResponse, InstantiateResponse, ReplyResponse},
     staking::Delegations,
-    storage::TestStorage,
     state::State
 };
 
@@ -59,11 +58,16 @@ pub struct ContractEnsemble {
 }
 
 pub(crate) struct Context {
-    pub contracts: Vec<Box<dyn ContractHarness>>,
+    pub contracts: Vec<ContractUpload>,
     pub delegations: Delegations,
-    pub(crate) state: State,
+    pub state: State,
     block: Block,
     chain_id: String
+}
+
+pub(crate) struct ContractUpload {
+    code_hash: String,
+    code: Box<dyn ContractHarness>
 }
 
 struct SubMsgExecState {
@@ -78,24 +82,35 @@ struct ResponseExecState {
 
 impl ContractEnsemble {
     pub fn new() -> Self {
+        #[cfg(feature = "scrt")]
+        let denom = "uscrt";
+
+        #[cfg(not(feature = "scrt"))]
+        let denom = "uatom";
+
         Self {
-            ctx: Box::new(Context::new("uscrt".into())),
+            ctx: Box::new(Context::new(denom.into()))
         }
     }
 
     pub fn new_with_denom(native_denom: impl Into<String>) -> Self {
         Self {
-            ctx: Box::new(Context::new(native_denom.into())),
+            ctx: Box::new(Context::new(native_denom.into()))
         }
     }
 
-    pub fn register(&mut self, harness: Box<dyn ContractHarness>) -> ContractInstantiationInfo {
-        self.ctx.contracts.push(harness);
-        let id = (self.ctx.contracts.len() - 1) as u64;
+    pub fn register(&mut self, code: Box<dyn ContractHarness>) -> ContractInstantiationInfo {
+        let id = self.ctx.contracts.len() as u64;
+        let code_hash = format!("test_contract_{}", id);
+
+        self.ctx.contracts.push(ContractUpload {
+            code_hash: code_hash.clone(),
+            code
+        });
 
         ContractInstantiationInfo {
             id,
-            code_hash: format!("test_contract_{}", id)
+            code_hash
         }
     }
 
@@ -124,6 +139,20 @@ impl ContractEnsemble {
     #[inline]
     pub fn remove_funds(&mut self, address: impl AsRef<str>, coin: Coin) -> EnsembleResult<()> {
         self.ctx.state.bank.remove_funds(address.as_ref(), coin)
+    }
+
+    #[inline]
+    pub fn transfer_funds(
+        &mut self,
+        from: impl AsRef<str>,
+        to: impl AsRef<str>,
+        coin: Coin
+    ) -> EnsembleResult<()> {
+        self.ctx.state.bank.transfer(
+            from.as_ref(),
+            to.as_ref(),
+            coin
+        )
     }
 
     #[inline]
@@ -175,22 +204,25 @@ impl ContractEnsemble {
         }
     }
 
-    /// Returns an `Err` if the contract with `address` wasn't found.
+    /// Returns an `Err` if a contract with `address` wasn't found.
     #[inline]
     pub fn contract_storage<F>(&self, address: impl AsRef<str>, borrow: F) -> EnsembleResult<()>
-        where F: FnOnce(&TestStorage) -> EnsembleResult<()>
+        where F: FnOnce(&dyn Storage)
     {
-        self.ctx.state.borrow_storage(address.as_ref(), borrow)
+        let instance = self.ctx.state.instance(address.as_ref())?;
+        borrow(&instance.storage as &dyn Storage);
+
+        Ok(())
     }
 
-    /// Returns an `Err` if the contract with `address` wasn't found. In case an error
+    /// Returns an `Err` if a contract with `address` wasn't found. In case an error
     /// is returned from the closure, the updates to that storage are discarded.
     pub fn contract_storage_mut<F>(&mut self, address: impl AsRef<str>, mutate: F) -> EnsembleResult<()>
-        where F: FnOnce(&mut TestStorage) -> EnsembleResult<()>
+        where F: FnOnce(&mut dyn Storage) -> EnsembleResult<()>
     {
         self.ctx.state.push_scope();
-
         let result = self.ctx.state.borrow_storage_mut(address.as_ref(), mutate);
+
         self.ctx.state.commit();
 
         result
@@ -225,7 +257,9 @@ impl ContractEnsemble {
     ) -> EnsembleResult<ExecuteResponse> {
         let address = env.contract.into_string();
 
-        let code_hash = self.ctx.state.instance(&address)?.code_hash.clone();
+        let instance = self.ctx.state.instance(&address)?;
+        let code_hash = self.ctx.contracts[instance.index].code_hash.clone();
+
         let sub_msg = SubMsg::new(WasmMsg::Execute {
             contract_addr: address,
             code_hash,
@@ -274,20 +308,18 @@ impl Context {
 
     fn instantiate(
         &mut self,
-        info: ContractInstantiationInfo,
+        id: u64,
         msg: Binary,
         env: MockEnv,
     ) -> EnsembleResult<InstantiateResponse> {
-        let contract = self
-            .contracts
-            .get(info.id as usize)
-            .ok_or_else(|| EnsembleError::ContractIdNotFound(info.id))?;
+        // We check for validity in execute_sub_msg()
+        let contract = &self.contracts[id as usize];
 
         let sender = env.sender.to_string();
         let address = env.contract.to_string();
-        let code_hash = info.code_hash.clone();
+        let code_hash = contract.code_hash.clone();
 
-        self.state.create_contract_instance(address.clone(), info)?;
+        self.state.create_contract_instance(address.clone(), id as usize)?;
         self.state.transfer_funds(
             sender.clone(),
             address.clone(),
@@ -302,12 +334,12 @@ impl Context {
         let querier = EnsembleQuerier::new(&self);
         let response = self.state.borrow_storage_mut(&address, |storage| {
             let deps = DepsMut::<Empty> {
-                storage: storage as &mut dyn Storage,
+                storage,
                 api: &MockApi::default() as &dyn Api,
                 querier: QuerierWrapper::new(&querier as &dyn Querier)
             };
 
-            let result = contract.instantiate(deps, env, msg_info, msg.clone())?;
+            let result = contract.code.instantiate(deps, env, msg_info, msg.clone())?;
 
             Ok(result)
         })?;
@@ -326,10 +358,9 @@ impl Context {
 
     fn execute(&mut self, msg: Binary, env: MockEnv) -> EnsembleResult<ExecuteResponse> {
         let address = env.contract.to_string();
-
         let (index, code_hash) = {
             let instance = self.state.instance(&address)?;
-            let code_hash = instance.code_hash.clone();
+            let code_hash = self.contracts[instance.index].code_hash.clone();
 
             (instance.index, code_hash)
         };
@@ -344,16 +375,16 @@ impl Context {
         )?;
 
         let contract = &self.contracts[index];
+
         let querier = EnsembleQuerier::new(&self);
-        
         let response = self.state.borrow_storage_mut(&address, |storage| {
             let deps = DepsMut::<Empty> {
-                storage: storage as &mut dyn Storage,
+                storage,
                 api: &MockApi::default() as &dyn Api,
                 querier: QuerierWrapper::new(&querier as &dyn Querier)
             };
 
-            let result = contract.execute(deps, env, msg_info, msg.clone())?;
+            let result = contract.code.execute(deps, env, msg_info, msg.clone())?;
 
             Ok(result)
         })?;
@@ -369,31 +400,29 @@ impl Context {
 
     pub(crate) fn query(&self, address: &str, msg: Binary) -> EnsembleResult<Binary> {
         let instance = self.state.instance(address)?;
-
         let contract = &self.contracts[instance.index];
+
         let env = self.create_env(ContractLink {
             address: Addr::unchecked(address),
-            code_hash: instance.code_hash.clone()
+            code_hash: contract.code_hash.clone()
         });
 
-        self.state.borrow_storage(&address, |storage| {
-            let querier = EnsembleQuerier::new(&self);
-            let deps = Deps::<Empty> {
-                storage: storage as &dyn Storage,
-                api: &MockApi::default() as &dyn Api,
-                querier: QuerierWrapper::new(&querier as &dyn Querier)
-            };
+        let querier = EnsembleQuerier::new(&self);
+        let deps = Deps::<Empty> {
+            storage: &instance.storage as &dyn Storage,
+            api: &MockApi::default() as &dyn Api,
+            querier: QuerierWrapper::new(&querier as &dyn Querier)
+        };
 
-            let result = contract.query(deps, env, msg)?;
+        let result = contract.code.query(deps, env, msg)?;
 
-            Ok(result)
-        })
+        Ok(result)
     }
 
     fn reply(&mut self, address: String, reply: Reply) -> EnsembleResult<ReplyResponse> {
         let (index, code_hash) = {
             let instance = self.state.instance(&address)?;
-            let code_hash = instance.code_hash.clone();
+            let code_hash = self.contracts[instance.index].code_hash.clone();
 
             (instance.index, code_hash)
         };
@@ -404,16 +433,16 @@ impl Context {
         });
 
         let contract = &self.contracts[index];
+
         let querier = EnsembleQuerier::new(&self);
-        
         let response = self.state.borrow_storage_mut(&address, |storage| {
             let deps = DepsMut::<Empty> {
-                storage: storage as &mut dyn Storage,
+                storage,
                 api: &MockApi::default() as &dyn Api,
                 querier: QuerierWrapper::new(&querier as &dyn Querier)
             };
 
-            let result = contract.reply(deps, env, reply.clone())?;
+            let result = contract.code.reply(deps, env, reply.clone())?;
 
             Ok(result)
         })?;
@@ -517,14 +546,16 @@ impl Context {
                     funds,
                     code_hash,
                 } => {
-                    let instance = self.state.instance(&contract_addr)?;
+                    let index = self.state.instance(&contract_addr)?.index;
 
-                    if instance.code_hash != code_hash {
+                    if self.contracts[index].code_hash != code_hash {
                         return Err(EnsembleError::InvalidCodeHash(code_hash));
                     }
 
-                    let env = MockEnv::new(sender, contract_addr.clone())
-                        .sent_funds(funds);
+                    let env = MockEnv::new(
+                        sender,
+                        contract_addr.clone()
+                    ).sent_funds(funds);
 
                     Ok(self.execute(msg, env)?.into())
                 }
@@ -535,14 +566,22 @@ impl Context {
                     label,
                     code_hash,
                 } => {
-                    let env = MockEnv::new(sender.clone(), label.clone())
-                        .sent_funds(funds);
+                    let contract = self
+                        .contracts
+                        .get(code_id as usize)
+                        .ok_or_else(|| EnsembleError::ContractIdNotFound(code_id))?;
+
+                    if contract.code_hash != code_hash {
+                        return Err(EnsembleError::InvalidCodeHash(code_hash));
+                    }
+
+                    let env = MockEnv::new(
+                        sender.clone(),
+                        label.clone()
+                    ).sent_funds(funds);
 
                     let result = self.instantiate(
-                        ContractInstantiationInfo {
-                            code_hash,
-                            id: code_id
-                        },
+                        code_id,
                         msg,
                         env
                     )?;

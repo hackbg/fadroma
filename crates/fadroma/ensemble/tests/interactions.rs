@@ -443,8 +443,6 @@ fn test_reverts_state_on_fail() {
     ensemble.contract_storage(&result.counter.address, |storage| {
         let number: u8 = load(storage, b"num").unwrap().unwrap();
         assert_eq!(number, 3);
-
-        Ok(())
     })
     .unwrap();
 }
