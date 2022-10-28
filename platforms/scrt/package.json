@@ -4,6 +4,7 @@
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
+  "description": "Fadroma Support for Secret Network",
   "dependencies": {
     "@fadroma/client":         "workspace:^6.3.1",
     "@hackbg/formati":         "^5.1.1",

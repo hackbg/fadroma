@@ -4,6 +4,7 @@
   "type":    "module",
   "main":    "scrt-grpc.ts",
   "files": [ "*.ts" ],
+  "description": "Fadroma Client for Secret Network (gRPC/Protobuf API)",
   "dependencies": {
     "@fadroma/scrt":   "workspace:^5",
     "@hackbg/formati": "^5.1.1",
