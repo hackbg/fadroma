@@ -17,19 +17,26 @@
 **/
 
 import * as SecretJS from 'secretjs'
-import type { AgentClass, BundleClass } from '@fadroma/client'
+import { ScrtGrpcConfig } from './scrt-grpc-config'
 import { ScrtGrpc }       from './scrt-grpc-chain'
 import { ScrtGrpcAgent }  from './scrt-grpc-agent'
 import { ScrtGrpcBundle } from './scrt-grpc-bundle'
 
-ScrtGrpc.SecretJS     = SecretJS
-ScrtGrpc.Agent        = ScrtGrpcAgent  as unknown as AgentClass<ScrtGrpcAgent>
-ScrtGrpc.Agent.Bundle = ScrtGrpcBundle as unknown as BundleClass<ScrtGrpcBundle>
+Object.assign(ScrtGrpc, {
+  SecretJS: SecretJS,
+  Config: ScrtGrpcConfig,
+  Agent: Object.assign(ScrtGrpcAgent, {
+    Bundle: ScrtGrpcBundle
+  })
+})
+
+Object.defineProperty(ScrtGrpc,       'SecretJS', { enumerable: false, writable: true })
 Object.defineProperty(ScrtGrpcAgent,  'SecretJS', { enumerable: false, writable: true })
 Object.defineProperty(ScrtGrpcBundle, 'SecretJS', { enumerable: false, writable: true })
 
-export { SecretJS }
+export * from '@fadroma/scrt'
 export * from './scrt-grpc-config'
 export * from './scrt-grpc-chain'
 export * from './scrt-grpc-agent'
 export * from './scrt-grpc-bundle'
+export { SecretJS }

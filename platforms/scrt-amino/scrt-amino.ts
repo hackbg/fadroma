@@ -16,27 +16,27 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import * as SecretJS from 'secretjs' // this implementation uses secretjs 0.17
-import * as Fadroma  from '@fadroma/scrt'
-import { utf8, base64, bip39, bip39EN }  from '@hackbg/formati'
-import { backOff } from 'exponential-backoff'
-import { ScrtAminoError, ScrtAminoConsole } from './scrt-amino-events'
-import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
-
-const log = new ScrtAminoConsole()
-
+import * as SecretJS from 'secretjs'
 import { ScrtAminoConfig } from './scrt-amino-config'
 import { ScrtAmino }       from './scrt-amino-chain'
 import { ScrtAminoAgent }  from './scrt-amino-agent'
 import { ScrtAminoBundle } from './scrt-amino-bundle'
-ScrtAmino.Agent        = ScrtAminoAgent
-ScrtAmino.Config       = ScrtAminoConfig
-ScrtAmino.Agent.Bundle = ScrtAminoBundle
+
+Object.assign(ScrtAmino, {
+  SecretJS: SecretJS,
+  Config: ScrtAminoConfig,
+  Agent: Object.assign(ScrtAminoAgent, {
+    Bundle: ScrtAminoBundle
+  })
+})
+
+Object.defineProperty(ScrtAmino, 'SecretJS', { enumerable: false, writable: true })
 
 export * from '@fadroma/scrt'
-export { SecretJS }
 export * from './scrt-amino-events'
 export * from './scrt-amino-config'
 export * from './scrt-amino-chain'
 export * from './scrt-amino-agent'
 export * from './scrt-amino-bundle'
+export { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
+export { SecretJS }

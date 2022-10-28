@@ -16,12 +16,17 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import type { AgentClass, BundleClass } from '@fadroma/client'
-import { Scrt } from './scrt-chain'
-import { ScrtAgent } from './scrt-agent'
+import { ScrtConfig } from './scrt-config'
+import { Scrt       } from './scrt-chain'
+import { ScrtAgent  } from './scrt-agent'
 import { ScrtBundle } from './scrt-bundle'
-Scrt.Agent        = ScrtAgent  as unknown as AgentClass<ScrtAgent>
-Scrt.Agent.Bundle = ScrtBundle as unknown as BundleClass<ScrtBundle>
+
+Object.assign(Scrt, {
+  Config: ScrtConfig,
+  Agent: Object.assign(ScrtAgent, {
+    Bundle: ScrtBundle
+  })
+})
 
 /** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
 export * from '@fadroma/client'
