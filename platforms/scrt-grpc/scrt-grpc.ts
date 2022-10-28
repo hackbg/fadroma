@@ -16,19 +16,16 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { base64, randomBytes, bip39, bip39EN } from '@hackbg/formati'
+import * as SecretJS from 'secretjs'
+import { base64, bip39, bip39EN } from '@hackbg/formati'
 import type {
-  Address, CodeHash, CodeId, TxHash, Uint128,
-  AgentClass, AgentOpts,
-  BundleClass,
-  ChainClass, ChainOpts, ChainId,
-  DeployArgs, Label, Message,
-  ExecOpts, ICoin, IFee,
+  Address, CodeHash, CodeId, TxHash, Client,
+  AgentClass, BundleClass, ChainClass, ChainOpts, ChainId,
+  DeployArgs, Label, Message, ExecOpts, ICoin,
 } from '@fadroma/client'
-import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
+import { Chain, Contract } from '@fadroma/client'
 import { ScrtError, ScrtConsole, ScrtConfig, Scrt, ScrtAgent, ScrtBundle } from '@fadroma/scrt'
 import type { ScrtAgentOpts } from '@fadroma/scrt'
-import * as SecretJS from 'secretjs'
 
 /** gRPC-specific Secret Network settings. */
 export class ScrtGrpcConfig extends ScrtConfig {
