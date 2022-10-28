@@ -1,5 +1,5 @@
 /*
-  Fadroma Platform Package for Secret Network with Legacy Amino API
+  Fadroma Platform Package for Secret Network with REST/Amino API
   Copyright (C) 2022 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ export class ScrtAminoConfig extends Fadroma.ScrtConfig {
     = this.getString('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultTestnetAminoUrl)
 }
 
-/** The Secret Network, accessed via Amino protocol. */
+/** Represents the Secret Network, accessed via Amino/HTTP. */
 export class ScrtAmino extends Fadroma.Scrt {
   static Agent: Fadroma.AgentClass<ScrtAminoAgent> // populated below
   static Config = ScrtAminoConfig

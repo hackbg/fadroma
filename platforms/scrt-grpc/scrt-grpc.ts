@@ -1,5 +1,34 @@
+/*
+  Fadroma Platform Package for Secret Network with gRPC/Protobuf API
+  Copyright (C) 2022 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
+import { base64, randomBytes, bip39, bip39EN } from '@hackbg/formati'
+import type {
+  Address, CodeHash, CodeId, TxHash, Uint128,
+  AgentClass, AgentOpts,
+  BundleClass,
+  ChainClass, ChainOpts, ChainId,
+  DeployArgs, Label, Message,
+  ExecOpts, ICoin, IFee,
+} from '@fadroma/client'
+import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
+import { ScrtError, ScrtConsole, ScrtConfig, Scrt, ScrtAgent, ScrtBundle } from '@fadroma/scrt'
+import type { ScrtAgentOpts } from '@fadroma/scrt'
 import * as SecretJS from 'secretjs'
-import { ScrtConfig } from '@fadroma/scrt'
 
 /** gRPC-specific Secret Network settings. */
 export class ScrtGrpcConfig extends ScrtConfig {
@@ -11,7 +40,7 @@ export class ScrtGrpcConfig extends ScrtConfig {
     = this.getString('SCRT_TESTNET_GRPC_URL',  ()=>ScrtGrpcConfig.defaultTestnetGrpcUrl)
 }
 
-/** Represents the Secret Network, accessed via gRPC API. */
+/** Represents the Secret Network, accessed via gRPC/Protobuf. */
 export class ScrtGrpc extends Scrt {
   static SecretJS: typeof SecretJS = SecretJS
   static Config = ScrtGrpcConfig
@@ -105,7 +134,7 @@ export class ScrtGrpc extends Scrt {
     _Agent:  AgentClass<ScrtGrpcAgent> = this.Agent
   ): Promise<ScrtGrpcAgent> {
     // Not supported: passing a keypair like scrt-amino
-    if (options.keyPair) log.warnIgnoringKeyPair()
+    if (options.keyPair) this.log.warnIgnoringKeyPair()
     // Support creating agent for other Chain instance; TODO remove?
     const chain: ScrtGrpc = (options.chain ?? this) as ScrtGrpc
     // Use selected secretjs implementation
@@ -124,7 +153,7 @@ export class ScrtGrpc extends Scrt {
       }
       wallet = new _SecretJS.Wallet(mnemonic)
     } else if (mnemonic) {
-      log.warnIgnoringMnemonic()
+      this.log.warnIgnoringMnemonic()
     }
     // Construct the API client
     const api = await this.getApi({
@@ -335,7 +364,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
-    if (memo) log.warnNoMemos()
+    if (memo) this.log.warnNoMemos()
     const tx = {
       sender:          this.address,
       contractAddress: address!,
@@ -410,6 +439,7 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
 }
 
 export class ScrtGrpcBundle extends ScrtBundle {
+  log = new ScrtConsole('ScrtGrpcBundle')
 
   constructor (agent: ScrtGrpcAgent) {
     super(agent)
@@ -461,7 +491,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
         results[Number(i)] = result as ScrtBundleResult
       }
     } catch (err) {
-      log.submittingBundleFailed(err)
+      this.log.submittingBundleFailed(err)
       throw err
     }
     return results
@@ -496,3 +526,21 @@ export class ScrtGrpcBundle extends ScrtBundle {
 
 }
 
+ScrtGrpc.Agent        = ScrtGrpcAgent  as unknown as AgentClass<ScrtGrpcAgent>
+ScrtGrpc.Agent.Bundle = ScrtGrpcBundle as unknown as BundleClass<ScrtGrpcBundle>
+Object.defineProperty(ScrtGrpcAgent,  'SecretJS', { enumerable: false, writable: true })
+Object.defineProperty(ScrtGrpcBundle, 'SecretJS', { enumerable: false, writable: true })
+
+export interface ScrtBundleResult {
+  sender?:   Address
+  tx:        TxHash
+  type:      'wasm/MsgInstantiateContract'|'wasm/MsgExecuteContract'
+  chainId:   ChainId
+  codeId?:   CodeId
+  codeHash?: CodeHash
+  address?:  Address
+  label?:    Label
+}
+
+/** Expose default version of secretjs */
+export { SecretJS }

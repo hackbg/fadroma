@@ -25,17 +25,12 @@ import type {
   ExecOpts, ICoin, IFee,
 } from '@fadroma/client'
 import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
-import * as SecretJS from 'secretjs'
 
 import { base64, randomBytes, bip39, bip39EN } from '@hackbg/formati'
 import structuredClone from '@ungap/structured-clone'
 
 import { ScrtConfig, ScrtGrpcConfig } from './scrt-config'
 import { ScrtError, ScrtConsole } from './scrt-events'
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/// # BASE DEFINITIONS FOR ALL SECRET NETWORK API IMPLEMENTATIONS /////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Base class for both implementations of Secret Network API (gRPC and Amino).
   * Represents the Secret Network in general. */
@@ -163,26 +158,6 @@ Scrt.Agent.Bundle = ScrtBundle as unknown as BundleClass<ScrtBundle>
 export interface ScrtBundleClass <B extends ScrtBundle> {
   new (agent: ScrtAgent): B
 }
-
-export type ScrtBundleMessage =
-  |SecretJS.MsgInstantiateContract
-  |SecretJS.MsgExecuteContract<object>
-
-export interface ScrtBundleResult {
-  sender?:   Address
-  tx:        TxHash
-  type:      'wasm/MsgInstantiateContract'|'wasm/MsgExecuteContract'
-  chainId:   ChainId
-  codeId?:   CodeId
-  codeHash?: CodeHash
-  address?:  Address
-  label?:    Label
-}
-
-ScrtGrpc.Agent        = ScrtGrpcAgent  as unknown as AgentClass<ScrtGrpcAgent>
-ScrtGrpc.Agent.Bundle = ScrtGrpcBundle as unknown as BundleClass<ScrtGrpcBundle>
-Object.defineProperty(ScrtGrpcAgent,  'SecretJS', { enumerable: false, writable: true })
-Object.defineProperty(ScrtGrpcBundle, 'SecretJS', { enumerable: false, writable: true })
 
 /** Data used for creating a signature as per the SNIP-24 spec:
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc
@@ -331,9 +306,6 @@ const log = new ScrtConsole()
 
 /** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
 export * from '@fadroma/client'
-
-/** Expose default version of secretjs */
-export { SecretJS }
 
 /** Expose configuration objects. */
 export { ScrtConfig, ScrtGrpcConfig }
