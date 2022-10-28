@@ -21,7 +21,7 @@ importers:
       '@hackbg/konfizi': ^3.0.1
       '@hackbg/konzola': ^2.1
       '@hackbg/runspec': ^2.3.1
-      '@hackbg/ubik': ^1.1.1
+      '@hackbg/ubik': ^1.2.3
       '@types/dockerode': ^3.3.9
       '@types/js-yaml': ^4.0.5
       '@types/node': ^16.11.55
@@ -57,7 +57,7 @@ importers:
     devDependencies:
       '@hackbg/ensuite': 1.0.2
       '@hackbg/runspec': 2.3.1
-      '@hackbg/ubik': 1.2.2
+      '@hackbg/ubik': 1.2.3
       '@types/dockerode': 3.3.9
       '@types/js-yaml': 4.0.5
       '@types/node': 16.11.55
@@ -663,8 +663,8 @@ packages:
     hasBin: true
     dev: true
 
-  /@hackbg/ubik/1.2.2:
-    resolution: {integrity: sha512-HA7ZmYUzhP6cPqqJU2LmEuQCtezb6B7DJirYWoKcambP4VmfNkYE+XPzZ3sTH50Kq2/9X7sGOWMVOO7DV8//ng==}
+  /@hackbg/ubik/1.2.3:
+    resolution: {integrity: sha512-nIj+xz8QxmPGrf6FyHAtsZBvXn1qwWIZBic+XJqfqyM2h8NQxuBT5fLf8iDVyPmuAS3EJg2GiGks29w59kf9+w==}
     hasBin: true
     dependencies:
       babylon: 7.0.0-beta.47
