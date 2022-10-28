@@ -1,40 +1,56 @@
-import { Scrt } from '@fadroma/scrt'
-import type { AgentClass, Address } from '@fadroma/scrt'
-import type { ScrtAminoAgent } from './scrt-amino-agent'
+import type * as SecretJS from 'secretjs'
+import { Scrt, ChainMode } from '@fadroma/scrt'
+import { bip39, bip39EN } from '@hackbg/formati'
+import { ScrtAminoConsole } from './scrt-amino-events'
+import type { AgentClass, Address, Client } from '@fadroma/scrt'
+import type { ScrtAminoAgent, ScrtAminoAgentOpts } from './scrt-amino-agent'
 import type { ScrtAminoConfig } from './scrt-amino-config'
 
 /** Represents the Secret Network, accessed via Amino/HTTP. */
 export class ScrtAmino extends Scrt {
-  static Agent: Fadroma.AgentClass<ScrtAminoAgent> // populated below
+
+  static SecretJS: typeof SecretJS
+
+  static Agent: AgentClass<ScrtAminoAgent> // populated below
+
   static Config: typeof ScrtAminoConfig
+
   static defaultMainnetAminoUrl: string|null = null
+
   static defaultTestnetAminoUrl: string|null = null
+
   static Chains = {
     async 'ScrtAminoMainnet' (config: ScrtAminoConfig) {
-      const mode = Fadroma.ChainMode.Mainnet
-      const id   = config.scrtMainnetChainId  ?? Fadroma.Scrt.defaultMainnetChainId
+      const mode = ChainMode.Mainnet
+      const id   = config.scrtMainnetChainId  ?? Scrt.defaultMainnetChainId
       const url  = config.scrtMainnetAminoUrl ?? ScrtAmino.defaultMainnetAminoUrl ?? undefined
       return new ScrtAmino(id, { url, mode })
     },
     async 'ScrtAminoTestnet' (config: ScrtAminoConfig) {
-      const mode = Fadroma.ChainMode.Testnet
-      const id   = config.scrtTestnetChainId  ?? Fadroma.Scrt.defaultTestnetChainId
+      const mode = ChainMode.Testnet
+      const id   = config.scrtTestnetChainId  ?? Scrt.defaultTestnetChainId
       const url  = config.scrtTestnetAminoUrl ?? ScrtAmino.defaultTestnetAminoUrl ?? undefined
       return new ScrtAmino(id, { url, mode })
     },
     // devnet and mocknet modes are defined in @fadroma/connect
   }
 
-  Agent: Fadroma.AgentClass<ScrtAminoAgent> = ScrtAmino.Agent
-  api = new SecretJS.CosmWasmClient(this.url)
+  log = new ScrtAminoConsole('ScrtAmino')
+
+  Agent: AgentClass<ScrtAminoAgent> = ScrtAmino.Agent
+
+  api = new ScrtAmino.SecretJS.CosmWasmClient(this.url)
+
   get block () {
     return this.api.getBlock()
   }
+
   get height () {
     return this.block.then(block=>block.header.height)
   }
+
   /** Get up-to-date balance of this address in specified denomination. */
-  async getBalance (denomination: string = this.defaultDenom, address: Fadroma.Address) {
+  async getBalance (denomination: string = this.defaultDenom, address: Address) {
     const account = await this.api.getAccount(address)
     const balance = account?.balance || []
     const inDenom = ({denom}:{denom:string}) => denom === denomination
@@ -42,6 +58,7 @@ export class ScrtAmino extends Scrt {
     if (!balanceInDenom) return '0'
     return balanceInDenom.amount
   }
+
   async getHash (idOrAddr: number|string) {
     const { api } = this
     if (typeof idOrAddr === 'number') {
@@ -52,26 +69,30 @@ export class ScrtAmino extends Scrt {
       throw new TypeError('getCodeHash id or addr')
     }
   }
-  async getCodeId (address: Fadroma.Address) {
+
+  async getCodeId (address: Address) {
     const { api } = this
     const { codeId } = await api.getContract(address)
     return String(codeId)
   }
-  async getLabel (address: Fadroma.Address) {
+
+  async getLabel (address: Address) {
     const { api } = this
     const { label } = await api.getContract(address)
     return label
   }
-  async query <T, U> ({ address, codeHash }: Partial<Fadroma.Client>, msg: T) {
+
+  async query <T, U> ({ address, codeHash }: Partial<Client>, msg: T) {
     const { api } = this
     // @ts-ignore
     return api.queryContractSmart(address, msg, undefined, codeHash)
   }
+
   /** Create a `ScrtAminoAgent` on this `chain`.
     * You can optionally pass a compatible subclass as a second argument. */
   async getAgent (
     options: Partial<ScrtAminoAgentOpts> = {},
-    _Agent:  Fadroma.AgentClass<ScrtAminoAgent> = this.Agent
+    _Agent:  AgentClass<ScrtAminoAgent> = this.Agent
   ): Promise<ScrtAminoAgent> {
     const { name = 'Anonymous', ...args } = options
     let   { mnemonic, keyPair } = options
@@ -80,7 +101,7 @@ export class ScrtAmino extends Scrt {
       case !!mnemonic:
         // if keypair doesnt correspond to the mnemonic, delete the keypair
         if (keyPair && mnemonic !== privKeyToMnemonic(keyPair.privkey)) {
-          log.warnKeypair()
+          this.log.warnKeypair()
           keyPair = null
         }
         break
@@ -90,7 +111,7 @@ export class ScrtAmino extends Scrt {
         break
       default:
         // if there is neither, generate a new keypair and corresponding mnemonic
-        keyPair  = SecretJS.EnigmaUtils.GenerateNewKeyPair()
+        keyPair  = ScrtAmino.SecretJS.EnigmaUtils.GenerateNewKeyPair()
         mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
     // construct options object
@@ -99,12 +120,13 @@ export class ScrtAmino extends Scrt {
       chain: this,
       name,
       mnemonic,
-      pen: await SecretJS.Secp256k1Pen.fromMnemonic(mnemonic!),
+      pen: await ScrtAmino.SecretJS.Secp256k1Pen.fromMnemonic(mnemonic!),
       keyPair
     }
     // construct agent
     return await super.getAgent(options, _Agent) as ScrtAminoAgent
   }
+
 }
 
 export const privKeyToMnemonic = (privKey: Uint8Array): string =>

@@ -3,6 +3,7 @@ import { Scrt, ScrtBundle } from '@fadroma/scrt'
 import type { Address } from '@fadroma/scrt'
 import type { ScrtAminoAgent } from './scrt-amino-agent'
 import { PatchedSigningCosmWasmClient_1_2 as SigningCosmWasmClient } from './scrt-amino-patch'
+import { mergeAttrs } from './merge-attrs'
 
 /** Get the account number and current sequence number for an address. */
 export async function getNonce (url: string, address: Address): Promise<ScrtNonce> {
@@ -14,11 +15,6 @@ export async function getNonce (url: string, address: Address): Promise<ScrtNonc
 export interface ScrtNonce {
   accountNumber: number
   sequence:      number
-}
-
-interface SigningPen {
-  pubkey: Uint8Array,
-  sign:   Function
 }
 
 export class ScrtAminoBundle extends ScrtBundle {
