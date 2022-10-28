@@ -195,11 +195,9 @@ importers:
 
   packages/tokens:
     specifiers:
-      '@fadroma/client': workspace:^6.3.1
-      '@fadroma/scrt': workspace:^5
+      '@fadroma/scrt': workspace:^5.0.1
       '@hackbg/formati': ^5.1.1
     dependencies:
-      '@fadroma/client': link:../client
       '@fadroma/scrt': link:../../platforms/scrt
       '@hackbg/formati': 5.1.1
 
