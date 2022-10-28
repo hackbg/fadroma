@@ -244,16 +244,16 @@ importers:
 
   platforms/scrt-grpc:
     specifiers:
-      '@fadroma/scrt': workspace:^5
+      '@fadroma/scrt': workspace:^5.0.1
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/formati': ^5.1.1
       '@hackbg/konfizi': ^3.0.1
-      secretjs: 1.4.3
+      secretjs: 1.4.5
     dependencies:
       '@fadroma/scrt': link:../scrt
       '@hackbg/formati': 5.1.1
       '@hackbg/konfizi': 3.0.1
-      secretjs: 1.4.3
+      secretjs: 1.4.5
     devDependencies:
       '@hackbg/ensuite': 1.0.2
 
@@ -684,10 +684,10 @@ packages:
     peerDependencies:
       '@improbable-eng/grpc-web': '>=0.13.0'
     dependencies:
-      '@improbable-eng/grpc-web': 0.15.0
+      '@improbable-eng/grpc-web': 0.15.0_google-protobuf@3.21.2
     dev: false
 
-  /@improbable-eng/grpc-web/0.15.0:
+  /@improbable-eng/grpc-web/0.15.0_google-protobuf@3.21.2:
     resolution: {integrity: sha512-ERft9/0/8CmYalqOVnJnpdDry28q+j+nAlFFARdjyxXDJ+Mhgv9+F600QC8BR9ygOfrXRlAk6CvST2j+JCpQPg==}
     peerDependencies:
       google-protobuf: ^3.14.0
@@ -696,6 +696,7 @@ packages:
         optional: true
     dependencies:
       browser-headers: 0.4.1
+      google-protobuf: 3.21.2
     dev: false
 
   /@iov/crypto/2.1.0:
@@ -2162,6 +2163,10 @@ packages:
       once: 1.4.0
     dev: true
 
+  /google-protobuf/3.21.2:
+    resolution: {integrity: sha512-3MSOYFO5U9mPGikIYCzK0SaThypfGgS6bHqrUGXG3DPHCrb+txNqeEcns1W0lkGfk0rCyNXm7xB9rMxnCiZOoA==}
+    dev: false
+
   /graceful-fs/4.2.10:
     resolution: {integrity: sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==}
     dev: false
@@ -3017,12 +3022,12 @@ packages:
       - debug
     dev: false
 
-  /secretjs/1.4.3:
-    resolution: {integrity: sha512-IDhoPWg1Nra7ji3FU07ZHbxkp1S5uQnbLsDNj/t6Q9M9wysxv/BZafHnoEkAcB7FYYwOkxs5RxnSAZ2oiJORPw==}
+  /secretjs/1.4.5:
+    resolution: {integrity: sha512-WbHzcDTL8VW8WwVMAPXZAMj6QutXBe1gjLhyjOT3lAQX5zU1TKh2h8EpAxNrM0BfLPMPRC24qtngrrkVrdW2CA==}
     dependencies:
       '@cosmjs/encoding': 0.27.1
       '@cosmjs/math': 0.27.1
-      '@improbable-eng/grpc-web': 0.15.0
+      '@improbable-eng/grpc-web': 0.15.0_google-protobuf@3.21.2
       '@improbable-eng/grpc-web-node-http-transport': 0.15.0_fng5pv4qmdetiqq66m6yjkaacu
       '@noble/hashes': 1.0.0
       '@noble/secp256k1': 1.6.3
@@ -3033,13 +3038,12 @@ packages:
       bip32: 2.0.6
       bip39: 3.0.4
       curve25519-js: 0.0.4
+      google-protobuf: 3.21.2
       is-gzip: 2.0.0
       miscreant: 0.3.2
       pako: 2.0.4
       protobufjs: 6.11.3
       secure-random: 1.1.2
-    transitivePeerDependencies:
-      - google-protobuf
     dev: false
 
   /secure-random/1.1.2:
