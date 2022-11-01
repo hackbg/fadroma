@@ -37,4 +37,9 @@ export class BuildConsole extends CommandsConsole {
         fadroma-build path/to/Cargo.toml
         fadroma-build buildConfig.{js|ts}`)
   }
+  runningBuildContainer (root: string|Path, revision: string, cratesToBuild: string[]) {
+    root = $(root).shortPath
+    const crates = cratesToBuild.map(x=>bold(x)).join(', ')
+    this.log(`Started building from ${bold(root)} @ ${bold(revision)}:`, crates)
+  }
 }
