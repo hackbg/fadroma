@@ -107,4 +107,5 @@ export function mockEnv () {
 
 ```typescript
 import './mocknet-backend.spec.ts.md'
+import './mocknet-data.spec.ts.md'
 ```

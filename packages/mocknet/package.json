@@ -8,6 +8,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "ensuite mocknet.spec.ts.md",
+    "cov":   "ensuite-cov mocknet.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {

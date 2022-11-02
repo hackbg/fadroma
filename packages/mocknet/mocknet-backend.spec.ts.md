@@ -7,6 +7,7 @@ import * as Testing from '../../TESTING.ts.md'
 
 ```typescript
 import { MocknetBackend, MocknetContract } from './mocknet-backend'
+import { b64toUtf8, utf8toB64 } from './mocknet-data'
 let backend:  MocknetBackend
 let contract: MocknetContract
 let response: { Ok: any, Err: any }
@@ -57,27 +58,17 @@ assert.deepEqual(response.Ok, undefined)
 assert.deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
 ```
 
-## Base64 IO
-
-* **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
-  responses) are returned by the contract as Base64-encoded strings
-  * If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
-  * These functions are used by the mocknet code to encode/decode the base64.
-
-```typescript
-import { b64toUtf8, utf8toB64 } from './mocknet-backend'
-
-assert.equal(b64toUtf8('IkVjaG8i'), '"Echo"')
-assert.equal(utf8toB64('"Echo"'), 'IkVjaG8i')
-```
-
-## More tests
+### And some more tests...
 
 ```typescript
 assert.throws(()=>new MocknetBackend().getInstance())
+
 assert.throws(()=>new MocknetBackend().getInstance('foo'))
+
 assert.throws(()=>new MocknetBackend().makeEnv())
+
 assert.rejects(new MocknetBackend().passCallbacks())
+
 assert.ok(new MocknetBackend('mocknet', {
   123: Testing.examples['Echo'].data
 }, {
