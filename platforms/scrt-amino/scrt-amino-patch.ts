@@ -148,7 +148,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
     } catch (e) {
       const { message } = e as Error
       if (this.shouldRetry(message)) {
-        warn(`Getting result of TX ${id} failed (${message}): ${resultRetries} retries left...`)
+        warn(`Getting result of TX ${id} failed: ${resultRetries} retries left...`)
+        console.error(e)
         await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
       } else {
         warn(`Getting result of TX ${id} failed (${message}): not retrying`)
