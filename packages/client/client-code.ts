@@ -1,6 +1,8 @@
 import type { Agent, Address } from './client-connect'
 import { assertAddress } from './client-connect'
-import type { ContractSource, ContractTemplate, ContractInstance } from './client-contract'
+import type { ContractSource } from './client-build'
+import { ContractTemplate } from './client-upload'
+import { ContractInstance } from './client-deploy'
 import { validated } from './client-fields'
 import { ClientError } from './client-events'
 

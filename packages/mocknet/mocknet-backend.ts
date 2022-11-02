@@ -1,32 +1,42 @@
-import * as Fadroma from '@fadroma/client'
+import { into } from '@fadroma/client'
+import type {
+  Address, Client, CodeId, CodeHash, ContractInstance, Label, Message
+} from '@fadroma/client'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { CustomConsole, bold } from '@hackbg/konzola'
+import type { MocknetContract } from './mocknet-contract'
 
 const log = new CustomConsole('Fadroma.Mocknet')
 
 /** Hosts MocknetContract instances. */
-export default class MocknetBackend {
+export class MocknetBackend {
   /** Hosts an instance of a WASM code blob and its local storage. */
   static Contract: typeof MocknetContract
 
   constructor (
     readonly chainId:   string,
-    readonly uploads:   Record<Fadroma.CodeId, unknown>          = {},
-    readonly instances: Record<Fadroma.Address, MocknetContract> = {},
+    readonly uploads:   Record<CodeId, unknown>          = {},
+    readonly instances: Record<Address, MocknetContract> = {},
   ) {
     if (Object.keys(uploads).length > 0) {
       this.codeId = (Math.max(...Object.keys(uploads).map(x=>Number(x))) ?? 0) + 1
     }
   }
+
   codeId = 0
-  codeIdForCodeHash: Record<Fadroma.CodeHash, Fadroma.CodeId> = {}
-  codeIdForAddress:  Record<Fadroma.Address,  Fadroma.CodeId> = {}
-  labelForAddress:   Record<Fadroma.Address,  Fadroma.Label>  = {}
-  getCode (codeId: Fadroma.CodeId) {
+
+  codeIdForCodeHash: Record<CodeHash, CodeId> = {}
+
+  codeIdForAddress:  Record<Address,  CodeId> = {}
+
+  labelForAddress:   Record<Address,  Label>  = {}
+
+  getCode (codeId: CodeId) {
     const code = this.uploads[codeId]
     if (!code) throw new Error(`No code with id ${codeId}`)
     return code
   }
+
   upload (blob: Uint8Array) {
     const chainId  = this.chainId
     const codeId   = String(++this.codeId)
@@ -35,7 +45,8 @@ export default class MocknetBackend {
     this.codeIdForCodeHash[codeHash] = String(codeId)
     return { codeId, codeHash }
   }
-  getInstance (address?: Fadroma.Address) {
+
+  getInstance (address?: Address) {
     if (!address) {
       throw new Error(`MocknetBackend#getInstance: can't get instance without address`)
     }
@@ -45,12 +56,13 @@ export default class MocknetBackend {
     }
     return instance
   }
+
   async instantiate (
-    sender:   Fadroma.Address,
-    instance: Fadroma.ContractInstance
-  ): Promise<Partial<Fadroma.ContractInstance>> {
+    sender:   Address,
+    instance: ContractInstance
+  ): Promise<Partial<ContractInstance>> {
     const label    = instance.label
-    const initMsg  = await Fadroma.into(instance.initMsg)
+    const initMsg  = await into(instance.initMsg)
     const chainId  = this.chainId
     const code     = this.getCode(instance.codeId!)
     const contract = await new MocknetBackend.Contract(this).load(code, instance.codeId)
@@ -69,10 +81,11 @@ export default class MocknetBackend {
       label
     }
   }
+
   async execute (
-    sender: Fadroma.Address,
-    { address, codeHash }: Partial<Fadroma.Client>,
-    msg: Fadroma.Message,
+    sender: Address,
+    { address, codeHash }: Partial<Client>,
+    msg: Message,
     funds: unknown,
     memo?: unknown, 
     fee?:  unknown
@@ -85,11 +98,12 @@ export default class MocknetBackend {
     await this.passCallbacks(address, response.messages)
     return response
   }
+
   /** Populate the `Env` object available in transactions. */
   makeEnv (
-    sender:   Fadroma.Address,
-    address?: Fadroma.Address,
-    codeHash: Fadroma.CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
+    sender:   Address,
+    address?: Address,
+    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
     now: number = + new Date()
   ) {
     if (!address) {
@@ -107,7 +121,8 @@ export default class MocknetBackend {
       contract_code_hash: codeHash
     }
   }
-  async passCallbacks (sender: Fadroma.Address|undefined, messages: Array<any>) {
+
+  async passCallbacks (sender: Address|undefined, messages: Array<any>) {
     if (!sender) {
       throw new Error("MocknetBackend#passCallbacks: can't pass callbacks without sender")
     }
@@ -123,7 +138,7 @@ export default class MocknetBackend {
       const { instantiate, execute } = wasm
       if (instantiate) {
         const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
-        const instance = await this.instantiate(sender, new Fadroma.ContractInstance({
+        const instance = await this.instantiate(sender, new ContractInstance({
           codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
         }))
         trace(
@@ -152,7 +167,8 @@ export default class MocknetBackend {
       }
     }
   }
-  async query ({ address, codeHash }: Partial<Fadroma.Client>, msg: Fadroma.Message) {
+
+  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
     const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
     return JSON.parse(result)
   }

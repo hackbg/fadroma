@@ -1,8 +1,9 @@
-import { MocknetBackend, ADDRESS_PREFIX } from './mocknet-backend'
+import { MocknetBackend } from './mocknet-backend'
 import { MocknetContract } from './mocknet-contract'
 import { Mocknet } from './mocknet-chain'
 import { MocknetAgent } from './mocknet-agent'
 import { MocknetBundle } from './mocknet-bundle'
+import { ADDRESS_PREFIX } from './mocknet-data'
 
 Object.assign(Mocknet, {
   Agent: Object.assign(MocknetAgent, {
