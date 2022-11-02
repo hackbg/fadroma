@@ -4,7 +4,7 @@ import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { bold } from '@hackbg/konzola'
 import type { MocknetContract } from './mocknet-contract'
 import { parseResult, b64toUtf8, codeHashForBlob } from './mocknet-data'
-import { MocknetConsole } from './mocknet-events'
+import { MocknetConsole, MocknetError } from './mocknet-events'
 
 /** Hosts MocknetContract instances. */
 export class MocknetBackend {
@@ -47,13 +47,9 @@ export class MocknetBackend {
   }
 
   getInstance (address?: Address) {
-    if (!address) {
-      throw new Error(`MocknetBackend#getInstance: can't get instance without address`)
-    }
+    if (!address) throw new MocknetError.NoInstance()
     const instance = this.instances[address]
-    if (!instance) {
-      throw new Error(`MocknetBackend#getInstance: no contract at ${address}`)
-    }
+    if (!instance) throw new MocknetError.NoInstanceAtAddress(address)
     return instance
   }
 
@@ -66,8 +62,8 @@ export class MocknetBackend {
     const chainId  = this.chainId
     const code     = this.getCode(instance.codeId!)
     const contract = await new MocknetBackend.Contract(this).load(code, instance.codeId)
-    const env      = this.makeEnv(sender, contract.address, instance.codeHash)
-    const response = contract.init(env, initMsg!)
+    const context  = this.context(sender, contract.address, instance.codeHash)
+    const response = contract.init(...context, initMsg!)
     const initResponse = parseResult(response, 'instantiate', contract.address)
     this.instances[contract.address]        = contract
     this.codeIdForAddress[contract.address] = instance.codeId!
@@ -85,12 +81,12 @@ export class MocknetBackend {
   async execute (
     sender: Address,
     { address, codeHash }: Partial<Client>,
-    msg: Message,
+    msg:   Message,
     funds: unknown,
     memo?: unknown, 
     fee?:  unknown
   ) {
-    const result   = this.getInstance(address).handle(this.makeEnv(sender, address), msg)
+    const result   = this.getInstance(address).execute(...this.context(sender, address), msg)
     const response = parseResult(result, 'execute', address)
     if (response.data !== null) {
       response.data = b64toUtf8(response.data)
@@ -99,27 +95,21 @@ export class MocknetBackend {
     return response
   }
 
-  /** Populate the `Env` object available in transactions. */
-  makeEnv (
+  /** Populate the `Env` and `Info` object available in transactions. */
+  context (
     sender:   Address,
     address?: Address,
     codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
-    now: number = + new Date()
-  ) {
-    if (!address) {
-      throw new Error("MocknetBackend#makeEnv: Can't create contract environment without address")
-    }
-    const height            = Math.floor(now/5000)
-    const time              = Math.floor(now/1000)
-    const chain_id          = this.chainId
+    now:      number             = + new Date()
+  ): [unknown, unknown] {
+    if (!address) throw new MocknetError.ContextNoAddress()
+    const height   = Math.floor(now/5000)
+    const time     = Math.floor(now/1000)
+    const chain_id = this.chainId
     const sent_funds: any[] = []
-    return {
-      block:    { height, time, chain_id },
-      message:  { sender, sent_funds },
-      contract: { address },
-      contract_key: "",
-      contract_code_hash: codeHash
-    }
+    const env  = { block: { height, time, chain_id }, transaction: { index: 0 }, contract: { address } }
+    const info = { sender, funds: [] }
+    return [env, info]
   }
 
   async passCallbacks (sender: Address|undefined, messages: Array<any>) {

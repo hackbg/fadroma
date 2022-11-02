@@ -5,7 +5,7 @@ import type {
 } from '@fadroma/client'
 import type { Mocknet } from './mocknet-chain'
 import type { MocknetBundle } from './mocknet-bundle'
-import { ADDRESS_PREFIX, codeHashForBlob } from './mocknet-data'
+import { ADDRESS_PREFIX } from './mocknet-data'
 import type { MocknetBackend } from './mocknet-backend'
 
 export class MocknetAgent extends Agent {
@@ -15,7 +15,7 @@ export class MocknetAgent extends Agent {
   /** Message bundle that warns about unsupported messages. */
   static Bundle: BundleClass<MocknetBundle>
 
-  name:    string          = 'MocknetAgent'
+  name: string = 'MocknetAgent'
 
   address: Address = randomBech32(ADDRESS_PREFIX)
 

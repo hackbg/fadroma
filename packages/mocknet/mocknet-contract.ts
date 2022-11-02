@@ -1,4 +1,5 @@
 import * as Fadroma from '@fadroma/client'
+import type { Address, CodeHash, CodeId, Message } from '@fadroma/client'
 import { ClientConsole, bold } from '@fadroma/client'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import type { MocknetBackend } from './mocknet-backend'
@@ -27,9 +28,9 @@ export class MocknetContract {
 
   constructor (
     readonly backend:   MocknetBackend|null = null,
-    readonly address:   Fadroma.Address     = randomBech32(ADDRESS_PREFIX),
-    readonly codeHash?: Fadroma.CodeHash,
-    readonly codeId?:   Fadroma.CodeId,
+    readonly address:   Address     = randomBech32(ADDRESS_PREFIX),
+    readonly codeHash?: CodeHash,
+    readonly codeId?:   CodeId,
   ) {
     this.log.trace('Instantiating', bold(address))
   }
@@ -38,7 +39,7 @@ export class MocknetContract {
 
   storage = new Map<string, Buffer>()
 
-  async load (code: unknown, codeId?: Fadroma.CodeId) {
+  async load (code: unknown, codeId?: CodeId) {
     return Object.assign(this, {
       codeId:   this.codeId,
       instance: (await WebAssembly.instantiate(code, this.makeImports())).instance,
@@ -46,35 +47,35 @@ export class MocknetContract {
     })
   }
 
-  init (env: unknown, msg: Fadroma.Message) {
+  init (env: unknown, info: unknown, msg: Message) {
     this.log.debug(`${bold(this.address)} init:`, msg)
     try {
-      const envBuf  = this.pass(env)
-      const msgBuf  = this.pass(msg)
-      const retPtr  = this.instance!.exports.init(envBuf, msgBuf)
-      const retData = this.readUtf8(retPtr)
-      return retData
+      return this.readUtf8(this.instance!.exports.init(
+        this.pass(env),
+        this.pass(info),
+        this.pass(msg)
+      ))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on init:`, e.message)
       throw e
     }
   }
 
-  handle (env: unknown, msg: Fadroma.Message) {
+  execute (env: unknown, info: unknown, msg: Message) {
     this.log.debug(`${bold(this.address)} handle:`, msg)
     try {
-      const envBuf = this.pass(env)
-      const msgBuf = this.pass(msg)
-      const retPtr = this.instance!.exports.handle(envBuf, msgBuf)
-      const retBuf = this.readUtf8(retPtr)
-      return retBuf
+      return this.readUtf8(this.instance!.exports.execute(
+        this.pass(env),
+        this.pass(info),
+        this.pass(msg)
+      ))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on handle:`, e.message)
       throw e
     }
   }
 
-  query (msg: Fadroma.Message) {
+  query (msg: Message) {
     this.log.debug(`${bold(this.address)} query:`, msg)
     try {
       const msgBuf = this.pass(msg)
@@ -200,9 +201,9 @@ export class MocknetContract {
 
 /** Contract's raw API methods, taking and returning heap pointers. */
 export interface ContractExports extends IOExports {
-  init        (env: Ptr, msg: Ptr): Ptr
-  handle      (env: Ptr, msg: Ptr): Ptr
-  query       (msg: Ptr):           Ptr
+  init    (env: Ptr, info: Ptr, msg: Ptr): Ptr
+  execute (env: Ptr, info: Ptr, msg: Ptr): Ptr
+  query   (msg: Ptr):                      Ptr
 }
 
 export interface ContractImports {
