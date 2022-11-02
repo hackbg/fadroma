@@ -22,6 +22,35 @@ declare namespace WebAssembly {
   }
 }
 
+/** Contract's raw API methods, taking and returning heap pointers. */
+export interface ContractExports extends IOExports {
+  instantiate      (env: Ptr, info: Ptr, msg: Ptr): Ptr
+  execute          (env: Ptr, info: Ptr, msg: Ptr): Ptr
+  query            (msg: Ptr):                      Ptr
+  requires_staking ():                              Ptr
+}
+
+/** This is the API that a contract expects. */
+export interface ContractImports {
+  memory: WebAssembly.Memory
+  env: {
+    addr_canonicalize        (src:  Ptr, dst: Ptr): ErrCode
+    addr_humanize            (src:  Ptr, dst: Ptr): ErrCode
+    addr_validate            (addr: Ptr):           ErrCode
+    db_read                  (key:  Ptr):           Ptr
+    db_remove                (key:  Ptr):           void
+    db_write                 (key:  Ptr, val: Ptr): void
+    debug                    (key:  Ptr):           Ptr
+    ed25519_batch_verify     (x:    Ptr):           Ptr
+    ed25519_sign             (x:    Ptr, y:   Ptr): Ptr
+    ed25519_verify           (x:    Ptr, y:   Ptr): Ptr
+    query_chain              (req:  Ptr):           Ptr
+    secp256k1_recover_pubkey (x:    Ptr):           Ptr
+    secp256k1_sign           (x:    Ptr, y:   Ptr): Ptr
+    secp256k1_verify         (x:    Ptr, y:   Ptr): Ptr
+  }
+}
+
 export class MocknetContract {
 
   log = new ClientConsole('Fadroma Mocknet')
@@ -50,7 +79,7 @@ export class MocknetContract {
   init (env: unknown, info: unknown, msg: Message) {
     this.log.debug(`${bold(this.address)} init:`, msg)
     try {
-      return this.readUtf8(this.instance!.exports.init(
+      return this.readUtf8(this.instance!.exports.instantiate(
         this.pass(env),
         this.pass(info),
         this.pass(msg)
@@ -65,8 +94,8 @@ export class MocknetContract {
     this.log.debug(`${bold(this.address)} handle:`, msg)
     try {
       return this.readUtf8(this.instance!.exports.execute(
-        this.pass(env),
         this.pass(info),
+        this.pass(env),
         this.pass(msg)
       ))
     } catch (e: any) {
@@ -136,7 +165,7 @@ export class MocknetContract {
           log.trace(bold(contract.address), `db_remove:`, bold(key))
           contract.storage.delete(key)
         },
-        canonicalize_address (srcPtr, dstPtr) {
+        addr_canonicalize (srcPtr, dstPtr) {
           const exports = getExports()
           const human   = readUtf8(exports, srcPtr)
           const canon   = bech32.fromWords(bech32.decode(human).words)
@@ -145,13 +174,17 @@ export class MocknetContract {
           writeToRegion(exports, dstPtr, canon)
           return 0
         },
-        humanize_address (srcPtr, dstPtr) {
+        addr_humanize (srcPtr, dstPtr) {
           const exports = getExports()
           const canon   = readBuffer(exports, srcPtr)
           const human   = bech32.encode(ADDRESS_PREFIX, bech32.toWords(canon))
           const dst     = region(exports.memory.buffer, dstPtr)
           log.trace(bold(contract.address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(exports, dstPtr, human)
+          return 0
+        },
+        addr_validate (srcPtr) {
+          log.warn('addr_validate: not implemented')
           return 0
         },
         query_chain (reqPtr) {
@@ -192,28 +225,37 @@ export class MocknetContract {
           log.debug(`${bold(contract_addr)} responds to ${contract.address}:`, b64toUtf8(result))
           return pass(exports, { Ok: { Ok: result } })
           // https://docs.rs/secret-cosmwasm-std/latest/secret_cosmwasm_std/type.QuerierResult.html
-        }
+        },
+        secp256k1_recover_pubkey () {
+          log.warn('sec256k1_recover_pubkey: not implemented')
+          return 0
+        },
+        secp256k1_sign () {
+          log.warn('sec256k1_sign: not implemented')
+          return 0
+        },
+        secp256k1_verify () {
+          log.warn('sec256k1_verify: not implemented')
+          return 0
+        },
+        ed25519_batch_verify () {
+          log.warn('ed25519_batch_verify: not implemented')
+          return 0
+        },
+        ed25519_sign () {
+          log.warn('ed25519_sign: not implemented')
+          return 0
+        },
+        ed25519_verify () {
+          log.warn('ed25519_verify: not implemented')
+          return 0
+        },
+        debug () {
+          log.warn('debug: not implemented')
+          return 0
+        },
       }
     }
   }
 
-}
-
-/** Contract's raw API methods, taking and returning heap pointers. */
-export interface ContractExports extends IOExports {
-  init    (env: Ptr, info: Ptr, msg: Ptr): Ptr
-  execute (env: Ptr, info: Ptr, msg: Ptr): Ptr
-  query   (msg: Ptr):                      Ptr
-}
-
-export interface ContractImports {
-  memory: WebAssembly.Memory
-  env: {
-    db_read              (key: Ptr):           Ptr
-    db_write             (key: Ptr, val: Ptr): void
-    db_remove            (key: Ptr):           void
-    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
-    humanize_address     (src: Ptr, dst: Ptr): ErrCode
-    query_chain          (req: Ptr):           Ptr
-  }
 }

@@ -104,9 +104,10 @@ export class MocknetBackend {
   ): [unknown, unknown] {
     if (!address) throw new MocknetError.ContextNoAddress()
     const height   = Math.floor(now/5000)
-    const time     = Math.floor(now/1000)
+    const time     = String(Math.floor(now/1000))
     const chain_id = this.chainId
     const sent_funds: any[] = []
+    //const env  = {block:{height:0,time:"0"}}
     const env  = { block: { height, time, chain_id }, transaction: { index: 0 }, contract: { address } }
     const info = { sender, funds: [] }
     return [env, info]

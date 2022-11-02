@@ -16,9 +16,9 @@ export type Region = [Ptr, Size, Size, Uint32Array?]
 
 /** Heap with allocator for talking to WASM-land */
 export interface IOExports {
-  memory:                           WebAssembly.Memory
-  allocate    (len: Size):          Ptr
-  deallocate? (ptr: Ptr):           void
+  memory:                  WebAssembly.Memory
+  allocate    (len: Size): Ptr
+  deallocate? (ptr: Ptr):  void
 }
 
 export const ADDRESS_PREFIX = 'mocked'
