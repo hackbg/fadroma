@@ -5,7 +5,7 @@ import type {
 } from '@fadroma/client'
 import type { Mocknet } from './mocknet-chain'
 import type { MocknetBundle } from './mocknet-bundle'
-import { ADDRESS_PREFIX } from './mocknet-backend'
+import { ADDRESS_PREFIX, codeHashForBlob } from './mocknet-data'
 import type { MocknetBackend } from './mocknet-backend'
 
 export class MocknetAgent extends Agent {

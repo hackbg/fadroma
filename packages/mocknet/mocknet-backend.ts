@@ -1,17 +1,17 @@
-import { into } from '@fadroma/client'
-import type {
-  Address, Client, CodeId, CodeHash, ContractInstance, Label, Message
-} from '@fadroma/client'
+import { into, ContractInstance } from '@fadroma/client'
+import type { Address, Client, CodeId, CodeHash, Label, Message } from '@fadroma/client'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
-import { CustomConsole, bold } from '@hackbg/konzola'
+import { bold } from '@hackbg/konzola'
 import type { MocknetContract } from './mocknet-contract'
-
-const log = new CustomConsole('Fadroma.Mocknet')
+import { parseResult, b64toUtf8, codeHashForBlob } from './mocknet-data'
+import { MocknetConsole } from './mocknet-events'
 
 /** Hosts MocknetContract instances. */
 export class MocknetBackend {
   /** Hosts an instance of a WASM code blob and its local storage. */
   static Contract: typeof MocknetContract
+
+  log = new MocknetConsole('Fadroma.Mocknet')
 
   constructor (
     readonly chainId:   string,
@@ -129,7 +129,7 @@ export class MocknetBackend {
     for (const message of messages) {
       const { wasm } = message
       if (!wasm) {
-        log.warn(
+        this.log.warn(
           'MocknetBackend#execute: transaction returned non-wasm message, ignoring:',
           message
         )
@@ -141,7 +141,7 @@ export class MocknetBackend {
         const instance = await this.instantiate(sender, new ContractInstance({
           codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
         }))
-        trace(
+        this.log.trace(
           `Callback from ${bold(sender)}: instantiated contract`, bold(label),
           'from code id', bold(codeId), 'with hash', bold(codeHash),
           'at address', bold(instance.address!)
@@ -154,12 +154,12 @@ export class MocknetBackend {
           JSON.parse(b64toUtf8(msg)),
           send
         )
-        trace(
+        this.log.trace(
           `Callback from ${bold(sender)}: executed transaction`,
           'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
         )
       } else {
-        log.warn(
+        this.log.warn(
           'MocknetBackend#execute: transaction returned wasm message that was not '+
           '"instantiate" or "execute", ignoring:',
           message

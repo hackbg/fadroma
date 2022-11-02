@@ -29,17 +29,6 @@ const decoder = new TextDecoder()
 
 const encoder = new TextEncoder()
 
-// TODO move this env var to global config
-const trace = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
-  log.info(...args)
-  log.log()
-}) : (...args: any[]) => {}
-
-const debug = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
-  log.debug(...args)
-  log.log()
-}) : (...args: any[]) => {}
-
 export function parseResult (
   response: { Ok: any, Err: any },
   action:   'instantiate'|'execute'|'query'|'query_chain',
@@ -58,7 +47,7 @@ export function parseResult (
 }
 
 /** Read region properties from pointer to region. */
-export function region (buffer: Buffer, ptr: Ptr): Region {
+export function region (buffer: any, ptr: Ptr): Region {
   const u32a = new Uint32Array(buffer)
   const addr = u32a[ptr/4+0] // Region.offset
   const size = u32a[ptr/4+1] // Region.capacity
@@ -106,12 +95,12 @@ export function passBuffer (exports: IOExports, buf: Buffer): Ptr {
 }
 
 /** Write data to memory address. */
-export function write (buffer: Buffer, addr: number, data: ArrayLike<number>): void {
+export function write (buffer: any, addr: number, data: ArrayLike<number>): void {
   new Uint8Array(buffer).set(data, addr)
 }
 
 /** Write UTF8-encoded data to memory address. */
-export function writeUtf8 (buffer: Buffer, addr: number, data: string): void {
+export function writeUtf8 (buffer: any, addr: number, data: string): void {
   new Uint8Array(buffer).set(encoder.encode(data), addr)
 }
 

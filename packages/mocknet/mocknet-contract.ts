@@ -3,6 +3,7 @@ import { ClientConsole, bold } from '@fadroma/client'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import type { MocknetBackend } from './mocknet-backend'
 import type { Ptr, ErrCode, IOExports } from './mocknet-data'
+import { parseResult, b64toUtf8, readBuffer, passBuffer } from './mocknet-data'
 import {
   ADDRESS_PREFIX, codeHashForBlob, pass, readUtf8, writeToRegion, writeToRegionUtf8, region
 } from './mocknet-data'
@@ -10,32 +11,13 @@ import {
 declare namespace WebAssembly {
   class Memory {
     constructor ({ initial, maximum }: { initial: number, maximum: number })
-    buffer: Buffer
+    buffer: any
   }
   class Instance<T> {
     exports: T
   }
   function instantiate (code: unknown, world: unknown): {
     instance: WebAssembly.Instance<ContractExports>
-  }
-}
-
-/** Contract's raw API methods, taking and returning heap pointers. */
-export interface ContractExports extends IOExports {
-  init        (env: Ptr, msg: Ptr): Ptr
-  handle      (env: Ptr, msg: Ptr): Ptr
-  query       (msg: Ptr):           Ptr
-}
-
-export interface ContractImports {
-  memory: WebAssembly.Memory
-  env: {
-    db_read              (key: Ptr):           Ptr
-    db_write             (key: Ptr, val: Ptr): void
-    db_remove            (key: Ptr):           void
-    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
-    humanize_address     (src: Ptr, dst: Ptr): ErrCode
-    query_chain          (req: Ptr):           Ptr
   }
 }
 
@@ -65,7 +47,7 @@ export class MocknetContract {
   }
 
   init (env: unknown, msg: Fadroma.Message) {
-    debug(`${bold(this.address)} init:`, msg)
+    this.log.debug(`${bold(this.address)} init:`, msg)
     try {
       const envBuf  = this.pass(env)
       const msgBuf  = this.pass(msg)
@@ -79,7 +61,7 @@ export class MocknetContract {
   }
 
   handle (env: unknown, msg: Fadroma.Message) {
-    debug(`${bold(this.address)} handle:`, msg)
+    this.log.debug(`${bold(this.address)} handle:`, msg)
     try {
       const envBuf = this.pass(env)
       const msgBuf = this.pass(msg)
@@ -93,7 +75,7 @@ export class MocknetContract {
   }
 
   query (msg: Fadroma.Message) {
-    debug(`${bold(this.address)} query:`, msg)
+    this.log.debug(`${bold(this.address)} query:`, msg)
     try {
       const msgBuf = this.pass(msg)
       const retPtr = this.instance!.exports.query(msgBuf)
@@ -115,6 +97,7 @@ export class MocknetContract {
 
   /** TODO: these are different for different chains. */
   makeImports (): ContractImports {
+    const { log } = this
     // don't destructure - when first instantiating the
     // contract, `this.instance` is still undefined
     const contract = this
@@ -132,7 +115,7 @@ export class MocknetContract {
           const exports = getExports()
           const key     = readUtf8(exports, keyPtr)
           const val     = contract.storage.get(key)
-          trace(bold(contract.address), `db_read:`, bold(key), '=', val)
+          log.trace(bold(contract.address), `db_read:`, bold(key), '=', val)
           if (contract.storage.has(key)) {
             return passBuffer(exports, val!)
           } else {
@@ -144,12 +127,12 @@ export class MocknetContract {
           const key     = readUtf8(exports, keyPtr)
           const val     = readBuffer(exports, valPtr)
           contract.storage.set(key, val)
-          trace(bold(contract.address), `db_write:`, bold(key), '=', val)
+          log.trace(bold(contract.address), `db_write:`, bold(key), '=', val)
         },
         db_remove (keyPtr) {
           const exports = getExports()
           const key     = readUtf8(exports, keyPtr)
-          trace(bold(contract.address), `db_remove:`, bold(key))
+          log.trace(bold(contract.address), `db_remove:`, bold(key))
           contract.storage.delete(key)
         },
         canonicalize_address (srcPtr, dstPtr) {
@@ -157,7 +140,7 @@ export class MocknetContract {
           const human   = readUtf8(exports, srcPtr)
           const canon   = bech32.fromWords(bech32.decode(human).words)
           const dst     = region(exports.memory.buffer, dstPtr)
-          trace(bold(contract.address), `canonize:`, human, '->', `${canon}`)
+          log.trace(bold(contract.address), `canonize:`, human, '->', `${canon}`)
           writeToRegion(exports, dstPtr, canon)
           return 0
         },
@@ -166,14 +149,14 @@ export class MocknetContract {
           const canon   = readBuffer(exports, srcPtr)
           const human   = bech32.encode(ADDRESS_PREFIX, bech32.toWords(canon))
           const dst     = region(exports.memory.buffer, dstPtr)
-          trace(bold(contract.address), `humanize:`, canon, '->', human)
+          log.trace(bold(contract.address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(exports, dstPtr, human)
           return 0
         },
         query_chain (reqPtr) {
           const exports  = getExports()
           const req      = readUtf8(exports, reqPtr)
-          trace(bold(contract.address), 'query_chain:', req)
+          log.trace(bold(contract.address), 'query_chain:', req)
           const { wasm } = JSON.parse(req)
           if (!wasm) {
             throw new Error(
@@ -203,9 +186,9 @@ export class MocknetContract {
             )
           }
           const decoded = JSON.parse(b64toUtf8(msg))
-          debug(`${bold(contract.address)} queries ${contract_addr}:`, decoded)
+          log.debug(`${bold(contract.address)} queries ${contract_addr}:`, decoded)
           const result = parseResult(queried.query(decoded), 'query_chain', contract_addr)
-          debug(`${bold(contract_addr)} responds to ${contract.address}:`, b64toUtf8(result))
+          log.debug(`${bold(contract_addr)} responds to ${contract.address}:`, b64toUtf8(result))
           return pass(exports, { Ok: { Ok: result } })
           // https://docs.rs/secret-cosmwasm-std/latest/secret_cosmwasm_std/type.QuerierResult.html
         }
@@ -213,4 +196,23 @@ export class MocknetContract {
     }
   }
 
+}
+
+/** Contract's raw API methods, taking and returning heap pointers. */
+export interface ContractExports extends IOExports {
+  init        (env: Ptr, msg: Ptr): Ptr
+  handle      (env: Ptr, msg: Ptr): Ptr
+  query       (msg: Ptr):           Ptr
+}
+
+export interface ContractImports {
+  memory: WebAssembly.Memory
+  env: {
+    db_read              (key: Ptr):           Ptr
+    db_write             (key: Ptr, val: Ptr): void
+    db_remove            (key: Ptr):           void
+    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
+    humanize_address     (src: Ptr, dst: Ptr): ErrCode
+    query_chain          (req: Ptr):           Ptr
+  }
 }
