@@ -70,14 +70,14 @@ pub(crate) struct ContractUpload {
     code: Box<dyn ContractHarness>
 }
 
-struct SubMsgExecState {
-    responses: Vec<ResponseExecState>,
-    initial: Option<SubMsg>
+struct ResponseExecState {
+    states: Vec<SubMsgExecState>
 }
 
-struct ResponseExecState {
-    response: ResponseVariants,
-    index: usize
+struct SubMsgExecState {
+    responses: Vec<ResponseVariants>,
+    msgs: Vec<SubMsg>,
+    msg_index: usize
 }
 
 impl ContractEnsemble {
@@ -460,11 +460,11 @@ impl Context {
         msg: SubMsg,
         mut sender: String
     ) -> EnsembleResult<ResponseVariants> {
-        let mut state = SubMsgExecState::new(msg);
+        let mut state = ResponseExecState::new(msg);
 
         while let Some(sub_msg) = state.next() {
-            if let Some(latest) = state.latest() {
-                sender = latest.address().to_string();
+            if let Some(next) = state.current_sender() {
+                sender = next.to_string();
             }
 
             let reply = sub_msg.reply_on.clone();
@@ -693,88 +693,111 @@ impl Context {
     }
 }
 
-impl SubMsgExecState {
+impl ResponseExecState {
     #[inline]
     fn new(initial: SubMsg) -> Self {
         Self {
-            initial: Some(initial),
-            responses: vec![]
+            states: vec![SubMsgExecState::new(vec![initial])],
         }
     }
 
-    #[inline]
     fn finalize(mut self) -> ResponseVariants {
-        assert_eq!(self.responses.len(), 1);
+        assert!(self.states.len() > 0);
 
-        self.pop()
+        while self.squash_latest() { }
+        assert_eq!(self.states[0].responses.len(), 1);
+
+        self.states[0].responses.pop().unwrap()
     }
 
-    #[inline]
-    fn latest(&self) -> Option<&ResponseVariants> {
-        if let Some(resp) = self.responses.last() {
-            Some(&resp.response)
+    fn add_response(&mut self, response: ResponseVariants) {
+        let messages = response.messages();
+
+        if messages.len() > 0 {
+            self.states.push(SubMsgExecState::new(messages.to_vec()));
+        }
+
+        let index = self.states.len() - 1;
+        self.states[index].responses.push(response);
+    }
+
+    fn current_sender(&self) -> Option<&str> {
+        if self.states.len() <= 1 {
+            return None;
+        }
+
+        let index = self.states.len() - 2;
+
+        if let Some(response) = self.states[index].responses.last() {
+            Some(response.address())
         } else {
             None
         }
     }
 
-    fn add_response(&mut self, response: ResponseVariants) {
-        if response.messages().len() > 0 || self.responses.is_empty() {
-            self.responses.push(ResponseExecState::new(response));
-        } else {
-            self.responses.last_mut()
-                .unwrap()
-                .response
-                .add_response(response);
+    fn next(&mut self) -> Option<SubMsg> {
+        if self.states.is_empty() {
+            return None;
+        }
+
+        loop {
+            let index = self.states.len() - 1;
+            let next = self.states[index].next();
+
+            if next.is_none() {
+                if !self.squash_latest() {
+                    return None;
+                }
+            } else {
+                return next
+            }
         }
     }
 
-    fn next(&mut self) -> Option<SubMsg> {
-        if self.initial.is_some() {
-            return self.initial.take();
+    fn squash_latest(&mut self) -> bool {
+        if self.states.len() <= 1 {
+            return false;
         }
 
-        while self.responses.len() > 0 {
-            let index = self.responses.len() - 1;
-            let msg = self.responses[index].next();
+        let current = self.pop();
+        let index = self.states.len() - 1;
+        
+        self.states[index].responses
+            .last_mut()
+            .unwrap()
+            .add_responses(current.responses);
 
-            if msg.is_some() {
-                return msg;
-            }
-
-            if index > 0 {
-                let last = self.pop();
-                self.responses[index - 1]
-                    .response
-                    .add_response(last);
-            } else {
-                break;
-            }
-        }
-
-        None
+        true
     }
 
     #[inline]
-    fn pop(&mut self) -> ResponseVariants {
-        self.responses.pop().unwrap().response
+    fn pop(&mut self) -> SubMsgExecState {
+        self.states.pop().unwrap()
     }
 }
 
-impl ResponseExecState {
-    fn new(response: ResponseVariants) -> Self {
+impl SubMsgExecState {
+    fn new(msgs: Vec<SubMsg>) -> Self {
         Self {
-            response,
-            index: 0
+            responses: Vec::with_capacity(msgs.len()),
+            msg_index: 0,
+            msgs
+        }
+    }
+
+    #[inline]
+    fn current(&self) -> &SubMsg {
+        if self.msg_index < self.msgs.len() {
+            &self.msgs[self.msg_index]
+        } else {
+            &self.msgs[self.msg_index - 1]
         }
     }
 
     fn next(&mut self) -> Option<SubMsg> {
-        let messages = self.response.messages();
-
-        if self.index < messages.len() {
-            let result = Some(messages[self.index].clone());
-            self.index += 1;
+        if self.msg_index < self.msgs.len() {
+            let result = Some(self.msgs[self.msg_index].clone());
+            self.msg_index += 1;
 
             result
         } else {

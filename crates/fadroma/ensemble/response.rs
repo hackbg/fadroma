@@ -145,11 +145,11 @@ impl ResponseVariants {
     }
 
     #[inline]
-    pub(crate) fn add_response(&mut self, response: Self) {
+    pub(crate) fn add_responses(&mut self, responses: Vec<Self>) {
         match self {
-            Self::Instantiate(resp) => resp.sent.push(response),
-            Self::Execute(resp) => resp.sent.push(response),
-            Self::Reply(resp) => resp.sent.push(response),
+            Self::Instantiate(resp) => resp.sent.extend(responses),
+            Self::Execute(resp) => resp.sent.extend(responses),
+            Self::Reply(resp) => resp.sent.extend(responses),
             Self::Bank(_) => panic!("Trying to add a child response to a BankResponse."),
             Self::Staking(_) => panic!("Trying to add a child response to a StakingResponse."),
         }
