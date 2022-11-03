@@ -1,7 +1,7 @@
 import { Devnet, devnetPortModes } from './devnet-base'
 import type { DevnetOpts, DevnetPlatform, DevnetState } from './devnet-base'
 
-import { ClientConsole } from '@fadroma/client'
+import { ClientConsole as Console } from '@fadroma/client'
 import type { AgentOpts, DevnetHandle } from '@fadroma/client'
 
 import * as Dokeres                   from '@hackbg/dokeres'
@@ -67,7 +67,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     this.readyPhrase ??= options.readyPhrase!
   }
 
-  log = new ClientConsole('Fadroma.Devnet')
+  log = new Console('Fadroma.Devnet')
 
   /** Handle to Docker API if configured. */
   get dokeres (): Dokeres.Engine|null {

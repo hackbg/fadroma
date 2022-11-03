@@ -1,24 +1,8 @@
-import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
-import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
-import { EnvConfig } from '@hackbg/konfizi'
-import { CommandContext } from '@hackbg/komandi'
-import { freePort, waitPort, Endpoint } from '@hackbg/portali'
-import { randomHex } from '@hackbg/formati'
-import * as Dokeres from '@hackbg/dokeres'
-import * as Fadroma from '@fadroma/client'
-import { AgentOpts, DevnetHandle, Chain, ChainMode, ClientConsole } from '@fadroma/client'
+import type * as Dokeres from '@hackbg/dokeres'
+import type { Chain } from '@fadroma/client'
+import { ChainMode } from '@fadroma/client'
 
-import { resolve, relative, basename, dirname } from 'path'
-import { cwd }                                  from 'process'
-import { readlinkSync, symlinkSync }            from 'fs'
-import { fileURLToPath }                        from 'url'
-
-import {
-  Devnet,
-  DevnetConfig,
-  devnetPortModes,
-  resetDevnet
-} from './devnet-base'
+import { Devnet, DevnetConfig, devnetPortModes, resetDevnet } from './devnet-base'
 import type { DevnetPlatform, DevnetPortMode } from './devnet-base'
 import { RemoteDevnet } from './devnet-remote'
 import { DockerDevnet } from './devnet-docker'

@@ -1,7 +1,7 @@
 import { Devnet, devnetPortModes } from './devnet-base'
 import type { DevnetOpts, DevnetPlatform } from './devnet-base'
 import type { AgentOpts, DevnetHandle } from '@fadroma/client'
-import { CustomConsole, bold } from '@hackbg/konzola'
+import { ClientConsole as Console, bold } from '@fadroma/client'
 import { freePort, Endpoint } from '@hackbg/portali'
 import { randomHex } from '@hackbg/formati'
 import $ from '@hackbg/kabinet'
@@ -30,7 +30,7 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
     portMode:    string = devnetPortModes[kind]
   ) {
 
-    const log = new CustomConsole('Fadroma.RemoteDevnet')
+    const log = new Console('Fadroma.RemoteDevnet')
 
     // If passed a chain id, use it; this makes a passed prefix irrelevant.
     if (chainId && prefix) {
@@ -68,7 +68,7 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
     this.host    = this.manager.url.hostname
   }
 
-  log = new CustomConsole('Fadroma.RemoteDevnet')
+  log = new Console('Fadroma.RemoteDevnet')
 
   manager: Endpoint
 
