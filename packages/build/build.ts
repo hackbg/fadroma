@@ -45,7 +45,7 @@ export async function build (
   crates:   string[]               = [],
   revision: string                 = HEAD,
   config:   Partial<BuilderConfig> = new BuilderConfig(),
-  builder:  Builder                = config.getBuilder()
+  builder:  Builder                = config!.getBuilder!()
 ) {
   return await builder.buildMany(crates.map(crate=>new Contract({
     repository: config.project,
