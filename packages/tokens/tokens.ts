@@ -15,13 +15,11 @@ import {
   Uint128,
   bold,
   colors,
-} from '@fadroma/client'
-import type {
-  ContractMetadata,
-} from '@fadroma/client'
-import {
   Permit,
   ViewingKeyClient
+} from '@fadroma/scrt'
+import type {
+  ContractMetadata,
 } from '@fadroma/scrt'
 import {
   randomBase64
