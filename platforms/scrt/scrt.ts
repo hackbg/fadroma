@@ -9,26 +9,32 @@
 
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU Affero General Public License for more details.
 
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+import * as SecretJS from 'secretjs'
 import { ScrtConfig } from './scrt-config'
 import { Scrt       } from './scrt-chain'
 import { ScrtAgent  } from './scrt-agent'
 import { ScrtBundle } from './scrt-bundle'
 
 Object.assign(Scrt, {
+  SecretJS: SecretJS,
   Config: ScrtConfig,
   Agent: Object.assign(ScrtAgent, {
     Bundle: ScrtBundle
   })
 })
 
-/** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
+Object.defineProperty(Scrt,       'SecretJS', { enumerable: false, writable: true })
+Object.defineProperty(ScrtAgent,  'SecretJS', { enumerable: false, writable: true })
+Object.defineProperty(ScrtBundle, 'SecretJS', { enumerable: false, writable: true })
+
+export { SecretJS }
 export * from '@fadroma/client'
 export * from './scrt-events'
 export * from './scrt-config'
