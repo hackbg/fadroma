@@ -18,12 +18,10 @@
 
 **/
 
-import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
+import { Deployment, ClientConsole as Console } from '@fadroma/client'
 import { BuilderConfig } from '@fadroma/build'
 import { DeployConfig, Deployer } from '@fadroma/deploy'
-import type { DeployStore, DeployerClass } from '@fadroma/deploy'
-import { DevnetConfig } from '@fadroma/devnet'
-import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
+import type { DeployerClass } from '@fadroma/deploy'
 import { TokenManager } from '@fadroma/tokens'
 
 /** Context for Fadroma commands. */
@@ -65,7 +63,7 @@ export class Config extends DeployConfig {
 /** Default export of command module. */
 export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
 
-export const Console = ClientConsole
+export { Console }
 export * from '@hackbg/konzola'
 export * from '@hackbg/komandi'
 export * from '@hackbg/konfizi'
@@ -75,11 +73,6 @@ export * from '@fadroma/client'
 export { override } from '@fadroma/client'
 export type { Decimal, Overridable } from '@fadroma/client'
 export * from '@fadroma/build'
-export * from '@fadroma/deploy'
-export * from '@fadroma/devnet'
 export * from '@fadroma/connect'
-export * from '@fadroma/mocknet'
+export * from '@fadroma/deploy'
 export * from '@fadroma/tokens'
-export * as ScrtGrpc  from '@fadroma/scrt'
-export * as ScrtAmino from '@fadroma/scrt-amino'
-export { connect } from '@fadroma/connect'
