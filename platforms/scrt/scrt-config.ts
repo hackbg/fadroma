@@ -27,4 +27,10 @@ export class ScrtConfig extends EnvConfig {
   testnetChainId: string
     = this.getString('SCRT_TESTNET_CHAIN_ID', ()=>ScrtConfig.defaultTestnetChainId)
 
+  mainnetUrl: string
+    = this.getString('SCRT_MAINNET_URL', ()=>ScrtConfig.defaultMainnetUrl)
+
+  testnetUrl: string
+    = this.getString('SCRT_TESTNET_URL', ()=>ScrtConfig.defaultTestnetUrl)
+
 }

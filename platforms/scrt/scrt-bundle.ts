@@ -1,8 +1,8 @@
 import { Bundle } from '@fadroma/client'
-import type { Address, TxHash, ChainId, CodeId, CodeHash, Address, Label } from '@fadroma/client'
+import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/client'
 import type { ScrtAgent } from './scrt-agent'
 import { Scrt } from './scrt-chain'
-import { ScrtConsole } from './scrt-events'
+import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 
 export interface ScrtBundleClass <B extends ScrtBundle> {
   new (agent: ScrtAgent): B
@@ -24,7 +24,7 @@ export class ScrtBundle extends Bundle {
 
   static bundleCounter: number = 0
 
-  log = new ScrtConsole('ScrtAgent')
+  log = new Console('ScrtAgent')
 
   /** The agent which will sign and/or broadcast the bundle. */
   declare agent: ScrtAgent
@@ -166,18 +166,18 @@ export class ScrtBundle extends Bundle {
       const SecretJS = (this.agent?.chain as Scrt).SecretJS ?? await import('secretjs')
       if (init) return new SecretJS.MsgInstantiateContract({
         sender:          init.sender,
-        codeId:          init.codeId,
-        codeHash:        init.codeHash,
+        code_id:         init.codeId,
+        code_hash:       init.codeHash,
         label:           init.label,
-        initMsg:         init.msg,
-        initFunds:       init.funds,
+        init_msg:        init.msg,
+        init_funds:      init.funds,
       })
       if (exec) return new SecretJS.MsgExecuteContract({
-        sender:          exec.sender,
-        contractAddress: exec.contract,
-        codeHash:        exec.codeHash,
-        msg:             exec.msg,
-        sentFunds:       exec.funds,
+        sender:           exec.sender,
+        contract_address: exec.contract,
+        code_hash:        exec.codeHash,
+        msg:              exec.msg,
+        sent_funds:       exec.funds,
       })
       throw 'unreachable'
     }))

@@ -1,10 +1,10 @@
 import type * as SecretJS from 'secretjs'
 import { bip39, bip39EN } from '@hackbg/formati'
 import { Chain, Fee } from '@fadroma/client'
-import type { AgentClass, Uint128 } from '@fadroma/client'
-import { ScrtConfig } from './scrt-config'
-import type { ScrtAgent } from './scrt-agent'
-import { ScrtConsole } from './scrt-events'
+import type { Address, AgentClass, ChainClass, ChainId, ChainOpts, Client, Message, Uint128 } from '@fadroma/client'
+import type { ScrtAgent, ScrtAgentOpts } from './scrt-agent'
+import { ScrtConsole as Console, ScrtError as Error } from './scrt-events'
+import { ScrtConfig as Config } from './scrt-config'
 
 export interface ScrtOpts extends ChainOpts {
   /** You can set this to a compatible version of the SecretJS module
@@ -18,28 +18,30 @@ export interface ScrtOpts extends ChainOpts {
 /** Represents a Secret Network API endpoint. */
 export class Scrt extends Chain {
 
+  /** Connect to the Secret Network Mainnet. */
+  static async Mainnet (config: Config) {
+    return new Scrt(config.mainnetChainId ?? Scrt.defaultMainnetChainId, {
+      mode: Chain.Mode.Mainnet,
+      url:  config.mainnetUrl || Scrt.defaultMainnetUrl,
+    })
+  }
+
+  /** Connect to the Secret Network Testnet. */
+  static async Testnet (config: Config) {
+    return new Scrt(config.testnetChainId ?? Scrt.defaultTestnetChainId, {
+      mode: Chain.Mode.Testnet,
+      url:  config.testnetUrl || Scrt.defaultTestnetUrl,
+    })
+  }
+
   /** The default SecretJS module. */
   static SecretJS: typeof SecretJS
 
   /** The default Config class for Secret Network. */
-  static Config = ScrtConfig
+  static Config = Config
 
   /** The default Agent class for Secret Network. */
   static Agent: AgentClass<ScrtAgent> // set below
-
-  static async Mainnet (config: ScrtConfig) {
-    const mode = Chain.Mode.Mainnet
-    const id   = config.scrtMainnetChainId ?? Scrt.defaultMainnetChainId
-    const url  = config.scrtMainnetUrl || Scrt.defaultMainnetUrl
-    return new Scrt(id, { url, mode })
-  }
-
-  static async Testnet (config: ScrtConfig) {
-    const mode = Chain.Mode.Testnet
-    const id   = config.scrtTestnetChainId ?? Scrt.defaultTestnetChainId
-    const url  = config.scrtTestnetUrl || Scrt.defaultTestnetGrpcUrl
-    return new Scrt(id, { url, mode })
-  }
 
   static defaultMainnetUrl:     string  = this.Config.defaultMainnetUrl
 
@@ -64,13 +66,18 @@ export class Scrt extends Chain {
     send:   this.gas(1000000),
   }
 
-  Agent:           AgentClass<ScrtAgent> = Scrt.Agent
+  /** The SecretJS module used by this instance.
+    * Override this if you want to use another version of SecretJS. */
+  SecretJS = Scrt.SecretJS
+
+  /** The Agent class used by this instance. */
+  Agent: AgentClass<ScrtAgent> = Scrt.Agent
 
   isSecretNetwork: boolean = true
 
-  defaultDenom:    string  = Scrt.defaultDenom
+  defaultDenom: string  = Scrt.defaultDenom
 
-  log = new ScrtConsole('Scrt')
+  log = new Console('Scrt')
 
   constructor (
     id: ChainId = Scrt.defaultMainnetChainId,
@@ -86,11 +93,6 @@ export class Scrt extends Chain {
   }
 
   /** The Agent class that this instance's getAgent method will instantiate. */
-  Agent: AgentClass<ScrtAgent> =
-    (this.constructor as ChainClass<Chain>).Agent as AgentClass<ScrtAgent>
-
-  /** The SecretJS implementation used by this instance. */
-  SecretJS = Scrt.SecretJS
 
   /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
   get api () {
@@ -140,11 +142,9 @@ export class Scrt extends Chain {
   async getApi (
     options: Partial<SecretJS.CreateClientOptions> = {}
   ): Promise<SecretJS.SecretNetworkClient> {
-    return await this.SecretJS.SecretNetworkClient.create({
-      chainId:    this.id,
-      grpcWebUrl: this.url,
-      ...options
-    })
+    options = { chainId: this.id, url: this.url, ...options }
+    if (!options.url) throw new Error.NoApiUrl()
+    return await this.SecretJS.SecretNetworkClient.create(options)
   }
 
   /** Create a `ScrtAgent` on this `chain`.
@@ -178,7 +178,7 @@ export class Scrt extends Chain {
     // Construct the API client
     const api = await this.getApi({
       chainId:         chain.id,
-      grpcWebUrl:      chain.url,
+      url:             chain.url,
       wallet,
       walletAddress:   wallet.address || address,
       encryptionUtils: options.encryptionUtils

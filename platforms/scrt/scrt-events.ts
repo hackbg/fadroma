@@ -15,7 +15,7 @@ export class ScrtError extends ClientError {
   static NoApi = this.define('NoApi',
     () => 'Missing API interface object')
   static NoApiUrl = this.define('NoApiUrl',
-    () => 'Missing gRPC API URL')
+    () => 'Missing API URL')
   static NoCodeId = this.define('NoCodeId',
     () => 'Need code ID to instantiate contract')
   static NoCodeHash = this.define('NoCodeHash',

@@ -1,10 +1,15 @@
 import type * as SecretJS from 'secretjs'
 import { base64 } from '@hackbg/formati'
-import type { AgentClass, AgentOpts, BundleClass, CodeHash, Message } from '@fadroma/client'
-import { Agent } from '@fadroma/client'
+import type {
+  Address, AgentClass, AgentOpts,
+  BundleClass, Client, CodeHash, DeployArgs, ExecOpts, ICoin, Label, Message
+} from '@fadroma/client'
+import { Agent, Contract } from '@fadroma/client'
 import { Scrt } from './scrt'
-import { ScrtError, ScrtConsole } from './scrt-events'
+import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 import type { ScrtBundle } from './scrt-bundle'
+
+export interface ScrtAgentClass extends AgentClass<ScrtAgent> {}
 
 /** Agent configuration options for Secret Network. */
 export interface ScrtAgentOpts extends AgentOpts {
@@ -26,18 +31,16 @@ export class ScrtAgent extends Agent {
 
   static Bundle: BundleClass<ScrtBundle>
 
-  log = new ScrtConsole('ScrtAgent')
-
   fees = Scrt.defaultFees
 
   constructor (options: Partial<ScrtAgentOpts> = {}) {
     super(options)
     this.fees = options.fees ?? this.fees
     // Required: SecretJS.SecretNetworkClient instance
-    if (!options.api) throw new ScrtError.NoApi()
+    if (!options.api) throw new Error.NoApi()
     this.api = options.api
     // Required: SecretJS.Wallet instance
-    if (!options.wallet) throw new ScrtError.NoWallet()
+    if (!options.wallet) throw new Error.NoWallet()
     this.wallet  = options.wallet
     this.address = this.wallet?.address
     // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
@@ -50,9 +53,9 @@ export class ScrtAgent extends Agent {
     this.simulate = options.simulate ?? this.simulate
   }
 
-  log = new ScrtConsole('ScrtGrpcAgent')
+  log = new Console('ScrtGrpcAgent')
 
-  Bundle: BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
+  Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
 
   wallet: SecretJS.Wallet
 
@@ -68,19 +71,17 @@ export class ScrtAgent extends Agent {
     return this.getBalance(this.defaultDenom, this.assertAddress())
   }
 
-  async getBalance (denom = this.defaultDenom, address: Address) {
+  async getBalance (denom = this.defaultDenom, address: Address): Promise<string> {
     const response = await this.api.query.bank.balance({ address, denom })
-    return response.balance!.amount
+    return response.balance!.amount!
   }
 
   async send (to: Address, amounts: ICoin[], opts?: any) {
-    return this.api.tx.bank.send({
-      fromAddress: this.assertAddress(),
-      toAddress:   to,
-      amount:      amounts
-    }, {
-      gasLimit: opts?.gas?.gas
-    })
+    const from_address = this.assertAddress()
+    const to_address = to
+    const amount = amounts
+    const msg = { from_address, to_address, amount }
+    return this.api.tx.bank.send(msg, { gasLimit: opts?.gas?.gas })
   }
 
   async sendMany (outputs: never, opts: never) {
@@ -112,7 +113,7 @@ export class ScrtAgent extends Agent {
   }
 
   async encrypt (codeHash: CodeHash, msg: Message) {
-    if (!codeHash) throw new ScrtError.NoCodeHash()
+    if (!codeHash) throw new Error.NoCodeHash()
     const { encryptionUtils } = await this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return base64.encode(encrypted)
@@ -154,8 +155,8 @@ export class ScrtAgent extends Agent {
   ): Promise<Contract<any>> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
-    if (chainId && chainId !== this.assertChain().id) throw new ScrtError.WrongChain()
-    if (isNaN(Number(codeId)))     throw new ScrtError.NoCodeId()
+    if (chainId && chainId !== this.assertChain().id) throw new Error.WrongChain()
+    if (isNaN(Number(codeId))) throw new Error.NoCodeId()
     const sender   = this.address
     const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
     const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
@@ -217,9 +218,10 @@ export class ScrtAgent extends Agent {
         this.log.error(e)
         this.log.warn('TX simulation failed:', tx, 'from', this)
       }
-      if (simResult?.gasInfo?.gasUsed) {
-        this.log.info('Simulation used gas:', simResult.gasInfo.gasUsed)
-        const gas = Math.ceil(Number(simResult.gasInfo.gasUsed) * 1.1)
+      const gas_used = simResult?.gas_info?.gas_used
+      if (gas_used) {
+        this.log.info('Simulation used gas:', gas_used)
+        const gas = Math.ceil(Number(gas_used) * 1.1)
         // Adjust gasLimit up by 10% to account for gas estimation error
         this.log.info('Setting gas to 110% of that:', gas)
         txOpts.gasLimit = gas
