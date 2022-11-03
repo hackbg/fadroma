@@ -18,17 +18,17 @@
 
 import YAML from 'js-yaml'
 import * as YAML1 from './deploy-yaml1'
-import * as YAML2 from './deploy-yaml2'
-import * as JSON1 from './deploy-json1'
+//import * as YAML2 from './deploy-yaml2'
+//import * as JSON1 from './deploy-json1'
 import { DeployStore } from './deploy-base'
 
 Object.assign(DeployStore.variants, {
   'YAML1': YAML1.YAMLDeployments_v1,
-  'YAML2': YAML2.YAMLDeployments_v2,
-  'JSON1': JSON1.JSONDeployments_v1
+  //'YAML2': YAML2.YAMLDeployments_v2,
+  //'JSON1': JSON1.JSONDeployments_v1
 })
 
-export { YAML, YAML1, YAML2, JSON1 }
+export { YAML, YAML1, /*YAML2, JSON1*/ }
 export { DeployConfig, Deployer, DeployStore } from './deploy-base'
 export { DeployConsole } from './deploy-events'
 export * from './upload'
