@@ -19,7 +19,7 @@ export interface ScrtOpts extends ChainOpts {
 export class Scrt extends Chain {
 
   /** Connect to the Secret Network Mainnet. */
-  static async Mainnet (config: Config) {
+  static Mainnet (config: Config) {
     return new Scrt(config.mainnetChainId ?? Scrt.defaultMainnetChainId, {
       mode: Chain.Mode.Mainnet,
       url:  config.mainnetUrl || Scrt.defaultMainnetUrl,
@@ -27,7 +27,7 @@ export class Scrt extends Chain {
   }
 
   /** Connect to the Secret Network Testnet. */
-  static async Testnet (config: Config) {
+  static Testnet (config: Config) {
     return new Scrt(config.testnetChainId ?? Scrt.defaultTestnetChainId, {
       mode: Chain.Mode.Testnet,
       url:  config.testnetUrl || Scrt.defaultTestnetUrl,
@@ -102,27 +102,31 @@ export class Scrt extends Chain {
   async getBalance (denom = this.defaultDenom, address: Address) {
     const api = await this.api
     const response = await api.query.bank.balance({ address, denom })
-    return response.balance!.amount
+    return response.balance!.amount!
   }
 
-  async getLabel (address: string): Promise<string> {
+  async getLabel (contract_address: string): Promise<string> {
     const api = await this.api
-    const { ContractInfo: { label } } = await api.query.compute.contractInfo(address)
-    return label
+    const response = await api.query.compute.contractInfo({ contract_address })
+    return response.ContractInfo!.label!
   }
 
-  async getCodeId (address: string): Promise<string> {
+  async getCodeId (contract_address: string): Promise<string> {
     const api = await this.api
-    const { ContractInfo: { codeId } } = await api.query.compute.contractInfo(address)
-    return codeId
+    const response = await api.query.compute.contractInfo({ contract_address })
+    return response.ContractInfo!.code_id!
   }
 
-  async getHash (address: string|number): Promise<string> {
+  async getHash (arg: string|number): Promise<string> {
     const api = await this.api
-    if (typeof address === 'number') {
-      return await api.query.compute.codeHash(address)
+    if (typeof arg === 'number' || !isNaN(Number(arg))) {
+      return (await api.query.compute.codeHashByCodeId({
+        code_id: String(arg)
+      })).code_hash!
     } else {
-      return await api.query.compute.contractCodeHash(address)
+      return (await api.query.compute.codeHashByContractAddress({
+        contract_address: arg
+      })).code_hash!
     }
   }
 
@@ -144,7 +148,7 @@ export class Scrt extends Chain {
   ): Promise<SecretJS.SecretNetworkClient> {
     options = { chainId: this.id, url: this.url, ...options }
     if (!options.url) throw new Error.NoApiUrl()
-    return await this.SecretJS.SecretNetworkClient.create(options)
+    return await this.SecretJS.SecretNetworkClient.create(options as SecretJS.CreateClientOptions)
   }
 
   /** Create a `ScrtAgent` on this `chain`.
