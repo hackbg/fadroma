@@ -11,6 +11,7 @@ import type { Connector, ConnectorClass } from './connector'
   * Factory pattern and consequent inversion of control
   * here imposed by the lack of `await new` */
 export class ConnectConfig extends EnvConfig {
+
   constructor (
     readonly env: Env    = {},
     readonly cwd: string = '',
@@ -22,8 +23,7 @@ export class ConnectConfig extends EnvConfig {
   }
 
   /** Name of chain to use. */
-  chain?: keyof ChainRegistry
-    = this.getString('FADROMA_CHAIN',   ()=> undefined)
+  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN', ()=> undefined)
 
   /** Get a chain ID corresponding to the value of `this.chain`.
     * (Used by subclasses to include chain ID in paths.) */
