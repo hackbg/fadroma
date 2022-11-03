@@ -9,6 +9,8 @@ import { Scrt } from './scrt'
 import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 import type { ScrtBundle } from './scrt-bundle'
 
+export type TxResponse = SecretJS.TxResponse
+
 export interface ScrtAgentClass extends AgentClass<ScrtAgent> {}
 
 /** Agent configuration options for Secret Network. */
@@ -88,28 +90,36 @@ export class ScrtAgent extends Agent {
     throw new Error('ScrtAgent#sendMany: not implemented')
   }
 
-  async getLabel (address: string): Promise<string> {
-    const { ContractInfo: { label } } = await this.api.query.compute.contractInfo(address)
-    return label
+  async getLabel (contract_address: string): Promise<string> {
+    const response = await this.api.query.compute.contractInfo({ contract_address })
+    return response.ContractInfo!.label!
   }
 
-  async getCodeId (address: string): Promise<string> {
-    const { ContractInfo: { codeId } } = await this.api.query.compute.contractInfo(address)
-    return codeId
+  async getCodeId (contract_address: string): Promise<string> {
+    const response = await this.api.query.compute.contractInfo({ contract_address })
+    return response.ContractInfo!.code_id!
   }
 
-  async getHash (address: string): Promise<string> {
-    return await this.api.query.compute.contractCodeHash(address)
+  async getHash (arg: string|number): Promise<string> {
+    if (typeof arg === 'number' || !isNaN(Number(arg))) {
+      return (await this.api.query.compute.codeHashByCodeId({
+        code_id: String(arg)
+      })).code_hash!
+    } else {
+      return (await this.api.query.compute.codeHashByContractAddress({
+        contract_address: arg
+      })).code_hash!
+    }
   }
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
     if (!this.address) throw new Error("No address")
-    const { account } =
-      (await this.api.query.auth.account({ address: this.address, }))
-      ?? (()=>{throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`,)})()
-    const { accountNumber, sequence } =
-      account as { accountNumber: string, sequence: string }
-    return { accountNumber: Number(accountNumber), sequence: Number(sequence) }
+    const failed = ()=>{
+      throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
+    }
+    const result = await this.api.query.auth.account({ address: this.address }) ?? failed()
+    const { account_number, sequence } = result.account as any
+    return { accountNumber: Number(account_number), sequence: Number(sequence) }
   }
 
   async encrypt (codeHash: CodeHash, msg: Message) {
@@ -130,12 +140,12 @@ export class ScrtAgent extends Agent {
     type Log = { type: string, key: string }
     if (!this.address) throw new Error("No address")
     const sender     = this.address
-    const args       = {sender, wasmByteCode: data, source: "", builder: ""}
+    const args       = { sender, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit   = Number(Scrt.defaultFees.upload.amount[0].amount)
     const result     = await this.api.tx.compute.storeCode(args, { gasLimit })
     const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
     const codeId     = result.arrayLog?.find(findCodeId)?.value
-    const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
+    const codeHash   = await this.getHash(Number(codeId))
     const chainId    = this.assertChain().id
     const contract   = new Contract({
       agent: this,
@@ -150,15 +160,16 @@ export class ScrtAgent extends Agent {
   async instantiate (
     template: Contract<any>,
     label:    Label,
-    initMsg:  Message,
-    initFunds = []
+    init_msg: Message,
+    init_funds = []
   ): Promise<Contract<any>> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
+    const code_id = Number(template.codeId)
     if (chainId && chainId !== this.assertChain().id) throw new Error.WrongChain()
-    if (isNaN(Number(codeId))) throw new Error.NoCodeId()
-    const sender   = this.address
-    const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
+    if (isNaN(code_id)) throw new Error.NoCodeId()
+    const sender = this.address
+    const args = { sender, code_id, code_hash: codeHash!, init_msg, label, init_funds }
     const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
     if (!result.arrayLog) {
@@ -194,17 +205,17 @@ export class ScrtAgent extends Agent {
 
   async execute (
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
-  ): Promise<ScrtGrpcTxResult> {
+  ): Promise<TxResponse> {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
     if (memo) this.log.warnNoMemos()
     const tx = {
-      sender:          this.address,
-      contractAddress: address!,
-      codeHash,
-      msg:             msg as Record<string, unknown>,
-      sentFunds:       send
+      sender:           this.address,
+      contract_address: instance.address!,
+      code_hash:        instance.codeHash,
+      msg:              msg as Record<string, unknown>,
+      sentFunds:        send
     }
     const txOpts = {
       gasLimit: Number(fee.gas)
@@ -238,14 +249,14 @@ export class ScrtAgent extends Agent {
         get () { return original }
       })
       // decode the values in the result
-      const txBytes = tryDecode(result.txBytes)
+      const txBytes = tryDecode(result.tx as Uint8Array)
       Object.assign(result, { txBytes })
       for (const i in result.tx.signatures) {
         //@ts-ignore
         result.tx.signatures[i] = tryDecode(result.tx.signatures[i])
       }
       for (const event of result.events) {
-        for (const attr of event.attributes) {
+        for (const attr of event?.attributes ?? []) {
           //@ts-ignore
           try { attr.key   = tryDecode(attr.key)   } catch (e) {}
           //@ts-ignore
@@ -254,12 +265,12 @@ export class ScrtAgent extends Agent {
       }
       throw Object.assign(new Error(error), result)
     }
-    return result as ScrtGrpcTxResult
+    return result as TxResponse
   }
 
-}
+  decryptAndThrow (result: TxResponse) {}
 
-export type ScrtGrpcTxResult = SecretJS.Tx
+}
 
 /** Used to decode Uint8Array-represented UTF8 strings in TX responses. */
 const decoder = new TextDecoder('utf-8', { fatal: true })

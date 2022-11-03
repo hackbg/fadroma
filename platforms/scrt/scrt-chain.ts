@@ -53,7 +53,7 @@ export class Scrt extends Chain {
 
   static isSecretNetwork:       boolean = true
 
-  static defaultDenom:         string  = 'uscrt'
+  static defaultDenom:          string  = 'uscrt'
 
   static gas (amount: Uint128|number) {
     return new Fee(amount, this.defaultDenom)
