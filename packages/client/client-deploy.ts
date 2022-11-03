@@ -22,32 +22,34 @@ export function intoInstance (x: Partial<ContractInstance>): ContractInstance {
 
 /** Represents a smart contract's lifecycle from source to individual instance. */
 export class ContractInstance extends ContractTemplate implements StructuredLabel {
+  /** The Agent instance which is used to upload and instantiate the contract. */
+  agent?:   Agent         = undefined
   /** Address of agent that performed the init tx. */
-  initBy?:  Address             = undefined
+  initBy?:  Address       = undefined
   /** Address of agent that performed the init tx. */
-  initMsg?: Into<Message>       = undefined
+  initMsg?: Into<Message> = undefined
   /** TXID of transaction that performed the init. */
-  initTx?:  TxHash              = undefined
+  initTx?:  TxHash        = undefined
   /** Address of this contract instance. Unique per chain. */
-  address?: Address             = undefined
+  address?: Address       = undefined
   /** Full label of the instance. Unique for a given Chain. */
-  label?:   Label               = undefined
+  label?:   Label         = undefined
   /** Prefix of the instance.
     * Identifies which Deployment the instance belongs to, if any.
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
-  prefix?:  Name                = undefined
+  prefix?:  Name          = undefined
   /** Proper name of the instance.
     * If the instance is not part of a Deployment, this is equal to the label.
     * If the instance is part of a Deployment, this is used as storage key.
     * You are encouraged to store application-specific versioning info in this field. */
-  name?:    Name                = undefined
+  name?:    Name          = undefined
   /** Deduplication suffix.
     * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
     * This field has sometimes been used to redeploy an new instance
     * within the same Deployment, taking the place of the old one.
     * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
     *       is "the real one" (see https://stackoverflow.com/a/54427214. */
-  suffix?:  Name                = undefined
+  suffix?:  Name          = undefined
 
   constructor (options: Partial<ContractInstance> = {}) {
     super(options)
@@ -66,7 +68,7 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
   /** @returns the data for saving a deploy receipt */
   get asReceipt (): Partial<this> {
     return {
-      ...super.asReceipt,
+      ...super.asUploadReceipt,
       initBy:  this.initBy,
       initMsg: this.initMsg,
       initTx:  this.initTx,
@@ -99,7 +101,7 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
     * the contract address could not be determined */
   getClientOrNull <C extends Client> (
     $Client: ClientClass<C>|undefined = this.client as ClientClass<C>,
-    agent?:  Agent
+    agent?:  Agent = this.agent
   ): C|null {
     if (!this.address) return null
     return new $Client(agent, this.address, this.codeHash, this) as C

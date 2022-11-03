@@ -25,6 +25,8 @@ export class ContractTemplate extends ContractSource {
   uploadTx?:   TxHash   = undefined
   /** Code ID representing the identity of the contract's code on a specific chain. */
   codeId?:     CodeId   = undefined
+  /** The Agent instance that will be used to upload the contract. */
+  agent?:      Agent    = undefined
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
   client?:     ClientClass<Client> = Client
