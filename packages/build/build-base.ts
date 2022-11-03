@@ -107,7 +107,7 @@ export abstract class LocalBuilder extends Builder {
   contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C>
   contract <C extends Client> (arg?: string|Partial<Contract<C>>) {
     const options = {
-      builder:    this,
+      builder:    this as Builder,
       revision:   this.revision,
       workspace:  this.config.project,
       repository: this.config.project,

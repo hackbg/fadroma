@@ -1346,6 +1346,7 @@ export type IntoSource = string|Contract<any>
 
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder extends CommandContext {
+
   /** Populated by @fadroma/build */
   static variants: Record<string, BuilderClass<Builder>> = {}
   /** Get a Builder from a specifier and optional overrides. */
