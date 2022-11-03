@@ -4,8 +4,6 @@ import { ClientConsole, ClientError, bold } from '@fadroma/client'
 export class ScrtError extends ClientError {
   static NoAddress = this.define('NoAddress',
     () => 'No address provided')
-  static UseAmino = this.define('UseAmino',
-    () => 'Use @fadroma/scrt-amino for the legacy API')
   static NoWalletOrMnemonic = this.define('NoWalletOrMnemonic',
     () => 'This Agent can only be created from mnemonic or wallet+address')
   static WrongChain = this.define('WrongChain',

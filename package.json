@@ -66,8 +66,7 @@
     "@fadroma/build":      { "optional": true },
     "@fadroma/deploy":     { "optional": true },
     "@fadroma/devnet":     { "optional": true },
-    "@fadroma/scrt":       { "optional": true },
-    "@fadroma/scrt-amino": { "optional": true }
+    "@fadroma/scrt":       { "optional": true }
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.0.2",

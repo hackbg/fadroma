@@ -169,7 +169,7 @@ Here's an example for Secret Network:
 ```typescript
 // MyWebApp.ts
 import { MyContract } from 'my-client-library'
-import { Scrt } from '@fadroma/client-scrt-grpc'
+import { Scrt } from '@fadroma/scrt'
 
 async function main () {
   const chain    = new Scrt()
@@ -229,7 +229,7 @@ be signed with the agent's key and broadcast from the agent's address.
 In the above example, if we wanted to use the legacy Amino encoding, we'd simply replace
 
 ```typescript
-import { Scrt } from '@fadroma/client-scrt-grpc'
+import { Scrt } from '@fadroma/scrt'
 ```
 
 to:

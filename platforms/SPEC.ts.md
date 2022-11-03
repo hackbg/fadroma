@@ -2,16 +2,11 @@
 
 ## Chain variants:
 
-* `LegacyScrt`: creates secretjs@0.17.5 based agent using lcd/amino
-* `Scrt`: creates secretjs@beta based agent using grpc
-
 ```typescript
-import { SecretNetwork } from '@fadroma/scrt'
-import { SecretNetworkAmino } from '@fadroma/scrt-amino'
+import { Scrt } from '@fadroma/scrt'
 
 const supportedChains = [
-  SecretNetwork,
-  SecretNetworkAmino
+  Scrt,
 ]
 
 for (const Chain of supportedChains) {
@@ -49,7 +44,7 @@ for (const Chain of supportedChains) {
 }
 // waiting for next block
 for (const Chain of [
-  SecretNetworkAmino
+  Scrt
 ]) {
   await Testing.withMockAPIEndpoint(async endpoint => {
     const chain    = new Chain('test', { url: endpoint.url })
@@ -68,7 +63,7 @@ for (const Chain of [
 
 // native token balance and transactions
 for (const Chain of [
-  SecretNetworkAmino
+  Scrt
 ]) {
   continue // TODO
   await withMockAPIEndpoint(async endpoint => {

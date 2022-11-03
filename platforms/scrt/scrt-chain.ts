@@ -157,7 +157,6 @@ export class Scrt extends Chain {
     options: Partial<ScrtAgentOpts> = {},
     _Agent:  AgentClass<ScrtAgent> = this.Agent
   ): Promise<ScrtAgent> {
-    // Not supported: passing a keypair like scrt-amino
     if (options.keyPair) this.log.warnIgnoringKeyPair()
     // Support creating agent for other Chain instance; TODO remove?
     const chain: Scrt = (options.chain ?? this) as Scrt
