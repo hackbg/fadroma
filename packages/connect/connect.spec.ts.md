@@ -12,7 +12,7 @@ import assert, { ok, equal, deepEqual } from 'assert'
 * `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
-import { ScrtGrpc } from '@fadroma/scrt'
+import { ScrtGrpc } from '@fadroma/scrt-grpc'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 
 const supportedChains = [

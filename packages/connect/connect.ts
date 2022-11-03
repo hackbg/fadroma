@@ -11,7 +11,7 @@ import {
   Deployment,
 } from '@fadroma/client'
 import { Devnet, DevnetConfig, defineDevnet } from '@fadroma/devnet'
-import { Scrt, ScrtGrpc } from '@fadroma/scrt'
+import { ScrtGrpc } from '@fadroma/scrt-grpc'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 import { Mocknet } from '@fadroma/mocknet'
 
@@ -56,11 +56,11 @@ export class ConnectConfig extends EnvConfig {
   get chainId (): ChainId {
     const chainIds = {
       Mocknet:          'mocknet',
-      ScrtGrpcMainnet:  Scrt.defaultMainnetChainId,
-      ScrtGrpcTestnet:  Scrt.defaultTestnetChainId,
+      ScrtGrpcMainnet:  ScrtGrpc.defaultMainnetChainId,
+      ScrtGrpcTestnet:  ScrtGrpc.defaultTestnetChainId,
       ScrtGrpcDevnet:   'fadroma-devnet',
-      ScrtAminoMainnet: Scrt.defaultMainnetChainId,
-      ScrtAminoTestnet: Scrt.defaultTestnetChainId,
+      ScrtAminoMainnet: ScrtAmino.defaultMainnetChainId,
+      ScrtAminoTestnet: ScrtAmino.defaultTestnetChainId,
       ScrtAminoDevnet:  'fadroma-devnet',
     }
     if (!this.chain) throw new ConnectError.NoChainSelected(chainIds)
