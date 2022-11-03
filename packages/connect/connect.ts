@@ -11,8 +11,7 @@ import {
   Deployment,
 } from '@fadroma/client'
 import { Devnet, DevnetConfig, defineDevnet } from '@fadroma/devnet'
-import { ScrtGrpc } from '@fadroma/scrt-grpc'
-import { ScrtAmino } from '@fadroma/scrt-amino'
+import { Scrt } from '@fadroma/scrt'
 import { Mocknet } from '@fadroma/mocknet'
 
 import { log, ConnectConsole, ConnectError } from './connect-events'
@@ -21,16 +20,12 @@ import { strictEqual } from 'node:assert'
 
 /** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
 Object.assign(Chain.variants as ChainRegistry, {
-  // Support for Mocknet.
-  // TODO switch this out and give each chain implementation its own Mocknet subclass
-  // (as CW1.0 contract env is different)
-  Mocknet: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
-  // Support for current Secret Network
-  ...ScrtGrpc.Chains,
-  ScrtGrpcDevnet:  defineDevnet(ScrtGrpc,  'scrt_1.4'),
-  // Support for Secret Network legacy amino API
-  ...ScrtAmino.Chains,
-  ScrtAminoDevnet: defineDevnet(ScrtAmino, 'scrt_1.2'),
+  // Support for Mocknet
+  Mocknet:     async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
+  // Support for Secret Network
+  ScrtMainnet: Scrt.Mainnet,
+  ScrtTestnet: Scrt.Testnet,
+  ScrtDevnet:  defineDevnet(Scrt,  'scrt_1.4'),
 })
 
 /** Connection configuration and Connector factory.
@@ -55,13 +50,10 @@ export class ConnectConfig extends EnvConfig {
     * (Used by subclasses to include chain ID in paths.) */
   get chainId (): ChainId {
     const chainIds = {
-      Mocknet:          'mocknet',
-      ScrtGrpcMainnet:  ScrtGrpc.defaultMainnetChainId,
-      ScrtGrpcTestnet:  ScrtGrpc.defaultTestnetChainId,
-      ScrtGrpcDevnet:   'fadroma-devnet',
-      ScrtAminoMainnet: ScrtAmino.defaultMainnetChainId,
-      ScrtAminoTestnet: ScrtAmino.defaultTestnetChainId,
-      ScrtAminoDevnet:  'fadroma-devnet',
+      Mocknet:      'mocknet',
+      ScrtMainnet:  Scrt.defaultMainnetChainId,
+      ScrtTestnet:  Scrt.defaultTestnetChainId,
+      ScrtDevnet:   'fadroma-devnet',
     }
     if (!this.chain) throw new ConnectError.NoChainSelected(chainIds)
     const result = chainIds[this.chain as keyof typeof chainIds]
@@ -69,11 +61,8 @@ export class ConnectConfig extends EnvConfig {
     return result
   }
 
-  /** Secret Network configuration for gRPC API */
-  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
-
-  /** Secret Network configuration for legacy Amino API */
-  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
+  /** Secret Network configuration. */
+  scrt = new Scrt.Config(this.env, this.cwd)
 
   /** Devnets configuration. */
   devnet = new DevnetConfig(this.env, this.cwd)
@@ -162,6 +151,10 @@ export async function connect (
   return await (config as ConnectConfig).getConnector()
 }
 
-export { ConnectConsole, ConnectError }
-
-export { Mocknet, ScrtGrpc, ScrtAmino, Devnet }
+export {
+  ConnectConsole,
+  ConnectError,
+  Mocknet,
+  Scrt,
+  Devnet
+}
