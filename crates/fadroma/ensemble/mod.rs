@@ -19,6 +19,8 @@ mod response;
 mod staking;
 #[cfg(not(target_arch = "wasm32"))]
 mod state;
+#[cfg(not(target_arch = "wasm32"))]
+mod execution_state;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;

@@ -9,8 +9,8 @@ use crate::{
     cosmwasm_std::{
         SubMsg, Deps, DepsMut, Env, StdError, Response, MessageInfo, Binary, Uint128, Coin,
         FullDelegation, Validator, Delegation, CosmosMsg, WasmMsg, BlockInfo, ContractInfo,
-        StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, Reply, ReplyOn, SubMsgResult,
-        SubMsgResponse, Storage, Api, Querier, QuerierWrapper, Empty, from_binary, to_binary,
+        StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, SubMsgResponse, SubMsgResult,
+        Reply, Storage, Api, Querier, QuerierWrapper, Empty, from_binary, to_binary,
         testing::MockApi
     }
 };
@@ -22,7 +22,8 @@ use super::{
     querier::EnsembleQuerier,
     response::{ResponseVariants, ExecuteResponse, InstantiateResponse, ReplyResponse},
     staking::Delegations,
-    state::State
+    state::State,
+    execution_state::{ExecutionState, MessageType}
 };
 
 pub type AnyResult<T> = anyhow::Result<T>;
@@ -68,16 +69,6 @@ pub(crate) struct Context {
 pub(crate) struct ContractUpload {
     code_hash: String,
     code: Box<dyn ContractHarness>
-}
-
-struct ResponseExecState {
-    states: Vec<SubMsgExecState>
-}
-
-struct SubMsgExecState {
-    responses: Vec<ResponseVariants>,
-    msgs: Vec<SubMsg>,
-    msg_index: usize
 }
 
 impl ContractEnsemble {
@@ -458,73 +449,56 @@ impl Context {
     fn execute_messages(
         &mut self,
         msg: SubMsg,
-        mut sender: String
+        initial_sender: String
     ) -> EnsembleResult<ResponseVariants> {
-        let mut state = ResponseExecState::new(msg);
+        let mut state = ExecutionState::new(msg, initial_sender);
 
-        while let Some(sub_msg) = state.next() {
-            if let Some(next) = state.current_sender() {
-                sender = next.to_string();
-            }
-
-            let reply = sub_msg.reply_on.clone();
-            let id = sub_msg.id;
-
+        while let Some(msg_ty) = state.next() {
             self.state.push_scope();
 
-            match self.execute_sub_msg(sub_msg, sender.clone()) {
-                Ok(resp) => {
-                    state.add_response(resp);
+            let result = match msg_ty {
+                MessageType::SubMsg { msg, sender } => {
+                    self.execute_sub_msg(msg, sender)
+                }
+                MessageType::Reply { id, error, target } => {
+                    match error {
+                        Some(err) => {
+                            let reply = Reply {
+                                id,
+                                result: SubMsgResult::Err(err.to_string())
+                            };
 
-                    if matches!(reply, ReplyOn::Always | ReplyOn::Success) {
-                        let reply = Reply {
-                            id,
-                            // TODO: Where should those be coming from?
-                            result: SubMsgResult::Ok(SubMsgResponse {
-                                events: vec![],
-                                data: None
-                            })
-                        };
+                            self.reply(target, reply).map(|x| x.into())
+                        },
+                        None => {
+                            let reply = Reply {
+                                id,
+                                // TODO: Where should those be coming from?
+                                result: SubMsgResult::Ok(SubMsgResponse {
+                                    events: vec![],
+                                    data: None
+                                })
+                            };
 
-                        match self.reply(sender.clone(), reply) {
-                            Ok(resp) => {
-                                state.add_response(resp.into());
-                            },
-                            Err(err) => {
-                                self.state.revert();
-
-                                return Err(err);
-                            }
+                            self.reply(target, reply).map(|x| x.into())
                         }
                     }
-                },
-                Err(err) if err.is_contract_error() &&
-                    matches!(reply, ReplyOn::Always | ReplyOn::Error) =>
-                {
-                    self.state.revert_scope();
+                }
+            };
 
-                    let reply = Reply {
-                        id,
-                        result: SubMsgResult::Err(err.to_string())
-                    };
-
-                    match self.reply(sender.clone(), reply) {
-                        Ok(resp) => {
-                            state.add_response(resp.into());
-                        },
-                        Err(err) => {
-                            self.state.revert();
-
-                            return Err(err);
-                        }
+            match state.process_result(result) {
+                Ok(mut msgs_reverted) => {
+                    while msgs_reverted > 0 {
+                        self.state.revert_scope();
+                        msgs_reverted -= 1;
                     }
                 },
                 Err(err) => {
                     self.state.revert();
-                    
+    
                     return Err(err);
                 }
-            };
+            }
         }
 
         self.block.next();
@@ -689,119 +663,6 @@ impl Context {
                 address: contract.address,
                 code_hash: contract.code_hash,
             }
-        }
-    }
-}
-
-impl ResponseExecState {
-    #[inline]
-    fn new(initial: SubMsg) -> Self {
-        Self {
-            states: vec![SubMsgExecState::new(vec![initial])],
-        }
-    }
-
-    fn finalize(mut self) -> ResponseVariants {
-        assert!(self.states.len() > 0);
-
-        while self.squash_latest() { }
-        assert_eq!(self.states[0].responses.len(), 1);
-
-        self.states[0].responses.pop().unwrap()
-    }
-
-    fn add_response(&mut self, response: ResponseVariants) {
-        let messages = response.messages();
-
-        if messages.len() > 0 {
-            self.states.push(SubMsgExecState::new(messages.to_vec()));
-        }
-
-        let index = self.states.len() - 1;
-        self.states[index].responses.push(response);
-    }
-
-    fn current_sender(&self) -> Option<&str> {
-        if self.states.len() <= 1 {
-            return None;
-        }
-
-        let index = self.states.len() - 2;
-
-        if let Some(response) = self.states[index].responses.last() {
-            Some(response.address())
-        } else {
-            None
-        }
-    }
-
-    fn next(&mut self) -> Option<SubMsg> {
-        if self.states.is_empty() {
-            return None;
-        }
-
-        loop {
-            let index = self.states.len() - 1;
-            let next = self.states[index].next();
-
-            if next.is_none() {
-                if !self.squash_latest() {
-                    return None;
-                }
-            } else {
-                return next
-            }
-        }
-    }
-
-    fn squash_latest(&mut self) -> bool {
-        if self.states.len() <= 1 {
-            return false;
-        }
-
-        let current = self.pop();
-        let index = self.states.len() - 1;
-        
-        self.states[index].responses
-            .last_mut()
-            .unwrap()
-            .add_responses(current.responses);
-
-        true
-    }
-
-    #[inline]
-    fn pop(&mut self) -> SubMsgExecState {
-        self.states.pop().unwrap()
-    }
-}
-
-impl SubMsgExecState {
-    fn new(msgs: Vec<SubMsg>) -> Self {
-        Self {
-            responses: Vec::with_capacity(msgs.len()),
-            msg_index: 0,
-            msgs
-        }
-    }
-
-    #[inline]
-    fn current(&self) -> &SubMsg {
-        if self.msg_index < self.msgs.len() {
-            &self.msgs[self.msg_index]
-        } else {
-            &self.msgs[self.msg_index - 1]
-        }
-    }
-
-    fn next(&mut self) -> Option<SubMsg> {
-        if self.msg_index < self.msgs.len() {
-            let result = Some(self.msgs[self.msg_index].clone());
-            self.msg_index += 1;
-
-            result
-        } else {
-            None
         }
     }
 }
