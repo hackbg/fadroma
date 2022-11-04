@@ -161,7 +161,7 @@ export class Scrt extends Chain {
     // Support creating agent for other Chain instance; TODO remove?
     const chain: Scrt = (options.chain ?? this) as Scrt
     // Use selected secretjs implementation
-    const _SecretJS = chain.SecretJS ?? await import('secretjs')
+    const _SecretJS = chain.SecretJS
     // Unwrap base options
     let { name, address, mnemonic, wallet, fees } = options
     // Create wallet from mnemonic if a wallet is not passed

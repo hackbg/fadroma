@@ -112,7 +112,7 @@ export class ScrtBundle extends Bundle {
   }
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
-    const SecretJS = (this.agent?.chain as Scrt).SecretJS ?? await import('secretjs')
+    const SecretJS = (this.agent?.chain as Scrt).SecretJS
     const chainId = this.assertChain().id
     const results: ScrtBundleResult[] = []
     const msgs  = await this.conformedMsgs
@@ -163,7 +163,7 @@ export class ScrtBundle extends Bundle {
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
     return Promise.all(this.assertMessages().map(async ({init, exec})=>{
-      const SecretJS = (this.agent?.chain as Scrt).SecretJS ?? await import('secretjs')
+      const SecretJS = (this.agent?.chain as Scrt).SecretJS
       if (init) return new SecretJS.MsgInstantiateContract({
         sender:          init.sender,
         code_id:         init.codeId,
