@@ -96,12 +96,9 @@ impl State {
     {
         if let Some(instance) = self.instances.get_mut(address) {
             let result = borrow(&mut instance.storage as &mut dyn Storage);
-            // We call this regardless of the result because we want to clear any pending ops.
+            
             let ops = instance.storage.ops();
-
-            if result.is_ok() {
-                self.push_ops(ops);
-            }
+            self.push_ops(ops);
 
             result
         } else {
