@@ -10,7 +10,7 @@ Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
 ## Fetching the label
 
 ```typescript
-import { fetchLabel, parseLabel, writeLabel } from '@fadroma/client'
+import { fetchLabel, parseLabel, writeLabel } from '@fadroma/core'
 
 let c = { address: 'addr' }
 let a = { getLabel: () => Promise.resolve('label') }

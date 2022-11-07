@@ -1,7 +1,7 @@
 import { LocalBuilder, artifactName, sanitize } from './build-base'
 import { BuildConsole } from './build-events'
 import { getGitDir } from './build-history'
-import { Contract, ContractSource, HEAD } from '@fadroma/client'
+import { Contract, ContractSource, HEAD } from '@fadroma/core'
 import $ from '@hackbg/kabinet'
 import { bold } from '@hackbg/konzola'
 import { spawn } from 'node:child_process'

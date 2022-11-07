@@ -1,5 +1,5 @@
-import type { Address, CodeHash, ICoin, Uint128 } from '@fadroma/client'
-import { Coin } from '@fadroma/client'
+import type { Address, CodeHash, ICoin, Uint128 } from '@fadroma/core'
+import { Coin } from '@fadroma/core'
 
 /** # Token descriptors. */
 

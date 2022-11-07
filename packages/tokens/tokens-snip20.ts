@@ -2,11 +2,11 @@ import type {
   Agent,
   Address,
   Uint128
-} from '@fadroma/client'
+} from '@fadroma/core'
 import {
   Client,
   ClientConsole,
-} from '@fadroma/client'
+} from '@fadroma/core'
 import type {
   Permit
 } from '@fadroma/scrt'

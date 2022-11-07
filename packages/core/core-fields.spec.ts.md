@@ -9,7 +9,7 @@ import assert from 'node:assert'
 For more legible output.
 
 ```typescript
-import { getMaxLength } from '@fadroma/client'
+import { getMaxLength } from '@fadroma/core'
 assert.equal(getMaxLength(['a', 'ab', 'abcd', 'abc', 'b']), 4)
 ```
 
@@ -18,7 +18,7 @@ assert.equal(getMaxLength(['a', 'ab', 'abcd', 'abc', 'b']), 4)
 Only work on existing properties.
 
 ```typescript
-import { override, fallback } from '@fadroma/client'
+import { override, fallback } from '@fadroma/core'
 assert.deepEqual(
   override({ a: 1, b: 2 }, { b: 3, c: 4 }),
   { a: 1, b: 3 }
@@ -34,7 +34,7 @@ assert.deepEqual(
 Case-insensitive.
 
 ```typescript
-import { validated } from '@fadroma/client'
+import { validated } from '@fadroma/core'
 assert.ok(validated('test', 1))
 assert.ok(validated('test', 1, 1))
 assert.ok(validated('test', 'a', 'A'))
@@ -45,7 +45,7 @@ assert.throws(()=>validated('test', 'a', 'b'))
 ## Optionally/partially lazy values
 
 ```typescript
-import { into, intoArray, intoRecord } from '@fadroma/client'
+import { into, intoArray, intoRecord } from '@fadroma/core'
 
 assert.equal(await into(1), 1)
 assert.equal(await into(Promise.resolve(1)), 1)

@@ -5,7 +5,7 @@ import assert, { ok, equal, deepEqual, throws } from 'node:assert'
 ```
 
 ```typescript
-import { Deployment } from '@fadroma/client'
+import { Deployment } from '@fadroma/core'
 import { DeployStore, YAML1, YAML2, JSON1 } from '@fadroma/deploy'
 import { withTmpDir } from '@hackbg/kabinet'
 

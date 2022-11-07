@@ -1,5 +1,5 @@
-import type { Address, ChainId, Fee } from '@fadroma/client'
-import { ClientConsole, ClientError, bold } from '@fadroma/client'
+import type { Address, ChainId, Fee } from '@fadroma/core'
+import { ClientConsole, ClientError, bold } from '@fadroma/core'
 
 export class ScrtError extends ClientError {
   static NoAddress = this.define('NoAddress',

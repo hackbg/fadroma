@@ -1,5 +1,5 @@
-import { into, ContractInstance } from '@fadroma/client'
-import type { Address, Client, CodeId, CodeHash, Label, Message } from '@fadroma/client'
+import { into, ContractInstance } from '@fadroma/core'
+import type { Address, Client, CodeId, CodeHash, Label, Message } from '@fadroma/core'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { bold } from '@hackbg/konzola'
 import type { MocknetContract } from './mocknet-contract'

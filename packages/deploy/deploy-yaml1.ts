@@ -9,7 +9,7 @@ import $, {
 } from '@hackbg/kabinet'
 import {
   Agent, ContractInstance, Client, Deployment, DeployStore
-} from '@fadroma/client'
+} from '@fadroma/core'
 import {
   DeployConsole, DeployError, log
 } from './deploy-events'

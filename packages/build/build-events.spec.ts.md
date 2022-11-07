@@ -2,7 +2,7 @@
 
 ```typescript
 import { BuildConsole } from '@fadroma/build'
-import { ContractSource } from '@fadroma/client'
+import { ContractSource } from '@fadroma/core'
 const log = new BuildConsole({ info: () => {} })
 log.buildingFromCargoToml('foo')
 log.buildingFromBuildScript('foo')

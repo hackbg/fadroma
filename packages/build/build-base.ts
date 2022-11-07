@@ -1,7 +1,7 @@
 import { Env, EnvConfig } from '@hackbg/konfizi'
-import { Builder, Contract, ContractTemplate, HEAD } from '@fadroma/client'
+import { Builder, Contract, ContractTemplate, HEAD } from '@fadroma/core'
 import { bold } from '@hackbg/konzola'
-import type { Class, Client } from '@fadroma/client'
+import type { Class, Client } from '@fadroma/core'
 import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/kabinet'
 
 import { BuildConsole } from './build-events'

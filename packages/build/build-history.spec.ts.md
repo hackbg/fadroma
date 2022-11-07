@@ -8,7 +8,7 @@ If `.git` directory is present, builders can check out and build a past commits 
 as specifier by `contract.revision`.
 
 ```typescript
-import { ContractSource } from '@fadroma/client'
+import { ContractSource } from '@fadroma/core'
 import { getGitDir, DotGit } from '@fadroma/build'
 
 throws(()=>getGitDir(new ContractSource()))

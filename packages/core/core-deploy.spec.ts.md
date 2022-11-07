@@ -7,7 +7,7 @@ import assert from 'node:assert'
 ## Contract slot
 
 ```typescript
-import { ContractSlot } from '@fadroma/client'
+import { ContractSlot } from '@fadroma/core'
 let contract: ContractSlot
 ```
 
@@ -16,7 +16,7 @@ and has access to all logic and state that is needed
 to build, upload, instantiate, and retrieve contracts.
 
 ```typescript
-import type { Agent, Builder, Uploader } from '@fadroma/client'
+import type { Agent, Builder, Uploader } from '@fadroma/core'
 let agent:    Agent    = { instantiate () { return { address: Symbol('the address') } } }
 let builder:  Builder  = Symbol('the builder')
 let uploader: Uploader = Symbol('the uploader')

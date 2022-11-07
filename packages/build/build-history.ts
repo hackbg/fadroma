@@ -1,6 +1,6 @@
 import $, { Path, TextFile } from '@hackbg/kabinet'
 import { bold } from '@hackbg/konzola'
-import type { Contract } from '@fadroma/client'
+import type { Contract } from '@fadroma/core'
 import { BuildConsole } from './build-events'
 
 import { fileURLToPath } from 'node:url'

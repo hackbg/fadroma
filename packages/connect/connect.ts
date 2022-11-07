@@ -9,7 +9,7 @@ import {
   Chain, ChainClass, ChainId, ChainOpts, ChainRegistry,
   ClientConsole, ClientError,
   Deployment,
-} from '@fadroma/client'
+} from '@fadroma/core'
 import { Devnet, DevnetConfig, defineDevnet } from '@fadroma/devnet'
 import { Scrt, ScrtGrpc } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'

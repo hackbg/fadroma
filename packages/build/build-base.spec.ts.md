@@ -1,6 +1,6 @@
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
-import * as Fadroma from '@fadroma/client'
+import * as Fadroma from '@fadroma/core'
 import $ from '@hackbg/kabinet'
 import assert, { ok, equal, deepEqual, throws } from 'assert'
 ```
@@ -29,7 +29,7 @@ The outputs of builds are called **artifact**s, and are represented by two prope
     instantiated contracts.
 
 ```typescript
-import { ContractSource } from '@fadroma/client'
+import { ContractSource } from '@fadroma/core'
 
 const contract = new ContractSource({
   repository: 'REPO',

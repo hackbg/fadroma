@@ -40,7 +40,7 @@ The first thing any NPM package needs is a `package.json`.
   "type": "module",
   "main": "MyContract.js",
   "dependencies": {
-    "@fadroma/client": "^6.1"
+    "@fadroma/core": "^6.1"
   }
 }
 ```
@@ -58,7 +58,7 @@ Here's an example client implementation for the contract from the previous secti
 
 ```javascript
 // MyContract.js
-import { Client } from '@fadroma/client'
+import { Client } from '@fadroma/core'
 export class MyContract extends Client {
   async q1  ()  { return await this.query("q1") }
   async q2  (n) { return await this.query({q2: n}) }
@@ -111,7 +111,7 @@ environment support and the least amount of hurdles during development.
     "default": "./dist/esm/MyContract.js"
   },
   "dependencies": {
-    "@fadroma/client": "^3"
+    "@fadroma/core": "^3"
   },
   "devDependencies": {
     "typescript": "^4.7"
@@ -129,7 +129,7 @@ environment support and the least amount of hurdles during development.
 
 ```typescript
 // MyContract.ts
-import { Client, Uint128 } from '@fadroma/client'
+import { Client, Uint128 } from '@fadroma/core'
 export class MyContract extends Client {
   async q1  ()           { return await this.query("q1") }
   async q2  (n: Uint128) { return await this.query({q2: n}) }
@@ -144,7 +144,7 @@ export class MyContract extends Client {
 
 As you can see, the TypeScript client class implementation is not much different,
 except that you're also encouraged to use the type aliases exported by
-`@fadroma/client`, which correspond to the types used by the contract (`Uint128`, `Address`, etc.)
+`@fadroma/core`, which correspond to the types used by the contract (`Uint128`, `Address`, etc.)
 
 In practice, those type aliases mostly resolve to either `number` or `string`, so the type
 checker won't be much help, but at least the caller will get type suggestions
@@ -152,13 +152,13 @@ if they use LSP.
 
 ## Using client classes
 
-`@fadroma/client` is a simple library, because the programming model of CosmWasm
+`@fadroma/core` is a simple library, because the programming model of CosmWasm
 is supremely simple. Under the hood, however, there are some complexities that
 Fadroma handles for you.
 
 The main example of this is Secret Network changing their API serialization,
-from a JSON-based format called Amino, to gRPC. That's why you never use `@fadroma/client`
-alone - you use it with conjunction with one of the `@fadroma/client-*` libraries that
+from a JSON-based format called Amino, to gRPC. That's why you never use `@fadroma/core`
+alone - you use it with conjunction with one of the `@fadroma/core-*` libraries that
 knows exactly how to serialize and sign the messages that you pass to `this.query` and
 `this.execute`.
 
@@ -169,7 +169,7 @@ Here's an example for Secret Network:
 ```typescript
 // MyWebApp.ts
 import { MyContract } from 'my-client-library'
-import { Scrt } from '@fadroma/client-scrt-grpc'
+import { Scrt } from '@fadroma/core-scrt-grpc'
 
 async function main () {
   const chain    = new Scrt()
@@ -195,7 +195,7 @@ in terms of the following entities:
 
 Chain objects correspond to separate execution environments, i.e. **they represent blockchains**.
 
-Chains inherit from the base `Chain` class exported by `@fadroma/client`.
+Chains inherit from the base `Chain` class exported by `@fadroma/core`.
 
 `Scrt` is the **chain class** representing the Secret Network mainnet.
 
@@ -204,7 +204,7 @@ Chains inherit from the base `Chain` class exported by `@fadroma/client`.
 Agent objects correspond to identities operating in a specific environment, i.e.
 **they represent wallets**.
 
-Agents inherit from the base `Agent` class exported by `@fadroma/client`.
+Agents inherit from the base `Agent` class exported by `@fadroma/core`.
 
 Calling `chain.getAgent({ keyPair })` returns an instance of `ScrtRPCAgent`.
 This is the **agent class** that uses `secretjs@beta` to talk to Secret Network API via gRPC
@@ -218,7 +218,7 @@ and interact with the chain as different identities from the same script.
 Client objects are interfaces to programs deployed in a specific environment, i.e.
 **they represent smart contracts**.
 
-Clients inherit from the base `Client` class exported by `@fadroma/client`.
+Clients inherit from the base `Client` class exported by `@fadroma/core`.
 
 Calling `agent.getClient(MyContract, address)` returns an instance of `MyContract` that is bound
 to the contract at `address`. You can now query and make transactions, and the transactions will
@@ -229,13 +229,13 @@ be signed with the agent's key and broadcast from the agent's address.
 In the above example, if we wanted to use the legacy Amino encoding, we'd simply replace
 
 ```typescript
-import { Scrt } from '@fadroma/client-scrt-grpc'
+import { Scrt } from '@fadroma/core-scrt-grpc'
 ```
 
 to:
 
 ```typescript
-import { LegacyScrt as Scrt } from '@fadroma/client-scrt-amino'
+import { LegacyScrt as Scrt } from '@fadroma/core-scrt-amino'
 ```
 
 Then, `secretjs@0.17` would be used in place of `secretjs@beta`. Normally, NPM would not even
@@ -244,7 +244,7 @@ through two different Fadroma packages, there's no problem.
 
 Right now, we only support Secret Network, but cross-chain portability is one of our main
 priorities. Adding support for other chains in Fadroma would be as simple as implementing the
-corresponding `Chain` and `Agent` subclasses in e.g. `@fadroma/client-cw-1-0`.
+corresponding `Chain` and `Agent` subclasses in e.g. `@fadroma/core-cw-1-0`.
 
 ## Single-responsibility principle
 
@@ -264,7 +264,7 @@ You can specify default gas limits for each method by defining the `fees: Record
 property of your client class:
 
 ```typescript
-import { Client, Fee } from '@fadroma/client'
+import { Client, Fee } from '@fadroma/core'
 export class MyContract extends Client {
   fees = {
     tx1: new Fee('10000', 'uscrt'),

@@ -1,4 +1,4 @@
-import { ClientConsole, ClientError } from '@fadroma/client'
+import { ClientConsole, ClientError } from '@fadroma/core'
 
 export class MocknetConsole extends ClientConsole {
 

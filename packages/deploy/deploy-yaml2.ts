@@ -1,5 +1,5 @@
 import { timestamp } from '@hackbg/konzola'
-import { Contract, Deployment, DeployStore } from '@fadroma/client'
+import { Contract, Deployment, DeployStore } from '@fadroma/core'
 import { } from './deploy-base'
 import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/kabinet'
 

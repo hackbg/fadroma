@@ -2,8 +2,8 @@ import { EnvConfig } from '@hackbg/konfizi'
 import { CommandContext } from '@hackbg/komandi'
 import { CustomError } from '@hackbg/konzola'
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/kabinet'
-import { Chain, ClientConsole } from '@fadroma/client'
-import type { AgentOpts, DevnetHandle } from '@fadroma/client'
+import { Chain, ClientConsole } from '@fadroma/core'
+import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
 /** Supported devnet variants. */
 export type DevnetPlatform = 'scrt_1.2'|'scrt_1.3'|'scrt_1.4'

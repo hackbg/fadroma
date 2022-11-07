@@ -8,7 +8,7 @@ The Token Manager is an object that serves as a registry
 of token contracts in a deployment.
 
 ```typescript
-import { Deployment } from '@fadroma/client'
+import { Deployment } from '@fadroma/core'
 import { TokenManager, TokenPair, TokenError } from '@fadroma/tokens'
 
 const context: Deployment = new Deployment({
@@ -36,7 +36,7 @@ assert.ok(manager.pair('DEPLOY-KNOWN') instanceof TokenPair)
 
 new TokenError()
 
-import { ContractSlot, ContractTemplate } from '@fadroma/client'
+import { ContractSlot, ContractTemplate } from '@fadroma/core'
 const manager2 = new TokenManager({
   template: (options) => new ContractSlot(options)
 }, new ContractTemplate({

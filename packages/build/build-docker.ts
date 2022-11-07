@@ -7,8 +7,8 @@ import * as Dokeres from '@hackbg/dokeres'
 import { bold } from '@hackbg/konzola'
 import $, { Path, OpaqueDirectory } from '@hackbg/kabinet'
 
-import { ContractSource, ContractTemplate, HEAD } from '@fadroma/client'
-import type { Builder } from '@fadroma/client'
+import { ContractSource, ContractTemplate, HEAD } from '@fadroma/core'
+import type { Builder } from '@fadroma/core'
 
 import { homedir } from 'node:os'
 

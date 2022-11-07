@@ -1,6 +1,6 @@
 import { CommandContext } from '@hackbg/komandi'
-import { intoInstance, ClientConsole, ContractTemplate, writeLabel } from '@fadroma/client'
-import type { ContractInstance, ContractSlot, Address, Deployment } from '@fadroma/client'
+import { intoInstance, ClientConsole, ContractTemplate, writeLabel } from '@fadroma/core'
+import type { ContractInstance, ContractSlot, Address, Deployment } from '@fadroma/core'
 import { Snip20 } from './tokens-snip20'
 import type { Snip20InitConfig } from './tokens-snip20'
 import { TokenPair } from './tokens-desc'

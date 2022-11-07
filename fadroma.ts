@@ -18,8 +18,8 @@
 
 **/
 
-import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
-import type { DeployStore } from '@fadroma/client'
+import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/core'
+import type { DeployStore } from '@fadroma/core'
 import { BuilderConfig } from '@fadroma/build'
 import { DeployConfig, Deployer, DeployConsole } from '@fadroma/deploy'
 import type { DeployerClass } from '@fadroma/deploy'
@@ -118,9 +118,9 @@ export * from '@hackbg/komandi'
 export * from '@hackbg/konfizi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
-export * from '@fadroma/client'
-export { override } from '@fadroma/client'
-export type { Decimal, Overridable } from '@fadroma/client'
+export * from '@fadroma/core'
+export { override } from '@fadroma/core'
+export type { Decimal, Overridable } from '@fadroma/core'
 export * from '@fadroma/build'
 export * from '@fadroma/deploy'
 export * from '@fadroma/devnet'

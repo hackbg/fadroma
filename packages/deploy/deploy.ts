@@ -21,7 +21,7 @@ import * as YAML1 from './deploy-yaml1'
 import * as YAML2 from './deploy-yaml2'
 import * as JSON1 from './deploy-json1'
 
-import { DeployStore } from '@fadroma/client'
+import { DeployStore } from '@fadroma/core'
 Object.assign(DeployStore.variants, {
   'YAML1': YAML1.YAMLDeployments_v1,
   'YAML2': YAML2.YAMLDeployments_v2,

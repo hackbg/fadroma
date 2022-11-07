@@ -1,7 +1,7 @@
-import { Chain, ChainMode } from '@fadroma/client'
+import { Chain, ChainMode } from '@fadroma/core'
 import type {
   Address, AgentClass, AgentOpts, Client, CodeHash, Message, Uint128
-} from '@fadroma/client'
+} from '@fadroma/core'
 import { MocknetAgent } from './mocknet-agent'
 import { MocknetBackend } from './mocknet-backend'
 

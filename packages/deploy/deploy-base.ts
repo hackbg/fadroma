@@ -5,10 +5,10 @@ import { EnvConfig } from '@hackbg/konfizi'
 import type { Env } from '@hackbg/konfizi'
 
 import { Connector, ConnectConfig } from '@fadroma/connect'
-import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadroma/client'
+import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadroma/core'
 import type {
   Class, Client, Contract, DeploymentFormat, DeployStoreClass, UploaderClass
-} from '@fadroma/client'
+} from '@fadroma/core'
 
 import { FSUploader } from './upload'
 import { DeployError, DeployConsole } from './deploy-events'

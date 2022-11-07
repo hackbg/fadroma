@@ -11,7 +11,7 @@ containing upload metadata, which we call an **upload receipt**.
 ```typescript
 import { JSONDirectory, withTmpDir } from '@hackbg/kabinet'
 import { DeployConfig, FSUploader } from '@fadroma/deploy'
-import { Agent, Uploader, ContractTemplate } from '@fadroma/client'
+import { Agent, Uploader, ContractTemplate } from '@fadroma/core'
 import { examples } from '../../TESTING.ts.md'
 let config:   DeployConfig
 let uploader: Uploader

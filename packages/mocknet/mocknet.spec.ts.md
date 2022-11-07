@@ -13,7 +13,7 @@ much faster than with a devnet or testnet.
 ## Mocknet as Chain
 
 ```typescript
-import { Chain, Agent, Client, Contract, ContractTemplate, ContractInstance } from '@fadroma/client'
+import { Chain, Agent, Client, Contract, ContractTemplate, ContractInstance } from '@fadroma/core'
 let chain:     Chain
 let agent:     Agent
 let template:  Contract

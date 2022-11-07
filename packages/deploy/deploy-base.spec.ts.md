@@ -21,7 +21,7 @@ await config.getDeployer()
 
 ## `Deployer`: The deploy context
 
-The `Deployer` class extends `Deployment` (from `@fadroma/client`)
+The `Deployer` class extends `Deployment` (from `@fadroma/core`)
 by way of `Connector` (from `@fadroma/connect`), adding handling for
 **deploy receipts**, which are records of all the contracts of a `Deployment`:
   * Saving the current `state` of the `Deployment` to the active `DeployStore`
@@ -49,7 +49,7 @@ ok(await context.save() ?? true)
 ## `Deployment` classes
 
 ```typescript
-import { Client, Deployment } from '@fadroma/client'
+import { Client, Deployment } from '@fadroma/core'
 import { connect } from '@fadroma/connect'
 import * as Dokeres from '@hackbg/dokeres'
 import { BuildContext, getBuilder } from '@fadroma/build'
@@ -89,7 +89,7 @@ let codeId, codeHash, txHash, result
 ## `Deployment`: collection of contracts
 
 ```typescript
-import { ChainId, ContractSlot, ContractTemplate } from '@fadroma/client'
+import { ChainId, ContractSlot, ContractTemplate } from '@fadroma/core'
 let chainId: ChainId  = 'mocknet'
 
 await inTmpDeployment(async d => {

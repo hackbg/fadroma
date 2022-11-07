@@ -3,8 +3,8 @@ import { base64 } from '@hackbg/formati'
 import type {
   Address, AgentClass, AgentOpts,
   BundleClass, Client, CodeHash, DeployArgs, ExecOpts, ICoin, Label, Message
-} from '@fadroma/client'
-import { Agent, Contract } from '@fadroma/client'
+} from '@fadroma/core'
+import { Agent, Contract } from '@fadroma/core'
 import { Scrt } from './scrt'
 import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 import type { ScrtBundle } from './scrt-bundle'

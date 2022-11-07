@@ -1,8 +1,8 @@
 import { Devnet, devnetPortModes } from './devnet-base'
 import type { DevnetOpts, DevnetPlatform, DevnetState } from './devnet-base'
 
-import { ClientConsole } from '@fadroma/client'
-import type { AgentOpts, DevnetHandle } from '@fadroma/client'
+import { ClientConsole } from '@fadroma/core'
+import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
 import * as Dokeres                   from '@hackbg/dokeres'
 import $, { JSONFile, JSONDirectory } from '@hackbg/kabinet'

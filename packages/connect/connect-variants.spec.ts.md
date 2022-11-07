@@ -126,7 +126,7 @@ async function supportsNativeTransfers (Chain) {
 ### Compute API
 
 ```typescript
-import { ContractInstance } from '@fadroma/client'
+import { ContractInstance } from '@fadroma/core'
 async function supportsSmartContracts (Chain) {
   const chain = new Chain('test')
   const agent = await chain.getAgent({ mnemonic: mnemonics[0] })

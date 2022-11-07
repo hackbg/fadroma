@@ -1,4 +1,4 @@
-import type { Deployment, DeployStore } from '@fadroma/client'
+import type { Deployment, DeployStore } from '@fadroma/core'
 import { ConnectConsole, ConnectError } from '@fadroma/connect'
 import $ from '@hackbg/kabinet'
 import { bold, colors } from '@hackbg/konzola'

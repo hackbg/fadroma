@@ -1,5 +1,5 @@
-import { Bundle } from '@fadroma/client'
-import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/client'
+import { Bundle } from '@fadroma/core'
+import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/core'
 import type { ScrtAgent } from './scrt-agent'
 import { Scrt } from './scrt-chain'
 import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'

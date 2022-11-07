@@ -1,5 +1,5 @@
 import { sha256, base16 } from '@hackbg/formati'
-import type { Address } from '@fadroma/client'
+import type { Address } from '@fadroma/core'
 
 declare class TextDecoder { decode (data: any): string }
 

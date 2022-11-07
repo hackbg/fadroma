@@ -66,7 +66,7 @@ function example (name, wasm, hash) {
 ### Mock agent
 
 ```typescript
-import { Agent, Chain, Uploader, ContractInstance, Client } from '@fadroma/client'
+import { Agent, Chain, Uploader, ContractInstance, Client } from '@fadroma/core'
 export const mockAgent = () => new class MockAgent extends Agent {
 
   chain = new (class MockChain extends Chain {

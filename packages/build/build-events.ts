@@ -2,8 +2,8 @@ import { CommandsConsole } from '@hackbg/komandi'
 import $ from '@hackbg/kabinet'
 import type { Path } from '@hackbg/kabinet'
 import { colors, bold } from '@hackbg/konzola'
-import { HEAD } from '@fadroma/client'
-import type { ContractTemplate } from '@fadroma/client'
+import { HEAD } from '@fadroma/core'
+import type { ContractTemplate } from '@fadroma/core'
 
 export class BuildConsole extends CommandsConsole {
   name = 'Fadroma.Builder'

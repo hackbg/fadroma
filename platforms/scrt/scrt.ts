@@ -35,7 +35,7 @@ Object.defineProperty(ScrtAgent,  'SecretJS', { enumerable: false, writable: tru
 Object.defineProperty(ScrtBundle, 'SecretJS', { enumerable: false, writable: true })
 
 export { SecretJS }
-export * from '@fadroma/client'
+export * from '@fadroma/core'
 export * from './scrt-events'
 export * from './scrt-config'
 export * from './scrt-chain'

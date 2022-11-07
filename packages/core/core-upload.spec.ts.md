@@ -11,7 +11,7 @@ Represents an uploaded contract that is not yet instantiated.
   * Instantiating a template creates a `ContractInstance`.
 
 ```typescript
-import { ContractSource, ContractTemplate } from '@fadroma/client'
+import { ContractSource, ContractTemplate } from '@fadroma/core'
 let template: ContractTemplate = new ContractTemplate()
 let builder  = { build: async x => x }
 let agent    = { chain: { id: 'test' }, getHash: async x => 'hash' }

@@ -22,7 +22,7 @@ Platform packages extend `Chain` to represent connections to different chains.
     * **TODO:** Load balancing between multiple chain endpoints.
 
 ```typescript
-import { Chain } from '@fadroma/client'
+import { Chain } from '@fadroma/core'
 let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
 assert.equal(chain.id,   'id')
 assert.equal(chain.url,  'example.com')
@@ -70,7 +70,7 @@ In Fadroma, you do this by obtaining an `Agent` from the `Chain` object.
   If you don't a random mnemonic and address will be generated.
 
 ```typescript
-import { Agent } from '@fadroma/client'
+import { Agent } from '@fadroma/core'
 let agent: Agent = await chain.getAgent()
 
 assert(agent instanceof Agent)
@@ -257,7 +257,7 @@ Represents a contract that is instantiated from a `codeId`.
     the `getClient` family of methods.
 
 ```typescript
-import { ContractInstance } from '@fadroma/client'
+import { ContractInstance } from '@fadroma/core'
 let instance: ContractInstance = new ContractInstance()
 assert.ok(instance.asReceipt)
 //assert.ok(await instance.define({ agent }).found)
@@ -275,7 +275,7 @@ User interacts with contract by obtaining an instance of the
 appropriate `Client` subclass from the authorized `Agent`.
 
 ```typescript
-import { Client } from '@fadroma/client'
+import { Client } from '@fadroma/core'
 let client: Client = new Client(agent, 'some-address', 'some-code-hash')
 
 assert.equal(client.agent,    agent)

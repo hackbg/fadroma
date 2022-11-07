@@ -341,7 +341,11 @@ export function defineContractAPI <D extends Deployment> (self: D) {
     const name = (typeof arg === 'string') ? arg : arg.name
     const opts = (typeof arg === 'string') ? { name } : arg
     opts.agent ??= this.agent
-    return this.contract.has(name) ? this.contract.get(name)(opts) : defineInstance(opts)
+    if (name && this.contract.has(name)) {
+      return this.contract.get(name)
+    } else {
+      return defineInstance(opts)
+    }
   }
 
 }
