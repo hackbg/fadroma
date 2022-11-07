@@ -9,6 +9,49 @@ export function intoSource (x: Partial<ContractSource>): ContractSource {
   return new ContractSource(x)
 }
 
+/** Create a callable object based on ContractSource.
+  * Pass it around to represent the source of a contract,
+  * and call it to compile. */
+export function defineSource (
+  options: Partial<ContractSource> = {}
+): ContractSource & (() => Promise<ContractSource>) {
+
+  const source = new ContractSource(options)
+
+  const rebind = (obj, [k, v])=>Object.assign(obj, {
+    [k]: (typeof v === 'function') ? v.bind(getOrCompileArtifact) : v
+  }, {})
+
+  return Object.assign(
+    getOrCompileArtifact.bind(getOrCompileArtifact),
+    Object.entries(source).reduce(rebind)
+  )
+
+  function getOrCompileArtifact () {
+    return this.compiled
+  }
+
+}
+
+/** For a contract to be buildable, the location of its source must be specified.
+  * For now this means that the `crate` field should be set; however there are multiple
+  * thinkable ways of specifying a contract, which this interface should eventually cover:
+  * - local single-crate project
+  * - crate from local workspace
+  * - remote single-crate project
+  * - crate from remote workspace */
+export interface Buildable {
+  crate:      NonNullable<ContractSource["crate"]>
+  workspace?: ContractSource["workspace"]
+  revision?:  ContractSource["revision"]
+}
+
+/** A successful build populates the `artifact` and `codeHash` fields of a `ContractSource`. */
+export interface Built {
+  artifact: NonNullable<ContractSource["artifact"]>
+  codeHash: NonNullable<ContractSource["codeHash"]>
+}
+
 /** Contract lifecycle object. Represents a smart contract's lifecycle from source to binary. */
 export class ContractSource extends Metadata {
   /** URL pointing to Git repository containing the source code. */
@@ -68,25 +111,6 @@ export class ContractSource extends Metadata {
       codeHash:   this.codeHash
     } as Partial<this>
   }
-}
-
-/** For a contract to be buildable, the location of its source must be specified.
-  * For now this means that the `crate` field should be set; however there are multiple
-  * thinkable ways of specifying a contract, which this interface should eventually cover:
-  * - local single-crate project
-  * - crate from local workspace
-  * - remote single-crate project
-  * - crate from remote workspace */
-export interface Buildable {
-  crate:      NonNullable<ContractSource["crate"]>
-  workspace?: ContractSource["workspace"]
-  revision?:  ContractSource["revision"]
-}
-
-/** A successful build populates the `artifact` and `codeHash` fields of a `ContractSource`. */
-export interface Built {
-  artifact: NonNullable<ContractSource["artifact"]>
-  codeHash: NonNullable<ContractSource["codeHash"]>
 }
 
 /** Builders can be specified as ids, class names, or objects. */

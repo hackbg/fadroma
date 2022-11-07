@@ -11,6 +11,46 @@ export function intoTemplate (x: Partial<ContractTemplate>): ContractTemplate {
   return new ContractTemplate(x)
 }
 
+/** Create a callable object based on ContractTemplate. */
+export function defineTemplate (
+  options: Partial<ContractTemplate> = {}
+): ContractTemplate & (() => Promise<ContractTemplate>) {
+
+  const template = new ContractTemplate(options)
+
+  const rebind = (obj, [k, v])=>Object.assign(obj, {
+    [k]: (typeof v === 'function') ? v.bind(getOrUploadTemplate) : v
+  }, {})
+
+  return Object.assign(
+    getOrUploadTemplate.bind(getOrUploadTemplate),
+    Object.entries(template).reduce(rebind)
+  )
+
+  function getOrUploadTemplate () {
+    return this.uploaded
+  }
+
+}
+
+/** For a contract source to be uploadable, it needs to be compiled first,
+  * represented by having a populated `artifact` field.
+  * An `Uploadable` may also be specified with pre-populated code ID:
+  * this means it's already been uploaded and can be reused without reuploading. */
+export interface Uploadable {
+  artifact:  NonNullable<ContractSource["artifact"]>
+  codeHash?: ContractSource["codeHash"]
+  uploader?: ContractTemplate["uploader"]
+  chainId?:  ContractTemplate["chainId"]
+  codeId?:   ContractTemplate["codeId"]
+}
+
+/** A successful upload populates the `chainId` and `codeId` fields of a `ContractTemplate`. */
+export interface Uploaded extends ContractTemplate {
+  chainId: NonNullable<ContractTemplate["chainId"]>
+  codeId:  NonNullable<ContractTemplate["chainId"]>
+}
+
 /** Contract lifecycle object. Represents a smart contract's lifecycle from source to upload. */
 export class ContractTemplate extends ContractSource {
   /** ID of chain on which this contract is uploaded. */
@@ -25,7 +65,7 @@ export class ContractTemplate extends ContractSource {
   uploadTx?:   TxHash   = undefined
   /** Code ID representing the identity of the contract's code on a specific chain. */
   codeId?:     CodeId   = undefined
-  /** The Agent instance that will be used to upload the contract. */
+  /** The Agent instance that will be used to upload and instantiate the contract. */
   agent?:      Agent    = undefined
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
@@ -87,24 +127,6 @@ export const templateStruct = (template: Hashed & { codeId?: CodeId }): Contract
   id:        Number(template.codeId),
   code_hash: codeHashOf(template)
 })
-
-/** For a contract source to be uploadable, it needs to be compiled first,
-  * represented by having a populated `artifact` field.
-  * An `Uploadable` may also be specified with pre-populated code ID:
-  * this means it's already been uploaded and can be reused without reuploading. */
-export interface Uploadable {
-  artifact:  NonNullable<ContractSource["artifact"]>
-  codeHash?: ContractSource["codeHash"]
-  uploader?: ContractTemplate["uploader"]
-  chainId?:  ContractTemplate["chainId"]
-  codeId?:   ContractTemplate["codeId"]
-}
-
-/** A successful upload populates the `chainId` and `codeId` fields of a `ContractTemplate`. */
-export interface Uploaded extends ContractTemplate {
-  chainId: NonNullable<ContractTemplate["chainId"]>
-  codeId:  NonNullable<ContractTemplate["chainId"]>
-}
 
 /** Standalone upload function. */
 export async function upload (
