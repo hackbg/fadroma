@@ -1,12 +1,12 @@
-import { ClientError, ClientConsole } from './client-events'
-import type { Into, Class } from './client-fields'
-import { into, validated } from './client-fields'
-import type { Uint128 } from './client-math'
-import type { CodeId, CodeHash, Hashed } from './client-code'
-import { codeHashOf } from './client-code'
-import type { ContractTemplate } from './client-upload'
-import { ContractInstance } from './client-deploy'
-import type { Name } from './client-labels'
+import { ClientError, ClientConsole } from './core-events'
+import type { Into, Class } from './core-fields'
+import { into, validated } from './core-fields'
+import type { Uint128 } from './core-math'
+import type { CodeId, CodeHash, Hashed } from './core-code'
+import { codeHashOf } from './core-code'
+import type { ContractTemplate } from './core-upload'
+import { ContractInstance } from './core-deploy'
+import type { Name } from './core-labels'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {

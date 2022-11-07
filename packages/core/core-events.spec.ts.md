@@ -10,7 +10,7 @@ The `ClientError` class defines custom error subclasses for various error condit
 
 ```typescript
 // Make sure each error subclass can be created with no arguments:
-import { ClientError } from './client-events'
+import { ClientError } from './core-events'
 for (const subtype of [
   'BalanceNoAddress',
   'DeployManyFailed',
@@ -66,7 +66,7 @@ In the future, this will enable semantic logging and/or GUI notifications.
 
 ```typescript
 // Make sure each log message can be created with no arguments:
-import { ClientConsole } from './client-events'
+import { ClientConsole } from './core-events'
 new ClientConsole().object()
 new ClientConsole().object({foo:'bar',baz(){},quux:[],xyzzy:undefined,fubar:{}})
 new ClientConsole().deployment()

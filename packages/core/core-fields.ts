@@ -1,5 +1,5 @@
 import { Task } from '@hackbg/komandi'
-import { ClientConsole, ClientError } from './client-events'
+import { ClientConsole, ClientError } from './core-events'
 
 export function getMaxLength (strings: string[]): number {
   return Math.max(...strings.map(string=>string.length))

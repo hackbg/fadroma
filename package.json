@@ -41,15 +41,14 @@
     "docs:vp:serve": "vitepress serve"
   },
   "dependencies": {
-    "@fadroma/client":     "workspace:^6.1",
+    "@fadroma/core":       "workspace:^1",
     "@fadroma/connect":    "workspace:^2",
     "@fadroma/mocknet":    "workspace:^2",
     "@fadroma/tokens":     "workspace:^5.1",
     "@fadroma/build":      "workspace:^2",
     "@fadroma/deploy":     "workspace:^2",
     "@fadroma/devnet":     "workspace:^1",
-    "@fadroma/scrt":       "workspace:^4",
-    "@fadroma/scrt-amino": "workspace:^3",
+    "@fadroma/scrt":       "workspace:^6",
     "@hackbg/formati": "workspace:^5.1.1",
     "@hackbg/kabinet": "workspace:^3.2.6",
     "@hackbg/komandi": "workspace:^6.1.2",

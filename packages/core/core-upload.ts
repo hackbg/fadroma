@@ -1,10 +1,10 @@
-import type { Overridable } from './client-fields'
-import { Client } from './client-connect'
-import type { Agent, ChainId, ClientClass, Address, TxHash } from './client-connect'
-import { ClientError } from './client-events'
-import type { Hashed, CodeHash, CodeId } from './client-code'
-import { codeHashOf, fetchCodeHash, getSourceSpecifier } from './client-code'
-import { ContractSource } from './client-build'
+import type { Overridable } from './core-fields'
+import { Client } from './core-connect'
+import type { Agent, ChainId, ClientClass, Address, TxHash } from './core-connect'
+import { ClientError } from './core-events'
+import type { Hashed, CodeHash, CodeId } from './core-code'
+import { codeHashOf, fetchCodeHash, getSourceSpecifier } from './core-code'
+import { ContractSource } from './core-build'
 
 export function intoTemplate (x: Partial<ContractTemplate>): ContractTemplate {
   if (x instanceof ContractTemplate) return x

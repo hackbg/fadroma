@@ -11,7 +11,7 @@ import type {
   Label,
   Message,
   Name,
-} from './client'
+} from './core'
 import { CustomError } from '@hackbg/konzola'
 
 /** Error kinds. */

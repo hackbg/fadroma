@@ -1,7 +1,7 @@
-import type { ContractInstance } from './client-contract'
-import { assertAddress } from './client-connect'
-import { validated } from './client-fields'
-import { ClientError } from './client-events'
+import type { ContractInstance } from './core-contract'
+import { assertAddress } from './core-connect'
+import { validated } from './core-fields'
+import { ClientError } from './core-events'
 
 /** The friendly name of a contract, or another part of the label (prefix, suffix).
   * Names are user-specified and are used as the keys of `deployment.store`.

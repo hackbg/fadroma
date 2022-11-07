@@ -11,7 +11,7 @@ Represents the source code of a contract.
   * Uploading a source creates a `ContractTemplate`.
 
 ```typescript
-import { ContractSource } from '@fadroma/client'
+import { ContractSource } from '@fadroma/core'
 let source: ContractSource = new ContractSource()
 let builder = { build: async x => x }
 assert.ok(await source.define({ builder }).compiled)

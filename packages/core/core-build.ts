@@ -1,8 +1,8 @@
 import { CommandContext } from '@hackbg/komandi'
-import { ClientError } from './client-events'
-import { Metadata } from './client-fields'
-import type { Overridable } from './client-fields'
-import type { CodeHash } from './client-code'
+import { ClientError } from './core-events'
+import { Metadata } from './core-fields'
+import type { Overridable } from './core-fields'
+import type { CodeHash } from './core-code'
 
 export function intoSource (x: Partial<ContractSource>): ContractSource {
   if (x instanceof ContractSource) return x

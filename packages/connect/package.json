@@ -14,10 +14,9 @@
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
-    "@fadroma/client":     "workspace:^6.1",
+    "@fadroma/core":       "workspace:^1",
     "@fadroma/devnet":     "workspace:^1",
-    "@fadroma/scrt":       "workspace:^4",
-    "@fadroma/scrt-amino": "workspace:^3",
+    "@fadroma/scrt":       "workspace:^6",
     "@fadroma/mocknet":    "workspace:^2",
     "@hackbg/komandi":     "workspace:^6.1.2",
     "@hackbg/konfizi":     "workspace:^3.0.1"
