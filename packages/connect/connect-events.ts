@@ -2,7 +2,7 @@ import { Chain, ClientConsole, ClientError } from '@fadroma/core'
 import { bold } from '@hackbg/konzola'
 
 export class ConnectConsole extends ClientConsole {
-  constructor (public name = 'Fadroma Connect') { super(name) }
+  name = 'Fadroma Connect'
   supportedChains (supportedChains: Record<string, unknown> = Chain.variants) {
     this.br()
     this.info('Known chain names:')

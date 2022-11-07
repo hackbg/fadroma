@@ -12,9 +12,9 @@
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
+    "@fadroma/core":   "workspace:^1",
     "@hackbg/konzola": "workspace:^2.1",
-    "@hackbg/formati": "workspace:^5.1.1",
-    "@fadroma/core":   "workspace:^1"
+    "@hackbg/formati": "workspace:^5.1.1"
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.0.2"

@@ -18,13 +18,13 @@
 
 **/
 
-import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/core'
+import { Chain, Agent, Deployment, Class, ClientConsole, Builder, Uploader } from '@fadroma/core'
 import type { DeployStore } from '@fadroma/core'
 import { BuilderConfig } from '@fadroma/build'
 import { DeployConfig, Deployer, DeployConsole } from '@fadroma/deploy'
 import type { DeployerClass } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
-import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
+import { Scrt } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
 import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 
@@ -35,18 +35,17 @@ import { createContext } from 'node:vm'
 export class Fadroma extends Deployer {
 
   /** @returns a function that runs a requested command. */
-  static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
-    const self = this
-    return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
-  }
+  //static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
+    //const self = this
+    //return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
+  //}
 
-  /** Constructs a populated instance of the Fadroma context. */
-  static async init (
-    projectName: string = 'Fadroma',
-    options:     Partial<Config> = {}
-  ): Promise<Fadroma> {
-    const config = new Config(process.env, process.cwd(), options)
-    return config.getDeployer(this as DeployerClass<Deployer>) as unknown as Fadroma
+  static async init <D extends Deployer> ($D: DeployerClass<D>): Promise<D> {
+    const config = new Config()
+    const deployer: D = await config.getDeployer($D)
+    deployer.builder   ??= config.build?.getBuilder()
+    deployer.workspace ??= process.cwd()
+    return deployer
   }
 
   constructor (options: Partial<Fadroma> = { config: new Config() }) {
@@ -127,6 +126,3 @@ export * from '@fadroma/devnet'
 export * from '@fadroma/connect'
 export * from '@fadroma/mocknet'
 export * from '@fadroma/tokens'
-export * as ScrtGrpc  from '@fadroma/scrt'
-export * as ScrtAmino from '@fadroma/scrt-amino'
-export { connect } from '@fadroma/connect'

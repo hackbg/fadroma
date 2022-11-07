@@ -15,40 +15,114 @@ import { fetchCodeHash, getSourceSpecifier, assertCodeHash } from './core-code'
 import type { Name, Label, StructuredLabel } from './core-labels'
 import { writeLabel } from './core-labels'
 
-export function intoInstance (x: Partial<ContractInstance>): ContractInstance {
+export function intoInstance <C extends Client> (
+  x: Partial<ContractInstance<C>>
+): ContractInstance<C> {
   if (x instanceof ContractInstance) return x
   return new ContractInstance(x)
 }
 
+function rebind (target: object, source: object): typeof target {
+  // if target is a function make its name writable
+  if ('name' in source) Object.defineProperty(target, 'name', { writable: true })
+  // copy properties
+  for (let key in source) target[key] = source[key]
+  // copy prototype
+  Object.setPrototypeOf(target, Object.getPrototypeOf(source))
+  return target
+}
+
 /** Create a callable object based on ContractInstance. */
-export function defineInstance (
-  options: Partial<ContractInstance> = {}
-): ContractInstance & (()=> Promise<ContractInstance>) {
+export function defineInstance <C extends Client> (
+  options: Partial<ContractInstance<C>> = {}
+): ContractInstance<C> & (()=> Promise<ContractInstance<C>>) {
 
-  const template = new ContractInstance(options)
-
-  const rebind = (obj, [k, v])=>Object.assign(obj, {
-    [k]: (typeof v === 'function') ? v.bind(getOrDeployInstance) : v
-  }, {})
-
-  return Object.assign(
-    getOrDeployInstance.bind(getOrDeployInstance),
-    Object.entries(template).reduce(rebind)
-  )
-
-  function getOrDeployInstance () {
-    return this.deployed
+  let fn = function getOrDeployInstance (
+    ...args: [Name, Message]|[Partial<ContractInstance<C>>]
+  ) {
+    let options
+    if (typeof args[0] === 'string') {
+      const [name, initMsg] = args
+      options = { name, initMsg }
+    } else if (typeof args[0] === 'object') {
+      options = args
+    }
+    if (fn.context.contract.has(options.name)) {
+      return fn.context.contract.get(options.name)
+    } else {
+      return fn.context.contract.set(options.name, defineInstance({...fn, ...options})).deployed
+    }
   }
 
+  fn = fn.bind(fn)
+
+  return rebind(fn, new ContractInstance(options)) as (
+    ContractInstance<C> & (()=> Promise<ContractInstance<C>>)
+  )
+
 }
 
-export interface Deployable {
-  chainId: ChainId
-  codeId:  CodeId
+export function defineContractAPI <D extends Deployment> (self: D) {
+
+  let fn = function contract <C extends Client> (
+    arg: string|Partial<ContractInstance<C>> = {}
+  ): ContractInstance<C> {
+    const name = (typeof arg === 'string') ? arg : arg.name
+    const opts = (typeof arg === 'string') ? { name } : arg
+    opts.agent ??= this.agent
+    if (name && this.contract.has(name)) {
+      return this.contract.get(name)
+    } else {
+      return this.contract.set(name, defineInstance(opts))
+    }
+  }
+
+  fn = fn.bind(self)
+
+  const methods: DeploymentContractAPI = {
+
+    has (name) {
+      return !!this.state[name]
+    },
+
+    get (name) {
+      return this.state[name]
+    },
+
+    set (name, contract) {
+      this.state[name] = attachToDeployment(contract, this)
+      this.save()
+      return contract
+    },
+
+    add (name, contract) {
+      this.set(name, contract)
+      return this
+    },
+
+    expect (message) {
+      message ??= `${name}: no such contract in deployment`
+      const receipt = this.get(name)
+      if (receipt) return this.contract({...receipt, name})
+      throw new ClientError(message)
+    },
+
+  }
+
+  for (const key in methods) fn[key] = methods[key].bind(self)
+
+  return fn
+
 }
+
+/** Minimal parameters required to deploy a contract. */
+export interface Deployable { chainId: ChainId; codeId: CodeId }
 
 /** Represents a smart contract's lifecycle from source to individual instance. */
-export class ContractInstance extends ContractTemplate implements StructuredLabel {
+export class ContractInstance<C extends Client>
+  extends    ContractTemplate<C>
+  implements StructuredLabel
+{
   /** Address of agent that performed the init tx. */
   initBy?:  Address       = undefined
   /** Address of agent that performed the init tx. */
@@ -76,7 +150,7 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
     *       is "the real one" (see https://stackoverflow.com/a/54427214. */
   suffix?:  Name          = undefined
 
-  constructor (options: Partial<ContractInstance> = {}) {
+  constructor (options: Partial<ContractInstance<C>> = {}) {
     super(options)
     this.define(options as object)
   }
@@ -105,32 +179,138 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
     } as Partial<this>
   }
 
+  /** One-shot deployment task. */
+  get deployed (): Promise<C> {
+    const client = this.getClientOrNull()
+    if (client) {
+      this.log.foundDeployedContract(client.address!, this.name!)
+      return Promise.resolve(client as C)
+    }
+    const deploying = this.deploy()
+    Object.defineProperty(this, 'deployed', { get () { return deploying } })
+    return deploying
+  }
+
+  /** Deploy the contract, or retrieve it if it's already deployed.
+    * @returns promise of instance of `this.client`  */
+  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
+    return this.task(`deploy ${this.name ?? 'contract'}`, async () => {
+      if (!this.agent) throw new ClientError.NoAgent(this.name)
+      if (!this.name) throw new ClientError.NoName(this.name)
+      this.label = writeLabel(this)
+      if (!this.label) throw new ClientError.NoInitLabel(this.name)
+      if (!this.initMsg) throw new ClientError.NoInitMessage(this.name)
+      await this.uploaded
+      if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+      this.initMsg = await into(initMsg) as Message
+      this.log.beforeDeploy(this, this.label!)
+      const contract = await this.agent!.instantiate(this)
+      this.define(contract as Partial<this>)
+      this.log.afterDeploy(this as Partial<ContractInstance<C>>)
+      return this.getClient()
+    })
+  }
+
   /** Async wrapper around getClientSync.
     * @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
-  getClient <C extends Client> (
-    $Client: ClientClass<C>|undefined = this.client as ClientClass<C>
+  getClient (
+    $Client: ClientClass<C>|undefined = this.client
   ): Promise<C> {
     return Promise.resolve(this.getClientSync($Client))
   }
+
   /** @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
-  getClientSync <C extends Client> (
-    $Client: ClientClass<C>|undefined = this.client as ClientClass<C>
+  getClientSync (
+    $Client: ClientClass<C>|undefined = this.client
   ): C {
     const client = this.getClientOrNull($Client)
     if (!client) throw new ClientError.NotFound($Client.name, this.name)
     return client
   }
+
   /** @returns a Client instance pointing to this contract, or null if
     * the contract address could not be determined */
-  getClientOrNull <C extends Client> (
-    $Client: ClientClass<C>|undefined = this.client as ClientClass<C>,
-    agent?:  Agent = this.agent
+  getClientOrNull (
+    $Client: ClientClass<C>|undefined = this.client,
+    agent:   Agent|undefined          = this.agent
   ): C|null {
     if (!this.address) return null
     return new $Client(agent, this.address, this.codeHash, this) as C
   }
+
+}
+
+/** Contract slot. `await` an instance of this to get a client for it,
+  * retrieving it from the deployment if known, or deploying it if not found.
+  * @implements PromiseLike */
+export class ContractSlot<C extends Client> extends ContractInstance<C> {
+
+  declare client?: ClientClass<C>
+
+  log = new ClientConsole('Fadroma.Contract')
+
+  constructor (
+    /** Parameters of the specified contract. */
+    options: Partial<ContractSlot<C>> = {},
+    /** The group of contracts that contract belongs to. */
+    public context: Deployment|undefined = options?.context,
+    /** The agent that will upload and instantiate this contract. */
+    public agent: Agent|undefined = options?.agent
+  ) {
+    super(options as Partial<ContractInstance>)
+    this.define(options as object)
+    if (context) this.attach(context)
+    hide(this, ['log'])
+  }
+
+  /** Attach this contract to a Deployment. */
+  attach (context: Deployment): this {
+    attachToDeployment<C, this>(this, context)
+    if (this.name && context.contract.has(this.name)) {
+      this.define(context.contract.get(this.name) as Partial<this>)
+    }
+    return this
+  }
+
+  /** Evaluate this ContractSlot, asynchronously returning a Client
+    * to the retrieved or deployed contract.
+    * 1. try to get the contract from storage (if the deploy store is available)
+    * 2. if that fails, try to deploy the contract (building and uploading it,
+    *    if necessary and possible)
+    * @returns promise of instance of `this.client`
+    * @throws  if not found and not deployable  */
+  //then <D, E> (
+    //onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
+    //onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
+  //): Promise<D|E> {
+    //return this.deployed.then(onfulfilled, onrejected)
+  //}
+
+  /** Deploy the contract, or retrieve it if it's already deployed.
+    * @returns promise of instance of `this.client`  */
+  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
+    return this.task(`deploy ${this.name ?? 'contract'}`, async () => {
+      if (!this.agent) throw new ClientError.NoAgent(this.name)
+      if (!this.name) throw new ClientError.NoName(this.name)
+      this.label = writeLabel(this)
+      if (!this.label) throw new ClientError.NoInitLabel(this.name)
+      if (!this.initMsg) throw new ClientError.NoInitMessage(this.name)
+      await this.uploaded
+      if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+      this.initMsg = await into(initMsg) as Message
+      this.log.beforeDeploy(this, this.label!)
+      const contract = await this.agent!.instantiate(this)
+      this.define(contract as Partial<this>)
+      this.log.afterDeploy(this as Partial<ContractInstance<C>>)
+
+      if (this.context) this.context.contract.add(this.name!, contract)
+
+      return this.getClient()
+    })
+  }
+
 }
 
 /** A set of interrelated contracts, deployed under the same prefix.
@@ -178,69 +358,51 @@ export class Deployment extends CommandContext {
     this.addCommand('status', 'show the status of this deployment', this.showStatus.bind(this))
   }
 
+  get [Symbol.toStringTag]() {
+    return `${this.name??'-'}`
+  }
+
   /** Number of contracts in deployment. */
   get size (): number {
     return Object.keys(this.state).length
   }
 
+  /** True if the chain is a devnet or mocknet */
+  get devMode   (): boolean {
+    return this.chain?.devMode   ?? false
+  }
+
+  /** = chain.isMainnet */
+  get isMainnet (): boolean {
+    return this.chain?.isMainnet ?? false
+  }
+
+  /** = chain.isTestnet */
+  get isTestnet (): boolean {
+    return this.chain?.isTestnet ?? false
+  }
+
+  /** = chain.isDevnet */
+  get isDevnet  (): boolean {
+    return this.chain?.isDevnet  ?? false
+  }
+
+  /** = chain.isMocknet */
+  get isMocknet (): boolean {
+    return this.chain?.isMocknet ?? false
+  }
+
+  /** Print the status of this deployment. */
   async showStatus () {
     this.log.deployment(this)
   }
 
-  /** True if the chain is a devnet or mocknet */
-  get devMode   (): boolean { return this.chain?.devMode   ?? false }
-  /** = chain.isMainnet */
-  get isMainnet (): boolean { return this.chain?.isMainnet ?? false }
-  /** = chain.isTestnet */
-  get isTestnet (): boolean { return this.chain?.isTestnet ?? false }
-  /** = chain.isDevnet */
-  get isDevnet  (): boolean { return this.chain?.isDevnet  ?? false }
-  /** = chain.isMocknet */
-  get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
-
-  /** Specify a contract with optional client class and metadata.
-    * @returns a Contract instance with the specified parameters.
-    *
-    * When defined as part of a Deployment, the methods of the Contract instance
-    * are lazy and only execute when awaited:
-    *
-    * @example
-    *   class ADeployment {
-    *     aContract = this.contract({...}).deploy()
-    *     bContract = this.contract({...}).deploy(async()=>({ init: await this.aContract.address }))
-    *   }
-    *   const aDeployment = new ADeployment() // nothing happens yet
-    *   await aDeployment.bContract // bContract in deployed and pulls in aContract
-    *   await aDeployment.aContract // aContract is now also resolved
-    *
-    * Use the methods of the returned Contract instance
-    * to define what is to be done with the contract:
-    *
-    * @example
-    *   // This will either return a Client to ExternalContract,
-    *   // or bail if ExternalContract is not in the deployment:
-    *   await this.contract({ name: 'ExternalContract' })
-    *
-    * @example
-    *   // This will only deploy OwnContract if it's not already in the deployment.
-    *   // Otherwise it will return a Client to the existing instance.
-    *   await this.contract({ name: 'OwnContract' }).deploy(init?, callback?)
-    *
-    * @example
-    *   // This will deploy multiple instances of the same contract,
-    *   // returning an array of Client instances.
-    *   await this.contract({ name: 'OwnContract' }).deployMany(inits?)
-    *
-    * @example
-    *   // This will upload the contract code but not instantiate it,
-    *   // and will therefore return a Contract.
-    *   await this.contract({ name: 'OwnContractTemplate' }).upload()
-    *
-    **/
+  /** Specify a contract.
+    * @returns a callable `ContractInstance` with the specified parameters. */
   contract  = defineContractAPI(this)
 
   /** Specify multiple contracts.
-    * @returns an array of Contract instances matching the specified predicate. */
+    * @returns a callable collection of `ContractInstance`s with the specified parameters. */
   contracts = defineMultiContractAPI(this)
 
   /** Implemented by Deployer subclass in @fadroma/deploy
@@ -280,83 +442,74 @@ export class Deployment extends CommandContext {
     return inst
   }
 
-  get [Symbol.toStringTag]() { return `${this.name??'-'}` }
-
 }
 
+/** When defined as part of a Deployment, the methods of the Contract instance
+  * are lazy and only execute when awaited:
+  *
+  * @example
+  *   class ADeployment {
+  *     aContract = this.contract({...}).deploy()
+  *     bContract = this.contract({...}).deploy(async()=>({ init: await this.aContract.address }))
+  *   }
+  *   const aDeployment = new ADeployment() // nothing happens yet
+  *   await aDeployment.bContract // bContract in deployed and pulls in aContract
+  *   await aDeployment.aContract // aContract is now also resolved
+  *
+  * Use the methods of the returned Contract instance
+  * to define what is to be done with the contract:
+  *
+  * @example
+  *   // This will either return a Client to ExternalContract,
+  *   // or bail if ExternalContract is not in the deployment:
+  *   await this.contract({ name: 'ExternalContract' })
+  *
+  * @example
+  *   // This will only deploy OwnContract if it's not already in the deployment.
+  *   // Otherwise it will return a Client to the existing instance.
+  *   await this.contract({ name: 'OwnContract' }).deploy(init?, callback?)
+  *
+  * @example
+  *   // This will deploy multiple instances of the same contract,
+  *   // returning an array of Client instances.
+  *   await this.contract({ name: 'OwnContract' }).deployMany(inits?)
+  *
+  * @example
+  *   // This will upload the contract code but not instantiate it,
+  *   // and will therefore return a Contract.
+  *   await this.contract({ name: 'OwnContractTemplate' }).upload()
+  *
+  **/
 export interface DeploymentContractAPI {
+  /** Check if the deployment contains a contract with a certain name. */
   has (name: string): boolean
-  get (name: string): Partial<ContractSlot<any>>|null
-  add (name: string, data: any): this
-  set (name: string, data: Partial<Client> & any): this
+  /** Get the ContractInstance corresponding to a given name. */
+  get <C extends Client> (name: string): ContractInstance<C>|null
+  /** Set the ContractInstance corresponding to a given name,
+    * attaching it to this deployment. */
+  set <C extends Client> (name: string, data: ContractInstance<C>): ContractInstance<C>
+  /** Set the ContractInstance corresponding to a given name,
+    * attaching it to this deployment. Chainable. */
+  add <C extends Client> (name: string, data: ContractInstance<C>): this
+  /** Throw if a contract with the specified name is not found in this deployment. */
   expect <C extends Client> (message?: string): ContractSlot<C>
 }
 
-export function defineContractAPI <D extends Deployment> (self: D) {
-
-  const methods: DeploymentContractAPI = {
-
-    /** Check if the deployment contains a certain entry. */
-    has (name) {
-      return !!this.state[name]
-    },
-
-    /** Throw if a certain contract is not found in the records. */
-    expect (message) {
-      message ??= `${name}: no such contract in deployment`
-      const receipt = this.get(name)
-      if (receipt) return this.contract({...receipt, name})
-      throw new ClientError(message)
-    },
-
-    /** Get the receipt for a contract, containing its address, codeHash, etc. */
-    get (name) {
-      const receipt = this.state[name]
-      if (!receipt) return null
-      return { ...receipt, context: this }
-    },
-
-    /** Chainable. Add entry to deployment, merging into existing receipts. */
-    add (name, data) {
-      return this.set(name, { ...this.state[name] || {}, ...data, name })
-    },
-
-    /** Chainable. Add entry to deployment, replacing existing receipt. */
-    set (name, data) {
-      this.state[name] = { name, ...data }
-      this.save()
-      return this
-    }
-
-  }
-
-  return Object.assign(
-    contract.bind(self),
-    Object.entries(methods).reduce((api, [k, v])=>Object.assign(api, { [k]: v.bind(self) }))
-  )
-
-  function contract <C extends Client> (
-    arg: string|Partial<ContractSlot<C>> = {}
-  ): ContractSlot<C> {
-    const name = (typeof arg === 'string') ? arg : arg.name
-    const opts = (typeof arg === 'string') ? { name } : arg
-    opts.agent ??= this.agent
-    if (name && this.contract.has(name)) {
-      return this.contract.get(name)
-    } else {
-      return defineInstance(opts)
-    }
-  }
-
-}
-
 export interface DeploymentMultiContractAPI {
-  set    (receipts: Record<string, any>):        this
-  build  (contracts: (string|ContractSource)[]): Promise<ContractSource[]>
-  upload (contracts: ContractSource[]):          Promise<ContractTemplate[]>
+  set (receipts: Record<string, any>): this
+  build (contracts: (string|ContractSource)[]): Promise<ContractSource[]>
+  upload (contracts: ContractSource[]): Promise<ContractTemplate<Client>[]>
 }
 
 export function defineMultiContractAPI <D extends Deployment> (self: D) {
+
+  let fn = function contracts <C extends Client> (
+    options: Partial<MultiContractSlot<C>>
+  ): MultiContractSlot<C> {
+    return new MultiContractSlot<C>({...options}).attach(this)
+  }
+
+  fn = fn.bind(self)
 
   const methods: DeploymentMultiContractAPI = {
 
@@ -368,66 +521,64 @@ export function defineMultiContractAPI <D extends Deployment> (self: D) {
     },
 
     /** Build multiple contracts. */
-    build: async function buildMany (
-      contracts: (string|ContractSource)[]
-    ): Promise<ContractSource[]> {
-      return this.task(`build ${contracts.length} contracts`, async () => {
-        if (!this.builder) throw new ClientError.NoBuilder()
-        if (contracts.length === 0) return Promise.resolve([])
-        contracts = contracts.map(contract=>{
-          if (typeof contract === 'string') {
-            return this.contract({ crate: contract }) as ContractSource
-          } else {
-            return contract
-          }
-        })
-        const count = (contracts.length > 1)
-          ? `${contracts.length} contract: `
-          : `${contracts.length} contracts:`
-        const sources = (contracts as ContractTemplate[])
-          .map(contract=>`${contract.crate}@${contract.revision}`)
-          .join(', ')
-        return this.task(`build ${count} ${sources}`, () => {
-          if (!this.builder) throw new ClientError.NoBuilder()
-          return this.builder.buildMany(contracts as ContractSource[])
-        })
-      })
-    },
+    build: buildMany,
 
     /** Upload multiple contracts to the chain.
       * @returns the same contracts, but with `chainId`, `codeId` and `codeHash` populated. */
-    upload: async function uploadMany (
-      contracts: ContractSource[]
-    ): Promise<ContractTemplate[]> {
-      return this.task(`upload ${contracts.length} contracts`, async () => {
-        if (!this.uploader) throw new ClientError.NoUploader()
-        if (contracts.length === 0) return Promise.resolve([])
-        contracts = contracts
-          .map(contract=>(typeof contract === 'string')
-            ?this.contract({ crate: contract }):contract)
-          .map(contract=>intoSource(contract))
-        const count = (contracts.length > 1)
-          ? `${contracts.length} contract: `
-          : `${contracts.length} contracts:`
-        return this.task(`upload ${count} artifacts`, () => {
-          if (!this.uploader) throw new ClientError.NoUploader()
-          return this.uploader.uploadMany(contracts)
-        })
+    upload: uploadMany
+
+  }
+
+  for (const key in methods) fn[key] = methods[key].bind(self)
+
+  return fn
+
+  async function buildMany (
+    contracts: (string|ContractSource)[]
+  ): Promise<ContractSource[]> {
+    return this.task(`build ${contracts.length} contracts`, async () => {
+      if (!this.builder) throw new ClientError.NoBuilder()
+      if (contracts.length === 0) return Promise.resolve([])
+      contracts = contracts.map(contract=>{
+        if (typeof contract === 'string') {
+          return this.contract({ crate: contract }) as ContractSource
+        } else {
+          return contract
+        }
       })
-    }
-
+      const count = (contracts.length > 1)
+        ? `${contracts.length} contract: `
+        : `${contracts.length} contracts:`
+      const sources = (contracts as ContractTemplate<Client>[])
+        .map(contract=>`${contract.crate}@${contract.revision}`)
+        .join(', ')
+      return this.task(`build ${count} ${sources}`, () => {
+        if (!this.builder) throw new ClientError.NoBuilder()
+        return this.builder.buildMany(contracts as ContractSource[])
+      })
+    })
   }
 
-  return Object.assign(
-    contracts.bind(self),
-    Object.entries(methods).reduce((api, [k, v])=>Object.assign(api, { [k]: v.bind(self) }))
-  )
-
-  function contracts <C extends Client> (
-    options: Partial<MultiContractSlot<C>>
-  ): MultiContractSlot<C> {
-    return new MultiContractSlot<C>({...options}).attach(this)
+  async function uploadMany (
+    contracts: ContractSource[]
+  ): Promise<ContractTemplate<Client>[]> {
+    return this.task(`upload ${contracts.length} contracts`, async () => {
+      if (!this.uploader) throw new ClientError.NoUploader()
+      if (contracts.length === 0) return Promise.resolve([])
+      contracts = contracts
+        .map(contract=>(typeof contract === 'string')
+          ?this.contract({ crate: contract }):contract)
+        .map(contract=>intoSource(contract))
+      const count = (contracts.length > 1)
+        ? `${contracts.length} contract: `
+        : `${contracts.length} contracts:`
+      return this.task(`upload ${count} artifacts`, () => {
+        if (!this.uploader) throw new ClientError.NoUploader()
+        return this.uploader.uploadMany(contracts)
+      })
+    })
   }
+
 }
 
 /** A Subsystem is any class which extends Deployment (thus being able to manage Contracts),
@@ -453,84 +604,6 @@ export interface NewContractSlot<C extends Client> {
   new (...args: ConstructorParameters<typeof ContractSlot<C>>): ContractSlot<C>
 }
 
-/** Contract slot. `await` an instance of this to get a client for it,
-  * retrieving it from the deployment if known, or deploying it if not found.
-  * @implements PromiseLike */
-export class ContractSlot<C extends Client> extends ContractInstance {
-
-  declare client?: ClientClass<C>
-
-  log = new ClientConsole('Fadroma.Contract')
-
-  constructor (
-    /** Parameters of the specified contract. */
-    options: Partial<ContractSlot<C>> = {},
-    /** The group of contracts that contract belongs to. */
-    public context: Deployment|undefined = options?.context,
-    /** The agent that will upload and instantiate this contract. */
-    public agent: Agent|undefined = options?.agent
-  ) {
-    super(options as Partial<ContractInstance>)
-    this.define(options as object)
-    if (context) this.attach(context)
-    hide(this, ['log'])
-  }
-
-  /** Attach this contract to a Deployment. */
-  attach (context: Deployment): this {
-    attachSlot<C, this>(this, context)
-    if (this.name && context.has(this.name)) this.define(context.get(this.name) as Partial<this>)
-    return this
-  }
-
-  /** One-shot deployment task. */
-  get deployed (): Promise<C> {
-    const client = this.getClientOrNull()
-    if (client) {
-      this.log.foundDeployedContract(client.address!, this.name!)
-      return Promise.resolve(client as C)
-    }
-    const deploying = this.deploy()
-    Object.defineProperty(this, 'deployed', { get () { return deploying } })
-    return deploying
-  }
-
-  /** Deploy the contract, or retrieve it if it's already deployed.
-    * @returns promise of instance of `this.client`  */
-  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
-    return this.task(`deploy ${this.name ?? 'contract'}`, async () => {
-      if (!this.agent) throw new ClientError.NoAgent(this.name)
-      if (!this.name) throw new ClientError.NoName(this.name)
-      this.label = writeLabel(this)
-      if (!this.label) throw new ClientError.NoInitLabel(this.name)
-      if (!this.initMsg) throw new ClientError.NoInitMessage(this.name)
-      await this.uploaded
-      if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
-      this.initMsg = await into(initMsg) as Message
-      this.log.beforeDeploy(this, this.label!)
-      const contract = await this.agent!.instantiate(this)
-      this.define(contract as Partial<this>)
-      this.log.afterDeploy(this as Partial<ContractInstance>)
-      if (this.context) this.context.add(this.name!, contract)
-      return this.getClient()
-    })
-  }
-
-  /** Evaluate this ContractSlot, asynchronously returning a Client
-    * to the retrieved or deployed contract.
-    * 1. try to get the contract from storage (if the deploy store is available)
-    * 2. if that fails, try to deploy the contract (building and uploading it,
-    *    if necessary and possible)
-    * @returns promise of instance of `this.client`
-    * @throws  if not found and not deployable  */
-  //then <D, E> (
-    //onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
-    //onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
-  //): Promise<D|E> {
-    //return this.deployed.then(onfulfilled, onrejected)
-  //}
-
-}
 
 export type MatchPredicate = (meta: Partial<ContractInstance>) => boolean|undefined
 
@@ -559,7 +632,7 @@ export class MultiContractSlot<C extends Client> extends ContractTemplate {
   }
 
   attach (context: Deployment): this {
-    return attachSlot<C, this>(this, context)
+    return attachToDeployment<C, this>(this, context)
   }
 
   /** One-shot deployment task. */
@@ -650,19 +723,40 @@ export class MultiContractSlot<C extends Client> extends ContractTemplate {
 
 }
 
-export function attachSlot <C extends Client, T extends ContractSlot<C>|MultiContractSlot<C>> (
+
+export function attachToDeployment <
+  C extends Client,
+  T extends ContractInstance<C>|ContractSlot<C>|MultiContractSlot<C>
+> (
   self:    T,
   context: Deployment
 ): T {
   self.context = context
-  self.log ??= context.log
-  self.agent ??= context.agent
-  self.builder ??= context.builder
-  self.uploader ??= context.uploader
-  self.repository ??= context.repository
-  self.revision ??= context.revision
-  self.workspace ??= context.workspace
+
+  /** Default fields start out as getters that point to the corresponding field
+    * on the context; but if you try to set them, they turn into normal properties
+    * with the provided value. */
+  const defineDefault = name => Object.defineProperty(self, name, {
+    enumerable: true,
+    get () {
+      return context[name]
+    },
+    set (v: Builder) {
+      Object.defineProperty(self, name, { enumerable: true, value: v })
+      return v
+    }
+  })
+
+  defineDefault('log')
+  defineDefault('agent')
+  defineDefault('builder')
+  defineDefault('uploader')
+  defineDefault('repository')
+  defineDefault('revision')
+  defineDefault('workspace')
+
   setPrefix(self, context.name)
+
   return self
 
   function setPrefix (self: T, value: string) {

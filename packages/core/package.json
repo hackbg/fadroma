@@ -2,7 +2,7 @@
   "name":    "@fadroma/core",
   "version": "1.0.0",
   "type":    "module",
-  "main":    "client.ts",
+  "main":    "core.ts",
   "files": [ "*.ts" ],
   "scripts": {
     "check": "tsc --noEmit",

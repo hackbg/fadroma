@@ -6,15 +6,17 @@ import type { Hashed, CodeHash, CodeId } from './core-code'
 import { codeHashOf, fetchCodeHash, getSourceSpecifier } from './core-code'
 import { ContractSource } from './core-build'
 
-export function intoTemplate (x: Partial<ContractTemplate>): ContractTemplate {
+export function intoTemplate <C extends Client> (
+  x: Partial<ContractTemplate<C>>
+): ContractTemplate<C> {
   if (x instanceof ContractTemplate) return x
-  return new ContractTemplate(x)
+  return new ContractTemplate(x) as ContractTemplate<C>
 }
 
 /** Create a callable object based on ContractTemplate. */
-export function defineTemplate (
-  options: Partial<ContractTemplate> = {}
-): ContractTemplate & (() => Promise<ContractTemplate>) {
+export function defineTemplate <C extends Client> (
+  options: Partial<ContractTemplate<C>> = {}
+): ContractTemplate<C> & (() => Promise<ContractTemplate<C>>) {
 
   const template = new ContractTemplate(options)
 
@@ -40,19 +42,19 @@ export function defineTemplate (
 export interface Uploadable {
   artifact:  NonNullable<ContractSource["artifact"]>
   codeHash?: ContractSource["codeHash"]
-  uploader?: ContractTemplate["uploader"]
-  chainId?:  ContractTemplate["chainId"]
-  codeId?:   ContractTemplate["codeId"]
+  uploader?: ContractTemplate<Client>["uploader"]
+  chainId?:  ContractTemplate<Client>["chainId"]
+  codeId?:   ContractTemplate<Client>["codeId"]
 }
 
 /** A successful upload populates the `chainId` and `codeId` fields of a `ContractTemplate`. */
-export interface Uploaded extends ContractTemplate {
-  chainId: NonNullable<ContractTemplate["chainId"]>
-  codeId:  NonNullable<ContractTemplate["chainId"]>
+export interface Uploaded extends ContractTemplate<Client> {
+  chainId: NonNullable<ContractTemplate<Client>["chainId"]>
+  codeId:  NonNullable<ContractTemplate<Client>["codeId"]>
 }
 
 /** Contract lifecycle object. Represents a smart contract's lifecycle from source to upload. */
-export class ContractTemplate extends ContractSource {
+export class ContractTemplate<C extends Client> extends ContractSource {
   /** ID of chain on which this contract is uploaded. */
   chainId?:    ChainId  = undefined
   /** Object containing upload logic. */
@@ -69,15 +71,15 @@ export class ContractTemplate extends ContractSource {
   agent?:      Agent    = undefined
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
-  client?:     ClientClass<Client> = Client
+  client?:     ClientClass<C> = Client as ClientClass<C>
 
-  constructor (options: Partial<ContractTemplate> = {}) {
+  constructor (options: Partial<C> = {}) {
     super(options)
     this.define(options as object)
   }
 
   /** One-shot deployment task. */
-  get uploaded (): Promise<ContractTemplate> {
+  get uploaded (): Promise<ContractTemplate<C>> {
     if (this.codeId) return Promise.resolve(this)
     const uploading = this.upload()
     Object.defineProperty(this, 'uploaded', { get () { return uploading } })
@@ -86,7 +88,7 @@ export class ContractTemplate extends ContractSource {
 
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
-  async upload (uploader?: Uploader): Promise<ContractTemplate> {
+  async upload (uploader?: Uploader): Promise<ContractTemplate<C>> {
     return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
       await this.compiled
       const result = await upload(this as Uploadable, uploader, uploader?.agent)
