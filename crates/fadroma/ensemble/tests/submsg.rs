@@ -4,7 +4,7 @@ use crate::ensemble::{
     ContractEnsemble, ContractHarness,
     MockEnv, AnyResult,
     anyhow::{bail, anyhow},
-    response::{ResponseVariants, ExecuteResponse, ReplyResponse}
+    response::ResponseVariants
 };
 use crate::prelude::*;
 
@@ -195,6 +195,94 @@ fn correct_message_order() {
     if let ResponseVariants::Reply(resp) = next {
         assert_eq!(resp.address, A_ADDR);
         assert_eq!(resp.reply.id, 1);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute()); //M1
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, C_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    assert_eq!(resp.next(), None);
+
+    let state = c.a_state();
+    assert_eq!(state.num, 1);
+
+    let state = c.b_state();
+    assert_eq!(state.num, 2);
+
+    let state = c.c_state();
+    assert_eq!(state.num, 3);
+}
+
+#[test]
+fn replies_chain_correctly() {
+    let mut c = init([None, None, None]);
+
+    let msg = ExecuteMsg::RunMsgs(vec![
+        SubMsg::reply_always(
+            b_msg(
+                &ExecuteMsg::RunMsgs(vec![
+                    SubMsg::reply_always(a_msg(&ExecuteMsg::IncrNumber(1)), 0)
+                ])
+            ),
+            1
+        ),
+        SubMsg::reply_always(b_msg(&ExecuteMsg::IncrNumber(2)), 2),
+        SubMsg::new(c_msg(&ExecuteMsg::IncrNumber(3)))
+    ]);
+
+    let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.a.address.clone())).unwrap();
+    let mut resp = resp.iter();
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute()); // S1
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute()); // N1
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.sender, B_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply()); // reply(S1)
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.reply.id, 0);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply()); // reply(N1)
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.reply.id, 1);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute()); // S2
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply()); // reply(S2)
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.reply.id, 2);
     }
 
     let next = resp.next().unwrap();
