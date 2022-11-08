@@ -336,7 +336,7 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Throw error if the build failed
-    if (code !== 0) this.buildFailed(cratesToBuild, code)
+    if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
 
     // Return a sparse array of the resulting artifacts
     const results = outputWasms.map(x=>this.locationToContract(x))
@@ -344,15 +344,11 @@ export class DockerBuilder extends LocalBuilder {
 
   }
 
-  protected buildFailed (cratesToBuild: string[], code: string|number) {
-    const crateList = cratesToBuild.join(' ')
-    this.log.error(
-      'Build of crates:',   bold(crateList),
-      'exited with status', bold(code)
-    )
-    throw new Error(
-      `[@fadroma/build] Build of crates: "${crateList}" exited with status ${code}`
-    )
+  protected buildFailed (crates: string[], code: string|number, logs: string) {
+    const crateList = crates.join(' ')
+    this.log.log(logs)
+    this.log.error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
+    throw new Error(`[@fadroma/build] Build of crates: "${crateList}" exited with status ${code}`)
   }
 
   protected locationToContract (location: any) {
