@@ -38,7 +38,7 @@ export function parseResult (
   if (Err !== undefined) {
     const errData = JSON.stringify(Err)
     const message = `Mocknet ${action}: contract ${address} returned Err: ${errData}`
-    throw Object.assign(new Error(message), Err)
+    throw Object.assign(new Error(message), { Err })
   }
   if (Ok !== undefined) {
     return Ok
@@ -80,7 +80,8 @@ export function readBuffer (exports: IOExports, ptr: Ptr): Buffer {
 
 /** Serialize a datum into a JSON string and pass it into the contract. */
 export function pass <T> (exports: IOExports, data: T): Ptr {
-  return passBuffer(exports, utf8toBuffer(JSON.stringify(data)))
+  const buffer = utf8toBuffer(JSON.stringify(data))
+  return passBuffer(exports, buffer)
 }
 
 /** Allocate region, write data to it, and return the pointer.

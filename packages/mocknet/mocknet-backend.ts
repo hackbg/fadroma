@@ -15,7 +15,9 @@ export class MocknetBackend {
 
   constructor (
     readonly chainId:   string,
+    /** Map of code ID to WASM code blobs. */
     readonly uploads:   Record<CodeId, unknown>          = {},
+    /** Map of addresses to WASM instances. */
     readonly instances: Record<Address, MocknetContract> = {},
   ) {
     if (Object.keys(uploads).length > 0) {
@@ -55,8 +57,8 @@ export class MocknetBackend {
 
   async instantiate (
     sender:   Address,
-    instance: ContractInstance
-  ): Promise<Partial<ContractInstance>> {
+    instance: ContractInstance<any>
+  ): Promise<Partial<ContractInstance<any>>> {
     const label    = instance.label
     const initMsg  = await into(instance.initMsg)
     const chainId  = this.chainId
@@ -86,7 +88,8 @@ export class MocknetBackend {
     memo?: unknown, 
     fee?:  unknown
   ) {
-    const result   = this.getInstance(address).execute(...this.context(sender, address), msg)
+    const context  = this.context(sender, address)
+    const result   = this.getInstance(address).execute(...context, msg)
     const response = parseResult(result, 'execute', address)
     if (response.data !== null) {
       response.data = b64toUtf8(response.data)

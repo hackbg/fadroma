@@ -79,11 +79,8 @@ export class MocknetContract {
   init (env: unknown, info: unknown, msg: Message) {
     this.log.debug(`${bold(this.address)} init:`, msg)
     try {
-      return this.readUtf8(this.instance!.exports.instantiate(
-        this.pass(env),
-        this.pass(info),
-        this.pass(msg)
-      ))
+      const ptrs: [Ptr, Ptr, Ptr] = [this.pass(env), this.pass(info), this.pass(msg)]
+      return this.readUtf8(this.instance!.exports.instantiate(...ptrs))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on init:`, e.message)
       throw e
@@ -93,11 +90,8 @@ export class MocknetContract {
   execute (env: unknown, info: unknown, msg: Message) {
     this.log.debug(`${bold(this.address)} handle:`, msg)
     try {
-      return this.readUtf8(this.instance!.exports.execute(
-        this.pass(info),
-        this.pass(env),
-        this.pass(msg)
-      ))
+      const ptrs: [Ptr, Ptr, Ptr] = [this.pass(env), this.pass(info), this.pass(msg)]
+      return this.readUtf8(this.instance!.exports.execute(...ptrs))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on handle:`, e.message)
       throw e
