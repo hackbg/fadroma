@@ -26,7 +26,8 @@ struct InstantiateMsg {
 enum ExecuteMsg {
     RunMsgs(Vec<SubMsg>),
     IncrNumber(u32),
-    Fail
+    Fail,
+    ReplyResponse(SubMsg)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,7 +52,7 @@ impl ContractHarness for Contract {
         let mut resp = Response::default();
 
         match msg {
-            ExecuteMsg::RunMsgs(msgs) => { resp = resp.add_submessages(msgs); },
+            ExecuteMsg::RunMsgs(msgs) => { resp = resp.add_submessages(msgs); }
             ExecuteMsg::IncrNumber(amount) => {
                 let mut num: u32 = load(deps.storage, b"num")?.unwrap_or_default();
                 num += amount;
@@ -61,7 +62,10 @@ impl ContractHarness for Contract {
                 if num > 10 {
                     bail!(StdError::generic_err("Number is bigger than 10."));
                 }
-            },
+            }
+            ExecuteMsg::ReplyResponse(msg) => {
+                save(deps.storage, b"reply", &msg)?;
+            }
             ExecuteMsg::Fail => bail!(StdError::generic_err("Fail"))
         }
     
@@ -77,7 +81,7 @@ impl ContractHarness for Contract {
             balance
         };
 
-        to_binary(&resp).map_err(|x| anyhow!(x)) 
+        to_binary(&resp).map_err(|x| anyhow!(x))
     }
 
     fn reply(&self, deps: DepsMut, env: Env, reply: Reply) -> AnyResult<Response> {
@@ -89,7 +93,7 @@ impl ContractHarness for Contract {
             }
         }
 
-        Ok(Response::default().add_event(
+        let mut response = Response::default().add_event(
             Event::new(EVENT_TYPE)
                 .add_attribute(
                     "submsg_reply",
@@ -100,7 +104,14 @@ impl ContractHarness for Contract {
                         reply.result.is_ok()
                     )
                 )
-        ))
+        );
+
+        if let Some(msg) = load::<SubMsg>(deps.storage, b"reply")? {
+            response.messages.push(msg);
+            deps.storage.remove(b"reply");
+        }
+
+        Ok(response)
     }
 }
 
@@ -825,6 +836,210 @@ fn unhandled_error_jumps_to_the_first_reply() {
     if let ResponseVariants::Execute(resp) = next {
         assert_eq!(resp.address, B_ADDR);
         assert_eq!(resp.sender, A_ADDR);
+    }
+
+    assert_eq!(resp.next(), None);
+
+    let state = c.a_state();
+    assert_eq!(state.num, 0);
+
+    let state = c.b_state();
+    assert_eq!(state.num, 2);
+
+    let state = c.c_state();
+    assert_eq!(state.num, 0);
+}
+
+#[test]
+fn reply_responses_are_handled_correctly() {
+    let mut c = init([None, None, None]);
+
+    let msg = ExecuteMsg::ReplyResponse(
+        SubMsg::reply_always(
+            a_msg(&ExecuteMsg::IncrNumber(1)),
+            2
+        )
+    );
+
+    let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.b.address.clone())).unwrap();
+    assert!(resp.sent.is_empty());
+    assert_eq!(resp.address, B_ADDR);
+    assert_eq!(resp.sender, SENDER);
+
+    let msg = ExecuteMsg::RunMsgs(vec![
+        SubMsg::reply_always(
+            b_msg(
+                &ExecuteMsg::RunMsgs(vec![
+                    SubMsg::reply_on_success(c_msg(&ExecuteMsg::IncrNumber(1)), 0),
+                    SubMsg::reply_on_success(c_msg(&ExecuteMsg::IncrNumber(1)), 1),
+                ])
+            ),
+            3
+        ),
+        SubMsg::new(c_msg(&ExecuteMsg::IncrNumber(3))),
+        SubMsg::reply_always(b_msg(&ExecuteMsg::IncrNumber(2)), 4)
+    ]);
+
+    let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.a.address.clone())).unwrap();
+    let mut resp = resp.iter();
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, C_ADDR);
+        assert_eq!(resp.sender, B_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.reply.id, 0);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.sender, B_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.reply.id, 2);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, C_ADDR);
+        assert_eq!(resp.sender, B_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.reply.id, 1);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.reply.id, 3);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, C_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.reply.id, 4);
+    }
+
+    assert_eq!(resp.next(), None);
+
+    let state = c.a_state();
+    assert_eq!(state.num, 1);
+
+    let state = c.b_state();
+    assert_eq!(state.num, 2);
+
+    let state = c.c_state();
+    assert_eq!(state.num, 5);
+}
+
+#[test]
+fn reply_response_error_is_handled_properly() {
+    let mut c = init([None, Some(2), None]);
+
+    let msg = ExecuteMsg::ReplyResponse(
+        SubMsg::reply_always(
+            a_msg(&ExecuteMsg::RunMsgs(vec![
+                SubMsg::new(c_msg(&ExecuteMsg::IncrNumber(1))),
+                SubMsg::reply_on_success(b_msg(&ExecuteMsg::IncrNumber(20)), 1) // This will fail
+            ])),
+            2
+        )
+    );
+
+    let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.b.address.clone())).unwrap();
+    assert!(resp.sent.is_empty());
+    assert_eq!(resp.address, B_ADDR);
+    assert_eq!(resp.sender, SENDER);
+
+    let msg = ExecuteMsg::RunMsgs(vec![
+        SubMsg::reply_always(
+            b_msg(
+                &ExecuteMsg::RunMsgs(vec![
+                    SubMsg::reply_on_success(c_msg(&ExecuteMsg::IncrNumber(1)), 0),
+                    SubMsg::new(c_msg(&ExecuteMsg::IncrNumber(1)))
+                ])
+            ),
+            3
+        ),
+        SubMsg::reply_always(b_msg(&ExecuteMsg::IncrNumber(2)), 4)
+    ]);
+
+    let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.a.address.clone())).unwrap();
+    let mut resp = resp.iter();
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.reply.id, 3);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.reply.id, 4);
     }
 
     assert_eq!(resp.next(), None);
