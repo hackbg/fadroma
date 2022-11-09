@@ -6,9 +6,9 @@
   "files": [ "*.ts" ],
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite client.spec.ts.md",
-    "cov":   "ensuite-cov -r text -- client.spec.ts.md",
-    "lcov":  "ensuite-cov -r lcov -- client.spec.ts.md",
+    "test":  "ensuite core.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- core.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- core.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {

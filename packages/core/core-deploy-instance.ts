@@ -44,10 +44,14 @@ export function defineInstance <C extends Client> (
     } else if (typeof args[0] === 'object') {
       options = args[0]
     }
-    if (fn.context.contract.has(options.name)) {
-      return fn.context.contract.get(options.name)
+    if (fn.context) {
+      if (fn.context.contract.has(options.name)) {
+        return fn.context.contract.get(options.name)
+      } else {
+        return fn.context.contract.set(options.name, defineInstance({...fn, ...options}).deployed)
+      }
     } else {
-      return fn.context.contract.set(options.name, defineInstance({...fn, ...options}).deployed)
+      return defineInstance({...fn, ...options}).deployed
     }
   }
 

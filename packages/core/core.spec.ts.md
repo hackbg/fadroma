@@ -11,35 +11,36 @@ This is the core module of the Fadroma dApp framework.
 
 This module contains the following features:
 
-## [Error types and event logging](./client-events.spec.ts.md)
+## [Error types and event logging](./core-events.spec.ts.md)
 
 ```typescript
-import './client-events.spec.ts.md'
+//import './core-events.spec.ts.md'
 ```
 
-## [Metadata utitilites](./client-fields.spec.ts.md)
+## [Metadata utitilites](./core-fields.spec.ts.md)
 
 ```typescript
-import './client-fields.spec.ts.md'
+//import './core-fields.spec.ts.md'
 ```
 
-## [Connecting to chains and broadcasting transactions](./client-connect.spec.ts.md)
+## [Connecting to chains and broadcasting transactions](./core-connect.spec.ts.md)
 
 ```typescript
-import './client-connect.spec.ts.md'
+//import './core-connect.spec.ts.md'
 ```
 
-## [Describing contracts](./client-contract.spec.ts.md)
+## [Describing contracts](./core-contract.spec.ts.md)
 
 ```typescript
-import './client-build.spec.ts.md'
-import './client-code.spec.ts.md'
-import './client-upload.spec.ts.md'
-import './client-labels.spec.ts.md'
+//import './core-build.spec.ts.md'
+//import './core-code.spec.ts.md'
+//import './core-upload.spec.ts.md'
+//import './core-labels.spec.ts.md'
 ```
 
-## [Deploying contracts](./client-deploy.spec.ts.md)
+## [Deploying contracts](./core-deploy.spec.ts.md)
 
 ```typescript
-import './client-deploy.spec.ts.md'
+import './core-deploy-instance.spec.ts.md'
+//import './core-deploy.spec.ts.md'
 ```
