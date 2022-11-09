@@ -94,19 +94,3 @@ export class ContractSource extends Metadata {
     })
   }
 }
-
-/** @returns the data for saving a build receipt. */
-export function toBuildReceipt (s: ContractSource) {
-  return {
-    repository: s.repository,
-    revision:   s.revision,
-    dirty:      s.dirty,
-    workspace:  s.workspace,
-    crate:      s.crate,
-    features:   s.features?.join(', '),
-    builder:    undefined,
-    builderId:  s.builder?.id,
-    artifact:   s.artifact?.toString(),
-    codeHash:   s.codeHash
-  }
-}

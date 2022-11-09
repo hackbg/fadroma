@@ -1,139 +1,19 @@
-import { Client } from './core-connect'
-import { ClientError } from './core-events'
-import { codeHashOf, fetchCodeHash, getSourceSpecifier } from './core-code'
-import { ContractSource, toBuildReceipt } from './core-build'
+import { Client } from './core-client'
+import { ClientError as Error } from './core-events'
+import { fetchCodeHash, getSourceSpecifier } from './core-code'
+import { build } from './core-build'
+import { defineTask } from './core-fields'
+import type { Agent } from './core-agent'
 import type { Overridable } from './core-fields'
-import type { Agent, ChainId, ClientClass, Address, TxHash } from './core-connect'
+import type { ChainId } from './core-chain'
+import type { ClientClass } from './core-client'
+import type { Address, TxHash } from './core-tx'
 import type { Hashed, CodeHash, CodeId } from './core-code'
-
-export function intoTemplate <C extends Client> (
-  x: Partial<ContractTemplate<C>>
-): ContractTemplate<C> {
-  if (x instanceof ContractTemplate) return x
-  return new ContractTemplate(x) as ContractTemplate<C>
-}
-
-/** Create a callable object based on ContractTemplate. */
-export function defineTemplate <C extends Client> (
-  options: Partial<ContractTemplate<C>> = {}
-): ContractTemplate<C> & (() => Promise<ContractTemplate<C>>) {
-
-  const template = new ContractTemplate(options)
-
-  const rebind = (obj, [k, v])=>Object.assign(obj, {
-    [k]: (typeof v === 'function') ? v.bind(getOrUploadTemplate) : v
-  }, {})
-
-  return Object.assign(
-    getOrUploadTemplate.bind(getOrUploadTemplate),
-    Object.entries(template).reduce(rebind)
-  )
-
-  function getOrUploadTemplate () {
-    return this.uploaded
-  }
-
-}
-
-/** For a contract source to be uploadable, it needs to be compiled first,
-  * represented by having a populated `artifact` field.
-  * An `Uploadable` may also be specified with pre-populated code ID:
-  * this means it's already been uploaded and can be reused without reuploading. */
-export interface Uploadable {
-  artifact:  NonNullable<ContractSource["artifact"]>
-  codeHash?: ContractSource["codeHash"]
-  uploader?: ContractTemplate<Client>["uploader"]
-  chainId?:  ContractTemplate<Client>["chainId"]
-  codeId?:   ContractTemplate<Client>["codeId"]
-}
-
-/** A successful upload populates the `chainId` and `codeId` fields of a `ContractTemplate`. */
-export interface Uploaded extends ContractTemplate<Client> {
-  chainId: NonNullable<ContractTemplate<Client>["chainId"]>
-  codeId:  NonNullable<ContractTemplate<Client>["codeId"]>
-}
-
-/** Contract lifecycle object. Represents a smart contract's lifecycle from source to upload. */
-export class ContractTemplate<C extends Client> extends ContractSource {
-  /** ID of chain on which this contract is uploaded. */
-  chainId?:    ChainId  = undefined
-  /** Object containing upload logic. */
-  uploaderId?: string   = undefined
-  /** Upload procedure implementation. */
-  uploader?:   Uploader = undefined
-  /** Address of agent that performed the upload. */
-  uploadBy?:   Address  = undefined
-  /** TXID of transaction that performed the upload. */
-  uploadTx?:   TxHash   = undefined
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:     CodeId   = undefined
-  /** The Agent instance that will be used to upload and instantiate the contract. */
-  agent?:      Agent    = undefined
-  /** The Client subclass that exposes the contract's methods.
-    * @default the base Client class. */
-  client?:     ClientClass<C> = Client as ClientClass<C>
-
-  constructor (options: Partial<C> = {}) {
-    super(options)
-    this.define(options as object)
-  }
-
-  /** One-shot deployment task. */
-  get uploaded (): Promise<ContractTemplate<C>> {
-    if (this.codeId) return Promise.resolve(this)
-    const uploading = this.upload()
-    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
-    return uploading
-  }
-
-  /** Upload compiled source code to the selected chain.
-    * @returns task performing the upload */
-  async upload (uploader?: Uploader): Promise<ContractTemplate<C>> {
-    return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
-      await this.compiled
-      const result = await upload(this as Uploadable, uploader, uploader?.agent)
-      return this.define(result as Partial<this>)
-    })
-  }
-
-  /** Uploaded templates can be passed to factory contracts in this format. */
-  get asInfo (): ContractInfo {
-    if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
-      throw new ClientError.Unpopulated()
-    }
-    return templateStruct(this)
-  }
-
-}
-
-/** @returns the data for saving an upload receipt. */
-export function toUploadReceipt <C extends Client> (t: ContractTemplate<C>) {
-  return {
-    ...toBuildReceipt(t),
-    chainId:    t.chainId,
-    uploaderId: t.uploader?.id,
-    uploader:   undefined,
-    uploadBy:   t.uploadBy,
-    uploadTx:   t.uploadTx,
-    codeId:     t.codeId
-  }
-}
-
-/** Factory contracts may accept contract templates in this format. */
-export interface ContractInfo {
-  id:        number,
-  code_hash: string
-}
-
-/** Create a ContractInfo from compatible objects. */
-export const templateStruct = (template: Hashed & { codeId?: CodeId }): ContractInfo => ({
-  id:        Number(template.codeId),
-  code_hash: codeHashOf(template)
-})
+import type { Uploadable, Uploaded } from './core-contract'
 
 /** Standalone upload function. */
 export async function upload (
-  source:   Uploadable,
+  source:   Uploadable & Partial<Uploaded>,
   uploader: Uploader|undefined   = source.uploader,
   agent:    Agent|null|undefined = uploader?.agent
 ): Promise<Uploaded> {
@@ -143,15 +23,13 @@ export async function upload (
     // If it has no code hash, fetch from chain by code id
     // so that we can validate against it alter
     source.codeHash ??= await fetchCodeHash(source, agent)
-
-    return intoTemplate(source) as Uploaded
+    return source as Uploaded
   }
 
   // If the chain ID or code hash is missing though, it means we need to upload:
+  return defineTask(`upload ${getSourceSpecifier(source)}`, doUpload, source)
 
-  // Name the task
-  const name = `upload ${getSourceSpecifier(source)}`
-  return source.task(name, async (): Promise<T> => {
+  async function doUpload (): Promise<Uploaded> {
 
     // We're gonna need an uploader
     uploader ??= assertUploader(source)
@@ -161,16 +39,16 @@ export async function upload (
       ?? uploader.chain?.id
       ?? uploader.agent?.chain?.id
       ?? (source as any)?.agent?.chain?.id
-    if (!chainId) throw new ClientError.NoChainId()
+    if (!chainId) throw new Error.NoChainId()
 
     // If we have chain ID and code ID, try to get code hash
     if (source.codeId) source.codeHash = await fetchCodeHash(source, agent)
 
     // Replace with built and return uploaded
-    if (!source.artifact) await source.build()
+    if (!source.artifact) await build(source)
 
     return uploader.upload(source)
-  })
+  }
 
 }
 
@@ -205,8 +83,8 @@ export abstract class Uploader {
 /** @returns the uploader of the thing
   * @throws  NoUploader if missing or NoUploaderAgent if the uploader has no agent. */
 export function assertUploader ({ uploader }: { uploader?: Uploader }): Uploader {
-  if (!uploader) throw new ClientError.NoUploader()
-  //if (typeof uploader === 'string') throw new ClientError.ProvideUploader(uploader)
-  if (!uploader.agent) throw new ClientError.NoUploaderAgent()
+  if (!uploader) throw new Error.NoUploader()
+  //if (typeof uploader === 'string') throw new Error.ProvideUploader(uploader)
+  if (!uploader.agent) throw new Error.NoUploaderAgent()
   return uploader
 }

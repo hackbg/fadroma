@@ -1,62 +1,64 @@
-import { hide, into, intoRecord } from './core-fields'
-import type { IntoRecord } from './core-fields'
-import { ClientError, ClientConsole } from './core-events'
-import { assertAgent } from './core-connect'
-import type { Agent, Client } from './core-connect'
-import { ContractTemplate } from './core-upload'
-import type { ContractSource } from './core-build'
-import { intoSource } from './core-build'
 import type { Name } from './core-labels'
-import { writeLabel } from './core-labels'
+import type { Contract } from './core-contract'
 import type { Deployment } from './core-deployment'
+import type { Client } from './core-client'
+import { ClientError as Error } from './core-events'
 
-export interface DeploymentMultiContractAPI {
-  set (receipts: Record<string, any>): this
-  build (contracts: (string|ContractSource)[]): Promise<ContractSource[]>
-  upload (contracts: ContractSource[]): Promise<ContractTemplate<Client>[]>
-}
+export type DefineMultiContractArray =
+  (contracts: Contract<Client>[]) => Promise<Client[]>
 
-export function deploymentMultiContractAPI <D extends Deployment> (self: D) {
+export type DefineMultiContractRecord =
+  (contracts: Record<Name, Contract<Client>>) => Promise<Record<Name, Client>>
 
-  let fn = function contracts <C extends Client> (
+export type MatchPredicate =
+  (meta: Partial<Contract<Client>>) => boolean|undefined
+
+export function defineDeploymentContractsAPI <D extends Deployment> (
+  self: D
+): (DefineMultiContractArray | DefineMultiContractRecord) & DeployManyContractsAPI {
+
+  return Object.assign(
+    defineManyContractsInDeployment.bind(self),
+    defineDeployManyContractsAPI(self)
+  )
+
+  function defineManyContractsInDeployment <C extends Client> (
     options: Partial<MultiContractSlot<C>>
   ): MultiContractSlot<C> {
     return new MultiContractSlot<C>({...options}).attach(this)
   }
 
-  fn = fn.bind(self)
+}
 
-  const methods: DeploymentMultiContractAPI = {
+/** Methods for managing groups of contracts in a `Deployment` */
+export interface DeployManyContractsAPI {
+  /** Add multiple contracts to this deployment. */
+  set (contracts: Array<Client|Contract<Client>>): this
+  set (contracts: Record<string, Client|Contract<Client>>): this
+  /** Compile multiple contracts. */
+  build (contracts: (string|Contract<Client>)[]): Promise<Contract<Client>[]>
+  /** Upload multiple contracts. */
+  upload (contracts: Contract<Client>[]): Promise<Contract<Client>[]>
+}
 
-    /** Chainable. Add multiple entries to the deployment, replacing existing receipts. */
-    set (receipts) {
-      for (const [name, receipt] of Object.entries(receipts)) this.state[name] = receipt
-      this.save()
-      return this
-    },
+export const defineDeployManyContractsAPI = (d: Deployment) => ({
 
-    /** Build multiple contracts. */
-    build: buildMany,
+  set (receipts) {
+    throw new Error('TODO')
+    for (const [name, receipt] of Object.entries(receipts)) this.state[name] = receipt
+    this.save()
+    return this
+  },
 
-    /** Upload multiple contracts to the chain.
-      * @returns the same contracts, but with `chainId`, `codeId` and `codeHash` populated. */
-    upload: uploadMany
-
-  }
-
-  for (const key in methods) fn[key] = methods[key].bind(self)
-
-  return fn
-
-  async function buildMany (
-    contracts: (string|ContractSource)[]
-  ): Promise<ContractSource[]> {
+  build: async function buildMany (
+    contracts: (string|Contract<Client>)[]
+  ): Promise<Contract<Client>[]> {
     return this.task(`build ${contracts.length} contracts`, async () => {
-      if (!this.builder) throw new ClientError.NoBuilder()
+      if (!this.builder) throw new Error.NoBuilder()
       if (contracts.length === 0) return Promise.resolve([])
       contracts = contracts.map(contract=>{
         if (typeof contract === 'string') {
-          return this.contract({ crate: contract }) as ContractSource
+          return this.contract({ crate: contract }) as Contract<Client>
         } else {
           return contract
         }
@@ -64,21 +66,21 @@ export function deploymentMultiContractAPI <D extends Deployment> (self: D) {
       const count = (contracts.length > 1)
         ? `${contracts.length} contract: `
         : `${contracts.length} contracts:`
-      const sources = (contracts as ContractTemplate<Client>[])
+      const sources = (contracts as Contract<Client>[])
         .map(contract=>`${contract.crate}@${contract.revision}`)
         .join(', ')
       return this.task(`build ${count} ${sources}`, () => {
-        if (!this.builder) throw new ClientError.NoBuilder()
-        return this.builder.buildMany(contracts as ContractSource[])
+        if (!this.builder) throw new Error.NoBuilder()
+        return this.builder.buildMany(contracts as Contract<Client>[])
       })
     })
-  }
+  },
 
-  async function uploadMany (
-    contracts: ContractSource[]
-  ): Promise<ContractTemplate<Client>[]> {
+  upload: async function uploadMany (
+    contracts: Contract<Client>[]
+  ): Promise<Contract<Client>[]> {
     return this.task(`upload ${contracts.length} contracts`, async () => {
-      if (!this.uploader) throw new ClientError.NoUploader()
+      if (!this.uploader) throw new Error.NoUploader()
       if (contracts.length === 0) return Promise.resolve([])
       contracts = contracts
         .map(contract=>(typeof contract === 'string')
@@ -88,16 +90,13 @@ export function deploymentMultiContractAPI <D extends Deployment> (self: D) {
         ? `${contracts.length} contract: `
         : `${contracts.length} contracts:`
       return this.task(`upload ${count} artifacts`, () => {
-        if (!this.uploader) throw new ClientError.NoUploader()
+        if (!this.uploader) throw new Error.NoUploader()
         return this.uploader.uploadMany(contracts)
       })
     })
   }
 
-}
-
-
-export type MatchPredicate = (meta: Partial<ContractInstance>) => boolean|undefined
+})
 
 export class MultiContractSlot<C extends Client> extends ContractTemplate {
 

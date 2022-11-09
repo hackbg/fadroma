@@ -1,5 +1,8 @@
 import type { ContractInstance } from './core-contract'
-import { assertAddress } from './core-connect'
+import type { Agent } from './core-agent'
+import type { Contract } from './core-contract'
+import type { Client } from './core-client'
+import { assertAddress } from './core-tx'
 import { validated } from './core-fields'
 import { ClientError } from './core-events'
 
@@ -21,7 +24,7 @@ export interface StructuredLabel {
 export type Label  = string
 
 /** Fetch the label from the chain. */
-export async function fetchLabel <C extends ContractInstance> (
+export async function fetchLabel <C extends Contract<Client>> (
   meta: C, agent: Agent, expected?: Label
 ): Promise<C & { label: Label }> {
   const label = await agent.getLabel(assertAddress(meta))

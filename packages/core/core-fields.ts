@@ -31,12 +31,18 @@ export class Metadata {
   /** Define a task (lazily-evaluated async one-shot field).
     * @returns A lazily-evaluated Promise. */
   task <T extends this, U> (name: string, cb: (this: T)=>PromiseLike<U>): Task<T, U> {
-    const task = new Task(name, cb, this as unknown as T)
-    const [_, head, ...body] = (task.stack ?? '').split('\n')
-    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
-    task.log = this.log ?? task.log
-    return task as Task<T, U>
+    return defineTask(name, cb, this as T)
   }
+}
+
+export function defineTask <T, U> (
+  name: string, cb: (this: T)=>PromiseLike<U>, context?: T & { log?: ClientConsole }
+): Task<T, U> {
+  const task = new Task(name, cb, context as unknown as T)
+  const [_, head, ...body] = (task.stack ?? '').split('\n')
+  task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+  task.log = context?.log ?? task.log
+  return task as Task<T, U>
 }
 
 /** Check if `obj` has a writable, non-method property of name `key` */
@@ -129,4 +135,32 @@ export async function intoRecord <X extends string|number|symbol, Y, Z> (
     results[key] = result
   }
   return results
+}
+
+export function rebind (target: object, source: object): typeof target {
+  // if target is a function make its name writable
+  if ('name' in source) Object.defineProperty(target, 'name', { writable: true })
+  // copy properties
+  for (let key in source) Object.assign(target, { [key]: source[key] })
+  // copy prototype
+  Object.setPrototypeOf(target, Object.getPrototypeOf(source))
+  return target
+}
+
+/** Default fields start out as getters that point to the corresponding field
+  * on the context; but if you try to set them, they turn into normal properties
+  * with the provided value. */
+export function defineDefault <T extends object, D extends object> (
+  obj: T, defaults: D, name: keyof D
+) {
+  Object.defineProperty(obj, name, {
+    enumerable: true,
+    get () {
+      return defaults[name]
+    },
+    set (v: D[keyof D]) {
+      Object.defineProperty(self, name, { enumerable: true, value: v })
+      return v
+    }
+  })
 }

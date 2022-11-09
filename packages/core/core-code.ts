@@ -4,7 +4,7 @@ import type { ContractSource } from './core-build'
 import { ContractTemplate } from './core-upload'
 import { ContractInstance } from './core-deploy'
 import { validated } from './core-fields'
-import { ClientError } from './core-events'
+import { ClientError as Error } from './core-events'
 
 /** @returns a string in the format `crate[@ref][+flag][+flag]...` */
 export function getSourceSpecifier <C extends ContractSource> (meta: C): string {
@@ -21,7 +21,7 @@ export type CodeHash = string
 /** @returns the code hash of the thing
   * @throws  LinkNoCodeHash if missing. */
 export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): CodeHash {
-  if (!codeHash) throw new ClientError.LinkNoCodeHash()
+  if (!codeHash) throw new Error.LinkNoCodeHash()
   return codeHash
 }
 
@@ -31,9 +31,9 @@ export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): Cod
 export async function fetchCodeHash <C extends ContractTemplate & { address?: Address }> (
   meta: C, agent?: Agent|null|undefined, expected?: CodeHash,
 ): Promise<CodeHash> {
-  if (!agent) throw new ClientError.NoAgent()
+  if (!agent) throw new Error.NoAgent()
   if (!meta.address && !meta.codeId && !meta.codeHash) {
-    throw new ClientError('Unable to fetch code hash: no address or code id.')
+    throw new Error('Unable to fetch code hash: no address or code id.')
   }
   const codeHashByAddress = meta.address
     ? validated('codeHashByAddress', await agent.getHash(meta.address), expected)
@@ -42,10 +42,10 @@ export async function fetchCodeHash <C extends ContractTemplate & { address?: Ad
     ? validated('codeHashByCodeId',  await agent.getHash(meta.codeId),  expected)
     : undefined
   if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
-    throw new ClientError('Validation failed: different code hashes fetched by address and by code id.')
+    throw new Error('Validation failed: different code hashes fetched by address and by code id.')
   }
   if (!codeHashByAddress && !codeHashByCodeId) {
-    throw new ClientError('Code hash unavailable.')
+    throw new Error('Code hash unavailable.')
   }
   return codeHashByAddress! ?? codeHashByCodeId!
 }
@@ -59,9 +59,9 @@ export type Hashed =
 export function codeHashOf ({ code_hash, codeHash }: Hashed): CodeHash {
   if (typeof code_hash === 'string') code_hash = code_hash.toLowerCase()
   if (typeof codeHash  === 'string') codeHash  = codeHash.toLowerCase()
-  if (code_hash && codeHash && code_hash !== codeHash) throw new ClientError.DifferentHashes()
+  if (code_hash && codeHash && code_hash !== codeHash) throw new Error.DifferentHashes()
   const result = code_hash ?? codeHash
-  if (!result) throw new ClientError.NoCodeHash()
+  if (!result) throw new Error.NoCodeHash()
   return result
 }
 

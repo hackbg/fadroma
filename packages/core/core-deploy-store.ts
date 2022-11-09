@@ -1,3 +1,8 @@
+import type { Class } from './core-fields'
+import type { Client } from './core-client'
+import type { Contract } from './core-contract'
+import type { Deployment } from './core-deployment'
+
 /** Transitional support for several of these:
   *  - YAML1 is how the latest @fadroma/deploy stores data
   *  - YAML2 is how @aakamenov's custom Rust-based deployer stores data
@@ -30,7 +35,7 @@ export abstract class DeployStore {
   /** Get a deployment by name, or null if such doesn't exist. */
   abstract get    (name: string):  Deployment|null
   /** Update a deployment's data. */
-  abstract set    (name: string, state?: Record<string, Partial<ContractSlot<any>>>): void
+  abstract set    (name: string, state?: Record<string, Partial<Contract<Client>>>): void
   /** Create a new deployment. */
   abstract create (name?: string): Promise<Deployment>
   /** Activate a new deployment, or throw if such doesn't exist. */
@@ -41,4 +46,4 @@ export abstract class DeployStore {
   defaults: Partial<Deployment> = {}
 }
 
-export type DeploymentState = Record<string, Partial<ContractInstance>>
+export type DeploymentState = Record<string, Partial<Contract<Client>>>

@@ -69,7 +69,7 @@ The `Task` also has a `context` property which points back to the `ContractInsta
 from which it was created:
 
 ```typescript
-assert(emptyContract().context === emptyContract)
+assert.equal(emptyContract().context, emptyContract)
 ```
 
 ## Deploying a contract
@@ -121,6 +121,8 @@ assert.equal(c1.address, 'the address of instance #1')
 assert.equal(c1.codeId, myContract.codeId)
 ```
 
+### `client.meta`
+
 The original `ContractInstance` object from which the contract
 was deployed can be found on the optional `meta` property of the `Client`.
 
@@ -128,6 +130,8 @@ was deployed can be found on the optional `meta` property of the `Client`.
 assert.ok(c1.meta instanceof ContractInstance)
 assert.equal(c1.meta.deployedBy, agent.address)
 ```
+
+### `client.agent`
 
 By default, the `Client`'s `agent` property is equal to the `agent`
 which deployed the contract. This property determines the address from
@@ -157,7 +161,7 @@ assert.notEqual(c1, c2)
 assert.deepEqual(c1, c2)
 ```
 
-## Deploying another instance; overriding defaults
+## Deploying more contracts; overriding defaults
 
 What if you want to deploy another contract of the same kind?
 That's easy, just provide a different name, as in the following example;

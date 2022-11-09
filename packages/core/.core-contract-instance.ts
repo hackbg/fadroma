@@ -19,50 +19,6 @@ export function intoInstance <C extends Client> (
   return new ContractInstance(x)
 }
 
-function rebind (target: object, source: object): typeof target {
-  // if target is a function make its name writable
-  if ('name' in source) Object.defineProperty(target, 'name', { writable: true })
-  // copy properties
-  for (let key in source) target[key] = source[key]
-  // copy prototype
-  Object.setPrototypeOf(target, Object.getPrototypeOf(source))
-  return target
-}
-
-/** Create a callable object based on ContractInstance. */
-export function defineContract <C extends Client> (
-  options: Partial<ContractInstance<C>> = {}
-): ContractInstance<C> & (()=> Promise<ContractInstance<C>>) {
-
-  let fn = function getOrDeployInstance (
-    ...args: [Name, Message]|[Partial<ContractInstance<C>>]
-  ) {
-    let options
-    if (typeof args[0] === 'string') {
-      const [name, initMsg] = args
-      options = { name, initMsg }
-    } else if (typeof args[0] === 'object') {
-      options = args[0]
-    }
-    if (fn.context) {
-      if (fn.context.contract.has(options.name)) {
-        return fn.context.contract.get(options.name)
-      } else {
-        return fn.context.contract.set(options.name, defineContract({...fn, ...options}).deployed)
-      }
-    } else {
-      return defineContract({...fn, ...options}).deployed
-    }
-  }
-
-  fn = fn.bind(fn)
-
-  return rebind(fn, new ContractInstance(options)) as (
-    ContractInstance<C> & (()=> Promise<ContractInstance<C>>)
-  )
-
-}
-
 /** Minimal parameters required to deploy a contract. */
 export interface Deployable { chainId: ChainId; codeId: CodeId }
 
@@ -138,7 +94,6 @@ export class ContractInstance<C extends Client>
       this.initMsg = await into(initMsg) as Message
       this.log.beforeDeploy(this, this.label!)
       const contract = await this.agent!.instantiate(this)
-      console.log({contract})
       this.define(contract as Partial<this>)
       this.log.afterDeploy(this as Partial<ContractInstance<C>>)
       if (this.context) this.context.contract.add(this.name!, contract)
@@ -176,19 +131,3 @@ export class ContractInstance<C extends Client>
   }
 
 }
-
-/** @returns the data for a deploy receipt */
-export function toInstanceReceipt <C extends Client> (c: ContractInstance<C>) {
-  return {
-    ...toUploadReceipt(c),
-    initBy:  c.initBy,
-    initMsg: c.initMsg,
-    initTx:  c.initTx,
-    address: c.address,
-    label:   c.label,
-    prefix:  c.prefix,
-    name:    c.name,
-    suffix:  c.suffix
-  }
-}
-

@@ -7,13 +7,6 @@ import { ContractSource, toBuildReceipt } from './core-contract-source'
 import { ClientError }                    from './core-events'
 import { upload }                         from './core-upload'
 
-export function intoTemplate <C extends Client> (
-  x: Partial<ContractTemplate<C>>
-): ContractTemplate<C> {
-  if (x instanceof ContractTemplate) return x
-  return new ContractTemplate(x) as ContractTemplate<C>
-}
-
 /** Create a callable object based on ContractTemplate. */
 export function defineTemplate <C extends Client> (
   options: Partial<ContractTemplate<C>> = {}
@@ -105,19 +98,6 @@ export interface Uploadable {
 export interface Uploaded extends ContractTemplate<Client> {
   chainId: NonNullable<ContractTemplate<Client>["chainId"]>
   codeId:  NonNullable<ContractTemplate<Client>["codeId"]>
-}
-
-/** @returns the data for saving an upload receipt. */
-export function toUploadReceipt <C extends Client> (t: ContractTemplate<C>) {
-  return {
-    ...toBuildReceipt(t),
-    chainId:    t.chainId,
-    uploaderId: t.uploader?.id,
-    uploader:   undefined,
-    uploadBy:   t.uploadBy,
-    uploadTx:   t.uploadTx,
-    codeId:     t.codeId
-  }
 }
 
 /** Factory contracts may accept contract templates in this format. */

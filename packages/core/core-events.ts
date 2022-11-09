@@ -1,17 +1,11 @@
 import { CommandsConsole } from '@hackbg/komandi'
 import { bold, colors } from '@hackbg/konzola'
-import type {
-  Address,
-  Chain,
-  CodeHash,
-  CodeId,
-  ContractInstance,
-  ContractTemplate,
-  Deployment,
-  Label,
-  Message,
-  Name,
-} from './core'
+import type { Address, Message } from './core-tx'
+import type { Name, Label } from './core-labels'
+import type { CodeId, CodeHash } from './core-code'
+import type { Chain } from './core-chain'
+import type { Deployment } from './core-deployment'
+import type { Instantiable, Instantiated } from './core-contract'
 import { CustomError } from '@hackbg/konzola'
 
 /** Error kinds. */
@@ -207,7 +201,7 @@ export class ClientConsole extends CommandsConsole {
     )
   }
 
-  beforeDeploy <T extends ContractTemplate> (
+  beforeDeploy <T extends Instantiable> (
     template: T,
     label:    Label,
     codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
@@ -217,7 +211,7 @@ export class ClientConsole extends CommandsConsole {
     this.log('Init:    ', 'code id', bold(codeId), 'as', bold(label))
   }
 
-  afterDeploy (contract: Partial<ContractInstance>) {
+  afterDeploy (contract: Partial<Instantiated>) {
     const { red, green } = colors
     const name = contract?.name
       ? bold(green(contract.name))
@@ -232,7 +226,7 @@ export class ClientConsole extends CommandsConsole {
     this.br()
   }
 
-  deployFailed (e: Error, template: ContractTemplate, name: Label, msg: Message) {
+  deployFailed (e: Error, template: Instantiable, name: Label, msg: Message) {
     this.br()
     this.error(`Deploy of ${bold(name)} failed:`)
     this.error(`${e?.message}`)
@@ -242,7 +236,7 @@ export class ClientConsole extends CommandsConsole {
     this.br()
   }
 
-  deployManyFailed (template: ContractTemplate, contracts: any[] = [], e: Error) {
+  deployManyFailed (template: Instantiable, contracts: any[] = [], e: Error) {
     this.br()
     this.error(`Deploy of multiple contracts failed:`)
     this.error(bold(e?.message))
@@ -258,7 +252,7 @@ export class ClientConsole extends CommandsConsole {
     this.br()
   }
 
-  deployFailedContract (template?: ContractTemplate) {
+  deployFailedContract (template?: Instantiable) {
     if (!template) return this.error(`  No template was provided.`)
     this.error(`Code hash:`, bold(template.codeHash||''))
     this.error(`Chain ID: `, bold(template.chainId ||''))

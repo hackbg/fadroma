@@ -1,14 +1,14 @@
 import { timestamp }                  from '@hackbg/konzola'
 import { CommandContext }             from '@hackbg/komandi'
 import type { Class }                 from './core-fields'
-import type { Agent, Chain }          from './core-connect'
+import type { Agent }                 from './core-agent'
+import type { Chain }                 from './core-chain'
 import type { Builder }               from './core-build'
 import type { Uploader }              from './core-upload'
 import type { DeploymentState }       from './core-deploy-store'
 import { hide }                       from './core-fields'
 import { ClientError, ClientConsole } from './core-events'
-import { deploymentContractAPI }      from './core-deploy-contract'
-import { deploymentMultiContractAPI } from './core-deploy-contracts'
+import { deploymentContractAPI }      from './core-deployment-methods'
 
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
