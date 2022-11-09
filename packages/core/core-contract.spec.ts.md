@@ -55,10 +55,38 @@ with a mocked out `instantiate` method for simplicity:
 import { Chain } from '@fadroma/core'
 const chain = new Chain('test')
 const agent = await chain.getAgent()
-agent.instantiate = () => ({ address: 'the address' })
+let index = 1
+agent.instantiate = () => ({ address: `the address of instance #${++index}` })
 ```
 
+Now let's define a new contract, assuming an existing code ID:
+
 ```typescript
-const c = defineContract({ codeId: 1, agent })
-assert.ok(await c('test', {}))
+const myContract = defineContract({ codeId: 1, agent })
+```
+
+To deploy it, just call it, passing a name and init message:
+
+```typescript
+const foo = await myContract('foo', { parameter: 'value' })
+assert.equal(foo.address, 'the address of instance #1')
+```
+
+Now, here comes the cool part.
+
+Since chains are append-only, and contract instances are unique and distinct,
+this means a deployed contract is permanent - you deploy it, then it stays up forever.
+So, calling `deployMyContract` with the same name will find and return the same instance:
+
+```typescript
+assert.deepEqual(await myContract('foo'), foo)
+assert.equal((await myContract('foo')).address, foo.address)
+```
+
+What if you want to deploy multiple contracts of the same type?
+That's easy, just give them different names:
+
+```typescript
+const bar = await myContract('bar', { parameter: 'value' })
+assert.equal(foo.address, 'the address of instance #2')
 ```
