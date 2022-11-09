@@ -141,6 +141,7 @@ impl ExecutionState {
             return 0;
         }
 
+        let is_reply = self.reply_level.is_some();
         let mut responses_thrown = 0;
 
         // This handles the case where the "reply" call itself returned an error.
@@ -179,6 +180,15 @@ impl ExecutionState {
                             // sub-message level is reverted here and thus we need to
                             // "restart" the loop from the parent level.
                             responses_thrown += self.pop().responses.len();
+
+                            // If we just replied and can't bubble up the error anymore
+                            // this means that the entire sub-message failed so the
+                            // response that spawned that level should be removed.
+                            if is_reply && !self.states.is_empty() {
+                                let state = &mut self.states[index - 1];
+                                state.responses.pop();
+                                responses_thrown += 1;
+                            }
 
                             continue;
                         }
