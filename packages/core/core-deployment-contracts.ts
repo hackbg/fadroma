@@ -2,8 +2,12 @@ import type { Name } from './core-labels'
 import type { AnyContract } from './core-contract'
 import type { Deployment } from './core-deployment'
 import type { Client } from './core-client'
+import type { IntoRecord } from './core-fields'
+import { into, intoRecord, defineTask } from './core-fields'
 import { Contract } from './core-contract'
 import { ClientError as Error } from './core-events'
+import { assertAgent } from './core-agent'
+import { writeLabel } from './core-labels'
 
 export type DefineMultiContractArray =
   (contracts: AnyContract[]) => Promise<Client[]>
@@ -44,7 +48,7 @@ export interface DeployManyContractsAPI {
 
 export const defineDeployManyContractsAPI = (d: Deployment) => ({
 
-  set (receipts) {
+  set (contracts) {
     throw new Error('TODO')
     for (const [name, receipt] of Object.entries(receipts)) this.state[name] = receipt
     this.save()
@@ -54,7 +58,7 @@ export const defineDeployManyContractsAPI = (d: Deployment) => ({
   build: async function buildMany (
     contracts: (string|AnyContract)[]
   ): Promise<AnyContract[]> {
-    return this.task(`build ${contracts.length} contracts`, async () => {
+    return defineTask(`build ${contracts.length} contracts`, async () => {
       if (!this.builder) throw new Error.NoBuilder()
       if (contracts.length === 0) return Promise.resolve([])
       contracts = contracts.map(contract=>{
@@ -70,17 +74,17 @@ export const defineDeployManyContractsAPI = (d: Deployment) => ({
       const sources = (contracts as AnyContract[])
         .map(contract=>`${contract.crate}@${contract.revision}`)
         .join(', ')
-      return this.task(`build ${count} ${sources}`, () => {
+      return defineTask(`build ${count} ${sources}`, () => {
         if (!this.builder) throw new Error.NoBuilder()
         return this.builder.buildMany(contracts as AnyContract[])
-      })
-    })
+      }, this)
+    }, this)
   },
 
   upload: async function uploadMany (
     contracts: AnyContract[]
   ): Promise<AnyContract[]> {
-    return this.task(`upload ${contracts.length} contracts`, async () => {
+    return defineTask(`upload ${contracts.length} contracts`, async () => {
       if (!this.uploader) throw new Error.NoUploader()
       if (contracts.length === 0) return Promise.resolve([])
       contracts = contracts
@@ -90,11 +94,11 @@ export const defineDeployManyContractsAPI = (d: Deployment) => ({
       const count = (contracts.length > 1)
         ? `${contracts.length} contract: `
         : `${contracts.length} contracts:`
-      return this.task(`upload ${count} artifacts`, () => {
+      return defineTask(`upload ${count} artifacts`, () => {
         if (!this.uploader) throw new Error.NoUploader()
         return this.uploader.uploadMany(contracts)
-      })
-    })
+      }, this)
+    }, this)
   }
 
 })
@@ -152,12 +156,12 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
 
   /** Deploy multiple instances of the same template. */
   deploy (inputs: IntoRecord<Name, AnyContract> = this.inits ?? {}): Promise<Record<Name, C>> {
-    const count = `${Object.keys(inputs).length} instance(s)`
+    const count = `${Object.keys(inputs).length} contract(s)`
     const name = undefined
         ?? (this.codeId && `deploy ${count} of code id ${this.codeId}`)
         ?? (this.crate  && `deploy ${count} of crate ${this.crate}`)
         ?? `deploy ${count}`
-    return this.task(name, async (): Promise<Record<Name, C>> => {
+    return defineTask(name, async (): Promise<Record<Name, C>> => {
       // need an agent to proceed
       const agent = assertAgent(this)
       // get the inits if passed lazily
@@ -168,15 +172,15 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
       const template = await this.uploaded
       // at this point we should have a code id
       if (!this.codeId) throw new Error.NoInitCodeId(name)
-      // prepare each instance
-      for (const [name, instance] of Object.entries(inits)) {
+      // prepare each contract
+      for (const [name, contract] of Object.entries(inits) as [Name, AnyContract][]) {
         // if operating in a Deployment, add prefix to each name (should be passed unprefixed)
-        instance.label   = writeLabel({ name, prefix: this.context?.name })
+        contract.label   = writeLabel({ name, prefix: this.context?.name })
         // resolve all init messages
-        instance.initMsg = await into(instance.initMsg)
+        contract.initMsg = await into(contract.initMsg)
       }
       try {
-        // run a bundled transaction creating each instance
+        // run a bundled transaction creating each contract
         const responses = await agent.instantiateMany(inits)
         // get a Contract object representing each
         const contracts = Object.values(responses).map(response=>
@@ -184,15 +188,15 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
         // get a Client from each Contract
         const clients   = Object.fromEntries(contracts.map(contract=>
           [contract.name, contract.getClientSync()]))
-        // if operating in a Deployment, save each instance to the receipt
-        if (this.context) Object.keys(inits).forEach(name=>this.context!.add(name, responses[name]))
+        // if operating in a Deployment, save each contract to the receipt
+        if (this.context) Object.keys(inits).forEach(name=>this.context!.contract.add(name, responses[name]))
         // return the battle-ready clients
         return clients
       } catch (e) {
         this.log.deployManyFailed(this, Object.values(inits), e as Error)
         throw e
       }
-    })
+    }, this)
   }
 
   /** Get all contracts that match the specified predicate. */
@@ -201,7 +205,7 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
     const info = match.name
       ? `get all contracts matching predicate: ${match.name}`
       : `get all contracts matching specified predicate`
-    return this.task(info, () => {
+    return defineTask(info, () => {
       if (!this.context) throw new Error.NoDeployment()
       const clients: Record<Name, C> = {}
       for (const info of Object.values(this.context!.state)) {
@@ -210,7 +214,7 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
           .define(info).getClientSync() as C
       }
       return Promise.resolve(clients)
-    })
+    }, this)
   }
 
 }

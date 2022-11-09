@@ -11,7 +11,6 @@ Object.assign(Chain, {
 export * from './core-events'
 export * from './core-fields'
 export * from './core-math'
-export * from './core-connect'
 export * from './core-build'
 export * from './core-code'
 export * from './core-upload'

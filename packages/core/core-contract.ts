@@ -1,19 +1,18 @@
-export * from './core-contract-source'
-export * from './core-contract-template'
-export * from './core-contract-instance'
-
 import type { Task } from '@hackbg/komandi'
-import type { Client } from './core-client'
+import type { ClientClass } from './core-client'
 import type { Builder } from './core-build'
 import type { Uploader } from './core-upload'
 import type { CodeId, CodeHash } from './core-code'
 import type { ChainId } from './core-chain'
 import type { Address, Message, TxHash } from './core-tx'
 import type { Name, Label } from './core-labels'
+import type { Agent } from './core-agent'
+import type { Deployment } from './core-deployment'
 
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
 import { rebind, override } from './core-fields'
+import { Client } from './core-client'
 
 /** Create a callable object based on Contract. */
 export function defineContract <C extends Client> (
@@ -30,11 +29,12 @@ export function defineContract <C extends Client> (
     } else if (typeof args[0] === 'object') {
       options = args[0]
     }
-    if (fn.context) {
-      if (fn.context.contract.has(options.name)) {
-        return fn.context.contract.get(options.name)
+    const deployment = (fn as AnyContract).context
+    if (deployment) {
+      if (deployment.contract.has(options?.name)) {
+        return deployment.contract.get(options?.name)
       } else {
-        return fn.context.contract.set(options.name, defineContract({...fn, ...options}).deployed)
+        return deployment.contract.set(options?.name, defineContract({...fn, ...options}).deployed)
       }
     } else {
       return defineContract({...fn, ...options}).deployed
@@ -117,6 +117,14 @@ export class Contract<C extends Client> {
 
   constructor (options: Partial<Contract<C>> = {}) {
     override(this, options)
+  }
+
+  /** Provide parameters for a contract.
+    * @returns self with overrides from options */
+  define <T extends this> (options: Partial<T> = {}): T {
+    // FIXME: not all parameters can be overridden at any point in time.
+    // reflect this here to ensure proper flow of data along contract lifecycle
+    return override(this, options as object) as T
   }
 }
 
