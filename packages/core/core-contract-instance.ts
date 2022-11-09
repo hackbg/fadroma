@@ -1,7 +1,7 @@
 import { into } from './core-fields'
 import { ClientError } from './core-events'
 import { assertAddress } from './core-connect'
-import { ContractTemplate, toUploadReceipt } from './core-upload'
+import { ContractTemplate, toUploadReceipt } from './core-contract-template'
 import { assertCodeHash } from './core-code'
 import { writeLabel } from './core-labels'
 import type { Task } from '@hackbg/komandi'
@@ -30,7 +30,7 @@ function rebind (target: object, source: object): typeof target {
 }
 
 /** Create a callable object based on ContractInstance. */
-export function defineInstance <C extends Client> (
+export function defineContract <C extends Client> (
   options: Partial<ContractInstance<C>> = {}
 ): ContractInstance<C> & (()=> Promise<ContractInstance<C>>) {
 
@@ -48,10 +48,10 @@ export function defineInstance <C extends Client> (
       if (fn.context.contract.has(options.name)) {
         return fn.context.contract.get(options.name)
       } else {
-        return fn.context.contract.set(options.name, defineInstance({...fn, ...options}).deployed)
+        return fn.context.contract.set(options.name, defineContract({...fn, ...options}).deployed)
       }
     } else {
-      return defineInstance({...fn, ...options}).deployed
+      return defineContract({...fn, ...options}).deployed
     }
   }
 
@@ -62,8 +62,6 @@ export function defineInstance <C extends Client> (
   )
 
 }
-
-
 
 /** Minimal parameters required to deploy a contract. */
 export interface Deployable { chainId: ChainId; codeId: CodeId }
@@ -140,6 +138,7 @@ export class ContractInstance<C extends Client>
       this.initMsg = await into(initMsg) as Message
       this.log.beforeDeploy(this, this.label!)
       const contract = await this.agent!.instantiate(this)
+      console.log({contract})
       this.define(contract as Partial<this>)
       this.log.afterDeploy(this as Partial<ContractInstance<C>>)
       if (this.context) this.context.contract.add(this.name!, contract)
@@ -192,3 +191,4 @@ export function toInstanceReceipt <C extends Client> (c: ContractInstance<C>) {
     suffix:  c.suffix
   }
 }
+

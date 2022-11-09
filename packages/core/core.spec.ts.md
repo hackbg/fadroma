@@ -41,6 +41,6 @@ This module contains the following features:
 ## [Deploying contracts](./core-deploy.spec.ts.md)
 
 ```typescript
-import './core-deploy-instance.spec.ts.md'
+import './core-contract.spec.ts.md'
 //import './core-deploy.spec.ts.md'
 ```

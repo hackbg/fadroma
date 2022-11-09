@@ -1,10 +1,10 @@
-import type { Overridable } from './core-fields'
 import { Client } from './core-connect'
-import type { Agent, ChainId, ClientClass, Address, TxHash } from './core-connect'
 import { ClientError } from './core-events'
-import type { Hashed, CodeHash, CodeId } from './core-code'
 import { codeHashOf, fetchCodeHash, getSourceSpecifier } from './core-code'
-import { ContractSource } from './core-build'
+import { ContractSource, toBuildReceipt } from './core-build'
+import type { Overridable } from './core-fields'
+import type { Agent, ChainId, ClientClass, Address, TxHash } from './core-connect'
+import type { Hashed, CodeHash, CodeId } from './core-code'
 
 export function intoTemplate <C extends Client> (
   x: Partial<ContractTemplate<C>>
@@ -104,17 +104,18 @@ export class ContractTemplate<C extends Client> extends ContractSource {
     return templateStruct(this)
   }
 
-  /** @returns the data for saving an upload receipt. */
-  get asUploadReceipt (): Partial<this> {
-    return {
-      ...this.asBuildReceipt,
-      chainId:    this.chainId,
-      uploaderId: this.uploader?.id,
-      uploader:   undefined,
-      uploadBy:   this.uploadBy,
-      uploadTx:   this.uploadTx,
-      codeId:     this.codeId
-    } as Partial<this>
+}
+
+/** @returns the data for saving an upload receipt. */
+export function toUploadReceipt <C extends Client> (t: ContractTemplate<C>) {
+  return {
+    ...toBuildReceipt(t),
+    chainId:    t.chainId,
+    uploaderId: t.uploader?.id,
+    uploader:   undefined,
+    uploadBy:   t.uploadBy,
+    uploadTx:   t.uploadTx,
+    codeId:     t.codeId
   }
 }
 
