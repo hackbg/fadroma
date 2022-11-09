@@ -107,12 +107,12 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
   prefix?: Name = undefined
   /** A mapping of Names (unprefixed Labels) to init configurations for the respective contracts. */
-  inits?:  IntoRecord<Name, ContractInstance> = undefined
+  inits?:  IntoRecord<Name, AnyContract> = undefined
   /** A filter predicate for recognizing deployed contracts. */
   match?:  MatchPredicate = meta => Object.keys(this.inits??{}).includes(meta.name!)
 
   constructor (
-    options: Partial<ContractInstance> = {},
+    options: Partial<AnyContract> = {},
     /** The group of contracts that contract belongs to. */
     public context?: Deployment,
     /** The agent that will upload and instantiate this contract. */
@@ -151,7 +151,7 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
   }
 
   /** Deploy multiple instances of the same template. */
-  deploy (inputs: IntoRecord<Name, ContractInstance> = this.inits ?? {}): Promise<Record<Name, C>> {
+  deploy (inputs: IntoRecord<Name, AnyContract> = this.inits ?? {}): Promise<Record<Name, C>> {
     const count = `${Object.keys(inputs).length} instance(s)`
     const name = undefined
         ?? (this.codeId && `deploy ${count} of code id ${this.codeId}`)
@@ -205,7 +205,7 @@ export class MultiContractSlot<C extends Client> extends Contract<C> {
       if (!this.context) throw new Error.NoDeployment()
       const clients: Record<Name, C> = {}
       for (const info of Object.values(this.context!.state)) {
-        if (!match(info as Partial<ContractInstance>)) continue
+        if (!match(info as Partial<AnyContract>)) continue
         clients[info.name!] = new Contract(new Contract<C>(this))
           .define(info).getClientSync() as C
       }

@@ -5,7 +5,7 @@ import type { Address, Message, ExecOpts } from './core-tx'
 import type { AgentFees, ICoin, IFee } from './core-fee'
 import type { CodeHash } from './core-code'
 import type { Client, ClientClass } from './core-client'
-import type { Uploaded } from './core-contract'
+import type { Uploaded, AnyContract } from './core-contract'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
 import { assertChain } from './core-chain'
 
@@ -109,9 +109,9 @@ export abstract class Agent {
     * @example
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
-    *   ContractInstance with no `address` populated yet.
+    *   AnyContract with no `address` populated yet.
     *   This will be populated after executing the bundle. */
-  abstract instantiate (instance: ContractInstance): PromiseLike<ContractInstance>
+  abstract instantiate (instance: AnyContract): PromiseLike<AnyContract>
   /** Create multiple smart contracts from a ContractTemplate (providing code id)
     * and a list or map of label/initmsg pairs.
     * Uses this agent's Bundle class to instantiate them in a single transaction.
@@ -125,12 +125,12 @@ export abstract class Agent {
     *     Two: template2.instance({ label, initMsg }),
     *   }))
     * @returns
-    *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
+    *   either an Array<AnyContract> or a Record<string, AnyContract>,
     *   depending on what is passed as inputs. */
-  instantiateMany (instances: Record<Name, ContractInstance>):
-    Promise<Record<Name, ContractInstance>>
-  instantiateMany (instances: ContractInstance[]):
-    Promise<ContractInstance[]>
+  instantiateMany (instances: Record<Name, AnyContract>):
+    Promise<Record<Name, AnyContract>>
+  instantiateMany (instances: AnyContract[]):
+    Promise<AnyContract[]>
   async instantiateMany <C> (instances: C): Promise<C> {
     // Returns an array of TX results.
     const response = await this.bundle().wrap(async bundle=>{

@@ -4,6 +4,7 @@ import type { Address, Message, ExecOpts } from './core-tx'
 import type { ICoin } from './core-fee'
 import type { Client } from './core-client'
 import type { Name } from './core-labels'
+import type { AnyContract } from './core-contract'
 import { Agent } from './core-agent'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
 
@@ -150,7 +151,7 @@ export abstract class Bundle extends Agent {
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
     *   the unmodified input. */
-  async instantiate (instance: ContractInstance): Promise<ContractInstance> {
+  async instantiate (instance: AnyContract): Promise<AnyContract> {
     const label    = instance.label
     const codeId   = String(instance.codeId)
     const codeHash = instance.codeHash
@@ -177,7 +178,7 @@ export abstract class Bundle extends Agent {
   async instantiateMany <C> (inputs: C): Promise<C> {
     const outputs: any = (inputs instanceof Array) ? [] : {}
     await Promise.all(Object.entries(inputs).map(
-      async ([key, instance]: [Name, ContractInstance])=>{
+      async ([key, instance]: [Name, AnyContract])=>{
         outputs[key] = instance.address
           ? instance
           : await this.instantiate(instance) }))
