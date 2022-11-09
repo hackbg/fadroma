@@ -1,6 +1,10 @@
+# Fadroma: Contract deployment guide
+
 ```typescript
 import assert from 'node:assert'
 ```
+
+## The general shape of the deploy API
 
 To deploy a contract, you begin with describing it.
 You do this by calling the function `defineContract`.
@@ -44,7 +48,9 @@ to deploy it to, or from what address to send the init transaction.
 assert.rejects(async () => await a())
 ```
 
-Let's start over, this time providing the necessary data.
+## Deploying a contract
+
+Let's start over, this time providing all the necessary data for deploying a contract
 
 First we'll create test-only instances of `Chain` and `Agent`,
 with a mocked out `instantiate` method for simplicity:
@@ -63,14 +69,28 @@ Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.
 const myContract = defineContract({ codeId: 1, agent })
 ```
 
-To deploy it, just call it, passing a name and init message:
+To deploy it, just call it, passing a **name** and a **init message**.
 
 ```typescript
-const foo = await myContract('foo', { parameter: 'value' })
+const client1 = await myContract('foo', { parameter: 'value' })
+```
 
-assert.equal(foo.address, 'the address of instance #1')
-assert.equal(foo.deployedBy, agent.address)
-assert.equal(foo.agent, agent)
+The result deploying a contract is a `Client` instance -
+an object containing the info needed to talk to the contract.
+
+```typescript
+assert.ok(client1 instanceof Client)
+assert.equal(client1.address, 'the address of instance #1')
+assert.equal(client1.codeId, myContract.codeId)
+assert.equal(client1.agent, agent)
+```
+
+The original `ContractInstance` object from which the contract
+was deployed can be found on the optional `meta` property of the `Client`.
+
+```typescript
+assert.ok(foo.meta instanceof ContractInstance)
+assert.equal(client1.meta.deployedBy, agent.address)
 ```
 
 Since chains are append-only, and contract instances are unique, a deployed contract
@@ -90,3 +110,39 @@ That's easy, just give them different names:
 const bar = await myContract('bar', { parameter: 'value' })
 assert.equal(foo.address, 'the address of instance #2')
 ```
+
+The objects returned by deploy tasks are called `Client`s.
+They contain the info that is needed to interact with the 
+deployed contract. The metadata which describes the origin
+of the contract (such as the source code and who deployed it)
+is found on the `meta` property of the client.
+
+```typescript
+const baz = myContract('baz', {})
+assert.equal((await baz).meta, baz)
+```
+
+You can extend the `Client` class to define your contract's custom methods:
+
+```typescript
+class MyClient extends Client {
+  myMethod () {
+    return this.exec({ my_method: {} })
+  }
+  myQuery () {
+    return this.query({ my_query: {} })
+  }
+}
+
+const myOtherContract = defineContract({ codeId: 2, client: MyClient })
+```
+
+You can also specify a different `agent` when deploying a contract:
+
+```typescript
+const quux = await myOtherContract({ name: 'quux', initMsg: {}, agent })
+assert.ok(quux instanceof MyClient)
+assert.equal(quux.agent, agent)
+```
+
+By default, each `Client` instance
