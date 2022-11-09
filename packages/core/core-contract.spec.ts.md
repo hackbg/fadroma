@@ -29,16 +29,14 @@ assert(a() instanceof Task)
 The `Task` has a `context` property which points back to the `ContractInstance`.
 
 ```typescript
-assert(a().context instanceof ContractInstance)
+assert(a().context === a)
 ```
 
 A `Task` works like a `Promise` - you can `await` it (or call its `then` method)
-to resolve it, obtaining the info about the deployed contract.
+to resolve it, obtaining the info about the deployed contract. However, unlike a `Promise`,
+it's lazily evaluated - it only begins deploying when you first try to resolve it.
 
-However, unlike a `Promise`, it's lazily evaluated - it only begins deploying
-when you first `await` it (or call `then`).
-
-Of course, trying to deploy this empty `ContractInstance` will reject,
+Of course, trying to deploy this empty `ContractInstance` will fail,
 because you still haven't specified which contract this is, or which chain
 to deploy it to, or from what address to send the init transaction.
 
@@ -59,7 +57,7 @@ let index = 1
 agent.instantiate = () => ({ address: `the address of instance #${++index}` })
 ```
 
-Now let's define a new contract, assuming an existing code ID:
+Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.md):
 
 ```typescript
 const myContract = defineContract({ codeId: 1, agent })
@@ -69,14 +67,16 @@ To deploy it, just call it, passing a name and init message:
 
 ```typescript
 const foo = await myContract('foo', { parameter: 'value' })
+
 assert.equal(foo.address, 'the address of instance #1')
+assert.equal(foo.deployedBy, agent.address)
+assert.equal(foo.agent, agent)
 ```
 
-Now, here comes the cool part.
-
-Since chains are append-only, and contract instances are unique and distinct,
-this means a deployed contract is permanent - you deploy it, then it stays up forever.
-So, calling `deployMyContract` with the same name will find and return the same instance:
+Since chains are append-only, and contract instances are unique, a deployed contract
+is permanent - after you deploy it, then it stays up forever. In other words,
+**deployment is idempotent**, so calling `deployMyContract` with the same name
+will find and return the same instance:
 
 ```typescript
 assert.deepEqual(await myContract('foo'), foo)
