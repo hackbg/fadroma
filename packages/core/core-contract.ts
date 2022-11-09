@@ -47,6 +47,8 @@ export function defineContract <C extends Client> (
 
 }
 
+export type AnyContract = Contract<Client>
+
 export class Contract<C extends Client> {
   context?:    Deployment    = undefined
   /** URL pointing to Git repository containing the source code. */

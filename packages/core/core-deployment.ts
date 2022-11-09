@@ -1,14 +1,15 @@
-import { timestamp }                  from '@hackbg/konzola'
-import { CommandContext }             from '@hackbg/komandi'
-import type { Class }                 from './core-fields'
-import type { Agent }                 from './core-agent'
-import type { Chain }                 from './core-chain'
-import type { Builder }               from './core-build'
-import type { Uploader }              from './core-upload'
-import type { DeploymentState }       from './core-deploy-store'
-import { hide }                       from './core-fields'
-import { ClientError, ClientConsole } from './core-events'
-import { deploymentContractAPI }      from './core-deployment-methods'
+import { timestamp }                    from '@hackbg/konzola'
+import { CommandContext }               from '@hackbg/komandi'
+import { hide }                         from './core-fields'
+import { ClientError, ClientConsole }   from './core-events'
+import { defineDeploymentContractAPI }  from './core-deployment-contract'
+import { defineDeploymentContractsAPI } from './core-deployment-contracts'
+import type { Class }           from './core-fields'
+import type { Agent }           from './core-agent'
+import type { Chain }           from './core-chain'
+import type { Builder }         from './core-build'
+import type { Uploader }        from './core-upload'
+import type { DeploymentState } from './core-deploy-store'
 
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
@@ -96,11 +97,11 @@ export class Deployment extends CommandContext {
 
   /** Specify a contract.
     * @returns a callable `ContractInstance` with the specified parameters. */
-  contract  = deploymentContractAPI(this)
+  contract  = defineDeploymentContractAPI(this)
 
   /** Specify multiple contracts.
     * @returns a callable collection of `ContractInstance`s with the specified parameters. */
-  contracts = deploymentMultiContractAPI(this)
+  contracts = defineDeploymentContractAPI(this)
 
   /** Implemented by Deployer subclass in @fadroma/deploy
     * to allow saving deployment data to the DeployStore. */

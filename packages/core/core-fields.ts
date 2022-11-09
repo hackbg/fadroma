@@ -1,6 +1,8 @@
 import { Task } from '@hackbg/komandi'
 import { ClientConsole, ClientError } from './core-events'
 
+export type Maybe<T> = T|undefined
+
 export function getMaxLength (strings: string[]): number {
   return Math.max(...strings.map(string=>string.length))
 }
@@ -141,7 +143,7 @@ export function rebind (target: object, source: object): typeof target {
   // if target is a function make its name writable
   if ('name' in source) Object.defineProperty(target, 'name', { writable: true })
   // copy properties
-  for (let key in source) Object.assign(target, { [key]: source[key] })
+  for (let key in source) Object.assign(target, { [key]: (source as any)[key] })
   // copy prototype
   Object.setPrototypeOf(target, Object.getPrototypeOf(source))
   return target

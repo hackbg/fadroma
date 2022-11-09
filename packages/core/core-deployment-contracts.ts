@@ -1,17 +1,18 @@
 import type { Name } from './core-labels'
-import type { Contract } from './core-contract'
+import type { AnyContract } from './core-contract'
 import type { Deployment } from './core-deployment'
 import type { Client } from './core-client'
+import { Contract } from './core-contract'
 import { ClientError as Error } from './core-events'
 
 export type DefineMultiContractArray =
-  (contracts: Contract<Client>[]) => Promise<Client[]>
+  (contracts: AnyContract[]) => Promise<Client[]>
 
 export type DefineMultiContractRecord =
-  (contracts: Record<Name, Contract<Client>>) => Promise<Record<Name, Client>>
+  (contracts: Record<Name, AnyContract>) => Promise<Record<Name, Client>>
 
 export type MatchPredicate =
-  (meta: Partial<Contract<Client>>) => boolean|undefined
+  (meta: Partial<AnyContract>) => boolean|undefined
 
 export function defineDeploymentContractsAPI <D extends Deployment> (
   self: D
@@ -33,12 +34,12 @@ export function defineDeploymentContractsAPI <D extends Deployment> (
 /** Methods for managing groups of contracts in a `Deployment` */
 export interface DeployManyContractsAPI {
   /** Add multiple contracts to this deployment. */
-  set (contracts: Array<Client|Contract<Client>>): this
-  set (contracts: Record<string, Client|Contract<Client>>): this
+  set (contracts: Array<Client|AnyContract>): this
+  set (contracts: Record<string, Client|AnyContract>): this
   /** Compile multiple contracts. */
-  build (contracts: (string|Contract<Client>)[]): Promise<Contract<Client>[]>
+  build (contracts: (string|AnyContract)[]): Promise<AnyContract[]>
   /** Upload multiple contracts. */
-  upload (contracts: Contract<Client>[]): Promise<Contract<Client>[]>
+  upload (contracts: AnyContract[]): Promise<AnyContract[]>
 }
 
 export const defineDeployManyContractsAPI = (d: Deployment) => ({
@@ -51,14 +52,14 @@ export const defineDeployManyContractsAPI = (d: Deployment) => ({
   },
 
   build: async function buildMany (
-    contracts: (string|Contract<Client>)[]
-  ): Promise<Contract<Client>[]> {
+    contracts: (string|AnyContract)[]
+  ): Promise<AnyContract[]> {
     return this.task(`build ${contracts.length} contracts`, async () => {
       if (!this.builder) throw new Error.NoBuilder()
       if (contracts.length === 0) return Promise.resolve([])
       contracts = contracts.map(contract=>{
         if (typeof contract === 'string') {
-          return this.contract({ crate: contract }) as Contract<Client>
+          return this.contract({ crate: contract }) as AnyContract
         } else {
           return contract
         }
@@ -66,19 +67,19 @@ export const defineDeployManyContractsAPI = (d: Deployment) => ({
       const count = (contracts.length > 1)
         ? `${contracts.length} contract: `
         : `${contracts.length} contracts:`
-      const sources = (contracts as Contract<Client>[])
+      const sources = (contracts as AnyContract[])
         .map(contract=>`${contract.crate}@${contract.revision}`)
         .join(', ')
       return this.task(`build ${count} ${sources}`, () => {
         if (!this.builder) throw new Error.NoBuilder()
-        return this.builder.buildMany(contracts as Contract<Client>[])
+        return this.builder.buildMany(contracts as AnyContract[])
       })
     })
   },
 
   upload: async function uploadMany (
-    contracts: Contract<Client>[]
-  ): Promise<Contract<Client>[]> {
+    contracts: AnyContract[]
+  ): Promise<AnyContract[]> {
     return this.task(`upload ${contracts.length} contracts`, async () => {
       if (!this.uploader) throw new Error.NoUploader()
       if (contracts.length === 0) return Promise.resolve([])
@@ -98,7 +99,7 @@ export const defineDeployManyContractsAPI = (d: Deployment) => ({
 
 })
 
-export class MultiContractSlot<C extends Client> extends ContractTemplate {
+export class MultiContractSlot<C extends Client> extends Contract<C> {
 
   log = new ClientConsole('Fadroma.Contract')
   /** Prefix of the instance.
@@ -129,11 +130,11 @@ export class MultiContractSlot<C extends Client> extends ContractTemplate {
   /** One-shot deployment task. */
   get deployed (): Promise<Record<Name, C>> {
     const clients: Record<Name, C> = {}
-    if (!this.inits) throw new ClientError.NoInitMessage()
+    if (!this.inits) throw new Error.NoInitMessage()
     return into(this.inits!).then(async inits=>{
       // Collect separately the contracts that already exist
       for (const [name, args] of Object.entries(inits)) {
-        const contract = new ContractSlot(this as ContractTemplate).define({ name })
+        const contract = new Contract(this as Contract<C>).define({ name })
         const client = contract.getClientOrNull()
         if (client) {
           this.log.foundDeployedContract(client.address!, name)
@@ -166,7 +167,7 @@ export class MultiContractSlot<C extends Client> extends ContractTemplate {
       // upload then instantiate (upload may be a no-op if cached)
       const template = await this.uploaded
       // at this point we should have a code id
-      if (!this.codeId) throw new ClientError.NoInitCodeId(name)
+      if (!this.codeId) throw new Error.NoInitCodeId(name)
       // prepare each instance
       for (const [name, instance] of Object.entries(inits)) {
         // if operating in a Deployment, add prefix to each name (should be passed unprefixed)
@@ -179,7 +180,7 @@ export class MultiContractSlot<C extends Client> extends ContractTemplate {
         const responses = await agent.instantiateMany(inits)
         // get a Contract object representing each
         const contracts = Object.values(responses).map(response=>
-          new ContractSlot(new ContractTemplate(this)).define(response))
+          new Contract(new Contract<C>(this)).define(response))
         // get a Client from each Contract
         const clients   = Object.fromEntries(contracts.map(contract=>
           [contract.name, contract.getClientSync()]))
@@ -196,16 +197,16 @@ export class MultiContractSlot<C extends Client> extends ContractTemplate {
 
   /** Get all contracts that match the specified predicate. */
   get (match: MatchPredicate|undefined = this.match): Promise<Record<Name, C>> {
-    if (!match) throw new ClientError.NoPredicate()
+    if (!match) throw new Error.NoPredicate()
     const info = match.name
       ? `get all contracts matching predicate: ${match.name}`
       : `get all contracts matching specified predicate`
     return this.task(info, () => {
-      if (!this.context) throw new ClientError.NoDeployment()
+      if (!this.context) throw new Error.NoDeployment()
       const clients: Record<Name, C> = {}
       for (const info of Object.values(this.context!.state)) {
         if (!match(info as Partial<ContractInstance>)) continue
-        clients[info.name!] = new ContractSlot(new ContractTemplate(this))
+        clients[info.name!] = new Contract(new Contract<C>(this))
           .define(info).getClientSync() as C
       }
       return Promise.resolve(clients)

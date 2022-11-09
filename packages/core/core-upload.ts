@@ -2,20 +2,20 @@ import { Client } from './core-client'
 import { ClientError as Error } from './core-events'
 import { fetchCodeHash, getSourceSpecifier } from './core-code'
 import { build } from './core-build'
-import { defineTask } from './core-fields'
+import { defineTask, Maybe } from './core-fields'
 import type { Agent } from './core-agent'
 import type { Overridable } from './core-fields'
 import type { ChainId } from './core-chain'
 import type { ClientClass } from './core-client'
 import type { Address, TxHash } from './core-tx'
 import type { Hashed, CodeHash, CodeId } from './core-code'
-import type { Uploadable, Uploaded } from './core-contract'
+import type { Buildable, Uploadable, Uploaded } from './core-contract'
 
 /** Standalone upload function. */
 export async function upload (
-  source:   Uploadable & Partial<Uploaded>,
-  uploader: Uploader|undefined   = source.uploader,
-  agent:    Agent|null|undefined = uploader?.agent
+  source:   Maybe<Buildable> & Uploadable & Maybe<Uploaded>,
+  uploader: Maybe<Uploader>   = source.uploader,
+  agent:    Maybe<Agent>|null = uploader?.agent
 ): Promise<Uploaded> {
 
   // If the object already contains chain ID and code ID, that means it's uploaded
