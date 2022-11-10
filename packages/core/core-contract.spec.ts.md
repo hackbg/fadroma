@@ -59,7 +59,7 @@ with a mocked out `instantiate` method for simplicity:
 import { Chain } from '@fadroma/core'
 const chain = new Chain('test')
 const agent = await chain.getAgent()
-agent.instantiate = () => ({ address: `the address of instance #${++index}` })
+agent.instantiate = () => ({ address: `(the address of instance #${++index})` })
 let index = 0
 ```
 
@@ -77,9 +77,9 @@ deployed contract.
 
 ```typescript
 import { Client } from '@fadroma/core'
-const c1 = await aContract('name1', { parameter: 'value' })
-assert.ok(c1 instanceof Client)
-assert.equal(c1.address, 'the address of instance #1')
+const aClient = await aContract('name1', { parameter: 'value' })
+assert.ok(aClient instanceof Client)
+assert.equal(aClient.address, '(the address of instance #1)')
 ```
 
 That's as simple as it gets!
@@ -95,8 +95,8 @@ The original `Contract` object from which the contract
 was deployed can be found on the optional `meta` property of the `Client`.
 
 ```typescript
-assert.ok(c1.meta instanceof Contract)
-assert.equal(c1.meta.deployedBy, agent.address)
+assert.ok(aClient.meta instanceof Contract)
+assert.equal(aClient.meta.deployedBy, agent.address)
 ```
 
 ### `client.agent`
@@ -110,8 +110,8 @@ with it from another one as part of the same procedure, you can set `agent`
 to another instance of `Agent`:
 
 ```typescript
-assert.equal(c1.agent, agent)
-c1.agent = await chain.getAgent()
+assert.equal(aClient.agent, agent)
+aClient.agent = await chain.getAgent()
 ```
 
 ## Retrieving existing contracts from the `Deployment`
@@ -142,6 +142,7 @@ Deployments add their names to the labels of deployed contracts:
 ```typescript
 const oneInstance = await theContract('name', { parameter: "value" })
 assert.equal(oneInstance.meta.label, 'testing/name')
+assert.equal(oneInstance.meta.address, '(the address of instance #2)')
 ```
 
 And they also keep track of the deployed contracts, so that later you
@@ -160,12 +161,13 @@ What if you want to deploy another contract of the same kind?
 That's easy, just provide a different name, as in the following example;
 
 ```typescript
-const c3 = await theContract({
-  name:    'name2',
+const anotherInstance = await theContract({
+  name:    'another-name',
   initMsg: { parameter: 'different-value' },
   agent:   agent
 })
-assert.equal(c3.address, 'the address of instance #2')
+assert.equal(anotherInstance.address,    '(the address of instance #3)')
+assert.equal(anotherInstance.meta.label, 'testing/another-name')
 ```
 
 The above also demonstrates the alternate form of the deploy function.
