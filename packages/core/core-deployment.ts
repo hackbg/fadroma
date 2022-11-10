@@ -4,12 +4,15 @@ import { hide }                         from './core-fields'
 import { ClientError, ClientConsole }   from './core-events'
 import { defineDeploymentContractAPI }  from './core-deployment-contract'
 import { defineDeploymentContractsAPI } from './core-deployment-contracts'
+import type { AnyContract }     from './core-contract'
 import type { Class }           from './core-fields'
 import type { Agent }           from './core-agent'
 import type { Chain }           from './core-chain'
 import type { Builder }         from './core-build'
 import type { Uploader }        from './core-upload'
-import type { DeploymentState } from './core-deploy-store'
+
+/** The collection of contracts that constitute a deployment. */
+export type DeploymentState = Record<string, Partial<AnyContract>>
 
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.

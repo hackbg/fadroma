@@ -1,13 +1,12 @@
-import type { Agent, Address } from './core-connect'
-import { assertAddress } from './core-connect'
-import type { ContractSource } from './core-build'
-import { ContractTemplate } from './core-upload'
-import { ContractInstance } from './core-deploy'
+import type { Agent } from './core-agent'
+import type { Address } from './core-tx'
+import type { Buildable, AnyContract } from './core-contract'
+import { assertAddress } from './core-tx'
 import { validated } from './core-fields'
 import { ClientError as Error } from './core-events'
 
 /** @returns a string in the format `crate[@ref][+flag][+flag]...` */
-export function getSourceSpecifier <C extends ContractSource> (meta: C): string {
+export function getSourceSpecifier (meta: Buildable): string {
   const { crate, revision, features } = meta
   let result = crate ?? ''
   if (revision !== 'HEAD') result = `${result}@${revision}`
@@ -28,7 +27,7 @@ export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): Cod
 /** Fetch the code hash by id and by address, and compare them.
   * @returns the passed contract object but with codeHash set
   * @throws if unable to establish the code hash */
-export async function fetchCodeHash <C extends ContractTemplate & { address?: Address }> (
+export async function fetchCodeHash <C extends AnyContract & { address?: Address }> (
   meta: C, agent?: Agent|null|undefined, expected?: CodeHash,
 ): Promise<CodeHash> {
   if (!agent) throw new Error.NoAgent()

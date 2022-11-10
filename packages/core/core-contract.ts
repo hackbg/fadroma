@@ -14,10 +14,16 @@ import { assertAddress } from './core-tx'
 import { rebind, override } from './core-fields'
 import { Client } from './core-client'
 
+export type DeployContract<C extends Client> =
+  Contract<C> & (()=> Task<Contract<C>, C>)
+
+export type DeployAnyContract =
+  DeployContract<Client>
+
 /** Create a callable object based on Contract. */
 export function defineContract <C extends Client> (
   options: Partial<Contract<C>> = {}
-): Contract<C> & (()=> Task<Contract<C>, C>) {
+): DeployContract<C> {
 
   let fn = function getOrDeployInstance (
     ...args: [Name, Message]|[Partial<Contract<C>>]
@@ -29,7 +35,7 @@ export function defineContract <C extends Client> (
     } else if (typeof args[0] === 'object') {
       options = args[0]
     }
-    const deployment = (fn as AnyContract).context
+    const deployment = (fn as unknown as Contract<C>).context
     if (deployment) {
       if (deployment.contract.has(options?.name)) {
         return deployment.contract.get(options?.name)

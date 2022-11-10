@@ -7,7 +7,8 @@ import { defineDefault } from './core-fields'
 /** This function attaches a contract representation object to a deployment.
   * This sets the contract prefix to the deployment name, and provides defaults. */
 export function attachToDeployment <
-  C extends Client, T extends { context?: Deployment, log: { warn: Function } }
+  C extends Client,
+  T extends { context?: Deployment, log: { warn: Function } }
 > (
   self: T, context: Deployment
 ): T {
@@ -38,3 +39,4 @@ export function attachToDeployment <
   }
 
 }
+

@@ -166,3 +166,31 @@ export function defineDefault <T extends object, D extends object> (
     }
   })
 }
+
+function map <T, U> (data: Array<T>, fn: (x:T)=>U): Array<U>
+function map <T, U> (data: Record<string, T>, fn: (x:T)=>U): Record<string, U>
+function map (data: unknown, fn: (x:unknown)=>unknown): Array<unknown>|Record<string, unknown> {
+  const result = (data instanceof Array) ? [] : {}
+  for (const [key, val] of data as any) (result as any)[key] = fn(data)
+  return result
+}
+
+export { map }
+
+function mapAsync <T, U> (data: Array<T>, fn: (x:T)=>U): Promise<Array<U>>
+function mapAsync <T, U> (data: Record<string, T>, fn: (x:T)=>U): Promise<Record<string, U>>
+async function mapAsync <V extends Array<unknown>|Record<string, unknown>> (
+  data: unknown, fn: (x:unknown)=>unknown
+): Promise<V> {
+  const result = (data instanceof Array) ? [] : {}
+  const values = []
+  for (const [key, val] of data as any) {
+    (result as any)[key] = undefined
+    values.push(val.then((resolved: unknown)=>(result as any)[key] = resolved))
+  }
+  return await Promise.all(values).then(()=>result) as V
+}
+
+export { mapAsync }
+
+export const call = (x: Function, ...args: unknown[]) => x(...args)

@@ -14,12 +14,12 @@ import { defineContract } from '@fadroma/core'
 const emptyContract = defineContract()
 ```
 
-This gives you an instance of the `ContractInstance` class,
+This gives you an instance of the `Contract` class,
 which can hold info about a specific deployed contract.
 
 ```typescript
-import { ContractInstance } from '@fadroma/core'
-assert(emptyContract instanceof ContractInstance)
+import { Contract } from '@fadroma/core'
+assert(emptyContract instanceof Contract)
 ```
 
 ## Magic patterns
@@ -27,14 +27,14 @@ assert(emptyContract instanceof ContractInstance)
 Before we proceed to deploying a contract, let's take a minute to talk about the two
 "magic patterns" powering Fadroma Ops. Those are **callable objects** and **lazy evaluation**.
 
-Thanks to them, you can get started quickly by **providing a minimum amount of information**,
-and with the least amount of syntactic overhead ("boilerplate") - but at the same time having
-quick **access to the maximum amount of information** that's available at any particular stage
-of your scripted workflow, as well as to "patch points" for customizing Fadroma's behavior.
-
-Simply put, they keep the details out of your way - yet still at your fingertips when you need
-them. You don't need to know how exactly they work, but it's good to be aware that they are there,
-since they bend the usual rules *a tiny bit* in the interest of providing a clean and ergonomic API.
+> Thanks to them, you can get started quickly by **providing a minimum amount of information**,
+> and with the least amount of syntactic overhead ("boilerplate") - but at the same time having
+> quick **access to the maximum amount of information** that's available at any particular stage
+> of your scripted workflow, as well as to "patch points" for customizing Fadroma's behavior.
+>
+> In other words, they keep the details out of your way - yet still at your fingertips when you need
+> them. You don't need to know how exactly they work, but it's good to be aware that they are there,
+> since they bend the usual rules *a tiny bit* in the interest of providing a clean and ergonomic API.
 
 ### Callable objects
 
@@ -65,7 +65,7 @@ when you first try to resolve it.
 assert(emptyContract().then instanceof Function)
 ```
 
-The `Task` also has a `context` property which points back to the `ContractInstance`
+The `Task` also has a `context` property which points back to the `Contract`
 from which it was created:
 
 ```typescript
@@ -77,7 +77,7 @@ assert.equal(emptyContract().context, emptyContract)
 Now that we've gotten the magic out of the way, let's start over - this time
 providing all the necessary data for deploying a contract.
 
-Of course, trying to deploy an empty `ContractInstance` will fail,
+Of course, trying to deploy an empty `Contract` will fail,
 because you still haven't specified which contract this is, or which chain
 to deploy it to, or from what address to send the init transaction.
 
@@ -123,11 +123,11 @@ assert.equal(c1.codeId, myContract.codeId)
 
 ### `client.meta`
 
-The original `ContractInstance` object from which the contract
+The original `Contract` object from which the contract
 was deployed can be found on the optional `meta` property of the `Client`.
 
 ```typescript
-assert.ok(c1.meta instanceof ContractInstance)
+assert.ok(c1.meta instanceof Contract)
 assert.equal(c1.meta.deployedBy, agent.address)
 ```
 

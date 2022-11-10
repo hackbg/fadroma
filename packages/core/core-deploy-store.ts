@@ -1,7 +1,7 @@
 import type { Class } from './core-fields'
 import type { Client } from './core-client'
 import type { AnyContract } from './core-contract'
-import type { Deployment } from './core-deployment'
+import type { Deployment, DeploymentState } from './core-deployment'
 
 /** Transitional support for several of these:
   *  - YAML1 is how the latest @fadroma/deploy stores data
@@ -45,5 +45,3 @@ export abstract class DeployStore {
 
   defaults: Partial<Deployment> = {}
 }
-
-export type DeploymentState = Record<string, Partial<AnyContract>>

@@ -18,15 +18,15 @@ export function defineDeploymentContractAPI <D extends Deployment> (
   )
 
   function defineContractInDeployment <C extends Client> (
-    arg: string|Partial<Contract<C>> = {}
+    this: D, arg: string|Partial<Contract<C>> = {}
   ): Contract<C> {
     const name = (typeof arg === 'string') ? arg : arg.name
     const opts = (typeof arg === 'string') ? { name } : arg
     opts.agent ??= this.agent
     if (name && this.contract.has(name)) {
-      return this.contract.get(name)
+      return this.contract.get(name)!
     } else {
-      return this.contract.set(name, defineContract(opts))
+      return this.contract.set(name!, defineContract(opts))
     }
   }
 

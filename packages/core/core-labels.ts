@@ -11,6 +11,8 @@ import { ClientError } from './core-events'
   * Prefix and suffix are set automatically to work around the label uniqueness constraint. */
 export type Name = string
 
+export type Named<T> = Record<Name, T>
+
 /** A contract name with optional prefix and suffix, implementing namespacing
   * for append-only platforms where labels have to be globally unique. */
 export interface StructuredLabel {

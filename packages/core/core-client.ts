@@ -1,5 +1,5 @@
 import type { Agent } from './core-agent'
-import type { Class } from './core-fields'
+import type { Class, Maybe } from './core-fields'
 import type { Address, Message, ExecOpts } from './core-tx'
 import type { CodeHash } from './core-code'
 import type { Contract } from './core-contract'
@@ -12,12 +12,19 @@ import { ClientConsole as Console, ClientError as Error } from './core-events'
 /** A constructor for a Client subclass. */
 export interface ClientClass<C extends Client> extends Class<C, ConstructorParameters<typeof Client>>{
   new (...args: ConstructorParameters<typeof Client>): C
+  fromContract (contract: Contract<C>, agent?: Agent): C
 }
 
 /** Client: interface to the API of a particular contract instance.
   * Has an `address` on a specific `chain`, usually also an `agent`.
   * Subclass this to add the contract's methods. */
 export class Client {
+
+  static fromContract <C extends Client> (
+    contract: Contract<C>, agent: Maybe<Agent> = contract.agent
+  ): C {
+    return new this(agent, contract.address, contract.codeHash, contract) as C
+  }
 
   constructor (
     /** Agent that will interact with the contract. */
