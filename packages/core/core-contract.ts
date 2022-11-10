@@ -11,8 +11,10 @@ import type { Deployment } from './core-deployment'
 
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
-import { rebind, override } from './core-fields'
+import { rebind, override, Maybe, defineTask, into } from './core-fields'
 import { Client } from './core-client'
+import { ClientError as Error } from './core-events'
+import { writeLabel } from './core-labels'
 
 export type DeployContract<C extends Client> =
   Contract<C> & (()=> Task<Contract<C>, C>)
@@ -22,28 +24,38 @@ export type DeployAnyContract =
 
 /** Create a callable object based on Contract. */
 export function defineContract <C extends Client> (
-  options: Partial<Contract<C>> = {}
+  options:   Partial<Contract<C>> = {},
 ): DeployContract<C> {
 
   let fn = function getOrDeployInstance (
     ...args: [Name, Message]|[Partial<Contract<C>>]
   ): Task<Contract<C>, C> {
-    let options
+
+    // Parse options
+    let options: Maybe<object> = undefined
     if (typeof args[0] === 'string') {
       const [name, initMsg] = args
       options = { name, initMsg }
     } else if (typeof args[0] === 'object') {
       options = args[0]
     }
+
+    // The contract object that we'll be using
+    const contract = options
+      // If options were passed, define a new Contract
+      ? defineContract({ ...fn, ...options! as object })
+      // If no options were passed, use this object
+      : fn
+
     const deployment = (fn as unknown as Contract<C>).context
     if (deployment) {
-      if (deployment.contract.has(options?.name)) {
-        return deployment.contract.get(options?.name)
+      if (deployment.contract.has(contract.name)) {
+        return deployment.contract.get(contract.name)!
       } else {
-        return deployment.contract.set(options?.name, defineContract({...fn, ...options}).deployed)
+        return deployment.contract.set(contract.name, contract.deployed)
       }
     } else {
-      return defineContract({...fn, ...options}).deployed
+      return contract.deployed
     }
   }
 
@@ -131,6 +143,74 @@ export class Contract<C extends Client> {
     // FIXME: not all parameters can be overridden at any point in time.
     // reflect this here to ensure proper flow of data along contract lifecycle
     return override(this, options as object) as T
+  }
+
+  get compiled (): Promise<this> {
+    if (this.artifact) return Promise.resolve(this)
+    return this.build()
+  }
+
+  /** Compile the source using the selected builder.
+    * @returns this */
+  build (builder?: Builder): Task<this, this> {
+    return this.task(`compile ${this.crate ?? 'contract'}`, async () => {
+      builder ??= assertBuilder(this)
+      const result = await builder!.build(this as Buildable)
+      this.define(result as Partial<this>)
+      return this
+    })
+  }
+
+  /** One-shot deployment task. */
+  get uploaded (): Task<this, this> {
+    if (this.codeId) return Promise.resolve(this)
+    const uploading = this.upload()
+    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
+    return uploading
+  }
+
+  /** Upload compiled source code to the selected chain.
+    * @returns task performing the upload */
+  upload (uploader?: Uploader): Task<this, this> {
+    return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
+      await this.compiled
+      const result = await upload(this as Uploadable, uploader, uploader?.agent)
+      return this.define(result as Partial<this>)
+    })
+  }
+
+  /** One-shot deployment task. */
+  get deployed (): Task<Contract<C>, C> {
+    if (this.address) {
+      this.log?.foundDeployedContract(this.address, this.name)
+      return Promise.resolve((this.client ?? Client).fromContract(this) as C)
+    }
+    const deploying = this.deploy()
+    Object.defineProperty(this, 'deployed', { get () { return deploying } })
+    return deploying
+  }
+
+  /** Deploy the contract, or retrieve it if it's already deployed.
+    * @returns promise of instance of `this.client`  */
+  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<Contract<C>, C> {
+    return defineTask(`deploy ${this.name ?? 'contract'}`, deployContract, this)
+    const self = this
+    async function deployContract (this: Contract<C>) {
+      if (!this.agent)   throw new Error.NoAgent(this.name)
+      if (!this.name)    throw new Error.NoName(this.name)
+      this.label = writeLabel(this)
+      if (!this.label)   throw new Error.NoInitLabel(this.name)
+      if (!this.initMsg) throw new Error.NoInitMessage(this.name)
+      await this.uploaded
+      if (!this.codeId)  throw new Error.NoInitCodeId(this.name)
+      this.initMsg = await into(initMsg) as Message
+      this.log?.beforeDeploy(this, this.label!)
+      const contract = await this.agent!.instantiate(this)
+      this.define(contract as Partial<this>)
+      this.log?.afterDeploy(this as Partial<Contract<C>>)
+      if (this.context) this.context.contract.add(this.name!, contract)
+      return (this.client ?? Client).fromContract(this)
+    }
   }
 }
 

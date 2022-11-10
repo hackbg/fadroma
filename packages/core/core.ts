@@ -11,12 +11,22 @@ Object.assign(Chain, {
 export * from './core-events'
 export * from './core-fields'
 export * from './core-math'
-export * from './core-build'
+
+export * from './core-chain'
+export * from './core-agent'
+export * from './core-bundle'
+
+export * from './core-tx'
 export * from './core-code'
-export * from './core-upload'
 export * from './core-labels'
+
+export * from './core-build'
+export * from './core-upload'
+
+export * from './core-client'
 export * from './core-contract'
 export * from './core-deployment'
 export * from './core-deploy-store'
+
 export { Task, CommandContext } from '@hackbg/komandi'
 export { bold, colors } from '@hackbg/konzola'

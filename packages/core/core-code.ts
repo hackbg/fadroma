@@ -1,6 +1,6 @@
 import type { Agent } from './core-agent'
 import type { Address } from './core-tx'
-import type { Buildable, AnyContract } from './core-contract'
+import type { Buildable, Built, Uploaded, Deployed, AnyContract } from './core-contract'
 import { assertAddress } from './core-tx'
 import { validated } from './core-fields'
 import { ClientError as Error } from './core-events'
@@ -27,8 +27,9 @@ export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): Cod
 /** Fetch the code hash by id and by address, and compare them.
   * @returns the passed contract object but with codeHash set
   * @throws if unable to establish the code hash */
-export async function fetchCodeHash <C extends AnyContract & { address?: Address }> (
-  meta: C, agent?: Agent|null|undefined, expected?: CodeHash,
+export async function fetchCodeHash (
+  meta:   Built|Uploaded|Deployed,
+  agent?: Agent|null|undefined, expected?: CodeHash,
 ): Promise<CodeHash> {
   if (!agent) throw new Error.NoAgent()
   if (!meta.address && !meta.codeId && !meta.codeHash) {

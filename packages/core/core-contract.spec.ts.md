@@ -71,6 +71,7 @@ from which it was created:
 ```typescript
 assert.equal(emptyContract().context, emptyContract)
 ```
+console.log(emptyContract())
 
 ## Deploying a contract
 
@@ -93,33 +94,32 @@ import { Chain } from '@fadroma/core'
 const chain = new Chain('test')
 const agent = await chain.getAgent()
 agent.instantiate = () => ({ address: `the address of instance #${++index}` })
-let index = 1
+let index = 0
 ```
 
 Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.md):
 
 ```typescript
-const myContract = defineContract({ codeId: 1, agent })
+const aContract = defineContract({ codeId: 1, agent })
 ```
 
 To deploy it, just call it, passing a **name** and a **init message**.
+This will return a `Client` instance, which you use to talk to the
+deployed contract.
 
 ```typescript
-const c1 = await myContract('name1', { parameter: 'value' })
+import { Client } from '@fadroma/core'
+const c1 = await aContract('name1', { parameter: 'value' })
+assert.ok(c1 instanceof Client)
+assert.equal(c1.address, 'the address of instance #1')
 ```
 
 That's as simple as it gets!
 
-## The `Client` class
+## Interacting with contracts using the `Client`
 
 The result of deploying a contract is a `Client` instance -
 an object containing the info needed to talk to the contract.
-
-```typescript
-assert.ok(c1 instanceof Client)
-assert.equal(c1.address, 'the address of instance #1')
-assert.equal(c1.codeId, myContract.codeId)
-```
 
 ### `client.meta`
 
@@ -146,20 +146,44 @@ assert.equal(c1.agent, agent)
 c1.agent = await chain.getAgent()
 ```
 
-## Retrieving existing contracts
+## Retrieving existing contracts from the `Deployment`
 
-Since chains are append-only, and contract instances are unique, a deployed contract
-is permanent - after you deploy it, then it stays up forever. In other words,
-**deployment is idempotent**, so calling `myContract` with the same name
-will create a new `Client` that points to the came contract instance as the
-previous one:
+> You can't step in the same river twice *-Parmenides*
+
+Since chains are append-only, and contract labels are unique,
+it's not possible to deploy a contract more than once, or
+deploy another contract with the same label as an existing one.
+
+Enter the `Deployment` object, which keeps track of the contracts that you deploy.
+You can get a `Deployment` instance by calling `defineDeployment`:
 
 ```typescript
-const c2 = await myContract('name1')
-
-assert.notEqual(c1, c2)
-assert.deepEqual(c1, c2)
+import { Deployment, defineDeployment } from '@fadroma/core'
+const deployment = await defineDeployment({ agent, name: 'prod' })
 ```
+
+Then, you can use `deployment.contract` in place of `defineContract`:
+
+```typescript
+const theContract = deployment.contract({ codeId: 1 })
+```
+
+Deployments add their names to the labels of deployed contracts:
+
+```typescript
+const oneInstance = await theContract('name', { parameter: "value" })
+assert.equal(oneInstance.label, 'production/name')
+```
+
+And they also keep track of the deployed contracts, so that later you
+can call up the same contract by name:
+
+```typescript
+const sameInstance = await theContract('name')
+assert.deepEqual(oneInstance, sameInstance)
+```
+
+This creates a new `Client` pointing to the same contract.
 
 ## Deploying more contracts; overriding defaults
 
@@ -167,7 +191,7 @@ What if you want to deploy another contract of the same kind?
 That's easy, just provide a different name, as in the following example;
 
 ```typescript
-const c3 = await myContract({
+const c3 = await theContract({
   name:    'name2',
   initMsg: { parameter: 'different-value' },
   agent:   await chain.getAgent()
@@ -183,13 +207,13 @@ properties (e.g. deploy as a different agent).
 ## Deploying multiple instances
 
 To deploy multiple contract instances from the same code,
-you can use `myContract.many`. Where possible, this will deploy
+you can use `theContract.many`. Where possible, this will deploy
 all contracts as a single transaction.
 
-You can pass either an array or an object to `myContract.many`:
+You can pass either an array or an object to `theContract.many`:
 
 ```typescript
-const [ c4, c5 ] = await myContract.many([
+const [ c4, c5 ] = await theContract.many([
   [ 'name3', { parameter: 'value1' } ],
   { name: 'name4', initMsg: { parameter: 'value2' } },
 ])
@@ -199,7 +223,7 @@ Note that the keys of the object don't correspond to the names of the contracts,
 so you still need to provide the names explicitly:
 
 ```typescript
-const { c6, c7 } = await myContract.many({
+const { c6, c7 } = await theContract.many({
   c6: ['name3', { parameter: 'value1' }],
   c7: { name: 'name4', initMsg: { parameter: 'value2' } },
 })
@@ -220,8 +244,8 @@ class MyClient extends Client {
   }
 }
 
-const myOtherContract = defineContract({ codeId: 2, client: MyClient })
-const d1 = await myOtherContract('my-other-contract', {})
+const theOtherContract = defineContract({ codeId: 2, client: MyClient })
+const d1 = await theOtherContract('my-other-contract', {})
 assert.ok(d1 instanceof MyClient)
 assert.ok(await d1.myMethod())
 assert.ok(await d1.myQuery())
