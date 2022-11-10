@@ -24,7 +24,7 @@ export type DeployAnyContract =
 
 /** Create a callable object based on Contract. */
 export function defineContract <C extends Client> (
-  options:   Partial<Contract<C>> = {},
+  baseOptions: Partial<Contract<C>> = {},
 ): DeployContract<C> {
 
   let fn = function getOrDeployInstance (
@@ -32,12 +32,17 @@ export function defineContract <C extends Client> (
   ): Task<Contract<C>, C> {
 
     // Parse options
-    let options: Maybe<object> = undefined
+    let options = { ...baseOptions }
     if (typeof args[0] === 'string') {
       const [name, initMsg] = args
-      options = { name, initMsg }
+      options = { ...options, name, initMsg }
     } else if (typeof args[0] === 'object') {
-      options = args[0]
+      options = { ...options, ...args[0] }
+    }
+
+    // If there is a deployment, look for the contract in it
+    if (options.context && options.name && options.context.contract.has(options.name)) {
+      return (options.client ?? Client).fromContract(new Contract(options.context.contract.get(options.name)))
     }
 
     // The contract object that we'll be using
@@ -52,7 +57,7 @@ export function defineContract <C extends Client> (
 
   fn = fn.bind(fn)
 
-  return rebind(fn, new Contract(options)) as Contract<C> & (()=> Task<Contract<C>, C>)
+  return rebind(fn, new Contract(baseOptions)) as Contract<C> & (()=> Task<Contract<C>, C>)
 
 }
 

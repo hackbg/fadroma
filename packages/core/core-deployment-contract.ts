@@ -27,8 +27,8 @@ export function defineDeploymentContractAPI <D extends Deployment> (
     if (name && this.contract.has(name)) {
       return this.contract.get(name)!.context! as Contract<C>
     } else {
-      const contract = defineContract(opts).define({ context: this })
-      this.contract.set(name!, contract)
+      const contract = defineContract({ ...opts, prefix: this.name, context: this })
+      this.contract.set(contract.name!, contract)
       return contract
     }
   }
@@ -64,7 +64,7 @@ export const defineDeployContractAPI = (d: Deployment): DeployContractAPI => ({
   set <C extends Client> (name: string, contract: Contract<C>) {
     contract.context = d
     attachToDeployment(contract, d)
-    d.state[name] = contract.deployed
+    d.state[name] = contract
     d.save()
     return contract
   },

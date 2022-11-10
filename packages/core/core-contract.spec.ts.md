@@ -135,7 +135,6 @@ Then, you can use `deployment.contract` in place of `defineContract`:
 
 ```typescript
 const theContract = deployment.contract({ codeId: 1 })
-console.log({theContract})
 ```
 
 Deployments add their names to the labels of deployed contracts:
@@ -150,7 +149,7 @@ can call up the same contract by name:
 
 ```typescript
 const sameInstance = await theContract('name')
-assert.deepEqual(oneInstance, sameInstance)
+assert.equal(oneInstance.address, sameInstance.address)
 ```
 
 This creates a new `Client` pointing to the same contract.
@@ -164,7 +163,7 @@ That's easy, just provide a different name, as in the following example;
 const c3 = await theContract({
   name:    'name2',
   initMsg: { parameter: 'different-value' },
-  agent:   await chain.getAgent()
+  agent:   agent
 })
 assert.equal(c3.address, 'the address of instance #2')
 ```
