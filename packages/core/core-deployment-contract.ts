@@ -27,7 +27,9 @@ export function defineDeploymentContractAPI <D extends Deployment> (
     if (name && this.contract.has(name)) {
       return this.contract.get(name)!.context! as Contract<C>
     } else {
-      return this.contract.set(name!, defineContract(opts))
+      const contract = defineContract(opts).define({ context: this })
+      this.contract.set(name!, contract)
+      return contract
     }
   }
 
@@ -41,7 +43,7 @@ export interface DeployContractAPI {
   get <C extends Client> (name: string): Task<Contract<C>, C>|null
   /** Set the Contract corresponding to a given name,
     * attaching it to this deployment. */
-  set <C extends Client> (name: string, data: Contract<C>): Contract<C>
+  set <C extends Client> (name: string, task: Contract<C>): Contract<C>
   /** Set the Contract corresponding to a given name,
     * attaching it to this deployment. Chainable. */
   add <C extends Client> (name: string, data: Contract<C>): this
@@ -59,8 +61,10 @@ export const defineDeployContractAPI = (d: Deployment): DeployContractAPI => ({
     return d.state[name]
   },
 
-  set (name, contract) {
-    d.state[name] = attachToDeployment(contract, d)
+  set <C extends Client> (name: string, contract: Contract<C>) {
+    contract.context = d
+    attachToDeployment(contract, d)
+    d.state[name] = contract.deployed
     d.save()
     return contract
   },

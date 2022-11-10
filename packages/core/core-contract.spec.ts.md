@@ -4,14 +4,19 @@
 import assert from 'node:assert'
 ```
 
-## The entry point of the deploy API
+## The shape of the world
+
+>“Tell me, as you promised!” implored the Master of space-time,
+>hot tears thundering to the earth like mighty comets, “What is the shape of the universe?”
+>“It is somewhat wheel-shaped,” said Aesma, which was a completely wrong answer.
+>*-Abbadon*
 
 To deploy a contract, you begin with describing it.
 You do this by calling the function `defineContract`.
 
 ```typescript
 import { defineContract } from '@fadroma/core'
-const emptyContract = defineContract()
+const nullContract = defineContract()
 ```
 
 This gives you an instance of the `Contract` class,
@@ -19,74 +24,35 @@ which can hold info about a specific deployed contract.
 
 ```typescript
 import { Contract } from '@fadroma/core'
-assert(emptyContract instanceof Contract)
+assert(nullContract instanceof Contract)
 ```
 
-## Magic patterns
-
-Before we proceed to deploying a contract, let's take a minute to talk about the two
-"magic patterns" powering Fadroma Ops. Those are **callable objects** and **lazy evaluation**.
-
-> Thanks to them, you can get started quickly by **providing a minimum amount of information**,
-> and with the least amount of syntactic overhead ("boilerplate") - but at the same time having
-> quick **access to the maximum amount of information** that's available at any particular stage
-> of your scripted workflow, as well as to "patch points" for customizing Fadroma's behavior.
->
-> In other words, they keep the details out of your way - yet still at your fingertips when you need
-> them. You don't need to know how exactly they work, but it's good to be aware that they are there,
-> since they bend the usual rules *a tiny bit* in the interest of providing a clean and ergonomic API.
-
-### Callable objects
-
-Like any object, the one returned by `defineContract` has properties
-describing some entity (in our case, a contract), and it also has
-methods that you can call to access specific functionality.
-
-However, it also includes an extra bit of magic - *the object itself is callable*.
-That's right, the object is also a `Function`!
+The `Contract` instance returned by `defineContract` is modified to be callable:
 
 ```typescript
-import { Task } from '@hackbg/komandi'
-assert(emptyContract() instanceof Task)
+assert(typeof nullContract === 'function')
 ```
 
-### Lazy evaluation
-
-Calling the magic object/function hybrid which represents a contract (in the abstract),
-will return a `Task`, which represents the act of deploying the contract (again in the abstract).
-
-A `Task` works like a `Promise` - you can `await` it (or call its `then` method)
-to resolve it and obtain the info about the deployed contract (such as its address).
-
-However, unlike a `Promise`, a `Task` is **lazily evaluated**: it only begins deploying
-when you first try to resolve it.
+Calling it returns a `Task`. This is a promise-like object which represents 
+the action of deploying the contract:
 
 ```typescript
-assert(emptyContract().then instanceof Function)
+const deployingNullContract = nullContract()
+assert(deployingNullContract.then instanceof Function)
 ```
 
-The `Task` also has a `context` property which points back to the `Contract`
-from which it was created:
+However, unlike a `Promise`, the `Task` is only evaluated when you try to resolve it:
 
 ```typescript
-assert.equal(emptyContract().context, emptyContract)
-```
-console.log(emptyContract())
-
-## Deploying a contract
-
-Now that we've gotten the magic out of the way, let's start over - this time
-providing all the necessary data for deploying a contract.
-
-Of course, trying to deploy an empty `Contract` will fail,
-because you still haven't specified which contract this is, or which chain
-to deploy it to, or from what address to send the init transaction.
-
-```typescript
-assert.rejects(async () => await emptyContract())
+assert.rejects(async () => await deployingNullContract)
 ```
 
-First we'll create test-only instances of `Chain` and `Agent`,
+Of course, the task will fail, because we haven't specified which contract to deploy,
+or to what chain, or under what identity. Let's do that now.
+
+## Some preparation
+
+For the sake of this example, we'll create test-only instances of `Chain` and `Agent`,
 with a mocked out `instantiate` method for simplicity:
 
 ```typescript
@@ -96,6 +62,8 @@ const agent = await chain.getAgent()
 agent.instantiate = () => ({ address: `the address of instance #${++index}` })
 let index = 0
 ```
+
+## Defining and deploying a contract
 
 Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.md):
 
@@ -148,7 +116,8 @@ c1.agent = await chain.getAgent()
 
 ## Retrieving existing contracts from the `Deployment`
 
-> You can't step in the same river twice *-Parmenides*
+> You can't step in the same river twice
+> *-Parmenides*
 
 Since chains are append-only, and contract labels are unique,
 it's not possible to deploy a contract more than once, or
@@ -159,20 +128,21 @@ You can get a `Deployment` instance by calling `defineDeployment`:
 
 ```typescript
 import { Deployment, defineDeployment } from '@fadroma/core'
-const deployment = await defineDeployment({ agent, name: 'prod' })
+const deployment = await defineDeployment({ agent, name: 'testing' })
 ```
 
 Then, you can use `deployment.contract` in place of `defineContract`:
 
 ```typescript
 const theContract = deployment.contract({ codeId: 1 })
+console.log({theContract})
 ```
 
 Deployments add their names to the labels of deployed contracts:
 
 ```typescript
 const oneInstance = await theContract('name', { parameter: "value" })
-assert.equal(oneInstance.label, 'production/name')
+assert.equal(oneInstance.meta.label, 'testing/name')
 ```
 
 And they also keep track of the deployed contracts, so that later you

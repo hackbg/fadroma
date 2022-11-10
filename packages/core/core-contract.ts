@@ -47,16 +47,7 @@ export function defineContract <C extends Client> (
       // If no options were passed, use this object
       : fn
 
-    const deployment = (fn as unknown as Contract<C>).context
-    if (deployment) {
-      if (deployment.contract.has(contract.name)) {
-        return deployment.contract.get(contract.name)!
-      } else {
-        return deployment.contract.set(contract.name, contract.deployed)
-      }
-    } else {
-      return contract.deployed
-    }
+    return contract.deployed
   }
 
   fn = fn.bind(fn)
@@ -194,7 +185,6 @@ export class Contract<C extends Client> {
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<Contract<C>, C> {
     return defineTask(`deploy ${this.name ?? 'contract'}`, deployContract, this)
-    const self = this
     async function deployContract (this: Contract<C>) {
       if (!this.agent)   throw new Error.NoAgent(this.name)
       if (!this.name)    throw new Error.NoName(this.name)
@@ -203,7 +193,7 @@ export class Contract<C extends Client> {
       if (!this.initMsg) throw new Error.NoInitMessage(this.name)
       await this.uploaded
       if (!this.codeId)  throw new Error.NoInitCodeId(this.name)
-      this.initMsg = await into(initMsg) as Message
+      this.initMsg ??= await into(initMsg) as Message
       this.log?.beforeDeploy(this, this.label!)
       const contract = await this.agent!.instantiate(this)
       this.define(contract as Partial<this>)
