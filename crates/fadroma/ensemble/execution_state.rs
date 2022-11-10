@@ -7,9 +7,7 @@ use crate::{
 
 pub struct ExecutionState {
     states: Vec<ExecutionLevel>,
-    next: Option<MessageType>,
-    /// The `this.states` index at which the current reply is being executed.
-    reply_level: Option<usize>
+    next: Option<MessageType>
 }
 
 pub enum MessageType {
@@ -38,6 +36,7 @@ struct SubMsgNode {
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum SubMsgState {
     NotExecuted,
+    ShouldReply,
     Replying,
     Done
 }
@@ -55,8 +54,7 @@ impl ExecutionState {
             next: Some(MessageType::SubMsg {
                 msg: initial,
                 sender
-            }),
-            reply_level: None
+            })
         };
 
         instance
@@ -133,25 +131,12 @@ impl ExecutionState {
     }
 
     fn find_next<F>(&mut self, error: Option<String>, test: F) -> usize
-        where F: Fn(&ReplyOn) -> bool
+       where F: Fn(&ReplyOn) -> bool
     {
         assert!(self.next.is_none());
 
-        if self.states.is_empty() {
-            return 0;
-        }
-
-        let is_reply = self.reply_level.is_some();
+        let start_index = self.states.len() - 1;
         let mut responses_thrown = 0;
-
-        // This handles the case where the "reply" call itself returned an error.
-        if let Some(index) = self.reply_level.take() {
-            if error.is_some() {
-                while self.states.len() - 1 > index {
-                    responses_thrown += self.pop().responses.len();
-                }
-            }
-        }
 
         loop {
             if self.states.is_empty() {
@@ -161,50 +146,6 @@ impl ExecutionState {
             let index = self.states.len() - 1;
 
             match self.states[index].current().state {
-                SubMsgState::Done => {
-                    if error.is_some() {
-                        let reply = self.find_reply(error.clone(), &test);
-                        let state = &mut self.states[index];
-
-                        if let Some((reply_level, reply)) = reply {
-                            state.responses.pop();
-                            responses_thrown += 1;
-
-                            // We have to advance to the next message so we can't break
-                            // here - we do that below. If we don't move to the next messsage,
-                            // the next call to this function will run the same reply again.
-                            self.next = Some(reply);
-                            self.reply_level = Some(reply_level);
-                        } else {
-                            // We don't advance to the next message because the entire
-                            // sub-message level is reverted here and thus we need to
-                            // "restart" the loop from the parent level.
-                            responses_thrown += self.pop().responses.len();
-
-                            // If we just replied and can't bubble up the error anymore
-                            // this means that the entire sub-message failed so the
-                            // response that spawned that level should be removed.
-                            if is_reply && !self.states.is_empty() {
-                                let state = &mut self.states[index - 1];
-                                state.responses.pop();
-                                responses_thrown += 1;
-                            }
-
-                            continue;
-                        }
-                    }
-
-                    let state = &mut self.states[index];
-                    state.next();
-
-                    if !state.has_next() && !self.squash_latest() {
-                        break;
-                    }
-
-                    if self.next.is_some() {
-                        break;
-                    }
-                },
                 SubMsgState::NotExecuted => {
                     let state = &mut self.states[index];
                     let current = state.current_mut();
@@ -212,7 +153,7 @@ impl ExecutionState {
                     current.state = if current.msg.reply_on == ReplyOn::Never {
                         SubMsgState::Done
                     } else {
-                        SubMsgState::Replying
+                        SubMsgState::ShouldReply
                     };
                     
                     self.next = Some(MessageType::SubMsg {
@@ -222,17 +163,51 @@ impl ExecutionState {
 
                     break;
                 },
-                SubMsgState::Replying => {
-                    let state = &mut self.states[index];
-
-                    state.current_mut().state = SubMsgState::Done;
+                SubMsgState::Done => {
+                    if error.is_some() {
+                        responses_thrown += self.pop().responses.len();
+                    } else {
+                        let state = &mut self.states[index];
+                        state.next();
+    
+                        // If we don't have a next node and we are currently
+                        // at the root then we are finished.
+                        if !state.has_next() && !self.squash_latest() {
+                            break;
+                        }
+                    }
+                }
+                SubMsgState::ShouldReply => {
                     let reply = self.find_reply(error.clone(), &test);
 
-                    if let Some((reply_level, reply)) = reply {
-                        self.next = Some(reply);
-                        self.reply_level = Some(reply_level);
+                    if error.is_some() {
+                        if reply.is_some() {
+                            // We only do this if we haven't recursed up yet
+                            // (i.e this is the first iteration of the loop) otherwise,
+                            // the response wasn't added since we have an error.
+                            if index != start_index {
+                                let state = &mut self.states[index];
+                                state.responses.pop();
+    
+                                responses_thrown += 1;
+                            }
+                        } else {
+                            responses_thrown += self.pop().responses.len();
 
-                        break;
+                            continue;
+                        }
+                    }
+
+                    self.next = reply;
+                    self.states[index].current_mut().state = SubMsgState::Replying;
+
+                    break;
+                }
+                SubMsgState::Replying => {
+                    if error.is_some() {
+                        responses_thrown += self.pop().responses.len();
+                    } else {
+                        self.states[index].current_mut().state = SubMsgState::Done;
                     }
                 }
             }
@@ -241,45 +216,38 @@ impl ExecutionState {
         responses_thrown
     }
 
-    /// Returns the state level at which the reply will be called and
-    /// the reply message itself.
     fn find_reply<F>(
         &self,
         error: Option<String>,
         test: &F
-    ) -> Option<(usize, MessageType)>
+    ) -> Option<MessageType>
         where F: Fn(&ReplyOn) -> bool
     {
-        assert!(!self.states.is_empty());
-        let mut index = self.states.len() - 1;
+        if self.states.len() < 2 {
+            return None;
+        }
 
-        loop {
-            let state = &self.states[index];
-            let current = state.current();
+        let index = self.states.len() - 1;
+        let current = &self.states[index].current();
 
-            if test(&current.msg.reply_on) {
-                let reply_level = index - 1;
-                let target = self.states[reply_level]
-                    .responses
-                    .last()
-                    .unwrap()
-                    .address()
-                    .to_string();
+        if test(&current.msg.reply_on) {
+            let index = self.states.len() - 2;
+            let target = self.states[index]
+                .responses
+                .last()
+                .unwrap()
+                .address()
+                .to_string();
 
-                let reply = MessageType::Reply {
-                    id: current.msg.id,
-                    error,
-                    target
-                };
+            let reply = MessageType::Reply {
+                id: current.msg.id,
+                error,
+                target
+            };
 
-                return Some((reply_level, reply));
-            }
-
-            if state.has_next() || index <= 1 {
-                return None;
-            }
-
-            index -= 1;
+            Some(reply)
+        } else {
+            None
         }
     }
 

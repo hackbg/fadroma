@@ -337,14 +337,6 @@ fn reverts_state_when_a_single_message_in_a_submsg_chain_fails() {
     let mut resp = resp.iter();
 
     let next = resp.next().unwrap();
-    assert!(next.is_execute());
-
-    if let ResponseVariants::Execute(resp) = next {
-        assert_eq!(resp.address, B_ADDR);
-        assert_eq!(resp.sender, A_ADDR);
-    }
-
-    let next = resp.next().unwrap();
     // reply(A) - ID: 0 - notice that even though it was successful,
     // the first sub-message is not included because all state was reverted
     assert!(next.is_reply());
@@ -482,14 +474,6 @@ fn reverts_state_when_reply_in_submsg_fails() {
 
     let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.a.address.clone())).unwrap();
     let mut resp = resp.iter();
-
-    let next = resp.next().unwrap();
-    assert!(next.is_execute());
-
-    if let ResponseVariants::Execute(resp) = next {
-        assert_eq!(resp.address, B_ADDR);
-        assert_eq!(resp.sender, A_ADDR);
-    }
 
     let next = resp.next().unwrap();
     assert!(next.is_reply());
@@ -722,14 +706,6 @@ fn unhandled_error_in_submsg_is_bubbled_up_to_the_caller() {
     let mut resp = resp.iter();
 
     let next = resp.next().unwrap();
-    assert!(next.is_execute());
-
-    if let ResponseVariants::Execute(resp) = next {
-        assert_eq!(resp.address, B_ADDR);
-        assert_eq!(resp.sender, A_ADDR);
-    }
-
-    let next = resp.next().unwrap();
     assert!(next.is_reply());
 
     if let ResponseVariants::Reply(resp) = next {
@@ -787,6 +763,63 @@ fn unhandled_error_in_nested_message_fails_tx() {
 }
 
 #[test]
+fn error_bubbles_multiple_levels_up_the_stack() {
+    let mut c = init([None, None, None]);
+
+    let msg = ExecuteMsg::RunMsgs(vec![
+        SubMsg::reply_on_error(
+            b_msg(
+                &ExecuteMsg::RunMsgs(vec![
+                    SubMsg::reply_always(c_msg(&ExecuteMsg::IncrNumber(1)), 0),
+                    SubMsg::new(c_msg(&ExecuteMsg::RunMsgs(vec![
+                        SubMsg::new(b_msg(&ExecuteMsg::IncrNumber(1))),
+                        SubMsg::reply_on_success(a_msg(
+                            &ExecuteMsg::RunMsgs(vec![
+                                SubMsg::new(b_msg(&ExecuteMsg::IncrNumber(15))) // This will fail
+                            ])
+                        ),
+                        1),
+                    ]))),
+                    SubMsg::reply_always(c_msg(&ExecuteMsg::IncrNumber(1)), 2),
+                ])
+            ),
+            3
+        ),
+        SubMsg::new(b_msg(&ExecuteMsg::IncrNumber(3)))
+    ]);
+
+    let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.a.address.clone())).unwrap();
+    let mut resp = resp.iter();
+
+    let next = resp.next().unwrap();
+    assert!(next.is_reply());
+
+    if let ResponseVariants::Reply(resp) = next {
+        assert_eq!(resp.address, A_ADDR);
+        assert_eq!(resp.reply.id, 3);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_execute());
+
+    if let ResponseVariants::Execute(resp) = next {
+        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.sender, A_ADDR);
+    }
+
+    assert_eq!(resp.next(), None);
+
+    let state = c.a_state();
+    assert_eq!(state.num, 0);
+
+    let state = c.b_state();
+    assert_eq!(state.num, 3);
+
+    let state = c.c_state();
+    assert_eq!(state.num, 0);
+}
+
+#[test]
 fn unhandled_error_jumps_to_the_first_reply() {
     let mut c = init([None, None, None]);
 
@@ -813,14 +846,6 @@ fn unhandled_error_jumps_to_the_first_reply() {
 
     let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.a.address.clone())).unwrap();
     let mut resp = resp.iter();
-
-    let next = resp.next().unwrap();
-    assert!(next.is_execute());
-
-    if let ResponseVariants::Execute(resp) = next {
-        assert_eq!(resp.address, B_ADDR);
-        assert_eq!(resp.sender, A_ADDR);
-    }
 
     let next = resp.next().unwrap();
     assert!(next.is_reply());
