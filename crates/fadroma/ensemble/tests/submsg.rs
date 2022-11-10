@@ -26,6 +26,10 @@ struct InstantiateMsg {
 enum ExecuteMsg {
     RunMsgs(Vec<SubMsg>),
     IncrNumber(u32),
+    IncrAndSend {
+        amount: u32,
+        recipient: String
+    },
     Fail,
     ReplyResponse(SubMsg)
 }
@@ -54,14 +58,15 @@ impl ContractHarness for Contract {
         match msg {
             ExecuteMsg::RunMsgs(msgs) => { resp = resp.add_submessages(msgs); }
             ExecuteMsg::IncrNumber(amount) => {
-                let mut num: u32 = load(deps.storage, b"num")?.unwrap_or_default();
-                num += amount;
+                increment(deps.storage, amount)?;
+            }
+            ExecuteMsg::IncrAndSend { amount, recipient } => {
+                increment(deps.storage, amount)?;
 
-                save(deps.storage, b"num", &num)?;
-
-                if num > 10 {
-                    bail!(StdError::generic_err("Number is bigger than 10."));
-                }
+                resp = resp.add_message(BankMsg::Send {
+                    to_address: recipient,
+                    amount: vec![coin(100, "uscrt")]
+                })
             }
             ExecuteMsg::ReplyResponse(msg) => {
                 save(deps.storage, b"reply", &msg)?;
@@ -112,6 +117,19 @@ impl ContractHarness for Contract {
         }
 
         Ok(response)
+    }
+}
+
+fn increment(storage: &mut dyn Storage, amount: u32) -> StdResult<()> {
+    let mut num: u32 = load(storage, b"num")?.unwrap_or_default();
+    num += amount;
+
+    save(storage, b"num", &num)?;
+
+    if num > 10 {
+        Err(StdError::generic_err("Number is bigger than 10."))
+    } else {
+        Ok(())
     }
 }
 
@@ -514,12 +532,18 @@ fn reverts_state_when_reply_in_submsg_fails() {
 #[test]
 fn reply_err_in_root_level_fails_tx() {
     let mut c = init([Some(2), None, None]);
+    c.ensemble.add_funds(C_ADDR, vec![coin(200, "uscrt")]);
 
     let msg = ExecuteMsg::RunMsgs(vec![
         SubMsg::reply_always(
             b_msg(
                 &ExecuteMsg::RunMsgs(vec![
-                    SubMsg::reply_always(c_msg(&ExecuteMsg::IncrNumber(1)), 0),
+                    SubMsg::reply_always(
+                        c_msg(&ExecuteMsg::IncrAndSend {
+                            amount: 1, recipient: A_ADDR.into()
+                        }),
+                        0
+                    ),
                     SubMsg::reply_always(c_msg(&ExecuteMsg::Fail), 1),
                 ])
             ),
@@ -534,12 +558,15 @@ fn reply_err_in_root_level_fails_tx() {
 
     let state = c.a_state();
     assert_eq!(state.num, 0);
+    assert_eq!(state.balance.amount.u128(), 0);
 
     let state = c.b_state();
     assert_eq!(state.num, 0);
+    assert_eq!(state.balance.amount.u128(), 0);
 
     let state = c.c_state();
     assert_eq!(state.num, 0);
+    assert_eq!(state.balance.amount.u128(), 200);
 }
 
 #[test]
@@ -687,19 +714,31 @@ fn errors_in_middle_of_submsg_scope_are_handled_and_execution_continues() {
 #[test]
 fn unhandled_error_in_submsg_is_bubbled_up_to_the_caller() {
     let mut c = init([None, None, None]);
+    c.ensemble.add_funds(C_ADDR, vec![coin(200, "uscrt")]);
 
     let msg = ExecuteMsg::RunMsgs(vec![
         SubMsg::reply_always(
             b_msg(
                 &ExecuteMsg::RunMsgs(vec![
-                    SubMsg::reply_always(c_msg(&ExecuteMsg::IncrNumber(1)), 0),
+                    SubMsg::reply_always(
+                        c_msg(&ExecuteMsg::IncrAndSend {
+                            amount: 1,
+                            recipient: A_ADDR.into()
+                        }),
+                        0
+                    ),
                     SubMsg::new(c_msg(&ExecuteMsg::Fail)),
                     SubMsg::reply_always(c_msg(&ExecuteMsg::IncrNumber(1)), 1),
                 ])
             ),
             2
         ),
-        SubMsg::new(b_msg(&ExecuteMsg::IncrNumber(3)))
+        SubMsg::new(
+            c_msg(&ExecuteMsg::IncrAndSend {
+                amount: 3,
+                recipient: B_ADDR.into()
+            })
+        ),
     ]);
 
     let resp = c.ensemble.execute(&msg, MockEnv::new(SENDER, c.a.address.clone())).unwrap();
@@ -717,20 +756,32 @@ fn unhandled_error_in_submsg_is_bubbled_up_to_the_caller() {
     assert!(next.is_execute());
 
     if let ResponseVariants::Execute(resp) = next {
-        assert_eq!(resp.address, B_ADDR);
+        assert_eq!(resp.address, C_ADDR);
         assert_eq!(resp.sender, A_ADDR);
+    }
+
+    let next = resp.next().unwrap();
+    assert!(next.is_bank());
+
+    if let ResponseVariants::Bank(resp) = next {
+        assert_eq!(resp.receiver, B_ADDR);
+        assert_eq!(resp.sender, C_ADDR);
+        assert_eq!(resp.coins, vec![coin(100, "uscrt")]);
     }
 
     assert_eq!(resp.next(), None);
 
     let state = c.a_state();
     assert_eq!(state.num, 0);
+    assert_eq!(state.balance.amount.u128(), 0);
 
     let state = c.b_state();
-    assert_eq!(state.num, 3);
+    assert_eq!(state.num, 0);
+    assert_eq!(state.balance.amount.u128(), 100);
 
     let state = c.c_state();
-    assert_eq!(state.num, 0);
+    assert_eq!(state.num, 3);
+    assert_eq!(state.balance.amount.u128(), 100);
 }
 
 #[test]
@@ -1080,16 +1131,6 @@ fn reply_response_error_is_handled_properly() {
 }
 
 #[test]
-fn reverts_balance_to_caller_on_submsg_failure() {
-    
-}
-
-#[test]
-fn reverts_balance_to_sender_on_submsg_success_but_err_in_reply() {
-    
-}
-
-#[test]
 fn instantiate_child_err_handled_in_reply() {
     
 }
@@ -1154,34 +1195,5 @@ fn c_msg(msg: &ExecuteMsg) -> WasmMsg {
         code_hash: "test_contract_0".into(),
         msg: to_binary(msg).unwrap(),
         funds: vec![]
-    }
-}
-
-fn a_msg_funds(msg: &ExecuteMsg, coin: Coin) -> WasmMsg {
-    let mut msg = a_msg(msg);
-    push_funds(&mut msg, coin);
-
-    msg
-}
-
-fn b_msg_funds(msg: &ExecuteMsg, coin: Coin) -> WasmMsg {
-    let mut msg = b_msg(msg);
-    push_funds(&mut msg, coin);
-
-    msg
-}
-
-fn c_msg_funds(msg: &ExecuteMsg, coin: Coin) -> WasmMsg {
-    let mut msg = c_msg(msg);
-    push_funds(&mut msg, coin);
-
-    msg
-}
-
-fn push_funds(msg: &mut WasmMsg, coin: Coin) {
-    match msg {
-        WasmMsg::Execute { funds, .. } => funds.push(coin),
-        WasmMsg::Instantiate { funds, .. } => funds.push(coin),
-        _ => unreachable!()
     }
 }

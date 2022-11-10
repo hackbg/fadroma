@@ -182,9 +182,9 @@ impl ExecutionState {
 
                     if error.is_some() {
                         if reply.is_some() {
-                            // We only do this if we haven't recursed up yet
-                            // (i.e this is the first iteration of the loop) otherwise,
-                            // the response wasn't added since we have an error.
+                            // We only do this if we have already recursed up
+                            // (i.e this is not the first iteration of the loop) otherwise,
+                            // the response wasn't added to begin with since we have an error.
                             if index != start_index {
                                 let state = &mut self.states[index];
                                 state.responses.pop();
