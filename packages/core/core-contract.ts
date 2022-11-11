@@ -5,13 +5,13 @@ import type { Uploader } from './core-upload'
 import type { CodeId, CodeHash } from './core-code'
 import type { ChainId } from './core-chain'
 import type { Address, Message, TxHash } from './core-tx'
-import type { Name, Label } from './core-labels'
+import type { Name, Label, Named } from './core-labels'
 import type { Agent } from './core-agent'
 import type { Deployment } from './core-deployment'
 
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
-import { rebind, override, Maybe, defineTask, into } from './core-fields'
+import { rebind, override, Maybe, defineTask, into, map } from './core-fields'
 import { Client } from './core-client'
 import { ClientError as Error } from './core-events'
 import { writeLabel } from './core-labels'
@@ -207,6 +207,18 @@ export class Contract<C extends Client> {
       return (this.client ?? Client).fromContract(this)
     }
   }
+
+  many (contracts: Array<[Name, Message]|Partial<AnyContract>>): Task<Contract<C>, Array<Contract<C>>>
+  many (contracts: Named<[Name, Message]|Partial<AnyContract>>): Task<Contract<C>, Named<Contract<C>>>
+  many (contracts: any): Task<Contract<C>, Array<Contract<C>>> | Task<Contract<C>, Named<Contract<C>>> {
+    const size = Object.keys(contracts).length
+    const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
+    return defineTask(name, deployManyContracts, this)
+    function deployManyContracts (this: Contract<C>) {
+      return map(contracts, (contract: Contract<C>) => contract.deployed)
+    }
+  }
+
 }
 
 /** Parameters involved in building a contract. */

@@ -170,8 +170,10 @@ export function defineDefault <T extends object, D extends object> (
 function map <T, U> (data: Array<T>, fn: (x:T)=>U): Array<U>
 function map <T, U> (data: Record<string, T>, fn: (x:T)=>U): Record<string, U>
 function map (data: unknown, fn: (x:unknown)=>unknown): Array<unknown>|Record<string, unknown> {
-  const result = (data instanceof Array) ? [] : {}
-  for (const [key, val] of data as any) (result as any)[key] = fn(data)
+  const result = (data instanceof Array) ? [] : {};
+  for (const [key, val] of Object.entries(data as any)) {
+    ;(result as any)[key] = fn(val)
+  }
   return result
 }
 

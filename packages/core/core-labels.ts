@@ -13,6 +13,8 @@ export type Name = string
 
 export type Named<T> = Record<Name, T>
 
+export type ArrayOrNamed<T> = Array<T>|Named<T>
+
 /** A contract name with optional prefix and suffix, implementing namespacing
   * for append-only platforms where labels have to be globally unique. */
 export interface StructuredLabel {

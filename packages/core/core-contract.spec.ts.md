@@ -184,7 +184,7 @@ all contracts as a single transaction.
 You can pass either an array or an object to `theContract.many`:
 
 ```typescript
-const [ c4, c5 ] = await theContract.many([
+const [ c4, c5 ] = await theContract.define({ agent }).many([
   [ 'name3', { parameter: 'value1' } ],
   { name: 'name4', initMsg: { parameter: 'value2' } },
 ])
@@ -194,7 +194,7 @@ Note that the keys of the object don't correspond to the names of the contracts,
 so you still need to provide the names explicitly:
 
 ```typescript
-const { c6, c7 } = await theContract.many({
+const { c6, c7 } = await theContract.define({ agent }).many({
   c6: ['name3', { parameter: 'value1' }],
   c7: { name: 'name4', initMsg: { parameter: 'value2' } },
 })
