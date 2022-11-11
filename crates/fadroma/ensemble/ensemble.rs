@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use serde::{
     Serialize,
     de::DeserializeOwned
@@ -7,7 +7,7 @@ use serde::{
 use crate::{
     prelude::{ContractInstantiationInfo, ContractLink},
     cosmwasm_std::{
-        SubMsg, Deps, DepsMut, Env, StdError, Response, MessageInfo, Binary, Uint128, Coin,
+        SubMsg, Deps, DepsMut, Env, Response, MessageInfo, Binary, Uint128, Coin, Attribute,
         FullDelegation, Validator, Delegation, CosmosMsg, WasmMsg, BlockInfo, ContractInfo,
         StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, SubMsgResponse, SubMsgResult,
         Reply, Storage, Api, Querier, QuerierWrapper, Empty, from_binary, to_binary,
@@ -23,7 +23,8 @@ use super::{
     response::{ResponseVariants, ExecuteResponse, InstantiateResponse, ReplyResponse},
     staking::Delegations,
     state::State,
-    execution_state::{ExecutionState, MessageType}
+    execution_state::{ExecutionState, MessageType},
+    error::{EnsembleError, RegistryError}
 };
 
 pub type AnyResult<T> = anyhow::Result<T>;
@@ -39,18 +40,6 @@ pub trait ContractHarness {
     fn reply(&self, _deps: DepsMut, _env: Env, _reply: Reply) -> AnyResult<Response> {
         panic!("Reply entry point not implemented.")
     }
-}
-
-#[derive(Debug)]
-pub enum EnsembleError {
-    ContractError(anyhow::Error),
-    ContractNotFound(String),
-    ContractDuplicateAddress(String),
-    ContractIdNotFound(u64),
-    InvalidCodeHash(String),
-    Bank(String),
-    Staking(String),
-    Std(StdError)
 }
 
 #[derive(Debug)]
@@ -234,7 +223,7 @@ impl ContractEnsemble {
             .ctx
             .contracts
             .get(code_id as usize)
-            .ok_or_else(|| EnsembleError::ContractIdNotFound(code_id))?;
+            .ok_or_else(|| EnsembleError::registry(RegistryError::IdNotFound(code_id)))?;
 
         let sub_msg = SubMsg::new(WasmMsg::Instantiate {
             code_id,
@@ -345,6 +334,8 @@ impl Context {
             Ok(result)
         })?;
 
+        validate_response(&response)?;
+
         Ok(InstantiateResponse {
             sent: Vec::with_capacity(response.messages.len()),
             sender,
@@ -389,6 +380,8 @@ impl Context {
 
             Ok(result)
         })?;
+
+        validate_response(&response)?;
 
         Ok(ExecuteResponse {
             sent: Vec::with_capacity(response.messages.len()),
@@ -448,6 +441,8 @@ impl Context {
             Ok(result)
         })?;
 
+        validate_response(&response)?;
+
         Ok(ReplyResponse {
             sent: Vec::with_capacity(response.messages.len()),
             address,
@@ -475,7 +470,7 @@ impl Context {
                         Some(err) => {
                             let reply = Reply {
                                 id,
-                                result: SubMsgResult::Err(err.to_string())
+                                result: SubMsgResult::Err(err)
                             };
 
                             self.reply(target, reply).map(|x| x.into())
@@ -533,7 +528,7 @@ impl Context {
                     let index = self.state.instance(&contract_addr)?.index;
 
                     if self.contracts[index].code_hash != code_hash {
-                        return Err(EnsembleError::InvalidCodeHash(code_hash));
+                        return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                     }
 
                     let env = MockEnv::new(
@@ -553,10 +548,10 @@ impl Context {
                     let contract = self
                         .contracts
                         .get(code_id as usize)
-                        .ok_or_else(|| EnsembleError::ContractIdNotFound(code_id))?;
+                        .ok_or_else(|| EnsembleError::registry(RegistryError::IdNotFound(code_id)))?;
 
                     if contract.code_hash != code_hash {
-                        return Err(EnsembleError::InvalidCodeHash(code_hash));
+                        return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                     }
 
                     let env = MockEnv::new(
@@ -677,46 +672,49 @@ impl Context {
     }
 }
 
-impl EnsembleError {
-    #[inline]
-    pub fn unwrap_contract_error(self) -> anyhow::Error {
-        match self {
-            Self::ContractError(err) => err,
-            _ => panic!("called EnsembleError::unwrap_contract_error() on a non EnsembleError::ContractError")
+// Taken from https://github.com/CosmWasm/cw-multi-test/blob/03026ccd626f57869c57c9192a03da6625e4791d/src/wasm.rs#L231-L268
+fn validate_response(response: &Response) -> EnsembleResult<()> {
+    validate_attributes(&response.attributes)?;
+
+    for event in &response.events {
+        validate_attributes(&event.attributes)?;
+        let ty = event.ty.trim();
+        
+        if ty.len() < 2 {
+            return Err(EnsembleError::AttributeValidation(
+                format!("Attribute type cannot be less than 2 characters: {}", ty)
+            ));
         }
     }
 
-    #[inline]
-    pub fn is_contract_error(&self) -> bool {
-        matches!(self, EnsembleError::ContractError(_))
-    }
+    Ok(())
 }
 
-impl From<StdError> for EnsembleError {
-    fn from(err: StdError) -> Self {
-        Self::Std(err)
-    }
-}
+fn validate_attributes(attributes: &[Attribute]) -> EnsembleResult<()> {
+    for attr in attributes {
+        let key = attr.key.trim();
+        let val = attr.value.trim();
 
-impl From<anyhow::Error> for EnsembleError {
-    fn from(err: anyhow::Error) -> Self {
-        Self::ContractError(err)
-    }
-}
+        if key.is_empty() {
+            return Err(EnsembleError::AttributeValidation(
+                format!("Attribute key for value {} cannot be empty", val)
+            ));
+        }
 
-impl Display for EnsembleError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Bank(msg) => f.write_fmt(format_args!("Ensemble error - Bank: {}", msg)),
-            Self::Staking(msg) => f.write_fmt(format_args!("Ensemble error - Staking: {}", msg)),
-            Self::ContractNotFound(address) => f.write_fmt(format_args!("Ensemble error - Contract not found: {}", address)),
-            Self::ContractDuplicateAddress(address) => f.write_fmt(format_args!("Ensemble error - Contract instance with address {} already exists", address)),
-            Self::ContractIdNotFound(id) => f.write_fmt(format_args!("Ensemble error - Contract id not found: {}", id)),
-            Self::InvalidCodeHash(hash) => f.write_fmt(format_args!("Ensemble error - Contract code hash is invalid: {}", hash)),
-            Self::Std(err) => Display::fmt(err, f),
-            Self::ContractError(err) => Display::fmt(err, f)
+        if val.is_empty() {
+            return Err(EnsembleError::AttributeValidation(
+                format!("Attribute value with key {} cannot be empty", key)
+            ));
+        }
+
+        if key.starts_with('_') {
+            return Err(EnsembleError::AttributeValidation(
+                format!("Attribute key {} cannot start with \"_\"", key)
+            ));
         }
     }
+
+    Ok(())
 }
 
 impl Debug for Context {

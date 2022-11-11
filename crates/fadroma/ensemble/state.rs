@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use crate::cosmwasm_std::{Coin, Storage};
 
 use super::{
-    EnsembleResult, EnsembleError,
+    EnsembleResult,
     storage::TestStorage,
     bank::Bank,
-    response::BankResponse
+    response::BankResponse,
+    error::{EnsembleError, RegistryError}
 };
 
 #[derive(Default, Debug)]
@@ -68,7 +69,7 @@ impl State {
         let address = address.into();
 
         if self.instances.contains_key(&address) {
-            return Err(EnsembleError::ContractDuplicateAddress(address));
+            return Err(EnsembleError::registry(RegistryError::DuplicateAddress(address)));
         }
 
         let storage = TestStorage::new(address.clone());
@@ -87,7 +88,7 @@ impl State {
     pub fn instance(&self, address: &str) -> EnsembleResult<&ContractInstance> {
         match self.instances.get(address) {
             Some(instance) => Ok(instance),
-            None => Err(EnsembleError::ContractNotFound(address.to_string()))
+            None => Err(EnsembleError::registry(RegistryError::NotFound(address.to_string())))
         }
     }
 
@@ -102,7 +103,7 @@ impl State {
 
             result
         } else {
-            Err(EnsembleError::ContractNotFound(address.into()))
+            Err(EnsembleError::registry(RegistryError::NotFound(address.into())))
         }
     }
 

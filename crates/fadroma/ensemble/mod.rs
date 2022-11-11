@@ -21,6 +21,8 @@ mod staking;
 mod state;
 #[cfg(not(target_arch = "wasm32"))]
 mod execution_state;
+#[cfg(not(target_arch = "wasm32"))]
+mod error;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;
@@ -34,6 +36,8 @@ pub use querier::*;
 pub use block::Block;
 #[cfg(not(target_arch = "wasm32"))]
 pub use response::*;
+#[cfg(not(target_arch = "wasm32"))]
+pub use error::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use anyhow;
 
