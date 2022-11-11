@@ -214,7 +214,11 @@ impl ContractEnsemble {
         self.ctx.state.push_scope();
         let result = self.ctx.state.borrow_storage_mut(address.as_ref(), mutate);
 
-        self.ctx.state.commit();
+        if result.is_ok() {
+            self.ctx.state.commit();
+        } else {
+            self.ctx.state.revert();
+        }
 
         result
     }
