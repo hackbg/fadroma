@@ -226,13 +226,19 @@ impl ContractEnsemble {
     /// Returned address and code hash correspond to the values in `env`.
     pub fn instantiate<T: Serialize>(
         &mut self,
-        info: ContractInstantiationInfo,
+        code_id: u64,
         msg: &T,
         env: MockEnv
     ) -> EnsembleResult<InstantiateResponse> {
+        let contract = self
+            .ctx
+            .contracts
+            .get(code_id as usize)
+            .ok_or_else(|| EnsembleError::ContractIdNotFound(code_id))?;
+
         let sub_msg = SubMsg::new(WasmMsg::Instantiate {
-            code_id: info.id,
-            code_hash: info.code_hash,
+            code_id,
+            code_hash: contract.code_hash.clone(),
             msg: to_binary(msg)?,
             funds: env.sent_funds,
             label: env.contract.into_string()

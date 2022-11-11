@@ -9,6 +9,7 @@ use crate::prelude::*;
 
 const SEND_AMOUNT: u128 = 100;
 const SEND_DENOM: &str = "uscrt";
+const MULTIPLIER_MSG_TYPE: &str = "multiplier";
 
 struct Counter;
 
@@ -39,7 +40,7 @@ impl ContractHarness for Counter {
     fn instantiate(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         _info: MessageInfo,
         msg: Binary,
     ) -> AnyResult<Response> {
@@ -58,22 +59,23 @@ impl ContractHarness for Counter {
             bail!("Failed at Counter.");
         }
 
-        Ok(Response::new().add_message(WasmMsg::Instantiate {
-            code_id: msg.info.id,
-            code_hash: msg.info.code_hash,
-            funds: vec![coin(SEND_AMOUNT, SEND_DENOM)],
-            msg: to_binary(&MultiplierInit {
-                callback: Callback {
-                    contract: ContractLink {
-                        address: env.contract.address,
-                        code_hash: env.contract.code_hash,
-                    },
-                    msg: to_binary(&CounterHandle::RegisterMultiplier)?,
-                },
-                fail: msg.fail_multiplier,
-            })?,
-            label: "multiplier".into(),
-        }))
+        let instantiate_msg = SubMsg::reply_on_success(
+            WasmMsg::Instantiate {
+                code_id: msg.info.id,
+                code_hash: msg.info.code_hash,
+                funds: vec![coin(SEND_AMOUNT, SEND_DENOM)],
+                msg: to_binary(&MultiplierInit {
+                    fail: msg.fail_multiplier,
+                })?,
+                label: "multiplier".into(),
+            },
+            0
+        );
+
+        let mut response = Response::new();
+        response.messages.push(instantiate_msg);
+
+        Ok(response)
     }
 
     fn execute(
@@ -132,6 +134,29 @@ impl ContractHarness for Counter {
 
         Ok(bin)
     }
+
+    fn reply(&self, deps: DepsMut, _env: Env, reply: Reply) -> AnyResult<Response> {
+        assert_eq!(reply.id, 0);
+        
+        match reply.result {
+            SubMsgResult::Ok(result) => {
+                let event = result.events.into_iter()
+                    .find(|x| x.ty == MULTIPLIER_MSG_TYPE)
+                    .unwrap();
+                let attr = event.attributes.into_iter()
+                    .find(|x| x.key == "address")
+                    .unwrap();
+
+                let mut contract_info: ContractLink<Addr> = load(deps.storage, b"mul")?.unwrap();
+                contract_info.address = Addr::unchecked(attr.value);
+        
+                save(deps.storage, b"mul", &contract_info)?;
+            },
+            SubMsgResult::Err(err) => bail!(err)
+        }
+
+        Ok(Response::new())
+    }
 }
 
 fn increment(storage: &mut dyn Storage) -> StdResult<u8> {
@@ -148,7 +173,6 @@ struct Multiplier;
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 struct MultiplierInit {
-    callback: Callback<Addr>,
     fail: bool,
 }
 
@@ -163,7 +187,7 @@ impl ContractHarness for Multiplier {
     fn instantiate(
         &self,
         _deps: DepsMut,
-        _env: Env,
+        env: Env,
         _info: MessageInfo,
         msg: Binary,
     ) -> AnyResult<Response> {
@@ -173,12 +197,10 @@ impl ContractHarness for Multiplier {
             bail!("Failed at Multiplier.");
         }
 
-        Ok(Response::new().add_message(WasmMsg::Execute {
-            contract_addr: msg.callback.contract.address.into_string(),
-            code_hash: msg.callback.contract.code_hash,
-            msg: msg.callback.msg,
-            funds: vec![],
-        }))
+        Ok(Response::new().add_event(
+            Event::new(MULTIPLIER_MSG_TYPE)
+                .add_attribute_plaintext("address", env.contract.address.into_string())
+        ))
     }
 
     fn execute(
@@ -227,7 +249,7 @@ fn init(
 
     let counter = ensemble
         .instantiate(
-            counter,
+            counter.id,
             &CounterInit {
                 info: multiplier.clone(),
                 fail: fail_counter,
@@ -492,7 +514,7 @@ fn exact_increment() {
 
     let block_height = ensemble
         .instantiate(
-            block_height_contract,
+            block_height_contract.id,
             &Empty {},
             MockEnv::new(
                 admin,
@@ -554,7 +576,7 @@ fn random_increment() {
 
     let block_height = ensemble
         .instantiate(
-            block_height_contract,
+            block_height_contract.id,
             &Empty {},
             MockEnv::new(
                 admin,
@@ -607,7 +629,7 @@ fn block_freeze() {
     let block_height_contract = ensemble.register(Box::new(BlockHeight));
     let block_height = ensemble
         .instantiate(
-            block_height_contract,
+            block_height_contract.id,
             &Empty {},
             MockEnv::new(admin, "block_height")
         )

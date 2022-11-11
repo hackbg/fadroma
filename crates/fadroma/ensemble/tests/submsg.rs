@@ -1130,17 +1130,12 @@ fn reply_response_error_is_handled_properly() {
     assert_eq!(state.num, 0);
 }
 
-#[test]
-fn instantiate_child_err_handled_in_reply() {
-    
-}
-
 fn init(msgs: [Option<u64>; 3]) -> TestContracts {
     let mut ensemble = ContractEnsemble::new_with_denom("uscrt");
     let contract = ensemble.register(Box::new(Contract));
 
     let a = ensemble.instantiate(
-        contract.clone(),
+        contract.id,
         &InstantiateMsg {
             reply_fail_id: msgs[0]
         },
@@ -1148,7 +1143,7 @@ fn init(msgs: [Option<u64>; 3]) -> TestContracts {
     ).unwrap();
 
     let b = ensemble.instantiate(
-        contract.clone(),
+        contract.id,
         &InstantiateMsg {
             reply_fail_id: msgs[1]
         },
@@ -1156,7 +1151,7 @@ fn init(msgs: [Option<u64>; 3]) -> TestContracts {
     ).unwrap();
 
     let c = ensemble.instantiate(
-        contract.clone(),
+        contract.id,
         &InstantiateMsg {
             reply_fail_id: msgs[2]
         },
