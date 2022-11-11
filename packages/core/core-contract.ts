@@ -226,7 +226,11 @@ export class Contract<C extends Client> {
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
     return defineTask(name, deployManyContracts, this)
     function deployManyContracts (this: Contract<C>) {
-      return map(contracts, (contract: Contract<C>) => contract.deployed)
+      return map(contracts, (contract: ([Name, Message]|Partial<AnyContract>)) => {
+        if (contract instanceof Array) contract = { name: contract[0], initMsg: contract[1] }
+        contract = defineContract({ ...this, ...contract })
+        return contract.deployed
+      })
     }
   }
 

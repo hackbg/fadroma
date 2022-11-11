@@ -53,13 +53,16 @@ or to what chain, or under what identity. Let's do that now.
 ## Some preparation
 
 For the sake of this example, we'll create test-only instances of `Chain` and `Agent`,
-with a mocked out `instantiate` method for simplicity:
+and, for simplicity's sake, mock out the `Agent`'s methods:
 
 ```typescript
 import { Chain } from '@fadroma/core'
 const chain = new Chain('test')
-const agent = await chain.getAgent()
-agent.instantiate = () => ({ address: `(the address of instance #${++index})` })
+const agent = Object.assign(await chain.getAgent(), {
+  async instantiate () { return { address: `(the address of instance #${++index})` } },
+  async execute     () { return {} },
+  async query       () { return {} }
+})
 let index = 0
 ```
 
@@ -184,9 +187,9 @@ all contracts as a single transaction.
 You can pass either an array or an object to `theContract.many`:
 
 ```typescript
-const [ c4, c5 ] = await theContract.define({ agent }).many([
-  [ 'name3', { parameter: 'value1' } ],
-  { name: 'name4', initMsg: { parameter: 'value2' } },
+const [ c4, c5 ] = await theContract.many([
+  [ 'name3', { parameter: 'value3' } ],
+  { name: 'name4', initMsg: { parameter: 'value4' } },
 ])
 ```
 
@@ -194,9 +197,9 @@ Note that the keys of the object don't correspond to the names of the contracts,
 so you still need to provide the names explicitly:
 
 ```typescript
-const { c6, c7 } = await theContract.define({ agent }).many({
-  c6: ['name3', { parameter: 'value1' }],
-  c7: { name: 'name4', initMsg: { parameter: 'value2' } },
+const { c6, c7 } = await theContract.many({
+  c6: ['name5', { parameter: 'value5' }],
+  c7: { name: 'name6', initMsg: { parameter: 'value6' } },
 })
 ```
 
@@ -208,14 +211,14 @@ you'll want to extend `Client` and implement them there:
 ```typescript
 class MyClient extends Client {
   myMethod () {
-    return this.exec({ my_method: {} })
+    return this.execute({ my_method: {} })
   }
   myQuery () {
     return this.query({ my_query: {} })
   }
 }
 
-const theOtherContract = defineContract({ codeId: 2, client: MyClient })
+const theOtherContract = deployment.contract({ codeId: 2, client: MyClient })
 const d1 = await theOtherContract('my-other-contract', {})
 assert.ok(d1 instanceof MyClient)
 assert.ok(await d1.myMethod())
