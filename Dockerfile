@@ -1,5 +1,8 @@
-FROM rust:1.61-slim
-RUN apt update && apt install -y nodejs npm curl wget binaryen git clang && ls -al /var/cache/apt/archives && apt-get clean
+FROM rust:1.65-slim
+RUN apt update && \
+  apt install -y nodejs npm curl wget binaryen git clang cmake && \
+  ls -al /var/cache/apt/archives && \
+  apt-get clean
 RUN npm i -g n && n i 18
 RUN npm i -g pnpm@^7.5 && pnpm --version
 RUN rustup default 1.61 && rustup target add wasm32-unknown-unknown && rustup toolchain list && rustup target list
