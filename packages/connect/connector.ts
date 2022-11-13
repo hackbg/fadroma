@@ -13,7 +13,7 @@ export interface ConnectorClass<C extends Connector> extends Class<C, [
 export class Connector extends Deployment {
   constructor (options: Partial<Connector> = { config: new ConnectConfig() }) {
     super(options)
-    this.config = new ConnectConfig(this.env, this.cwd, options?.config)
+    this.config = new ConnectConfig(options?.config, this.env, this.cwd)
   }
   /** Logger */
   log = new Console('Fadroma.Connector')

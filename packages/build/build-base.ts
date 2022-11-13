@@ -17,9 +17,9 @@ export const buildPackage = dirname(fileURLToPath(import.meta.url))
 
 export class BuilderConfig extends EnvConfig {
   constructor (
+    defaults: Partial<BuilderConfig> = {},
     readonly env: Env    = process.env,
     readonly cwd: string = process.cwd(),
-    defaults: Partial<BuilderConfig> = {}
   ) {
     super(env, cwd)
     this.override(defaults)
@@ -75,7 +75,7 @@ export abstract class LocalBuilder extends Builder {
 
   constructor (options: Partial<BuilderConfig>) {
     super('local builder', 'local builder')
-    this.config = new BuilderConfig(this.env, this.cwd, options)
+    this.config = new BuilderConfig(options, this.env, this.cwd)
     this.noFetch   = options.noFetch   ?? this.noFetch
     this.toolchain = options.toolchain ?? this.toolchain
     this.verbose   = options.verbose   ?? this.verbose

@@ -16,11 +16,11 @@ import { DeployError, DeployConsole } from './deploy-events'
 /** Deployment system configuration and Deployer factory. */
 export class DeployConfig extends ConnectConfig {
   constructor (
+    defaults: Partial<DeployConfig> = {},
     readonly env: Env    = process.env,
     readonly cwd: string = process.cwd(),
-    defaults: Partial<DeployConfig> = {}
   ) {
-    super(env, cwd, defaults as Partial<ConnectConfig>)
+    super(defaults as Partial<ConnectConfig>, env, cwd)
     this.override(defaults)
   }
   /** Project root. Defaults to current working directory. */
@@ -84,7 +84,7 @@ export class Deployer extends Connector {
     const { store } = options
     if (store && store.active?.name) options.name = store.active.name
     super(options as Partial<Connector>)
-    this.config = new DeployConfig(this.env, this.cwd, options.config)
+    this.config = new DeployConfig(options.config, this.env, this.cwd)
     this.store  = options.store ?? this.store
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
     const chain = this.chain?.id ? bold(this.chain.id) : 'this chain'

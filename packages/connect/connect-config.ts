@@ -13,9 +13,9 @@ import type { Connector, ConnectorClass } from './connector'
 export class ConnectConfig extends EnvConfig {
 
   constructor (
+    defaults: Partial<ConnectConfig> = {},
     readonly env: Env    = {},
     readonly cwd: string = '',
-    defaults: Partial<ConnectConfig> = {}
   ) {
     super(env, cwd)
     this.override(defaults)

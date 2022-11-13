@@ -31,8 +31,14 @@ import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 import repl from 'node:repl'
 import { createContext } from 'node:vm'
 
+export function Fadroma (this: any, options: Partial<Config> = {}) {
+  if (!(this instanceof BaseFadroma)) {
+    return new BaseFadroma({ config: new Config(options) })
+  }
+}
+
 /** Context for Fadroma commands. */
-export class Fadroma extends Deployer {
+const BaseFadroma = class Fadroma extends Deployer {
 
   /** @returns a function that runs a requested command. */
   //static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
@@ -40,18 +46,16 @@ export class Fadroma extends Deployer {
     //return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
   //}
 
-  static async init <D extends Deployer> ($D: DeployerClass<D>): Promise<D> {
-    const config = new Config()
-    const deployer: D = await config.getDeployer($D)
-    deployer.builder   ??= config.build?.getBuilder()
-    deployer.workspace ??= process.cwd()
-    return deployer
+  static async enter <C extends Deployer, D extends DeployerClass<C>> (
+    $D: D, ...args: ConstructorParameters<D>
+  ): Promise<C> {
+    return new Fadroma().enter($D, ...args)
   }
 
   constructor (options: Partial<Fadroma> = { config: new Config() }) {
     super(options as Partial<Deployer>)
     this.log.name  = this.projectName
-    this.config    = new Config(this.env, this.cwd, options.config)
+    this.config    = new Config(options?.config, this.env, this.cwd)
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
     this.addCommand('repl',   'interact with this project from a Node.js REPL',
@@ -60,6 +64,16 @@ export class Fadroma extends Deployer {
                     () => this.selectDeployment().then(()=>this.update()))
     this.addCommand('deploy', 'create a new deployment of this project',
                     () => this.deploy())
+  }
+
+  async enter <C extends Deployer, D extends DeployerClass<C>> (
+    $D: D, ...args: ConstructorParameters<D>
+  ): Promise<C> {
+    const config = new Config()
+    const deployer: C = await config.getDeployer($D)
+    deployer.builder   ??= config.build?.getBuilder()
+    deployer.workspace ??= process.cwd()
+    return deployer
   }
 
   /** Override this to set your project name. */
@@ -100,9 +114,11 @@ export class Fadroma extends Deployer {
 
 }
 
+Object.setPrototypeOf(Fadroma, BaseFadroma)
+
 /** Configuration for the Fadroma environment. */
 export class Config extends DeployConfig {
-  build = new BuilderConfig(this.env, this.cwd, { project: this.project })
+  build = new BuilderConfig({ project: this.project }, this.env, this.cwd)
 }
 
 /** Default export of command module. */

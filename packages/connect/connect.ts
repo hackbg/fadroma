@@ -26,6 +26,5 @@ export * as Devnet from '@fadroma/devnet'
 export async function connect (
   config: Partial<ConnectConfig> = new ConnectConfig()
 ): Promise<Connector> {
-  config = new ConnectConfig(undefined, undefined, config)
-  return await (config as ConnectConfig).getConnector()
+  return await new ConnectConfig(config).getConnector()
 }
