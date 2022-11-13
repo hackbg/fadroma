@@ -32,13 +32,13 @@ import repl from 'node:repl'
 import { createContext } from 'node:vm'
 
 export function Fadroma (this: any, options: Partial<Config> = {}) {
-  if (!(this instanceof BaseFadroma)) {
-    return new BaseFadroma({ config: new Config(options) })
+  if (!(this instanceof FadromaBase)) {
+    return new FadromaBase({ config: new Config(options) })
   }
 }
 
 /** Context for Fadroma commands. */
-const BaseFadroma = class Fadroma extends Deployer {
+export const FadromaBase = class Fadroma extends Deployer {
 
   /** @returns a function that runs a requested command. */
   //static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
@@ -46,10 +46,10 @@ const BaseFadroma = class Fadroma extends Deployer {
     //return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
   //}
 
-  static async enter <C extends Deployer, D extends DeployerClass<C>> (
+  static async setup <C extends Deployer, D extends DeployerClass<C>> (
     $D: D, ...args: ConstructorParameters<D>
   ): Promise<C> {
-    return new Fadroma().enter($D, ...args)
+    return new Fadroma().setup($D, ...args)
   }
 
   constructor (options: Partial<Fadroma> = { config: new Config() }) {
@@ -66,14 +66,10 @@ const BaseFadroma = class Fadroma extends Deployer {
                     () => this.deploy())
   }
 
-  async enter <C extends Deployer, D extends DeployerClass<C>> (
+  async setup <C extends Deployer, D extends DeployerClass<C>> (
     $D: D, ...args: ConstructorParameters<D>
   ): Promise<C> {
-    const config = new Config()
-    const deployer: C = await config.getDeployer($D)
-    deployer.builder   ??= config.build?.getBuilder()
-    deployer.workspace ??= process.cwd()
-    return deployer
+    return await this.config.getDeployer($D, ...args) as C
   }
 
   /** Override this to set your project name. */
@@ -114,7 +110,7 @@ const BaseFadroma = class Fadroma extends Deployer {
 
 }
 
-Object.setPrototypeOf(Fadroma, BaseFadroma)
+Object.setPrototypeOf(Fadroma, FadromaBase)
 
 /** Configuration for the Fadroma environment. */
 export class Config extends DeployConfig {
@@ -138,7 +134,5 @@ export { override } from '@fadroma/core'
 export type { Decimal, Overridable } from '@fadroma/core'
 export * from '@fadroma/build'
 export * from '@fadroma/deploy'
-export * from '@fadroma/devnet'
 export * from '@fadroma/connect'
-export * from '@fadroma/mocknet'
 export * from '@fadroma/tokens'

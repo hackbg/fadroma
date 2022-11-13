@@ -16,8 +16,7 @@ export type DeploymentState = Record<string, Partial<AnyContract>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
-  D,
-  ConstructorParameters<typeof Deployment>
+  D, ConstructorParameters<typeof Deployment>
 >{}
 
 export async function defineDeployment <D extends Deployment> (
