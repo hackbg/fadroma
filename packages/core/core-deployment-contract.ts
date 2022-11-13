@@ -27,7 +27,12 @@ export function defineDeploymentContractAPI <D extends Deployment> (
     if (name && this.contract.has(name)) {
       return this.contract.get(name)!.context! as Contract<C>
     } else {
-      const contract = defineContract({ ...opts, prefix: this.name, context: this })
+      const contract = defineContract({
+        workspace: this.config?.build?.project,
+        ...opts,
+        prefix:  this.name,
+        context: this
+      })
       this.contract.set(contract.name!, contract)
       return contract
     }

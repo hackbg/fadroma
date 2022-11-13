@@ -76,29 +76,33 @@ export class TokenManager extends CommandContext {
       })
   }
 
+  get config () { return this.context.config }
+
   /** See if this symbol is registered. */
   has (symbol: TokenSymbol): boolean {
     return Object.keys(this.tokens).includes(symbol)
   }
   /** Return token or throw */
-  get (symbol: TokenSymbol): Contract {
+  get (symbol: TokenSymbol): Contract<Snip20> {
     if (!this.has(symbol)) throw new Error(`No token "${symbol}"`)
     return this.tokens[symbol]
   }
-  add (symbol: TokenSymbol, token: Contract): Contract {
+  add (symbol: TokenSymbol, token: Contract<Snip20>): Contract<Snip20> {
     token = (token instanceof Contract) ? token : new Contract(token)
     token.name ??= symbol
     return this.tokens[symbol] = token
   }
   /** Define a Snip20 token, get/deploy it, and add it to the registry. */
-  define (symbol: TokenSymbol, options?: Partial<TokenOptions>): Contract {
+  define (symbol: TokenSymbol, options?: Partial<TokenOptions>): Contract<Snip20> {
     // If this token is already known, return it
     if (this.has(symbol)) return this.get(symbol)
     // Need a name to proceed. Defaults to symbol
     const name = options?.name ?? symbol
     if (!name) throw new Error('no name')
     // Define and register a contract; await it to deploy.
-    const instance = this.context.contract(this.template).define({
+    const workspace = this.config?.build?.project
+    const contractOptions = {
+      workspace,
       name,
       client:  Snip20,
       label:   writeLabel({ prefix: this.context.name, name }),
@@ -109,10 +113,10 @@ export class TokenManager extends CommandContext {
         options?.admin    ?? this.context.agent!.address!,
         options?.config
       ),
-      ...options
-    })
+    }
+    const instance = this.context.contract(this.template).define(contractOptions)
     this.context.contract.add(name, instance)
-    return this.add(symbol, instance as Contract)
+    return this.add(symbol, instance as Contract<Snip20>)
   }
   /** Define multiple Snip20 tokens, keyed by symbol. */
   defineMany (inputs: Record<TokenSymbol, Partial<TokenOptions>>): TokenSlots {

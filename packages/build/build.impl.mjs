@@ -148,6 +148,7 @@ function phase1 ({
 
     // Report which commit we're building and what it looks like
     run(`git log -1`)
+    run('pwd')
     run('ls -al')
     console.log()
 
@@ -200,6 +201,7 @@ function phase2 ({
   run(`rustc --version`)
   run(`wasm-opt --version`)
   run(`sha256sum --version | head -n1`)
+  run(`pwd`)
   run(`ls -al`)
   run(`ls -al /tmp/target`)
 

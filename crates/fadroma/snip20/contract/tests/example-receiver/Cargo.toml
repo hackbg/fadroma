@@ -30,11 +30,11 @@ overflow-checks = true
 default = []
 # for quicker tests, cargo test --lib
 # for more explicit tests, cargo test --features=backtraces
-backtraces = ["cosmwasm-std/backtraces"]
+backtraces = ["secret-cosmwasm-std/backtraces"]
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.4-debug-print" }
+secret-cosmwasm-std = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.4-debug-print" }
+secret-cosmwasm-storage = { git = "https://github.com/hackbg/SecretNetwork", tag = "v1.0.4-debug-print" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }

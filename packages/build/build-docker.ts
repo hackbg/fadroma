@@ -8,7 +8,7 @@ import { bold } from '@hackbg/konzola'
 import $, { Path, OpaqueDirectory } from '@hackbg/kabinet'
 
 import { Contract, HEAD } from '@fadroma/core'
-import type { Builder } from '@fadroma/core'
+import type { Builder, AnyContract } from '@fadroma/core'
 
 import { homedir } from 'node:os'
 
@@ -55,7 +55,7 @@ export class DockerBuilder extends LocalBuilder {
   }
 
   /** Build a Source into a Template. */
-  async build (contract: ContractSource): Promise<ContractSource> {
+  async build (contract: AnyContract): Promise<AnyContract> {
     const [result] = await this.buildMany([contract])
     return result
   }
@@ -64,7 +64,7 @@ export class DockerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (contracts: ContractSource[]): Promise<ContractSource[]> {
+  async buildMany (contracts: AnyContract[]): Promise<AnyContract[]> {
 
     const self      = this
     const roots     = new Set<string>()
@@ -87,7 +87,7 @@ export class DockerBuilder extends LocalBuilder {
 
     return contracts
 
-    function prebuildContract (contract: Contract) {
+    function prebuildContract (contract: AnyContract) {
       // Collect maximum length to align console output
       if (contract.crate && contract.crate.length > longestCrateName) {
         longestCrateName = contract.crate.length
@@ -169,7 +169,7 @@ export class DockerBuilder extends LocalBuilder {
     await simpleGit(gitDir.path).fetch(remote)
   }
 
-  protected prebuilt (contract: Contract): boolean {
+  protected prebuilt (contract: AnyContract): boolean {
     const { workspace, revision, crate } = contract
     if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
@@ -189,7 +189,7 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = this.outputDir.path
-  ): Promise<(Contract|null)[]> {
+  ): Promise<(AnyContract|null)[]> {
 
     // Default to building from working tree.
     revision ??= HEAD

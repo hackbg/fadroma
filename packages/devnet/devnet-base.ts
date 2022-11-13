@@ -102,11 +102,7 @@ export abstract class Devnet implements DevnetHandle {
   /** Which service does the API URL port correspond to. */
   portMode: DevnetPortMode
   /** The API URL that can be used to talk to the devnet. */
-  get url (): URL {
-    const url = `${this.protocol}://${this.host}:${this.port}`
-      console.log(this, url)
-    return new URL(url)
-  }
+  get url (): URL { return new URL(`${this.protocol}://${this.host}:${this.port}`) }
   /** This directory is created to remember the state of the devnet setup. */
   stateRoot: OpaqueDirectory
   /** List of genesis accounts that will be given an initial balance

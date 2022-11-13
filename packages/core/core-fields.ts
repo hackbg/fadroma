@@ -155,16 +155,18 @@ export function rebind (target: object, source: object): typeof target {
 export function defineDefault <T extends object, D extends object> (
   obj: T, defaults: D, name: keyof D
 ) {
-  Object.defineProperty(obj, name, {
-    enumerable: true,
-    get () {
-      return defaults[name]
-    },
-    set (v: D[keyof D]) {
-      Object.defineProperty(self, name, { enumerable: true, value: v })
-      return v
-    }
-  })
+  if (!obj[name as unknown as keyof T]) {
+    Object.defineProperty(obj, name, {
+      enumerable: true,
+      get () {
+        return defaults[name]
+      },
+      set (v: D[keyof D]) {
+        Object.defineProperty(obj, name, { enumerable: true, value: v })
+        return v
+      }
+    })
+  }
 }
 
 function map <T, U> (data: Array<T>, fn: (x:T)=>U): Array<U>
