@@ -69,6 +69,7 @@ export const FadromaBase = class Fadroma extends Deployer {
   async setup <C extends Deployer, D extends DeployerClass<C>> (
     $D: D, ...args: ConstructorParameters<D>
   ): Promise<C> {
+    args[0].builder ??= this.builder
     return await this.config.getDeployer($D, ...args) as C
   }
 

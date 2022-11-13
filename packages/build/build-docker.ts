@@ -171,7 +171,7 @@ export class DockerBuilder extends LocalBuilder {
 
   protected prebuilt (contract: Contract): boolean {
     const { workspace, revision, crate } = contract
-    if (!workspace) throw new Error("Workspace not set, can't build")
+    if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
       this.log.prebuilt(prebuilt)
