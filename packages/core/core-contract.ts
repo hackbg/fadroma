@@ -17,6 +17,7 @@ import { Client } from './core-client'
 import { ClientError as Error } from './core-events'
 import { writeLabel } from './core-labels'
 import { assertBuilder } from './core-build'
+import { upload } from './core-upload'
 
 export type DeployContract<C extends Client> =
   Contract<C> & (()=> Task<Contract<C>, C>)
