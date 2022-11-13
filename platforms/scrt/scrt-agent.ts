@@ -4,7 +4,7 @@ import type {
   Address, AgentClass, AgentOpts,
   BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message
 } from '@fadroma/core'
-import { Agent, ContractTemplate } from '@fadroma/core'
+import { Agent, Contract } from '@fadroma/core'
 import { Scrt } from './scrt'
 import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 import type { ScrtBundle } from './scrt-bundle'
@@ -147,7 +147,7 @@ export class ScrtAgent extends Agent {
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.getHash(Number(codeId))
     const chainId    = this.assertChain().id
-    const contract   = new ContractTemplate({
+    const contract   = new Contract({
       agent: this,
       codeHash,
       chainId,

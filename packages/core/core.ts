@@ -17,6 +17,7 @@ export * from './core-agent'
 export * from './core-bundle'
 
 export * from './core-tx'
+export * from './core-fee'
 export * from './core-code'
 export * from './core-labels'
 
