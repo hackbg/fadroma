@@ -1,4 +1,4 @@
-import { Bundle, ContractInstance, ClientConsole } from '@fadroma/core'
+import { Bundle, Contract, ClientConsole } from '@fadroma/core'
 import type { MocknetAgent } from './mocknet-agent'
 
 export class MocknetBundle extends Bundle {
@@ -13,7 +13,7 @@ export class MocknetBundle extends Bundle {
     for (const { init, exec } of this.msgs) {
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        results.push(await this.agent.instantiate(new ContractInstance({
+        results.push(await this.agent.instantiate(new Contract({
           codeId: String(codeId), initMsg: msg, codeHash, label,
         })))
       } else if (!!exec) {

@@ -7,7 +7,7 @@ import * as Dokeres from '@hackbg/dokeres'
 import { bold } from '@hackbg/konzola'
 import $, { Path, OpaqueDirectory } from '@hackbg/kabinet'
 
-import { ContractSource, ContractTemplate, HEAD } from '@fadroma/core'
+import { Contract, HEAD } from '@fadroma/core'
 import type { Builder } from '@fadroma/core'
 
 import { homedir } from 'node:os'
@@ -87,7 +87,7 @@ export class DockerBuilder extends LocalBuilder {
 
     return contracts
 
-    function prebuildContract (contract: ContractSource) {
+    function prebuildContract (contract: Contract) {
       // Collect maximum length to align console output
       if (contract.crate && contract.crate.length > longestCrateName) {
         longestCrateName = contract.crate.length
@@ -169,7 +169,7 @@ export class DockerBuilder extends LocalBuilder {
     await simpleGit(gitDir.path).fetch(remote)
   }
 
-  protected prebuilt (contract: ContractSource): boolean {
+  protected prebuilt (contract: Contract): boolean {
     const { workspace, revision, crate } = contract
     if (!workspace) throw new Error("Workspace not set, can't build")
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
@@ -189,7 +189,7 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = this.outputDir.path
-  ): Promise<(ContractSource|null)[]> {
+  ): Promise<(Contract|null)[]> {
 
     // Default to building from working tree.
     revision ??= HEAD
@@ -198,7 +198,7 @@ export class DockerBuilder extends LocalBuilder {
     $(outputDir).as(OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates:   (ContractTemplate|null)[] = crates.map(()=>null)
+    const templates: (AnyContract|null)[] = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
@@ -355,7 +355,7 @@ export class DockerBuilder extends LocalBuilder {
     if (location === null) return null
     const artifact = $(location).url
     const codeHash = this.hashPath(location)
-    return new ContractSource({ artifact, codeHash })
+    return new Contract({ artifact, codeHash })
   }
 
   get [Symbol.toStringTag]() { return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}` }

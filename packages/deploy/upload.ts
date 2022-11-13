@@ -1,7 +1,7 @@
 import { colors, bold } from '@hackbg/konzola'
 import { Task } from '@hackbg/komandi'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import { ContractSource, ContractTemplate, ClientConsole, Uploader, assertAgent } from '@fadroma/core'
+import { Contract, ClientConsole, Uploader, assertAgent } from '@fadroma/core'
 import type { Agent, CodeHash, CodeId, Uploadable } from '@fadroma/core'
 import { CustomConsole } from '@hackbg/konzola'
 
@@ -72,24 +72,24 @@ export class FSUploader extends Uploader {
     Object.assign(contract, { codeId, codeHash, uploadTx })
     // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
-      receipt.save((contract as ContractTemplate).asUploadReceipt)
+      receipt.save((contract as Contract).asUploadReceipt)
     }
     //await this.agent.nextBlock
     return contract as T & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
   }
 
-  getUploadReceiptName (contract: ContractTemplate): string {
+  getUploadReceiptName (contract: Contract): string {
     return `${$(contract.artifact!).name}.json`
   }
 
-  getUploadReceiptPath (contract: ContractTemplate): string {
+  getUploadReceiptPath (contract: Contract): string {
     const receiptName = `${this.getUploadReceiptName(contract)}`
     const receiptPath = this.cache!.resolve(receiptName)
     return receiptPath
   }
 
   /** Upload multiple contracts from the filesystem. */
-  async uploadMany (inputs: Array<ContractTemplate>): Promise<Array<ContractTemplate>> {
+  async uploadMany (inputs: Array<Contract>): Promise<Array<Contract>> {
 
     // TODO: Optionally bundle the upload messages in one transaction -
     //       this will only work if they add up to less than the max API request size
@@ -97,8 +97,8 @@ export class FSUploader extends Uploader {
 
     if (!this.cache) return this.uploadManySansCache(inputs)
 
-    const outputs:  ContractTemplate[] = []
-    const toUpload: ContractTemplate[] = []
+    const outputs:  Contract[] = []
+    const toUpload: Contract[] = []
 
     for (const i in inputs) {
 
@@ -154,7 +154,7 @@ export class FSUploader extends Uploader {
       const uploaded = await this.uploadManySansCache(toUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
-        const template = new ContractTemplate(uploaded[i])
+        const template = new Contract(uploaded[i])
         $(this.cache, this.getUploadReceiptName(toUpload[i]))
           .as(UploadReceipt).save(template.asUploadReceipt)
         outputs[i] = template
@@ -166,9 +166,9 @@ export class FSUploader extends Uploader {
   }
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
-  async uploadManySansCache (inputs: Array<ContractTemplate>): Promise<Array<ContractTemplate>> {
+  async uploadManySansCache (inputs: Array<Contract>): Promise<Array<Contract>> {
     const agent = assertAgent(this)
-    const outputs: Array<ContractTemplate> = []
+    const outputs: Array<Contract> = []
     for (const i in inputs) {
       const input = inputs[i]
       if (input?.artifact) {
@@ -185,7 +185,7 @@ export class FSUploader extends Uploader {
     return outputs
   }
 
-  private ensureLocalCodeHash (input: ContractTemplate): ContractTemplate {
+  private ensureLocalCodeHash (input: Contract): Contract {
     if (!input.codeHash) {
       const artifact = $(input.artifact!)
       this.log.warn('No code hash in artifact', bold(artifact.shortPath))
@@ -206,7 +206,7 @@ export class FSUploader extends Uploader {
 
   /** Panic if the code hash returned by the upload
     * doesn't match the one specified in the Contract. */
-  private checkLocalCodeHash (input: ContractTemplate, output: ContractTemplate) {
+  private checkLocalCodeHash (input: Contract, output: Contract) {
     if (input.codeHash !== output.codeHash) {
       throw new Error(`
         The upload transaction ${output.uploadTx}
@@ -230,7 +230,7 @@ export class UploadReceipt extends JSONFile<UploadReceiptFormat> {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
-    return new ContractTemplate({ artifact, codeHash, chainId, codeId, uploadTx })
+    return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
   }
 }
 

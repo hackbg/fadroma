@@ -14,7 +14,7 @@ export function attachToDeployment <
 ): T {
 
   self.context = context
-  defineDefault(self, context, 'log')
+  //defineDefault(self, context, 'log')
   defineDefault(self, context, 'agent')
   defineDefault(self, context, 'builder')
   defineDefault(self, context, 'uploader')

@@ -1,4 +1,5 @@
 import type { Task } from '@hackbg/komandi'
+import type { Into } from './core-fields'
 import type { ClientClass } from './core-client'
 import type { Builder } from './core-build'
 import type { Uploader } from './core-upload'
@@ -15,6 +16,7 @@ import { rebind, override, Maybe, defineTask, into, map } from './core-fields'
 import { Client } from './core-client'
 import { ClientError as Error } from './core-events'
 import { writeLabel } from './core-labels'
+import { assertBuilder } from './core-build'
 
 export type DeployContract<C extends Client> =
   Contract<C> & (()=> Task<Contract<C>, C>)
@@ -42,7 +44,9 @@ export function defineContract <C extends Client> (
 
     // If there is a deployment, look for the contract in it
     if (options.context && options.name && options.context.contract.has(options.name)) {
-      return (options.client ?? Client).fromContract(new Contract(options.context.contract.get(options.name)))
+      return (options.client ?? Client).fromContract(
+        new Contract(options.context.contract.get(options.name))
+      )
     }
 
     // The contract object that we'll be using
@@ -149,12 +153,14 @@ export class Contract<C extends Client> {
   /** Compile the source using the selected builder.
     * @returns this */
   build (builder?: Builder): Task<this, this> {
-    return this.task(`compile ${this.crate ?? 'contract'}`, async () => {
+    const name = `compile ${this.crate ?? 'contract'}`
+    return defineTask(name, buildContract, this)
+    async function buildContract (this: Contract<C>) {
       builder ??= assertBuilder(this)
       const result = await builder!.build(this as Buildable)
       this.define(result as Partial<this>)
       return this
-    })
+    }
   }
 
   /** One-shot deployment task. */
@@ -168,11 +174,13 @@ export class Contract<C extends Client> {
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
   upload (uploader?: Uploader): Task<this, this> {
-    return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
+    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
+    return defineTask(name, uploadContract, this)
+    async function uploadContract (this: Contract<C>) {
       await this.compiled
       const result = await upload(this as Uploadable, uploader, uploader?.agent)
       return this.define(result as Partial<this>)
-    })
+    }
   }
 
   /** One-shot deployment task. */

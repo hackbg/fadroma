@@ -1,4 +1,4 @@
-import { into, ContractInstance } from '@fadroma/core'
+import { into, Contract } from '@fadroma/core'
 import type { Address, Client, CodeId, CodeHash, Label, Message } from '@fadroma/core'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { bold } from '@hackbg/konzola'
@@ -57,8 +57,8 @@ export class MocknetBackend {
 
   async instantiate (
     sender:   Address,
-    instance: ContractInstance<any>
-  ): Promise<Partial<ContractInstance<any>>> {
+    instance: Contract<any>
+  ): Promise<Partial<Contract<any>>> {
     const label    = instance.label
     const initMsg  = await into(instance.initMsg)
     const chainId  = this.chainId
@@ -132,7 +132,7 @@ export class MocknetBackend {
       const { instantiate, execute } = wasm
       if (instantiate) {
         const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
-        const instance = await this.instantiate(sender, new ContractInstance({
+        const instance = await this.instantiate(sender, new Contract({
           codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
         }))
         this.log.trace(

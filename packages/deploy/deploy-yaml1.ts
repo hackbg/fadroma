@@ -8,7 +8,7 @@ import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
 } from '@hackbg/kabinet'
 import {
-  Agent, ContractInstance, Client, Deployment, DeployStore
+  Agent, Contract, Client, Deployment, DeployStore
 } from '@fadroma/core'
 import {
   DeployConsole, DeployError, log
@@ -88,9 +88,9 @@ export class YAMLDeployments_v1 extends DeployStore {
     if (!file.exists()) return null
     name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })
-    for (const receipt of file.as(YAMLFile).loadAll() as Partial<ContractInstance>[]) {
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<Contract>[]) {
       if (!receipt.name) continue
-      deployment.state[receipt.name] = new ContractInstance(receipt)
+      deployment.state[receipt.name] = new Contract(receipt)
     }
     return deployment
   }
@@ -106,7 +106,7 @@ export class YAMLDeployments_v1 extends DeployStore {
     }
   }
 
-  set (name: string, state: Record<string, Partial<ContractInstance>> = {}) {
+  set (name: string, state: Record<string, Partial<Contract>> = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
@@ -115,7 +115,7 @@ export class YAMLDeployments_v1 extends DeployStore {
       output += '---\n'
       name ??= data.name!
       if (!name) throw new Error('Deployment: no name')
-      const receipt = new ContractInstance(data as Partial<ContractInstance>).asReceipt
+      const receipt = new Contract(data as Partial<Contract>).asReceipt
       data = JSON.parse(JSON.stringify({
         name,
         label:    receipt.label,
