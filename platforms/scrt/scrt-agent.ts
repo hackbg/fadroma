@@ -130,9 +130,9 @@ export class ScrtAgent extends Agent {
   }
 
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
-    const { address: contractAddress, codeHash } = instance
-    const args = { contractAddress, codeHash, query: query as Record<string, unknown> }
-    // @ts-ignore
+    const { address: contract_address, codeHash: code_hash } = instance
+    if (!contract_address) throw new Error.NoAddress()
+    const args = { contract_address, code_hash, query: query as Record<string, unknown> }
     return await this.api.query.compute.queryContract(args) as U
   }
 
