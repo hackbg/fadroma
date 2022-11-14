@@ -1,0 +1,1 @@
+import{_ as e,c as a,o as t}from"./app.3eaf65bf.js";const i=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"packages/schema/TODO.md","lastUpdated":1668437228000}'),s={name:"packages/schema/TODO.md"};function c(r,o,n,p,d,_){return t(),a("div")}const f=e(s,[["render",c]]);export{i as __pageData,f as default};
