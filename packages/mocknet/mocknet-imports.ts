@@ -46,9 +46,7 @@ export interface ContractImports_CW1 {
 /** The API that a contract expects. */
 export type ContractImports = ContractImports_CW0 | ContractImports_CW1
 
-export function makeImports (
-  contract: MocknetContract<any, any>
-): ContractImports_Base & { getExports: Function } {
+export function makeImports (contract: MocknetContract): ContractImports_Base & { getExports: Function } {
 
   const log = contract.log
 
@@ -136,7 +134,7 @@ export function makeImports (
 
 }
 
-export function makeImports_CW0 (contract: MocknetContract<ContractImports_CW0, any>) {
+export function makeImports_CW0 (contract: MocknetContract) {
 
   const log = contract.log
 
@@ -170,7 +168,7 @@ export function makeImports_CW0 (contract: MocknetContract<ContractImports_CW0, 
 
 }
 
-export function makeImports_CW1 (contract: MocknetContract<ContractImports_CW1, any>) {
+export function makeImports_CW1 (contract: MocknetContract) {
 
   const log = contract.log
 

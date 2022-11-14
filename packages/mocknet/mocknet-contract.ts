@@ -29,7 +29,9 @@ declare namespace WebAssembly {
 
 export type CW = '0.x' | '1.x'
 
-export abstract class MocknetContract<I extends ContractImports, E extends ContractExports> {
+export type MocknetContract = MocknetContract_CW0|MocknetContract_CW1
+
+export abstract class BaseMocknetContract<I extends ContractImports, E extends ContractExports> {
 
   log = new ClientConsole('Fadroma Mocknet')
 
@@ -38,10 +40,10 @@ export abstract class MocknetContract<I extends ContractImports, E extends Contr
   storage = new Map<string, Buffer>()
 
   constructor (
-    readonly backend:   MocknetBackend|null = null,
-    readonly address:   Address     = randomBech32(ADDRESS_PREFIX),
+    readonly backend: MocknetBackend|null = null,
+    readonly address: Address = randomBech32(ADDRESS_PREFIX),
     readonly codeHash?: CodeHash,
-    readonly codeId?:   CodeId,
+    readonly codeId?: CodeId,
   ) {
     this.log.trace('Instantiating', bold(address))
   }
@@ -111,7 +113,10 @@ export abstract class MocknetContract<I extends ContractImports, E extends Contr
 
 }
 
-export class MocknetContract_CW0 extends MocknetContract<ContractImports_CW0, ContractExports_CW0> {
+export class MocknetContract_CW0 extends BaseMocknetContract<
+  ContractImports_CW0,
+  ContractExports_CW0
+> {
 
   get initMethod () {
     return this.instance!.exports.init
@@ -143,7 +148,10 @@ export class MocknetContract_CW0 extends MocknetContract<ContractImports_CW0, Co
 
 }
 
-export class MocknetContract_CW1 extends MocknetContract<ContractImports_CW1, ContractExports_CW1> {
+export class MocknetContract_CW1 extends BaseMocknetContract<
+  ContractImports_CW1,
+  ContractExports_CW1
+> {
 
   get initMethod () {
     return this.instance!.exports.instantiate

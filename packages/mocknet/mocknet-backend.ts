@@ -1,17 +1,27 @@
 import { into, Contract } from '@fadroma/core'
-import type { Address, Client, CodeId, CodeHash, Label, Message } from '@fadroma/core'
+import type { Address, Client, CodeId, CodeHash, Label, Message, AnyContract } from '@fadroma/core'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { bold } from '@hackbg/konzola'
 import type { MocknetContract } from './mocknet-contract'
 import { parseResult, b64toUtf8, codeHashForBlob } from './mocknet-data'
 import { MocknetConsole, MocknetError } from './mocknet-events'
 
-/** Hosts MocknetContract instances. */
-export class MocknetBackend {
-  /** Hosts an instance of a WASM code blob and its local storage. */
-  static Contract: typeof MocknetContract
+import type { MocknetContract_CW0, MocknetContract_CW1 } from './mocknet-contract'
+import type { ContractImports_CW0, ContractImports_CW1 } from './mocknet-imports'
+import type { ContractExports_CW0, ContractExports_CW1 } from './mocknet-exports'
+import { makeContext_CW0, makeContext_CW1 } from './mocknet-exports'
+
+export abstract class MocknetBackend {
 
   log = new MocknetConsole('Fadroma.Mocknet')
+
+  codeId = 0
+
+  codeIdForCodeHash: Record<CodeHash, CodeId> = {}
+
+  codeIdForAddress: Record<Address, CodeId> = {}
+
+  labelForAddress: Record<Address, Label> = {}
 
   constructor (
     readonly chainId:   string,
@@ -24,14 +34,6 @@ export class MocknetBackend {
       this.codeId = (Math.max(...Object.keys(uploads).map(x=>Number(x))) ?? 0) + 1
     }
   }
-
-  codeId = 0
-
-  codeIdForCodeHash: Record<CodeHash, CodeId> = {}
-
-  codeIdForAddress:  Record<Address,  CodeId> = {}
-
-  labelForAddress:   Record<Address,  Label>  = {}
 
   getCode (codeId: CodeId) {
     const code = this.uploads[codeId]
@@ -55,15 +57,18 @@ export class MocknetBackend {
     return instance
   }
 
+  abstract context (...args: unknown[]): unknown[]
+
   async instantiate (
     sender:   Address,
-    instance: Contract<any>
-  ): Promise<Partial<Contract<any>>> {
+    instance: AnyContract
+  ): Promise<Partial<AnyContract>> {
     const label    = instance.label
     const initMsg  = await into(instance.initMsg)
     const chainId  = this.chainId
     const code     = this.getCode(instance.codeId!)
-    const contract = await new MocknetBackend.Contract(this).load(code, instance.codeId)
+    const Contract = (this.constructor as any).Contract
+    const contract = await new Contract(this).load(code, instance.codeId)
     const context  = this.context(sender, contract.address, instance.codeHash)
     const response = contract.init(...context, initMsg!)
     const initResponse = parseResult(response, 'instantiate', contract.address)
@@ -96,24 +101,6 @@ export class MocknetBackend {
     }
     await this.passCallbacks(address, response.messages)
     return response
-  }
-
-  /** Populate the `Env` and `Info` object available in transactions. */
-  context (
-    sender:   Address,
-    address?: Address,
-    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
-    now:      number             = + new Date()
-  ): [unknown, unknown] {
-    if (!address) throw new MocknetError.ContextNoAddress()
-    const height   = Math.floor(now/5000)
-    const time     = String(Math.floor(now/1000))
-    const chain_id = this.chainId
-    const sent_funds: any[] = []
-    //const env  = {block:{height:0,time:"0"}}
-    const env  = { block: { height, time, chain_id }, transaction: { index: 0 }, contract: { address } }
-    const info = { sender, funds: [] }
-    return [env, info]
   }
 
   async passCallbacks (sender: Address|undefined, messages: Array<any>) {
@@ -167,4 +154,32 @@ export class MocknetBackend {
     return JSON.parse(result)
   }
 
+}
+
+export class MocknetBackend_CW0 extends MocknetBackend {
+  /** Contract host class for CW0. */
+  static Contract: typeof MocknetContract_CW0
+
+  context (
+    sender:   Address,
+    address?: Address,
+    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
+    now:      number             = + new Date()
+  ): [unknown] {
+    return makeContext_CW0(this.chainId, sender, address, codeHash, now)
+  }
+}
+
+export class MocknetBackend_CW1 extends MocknetBackend {
+  /** Contract host class for CW1. */
+  static Contract: typeof MocknetContract_CW1
+
+  context (
+    sender:   Address,
+    address?: Address,
+    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
+    now:      number             = + new Date()
+  ): [unknown, unknown] {
+    return makeContext_CW1(this.chainId, sender, address, codeHash, now)
+  }
 }

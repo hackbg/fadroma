@@ -9,7 +9,8 @@ import { ConnectConfig } from './connect-config'
 /** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
 Object.assign(Chain.variants as ChainRegistry, {
   // Support for Mocknet
-  Mocknet:     async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
+  Mocknet_CW0: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
+  Mocknet_CW1: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
   // Support for Secret Network
   ScrtMainnet: Scrt.Mainnet,
   ScrtTestnet: Scrt.Testnet,

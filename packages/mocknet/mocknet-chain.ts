@@ -3,10 +3,12 @@ import type {
   Address, AgentClass, AgentOpts, Client, CodeHash, Message, Uint128
 } from '@fadroma/core'
 import { MocknetAgent } from './mocknet-agent'
-import { MocknetBackend } from './mocknet-backend'
+
+import type { MocknetBackend } from './mocknet-backend'
+import { MocknetBackend_CW0, MocknetBackend_CW1 } from './mocknet-backend'
 
 /** Chain instance containing a local MocknetBackend. */
-export class Mocknet extends Chain {
+export abstract class BaseMocknet extends Chain {
   /** Agent instance calling its Chain's Mocknet backend. */
   static Agent: AgentClass<MocknetAgent> // populated below
 
@@ -14,7 +16,7 @@ export class Mocknet extends Chain {
     super(id, { ...options, mode: ChainMode.Mocknet })
   }
 
-  Agent: AgentClass<MocknetAgent> = Mocknet.Agent
+  Agent: AgentClass<MocknetAgent> = BaseMocknet.Agent
 
   defaultDenom = 'umock'
 
@@ -22,7 +24,7 @@ export class Mocknet extends Chain {
   balances: Record<Address, Uint128> = {}
 
   /** Simulation of Compute module. */
-  backend = new MocknetBackend(this.id)
+  abstract backend: MocknetBackend
 
   async getAgent <A> (options: AgentOpts): Promise<A> {
     return new MocknetAgent({ ...options, chain: this }) as unknown as A
@@ -55,3 +57,13 @@ export class Mocknet extends Chain {
   }
 
 }
+
+export class Mocknet_CW0 extends BaseMocknet {
+  backend = new MocknetBackend_CW0(this.id)
+}
+
+export class Mocknet_CW1 extends BaseMocknet {
+  backend = new MocknetBackend_CW1(this.id)
+}
+
+export type Mocknet = Mocknet_CW0|Mocknet_CW1

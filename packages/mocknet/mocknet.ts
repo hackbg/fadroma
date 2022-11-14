@@ -1,25 +1,21 @@
-import { MocknetBackend } from './mocknet-backend'
-import { MocknetContract } from './mocknet-contract'
-import { Mocknet } from './mocknet-chain'
+import { MocknetBackend_CW0 } from './mocknet-backend'
+import { MocknetContract_CW0 } from './mocknet-contract'
+Object.assign(MocknetBackend_CW0, { Contract: MocknetContract_CW0 })
+
+import { MocknetBackend_CW1 } from './mocknet-backend'
+import { MocknetContract_CW1 } from './mocknet-contract'
+Object.assign(MocknetBackend_CW1, { Contract: MocknetContract_CW1 })
+
+export * from './mocknet-backend'
+export * from './mocknet-contract'
+
 import { MocknetAgent } from './mocknet-agent'
 import { MocknetBundle } from './mocknet-bundle'
-import { ADDRESS_PREFIX } from './mocknet-data'
+import { BaseMocknet } from './mocknet-chain'
+Object.assign(BaseMocknet, { Agent: Object.assign(MocknetAgent, { Bundle: MocknetBundle }) })
 
-Object.assign(Mocknet, {
-  Agent: Object.assign(MocknetAgent, {
-    Bundle: MocknetBundle
-  })
-})
+export * from './mocknet-chain'
+export * from './mocknet-agent'
+export * from './mocknet-bundle'
 
-Object.assign(MocknetBackend, {
-  Contract: MocknetContract
-})
-
-export {
-  ADDRESS_PREFIX,
-  Mocknet,
-  MocknetAgent,
-  MocknetBundle,
-  MocknetBackend,
-  MocknetContract
-}
+export { ADDRESS_PREFIX } from './mocknet-data'
