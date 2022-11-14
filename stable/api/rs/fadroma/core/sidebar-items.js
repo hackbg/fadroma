@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":[["Canonize",""]],"mod":[["addr","`HumanAddr`<->`CanonicalAddr` conversion"]],"struct":[["Callback","Info needed to have the other contract respond."],["ContractInstantiationInfo","Info needed to instantiate a contract."],["ContractLink","Info needed to talk to a contract instance."]],"type":[["CodeHash",""],["CodeId",""]]};

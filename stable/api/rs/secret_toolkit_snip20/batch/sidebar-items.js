@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["BurnFromAction",""],["MintAction",""],["SendAction",""],["SendFromAction",""],["TransferAction",""],["TransferFromAction",""]]};

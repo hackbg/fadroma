@@ -1,0 +1,116 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Details about the output of the `Snafu` macro"><meta name="keywords" content="rust, rustlang, rust-lang, the_macro"><title>snafu::guide::the_macro - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../snafu/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../snafu/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"><a href="#">Module the_macro</a></h2><div class="sidebar-elems"></div></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../snafu/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="main-heading"><h1 class="fqn"><span class="in-band">Module <a href="../../index.html">snafu</a>::<wbr><a href="../index.html">guide</a>::<wbr><a class="mod" href="#">the_macro</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span></h1><span class="out-of-band"><a class="srclink" href="../../../src/snafu/lib.rs.html#149-166">source</a> · <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span></div><details class="rustdoc-toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="details-about-the-output-of-the-snafu-macro"><a href="#details-about-the-output-of-the-snafu-macro">Details about the output of the <code>Snafu</code> macro</a></h2>
+<p>This procedural macro:</p>
+<ul>
+<li>produces the corresponding context selectors</li>
+<li>implements the <a href="https://doc.rust-lang.org/1.65.0/core/error/trait.Error.html"><code>Error</code></a> trait</li>
+<li>implements the <a href="https://doc.rust-lang.org/1.65.0/core/fmt/trait.Display.html"><code>Display</code></a> trait</li>
+<li>implements the <a href="../../trait.ErrorCompat.html"><code>ErrorCompat</code></a> trait</li>
+</ul>
+<h3 id="detailed-example"><a href="#detailed-example">Detailed example</a></h3>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>snafu::{Backtrace, Snafu};
+<span class="kw">use </span>std::path::PathBuf;
+
+<span class="attribute">#[derive(Debug, Snafu)]
+</span><span class="kw">enum </span>Error {
+    <span class="attribute">#[snafu(display(<span class="string">&quot;Could not open config at {}: {}&quot;</span>, filename.display(), source))]
+    </span>OpenConfig {
+        filename: PathBuf,
+        source: std::io::Error,
+    },
+    <span class="attribute">#[snafu(display(<span class="string">&quot;Could not open config: {}&quot;</span>, <span class="string">&quot;source&quot;</span>))]
+    </span>SaveConfig { source: std::io::Error },
+    <span class="attribute">#[snafu(display(<span class="string">&quot;The user id {} is invalid&quot;</span>, user_id))]
+    </span>UserIdInvalid { user_id: i32, backtrace: Backtrace },
+}</code></pre></div>
+<h4 id="generated-code"><a href="#generated-code">Generated code</a></h4><div style="background: #ffffd0; padding: 0.6em; margin-bottom: 0.6em;">
+<p><strong>Note</strong> — The actual generated code may differ in exact names and
+details. This section is only intended to provide general
+guidance.</p>
+</div>
+<h5 id="context-selectors"><a href="#context-selectors">Context selectors</a></h5>
+<p>This will generate three additional types called <em>context
+selectors</em>:</p>
+
+<div class="example-wrap ignore"><div class='tooltip'>ⓘ</div><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>OpenConfig&lt;P&gt; { filename: P }
+<span class="kw">struct </span>SaveConfig&lt;P&gt;;
+<span class="kw">struct </span>UserIdInvalid&lt;I&gt; { user_id: I }</code></pre></div>
+<p>Notably:</p>
+<ol>
+<li>One context selector is created for each enum variant.</li>
+<li>The name of the selector is the same as the enum variant’s name.</li>
+<li>The <code>source</code> and <code>backtrace</code> fields have been removed; the
+library will automatically handle this for you.</li>
+<li>Each remaining field’s type has been replaced with a generic
+type.</li>
+<li>If there are no fields remaining for the user to specify, the
+selector will not require curly braces.</li>
+</ol>
+<p>If the original variant had a <code>source</code> field, its context selector
+will have an implementation of <a href="../../trait.IntoError.html"><code>IntoError</code></a>:</p>
+
+<div class="example-wrap ignore"><div class='tooltip'>ⓘ</div><pre class="rust rust-example-rendered"><code><span class="kw">impl</span>&lt;P&gt; IntoError&lt;Error&gt; <span class="kw">for </span>OpenConfig&lt;P&gt;
+<span class="kw">where
+    </span>P: Into&lt;PathBuf&gt;,</code></pre></div>
+<p>Otherwise, the context selector will have the inherent methods <code>build</code>
+and <code>fail</code> and can be used with the <a href="ensure"><code>ensure</code></a> macro:</p>
+
+<div class="example-wrap ignore"><div class='tooltip'>ⓘ</div><pre class="rust rust-example-rendered"><code><span class="kw">impl</span>&lt;I&gt; UserIdInvalid&lt;I&gt;
+<span class="kw">where
+    </span>I: Into&lt;i32&gt;,
+{
+    <span class="kw">fn </span>build(<span class="self">self</span>) -&gt; Error { <span class="comment">/* ... */ </span>}
+
+    <span class="kw">fn </span>fail&lt;T&gt;(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;T, Error&gt; { <span class="comment">/* ... */ </span>}
+}</code></pre></div>
+<p>If the original variant had a <code>backtrace</code> field, the backtrace
+will be automatically constructed when either <code>IntoError</code> or
+<code>build</code>/<code>fail</code> are called.</p>
+<h5 id="error"><a href="#error"><code>Error</code></a></h5>
+<p><a href="https://doc.rust-lang.org/1.65.0/core/error/trait.Error.html#method.source"><code>Error::source</code></a> will return the underlying error, if
+there is one:</p>
+
+<div class="example-wrap ignore"><div class='tooltip'>ⓘ</div><pre class="rust rust-example-rendered"><code><span class="kw">impl </span>std::error::Error <span class="kw">for </span>Error {
+    <span class="kw">fn </span>source(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>(<span class="kw">dyn </span>Error + <span class="lifetime">&#39;static</span>)&gt; {
+        <span class="kw">match </span><span class="self">self </span>{
+            Error::OpenConfig { source, .. } =&gt; <span class="prelude-val">Some</span>(source),
+            Error::SaveConfig { source, .. } =&gt; <span class="prelude-val">Some</span>(source),
+            Error::UserIdInvalid { .. } =&gt; <span class="prelude-val">None</span>,
+        }
+    }
+}</code></pre></div>
+<p><a href="https://doc.rust-lang.org/1.65.0/core/error/trait.Error.html#method.cause"><code>Error::cause</code></a> will return the same as <code>source</code>. As
+<a href="https://doc.rust-lang.org/1.65.0/core/error/trait.Error.html#method.description"><code>Error::description</code></a> is soft-deprecated, it will
+return a string matching the name of the variant.</p>
+<h5 id="display"><a href="#display"><code>Display</code></a></h5>
+<p>Every field of the enum variant is made available to the format
+string, even if they are not used:</p>
+
+<div class="example-wrap ignore"><div class='tooltip'>ⓘ</div><pre class="rust rust-example-rendered"><code><span class="kw">impl </span>std::fmt::Display <span class="kw">for </span>Error {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter ) -&gt; fmt::Result {
+        <span class="kw">match </span><span class="self">self </span>{
+            Error::OpenConfig { filename, source } =&gt;
+                <span class="macro">write!</span>(f, <span class="string">&quot;Could not open config at {}: {}&quot;</span>, filename.display(), source),
+            Error::SaveConfig { source } =&gt;
+                <span class="macro">write!</span>(f, <span class="string">&quot;Could not open config: {}&quot;</span>, source),
+            Error::UserIdInvalid { user_id, backtrace } =&gt;
+                <span class="macro">write!</span>(f, <span class="string">&quot;The user id {} is invalid&quot;</span>, user_id),
+        }
+    }
+}</code></pre></div>
+<p>If no display format is specified, the variant’s name will be used
+by default. If the field is an underlying error, that error’s
+<code>Display</code> implementation will also be included.</p>
+<h5 id="errorcompat"><a href="#errorcompat"><code>ErrorCompat</code></a></h5>
+<p>Every variant that carries a backtrace will return a reference to
+that backtrace.</p>
+
+<div class="example-wrap ignore"><div class='tooltip'>ⓘ</div><pre class="rust rust-example-rendered"><code><span class="kw">impl </span>snafu::ErrorCompat <span class="kw">for </span>Error {
+    <span class="kw">fn </span>backtrace(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
+        <span class="kw">match </span><span class="self">self </span>{
+            Error::OpenConfig { .. } =&gt; <span class="prelude-val">None</span>,
+            Error::SaveConfig { .. } =&gt; <span class="prelude-val">None</span>,
+            Error::UserIdInvalid { backtrace, .. } =&gt; <span class="prelude-val">Some</span>(backtrace),
+        }
+    }
+}</code></pre></div>
+</div></details></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="snafu" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
