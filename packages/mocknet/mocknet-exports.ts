@@ -24,7 +24,7 @@ export type ContractExports = ContractExports_CW0 | ContractExports_CW1
 
 function makeContext_Base (now: number = + new Date()) {
   const height = Math.floor(now/5000)
-  const time = String(Math.floor(now/1000))
+  const time = Math.floor(now/1000)
   const sent_funds: any[] = []
   return { height, time, sent_funds }
 }
@@ -39,8 +39,6 @@ export function makeContext_CW0 (
 ): [unknown] {
   if (!address) throw new MocknetError.ContextNoAddress()
   const { height, time, sent_funds } = makeContext_Base()
-  const env  = { block: { height, time, chain_id }, transaction: { index: 0 }, contract: { address } }
-  const info = { sender, funds: [] }
   return [{
     block:    { height, time, chain_id },
     message:  { sender, sent_funds },
@@ -60,7 +58,11 @@ export function makeContext_CW1 (
 ): [unknown, unknown] {
   if (!address) throw new MocknetError.ContextNoAddress()
   const { height, time, sent_funds } = makeContext_Base()
-  const env  = { block: { height, time, chain_id }, transaction: { index: 0 }, contract: { address } }
-  const info = { sender, funds: [] }
-  return [env, info]
+  return [{
+    block:       { height, time: String(time), chain_id },
+    transaction: { index: 0 },
+    contract:    { address }
+  }, {
+    sender, funds: []
+  }]
 }
