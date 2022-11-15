@@ -37,16 +37,16 @@ export function defineContract <C extends Client> (
     // Parse options
     let options = { ...baseOptions }
     if (typeof args[0] === 'string') {
-      const [name, initMsg] = args
-      options = { ...options, name, initMsg }
+      const [id, initMsg] = args
+      options = { ...options, id, initMsg }
     } else if (typeof args[0] === 'object') {
       options = { ...options, ...args[0] }
     }
 
     // If there is a deployment, look for the contract in it
-    if (options.context && options.name && options.context.contract.has(options.name)) {
+    if (options.context && options.id && options.context.contract.has(options.id)) {
       return (options.client ?? Client).fromContract(
-        new Contract(options.context.contract.get(options.name))
+        new Contract(options.context.contract.get(options.id))
       )
     }
 
@@ -123,11 +123,11 @@ export class Contract<C extends Client> {
     * Identifies which Deployment the instance belongs to, if any.
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
   prefix?:     Name          = undefined
-  /** Proper name of the instance.
+  /** Proper name of the instance. Unique within the deployment.
     * If the instance is not part of a Deployment, this is equal to the label.
     * If the instance is part of a Deployment, this is used as storage key.
     * You are encouraged to store application-specific versioning info in this field. */
-  name?:       Name          = undefined
+  id?:         Name          = undefined
   /** Deduplication suffix.
     * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
     * This field has sometimes been used to redeploy an new instance
@@ -189,7 +189,7 @@ export class Contract<C extends Client> {
   /** One-shot deployment task. */
   get deployed (): Task<Contract<C>, C> {
     if (this.address) {
-      this.log?.foundDeployedContract(this.address, this.name)
+      this.log?.foundDeployedContract(this.address, this.id)
       return Promise.resolve((this.client ?? Client).fromContract(this) as C)
     }
     const deploying = this.deploy()
@@ -200,21 +200,21 @@ export class Contract<C extends Client> {
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<Contract<C>, C> {
-    return defineTask(`deploy ${this.name ?? 'contract'}`, deployContract, this)
+    return defineTask(`deploy ${this.id ?? 'contract'}`, deployContract, this)
     async function deployContract (this: Contract<C>) {
-      if (!this.agent)   throw new Error.NoAgent(this.name)
-      if (!this.name)    throw new Error.NoName(this.name)
+      if (!this.agent)   throw new Error.NoAgent(this.id)
+      if (!this.id)      throw new Error.NoName(this.id)
       this.label = writeLabel(this)
-      if (!this.label)   throw new Error.NoInitLabel(this.name)
-      if (!this.initMsg) throw new Error.NoInitMessage(this.name)
+      if (!this.label)   throw new Error.NoInitLabel(this.id)
+      if (!this.initMsg) throw new Error.NoInitMessage(this.id)
       await this.uploaded
-      if (!this.codeId)  throw new Error.NoInitCodeId(this.name)
+      if (!this.codeId)  throw new Error.NoInitCodeId(this.id)
       this.initMsg ??= await into(initMsg) as Message
       this.log?.beforeDeploy(this, this.label!)
       const contract = await this.agent!.instantiate(this)
       this.define(contract as Partial<this>)
       this.log?.afterDeploy(this as Partial<Contract<C>>)
-      if (this.context) this.context.contract.add(this.name!, contract)
+      if (this.context) this.context.contract.add(this.id!, contract)
       return (this.client ?? Client).fromContract(this)
     }
   }

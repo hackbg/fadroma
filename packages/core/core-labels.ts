@@ -18,9 +18,9 @@ export type ArrayOrNamed<T> = Array<T>|Named<T>
 /** A contract name with optional prefix and suffix, implementing namespacing
   * for append-only platforms where labels have to be globally unique. */
 export interface StructuredLabel {
-  label?:  Label,
-  name?:   Name,
-  prefix?: Name,
+  label?:  Label
+  id?:     Name
+  prefix?: Name
   suffix?: Name
 }
 
@@ -33,26 +33,26 @@ export async function fetchLabel <C extends AnyContract> (
 ): Promise<C & { label: Label }> {
   const label = await agent.getLabel(assertAddress(contract))
   if (!!expected) validated('label', expected, label)
-  const { name, prefix, suffix } = parseLabel(label)
-  return Object.assign(contract, { label, name, prefix, suffix })
+  const { id, prefix, suffix } = parseLabel(label)
+  return Object.assign(contract, { label, id, prefix, suffix })
 }
 
 /** RegExp for parsing labels of the format `prefix/name+suffix` */
-export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
+export const RE_LABEL = /((?<prefix>.+)\/)?(?<id>[^+]+)(\+(?<suffix>.+))?/
 
-/** Parse a label into prefix, name, and suffix. */
+/** Parse a label into prefix, id, and suffix. */
 export function parseLabel (label: Label): StructuredLabel {
   const matches = label.match(RE_LABEL)
   if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
-  const { name, prefix, suffix } = matches.groups
-  if (!name) throw new ClientError.InvalidLabel(label)
-  return { label, name, prefix, suffix }
+  const { id, prefix, suffix } = matches.groups
+  if (!id) throw new ClientError.InvalidLabel(label)
+  return { label, id, prefix, suffix }
 }
 
-/** Construct a label from prefix, name, and suffix. */
-export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
-  if (!name) throw new ClientError.NoName()
-  let label = name
+/** Construct a label from prefix, id, and suffix. */
+export function writeLabel ({ id, prefix, suffix }: StructuredLabel = {}): Label {
+  if (!id) throw new ClientError.NoName()
+  let label = id
   if (prefix) label = `${prefix}/${label}`
   if (suffix) label = `${label}+${suffix}`
   return label
