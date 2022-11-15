@@ -171,7 +171,7 @@ importers:
       typescript: latest
       vsce: latest
     devDependencies:
-      typescript: 4.8.4
+      typescript: 4.9.3
       vsce: 2.14.0
 
   ensuite/ganesha/src/vsc/client:
@@ -183,7 +183,7 @@ importers:
       '@ganesha/vscode-shared': link:../shared
       vscode-languageclient: 7.1.0-next.5
     devDependencies:
-      '@types/vscode': 1.73.0
+      '@types/vscode': 1.73.1
 
   ensuite/ganesha/src/vsc/server:
     specifiers:
@@ -207,7 +207,7 @@ importers:
     specifiers:
       typescript: latest
     devDependencies:
-      typescript: 4.8.4
+      typescript: 4.9.3
 
   ensuite/ganesha/test:
     specifiers:
@@ -454,9 +454,8 @@ importers:
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
       '@fadroma/scrt': workspace:^6
-      '@hackbg/ensuite': ^1
-      '@hackbg/komandi': workspace:^6.1.2
-      '@hackbg/konfizi': workspace:^3.0.1
+      '@hackbg/komandi': ^6.1.2
+      '@hackbg/konfizi': ^3.0.1
     dependencies:
       '@fadroma/core': link:../core
       '@fadroma/devnet': link:../devnet
@@ -464,8 +463,6 @@ importers:
       '@fadroma/scrt': link:../../platforms/scrt
       '@hackbg/komandi': link:../../ensuite/toolbox/komandi
       '@hackbg/konfizi': link:../../ensuite/toolbox/konfizi
-    devDependencies:
-      '@hackbg/ensuite': link:../../ensuite
 
   packages/core:
     specifiers:
@@ -1286,8 +1283,8 @@ packages:
     resolution: {integrity: sha512-eBWREUhVUGPze+bUW22AgUr05k8u+vETzuYdLYSvWqGTUe0KOf+zVnOB1qER5wMcw8V6D9Ar4DfJmVvD1yu0kQ==}
     dev: true
 
-  /@types/vscode/1.73.0:
-    resolution: {integrity: sha512-FhkfF7V3fj7S3WqXu7AxFesBLO3uMkdCPJJPbwyZXezv2xJ6xBWHYM2CmkkbO8wT9Fr3KipwxGGOoQRrYq7mHg==}
+  /@types/vscode/1.73.1:
+    resolution: {integrity: sha512-eArfOrAoZVV+Ao9zQOCaFNaeXj4kTCD+bGS2gyNgIFZH9xVMuLMlRrEkhb22NyxycFWKV1UyTh03vhaVHmqVMg==}
     dev: true
 
   /@types/web-bluetooth/0.0.14:
@@ -4938,6 +4935,12 @@ packages:
 
   /typescript/4.8.4:
     resolution: {integrity: sha512-QCh+85mCy+h0IGff8r5XWzOVSbBO+KfeYrMQh7NJ58QujwcE22u+NUSmUxqF+un70P9GXKxa2HCNiTTMJknyjQ==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
+
+  /typescript/4.9.3:
+    resolution: {integrity: sha512-CIfGzTelbKNEnLpLdGFgdyKhG23CKdKgQPOBc+OUNrkJ2vr+KSzsSV5kq5iWhEQbok+quxgGzrAtGWCyU7tHnA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true

@@ -30,10 +30,6 @@ Object.assign(Scrt, {
   })
 })
 
-Object.defineProperty(Scrt,       'SecretJS', { enumerable: false, writable: true })
-Object.defineProperty(ScrtAgent,  'SecretJS', { enumerable: false, writable: true })
-Object.defineProperty(ScrtBundle, 'SecretJS', { enumerable: false, writable: true })
-
 export { SecretJS }
 export * from '@fadroma/core'
 export * from './scrt-events'
