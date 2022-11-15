@@ -15,13 +15,15 @@ const dashes   = new RegExp("-", "g")
 const sanitize = x => x.replace(slashes, "_")
 const fumigate = x => x.replace(dashes,  "_")
 
+const verbose = Boolean(env('_VERBOSE', false))
+
 const run = (command, env2 = {}) => {
-  console.info('\n$', command)
+  if (verbose) console.info('\n$', command)
   execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
 }
 
 const call = command => {
-  console.info('\n$', command)
+  if (verbose) console.info('\n$', command)
   const result = String(execSync(command)).trim()
   console.info(result)
   return result
@@ -92,7 +94,7 @@ function phase1 ({
   run(`git --version`)
   if (ref === 'HEAD') {
     console.log(`Building from working tree.`)
-    run(`pwd`)
+    if (verbose) run(`pwd`)
     console.log({subdir})
     chdir(subdir)
   } else {
@@ -148,8 +150,8 @@ function phase1 ({
 
     // Report which commit we're building and what it looks like
     run(`git log -1`)
-    run('pwd')
-    run('ls -al')
+    if (verbose) run('pwd')
+    if (verbose) run('ls -al')
     console.log()
 
     // Clone submodules
@@ -186,7 +188,7 @@ function phase2 ({
   compiled   = resolve(releaseDir, output),
   outputDir  = env('_OUTPUT', '/output'),
   optimized  = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`),
-  checksum  =  `${optimized}.sha256`,
+  checksum   =  `${optimized}.sha256`,
 } = {}) {
 
   console.log(`\nBuild phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
@@ -201,30 +203,34 @@ function phase2 ({
   run(`rustc --version`)
   run(`wasm-opt --version`)
   run(`sha256sum --version | head -n1`)
-  run(`pwd`)
-  run(`ls -al`)
-  run(`ls -al /tmp/target`)
+  if (verbose) run(`pwd`)
+  if (verbose) run(`ls -al`)
+  if (verbose) run(`ls -al /tmp/target`)
 
   // Compile crate for production
-  run(`cargo build -p ${crate} --release --target ${platform} ${locked} --verbose`, {
+  run(`cargo build -p ${crate} --release --target ${platform} ${locked} ${verbose?'--verbose':''}`, {
     CARGO_TARGET_DIR: targetDir,
     PLATFORM:         platform,
   })
   console.log(`Build complete.`)
 
   // Output optimized build to artifacts directory
-  run(`ls -al ${releaseDir}`)
+  if (verbose) run(`ls -al ${releaseDir}`)
   //run(`cp ${compiled} ${optimized}.unoptimized`)
   //run(`chmod -x ${optimized}.unoptimized`)
 
-  console.log(`\nWASM section headers of ${compiled}:`)
-  run(`wasm-objdump -h ${compiled}`)
+  if (verbose) {
+    console.log(`\nWASM section headers of ${compiled}:`)
+    run(`wasm-objdump -h ${compiled}`)
+  }
 
   console.log(`\nOptimizing ${compiled} into ${optimized}...`)
   run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
 
-  console.log(`\nWASM section headers of ${optimized}:`)
-  run(`wasm-objdump -h ${optimized}`)
+  if (verbose) {
+    console.log(`\nWASM section headers of ${optimized}:`)
+    run(`wasm-objdump -h ${optimized}`)
+  }
 
   console.log(`Optimization complete`)
 

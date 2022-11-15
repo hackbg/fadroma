@@ -287,6 +287,7 @@ export class DockerBuilder extends LocalBuilder {
         _GIT_SUBDIR:                  gitSubdir,
         _SUBDIR:                      subdir,
         _NO_FETCH:                    this.noFetch,
+        _VERBOSE:                     this.verbose,
         CARGO_HTTP_TIMEOUT:           '240',
         CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
         GIT_PAGER:                    'cat',
@@ -302,15 +303,15 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // This stream collects the output from the build container, i.e. the build logs.
-    const buildLogStream = new Dokeres.LineTransformStream(this.verbose
-      // In verbose mode, build logs are printed to the console in real time,
+    const buildLogStream = new Dokeres.LineTransformStream((!this.quiet)
+      // In normal and verbose mode, build logs are printed to the console in real time,
       // with an addition prefix to show what is being built.
       ? (line:string)=>`${bold('BUILD')} @ ${revision} │ ${line}`
-      // In non-verbose mode the logs are collected into a string as-is,
+      // In quiet mode the logs are collected into a string as-is,
       // and are only printed if the build fails.
       : (line:string)=>line)
     let buildLogs = ''
-    if (this.verbose) {
+    if (!this.quiet) {
       // In verbose mode, build logs are piped directly to the console
       buildLogStream.pipe(process.stdout)
     } else {

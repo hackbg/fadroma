@@ -25,8 +25,11 @@ export class BuilderConfig extends EnvConfig {
     this.override(defaults)
   }
 
-  /** Whether to print everything that happens during builds. */
+  /** Whether the build process should print more detail to the console. */
   verbose:      boolean = this.getBoolean('FADROMA_BUILD_VERBOSE',
+    ()=>false)
+  /** Whether the build log should be printed only on error, or always */
+  quiet:        boolean = this.getBoolean('FADROMA_BUILD_QUIET',
     ()=>false)
   /** Project root. Defaults to current working directory. */
   project:      string  = this.getString('FADROMA_PROJECT',
@@ -82,6 +85,7 @@ export abstract class LocalBuilder extends Builder {
     this.noFetch   = options.noFetch   ?? this.noFetch
     this.toolchain = options.toolchain ?? this.toolchain
     this.verbose   = options.verbose   ?? this.verbose
+    this.quiet     = options.quiet     ?? this.quiet
     this.outputDir = $(options.outputDir!).as(OpaqueDirectory)
     if (options.script) this.script = options.script
   }
@@ -99,6 +103,8 @@ export abstract class LocalBuilder extends Builder {
   toolchain:  string|null = null
   /** Whether the build process should print more detail to the console. */
   verbose:    boolean     = false
+  /** Whether the build log should be printed only on error, or always */
+  quiet:      boolean     = false
   /** Whether to enable caching. */
   caching:    boolean     = true
   /** Default Git reference from which to build sources. */
