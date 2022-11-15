@@ -1,15 +1,20 @@
-import { timestamp }                    from '@hackbg/konzola'
-import { CommandContext }               from '@hackbg/komandi'
-import { hide, defineDefault }          from './core-fields'
+import { timestamp }      from '@hackbg/konzola'
+import { CommandContext } from '@hackbg/komandi'
+import type { Task }      from '@hackbg/komandi'
+
 import { ClientError, ClientConsole }   from './core-events'
-import { defineDeploymentContractAPI }  from './core-deployment-contract'
-import { defineDeploymentContractsAPI } from './core-deployment-contracts'
-import type { AnyContract }     from './core-contract'
-import type { Class }           from './core-fields'
-import type { Agent }           from './core-agent'
-import type { Chain }           from './core-chain'
-import type { Builder }         from './core-build'
-import type { Uploader }        from './core-upload'
+import { defineDeployContractAPI, defineDeployContractsAPI } from './core-deployment-contract'
+import { defineDeployGroupAPI, defineDeployGroupsAPI } from './core-deployment-contracts'
+import { hide, defineDefault }          from './core-fields'
+
+import type { Contract, AnyContract, DeployContract } from './core-contract'
+import type { Agent }    from './core-agent'
+import type { Builder }  from './core-build'
+import type { Chain }    from './core-chain'
+import type { Class }    from './core-fields'
+import type { Client }   from './core-client'
+import type { Uploader } from './core-upload'
+import type { Named }    from './core-labels'
 
 /** The collection of contracts that constitute a deployment. */
 export type DeploymentState = Record<string, Partial<AnyContract>>
@@ -110,12 +115,20 @@ export class Deployment extends CommandContext {
   }
 
   /** Specify a contract.
-    * @returns a callable `ContractInstance` with the specified parameters. */
-  contract  = defineDeploymentContractAPI(this)
+    * @returns a callable `Contract` with the specified parameters. */
+  contract       = defineDeployContractAPI(this)
 
-  /** Specify multiple contracts.
-    * @returns a callable collection of `ContractInstance`s with the specified parameters. */
-  contracts = defineDeploymentContractAPI(this)
+  /** Specify multiple contracts of the same type.
+    * @returns a callable collection of `Contract`s with the specified parameters. */
+  contracts      = defineDeployContractsAPI(this)
+
+  /** Specify a group of heterogeneous contracts.
+    * @returns a callable key-value map of `Contract`s with the specified parameters. */
+  contractGroup  = defineDeployGroupAPI(this)
+
+  /** Specify multiple groups of heterogeneous contracts.
+    * @returns a callable key-value map of `Contract`s with the specified parameters. */
+  contractGroups = defineDeployGroupsAPI(this)
 
   /** Implemented by Deployer subclass in @fadroma/deploy
     * to allow saving deployment data to the DeployStore. */
@@ -174,3 +187,40 @@ export class VersionedDeployment<V> extends Deployment {
 export interface Subsystem<D extends Deployment, E extends Deployment> extends Class<D, [
   E, ...unknown[]
 ]> {}
+
+/** Methods for managing individual contracts in a `Deployment` */
+export interface DeployContractAPI extends DefineContract {
+  /** Check if the deployment contains a contract with a certain name. */
+  has (name: string): boolean
+  /** Get the Contract corresponding to a given name. */
+  get <C extends Client> (name: string): Task<DeployContract<C>, C>|null
+  /** Set the Contract corresponding to a given name,
+    * attaching it to this deployment. */
+  set <C extends Client> (name: string, task: DeployContract<C>): Contract<C>
+  /** Set the Contract corresponding to a given name,
+    * attaching it to this deployment. Chainable. */
+  add <C extends Client> (name: string, data: DeployContract<C>): this
+  /** Throw if a contract with the specified name is not found in this deployment. */
+  expect <C extends Client> (message?: string): DeployContract<C>
+}
+
+type DefineContracts = (DefineContractsArray|DefineContractsRecord)
+
+export type DefineContractsArray = (contracts: AnyContract[]) => Promise<Client[]>
+
+export type DefineContractsRecord = (contracts: Named<AnyContract>) => Promise<Named<Client>>
+
+/** Methods for managing groups of contracts in a `Deployment` */
+export interface DeployContractsAPI extends DefineContracts {
+  /** Add multiple contracts to this deployment. */
+  set (contracts: Array<Client|AnyContract>): this
+  set (contracts: Record<string, Client|AnyContract>): this
+  /** Compile multiple contracts. */
+  build (contracts: (string|AnyContract)[]): Promise<AnyContract[]>
+  /** Upload multiple contracts. */
+  upload (contracts: AnyContract[]): Promise<AnyContract[]>
+}
+
+export interface DeployGroupAPI {}
+
+export interface DeployGroupsAPI {}

@@ -1,11 +1,11 @@
-pub use cosmwasm_std;
-pub use cosmwasm_storage;
+pub use secret_cosmwasm_std as cosmwasm_std;
+pub use secret_cosmwasm_storage as cosmwasm_storage;
 pub use cosmwasm_schema;
 
 pub use serde;
 pub use schemars;
 
-use cosmwasm_std::{StdResult, CosmosMsg, WasmMsg, to_binary};
+use secret_cosmwasm_std::{StdResult, CosmosMsg, WasmMsg, to_binary};
 
 pub const BLOCK_SIZE: usize = 256;
 
