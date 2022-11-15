@@ -2,12 +2,12 @@ import type { Agent } from './core-agent'
 import type { Class, Maybe } from './core-fields'
 import type { Address, Message, ExecOpts } from './core-tx'
 import type { CodeHash } from './core-code'
-import type { Contract } from './core-contract'
 import type { IFee } from './core-fee'
 import { assertAgent } from './core-agent'
 import { assertAddress } from './core-tx'
 import { validated } from './core-fields'
 import { ClientConsole as Console, ClientError as Error } from './core-events'
+import { Contract } from './core-contract'
 
 /** A constructor for a Client subclass. */
 export interface ClientClass<C extends Client> extends Class<C, ConstructorParameters<typeof Client>>{
@@ -34,10 +34,11 @@ export class Client {
     /** Code hash confirming the contract's integrity. */
     public codeHash?: CodeHash,
     /** Contract class containing deployment metadata. */
-    public meta:      Contract = new Contract()
+    public meta?:     Contract
   ) {
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
     Object.defineProperty(this, 'context', { writable: true, enumerable: false })
+    meta ??= new Contract()
     meta.address  ??= address
     meta.codeHash ??= codeHash
     meta.chainId  ??= agent?.chain?.id

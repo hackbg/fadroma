@@ -234,6 +234,10 @@ export class Contract<C extends Client> {
     }
   }
 
+  get asLink (): ContractLink {
+    return linkStruct(this as unknown as IntoLink)
+  }
+
 }
 
 /** Parameters involved in building a contract. */
