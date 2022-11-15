@@ -31,31 +31,13 @@ import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 import repl from 'node:repl'
 import { createContext } from 'node:vm'
 
-export function Fadroma (this: any, options: Partial<Config> = {}) {
-  if (!(this instanceof FadromaBase)) {
-    return new FadromaBase({ config: new Config(options) })
-  }
-}
-
 /** Context for Fadroma commands. */
-export const FadromaBase = class Fadroma extends Deployer {
+export class Fadroma extends Deployer {
 
-  /** @returns a function that runs a requested command. */
-  //static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
-    //const self = this
-    //return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
-  //}
-
-  static async setup <C extends Deployer, D extends DeployerClass<C>> (
-    $D: D, ...args: ConstructorParameters<D>
-  ): Promise<C> {
-    return new Fadroma().setup($D, ...args)
-  }
-
-  constructor (options: Partial<Fadroma> = { config: new Config() }) {
-    super(options as Partial<Deployer>)
+  constructor (config: Partial<Config> = {}) {
+    super({ config })
     this.log.name  = this.projectName
-    this.config    = new Config(options?.config, this.env, this.cwd)
+    this.config    = new Config(config, this.env, this.cwd)
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
     this.addCommand('repl',   'interact with this project from a Node.js REPL',
@@ -66,11 +48,17 @@ export const FadromaBase = class Fadroma extends Deployer {
                     () => this.deploy())
   }
 
-  async setup <C extends Deployer, D extends DeployerClass<C>> (
-    $D: D, ...args: ConstructorParameters<D>
-  ): Promise<C> {
-    args[0].builder ??= this.builder
-    return await this.config.getDeployer($D, ...args) as C
+  get ready () {
+    const self = this
+    const ready: Promise<typeof this> = (async function getReady (): Promise<typeof self> {
+      self.agent    ??= await self.config.getAgent()
+      self.chain    ??= await self.agent.chain
+      self.uploader ??= await self.config.getUploader()
+      self.builder  ??= await self.config.build.getBuilder()
+      return self
+    })()
+    Object.defineProperty(this, 'ready', { get () { return ready } })
+    return ready
   }
 
   /** Override this to set your project name. */
@@ -110,8 +98,6 @@ export const FadromaBase = class Fadroma extends Deployer {
   }
 
 }
-
-Object.setPrototypeOf(Fadroma, FadromaBase)
 
 /** Configuration for the Fadroma environment. */
 export class Config extends DeployConfig {

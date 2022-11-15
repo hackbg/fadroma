@@ -1,6 +1,6 @@
 import { timestamp }                    from '@hackbg/konzola'
 import { CommandContext }               from '@hackbg/komandi'
-import { hide }                         from './core-fields'
+import { hide, defineDefault }          from './core-fields'
 import { ClientError, ClientConsole }   from './core-events'
 import { defineDeploymentContractAPI }  from './core-deployment-contract'
 import { defineDeploymentContractsAPI } from './core-deployment-contracts'
@@ -52,17 +52,16 @@ export class Deployment extends CommandContext {
     * except by using `agent.upload` directly, which does not cache or log uploads. */
   uploader?:   Uploader
 
-  constructor (options: Partial<Deployment> & any = {}) {
-    super(options.name ?? 'Deployment')
-    this.name      = options.name         ?? this.name
-    this.state     = options.state        ?? this.state
-    this.agent     = options.agent        ?? this.agent
-    this.chain     = options.agent?.chain ?? options.chain ?? this.chain
-    this.builder   = options.builder      ?? this.builder
-    this.uploader  = options.uploader     ?? this.uploader
-    this.workspace = options.workspace    ?? this.workspace
-    this.revision  = options.revision     ?? this.revision
+  constructor (context: Partial<Deployment> = {}) {
+    super(context.name ?? 'Deployment')
     this.log.name  = this.name ?? this.log.name
+    // These propertied are inherited by default
+    for (const field of [
+      'name', 'state', 'agent', 'chain', 'builder', 'uploader', 'workspace', 'revision'
+    ]) {
+      defineDefault(this, context, field as keyof Partial<Deployment>)
+    }
+    // Hidden properties
     hide(this, [
       'log', 'state', 'name', 'description', 'timestamp',
       'commandTree', 'currentCommand',
