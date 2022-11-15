@@ -157,6 +157,7 @@ export function defineDefault <T extends object, D extends object> (
 ) {
   if (!obj[name as unknown as keyof T]) {
     Object.defineProperty(obj, name, {
+      configurable: true,
       enumerable: true,
       get () {
         return defaults[name]
