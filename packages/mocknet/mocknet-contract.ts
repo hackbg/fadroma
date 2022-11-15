@@ -82,9 +82,10 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
     const msg = args[args.length - 1]
     this.log.debug(`${bold(this.address)} init:`, msg)
     try {
-      return this.readUtf8(this.initMethod(this.initPtrs(...args)))
+      return this.readUtf8(this.initMethod(...this.initPtrs(...args)))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on init:`, e.message)
+      this.log.error(bold('Args:'), ...args)
       throw e
     }
   }
@@ -93,9 +94,10 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
     const msg = args[args.length - 1]
     this.log.debug(`${bold(this.address)} handle:`, msg)
     try {
-      return this.readUtf8(this.execMethod(this.execPtrs(...args)))
+      return this.readUtf8(this.execMethod(...this.execPtrs(...args)))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on handle:`, e.message)
+      this.log.error(bold('Args:'), ...args)
       throw e
     }
   }
@@ -104,7 +106,7 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
     const msg = args[args.length - 1]
     this.log.debug(`${bold(this.address)} query:`, msg)
     try {
-      return this.readUtf8(this.queryMethod(this.queryPtrs(...args)))
+      return this.readUtf8(this.queryMethod(...this.queryPtrs(...args)))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on query:`, e.message)
       throw e
