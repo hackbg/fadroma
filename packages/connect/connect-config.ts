@@ -29,7 +29,8 @@ export class ConnectConfig extends EnvConfig {
     * (Used by subclasses to include chain ID in paths.) */
   get chainId (): ChainId {
     const chainIds = {
-      Mocknet:      'mocknet',
+      Mocknet_CW0: 'mocknet-cw0',
+      Mocknet_CW1: 'mocknet-cw1',
       ScrtMainnet:  Scrt.defaultMainnetChainId,
       ScrtTestnet:  Scrt.defaultTestnetChainId,
       ScrtDevnet:   'fadroma-devnet',
@@ -73,7 +74,8 @@ export class ConnectConfig extends EnvConfig {
     return await Promise.resolve(getChain(this)) as C // create Chain object
   }
 
-  async getAgent <A extends Agent> (chain: Chain): Promise<A> {
+  async getAgent <A extends Agent> (chain?: Chain): Promise<A> {
+    chain ??= await this.getChain()
     // Create the Agent instance as identified by the configuration.
     let agentOpts: AgentOpts = { chain }
     if (chain.isDevnet) {
@@ -95,7 +97,7 @@ export class ConnectConfig extends EnvConfig {
     const agent = await this.getAgent(chain)
     if (agent.chain !== chain) throw new Error('Bug: agent.chain propagated incorrectly')
     // Create the Connector holding both and exposing them to commands.
-    return new $C({ agent, config: this }) as C
+    return new $C({ chain, agent, config: this }) as C
   }
 
 }
