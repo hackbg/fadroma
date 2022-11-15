@@ -21,7 +21,7 @@
 import { Chain, Agent, Deployment, Class, ClientConsole, Builder, Uploader } from '@fadroma/core'
 import type { DeployStore } from '@fadroma/core'
 import { BuilderConfig } from '@fadroma/build'
-import { DeployConfig, Deployer, DeployConsole } from '@fadroma/deploy'
+import { DeployConfig, Deployer, DeployConsole, FSUploader } from '@fadroma/deploy'
 import type { DeployerClass } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
 import { Scrt } from '@fadroma/connect'
@@ -53,7 +53,7 @@ export class Fadroma extends Deployer {
     const ready: Promise<typeof this> = (async function getReady (): Promise<typeof self> {
       self.agent    ??= await self.config.getAgent()
       self.chain    ??= await self.agent.chain
-      self.uploader ??= await self.config.getUploader()
+      self.uploader ??= await self.agent.getUploader(FSUploader)
       self.builder  ??= await self.config.build.getBuilder()
       return self
     })()

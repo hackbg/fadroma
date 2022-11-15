@@ -52,23 +52,17 @@ export class DeployConfig extends ConnectConfig {
   async getDeployer <C extends Deployer, D extends DeployerClass<C>> (
     $D: D = Deployer as D, ...args: ConstructorParameters<D>
   ): Promise<C> {
+    const { chain, agent } = await this.getConnector()
+    const uploader = agent!.getUploader(FSUploader)
     const store = await this.getDeployStore()
-    store.defaults.uploader = await this.getUploader()
-    store.defaults.agent    = store.defaults.uploader.agent!
-    store.defaults.chain    = store.defaults.uploader.agent!.chain!
-    const { chain, agent, uploader } = store.defaults
+    store.defaults.agent    = agent!
+    store.defaults.chain    = chain!
+    store.defaults.uploader = uploader
     if (!chain) throw new Error('Missing chain')
     args[0] = { config: this, agent, uploader, store, ...args[0] }
     //@ts-ignore
     const deployer = new $D(...args)
     return deployer as unknown as C
-  }
-  async getUploader <U extends Uploader> (
-    $U: UploaderClass<U> = FSUploader as UploaderClass<U>
-  ): Promise<U> {
-    const { chain, agent } = await super.getConnector()
-    if (!chain) throw new Error('Missing chain')
-    return new $U(agent, this.uploads) as U
   }
 }
 

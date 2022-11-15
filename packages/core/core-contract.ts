@@ -30,7 +30,7 @@ export function defineContract <C extends Client> (
   baseOptions: Partial<Contract<C>> = {},
 ): DeployContract<C> {
 
-  let fn = function getOrDeployInstance (
+  let template = function getOrDeployInstance (
     ...args: [Name, Message]|[Partial<Contract<C>>]
   ): Task<Contract<C>, C> {
 
@@ -53,16 +53,18 @@ export function defineContract <C extends Client> (
     // The contract object that we'll be using
     const contract = options
       // If options were passed, define a new Contract
-      ? defineContract({ ...fn, ...options! as object })
+      ? defineContract(override({...template}, options! as object))
       // If no options were passed, use this object
-      : fn
+      : template
 
     return contract.deployed
   }
 
-  fn = fn.bind(fn)
+  template = template.bind(template)
 
-  return rebind(fn, new Contract(baseOptions)) as Contract<C> & (()=> Task<Contract<C>, C>)
+  Object.defineProperty(template, 'name', { enumerable: true, writable: true })
+
+  return rebind(template, new Contract(baseOptions)) as Contract<C> & (()=> Task<Contract<C>, C>)
 
 }
 
