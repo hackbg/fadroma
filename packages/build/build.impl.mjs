@@ -175,18 +175,18 @@ function phase1 ({
 
 /** As a non-root user, execute a release build, then optimize it with Binaryen. */
 function phase2 ({
-  toolchain = env('_TOOLCHAIN'),
-  targetDir = env('_TMP_TARGET', '/tmp/target'),
-  ref       = argv[3], // "HEAD" | <git ref>
-  crate     = argv[4], // one crate to build
-  platform  = 'wasm32-unknown-unknown',
-  rustFlags = '-C link-arg=-s',
-  locked    = '',
-  output    = `${fumigate(crate)}.wasm`,
-  compiled  = resolve(targetDir, platform, 'release', output),
-  outputDir = env('_OUTPUT', '/output'),
-  optimized = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`),
-  checksum  = `${optimized}.sha256`,
+  toolchain  = env('_TOOLCHAIN'),
+  targetDir  = env('_TMP_TARGET', '/tmp/target'),
+  ref        = argv[3], // "HEAD" | <git ref>
+  crate      = argv[4], // one crate to build
+  platform   = 'wasm32-unknown-unknown',
+  locked     = '',
+  output     = `${fumigate(crate)}.wasm`,
+  releaseDir = resolve(targetDir, platform, 'release'),
+  compiled   = resolve(releaseDir, output),
+  outputDir  = env('_OUTPUT', '/output'),
+  optimized  = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`),
+  checksum  =  `${optimized}.sha256`,
 } = {}) {
 
   console.log(`\nBuild phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
@@ -207,15 +207,25 @@ function phase2 ({
 
   // Compile crate for production
   run(`cargo build -p ${crate} --release --target ${platform} ${locked} --verbose`, {
-    RUSTFLAGS:        rustFlags,
     CARGO_TARGET_DIR: targetDir,
     PLATFORM:         platform,
   })
   console.log(`Build complete.`)
 
   // Output optimized build to artifacts directory
-  console.log(`Optimizing ${compiled} into ${optimized}...`)
-  run(`wasm-opt -Oz ${compiled} -o ${optimized}`)
+  run(`ls -al ${releaseDir}`)
+  //run(`cp ${compiled} ${optimized}.unoptimized`)
+  //run(`chmod -x ${optimized}.unoptimized`)
+
+  console.log(`\nWASM section headers of ${compiled}:`)
+  run(`wasm-objdump -h ${compiled}`)
+
+  console.log(`\nOptimizing ${compiled} into ${optimized}...`)
+  run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
+
+  console.log(`\nWASM section headers of ${optimized}:`)
+  run(`wasm-objdump -h ${optimized}`)
+
   console.log(`Optimization complete`)
 
   // Output checksum to artifacts directory
