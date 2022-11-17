@@ -188,6 +188,8 @@ export interface Subsystem<D extends Deployment, E extends Deployment> extends C
   E, ...unknown[]
 ]> {}
 
+type DefineContract = <C extends Client>(arg?: string|Partial<Contract<C>>) => Contract<C>
+
 /** Methods for managing individual contracts in a `Deployment` */
 export interface DeployContractAPI extends DefineContract {
   /** Check if the deployment contains a contract with a certain name. */
