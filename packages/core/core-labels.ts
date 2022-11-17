@@ -1,19 +1,11 @@
 import type { AnyContract } from './core-contract'
-import type { Agent } from './core-agent'
-import type { Contract } from './core-contract'
-import type { Client } from './core-client'
+import type { Agent }       from './core-agent'
+import type { Contract }    from './core-contract'
+import type { Client }      from './core-client'
+import type { Name }        from './core-fields'
 import { assertAddress } from './core-tx'
-import { validated } from './core-fields'
-import { ClientError } from './core-events'
-
-/** The friendly name of a contract, or another part of the label (prefix, suffix).
-  * Names are user-specified and are used as the keys of `deployment.store`.
-  * Prefix and suffix are set automatically to work around the label uniqueness constraint. */
-export type Name = string
-
-export type Named<T> = Record<Name, T>
-
-export type ArrayOrNamed<T> = Array<T>|Named<T>
+import { validated }     from './core-fields'
+import { ClientError }   from './core-events'
 
 /** A contract name with optional prefix and suffix, implementing namespacing
   * for append-only platforms where labels have to be globally unique. */

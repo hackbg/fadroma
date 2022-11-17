@@ -10,6 +10,7 @@ import type { ClientClass } from './core-client'
 import type { Address, TxHash } from './core-tx'
 import type { Hashed, CodeHash, CodeId } from './core-code'
 import type { Buildable, Uploadable, Uploaded } from './core-contract'
+import type { Deployment } from './core-deployment'
 
 /** Standalone upload function. */
 export async function upload (
@@ -50,6 +51,23 @@ export async function upload (
     return uploader.upload(source)
   }
 
+}
+
+export async function uploadMany (
+  contracts: Uploadable[],
+  context:   Partial<Deployment>,
+): Promise<Uploaded[]> {
+  return defineTask(`upload ${contracts.length} contracts`, async () => {
+    if (!context.uploader) throw new Error.NoUploader()
+    if (contracts.length === 0) return Promise.resolve([])
+    const count = (contracts.length > 1)
+      ? `${contracts.length} contract: `
+      : `${contracts.length} contracts:`
+    return defineTask(`upload ${count} artifacts`, () => {
+      if (!context.uploader) throw new Error.NoUploader()
+      return context.uploader.uploadMany(contracts)
+    }, context)
+  }, context)
 }
 
 export type IntoUploader = string|UploaderClass<Uploader>|Partial<Uploader>

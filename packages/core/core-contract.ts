@@ -1,12 +1,12 @@
 import type { Task } from '@hackbg/komandi'
-import type { Into } from './core-fields'
+import type { Into, Name, Named } from './core-fields'
 import type { ClientClass } from './core-client'
 import type { Builder } from './core-build'
 import type { Uploader } from './core-upload'
 import type { CodeId, CodeHash } from './core-code'
 import type { ChainId } from './core-chain'
 import type { Address, Message, TxHash } from './core-tx'
-import type { Name, Label, Named } from './core-labels'
+import type { Label } from './core-labels'
 import type { Agent } from './core-agent'
 import type { Deployment } from './core-deployment'
 
@@ -33,7 +33,6 @@ export function defineContract <C extends Client> (
   let template = function getOrDeployInstance (
     ...args: [Name, Message]|[Partial<Contract<C>>]
   ): Task<Contract<C>, C> {
-
     // Parse options
     let options = { ...baseOptions }
     if (typeof args[0] === 'string') {
@@ -42,21 +41,16 @@ export function defineContract <C extends Client> (
     } else if (typeof args[0] === 'object') {
       options = { ...options, ...args[0] }
     }
-
     // If there is a deployment, look for the contract in it
     if (options.context && options.id && options.context.contract.has(options.id)) {
-      return (options.client ?? Client).fromContract(
-        new Contract(options.context.contract.get(options.id))
-      )
+      return options.context.contract.get(options.id)
     }
-
     // The contract object that we'll be using
     const contract = options
       // If options were passed, define a new Contract
       ? defineContract(override({...template}, options! as object))
       // If no options were passed, use this object
       : template
-
     return contract.deployed
   }
 
