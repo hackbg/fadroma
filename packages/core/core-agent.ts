@@ -177,7 +177,6 @@ export abstract class Agent {
   }
   /** Get an uploader instance which performs code uploads and optionally caches them. */
   getUploader <U extends Uploader> ($U: UploaderClass<U>, options?: unknown): U {
-    console.log({$U})
     return new $U(this, options) as U
   }
   /** The default Bundle class used by this Agent. */

@@ -404,7 +404,6 @@ export class ContractGroup {
   ) {}
 
   async deploy () {
-    console.log(Object.values(this.contracts))
     await buildMany(Object.values(this.contracts), this.context)
     await uploadMany(Object.values(this.contracts), this.context)
     return await mapAsync(this.contracts, (contract: AnyContract)=>contract.deployed)

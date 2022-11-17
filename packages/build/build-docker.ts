@@ -65,7 +65,6 @@ export class DockerBuilder extends LocalBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (contracts: AnyContract[]): Promise<AnyContract[]> {
-    console.trace()
 
     const self      = this
     const roots     = new Set<string>()

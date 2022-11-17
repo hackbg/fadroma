@@ -1,8 +1,8 @@
 import { colors, bold } from '@hackbg/konzola'
 import { Task } from '@hackbg/komandi'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import { Contract, ClientConsole, Uploader, assertAgent } from '@fadroma/core'
-import type { Agent, CodeHash, CodeId, Uploadable } from '@fadroma/core'
+import { Contract, ClientConsole, Uploader, assertAgent, override } from '@fadroma/core'
+import type { Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/core'
 import { CustomConsole } from '@hackbg/konzola'
 
 export class UploadConsole extends ClientConsole {
@@ -154,7 +154,7 @@ export class FSUploader extends Uploader {
       const uploaded = await this.uploadManySansCache(toUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
-        const template = new Contract(uploaded[i])
+        const template = uploaded[i]
         $(this.cache, this.getUploadReceiptName(toUpload[i]))
           .as(UploadReceipt).save(template.asUploadReceipt)
         outputs[i] = template
@@ -166,16 +166,17 @@ export class FSUploader extends Uploader {
   }
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
-  async uploadManySansCache (inputs: Array<Contract>): Promise<Array<Contract>> {
+  async uploadManySansCache (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
     const agent = assertAgent(this)
-    const outputs: Array<Contract> = []
+    const outputs: Array<Uploaded> = []
     for (const i in inputs) {
       const input = inputs[i]
       if (input?.artifact) {
         const path = $(input.artifact!)
         const data = path.as(BinaryFile).load()
         this.log.log('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-        const output = Object.assign(input, await agent.upload(data))
+        const result = await agent.upload(data)
+        const output = override(input, result)
         this.checkLocalCodeHash(input, output)
         outputs[i] = output
       } else {

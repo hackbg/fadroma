@@ -210,3 +210,7 @@ async function mapAsync <T, U> (data: Many<T>, fn: (x: T)=>MaybeAsync<U>): Promi
 export { mapAsync }
 
 export const call = (x: Function, ...args: unknown[]) => x(...args)
+
+export function pluralize (x: unknown[], singular: string, plural: string) {
+  return (x.length > 1) ? `${x.length} ${plural}` : `${x.length} ${singular}`
+}

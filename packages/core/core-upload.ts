@@ -2,9 +2,9 @@ import { Client } from './core-client'
 import { ClientError as Error } from './core-events'
 import { fetchCodeHash, getSourceSpecifier } from './core-code'
 import { build } from './core-build'
-import { defineTask, Maybe } from './core-fields'
+import { defineTask, pluralize } from './core-fields'
 import type { Agent } from './core-agent'
-import type { Overridable } from './core-fields'
+import type { Maybe, Overridable } from './core-fields'
 import type { ChainId } from './core-chain'
 import type { ClientClass } from './core-client'
 import type { Address, TxHash } from './core-tx'
@@ -60,12 +60,12 @@ export async function uploadMany (
   return defineTask(`upload ${contracts.length} contracts`, async () => {
     if (!context.uploader) throw new Error.NoUploader()
     if (contracts.length === 0) return Promise.resolve([])
-    const count = (contracts.length > 1)
-      ? `${contracts.length} contract: `
-      : `${contracts.length} contracts:`
-    return defineTask(`upload ${count} artifacts`, () => {
+    const count = pluralize(contracts, 'contract', 'contracts')
+    const name  = `upload ${count}:`
+    return defineTask(name, async function uploadManyContracts () {
       if (!context.uploader) throw new Error.NoUploader()
-      return context.uploader.uploadMany(contracts)
+      const result = await context.uploader.uploadMany(contracts)
+      return result
     }, context)
   }, context)
 }
