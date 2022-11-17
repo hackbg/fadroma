@@ -34,18 +34,20 @@ export class Client {
     /** Code hash confirming the contract's integrity. */
     public codeHash?: CodeHash,
     /** Contract class containing deployment metadata. */
-    public meta?:     Contract
+    meta?:     Contract<Client>
   ) {
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
     Object.defineProperty(this, 'context', { writable: true, enumerable: false })
-    meta ??= new Contract()
-    meta.address  ??= address
-    meta.codeHash ??= codeHash
-    meta.chainId  ??= agent?.chain?.id
+    this.meta = (meta ?? new Contract()) as Contract<this>
+    this.meta.address  ??= address
+    this.meta.codeHash ??= codeHash
+    this.meta.chainId  ??= agent?.chain?.id
     //if (!agent)    this.log.warnNoAgent(this.constructor.name)
     //if (!address)  this.log.warnNoAddress(this.constructor.name)
     //if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
   }
+
+  meta: Contract<typeof this>
 
   /** Logger. */
   log = new Console('Fadroma.Client')

@@ -1,10 +1,10 @@
-import type { Class } from './core-fields'
+import type { Class, Name } from './core-fields'
 import type { CodeHash } from './core-code'
 import type { Address, Message, ExecOpts } from './core-tx'
 import type { ICoin } from './core-fee'
 import type { Client } from './core-client'
-import type { Name } from './core-labels'
 import type { AnyContract } from './core-contract'
+import { into } from './core-fields'
 import { Agent } from './core-agent'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
 

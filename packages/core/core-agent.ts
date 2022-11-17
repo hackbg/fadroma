@@ -7,7 +7,7 @@ import type { CodeHash } from './core-code'
 import type { Client, ClientClass } from './core-client'
 import type { Uploaded, AnyContract } from './core-contract'
 import type { Uploader, UploaderClass } from './core-upload'
-import type { Name } from './core-labels'
+import type { Name } from './core-fields'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
 import { assertChain } from './core-chain'
 

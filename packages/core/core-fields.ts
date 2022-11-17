@@ -183,6 +183,7 @@ export type Named<T> = Record<Name, T>
 
 export type Many<T> = Array<T>|Named<T>
 
+function map <T, U> (data: Many<T>,  fn: (x:T)=>U): Many<U>
 function map <T, U> (data: Array<T>, fn: (x:T)=>U): Array<U>
 function map <T, U> (data: Named<T>, fn: (x:T)=>U): Named<U>
 function map <T, U> (data: Many<T>, fn: (x:unknown)=>unknown): Many<T> {
@@ -195,8 +196,9 @@ function map <T, U> (data: Many<T>, fn: (x:unknown)=>unknown): Many<T> {
 
 export { map }
 
-function mapAsync <T, U> (data: Array<T>, fn: (x:T)=>U): Promise<Array<U>>
-function mapAsync <T, U> (data: Named<T>, fn: (x:T)=>U): Promise<Named<U>>
+function mapAsync <T, U> (data: Many<T>,  fn: (x: T)=>MaybeAsync<U>): Promise<Many<U>>
+function mapAsync <T, U> (data: Array<T>, fn: (x: T)=>MaybeAsync<U>): Promise<Array<U>>
+function mapAsync <T, U> (data: Named<T>, fn: (x: T)=>MaybeAsync<U>): Promise<Named<U>>
 async function mapAsync <T, U> (data: Many<T>, fn: (x: T)=>MaybeAsync<U>): Promise<Named<U>> {
   const result: Named<U> = ((data instanceof Array) ? [] : {}) as unknown as Named<U>
   const values = []
