@@ -70,7 +70,7 @@ export type CodeId = string
 
 /** Retrieves the code ID corresponding to this contract's address/code hash.
   * @returns `this` but with `codeId` populated. */
-export async function fetchCodeId <C extends ContractInstance> (
+export async function fetchCodeId <C extends AnyContract> (
   meta: C, agent: Agent, expected?: CodeId,
 ): Promise<C & { codeId: CodeId }> {
   return Object.assign(meta, {

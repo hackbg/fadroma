@@ -1,9 +1,9 @@
 import type { Task } from '@hackbg/komandi'
-import type { Into, Name, Named } from './core-fields'
+import type { Into, Name, Named, Many } from './core-fields'
 import type { ClientClass } from './core-client'
 import type { Builder } from './core-build'
 import type { Uploader } from './core-upload'
-import type { CodeId, CodeHash } from './core-code'
+import type { CodeId, CodeHash, Hashed } from './core-code'
 import type { ChainId } from './core-chain'
 import type { Address, Message, TxHash } from './core-tx'
 import type { Label } from './core-labels'
@@ -152,10 +152,11 @@ export class Contract<C extends Client> {
   build (builder?: Builder): Task<this, this> {
     const name = `compile ${this.crate ?? 'contract'}`
     return defineTask(name, buildContract, this)
-    async function buildContract (this: Contract<C>) {
+    const self = this // lol
+    async function buildContract (this: typeof self) {
       builder ??= assertBuilder(this)
       const result = await builder!.build(this as Buildable)
-      this.define(result as Partial<this>)
+      this.define(result as Partial<typeof self>)
       return this
     }
   }
@@ -173,10 +174,11 @@ export class Contract<C extends Client> {
   upload (uploader?: Uploader): Task<this, this> {
     const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
     return defineTask(name, uploadContract, this)
-    async function uploadContract (this: Contract<C>) {
+    const self = this
+    async function uploadContract (this: typeof self) {
       await this.compiled
       const result = await upload(this as Uploadable, uploader, uploader?.agent)
-      return this.define(result as Partial<this>)
+      return this.define(result as Partial<typeof self>)
     }
   }
 
@@ -213,16 +215,18 @@ export class Contract<C extends Client> {
     }
   }
 
-  many (contracts: Array<[Name, Message]|Partial<AnyContract>>): Task<Contract<C>, Array<Contract<C>>>
-  many (contracts: Named<[Name, Message]|Partial<AnyContract>>): Task<Contract<C>, Named<Contract<C>>>
-  many (contracts: any): Task<Contract<C>, Array<Contract<C>>> | Task<Contract<C>, Named<Contract<C>>> {
+  many (
+    contracts: Many<[Name, Message]|Partial<AnyContract>>
+  ): Task<Contract<C>, Many<Contract<C>>> {
     const size = Object.keys(contracts).length
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
+    const self = this
     return defineTask(name, deployManyContracts, this)
-    function deployManyContracts (this: Contract<C>) {
-      return map(contracts, (contract: ([Name, Message]|Partial<AnyContract>)) => {
-        if (contract instanceof Array) contract = { name: contract[0], initMsg: contract[1] }
-        contract = defineContract({ ...this, ...contract })
+    function deployManyContracts (this: typeof self) {
+      type Instance = [Name, Message] | Partial<AnyContract>
+      return map(contracts, function (instance: Instance): Task<Contract<C>, C> {
+        if (instance instanceof Array) instance = { id: instance[0], initMsg: instance[1] }
+        const contract = defineContract({ ...self, ...instance })
         return contract.deployed
       })
     }
@@ -350,7 +354,7 @@ export const linkStruct = (instance: IntoLink): ContractLink => ({
 
 /** Objects that have an address and code hash.
   * Pass to linkTuple or linkStruct to get either format of link. */
-export interface IntoLink extends Hashed {
+export type IntoLink = Hashed & {
   address: Address
 }
 

@@ -17,6 +17,7 @@
 **/
 
 import type { TOMLFile } from '@hackbg/kabinet'
+import type { Buildable } from '@fadroma/core'
 import { Contract, Builder, HEAD } from '@fadroma/core'
 
 import { BuilderConfig, LocalBuilder, buildPackage } from './build-base'
@@ -40,7 +41,7 @@ export async function buildCrates (
     workspace:  config.project,
     crate,
     revision
-  })))
+  }) as Buildable))
 }
 
 /** The parts of Cargo.toml which the builder needs to be aware of. */
