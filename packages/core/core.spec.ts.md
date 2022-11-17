@@ -25,13 +25,24 @@ This module contains the following features:
 
 ## [Connecting to chains and broadcasting transactions](./core-connect.spec.ts.md)
 
+The innermost core of Fadroma consists of the `Chain` and `Agent`
+abstract base classes. They provide a unified base layer for querying
+and transacting on append-only transaction-based systems.
+
+The platform packages (`@fadroma/scrt`, etc.) subclass those,
+calling into the platform API client library (e.g. `secretjs`)
+in order to implement the abstract methods.
+
 ```typescript
-//import './core-connect.spec.ts.md'
+//import './core-chain.spec.ts.md'
+//import './core-agent.spec.ts.md'
+//import './core-bundle.spec.ts.md'
 ```
 
 ## [Describing contracts](./core-contract.spec.ts.md)
 
 ```typescript
+//import './core-client.spec.ts.md'
 //import './core-build.spec.ts.md'
 //import './core-code.spec.ts.md'
 //import './core-upload.spec.ts.md'
