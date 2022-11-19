@@ -2,7 +2,7 @@ import { colors, bold } from '@hackbg/konzola'
 import { Task } from '@hackbg/komandi'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
 import { Contract, ClientConsole, Uploader, assertAgent, override } from '@fadroma/core'
-import type { Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/core'
+import type { AnyContract, Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/core'
 import { CustomConsole } from '@hackbg/konzola'
 
 export class UploadConsole extends ClientConsole {
@@ -40,9 +40,10 @@ export class FSUploader extends Uploader {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
       const name = this.getUploadReceiptName(contract)
-      receipt = this.cache.at(name).as(UploadReceipt)
-      if (receipt.exists()) {
-        this.log.log(`${colors.green('Found:')}   `, bold(colors.green(this.cache.at(name).shortPath)))
+      const receiptFile = this.cache.at(name)
+      if (receiptFile.exists()) {
+        receipt = receiptFile.as(UploadReceipt)
+        this.log.log(`${colors.green('Found:')}   `, bold(colors.green(receiptFile.shortPath)))
         const {
           chainId = this.agent?.chain?.id,
           codeId,
@@ -50,14 +51,16 @@ export class FSUploader extends Uploader {
           uploadTx,
         } = receipt.toContract()
         const props = { chainId, codeId, codeHash, uploadTx }
-        return Object.assign(contract, props) as T & {
+        return Object.assign(contract, props) as Uploaded & {
           artifact: URL, codeHash: CodeHash, codeId: CodeId
         }
       }
     }
+
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
     this.log.log('Uploading', bold($(contract.artifact).shortPath))
+
     const result = await this.agent.upload($(contract.artifact).as(BinaryFile).load())
     if (
       contract.codeHash && result.codeHash &&
@@ -72,24 +75,26 @@ export class FSUploader extends Uploader {
     Object.assign(contract, { codeId, codeHash, uploadTx })
     // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
-      receipt.save((contract as Contract).asUploadReceipt)
+      receipt.save((contract as AnyContract).asUploadReceipt)
     }
     //await this.agent.nextBlock
-    return contract as T & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
+    return contract as Uploaded & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
   }
 
-  getUploadReceiptName (contract: Contract): string {
-    return `${$(contract.artifact!).name}.json`
+  /** Generate the filename for an upload receipt. */
+  getUploadReceiptName ({ artifact }: Uploadable): string {
+    return `${$(artifact!).name}.json`
   }
 
-  getUploadReceiptPath (contract: Contract): string {
+  /** Generate the full path for an upload receipt. */
+  getUploadReceiptPath (contract: Uploadable): string {
     const receiptName = `${this.getUploadReceiptName(contract)}`
     const receiptPath = this.cache!.resolve(receiptName)
     return receiptPath
   }
 
   /** Upload multiple contracts from the filesystem. */
-  async uploadMany (inputs: Array<Contract>): Promise<Array<Contract>> {
+  async uploadMany (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
 
     // TODO: Optionally bundle the upload messages in one transaction -
     //       this will only work if they add up to less than the max API request size
@@ -97,8 +102,8 @@ export class FSUploader extends Uploader {
 
     if (!this.cache) return this.uploadManySansCache(inputs)
 
-    const outputs:  Contract[] = []
-    const toUpload: Contract[] = []
+    const outputs:  Uploaded[] = []
+    const toUpload: Uploadable[] = []
 
     for (const i in inputs) {
 
@@ -176,7 +181,7 @@ export class FSUploader extends Uploader {
         const data = path.as(BinaryFile).load()
         this.log.log('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
         const result = await agent.upload(data)
-        const output = override(input, result)
+        const output = override(input, result) as unknown as Uploaded
         this.checkLocalCodeHash(input, output)
         outputs[i] = output
       } else {
@@ -186,7 +191,11 @@ export class FSUploader extends Uploader {
     return outputs
   }
 
-  private ensureLocalCodeHash (input: Contract): Contract {
+  /** Make sure that the optional `codeHash` property of an `Uploadable` is populated, by
+    * computing the code hash of the locally available artifact that he `Uploadable` specifies.
+    * This is used to validate the code hash of the local file against the one returned by the
+    * upload transaction. */
+  private ensureLocalCodeHash (input: Uploadable): Uploadable & { codeHash: CodeHash } {
     if (!input.codeHash) {
       const artifact = $(input.artifact!)
       this.log.warn('No code hash in artifact', bold(artifact.shortPath))
@@ -198,16 +207,17 @@ export class FSUploader extends Uploader {
         this.log.warn('Could not compute code hash:', e.message)
       }
     }
-    return input
+    return input as Uploadable & { codeHash: CodeHash }
   }
 
+  /** Compute the SHA256 of a local file. */
   private hashPath (path: string|Path) {
     return $(path).as(BinaryFile).sha256
   }
 
   /** Panic if the code hash returned by the upload
     * doesn't match the one specified in the Contract. */
-  private checkLocalCodeHash (input: Contract, output: Contract) {
+  private checkLocalCodeHash (input: Uploadable & { codeHash: CodeHash }, output: AnyContract) {
     if (input.codeHash !== output.codeHash) {
       throw new Error(`
         The upload transaction ${output.uploadTx}

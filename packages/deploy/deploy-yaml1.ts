@@ -1,23 +1,10 @@
-import {
-  loadAll, dump
-} from 'js-yaml'
-import {
-  timestamp, bold
-} from '@hackbg/konzola'
-import $, {
-  Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
-} from '@hackbg/kabinet'
-import {
-  Agent, Contract, Client, Deployment, DeployStore
-} from '@fadroma/core'
-import {
-  DeployConsole, DeployError, log
-} from './deploy-events'
-import {
-  basename
-} from 'node:path'
-
-import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
+import { loadAll, dump } from 'js-yaml'
+import { timestamp, bold } from '@hackbg/konzola'
+import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/kabinet'
+import { Agent, Contract, Client, Deployment, DeployStore, toInstanceReceipt } from '@fadroma/core'
+import type { AnyContract } from '@fadroma/core'
+import { DeployConsole, DeployError, log } from './deploy-events'
+import { basename } from 'node:path'
 
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
@@ -88,9 +75,9 @@ export class YAMLDeployments_v1 extends DeployStore {
     if (!file.exists()) return null
     name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })
-    for (const receipt of file.as(YAMLFile).loadAll() as Partial<Contract>[]) {
-      if (!receipt.name) continue
-      deployment.state[receipt.name] = new Contract(receipt)
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
+      if (!receipt.id) continue
+      deployment.state[receipt.id] = new Contract(receipt)
     }
     return deployment
   }
@@ -106,16 +93,16 @@ export class YAMLDeployments_v1 extends DeployStore {
     }
   }
 
-  set (name: string, state: Record<string, Partial<Contract>> = {}) {
+  set (name: string, state: Record<string, Partial<AnyContract>> = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
     let output = ''
     for (let [name, data] of Object.entries(state)) {
       output += '---\n'
-      name ??= data.name!
+      name ??= data.id!
       if (!name) throw new Error('Deployment: no name')
-      const receipt = new Contract(data as Partial<Contract>).asReceipt
+      const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
       data = JSON.parse(JSON.stringify({
         name,
         label:    receipt.label,
