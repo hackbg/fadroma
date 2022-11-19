@@ -31,21 +31,43 @@ import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 import repl from 'node:repl'
 import { createContext } from 'node:vm'
 
+export class Console extends DeployConsole {
+  constructor (name = 'Fadroma') { super(name) }
+}
+
+/** Configuration for the Fadroma environment. */
+export class Config extends DeployConfig {
+  build = new BuilderConfig({ project: this.project }, this.env, this.cwd)
+}
+
 /** Context for Fadroma commands. */
 export class Fadroma extends Deployer {
 
+  /** Override this to set your project name. */
+  projectName: string = 'Fadroma'
+
+  /** The current configuration. */
+  config: Config
+
+  /** The token manager API. */
+  tokens: TokenManager
+
   constructor (config: Partial<Config> = {}) {
     super({ config })
-    this.log.name  = this.projectName
-    this.config    = new Config(config, this.env, this.cwd)
+    this.log.name = this.projectName
+    this.config = new Config(config, this.env, this.cwd)
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
-    this.addCommand('repl',   'interact with this project from a Node.js REPL',
-                    () => this.startREPL())
-    this.addCommand('update', 'update the current deployment',
-                    () => this.selectDeployment().then(()=>this.update()))
-    this.addCommand('deploy', 'create a new deployment of this project',
-                    () => this.deploy())
+    this.tokens = new TokenManager(this as Deployment)
+    this
+      .addCommands('tokens', 'manage token contracts',
+                   this.tokens as any)
+      .addCommand('repl',   'interact with this project from a Node.js REPL',
+                  () => this.startREPL())
+      .addCommand('update', 'update the current deployment',
+                  () => this.selectDeployment().then(()=>this.update()))
+      .addCommand('deploy', 'create a new deployment of this project',
+                  () => this.deploy())
   }
 
   get ready () {
@@ -60,17 +82,6 @@ export class Fadroma extends Deployer {
     Object.defineProperty(this, 'ready', { get () { return ready } })
     return ready
   }
-
-  /** Override this to set your project name. */
-  projectName: string = 'Fadroma'
-
-  /** The current configuration. */
-  config: Config
-
-  /** The token manager API. */
-  tokens: TokenManager = this.commands(
-    'tokens', 'Fadroma Token Manager', new TokenManager(this as Deployment)
-  )
 
   /** Override this to implement your pre-deploy procedure. */
   async deploy () {
@@ -99,17 +110,8 @@ export class Fadroma extends Deployer {
 
 }
 
-/** Configuration for the Fadroma environment. */
-export class Config extends DeployConfig {
-  build = new BuilderConfig({ project: this.project }, this.env, this.cwd)
-}
-
 /** Default export of command module. */
 export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
-
-export class Console extends DeployConsole {
-  constructor (name = 'Fadroma') { super(name) }
-}
 
 export * from '@hackbg/konzola'
 export * from '@hackbg/komandi'

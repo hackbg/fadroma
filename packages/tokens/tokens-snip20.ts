@@ -1,28 +1,10 @@
-import type {
-  Agent,
-  Address,
-  Uint128
-} from '@fadroma/core'
-import {
-  Client,
-  ClientConsole,
-} from '@fadroma/core'
-import type {
-  Permit
-} from '@fadroma/scrt'
-import {
-  ViewingKeyClient
-} from '@fadroma/scrt'
-import {
-  randomBase64
-} from '@hackbg/formati'
-import {
-  bold,
-  colors
-} from '@hackbg/konzola'
-import type {
-  CustomToken
-} from './tokens'
+import type { Agent, Address, Uint128 } from '@fadroma/core'
+import { Client, ClientConsole, } from '@fadroma/core'
+import type { Permit } from '@fadroma/scrt'
+import { ViewingKeyClient } from '@fadroma/scrt'
+import { randomBase64 } from '@hackbg/formati'
+import { bold, colors } from '@hackbg/konzola'
+import type { CustomToken } from './tokens'
 
 const log = new ClientConsole('Fadroma.Snip20')
 
@@ -105,8 +87,11 @@ export class Snip20 extends Client implements CustomToken {
   }
 
   tokenName:   string  | null = null
+
   symbol:      string  | null = null
+
   decimals:    number  | null = null
+
   totalSupply: Uint128 | null = null
 
   async populate (): Promise<this> {

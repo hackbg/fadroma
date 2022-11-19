@@ -154,6 +154,7 @@ export class Contract<C extends Client> {
     return defineTask(name, buildContract, this)
     const self = this // lol
     async function buildContract (this: typeof self) {
+      if (!this.crate) throw new Error.NoCrate()
       builder ??= assertBuilder(this)
       const result = await builder!.build(this as Buildable)
       this.define(result as Partial<typeof self>)
