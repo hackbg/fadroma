@@ -1,4 +1,4 @@
-import { Bundle } from '@fadroma/core'
+import { Bundle, assertChain } from '@fadroma/core'
 import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/core'
 import type { ScrtAgent } from './scrt-agent'
 import { Scrt } from './scrt-chain'
@@ -61,7 +61,7 @@ export class ScrtBundle extends Bundle {
     // Output signing instructions to the console
     this.log.bundleSigningCommand(
       String(Math.floor(+ new Date()/1000)),
-      this.agent.address!, this.agent.assertChain().id,
+      this.agent.address!, assertChain(this.agent).id,
       accountNumber, sequence, unsigned
     )
     return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
@@ -113,7 +113,7 @@ export class ScrtBundle extends Bundle {
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
     const SecretJS = (this.agent?.chain as Scrt).SecretJS
-    const chainId = this.assertChain().id
+    const chainId = assertChain(this).id
     const results: ScrtBundleResult[] = []
     const msgs  = await this.conformedMsgs
     const limit = Number(Scrt.defaultFees.exec.amount[0].amount)

@@ -2,9 +2,9 @@ import type * as SecretJS from 'secretjs'
 import { base64 } from '@hackbg/formati'
 import type {
   Address, AgentClass, AgentOpts,
-  BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message
+  BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message,
 } from '@fadroma/core'
-import { Agent, Contract } from '@fadroma/core'
+import { Agent, Contract, assertAddress, assertChain } from '@fadroma/core'
 import { Scrt } from './scrt'
 import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 import type { ScrtBundle } from './scrt-bundle'
@@ -66,11 +66,11 @@ export class ScrtAgent extends Agent {
   simulate: boolean = false
 
   get account () {
-    return this.api.query.auth.account({ address: this.assertAddress() })
+    return this.api.query.auth.account({ address: assertAddress(this) })
   }
 
   get balance () {
-    return this.getBalance(this.defaultDenom, this.assertAddress())
+    return this.getBalance(this.defaultDenom, assertAddress(this))
   }
 
   async getBalance (denom = this.defaultDenom, address: Address): Promise<string> {
@@ -79,7 +79,7 @@ export class ScrtAgent extends Agent {
   }
 
   async send (to: Address, amounts: ICoin[], opts?: any) {
-    const from_address = this.assertAddress()
+    const from_address = assertAddress(this)
     const to_address = to
     const amount = amounts
     const msg = { from_address, to_address, amount }
@@ -146,7 +146,7 @@ export class ScrtAgent extends Agent {
     const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.getHash(Number(codeId))
-    const chainId    = this.assertChain().id
+    const chainId    = assertChain(this).id
     const contract   = new Contract({
       agent: this,
       codeHash,
@@ -166,7 +166,7 @@ export class ScrtAgent extends Agent {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
     const code_id = Number(template.codeId)
-    if (chainId && chainId !== this.assertChain().id) throw new Error.WrongChain()
+    if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
     if (isNaN(code_id)) throw new Error.NoCodeId()
     const sender = this.address
     const args = { sender, code_id, code_hash: codeHash!, init_msg, label, init_funds }
