@@ -215,6 +215,34 @@ export class Contract<C extends Client> {
     }
   }
 
+  /** @returns one contracts from this contract's deployment which matches
+    * this contract's properties, as well as an optional predicate function. */
+  find (
+    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
+  ): Contract<C>|null {
+    return this.findMany(predicate)[0]
+  }
+
+  /** @returns all contracts from this contract's deployment
+    * that match this contract's properties, as well as an optional predicate function. */
+  findMany (
+    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
+  ): Contract<C>[] {
+    if (!this.context) throw new Error.NoFindWithoutContext()
+    const contracts = Object.values(this.context.state).map(task=>task.context)
+    return contracts.filter(contract=>Boolean(contract.matches(this) && predicate(contract!)))
+  }
+
+  /** @returns true if the specified properties match the properties of this contract. */
+  matches (predicate: Partial<Contract<C>>): boolean {
+    for (const key in predicate) {
+      if (this[key as keyof typeof predicate] !== predicate[key as keyof typeof predicate]) {
+        return true
+      }
+    }
+    return true
+  }
+
   many (
     contracts: Many<[Name, Message]|Partial<AnyContract>>
   ): Task<Contract<C>, Many<Contract<C>>> {
@@ -275,8 +303,9 @@ export function toBuildReceipt (s: Buildable & Built) {
 
 /** Parameters involved in uploading a contract */
 export interface Uploadable {
-  artifact: string|URL
-  chainId:  ChainId
+  artifact:  string|URL
+  chainId:   ChainId,
+  codeHash?: CodeHash
 }
 
 /** Result of uploading a contract */

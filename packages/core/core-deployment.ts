@@ -25,7 +25,7 @@ import type { Client } from './core-client'
 import type { Uploader } from './core-upload'
 
 /** The collection of contracts that constitute a deployment. */
-export type DeploymentState = Record<string, Partial<AnyContract>>
+export type DeploymentState = Record<string, Task<DeployContract<any>, AnyContract>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -206,13 +206,19 @@ interface DeploymentContractMethods {
   add <C extends Client> (name: string, data: DeployContract<C>): this
   /** Throw if a contract with the specified name is not found in this deployment. */
   expect <C extends Client> (id: string, message?: string): DeployContract<C>
+  /** Add multiple contracts to this deployment. */
+  setMany (contracts: Many<Client|AnyContract>): this
+  /** Compile multiple contracts. */
+  buildMany (contracts: (string|AnyContract)[]): Promise<AnyContract[]>
+  /** Upload multiple contracts. */
+  uploadMany (contracts: AnyContract[]): Promise<AnyContract[]>
 }
 
 export function defineDeployContractAPI <D extends Deployment> (
   self: D
 ): DeploymentContractAPI {
 
-  return Object.assign(defineContractInDeployment.bind(self), {
+  const methods = {
 
     has (id) {
       return !!self.state[id]
@@ -241,7 +247,26 @@ export function defineDeployContractAPI <D extends Deployment> (
       return this.get(id)
     },
 
-  } as DeploymentContractMethods)
+    setMany (this: Deployment, contracts: AnyContract[]|Named<AnyContract>) {
+      throw new Error('TODO')
+      for (const [name, receipt] of Object.entries(contracts)) {
+        self.state[name] = receipt
+      }
+      self.save()
+      return self
+    },
+
+    buildMany (contracts: (string|AnyContract)[]) {
+      return buildMany(contracts as unknown as Buildable[], self)
+    },
+
+    uploadMany (contracts: AnyContract[]) {
+      return uploadMany(contracts as unknown as Uploadable[], self)
+    }
+
+  } as DeploymentContractMethods
+
+  return Object.assign(defineContractInDeployment.bind(self), methods)
 
   function defineContractInDeployment <C extends Client> (
     this: D, arg: string|Partial<Contract<C>> = {}
@@ -276,13 +301,6 @@ type DefineContracts<D extends Deployment> =
 
 /** Methods for managing groups of contracts in a `Deployment` */
 interface DeploymentContractsMethods {
-  /** Add multiple contracts to this deployment. */
-  set (contracts: Array<Client|AnyContract>): this
-  set (contracts: Record<string, Client|AnyContract>): this
-  /** Compile multiple contracts. */
-  build (contracts: (string|AnyContract)[]): Promise<AnyContract[]>
-  /** Upload multiple contracts. */
-  upload (contracts: AnyContract[]): Promise<AnyContract[]>
 }
 
 export function defineDeployContractsAPI <D extends Deployment> (
@@ -290,23 +308,6 @@ export function defineDeployContractsAPI <D extends Deployment> (
 ): DeploymentContractsAPI<D> {
 
   return Object.assign(defineContractsInDeployment, {
-
-    set (this: Deployment, contracts: AnyContract[]|Named<AnyContract>) {
-      throw new Error('TODO')
-      for (const [name, receipt] of Object.entries(contracts)) {
-        self.state[name] = receipt
-      }
-      self.save()
-      return self
-    },
-
-    build (contracts: (string|AnyContract)[]) {
-      return buildMany(contracts as unknown as Buildable[], self)
-    },
-
-    upload (contracts: AnyContract[]) {
-      return uploadMany(contracts as unknown as Uploadable[], self)
-    }
 
   })
 
