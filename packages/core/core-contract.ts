@@ -42,8 +42,8 @@ export function defineContract <C extends Client> (
       options = { ...options, ...args[0] }
     }
     // If there is a deployment, look for the contract in it
-    if (options.context && options.id && options.context.contract.has(options.id)) {
-      return options.context.contract.get(options.id)
+    if (options.id && options.context?.hasContract(options.id)) {
+      return options.context.getContract(options.id)
     }
     // The contract object that we'll be using
     const contract = options
@@ -214,24 +214,6 @@ export class Contract<C extends Client> {
       if (this.context) this.context.contract.add(this.id!, contract)
       return (this.client ?? Client).fromContract(this)
     }
-  }
-
-  /** @returns one contracts from this contract's deployment which matches
-    * this contract's properties, as well as an optional predicate function. */
-  find (
-    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
-  ): Contract<C>|null {
-    return this.findMany(predicate)[0]
-  }
-
-  /** @returns all contracts from this contract's deployment
-    * that match this contract's properties, as well as an optional predicate function. */
-  findMany (
-    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
-  ): Contract<C>[] {
-    if (!this.context) throw new Error.NoFindWithoutContext()
-    const contracts = Object.values(this.context.state).map(task=>task.context)
-    return contracts.filter(contract=>Boolean(contract.matches(this) && predicate(contract!)))
   }
 
   /** @returns true if the specified properties match the properties of this contract. */

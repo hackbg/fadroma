@@ -87,48 +87,156 @@ export class Deployment extends CommandContext {
     return `${this.name??'-'}`
   }
 
-  /** Number of contracts in deployment. */
-  get size (): number {
-    return Object.keys(this.state).length
-  }
-
-  /** True if the chain is a devnet or mocknet */
-  get devMode   (): boolean {
-    return this.chain?.devMode   ?? false
-  }
-
-  /** = chain.isMainnet */
-  get isMainnet (): boolean {
-    return this.chain?.isMainnet ?? false
-  }
-
-  /** = chain.isTestnet */
-  get isTestnet (): boolean {
-    return this.chain?.isTestnet ?? false
-  }
-
-  /** = chain.isDevnet */
-  get isDevnet  (): boolean {
-    return this.chain?.isDevnet  ?? false
-  }
-
-  /** = chain.isMocknet */
-  get isMocknet (): boolean {
-    return this.chain?.isMocknet ?? false
-  }
-
   /** Print the status of this deployment. */
   async showStatus () {
     this.log.deployment(this)
   }
 
+  /** Number of contracts in deployment. */
+  get size (): number {
+    return Object.keys(this.state).length
+  }
+
+  /** @returns true if the chain is a devnet or mocknet */
+  get devMode   (): boolean {
+    return this.chain?.devMode   ?? false
+  }
+
+  /** @returns true if the chain is a mainnet */
+  get isMainnet (): boolean {
+    return this.chain?.isMainnet ?? false
+  }
+
+  /** @returns true if the chain is a testnet */
+  get isTestnet (): boolean {
+    return this.chain?.isTestnet ?? false
+  }
+
+  /** @returns true if the chain is a devnet */
+  get isDevnet  (): boolean {
+    return this.chain?.isDevnet  ?? false
+  }
+
+  /** @returns true if the chain is a mocknet */
+  get isMocknet (): boolean {
+    return this.chain?.isMocknet ?? false
+  }
+
+  config?: { build?: { project?: any } }
+
   /** Specify a contract.
     * @returns a callable `Contract` with the specified parameters. */
-  contract       = defineDeployContractAPI(this)
+  defineContract <C extends Client> (
+    /** Parameters of the contract. */
+    opts: Partial<Contract<C>> = {}
+  ): DeployContract<C> {
+    opts.agent ??= this.agent
+    if (opts.id && this.hasContract(opts.id)) {
+      return this.getContract(opts.id)!.context!
+    } else {
+      const contract = defineContract({
+        workspace: this.config?.build?.project,
+        ...opts,
+        prefix:  this.name,
+        context: this
+      })
+      this.addContract(contract.name!, contract)
+      return contract
+    }
+  }
 
   /** Specify a group of heterogeneous contracts.
     * @returns a callable key-value map of `Contract`s with the specified parameters. */
-  contractGroup  = defineDeployGroupAPI(this)
+  defineContractGroup <A extends unknown[]> (
+    /** Function that returns the contracts belonging to an instance of the group. */
+    getContracts: (...args: A)=>Many<AnyContract>
+  ): (...args: A) => ContractGroup<A> {
+    return (...args: A) => new ContractGroup(this, getContracts(...args))
+  }
+
+  /** Check if the deployment contains a contract with a certain name. */
+  hasContract (id: Name) {
+    return !!this.state[id]
+  }
+
+  /** Get the Contract corresponding to a given name. */
+  getContract (id: Name) {
+    return this.state[id]
+  }
+
+  /** @returns one contracts from this contract's deployment which matches
+    * this contract's properties, as well as an optional predicate function. */
+  findContract <C extends Client> (
+    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
+  ): Contract<C>|null {
+    return this.findContracts(predicate)[0]
+  }
+
+  /** @returns all contracts from this contract's deployment
+    * that match this contract's properties, as well as an optional predicate function. */
+  findContracts <C extends Client> (
+    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
+  ): Contract<C>[] {
+    const contracts = Object.values(this.state).map(task=>task.context)
+    return contracts.filter(contract=>predicate(contract!))
+  }
+
+  /** Set the Contract corresponding to a given name,
+    * attaching it to this deployment. */
+  addContract <C extends Client> (id: Name, contract: Contract<C>) {
+    contract.context = this
+    //defineDefault(contract, this, 'log')
+    defineDefault(contract, this, 'agent')
+    defineDefault(contract, this, 'builder')
+    defineDefault(contract, this, 'uploader')
+    defineDefault(contract, this, 'repository')
+    defineDefault(contract, this, 'revision')
+    defineDefault(contract, this, 'workspace')
+    setPrefix(this.name)
+    this.state[id] = contract
+    this.save()
+    return contract
+
+    function setPrefix (value: string) {
+      Object.defineProperty(contract, 'prefix', {
+        enumerable: true,
+        get () { return contract.context?.name },
+        set (v: string) {
+          if (v !== contract.context?.name) {
+            contract.log!.warn(`BUG: Overriding prefix from "${contract.context?.name}" to "${v}"`)
+          }
+          setPrefix(v)
+        }
+      })
+    }
+  }
+
+  /** Add multiple contracts to this deployment. */
+  addContracts (contracts: AnyContract[]|Named<AnyContract>) {
+    throw new Error('TODO')
+    for (const [name, receipt] of Object.entries(contracts)) {
+      this.state[name] = receipt
+    }
+    this.save()
+    return this
+  }
+
+  /** Throw if a contract with the specified name is not found in this deployment. */
+  expectContract (id: Name, message?: string) {
+    message ??= `${id}: no such contract in deployment`
+    if (!this.hasContract(id)) throw new Error(message)
+    return this.getContract(id)
+  }
+
+  /** Compile multiple contracts. */
+  buildContracts (contracts: (string|AnyContract)[]) {
+    return buildMany(contracts as unknown as Buildable[], this)
+  }
+
+  /** Upload multiple contracts. */
+  uploadContracts (contracts: AnyContract[]) {
+    return uploadMany(contracts as unknown as Uploadable[], this)
+  }
 
   /** Implemented by Deployer subclass in @fadroma/deploy
     * to allow saving deployment data to the DeployStore. */
@@ -138,16 +246,16 @@ export class Deployment extends CommandContext {
     * to the command tree under `name`, with usage description `info`.
     * See the documentation of `interface Subsystem` for more info.
     * @returns an instance of `ctor` */
-  subsystem <X extends Deployment>(
+  defineSubsystem <X extends Deployment>(
     name: string,
     info: string,
     ctor: Subsystem<X, typeof this>,
     ...args: unknown[]
   ): X {
-    return this.attach(new ctor(this, ...args) as X, name, info)
+    return this.attachSubsystem(new ctor(this, ...args) as X, name, info)
   }
 
-  attach <X extends Deployment> (
+  attachSubsystem <X extends Deployment> (
     inst: X,
     name: string = inst.constructor.name,
     info: string = `(undocumented)`,
@@ -188,176 +296,11 @@ export interface Subsystem<D extends Deployment, E extends Deployment> extends C
   E, ...unknown[]
 ]> {}
 
-type DeploymentContractAPI = DefineContract & DeploymentContractMethods
-
-type DefineContract = <C extends Client>(arg?: string|Partial<Contract<C>>) => Contract<C>
-
-/** Methods for managing individual contracts in a `Deployment` */
-interface DeploymentContractMethods {
-  /** Check if the deployment contains a contract with a certain name. */
-  has (name: string): boolean
-  /** Get the Contract corresponding to a given name. */
-  get <C extends Client> (name: string): Task<DeployContract<C>, C>|null
-  /** Set the Contract corresponding to a given name,
-    * attaching it to this deployment. */
-  set <C extends Client> (name: string, task: DeployContract<C>): Contract<C>
-  /** Set the Contract corresponding to a given name,
-    * attaching it to this deployment. Chainable. */
-  add <C extends Client> (name: string, data: DeployContract<C>): this
-  /** Throw if a contract with the specified name is not found in this deployment. */
-  expect <C extends Client> (id: string, message?: string): DeployContract<C>
-  /** Add multiple contracts to this deployment. */
-  setMany (contracts: Many<Client|AnyContract>): this
-  /** Compile multiple contracts. */
-  buildMany (contracts: (string|AnyContract)[]): Promise<AnyContract[]>
-  /** Upload multiple contracts. */
-  uploadMany (contracts: AnyContract[]): Promise<AnyContract[]>
-}
-
-export function defineDeployContractAPI <D extends Deployment> (
-  self: D
-): DeploymentContractAPI {
-
-  const methods = {
-
-    has (id) {
-      return !!self.state[id]
-    },
-
-    get (id) {
-      return self.state[id]
-    },
-
-    set <C extends Client> (id: string, contract: Contract<C>) {
-      contract.context = self
-      attachToDeployment(contract, self)
-      self.state[id] = contract
-      self.save()
-      return contract
-    },
-
-    add (id: Name, contract) {
-      this.set(id, contract)
-      return self
-    },
-
-    expect (id, message) {
-      message ??= `${id}: no such contract in deployment`
-      if (!this.has(id)) throw new Error(message)
-      return this.get(id)
-    },
-
-    setMany (this: Deployment, contracts: AnyContract[]|Named<AnyContract>) {
-      throw new Error('TODO')
-      for (const [name, receipt] of Object.entries(contracts)) {
-        self.state[name] = receipt
-      }
-      self.save()
-      return self
-    },
-
-    buildMany (contracts: (string|AnyContract)[]) {
-      return buildMany(contracts as unknown as Buildable[], self)
-    },
-
-    uploadMany (contracts: AnyContract[]) {
-      return uploadMany(contracts as unknown as Uploadable[], self)
-    }
-
-  } as DeploymentContractMethods
-
-  return Object.assign(defineContractInDeployment.bind(self), methods)
-
-  function defineContractInDeployment <C extends Client> (
-    this: D, arg: string|Partial<Contract<C>> = {}
-  ): DeployContract<C> {
-    const id = (typeof arg === 'string') ? arg : arg.id
-    const opts = (typeof arg === 'string') ? { id } : arg
-    opts.agent ??= this.agent
-    if (id && this.contract.has(id)) {
-      return this.contract.get<C>(id)!.context!
-    } else {
-      const contract = defineContract({
-        workspace: this.config?.build?.project,
-        ...opts,
-        prefix:  this.name,
-        context: this
-      })
-      this.contract.set(contract.name!, contract)
-      return contract
-    }
-  }
-
-}
-
 type MatchPredicate =
   (meta: Partial<AnyContract>) => boolean|undefined
 
-type DeploymentContractsAPI<D extends Deployment> =
-  DefineContracts<D> & DeploymentContractsMethods
-
 type DefineContracts<D extends Deployment> =
   (contracts: Many<AnyContract>) => Task<D, Many<Client>>
-
-/** Methods for managing groups of contracts in a `Deployment` */
-interface DeploymentContractsMethods {
-}
-
-export function defineDeployContractsAPI <D extends Deployment> (
-  self: D
-): DeploymentContractsAPI<D> {
-
-  return Object.assign(defineContractsInDeployment, {
-
-  })
-
-  function defineContractsInDeployment (contracts: Many<AnyContract>): Task<D, Many<Client>> {
-    const length = Object.entries(contracts).length
-    const name = (length === 1) ? `deploy contract` : `deploy ${length} contracts`
-    return defineTask(name, deployMultipleContracts, self)
-    async function deployMultipleContracts (): Promise<Many<Client>> {
-      return await mapAsync(contracts, call)
-    }
-  }
-
-}
-
-/** Returns a function that defines a contract group. */
-export function defineDeployGroupAPI <D extends Deployment> (self: D) {
-  /** Callable object for consistency, but no submethods yet. */
-  return Object.assign(defineContractGroupTemplate.bind(self), {})
-  /** Returns a function deploying the contract group one or more times. */
-  function defineContractGroupTemplate <A extends unknown[]> (
-    /** Function that returns the contracts belonging to an instance of the group. */
-    getContracts: (...args: A)=>Many<AnyContract>
-  ): (...args: A) => ContractGroup<A> {
-    return Object.assign(defineContractGroup, {
-      /** Define multiple instances of the contract group. */
-      many (instances: Many<A>) {
-        /** Define a contract group corresponding to each member of `instances` */
-        const groups = mapAsync(
-          instances,
-          defineContractGroup as unknown as (x:A[0])=>ContractGroup<A>
-        )
-        /** Deploy the specified contract groups. */
-        return async function deployContractGroups (...args: A) {
-          return await mapAsync(
-            /** Reify the specified contract groups */
-            await groups,
-            /** Deploy each contract group. */
-            function deployContractGroup (group: ContractGroup<A>) {
-              return group.deploy(...args)
-            }
-          )
-        }
-      }
-    })
-    /** Defines a new contract group. */
-    function defineContractGroup (...args: A) {
-      return new ContractGroup(self, getContracts(...args))
-    }
-  }
-}
 
 export class ContractGroup<A extends unknown[]> {
 
@@ -366,10 +309,35 @@ export class ContractGroup<A extends unknown[]> {
     public readonly contracts: Many<AnyContract>
   ) {}
 
+  /** Deploy an instance of this contract group. */
   async deploy (...args: A) {
     await buildMany(Object.values(this.contracts) as unknown as Buildable[], this.context)
     await uploadMany(Object.values(this.contracts) as unknown as Uploadable[], this.context)
     return await mapAsync(this.contracts, (contract: AnyContract)=>contract.deployed)
+  }
+
+  /** Prepare multiple instances of this contract group for deployment. */
+  many (instances: Many<A>) {
+    /** Define a contract group corresponding to each member of `instances` */
+    const groups = mapAsync(
+      instances,
+      defineContractGroup as unknown as (x:A[0])=>ContractGroup<A>
+    )
+    /** Deploy the specified contract groups. */
+    return async function deployContractGroups (...args: A) {
+      return await mapAsync(
+        /** Reify the specified contract groups */
+        await groups,
+        /** Deploy each contract group. */
+        function deployContractGroup (group: ContractGroup<A>) {
+          return group.deploy(...args)
+        }
+      )
+    }
+    /** Defines a new contract group. */
+    function defineContractGroup (...args: A) {
+      return new ContractGroup(self, getContracts(...args))
+    }
   }
 
 }
@@ -380,29 +348,5 @@ export function attachToDeployment <T extends { context?: Deployment, log?: { wa
   self: T, context: Deployment
 ): T {
 
-  self.context = context
-  //defineDefault(self, context, 'log')
-  defineDefault(self, context, 'agent')
-  defineDefault(self, context, 'builder')
-  defineDefault(self, context, 'uploader')
-  defineDefault(self, context, 'repository')
-  defineDefault(self, context, 'revision')
-  defineDefault(self, context, 'workspace')
-  setPrefix(self, context.name)
-
-  return self
-
-  function setPrefix (self: T, value: string) {
-    Object.defineProperty(self, 'prefix', {
-      enumerable: true,
-      get () { return self.context?.name },
-      set (v: string) {
-        if (v !== self.context?.name) {
-          self.log!.warn(`BUG: Overriding prefix from "${self.context?.name}" to "${v}"`)
-        }
-        setPrefix(self, v)
-      }
-    })
-  }
 
 }

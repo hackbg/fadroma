@@ -33,7 +33,7 @@ export class TokenManager extends CommandContext {
     /** Function that returns the active deployment. */
     public context:       Deployment,
     /** Template for deploying new tokens. */
-    public template:      TokenContract = context.contract({ client: Snip20 }),
+    public template:      TokenContract = context.defineContract({ client: Snip20 }),
     /** Default token config. */
     public defaultConfig: Snip20InitConfig = {
       public_total_supply: true,
@@ -73,7 +73,7 @@ export class TokenManager extends CommandContext {
         if (args.includes('--can-burn'))    config.enable_burn    = true
         if (args.includes('--can-deposit')) config.enable_deposit = true
         if (args.includes('--can-redeem'))  config.enable_redeem  = true
-        if (typeof template === 'string') template = this.context.contract({ crate: template })
+        if (typeof template === 'string') template = this.context.defineContract({ crate: template })
         return await this.define(symbol, { name, decimals, admin, template })
       })
   }
@@ -87,7 +87,7 @@ export class TokenManager extends CommandContext {
 
   /** Register a token contract. */
   add (symbol: TokenSymbol, spec: Partial<TokenContract>): TokenContract {
-    const token = (spec instanceof Contract) ? spec : this.context.contract(spec)
+    const token = (spec instanceof Contract) ? spec : this.context.defineContract(spec)
     token.id ??= symbol
     this.tokens[symbol] = token
     return token
@@ -134,8 +134,8 @@ export class TokenManager extends CommandContext {
         options?.config
       ),
     }
-    const instance = this.context.contract(this.template).define(contractOptions)
-    this.context.contract.add(name, instance)
+    const instance = this.context.defineContract(this.template).define(contractOptions)
+    this.context.addContract(name, instance)
     return this.add(symbol, instance as TokenContract)
   }
 
@@ -181,7 +181,7 @@ export class TokenManager extends CommandContext {
       const symbols   = entries.map(x=>x[0])
       const inits     = entries.map(x=>x[1])
       const template  = this.template as Partial<Contracts<Snip20>>
-      const contracts = this.context.contracts<Snip20>(template).define({ inits: deployed })
+      const contracts = this.context.defineContracts<Snip20>(template).define({ inits: deployed })
       const clients   = await contracts
       for (const i in entries) {
         const [symbol] = entries[i]
