@@ -1,10 +1,10 @@
+import type { Task } from '@hackbg/komandi'
 import type { ChainId } from './core-chain'
 import type { CodeId, CodeHash, Hashed } from './core-code'
 import type { Uploader } from './core-upload'
 import type { Address, Message, TxHash } from './core-tx'
 import type { Label } from './core-labels'
-import type { Name } from './core-fields'
-import type { Class } from './core-fields'
+import type { Name, Class, Many } from './core-fields'
 import type { Client } from './core-client'
 import type { Builder } from './core-build'
 
@@ -12,30 +12,46 @@ import { assertAddress } from './core-tx'
 import { codeHashOf } from './core-code'
 import * as Impl from './core-contract-impl'
 
-export function defineCallable <F extends Function> (
-  Base: Class<any, any>,
-  call: F
+/** Define a callable class. Instances of the generated class can be invoked as functions.
+  * The body of the function is passed as second argument.
+  * The function's `this` identifier is bound to the instance.
+  * @returns a callable class extending `Base`. */
+export function defineCallable <T, U extends unknown[], F extends Function> (
+  Base: Class<any, any>, fn: F
 ): Class<any, any> {
-  type Callable = { (): any }
-  const Class = class extends Base implements Callable {
+  return Object.defineProperty(class extends Base {
     constructor (...args: any) {
       super(...args)
-      if (call.bind) call = call.bind(this)
-      for (let key in this) Object.assign(call, { [key]: this[key] })
+      const self = this
+      let call = function (...args: any) {
+        return fn.apply(call, args)
+      }
+      let descriptors = {}
+      let parent
+      parent = call
+      while (parent = Object.getPrototypeOf(parent)) {
+        descriptors = { ...descriptors, ...Object.getOwnPropertyDescriptors(parent) }
+      }
+      parent = this
+      while (parent = Object.getPrototypeOf(parent)) {
+        descriptors = { ...descriptors, ...Object.getOwnPropertyDescriptors(parent) }
+      }
+      Object.setPrototypeOf(call, Object.defineProperties({}, descriptors))
+      Object.defineProperties(call, Object.getOwnPropertyDescriptors(this))
       return call
     }
-  }
-  Object.defineProperty(Class, 'name', { value: `${Base.name}Callable` })
-  return Class
+  }, 'name', {
+    value: `${Base.name}Callable`
+  })
 }
 
 export interface ContractTemplate<C extends Client> extends Impl.ContractTemplate<C> {
-  (): Impl.ContractTemplate<C>["uploaded"]
+  (): Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded>
 }
 
 /** Callable object: contract template.
   * Can build and upload, but not instantiate.
-  * Can produce deployable Contract instances. */ 
+  * Can produce deployable Contract instances. */
 export class ContractTemplate<C extends Client> extends defineCallable(
   Impl.ContractTemplate,
   function ensureTemplate <C extends Client> (this: ContractTemplate<C>) {
@@ -44,11 +60,11 @@ export class ContractTemplate<C extends Client> extends defineCallable(
 ) {}
 
 export interface Contract<C extends Client> extends Impl.Contract<C> {
-  (): Impl.Contract<C>["deploy"]
+  (): Task<ContractTemplate<C>, C>
 }
 
 /** Callable object: contract.
-  * Can build and upload, and instantiate itself. */ 
+  * Can build and upload, and instantiate itself. */
 export class Contract<C extends Client> extends defineCallable(
   Impl.Contract,
   function ensureContract <C extends Client> (this: Contract<C>, ...args: any) {
@@ -66,11 +82,11 @@ export class Contract<C extends Client> extends defineCallable(
 ) {}
 
 export interface ContractGroup<A extends unknown[]> extends Impl.ContractGroup<A> {
-  (): Impl.ContractGroup<A>["deploy"]
+  (): Task<ContractGroup<A>, Many<Client>>
 }
 
 /** Callable object: contract group.
-  * Can build and upload, and instantiate multiple contracts. */ 
+  * Can build and upload, and instantiate multiple contracts. */
 export class ContractGroup<A extends unknown[]> extends defineCallable(
   Impl.ContractGroup,
   function ensureContractGroup <A extends unknown[]> (this: ContractGroup<A>, ...args: any) {

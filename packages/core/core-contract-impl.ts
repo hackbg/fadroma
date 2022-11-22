@@ -9,6 +9,7 @@ import type { Address, Message, TxHash } from './core-tx'
 import type { Label } from './core-labels'
 import type { Agent } from './core-agent'
 import type { Deployment } from './core-deployment'
+import type { Buildable, Uploadable } from './core-contract'
 
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
@@ -134,47 +135,6 @@ export type AnyContract = Contract<Client>
 export type ContractDeployArgs<C extends Client> = [Name, Message]|[Partial<Contract<C>>]
 
 export class Contract<C extends Client> extends ContractTemplate<C> {
-
-    //// support either `contract(id, init)` or `contract({ id, init, ...etc })`
-    //let options = { ...this }
-    //if (typeof args[0] === 'string') {
-      //const [id, initMsg] = args
-      //options = { ...options, id, initMsg }
-    //} else if (typeof args[0] === 'object') {
-      //options = { ...options, ...args[0] }
-    //}
-
-    //// If there is a deployment, look for the contract in it
-    //if (options.id && options.context?.hasContract(options.id)) {
-      //return options.context.getContract(options.id)
-    //}
-    //return this.deployed
-  //}
-//) {
-
-  static define = function defineContract <C extends Client> (
-    baseOptions: Partial<Contract<C>> = {},
-  ): Contract<C> {
-    if (baseOptions.id && baseOptions.context?.hasContract(baseOptions.id)) {
-      return baseOptions.context.getContract(baseOptions.id)
-    }
-    let instance = function getOrDeployContract (
-      ...args: [Name, Message]|[Partial<Contract<C>>]
-    ): Task<Contract<C>, C> {
-      // The contract object that we'll be using
-      const contract = options
-        // If options were passed, define a new Contract
-        ? defineContract(override({...instance}, options! as object))
-        // If no options were passed, use this object
-        : instance
-      return contract.deployed
-    }
-    return rebind(
-      instance = instance.bind(instance),
-      new Contract(baseOptions)) as Contract<C> & (()=> Task<Contract<C>, C>
-    )
-  }
-
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL     = undefined
@@ -242,6 +202,7 @@ export class Contract<C extends Client> extends ContractTemplate<C> {
 
   constructor (options: Partial<Contract<C>> = {}) {
     super()
+    override(this, options)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
       defineDefault(this, this.context, 'builder')
@@ -271,7 +232,9 @@ export class Contract<C extends Client> extends ContractTemplate<C> {
   get deployed (): Task<Contract<C>, C> {
     if (this.address) {
       this.log?.foundDeployedContract(this.address, this.id)
-      return Promise.resolve((this.client ?? Client).fromContract(this) as C)
+      const $C     = (this.client ?? Client)
+      const client = new $C(this.agent, this.address, this.codeHash, this as any)
+      return Promise.resolve(client)
     }
     const deploying = this.deploy()
     Object.defineProperty(this, 'deployed', { get () { return deploying } })
@@ -297,7 +260,9 @@ export class Contract<C extends Client> extends ContractTemplate<C> {
       this.define(contract as Partial<this>)
       this.log?.afterDeploy(this as Partial<Contract<C>>)
       if (this.context) this.context.addContract(this.id!, contract)
-      return (this.client ?? Client).fromContract(this)
+      const $C = (this.client ?? Client)
+      const client = new $C(this.agent, this.address, this.codeHash, this as any)
+      return client
     }
   }
 
@@ -374,3 +339,9 @@ export class ContractGroup<A extends unknown[]> {
   }
 
 }
+
+/** Convert Fadroma.Instance to address/hash struct (ContractLink) */
+export const linkStruct = (instance: IntoLink): ContractLink => ({
+  address:   assertAddress(instance),
+  code_hash: codeHashOf(instance)
+})

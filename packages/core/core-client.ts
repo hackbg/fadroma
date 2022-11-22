@@ -41,7 +41,7 @@ export class Client {
     //if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
   }
 
-  meta: Contract<typeof this>
+  meta: Contract<any>
 
   /** Logger. */
   log = new Console('Fadroma.Client')
