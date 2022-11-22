@@ -33,7 +33,7 @@ export class Metadata {
 }
 
 export function defineTask <T, U> (
-  name: string, cb: (this: T)=>PromiseLike<U>, context?: T & { log?: ClientConsole }
+  name: string, cb: (this: T)=>U|PromiseLike<U>, context?: T & { log?: ClientConsole }
 ): Task<T, U> {
   const task = new Task(name, cb, context as unknown as T)
   const [_, head, ...body] = (task.stack ?? '').split('\n')

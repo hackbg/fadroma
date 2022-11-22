@@ -10,6 +10,8 @@ import type { Name, Class, Many } from './core-fields'
 import type { Client } from './core-client'
 import type { Builder } from './core-build'
 
+import { defineTask, map } from './core-fields'
+
 import { assertAddress } from './core-tx'
 import { codeHashOf } from './core-code'
 import * as Impl from './core-contract-impl'
@@ -22,11 +24,18 @@ export interface ContractTemplate<C extends Client> extends Impl.ContractTemplat
   * Can build and upload, but not instantiate.
   * Can produce deployable Contract instances. */
 export class ContractTemplate<C extends Client> extends defineCallable(
-  Impl.ContractTemplate,
+  Impl.ContractTemplate as any,
   function ensureTemplate <C extends Client> (this: ContractTemplate<C>) {
     return this.uploaded
   }
-) {}
+) {
+  /** Define a new instance of this contract. */
+  defineInstance (options: Partial<Contract<C>> = {}): Contract<C> {
+    return new Contract({ ...this, ...options })
+  }
+}
+
+export type AnyContract = Contract<Client>
 
 export interface Contract<C extends Client> extends Impl.Contract<C> {
   (): Task<ContractTemplate<C>, C>
@@ -35,7 +44,7 @@ export interface Contract<C extends Client> extends Impl.Contract<C> {
 /** Callable object: contract.
   * Can build and upload, and instantiate itself. */
 export class Contract<C extends Client> extends defineCallable(
-  Impl.Contract,
+  Impl.Contract as any,
   function ensureContract <C extends Client> (this: Contract<C>, ...args: any) {
     // Parse options
     const options: Partial<typeof this> =
@@ -48,7 +57,28 @@ export class Contract<C extends Client> extends defineCallable(
     }
     return this.deploy(...args)
   }
-) {}
+) {
+
+  many (
+    contracts: Many<[Name, Message]|Partial<AnyContract>>
+  ): Task<Contract<C>, Many<Task<Contract<C>, C>>> {
+    const size = Object.keys(contracts).length
+    const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
+    const self = this
+    return defineTask(name, deployManyContracts, this)
+    function deployManyContracts (this: typeof self): Many<Task<Contract<C>, C>> {
+      type Instance = [Name, Message] | Partial<AnyContract>
+      return map(contracts, function (instance: Instance): Task<Contract<C>, C> {
+        if (instance instanceof Array) instance = { id: instance[0], initMsg: instance[1] }
+        const contract = new Contract<C>({
+          context: self.context,
+          ...instance as Partial<Contract<C>>
+        })
+        return contract.deployed
+      })
+    }
+  }
+}
 
 export interface ContractGroup<A extends unknown[]> extends Impl.ContractGroup<A> {
   (): Task<ContractGroup<A>, Many<Client>>

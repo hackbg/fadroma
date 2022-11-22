@@ -1,6 +1,6 @@
 import type { Agent } from './core-agent'
 import type { Address } from './core-tx'
-import type { Buildable, Built, Uploaded, Deployed, AnyContract } from './core-contract'
+import type { Buildable, Built, Uploaded, Instantiated, AnyContract } from './core-contract'
 import { assertAddress } from './core-tx'
 import { validated } from './core-fields'
 import { ClientError as Error } from './core-events'
@@ -28,7 +28,7 @@ export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): Cod
   * @returns the passed contract object but with codeHash set
   * @throws if unable to establish the code hash */
 export async function fetchCodeHash (
-  meta:   Built|Uploaded|Deployed,
+  meta:   Partial<Built> & Partial<Uploaded> & Partial<Instantiated>,
   agent?: Agent|null|undefined, expected?: CodeHash,
 ): Promise<CodeHash> {
   if (!agent) throw new Error.NoAgent()

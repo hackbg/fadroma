@@ -12,7 +12,7 @@ import { assertAgent } from './core-agent'
 import { into, intoRecord, defineTask, call } from './core-fields'
 import { writeLabel } from './core-labels'
 
-import { Contract, ContractTemplate, ContractGroup } from './core-contract'
+import { AnyContract, Contract, ContractTemplate, ContractGroup } from './core-contract'
 import type { Buildable, Uploadable, Instantiable, Instantiated } from './core-contract'
 
 import type { Agent } from './core-agent'
@@ -23,7 +23,7 @@ import type { Client } from './core-client'
 import type { Uploader } from './core-upload'
 
 /** The collection of contracts that constitute a deployment. */
-export type DeploymentState = Record<string, Task<Contract<any>, Client>>
+export type DeploymentState = Record<string, Contract<any>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -144,8 +144,7 @@ export class Deployment extends CommandContext {
   findContracts <C extends Client> (
     predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
   ): Contract<C>[] {
-    const contracts = Object.values(this.state).map(task=>task.context)
-    return contracts.filter(contract=>predicate(contract!))
+    return Object.values(this.state).filter(contract=>predicate(contract!))
   }
 
   /** Set the Contract corresponding to a given name,
@@ -154,16 +153,6 @@ export class Deployment extends CommandContext {
     this.state[id] = contract
     this.save()
     return contract
-  }
-
-  /** Add multiple contracts to this deployment. */
-  addContracts (contracts: AnyContract[]|Named<AnyContract>) {
-    throw new Error('TODO')
-    for (const [name, receipt] of Object.entries(contracts)) {
-      this.state[name] = receipt
-    }
-    this.save()
-    return this
   }
 
   /** Throw if a contract with the specified name is not found in this deployment. */
@@ -223,7 +212,7 @@ export class Deployment extends CommandContext {
   defineGroup <A extends unknown[]> (
     /** Function that returns the contracts belonging to an instance of the group. */
     getContracts: (...args: A)=>Many<AnyContract>
-  ): (...args: A) => ContractGroup<A> {
+  ): ContractGroup<A> {
     return new ContractGroup(this, getContracts)
   }
 

@@ -9,11 +9,11 @@ import type { Address, Message, TxHash } from './core-tx'
 import type { Label } from './core-labels'
 import type { Agent } from './core-agent'
 import type { Deployment } from './core-deployment'
-import type { Buildable, Uploadable } from './core-contract'
+import type { AnyContract, Buildable, Uploadable, ContractLink, IntoLink } from './core-contract'
 
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
-import { rebind, override, Maybe, defineTask, into, map, defineDefault } from './core-fields'
+import { rebind, override, Maybe, defineTask, into, map, mapAsync, defineDefault } from './core-fields'
 import { Client } from './core-client'
 import { ClientError as Error } from './core-events'
 import { writeLabel } from './core-labels'
@@ -21,9 +21,8 @@ import { assertBuilder } from './core-build'
 import { upload } from './core-upload'
 import { buildMany } from './core-build'
 import { uploadMany } from './core-upload'
-import { mapAsync } from './core-fields'
 
-export class ContractTemplate<C extends Client> {
+export abstract class ContractTemplate<C extends Client> {
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL     = undefined
@@ -125,16 +124,12 @@ export class ContractTemplate<C extends Client> {
   }
 
   /** Define a new instance of this contract. */
-  defineInstance (options: Partial<Contract<C>> = {}): Contract<C> {
-    return Contract.define({ ...this, ...options })
-  }
+  abstract defineInstance (options?: Partial<Contract<C>>): Contract<C>
 }
-
-export type AnyContract = Contract<Client>
 
 export type ContractDeployArgs<C extends Client> = [Name, Message]|[Partial<Contract<C>>]
 
-export class Contract<C extends Client> extends ContractTemplate<C> {
+export abstract class Contract<C extends Client> extends ContractTemplate<C> {
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL     = undefined
@@ -246,17 +241,17 @@ export class Contract<C extends Client> extends ContractTemplate<C> {
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<Contract<C>, C> {
     return defineTask(`deploy ${this.id ?? 'contract'}`, deployContract, this)
     async function deployContract (this: Contract<C>) {
-      if (!this.agent)   throw new Error.NoAgent(this.id)
-      if (!this.id)      throw new Error.NoName(this.id)
+      if (!this.agent)   throw new Error.NoAgent()
+      if (!this.id)      throw new Error.NoName()
       this.label = writeLabel(this)
-      if (!this.label)   throw new Error.NoInitLabel(this.id)
-      if (!this.initMsg) throw new Error.NoInitMessage(this.id)
+      if (!this.label)   throw new Error.NoInitLabel()
+      if (!this.initMsg) throw new Error.NoInitMessage()
       await this.uploaded
-      if (!this.codeId)  throw new Error.NoInitCodeId(this.id)
+      if (!this.codeId)  throw new Error.NoInitCodeId()
       this.initMsg ??= await into(initMsg) as Message
       this.log?.beforeDeploy(this, this.label!)
       const contract = await this.agent!.instantiate(this)
-      this.define(contract as Partial<this>)
+      this.define(contract as Partial<Contract<C>>)
       this.log?.afterDeploy(this as Partial<Contract<C>>)
       if (this.context) this.context.addContract(this.id!, contract)
       const $C = (this.client ?? Client)
@@ -275,26 +270,12 @@ export class Contract<C extends Client> extends ContractTemplate<C> {
     return true
   }
 
-  many (
-    contracts: Many<[Name, Message]|Partial<AnyContract>>
-  ): Task<Contract<C>, Many<Contract<C>>> {
-    const size = Object.keys(contracts).length
-    const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
-    const self = this
-    return defineTask(name, deployManyContracts, this)
-    function deployManyContracts (this: typeof self) {
-      type Instance = [Name, Message] | Partial<AnyContract>
-      return map(contracts, function (instance: Instance): Task<Contract<C>, C> {
-        if (instance instanceof Array) instance = { id: instance[0], initMsg: instance[1] }
-        const contract = defineContract({ ...self, ...instance })
-        return contract.deployed
-      })
-    }
-  }
-
   get asLink (): ContractLink {
     return linkStruct(this as unknown as IntoLink)
   }
+
+  abstract many (contracts: Many<[Name, Message]|Partial<AnyContract>>):
+    Task<Contract<C>, Many<Task<Contract<C>, C>>>
 
 }
 
@@ -315,6 +296,7 @@ export class ContractGroup<A extends unknown[]> {
 
   /** Prepare multiple instances of this contract group for deployment. */
   many (instances: Many<A>) {
+    const self = this
     /** Define a contract group corresponding to each member of `instances` */
     const groups = mapAsync(
       instances,
@@ -333,7 +315,7 @@ export class ContractGroup<A extends unknown[]> {
     }
     /** Defines a new contract group. */
     function defineContractGroup (...args: A) {
-      return new ContractGroup(self, getContracts(...args))
+      return new ContractGroup(self.context, ()=>self.getContracts(...args))
     }
   }
 

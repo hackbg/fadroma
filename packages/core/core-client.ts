@@ -79,7 +79,7 @@ export class Client {
     return this.meta.asLink
   }
 
-  get asInfo (): ContractInfo {
+  get asInfo () {
     return this.meta.asInfo
   }
 
