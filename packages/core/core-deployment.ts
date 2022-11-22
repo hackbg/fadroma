@@ -3,7 +3,7 @@ import { CommandContext } from '@hackbg/cmds'
 import type { Task }      from '@hackbg/task'
 
 import { ClientError, ClientConsole } from './core-events'
-import { hide, defineDefault } from './core-fields'
+import { hideProperties, defineDefault } from './core-fields'
 import { mapAsync } from './core-fields'
 import { buildMany } from './core-build'
 import { uploadMany } from './core-upload'
@@ -72,7 +72,7 @@ export class Deployment extends CommandContext {
       defineDefault(this, context, field as keyof Partial<Deployment>)
     }
     // Hidden properties
-    hide(this, [
+    hideProperties(this, ...[
       'log', 'state', 'name', 'description', 'timestamp',
       'commandTree', 'currentCommand',
       'args', 'task', 'before'
