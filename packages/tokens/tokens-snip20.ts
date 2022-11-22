@@ -36,28 +36,6 @@ export interface Snip20InitConfig {
 
 export class Snip20 extends Client implements CustomToken {
 
-  /** Return the address and code hash of this token in the format
-    * required by the Factory to create a swap pair with this token */
-  get custom_token () {
-    if (!this.address)  throw new Error("Can't create token reference without address.")
-    if (!this.codeHash) throw new Error("Can't create token reference without code hash.")
-    return {
-      contract_addr:   this.address,
-      token_code_hash: this.codeHash
-    }
-  }
-
-  /** Convert to a plain CustomToken with a *hidden (from serialization!)*
-    * reference to the Client which produced it. */
-  get asDescriptor () {
-    return Object.defineProperty({
-      custom_token: this.custom_token,
-      client:       this
-    }, 'client', {
-      enumerable: false
-    })
-  }
-
   /** Create a SNIP20 token client from a Token descriptor. */
   static fromDescriptor (agent: Agent, descriptor: CustomToken): Snip20 {
     const { custom_token } = descriptor
@@ -84,6 +62,28 @@ export class Snip20 extends Client implements CustomToken {
       initial_balances: balances,
       prng_seed:        randomBase64(),
     }
+  }
+
+  /** Return the address and code hash of this token in the format
+    * required by the Factory to create a swap pair with this token */
+  get custom_token () {
+    if (!this.address)  throw new Error("Can't create token reference without address.")
+    if (!this.codeHash) throw new Error("Can't create token reference without code hash.")
+    return {
+      contract_addr:   this.address,
+      token_code_hash: this.codeHash
+    }
+  }
+
+  /** Convert to a plain CustomToken with a *hidden (from serialization!)*
+    * reference to the Client which produced it. */
+  get asDescriptor () {
+    return Object.defineProperty({
+      custom_token: this.custom_token,
+      client:       this
+    }, 'client', {
+      enumerable: false
+    })
   }
 
   tokenName:   string  | null = null

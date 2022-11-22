@@ -35,8 +35,9 @@ export class MocknetAgent extends Agent {
     return new Contract(this.backend.upload(blob)) as unknown as Uploaded
   }
 
-  async instantiate (instance: AnyContract): Promise<AnyContract> {
+  async instantiate <C extends Client> (instance: Contract<C>): Promise<Contract<C>> {
     instance.initMsg = await into(instance.initMsg)
+    console.log({instance})
     const result = instance.define({
       ...await this.backend.instantiate(this.address, instance),
       agent: this

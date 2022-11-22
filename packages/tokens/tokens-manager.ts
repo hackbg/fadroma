@@ -135,6 +135,7 @@ export class TokenManager extends CommandContext {
       ),
     }
     const instance = this.context.defineContract(this.template).define(contractOptions)
+    console.log({instance})
     this.context.addContract(name, instance)
     return this.add(symbol, instance as TokenContract)
   }

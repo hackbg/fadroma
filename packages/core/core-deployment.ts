@@ -9,14 +9,16 @@ import { buildMany } from './core-build'
 import { uploadMany } from './core-upload'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
 import { assertAgent } from './core-agent'
-import { defineContract } from './core-contract'
 import { into, intoRecord, defineTask, call } from './core-fields'
 import { writeLabel } from './core-labels'
 
+import { Contract, ContractTemplate, ContractGroup } from './core-contract'
 import type {
-  Contract, AnyContract, DeployContract, DeployAnyContract,
-  Buildable, Uploadable, Instantiable, Instantiated
+  AnyContract, DeployContract, DeployAnyContract,
+  Buildable, Uploadable, Instantiable, Instantiated,
+  UploadContractTemplate, DeployContractGroup
 } from './core-contract'
+
 import type { Agent } from './core-agent'
 import type { Builder } from './core-build'
 import type { Chain } from './core-chain'
@@ -44,17 +46,16 @@ export async function defineDeployment <D extends Deployment> (
   * - Extend this class in deployer script to define how the contracts are deployed. */
 export class Deployment extends CommandContext {
   log = new ClientConsole('Fadroma.Deployment')
-
-  /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:        string          = timestamp()
   /** Mapping of names to contract instances. */
   state:       DeploymentState = {}
+  /** Name of deployment. Used as label prefix of deployed contracts. */
+  name:        string = timestamp()
   /** Default Git ref from which contracts will be built if needed. */
-  repository?: string          = undefined
+  repository?: string = undefined
   /** Default Cargo workspace from which contracts will be built if needed. */
-  workspace?:  string          = undefined
+  workspace?:  string = undefined
   /** Default Git ref from which contracts will be built if needed. */
-  revision?:   string          = 'HEAD'
+  revision?:   string = 'HEAD'
   /** Build implementation. Contracts can't be built from source if this is missing. */
   builder?:    Builder
   /** Agent to use when deploying contracts. */
@@ -124,36 +125,6 @@ export class Deployment extends CommandContext {
 
   config?: { build?: { project?: any } }
 
-  /** Specify a contract.
-    * @returns a callable `Contract` with the specified parameters. */
-  defineContract <C extends Client> (
-    /** Parameters of the contract. */
-    opts: Partial<Contract<C>> = {}
-  ): DeployContract<C> {
-    opts.agent ??= this.agent
-    if (opts.id && this.hasContract(opts.id)) {
-      return this.getContract(opts.id)!.context!
-    } else {
-      const contract = defineContract({
-        workspace: this.config?.build?.project,
-        ...opts,
-        prefix:  this.name,
-        context: this
-      })
-      this.addContract(contract.name!, contract)
-      return contract
-    }
-  }
-
-  /** Specify a group of heterogeneous contracts.
-    * @returns a callable key-value map of `Contract`s with the specified parameters. */
-  defineContractGroup <A extends unknown[]> (
-    /** Function that returns the contracts belonging to an instance of the group. */
-    getContracts: (...args: A)=>Many<AnyContract>
-  ): (...args: A) => ContractGroup<A> {
-    return (...args: A) => new ContractGroup(this, getContracts(...args))
-  }
-
   /** Check if the deployment contains a contract with a certain name. */
   hasContract (id: Name) {
     return !!this.state[id]
@@ -184,31 +155,9 @@ export class Deployment extends CommandContext {
   /** Set the Contract corresponding to a given name,
     * attaching it to this deployment. */
   addContract <C extends Client> (id: Name, contract: Contract<C>) {
-    contract.context = this
-    //defineDefault(contract, this, 'log')
-    defineDefault(contract, this, 'agent')
-    defineDefault(contract, this, 'builder')
-    defineDefault(contract, this, 'uploader')
-    defineDefault(contract, this, 'repository')
-    defineDefault(contract, this, 'revision')
-    defineDefault(contract, this, 'workspace')
-    setPrefix(this.name)
     this.state[id] = contract
     this.save()
     return contract
-
-    function setPrefix (value: string) {
-      Object.defineProperty(contract, 'prefix', {
-        enumerable: true,
-        get () { return contract.context?.name },
-        set (v: string) {
-          if (v !== contract.context?.name) {
-            contract.log!.warn(`BUG: Overriding prefix from "${contract.context?.name}" to "${v}"`)
-          }
-          setPrefix(v)
-        }
-      })
-    }
   }
 
   /** Add multiple contracts to this deployment. */
@@ -238,9 +187,49 @@ export class Deployment extends CommandContext {
     return uploadMany(contracts as unknown as Uploadable[], this)
   }
 
-  /** Implemented by Deployer subclass in @fadroma/deploy
-    * to allow saving deployment data to the DeployStore. */
-  save () { /*nop*/ }
+  /** Specify a contract.
+    * @returns a callable instance of `Contract` bearing the specified parameters.
+    * Calling it will deploy the contract, or retrieve it if already deployed. */
+  defineContract <C extends Client> (
+    /** Parameters of the contract. */
+    opts: Partial<Contract<C>> = {}
+  ): Contract<C> {
+    if (opts.id && this.hasContract(opts.id)) {
+      return this.getContract(opts.id)
+    }
+    return this.addContract(opts.id!, new Contract({
+      workspace: this.config?.build?.project,
+      revision:  this.revision ?? 'HEAD',
+      agent:     this.agent,
+      ...opts,
+      prefix:    this.name,
+      context:   this
+    }))
+  }
+
+  /** Specify a contract template.
+    * @returns a callable instance of `ContractTemplate` bearing the specified parameters.
+    * Calling it will build and upload the template. */
+  defineTemplate <C extends Client> (
+    opts: Partial<ContractTemplate<C>> = {}
+  ): ContractTemplate<C> {
+    return new ContractTemplate({
+      workspace: this.config?.build?.project,
+      revision:  this.revision ?? 'HEAD',
+      ...opts,
+      context:   this
+    })
+  }
+
+  /** Specify a group of heterogeneous contracts.
+    * @returns a callable instance of `ContractGroup` containing the specified contracts.
+    * Calling it will deploy the contained contracts. */
+  defineGroup <A extends unknown[]> (
+    /** Function that returns the contracts belonging to an instance of the group. */
+    getContracts: (...args: A)=>Many<AnyContract>
+  ): (...args: A) => ContractGroup<A> {
+    return new ContractGroup(this, getContracts)
+  }
 
   /** Create an instance of `new ctor(this, ...args)` and attach it
     * to the command tree under `name`, with usage description `info`.
@@ -275,6 +264,10 @@ export class Deployment extends CommandContext {
     return inst
   }
 
+  /** Implemented by Deployer subclass in @fadroma/deploy
+    * to allow saving deployment data to the DeployStore. */
+  save () { /*nop*/ }
+
 }
 
 export class VersionedDeployment<V> extends Deployment {
@@ -301,52 +294,3 @@ type MatchPredicate =
 
 type DefineContracts<D extends Deployment> =
   (contracts: Many<AnyContract>) => Task<D, Many<Client>>
-
-export class ContractGroup<A extends unknown[]> {
-
-  constructor (
-    public readonly context:   Deployment,
-    public readonly contracts: Many<AnyContract>
-  ) {}
-
-  /** Deploy an instance of this contract group. */
-  async deploy (...args: A) {
-    await buildMany(Object.values(this.contracts) as unknown as Buildable[], this.context)
-    await uploadMany(Object.values(this.contracts) as unknown as Uploadable[], this.context)
-    return await mapAsync(this.contracts, (contract: AnyContract)=>contract.deployed)
-  }
-
-  /** Prepare multiple instances of this contract group for deployment. */
-  many (instances: Many<A>) {
-    /** Define a contract group corresponding to each member of `instances` */
-    const groups = mapAsync(
-      instances,
-      defineContractGroup as unknown as (x:A[0])=>ContractGroup<A>
-    )
-    /** Deploy the specified contract groups. */
-    return async function deployContractGroups (...args: A) {
-      return await mapAsync(
-        /** Reify the specified contract groups */
-        await groups,
-        /** Deploy each contract group. */
-        function deployContractGroup (group: ContractGroup<A>) {
-          return group.deploy(...args)
-        }
-      )
-    }
-    /** Defines a new contract group. */
-    function defineContractGroup (...args: A) {
-      return new ContractGroup(self, getContracts(...args))
-    }
-  }
-
-}
-
-/** This function attaches a contract representation object to a deployment.
-  * This sets the contract prefix to the deployment name, and provides defaults. */
-export function attachToDeployment <T extends { context?: Deployment, log?: { warn: Function } }> (
-  self: T, context: Deployment
-): T {
-
-
-}

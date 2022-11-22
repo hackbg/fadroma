@@ -13,19 +13,12 @@ import { Contract } from './core-contract'
 /** A constructor for a Client subclass. */
 export interface ClientClass<C extends Client> extends Class<C, ConstructorParameters<typeof Client>>{
   new (...args: ConstructorParameters<typeof Client>): C
-  fromContract (contract: Contract<C>, agent?: Agent): C
 }
 
 /** Client: interface to the API of a particular contract instance.
   * Has an `address` on a specific `chain`, usually also an `agent`.
   * Subclass this to add the contract's methods. */
 export class Client {
-
-  static fromContract <C extends Client> (
-    contract: Contract<C>, agent: Maybe<Agent> = contract.agent
-  ): C {
-    return new this(agent, contract.address, contract.codeHash, contract) as C
-  }
 
   constructor (
     /** Agent that will interact with the contract. */
@@ -35,7 +28,7 @@ export class Client {
     /** Code hash confirming the contract's integrity. */
     public codeHash?: CodeHash,
     /** Contract class containing deployment metadata. */
-    meta?:     Contract<Client>
+    meta?:            Contract<any>
   ) {
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
     Object.defineProperty(this, 'context', { writable: true, enumerable: false })

@@ -5,7 +5,7 @@ import type { Address, Message, ExecOpts } from './core-tx'
 import type { AgentFees, ICoin, IFee } from './core-fee'
 import type { CodeHash } from './core-code'
 import type { Client, ClientClass } from './core-client'
-import type { Uploaded, AnyContract } from './core-contract'
+import type { Uploaded, Contract, AnyContract } from './core-contract'
 import type { Uploader, UploaderClass } from './core-upload'
 import type { Name } from './core-fields'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
@@ -113,7 +113,7 @@ export abstract class Agent {
     * @returns
     *   AnyContract with no `address` populated yet.
     *   This will be populated after executing the bundle. */
-  abstract instantiate (instance: AnyContract): PromiseLike<AnyContract>
+  abstract instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Contract<C>>
   /** Create multiple smart contracts from a ContractTemplate (providing code id)
     * and a list or map of label/initmsg pairs.
     * Uses this agent's Bundle class to instantiate them in a single transaction.
