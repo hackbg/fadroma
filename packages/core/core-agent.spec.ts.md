@@ -1,4 +1,8 @@
-## Agent
+```typescript
+import assert from 'node:assert'
+```
+
+# Fadroma Core: Agents
 
 To transact on the chain, you need to select an identity (wallet).
 In Fadroma, you do this by obtaining an `Agent` from the `Chain` object.
@@ -7,7 +11,8 @@ In Fadroma, you do this by obtaining an `Agent` from the `Chain` object.
   If you don't a random mnemonic and address will be generated.
 
 ```typescript
-import { Agent } from '@fadroma/core'
+import { Chain, Agent } from '@fadroma/core'
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
 let agent: Agent = await chain.getAgent()
 
 assert(agent instanceof Agent)
@@ -17,13 +22,13 @@ assert(agent.chain === chain)
 Getting an Agent is an asynchronous operation because of the
 underlying platform APIs being async.
 
-### Waiting for block height to increment
+## Waiting for block height to increment
 
 ```
 //todo
 ```
 
-### Native token operations
+## Native token operations
 
 ```typescript
 // getting agent's balance in native tokens
@@ -46,7 +51,7 @@ assert.equal(await agent.getBalance('baz'), '0')
 // TODO
 ```
 
-### Smart contract operations
+## Smart contract operations
 
 * **Instantiating** a contract
 * **Executing** a transaction
@@ -62,7 +67,7 @@ agent = new class TestAgent5 extends Agent { async query () { return {} } }
 assert(await agent.query())
 ```
 
-### Genesis accounts
+## Genesis accounts
 
 On devnet, Fadroma creates named genesis accounts for you,
 which you can use by passing `name` to `getAgent`:

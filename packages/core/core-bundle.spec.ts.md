@@ -1,4 +1,8 @@
-## Transaction bundling
+```typescript
+import assert from 'node:assert'
+```
+
+# Fadroma Core: Transaction bundling
 
 To submit multiple messages as a single transaction, you can
 use Bundles.

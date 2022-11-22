@@ -11,23 +11,22 @@ import assert from 'node:assert'
 >“It is somewhat wheel-shaped,” said Aesma, which was a completely wrong answer.
 >*-Abbadon*
 
-To deploy a contract, you begin with describing it.
-You do this by calling the function `defineContract`.
+To deploy a contract, you must first describe it.
+You do this by creating a new instance of the class `Contract`:
 
 ```typescript
-import { defineContract } from '@fadroma/core'
-const nullContract = defineContract()
+import { Contract } from '@fadroma/core'
+const nullContract = new Contract()
 ```
 
 This gives you an instance of the `Contract` class,
 which can hold info about a specific deployed contract.
 
 ```typescript
-import { Contract } from '@fadroma/core'
 assert(nullContract instanceof Contract)
 ```
 
-The `Contract` instance returned by `defineContract` is modified to be callable:
+The `Contract` instance returned by `new Contract()` is modified to be callable:
 
 ```typescript
 assert(typeof nullContract === 'function')
@@ -71,7 +70,7 @@ let index = 0
 Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.md):
 
 ```typescript
-const aContract = defineContract({ codeId: 1, agent })
+const aContract = new Contract()({ codeId: 1, agent })
 ```
 
 To deploy it, just call it, passing a **name** and a **init message**.
@@ -134,10 +133,10 @@ import { Deployment, defineDeployment } from '@fadroma/core'
 const deployment = await defineDeployment({ agent, name: 'testing' })
 ```
 
-Then, you can use `deployment.contract` in place of `defineContract`:
+Then, you can use `deployment.defineContract` in place of `new Contract()`:
 
 ```typescript
-const theContract = deployment.contract({ codeId: 1 })
+const theContract = deployment.defineContract({ codeId: 1 })
 ```
 
 Deployments add their names to the labels of deployed contracts:
@@ -218,7 +217,7 @@ class MyClient extends Client {
   }
 }
 
-const theOtherContract = deployment.contract({ codeId: 2, client: MyClient })
+const theOtherContract = deployment.defineContract({ codeId: 2, client: MyClient })
 const d1 = await theOtherContract('my-other-contract', {})
 assert.ok(d1 instanceof MyClient)
 assert.ok(await d1.myMethod())

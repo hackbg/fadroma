@@ -1,4 +1,8 @@
-## Chain
+```typescript
+import assert from 'node:assert'
+```
+
+# Fadroma Core: Chains
 
 This package provides the abstract base class, `Chain`.
 
@@ -31,7 +35,7 @@ assert(Chain.testnet('any').isTestnet)
 assert(Chain.mainnet('any').isMainnet)
 ```
 
-### Dev mode
+## Dev mode
 
 The `chain.devMode` flag basically corresponds to whether you
 have the ability to reset the whole chain and start over.
