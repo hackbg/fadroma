@@ -1,7 +1,7 @@
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/core'
-import $ from '@hackbg/kabinet'
+import $ from '@hackbg/file'
 import assert, { ok, equal, deepEqual, throws } from 'assert'
 ```
 

@@ -1,4 +1,4 @@
-import { EnvConfig } from '@hackbg/konfizi'
+import { EnvConfig } from '@hackbg/conf'
 
 /** Environment settings for Secret Network API
   * that are common between gRPC and Amino implementations. */

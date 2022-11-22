@@ -1,5 +1,5 @@
 import { Chain, ClientConsole, ClientError } from '@fadroma/core'
-import { bold } from '@hackbg/konzola'
+import { bold } from '@hackbg/logs'
 
 export class ConnectConsole extends ClientConsole {
   name = 'Fadroma Connect'

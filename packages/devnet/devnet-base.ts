@@ -1,7 +1,7 @@
-import { EnvConfig } from '@hackbg/konfizi'
-import { CommandContext } from '@hackbg/komandi'
-import { CustomError } from '@hackbg/konzola'
-import $, { OpaqueDirectory, JSONFile } from '@hackbg/kabinet'
+import { EnvConfig } from '@hackbg/conf'
+import { CommandContext } from '@hackbg/cmds'
+import { Error as CustomError } from '@hackbg/oops'
+import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
 import { Chain, ClientConsole } from '@fadroma/core'
 import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 

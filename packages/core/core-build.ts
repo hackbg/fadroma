@@ -1,4 +1,4 @@
-import { CommandContext } from '@hackbg/komandi'
+import { CommandContext } from '@hackbg/cmds'
 import { ClientError } from './core-events'
 import { defineTask, pluralize } from './core-fields'
 import { ClientError as Error } from './core-events'
@@ -6,7 +6,7 @@ import type { Deployment } from './core-deployment'
 import type { Overridable } from './core-fields'
 import type { CodeHash } from './core-code'
 import type { Buildable, Built } from './core-contract'
-import type { Task } from '@hackbg/komandi'
+import type { Task } from '@hackbg/task'
 
 /** The default Git ref when not specified. */
 export const HEAD = 'HEAD'

@@ -10,7 +10,7 @@ This is the core module of the Fadroma dApp framework.
 >       To get the same stack trace with correct line numbers, run `pnpm test`.
 
 ```typescript
-import { CommandContext } from '@hackbg/komandi'
+import { CommandContext } from '@hackbg/cmds'
 const context = new CommandContext()
 context.command('all',
   'test everything',

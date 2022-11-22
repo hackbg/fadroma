@@ -1,4 +1,4 @@
-import type { Task } from '@hackbg/komandi'
+import type { Task } from '@hackbg/task'
 import type { Into, Name, Named, Many, Class } from './core-fields'
 import type { ClientClass } from './core-client'
 import type { Builder } from './core-build'

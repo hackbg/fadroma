@@ -1,6 +1,6 @@
-import { timestamp }      from '@hackbg/konzola'
-import { CommandContext } from '@hackbg/komandi'
-import type { Task }      from '@hackbg/komandi'
+import { timestamp }      from '@hackbg/logs'
+import { CommandContext } from '@hackbg/cmds'
+import type { Task }      from '@hackbg/task'
 
 import { ClientError, ClientConsole } from './core-events'
 import { hide, defineDefault } from './core-fields'
@@ -13,11 +13,7 @@ import { into, intoRecord, defineTask, call } from './core-fields'
 import { writeLabel } from './core-labels'
 
 import { Contract, ContractTemplate, ContractGroup } from './core-contract'
-import type {
-  AnyContract, DeployContract, DeployAnyContract,
-  Buildable, Uploadable, Instantiable, Instantiated,
-  UploadContractTemplate, DeployContractGroup
-} from './core-contract'
+import type { Buildable, Uploadable, Instantiable, Instantiated } from './core-contract'
 
 import type { Agent } from './core-agent'
 import type { Builder } from './core-build'
@@ -27,7 +23,7 @@ import type { Client } from './core-client'
 import type { Uploader } from './core-upload'
 
 /** The collection of contracts that constitute a deployment. */
-export type DeploymentState = Record<string, Task<DeployContract<any>, AnyContract>>
+export type DeploymentState = Record<string, Task<Contract<any>, Client>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<

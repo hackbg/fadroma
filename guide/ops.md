@@ -83,7 +83,7 @@ steps.
 
 * The `commands.command(...)` method returns `commands`, so it supports chaining.
 * Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
-* Fadroma uses [`@hackbg/komandi`](https://github.com/hackbg/toolbox/blob/main/komandi/komandi.ts)
+* Fadroma uses [`@hackbg/cmds`](https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts)
   to parse commands. This is a simple and loose command parser which does not support flags.
   Arguments to a command are available in `context.args` so you can define your own flags.
 :::

@@ -1,9 +1,9 @@
-import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/kabinet'
-import { Env, EnvConfig } from '@hackbg/konfizi'
-import { bold } from '@hackbg/konzola'
+import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/file'
+import { Env, EnvConfig } from '@hackbg/conf'
+import { bold } from '@hackbg/logs'
 
 import { Builder, Contract, HEAD } from '@fadroma/core'
-import type { Class, Client, AnyContract } from '@fadroma/core'
+import type { Class, Client, Built } from '@fadroma/core'
 
 import { BuildConsole } from './build-events'
 
@@ -122,7 +122,7 @@ export abstract class LocalBuilder extends Builder {
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (
     outputDir: string, crate?: string, revision: string = HEAD
-  ): AnyContract|null {
+  ): Built|null {
     if (this.caching && crate) {
       const location = $(outputDir, artifactName(crate, revision))
       if (location.exists()) {

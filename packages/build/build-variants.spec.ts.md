@@ -28,14 +28,14 @@ ok(new BuilderConfig().getBuilder() instanceof DockerBuilder)
 ```
 
   * DockerBuilder launches the [**build script**](./build.impl.mjs)
-    in a Docker container using [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
+    in a Docker container using [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock).
     You can set the following properties:
       * **builder.dockerSocket** (at construction only) allows you to select
         the Docker server to connect to.
       * **builder.docker** lets you configure the entire instance of `Dokeres.Engine`.
 
 ```typescript
-import * as Dokeres from '@hackbg/dokeres'
+import * as Dokeres from '@hackbg/dock'
 ok(new DockerBuilder().docker instanceof Dokeres.Engine)
 //ok(typeof new DockerBuilder({ docker: Symbol() }).docker === 'symbol')
 ok(new DockerBuilder({ dockerSocket: "test" }).docker instanceof Dokeres.Engine)

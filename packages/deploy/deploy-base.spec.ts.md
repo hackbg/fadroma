@@ -31,7 +31,7 @@ by way of `Connector` (from `@fadroma/connect`), adding handling for
 
 ```typescript
 import { Deployer } from '.'
-import { Path } from '@hackbg/kabinet'
+import { Path } from '@hackbg/file'
 let context: Deployer = await config.getDeployer()
 ok(context         instanceof Deployer)
 ok(context.config  instanceof DeployConfig)
@@ -51,11 +51,11 @@ ok(await context.save() ?? true)
 ```typescript
 import { Client, Deployment } from '@fadroma/core'
 import { connect } from '@fadroma/connect'
-import * as Dokeres from '@hackbg/dokeres'
+import * as Dokeres from '@hackbg/dock'
 import { BuildContext, getBuilder } from '@fadroma/build'
 import { DeployConfig, Deployer } from '.'
 import { basename } from 'path'
-import { withTmpFile } from '@hackbg/kabinet'
+import { withTmpFile } from '@hackbg/file'
 import { ExampleDeployment } from './deploy.example'
 import { pathToFileURL } from 'url'
 import { examples, inTmpDeployment } from '../../TESTING.ts.md'

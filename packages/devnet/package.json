@@ -18,14 +18,14 @@
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-devnet command." }
   },
   "dependencies": {
-    "@fadroma/core":   "workspace:^1",
-    "@hackbg/dokeres": "workspace:^4.4.2",
-    "@hackbg/portali": "workspace:^1.2.4",
-    "@hackbg/kabinet": "workspace:^3.2.6",
-    "@hackbg/komandi": "workspace:^6.1.2",
-    "@hackbg/konfizi": "workspace:^3.0.1",
-    "@hackbg/konzola": "workspace:^2.1",
-    "@hackbg/formati": "workspace:^5.1.1"
+    "@fadroma/core": "workspace:^1",
+    "@hackbg/4mat":  "workspace:^1",
+    "@hackbg/cmds":  "workspace:^1",
+    "@hackbg/conf":  "workspace:^1",
+    "@hackbg/dock":  "workspace:^1",
+    "@hackbg/file":  "workspace:^1",
+    "@hackbg/logs":  "workspace:^1",
+    "@hackbg/port":  "workspace:^1"
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1"

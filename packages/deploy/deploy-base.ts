@@ -1,8 +1,8 @@
-import { bold } from '@hackbg/konzola'
-import $, { JSONFile } from '@hackbg/kabinet'
-import type { Path } from '@hackbg/kabinet'
-import { EnvConfig } from '@hackbg/konfizi'
-import type { Env } from '@hackbg/konfizi'
+import { bold } from '@hackbg/logs'
+import $, { JSONFile } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
+import { EnvConfig } from '@hackbg/conf'
+import type { Env } from '@hackbg/conf'
 
 import { Connector, ConnectConfig } from '@fadroma/connect'
 import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadroma/core'

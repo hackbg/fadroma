@@ -1,5 +1,5 @@
-import type { Env } from '@hackbg/konfizi'
-import { EnvConfig } from '@hackbg/konfizi'
+import type { Env } from '@hackbg/conf'
+import { EnvConfig } from '@hackbg/conf'
 import { Chain } from '@fadroma/core'
 import type { Agent, AgentOpts, ChainId, ChainRegistry } from '@fadroma/core'
 import { Scrt } from '@fadroma/scrt'

@@ -1,19 +1,15 @@
-import { Task } from '@hackbg/komandi'
+import { Task } from '@hackbg/cmds'
+export { hideProperty as hide } from '@hackbg/hide'
 import { ClientConsole, ClientError } from './core-events'
+
+import type { Class } from '@hackbg/allo'
+
+export type { Class }
 
 export type Maybe<T> = T|undefined
 
 export function getMaxLength (strings: string[]): number {
   return Math.max(...strings.map(string=>string.length))
-}
-
-export function hide (self: object, keys: string[]): void {
-  for (const key of keys) Object.defineProperty(self, key, { enumerable: false, writable: true })
-}
-
-/** A class constructor. */
-export interface Class<T, U extends Array<unknown>> {
-  new (...args: U): T
 }
 
 /** A class constructor for an extensible value object. */

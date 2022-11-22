@@ -1,13 +1,14 @@
 import * as Fadroma from '@fadroma/core'
 import type { Address, CodeHash, CodeId, Message } from '@fadroma/core'
 import { ClientConsole, bold } from '@fadroma/core'
-import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
+import { bech32, randomBech32, sha256, base16 } from '@hackbg/4mat'
 import type { MocknetBackend } from './mocknet-backend'
 import type { Ptr, ErrCode, IOExports } from './mocknet-data'
 import { parseResult, b64toUtf8, readBuffer, passBuffer } from './mocknet-data'
 import {
   ADDRESS_PREFIX, codeHashForBlob, pass, readUtf8, writeToRegion, writeToRegionUtf8, region
 } from './mocknet-data'
+import { MocknetConsole } from './mocknet-events'
 
 import type { ContractImports, ContractImports_CW0, ContractImports_CW1 } from './mocknet-imports'
 import { makeImports_CW0, makeImports_CW1 } from './mocknet-imports'
@@ -33,7 +34,7 @@ export type MocknetContract = MocknetContract_CW0|MocknetContract_CW1
 
 export abstract class BaseMocknetContract<I extends ContractImports, E extends ContractExports> {
 
-  log = new ClientConsole('Fadroma Mocknet')
+  log = new MocknetConsole('Fadroma Mocknet')
 
   instance?: WebAssembly.Instance<E>
 
@@ -80,7 +81,7 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
 
   init (...args: unknown[]) {
     const msg = args[args.length - 1]
-    this.log.debug(`${bold(this.address)} init:`, msg)
+    this.log.log(`${bold(this.address)} init:`, msg)
     try {
       return this.readUtf8(this.initMethod(...this.initPtrs(...args)))
     } catch (e: any) {
@@ -92,7 +93,7 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
 
   execute (...args: unknown[]) {
     const msg = args[args.length - 1]
-    this.log.debug(`${bold(this.address)} handle:`, msg)
+    this.log.log(`${bold(this.address)} handle:`, msg)
     try {
       return this.readUtf8(this.execMethod(...this.execPtrs(...args)))
     } catch (e: any) {
@@ -104,7 +105,7 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
 
   query (...args: unknown[]) {
     const msg = args[args.length - 1]
-    this.log.debug(`${bold(this.address)} query:`, msg)
+    this.log.log(`${bold(this.address)} query:`, msg)
     try {
       return this.readUtf8(this.queryMethod(...this.queryPtrs(...args)))
     } catch (e: any) {

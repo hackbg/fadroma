@@ -1,6 +1,6 @@
-import { CommandContext } from '@hackbg/komandi'
-import { intoInstance, ClientConsole, Contract, writeLabel } from '@fadroma/core'
-import type { Contract, DeployContract, Address, Deployment } from '@fadroma/core'
+import { CommandContext } from '@hackbg/cmds'
+import { ClientConsole, Contract, writeLabel } from '@fadroma/core'
+import type { Address, Deployment } from '@fadroma/core'
 import { Snip20 } from './tokens-snip20'
 import type { Snip20InitConfig } from './tokens-snip20'
 import { TokenPair } from './tokens-desc'
@@ -8,10 +8,10 @@ import type { Token } from './tokens-desc'
 
 export type TokenSymbol = string
 
-export type TokenContract = DeployContract<Snip20>
+export type TokenContract = Contract<Snip20>
 
 export interface TokenOptions {
-  template?: Partial<Contract>
+  template?: TokenContract
   name:      string
   decimals:  number
   admin:     Address,

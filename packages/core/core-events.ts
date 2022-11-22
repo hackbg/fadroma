@@ -1,5 +1,5 @@
-import { CommandsConsole } from '@hackbg/komandi'
-import { bold, colors } from '@hackbg/konzola'
+import { CommandsConsole } from '@hackbg/cmds'
+import { bold, colors } from '@hackbg/logs'
 import type { Address, Message } from './core-tx'
 import type { Label } from './core-labels'
 import type { Name } from './core-fields'
@@ -7,10 +7,10 @@ import type { CodeId, CodeHash } from './core-code'
 import type { Chain } from './core-chain'
 import type { Deployment } from './core-deployment'
 import type { Instantiable, Instantiated } from './core-contract'
-import { CustomError } from '@hackbg/konzola'
+import { Error } from '@hackbg/oops'
 
 /** Error kinds. */
-export class ClientError extends CustomError {
+export class ClientError extends Error {
   static DifferentHashes = this.define('DifferentHashes',
     () => 'Passed an object with codeHash and code_hash both different')
   static DeployManyFailed = this.define('DeployManyFailed',

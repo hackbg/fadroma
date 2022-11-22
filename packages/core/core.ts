@@ -29,5 +29,6 @@ export * from './core-contract'
 export * from './core-deployment'
 export * from './core-deploy-store'
 
-export { Task, CommandContext } from '@hackbg/komandi'
-export { bold, colors } from '@hackbg/konzola'
+export { Task } from '@hackbg/task'
+export { CommandContext } from '@hackbg/cmds'
+export { bold, colors } from '@hackbg/logs'

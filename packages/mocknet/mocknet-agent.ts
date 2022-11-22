@@ -1,7 +1,7 @@
-import { randomBech32 } from '@hackbg/formati'
+import { randomBech32 } from '@hackbg/4mat'
 import { Agent, Contract, assertChain, into } from '@fadroma/core'
 import type {
-  Address, AgentOpts, BundleClass, Client, ExecOpts, Message, Uploaded, AnyContract
+  Address, AgentOpts, BundleClass, Client, ExecOpts, Message, Uploaded
 } from '@fadroma/core'
 import type { Mocknet } from './mocknet-chain'
 import type { MocknetBundle } from './mocknet-bundle'

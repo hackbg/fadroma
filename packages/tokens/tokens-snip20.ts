@@ -2,8 +2,8 @@ import type { Agent, Address, Uint128 } from '@fadroma/core'
 import { Client, ClientConsole, } from '@fadroma/core'
 import type { Permit } from '@fadroma/scrt'
 import { ViewingKeyClient } from '@fadroma/scrt'
-import { randomBase64 } from '@hackbg/formati'
-import { bold, colors } from '@hackbg/konzola'
+import { randomBase64 } from '@hackbg/4mat'
+import { bold, colors } from '@hackbg/logs'
 import type { CustomToken } from './tokens'
 
 const log = new ClientConsole('Fadroma.Snip20')

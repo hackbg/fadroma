@@ -16,7 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import type { TOMLFile } from '@hackbg/kabinet'
+import type { TOMLFile } from '@hackbg/file'
 import type { Buildable } from '@fadroma/core'
 import { Contract, Builder, HEAD } from '@fadroma/core'
 

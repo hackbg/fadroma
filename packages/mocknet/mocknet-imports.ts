@@ -1,4 +1,4 @@
-import { bech32 } from '@hackbg/formati'
+import { bech32 } from '@hackbg/4mat'
 import { bold } from '@fadroma/core'
 
 import {

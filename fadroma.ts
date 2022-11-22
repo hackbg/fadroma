@@ -113,11 +113,11 @@ export class Fadroma extends Deployer {
 /** Default export of command module. */
 export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
 
-export * from '@hackbg/konzola'
-export * from '@hackbg/komandi'
-export * from '@hackbg/konfizi'
-export * from '@hackbg/kabinet'
-export * from '@hackbg/formati'
+export * from '@hackbg/logs'
+export * from '@hackbg/cmds'
+export * from '@hackbg/conf'
+export * from '@hackbg/file'
+export * from '@hackbg/4mat'
 export * from '@fadroma/core'
 export { override } from '@fadroma/core'
 export type { Decimal, Overridable } from '@fadroma/core'

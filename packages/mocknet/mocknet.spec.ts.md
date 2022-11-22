@@ -86,7 +86,7 @@ for providing the value of the `env` struct seen by the contracts.
 Since here we test the mocknet itself, we use this pre-defined value:
 
 ```typescript
-import { randomBech32 } from '@hackbg/formati'
+import { randomBech32 } from '@hackbg/4mat'
 export function mockEnv () {
   const height   = 0
   const time     = 0

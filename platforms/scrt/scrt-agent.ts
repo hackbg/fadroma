@@ -1,5 +1,5 @@
 import type * as SecretJS from 'secretjs'
-import { base64 } from '@hackbg/formati'
+import { base64 } from '@hackbg/4mat'
 import type {
   Address, AgentClass, AgentOpts,
   BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message,

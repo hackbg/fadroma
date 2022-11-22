@@ -7,8 +7,8 @@ import assert, { ok, equal, deepEqual } from 'assert'
 
 ```typescript
 import { Devnet, DockerDevnet } from '@fadroma/devnet'
-import { withTmpFile } from '@hackbg/kabinet'
-import * as Dokeres from '@hackbg/dokeres'
+import { withTmpFile } from '@hackbg/file'
+import * as Dokeres from '@hackbg/dock'
 import { resolve, basename } from 'path'
 const readyPhrase = "I'm Freddy"
 
@@ -81,7 +81,7 @@ equal(dockerDevnet.genesisAccounts, identities)
 ```
 
 ```typescript
-import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/kabinet'
+import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/file'
 import { DockerDevnet } from '.'
 // save/load Devnet state
 withTmpDir(async stateRoot=>{

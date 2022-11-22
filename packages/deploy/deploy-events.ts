@@ -1,7 +1,7 @@
 import type { Deployment, DeployStore } from '@fadroma/core'
 import { ConnectConsole, ConnectError } from '@fadroma/connect'
-import $ from '@hackbg/kabinet'
-import { bold, colors } from '@hackbg/konzola'
+import $                from '@hackbg/file'
+import { bold, colors } from '@hackbg/logs'
 
 export class DeployConsole extends ConnectConsole {
   constructor (public name = 'Fadroma Deploy') { super(name) }

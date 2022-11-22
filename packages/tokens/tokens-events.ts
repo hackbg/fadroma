@@ -1,4 +1,4 @@
-import { CustomError } from '@hackbg/konzola'
+import { Error as CustomError } from '@hackbg/oops'
 
 export class TokenError extends CustomError {
   static NoSymbol = this.define('NoSymbol',

@@ -12,8 +12,11 @@
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
-    "@hackbg/konzola": "^2.1",
-    "@hackbg/komandi": "^6.1.2"
+    "@hackbg/allo": "^1",
+    "@hackbg/cmds": "^1",
+    "@hackbg/logs": "^1",
+    "@hackbg/logs": "^1",
+    "@hackbg/oops": "^1"
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.1"

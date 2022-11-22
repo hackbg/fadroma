@@ -1,4 +1,6 @@
-import type { Task } from '@hackbg/komandi'
+import type { Task } from '@hackbg/task'
+import { defineCallable } from '@hackbg/allo'
+
 import type { ChainId } from './core-chain'
 import type { CodeId, CodeHash, Hashed } from './core-code'
 import type { Uploader } from './core-upload'
@@ -11,39 +13,6 @@ import type { Builder } from './core-build'
 import { assertAddress } from './core-tx'
 import { codeHashOf } from './core-code'
 import * as Impl from './core-contract-impl'
-
-/** Define a callable class. Instances of the generated class can be invoked as functions.
-  * The body of the function is passed as second argument.
-  * The function's `this` identifier is bound to the instance.
-  * @returns a callable class extending `Base`. */
-export function defineCallable <T, U extends unknown[], F extends Function> (
-  Base: Class<any, any>, fn: F
-): Class<any, any> {
-  return Object.defineProperty(class extends Base {
-    constructor (...args: any) {
-      super(...args)
-      const self = this
-      let call = function (...args: any) {
-        return fn.apply(call, args)
-      }
-      let descriptors = {}
-      let parent
-      parent = call
-      while (parent = Object.getPrototypeOf(parent)) {
-        descriptors = { ...descriptors, ...Object.getOwnPropertyDescriptors(parent) }
-      }
-      parent = this
-      while (parent = Object.getPrototypeOf(parent)) {
-        descriptors = { ...descriptors, ...Object.getOwnPropertyDescriptors(parent) }
-      }
-      Object.setPrototypeOf(call, Object.defineProperties({}, descriptors))
-      Object.defineProperties(call, Object.getOwnPropertyDescriptors(this))
-      return call
-    }
-  }, 'name', {
-    value: `${Base.name}Callable`
-  })
-}
 
 export interface ContractTemplate<C extends Client> extends Impl.ContractTemplate<C> {
   (): Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded>

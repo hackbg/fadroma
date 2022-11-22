@@ -1,7 +1,7 @@
-import { CommandsConsole } from '@hackbg/komandi'
-import $ from '@hackbg/kabinet'
-import type { Path } from '@hackbg/kabinet'
-import { colors, bold } from '@hackbg/konzola'
+import { CommandsConsole } from '@hackbg/cmds'
+import $ from '@hackbg/file'
+import type { Path } from '@hackbg/file'
+import { colors, bold } from '@hackbg/logs'
 import { HEAD } from '@fadroma/core'
 import type { ContractTemplate } from '@fadroma/core'
 

@@ -1,9 +1,9 @@
-import { colors, bold } from '@hackbg/konzola'
-import { Task } from '@hackbg/komandi'
-import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
+import { colors, bold } from '@hackbg/logs'
+import { Task } from '@hackbg/task'
+import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/file'
 import { Contract, ClientConsole, Uploader, assertAgent, override } from '@fadroma/core'
-import type { AnyContract, Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/core'
-import { CustomConsole } from '@hackbg/konzola'
+import type { Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/core'
+import { Console as CustomConsole } from '@hackbg/logs'
 
 export class UploadConsole extends ClientConsole {
   name = 'Fadroma.Uploader'

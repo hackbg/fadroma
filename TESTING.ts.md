@@ -7,17 +7,17 @@
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
-import { CustomConsole, bold } from '@hackbg/konzola'
-import $                      from '@hackbg/kabinet'
-import { resolve, dirname }   from 'path'
-import { fileURLToPath }      from 'url'
+import { Console, bold } from '@hackbg/logs'
+import $ from '@hackbg/file'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 ```
 
 ```typescript
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = x => resolve(here, 'fixtures', x)
-export const log       = new CustomConsole('Fadroma Testing')
+export const log       = new Console('Fadroma Testing')
 ```
 
 ### Example mnemonics
@@ -124,7 +124,7 @@ for providing the value of the `env` struct seen by the contracts.
 Since here we test the mocknet itself, we use this pre-defined value:
 
 ```typescript
-import { randomBech32 } from '@hackbg/formati'
+import { randomBech32 } from '@hackbg/4mat'
 export function mockEnv () {
   const height   = 0
   const time     = 0
@@ -145,7 +145,7 @@ export function mockEnv () {
 
 ```typescript
 import { Deployment } from './packages/client'
-import { withTmpFile } from '@hackbg/kabinet'
+import { withTmpFile } from '@hackbg/file'
 import { equal } from 'assert'
 import { basename } from 'path'
 export const inTmpDeployment = cb => withTmpFile(f=>{

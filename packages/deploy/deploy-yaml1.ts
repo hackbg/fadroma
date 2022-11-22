@@ -1,8 +1,7 @@
 import { loadAll, dump } from 'js-yaml'
-import { timestamp, bold } from '@hackbg/konzola'
-import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/kabinet'
+import { timestamp, bold } from '@hackbg/logs'
+import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/file'
 import { Agent, Contract, Client, Deployment, DeployStore, toInstanceReceipt } from '@fadroma/core'
-import type { AnyContract } from '@fadroma/core'
 import { DeployConsole, DeployError, log } from './deploy-events'
 import { basename } from 'node:path'
 
