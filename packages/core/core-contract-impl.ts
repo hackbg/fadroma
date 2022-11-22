@@ -246,7 +246,6 @@ export class Contract<C extends Client> extends ContractTemplate<C> {
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<Contract<C>, C> {
     return defineTask(`deploy ${this.id ?? 'contract'}`, deployContract, this)
     async function deployContract (this: Contract<C>) {
-      console.log({deploy:this})
       if (!this.agent)   throw new Error.NoAgent(this.id)
       if (!this.id)      throw new Error.NoName(this.id)
       this.label = writeLabel(this)
