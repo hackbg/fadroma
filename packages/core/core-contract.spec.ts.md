@@ -11,80 +11,96 @@ import assert from 'node:assert'
 >“It is somewhat wheel-shaped,” said Aesma, which was a completely wrong answer.
 >*-Abbadon*
 
-To deploy a contract, you must first describe it.
-You do this by creating a new instance of the class `Contract`:
+Cosmos contracts can be seen as essentially equivalent to **persistent objects**:
+they encapsulate some data alongside the methods used to operate on that data.
+In this model, instantiating a contract is equivalent to constructing an object,
+which then continues to exist forever on an append-only ledger of transactions.
+
+The details are slightly more involved, since you need to compile the code and
+upload it to the network before you can instantiate and operate it. That's why,
+in order to deploy a contract, you must first describe it.
+
+Fadroma provides the `Contract` object for that purpose:
 
 ```typescript
 import { Contract } from '@fadroma/core'
 const nullContract = new Contract()
 ```
 
-This gives you an instance of the `Contract` class,
-which can hold info about a specific deployed contract.
+This gives you an instance of the `Contract` class, representing a specific contract.
+This `Contract` instance is also callable as a function; calling the function is equivalent
+to instantiating the contract (and, if necessary, building and uploading it beforehand).
 
 ```typescript
 assert(nullContract instanceof Contract)
-```
-
-The `Contract` instance returned by `new Contract()` is modified to be callable:
-
-```typescript
 assert(typeof nullContract === 'function')
 ```
 
-Calling it returns a `Task`. This is a promise-like object which represents 
-the action of deploying the contract:
+Calling a `Contract` instance returns a `Task`; this is a promise-like object which represents
+the action of deploying the contract. Like a regular `Promise`, a `Task` evaluates once, and
+completes asynchronously; unlike a `Promise` (which executes as soon as it is created), a `Task`
+only starts evaluating when the caller attempts to resolve it:
 
 ```typescript
 const deployingNullContract = nullContract()
 assert(deployingNullContract.then instanceof Function)
 ```
 
-However, unlike a `Promise`, the `Task` is only evaluated when you try to resolve it:
+Of course, the `Task` that we just created by calling the `Contract` instance will fail,
+because we haven't actually specified which contract to deploy; or where to deploy it;
+or who is it that will deploy it. Let's do that now.
 
 ```typescript
 assert.rejects(async () => await deployingNullContract)
 ```
 
-Of course, the task will fail, because we haven't specified which contract to deploy,
-or to what chain, or under what identity. Let's do that now.
-
 ## Some preparation
 
-For the sake of this example, we'll create test-only instances of `Chain` and `Agent`,
-and, for simplicity's sake, mock out the `Agent`'s methods:
+To simplify this test, we'll stub out the external world. Let's create test-only instances of
+`Chain` and `Agent`:
 
 ```typescript
 import { Chain } from '@fadroma/core'
+let index = 0
 const chain = new Chain('test')
 const agent = Object.assign(await chain.getAgent(), {
   async instantiate () { return { address: `(the address of instance #${++index})` } },
   async execute     () { return {} },
   async query       () { return {} }
 })
-let index = 0
 ```
 
 ## Defining and deploying a contract
 
-Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.md):
+Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.md)
+(that is, a contract that is already built and uploaded):
 
 ```typescript
-const aContract = new Contract()({ codeId: 1, agent })
+const aContract = new Contract({ codeId: 1, agent })
 ```
 
-To deploy it, just call it, passing a **name** and a **init message**.
-This will return a `Client` instance, which you use to talk to the
-deployed contract.
+To deploy the contract uploaded as code ID 1, just call `aContract`, passing two things:
+* an **instance ID**. This is the "friendly name" of the contract instance,
+  and is used to construct its full unique label.
+* an **init message**. This contains the "constructor parameters" that will be passed to the
+  contract's init method.
+
+```typescript
+const aClient = await aContract('id1', { parameter: 'value' })
+```
+
+The call will resolve resolve to a `Client` instance. You can use this to talk to the deployed
+contract by invoking its query and transaction methods.
 
 ```typescript
 import { Client } from '@fadroma/core'
-const aClient = await aContract('name1', { parameter: 'value' })
 assert.ok(aClient instanceof Client)
 assert.equal(aClient.address, '(the address of instance #1)')
+assert.equal(typeof aClient.query, 'function')
+assert.equal(typeof aClient.exec,  'function')
 ```
 
-That's as simple as it gets!
+Congratulations, you've deployed a globally persistent object!
 
 ## Interacting with contracts using the `Client`
 
@@ -164,7 +180,7 @@ That's easy, just provide a different name, as in the following example;
 
 ```typescript
 const anotherInstance = await theContract({
-  name:    'another-name',
+  id:      'another-name',
   initMsg: { parameter: 'different-value' },
   agent:   agent
 })

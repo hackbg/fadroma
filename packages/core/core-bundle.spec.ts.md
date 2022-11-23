@@ -14,7 +14,9 @@ use Bundles.
     transactions
 
 ```typescript
-import { Bundle } from '.'
+import { Chain, Agent, Bundle } from '@fadroma/core'
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+let agent: Agent = await chain.getAgent()
 let bundle: Bundle
 class TestBundle extends Bundle {
   async submit () { return 'submitted' }

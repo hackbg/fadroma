@@ -1,9 +1,10 @@
 import { Task } from '@hackbg/task'
 import { ClientConsole, ClientError } from './core-events'
 
-import type { Class } from '@hackbg/allo'
-
-export type { Class }
+/** A class constructor. */
+export interface Class<T, U extends unknown[]> {
+  new (...args: U): T
+}
 
 export type Maybe<T> = T|undefined
 

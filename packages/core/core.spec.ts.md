@@ -15,9 +15,9 @@ const context = new CommandContext()
 context.command('all',
   'test everything',
   async () => {
+    await context.run(['utilities'])
     await context.run(['connect'])
     await context.run(['contract'])
-    await context.run(['utilities'])
   })
 ```
 
