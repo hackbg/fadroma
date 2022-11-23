@@ -224,7 +224,7 @@ export abstract class Contract<C extends Client> extends ContractTemplate<C> {
   }
 
   /** One-shot deployment task. */
-  get deployed (): Task<Contract<C>, C> {
+  get deployed (): Task<this, C> {
     if (this.address) {
       this.log?.foundDeployedContract(this.address, this.id)
       const $C     = (this.client ?? Client)
@@ -238,9 +238,10 @@ export abstract class Contract<C extends Client> extends ContractTemplate<C> {
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
-  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<Contract<C>, C> {
+  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
     return defineTask(`deploy ${this.id ?? 'contract'}`, deployContract, this)
-    async function deployContract (this: Contract<C>) {
+    const self = this
+    async function deployContract (this: typeof self) {
       if (!this.agent)   throw new Error.NoAgent()
       if (!this.id)      throw new Error.NoName()
       this.label = writeLabel(this)
@@ -250,8 +251,8 @@ export abstract class Contract<C extends Client> extends ContractTemplate<C> {
       if (!this.codeId)  throw new Error.NoInitCodeId()
       this.initMsg ??= await into(initMsg) as Message
       this.log?.beforeDeploy(this, this.label!)
-      const contract = await this.agent!.instantiate(this)
-      this.define(contract as Partial<Contract<C>>)
+      const contract = await this.agent!.instantiate(this as typeof self)
+      this.define(contract as Partial<typeof self>)
       this.log?.afterDeploy(this as Partial<Contract<C>>)
       if (this.context) this.context.addContract(this.id!, contract)
       const $C = (this.client ?? Client)
@@ -274,8 +275,8 @@ export abstract class Contract<C extends Client> extends ContractTemplate<C> {
     return linkStruct(this as unknown as IntoLink)
   }
 
-  abstract many (contracts: Many<[Name, Message]|Partial<AnyContract>>):
-    Task<Contract<C>, Many<Task<Contract<C>, C>>>
+  abstract many (contracts: Many<[Name, Message]|Partial<this>>):
+    Task<this, Many<Task<this, C>>>
 
 }
 

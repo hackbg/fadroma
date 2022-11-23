@@ -60,21 +60,23 @@ export class Contract<C extends Client> extends defineCallable(
 ) {
 
   many (
-    contracts: Many<[Name, Message]|Partial<AnyContract>>
-  ): Task<Contract<C>, Many<Task<Contract<C>, C>>> {
+    contracts: Many<[Name, Message]|Partial<this>>
+  ): Task<this, Many<Task<this, C>>> {
     const size = Object.keys(contracts).length
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
     const self = this
     return defineTask(name, deployManyContracts, this)
-    function deployManyContracts (this: typeof self): Many<Task<Contract<C>, C>> {
-      type Instance = [Name, Message] | Partial<AnyContract>
-      return map(contracts, function (instance: Instance): Task<Contract<C>, C> {
-        if (instance instanceof Array) instance = { id: instance[0], initMsg: instance[1] }
-        const contract = new Contract<C>({
+    function deployManyContracts (this: typeof self): Many<Task<typeof self, C>> {
+      type Instance = [Name, Message] | Partial<typeof self>
+      return map(contracts, function (instance: Instance): Task<typeof self, C> {
+        if (instance instanceof Array) {
+          instance = { id: instance[0], initMsg: instance[1] } as Partial<typeof self>
+        }
+        const contract = new Contract({
           context: self.context,
           ...instance as Partial<Contract<C>>
         })
-        return contract.deployed
+        return contract.deployed as unknown as Task<typeof self, C>
       })
     }
   }
