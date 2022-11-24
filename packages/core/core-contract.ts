@@ -6,7 +6,7 @@ import type { CodeId, CodeHash, Hashed } from './core-code'
 import type { Uploader } from './core-upload'
 import type { Address, Message, TxHash } from './core-tx'
 import type { Label } from './core-labels'
-import type { Name, Class, Many } from './core-fields'
+import type { Name, Class, Many, Maybe } from './core-fields'
 import type { Client } from './core-client'
 import type { Builder } from './core-build'
 
@@ -17,7 +17,23 @@ import { codeHashOf } from './core-code'
 import * as Impl from './core-contract-impl'
 
 export interface ContractTemplate<C extends Client> extends Impl.ContractTemplate<C> {
-  (): Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded>
+  ():                              Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded>
+  (id: Name, init?: Message):      Task<ContractTemplate<C>, C>
+  (options: Partial<Contract<C>>): Task<ContractTemplate<C>, C>
+}
+
+function ensureTemplate <C extends Client> ():
+  Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded>
+function ensureTemplate <C extends Client> (id: Name, init?: Message):
+  Task<ContractTemplate<C>, C>
+function ensureTemplate <C extends Client> (options: Partial<Contract<C>>):
+  Task<ContractTemplate<C>, C>
+function ensureTemplate <C extends Client> (this: ContractTemplate<C>, ...args: unknown[]): unknown {
+  if (args.length === 0) {
+    return this.uploaded
+  } else {
+    return this.defineInstance(...args as [Name, Message]).deployed
+  }
 }
 
 /** Callable object: contract template.
@@ -25,13 +41,25 @@ export interface ContractTemplate<C extends Client> extends Impl.ContractTemplat
   * Can produce deployable Contract instances. */
 export class ContractTemplate<C extends Client> extends defineCallable(
   Impl.ContractTemplate as any,
-  function ensureTemplate <C extends Client> (this: ContractTemplate<C>) {
-    return this.uploaded
-  }
+  ensureTemplate
 ) {
   /** Define a new instance of this contract. */
-  defineInstance (options: Partial<Contract<C>> = {}): Contract<C> {
-    return new Contract({ ...this, ...options })
+  defineInstance (id: Name, init: Message): Contract<C>
+  defineInstance (options?: Partial<Contract<C>>): Contract<C>
+  defineInstance (...args: unknown[]): Contract<C> {
+    let options: { id?: Name, initMsg?: Message }
+    if (args.length >= 2) {
+      options = { id: args[0] as Maybe<Name>, initMsg: args[1] as Maybe<Message> }
+    } else if (typeof args[0] === 'string') {
+      options = { id: args[0] as Maybe<Name> }
+    } else {
+      options = args[0] ?? {}
+    }
+    if (this.context) {
+      return this.context.defineContract({ ...this, ...options })
+    } else {
+      return new Contract({ ...this, ...options })
+    }
   }
 }
 

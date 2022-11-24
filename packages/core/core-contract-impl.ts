@@ -124,6 +124,7 @@ export abstract class ContractTemplate<C extends Client> {
   }
 
   /** Define a new instance of this contract. */
+  abstract defineInstance (id: Name, init: Message): Contract<C>
   abstract defineInstance (options?: Partial<Contract<C>>): Contract<C>
 }
 
