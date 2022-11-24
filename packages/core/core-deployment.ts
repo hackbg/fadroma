@@ -64,7 +64,7 @@ export class Deployment extends CommandContext {
 
   constructor (context: Partial<Deployment> = {}) {
     super(context.name ?? 'Deployment')
-    this.log.name  = this.name ?? this.log.name
+    this.log.label  = this.name ?? this.log.label
     // These propertied are inherited by default
     for (const field of [
       'name', 'state', 'agent', 'chain', 'builder', 'uploader', 'workspace', 'revision'

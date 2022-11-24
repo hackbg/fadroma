@@ -6,7 +6,7 @@ import type { Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/cor
 import { Console as CustomConsole } from '@hackbg/logs'
 
 export class UploadConsole extends ClientConsole {
-  name = 'Fadroma.Uploader'
+  label = 'Fadroma.Uploader'
 }
 
 /** Uploads contracts from the local filesystem, with optional caching:

@@ -108,9 +108,9 @@ export class ClientError extends Error {
 /** Logging. */
 export class ClientConsole extends CommandsConsole {
 
-  constructor (name: string = 'Fadroma') {
-    super(name)
-    this.name = name
+  constructor (label: string = 'Fadroma') {
+    super(console, { label })
+    this.label = label
   }
 
   object (obj?: Object) {

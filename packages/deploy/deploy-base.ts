@@ -125,7 +125,7 @@ export class Deployer extends Connector {
     return this.store
   }
   async save () {
-    if (!this.chain!.isMocknet) {
+    if (this.chain && !this.chain.isMocknet) {
       const store = await this.provideStore()
       this.log.saving(this.name, this.state)
       store.set(this.name, this.state)

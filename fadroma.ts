@@ -54,7 +54,7 @@ export class Fadroma extends Deployer {
 
   constructor (config: Partial<Config> = {}) {
     super({ config })
-    this.log.name = this.projectName
+    this.log.label = this.projectName
     this.config = new Config(config, this.env, this.cwd)
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()

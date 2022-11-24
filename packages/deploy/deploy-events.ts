@@ -4,7 +4,7 @@ import $                from '@hackbg/file'
 import { bold, colors } from '@hackbg/logs'
 
 export class DeployConsole extends ConnectConsole {
-  constructor (public name = 'Fadroma Deploy') { super(name) }
+  constructor (public label = 'Fadroma Deploy') { super(label) }
   warnNoDeployment () {
     return this.warn(
       'No active deployment. Most commands will fail. ' +
