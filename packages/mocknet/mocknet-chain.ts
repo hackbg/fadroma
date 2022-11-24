@@ -16,6 +16,8 @@ export abstract class BaseMocknet extends Chain {
     super(id, { ...options, mode: ChainMode.Mocknet })
   }
 
+  get isMocknet () { return true }
+
   Agent: AgentClass<MocknetAgent> = BaseMocknet.Agent
 
   defaultDenom = 'umock'
