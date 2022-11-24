@@ -216,14 +216,14 @@ export class ClientConsole extends CommandsConsole {
 
   afterDeploy (contract: Partial<Instantiated>) {
     const { red, green } = colors
-    const name = contract?.name
-      ? bold(green(contract.name))
+    const id = contract?.id
+      ? bold(green(contract.id))
       : bold(red('(no name)'))
     const deployment = contract?.prefix
       ? bold(green(contract.prefix))
       : bold(red('(no deployment)'))
     const address = bold(colors.green(contract?.address!))
-    this.info('Deployed:', name, 'in', deployment)
+    this.info('Deployed:', id, 'in', deployment)
     this.info('Address: ', address)
     this.info('Code hash', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.br()

@@ -14,7 +14,9 @@ import type { Deployment } from './core-deployment'
 
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
-import { rebind, override, Maybe, defineTask, into, map, mapAsync, defineDefault } from './core-fields'
+import {
+  override, Maybe, defineTask, into, map, mapAsync, defineDefault, Metadata
+} from './core-fields'
 import { Client } from './core-client'
 import { ClientError as Error } from './core-events'
 import { writeLabel } from './core-labels'
@@ -35,7 +37,8 @@ export class ContractTemplate<C extends Client> extends defineCallable(
     this: ContractTemplate<C>
   ): Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded> {
     return this.uploaded
-  }
+  },
+  Metadata
 ) {
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
@@ -77,7 +80,7 @@ export class ContractTemplate<C extends Client> extends defineCallable(
   client?:     ClientClass<C> = Client as ClientClass<C>
 
   constructor (options: Partial<ContractTemplate<C>> = {}) {
-    super()
+    super({})
     override(this, options)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
@@ -170,7 +173,8 @@ export interface Contract<C extends Client> {
 export class Contract<C extends Client> extends defineCallable(
   function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>, C> {
     return this.deployed
-  }
+  },
+  Metadata
 ) {
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
@@ -238,7 +242,7 @@ export class Contract<C extends Client> extends defineCallable(
   suffix?:     Name          = undefined
 
   constructor (options: Partial<Contract<C>> = {}) {
-    super()
+    super({})
     override(this, options)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
