@@ -31,10 +31,10 @@ export class DeployConfig extends ConnectConfig {
   reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
   /** Directory to store the receipts for the deployed contracts. */
   uploads:  string  = this.getString ('FADROMA_UPLOAD_STATE',
-    () => $(this.project).in('receipts').in(this.chainId).in('uploads').path)
+    () => $(this.project).in('dist').in('receipts').in(this.chainId).in('uploads').path)
   /** Directory to store the receipts for the deployed contracts. */
   deploys:  string  = this.getString ('FADROMA_DEPLOY_STATE',
-    () => $(this.project).in('receipts').in(this.chainId).in('deployments').path)
+    () => $(this.project).in('dist').in('receipts').in(this.chainId).in('deployments').path)
   /** Which implementation of the receipt store to use. */
   deploymentFormat  = this.getString('FADROMA_DEPLOY_STORE', () => 'YAML1') as DeploymentFormat
   /** The deploy receipt store implementation selected by `deploymentFormat`. */
