@@ -125,9 +125,11 @@ export class Deployer extends Connector {
     return this.store
   }
   async save () {
-    const store = await this.provideStore()
-    this.log.saving(this.name, this.state)
-    store.set(this.name, this.state)
+    if (!this.chain!.isMocknet) {
+      const store = await this.provideStore()
+      this.log.saving(this.name, this.state)
+      store.set(this.name, this.state)
+    }
   }
   /** Path to root of project directory. */
   get project (): Path|undefined {
