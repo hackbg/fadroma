@@ -25,6 +25,7 @@
     "@hackbg/dock":  "workspace:^1",
     "@hackbg/file":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1",
+    "@hackbg/oops":  "workspace:^1",
     "@hackbg/port":  "workspace:^1"
   },
   "devDependencies": {

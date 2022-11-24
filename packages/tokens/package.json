@@ -15,7 +15,8 @@
     "@fadroma/core": "workspace:^1",
     "@fadroma/scrt": "workspace:^6",
     "@hackbg/4mat":  "workspace:^1",
-    "@hackbg/logs":  "workspace:^1"
+    "@hackbg/logs":  "workspace:^1",
+    "@hackbg/oops":  "workspace:^1"
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.1"
