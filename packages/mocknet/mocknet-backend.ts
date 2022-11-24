@@ -149,10 +149,7 @@ export abstract class MocknetBackend {
     }
   }
 
-  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
-    const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
-    return JSON.parse(result)
-  }
+  abstract query ({ address, codeHash }: Partial<Client>, msg: Message): any
 
 }
 
@@ -168,6 +165,11 @@ export class MocknetBackend_CW0 extends MocknetBackend {
   ): [unknown] {
     return makeContext_CW0(this.chainId, sender, address, codeHash, now)
   }
+
+  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
+    const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
+    return JSON.parse(result)
+  }
 }
 
 export class MocknetBackend_CW1 extends MocknetBackend {
@@ -181,5 +183,11 @@ export class MocknetBackend_CW1 extends MocknetBackend {
     now:      number             = + new Date()
   ): [unknown, unknown] {
     return makeContext_CW1(this.chainId, sender, address, codeHash, now)
+  }
+
+  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
+    const [env] = this.context('', address, codeHash)
+    const result = b64toUtf8(parseResult(this.getInstance(address).query(env, msg), 'query', address))
+    return JSON.parse(result)
   }
 }

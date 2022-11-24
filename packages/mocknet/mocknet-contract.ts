@@ -176,8 +176,8 @@ export class MocknetContract_CW1 extends BaseMocknetContract<
     return this.instance!.exports.query
   }
 
-  queryPtrs (msg: Message): [Ptr] {
-    return [this.pass(msg)]
+  queryPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
+    return [this.pass(env), this.pass(msg)]
   }
 
   makeImports (): ContractImports_CW1 {
