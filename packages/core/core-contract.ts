@@ -520,9 +520,3 @@ export interface ContractLink {
   readonly address:   Address
   readonly code_hash: CodeHash
 }
-
-/** Convert Fadroma.Instance to address/hash struct (ContractLink) */
-export const linkStruct = (instance: IntoLink): ContractLink => ({
-  address:   assertAddress(instance),
-  code_hash: codeHashOf(instance)
-})
