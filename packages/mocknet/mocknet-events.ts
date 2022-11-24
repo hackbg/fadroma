@@ -3,7 +3,6 @@ import { ClientConsole, ClientError } from '@fadroma/core'
 export class MocknetConsole extends ClientConsole {
 
   log (...args: any[]) {
-    console.log(123)
     if (process.env.FADROMA_MOCKNET_DEBUG) {
       super.log(...args)
     }
