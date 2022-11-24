@@ -64,7 +64,7 @@ export class DockerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (contracts: Buildable[]): Promise<Build[]> {
+  async buildMany (contracts: (Buildable & Partial<Built>)[]): Promise<Built[]> {
 
     const self      = this
     const roots     = new Set<string>()
@@ -85,7 +85,7 @@ export class DockerBuilder extends LocalBuilder {
       }
     }
 
-    return contracts
+    return contracts as Built[]
 
     function prebuildContract (contract: Buildable) {
       // Collect maximum length to align console output
@@ -169,7 +169,7 @@ export class DockerBuilder extends LocalBuilder {
     await simpleGit(gitDir.path).fetch(remote)
   }
 
-  protected prebuilt (contract: Buildable): boolean {
+  protected prebuilt (contract: Buildable & Partial<Built>): boolean {
     const { workspace, revision, crate } = contract
     if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
