@@ -1,4 +1,4 @@
-import { exec, execSync } from 'child_process'
+import { spawn, exec, execSync } from 'child_process'
 import { existsSync, writeFileSync } from 'fs'
 
 const run = command => {
@@ -11,8 +11,7 @@ const run = command => {
 start()
 
 function start ({
-  lcpAddr     = process.env.lcpAddr     || 'http://localhost:1317',
-  lcpPort     = process.env.lcpPort     || '1316',
+  lcpPort     = process.env.lcpPort     || '1317',
   rpcAddr     = process.env.rpcAddr     || 'tcp://0.0.0.0:26657',
   grpcAddr    = process.env.grpcAddr    || '0.0.0.0:9090',
   grpcWebAddr = process.env.grpcWebAddr || '0.0.0.0:9091',
@@ -24,9 +23,11 @@ function start ({
   } else {
     console.info(`${genesisJSON} exists -> resuming devnet`)
   }
-  //run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' .secretd/config/app.toml`)
+  run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' .secretd/config/app.toml`)
   run(`perl -i -pe 's/enable-unsafe-cors = false/enable-unsafe-cors = true/' .secretd/config/app.toml`)
-  const lcp = exec(`lcp --proxyUrl ${lcpAddr} --port ${lcpPort} --proxyPartial ''`)
+  const lcpArgs = [`--proxyUrl`, 'http://localhost:1316', `--port`, lcpPort, `--proxyPartial`, ``]
+  console.log(`$ lcp`, ...lcpArgs)
+  const lcp = spawn(`lcp`, lcpArgs, { stdio: 'inherit' })
   const command = `source /opt/sgxsdk/environment && RUST_BACKTRACE=1 secretd start --bootstrap`
     + ` --rpc.laddr ${rpcAddr}`
     + ` --grpc.address ${grpcAddr}`

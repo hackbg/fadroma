@@ -179,9 +179,11 @@ export class Scrt extends Chain {
       this.log.warnIgnoringMnemonic()
     }
     // Construct the API client
+    let url = chain.url
+    if (url.endsWith('/')) url = url.slice(0, url.length - 1)
     const api = await this.getApi({
       chainId:         chain.id,
-      url:             chain.url,
+      url:             url,
       wallet,
       walletAddress:   wallet.address || address,
       encryptionUtils: options.encryptionUtils

@@ -6,7 +6,7 @@ import { Chain, ClientConsole } from '@fadroma/core'
 import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
 /** Supported devnet variants. */
-export type DevnetPlatform = 'scrt_1.2'|'scrt_1.3'|'scrt_1.4'
+export type DevnetPlatform = 'scrt_1.2'|'scrt_1.3'|'scrt_1.4'|'scrt_1.5'
 
 /** Supported connection types. */
 export type DevnetPortMode = 'lcp'|'grpcWeb'
@@ -54,7 +54,8 @@ export interface DevnetState {
 export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
   'scrt_1.2': 'lcp',
   'scrt_1.3': 'grpcWeb',
-  'scrt_1.4': 'grpcWeb'
+  'scrt_1.4': 'grpcWeb',
+  'scrt_1.5': 'lcp'
 }
 
 /** An ephemeral private instance of a network. */
@@ -72,8 +73,16 @@ export abstract class Devnet implements DevnetHandle {
   }: Partial<DevnetOpts> = {}) {
     this.ephemeral = ephemeral ?? this.ephemeral
     this.chainId   = chainId   ?? this.chainId
-    this.port      = port ? Number(port) : this.port
     this.portMode  = portMode!
+    if (port) {
+      this.port = port
+    } else {
+      if (this.portMode === 'lcp') {
+        this.port = 1317
+      } else {
+        this.port = 9091
+      }
+    }
     if (!this.chainId) {
       throw new Error(
         '@fadroma/ops/Devnet: refusing to create directories for devnet with empty chain id'
@@ -98,7 +107,7 @@ export abstract class Devnet implements DevnetHandle {
   /** The hostname of the API URL. */
   host     = 'localhost'
   /** The port of the API URL. If `null`, `freePort` will be used to obtain a random port. */
-  port     = 9091
+  port:     number
   /** Which service does the API URL port correspond to. */
   portMode: DevnetPortMode
   /** The API URL that can be used to talk to the devnet. */
