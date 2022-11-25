@@ -70,9 +70,9 @@ export abstract class Devnet implements DevnetHandle {
     portMode,
     ephemeral
   }: Partial<DevnetOpts> = {}) {
-    this.ephemeral = ephemeral    ?? this.ephemeral
-    this.chainId   = chainId      ?? this.chainId
-    this.port      = Number(port) ?? this.port
+    this.ephemeral = ephemeral ?? this.ephemeral
+    this.chainId   = chainId   ?? this.chainId
+    this.port      = port ? Number(port) : this.port
     this.portMode  = portMode!
     if (!this.chainId) {
       throw new Error(

@@ -60,7 +60,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    this.log.trace('Constructing devnet with', bold('@hackbg/dokeres'))
+    this.log.debug('Preparing a containerized devnet')
     this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
@@ -103,10 +103,10 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   async spawn () {
-    // tell the user that we have begun
-    this.log.info(`Spawning new node...`)
     // if no port is specified, use a random port
     this.port ??= (await freePort()) as number
+    // tell the user that we have begun
+    this.log.info(`Spawning new node to listen on`, bold(this.url))
     // create the state dirs and files
     const items = [this.stateRoot, this.nodeState]
     for (const item of items) {
@@ -119,7 +119,6 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     // run the container
     const containerName = `${this.chainId}-${this.port}`
     this.log.info('Creating and starting devnet container:', bold(containerName))
-    console.log(this.image)
     this.container = await this.image.run(
       containerName, this.spawnOptions, ['node', this.initScriptMount], '/usr/bin/env'
     )

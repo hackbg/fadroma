@@ -21,7 +21,7 @@ export class ScrtError extends ClientError {
 }
 
 export class ScrtConsole extends ClientConsole {
-  name = '@fadroma/scrt'
+  label = '@fadroma/scrt'
   warnIgnoringKeyPair = () =>
     this.warn('ScrtGrpcAgent: Ignoring keyPair (only supported by ScrtAminoAgent)')
   warnIgnoringMnemonic = () =>

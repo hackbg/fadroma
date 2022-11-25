@@ -48,48 +48,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4c78c047431fee22c1a7bb92e00ad095a02a983affe4d8a72e2a2c62c1b94f3"
 
 [[package]]
-name = "cosmwasm-crypto"
-version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
-dependencies = [
- "digest",
- "ed25519-zebra",
- "k256",
- "rand_core 0.6.3",
- "thiserror",
-]
-
-[[package]]
 name = "cosmwasm-derive"
 version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#ca0cbb1b7813594822b6993cf7c6b09ffb04acae"
 dependencies = [
  "syn",
-]
-
-[[package]]
-name = "cosmwasm-std"
-version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
-dependencies = [
- "base64",
- "cosmwasm-crypto",
- "cosmwasm-derive",
- "forward_ref",
- "schemars 0.8.10",
- "serde",
- "serde-json-wasm",
- "thiserror",
- "uint",
-]
-
-[[package]]
-name = "cosmwasm-storage"
-version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
-dependencies = [
- "cosmwasm-std",
- "serde",
 ]
 
 [[package]]
@@ -215,11 +178,11 @@ dependencies = [
 name = "fadroma-proc-derive"
 version = "0.1.0"
 dependencies = [
- "cosmwasm-std",
- "cosmwasm-storage",
  "proc-macro2",
  "quote",
  "schemars 0.7.6",
+ "secret-cosmwasm-std",
+ "secret-cosmwasm-storage",
  "serde",
  "serde_json",
  "syn",
@@ -453,6 +416,43 @@ dependencies = [
  "pkcs8",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "secret-cosmwasm-crypto"
+version = "1.0.0"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#ca0cbb1b7813594822b6993cf7c6b09ffb04acae"
+dependencies = [
+ "digest",
+ "ed25519-zebra",
+ "k256",
+ "rand_core 0.6.3",
+ "thiserror",
+]
+
+[[package]]
+name = "secret-cosmwasm-std"
+version = "1.0.0"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#ca0cbb1b7813594822b6993cf7c6b09ffb04acae"
+dependencies = [
+ "base64",
+ "cosmwasm-derive",
+ "forward_ref",
+ "schemars 0.8.10",
+ "secret-cosmwasm-crypto",
+ "serde",
+ "serde-json-wasm",
+ "thiserror",
+ "uint",
+]
+
+[[package]]
+name = "secret-cosmwasm-storage"
+version = "1.0.0"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#ca0cbb1b7813594822b6993cf7c6b09ffb04acae"
+dependencies = [
+ "secret-cosmwasm-std",
+ "serde",
 ]
 
 [[package]]
