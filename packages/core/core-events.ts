@@ -50,13 +50,6 @@ export class ClientError extends Error {
       ? `No deployment, can't find contract by name: ${name}`
       : "Missing deployment")
 
-  static NoInitCodeId = this.define('NoInitCodeId',
-    () => "Missing init code id")
-  static NoInitLabel = this.define('NoInitLabel',
-    () => "Missing init label")
-  static NoInitMessage = this.define('NoInitMessage',
-    () => "Missing init message")
-
   static NoName = this.define("NoName",
     () => "No name.")
   static NoSource = this.define('NoSource',
@@ -103,6 +96,17 @@ export class ClientError extends Error {
     () => 'Messages must have exactly 1 root key')
   static NoVersion = this.define('NoVersion',
     (name: string) => `${name}: specify version`)
+
+  static UploadFailed = this.define('UploadFailed',
+    () => 'Upload failed.')
+  static InitFailed = this.define('UploadFailed',
+    (id: any) => `Instantiation of code id ${id} failed.`)
+  static NoInitCodeId = this.define('NoInitCodeId',
+    () => "Can't instantiate a contract without specifying a code ID.")
+  static NoInitLabel = this.define('NoInitLabel',
+    () => "Can't instantiate a contract without specifying its label.")
+  static NoInitMessage = this.define('NoInitMessage',
+    () => "Can't instantiate a contract without passing an init message.")
 }
 
 /** Logging. */

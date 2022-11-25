@@ -141,8 +141,11 @@ export class ScrtAgent extends Agent {
     if (!this.address) throw new Error("No address")
     const sender     = this.address
     const args       = { sender, wasm_byte_code: data, source: "", builder: "" }
-    const gasLimit   = Number(Scrt.defaultFees.upload.amount[0].amount)
+    const gasLimit   = Number(this.fees.upload.amount[0].amount)
     const result     = await this.api.tx.compute.storeCode(args, { gasLimit })
+    if (result.code !== 0) {
+      throw Object.assign(new Error.UploadFailed(), { result })
+    }
     const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.getHash(Number(codeId))
@@ -157,33 +160,27 @@ export class ScrtAgent extends Agent {
     return contract
   }
 
-  async instantiate (
-    template: Contract<any>,
-    label:    Label,
-    init_msg: Message,
-    init_funds = []
-  ): Promise<Contract<any>> {
+  async instantiate <C extends Client> (
+    instance: Contract<C>,
+    init_funds: ICoin[] = []
+  ) {
     if (!this.address) throw new Error("No address")
-    const { chainId, codeId, codeHash } = template
-    const code_id = Number(template.codeId)
+    const { chainId, codeId, codeHash, label, initMsg } = instance
+    const code_id = Number(instance.codeId)
+    if (isNaN(code_id)) throw new Error.NoInitCodeId()
+    if (!label) throw new Error.NoInitLabel()
+    if (!initMsg) throw new Error.NoInitMessage()
     if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
-    if (isNaN(code_id)) throw new Error.NoCodeId()
     const sender = this.address
-    const args = { sender, code_id, code_hash: codeHash!, init_msg, label, init_funds }
-    const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
+    const args = { sender, code_id, code_hash: codeHash!, init_msg: initMsg, label, init_funds }
+    const gasLimit = Number(this.fees.init.amount[0].amount)
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
-    if (!result.arrayLog) {
-      throw Object.assign(
-        new Error(`SecretRPCAgent#instantiate: ${result.rawLog}`), {
-          jsonLog: result.jsonLog
-        }
-      )
-    }
+    if (result.code !== 0) throw Object.assign(new Error.InitFailed(code_id), { result })
     type Log = { type: string, key: string }
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
-    const address  = result.arrayLog.find(findAddr)?.value!
+    const address  = result.arrayLog!.find(findAddr)?.value!
     const initTx   = result.transactionHash
-    return Object.assign(template, { address })
+    return Object.assign(instance, { address })
   }
 
   async instantiateMany (template: Contract<any>, configs: DeployArgs[]) {
