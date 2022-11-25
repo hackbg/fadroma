@@ -52,11 +52,12 @@ export async function fetchCodeHash (
 
 /** Objects that have a code hash in either capitalization. */
 export type Hashed = 
-  | { code_hash: CodeHash, codeHash: undefined }
-  | { codeHash: CodeHash, code_hash: undefined }
+  | { code_hash: CodeHash }
+  | { codeHash: CodeHash }
 
 /** Allow code hash to be passed with either cap convention; warn if missing or invalid. */
-export function codeHashOf ({ code_hash, codeHash }: Hashed): CodeHash {
+export function codeHashOf (hashed: Hashed): CodeHash {
+  let { code_hash, codeHash } = hashed as any
   if (typeof code_hash === 'string') code_hash = code_hash.toLowerCase()
   if (typeof codeHash  === 'string') codeHash  = codeHash.toLowerCase()
   if (code_hash && codeHash && code_hash !== codeHash) throw new Error.DifferentHashes()
