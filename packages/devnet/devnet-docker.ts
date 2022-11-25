@@ -135,6 +135,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   get spawnOptions () {
     const env: Record<string, string> = {
+      Verbose:         process.env.FADROMA_DEVNET_VERBOSE ? 'yes' : '',
       ChainID:         this.chainId,
       GenesisAccounts: this.genesisAccounts.join(' '),
     }
