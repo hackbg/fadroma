@@ -37,7 +37,7 @@ export class ConnectConfig extends EnvConfig {
     }
     if (!this.chain) throw new Error.NoChainSelected(chainIds)
     const result = chainIds[this.chain as keyof typeof chainIds]
-    if (!result) throw new Error.UnknownChainSelected(chainIds, this.chain)
+    if (!result) throw new Error.UnknownChainSelected(this.chain, chainIds)
     return result
   }
 
