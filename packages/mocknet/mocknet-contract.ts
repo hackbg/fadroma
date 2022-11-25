@@ -81,7 +81,7 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
 
   init (...args: unknown[]) {
     const msg = args[args.length - 1]
-    this.log.log(`${bold(this.address)} init:`, msg)
+    this.log.log(bold(this.address), `init: ${JSON.stringify(msg)}`)
     try {
       return this.readUtf8(this.initMethod(...this.initPtrs(...args)))
     } catch (e: any) {
@@ -93,7 +93,7 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
 
   execute (...args: unknown[]) {
     const msg = args[args.length - 1]
-    this.log.log(`${bold(this.address)} handle:`, msg)
+    this.log.log(bold(this.address), `handle: ${JSON.stringify(msg)}`)
     try {
       return this.readUtf8(this.execMethod(...this.execPtrs(...args)))
     } catch (e: any) {
@@ -105,7 +105,7 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
 
   query (...args: unknown[]) {
     const msg = args[args.length - 1]
-    this.log.log(`${bold(this.address)} query:`, msg)
+    this.log.log(bold(this.address), `query: ${JSON.stringify(msg)}`)
     try {
       return this.readUtf8(this.queryMethod(...this.queryPtrs(...args)))
     } catch (e: any) {

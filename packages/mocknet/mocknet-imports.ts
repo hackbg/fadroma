@@ -1,4 +1,5 @@
 import { bech32 } from '@hackbg/4mat'
+import { brailleDump } from '@hackbg/dump'
 import { bold } from '@fadroma/core'
 
 import {
@@ -65,7 +66,7 @@ export function makeImports (contract: MocknetContract): ContractImports_Base & 
       const exports = getExports()
       const key     = readUtf8(exports, keyPtr)
       const val     = contract.storage.get(key)
-      log.trace(bold(contract.address), `db_read:`, bold(key), '=', val)
+      log.trace(bold(contract.address), `db_read: ${bold(key)}`, val ? brailleDump(val) : null)
       if (contract.storage.has(key)) {
         return passBuffer(exports, val!)
       } else {
@@ -78,7 +79,7 @@ export function makeImports (contract: MocknetContract): ContractImports_Base & 
       const key     = readUtf8(exports, keyPtr)
       const val     = readBuffer(exports, valPtr)
       contract.storage.set(key, val)
-      log.trace(bold(contract.address), `db_write:`, bold(key), '=', val)
+      log.trace(bold(contract.address), `db_write: ${bold(key)}`, brailleDump(val))
     },
 
     db_remove (keyPtr: Ptr) {
@@ -231,8 +232,9 @@ export function makeImports_CW1 (contract: MocknetContract) {
       return 0
     },
 
-    debug () {
-      log.warn('debug: not implemented')
+    debug (ptr: Ptr) {
+      const exports = getExports()
+      log.trace(bold(contract.address), `debug:`, readUtf8(exports, ptr))
       return 0
     },
 
