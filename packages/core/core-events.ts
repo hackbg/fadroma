@@ -2,15 +2,47 @@ import { CommandsConsole } from '@hackbg/cmds'
 import { bold, colors } from '@hackbg/logs'
 import type { Address, Message } from './core-tx'
 import type { Label } from './core-labels'
-import type { Name } from './core-fields'
+import type { Name, Maybe } from './core-fields'
 import type { CodeId, CodeHash } from './core-code'
 import type { Chain } from './core-chain'
 import type { Deployment } from './core-deployment'
-import type { Instantiable, Instantiated } from './core-contract'
+import type { Contract, Instantiable, Instantiated } from './core-contract'
+import type { Client } from './core-client'
 import { Error } from '@hackbg/oops'
 
 /** Error kinds. */
 export class ClientError extends Error {
+
+  /** Throw this when the control flow reached unimplemented areas. */
+  static NotImplemented = this.define('NotImplemented',
+    (info?: string) => 'Not implemented' +
+      (info ? ` ${info}` : ''))
+
+  static UploadFailed = this.define('UploadFailed',
+    () => 'Upload failed.')
+
+  static InitFailed = this.define('UploadFailed',
+    (id: any) => `Instantiation of code id ${id} failed.`)
+
+  static CantInit_NoName = this.define("NoName",
+    () => "Can't instantiate a contract without specifying a name.")
+
+  static CantInit_NoAgent = this.define('NoAgent',
+    (id?: string) => "Can't instantiate a contract without specifying an agent."
+      + (id ? ` (contract: ${id})`: ''))
+
+  static CantInit_NoCodeId = this.define('CantInit_NoCodeId',
+    (id?: string) => "Can't instantiate a contract without specifying a code ID"
+      + (id ? ` (contract: ${id})`: ''))
+
+  static CantInit_NoLabel = this.define('CantInit_NoLabel',
+    (id?: string) => "Can't instantiate a contract without specifying its label."
+      + (id ? ` (contract: ${id})`: ''))
+
+  static CantInit_NoMessage = this.define('CantInit_NoMessage',
+    (id?: string) => "Can't instantiate a contract without passing an init message."
+      + (id ? ` (contract: ${id})`: ''))
+
   static DifferentHashes = this.define('DifferentHashes',
     () => 'Passed an object with codeHash and code_hash both different')
   static DeployManyFailed = this.define('DeployManyFailed',
@@ -96,17 +128,6 @@ export class ClientError extends Error {
     () => 'Messages must have exactly 1 root key')
   static NoVersion = this.define('NoVersion',
     (name: string) => `${name}: specify version`)
-
-  static UploadFailed = this.define('UploadFailed',
-    () => 'Upload failed.')
-  static InitFailed = this.define('UploadFailed',
-    (id: any) => `Instantiation of code id ${id} failed.`)
-  static NoInitCodeId = this.define('NoInitCodeId',
-    () => "Can't instantiate a contract without specifying a code ID.")
-  static NoInitLabel = this.define('NoInitLabel',
-    () => "Can't instantiate a contract without specifying its label.")
-  static NoInitMessage = this.define('NoInitMessage',
-    () => "Can't instantiate a contract without passing an init message.")
 }
 
 /** Logging. */
@@ -208,17 +229,21 @@ export class ClientConsole extends CommandsConsole {
     )
   }
 
-  beforeDeploy <T extends Instantiable> (
-    template: T,
+  beforeDeploy <C extends Client> (
+    template: Contract<C>,
     label:    Label,
-    codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
-    codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)')
+    codeId:   CodeId        = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
+    codeHash: CodeHash      = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)'),
+    crate:    Maybe<string> = template?.crate,
+    revision: Maybe<string> = template?.revision ?? 'HEAD'
   ) {
     label = label ? bold(label) : colors.red('(missing label!)')
-    this.log('Init:    ', 'code id', bold(codeId), 'as', bold(label))
+    let info = `${bold(label)} from code id ${bold(codeId)}`
+    if (crate) info += ` (${bold(crate)} @ ${bold(revision)})`
+    this.log(`Init:     ${info}`)
   }
 
-  afterDeploy (contract: Partial<Instantiated>) {
+  afterDeploy <C extends Client> (contract: Partial<Contract<C>>) {
     const { red, green } = colors
     const id = contract?.id
       ? bold(green(contract.id))

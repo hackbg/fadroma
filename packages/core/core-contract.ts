@@ -29,17 +29,16 @@ export interface ContractTemplate<C extends Client> {
   (): Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded>
 }
 
+function ensureTemplate <C extends Client> (
+  this: ContractTemplate<C>
+): Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded> {
+  return this.uploaded
+}
+
 /** Callable object: contract template.
   * Can build and upload, but not instantiate.
   * Can produce deployable Contract instances. */
-export class ContractTemplate<C extends Client> extends defineCallable(
-  function ensureTemplate <C extends Client> (
-    this: ContractTemplate<C>
-  ): Task<ContractTemplate<C>, ContractTemplate<C> & Uploaded> {
-    return this.uploaded
-  },
-  Metadata
-) {
+export class ContractTemplate<C extends Client> extends defineCallable(ensureTemplate, Metadata) {
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL     = undefined
@@ -168,78 +167,38 @@ export interface Contract<C extends Client> {
   (): Task<ContractTemplate<C>, C>
 }
 
+function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>, C> {
+  return this.deployed
+}
 /** Callable object: contract.
   * Can build and upload, and instantiate itself. */
-export class Contract<C extends Client> extends defineCallable(
-  function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>, C> {
-    return this.deployed
-  },
-  Metadata
-) {
-  context?:    Deployment     = undefined
-  /** URL pointing to Git repository containing the source code. */
-  repository?: string|URL     = undefined
-  /** Branch/tag pointing to the source commit. */
-  revision?:   string         = undefined
-  /** Whether there were any uncommitted changes at build time. */
-  dirty?:      boolean        = undefined
-  /** Path to local Cargo workspace. */
-  workspace?:  string         = undefined
-  /** Name of crate in workspace. */
-  crate?:      string         = undefined
-  /** List of crate features to enable during build. */
-  features?:   string[]       = undefined
-  /** Build procedure implementation. */
-  builder?:    Builder        = undefined
-  /** Builder implementation that produces a Contract from the Source. */
-  builderId?:  string         = undefined
-  /** URL to the compiled code. */
-  artifact?:   string|URL     = undefined
-  /** Code hash uniquely identifying the compiled code. */
-  codeHash?:   CodeHash       = undefined
-  /** ID of chain on which this contract is uploaded. */
-  chainId?:    ChainId        = undefined
-  /** Object containing upload logic. */
-  uploaderId?: string         = undefined
-  /** Upload procedure implementation. */
-  uploader?:   Uploader       = undefined
-  /** Address of agent that performed the upload. */
-  uploadBy?:   Address        = undefined
-  /** TXID of transaction that performed the upload. */
-  uploadTx?:   TxHash         = undefined
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:     CodeId         = undefined
-  /** The Agent instance that will be used to upload and instantiate the contract. */
-  agent?:      Agent          = undefined
-  /** The Client subclass that exposes the contract's methods.
-    * @default the base Client class. */
-  client?:     ClientClass<C> = Client as ClientClass<C>
+export class Contract<C extends Client> extends defineCallable(ensureContract, ContractTemplate)<C> {
   /** Address of agent that performed the init tx. */
-  initBy?:     Address       = undefined
+  initBy?:  Address       = undefined
   /** Address of agent that performed the init tx. */
-  initMsg?:    Into<Message> = undefined
+  initMsg?: Into<Message> = undefined
   /** TXID of transaction that performed the init. */
-  initTx?:     TxHash        = undefined
+  initTx?:  TxHash        = undefined
   /** Address of this contract instance. Unique per chain. */
-  address?:    Address       = undefined
+  address?: Address       = undefined
   /** Full label of the instance. Unique for a given Chain. */
-  label?:      Label         = undefined
+  label?:   Label         = undefined
   /** Prefix of the instance label.
     * Identifies which Deployment the instance belongs to, if any.
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
-  prefix?:     Name          = undefined
+  prefix?:  Name          = undefined
   /** Proper name of the instance. Unique within the deployment.
     * If the instance is not part of a Deployment, this is equal to the label.
     * If the instance is part of a Deployment, this is used as storage key.
     * You are encouraged to store application-specific versioning info in this field. */
-  id?:         Name          = undefined
+  id?:      Name          = undefined
   /** Deduplication suffix.
     * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
     * This field has sometimes been used to redeploy an new instance
     * within the same Deployment, taking the place of the old one.
     * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
     *       is "the real one" (see https://stackoverflow.com/a/54427214. */
-  suffix?:     Name          = undefined
+  suffix?:  Name          = undefined
 
   constructor (options: Partial<Contract<C>> = {}) {
     super({})
@@ -287,23 +246,30 @@ export class Contract<C extends Client> extends defineCallable(
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
     return defineTask(`deploy ${this.id ?? 'contract'}`, deployContract, this)
     const self = this
-    async function deployContract (this: typeof self) {
-      if (!this.agent)   throw new Error.NoAgent()
-      if (!this.id)      throw new Error.NoName()
+    async function deployContract (this: typeof self): Promise<C> {
+      if (!this.id) throw new Error.CantInit_NoName()
+      if (!this.agent) throw new Error.CantInit_NoAgent(this.id)
+      if (!this.initMsg) throw new Error.CantInit_NoMessage(this.id)
+      // Construct the full unique label of the contract
       this.label = writeLabel(this)
-      if (!this.label)   throw new Error.NoInitLabel()
-      if (!this.initMsg) throw new Error.NoInitMessage()
-      await this.uploaded
-      if (!this.codeId)  throw new Error.NoInitCodeId()
+      if (!this.label) throw new Error.CantInit_NoLabel(this.id)
+      // Resolve the provided init message
       this.initMsg ??= await into(initMsg) as Message
+      // Make sure the code is compiled and uploaded
+      await this.uploaded
+      if (!this.codeId) throw new Error.CantInit_NoCodeId(this.id)
       this.log?.beforeDeploy(this, this.label!)
-      const contract = await this.agent!.instantiate(this as typeof self)
-      this.define(contract as Partial<typeof self>)
+      // Perform the instantiation transaction
+      const instance = await this.agent!.instantiate(this as typeof self)
+      // Populate self with result of instantiation (address)
+      this.define(instance as Partial<typeof self>)
       this.log?.afterDeploy(this as Partial<Contract<C>>)
-      if (this.context) this.context.addContract(this.id!, contract)
+      // Add self to deployment (FIXME necessary?)
+      if (this.context) this.context.addContract(this.id!, instance)
+      // Create and return the Client instance used to interact with the contract
       const $C = (this.client ?? Client)
       const client = new $C(this.agent, this.address, this.codeHash, this as any)
-      return client
+      return client as unknown as C
     }
   }
 
