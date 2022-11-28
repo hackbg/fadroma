@@ -22,9 +22,9 @@ export class Metadata {
     this.define(options as object)
   }
   /** Provide parameters for an existing instance.
-    * @returns self with overrides from options */
-  define <T extends this> (options: Partial<T> = {}): T {
-    return override(this, options as object) as T
+    * @returns mutated self */
+  define (options: Partial<this> = {}): this {
+    return override(this, options as object)
   }
   /** Define a task (lazily-evaluated async one-shot field).
     * @returns A lazily-evaluated Promise. */

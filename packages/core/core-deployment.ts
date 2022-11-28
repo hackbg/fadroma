@@ -134,15 +134,15 @@ export class Deployment extends CommandContext {
   /** @returns one contracts from this contract's deployment which matches
     * this contract's properties, as well as an optional predicate function. */
   findContract <C extends Client> (
-    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
+    predicate: (meta: Partial<Contract<any>>) => boolean = (x) => true
   ): Contract<C>|null {
-    return this.findContracts(predicate)[0]
+    return this.findContracts<C>(predicate)[0]
   }
 
   /** @returns all contracts from this contract's deployment
     * that match this contract's properties, as well as an optional predicate function. */
   findContracts <C extends Client> (
-    predicate: (meta: Partial<Contract<C>>) => boolean = (x) => true
+    predicate: (meta: Partial<Contract<any>>) => boolean = (x) => true
   ): Contract<C>[] {
     return Object.values(this.state).filter(contract=>predicate(contract!))
   }

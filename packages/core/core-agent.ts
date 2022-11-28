@@ -6,7 +6,7 @@ import type { AgentFees, ICoin, IFee } from './core-fee'
 import type { CodeHash } from './core-code'
 import type { Client, ClientClass } from './core-client'
 import type { Uploaded, AnyContract } from './core-contract'
-import type { Contract } from './core-contract-impl'
+import type { Contract } from './core-contract'
 import type { Uploader, UploaderClass } from './core-upload'
 import type { Name } from './core-fields'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
@@ -177,8 +177,9 @@ export abstract class Agent {
     ) as C
   }
   /** Get an uploader instance which performs code uploads and optionally caches them. */
-  getUploader <U extends Uploader> ($U: UploaderClass<U>, options?: unknown): U {
-    return new $U(this, options) as U
+  getUploader <U extends Uploader> ($U: UploaderClass<U>, ...options: any[]): U {
+    //@ts-ignore
+    return new $U(this, ...options) as U
   }
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below

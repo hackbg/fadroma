@@ -6,14 +6,14 @@ import type { IFee } from './core-fee'
 import type { ContractLink } from './core-contract'
 import { assertAgent } from './core-agent'
 import { assertAddress } from './core-tx'
-import { validated } from './core-fields'
+import { validated, hideProperties } from './core-fields'
 import { ClientConsole as Console, ClientError as Error } from './core-events'
 import { Contract } from './core-contract'
 
 /** A constructor for a Client subclass. */
-export interface ClientClass<C extends Client> extends Class<C, ConstructorParameters<typeof Client>>{
-  new (...args: ConstructorParameters<typeof Client>): C
-}
+export interface ClientClass<C extends Client> extends Class<C, [
+  Maybe<Agent>, Maybe<Address>, Maybe<CodeHash>, Maybe<Contract<C>>
+]>{}
 
 /** Client: interface to the API of a particular contract instance.
   * Has an `address` on a specific `chain`, usually also an `agent`.
@@ -30,8 +30,7 @@ export class Client {
     /** Contract class containing deployment metadata. */
     meta?:            Contract<any>
   ) {
-    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
-    Object.defineProperty(this, 'context', { writable: true, enumerable: false })
+    hideProperties(this, 'log', 'context')
     this.meta = (meta ?? new Contract()) as Contract<this>
     this.meta.address  ??= address
     this.meta.codeHash ??= codeHash
@@ -86,8 +85,8 @@ export class Client {
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   as (agent: Agent|undefined = this.agent): this {
     if (!agent || agent === this.agent) return this
-    const Client = this.constructor as ClientClass<typeof this>
-    return new Client(agent, this.address, this.codeHash) as this
+    const $C = this.constructor as ClientClass<typeof this>
+    return new $C(agent, this.address, this.codeHash, this.meta) as this
   }
 
   /** Creates another Client instance pointing to the same contract. */

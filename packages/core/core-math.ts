@@ -15,3 +15,7 @@ export type Moment   = number
 
 /** A period of time. */
 export type Duration = number
+
+export function addZeros (n: number|Uint128, z: number): Uint128 {
+  return `${n}${[...Array(z)].map(() => '0').join('')}`
+}

@@ -3,7 +3,7 @@ import type { CodeHash } from './core-code'
 import type { Address, Message, ExecOpts } from './core-tx'
 import type { ICoin } from './core-fee'
 import type { Client } from './core-client'
-import type { AnyContract } from './core-contract'
+import type { Contract, AnyContract } from './core-contract'
 import { into } from './core-fields'
 import { Agent } from './core-agent'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
@@ -151,7 +151,7 @@ export abstract class Bundle extends Agent {
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
     *   the unmodified input. */
-  async instantiate (instance: AnyContract): Promise<AnyContract> {
+  async instantiate <C extends Client> (instance: Contract<C>): Promise<Contract<C>> {
     const label    = instance.label
     const codeId   = String(instance.codeId)
     const codeHash = instance.codeHash

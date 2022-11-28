@@ -14,9 +14,9 @@ import { Error } from '@hackbg/oops'
 export class ClientError extends Error {
 
   /** Throw this when the control flow reached unimplemented areas. */
-  static NotImplemented = this.define('NotImplemented',
+  static Unimplemented = this.define('Unimplemented',
     (info?: string) => 'Not implemented' +
-      (info ? ` ${info}` : ''))
+      (info ? `: ${info}` : ''))
 
   static UploadFailed = this.define('UploadFailed',
     () => 'Upload failed.')
@@ -134,7 +134,7 @@ export class ClientError extends Error {
 export class ClientConsole extends CommandsConsole {
 
   constructor (label: string = 'Fadroma') {
-    super(console, { label })
+    super(label)
     this.label = label
   }
 

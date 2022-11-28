@@ -194,6 +194,6 @@ export abstract class Chain {
 /** @returns the chain of a thing
   * @throws  ExpectedChain if missing. */
 export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): C {
-  if (!thing.chain) throw new Error.NoChain(thing.constructor?.name)
+  if (!thing.chain) throw new Error.NoChain()
   return thing.chain
 }
