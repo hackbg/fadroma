@@ -12,6 +12,15 @@ The `ClientError` class defines custom error subclasses for various error condit
 // Make sure each error subclass can be created with no arguments:
 import { ClientError } from './core-events'
 for (const subtype of [
+  'Unimplemented',
+  'UploadFailed',
+  'InitFailed',
+  'CantInit_NoName',
+  'CantInit_NoAgent',
+  'CantInit_NoCodeId',
+  'CantInit_NoLabel',
+  'CantInit_NoMessage',
+
   'BalanceNoAddress',
   'DeployManyFailed',
   'DifferentHashes',
@@ -37,9 +46,6 @@ for (const subtype of [
   'NoCrate',
   'NoCreator',
   'NoDeployment',
-  'NoInitCodeId',
-  'NoInitLabel',
-  'NoInitMessage',
   'NoName',
   'NoPredicate',
   'NoSource',
