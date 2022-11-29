@@ -13,22 +13,24 @@ Fadroma Ops is a framework for building decentralized application backends
 out of smart contracts deployed to blockchains.
 
 We take the approach of viewing the blockchain as a **distributed computer** -
-that is, you don't need to trust a single entity to be your cloud provider.
-In this model, **smart contracts are largely equivalent to microservices**:
+that is, you don't need to care about provisioning multiple instances or keeping
+state in sync, and you don't need to trust a single entity to be your cloud provider.
+Those are all things that the platform abstracts over. In this model,
+**smart contracts are largely equivalent to microservices**:
 each one is scoped to a specific task, and they interoperate with each other,
 comprising a system.
 
-The main architectural differences are as follows:
+The main architectural differences that power this kind of distributed,
+consensus-based computation are as follows:
 
 * **The blockchain is append-only** (there's no way to revert to an earlier state)
-* **Usage is metered per VM instruction rather than per minute** (every state change costs gas)
+* **Usage is metered per VM instruction rather than per minute** (to change state, pay gas fees)
 * **The platform API is comparatively tiny** (unlike POSIX-based microservices)
 
-These aspects are what makes distributed consensus-based computation possible.
-As a rough analogy, the above constraints mean that a blockchain-based application backend would
-have to be a lot more like Plan 9 than like Kubernetes, which necessitates a novel
-approach to orchestrating the deployment and operation of distributed software.
-This is what Fadroma Ops sets out to provide.
+As a rough analogy, a blockchain-based application backend would look more like
+[9P](https://en.wikipedia.org/wiki/9P_(protocol), and less like [Kubernetes](https://en.wikipedia.org/wiki/Kubernetes).
+These novel constraints necessitate a novel approach to orchestrating the deployment
+and operation of the software. This is what Fadroma Ops sets out to provide.
 
 ## Command-line entrypoints
 
@@ -55,7 +57,7 @@ context.command('all', 'run all tests', async () => {
 
 ## [Connecting and transacting](./spec/ConnectingAndTransacting.ts.md)
 
-The first layer of Fadroma Ops consists of the `Chain`, `Agent`, and `Bundle` classes.
+The first layer of the Fadroma Ops model consists of the `Chain`, `Agent`, and `Bundle` classes.
 They provide APIs that have to do with the basic building blocks of on-chain activity:
 identities (wallets) and transactions (sending tokens, calling contracts, batching transactions,
 specifying gas fees, etc).
@@ -85,15 +87,19 @@ context.command(
 
 ## [Deploying and managing contracts](./spec/DeployingContracts.ts.md)
 
-The second layer of Fadroma Ops consists of the `Deployment`, `Contract`, `ContractTemplate`, and
-`ContractGroup` classes. This API allows you to describe services built out of multiple
-interconnected contracts, and deploy them from source onto a blockchain backend of your choosing.
-Subclassing `Deployment`, and using its methods to define the roles of individual smart contracts,
-enables you to do this in a declarative and reproducible way.
+The second layer of the Fadroma Ops model consists of the `Deployment`, `DeployStore`,
+`Contract`, `ContractTemplate`, and `ContractGroup` classes. These allow you to describe
+services built out of multiple interconnected contracts, and deploy them from source onto
+a blockchain backend of your choosing. By subclassing `Deployment`, and using its methods to define
+the roles of individual smart contracts, you are able do this in a declarative, idempotent, and
+reproducible way.
 
 * **Explore the [deployment guide](./spec/DeployingContracts.ts.md)**
 * One commonly used type of contract is a **custom token**. Fadroma Ops provides
   a deployment API for [managing native and custom tokens](./spec/Tokens.ts.md).
+* The procedures for compiling contracts from source and uploading them to the chain,
+  and for caching the results of those operations so you don't have to do them repeatedly,
+  are implemented in the [`Builder` and `Uploader` classes](./spec/BuildingAndUploading.ts.md).
 
 ```typescript
 context.command(
