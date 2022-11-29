@@ -1,8 +1,8 @@
+# Agents: identifying to a chain
+
 ```typescript
 import assert from 'node:assert'
 ```
-
-# Fadroma Core: Agents
 
 To transact on the chain, you need to select an identity (wallet).
 In Fadroma, you do this by obtaining an `Agent` from the `Chain` object.

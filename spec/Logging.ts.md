@@ -1,71 +1,6 @@
-# Fadroma Client Events
-
 ```typescript
 import assert from 'node:assert'
 ```
-
-## Client errors
-
-The `ClientError` class defines custom error subclasses for various error conditions.
-
-```typescript
-// Make sure each error subclass can be created with no arguments:
-import { ClientError } from './core-events'
-for (const subtype of [
-  'Unimplemented',
-  'UploadFailed',
-  'InitFailed',
-  'CantInit_NoName',
-  'CantInit_NoAgent',
-  'CantInit_NoCodeId',
-  'CantInit_NoLabel',
-  'CantInit_NoMessage',
-
-  'BalanceNoAddress',
-  'DeployManyFailed',
-  'DifferentHashes',
-  'EmptyBundle',
-  'ExpectedAddress',
-  'ExpectedAgent',
-  'InvalidLabel',
-  'InvalidMessage',
-  'LinkNoAddress',
-  'LinkNoCodeHash',
-  'LinkNoTarget',
-  'NameOutsideDevnet',
-  'NoAgent',
-  'NoArtifact',
-  'NoArtifactURL',
-  'NoBuilder',
-  'NoBuilderNamed',
-  'NoBundleAgent',
-  'NoChain',
-  'NoChainId',
-  'NoCodeHash',
-  'NoContext',
-  'NoCrate',
-  'NoCreator',
-  'NoDeployment',
-  'NoName',
-  'NoPredicate',
-  'NoSource',
-  'NoTemplate',
-  'NoUploader',
-  'NoUploaderAgent',
-  'NoUploaderNamed',
-  'NoVersion',
-  'NotFound',
-  'NotInBundle',
-  'ProvideBuilder',
-  'ProvideUploader',
-  'Unpopulated',
-  'ValidationFailed'
-]) {
-  assert(new ClientError[subtype]() instanceof ClientError)
-}
-```
-
-## Client console
 
 The `ClientConsole` class collects all logging output in one place.
 In the future, this will enable semantic logging and/or GUI notifications.
@@ -108,4 +43,37 @@ new ClientConsole().chainStatus({
   chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
   deployments: { list () { return [] }, active: { name: 4 } }
 })
+```
+
+## Connect logs
+
+```typescript
+import { ConnectConsole } from '.'
+const log = new ConnectConsole('(Test) Fadroma.Connect', {
+  log: () => {}, info: () => {}, warn: () => {}, error: () => {}
+})
+log.noName({})
+log.supportedChains()
+log.selectedChain()
+log.selectedChain({})
+log.selectedChain({ chain: 'x' })
+```
+
+```typescript
+import { BuildConsole } from '@fadroma/build'
+import { ContractSource } from '@fadroma/core'
+const log = new BuildConsole({ info: () => {} })
+log.buildingFromCargoToml('foo')
+log.buildingFromBuildScript('foo')
+log.buildingFromWorkspace('foo')
+log.buildingOne(new ContractSource({ crate: 'bar' }))
+log.buildingOne(new ContractSource({ crate: 'bar', revision: 'commit' }))
+log.buildingOne(
+  new ContractSource({ crate: 'bar', revision: 'commit' }),
+  new ContractSource({ crate: 'bar', revision: 'commit' })
+)
+log.buildingMany([
+  new ContractSource({ crate: 'bar' }),
+  new ContractSource({ crate: 'bar', revision: 'commit' })
+])
 ```
