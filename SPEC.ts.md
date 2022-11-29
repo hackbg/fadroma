@@ -12,13 +12,11 @@ and `pnpm ts:test:cov` or `pnpm ts:test:lcov` to generate a test coverage report
 Fadroma Ops is a framework for building decentralized application backends
 out of smart contracts deployed to blockchains.
 
-We take the approach of viewing the blockchain as a **distributed computer** -
-that is, you don't need to care about provisioning multiple instances or keeping
-state in sync, and you don't need to trust a single entity to be your cloud provider.
-Those are all things that the platform abstracts over. In this model,
-**smart contracts are largely equivalent to microservices**:
-each one is scoped to a specific task, and they interoperate with each other,
-comprising a system.
+We take the approach of viewing the blockchain as a **distributed VM**:
+the platform abstracts over details such as provisioning servers or keeping state in sync,
+and the application developer doesn't need to care about them. In this model,
+**smart contracts are largely equivalent to microservices**: each one is scoped to a
+specific task, and they interoperate with each other to make up a system.
 
 The main architectural differences that power this kind of distributed,
 consensus-based computation are as follows:
