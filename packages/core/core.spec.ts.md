@@ -76,7 +76,6 @@ context.command('contract',
   'test the contract ops primitives',
   async () => {
     await import('./core-contract.spec.ts.md')
-    await import('./core-deploy.spec.ts.md')
     await import('./core-client.spec.ts.md')
     await import('./core-build.spec.ts.md')
     await import('./core-code.spec.ts.md')

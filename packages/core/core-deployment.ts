@@ -45,7 +45,7 @@ export class Deployment extends CommandContext {
   /** Mapping of names to contract instances. */
   state:       DeploymentState = {}
   /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:        string = timestamp()
+  name:        string
   /** Default Git ref from which contracts will be built if needed. */
   repository?: string = undefined
   /** Default Cargo workspace from which contracts will be built if needed. */
@@ -63,8 +63,10 @@ export class Deployment extends CommandContext {
   uploader?:   Uploader
 
   constructor (context: Partial<Deployment> = {}) {
-    super(context.name ?? 'Deployment')
-    this.log.label  = this.name ?? this.log.label
+    const name = context.name ?? timestamp()
+    super(name)
+    this.name = name
+    this.log.label = this.name ?? this.log.label
     // These propertied are inherited by default
     for (const field of [
       'name', 'state', 'agent', 'chain', 'builder', 'uploader', 'workspace', 'revision'
@@ -175,7 +177,7 @@ export class Deployment extends CommandContext {
   /** Specify a contract.
     * @returns a callable instance of `Contract` bearing the specified parameters.
     * Calling it will deploy the contract, or retrieve it if already deployed. */
-  defineContract <C extends Client> (
+  contract <C extends Client> (
     /** Parameters of the contract. */
     opts: Partial<Contract<C>> = {}
   ): Contract<C> {
@@ -195,7 +197,7 @@ export class Deployment extends CommandContext {
   /** Specify a contract template.
     * @returns a callable instance of `ContractTemplate` bearing the specified parameters.
     * Calling it will build and upload the template. */
-  defineTemplate <C extends Client> (
+  template <C extends Client> (
     opts: Partial<ContractTemplate<C>> = {}
   ): ContractTemplate<C> {
     return new ContractTemplate({
@@ -209,7 +211,7 @@ export class Deployment extends CommandContext {
   /** Specify a group of heterogeneous contracts.
     * @returns a callable instance of `ContractGroup` containing the specified contracts.
     * Calling it will deploy the contained contracts. */
-  defineGroup <A extends unknown[]> (
+  group <A extends unknown[]> (
     /** Function that returns the contracts belonging to an instance of the group. */
     getContracts: (...args: A)=>Many<AnyContract>
   ): ContractGroup<A> {

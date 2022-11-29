@@ -11,6 +11,7 @@ import type { Agent } from './core-agent'
 import type { Deployment } from './core-deployment'
 
 import { defineCallable } from '@hackbg/allo'
+import { hideProperties } from '@hackbg/hide'
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
 import { defineTask, override, Maybe, into, map, mapAsync, defineDefault } from './core-fields'
@@ -74,11 +75,13 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   agent?:      Agent          = undefined
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
-  client?:     ClientClass<C> = Client as unknown as ClientClass<C>
+  client?:     ClientClass<C> = undefined
 
   constructor (options: Partial<ContractTemplate<C>> = {}) {
     super()
+    console.log({options})
     this.define(options)
+    console.log(this)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
       defineDefault(this, this.context, 'builder')
@@ -87,6 +90,7 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
       defineDefault(this, this.context, 'revision')
       defineDefault(this, this.context, 'workspace')
     }
+    hideProperties(this, 'log')
   }
 
   /** Provide parameters for an existing instance.
@@ -159,39 +163,37 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
     })
   }
 
-  /** Get an instance of this contract, or define a new one. */
-  instance (id: Name): Task<Contract<C>, C>
-  instance (id: Name, init: Message): Task<Contract<C>, C>
-  instance (options?: Partial<Contract<C>>): Task<Contract<C>, C>
-  instance (...args: unknown[]): Task<Contract<C>, C> {
-
-    // Construct the contract instance's options
-    // from the template's properties and the function's arguments
-    let options: any = { ...this }
-    if (args.length >= 2) {
-      options.name = args[0] as Maybe<Name>
-      options.initMsg = args[1] as Maybe<Message>
-    } else if (typeof args[0] === 'string') {
-      options.name = args[0] as Maybe<Name>
-    } else {
-      Object.assign(options, args[0] ?? {})
-    }
-
-    // Create an instance of this template
-    const instance: Contract<C> = this.context
-      ? this.context.defineContract(options)
-      : new Contract(options)
-
-    // Return the instance's deploy task
-    return instance()
-
-  }
-
   get asInfo (): ContractInfo {
     return {
       id:        this.codeId!,
       code_hash: this.codeHash!
     }
+  }
+
+  /** Get an instance of this contract, or define a new one.
+    * @returns task for deploying a contract, returning its client */
+  instance (overrides?: Partial<Contract<C>>): Task<Contract<C>, C> {
+    const options: Partial<Contract<C>> = { ...this, ...overrides }
+    console.log(this, {options})
+    const instance: Contract<C> = this.context
+      ? this.context.contract(options)
+      : new Contract(options)
+    return instance()
+  }
+
+  /** Get a collection of multiple clients to instances of this contract.
+    * @returns task for deploying multiple contracts, resolving to their clients */
+  instances (contracts: Many<Partial<Contract<C>>>): Task<this, Many<Task<Contract<C>, C>>> {
+    type Self = typeof this
+    const size = Object.keys(contracts).length
+    const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
+    return this.task(name, async function deployManyContracts (
+      this: Self
+    ): Promise<Many<Task<Contract<C>, C>>> {
+      return map(contracts, (options: Partial<Contract<C>>): Task<Contract<C>, C> => {
+        return this.instance(options)
+      })
+    })
   }
 }
 
@@ -291,6 +293,7 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
       defineDefault(this, this.context, 'workspace')
     }
     override(this, options)
+    hideProperties(this, 'log')
 
     function setName (value: Name) {
       Object.defineProperty(self, 'name', {
@@ -443,27 +446,6 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
     }
   }
 
-  many (
-    contracts: Many<[Name, Message]|Partial<this>>
-  ): Task<this, Many<Task<this, C>>> {
-    type Self = typeof this
-    const size = Object.keys(contracts).length
-    const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
-    return this.task(name, async function deployManyContracts (this: Self): Promise<Many<Task<Self, C>>> {
-      type Instance = [Name, Message] | Partial<Self>
-      return map(contracts, (instance: Instance): Task<Self, C> => {
-        if (instance instanceof Array) {
-          instance = { name: instance[0], initMsg: instance[1] } as Partial<Self>
-        }
-        const contract = new Contract({
-          context: this.context,
-          ...instance as Partial<Contract<C>>
-        })
-        return contract.deployed as unknown as Task<Self, C>
-      })
-    })
-
-  }
 }
 
 export interface ContractGroup<A extends unknown[]> {

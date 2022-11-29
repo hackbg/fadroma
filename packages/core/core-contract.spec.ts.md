@@ -64,7 +64,7 @@ import { Chain } from '@fadroma/core'
 let index = 0
 const chain = new Chain('test')
 const agent = Object.assign(await chain.getAgent(), {
-  async instantiate () { return { address: `(the address of instance #${++index})` } },
+  async instantiate () { return { address: `(address #${++index})` } },
   async execute     () { return {} },
   async query       () { return {} }
 })
@@ -76,7 +76,12 @@ Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.
 (that is, a contract that is already built and uploaded):
 
 ```typescript
-const aContract = new Contract({ codeId: 1, agent })
+const aContract = new Contract({
+  name:    'contract1',
+  initMsg: { parameter: 'value' },
+  codeId:  1,
+  agent
+})
 ```
 
 To deploy the contract uploaded as code ID 1, just call `aContract`, passing two things:
@@ -86,7 +91,7 @@ To deploy the contract uploaded as code ID 1, just call `aContract`, passing two
   contract's init method.
 
 ```typescript
-const aClient = await aContract('id1', { parameter: 'value' })
+const aClient = await aContract()
 ```
 
 The call will resolve resolve to a `Client` instance. You can use this to talk to the deployed
@@ -95,9 +100,9 @@ contract by invoking its query and transaction methods.
 ```typescript
 import { Client } from '@fadroma/core'
 assert.ok(aClient instanceof Client)
-assert.equal(aClient.address, '(the address of instance #1)')
-assert.equal(typeof aClient.query, 'function')
-assert.equal(typeof aClient.exec,  'function')
+assert.equal(aClient.address, '(address #1)')
+assert.equal(typeof aClient.query,   'function')
+assert.equal(typeof aClient.execute, 'function')
 ```
 
 Congratulations, you've deployed a globally persistent object!
@@ -149,26 +154,28 @@ import { Deployment, defineDeployment } from '@fadroma/core'
 const deployment = await defineDeployment({ agent, name: 'testing' })
 ```
 
-Then, you can use `deployment.defineContract` in place of `new Contract()`:
+Then, you can use `deployment.contract` in place of `new Contract()`:
 
 ```typescript
-const theContract = deployment.defineContract({ codeId: 1 })
+const contractOne = deployment.contract({
+  codeId: 1, name: 'name', initMsg: { parameter: 'value' }
+})
 ```
 
 Deployments add their names to the labels of deployed contracts:
 
 ```typescript
-const oneInstance = await theContract('name', { parameter: "value" })
-assert.equal(oneInstance.meta.label, 'testing/name')
-assert.equal(oneInstance.meta.address, '(the address of instance #2)')
+const clientToContractOne = await contractOne()
+assert.equal(clientToContractOne.meta.label, 'testing/name')
+assert.equal(clientToContractOne.meta.address, '(address #2)')
 ```
 
 And they also keep track of the deployed contracts, so that later you
-can call up the same contract by name:
+can call up the same contract:
 
 ```typescript
-const sameInstance = await theContract('name')
-assert.equal(oneInstance.address, sameInstance.address)
+const anotherClientToContractOne = await contractOne()
+assert.equal(clientToContractOne.address, anotherClientToContractOne.address)
 ```
 
 This creates a new `Client` pointing to the same contract.
@@ -179,42 +186,30 @@ What if you want to deploy another contract of the same kind?
 That's easy, just provide a different name, as in the following example;
 
 ```typescript
-const anotherInstance = await theContract({
-  id:      'another-name',
-  initMsg: { parameter: 'different-value' },
-  agent:   agent
-})
-assert.equal(anotherInstance.address,    '(the address of instance #3)')
-assert.equal(anotherInstance.meta.label, 'testing/another-name')
+const template = await deployment.template({ codeId: 2 })
+const templateClientOne = await template.instance({ name: 'template-instance-1', initMsg: {} })
+const templateClientTwo = await template.instance({ name: 'template-instance-2', initMsg: {} })
+assert.equal(templateClientOne.address,    '(address #3)')
+assert.equal(templateClientTwo.address,    '(address #4)')
+assert.equal(templateClientOne.meta.label, 'testing/template-instance-1')
+assert.equal(templateClientTwo.meta.label, 'testing/template-instance-2')
 ```
-
-The above also demonstrates the alternate form of the deploy function.
-Passing an object containing `{ name, initMsg }` is equivalent to passing
-`name, initMsg`, with the difference that you can also define other
-properties (e.g. deploy as a different agent).
 
 ## Deploying multiple instances
 
 To deploy multiple contract instances from the same code,
-you can use `theContract.many`. Where possible, this will deploy
-all contracts as a single transaction.
+you can use templates.
 
-You can pass either an array or an object to `theContract.many`:
+You can pass either an array or an object to `template.instances`:
 
 ```typescript
-const [ c4, c5 ] = await theContract.many([
-  [ 'name3', { parameter: 'value3' } ],
+const [ templateInsanceThree, templateClientFour ] = await template.instances([
+  { name: 'name3', initMsg: { parameter: 'value3' } },
   { name: 'name4', initMsg: { parameter: 'value4' } },
 ])
-```
-
-Note that the keys of the object don't correspond to the names of the contracts,
-so you still need to provide the names explicitly:
-
-```typescript
-const { c6, c7 } = await theContract.many({
-  c6: ['name5', { parameter: 'value5' }],
-  c7: { name: 'name6', initMsg: { parameter: 'value6' } },
+const { templateClientFoo, templateClientBar } = await template.instances({
+  templateClientFoo: { name: 'name5', initMsg: { parameter: 'value5' } },
+  templateClientFoo: { name: 'name6', initMsg: { parameter: 'value6' } },
 })
 ```
 
@@ -233,11 +228,14 @@ class MyClient extends Client {
   }
 }
 
-const theOtherContract = deployment.defineContract({ codeId: 2, client: MyClient })
-const d1 = await theOtherContract('my-other-contract', {})
-assert.ok(d1 instanceof MyClient)
-assert.ok(await d1.myMethod())
-assert.ok(await d1.myQuery())
+const templateWithCustomClient = deployment.template({ codeId: 2, client: MyClient })
+const instanceWithCustomClient = templateWithCustomClient.instance({
+  name: 'custom-client-contract', initMsg: {} 
+})
+const customClient = await instanceWithCustomClient
+assert.ok(customClient instanceof MyClient)
+assert.ok(await customClient.myMethod())
+assert.ok(await customClient.myQuery())
 ```
 
 By publishing a library of `Client` subclasses corresponding to your contracts,
