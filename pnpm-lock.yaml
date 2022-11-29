@@ -18,8 +18,8 @@ importers:
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/file': workspace:^1
       '@hackbg/logs': workspace:^1
-      '@hackbg/runspec': ^2.3.1
-      '@hackbg/ubik': ^1.1.1
+      '@hackbg/spec': ^1
+      '@hackbg/ubik': ^1.2
       '@types/dockerode': ^3.3.9
       '@types/js-yaml': ^4.0.5
       '@types/node': ^16.11.55
@@ -51,7 +51,7 @@ importers:
       '@hackbg/logs': link:ensuite/toolbox/logs
     devDependencies:
       '@hackbg/ensuite': link:ensuite
-      '@hackbg/runspec': 2.3.1
+      '@hackbg/spec': link:ensuite/toolbox/spec
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.9
       '@types/js-yaml': 4.0.5
@@ -89,7 +89,7 @@ importers:
       '@ganesha/core': workspace:^2
       '@ganesha/node': workspace:^2.3.3
       '@ganesha/node-legacy': workspace:^3.0.2
-      '@hackbg/runspec': ^2.2
+      '@hackbg/spec': ^1
       c8: ^7.11.0
       chokidar: ^3.5.3
       cross-spawn: ^7.0.3
@@ -101,7 +101,7 @@ importers:
       '@ganesha/node-legacy': link:src/node-legacy
       cross-spawn: 7.0.3
     devDependencies:
-      '@hackbg/runspec': 2.3.1
+      '@hackbg/spec': link:../toolbox/spec
       c8: 7.12.0
       chokidar: 3.5.3
       typescript: 4.8.4
@@ -214,7 +214,7 @@ importers:
       '@ganesha/core': workspace:*
       '@ganesha/node': workspace:*
       '@ganesha/rollup': workspace:*
-      '@hackbg/runspec': ^2.2
+      '@hackbg/spec': ^1
       mkdirp: ^1.0.4
       tap: ^15.0.9
       typescript: ^4.7
@@ -223,7 +223,7 @@ importers:
       '@ganesha/core': link:../src/core
       '@ganesha/node': link:../src/node
       '@ganesha/rollup': link:../src/rollup
-      '@hackbg/runspec': 2.3.1
+      '@hackbg/spec': link:../../toolbox/spec
       mkdirp: 1.0.4
       tap: 15.2.3_typescript@4.7.4
       typescript: 4.7.4
@@ -277,10 +277,12 @@ importers:
   ensuite/toolbox/cmds:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
+      '@hackbg/hide': workspace:^1
       '@hackbg/logs': workspace:^1
       '@hackbg/task': workspace:^1
       '@hackbg/time': workspace:^1
     dependencies:
+      '@hackbg/hide': link:../hide
       '@hackbg/logs': link:../logs
       '@hackbg/task': link:../task
       '@hackbg/time': link:../time
@@ -304,6 +306,12 @@ importers:
       dockerode: 3.3.4
     devDependencies:
       '@types/dockerode': 3.3.9
+
+  ensuite/toolbox/dump:
+    specifiers:
+      '@hackbg/ganesha': ^2.2.5
+    devDependencies:
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/file:
     specifiers:
@@ -563,6 +571,7 @@ importers:
       '@hackbg/ensuite': ^1
       '@hackbg/file': workspace:^1
       '@hackbg/logs': workspace:^1
+      '@hackbg/oops': workspace:^1
       '@hackbg/port': workspace:^1
     dependencies:
       '@fadroma/core': link:../core
@@ -572,6 +581,7 @@ importers:
       '@hackbg/dock': link:../../ensuite/toolbox/dock
       '@hackbg/file': link:../../ensuite/toolbox/file
       '@hackbg/logs': link:../../ensuite/toolbox/logs
+      '@hackbg/oops': link:../../ensuite/toolbox/oops
       '@hackbg/port': link:../../ensuite/toolbox/port
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
@@ -580,11 +590,13 @@ importers:
     specifiers:
       '@fadroma/core': workspace:^1
       '@hackbg/4mat': workspace:^1
+      '@hackbg/dump': workspace:^1
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/logs': workspace:^1
     dependencies:
       '@fadroma/core': link:../core
       '@hackbg/4mat': link:../../ensuite/toolbox/fmts
+      '@hackbg/dump': link:../../ensuite/toolbox/dump
       '@hackbg/logs': link:../../ensuite/toolbox/logs
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
@@ -596,11 +608,13 @@ importers:
       '@hackbg/4mat': workspace:^1
       '@hackbg/ensuite': ^1.1
       '@hackbg/logs': workspace:^1
+      '@hackbg/oops': workspace:^1
     dependencies:
       '@fadroma/core': link:../core
       '@fadroma/scrt': link:../../platforms/scrt
       '@hackbg/4mat': link:../../ensuite/toolbox/fmts
       '@hackbg/logs': link:../../ensuite/toolbox/logs
+      '@hackbg/oops': link:../../ensuite/toolbox/oops
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
 
@@ -1112,11 +1126,6 @@ packages:
       prompts: 2.4.2
       table: 6.8.0
     dev: false
-
-  /@hackbg/runspec/2.3.1:
-    resolution: {integrity: sha512-L1Fus4JBg3hb3W2+LUZxj5hlHDxh4TbTj9zjSiQA+WscFroGPHHFiLCyJQ7y7/WT9CXtUCTrSzygFWQXjFxtlg==}
-    hasBin: true
-    dev: true
 
   /@istanbuljs/load-nyc-config/1.1.0:
     resolution: {integrity: sha512-VjeHSlIzpv/NyD3N0YuHfXOPDIixcA1q2ZV98wsMqcYlPmv2n3Yb2lYP9XMElnaFVXg5A7YLTeLu6V84uQDjmQ==}
