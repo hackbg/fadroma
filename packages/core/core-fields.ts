@@ -1,5 +1,17 @@
+import { ClientConsole as Console, ClientError as Error } from './core-events'
 import { Task } from '@hackbg/task'
-import { ClientConsole, ClientError } from './core-events'
+
+export function defineTask <T, U> (
+  name:     string,
+  cb:       (this: T)=>U|PromiseLike<U>,
+  context?: T & { log?: Console }
+): Task<T, U> {
+  const task = new Task(name, cb, context as unknown as T)
+  const [_, head, ...body] = (task.stack ?? '').split('\n')
+  task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+  task.log   = (context?.log ?? task.log) as any
+  return task as Task<T, U>
+}
 
 /** A class constructor. */
 export interface Class<T, U extends unknown[]> {
@@ -14,33 +26,6 @@ export function getMaxLength (strings: string[]): number {
 
 /** A class constructor for an extensible value object. */
 export interface Overridable<T, U> extends Class<T, [Partial<T>?]|[U|Partial<T>, Partial<T>?]> {
-}
-
-export class Metadata {
-  log = new ClientConsole(this.constructor.name)
-  constructor (options: Partial<Metadata> = {}) {
-    this.define(options as object)
-  }
-  /** Provide parameters for an existing instance.
-    * @returns mutated self */
-  define (options: Partial<this> = {}): this {
-    return override(this, options as object)
-  }
-  /** Define a task (lazily-evaluated async one-shot field).
-    * @returns A lazily-evaluated Promise. */
-  task <T extends this, U> (name: string, cb: (this: T)=>PromiseLike<U>): Task<T, U> {
-    return defineTask(name, cb, this as T)
-  }
-}
-
-export function defineTask <T, U> (
-  name: string, cb: (this: T)=>U|PromiseLike<U>, context?: T & { log?: ClientConsole }
-): Task<T, U> {
-  const task = new Task(name, cb, context as unknown as T)
-  const [_, head, ...body] = (task.stack ?? '').split('\n')
-  task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
-  task.log = context?.log ?? task.log
-  return task as Task<T, U>
 }
 
 /** Check if `obj` has a writable, non-method property of name `key` */
@@ -86,7 +71,7 @@ export function validated <T> (kind: string, value: T, expected?: T): T {
     expected = expected.toLowerCase() as unknown as T
   }
   if (typeof expected !== 'undefined' && expected !== value) {
-    throw new ClientError.ValidationFailed(kind, '', expected, value)
+    throw new Error.ValidationFailed(kind, '', expected, value)
   }
   return value
 }

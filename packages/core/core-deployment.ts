@@ -179,10 +179,10 @@ export class Deployment extends CommandContext {
     /** Parameters of the contract. */
     opts: Partial<Contract<C>> = {}
   ): Contract<C> {
-    if (opts.id && this.hasContract(opts.id)) {
-      return this.getContract(opts.id)
+    if (opts.name && this.hasContract(opts.name)) {
+      return this.getContract(opts.name)
     }
-    return this.addContract(opts.id!, new Contract({
+    return this.addContract(opts.name!, new Contract({
       workspace: this.config?.build?.project,
       revision:  this.revision ?? 'HEAD',
       agent:     this.agent,

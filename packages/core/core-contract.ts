@@ -1,5 +1,3 @@
-import { defineCallable } from '@hackbg/allo'
-
 import type { Task } from '@hackbg/task'
 import type { Into, Name, Named, Many, Class } from './core-fields'
 import type { ClientClass } from './core-client'
@@ -12,13 +10,12 @@ import type { Label } from './core-labels'
 import type { Agent } from './core-agent'
 import type { Deployment } from './core-deployment'
 
+import { defineCallable } from '@hackbg/allo'
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
-import {
-  override, Maybe, defineTask, into, map, mapAsync, defineDefault, Metadata
-} from './core-fields'
+import { defineTask, override, Maybe, into, map, mapAsync, defineDefault } from './core-fields'
 import { Client } from './core-client'
-import { ClientError as Error } from './core-events'
+import { ClientConsole as Console, ClientError as Error } from './core-events'
 import { writeLabel } from './core-labels'
 import { assertBuilder } from './core-build'
 import { upload, uploadMany } from './core-upload'
@@ -37,7 +34,9 @@ function ensureTemplate <C extends Client> (
 /** Callable object: contract template.
   * Can build and upload, but not instantiate.
   * Can produce deployable Contract instances. */
-export class ContractTemplate<C extends Client> extends defineCallable(ensureTemplate, Metadata) {
+export class ContractTemplate<C extends Client> extends defineCallable(ensureTemplate) {
+  log = new Console(this.constructor.name)
+  /** The deployment that this template belongs to. */
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL     = undefined
@@ -78,8 +77,8 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   client?:     ClientClass<C> = Client as unknown as ClientClass<C>
 
   constructor (options: Partial<ContractTemplate<C>> = {}) {
-    super({})
-    override(this, options)
+    super()
+    this.define(options)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
       defineDefault(this, this.context, 'builder')
@@ -88,6 +87,29 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
       defineDefault(this, this.context, 'revision')
       defineDefault(this, this.context, 'workspace')
     }
+  }
+
+  /** Provide parameters for an existing instance.
+    * @returns mutated self */
+  define (options: Partial<ContractTemplate<C>> = {}): this {
+    return override(this, options as object)
+  }
+
+  /** Define a task (lazily-evaluated async one-shot field).
+    * @returns A lazily-evaluated Promise. */
+  task <T extends this, U> (name: string, cb: (this: T)=>PromiseLike<U>): Task<T, U> {
+    return defineTask(name, cb, this as T)
+  }
+
+  get name (): string {
+    let name = 'ContractTemplate'
+    if (this.crate || this.revision || this.codeId) {
+      name += ': '
+      if (this.crate)    name += `crate ${this.crate}`
+      if (this.revision) name += `@ ${this.revision}`
+      if (this.codeId)   name += `(code id ${this.codeId})`
+    }
+    return name
   }
 
   get compiled (): Task<this, this & Built> {
@@ -101,8 +123,7 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   build (builder?: Builder): Task<this, this & Built> {
     type Self = typeof this
     const name = `compile ${this.crate ?? 'contract'}`
-    return defineTask(name, buildContract, this)
-    async function buildContract (this: Self): Promise<Self & Built> {
+    return this.task(name, async function buildContract (this: Self): Promise<Self & Built> {
       if (!this.artifact) {
         if (!this.crate) throw new Error.NoCrate()
         builder ??= assertBuilder(this)
@@ -110,7 +131,8 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
         this.define(result as Partial<Self>)
       }
       return this as Self & Built
-    }
+    })
+
   }
 
   /** One-shot deployment task. */
@@ -123,11 +145,9 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
   upload (uploader?: Uploader): Task<this, this & Uploaded> {
-    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
-    return defineTask(name, uploadContract, this)
-
     type Self = typeof this
-    async function uploadContract (this: Self): Promise<Self & Uploaded> {
+    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
+    return this.task(name, async function uploadContract (this: Self): Promise<Self & Uploaded> {
       if (!this.codeId) {
         await this.compiled
         const result = await upload(
@@ -136,7 +156,7 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
         this.define(result as Partial<Self>)
       }
       return this as Self & Uploaded
-    }
+    })
   }
 
   /** Get an instance of this contract, or define a new one. */
@@ -144,15 +164,15 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   instance (id: Name, init: Message): Task<Contract<C>, C>
   instance (options?: Partial<Contract<C>>): Task<Contract<C>, C>
   instance (...args: unknown[]): Task<Contract<C>, C> {
-    
+
     // Construct the contract instance's options
     // from the template's properties and the function's arguments
     let options: any = { ...this }
     if (args.length >= 2) {
-      options.id = args[0] as Maybe<Name>
+      options.name = args[0] as Maybe<Name>
       options.initMsg = args[1] as Maybe<Message>
     } else if (typeof args[0] === 'string') {
-      options.id = args[0] as Maybe<Name>
+      options.name = args[0] as Maybe<Name>
     } else {
       Object.assign(options, args[0] ?? {})
     }
@@ -187,7 +207,9 @@ function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>
 
 /** Callable object: contract.
   * Can build and upload, and instantiate itself. */
-export class Contract<C extends Client> extends defineCallable(ensureContract, Metadata) {
+export class Contract<C extends Client> extends defineCallable(ensureContract) {
+  log = new Console(this.constructor.name)
+  /** The deployment that this contract belongs to. */
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL     = undefined
@@ -244,41 +266,67 @@ export class Contract<C extends Client> extends defineCallable(ensureContract, M
     * If the instance is not part of a Deployment, this is equal to the label.
     * If the instance is part of a Deployment, this is used as storage key.
     * You are encouraged to store application-specific versioning info in this field. */
-  id?:         Name          = undefined
+  name?:       Name
   /** Deduplication suffix.
     * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
     * This field has sometimes been used to redeploy an new instance
     * within the same Deployment, taking the place of the old one.
     * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
     *       is "the real one" (see https://stackoverflow.com/a/54427214. */
-  suffix?:  Name          = undefined
+  suffix?:     Name           = undefined
 
   constructor (options: Partial<Contract<C>> = {}) {
     super({})
-    override(this, options)
+    const self = this
+    if (options.name) {
+      setName(options.name)
+    }
     if (this.context) {
+      setPrefix(this.context.name)
       defineDefault(this, this.context, 'agent')
       defineDefault(this, this.context, 'builder')
       defineDefault(this, this.context, 'uploader')
       defineDefault(this, this.context, 'repository')
       defineDefault(this, this.context, 'revision')
       defineDefault(this, this.context, 'workspace')
-      const self = this
-      setPrefix(this.context.name)
-      function setPrefix (value: string) {
-        Object.defineProperty(self, 'prefix', {
-          enumerable: true,
-          get () { return self.context?.name },
-          set (v: string) {
-            if (v !== self.context?.name) {
-              self.log!.warn(`BUG: Overriding prefix from "${self.context?.name}" to "${v}"`)
-            }
-            setPrefix(v)
-          }
-        })
-      }
     }
     override(this, options)
+
+    function setName (value: Name) {
+      Object.defineProperty(self, 'name', {
+        enumerable: true,
+        configurable: true,
+        get () { return value },
+        set (v: string) { setName(v) }
+      })
+    }
+
+    function setPrefix (value: Name) {
+      Object.defineProperty(self, 'prefix', {
+        enumerable: true,
+        configurable: true,
+        get () { return self.context?.name },
+        set (v: string) {
+          if (v !== self.context?.name) {
+            self.log!.warn(`BUG: Overriding prefix from "${self.context?.name}" to "${v}"`)
+          }
+          setPrefix(v)
+        }
+      })
+    }
+
+  }
+
+  /** Provide parameters for an existing instance.
+    * @returns mutated self */
+  define (options: Partial<ContractTemplate<C>> = {}): this {
+    return override(this, options as object)
+  }
+
+  /** Define a task (lazily-evaluated async one-shot field).
+    * @returns A lazily-evaluated Promise. */
+  task <T extends this, U> (name: string, cb: (this: T)=>PromiseLike<U>): Task<T, U> {
+    return defineTask(name, cb, this as T)
   }
 
   get compiled (): Task<this, this & Built> {
@@ -292,16 +340,16 @@ export class Contract<C extends Client> extends defineCallable(ensureContract, M
   build (builder?: Builder): Task<this, this & Built> {
     type Self = typeof this
     const name = `compile ${this.crate ?? 'contract'}`
-    return defineTask(name, buildContract, this)
-    async function buildContract (this: Self): Promise<Self & Built> {
+    return this.task(name, async function buildContract (this: Self): Promise<Self & Built> {
       if (!this.artifact) {
         if (!this.crate) throw new Error.NoCrate()
         builder ??= assertBuilder(this)
         const result = await builder!.build(this as Buildable)
-        this.define(result as Partial<Self>)
+        this.define(result)
       }
       return this as Self & Built
-    }
+    })
+
   }
 
   /** One-shot deployment task. */
@@ -314,20 +362,18 @@ export class Contract<C extends Client> extends defineCallable(ensureContract, M
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
   upload (uploader?: Uploader): Task<this, this & Uploaded> {
-    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
-    return defineTask(name, uploadContract, this)
-
     type Self = typeof this
-    async function uploadContract (this: Self): Promise<Self & Uploaded> {
+    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
+    return this.task(name, async function uploadContract (this: Self): Promise<Self & Uploaded> {
       if (!this.codeId) {
         await this.compiled
         const result = await upload(
           this as Maybe<Buildable> & Uploadable & Maybe<Uploaded>, uploader, uploader?.agent
         )
-        this.define(result as Partial<Self>)
+        this.define(result)
       }
       return this as Self & Uploaded
-    }
+    })
   }
 
   /** One-shot deployment task. */
@@ -340,22 +386,21 @@ export class Contract<C extends Client> extends defineCallable(ensureContract, M
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
-    return defineTask(`deploy ${this.id ?? 'contract'}`, deployContract, this)
-
     type Self = typeof this
-    async function deployContract (this: Self): Promise<C> {
+    const name = `deploy ${this.name ?? 'contract'}`
+    return this.task(name, async function deployContract (this: Self): Promise<C> {
       if (!this.address) {
-        if (!this.id) throw new Error.CantInit_NoName()
-        if (!this.agent) throw new Error.CantInit_NoAgent(this.id)
-        if (!this.initMsg) throw new Error.CantInit_NoMessage(this.id)
+        if (!this.name) throw new Error.CantInit_NoName()
+        if (!this.agent) throw new Error.CantInit_NoAgent(this.name)
+        if (!this.initMsg) throw new Error.CantInit_NoMessage(this.name)
         // Construct the full unique label of the contract
         this.label = writeLabel(this)
-        if (!this.label) throw new Error.CantInit_NoLabel(this.id)
+        if (!this.label) throw new Error.CantInit_NoLabel(this.name)
         // Resolve the provided init message
         this.initMsg ??= await into(initMsg) as Message
         // Make sure the code is compiled and uploaded
         await this.uploaded
-        if (!this.codeId) throw new Error.CantInit_NoCodeId(this.id)
+        if (!this.codeId) throw new Error.CantInit_NoCodeId(this.name)
         this.log?.beforeDeploy(this, this.label!)
         // Perform the instantiation transaction
         const instance = await this.agent!.instantiate(this as Self)
@@ -363,14 +408,15 @@ export class Contract<C extends Client> extends defineCallable(ensureContract, M
         override(this as Contract<C>, instance)
         this.log?.afterDeploy(this as Partial<Contract<C>>)
         // Add self to deployment (FIXME necessary?)
-        if (this.context) this.context.addContract(this.id!, instance)
+        if (this.context) this.context.addContract(this.name!, instance)
       }
       // Create and return the Client instance used to interact with the contract
       const $C = (this.client ?? Client)
       //@ts-ignore
       const client = new $C(this.agent, this.address, this.codeHash, this as Contract<C>)
       return client as unknown as C
-    }
+    })
+
   }
 
   /** @returns true if the specified properties match the properties of this contract. */
@@ -400,16 +446,14 @@ export class Contract<C extends Client> extends defineCallable(ensureContract, M
   many (
     contracts: Many<[Name, Message]|Partial<this>>
   ): Task<this, Many<Task<this, C>>> {
+    type Self = typeof this
     const size = Object.keys(contracts).length
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
-    return defineTask(name, deployManyContracts, this)
-
-    type Self = typeof this
-    function deployManyContracts (this: Self): Many<Task<Self, C>> {
+    return this.task(name, async function deployManyContracts (this: Self): Promise<Many<Task<Self, C>>> {
       type Instance = [Name, Message] | Partial<Self>
       return map(contracts, (instance: Instance): Task<Self, C> => {
         if (instance instanceof Array) {
-          instance = { id: instance[0], initMsg: instance[1] } as Partial<Self>
+          instance = { name: instance[0], initMsg: instance[1] } as Partial<Self>
         }
         const contract = new Contract({
           context: this.context,
@@ -417,7 +461,8 @@ export class Contract<C extends Client> extends defineCallable(ensureContract, M
         })
         return contract.deployed as unknown as Task<Self, C>
       })
-    }
+    })
+
   }
 }
 

@@ -245,8 +245,8 @@ export class ClientConsole extends CommandsConsole {
 
   afterDeploy <C extends Client> (contract: Partial<Contract<C>>) {
     const { red, green } = colors
-    const id = contract?.id
-      ? bold(green(contract.id))
+    const id = contract?.name
+      ? bold(green(contract.name))
       : bold(red('(no name)'))
     const deployment = contract?.prefix
       ? bold(green(contract.prefix))
