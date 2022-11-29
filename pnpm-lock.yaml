@@ -386,6 +386,12 @@ importers:
     devDependencies:
       '@hackbg/ganesha': link:../../ganesha
 
+  ensuite/toolbox/into:
+    specifiers:
+      '@hackbg/ganesha': ^2.2.5
+    devDependencies:
+      '@hackbg/ganesha': link:../../ganesha
+
   ensuite/toolbox/logs:
     specifiers:
       '@hackbg/allo': workspace:^1
@@ -406,6 +412,12 @@ importers:
       '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/oops:
+    specifiers:
+      '@hackbg/ganesha': ^2.2.5
+    devDependencies:
+      '@hackbg/ganesha': link:../../ganesha
+
+  ensuite/toolbox/over:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
@@ -517,17 +529,21 @@ importers:
       '@hackbg/cmds': ^1
       '@hackbg/ensuite': ^1.1
       '@hackbg/hide': ^1
+      '@hackbg/into': ^1
       '@hackbg/logs': ^1
       '@hackbg/many': ^1
       '@hackbg/oops': ^1
+      '@hackbg/over': ^1
       '@hackbg/task': ^1
     dependencies:
       '@hackbg/allo': link:../../ensuite/toolbox/allo
       '@hackbg/cmds': link:../../ensuite/toolbox/cmds
       '@hackbg/hide': link:../../ensuite/toolbox/hide
+      '@hackbg/into': link:../../ensuite/toolbox/into
       '@hackbg/logs': link:../../ensuite/toolbox/logs
       '@hackbg/many': link:../../ensuite/toolbox/many
       '@hackbg/oops': link:../../ensuite/toolbox/oops
+      '@hackbg/over': link:../../ensuite/toolbox/over
       '@hackbg/task': link:../../ensuite/toolbox/task
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
