@@ -1,4 +1,4 @@
-# Fadroma Executable Specification
+# The Fadroma Guide
 
 This file is a combination of spec and test suite.
 

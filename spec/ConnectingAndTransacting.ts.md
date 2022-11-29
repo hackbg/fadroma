@@ -390,3 +390,294 @@ function mockScrtAminoApi (chain, ...agents) {
   }
 }
 ```
+```typescript
+import assert from 'node:assert'
+```
+
+# Fadroma Core: Chains
+
+This package provides the abstract base class, `Chain`.
+
+Platform packages extend `Chain` to represent connections to different chains.
+  * Since the workflow is request-based, no persistent connection is maintained.
+  * The `Chain` object keeps track of the globally unique chain `id` and the connection `url`.
+    * **TODO:** Load balancing between multiple chain endpoints.
+
+```typescript
+import { Chain } from '@fadroma/core'
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+assert.equal(chain.id,   'id')
+assert.equal(chain.url,  'example.com')
+assert.equal(chain.mode, 'mainnet')
+```
+
+Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`:
+
+* **Mocknet** is a fast, nodeless way of executing contract code
+  in the local JS WASM runtime.
+* **Devnet** uses a real chain node, booted up temporarily in
+  a local environment.
+* **Testnet** is a persistent remote chain used for testing.
+* **Mainnet** is the production chain where value is stored.
+
+```typescript
+assert(Chain.mocknet('any').isMocknet)
+assert(Chain.devnet('any').isDevnet)
+assert(Chain.testnet('any').isTestnet)
+assert(Chain.mainnet('any').isMainnet)
+```
+
+## Dev mode
+
+The `chain.devMode` flag basically corresponds to whether you
+have the ability to reset the whole chain and start over.
+
+  * This is true for mocknet and devnet, but not for testnet or mainnet.
+  * This can be used to determine whether to e.g. deploy mocks of
+    third-party contracts, or to use their official testnet/mainnet addresses.
+
+```typescript
+assert(Chain.mocknet('any').devMode)
+assert(Chain.devnet('any').devMode)
+assert(!Chain.testnet('any').devMode)
+assert(!Chain.mainnet('any').devMode)
+```
+
+# The `Agent` class: identifying to a backend
+
+```typescript
+import assert from 'node:assert'
+```
+
+To transact on a [chain](./Chains.ts.md) as a certain identity (account, wallet),
+you obtain an `Agent` instance from the `Chain` object by providing credentials (mnemonic).
+
+```typescript
+import { Chain, Agent } from '@fadroma/core'
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+let agent: Agent = await chain.getAgent()
+assert(agent instanceof Agent)
+assert(agent.chain === chain)
+```
+
+* If you don't pass a mnemonic, a random mnemonic and address will be generated.
+* Since some of the underlying platform APIs (such as cryptographical key generation)
+  are asynchronous, so is the `getAgent` method.
+
+## Chain metadata operations
+
+### Getting the current block height
+
+```typescript
+await agent.height
+```
+
+### Waiting for the block height to increment
+
+```typescript
+await agent.nextBlock
+```
+
+## Native token operations
+
+### Getting an agent's balance
+
+```typescript
+// In the default native token:
+await agent.balance
+await agent.getBalance()
+
+// In a non-default native token:
+await agent.getBalance('token')
+```
+
+### Sending native tokens
+
+```typescript
+// Sending the default native token:
+await agent.send('recipient-address', 1000)
+await agent.send('recipient-address', '1000')
+
+// Sending a non-default native token:
+await agent.send('recipient-address', [{denom:'token', amount: '1000'}])
+```
+
+## Smart contract operations
+
+### Uploading a contract
+
+```typescript
+// Uploading a single piece of code:
+await agent.upload('example.wasm')
+await agent.upload(readFileSync('example.wasm'))
+await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' })
+
+// Uploading multiple pieces of code:
+await agent.uploadMany([
+  'example.wasm',
+  readFileSync('example.wasm'),
+  { artifact: './example.wasm', codeHash: 'expectedCodeHash' }
+])
+```
+
+### Instantiating a contract
+
+```typescript
+// Instantiating a single contract:
+await agent.instantiate({
+  codeId:  '1',
+  label:   'unique contract label',
+  initMsg: { parameters: 'values' }
+})
+
+// Instantiating multiple contracts in a single transaction:
+await agent.instantiateMany([
+  { codeId: '2', label: 'unique contract label 2', initMsg: { parameters: 'values' } },
+  { codeId: '3', label: 'unique contract label 3', initMsg: { parameters: 'values' } }
+})
+```
+
+### Performing read-only queries
+
+```typescript
+await agent.query({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
+```
+
+### Executing contract transactions
+
+```typescript
+// Executing a single transaction
+await agent.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
+
+// Broadcasting multiple execute calls as a single transaction message
+await agent.bundle().wrap(bundle=>{
+  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
+  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
+})
+```
+
+## Using genesis accounts
+
+On devnet, Fadroma creates named genesis accounts for you,
+which you can use by passing `name` to `getAgent`:
+
+```typescript
+const mockNode = { getGenesisAccount () { return {} }, respawn () {} }
+chain = new Chain('id', { mode: Chain.Mode.Devnet, node: mockNode })
+assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
+```
+
+```typescript
+import assert from 'node:assert'
+```
+
+# Fadroma Core: Transaction bundling
+
+To submit multiple messages as a single transaction, you can
+use Bundles.
+  * A `Bundle` is a special kind of `Agent` that
+    does not broadcast messages immediately.
+  * Instead, messages are collected inside the bundle until
+    the caller explicitly submits them.
+  * Bundles can also be saved for manual signing of multisig
+    transactions
+
+```typescript
+import { Chain, Agent, Bundle } from '@fadroma/core'
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+let agent: Agent = await chain.getAgent()
+let bundle: Bundle
+class TestBundle extends Bundle {
+  async submit () { return 'submitted' }
+  async save   () { return 'saved' }
+}
+```
+
+A `Bundle` is designed to serve as a stand-in for its corresponding
+`Agent`, and therefore implements the same API methods.
+  * However, some operations don't make sense in the middle of a Bundle.
+  * Most importantly, querying any state from the chain
+    must be done either before or after the bundle.
+  * Trying to query state from a `Bundle` agent will fail.
+
+```typescript
+import { Client } from '.'
+bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
+
+assert(bundle.getClient(Client, '') instanceof Client)
+assert.equal(await bundle.execute({}), bundle)
+assert.equal(bundle.id, 1)
+//assert(await bundle.instantiateMany({}, []))
+//assert(await bundle.instantiateMany({}, [['label', 'init']]))
+//assert(await bundle.instantiate({}, 'label', 'init'))
+assert.equal(await bundle.checkHash(), 'hash')
+
+assert.rejects(()=>bundle.query())
+assert.rejects(()=>bundle.upload())
+assert.rejects(()=>bundle.uploadMany())
+assert.rejects(()=>bundle.sendMany())
+assert.rejects(()=>bundle.send())
+assert.rejects(()=>bundle.getBalance())
+assert.throws(()=>bundle.height)
+assert.throws(()=>bundle.nextBlock)
+assert.throws(()=>bundle.balance)
+```
+
+To create and submit a bundle in a single expression,
+you can use `bundle.wrap(async (bundle) => { ... })`:
+
+```typescript
+assert.equal(await new TestBundle(agent).wrap(async bundle=>{
+  assert(bundle instanceof TestBundle)
+}), 'submitted')
+
+assert.equal(await new TestBundle(agent).wrap(async bundle=>{
+  assert(bundle instanceof TestBundle)
+}, undefined, true), 'saved')
+```
+
+```typescript
+bundle = new TestBundle(agent)
+assert.deepEqual(bundle.msgs, [])
+assert.equal(bundle.id, 0)
+assert.throws(()=>bundle.assertMessages())
+
+bundle.add({})
+assert.deepEqual(bundle.msgs, [{}])
+assert.equal(bundle.id, 1)
+assert.ok(bundle.assertMessages())
+```
+
+```typescript
+bundle = new TestBundle(agent)
+assert.equal(await bundle.run(""),       "submitted")
+assert.equal(await bundle.run("", true), "saved")
+assert.equal(bundle.depth, 0)
+
+bundle = bundle.bundle()
+assert.equal(bundle.depth, 1)
+assert.equal(await bundle.run(), null)
+```
+
+```typescript
+agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
+bundle = agent.bundle()
+assert(bundle instanceof Bundle)
+
+agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
+//await agent.instantiateMany(new Contract(), [])
+//await agent.instantiateMany(new Contract(), [], 'prefix')
+```
+
+## `Fee`: Specifying per-transaction gas fees
+
+```typescript
+import { Fee } from '.'
+```
+
+* `client.fee` is the default fee for all transactions
+* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
+* `client.withFee(fee: IFee)` allows the caller to override the default fees.
+  Calling it returns a new instance of the Client, which talks to the same contract
+  but executes all transactions with the specified custom fee.
+

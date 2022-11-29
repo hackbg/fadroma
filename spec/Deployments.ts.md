@@ -1,3 +1,63 @@
+# Fadroma Deploy Specification
+
+This package implements **uploading contracts from the filesystem**,
+as well as **keeping track of contracts instantiated through the Fadroma Core API**.
+
+> Run tests with `pnpm test`.
+> Measure coverage with `pnpm cov`.[^1]
+> Publish with `pnpm ubik`.
+> [^1]: Note that stack traces output by `pnpm cov` coverage mode point to line numbers in
+>       the compiled code. This is to get correct line numbers in the coverage report.
+>       To get the same stack trace with correct line numbers, run `pnpm test`.
+
+Both uploading and instantiation are *idempotent* actions:
+* Contract instances are only deployed *once*.
+* While you can upload the same code to a chain multiple times, getting different code IDs,
+  it only makes sense to upload it *once*.
+
+Therefore, caching is implemented in the form of:
+* **Deploy receipts**: records of one or more deployed contract instances.
+* **Upload receipts**: records of a single uploaded contract binary.
+
+This package concerns itself chiefly with the handling of deploy and upload receipts,
+and defines the following entities:
+
+## [Uploading contract binaries](./upload.spec.ts)
+
+* `FSUploader`: upload compiled code to the chain from local files.
+* **TODO:** `FetchUploader`, which supports uploading code from remote URLs.
+
+```typescript
+import './upload.spec.ts.md'
+```
+
+## [Storing deployed contract instances](./deploy-base.spec.ts)
+
+* `DeployConfig`: configure deployer through environment variables.
+* `Deployer`: a subclass of `Deployment` which stores deploy receipts
+  in a specific `DeployStore` and can load data from them into itself.
+
+```typescript
+import './deploy-base.spec.ts.md'
+```
+
+## [Deploy store variants](./deploy-variants.spec.ts)
+
+Several of those are currently supported for historical and compatibility reasons.
+
+* `YAML1.YAMLDeployments_v1` and `YAML2.YAMLDeploymentss_v2` are ad-hoc
+  storage formats used by the original deployer implementations.
+* `JSON1.JSONDeployments_v1` is the first version of the stable deploy receipt API.
+
+```typescript
+import './deploy-store.spec.ts.md'
+```
+
+## [Deploy logging and errors]('./deploy-events.spec.ts.md)
+
+```typescript
+import './deploy-events.spec.ts.md'
+```
 # Fadroma Deploy Base Specification
 
 ```typescript
@@ -161,4 +221,46 @@ await inTmpDeployment(async deployment=>{
     equal(deployment.get(name).codeId, template.codeId)
   }
 })*/
+```
+## Deploy store
+
+```typescript
+import assert, { ok, equal, deepEqual, throws } from 'node:assert'
+```
+
+```typescript
+import { Deployment } from '@fadroma/core'
+import { DeployStore, YAML1, YAML2, JSON1 } from '@fadroma/deploy'
+import { withTmpDir } from '@hackbg/file'
+
+// deployments
+for (const $DeployStore of [
+  YAML1.YAMLDeployments_v1,
+  //YAML2.YAMLDeployments_v2, // TODO
+  //JSON1.JSONDeployments_v1, // TODO
+]) {
+  await withTmpDir(async dir=>{
+
+    const deployments = new $DeployStore(dir)
+    ok(deployments instanceof DeployStore)
+    ok(deployments.root.path === dir)
+
+    assert.rejects(deployments.select('missing'))
+
+    assert(!deployments.active)
+    await deployments.create()
+
+    await deployments.create('test-deployment-1')
+    await deployments.create('test-deployment-2')
+    await deployments.select('test-deployment-1')
+    assert(deployments.active instanceof Deployment)
+    await deployments.select('test-deployment-2')
+    assert(deployments.active instanceof Deployment)
+
+    deployments.get()
+    deployments.list()
+    deployments.set('test', { key: 'value' })
+
+  })
+}
 ```
