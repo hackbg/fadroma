@@ -472,7 +472,7 @@ impl Context {
                                 id,
                                 // TODO: Where should those be coming from?
                                 result: SubMsgResult::Ok(SubMsgResponse {
-                                    events: vec![],
+                                    events: state.events(),
                                     data: None
                                 })
                             };

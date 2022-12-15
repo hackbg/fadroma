@@ -1,5 +1,5 @@
 use crate::{
-    cosmwasm_std::{SubMsg, ReplyOn},
+    cosmwasm_std::{SubMsg, ReplyOn, Event},
     ensemble::{
         ResponseVariants, EnsembleResult, SubMsgExecuteResult
     }
@@ -23,6 +23,7 @@ pub enum MessageType {
 }
 
 struct ExecutionLevel {
+    events: Vec<Event>,
     responses: Vec<ResponseVariants>,
     msgs: Vec<SubMsgNode>,
     msg_index: usize
@@ -64,7 +65,14 @@ impl ExecutionState {
     ) -> EnsembleResult<usize> {
         match result {
             Ok((response, events)) => {
-                self.add_response(response);
+                let messages = response.messages().to_vec();
+                self.current_level_mut().responses.push(response);
+        
+                if messages.len() > 0 {
+                    self.states.push(ExecutionLevel::new(messages));
+                }
+
+                self.current_level_mut().events.extend(events.take());
 
                 self.find_next(
                     None,
@@ -97,24 +105,22 @@ impl ExecutionState {
         self.next.take()
     }
 
-    pub fn finalize(mut self) -> ResponseVariants {
-        assert!(self.states.len() > 0);
+    pub fn events(&self) -> Vec<Event> {
+        let len = self.states.iter().map(|x| x.events.len()).sum();
+        let mut result = Vec::with_capacity(len);
 
-        while self.squash_latest() { }
+        for state in self.states.iter() {
+            result.extend_from_slice(&state.events);
+        }
+
+        result
+    }
+
+    pub fn finalize(mut self) -> ResponseVariants {
+        assert!(self.states.len() == 1 && self.next.is_none());
         assert_eq!(self.states[0].responses.len(), 1);
 
         self.states[0].responses.pop().unwrap()
-    }
-
-    fn add_response(&mut self, response: ResponseVariants) {
-        let messages = response.messages().to_vec();
-
-        let index = self.states.len() - 1;
-        self.states[index].responses.push(response);
-
-        if messages.len() > 0 {
-            self.states.push(ExecutionLevel::new(messages));
-        }
     }
 
     fn current_sender(&self) -> String {
@@ -222,8 +228,7 @@ impl ExecutionState {
             return None;
         }
 
-        let index = self.states.len() - 1;
-        let current = &self.states[index].current();
+        let current = self.current_level().current();
 
         if test(&current.msg.reply_on) {
             let index = self.states.len() - 2;
@@ -248,15 +253,25 @@ impl ExecutionState {
             return false;
         }
 
-        let current = self.pop();
-        let index = self.states.len() - 1;
-        
-        self.states[index].responses
-            .last_mut()
-            .unwrap()
-            .add_responses(current.responses);
+        let latest = self.pop();
+        let level = self.current_level_mut();
+
+        level.responses.last_mut().unwrap()
+            .add_responses(latest.responses);
+
+        level.events.extend(latest.events);
 
         true
+    }
+
+    #[inline]
+    fn current_level_mut(&mut self) -> &mut ExecutionLevel {
+        self.states.last_mut().unwrap()
+    }
+
+    #[inline]
+    fn current_level(&self) -> &ExecutionLevel {
+        self.states.last().unwrap()
     }
 
     #[inline]
@@ -270,6 +285,7 @@ impl ExecutionLevel {
         assert!(!msgs.is_empty());
 
         Self {
+            events: vec![],
             responses: Vec::with_capacity(msgs.len()),
             msg_index: 0,
             msgs: msgs.into_iter().map(|x| SubMsgNode::new(x)).collect()

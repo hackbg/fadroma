@@ -26,6 +26,11 @@ impl ProcessedEvents {
 
         Ok(())
     }
+
+    #[inline]
+    pub fn take(self) -> Vec<Event> {
+        self.0
+    }
 }
 
 impl TryFrom<&InstantiateResponse> for ProcessedEvents {

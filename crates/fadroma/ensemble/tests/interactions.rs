@@ -140,8 +140,10 @@ impl ContractHarness for Counter {
         
         match reply.result {
             SubMsgResult::Ok(result) => {
+                let ty = format!("wasm-{}", MULTIPLIER_MSG_TYPE);
+
                 let event = result.events.into_iter()
-                    .find(|x| x.ty == MULTIPLIER_MSG_TYPE)
+                    .find(|x| x.ty == ty)
                     .unwrap();
                 let attr = event.attributes.into_iter()
                     .find(|x| x.key == "address")

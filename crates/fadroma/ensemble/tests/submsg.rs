@@ -54,12 +54,20 @@ impl ContractHarness for Contract {
             save(deps.storage, b"fail", &id)?;
         }
 
-        Ok(Response::default())
+        Ok(Response::default().add_attribute("INSTANTIATE", "test"))
     }
 
-    fn execute(&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+    fn execute(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response> {
         let msg: ExecuteMsg = from_binary(&msg)?;
-        let mut resp = Response::default();
+        let mut resp = Response::default()
+            .add_attribute("TEST_ATTR", "test")
+            .add_attribute("ANOTHER_TEST_ATTR", "test")
+            .add_event(
+                Event::new(EVENT_TYPE).add_attribute(
+                    "submsg_execute",
+                    format!("sender: {}\ncontract: {}", info.sender, env.contract.address)
+                )
+            );
 
         match msg {
             ExecuteMsg::RunMsgs(msgs) => { resp = resp.add_submessages(msgs); }

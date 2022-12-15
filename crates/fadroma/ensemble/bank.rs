@@ -8,7 +8,7 @@ use super::{
 pub type Balances = HashMap<String, Uint128>;
 
 #[derive(Clone, Default, Debug)]
-pub(crate) struct Bank(pub(crate) HashMap<String, Balances>);
+pub(crate) struct Bank(pub HashMap<String, Balances>);
 
 impl Bank {
     pub fn add_funds(&mut self, address: &str, coin: Coin) {
