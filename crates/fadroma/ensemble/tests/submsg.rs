@@ -35,7 +35,13 @@ enum ExecuteMsg {
 }
 
 #[derive(Serialize, Deserialize)]
-struct QueryResponse {
+enum QueryMsg {
+    State,
+    Reply(u64)
+}
+
+#[derive(Serialize, Deserialize)]
+struct StateResponse {
     num: u32,
     balance: Coin
 }
@@ -77,16 +83,37 @@ impl ContractHarness for Contract {
         Ok(resp)
     }
 
-    fn query(&self, deps: Deps, env: Env, _msg: Binary) -> AnyResult<Binary> {
-        let num: u32 = load(deps.storage, b"num")?.unwrap_or_default();
-        let balance = deps.querier.query_balance(env.contract.address, "uscrt")?;
+    fn query(&self, deps: Deps, env: Env, msg: Binary) -> AnyResult<Binary> {
+        let msg: QueryMsg = from_binary(&msg)?;
 
-        let resp = QueryResponse {
-            num,
-            balance
+        let result = match msg {
+            QueryMsg::State => {
+                let num: u32 = load(deps.storage, b"num")?.unwrap_or_default();
+                let balance = deps.querier.query_balance(env.contract.address, "uscrt")?;
+        
+                let resp = StateResponse {
+                    num,
+                    balance
+                };
+        
+                to_binary(&resp)
+            },
+            QueryMsg::Reply(id) => {
+                let resp: Option<SubMsgResponse> = ns_load(
+                    deps.storage,
+                    b"reply",
+                    &id.to_be_bytes()
+                )?;
+
+                if let Some(resp) = resp {
+                    to_binary(&resp)
+                } else {
+                    bail!(StdError::generic_err(format!("No reply response for id {}", id)))
+                }
+            }
         };
 
-        to_binary(&resp).map_err(|x| anyhow!(x))
+        result.map_err(|x| anyhow!(x))
     }
 
     fn reply(&self, deps: DepsMut, env: Env, reply: Reply) -> AnyResult<Response> {
@@ -96,6 +123,10 @@ impl ContractHarness for Contract {
             if id == reply.id {
                 bail!(StdError::generic_err("Failed in reply."))
             }
+        }
+
+        if let SubMsgResult::Ok(resp) = &reply.result {
+            ns_save(deps.storage, b"reply", &reply.id.to_be_bytes(), resp)?;
         }
 
         let mut response = Response::default().add_event(
@@ -141,20 +172,20 @@ struct TestContracts {
 }
 
 impl TestContracts {
-    fn a_state(&self) -> QueryResponse {
-        let state = self.ensemble.query(&self.a.address, &()).unwrap();
-
-        state
+    fn a_state(&self) -> StateResponse {
+        self.query_state(&self.a.address)
     }
 
-    fn b_state(&self) -> QueryResponse {
-        let state = self.ensemble.query(&self.b.address, &()).unwrap();
-
-        state
+    fn b_state(&self) -> StateResponse {
+        self.query_state(&self.b.address)
     }
 
-    fn c_state(&self) -> QueryResponse {
-        let state = self.ensemble.query(&self.c.address, &()).unwrap();
+    fn c_state(&self) -> StateResponse {
+        self.query_state(&self.c.address)
+    }
+
+    fn query_state(&self, address: impl AsRef<str>) -> StateResponse {
+        let state = self.ensemble.query(address, &QueryMsg::State).unwrap();
 
         state
     }

@@ -1,44 +1,28 @@
 //! *Feature flag: `ensemble`*
 //! Configurable integration testing harness.
 
-#[cfg(not(target_arch = "wasm32"))]
 mod bank;
-#[cfg(not(target_arch = "wasm32"))]
 mod ensemble;
-#[cfg(not(target_arch = "wasm32"))]
 mod env;
-#[cfg(not(target_arch = "wasm32"))]
 mod querier;
-#[cfg(not(target_arch = "wasm32"))]
 mod storage;
-#[cfg(not(target_arch = "wasm32"))]
 mod block;
-#[cfg(not(target_arch = "wasm32"))]
 mod response;
-#[cfg(not(target_arch = "wasm32"))]
 mod staking;
-#[cfg(not(target_arch = "wasm32"))]
 mod state;
-#[cfg(not(target_arch = "wasm32"))]
 mod execution_state;
-#[cfg(not(target_arch = "wasm32"))]
 mod error;
+mod event;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
 mod tests;
-#[cfg(not(target_arch = "wasm32"))]
+
 pub use ensemble::*;
-#[cfg(not(target_arch = "wasm32"))]
 pub use env::*;
-#[cfg(not(target_arch = "wasm32"))]
 pub use querier::*;
-#[cfg(not(target_arch = "wasm32"))]
 pub use block::Block;
-#[cfg(not(target_arch = "wasm32"))]
 pub use response::*;
-#[cfg(not(target_arch = "wasm32"))]
 pub use error::*;
-#[cfg(not(target_arch = "wasm32"))]
 pub use anyhow;
 
 /// Generate a struct and implement ContractHarness for the given contract module.

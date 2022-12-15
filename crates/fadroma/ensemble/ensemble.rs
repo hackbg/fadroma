@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    convert::TryFrom
+};
 use serde::{
     Serialize,
     de::DeserializeOwned
@@ -7,11 +10,10 @@ use serde::{
 use crate::{
     prelude::{ContractInstantiationInfo, ContractLink},
     cosmwasm_std::{
-        SubMsg, Deps, DepsMut, Env, Response, MessageInfo, Binary, Uint128, Coin, Attribute,
+        SubMsg, Deps, DepsMut, Env, Response, MessageInfo, Binary, Uint128, Coin, Empty,
         FullDelegation, Validator, Delegation, CosmosMsg, WasmMsg, BlockInfo, ContractInfo,
         StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, SubMsgResponse, SubMsgResult,
-        Reply, Storage, Api, Querier, QuerierWrapper, Empty, from_binary, to_binary,
-        testing::MockApi
+        Reply, Storage, Api, Querier, QuerierWrapper, from_binary, to_binary, testing::MockApi
     }
 };
 
@@ -20,15 +22,21 @@ use super::{
     block::Block,
     env::MockEnv,
     querier::EnsembleQuerier,
-    response::{ResponseVariants, ExecuteResponse, InstantiateResponse, ReplyResponse},
+    response::{
+        ResponseVariants, ExecuteResponse,
+        InstantiateResponse, ReplyResponse
+    },
     staking::Delegations,
     state::State,
     execution_state::{ExecutionState, MessageType},
-    error::{EnsembleError, RegistryError}
+    error::{EnsembleError, RegistryError},
+    event::ProcessedEvents
 };
 
 pub type AnyResult<T> = anyhow::Result<T>;
 pub type EnsembleResult<T> = core::result::Result<T, EnsembleError>;
+
+pub(crate) type SubMsgExecuteResult = EnsembleResult<(ResponseVariants, ProcessedEvents)>;
 
 pub trait ContractHarness {
     fn instantiate(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
@@ -310,11 +318,6 @@ impl Context {
         let code_hash = contract.code_hash.clone();
 
         self.state.create_contract_instance(address.clone(), id as usize)?;
-        self.state.transfer_funds(
-            sender.clone(),
-            address.clone(),
-            env.sent_funds.clone()
-        )?;
 
         let (env, msg_info) = self.create_msg_deps(
             env,
@@ -334,8 +337,6 @@ impl Context {
             Ok(result)
         })?;
 
-        validate_response(&response)?;
-
         Ok(InstantiateResponse {
             sent: Vec::with_capacity(response.messages.len()),
             sender,
@@ -343,6 +344,7 @@ impl Context {
                 address: Addr::unchecked(address),
                 code_hash
             },
+            code_id: id,
             msg,
             response
         })
@@ -360,12 +362,6 @@ impl Context {
         let (env, msg_info) = self.create_msg_deps(env, code_hash);
         let sender = msg_info.sender.to_string();
         
-        self.state.transfer_funds(
-            &sender,
-            &address,
-            msg_info.funds.clone()
-        )?;
-
         let contract = &self.contracts[index];
 
         let querier = EnsembleQuerier::new(&self);
@@ -380,8 +376,6 @@ impl Context {
 
             Ok(result)
         })?;
-
-        validate_response(&response)?;
 
         Ok(ExecuteResponse {
             sent: Vec::with_capacity(response.messages.len()),
@@ -441,8 +435,6 @@ impl Context {
             Ok(result)
         })?;
 
-        validate_response(&response)?;
-
         Ok(ReplyResponse {
             sent: Vec::with_capacity(response.messages.len()),
             address,
@@ -466,14 +458,14 @@ impl Context {
                     self.execute_sub_msg(msg, sender)
                 }
                 MessageType::Reply { id, error, target } => {
-                    match error {
+                    let result = match error {
                         Some(err) => {
                             let reply = Reply {
                                 id,
                                 result: SubMsgResult::Err(err)
                             };
 
-                            self.reply(target, reply).map(|x| x.into())
+                            self.reply(target, reply)
                         },
                         None => {
                             let reply = Reply {
@@ -485,8 +477,17 @@ impl Context {
                                 })
                             };
 
-                            self.reply(target, reply).map(|x| x.into())
+                            self.reply(target, reply)
                         }
+                    };
+
+                    match result {
+                        Ok(resp) => {
+                            ProcessedEvents::try_from(&resp).and_then(|x|
+                                Ok((resp.into(), x))
+                            )
+                        },
+                        Err(err) => Err(err)
                     }
                 }
             };
@@ -516,7 +517,7 @@ impl Context {
         &mut self,
         sub_msg: SubMsg,
         sender: String,
-    ) -> EnsembleResult<ResponseVariants> {
+    ) -> SubMsgExecuteResult {
         match sub_msg.msg {
             CosmosMsg::Wasm(msg) => match msg {
                 WasmMsg::Execute {
@@ -531,12 +532,23 @@ impl Context {
                         return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                     }
 
+                    let transfer_resp = self.state.transfer_funds(
+                        &sender,
+                        &contract_addr,
+                        funds.clone()
+                    )?;
+
+                    let mut events = ProcessedEvents::from(&transfer_resp);
+
                     let env = MockEnv::new(
                         sender,
                         contract_addr.clone()
                     ).sent_funds(funds);
 
-                    Ok(self.execute(msg, env)?.into())
+                    let execute_resp = self.execute(msg, env)?;
+                    events.extend(&execute_resp)?;
+
+                    Ok((execute_resp.into(), events))
                 }
                 WasmMsg::Instantiate {
                     code_id,
@@ -554,18 +566,28 @@ impl Context {
                         return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                     }
 
+                    let transfer_resp = self.state.transfer_funds(
+                        &sender,
+                        &label,
+                        funds.clone()
+                    )?;
+
+                    let mut events = ProcessedEvents::from(&transfer_resp);
+
                     let env = MockEnv::new(
-                        sender.clone(),
-                        label.clone()
+                        sender,
+                        label
                     ).sent_funds(funds);
 
-                    let result = self.instantiate(
+                    let instantiate_resp = self.instantiate(
                         code_id,
                         msg,
                         env
                     )?;
 
-                    Ok(result.into())
+                    events.extend(&instantiate_resp)?;
+
+                    Ok((instantiate_resp.into(), events))
                 }
                 _ => panic!("Ensemble: Unsupported message: {:?}", msg)
             }
@@ -574,13 +596,15 @@ impl Context {
                     to_address,
                     amount,
                 } => {
-                    let result = self.state.transfer_funds(
+                    let resp = self.state.transfer_funds(
                         &sender,
                         &to_address,
                         amount
                     )?;
 
-                    Ok(result.into())
+                    let events = ProcessedEvents::from(&resp);
+
+                    Ok((resp.into(), events))
                 },
                 _ => panic!("Ensemble: Unsupported message: {:?}", msg)
             }
@@ -588,36 +612,42 @@ impl Context {
                 StakingMsg::Delegate { validator, amount } => {
                     self.state.remove_funds(&sender, vec![amount.clone()])?;
 
-                    let result = self.delegations.delegate(
+                    let resp = self.delegations.delegate(
                         sender.clone(),
                         validator,
                         amount
                     )?;
 
-                    Ok(result.into())
+                    let events = ProcessedEvents::from(&resp);
+
+                    Ok((resp.into(), events))
                 }
                 StakingMsg::Undelegate { validator, amount } => {
-                    let result = self.delegations.undelegate(
+                    let resp = self.delegations.undelegate(
                         sender.clone(),
                         validator,
                         amount.clone(),
                     )?;
 
-                    Ok(result.into())
+                    let events = ProcessedEvents::from(&resp);
+
+                    Ok((resp.into(), events))
                 }
                 StakingMsg::Redelegate {
                     src_validator,
                     dst_validator,
                     amount,
                 } => {
-                    let result = self.delegations.redelegate(
+                    let resp = self.delegations.redelegate(
                         sender.clone(),
                         src_validator,
                         dst_validator,
                         amount,
                     )?;
 
-                    Ok(result.into())
+                    let events = ProcessedEvents::from(&resp);
+
+                    Ok((resp.into(), events))
                 },
                 _ => panic!("Ensemble: Unsupported message: {:?}", msg)
             },
@@ -631,9 +661,10 @@ impl Context {
 
                     self.state.add_funds(sender.clone(), withdraw_amount);
 
-                    let result = self.delegations.withdraw(sender, validator)?;
+                    let resp = self.delegations.withdraw(sender, validator)?;
+                    let events = ProcessedEvents::from(&resp);
 
-                    Ok(result.into())
+                    Ok((resp.into(), events))
                 },
                 _ => unimplemented!()
             }
@@ -670,51 +701,6 @@ impl Context {
             }
         }
     }
-}
-
-// Taken from https://github.com/CosmWasm/cw-multi-test/blob/03026ccd626f57869c57c9192a03da6625e4791d/src/wasm.rs#L231-L268
-fn validate_response(response: &Response) -> EnsembleResult<()> {
-    validate_attributes(&response.attributes)?;
-
-    for event in &response.events {
-        validate_attributes(&event.attributes)?;
-        let ty = event.ty.trim();
-        
-        if ty.len() < 2 {
-            return Err(EnsembleError::AttributeValidation(
-                format!("Attribute type cannot be less than 2 characters: {}", ty)
-            ));
-        }
-    }
-
-    Ok(())
-}
-
-fn validate_attributes(attributes: &[Attribute]) -> EnsembleResult<()> {
-    for attr in attributes {
-        let key = attr.key.trim();
-        let val = attr.value.trim();
-
-        if key.is_empty() {
-            return Err(EnsembleError::AttributeValidation(
-                format!("Attribute key for value {} cannot be empty", val)
-            ));
-        }
-
-        if val.is_empty() {
-            return Err(EnsembleError::AttributeValidation(
-                format!("Attribute value with key {} cannot be empty", key)
-            ));
-        }
-
-        if key.starts_with('_') {
-            return Err(EnsembleError::AttributeValidation(
-                format!("Attribute key {} cannot start with \"_\"", key)
-            ));
-        }
-    }
-
-    Ok(())
 }
 
 impl Debug for Context {

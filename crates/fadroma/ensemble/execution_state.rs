@@ -1,7 +1,7 @@
 use crate::{
     cosmwasm_std::{SubMsg, ReplyOn},
     ensemble::{
-        ResponseVariants, EnsembleResult
+        ResponseVariants, EnsembleResult, SubMsgExecuteResult
     }
 };
 
@@ -49,23 +49,21 @@ impl ExecutionState {
         let mut level = ExecutionLevel::new(vec![initial.clone()]);
         level.current_mut().state = SubMsgState::Done;
 
-        let instance = Self {
+        Self {
             states: vec![level],
             next: Some(MessageType::SubMsg {
                 msg: initial,
                 sender
             })
-        };
-
-        instance
+        }
     }
 
     pub fn process_result(
         &mut self,
-        result: EnsembleResult<ResponseVariants>
+        result: SubMsgExecuteResult
     ) -> EnsembleResult<usize> {
         match result {
-            Ok(response) => {
+            Ok((response, events)) => {
                 self.add_response(response);
 
                 self.find_next(
@@ -122,12 +120,9 @@ impl ExecutionState {
     fn current_sender(&self) -> String {
         let index = self.states.len() - 2;
 
-        self.states[index]
-            .responses
-            .last()
-            .unwrap()
-            .address()
-            .into()
+        contract_address(
+            self.states[index].responses.last().unwrap()
+        ).to_string()        
     }
 
     fn find_next<F>(&mut self, error: Option<String>, test: F) -> usize
@@ -232,12 +227,9 @@ impl ExecutionState {
 
         if test(&current.msg.reply_on) {
             let index = self.states.len() - 2;
-            let target = self.states[index]
-                .responses
-                .last()
-                .unwrap()
-                .address()
-                .to_string();
+            let target = contract_address(
+                self.states[index].responses.last().unwrap()
+            ).to_string();
 
             let reply = MessageType::Reply {
                 id: current.msg.id,
@@ -314,5 +306,17 @@ impl SubMsgNode {
     #[inline]
     fn new(msg: SubMsg) -> Self {
         Self { msg, state: SubMsgState::NotExecuted }
+    }
+}
+
+#[inline]
+fn contract_address(resp: &ResponseVariants) -> &str {
+    match resp {
+        ResponseVariants::Instantiate(resp) => resp.instance.address.as_str(),
+        ResponseVariants::Execute(resp) => &resp.address,
+        ResponseVariants::Reply(resp) => &resp.address,
+        ResponseVariants::Bank(_) => unreachable!(),
+        ResponseVariants::Staking(_) => unreachable!(),
+        ResponseVariants::Distribution(_) => unreachable!()
     }
 }

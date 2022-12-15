@@ -6,12 +6,14 @@ use crate::{
 };
 
 #[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
 pub enum ResponseVariants {
     Instantiate(InstantiateResponse),
     Execute(ExecuteResponse),
     Reply(ReplyResponse),
     Bank(BankResponse),
-    Staking(StakingResponse)
+    Staking(StakingResponse),
+    Distribution(DistributionResponse)
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -20,6 +22,8 @@ pub struct InstantiateResponse {
     pub sender: String,
     /// The address and code hash of the new instance.
     pub instance: ContractLink<Addr>,
+    /// Code ID of the instantiated contract.
+    pub code_id: u64,
     /// The init message that was sent.
     pub msg: Binary,
     /// The init response returned by the contract.
@@ -68,10 +72,52 @@ pub struct BankResponse {
 pub struct StakingResponse {
     /// The address that delegated the funds.
     pub sender: String,
-    /// The address of the validator where the funds were sent.
-    pub validator: String,
     /// The funds that were sent.
     pub amount: Coin,
+    /// The kind of staking operation that was performed.
+    pub kind: StakingOp
+}
+
+#[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
+pub enum StakingOp {
+    Delegate {
+        /// The address of the validator where the funds were sent.
+        validator: String
+    },
+    Undelegate {
+        /// The address of the validator where the funds were sent.
+        validator: String
+    },
+    Redelegate {
+        /// The address of the validator that the funds were redelegated from.
+        src_validator: String,
+        /// The address of the validator that the funds were redelegated to.
+        dst_validator: String
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct DistributionResponse {
+    /// The address that delegated the funds.
+    pub sender: String,
+    /// The kind of staking operation that was performed.
+    pub kind: DistributionOp
+}
+
+#[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
+pub enum DistributionOp {
+    WithdrawDelegatorReward {
+        /// The funds that were sent.
+        reward: Coin,
+        /// The address of the validator that the rewards where withdrawn from.
+        validator: String
+    },
+    SetWithdrawAddress {
+        /// The that rewards will be withdrawn to.
+        address: String
+    }
 }
 
 pub struct Iter<'a> {
@@ -123,24 +169,14 @@ impl ResponseVariants {
     }
 
     #[inline]
-    pub(crate) fn address(&self) -> &str {
-        match self {
-            Self::Instantiate(resp) => resp.instance.address.as_str(),
-            Self::Execute(resp) => &resp.address,
-            Self::Reply(resp) => &resp.address,
-            Self::Bank(resp) => &resp.receiver,
-            Self::Staking(resp) => &resp.validator
-        }
-    }
-
-    #[inline]
     pub(crate) fn messages(&self) -> &[SubMsg] {
         match self {
             Self::Instantiate(resp) => &resp.response.messages,
             Self::Execute(resp) => &resp.response.messages,
             Self::Reply(resp) => &resp.response.messages,
             Self::Bank(_) => &[],
-            Self::Staking(_) => &[]
+            Self::Staking(_) => &[],
+            Self::Distribution(_) => &[]
         }
     }
 
@@ -152,6 +188,7 @@ impl ResponseVariants {
             Self::Reply(resp) => resp.sent.extend(responses),
             Self::Bank(_) => panic!("Trying to add a child response to a BankResponse."),
             Self::Staking(_) => panic!("Trying to add a child response to a StakingResponse."),
+            Self::Distribution(_) => panic!("Trying to add a child response to a DistributionResponse."),
         }
     }
 }
@@ -191,6 +228,13 @@ impl From<StakingResponse> for ResponseVariants {
     }
 }
 
+impl From<DistributionResponse> for ResponseVariants {
+    #[inline]
+    fn from(value: DistributionResponse) -> Self {
+        Self::Distribution(value)
+    }
+}
+
 impl<'a> Iter<'a> {
     /// Yields all responses that were initiated by the given `sender`. Reply responses are not included.
     pub fn by_sender(self, sender: impl Into<String>) -> impl Iterator<Item = &'a ResponseVariants> {
@@ -202,6 +246,7 @@ impl<'a> Iter<'a> {
             ResponseVariants::Reply(_) => false,
             ResponseVariants::Bank(resp) => resp.sender == sender,
             ResponseVariants::Staking(resp) => resp.sender == sender,
+            ResponseVariants::Distribution(resp) => resp.sender == sender,
         })
     }
 
@@ -223,6 +268,7 @@ impl<'a> Iter<'a> {
                 self.stack.extend(resp.sent.iter().rev()),
             ResponseVariants::Bank(_) => { },
             ResponseVariants::Staking(_) => { },
+            ResponseVariants::Distribution(_) => { }
         }
     }
 }
@@ -453,6 +499,7 @@ mod tests {
                 address: Addr::unchecked(""),
                 code_hash: String::new()
             },
+            code_id: 0,
             msg: Binary::from(format!("message_{}", index).as_bytes()),
             response: Response::default(),
             sent: vec![]
