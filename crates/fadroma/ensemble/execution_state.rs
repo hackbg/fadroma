@@ -23,7 +23,6 @@ pub enum MessageType {
 }
 
 struct ExecutionLevel {
-    events: Vec<Event>,
     responses: Vec<ResponseVariants>,
     msgs: Vec<SubMsgNode>,
     msg_index: usize
@@ -31,7 +30,8 @@ struct ExecutionLevel {
 
 struct SubMsgNode {
     msg: SubMsg,
-    state: SubMsgState
+    state: SubMsgState,
+    events: Vec<Event>
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -65,14 +65,16 @@ impl ExecutionState {
     ) -> EnsembleResult<usize> {
         match result {
             Ok((response, events)) => {
+                self.current_level_mut()
+                    .current_mut()
+                    .events.extend(events.take());
+
                 let messages = response.messages().to_vec();
                 self.current_level_mut().responses.push(response);
         
                 if messages.len() > 0 {
                     self.states.push(ExecutionLevel::new(messages));
                 }
-
-                self.current_level_mut().events.extend(events.take());
 
                 self.find_next(
                     None,
@@ -105,15 +107,9 @@ impl ExecutionState {
         self.next.take()
     }
 
-    pub fn events(&self) -> Vec<Event> {
-        let len = self.states.iter().map(|x| x.events.len()).sum();
-        let mut result = Vec::with_capacity(len);
-
-        for state in self.states.iter() {
-            result.extend_from_slice(&state.events);
-        }
-
-        result
+    #[inline]
+    pub fn events(&self) -> &[Event] {
+        &self.current_level().current().events
     }
 
     pub fn finalize(mut self) -> ResponseVariants {
@@ -259,7 +255,14 @@ impl ExecutionState {
         level.responses.last_mut().unwrap()
             .add_responses(latest.responses);
 
-        level.events.extend(latest.events);
+        let len = latest.msgs.iter().map(|x| x.events.len()).sum();
+        let mut events = Vec::with_capacity(len);
+
+        for x in latest.msgs {
+            events.extend(x.events);
+        }
+
+        level.current_mut().events.extend(events);
 
         true
     }
@@ -285,7 +288,6 @@ impl ExecutionLevel {
         assert!(!msgs.is_empty());
 
         Self {
-            events: vec![],
             responses: Vec::with_capacity(msgs.len()),
             msg_index: 0,
             msgs: msgs.into_iter().map(|x| SubMsgNode::new(x)).collect()
@@ -321,7 +323,11 @@ impl ExecutionLevel {
 impl SubMsgNode {
     #[inline]
     fn new(msg: SubMsg) -> Self {
-        Self { msg, state: SubMsgState::NotExecuted }
+        Self {
+            msg,
+            state: SubMsgState::NotExecuted,
+            events: vec![]
+        }
     }
 }
 

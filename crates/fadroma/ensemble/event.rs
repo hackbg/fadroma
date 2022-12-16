@@ -12,11 +12,16 @@ use super::{
     }
 };
 
-const CONTRACT_ATTR: &str = "_contract_addr";
+const CONTRACT_ATTR: &str = "_contract_address";
 
 pub struct ProcessedEvents(Vec<Event>);
 
 impl ProcessedEvents {
+    #[inline]
+    pub fn empty() -> Self {
+        Self(vec![])
+    }
+
     pub fn extend<T: TryInto<Self, Error = EnsembleError>>(
         &mut self,
         resp: T
@@ -95,10 +100,19 @@ impl From<&BankResponse> for ProcessedEvents {
             .collect::<Vec<String>>()
             .join(",");
 
-        Self(vec![Event::new("transfer")
-            .add_attribute("recipient", &resp.receiver)
-            .add_attribute("sender", &resp.sender)
-            .add_attribute("amount", coins)
+        Self(vec![
+            Event::new("coin_spent")
+                .add_attribute("amount", coins.clone())
+                .add_attribute("spender", &resp.sender),
+
+            Event::new("coin_received")
+                .add_attribute("amount", coins.clone())
+                .add_attribute("receiver", &resp.receiver),
+
+            Event::new("transfer")
+                .add_attribute("amount", coins)
+                .add_attribute("recipient", &resp.receiver)
+                .add_attribute("sender", &resp.sender)
         ])
     }
 }
@@ -185,7 +199,7 @@ fn process_wasm_response(
             Attribute {
                 key: CONTRACT_ATTR.into(),
                 value: address.clone(),
-                encrypted: false
+                encrypted: true
             }
         );
 

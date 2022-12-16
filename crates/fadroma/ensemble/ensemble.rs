@@ -472,7 +472,7 @@ impl Context {
                                 id,
                                 // TODO: Where should those be coming from?
                                 result: SubMsgResult::Ok(SubMsgResponse {
-                                    events: state.events(),
+                                    events: state.events().to_vec(),
                                     data: None
                                 })
                             };
@@ -532,13 +532,17 @@ impl Context {
                         return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                     }
 
-                    let transfer_resp = self.state.transfer_funds(
-                        &sender,
-                        &contract_addr,
-                        funds.clone()
-                    )?;
-
-                    let mut events = ProcessedEvents::from(&transfer_resp);
+                    let mut events = if funds.is_empty() {
+                        ProcessedEvents::empty()
+                    } else {
+                        let transfer_resp = self.state.transfer_funds(
+                            &sender,
+                            &contract_addr,
+                            funds.clone()
+                        )?;
+    
+                        ProcessedEvents::from(&transfer_resp)
+                    };
 
                     let env = MockEnv::new(
                         sender,
@@ -566,13 +570,17 @@ impl Context {
                         return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                     }
 
-                    let transfer_resp = self.state.transfer_funds(
-                        &sender,
-                        &label,
-                        funds.clone()
-                    )?;
-
-                    let mut events = ProcessedEvents::from(&transfer_resp);
+                    let mut events = if funds.is_empty() {
+                        ProcessedEvents::empty()
+                    } else {
+                        let transfer_resp = self.state.transfer_funds(
+                            &sender,
+                            &label,
+                            funds.clone()
+                        )?;
+    
+                        ProcessedEvents::from(&transfer_resp)
+                    };
 
                     let env = MockEnv::new(
                         sender,

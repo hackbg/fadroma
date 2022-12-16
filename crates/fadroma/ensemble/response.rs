@@ -168,8 +168,10 @@ impl ResponseVariants {
         matches!(&self, Self::Staking(_))
     }
 
+    /// Returns the messages that were created by this response.
+    /// Only instantiate, execute and reply can return a non-empty slice.
     #[inline]
-    pub(crate) fn messages(&self) -> &[SubMsg] {
+    pub fn messages(&self) -> &[SubMsg] {
         match self {
             Self::Instantiate(resp) => &resp.response.messages,
             Self::Execute(resp) => &resp.response.messages,
