@@ -193,6 +193,15 @@ impl ResponseVariants {
             Self::Distribution(_) => panic!("Trying to add a child response to a DistributionResponse."),
         }
     }
+
+    pub(crate) fn response(&self) -> Option<&Response> {
+        match self {
+            Self::Instantiate(resp) => Some(&resp.response),
+            Self::Execute(resp) => Some(&resp.response),
+            Self::Reply(resp) => Some(&resp.response),
+            _ => None
+        }
+    }
 }
 
 impl From<InstantiateResponse> for ResponseVariants {

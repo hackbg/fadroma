@@ -470,10 +470,9 @@ impl Context {
                         None => {
                             let reply = Reply {
                                 id,
-                                // TODO: Where should those be coming from?
                                 result: SubMsgResult::Ok(SubMsgResponse {
                                     events: state.events().to_vec(),
-                                    data: None
+                                    data: state.data().cloned()
                                 })
                             };
 

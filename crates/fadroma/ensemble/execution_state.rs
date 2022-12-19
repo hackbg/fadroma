@@ -1,5 +1,5 @@
 use crate::{
-    cosmwasm_std::{SubMsg, ReplyOn, Event},
+    cosmwasm_std::{SubMsg, ReplyOn, Event, Binary},
     ensemble::{
         ResponseVariants, EnsembleResult, SubMsgExecuteResult
     }
@@ -23,6 +23,7 @@ pub enum MessageType {
 }
 
 struct ExecutionLevel {
+    data: Option<Binary>,
     responses: Vec<ResponseVariants>,
     msgs: Vec<SubMsgNode>,
     msg_index: usize
@@ -65,12 +66,22 @@ impl ExecutionState {
     ) -> EnsembleResult<usize> {
         match result {
             Ok((response, events)) => {
-                self.current_level_mut()
-                    .current_mut()
-                    .events.extend(events.take());
+
+                if let Some(cw_resp) = response.response() {
+                    // Replies will overwrite the caller data if they return Some.
+                    if response.is_reply() && cw_resp.data.is_some() {
+                        let index = self.states.len() - 2;
+                        self.states[index].data = cw_resp.data.clone();
+                    } else {
+                        self.current_level_mut().data = cw_resp.data.clone();
+                    }
+                }
+
+                let level = self.current_level_mut();
+                level.current_mut().events.extend(events.take());
 
                 let messages = response.messages().to_vec();
-                self.current_level_mut().responses.push(response);
+                level.responses.push(response);
         
                 if messages.len() > 0 {
                     self.states.push(ExecutionLevel::new(messages));
@@ -110,6 +121,11 @@ impl ExecutionState {
     #[inline]
     pub fn events(&self) -> &[Event] {
         &self.current_level().current().events
+    }
+
+    #[inline]
+    pub fn data(&mut self) -> Option<&Binary> {
+        self.current_level_mut().data.as_ref()
     }
 
     pub fn finalize(mut self) -> ResponseVariants {
@@ -288,6 +304,7 @@ impl ExecutionLevel {
         assert!(!msgs.is_empty());
 
         Self {
+            data: None,
             responses: Vec::with_capacity(msgs.len()),
             msg_index: 0,
             msgs: msgs.into_iter().map(|x| SubMsgNode::new(x)).collect()
