@@ -1,0 +1,23 @@
+{
+  "name":    "@fadroma/mocknet",
+  "version": "2.0.0",
+  "type":    "module",
+  "main":    "./mocknet.ts",
+  "files":   [ "mocknet.ts" ],
+  "description": "Test smart contracts without the overhead of spawning a real chain.",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test":  "ensuite mocknet.spec.ts.md",
+    "cov":   "ensuite-cov mocknet.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
+  },
+  "dependencies": {
+    "@fadroma/core": "workspace:^1",
+    "@hackbg/logs":  "workspace:^1",
+    "@hackbg/dump":  "workspace:^1",
+    "@hackbg/4mat":  "workspace:^1"
+  },
+  "devDependencies": {
+    "@hackbg/ensuite": "^1.0.2"
+  }
+}

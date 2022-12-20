@@ -1,12 +1,12 @@
-import { CommandsConsole } from '@hackbg/komandi'
-import $ from '@hackbg/kabinet'
-import type { Path } from '@hackbg/kabinet'
-import { colors, bold } from '@hackbg/konzola'
-import { HEAD } from '@fadroma/client'
-import type { ContractTemplate } from '@fadroma/client'
+import { CommandsConsole } from '@hackbg/cmds'
+import $ from '@hackbg/file'
+import type { Path } from '@hackbg/file'
+import { colors, bold } from '@hackbg/logs'
+import { HEAD } from '@fadroma/core'
+import type { ContractTemplate } from '@fadroma/core'
 
 export class BuildConsole extends CommandsConsole {
-  name = 'Fadroma.Builder'
+  label = 'Fadroma.Builder'
   buildingFromCargoToml (file: Path|string) {
     this.log('Building from', bold($(file).shortPath))
   }
@@ -29,12 +29,17 @@ export class BuildConsole extends CommandsConsole {
   }
   prebuilt (prebuilt: ContractTemplate) {
     this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
-  },
+  }
   usage () {
     this.info(`
       Usage:
         fadroma-build path/to/crate
         fadroma-build path/to/Cargo.toml
         fadroma-build buildConfig.{js|ts}`)
+  }
+  runningBuildContainer (root: string|Path, revision: string, cratesToBuild: string[]) {
+    root = $(root).shortPath
+    const crates = cratesToBuild.map(x=>bold(x)).join(', ')
+    this.log(`Started building from ${bold(root)} @ ${bold(revision)}:`, crates)
   }
 }

@@ -1,4 +1,4 @@
-import { Deployment } from '@fadroma/client'
+import { Deployment } from '@fadroma/core'
 
 export class ExampleDeployment extends Deployment {
 

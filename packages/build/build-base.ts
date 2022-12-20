@@ -1,8 +1,9 @@
-import { Env, EnvConfig } from '@hackbg/konfizi'
-import { Builder, Contract, ContractTemplate, HEAD } from '@fadroma/client'
-import { bold } from '@hackbg/konzola'
-import type { Class, Client } from '@fadroma/client'
-import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/kabinet'
+import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/file'
+import { Env, EnvConfig } from '@hackbg/conf'
+import { bold } from '@hackbg/logs'
+
+import { Builder, Contract, HEAD } from '@fadroma/core'
+import type { Class, Client, Built } from '@fadroma/core'
 
 import { BuildConsole } from './build-events'
 
@@ -16,37 +17,44 @@ export const buildPackage = dirname(fileURLToPath(import.meta.url))
 
 export class BuilderConfig extends EnvConfig {
   constructor (
+    defaults: Partial<BuilderConfig> = {},
     readonly env: Env    = process.env,
     readonly cwd: string = process.cwd(),
-    defaults: Partial<BuilderConfig> = {}
   ) {
     super(env, cwd)
     this.override(defaults)
   }
 
-  /** Whether to print everything that happens during builds. */
-  verbose:    boolean = this.getBoolean('FADROMA_BUILD_VERBOSE', ()=>false)
-
+  /** Whether the build process should print more detail to the console. */
+  verbose:      boolean = this.getBoolean('FADROMA_BUILD_VERBOSE',
+    ()=>false)
+  /** Whether the build log should be printed only on error, or always */
+  quiet:        boolean = this.getBoolean('FADROMA_BUILD_QUIET',
+    ()=>false)
   /** Project root. Defaults to current working directory. */
-  project:     string  = this.getString('FADROMA_PROJECT',    ()=>this.cwd)
+  project:      string  = this.getString('FADROMA_PROJECT',
+    ()=>this.cwd)
   /** Whether to enable caching and reuse contracts from artifacts directory. */
-  caching:     boolean = !this.getBoolean('FADROMA_REBUILD',  ()=>false)
+  caching:      boolean = !this.getBoolean('FADROMA_REBUILD',
+    ()=>false)
   /** Name of output directory. */
-  outputDir:   string  = this.getString('FADROMA_ARTIFACTS',
-    ()=>$(this.project).in('artifacts').path)
-
+  outputDir:    string  = this.getString('FADROMA_ARTIFACTS',
+    ()=>$(this.project).in('dist').in('artifacts').path)
   /** Script that runs inside the build container, e.g. build.impl.mjs */
-  script:      string  = this.getString('FADROMA_BUILD_SCRIPT',
+  script:       string  = this.getString('FADROMA_BUILD_SCRIPT',
     ()=>$(buildPackage).at('build.impl.mjs').path)
   /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
-  toolchain:   string  = this.getString('FADROMA_RUST',       ()=>'')
+  toolchain:    string  = this.getString('FADROMA_RUST',
+    ()=>'')
   /** Don't run "git fetch" during build. */
-  noFetch:     boolean = this.getBoolean('FADROMA_NO_FETCH',  ()=>false)
-
+  noFetch:      boolean = this.getBoolean('FADROMA_NO_FETCH',
+    ()=>false)
   /** Whether to bypass Docker and use the toolchain from the environment. */
-  buildRaw:     boolean = this.getBoolean('FADROMA_BUILD_RAW', ()=>false)
+  buildRaw:     boolean = this.getBoolean('FADROMA_BUILD_RAW',
+    ()=>false)
   /** Path to Docker API endpoint. */
-  dockerSocket: string  = this.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
+  dockerSocket: string  = this.getString('FADROMA_DOCKER',
+    ()=>'/var/run/docker.sock')
   /** Docker image to use for dockerized builds. */
   dockerImage:  string  = this.getString('FADROMA_BUILD_IMAGE',
     ()=>'ghcr.io/hackbg/fadroma:unstable')
@@ -55,9 +63,8 @@ export class BuilderConfig extends EnvConfig {
     ()=>$(buildPackage).at('build.Dockerfile').path)
 
   /** Get a configured builder. */
-  getBuilder <B extends Builder> (
-    $B: BuilderClass<B> = Builder.variants[this.buildRaw?'raw-local':'docker-local'] as unknown as BuilderClass<B>
-  ): B {
+  getBuilder <B extends Builder> ($B?: BuilderClass<B>): B {
+    $B ??= Builder.variants[this.buildRaw?'raw-local':'docker-local'] as unknown as BuilderClass<B>
     return new $B(this)
   }
 }
@@ -74,10 +81,11 @@ export abstract class LocalBuilder extends Builder {
 
   constructor (options: Partial<BuilderConfig>) {
     super('local builder', 'local builder')
-    this.config = new BuilderConfig(this.env, this.cwd, options)
+    this.config = new BuilderConfig(options, this.env, this.cwd)
     this.noFetch   = options.noFetch   ?? this.noFetch
     this.toolchain = options.toolchain ?? this.toolchain
     this.verbose   = options.verbose   ?? this.verbose
+    this.quiet     = options.quiet     ?? this.quiet
     this.outputDir = $(options.outputDir!).as(OpaqueDirectory)
     if (options.script) this.script = options.script
   }
@@ -95,6 +103,8 @@ export abstract class LocalBuilder extends Builder {
   toolchain:  string|null = null
   /** Whether the build process should print more detail to the console. */
   verbose:    boolean     = false
+  /** Whether the build log should be printed only on error, or always */
+  quiet:      boolean     = false
   /** Whether to enable caching. */
   caching:    boolean     = true
   /** Default Git reference from which to build sources. */
@@ -112,13 +122,13 @@ export abstract class LocalBuilder extends Builder {
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (
     outputDir: string, crate?: string, revision: string = HEAD
-  ): ContractTemplate|null {
+  ): Built|null {
     if (this.caching && crate) {
       const location = $(outputDir, artifactName(crate, revision))
       if (location.exists()) {
         const artifact = location.url
         const codeHash = this.hashPath(location)
-        return new ContractTemplate({ crate, revision, artifact, codeHash })
+        return new Contract({ crate, revision, artifact, codeHash })
       }
     }
     return null

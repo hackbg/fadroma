@@ -18,50 +18,30 @@
 
 **/
 
-import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
-import type { DeployStore } from '@fadroma/client'
+import { Chain, Agent, Deployment, Class, ClientConsole, Builder, Uploader } from '@fadroma/core'
+import type { DeployStore } from '@fadroma/core'
 import { BuilderConfig } from '@fadroma/build'
-import { DeployConfig, Deployer, DeployConsole } from '@fadroma/deploy'
+import { DeployConfig, Deployer, DeployConsole, FSUploader } from '@fadroma/deploy'
 import type { DeployerClass } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
-import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
+import { Scrt } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
 import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 
 import repl from 'node:repl'
 import { createContext } from 'node:vm'
 
+export class Console extends DeployConsole {
+  constructor (name = 'Fadroma') { super(name) }
+}
+
+/** Configuration for the Fadroma environment. */
+export class Config extends DeployConfig {
+  build = new BuilderConfig({ project: this.project }, this.env, this.cwd)
+}
+
 /** Context for Fadroma commands. */
-export default class Fadroma extends Deployer {
-
-  /** @returns a function that runs a requested command. */
-  static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
-    const self = this
-    return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
-  }
-
-  /** Constructs a populated instance of the Fadroma context. */
-  static async init (
-    projectName: string = 'Fadroma',
-    options:     Partial<Config> = {}
-  ): Promise<Fadroma> {
-    const config = new Config(process.env, process.cwd(), options)
-    return config.getDeployer(this as DeployerClass<Deployer>) as unknown as Fadroma
-  }
-
-  constructor (options: Partial<Fadroma> = { config: new Config() }) {
-    super(options as Partial<Deployer>)
-    this.log.name  = this.projectName
-    this.config    = new Config(this.env, this.cwd, options.config)
-    this.workspace = this.config.project
-    this.builder ??= this.config?.build?.getBuilder()
-    this.addCommand('repl',   'interact with this project from a Node.js REPL',
-                    () => this.startREPL())
-    this.addCommand('update', 'update the current deployment',
-                    () => this.selectDeployment().then(()=>this.update()))
-    this.addCommand('deploy', 'create a new deployment of this project',
-                    () => this.deploy())
-  }
+export class Fadroma extends Deployer {
 
   /** Override this to set your project name. */
   projectName: string = 'Fadroma'
@@ -70,9 +50,38 @@ export default class Fadroma extends Deployer {
   config: Config
 
   /** The token manager API. */
-  tokens: TokenManager = this.commands(
-    'tokens', 'Fadroma Token Manager', new TokenManager(this as Deployment)
-  )
+  tokens: TokenManager
+
+  constructor (config: Partial<Config> = {}) {
+    super({ config })
+    this.log.label = this.projectName
+    this.config = new Config(config, this.env, this.cwd)
+    this.workspace = this.config.project
+    this.builder ??= this.config?.build?.getBuilder()
+    this.tokens = new TokenManager(this as Deployment)
+    this
+      .addCommands('tokens', 'manage token contracts',
+                   this.tokens as any)
+      .addCommand('repl',   'interact with this project from a Node.js REPL',
+                  () => this.startREPL())
+      .addCommand('update', 'update the current deployment',
+                  () => this.selectDeployment().then(()=>this.update()))
+      .addCommand('deploy', 'create a new deployment of this project',
+                  () => this.deploy())
+  }
+
+  get ready () {
+    const self = this
+    const ready: Promise<typeof this> = (async function getReady (): Promise<typeof self> {
+      self.agent    ??= await self.config.getAgent()
+      self.chain    ??= await self.agent.chain
+      self.uploader ??= await self.agent.getUploader(FSUploader)
+      self.builder  ??= await self.config.build.getBuilder()
+      return self
+    })()
+    Object.defineProperty(this, 'ready', { get () { return ready } })
+    return ready
+  }
 
   /** Override this to implement your pre-deploy procedure. */
   async deploy () {
@@ -101,32 +110,18 @@ export default class Fadroma extends Deployer {
 
 }
 
-/** Configuration for the Fadroma environment. */
-export class Config extends DeployConfig {
-  build = new BuilderConfig(this.env, this.cwd, { project: this.project })
-}
-
 /** Default export of command module. */
 export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
 
-export class Console extends DeployConsole {
-  constructor (name = 'Fadroma') { super(name) }
-}
-
-export * from '@hackbg/konzola'
-export * from '@hackbg/komandi'
-export * from '@hackbg/konfizi'
-export * from '@hackbg/kabinet'
-export * from '@hackbg/formati'
-export * from '@fadroma/client'
-export { override } from '@fadroma/client'
-export type { Decimal, Overridable } from '@fadroma/client'
+export * from '@hackbg/logs'
+export * from '@hackbg/cmds'
+export * from '@hackbg/conf'
+export * from '@hackbg/file'
+export * from '@hackbg/4mat'
+export * from '@fadroma/core'
+export { override } from '@fadroma/core'
+export type { Decimal, Overridable } from '@fadroma/core'
 export * from '@fadroma/build'
 export * from '@fadroma/deploy'
-export * from '@fadroma/devnet'
 export * from '@fadroma/connect'
-export * from '@fadroma/mocknet'
 export * from '@fadroma/tokens'
-export * as ScrtGrpc  from '@fadroma/scrt'
-export * as ScrtAmino from '@fadroma/scrt-amino'
-export { connect } from '@fadroma/connect'

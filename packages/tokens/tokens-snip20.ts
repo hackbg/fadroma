@@ -1,28 +1,10 @@
-import type {
-  Agent,
-  Address,
-  Uint128
-} from '@fadroma/client'
-import {
-  Client,
-  ClientConsole,
-} from '@fadroma/client'
-import type {
-  Permit
-} from '@fadroma/scrt'
-import {
-  ViewingKeyClient
-} from '@fadroma/scrt'
-import {
-  randomBase64
-} from '@hackbg/formati'
-import {
-  bold,
-  colors
-} from '@hackbg/konzola'
-import type {
-  CustomToken
-} from './tokens'
+import type { Agent, Address, Uint128 } from '@fadroma/core'
+import { Client, ClientConsole, } from '@fadroma/core'
+import type { Permit } from '@fadroma/scrt'
+import { ViewingKeyClient } from '@fadroma/scrt'
+import { randomBase64 } from '@hackbg/4mat'
+import { bold, colors } from '@hackbg/logs'
+import type { CustomToken } from './tokens'
 
 const log = new ClientConsole('Fadroma.Snip20')
 
@@ -54,28 +36,6 @@ export interface Snip20InitConfig {
 
 export class Snip20 extends Client implements CustomToken {
 
-  /** Return the address and code hash of this token in the format
-    * required by the Factory to create a swap pair with this token */
-  get custom_token () {
-    if (!this.address)  throw new Error("Can't create token reference without address.")
-    if (!this.codeHash) throw new Error("Can't create token reference without code hash.")
-    return {
-      contract_addr:   this.address,
-      token_code_hash: this.codeHash
-    }
-  }
-
-  /** Convert to a plain CustomToken with a *hidden (from serialization!)*
-    * reference to the Client which produced it. */
-  get asDescriptor () {
-    return Object.defineProperty({
-      custom_token: this.custom_token,
-      client:       this
-    }, 'client', {
-      enumerable: false
-    })
-  }
-
   /** Create a SNIP20 token client from a Token descriptor. */
   static fromDescriptor (agent: Agent, descriptor: CustomToken): Snip20 {
     const { custom_token } = descriptor
@@ -104,9 +64,34 @@ export class Snip20 extends Client implements CustomToken {
     }
   }
 
+  /** Return the address and code hash of this token in the format
+    * required by the Factory to create a swap pair with this token */
+  get custom_token () {
+    if (!this.address)  throw new Error("Can't create token reference without address.")
+    if (!this.codeHash) throw new Error("Can't create token reference without code hash.")
+    return {
+      contract_addr:   this.address,
+      token_code_hash: this.codeHash
+    }
+  }
+
+  /** Convert to a plain CustomToken with a *hidden (from serialization!)*
+    * reference to the Client which produced it. */
+  get asDescriptor () {
+    return Object.defineProperty({
+      custom_token: this.custom_token,
+      client:       this
+    }, 'client', {
+      enumerable: false
+    })
+  }
+
   tokenName:   string  | null = null
+
   symbol:      string  | null = null
+
   decimals:    number  | null = null
+
   totalSupply: Uint128 | null = null
 
   async populate (): Promise<this> {

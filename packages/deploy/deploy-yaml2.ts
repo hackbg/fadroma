@@ -1,7 +1,7 @@
-import { timestamp } from '@hackbg/konzola'
-import { Contract, Deployment, DeployStore } from '@fadroma/client'
+import { timestamp } from '@hackbg/logs'
+import { Contract, Deployment, DeployStore } from '@fadroma/core'
 import { } from './deploy-base'
-import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/kabinet'
+import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/file'
 
 /** Output of the alternate Rust-based deployer. */
 export class YAMLDeployments_v2 extends DeployStore {

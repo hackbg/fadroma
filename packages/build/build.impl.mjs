@@ -15,13 +15,15 @@ const dashes   = new RegExp("-", "g")
 const sanitize = x => x.replace(slashes, "_")
 const fumigate = x => x.replace(dashes,  "_")
 
+const verbose = Boolean(env('_VERBOSE', false))
+
 const run = (command, env2 = {}) => {
-  console.info('\n$', command)
+  if (verbose) console.info('\n$', command)
   execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
 }
 
 const call = command => {
-  console.info('\n$', command)
+  if (verbose) console.info('\n$', command)
   const result = String(execSync(command)).trim()
   console.info(result)
   return result
@@ -92,7 +94,7 @@ function phase1 ({
   run(`git --version`)
   if (ref === 'HEAD') {
     console.log(`Building from working tree.`)
-    run(`pwd`)
+    if (verbose) run(`pwd`)
     console.log({subdir})
     chdir(subdir)
   } else {
@@ -148,7 +150,8 @@ function phase1 ({
 
     // Report which commit we're building and what it looks like
     run(`git log -1`)
-    run('ls -al')
+    if (verbose) run('pwd')
+    if (verbose) run('ls -al')
     console.log()
 
     // Clone submodules
@@ -174,18 +177,18 @@ function phase1 ({
 
 /** As a non-root user, execute a release build, then optimize it with Binaryen. */
 function phase2 ({
-  toolchain = env('_TOOLCHAIN'),
-  targetDir = env('_TMP_TARGET', '/tmp/target'),
-  ref       = argv[3], // "HEAD" | <git ref>
-  crate     = argv[4], // one crate to build
-  platform  = 'wasm32-unknown-unknown',
-  rustFlags = '-C link-arg=-s',
-  locked    = '',
-  output    = `${fumigate(crate)}.wasm`,
-  compiled  = resolve(targetDir, platform, 'release', output),
-  outputDir = env('_OUTPUT', '/output'),
-  optimized = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`),
-  checksum  = `${optimized}.sha256`,
+  toolchain  = env('_TOOLCHAIN'),
+  targetDir  = env('_TMP_TARGET', '/tmp/target'),
+  ref        = argv[3], // "HEAD" | <git ref>
+  crate      = argv[4], // one crate to build
+  platform   = 'wasm32-unknown-unknown',
+  locked     = '',
+  output     = `${fumigate(crate)}.wasm`,
+  releaseDir = resolve(targetDir, platform, 'release'),
+  compiled   = resolve(releaseDir, output),
+  outputDir  = env('_OUTPUT', '/output'),
+  optimized  = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`),
+  checksum   =  `${optimized}.sha256`,
 } = {}) {
 
   console.log(`\nBuild phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
@@ -200,20 +203,35 @@ function phase2 ({
   run(`rustc --version`)
   run(`wasm-opt --version`)
   run(`sha256sum --version | head -n1`)
-  run(`ls -al`)
-  run(`ls -al /tmp/target`)
+  if (verbose) run(`pwd`)
+  if (verbose) run(`ls -al`)
+  if (verbose) run(`ls -al /tmp/target`)
 
   // Compile crate for production
-  run(`cargo build -p ${crate} --release --target ${platform} ${locked} --verbose`, {
-    RUSTFLAGS:        rustFlags,
+  run(`cargo build -p ${crate} --release --target ${platform} ${locked} ${verbose?'--verbose':''}`, {
     CARGO_TARGET_DIR: targetDir,
     PLATFORM:         platform,
   })
   console.log(`Build complete.`)
 
   // Output optimized build to artifacts directory
-  console.log(`Optimizing ${compiled} into ${optimized}...`)
-  run(`wasm-opt -Oz ${compiled} -o ${optimized}`)
+  if (verbose) run(`ls -al ${releaseDir}`)
+  //run(`cp ${compiled} ${optimized}.unoptimized`)
+  //run(`chmod -x ${optimized}.unoptimized`)
+
+  if (verbose) {
+    console.log(`\nWASM section headers of ${compiled}:`)
+    run(`wasm-objdump -h ${compiled}`)
+  }
+
+  console.log(`\nOptimizing ${compiled} into ${optimized}...`)
+  run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
+
+  if (verbose) {
+    console.log(`\nWASM section headers of ${optimized}:`)
+    run(`wasm-objdump -h ${optimized}`)
+  }
+
   console.log(`Optimization complete`)
 
   // Output checksum to artifacts directory

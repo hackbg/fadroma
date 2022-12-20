@@ -19,9 +19,11 @@ pub use fadroma_proc_derive as derive_contract;
 pub mod composability;
 
 // Safety features
+#[cfg(feature = "auth")]
 pub mod killswitch;
 
 // Authentication primitives
+#[cfg(feature = "auth")]
 pub mod admin;
 #[cfg(feature = "permit")]
 pub mod permit;

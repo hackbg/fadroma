@@ -1,9 +1,10 @@
 import { LocalBuilder, artifactName, sanitize } from './build-base'
 import { BuildConsole } from './build-events'
 import { getGitDir } from './build-history'
-import { Contract, ContractSource, HEAD } from '@fadroma/client'
-import $ from '@hackbg/kabinet'
-import { bold } from '@hackbg/konzola'
+import { Contract, HEAD } from '@fadroma/core'
+import type { Buildable, Built } from '@fadroma/core'
+import $ from '@hackbg/file'
+import { bold } from '@hackbg/logs'
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
@@ -18,7 +19,7 @@ export class RawBuilder extends LocalBuilder {
   runtime = process.argv[0]
 
   /** Build a Source into a Template */
-  async build (source: ContractSource): Promise<ContractSource & { artifact: URL }> {
+  async build (source: Buildable): Promise<Built> {
     const { workspace, revision = HEAD, crate } = source
     if (!workspace) throw new Error('no workspace')
     if (!crate)     throw new Error('no crate')
@@ -97,8 +98,8 @@ export class RawBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: ContractSource[]): Promise<ContractSource[]> {
-    const templates: Contract<any>[] = []
+  async buildMany (inputs: Buildable[]): Promise<Built[]> {
+    const templates: Built[] = []
     for (const source of inputs) templates.push(await this.build(source))
     return templates
   }

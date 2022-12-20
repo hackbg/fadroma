@@ -1,10 +1,10 @@
-import type { Deployment, DeployStore } from '@fadroma/client'
+import type { Deployment, DeployStore } from '@fadroma/core'
 import { ConnectConsole, ConnectError } from '@fadroma/connect'
-import $ from '@hackbg/kabinet'
-import { bold, colors } from '@hackbg/konzola'
+import $                from '@hackbg/file'
+import { bold, colors } from '@hackbg/logs'
 
 export class DeployConsole extends ConnectConsole {
-  constructor (public name = 'Fadroma Deploy') { super(name) }
+  constructor (public label = 'Fadroma Deploy') { super(label) }
   warnNoDeployment () {
     return this.warn(
       'No active deployment. Most commands will fail. ' +
@@ -57,6 +57,18 @@ export class DeployConsole extends ConnectConsole {
     //this.log.log('Saving:  ', bold(name))
     //this.log.log(Object.keys(state).join(', '))
     //this.log.br()
+  }
+  creatingDeployment (name: string) {
+    this.log('Creating:', bold(name))
+  }
+  locationOfDeployment (path: string) {
+    this.log('Location:', bold(path))
+  }
+  activatingDeployment (name: string) {
+    this.log('Activate:', bold(name))
+  }
+  warnOverridingStore (self: string) {
+    this.warn(`Overriding store for ${self}`)
   }
 }
 

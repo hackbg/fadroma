@@ -1,11 +1,11 @@
 import { Devnet, devnetPortModes } from './devnet-base'
 import type { DevnetOpts, DevnetPlatform } from './devnet-base'
-import type { AgentOpts, DevnetHandle } from '@fadroma/client'
-import { bold } from '@hackbg/konzola'
-import { ClientConsole } from '@fadroma/client'
-import { freePort, Endpoint } from '@hackbg/portali'
-import { randomHex } from '@hackbg/formati'
-import $ from '@hackbg/kabinet'
+import type { AgentOpts, DevnetHandle } from '@fadroma/core'
+import { bold } from '@hackbg/logs'
+import { ClientConsole } from '@fadroma/core'
+import { freePort, Endpoint } from '@hackbg/port'
+import { randomHex } from '@hackbg/4mat'
+import $ from '@hackbg/file'
 
 /** Parameters for the HTTP API-managed implementation of Devnet. */
 export type RemoteDevnetOpts = DevnetOpts & {

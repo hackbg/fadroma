@@ -1,23 +1,9 @@
-import {
-  loadAll, dump
-} from 'js-yaml'
-import {
-  timestamp, bold
-} from '@hackbg/konzola'
-import $, {
-  Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
-} from '@hackbg/kabinet'
-import {
-  Agent, Contract, ContractInstance, Client, Deployment, DeployStore
-} from '@fadroma/client'
-import {
-  DeployConsole, DeployError, log
-} from './deploy-events'
-import {
-  basename
-} from 'node:path'
-
-import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
+import { loadAll, dump } from 'js-yaml'
+import { timestamp, bold } from '@hackbg/logs'
+import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/file'
+import { Agent, Contract, Client, Deployment, DeployStore, toInstanceReceipt } from '@fadroma/core'
+import { DeployConsole, DeployError, log } from './deploy-events'
+import { basename } from 'node:path'
 
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
@@ -30,7 +16,11 @@ export class YAMLDeployments_v1 extends DeployStore {
     public defaults: Partial<Deployment> = {},
   ) {
     super()
-    this.root = $(storePath).as(YAMLDirectory)
+    const root = this.root = $(storePath).as(YAMLDirectory)
+    Object.defineProperty(this, 'root', {
+      enumerable: true,
+      get () { return root }
+    })
   }
 
   root: YAMLDirectory<unknown>
@@ -42,10 +32,12 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<Deployment> {
-    this.log.log('Creating: deployment', bold(name))
+    this.log.creatingDeployment(name)
+
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.log('Receipt: ', bold(path.shortPath))
+    this.log.locationOfDeployment(path.shortPath)
+
     path.makeParent().as(YAMLFile).save(undefined)
     return this.get(name)!
   }
@@ -58,15 +50,17 @@ export class YAMLDeployments_v1 extends DeployStore {
       if (name === this.KEY) name = active.real.name
       name = basename(name, '.yml')
       active.relLink(`${name}.yml`)
-      this.log.log('Activate:', bold(selected.real.name))
+      this.log.activatingDeployment(selected.real.name)
       return this.get(name)!
-    } else if (name === this.KEY) {
+    }
+
+    if (name === this.KEY) {
       const d = await this.create()
       const name = d.name
       return this.select(name)
-    } else {
-      throw new DeployError.DeploymentDoesNotExist(name)
     }
+
+    throw new DeployError.DeploymentDoesNotExist(name)
   }
 
   // FIXME turn this into a getDeployment(name) factory?
@@ -80,9 +74,9 @@ export class YAMLDeployments_v1 extends DeployStore {
     if (!file.exists()) return null
     name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })
-    for (const receipt of file.as(YAMLFile).loadAll() as Partial<Contract<any>>[]) {
-      if (!receipt.name) continue
-      deployment.state[receipt.name] = new Contract(receipt)
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
+      if (!receipt.id) continue
+      deployment.state[receipt.id] = new Contract(receipt)
     }
     return deployment
   }
@@ -93,21 +87,21 @@ export class YAMLDeployments_v1 extends DeployStore {
       const list = this.root.as(OpaqueDirectory).list() ?? []
       return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
     } else {
-      log.deployStoreDoesNotExist(this.root.shortPath)
+      this.log.deployStoreDoesNotExist(this.root.shortPath)
       return []
     }
   }
 
-  set (name: string, state: Record<string, Partial<Contract<any>>> = {}) {
+  set (name: string, state: Record<string, Partial<AnyContract>> = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
     let output = ''
     for (let [name, data] of Object.entries(state)) {
       output += '---\n'
-      name ??= data.name!
+      name ??= data.id!
       if (!name) throw new Error('Deployment: no name')
-      const receipt = new ContractInstance(data as Partial<ContractInstance>).asReceipt
+      const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
       data = JSON.parse(JSON.stringify({
         name,
         label:    receipt.label,

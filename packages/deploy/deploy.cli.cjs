@@ -5,8 +5,8 @@ const exit = {
     process.exit(0)
   },
   async scriptError (e) {
-    const {CustomConsole} = await import('@hackbg/konzola')
-    const log = new CustomConsole('Fadroma Deploy CLI')
+    const {Console} = await import('@hackbg/logs')
+    const log = new Console('Fadroma Deploy CLI')
     log.error(e.message)
     for (const key in e) {
       if (key === 'message' || key === 'stack' || key === 'txBytes') continue
@@ -55,5 +55,5 @@ if (process.env.Fadroma) {
   // Trampoline to the entry point of Komandi, which then trampolines
   // back to this script with TypeScript support enabled by Ganesha
   process.env.Fadroma = true
-  require('@hackbg/komandi/komandi.cli.cjs')
+  require('@hackbg/cmds/cmds.cli.cjs')
 }

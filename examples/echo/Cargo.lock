@@ -226,7 +226,6 @@ version = "1.0.0"
 dependencies = [
  "fadroma-derive-canonize",
  "fadroma-platform-scrt",
- "fadroma-proc-message",
  "serde",
 ]
 
@@ -256,14 +255,6 @@ dependencies = [
  "cosmwasm-storage",
  "schemars",
  "serde",
-]
-
-[[package]]
-name = "fadroma-proc-message"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
 ]
 
 [[package]]

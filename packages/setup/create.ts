@@ -142,14 +142,14 @@
     //name:    `@${project}/api`,
     //version: '0.1.0',
     //dependencies: {
-      //'@fadroma/client': '^2'
+      //'@fadroma/core': '^2'
     //}
   //})
   //for (const contract of contracts) {
     //const Contract = contract[0].toUpperCase() + contract.slice(1)
     //root.in('api').at(`${contract}.ts`).as(TextFile).save(dedent(`
       //// Client for contract: ${contract}
-      //import { Client } from '@fadroma/client'
+      //import { Client } from '@fadroma/core'
       //class ${Contract} extends Client {
         //fees = {}
         //// See https://fadroma.tech/guides/client-classes

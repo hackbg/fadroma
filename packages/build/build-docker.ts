@@ -3,12 +3,12 @@ import { BuildConsole } from './build-events'
 import type { BuilderConfig } from './build-base'
 import { getGitDir } from './build-history'
 
-import * as Dokeres from '@hackbg/dokeres'
-import { bold } from '@hackbg/konzola'
-import $, { Path, OpaqueDirectory } from '@hackbg/kabinet'
+import * as Dokeres from '@hackbg/dock'
+import { bold } from '@hackbg/logs'
+import $, { Path, OpaqueDirectory } from '@hackbg/file'
 
-import { Contract, ContractSource, ContractTemplate, HEAD } from '@fadroma/client'
-import type { Builder } from '@fadroma/client'
+import { Contract, HEAD } from '@fadroma/core'
+import type { Builder, Buildable, Built } from '@fadroma/core'
 
 import { homedir } from 'node:os'
 
@@ -55,7 +55,7 @@ export class DockerBuilder extends LocalBuilder {
   }
 
   /** Build a Source into a Template. */
-  async build (contract: ContractSource): Promise<ContractSource> {
+  async build (contract: Buildable): Promise<Built> {
     const [result] = await this.buildMany([contract])
     return result
   }
@@ -64,40 +64,75 @@ export class DockerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (contracts: ContractSource[]): Promise<ContractSource[]> {
+  async buildMany (contracts: (Buildable & Partial<Built>)[]): Promise<Built[]> {
+
+    const self      = this
     const roots     = new Set<string>()
     const revisions = new Set<string>()
     let longestCrateName = 0
-    // For each contract, collect built info and populate it if found in the cache
+
+    // Go over the list of contracts, filtering out the ones that are already built,
+    // and collecting the source repositories and revisions. This will allow for
+    // multiple crates from the same source checkout to be passed to a single build command.
     for (const contract of contracts) {
+      prebuildContract(contract)
+    }
+
+    // For each repository/revision pair, build the contracts from it.
+    for (const path of roots) {
+      for (const revision of revisions) {
+        await buildContracts(path, revision)
+      }
+    }
+
+    return contracts as Built[]
+
+    function prebuildContract (contract: Buildable) {
+      // Collect maximum length to align console output
       if (contract.crate && contract.crate.length > longestCrateName) {
         longestCrateName = contract.crate.length
       }
-      if (!this.prebuilt(contract)) {
-        this.log.buildingOne(contract)
-        contract.builder = this as Builder
+      // If the contract is already built, don't build it again
+      if (!self.prebuilt(contract)) {
+        self.log.buildingOne(contract)
+        // Set ourselves as the contract's builder
+        contract.builder = self as Builder
+        // Add the source repository of the contract to the list of sources to build
         roots.add(contract.workspace!)
         revisions.add(contract.revision!)
       }
     }
-    // For each workspace/ref pair
-    for (const path of roots) for (const revision of revisions) {
+
+    async function buildContracts (path: string, revision: string) {
+
+      // Which directory to mount into the build container? By default,
+      // this is the root of the workspace. But if the workspace is not
+      // at the root of the Git repo (e.g. when using Git submodules),
+      // a parent directory may need to be mounted to get the full
+      // Git history.
       let mounted = $(path)
-      if (this.verbose) this.log.buildingFromWorkspace(mounted, revision)
+
+      if (self.verbose) {
+        self.log.buildingFromWorkspace(mounted, revision)
+      }
+
+      // If we're building from history, update `mounted` to make sure
+      // that the full contents of the Git repo will be mounted in the
+      // build container.
       if (revision !== HEAD) {
         const gitDir = getGitDir({ workspace: path })
         mounted = gitDir.rootRepo
         const remote = process.env.FADROMA_PREFERRED_REMOTE || 'origin'
         try {
-          await this.fetch(gitDir, remote)
+          await self.fetch(gitDir, remote)
         } catch (e) {
           console.warn(`Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`)
           console.warn(e)
         }
       }
-      // Create a list of sources for the container to build,
-      // along with their indices in the input and output arrays
-      // of this function.
+
+      // Match each crate from the current repo/ref pair
+      // with its index in the originally passed list of contracts.
       const crates: [number, string][] = []
       for (let index = 0; index < contracts.length; index++) {
         const source = contracts[index]
@@ -105,10 +140,11 @@ export class DockerBuilder extends LocalBuilder {
           crates.push([index, source.crate!])
         }
       }
+
       // Build the crates from each same workspace/revision pair and collect the results.
       // sequentially in the same container.
       // Collect the templates built by the container
-      const results = await this.runBuildContainer(
+      const results = await self.runBuildContainer(
         mounted.path,
         mounted.relative(path),
         revision,
@@ -117,22 +153,25 @@ export class DockerBuilder extends LocalBuilder {
           ? (gitDir=>gitDir.isSubmodule?gitDir.submoduleDir:'')(getGitDir({ workspace: path }))
           : ''
       )
+
+      // Using the previously collected indices,
+      // populate the values in each of the passed contracts.
       for (const index in results) {
         if (!results[index]) continue
         contracts[index].artifact = results[index]!.artifact
         contracts[index].codeHash = results[index]!.codeHash
       }
+
     }
-    return contracts
   }
 
   protected async fetch (gitDir: Path, remote: string) {
     await simpleGit(gitDir.path).fetch(remote)
   }
 
-  protected prebuilt (contract: ContractSource): boolean {
+  protected prebuilt (contract: Buildable & Partial<Built>): boolean {
     const { workspace, revision, crate } = contract
-    if (!workspace) throw new Error("Workspace not set, can't build")
+    if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
       this.log.prebuilt(prebuilt)
@@ -150,7 +189,7 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = this.outputDir.path
-  ): Promise<(ContractTemplate|null)[]> {
+  ): Promise<(Built|null)[]> {
 
     // Default to building from working tree.
     revision ??= HEAD
@@ -159,7 +198,7 @@ export class DockerBuilder extends LocalBuilder {
     $(outputDir).as(OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates:   (ContractTemplate|null)[] = crates.map(()=>null)
+    const templates: Array<Buildable|null> = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
@@ -224,25 +263,6 @@ export class DockerBuilder extends LocalBuilder {
       readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
     }
 
-    // Variables used by the build script are prefixed with underscore
-    // and variables used by the tools used by the build script are left as is
-    const env = {
-      _BUILD_USER:                  process.env.FADROMA_BUILD_USER || 'fadroma-builder',
-      _BUILD_UID:                   process.env.FADROMA_BUILD_UID  || process.getuid(),
-      _BUILD_GID:                   process.env.FADROMA_BUILD_GID  || process.getgid(),
-      _GIT_REMOTE:                  process.env.FADROMA_PREFERRED_REMOTE||'origin',
-      _GIT_SUBDIR:                  gitSubdir,
-      _SUBDIR:                      subdir,
-      _NO_FETCH:                    this.noFetch,
-      CARGO_HTTP_TIMEOUT:           '240',
-      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-      GIT_PAGER:                    'cat',
-      GIT_TERMINAL_PROMPT:          '0',
-      LOCKED:                       '',/*'--locked'*/
-      SSH_AUTH_SOCK:                '/ssh_agent_socket',
-      TERM:                         process.env.TERM,
-    }
-
     // Pre-populate the list of expected artifacts.
     const outputWasms: Array<string|null> = [...new Array(crates.length)].map(()=>null)
     for (const [crate, index] of Object.entries(shouldBuild)) {
@@ -251,20 +271,64 @@ export class DockerBuilder extends LocalBuilder {
 
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
-    const command = [ 'node', buildScript, 'phase1', revision, ...cratesToBuild ]
-    const extra   = { Tty: true, AttachStdin: true, }
-    const options = { remove: true, readonly, writable, cwd: '/src', env, extra }
+    const buildCommand = [ 'node', buildScript, 'phase1', revision, ...cratesToBuild ]
+    const buildOptions = {
+      remove: true,
+      readonly,
+      writable,
+      cwd: '/src',
+      env: {
+        // Variables used by the build script are prefixed with underscore;
+        // variables used by the tools that the build script uses are left as is
+        _BUILD_USER:                  process.env.FADROMA_BUILD_USER || 'fadroma-builder',
+        _BUILD_UID:                   process.env.FADROMA_BUILD_UID  || process.getuid(),
+        _BUILD_GID:                   process.env.FADROMA_BUILD_GID  || process.getgid(),
+        _GIT_REMOTE:                  process.env.FADROMA_PREFERRED_REMOTE||'origin',
+        _GIT_SUBDIR:                  gitSubdir,
+        _SUBDIR:                      subdir,
+        _NO_FETCH:                    this.noFetch,
+        _VERBOSE:                     this.verbose,
+        CARGO_HTTP_TIMEOUT:           '240',
+        CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+        GIT_PAGER:                    'cat',
+        GIT_TERMINAL_PROMPT:          '0',
+        LOCKED:                       '',/*'--locked'*/
+        SSH_AUTH_SOCK:                '/ssh_agent_socket',
+        TERM:                         process.env.TERM,
+      },
+      extra: {
+        Tty: true,
+        AttachStdin: true
+      }
+    }
 
-    // Prepare the log output stream
-    const buildLogPrefix = `[${revision}]`.padEnd(16)
-    const transformLine  = (line:string)=>`${bold('BUILD')} @ ${revision} │ ${line}`
-    const logs = new Dokeres.LineTransformStream(transformLine)
-    logs.pipe(process.stdout)
+    // This stream collects the output from the build container, i.e. the build logs.
+    const buildLogStream = new Dokeres.LineTransformStream((!this.quiet)
+      // In normal and verbose mode, build logs are printed to the console in real time,
+      // with an addition prefix to show what is being built.
+      ? (line:string)=>`${bold('BUILD')} @ ${revision} │ ${line}`
+      // In quiet mode the logs are collected into a string as-is,
+      // and are only printed if the build fails.
+      : (line:string)=>line)
+    let buildLogs = ''
+    if (!this.quiet) {
+      // In verbose mode, build logs are piped directly to the console
+      buildLogStream.pipe(process.stdout)
+    } else {
+      // In non-verbose mode, build logs are collected in a string
+      buildLogStream.on('data', data => buildLogs += data)
+    }
 
     // Run the build container
-    this.log.log(`Building from ${$(root).shortPath} @ ${revision}:`, cratesToBuild.map(x=>bold(x)).join(', '))
-    const buildName      = `fadroma-build-${sanitize($(root).name)}@${revision}`
-    const buildContainer = await this.image.run(buildName, options, command, '/usr/bin/env', logs)
+    this.log.runningBuildContainer(root, revision, cratesToBuild)
+    const buildName = `fadroma-build-${sanitize($(root).name)}@${revision}`
+    const buildContainer = await this.image.run(
+      buildName,      // container name
+      buildOptions,   // container options
+      buildCommand,   // container arguments
+      '/usr/bin/env', // container entrypoint command
+      buildLogStream  // container log stream
+    )
     const {Error: err, StatusCode: code} = await buildContainer.wait()
 
     // Throw error if launching the container failed
@@ -273,22 +337,19 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Throw error if the build failed
-    if (code !== 0) {
-      const crateList = cratesToBuild.join(' ')
-      this.log.error(
-        'Build of crates:',   bold(crateList),
-        'exited with status', bold(code)
-      )
-      throw new Error(
-        `[@fadroma/build] Build of crates: "${crateList}" exited with status ${code}`
-      )
-    }
-
-    const results = outputWasms.map(x=>this.locationToContract(x))
+    if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
 
     // Return a sparse array of the resulting artifacts
+    const results = outputWasms.map(x=>this.locationToContract(x))
     return results
 
+  }
+
+  protected buildFailed (crates: string[], code: string|number, logs: string) {
+    const crateList = crates.join(' ')
+    this.log.log(logs)
+    this.log.error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
+    throw new Error(`[@fadroma/build] Build of crates: "${crateList}" exited with status ${code}`)
   }
 
   protected locationToContract (location: any) {

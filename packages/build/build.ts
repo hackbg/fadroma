@@ -16,8 +16,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import type { TOMLFile } from '@hackbg/kabinet'
-import { Contract, Builder, HEAD } from '@fadroma/client'
+import type { TOMLFile } from '@hackbg/file'
+import type { Buildable } from '@fadroma/core'
+import { Contract, Builder, HEAD } from '@fadroma/core'
 
 import { BuilderConfig, LocalBuilder, buildPackage } from './build-base'
 import { BuildConsole }  from './build-events'
@@ -40,7 +41,7 @@ export async function buildCrates (
     workspace:  config.project,
     crate,
     revision
-  })))
+  }) as Buildable))
 }
 
 /** The parts of Cargo.toml which the builder needs to be aware of. */

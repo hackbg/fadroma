@@ -1,13 +1,13 @@
 import { Devnet, devnetPortModes } from './devnet-base'
 import type { DevnetOpts, DevnetPlatform, DevnetState } from './devnet-base'
 
-import { ClientConsole } from '@fadroma/client'
-import type { AgentOpts, DevnetHandle } from '@fadroma/client'
+import { ClientConsole } from '@fadroma/core'
+import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
-import * as Dokeres                   from '@hackbg/dokeres'
-import $, { JSONFile, JSONDirectory } from '@hackbg/kabinet'
-import { bold }                       from '@hackbg/konzola'
-import { freePort, waitPort }         from '@hackbg/portali'
+import * as Dokeres                   from '@hackbg/dock'
+import $, { JSONFile, JSONDirectory } from '@hackbg/file'
+import { bold }                       from '@hackbg/logs'
+import { freePort, waitPort }         from '@hackbg/port'
 
 import { dirname }       from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,13 +37,15 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   static dockerfiles: Record<DevnetPlatform, string> = {
     'scrt_1.2': $(devnetPackage, 'scrt_1_2.Dockerfile').path,
     'scrt_1.3': $(devnetPackage, 'scrt_1_3.Dockerfile').path,
-    'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path
+    'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path,
+    'scrt_1.5': $(devnetPackage, 'scrt_1_5.Dockerfile').path
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
     'scrt_1.2': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:unstable',
     'scrt_1.3': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:unstable',
     'scrt_1.4': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:unstable',
+    'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:unstable',
   }
 
   static initScriptMount = 'devnet.init.mjs'
@@ -60,7 +62,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    this.log.trace('Constructing devnet with', bold('@hackbg/dokeres'))
+    this.log.debug('Preparing a containerized devnet')
     this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
@@ -103,10 +105,10 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   async spawn () {
-    // tell the user that we have begun
-    this.log.info(`Spawning new node...`)
     // if no port is specified, use a random port
     this.port ??= (await freePort()) as number
+    // tell the user that we have begun
+    this.log.info(`Spawning new node to listen on`, bold(this.url))
     // create the state dirs and files
     const items = [this.stateRoot, this.nodeState]
     for (const item of items) {
@@ -119,7 +121,6 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     // run the container
     const containerName = `${this.chainId}-${this.port}`
     this.log.info('Creating and starting devnet container:', bold(containerName))
-    console.log(this.image)
     this.container = await this.image.run(
       containerName, this.spawnOptions, ['node', this.initScriptMount], '/usr/bin/env'
     )
@@ -134,6 +135,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   get spawnOptions () {
     const env: Record<string, string> = {
+      Verbose:         process.env.FADROMA_DEVNET_VERBOSE ? 'yes' : '',
       ChainID:         this.chainId,
       GenesisAccounts: this.genesisAccounts.join(' '),
     }

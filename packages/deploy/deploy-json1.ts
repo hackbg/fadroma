@@ -1,6 +1,6 @@
-import { timestamp } from '@hackbg/konzola'
-import { Contract, Deployment, DeployStore } from '@fadroma/client'
-import $, { Path, JSONDirectory } from '@hackbg/kabinet'
+import { timestamp } from '@hackbg/logs'
+import { Contract, Deployment, DeployStore } from '@fadroma/core'
+import $, { Path, JSONDirectory } from '@hackbg/file'
 
 /** JSON receipts. Importable from client libraries. */
 export class JSONDeployments_v1 extends DeployStore {

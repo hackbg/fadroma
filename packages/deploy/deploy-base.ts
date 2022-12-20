@@ -1,14 +1,14 @@
-import { bold } from '@hackbg/konzola'
-import $, { JSONFile } from '@hackbg/kabinet'
-import type { Path } from '@hackbg/kabinet'
-import { EnvConfig } from '@hackbg/konfizi'
-import type { Env } from '@hackbg/konfizi'
+import { bold } from '@hackbg/logs'
+import $, { JSONFile } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
+import { EnvConfig } from '@hackbg/conf'
+import type { Env } from '@hackbg/conf'
 
 import { Connector, ConnectConfig } from '@fadroma/connect'
-import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadroma/client'
+import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadroma/core'
 import type {
   Class, Client, Contract, DeploymentFormat, DeployStoreClass, UploaderClass
-} from '@fadroma/client'
+} from '@fadroma/core'
 
 import { FSUploader } from './upload'
 import { DeployError, DeployConsole } from './deploy-events'
@@ -16,11 +16,11 @@ import { DeployError, DeployConsole } from './deploy-events'
 /** Deployment system configuration and Deployer factory. */
 export class DeployConfig extends ConnectConfig {
   constructor (
-    readonly env: Env = {},
-    readonly cwd: string = '',
-    defaults: Partial<DeployConfig> = {}
+    defaults: Partial<DeployConfig> = {},
+    readonly env: Env    = process.env,
+    readonly cwd: string = process.cwd(),
   ) {
-    super(env, cwd, defaults as Partial<ConnectConfig>)
+    super(defaults as Partial<ConnectConfig>, env, cwd)
     this.override(defaults)
   }
   /** Project root. Defaults to current working directory. */
@@ -31,10 +31,10 @@ export class DeployConfig extends ConnectConfig {
   reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
   /** Directory to store the receipts for the deployed contracts. */
   uploads:  string  = this.getString ('FADROMA_UPLOAD_STATE',
-    () => $(this.project).in('receipts').in(this.chainId).in('uploads').path)
+    () => $(this.project).in('dist').in('receipts').in(this.chainId).in('uploads').path)
   /** Directory to store the receipts for the deployed contracts. */
   deploys:  string  = this.getString ('FADROMA_DEPLOY_STATE',
-    () => $(this.project).in('receipts').in(this.chainId).in('deployments').path)
+    () => $(this.project).in('dist').in('receipts').in(this.chainId).in('deployments').path)
   /** Which implementation of the receipt store to use. */
   deploymentFormat  = this.getString('FADROMA_DEPLOY_STORE', () => 'YAML1') as DeploymentFormat
   /** The deploy receipt store implementation selected by `deploymentFormat`. */
@@ -49,24 +49,20 @@ export class DeployConfig extends ConnectConfig {
   }
   /** Create a new populated Deployer, with the specified DeployStore.
     * @returns Deployer */
-  async getDeployer <D extends Deployer> (
-    $D: DeployerClass<D> = Deployer as DeployerClass<D>
-  ): Promise<D> {
+  async getDeployer <C extends Deployer, D extends DeployerClass<C>> (
+    $D: D = Deployer as D, ...args: ConstructorParameters<D>
+  ): Promise<C> {
+    const { chain, agent } = await this.getConnector()
+    const uploader = agent!.getUploader(FSUploader)
     const store = await this.getDeployStore()
-    store.defaults.uploader = await this.getUploader()
-    store.defaults.agent    = store.defaults.uploader.agent!
-    store.defaults.chain    = store.defaults.uploader.agent!.chain!
-    const { chain, agent, uploader } = store.defaults
+    store.defaults.agent    = agent!
+    store.defaults.chain    = chain!
+    store.defaults.uploader = uploader
     if (!chain) throw new Error('Missing chain')
-    const defaults = { chain, agent: agent??undefined/*l8r*/, uploader }
-    return new $D({ config: this, agent, uploader, store })
-  }
-  async getUploader <U extends Uploader> (
-    $U: UploaderClass<U> = FSUploader as UploaderClass<U>
-  ): Promise<U> {
-    const { chain, agent } = await super.getConnector()
-    if (!chain) throw new Error('Missing chain')
-    return new $U(agent, this.uploads) as U
+    args[0] = { config: this, agent, uploader, store, ...args[0] }
+    //@ts-ignore
+    const deployer = new $D(...args)
+    return deployer as unknown as C
   }
 }
 
@@ -84,7 +80,7 @@ export class Deployer extends Connector {
     const { store } = options
     if (store && store.active?.name) options.name = store.active.name
     super(options as Partial<Connector>)
-    this.config = new DeployConfig(this.env, this.cwd, options.config)
+    this.config = new DeployConfig(options.config, this.env, this.cwd)
     this.store  = options.store ?? this.store
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
     const chain = this.chain?.id ? bold(this.chain.id) : 'this chain'
@@ -112,7 +108,7 @@ export class Deployer extends Connector {
     const self = `${this.constructor.name} ${this.name}`
     if (this.store) {
       if (store) {
-        this.log.warn(`Overriding store for ${self}`)
+        this.log.warnOverridingStore(self)
       } else {
         // nop
       }
@@ -129,9 +125,11 @@ export class Deployer extends Connector {
     return this.store
   }
   async save () {
-    const store = await this.provideStore()
-    this.log.saving(this.name, this.state)
-    store.set(this.name, this.state)
+    if (this.chain && !this.chain.isMocknet) {
+      const store = await this.provideStore()
+      this.log.saving(this.name, this.state)
+      store.set(this.name, this.state)
+    }
   }
   /** Path to root of project directory. */
   get project (): Path|undefined {

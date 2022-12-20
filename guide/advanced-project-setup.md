@@ -180,7 +180,7 @@ fadroma::entrypoint!(fadroma, init, handle, query);
   "type":         "module",
   "main":         "api.ts",
   "dependencies": {
-    "@fadroma/client": "workspace:^6.1",
+    "@fadroma/core":   "workspace:^6.1",
     "@fadroma/tokens": "workspace:^5.1"
   }
 }

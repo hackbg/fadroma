@@ -1,9 +1,9 @@
-import type { Address, ChainId } from '@fadroma/client'
-import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
+import type { Address, ChainId, Fee } from '@fadroma/core'
+import { ClientConsole, ClientError, bold } from '@fadroma/core'
 
-export class ScrtError extends CustomError {
-  static UseAmino = this.define('UseAmino',
-    () => 'Use @fadroma/scrt-amino for the legacy API')
+export class ScrtError extends ClientError {
+  static NoAddress = this.define('NoAddress',
+    () => 'No address provided')
   static NoWalletOrMnemonic = this.define('NoWalletOrMnemonic',
     () => 'This Agent can only be created from mnemonic or wallet+address')
   static WrongChain = this.define('WrongChain',
@@ -13,21 +13,26 @@ export class ScrtError extends CustomError {
   static NoApi = this.define('NoApi',
     () => 'Missing API interface object')
   static NoApiUrl = this.define('NoApiUrl',
-    () => 'Missing gRPC API URL')
+    () => 'Missing API URL')
   static NoCodeId = this.define('NoCodeId',
     () => 'Need code ID to instantiate contract')
   static NoCodeHash = this.define('NoCodeHash',
     () => 'Missing code hash')
 }
 
-export class ScrtConsole extends CustomConsole {
-  name = '@fadroma/scrt'
+export class ScrtConsole extends ClientConsole {
+  label = '@fadroma/scrt'
   warnIgnoringKeyPair = () =>
     this.warn('ScrtGrpcAgent: Ignoring keyPair (only supported by ScrtAminoAgent)')
   warnIgnoringMnemonic = () =>
     this.warn('ScrtGrpcAgent: Created from wallet, ignoring mnemonic')
   warnNoMemos = () =>
     this.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
+  warnCouldNotFetchBlockLimit = (fees: Fee[]) =>
+    this.warn("ScrtGrpc: Could not fetch block gas limit, defaulting to:",
+      fees.map(fee=>fee.gas).join('/'))
+  warnGeneratedMnemonic = (mnemonic: string) =>
+    this.warn("ScrtGrpcAgent: No mnemonic passed, generated this one:", mnemonic)
   bundleMessages = (msgs: any, N: number) => {
     this.info(`\nMessages in bundle`, `#${N}:`)
     this.br()
