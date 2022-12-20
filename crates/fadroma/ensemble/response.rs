@@ -2,15 +2,18 @@ use std::iter::Iterator;
 
 use crate::{
     prelude::ContractLink,
-    cosmwasm_std::{Addr, Binary, Response, Coin}
+    cosmwasm_std::{Addr, Binary, Response, Coin, Reply, SubMsg}
 };
 
 #[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
 pub enum ResponseVariants {
     Instantiate(InstantiateResponse),
     Execute(ExecuteResponse),
+    Reply(ReplyResponse),
     Bank(BankResponse),
-    Staking(StakingResponse)
+    Staking(StakingResponse),
+    Distribution(DistributionResponse)
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -19,6 +22,8 @@ pub struct InstantiateResponse {
     pub sender: String,
     /// The address and code hash of the new instance.
     pub instance: ContractLink<Addr>,
+    /// Code ID of the instantiated contract.
+    pub code_id: u64,
     /// The init message that was sent.
     pub msg: Binary,
     /// The init response returned by the contract.
@@ -29,12 +34,24 @@ pub struct InstantiateResponse {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct ExecuteResponse {
-    /// The address that triggered the instantiation.
+    /// The address that triggered the execute.
     pub sender: String,
     /// The contract that was called.
-    pub target: String,
+    pub address: String,
     /// The execute message that was sent.
     pub msg: Binary,
+    /// The execute response returned by the contract.
+    pub response: Response,
+    /// The responses for any messages that the executed contract initiated.
+    pub sent: Vec<ResponseVariants>
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct ReplyResponse {
+    /// The contract that was called.
+    pub address: String,
+    /// The execute message that was sent.
+    pub reply: Reply,
     /// The execute response returned by the contract.
     pub response: Response,
     /// The responses for any messages that the executed contract initiated.
@@ -55,10 +72,52 @@ pub struct BankResponse {
 pub struct StakingResponse {
     /// The address that delegated the funds.
     pub sender: String,
-    /// The address of the validator where the funds were sent.
-    pub validator: String,
     /// The funds that were sent.
     pub amount: Coin,
+    /// The kind of staking operation that was performed.
+    pub kind: StakingOp
+}
+
+#[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
+pub enum StakingOp {
+    Delegate {
+        /// The address of the validator where the funds were sent.
+        validator: String
+    },
+    Undelegate {
+        /// The address of the validator where the funds were sent.
+        validator: String
+    },
+    Redelegate {
+        /// The address of the validator that the funds were redelegated from.
+        src_validator: String,
+        /// The address of the validator that the funds were redelegated to.
+        dst_validator: String
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct DistributionResponse {
+    /// The address that delegated the funds.
+    pub sender: String,
+    /// The kind of staking operation that was performed.
+    pub kind: DistributionOp
+}
+
+#[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
+pub enum DistributionOp {
+    WithdrawDelegatorReward {
+        /// The funds that were sent.
+        reward: Coin,
+        /// The address of the validator that the rewards where withdrawn from.
+        validator: String
+    },
+    SetWithdrawAddress {
+        /// The that rewards will be withdrawn to.
+        address: String
+    }
 }
 
 pub struct Iter<'a> {
@@ -95,8 +154,53 @@ impl ResponseVariants {
     }
 
     #[inline]
+    pub fn is_reply(&self) -> bool {
+        matches!(&self, Self::Reply(_))
+    }
+
+    #[inline]
     pub fn is_bank(&self) -> bool {
         matches!(&self, Self::Bank(_))
+    }
+
+    #[inline]
+    pub fn is_staking(&self) -> bool {
+        matches!(&self, Self::Staking(_))
+    }
+
+    /// Returns the messages that were created by this response.
+    /// Only instantiate, execute and reply can return a non-empty slice.
+    #[inline]
+    pub fn messages(&self) -> &[SubMsg] {
+        match self {
+            Self::Instantiate(resp) => &resp.response.messages,
+            Self::Execute(resp) => &resp.response.messages,
+            Self::Reply(resp) => &resp.response.messages,
+            Self::Bank(_) => &[],
+            Self::Staking(_) => &[],
+            Self::Distribution(_) => &[]
+        }
+    }
+
+    #[inline]
+    pub(crate) fn add_responses(&mut self, responses: Vec<Self>) {
+        match self {
+            Self::Instantiate(resp) => resp.sent.extend(responses),
+            Self::Execute(resp) => resp.sent.extend(responses),
+            Self::Reply(resp) => resp.sent.extend(responses),
+            Self::Bank(_) => panic!("Trying to add a child response to a BankResponse."),
+            Self::Staking(_) => panic!("Trying to add a child response to a StakingResponse."),
+            Self::Distribution(_) => panic!("Trying to add a child response to a DistributionResponse."),
+        }
+    }
+
+    pub(crate) fn response(&self) -> Option<&Response> {
+        match self {
+            Self::Instantiate(resp) => Some(&resp.response),
+            Self::Execute(resp) => Some(&resp.response),
+            Self::Reply(resp) => Some(&resp.response),
+            _ => None
+        }
     }
 }
 
@@ -114,6 +218,13 @@ impl From<ExecuteResponse> for ResponseVariants {
     }
 }
 
+impl From<ReplyResponse> for ResponseVariants {
+    #[inline]
+    fn from(value: ReplyResponse) -> Self {
+        Self::Reply(value)
+    }
+}
+
 impl From<BankResponse> for ResponseVariants {
     #[inline]
     fn from(value: BankResponse) -> Self {
@@ -121,16 +232,32 @@ impl From<BankResponse> for ResponseVariants {
     }
 }
 
+impl From<StakingResponse> for ResponseVariants {
+    #[inline]
+    fn from(value: StakingResponse) -> Self {
+        Self::Staking(value)
+    }
+}
+
+impl From<DistributionResponse> for ResponseVariants {
+    #[inline]
+    fn from(value: DistributionResponse) -> Self {
+        Self::Distribution(value)
+    }
+}
+
 impl<'a> Iter<'a> {
-    /// Yields all responses that were initiated by the given `sender`.
+    /// Yields all responses that were initiated by the given `sender`. Reply responses are not included.
     pub fn by_sender(self, sender: impl Into<String>) -> impl Iterator<Item = &'a ResponseVariants> {
         let sender = sender.into();
 
         self.filter(move |x| match x {
             ResponseVariants::Instantiate(resp) => resp.sender == sender,
             ResponseVariants::Execute(resp) => resp.sender == sender,
+            ResponseVariants::Reply(_) => false,
             ResponseVariants::Bank(resp) => resp.sender == sender,
             ResponseVariants::Staking(resp) => resp.sender == sender,
+            ResponseVariants::Distribution(resp) => resp.sender == sender,
         })
     }
 
@@ -146,10 +273,13 @@ impl<'a> Iter<'a> {
         match node {
             ResponseVariants::Execute(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
+            ResponseVariants::Reply(resp) =>
+                self.stack.extend(resp.sent.iter().rev()),
             ResponseVariants::Instantiate(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
             ResponseVariants::Bank(_) => { },
             ResponseVariants::Staking(_) => { },
+            ResponseVariants::Distribution(_) => { }
         }
     }
 }
@@ -209,7 +339,7 @@ mod tests {
 
                 if let ResponseVariants::Execute(exec) = &inst_2.sent[0] {
                     assert_eq!(exec.sender, "C");
-                    assert_eq!(exec.target, "D");
+                    assert_eq!(exec.address, "D");
                     assert_eq!(exec.sent.len(), 0);
                 } else {
                     panic!()
@@ -217,7 +347,7 @@ mod tests {
 
                 if let ResponseVariants::Execute(exec) = &inst_2.sent[1] {
                     assert_eq!(exec.sender, "C");
-                    assert_eq!(exec.target, "B");
+                    assert_eq!(exec.address, "B");
                     assert_eq!(exec.sent.len(), 0);
                 } else {
                     panic!()
@@ -229,7 +359,7 @@ mod tests {
             assert_eq!(iter.next().unwrap(), &inst.sent[1]);
             if let ResponseVariants::Execute(exec) = &inst.sent[1] {
                 assert_eq!(exec.sender, "B");
-                assert_eq!(exec.target, "D");
+                assert_eq!(exec.address, "D");
                 assert_eq!(exec.sent.len(), 0);
             } else {
                 panic!()
@@ -238,7 +368,7 @@ mod tests {
             assert_eq!(iter.next().unwrap(), &inst.sent[2]);
             if let ResponseVariants::Execute(exec) = &inst.sent[2] {
                 assert_eq!(exec.sender, "B");
-                assert_eq!(exec.target, "A");
+                assert_eq!(exec.address, "A");
                 assert_eq!(exec.sent.len(), 0);
             } else {
                 panic!()
@@ -291,7 +421,7 @@ mod tests {
 
         if let ResponseVariants::Execute(exec) = iter.next().unwrap() {
             assert_eq!(exec.sender, "C");
-            assert_eq!(exec.target, "D");
+            assert_eq!(exec.address, "D");
             assert_eq!(exec.msg, Binary::from(b"message_3"));
             assert_eq!(exec.sent.len(), 0);
         } else {
@@ -300,7 +430,7 @@ mod tests {
 
         if let ResponseVariants::Execute(exec) = iter.next().unwrap() {
             assert_eq!(exec.sender, "C");
-            assert_eq!(exec.target, "B");
+            assert_eq!(exec.address, "B");
             assert_eq!(exec.msg, Binary::from(b"message_4"));
             assert_eq!(exec.sent.len(), 0);
         } else {
@@ -355,12 +485,12 @@ mod tests {
         resp
     }
 
-    fn execute_resp(sender: impl Into<String>, target: impl Into<String>) -> ExecuteResponse {
+    fn execute_resp(sender: impl Into<String>, address: impl Into<String>) -> ExecuteResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = ExecuteResponse {
             sender: sender.into(),
-            target: target.into(),
+            address: address.into(),
             msg: Binary::from(format!("message_{}", index).as_bytes()),
             response: Response::default(),
             sent: vec![]
@@ -380,6 +510,7 @@ mod tests {
                 address: Addr::unchecked(""),
                 code_hash: String::new()
             },
+            code_id: 0,
             msg: Binary::from(format!("message_{}", index).as_bytes()),
             response: Response::default(),
             sent: vec![]

@@ -49,7 +49,7 @@ ensemble = [
   # Features
   "scrt",
   # Dependencies
-  "oorandom", "anyhow"
+  "oorandom", "anyhow", "time/formatting"
 ]
 
 crypto = [
@@ -67,7 +67,7 @@ snip20-impl = [
 ]
 
 experimental = [
-  "fadroma-proc-derive", "fadroma-proc-message"
+  "fadroma-proc-message"
 ]
 
 auth = [
@@ -85,8 +85,8 @@ fadroma-platform-scrt = { optional = true, path = "../fadroma-platform-scrt" }
 
 # Procedural macro crates
 fadroma-derive-canonize = { path = "../fadroma-derive-canonize" }
-fadroma-proc-auth = { optional = true, path = "../fadroma-proc-auth" }
-fadroma-proc-derive = { optional = true, path = "../fadroma-proc-derive" }
+fadroma-proc-derive = { path = "../fadroma-proc-derive" }
+fadroma-proc-auth = { path = "../fadroma-proc-auth" }
 fadroma-proc-message = { optional = true, path = "../fadroma-proc-message" }
 
 # Dependencies
@@ -103,6 +103,7 @@ bech32 = { optional = true, version = "0.8.1" }
 sha2 = { optional = true, version = "0.9.1", default-features = false }
 subtle = { optional = true, version = "2.4.0", default-features = false }
 anyhow = { optional = true, version = "1.0.65" }
+time = { optional = true, version = "0.3.17" }
 
 # Enable iterator for testing (not supported in production)
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]

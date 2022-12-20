@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use crate::prelude::*;
 use super::{
     EnsembleResult, EnsembleError,
-    response::StakingResponse
+    response::{
+        StakingResponse, StakingOp,
+        DistributionResponse, DistributionOp
+    }
 };
 
 #[derive(Clone, Debug)]
@@ -183,8 +186,10 @@ impl Delegations {
 
         Ok(StakingResponse {
             sender: delegator,
-            validator,
-            amount
+            amount,
+            kind: StakingOp::Delegate {
+                validator
+            }
         })
     }
 
@@ -228,8 +233,10 @@ impl Delegations {
                 
                 Ok(StakingResponse {
                     sender: delegator,
-                    validator,
-                    amount
+                    amount,
+                    kind: StakingOp::Undelegate {
+                        validator
+                    }
                 })
             },
             None => Err(EnsembleError::Staking("Delegation not found".into()))
@@ -240,7 +247,7 @@ impl Delegations {
         &mut self,
         delegator: String,
         validator: String,
-    ) -> EnsembleResult<StakingResponse> { 
+    ) -> EnsembleResult<DistributionResponse> { 
         match self.get_delegation(&delegator, &validator) {
             Some(delegation) => {
                 let new_delegation = DelegationWithUnbonding {
@@ -256,10 +263,12 @@ impl Delegations {
                 };
                 self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
                 
-                Ok(StakingResponse {
+                Ok(DistributionResponse {
                     sender: delegator,
-                    validator,
-                    amount: delegation.accumulated_rewards,
+                    kind: DistributionOp::WithdrawDelegatorReward {
+                        validator,
+                        reward: delegation.accumulated_rewards
+                    }
                 })
             },
             None => Err(EnsembleError::Staking("Delegation not found".into()))
@@ -305,7 +314,7 @@ impl Delegations {
                     },
                     accumulated_rewards: delegation.accumulated_rewards,
                 };
-                self.insert_delegation(delegator.clone(), src_validator, new_src_delegation);
+                self.insert_delegation(delegator.clone(), src_validator.clone(), new_src_delegation);
                 
                 // Check if delegation already exists with dst validator
                 match self.get_delegation(&delegator, &dst_validator) {
@@ -340,8 +349,11 @@ impl Delegations {
                 
                 Ok(StakingResponse {
                     sender: delegator,
-                    validator: dst_validator,
-                    amount
+                    amount,
+                    kind: StakingOp::Redelegate {
+                        src_validator,
+                        dst_validator
+                    }
                 })
             },
             None => Err(EnsembleError::Staking("Delegation not found".into()))

@@ -8,14 +8,14 @@ use crate::cosmwasm_std::{
 
 pub struct EnsembleQuerier {
     ctx: *const Context,
-    base: MockQuerier,
+    base: MockQuerier
 }
 
 impl EnsembleQuerier {
     pub(crate) fn new(ctx: &Context) -> Self {
         Self {
             ctx,
-            base: MockQuerier::new(&[]),
+            base: MockQuerier::new(&[])
         }
     }
 }
@@ -52,7 +52,7 @@ impl Querier for EnsembleQuerier {
                 WasmQuery::Smart {
                     contract_addr, msg, ..
                 } => {
-                    if !ctx.instances.contains_key(&contract_addr) {
+                    if ctx.state.instance(&contract_addr).is_err() {
                         return SystemResult::Err(SystemError::NoSuchContract {
                             addr: contract_addr
                         });
@@ -61,24 +61,28 @@ impl Querier for EnsembleQuerier {
                     querier_result!(ctx.query(&contract_addr, msg))
                 }
                 WasmQuery::Raw { contract_addr, .. } => {
-                    if !ctx.instances.contains_key(&contract_addr) {
-                        return SystemResult::Err(SystemError::NoSuchContract {
-                            addr: contract_addr
-                        });
+                    if cfg!(feature = "scrt") {
+                        panic!("Raw queries are unsupported in Secret Network - keys and values in raw storage are encrypted and must be queried through a smart query.");
+                    } else {
+                        if ctx.state.instance(&contract_addr).is_err() {
+                            return SystemResult::Err(SystemError::NoSuchContract {
+                                addr: contract_addr
+                            });
+                        }
+    
+                        todo!()
                     }
-
-                    todo!()
                 }
                 _ => unimplemented!(),
             },
             QueryRequest::Bank(query) => match query {
                 BankQuery::AllBalances { address } => {
-                    let amount = ctx.bank.readable().query_balances(&address, None);
+                    let amount = ctx.state.bank.query_balances(&address, None);
 
                     querier_result!(to_binary(&AllBalanceResponse { amount }))
                 }
                 BankQuery::Balance { address, denom } => {
-                    let amount = ctx.bank.readable().query_balances(&address, Some(denom));
+                    let amount = ctx.state.bank.query_balances(&address, Some(denom));
 
                     querier_result!(to_binary(&BalanceResponse {
                         amount: amount.into_iter().next().unwrap()

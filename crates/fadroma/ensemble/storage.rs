@@ -1,53 +1,60 @@
-use super::revertable::Revertable;
-use crate::prelude::*;
-use std::collections::BTreeMap;
-use std::iter;
-use std::ops::{Bound, RangeBounds};
+use std::{
+    iter,
+    mem,
+    collections::BTreeMap,
+    ops::{Bound, RangeBounds}
+};
 
-#[derive(Clone, Default, Debug)]
-pub struct TestStorage(BTreeMap<Vec<u8>, Vec<u8>>);
+use crate::cosmwasm_std::{
+    Storage, Record, Order
+};
 
-impl Storage for Revertable<TestStorage> {
-    #[inline]
-    fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.writable().set(key, value);
+use super::state::Op;
+
+#[derive(Clone, Debug)]
+pub struct TestStorage {
+    pub backing: BTreeMap<Vec<u8>, Vec<u8>>,
+    pub ops: Vec<Op>,
+    address: String
+}
+
+impl TestStorage {
+    pub fn new(address: impl Into<String>) -> Self {
+        Self {
+            address: address.into(),
+            backing: BTreeMap::default(),
+            ops: vec![]
+        }
     }
 
     #[inline]
-    fn remove(&mut self, key: &[u8]) {
-        self.writable().remove(key);
-    }
-
-    #[inline]
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.readable().get(key)
-    }
-
-    #[inline]
-    fn range<'a>(
-        &'a self,
-        start: Option<&[u8]>,
-        end: Option<&[u8]>,
-        order: Order,
-    ) -> Box<dyn Iterator<Item = Record> + 'a> {
-        self.readable().range(start, end, order)
+    pub fn ops(&mut self) -> Vec<Op> {
+        mem::take(&mut self.ops)
     }
 }
 
-// Copying cosmwasm_std::testing::MockStorage implementation,
-// because it doesn't implement clone
-
 impl Storage for TestStorage {
     fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.0.insert(key.to_vec(), value.to_vec());
+        let address = self.address.clone();
+        let old = self.get(key);
+        let key = key.to_vec();
+
+        self.backing.insert(key.clone(), value.to_vec());
+        self.ops.push(Op::StorageWrite { address, key, old });
     }
 
     fn remove(&mut self, key: &[u8]) {
-        self.0.remove(key);
+        if let Some(old) = self.backing.remove(key) {
+            self.ops.push(Op::StorageWrite {
+                address: self.address.clone(),
+                key: key.to_vec(),
+                old: Some(old)
+            });
+        }
     }
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.0.get(key).cloned()
+        self.backing.get(key).cloned()
     }
 
     fn range<'a>(
@@ -67,7 +74,7 @@ impl Storage for TestStorage {
             _ => {}
         }
 
-        let iter = self.0.range(bounds);
+        let iter = self.backing.range(bounds);
         match order {
             Order::Ascending => Box::new(iter.map(clone_item)),
             Order::Descending => Box::new(iter.rev().map(clone_item)),
