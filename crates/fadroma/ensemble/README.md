@@ -19,42 +19,56 @@ use path::to::contracts::oracle;
 pub struct Oracle;
 impl ContractHarness for Oracle {
     // Use the method from the default implementation
-    fn init(&self, _deps: &mut MockDeps, _env: Env, _msg: Binary) -> StdResult<InitResponse> {
+    fn instantiate(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response> {
         oracle::init(
             deps,
             env,
+            info,
             from_binary(&msg)?,
             oracle::DefaultImpl,
-        )
+        ).map_err(|x| anyhow::anyhow!(x))
     }
 
-    fn handle(&self, _deps: &mut MockDeps, _env: Env, _msg: Binary) -> StdResult<HandleResponse> {
+    fn execute(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response> {
          oracle::handle(
             deps,
             env,
+            info,
             from_binary(&msg)?,
             oracle::DefaultImpl,
-        )
+        ).map_err(|x| anyhow::anyhow!(x))
+    }
+
+    fn reply(&self, deps: DepsMut, env: Env, reply: Reply) -> AnyResult<Response> {
+        oracle::reply(
+            deps,
+            env,
+            reply,
+            oracle::DefaultImpl,
+        ).map_err(|x| anyhow::anyhow!(x))
     }
 
     // Override with some hardcoded value for the ease of testing
-    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
+    fn query(&self, deps: Deps, _env: Env, msg: Binary) -> AnyResult<Binary> {
         let msg = from_binary(&msg).unwrap();
-        match msg {
+
+        let result = match msg {
             oracle::QueryMsg::GetPrice { base_symbol: _, .. } => to_binary(&Uint128(1_000_000_000)),
             // don't override the rest
             _ => oracle::query(deps, from_binary(&msg)?, oracle::DefaultImpl)
-        }
+        }?;
+
+        result
     }
 }
 ```
 ### ContractEnsemble
-`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state and executing messages between contracts. Currently, supported messages are `CosmosMsg::Wasm` and `CosmosMsg::Bank`. It exposes methods like `register` for registering contract harnesses and `instantiate`, `execute`, `query` for interacting with contracts and methods to inspect/alter the raw storage if needed. Just like on the blockchain, if any contract returns an error during exection, all state is reverted.
+`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state and executing messages between contracts. Currently, supported messages are `CosmosMsg::Wasm` and `CosmosMsg::Bank`. It exposes methods like `register` for registering contract harnesses and `instantiate`, `execute`, `reply`, `query` for interacting with contracts and methods to inspect/alter the raw storage if needed. Just like on the blockchain, if any contract returns an error during exection, all state is reverted.
 
 ```rust
 #[test]
 fn test_query_price() {
-    let mut ensemble = ContractEnsemble::new(50);
+    let mut ensemble = ContractEnsemble::new();
 
     // register contract
     let oracle = ensemble.register(Box::new(Oracle));
@@ -65,12 +79,9 @@ fn test_query_price() {
         &{},
         MockEnv::new(
             "Admin",
-            ContractLink {
-                address: "oracle".into(),
-                code_hash: oracle.code_hash,
-            }
+            "oracle" // This will be the contract address
         )
-    ).unwrap();
+    ).unwrap().instance;
 
     // query
     let oracle::QueryMsg::GetPrice { price } = ensemble.query(
@@ -88,7 +99,7 @@ Since the ensemble is designed to simulate a blockchain environment it maintains
 Set the block height manually:
 
 ```rust
-let mut ensemble = ContractEnsemble::new(50);
+let mut ensemble = ContractEnsemble::new();
 
 ensemble.block_mut().height = 10;
 ensemble.block_mut().time = 10000;
