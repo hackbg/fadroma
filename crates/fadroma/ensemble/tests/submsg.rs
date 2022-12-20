@@ -612,6 +612,21 @@ fn only_successful_submsg_state_is_committed() {
 
     let state = c.c_state();
     assert_eq!(state.num, 1);
+
+    cmp_response_json(
+        &c.b_events(0).unwrap(),
+        "{\"events\":[{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: C\",\"encrypted\":true}]}],\"data\":\"SW5jcmVtZW50IGFtb3VudDogMQ==\"}"
+    );
+
+    assert_eq!(
+        c.b_events(1).unwrap_err().to_string(),
+        no_reply_stored_err(1).to_string()
+    );
+
+    cmp_response_json(
+        &c.a_events(2).unwrap(),
+        "{\"events\":[{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: A\\ncontract: B\",\"encrypted\":true}]},{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: C\",\"encrypted\":true}]},{\"type\":\"reply\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_reply\",\"value\":\"address: B, id: 0, success: true\",\"encrypted\":true}]},{\"type\":\"reply\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_reply\",\"value\":\"address: B, id: 1, success: false\",\"encrypted\":true}]}],\"data\":null}"
+    );
 }
 
 #[test]
@@ -1010,6 +1025,26 @@ fn error_bubbles_multiple_levels_up_the_stack() {
 
     let state = c.c_state();
     assert_eq!(state.num, 0);
+
+    assert_eq!(
+        c.b_events(0).unwrap_err().to_string(),
+        no_reply_stored_err(0).to_string()
+    );
+
+    assert_eq!(
+        c.c_events(1).unwrap_err().to_string(),
+        no_reply_stored_err(1).to_string()
+    );
+
+    assert_eq!(
+        c.b_events(2).unwrap_err().to_string(),
+        no_reply_stored_err(2).to_string()
+    );
+
+    assert_eq!(
+        c.a_events(3).unwrap_err().to_string(),
+        no_reply_stored_err(3).to_string()
+    );
 }
 
 #[test]
@@ -1214,6 +1249,31 @@ fn reply_responses_are_handled_correctly() {
 
     let state = c.c_state();
     assert_eq!(state.num, 5);
+
+    cmp_response_json(
+        &c.b_events(0).unwrap(),
+        "{\"events\":[{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: C\",\"encrypted\":true}]}],\"data\":\"SW5jcmVtZW50IGFtb3VudDogMQ==\"}"
+    );
+
+    cmp_response_json(
+        &c.b_events(1).unwrap(),
+        "{\"events\":[{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: C\",\"encrypted\":true}]}],\"data\":\"SW5jcmVtZW50IGFtb3VudDogMQ==\"}"
+    );
+
+    cmp_response_json(
+        &c.b_events(2).unwrap(),
+        "{\"events\":[{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"A\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"A\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"A\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: A\",\"encrypted\":true}]}],\"data\":\"SW5jcmVtZW50IGFtb3VudDogMQ==\"}"
+    );
+
+    cmp_response_json(
+        &c.a_events(3).unwrap(),
+        "{\"events\":[{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: A\\ncontract: B\",\"encrypted\":true}]},{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: C\",\"encrypted\":true}]},{\"type\":\"reply\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_reply\",\"value\":\"address: B, id: 0, success: true\",\"encrypted\":true}]},{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"A\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"A\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"A\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: A\",\"encrypted\":true}]},{\"type\":\"reply\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_reply\",\"value\":\"address: B, id: 2, success: true\",\"encrypted\":true}]},{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"C\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: B\\ncontract: C\",\"encrypted\":true}]},{\"type\":\"reply\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_reply\",\"value\":\"address: B, id: 1, success: true\",\"encrypted\":true}]}],\"data\":null}"
+    );
+
+    cmp_response_json(
+        &c.a_events(4).unwrap(),
+        "{\"events\":[{\"type\":\"execute\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"ANOTHER_TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"TEST_ATTR\",\"value\":\"test\",\"encrypted\":true},{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true}]},{\"type\":\"wasm-MSG_ORDER\",\"attributes\":[{\"key\":\"_contract_address\",\"value\":\"B\",\"encrypted\":true},{\"key\":\"submsg_execute\",\"value\":\"sender: A\\ncontract: B\",\"encrypted\":true}]}],\"data\":\"SW5jcmVtZW50IGFtb3VudDogMg==\"}"
+    );
 }
 
 #[test]
