@@ -34,35 +34,35 @@ macro_rules! impl_contract_harness_default {
         impl ContractHarness for $name {
             fn instantiate(
                 &self,
-                deps: &mut ensemble::MockDeps,
+                deps: cosmwasm_std::DepsMut,
                 env: cosmwasm_std::Env,
                 info: cosmwasm_std::MessageInfo,
                 msg: cosmwasm_std::Binary
             ) -> ensemble::AnyResult<cosmwasm_std::Response> {
-                let result = $module::instantiate(deps.as_mut(), env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+                let result = $module::instantiate(deps, env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
 
                 Ok(result)
             }
 
             fn execute(
                 &self,
-                deps: &mut ensemble::MockDeps,
+                deps: cosmwasm_std::DepsMut,
                 env: cosmwasm_std::Env,
                 info: cosmwasm_std::MessageInfo,
                 msg: cosmwasm_std::Binary
             ) -> ensemble::AnyResult<cosmwasm_std::Response> {
-                let result = $module::execute(deps.as_mut(), env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+                let result = $module::execute(deps, env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
 
                 Ok(result)
             }
 
             fn query(
                 &self,
-                deps: &ensemble::MockDeps,
+                deps: cosmwasm_std::Deps,
                 env: cosmwasm_std::Env,
                 msg: cosmwasm_std::Binary
             ) -> ensemble::AnyResult<cosmwasm_std::Binary> {
-                let result = $module::query(deps.as_ref(), env, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+                let result = $module::query(deps, env, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
 
                 Ok(result)
             }
