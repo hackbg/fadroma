@@ -70,10 +70,6 @@ experimental = [
   "fadroma-proc-message"
 ]
 
-auth = [
-  "fadroma-proc-auth"
-]
-
 # Old
 backtraces = [] # TODO set backtraces on components
 browser = [ "backtraces" ]
