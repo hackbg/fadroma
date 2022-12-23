@@ -120,6 +120,8 @@ pub enum DistributionOp {
     }
 }
 
+/// Iterator that iterates over all responses returned by
+/// the various modules in **order of execution**.
 pub struct Iter<'a> {
     responses: &'a [ResponseVariants],
     index: usize,

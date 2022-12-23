@@ -11,9 +11,10 @@ pub use scrt::serde;
 #[cfg(feature = "scrt")]
 pub mod core;
 
+// Tokenomics primitives
 pub mod tokens;
 
-// Contract scaffoldings
+// Contract scaffolding
 pub use fadroma_proc_derive as derive_contract;
 #[cfg(feature = "experimental")]
 pub mod composability;
@@ -28,12 +29,11 @@ pub mod permit;
 #[cfg(feature = "vk")]
 pub mod vk;
 
-// Tokenomics primitives
 #[cfg(feature = "crypto")]
 pub mod crypto;
 pub mod snip20;
 
-// Data and I/O helpers
+// Storage helpers
 pub mod storage;
 #[cfg(feature = "experimental")]
 pub use fadroma_proc_message as proc_message;
@@ -44,7 +44,6 @@ pub mod ensemble;
 /// **Start here.** `use fadroma::prelude::*` to get the essentials for
 /// writing smart contracts with Fadroma.
 pub mod prelude {
-
     /// Alias for `StdResult<()>`.
     pub type UsuallyOk = StdResult<()>;
 

@@ -4,11 +4,12 @@
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
 use crate::{
     prelude::*,
-    crypto::{Prng, sha_256, compare_slice_ct_time},
+    crypto::{Prng, sha_256},
     impl_canonize_default
 };
 use std::fmt;
 use serde::{Deserialize, Serialize};
+use subtle::ConstantTimeEq;
 
 pub mod vk_auth;
 
@@ -24,6 +25,11 @@ impl_canonize_default!(ViewingKey);
 
 pub fn create_hashed_password(s1: &str) -> [u8; VIEWING_KEY_SIZE] {
     sha_256(s1.as_bytes())
+}
+
+#[inline]
+fn compare_slice_ct_time(s1: &[u8], s2: &[u8]) -> bool {
+    bool::from(s1.ct_eq(s2))
 }
 
 impl ViewingKey {
@@ -66,14 +72,8 @@ impl fmt::Display for ViewingKey {
     }
 }
 
-impl From<&str> for ViewingKey {
-    fn from (vk: &str) -> Self {
-        ViewingKey(vk.into())
-    }
-}
-
-impl From<String> for ViewingKey {
-    fn from (vk: String) -> Self {
+impl<T: Into<String>> From<T> for ViewingKey {
+    fn from (vk: T) -> Self {
         ViewingKey(vk.into())
     }
 }

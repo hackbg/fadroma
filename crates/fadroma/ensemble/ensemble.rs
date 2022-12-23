@@ -38,6 +38,11 @@ pub type EnsembleResult<T> = core::result::Result<T, EnsembleError>;
 
 pub(crate) type SubMsgExecuteResult = EnsembleResult<(ResponseVariants, ProcessedEvents)>;
 
+/// The trait that allows the ensemble to execute your contract. Must be implemented
+/// for each contract that will participate in the shared execution. Usually implemented
+/// by calling the respective contract function for each method of the trait by passing
+/// down the parameters of the method and calling `cosmwasm_std::from_binary()` on the 
+/// `msg` parameter. It can also be used to implement a mock contract directly.
 pub trait ContractHarness {
     fn instantiate(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
 
@@ -69,6 +74,9 @@ pub(crate) struct ContractUpload {
 }
 
 impl ContractEnsemble {
+    /// Creates a new instance of the ensemble that will use
+    /// "uscrt" as the native coin when the `scrt` feature is
+    /// enabled. Otherwise, will use `uatom`.
     pub fn new() -> Self {
         #[cfg(feature = "scrt")]
         let denom = "uscrt";
@@ -81,12 +89,20 @@ impl ContractEnsemble {
         }
     }
 
+    /// Creates a new instance of the ensemble that will use
+    /// the provided denomination as the native coin.
     pub fn new_with_denom(native_denom: impl Into<String>) -> Self {
         Self {
             ctx: Box::new(Context::new(native_denom.into()))
         }
     }
 
+    /// Registers a contract with the ensemble which enables it to be
+    /// called by the sender or by other contracts. Corresponds to the
+    /// upload step of the real chain.
+    /// 
+    /// Returns the code id that must be use to create an instance of it
+    /// and its unique code hash.
     pub fn register(&mut self, code: Box<dyn ContractHarness>) -> ContractInstantiationInfo {
         let id = self.ctx.contracts.len() as u64;
         let code_hash = format!("test_contract_{}", id);
@@ -102,21 +118,31 @@ impl ContractEnsemble {
         }
     }
 
+    /// Returns a reference to the current block state.
     #[inline]
     pub fn block(&self) -> &Block {
         &self.ctx.block
     }
 
+    /// Returns a mutable reference to the current block state.
+    /// Can be used to manually advance the block time and height
+    /// or configure the auto advancement strategy. Auto advancement
+    /// occurs on successful message execution.
     #[inline]
     pub fn block_mut(&mut self) -> &mut Block {
         &mut self.ctx.block
     }
 
+    /// Sets that chain id string i.e `env.block.chain_id`.
     #[inline]
     pub fn set_chain_id(&mut self, id: impl Into<String>) {
         self.ctx.chain_id = id.into();
     }
 
+    /// Adds the given funds that will be associated with the
+    /// provided account's address. Can either be a contract or
+    /// a mock user's address. You need to use this method first
+    /// if you want to send a contract funds when using [`MockEnv::sent_funds`].
     #[inline]
     pub fn add_funds(&mut self, address: impl AsRef<str>, coins: Vec<Coin>) {
         for coin in coins {
@@ -124,11 +150,17 @@ impl ContractEnsemble {
         }
     }
 
+    /// Removes the given funds from the provided account's
+    /// address. Can either be a contract or a mock user's address.
+    /// The account must already exist and have at least the given amount
+    /// in order for this to be a success.
     #[inline]
     pub fn remove_funds(&mut self, address: impl AsRef<str>, coin: Coin) -> EnsembleResult<()> {
         self.ctx.state.bank.remove_funds(address.as_ref(), coin)
     }
 
+    /// Transfers funds from one account to another. The `from` address
+    /// must have the sufficient amount.
     #[inline]
     pub fn transfer_funds(
         &mut self,
@@ -143,21 +175,29 @@ impl ContractEnsemble {
         )
     }
 
+    /// Returns a reference to all the balances associated with the given
+    /// account. Returns [`None`] if the account doesn't exist or hasn't
+    /// received any funds before.
     #[inline]
     pub fn balances(&self, address: impl AsRef<str>) -> Option<&Balances> {
         self.ctx.state.bank.0.get(address.as_ref())
     }
 
+    /// Returns a mutable reference to all the balances associated with the
+    /// given account. Returns [`None`] if the account doesn't exist or hasn't
+    /// received any funds before.
     #[inline]
     pub fn balances_mut(&mut self, address: impl AsRef<str>) -> Option<&mut Balances> {
         self.ctx.state.bank.0.get_mut(address.as_ref())
     }
 
+    /// Returns all active delegations associated with the given address.
     #[inline]
     pub fn delegations(&self, address: impl AsRef<str>) -> Vec<Delegation> {
         self.ctx.delegations.all_delegations(address.as_ref())
     }
 
+    /// Creates a new delegation for the given address using the given validator.
     #[inline]
     pub fn delegation(
         &self,
@@ -169,17 +209,19 @@ impl ContractEnsemble {
             .delegation(delegator.as_ref(), validator.as_ref())
     }
 
+    /// Adds the validator to the validator list.
     #[inline]
     pub fn add_validator(&mut self, validator: Validator) {
         self.ctx.delegations.add_validator(validator);
     }
 
+    /// Distributes the given amount as rewards.
     #[inline]
-    pub fn add_rewards(&mut self, amount: Uint128) {
-        self.ctx.delegations.distribute_rewards(amount);
+    pub fn add_rewards(&mut self, amount: impl Into<Uint128>) {
+        self.ctx.delegations.distribute_rewards(amount.into());
     }
 
-    /// Re-allow redelegating and deposit unbondings
+    /// Re-allow redelegating and deposit unbondings.
     #[inline]
     pub fn fast_forward_delegation_waits(&mut self) {
         let unbondings = self.ctx.delegations.fast_forward_waits();
@@ -192,7 +234,9 @@ impl ContractEnsemble {
         }
     }
 
-    /// Returns an `Err` if a contract with `address` wasn't found.
+    /// Provides read access to the storage associated with the given contract address.
+    /// 
+    /// Returns `Err` if a contract with `address` wasn't found.
     #[inline]
     pub fn contract_storage<F>(&self, address: impl AsRef<str>, borrow: F) -> EnsembleResult<()>
         where F: FnOnce(&dyn Storage)
@@ -203,6 +247,8 @@ impl ContractEnsemble {
         Ok(())
     }
 
+    /// Provides write access to the storage associated with the given contract address.
+    /// 
     /// Returns an `Err` if a contract with `address` wasn't found. In case an error
     /// is returned from the closure, the updates to that storage are discarded.
     pub fn contract_storage_mut<F>(&mut self, address: impl AsRef<str>, mutate: F) -> EnsembleResult<()>
@@ -220,7 +266,14 @@ impl ContractEnsemble {
         result
     }
 
-    /// Returned address and code hash correspond to the values in `env`.
+    /// Creates a new contract instance using the given code id. The code id
+    /// must be obtained by calling the `register` methods first.
+    /// 
+    /// The contract will be assigned the address the was provided with
+    /// the `env.contract` parameter.
+    /// 
+    /// The `instance` field of the response will contain this address and
+    /// the code hash associated with this instance.
     pub fn instantiate<T: Serialize>(
         &mut self,
         code_id: u64,
@@ -247,7 +300,7 @@ impl ContractEnsemble {
         }
     }
 
-    /// Executes the contract with the address provided in `env`.
+    /// Executes the contract with the address provided in `env.contract`.
     pub fn execute<T: Serialize + ?Sized>(
         &mut self,
         msg: &T,
@@ -271,6 +324,8 @@ impl ContractEnsemble {
         }
     }
 
+    /// Queries the contract associated with the given address and
+    /// attempts to deserielize its response to the given type parameter.
     #[inline]
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
         &self,
@@ -283,6 +338,8 @@ impl ContractEnsemble {
         Ok(result)
     }
 
+    /// Queries the contract associated with the given address without
+    /// attempting to deserielize its response.
     #[inline]
     pub fn query_raw<T: Serialize + ?Sized>(
         &self,
@@ -294,7 +351,7 @@ impl ContractEnsemble {
 }
 
 impl Context {
-    pub fn new(native_denom: String) -> Self {
+    fn new(native_denom: String) -> Self {
         Self {
             contracts: vec![],
             state: State::new(),

@@ -5,12 +5,72 @@ use crate::cosmwasm_std::{
     StdResult, Uint64, Uint128, Uint256, Uint512, Decimal, Decimal256,
 };
 
+/// The trait that represents any type which contains a [`cosmwasm_std::Addr`]
+/// and needs to be stored since [`cosmwasm_std::Addr`] is usually converted
+/// to [`cosmwasm_std::CanonicalAddr`] first. The trait must be implemented on
+/// the non-canonical version of the type and the output of [`Canonize::canonize`] must
+/// return the canonical version of the same type which is represented by its sister trait
+/// [`Humanize`]. This relationship is enforced on the type level since [`Canonize::Output`]
+/// must implement [`Humanize`] and vice versa. 
+/// 
+/// This trait can be **derived** which does this automatically for you, provided that all fields of
+/// the given type implement the trait as well. Works on both generic and non-generic structs and enums.
+/// For non-generic types it generates a new type with the same name but with the word `Canon` postfix
+/// and all of its members have whatever the [`Canonize::Output`] is for their type.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use fadroma::cosmwasm_std::{self, Addr, CanonicalAddr, Uint128, testing::mock_dependencies};
+/// use fadroma::prelude::{Canonize, Humanize};
+/// 
+/// #[derive(Canonize, Clone, PartialEq, Debug)]
+/// struct Account {
+///     address: Addr,
+///     balance: Uint128,
+///     timestamp: u64
+/// }
+/// 
+/// #[derive(Canonize, Clone, PartialEq, Debug)]
+/// struct AccountGeneric<T> {
+///     address: T,
+///     balance: Uint128,
+///     timestamp: u64
+/// }
+/// 
+/// let deps = mock_dependencies();
+/// let api = deps.as_ref().api;
+/// 
+/// let account = Account {
+///     address: Addr::unchecked("address"),
+///     balance: Uint128::new(100),
+///     timestamp: 123
+/// };
+/// 
+/// let canonical: AccountCanon = account.clone().canonize(api).unwrap();
+/// let humanized = canonical.humanize(api).unwrap();
+/// 
+/// assert_eq!(account, humanized);
+/// 
+/// let account = AccountGeneric {
+///     address: Addr::unchecked("address"),
+///     balance: Uint128::new(100),
+///     timestamp: 123
+/// };
+/// 
+/// let canonical: AccountGeneric<CanonicalAddr> = account.clone().canonize(api).unwrap();
+/// let humanized = canonical.humanize(api).unwrap();
+/// 
+/// assert_eq!(account, humanized);
+/// ```
 pub trait Canonize {
     type Output: Humanize;
 
     fn canonize(self, api: &dyn Api) -> StdResult<Self::Output>;
 }
 
+/// The trait that represents the canonical version of the given type.
+/// See [`Canonize`] for more info.
 pub trait Humanize {
     type Output: Canonize;
 
@@ -18,8 +78,8 @@ pub trait Humanize {
 }
 
 /// Attempting to canonicalize an empty address will fail.
-/// This function skips calling `canonical_address` if the input is empty
-/// and returns `CanonicalAddr::default()` instead.
+/// This function skips calling [`cosmwasm_std::Api::addr_canonicalize`]
+/// if the input is empty and returns `CanonicalAddr::default()` instead.
 pub fn canonize_maybe_empty(api: &dyn Api, addr: &Addr) -> StdResult<CanonicalAddr> {
     Ok(if addr.as_str() == "" {
         CanonicalAddr(Binary(Vec::new()))
@@ -29,7 +89,7 @@ pub fn canonize_maybe_empty(api: &dyn Api, addr: &Addr) -> StdResult<CanonicalAd
 }
 
 /// Attempting to humanize an empty address will fail.
-/// This function skips calling `human_address` if the input is empty
+/// This function skips calling [`cosmwasm_std::Api::addr_humanize`] if the input is empty
 /// and returns `Addr::default()` instead.
 pub fn humanize_maybe_empty(api: &dyn Api, addr: &CanonicalAddr) -> StdResult<Addr> {
     Ok(if *addr == CanonicalAddr(Binary(Vec::new())) {
@@ -39,7 +99,8 @@ pub fn humanize_maybe_empty(api: &dyn Api, addr: &CanonicalAddr) -> StdResult<Ad
     })
 }
 
-/// Helper function that validates a collection of expected address strings.
+/// Validates a collection of strings that are expected to be valid addresses.
+#[inline]
 pub fn validate_addresses(api: &dyn Api, mut addresses: Vec<String>) -> StdResult<Vec<Addr>> {
     addresses
         .drain(..)
@@ -117,6 +178,9 @@ impl<T: Canonize> Canonize for Option<T> {
     }
 }
 
+/// Use on any type that **does not** contain a [`cosmwasm_std::Addr`].
+/// The implementation simply returns `Ok(self)` without doing any
+/// transformation.
 #[macro_export]
 macro_rules! impl_canonize_default {
     ($ty: ty) => {

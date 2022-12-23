@@ -12,7 +12,7 @@ pub enum EnsembleError {
     Std(StdError)
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum RegistryError {
     NotFound(String),
     IdNotFound(u64),
@@ -20,7 +20,7 @@ pub enum RegistryError {
     InvalidCodeHash(String),
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum AttributeError {
     EventTypeTooShort(String),
     KeyReserved(String),
@@ -29,6 +29,8 @@ pub enum AttributeError {
 }
 
 impl EnsembleError {
+    /// Returns the error that the executed contract returned.
+    /// Panics if not a contract error.
     #[inline]
     pub fn unwrap_contract_error(self) -> anyhow::Error {
         match self {
@@ -37,6 +39,8 @@ impl EnsembleError {
         }
     }
 
+    /// Returns `true` if the error occurred within the contract.
+    /// `false` otherwise.
     #[inline]
     pub fn is_contract_error(&self) -> bool {
         matches!(self, EnsembleError::ContractError(_))

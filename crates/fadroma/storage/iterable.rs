@@ -1,13 +1,15 @@
 use std::marker::PhantomData;
 
-use fadroma_platform_scrt::cosmwasm_std::{
+use crate::cosmwasm_std::{
     Storage, StdResult, StdError
 };
 use serde::{Serialize, de::DeserializeOwned};
 
 use super::{ns_load, ns_save, ns_remove};
 
-/// Stores items in a way that allows for iterating over them.
+/// Stores items in a way that allows for iterating over them
+/// in a sequential order just like a Vec. It's also possible to
+/// retrieve or update inidividual items based on their index.
 pub struct IterableStorage<'ns ,T: DeserializeOwned + Serialize> {
     ns: &'ns [u8],
     len: Option<u64>,
@@ -21,6 +23,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// The following namespaces are reserved by `IterableStorage`:
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
+    #[inline]
     pub fn new(ns: &'ns [u8]) -> Self {
         Self {
             ns,
@@ -30,14 +33,53 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     }
 
     #[inline]
+    /// Returns an iterator that iterates through the stored
+    /// elements in a sequential order.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::cosmwasm_std::testing::mock_dependencies;
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// storage.push(s, &1).unwrap();
+    /// storage.push(s, &2).unwrap();
+    /// 
+    /// let mut iter = storage.iter(s).unwrap();
+    /// assert_eq!(iter.next().unwrap(), Ok(1));
+    /// assert_eq!(iter.next().unwrap(), Ok(2));
+    /// assert_eq!(iter.next(), None)
+    /// ```
     pub fn iter<'storage>(
         &self,
         storage: &'storage dyn Storage
-    ) -> StdResult<StorageIterator<'storage, '_, T>> {
-        Ok(StorageIterator::new(storage, &self.ns, self.len(storage)?))
+    ) -> StdResult<Iter<'storage, '_, T>> {
+        Ok(Iter::new(storage, &self.ns, self.len(storage)?))
     }
 
     /// Returns the index at which the item is stored at.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::cosmwasm_std::testing::mock_dependencies;
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// 
+    /// let index = storage.push(s, &1).unwrap();
+    /// assert_eq!(index, 0);
+    /// 
+    /// let index = storage.push(s, &2).unwrap();
+    /// assert_eq!(index, 1);
+    /// ```
     pub fn push(&mut self, storage: &mut dyn Storage, value: &T) -> StdResult<u64> {
         let index = self.increment_index(storage)?;
         ns_save(storage, self.ns, &index.to_be_bytes(), value)?;
@@ -46,6 +88,26 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     }
 
     /// Removes the item at the end of the collection.
+    /// Does not return the removed element because that
+    /// requires a storage read.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::cosmwasm_std::testing::mock_dependencies;
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// 
+    /// storage.push(s, &1).unwrap();
+    /// assert_eq!(storage.len(s).unwrap(), 1);
+    /// 
+    /// storage.pop(s).unwrap();
+    /// assert_eq!(storage.len(s).unwrap(), 0);
+    /// ```
     pub fn pop(&mut self, storage: &mut dyn Storage) -> StdResult<()> {
         let index = self.decrement_index(storage)?;
         ns_remove(storage, self.ns, &index.to_be_bytes());
@@ -54,11 +116,53 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     }
 
     #[inline]
+    /// Retruns the element stored at the given index or [`None`] if the index is out of bounds.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::cosmwasm_std::testing::mock_dependencies;
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// storage.push(s, &1).unwrap();
+    /// 
+    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(1));
+    /// assert_eq!(storage.get_at(s, 1).unwrap(), None);
+    /// ```
     pub fn get_at(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<T>> {
         ns_load(storage, self.ns, &index.to_be_bytes())
     }
 
     /// Returns the value returned by the provided `update` closure or [`None`] if nothing is stored at the given `index`.
+    ///
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::cosmwasm_std::testing::mock_dependencies;
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// storage.push(s, &1).unwrap();
+    /// 
+    /// let add_one = |mut x| {
+    ///     x += 1;
+    ///     Ok(x)
+    /// };
+    /// 
+    /// let updated_val = storage.update_at(s, 0, add_one).unwrap();
+    /// assert_eq!(updated_val, Some(2));
+    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(2));
+    /// 
+    /// let updated_val = storage.update_at(s, 1, add_one).unwrap();
+    /// assert_eq!(updated_val, None);
+    /// ```
     pub fn update_at<F>(
         &self,
         storage: &mut dyn Storage,
@@ -81,9 +185,40 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     }
 
     /// Removes the element at the given index.
-    /// The removed element is replaced by the last element of the storage.
+    /// The removed element is replaced by the last element in the storage.
     /// Does not preserve ordering.
-    /// Returns the item that was swapped if such was necessary.
+    /// Returns the item **that was swapped** if such was necessary.
+    /// Return an error if the index is out of bounds.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::cosmwasm_std::{
+    ///     StdError,
+    ///     testing::mock_dependencies
+    /// };
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// storage.push(s, &1).unwrap();
+    /// storage.push(s, &2).unwrap();
+    /// 
+    /// let removed = storage.swap_remove(s, 0).unwrap();
+    /// // We had to move the number 2 to index 0 so this is what is returned.
+    /// assert_eq!(removed, Some(2));
+    /// assert_eq!(storage.len(s).unwrap(), 1);
+    /// 
+    /// let removed = storage.swap_remove(s, 0).unwrap();
+    /// // We removed the last element so no reordering was necessary.
+    /// assert_eq!(removed, None);
+    /// assert_eq!(storage.len(s).unwrap(), 0);
+    /// 
+    /// let err = storage.swap_remove(s, 0).unwrap_err();
+    /// assert_eq!(err, StdError::generic_err("IterableStorage: index out of bounds."));
+    /// ```
     pub fn swap_remove(&mut self, storage: &mut dyn Storage, index: u64) -> StdResult<Option<T>> {
         const ERR_MSG: &str = "IterableStorage: index out of bounds.";
 
@@ -111,6 +246,25 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         Ok(Some(last_item))
     }
 
+    /// Returns the number of element currently stored.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::cosmwasm_std::testing::mock_dependencies;
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// 
+    /// storage.push(s, &1).unwrap();
+    /// assert_eq!(storage.len(s).unwrap(), 1);
+    /// 
+    /// storage.pop(s).unwrap();
+    /// assert_eq!(storage.len(s).unwrap(), 0);
+    /// ```
     pub fn len(&self, storage: &dyn Storage) -> StdResult<u64> {
         if let Some(len) = self.len {
             return Ok(len)
@@ -142,7 +296,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     }
 }
 
-pub struct StorageIterator<'storage, 'ns, T: DeserializeOwned> {
+pub struct Iter<'storage, 'ns, T: DeserializeOwned> {
     storage: &'storage dyn Storage,
     ns: &'ns [u8],
     current: u64,
@@ -150,7 +304,7 @@ pub struct StorageIterator<'storage, 'ns, T: DeserializeOwned> {
     result: PhantomData<T>
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> StorageIterator<'storage, 'ns, T> {
+impl<'storage, 'ns, T: DeserializeOwned> Iter<'storage, 'ns, T> {
     pub fn new(storage: &'storage dyn Storage, ns: &'ns [u8], len: u64) -> Self {
         Self {
             storage,
@@ -166,7 +320,7 @@ impl<'storage, 'ns, T: DeserializeOwned> StorageIterator<'storage, 'ns, T> {
     }
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> Iterator for StorageIterator<'storage, 'ns, T> {
+impl<'storage, 'ns, T: DeserializeOwned> Iterator for Iter<'storage, 'ns, T> {
     type Item = StdResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -178,8 +332,7 @@ impl<'storage, 'ns, T: DeserializeOwned> Iterator for StorageIterator<'storage, 
             self.storage,
             &self.ns,
             &self.current.to_be_bytes()
-        )
-        .map(|x| x.unwrap());
+        ).map(|x| x.unwrap());
 
         self.current += 1;
 
@@ -197,7 +350,7 @@ impl<'storage, 'ns, T: DeserializeOwned> Iterator for StorageIterator<'storage, 
     }
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for StorageIterator<'storage, 'ns, T> {
+impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, 'ns, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.current >= self.end {
             return None;
@@ -221,7 +374,7 @@ impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for StorageIterator
     }
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> ExactSizeIterator for StorageIterator<'storage, 'ns, T> { }
+impl<'storage, 'ns, T: DeserializeOwned> ExactSizeIterator for Iter<'storage, 'ns, T> { }
 
 #[cfg(test)]
 mod tests {

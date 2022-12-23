@@ -70,7 +70,7 @@ pub fn ns_load <T: DeserializeOwned> (
     load(storage, &concat(namespace, key))
 }
 
-/// Concatenate a namespace and a key to get a namespaced key.
+/// Concatenate a namespace and a key to get a uniform key ready for storage.
 #[inline]
 pub fn concat(
     namespace: &[u8],

@@ -1,7 +1,7 @@
 use std::ops::Range;
 use oorandom::Rand64;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Block {
     pub height: u64,
     pub time: u64,

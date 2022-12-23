@@ -42,7 +42,9 @@ permit = [
 
 vk = [
   # Features
-  "scrt", "experimental", "crypto"
+  "scrt", "experimental", "crypto",
+  # Dependencies
+  "subtle"
 ]
 
 ensemble = [
@@ -56,7 +58,7 @@ crypto = [
   # Features
   "scrt",
   # Dependencies
-  "rand_core", "rand_chacha", "subtle", "sha2"
+  "rand_core", "rand_chacha", "sha2"
 ]
 
 snip20-impl = [

@@ -4,13 +4,18 @@ use crate::cosmwasm_std::{Addr, Coin};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MockEnv {
-    pub(crate) sender: Addr,
-    pub(crate) contract: Addr,
-    pub(crate) sent_funds: Vec<Coin>
+    pub sender: Addr,
+    pub contract: Addr,
+    pub sent_funds: Vec<Coin>
 }
 
 impl MockEnv {
-    /// Default values are what `cosmwasm_std::testing::mock_env` returns.
+    /// Constructs a new instance of [`MockEnv`].
+    /// 
+    /// # Arguments
+    ///
+    /// * `sender` - The address that executes the contract i.e `info.sender`.
+    /// * `contract` - The address of the contract to be executed i.e `env.contract.address`.
     pub fn new(sender: impl Into<String>, contract: impl Into<String>) -> Self {
         Self {
             sender: Addr::unchecked(sender),
@@ -19,6 +24,8 @@ impl MockEnv {
         }
     }
 
+    /// Any funds that the sender is transferring to the executed contract.
+    /// i.e `info.funds`.
     pub fn sent_funds(mut self, funds: Vec<Coin>) -> Self {
         self.sent_funds = funds;
 
