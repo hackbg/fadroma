@@ -233,7 +233,6 @@ impl_canonize_default!(char);
 impl_canonize_default!(bool);
 impl_canonize_default!(isize);
 impl_canonize_default!(usize);
-impl_canonize_default!(&str);
 
 impl_canonize_default!(Binary);
 impl_canonize_default!(Coin);

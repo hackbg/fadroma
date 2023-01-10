@@ -1,5 +1,5 @@
-//! *Feature flag: `composability`*
 //! Modular contracts using native trait composition.
+//! *Feature flag: `composability`*
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod tester;

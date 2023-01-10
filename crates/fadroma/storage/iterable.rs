@@ -296,6 +296,8 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     }
 }
 
+/// [`IterableStorage`] iterator. Iterates over values in order.
+/// You don't instantiate this type directly but by calling [`IterableStorage::iter`] instead.
 pub struct Iter<'storage, 'ns, T: DeserializeOwned> {
     storage: &'storage dyn Storage,
     ns: &'ns [u8],

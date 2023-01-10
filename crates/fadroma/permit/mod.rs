@@ -1,5 +1,5 @@
-//! *Feature flag: `permit`*
 //! Authentication using SNIP-24 query permits.
+//! *Feature flag: `permit`*
 
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};

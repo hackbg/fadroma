@@ -55,6 +55,85 @@ pub trait ContractHarness {
     }
 }
 
+/// This the main type in the system that takes care of registering and executing contracts,
+/// keeping the blockchain simulation state and allowing the manipulation of particular parameters
+/// such as account funds, blocks or contract state in order to efficiently simulate testing scenarios.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use fadroma::{
+///     cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, Response, Binary, from_binary, to_binary},
+///     storage::{load, save},
+///     ensemble::{ContractEnsemble, ContractHarness, MockEnv, EnsembleResult, AnyResult},
+///     serde::{Serialize, Deserialize},
+///     schemars::JsonSchema
+/// };
+/// 
+/// const NUMBER_KEY: &[u8] = b"number";
+/// 
+/// struct Counter;
+/// 
+/// #[derive(Serialize, Deserialize, JsonSchema)]
+/// #[serde(rename_all = "snake_case")]
+/// enum ExecuteMsg {
+///     Increment,
+///     Reset
+/// }
+/// 
+/// impl ContractHarness for Counter {
+///     fn instantiate(&self, deps: DepsMut, env: Env, info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
+///         Ok(Response::default())
+///     }
+///
+///     fn execute(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+///         match from_binary(&msg)? {
+///             ExecuteMsg::Increment => {
+///                 let mut number: u64 = load(deps.storage, NUMBER_KEY)?.unwrap_or_default();
+///                 number += 1;
+/// 
+///                 save(deps.storage, NUMBER_KEY, &number)?;
+///             },
+///             ExecuteMsg::Reset => save(deps.storage, NUMBER_KEY, &0u64)?
+///         };
+///  
+///         Ok(Response::default())
+///     }
+///
+///     fn query(&self, deps: Deps, env: Env, _msg: Binary) -> AnyResult<Binary> {
+///         let number: u64 = load(deps.storage, NUMBER_KEY)?.unwrap_or_default();
+///         let number = to_binary(&number)?;
+/// 
+///         Ok(number)
+///     }
+/// }
+/// 
+/// let mut ensemble = ContractEnsemble::new();
+/// let counter = ensemble.register(Box::new(Counter));
+/// let counter = ensemble.instantiate(
+///     counter.id,
+///     &(),
+///     MockEnv::new("sender", "counter_address")
+/// )
+/// .unwrap()
+/// .instance;
+/// 
+/// ensemble.execute(
+///     &ExecuteMsg::Increment,
+///     MockEnv::new("sender", counter.address.clone())
+/// ).unwrap();
+/// 
+/// let number: u64 = ensemble.query(&counter.address, &()).unwrap();
+/// assert_eq!(number, 1);
+/// 
+/// ensemble.execute(
+///     &ExecuteMsg::Reset,
+///     MockEnv::new("sender", counter.address.clone())
+/// ).unwrap();
+/// 
+/// let number: u64 = ensemble.query(&counter.address, &()).unwrap();
+/// assert_eq!(number, 0);
+/// ```
 #[derive(Debug)]
 pub struct ContractEnsemble {
     pub(crate) ctx: Box<Context>
@@ -178,6 +257,23 @@ impl ContractEnsemble {
     /// Returns a reference to all the balances associated with the given
     /// account. Returns [`None`] if the account doesn't exist or hasn't
     /// received any funds before.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::{
+    ///     ensemble::ContractEnsemble,
+    ///     cosmwasm_std::coin
+    /// };
+    /// 
+    /// let mut ensemble = ContractEnsemble::new();
+    /// ensemble.add_funds("wallet", vec![coin(100, "uscrt")]);
+    /// 
+    /// let balances = ensemble.balances("wallet").unwrap();
+    /// assert_eq!(balances.get("uscrt").unwrap().u128(), 100);
+    /// 
+    /// assert!(ensemble.balances("absent").is_none());
+    /// ```
     #[inline]
     pub fn balances(&self, address: impl AsRef<str>) -> Option<&Balances> {
         self.ctx.state.bank.0.get(address.as_ref())
@@ -186,6 +282,26 @@ impl ContractEnsemble {
     /// Returns a mutable reference to all the balances associated with the
     /// given account. Returns [`None`] if the account doesn't exist or hasn't
     /// received any funds before.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::{
+    ///     ensemble::ContractEnsemble,
+    ///     cosmwasm_std::{Uint128, coin}
+    /// };
+    /// 
+    /// let mut ensemble = ContractEnsemble::new();
+    /// ensemble.add_funds("wallet", vec![coin(100, "uscrt")]);
+    /// 
+    /// let balances = ensemble.balances_mut("wallet").unwrap();
+    /// let uscrt_balance = balances.get_mut("uscrt").unwrap();
+    /// *uscrt_balance -= Uint128::from(50u128);
+    ///
+    /// let balances = ensemble.balances("wallet").unwrap();
+    /// assert_eq!(balances.get("uscrt").unwrap().u128(), 50);
+    ///
+    /// assert!(ensemble.balances("absent").is_none());
     #[inline]
     pub fn balances_mut(&mut self, address: impl AsRef<str>) -> Option<&mut Balances> {
         self.ctx.state.bank.0.get_mut(address.as_ref())
@@ -267,7 +383,7 @@ impl ContractEnsemble {
     }
 
     /// Creates a new contract instance using the given code id. The code id
-    /// must be obtained by calling the `register` methods first.
+    /// must be obtained by calling the [`ContractEnsemble::register`] method first.
     /// 
     /// The contract will be assigned the address the was provided with
     /// the `env.contract` parameter.
@@ -325,7 +441,7 @@ impl ContractEnsemble {
     }
 
     /// Queries the contract associated with the given address and
-    /// attempts to deserielize its response to the given type parameter.
+    /// attempts to deserialize its response to the given type parameter.
     #[inline]
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
         &self,
@@ -339,7 +455,7 @@ impl ContractEnsemble {
     }
 
     /// Queries the contract associated with the given address without
-    /// attempting to deserielize its response.
+    /// attempting to deserialize its response.
     #[inline]
     pub fn query_raw<T: Serialize + ?Sized>(
         &self,

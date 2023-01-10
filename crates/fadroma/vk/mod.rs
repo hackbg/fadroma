@@ -1,5 +1,5 @@
-//! *Feature flag: `vk`*
 //! Viewing key authentication.
+//! *Feature flag: `vk`*
 
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
 use crate::{

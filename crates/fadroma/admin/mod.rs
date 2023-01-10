@@ -1,5 +1,5 @@
-//! *Feature flag: `admin`*
 //! Transaction authentication by pre-configured admin address.
+//! *Feature flag: `admin`*
 
 pub mod simple;
 pub mod two_step;

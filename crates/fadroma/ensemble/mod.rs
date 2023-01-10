@@ -1,5 +1,5 @@
+//! Test multiple contract interactions using unit tests.
 //! *Feature flag: `ensemble`*
-//! Configurable integration testing harness.
 
 mod bank;
 mod ensemble;

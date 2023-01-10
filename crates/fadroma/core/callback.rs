@@ -8,10 +8,10 @@ use super::link::ContractLink;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Canonize, Clone, Debug, PartialEq, JsonSchema)]
 /// Info needed to have the other contract respond.
 /// This was mainly only useful in CW 0.10 where reply
 /// functionality didn't exist yet.
+#[derive(Serialize, Deserialize, Canonize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Callback<A> {
     /// The message to call.
     pub msg: Binary,
