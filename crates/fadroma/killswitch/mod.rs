@@ -208,7 +208,7 @@ pub fn set_status(
 mod tests {
     use super::*;
 
-    use crate::admin::{self, Admin};
+    use crate::admin::{self, simple::SimpleAdmin};
     use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     #[test]
@@ -216,7 +216,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let admin = "admin";
 
-        admin::DefaultImpl
+        admin::simple::DefaultImpl
             .new(
                 Some(admin.into()),
                 deps.as_mut(),
