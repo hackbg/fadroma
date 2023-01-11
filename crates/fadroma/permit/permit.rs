@@ -1,11 +1,10 @@
-use bech32::ToBase32;
-use ripemd160::{Digest, Ripemd160};
-use secp256k1::Secp256k1;
-use sha2::Sha256;
+use bech32::{ToBase32, Variant};
+use ripemd::Ripemd160;
+use sha2::{Sha256, Digest};
 
 use crate::{
     cosmwasm_std::{
-        Uint128, Storage, CanonicalAddr, Binary,
+        Uint128, Deps, CanonicalAddr, Binary,
         StdResult, StdError, to_binary
     },
     serde::{Serialize, Deserialize},
@@ -36,12 +35,10 @@ impl<P: Permission> Permit<P> {
 
     pub(super) fn validate_impl(
         &self,
-        storage: &dyn Storage,
+        deps: Deps,
         current_contract_addr: &str,
         hrp: Option<&str>,
     ) -> StdResult<String> {
-        let account_hrp = hrp.unwrap_or("secret");
-
         if !self.check_contract(current_contract_addr) {
             return Err(StdError::generic_err(
                 self.check_contract_err(current_contract_addr),
@@ -49,50 +46,34 @@ impl<P: Permission> Permit<P> {
         }
 
         // Derive account from pubkey
-        let pubkey = &self.signature.pub_key.value;
-        let base32_addr = self.pubkey_to_account(pubkey).0.as_slice().to_base32();
-        let account: String =
-            bech32::encode(account_hrp, &base32_addr, bech32::Variant::Bech32).unwrap();
+        let account_hrp = hrp.unwrap_or("secret");
+        let base32_addr = self.pubkey_to_account().as_slice().to_base32();
+        let account: String = bech32::encode(account_hrp, base32_addr, Variant::Bech32).unwrap();
 
-        Self::assert_not_revoked(storage, &account, &self.params.permit_name)?;
+        Self::assert_not_revoked(deps.storage, &account, &self.params.permit_name)?;
 
         // Validate signature, reference: https://github.com/enigmampc/SecretNetwork/blob/f591ed0cb3af28608df3bf19d6cfb733cca48100/cosmwasm/packages/wasmi-runtime/src/crypto/secp256k1.rs#L49-L82
         let signed_bytes = to_binary(&SignedPermit::from_params(&self.params))?;
         let signed_bytes_hash = Sha256::digest(signed_bytes.as_slice());
 
-        let secp256k1_msg =
-            secp256k1::Message::from_slice(signed_bytes_hash.as_slice()).map_err(|err| {
-                StdError::generic_err(format!(
-                    "Failed to create a secp256k1 message from signed_bytes: {:?}",
-                    err
-                ))
-            })?;
+        let success = deps.api
+            .secp256k1_verify(&signed_bytes_hash, self.signature(), self.pubkey())
+            .map_err(|err| StdError::generic_err(err.to_string()))?;
 
-        let secp256k1_verifier = Secp256k1::verification_only();
-
-        let secp256k1_signature =
-            secp256k1::Signature::from_compact(&self.signature.signature.0)
-                .map_err(|err| StdError::generic_err(format!("Malformed signature: {:?}", err)))?;
-
-        let secp256k1_pubkey = secp256k1::PublicKey::from_slice(pubkey.0.as_slice())
-            .map_err(|err| StdError::generic_err(format!("Malformed pubkey: {:?}", err)))?;
-
-        secp256k1_verifier
-            .verify(&secp256k1_msg, &secp256k1_signature, &secp256k1_pubkey)
-            .map_err(|err| {
-                StdError::generic_err(format!(
-                    "Failed to verify signatures for the given permit: {:?}",
-                    err
-                ))
-            })?;
-
-        Ok(account)
+        if success {
+            Ok(account)
+        } else {
+            Err(StdError::generic_err(
+                "Failed to verify signatures for the given permit",
+            ))
+        }
     }
 
     #[inline]
-    fn pubkey_to_account(&self, pubkey: &Binary) -> CanonicalAddr {
+    fn pubkey_to_account(&self) -> CanonicalAddr {
         let mut hasher = Ripemd160::new();
-        hasher.update(Sha256::digest(&pubkey.0));
+        hasher.update(Sha256::digest(self.pubkey().as_slice()));
+
         CanonicalAddr(Binary(hasher.finalize().to_vec()))
     }
 }

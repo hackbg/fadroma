@@ -1,4 +1,5 @@
-//! SHA256 hashing and pseudo rng
+//! SHA256 hashing and pseudo rng.
+//! *Feature flag: `crypto`*
 
 use rand_chacha::ChaChaRng;
 use rand_core::{RngCore, SeedableRng};

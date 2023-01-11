@@ -1632,7 +1632,7 @@ fn permit_queries(
     permit: Permit<QueryPermission>,
     query: QueryWithPermit,
 ) -> Result<Binary, StdError> {
-    let validated_addr = permit.validate(deps.storage, env.contract.address.as_str(), None, &[])?;
+    let validated_addr = permit.validate(deps, env.contract.address.as_str(), None, &[])?;
     let account = Account::of(deps.api.addr_canonicalize(validated_addr.as_str())?);
 
     match query {

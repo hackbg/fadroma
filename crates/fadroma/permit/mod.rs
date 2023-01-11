@@ -66,13 +66,13 @@ impl<P: Permission> Permit<P> {
     /// the address that signed the permit.
     /// 
     /// # Parameters:
-    ///  - `storage`: Needed to check whether the permit has been revoked.
+    ///  - `deps`: Needed to check whether the permit has been revoked and verify signature.
     ///  - `current_contract_addr`: The contract address that is calling this function i.e `env.contract.address`.
     ///  - `hrp`: The address prefix i.e the "secret" part of the address "secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek". Should be left as `None` most of the time.
     ///  - `expected_permissions`: The permission set that the permit needs to contains in order to successfully pass verification. Pass an empty slice (`&[]`) if you don't need to check permissions.
     pub fn validate(
         &self,
-        storage: &dyn Storage,
+        deps: Deps,
         current_contract_addr: &str,
         hrp: Option<&str>,
         expected_permissions: &[P]
@@ -88,7 +88,7 @@ impl<P: Permission> Permit<P> {
             )));
         }
 
-        self.validate_impl(storage, current_contract_addr, hrp)
+        self.validate_impl(deps, current_contract_addr, hrp)
     }
 
     /// Checks if the permit has been revoked based on the `permit_name` parameter.

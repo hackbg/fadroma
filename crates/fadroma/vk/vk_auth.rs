@@ -47,7 +47,6 @@ pub enum AuthExecuteAnswer {
 // SNIP-20 compliance
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub enum AuthResponseStatus {
     Success,
     Failure,

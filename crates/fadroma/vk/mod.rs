@@ -14,23 +14,12 @@ use subtle::ConstantTimeEq;
 pub mod vk_auth;
 
 pub const VIEWING_KEY_SIZE: usize = 32;
-
 const VIEWING_KEY_PREFIX: &str = "api_key_";
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub struct ViewingKey(pub String);
 
 impl_canonize_default!(ViewingKey);
-
-pub fn create_hashed_password(s1: &str) -> [u8; VIEWING_KEY_SIZE] {
-    sha_256(s1.as_bytes())
-}
-
-#[inline]
-fn compare_slice_ct_time(s1: &[u8], s2: &[u8]) -> bool {
-    bool::from(s1.ct_eq(s2))
-}
 
 impl ViewingKey {
    pub fn new(env: &Env, info: &MessageInfo, seed: &[u8], entropy: &[u8]) -> Self {
@@ -64,6 +53,22 @@ impl ViewingKey {
 
         compare_slice_ct_time(&mine_hashed, hashed_pw)
     } 
+}
+
+#[inline]
+fn create_hashed_password(s1: &str) -> [u8; VIEWING_KEY_SIZE] {
+    sha_256(s1.as_bytes())
+}
+
+#[inline]
+fn compare_slice_ct_time(s1: &[u8], s2: &[u8]) -> bool {
+    bool::from(s1.ct_eq(s2))
+}
+
+impl AsRef<str> for ViewingKey {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
 }
 
 impl fmt::Display for ViewingKey {

@@ -1,5 +1,5 @@
 use crate::{
-    cosmwasm_std::{Storage, StdResult, StdError},
+    cosmwasm_std::{Deps, StdResult, StdError},
     serde::{Serialize, Deserialize},
     schemars::{self, JsonSchema}
 };
@@ -32,7 +32,7 @@ impl<P: Permission> Permit<P> {
 
     pub(super) fn validate_impl(
         &self,
-        storage: &dyn Storage,
+        deps: Deps,
         current_contract_addr: &str,
         _hrp: Option<&str>,
     ) -> StdResult<String> {
@@ -43,7 +43,7 @@ impl<P: Permission> Permit<P> {
         }
 
         Self::assert_not_revoked(
-            storage,
+            deps.storage,
             &self.address,
             &self.params.permit_name
         )?;
@@ -86,7 +86,7 @@ mod tests {
         let wrong_contract = "wrong_contract";
         let err = permit
             .validate(
-                &deps.storage,
+                deps.as_ref(),
                 wrong_contract,
                 None,
                 &permissions,
@@ -110,7 +110,7 @@ mod tests {
         let expected_permissions = vec![Permission::One, Permission::Two];
         let err = permit
             .validate(
-                &deps.storage,
+                deps.as_ref(),
                 contract_addr.clone().into(),
                 None,
                 &expected_permissions,
@@ -133,7 +133,7 @@ mod tests {
 
         let result = permit
             .validate(
-                &deps.storage,
+                deps.as_ref(),
                 contract_addr.into(),
                 None,
                 &permissions,
