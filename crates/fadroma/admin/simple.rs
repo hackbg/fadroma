@@ -3,6 +3,7 @@
 
 use crate::{
     cosmwasm_std::{self, StdResult, Response, Addr},
+    schemars,
     derive_contract::*
 };
 use super::{init_admin, save_admin, load_admin, assert_admin};

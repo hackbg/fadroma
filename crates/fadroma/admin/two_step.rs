@@ -7,6 +7,7 @@ use crate::{
         self, StdResult, Response, Addr,
         CanonicalAddr, Deps, DepsMut, StdError
     },
+    schemars,
     derive_contract::*
 };
 use super::{init_admin, save_admin, load_admin, assert_admin};
