@@ -50,7 +50,7 @@ pub struct PermitParams<P: Permission> {
     pub allowed_tokens: Vec<String>,
     pub permit_name: String,
     pub chain_id: String,
-    pub permissions: Vec<P>,
+    pub permissions: Vec<P>
 }
 
 impl<T: Serialize + JsonSchema + Clone + PartialEq> Permission for T {}
@@ -73,7 +73,7 @@ impl<P: Permission> Permit<P> {
     pub fn validate(
         &self,
         storage: &dyn Storage,
-        current_contract_addr: String,
+        current_contract_addr: &str,
         hrp: Option<&str>,
         expected_permissions: &[P]
     ) -> StdResult<String> {
@@ -83,7 +83,7 @@ impl<P: Permission> Permit<P> {
         {
             return Err(StdError::generic_err(format!(
                 "Expected permission(s): {}, got: {}",
-                print_permissions(&expected_permissions)?,
+                print_permissions(expected_permissions)?,
                 print_permissions(&self.params.permissions)?
             )));
         }
@@ -95,7 +95,7 @@ impl<P: Permission> Permit<P> {
     /// This is already being called by [`Permit::validate`].
     pub fn assert_not_revoked(
         storage: &dyn Storage,
-        account: &String,
+        account: &str,
         permit_name: &str,
     ) -> StdResult<()> {
         let key = [Self::NS_PERMITS, account.as_bytes(), permit_name.as_bytes()].concat();
@@ -104,7 +104,7 @@ impl<P: Permission> Permit<P> {
             return Err(StdError::generic_err(format!(
                 "Permit {:?} was revoked by account {:?}",
                 permit_name,
-                account.as_str()
+                account
             )));
         }
 
@@ -139,10 +139,10 @@ impl<P: Permission> Permit<P> {
     }
 
     #[inline]
-    fn check_contract_err(&self, current_contract_addr: String) -> String {
+    fn check_contract_err(&self, current_contract_addr: &str) -> String {
         format!(
             "Permit doesn't apply to contract {}, allowed contracts: {}",
-            current_contract_addr.as_str(),
+            current_contract_addr,
             self.params
                 .allowed_tokens
                 .iter()

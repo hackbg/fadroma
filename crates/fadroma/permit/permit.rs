@@ -20,7 +20,7 @@ use super::{Permission, PermitParams};
 #[serde(rename_all = "snake_case")]
 pub struct Permit<P: Permission> {
     pub params: PermitParams<P>,
-    signature: PermitSignature,
+    signature: PermitSignature
 }
 
 impl<P: Permission> Permit<P> {
@@ -37,12 +37,12 @@ impl<P: Permission> Permit<P> {
     pub(super) fn validate_impl(
         &self,
         storage: &dyn Storage,
-        current_contract_addr: String,
+        current_contract_addr: &str,
         hrp: Option<&str>,
     ) -> StdResult<String> {
         let account_hrp = hrp.unwrap_or("secret");
 
-        if !self.check_contract(&current_contract_addr) {
+        if !self.check_contract(current_contract_addr) {
             return Err(StdError::generic_err(
                 self.check_contract_err(current_contract_addr),
             ));

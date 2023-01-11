@@ -12,7 +12,7 @@ use super::{Permission, PermitParams};
 #[serde(rename_all = "snake_case")]
 pub struct Permit<P: Permission> {
     pub params: PermitParams<P>,
-    pub address: String,
+    pub address: String
 }
 
 impl<P: Permission> Permit<P> {
@@ -33,19 +33,19 @@ impl<P: Permission> Permit<P> {
     pub(super) fn validate_impl(
         &self,
         storage: &dyn Storage,
-        current_contract_addr: String,
+        current_contract_addr: &str,
         _hrp: Option<&str>,
     ) -> StdResult<String> {
-        if !self.check_contract(&current_contract_addr) {
+        if !self.check_contract(current_contract_addr) {
             return Err(StdError::generic_err(
-                self.check_contract_err(current_contract_addr),
+                self.check_contract_err(current_contract_addr)
             ));
         }
 
         Self::assert_not_revoked(
             storage,
-            &current_contract_addr,
-            &self.params.permit_name,
+            &self.address,
+            &self.params.permit_name
         )?;
 
         Ok(self.address.clone())
@@ -57,10 +57,7 @@ mod tests {
     use super::*;
     use crate::{
         permit::print_permissions,
-        cosmwasm_std::{
-            Addr,
-            testing::mock_dependencies
-        }
+        cosmwasm_std::testing::mock_dependencies
     };
 
     #[test]
@@ -74,11 +71,11 @@ mod tests {
 
         let ref mut deps = mock_dependencies();
 
-        let contract_addr = Addr::unchecked("contract");
+        let contract_addr = "contract";
         let permissions = vec![Permission::One];
         let sender = "sender";
 
-        let params = PermitParams::new(contract_addr.clone())
+        let params = PermitParams::new(contract_addr)
             .permissions(permissions.clone());
 
         let permit = Permit::new(
@@ -86,11 +83,11 @@ mod tests {
             params
         );
 
-        let wrong_contract = Addr::unchecked("wrong_contract");
+        let wrong_contract = "wrong_contract";
         let err = permit
             .validate(
                 &deps.storage,
-                wrong_contract.clone().into(),
+                wrong_contract,
                 None,
                 &permissions,
             )
@@ -102,8 +99,8 @@ mod tests {
                     msg,
                     format!(
                         "Permit doesn't apply to contract {}, allowed contracts: {}",
-                        wrong_contract.as_str(),
-                        contract_addr.as_str()
+                        wrong_contract,
+                        contract_addr
                     )
                 )
             }
