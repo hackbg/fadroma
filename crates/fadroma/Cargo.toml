@@ -81,7 +81,7 @@ fadroma-platform-scrt = { optional = true, path = "../fadroma-platform-scrt" }
 fadroma-derive-canonize = { path = "../fadroma-derive-canonize" }
 fadroma-proc-derive = { path = "../fadroma-proc-derive" }
 fadroma-proc-auth = { path = "../fadroma-proc-auth" }
-fadroma-proc-message = { optional = true, path = "../fadroma-proc-message" }
+fadroma-proc-message = { path = "../fadroma-proc-message" }
 
 # Dependencies
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
