@@ -16,8 +16,6 @@ pub mod tokens;
 
 // Contract scaffolding
 pub use fadroma_proc_derive as derive_contract;
-#[cfg(feature = "experimental")]
-pub mod composability;
 
 // Safety features
 pub mod killswitch;
@@ -35,7 +33,6 @@ pub mod snip20;
 
 // Storage helpers
 pub mod storage;
-#[cfg(feature = "experimental")]
 pub use fadroma_proc_message as proc_message;
 // Testing system
 #[cfg(all(feature = "ensemble", not(target_arch = "wasm32")))]
@@ -65,7 +62,6 @@ pub mod prelude {
 
     pub use crate::storage::{load, ns_load, ns_remove, ns_save, remove, save};
 
-    #[cfg(feature = "experimental")]
     pub use crate::proc_message::message;
 
     #[cfg(feature = "vk")]
@@ -73,9 +69,6 @@ pub mod prelude {
 
     #[cfg(feature = "permit")]
     pub use crate::permit::{Permission, Permit};
-
-    #[cfg(feature = "experimental")]
-    pub use crate::composability::Composable;
 }
 
 /// Define the `mod wasm` entrypoint of production builds.

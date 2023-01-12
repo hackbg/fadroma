@@ -42,7 +42,7 @@ permit = [
 
 vk = [
   # Features
-  "scrt", "experimental", "crypto",
+  "scrt", "crypto",
   # Dependencies
   "subtle"
 ]
@@ -66,10 +66,6 @@ snip20-impl = [
   "scrt", "permit", "vk",
   # Dependencies
   "schemars"
-]
-
-experimental = [
-  "fadroma-proc-message"
 ]
 
 # Old
