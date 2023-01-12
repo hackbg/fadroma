@@ -3,6 +3,7 @@ use crate::{
     prelude::{
         load, ns_load, ns_save, save, Addr, BlockInfo, CanonicalAddr,
         Deps, Humanize, StdError, StdResult, Storage, Uint128, ViewingKey,
+        ViewingKeyHashed
     }
 };
 
@@ -253,7 +254,7 @@ impl Account {
         Ok(result.unwrap_or_default())
     }
 
-    pub fn get_viewing_key(&self, storage: &dyn Storage) -> StdResult<Option<Vec<u8>>> {
+    pub fn get_viewing_key(&self, storage: &dyn Storage) -> StdResult<Option<ViewingKeyHashed>> {
         ns_load(storage, Self::NS_VIEWING_KEY, self.addr.as_slice())
     }
 

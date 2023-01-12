@@ -69,7 +69,7 @@ pub mod prelude {
     pub use crate::proc_message::message;
 
     #[cfg(feature = "vk")]
-    pub use crate::vk::ViewingKey;
+    pub use crate::vk::{ViewingKey, ViewingKeyHashed};
 
     #[cfg(feature = "permit")]
     pub use crate::permit::{Permission, Permit};

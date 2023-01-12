@@ -2,7 +2,7 @@
 
 use crate::{
     crypto::sha_256,
-    vk::{ViewingKey, VIEWING_KEY_SIZE},
+    vk::{ViewingKey, ViewingKeyHashed},
     snip20::client::msg::*,
     cosmwasm_std::{
         from_binary,
@@ -518,7 +518,7 @@ fn test_handle_create_viewing_key() {
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
 
     let saved_vk = bob.get_viewing_key(deps.as_ref().storage).unwrap().unwrap();
-    assert!(key.check_viewing_key(saved_vk.as_slice()));
+    assert!(key.check_hashed(&saved_vk));
 }
 
 #[test]
@@ -550,7 +550,7 @@ fn test_handle_set_viewing_key() {
     );
 
     // Set valid VK
-    let actual_vk = ViewingKey("x".to_string().repeat(VIEWING_KEY_SIZE));
+    let actual_vk = ViewingKey("x".to_string().repeat(ViewingKeyHashed::SIZE));
     let handle_msg = ExecuteMsg::SetViewingKey {
         key: actual_vk.0.clone(),
         padding: None,
@@ -569,7 +569,7 @@ fn test_handle_set_viewing_key() {
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
 
     let saved_vk = bob.get_viewing_key(deps.as_ref().storage).unwrap().unwrap();
-    assert!(actual_vk.check_viewing_key(&saved_vk));
+    assert!(actual_vk.check_hashed(&saved_vk));
 }
 
 #[test]

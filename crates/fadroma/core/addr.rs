@@ -140,6 +140,54 @@ impl Canonize for &Addr {
     }
 }
 
+impl Humanize for &[CanonicalAddr] {
+    type Output = Vec<Addr>;
+
+    fn humanize(self, api: &dyn Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| x.humanize(api)).collect()
+    }
+}
+
+impl Canonize for &[Addr] {
+    type Output = Vec<CanonicalAddr>;
+
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| x.canonize(api)).collect()
+    }
+}
+
+impl Humanize for &[&CanonicalAddr] {
+    type Output = Vec<Addr>;
+
+    fn humanize(self, api: &dyn Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| x.humanize(api)).collect()
+    }
+}
+
+impl Canonize for &[&Addr] {
+    type Output = Vec<CanonicalAddr>;
+
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| x.canonize(api)).collect()
+    }
+}
+
+impl Canonize for &[String] {
+    type Output = Vec<CanonicalAddr>;
+
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| api.addr_canonicalize(x)).collect()
+    }
+}
+
+impl Canonize for &[&str] {
+    type Output = Vec<CanonicalAddr>;
+
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| api.addr_canonicalize(x)).collect()
+    }
+}
+
 impl<T: Humanize> Humanize for Vec<T> {
     type Output = Vec<T::Output>;
 

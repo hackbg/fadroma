@@ -1,7 +1,6 @@
 use crate::{
     prelude::*,
     crypto::sha_256,
-    vk::VIEWING_KEY_SIZE,
     snip20::client::msg::{
         ExecuteAnswer, ExecuteMsg, QueryAnswer, QueryMsg, QueryPermission,
         QueryWithPermit, ResponseStatus, ContractStatusLevel, MintAction,
@@ -814,8 +813,7 @@ pub trait Snip20 {
 
         check_if_admin(deps.as_ref(), &info.sender)?;
 
-        let canonized_minters = canonize_addresses(deps.api, minters_to_add)?;
-
+        let canonized_minters = minters_to_add.as_slice().canonize(deps.api)?;
         Config::add_minters(deps.storage, canonized_minters)?;
 
         Ok(
@@ -841,8 +839,7 @@ pub trait Snip20 {
 
         check_if_admin(deps.as_ref(), &info.sender)?;
 
-        let canonized_minters = canonize_addresses(deps.api, minters_to_remove)?;
-
+        let canonized_minters = minters_to_remove.as_slice().canonize(deps.api)?;
         Config::remove_minters(deps.storage, canonized_minters)?;
 
         Ok(
@@ -868,8 +865,7 @@ pub trait Snip20 {
 
         check_if_admin(deps.as_ref(), &info.sender)?;
 
-        let canonized_minters = canonize_addresses(deps.api, minters_to_set)?;
-
+        let canonized_minters = minters_to_set.as_slice().canonize(deps.api)?;
         Config::set_minters(deps.storage, canonized_minters)?;
 
         Ok(
@@ -1594,8 +1590,8 @@ fn viewing_keys_queries(
         if expected_key.is_none() {
             // Checking the key will take significant time. We don't want to exit immediately if it isn't set
             // in a way which will allow to time the command and determine if a viewing key doesn't exist
-            key.check_viewing_key(&[0u8; VIEWING_KEY_SIZE]);
-        } else if key.check_viewing_key(expected_key.unwrap().as_slice()) {
+            ViewingKeyHashed::default().check(&ViewingKeyHashed::default());
+        } else if key.check_hashed(&expected_key.unwrap()) {
             return match msg {
                 // Base
                 QueryMsg::Balance { .. } => snip20.query_balance(deps, env, account),
@@ -1687,11 +1683,4 @@ fn permit_queries(
             snip20.query_allowance(deps, env, owner, spender)
         }
     }
-}
-
-fn canonize_addresses(api: &dyn Api, addresses: Vec<String>) -> StdResult<Vec<CanonicalAddr>> {
-    addresses
-        .iter()
-        .map(|addr| api.addr_canonicalize(addr.as_str()))
-        .collect()
 }
