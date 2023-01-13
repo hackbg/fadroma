@@ -209,7 +209,7 @@ mod tests {
     use super::*;
 
     use crate::admin::{self, simple::SimpleAdmin};
-    use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use crate::cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     #[test]
     fn test_migrate() {

@@ -1,4 +1,7 @@
-use crate::scrt::{cosmwasm_std::{StdResult, Response}, space_pad, BLOCK_SIZE};
+use crate::{
+    cosmwasm_std::{StdResult, Response},
+    scrt::{space_pad, BLOCK_SIZE}
+};
 
 pub fn pad_response(response: StdResult<Response>) -> StdResult<Response> {
     response.map(|mut response| {

@@ -381,7 +381,7 @@ impl<'storage, 'ns, T: DeserializeOwned> ExactSizeIterator for Iter<'storage, 'n
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fadroma_platform_scrt::cosmwasm_std::testing::mock_dependencies;
+    use crate::cosmwasm_std::testing::mock_dependencies;
 
     #[test]
     fn iterable_storage_insertion() {

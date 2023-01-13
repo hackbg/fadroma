@@ -1,5 +1,4 @@
 //! Command SNIP-20 tokens from a contract.
-//! *Feature flag: `snip20-client`*
 
 use crate::{
     core::ContractLink,

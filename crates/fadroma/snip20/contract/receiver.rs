@@ -1,10 +1,10 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
 
-use crate::scrt::{
+use crate::{
     cosmwasm_std::{
         Addr, Uint128, Binary, StdResult, CosmosMsg, WasmMsg, to_binary
     },
-    BLOCK_SIZE, space_pad
+    scrt::{BLOCK_SIZE, space_pad}
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

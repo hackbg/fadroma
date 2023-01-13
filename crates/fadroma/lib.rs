@@ -1,15 +1,15 @@
-// Supported platforms
-#[cfg(feature = "scrt")]
-pub use fadroma_platform_scrt as scrt;
-#[cfg(feature = "scrt")]
-pub use scrt::cosmwasm_std;
-#[cfg(feature = "scrt")]
-pub use scrt::schemars;
-#[cfg(feature = "scrt")]
-pub use scrt::serde;
+//#[cfg(not(feature = "scrt"))]
+//std::compile_error!("Fadroma only currently supports Secret Network so the \"scrt\" feature must be enabled.");
 
 #[cfg(feature = "scrt")]
+pub use secret_cosmwasm_std as cosmwasm_std;
+pub use schemars;
+pub use serde;
+
 pub mod core;
+
+#[cfg(feature = "scrt")]
+pub mod scrt;
 
 // Tokenomics primitives
 pub mod tokens;
@@ -42,22 +42,19 @@ pub mod ensemble;
 /// writing smart contracts with Fadroma.
 pub mod prelude {
     /// Alias for `StdResult<()>`.
-    pub type UsuallyOk = StdResult<()>;
+    pub type UsuallyOk = cosmwasm_std::StdResult<()>;
 
     /// Alias for `StdResult<Option<V>>`.
-    pub type Eventually<V> = StdResult<Option<V>>;
+    pub type Eventually<V> = cosmwasm_std::StdResult<Option<V>>;
 
     pub use crate::core::*;
 
+    pub use crate::cosmwasm_std::{self, *};
     #[cfg(feature = "scrt")]
-    pub use crate::scrt::{
-        cosmwasm_std::{self, *},
-        *,
-    };
+    pub use crate::scrt::*;
 
     pub use crate::tokens::*;
 
-    #[cfg(feature = "scrt")]
     pub use schemars::{self, JsonSchema};
 
     pub use crate::storage::{load, ns_load, ns_remove, ns_save, remove, save};
