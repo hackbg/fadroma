@@ -16,7 +16,6 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"eXDXajOxRG";
 
 // Config
 #[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct Constants {
     pub name: String,
     pub symbol: String,

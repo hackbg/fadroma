@@ -1,5 +1,3 @@
-#![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
-
 use crate::{
     cosmwasm_std::{
         Addr, Uint128, Binary, StdResult, CosmosMsg, WasmMsg, to_binary
@@ -12,7 +10,6 @@ use serde::{Deserialize, Serialize};
 /// Snip20ReceiveMsg should be de/serialized under `Receive()` variant in a HandleMsg
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub struct Snip20ReceiveMsg {
     pub sender: Addr,
     pub from: Addr,
@@ -69,7 +66,6 @@ impl Snip20ReceiveMsg {
 // This is just a helper to properly serialize the above message
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 enum ReceiverHandleMsg {
     Receive(Snip20ReceiveMsg),
 }

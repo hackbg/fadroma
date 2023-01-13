@@ -1,9 +1,13 @@
 use super::ensemble::Context;
 use crate::cosmwasm_std::{
-    Querier, QueryRequest, WasmQuery, BankQuery, StakingQuery, QuerierResult, SystemResult,
-    SystemError, ContractResult, Empty, AllBalanceResponse, BalanceResponse, ValidatorResponse,
-    AllValidatorsResponse, AllDelegationsResponse, BondedDenomResponse, from_slice, to_binary,
-    testing::MockQuerier
+    Querier, QueryRequest, WasmQuery, BankQuery, QuerierResult, SystemResult,
+    SystemError, ContractResult, Empty, AllBalanceResponse, BalanceResponse,
+    from_slice, to_binary, testing::MockQuerier
+};
+#[cfg(feature = "ensemble-staking")]
+use crate::cosmwasm_std::{
+    ValidatorResponse, AllValidatorsResponse, AllDelegationsResponse,
+    BondedDenomResponse, StakingQuery
 };
 
 pub struct EnsembleQuerier {
@@ -90,6 +94,7 @@ impl Querier for EnsembleQuerier {
                 }
                 _ => unimplemented!(),
             },
+            #[cfg(feature = "ensemble-staking")]
             QueryRequest::Staking(query) => match query {
                 StakingQuery::AllDelegations { delegator } => {
                     let delegations = ctx.delegations.all_delegations(&delegator);

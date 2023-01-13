@@ -12,7 +12,9 @@ pub enum ResponseVariants {
     Execute(ExecuteResponse),
     Reply(ReplyResponse),
     Bank(BankResponse),
+    #[cfg(feature = "ensemble-staking")]
     Staking(StakingResponse),
+    #[cfg(feature = "ensemble-staking")]
     Distribution(DistributionResponse)
 }
 
@@ -68,6 +70,7 @@ pub struct BankResponse {
     pub coins: Vec<Coin>
 }
 
+#[cfg(feature = "ensemble-staking")]
 #[derive(Clone, PartialEq, Debug)]
 pub struct StakingResponse {
     /// The address that delegated the funds.
@@ -78,6 +81,7 @@ pub struct StakingResponse {
     pub kind: StakingOp
 }
 
+#[cfg(feature = "ensemble-staking")]
 #[derive(Clone, PartialEq, Debug)]
 #[non_exhaustive]
 pub enum StakingOp {
@@ -97,6 +101,7 @@ pub enum StakingOp {
     }
 }
 
+#[cfg(feature = "ensemble-staking")]
 #[derive(Clone, PartialEq, Debug)]
 pub struct DistributionResponse {
     /// The address that delegated the funds.
@@ -105,6 +110,7 @@ pub struct DistributionResponse {
     pub kind: DistributionOp
 }
 
+#[cfg(feature = "ensemble-staking")]
 #[derive(Clone, PartialEq, Debug)]
 #[non_exhaustive]
 pub enum DistributionOp {
@@ -166,8 +172,15 @@ impl ResponseVariants {
     }
 
     #[inline]
+    #[cfg(feature = "ensemble-staking")]
     pub fn is_staking(&self) -> bool {
         matches!(&self, Self::Staking(_))
+    }
+
+    #[inline]
+    #[cfg(feature = "ensemble-staking")]
+    pub fn is_distribution(&self) -> bool {
+        matches!(&self, Self::Distribution(_))
     }
 
     /// Returns the messages that were created by this response.
@@ -179,7 +192,9 @@ impl ResponseVariants {
             Self::Execute(resp) => &resp.response.messages,
             Self::Reply(resp) => &resp.response.messages,
             Self::Bank(_) => &[],
+            #[cfg(feature = "ensemble-staking")]
             Self::Staking(_) => &[],
+            #[cfg(feature = "ensemble-staking")]
             Self::Distribution(_) => &[]
         }
     }
@@ -191,7 +206,9 @@ impl ResponseVariants {
             Self::Execute(resp) => resp.sent.extend(responses),
             Self::Reply(resp) => resp.sent.extend(responses),
             Self::Bank(_) => panic!("Trying to add a child response to a BankResponse."),
+            #[cfg(feature = "ensemble-staking")]
             Self::Staking(_) => panic!("Trying to add a child response to a StakingResponse."),
+            #[cfg(feature = "ensemble-staking")]
             Self::Distribution(_) => panic!("Trying to add a child response to a DistributionResponse."),
         }
     }
@@ -234,6 +251,7 @@ impl From<BankResponse> for ResponseVariants {
     }
 }
 
+#[cfg(feature = "ensemble-staking")]
 impl From<StakingResponse> for ResponseVariants {
     #[inline]
     fn from(value: StakingResponse) -> Self {
@@ -241,6 +259,7 @@ impl From<StakingResponse> for ResponseVariants {
     }
 }
 
+#[cfg(feature = "ensemble-staking")]
 impl From<DistributionResponse> for ResponseVariants {
     #[inline]
     fn from(value: DistributionResponse) -> Self {
@@ -258,7 +277,9 @@ impl<'a> Iter<'a> {
             ResponseVariants::Execute(resp) => resp.sender == sender,
             ResponseVariants::Reply(_) => false,
             ResponseVariants::Bank(resp) => resp.sender == sender,
+            #[cfg(feature = "ensemble-staking")]
             ResponseVariants::Staking(resp) => resp.sender == sender,
+            #[cfg(feature = "ensemble-staking")]
             ResponseVariants::Distribution(resp) => resp.sender == sender,
         })
     }
@@ -280,7 +301,9 @@ impl<'a> Iter<'a> {
             ResponseVariants::Instantiate(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
             ResponseVariants::Bank(_) => { },
+            #[cfg(feature = "ensemble-staking")]
             ResponseVariants::Staking(_) => { },
+            #[cfg(feature = "ensemble-staking")]
             ResponseVariants::Distribution(_) => { }
         }
     }

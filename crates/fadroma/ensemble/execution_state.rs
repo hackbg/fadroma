@@ -355,7 +355,9 @@ fn contract_address(resp: &ResponseVariants) -> &str {
         ResponseVariants::Execute(resp) => &resp.address,
         ResponseVariants::Reply(resp) => &resp.address,
         ResponseVariants::Bank(_) => unreachable!(),
+        #[cfg(feature = "ensemble-staking")]
         ResponseVariants::Staking(_) => unreachable!(),
+        #[cfg(feature = "ensemble-staking")]
         ResponseVariants::Distribution(_) => unreachable!()
     }
 }

@@ -42,9 +42,8 @@ vk = [
   "subtle"
 ]
 
-ensemble = [
-  "oorandom", "anyhow", "time/formatting", "staking"
-]
+ensemble = [ "oorandom", "anyhow" ]
+ensemble-staking = [ "ensemble", "time/formatting", "staking" ]
 
 crypto = [
   "rand_core", "rand_chacha", "sha2"

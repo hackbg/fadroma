@@ -1444,7 +1444,7 @@ fn correct_events_passed_to_reply() {
 }
 
 fn init(msgs: [Option<u64>; 3]) -> TestContracts {
-    let mut ensemble = ContractEnsemble::new_with_denom("uscrt");
+    let mut ensemble = ContractEnsemble::new();
     let contract = ensemble.register(Box::new(Contract));
 
     let a = ensemble.instantiate(

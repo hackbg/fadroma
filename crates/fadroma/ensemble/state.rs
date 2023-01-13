@@ -33,10 +33,12 @@ pub enum Op {
         key: Vec<u8>,
         old: Option<Vec<u8>>
     },
+    #[allow(dead_code)]
     BankAddFunds {
         address: String,
         coin: Coin
     },
+    #[allow(dead_code)]
     BankRemoveFunds {
         address: String,
         coin: Coin
@@ -156,6 +158,7 @@ impl State {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_funds(
         &mut self,
         address: impl Into<String>, 
@@ -178,6 +181,7 @@ impl State {
         }
     }
 
+    #[allow(dead_code)]
     pub fn remove_funds(
         &mut self,
         address: impl Into<String>, 

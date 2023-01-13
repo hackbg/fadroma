@@ -6,14 +6,12 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct InitialBalance {
     pub address: String,
     pub amount: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct InitialAllowance {
     pub owner: Addr,
     pub spender: Addr,
@@ -22,7 +20,6 @@ pub struct InitialAllowance {
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct InstantiateMsg {
     pub name: String,
     pub admin: Option<String>,
@@ -39,7 +36,6 @@ pub struct InstantiateMsg {
 /// but can be overridden if necessary
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub struct InitConfig {
     /// Indicates whether the total supply is public or should be kept secret.
     /// default: False
@@ -201,7 +197,6 @@ mod tests {
 
     #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
     #[serde(rename_all = "snake_case")]
-    #[serde(deny_unknown_fields)]
     pub enum Something {
         Var { padding: Option<String> },
     }

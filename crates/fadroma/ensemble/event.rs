@@ -1,16 +1,17 @@
 use std::convert::{TryFrom, TryInto};
 
+#[cfg(feature = "ensemble-staking")]
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::cosmwasm_std::{Response, Attribute, Event};
 use super::{
     EnsembleResult, EnsembleError,
     response::{
-        InstantiateResponse, ExecuteResponse, BankResponse,
-        ReplyResponse, StakingResponse, StakingOp,
-        DistributionResponse, DistributionOp
+        InstantiateResponse, ExecuteResponse, BankResponse, ReplyResponse
     }
 };
+#[cfg(feature = "ensemble-staking")]
+use super::response::{StakingResponse, StakingOp, DistributionResponse, DistributionOp};
 
 const CONTRACT_ATTR: &str = "_contract_address";
 
@@ -117,6 +118,7 @@ impl From<&BankResponse> for ProcessedEvents {
     }
 }
 
+#[cfg(feature = "ensemble-staking")]
 impl From<&StakingResponse> for ProcessedEvents {
     fn from(resp: &StakingResponse) -> Self {
         let amount_value = format!("{}{}", resp.amount.amount, resp.amount.denom);
@@ -146,6 +148,7 @@ impl From<&StakingResponse> for ProcessedEvents {
     }
 }
 
+#[cfg(feature = "ensemble-staking")]
 impl From<&DistributionResponse> for ProcessedEvents {
     fn from(resp: &DistributionResponse) -> Self {
         let event = match &resp.kind {

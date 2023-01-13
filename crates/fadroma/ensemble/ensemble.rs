@@ -10,12 +10,14 @@ use serde::{
 use crate::{
     prelude::{ContractInstantiationInfo, ContractLink},
     cosmwasm_std::{
-        SubMsg, Deps, DepsMut, Env, Response, MessageInfo, Binary, Uint128, Coin, Empty,
-        FullDelegation, Validator, Delegation, CosmosMsg, WasmMsg, BlockInfo, ContractInfo,
-        StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, SubMsgResponse, SubMsgResult,
-        Reply, Storage, Api, Querier, QuerierWrapper, from_binary, to_binary, testing::MockApi
+        SubMsg, Deps, DepsMut, Env, Response, MessageInfo, Binary, Coin, Empty,
+        CosmosMsg, WasmMsg, BlockInfo, ContractInfo, BankMsg, Timestamp, Addr,
+        SubMsgResponse, SubMsgResult, Reply, Storage, Api, Querier, QuerierWrapper,
+        from_binary, to_binary, testing::MockApi
     }
 };
+#[cfg(feature = "ensemble-staking")]
+use crate::cosmwasm_std::{Uint128, FullDelegation, Validator, Delegation, StakingMsg, DistributionMsg};
 
 use super::{
     bank::Balances,
@@ -26,12 +28,14 @@ use super::{
         ResponseVariants, ExecuteResponse,
         InstantiateResponse, ReplyResponse
     },
-    staking::Delegations,
     state::State,
     execution_state::{ExecutionState, MessageType},
     error::{EnsembleError, RegistryError},
     event::ProcessedEvents
 };
+
+#[cfg(feature = "ensemble-staking")]
+use super::staking::Delegations;
 
 pub type AnyResult<T> = anyhow::Result<T>;
 pub type EnsembleResult<T> = core::result::Result<T, EnsembleError>;
@@ -141,6 +145,7 @@ pub struct ContractEnsemble {
 
 pub(crate) struct Context {
     pub contracts: Vec<ContractUpload>,
+    #[cfg(feature = "ensemble-staking")]
     pub delegations: Delegations,
     pub state: State,
     block: Block,
@@ -170,6 +175,7 @@ impl ContractEnsemble {
 
     /// Creates a new instance of the ensemble that will use
     /// the provided denomination as the native coin.
+    #[cfg(feature = "ensemble-staking")]
     pub fn new_with_denom(native_denom: impl Into<String>) -> Self {
         Self {
             ctx: Box::new(Context::new(native_denom.into()))
@@ -309,12 +315,14 @@ impl ContractEnsemble {
 
     /// Returns all active delegations associated with the given address.
     #[inline]
+    #[cfg(feature = "ensemble-staking")]
     pub fn delegations(&self, address: impl AsRef<str>) -> Vec<Delegation> {
         self.ctx.delegations.all_delegations(address.as_ref())
     }
 
     /// Creates a new delegation for the given address using the given validator.
     #[inline]
+    #[cfg(feature = "ensemble-staking")]
     pub fn delegation(
         &self,
         delegator: impl AsRef<str>,
@@ -327,18 +335,21 @@ impl ContractEnsemble {
 
     /// Adds the validator to the validator list.
     #[inline]
+    #[cfg(feature = "ensemble-staking")]
     pub fn add_validator(&mut self, validator: Validator) {
         self.ctx.delegations.add_validator(validator);
     }
 
     /// Distributes the given amount as rewards.
     #[inline]
+    #[cfg(feature = "ensemble-staking")]
     pub fn add_rewards(&mut self, amount: impl Into<Uint128>) {
         self.ctx.delegations.distribute_rewards(amount.into());
     }
 
     /// Re-allow redelegating and deposit unbondings.
     #[inline]
+    #[cfg(feature = "ensemble-staking")]
     pub fn fast_forward_delegation_waits(&mut self) {
         let unbondings = self.ctx.delegations.fast_forward_waits();
 
@@ -467,6 +478,17 @@ impl ContractEnsemble {
 }
 
 impl Context {
+    #[cfg(not(feature = "ensemble-staking"))]
+    fn new(_native_denom: String) -> Self {
+        Self {
+            contracts: vec![],
+            state: State::new(),
+            block: Block::default(),
+            chain_id: "fadroma-ensemble-testnet".into()
+        }
+    }
+
+    #[cfg(feature = "ensemble-staking")]
     fn new(native_denom: String) -> Self {
         Self {
             contracts: vec![],
@@ -788,6 +810,7 @@ impl Context {
                 },
                 _ => panic!("Ensemble: Unsupported message: {:?}", msg)
             }
+            #[cfg(feature = "ensemble-staking")]
             CosmosMsg::Staking(msg) => match msg {
                 StakingMsg::Delegate { validator, amount } => {
                     self.state.remove_funds(&sender, vec![amount.clone()])?;
@@ -831,6 +854,7 @@ impl Context {
                 },
                 _ => panic!("Ensemble: Unsupported message: {:?}", msg)
             },
+            #[cfg(feature = "ensemble-staking")]
             CosmosMsg::Distribution(msg) => match msg {
                 DistributionMsg::WithdrawDelegatorReward { validator } => {
                     // Query accumulated rewards so bank transaction can take place first
@@ -887,8 +911,6 @@ impl Debug for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Context")
             .field("contracts_len", &self.contracts.len())
-            .field("delegations", &self.delegations)
-            .field("state", &self.state)
             .field("block", &self.block)
             .field("chain_id", &self.chain_id)
             .finish()
