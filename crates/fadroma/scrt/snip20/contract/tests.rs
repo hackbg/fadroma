@@ -2,8 +2,10 @@
 
 use crate::{
     crypto::sha_256,
-    vk::{ViewingKey, ViewingKeyHashed},
-    snip20::client::msg::*,
+    scrt::{
+        vk::{ViewingKey, ViewingKeyHashed},
+        snip20::client::msg::*
+    },
     cosmwasm_std::{
         from_binary,
         testing::{

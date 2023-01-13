@@ -1,5 +1,4 @@
 //! Emergency pause and termination of contracts.
-//! *Feature flag: `killswitch`*
 
 use std::fmt;
 

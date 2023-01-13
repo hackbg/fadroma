@@ -1,3 +1,6 @@
+//! Customizable functionality for implementing
+//! viewing keys in your smart contract.
+
 use super::{ViewingKey, ViewingKeyHashed};
 use crate::derive_contract::*;
 use crate::prelude::*;

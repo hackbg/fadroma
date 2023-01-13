@@ -1,5 +1,5 @@
-//#[cfg(not(feature = "scrt"))]
-//std::compile_error!("Fadroma only currently supports Secret Network so the \"scrt\" feature must be enabled.");
+#[cfg(not(feature = "scrt"))]
+std::compile_error!("Fadroma only currently supports Secret Network so the \"scrt\" feature must be enabled.");
 
 #[cfg(feature = "scrt")]
 pub use secret_cosmwasm_std as cosmwasm_std;
@@ -11,25 +11,12 @@ pub mod core;
 #[cfg(feature = "scrt")]
 pub mod scrt;
 
-// Tokenomics primitives
 pub mod tokens;
-
-// Contract scaffolding
 pub use fadroma_proc_derive as derive_contract;
-
-// Safety features
 pub mod killswitch;
-
-// Authentication primitives
 pub mod admin;
-#[cfg(feature = "permit")]
-pub mod permit;
-#[cfg(feature = "vk")]
-pub mod vk;
-
 #[cfg(feature = "crypto")]
 pub mod crypto;
-pub mod snip20;
 
 // Storage helpers
 pub mod storage;
@@ -51,7 +38,7 @@ pub mod prelude {
 
     pub use crate::cosmwasm_std::{self, *};
     #[cfg(feature = "scrt")]
-    pub use crate::scrt::*;
+    pub use crate::scrt::{BLOCK_SIZE, to_cosmos_msg, space_pad};
 
     pub use crate::tokens::*;
 
@@ -62,14 +49,13 @@ pub mod prelude {
     pub use crate::proc_message::message;
 
     #[cfg(feature = "vk")]
-    pub use crate::vk::{ViewingKey, ViewingKeyHashed};
+    pub use crate::scrt::vk::{ViewingKey, ViewingKeyHashed};
 
     #[cfg(feature = "permit")]
-    pub use crate::permit::{Permission, Permit};
+    pub use crate::scrt::permit::{Permission, Permit};
 }
 
 /// Define the `mod wasm` entrypoint of production builds.
-#[cfg(feature = "scrt")]
 #[macro_export]
 macro_rules! entrypoint {
     ($($fadroma:ident)::+, $($contract:ident)::+ $(,)?) => {

@@ -56,7 +56,7 @@ impl<P: Permission> Permit<P> {
 mod tests {
     use super::*;
     use crate::{
-        permit::print_permissions,
+        scrt::permit::print_permissions,
         cosmwasm_std::testing::mock_dependencies
     };
 

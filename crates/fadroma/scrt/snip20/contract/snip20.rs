@@ -1,7 +1,7 @@
 use crate::{
     prelude::*,
     crypto::sha_256,
-    snip20::client::msg::{
+    scrt::snip20::client::msg::{
         ExecuteAnswer, ExecuteMsg, QueryAnswer, QueryMsg, QueryPermission,
         QueryWithPermit, ResponseStatus, ContractStatusLevel, MintAction,
         SendAction, BurnFromAction, SendFromAction, TransferFromAction,

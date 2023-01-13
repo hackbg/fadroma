@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     prelude::*,
-    snip20::client::msg::{QueryMsg, ContractStatusLevel}
+    scrt::snip20::client::msg::{QueryMsg, ContractStatusLevel}
 };
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]

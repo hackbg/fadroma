@@ -1,5 +1,5 @@
 use crate::{
-    snip20::client::msg::ContractStatusLevel,
+    scrt::snip20::client::msg::ContractStatusLevel,
     prelude::{
         load, ns_load, ns_save, save, Addr, BlockInfo, CanonicalAddr,
         Deps, Humanize, StdError, StdResult, Storage, Uint128, ViewingKey,

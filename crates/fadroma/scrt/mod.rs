@@ -1,7 +1,20 @@
+//! Secret Network specific utilities and contracts commonly
+//! used when developing smart contracts for that network.
+//! *Feature flag: `scrt`*
+
+#[cfg(feature = "permit")]
+pub mod permit;
+#[cfg(feature = "vk")]
+pub mod vk;
+pub mod snip20;
+
 use crate::cosmwasm_std::{StdResult, CosmosMsg, WasmMsg, to_binary};
 
+/// Default Secret Network message padding size.
 pub const BLOCK_SIZE: usize = 256;
 
+/// Creates a new [`WasmMsg::Execute`] using the provided `msg`
+/// and padding it to [`BLOCK_SIZE`].
 pub fn to_cosmos_msg (
     contract_addr: String,
     code_hash: String,

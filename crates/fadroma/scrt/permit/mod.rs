@@ -22,7 +22,7 @@ pub use testing::*;
 /// 
 /// ```
 /// use fadroma::{
-///     permit::{Permit, PermitParams},
+///     scrt::permit::{Permit, PermitParams},
 ///     serde::{Serialize, Deserialize},
 ///     schemars::{self, JsonSchema}
 /// };

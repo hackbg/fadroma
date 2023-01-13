@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     prelude::*,
-    snip20::client::msg::{Tx, RichTx, TxAction}
+    scrt::snip20::client::msg::{Tx, RichTx, TxAction}
 };
 
 use super::state::Config;
