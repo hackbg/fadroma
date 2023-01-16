@@ -26,7 +26,7 @@ pub use response::*;
 pub use error::*;
 pub use anyhow;
 
-/// Generate a struct and implement ContractHarness for the given contract module.
+/// Generate a struct and implement [`ContractHarness`] for the given contract module.
 /// Alternatively, if using the derive contract macro, specify the third argument
 /// which is the implementation struct to use.
 #[macro_export]
@@ -86,7 +86,7 @@ macro_rules! impl_contract_harness {
         }
     };
 
-    ($visibility:vis $name:ident, $module:ident, $impl_struct:ident) => {
+    ($visibility:vis $name:ident, $module:ident, $impl_struct:path) => {
         $visibility struct $name;
 
         impl fadroma::ensemble::ContractHarness for $name {

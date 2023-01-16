@@ -1,10 +1,12 @@
-//! Emergency pause and termination of contracts.
+//! Emergency pause and termination of contracts. You **MUST** implement
+//! [admin] in your contract if you want to use this module.
 
 use std::fmt;
 
 use crate::{
     self as fadroma,
     admin,
+    storage,
     cosmwasm_std,
     derive_contract::*,
     impl_canonize_default,
@@ -13,7 +15,7 @@ use crate::{
 
 use serde::{Deserialize, Serialize};
 
-pub const PREFIX: &[u8] = b"fadroma_migration_state";
+const PREFIX: &[u8] = b"zK5CBApPlV";
 
 /// Requires the admin component in order to check for admin.
 #[contract]
@@ -33,33 +35,8 @@ pub trait Killswitch {
     }
 
     #[query]
-    fn get_status() -> StdResult<ContractStatus<Addr>> {
-        let status = load(deps.storage)?;
-
-        status.humanize(deps.api)
-    }
-}
-
-// TODO: should we remove this?
-/// Wrap status levels around the `match` statement that does your handle dispatch.
-#[macro_export]
-macro_rules! with_status {
-    // by default, assumes the execute msg enum is called `ExecuteMsg` and imported
-    ($deps:ident, $env:ident, $info:ident, match $msg:ident { $($rest:tt)* }) => {
-        with_status!(ExecuteMsg, $deps, $env, $info, match $msg { $($rest)* })
-    };
-    // but an alternative name can be passed
-    ($ExecuteMsg:ty, $deps:ident, $env:ident, $info:ident, match $msg:ident { $($rest:tt)* }) => {
-        if let ExecuteMsg::SetStatus { level, reason, new_address } = $msg {
-            fadroma::killswitch::set_status($deps, $env, $info, level, reason, new_address)?;
-            Ok(Response::default())
-        } else {
-            fadroma::killswitch::is_operational($deps)?;
-            match $msg {
-                ExecuteMsg::SetStatus { .. } => unreachable!(),
-                $($rest)*
-            }
-        }
+    fn status() -> StdResult<ContractStatus<Addr>> {
+        load(deps)
     }
 }
 
@@ -76,17 +53,23 @@ macro_rules! migration_message {
     };
 }
 
-pub fn load(storage: &dyn Storage) -> StdResult<ContractStatus<CanonicalAddr>> {
-    let result: Option<ContractStatus<CanonicalAddr>> = crate::storage::load(storage, PREFIX)?;
+/// Return the current contract status. Defaults to [`ContractStatusLevel::Operational`] if nothing was stored.
+#[inline]
+pub fn load(deps: Deps) -> StdResult<ContractStatus<Addr>> {
+    let result: Option<ContractStatus<CanonicalAddr>> = storage::load(
+        deps.storage,
+        PREFIX
+    )?;
 
-    match result {
-        Some(status) => Ok(status),
-        None => Ok(ContractStatus::default()),
-    }
+    result.unwrap_or_default().humanize(deps.api)
 }
 
-pub fn save(storage: &mut dyn Storage, status: &ContractStatus<CanonicalAddr>) -> StdResult<()> {
-    crate::storage::save(storage, PREFIX, status)
+/// Save the `status` to storage.
+#[inline]
+pub fn save(deps: DepsMut, status: ContractStatus<Addr>) -> StdResult<()> {
+    let status = status.canonize(deps.api)?;
+
+    storage::save(deps.storage, PREFIX, &status)
 }
 
 /// Possible states of a contract.
@@ -97,7 +80,7 @@ pub enum ContractStatusLevel {
     /// Temporarily disabled
     Paused,
     /// Permanently disabled
-    Migrating,
+    Migrating
 }
 
 impl_canonize_default!(ContractStatusLevel);
@@ -107,7 +90,7 @@ impl fmt::Display for ContractStatusLevel {
         match *self {
             Self::Operational => write!(f, "operational"),
             Self::Paused => write!(f, "paused"),
-            Self::Migrating => write!(f, "migrating"),
+            Self::Migrating => write!(f, "migrating")
         }
     }
 }
@@ -115,12 +98,12 @@ impl fmt::Display for ContractStatusLevel {
 // TODO once serde-json-wasm finally supports serializing Rusty enums,
 // this structure can be merged with `ContractStatusLevel`, with
 // `reason` and `new_address` becoming propeties of `Migrating`
-/// Current state of a contract w/ optional description and pointer to new version
+/// Current state of a contract w/ optional description and pointer to new version.
 #[derive(Serialize, Deserialize, Canonize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ContractStatus<A> {
     pub level: ContractStatusLevel,
     pub reason: String,
-    pub new_address: Option<A>,
+    pub new_address: Option<A>
 }
 
 impl<A> Default for ContractStatus<A> {
@@ -128,23 +111,29 @@ impl<A> Default for ContractStatus<A> {
         Self {
             level: ContractStatusLevel::Operational,
             reason: String::new(),
-            new_address: None,
+            new_address: None
         }
     }
 }
 
-/// Return the current contract status. Defaults to operational if nothing was stored.
-pub fn get_status(deps: Deps) -> StdResult<ContractStatus<Addr>> {
-    load(deps.storage)?.humanize(deps.api)
+/// Returns `false` if the current contract status level is other than [`ContractStatusLevel::Operational`].
+#[inline]
+pub fn is_operational(deps: Deps) -> StdResult<bool> {
+    match assert_is_operational(deps) {
+        Ok(_) => Ok(true),
+        Err(err) if matches!(err, StdError::GenericErr { .. }) => Ok(false),
+        Err(err) => Err(err)
+    }
 }
 
-/// Fail if the current contract status level is other than `Operational`.
-pub fn is_operational(deps: Deps) -> StdResult<()> {
+/// Fail if the current contract status level is other than [`ContractStatusLevel::Operational`].
+#[inline]
+pub fn assert_is_operational(deps: Deps) -> StdResult<()> {
     let ContractStatus {
         level,
         reason,
-        new_address,
-    } = get_status(deps)?;
+        new_address
+    } = load(deps)?;
 
     match level {
         ContractStatusLevel::Operational => Ok(()),
@@ -157,13 +146,14 @@ pub fn is_operational(deps: Deps) -> StdResult<()> {
     }
 }
 
-/// Fail if trying to return from `Migrating` status.
-pub fn can_set_status(deps: Deps, to_level: ContractStatusLevel) -> StdResult<()> {
+/// Fail if trying to return from [`ContractStatusLevel::Migrating`] status.
+#[inline]
+pub fn assert_can_set_status(deps: Deps, to_level: ContractStatusLevel) -> StdResult<()> {
     let ContractStatus {
         level,
         reason,
-        new_address,
-    } = get_status(deps)?;
+        new_address
+    } = load(deps)?;
 
     match level {
         ContractStatusLevel::Operational => Ok(()),
@@ -181,26 +171,17 @@ pub fn can_set_status(deps: Deps, to_level: ContractStatusLevel) -> StdResult<()
 
 /// Store a new contract status. Requires the admin component in order to check for admin.
 #[admin::require_admin]
+#[inline]
 pub fn set_status(
     deps: DepsMut,
     info: MessageInfo,
     level: ContractStatusLevel,
     reason: String,
-    new_address: Option<Addr>,
+    new_address: Option<Addr>
 ) -> StdResult<()> {
-    can_set_status(deps.as_ref(), level)?;
+    assert_can_set_status(deps.as_ref(), level)?;
 
-    save(
-        deps.storage,
-        &ContractStatus {
-            level,
-            reason,
-            new_address: match new_address {
-                Some(new_address) => Some(deps.api.addr_canonicalize(new_address.as_str())?),
-                None => None,
-            },
-        },
-    )
+    save(deps, ContractStatus { level, reason, new_address })
 }
 
 #[cfg(test)]
@@ -215,13 +196,13 @@ mod tests {
 
         admin::init(deps.as_mut(), None, &mock_info(admin, &[])).unwrap();
 
-        let current = get_status(deps.as_ref()).unwrap();
+        let current = load(deps.as_ref()).unwrap();
         assert_eq!(current.level, ContractStatusLevel::Operational);
 
-        can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap();
-        can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap();
-        can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
-        is_operational(deps.as_ref()).unwrap();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
+        assert_is_operational(deps.as_ref()).unwrap();
 
         let reason = String::from("Reason");
         let new_address = Addr::unchecked("new_address");
@@ -246,12 +227,12 @@ mod tests {
         )
         .unwrap();
 
-        can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap();
-        can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap();
-        can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
-        is_operational(deps.as_ref()).unwrap_err();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
+        assert_is_operational(deps.as_ref()).unwrap_err();
 
-        let current = get_status(deps.as_ref()).unwrap();
+        let current = load(deps.as_ref()).unwrap();
         assert_eq!(
             current,
             ContractStatus {
@@ -270,12 +251,12 @@ mod tests {
         )
         .unwrap();
 
-        can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap_err();
-        can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap_err();
-        can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
-        is_operational(deps.as_ref()).unwrap_err();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Operational).unwrap_err();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Paused).unwrap_err();
+        assert_can_set_status(deps.as_ref(), ContractStatusLevel::Migrating).unwrap();
+        assert_is_operational(deps.as_ref()).unwrap_err();
 
-        let current = get_status(deps.as_ref()).unwrap();
+        let current = load(deps.as_ref()).unwrap();
         assert_eq!(
             current,
             ContractStatus {
@@ -294,7 +275,7 @@ mod tests {
         )
         .unwrap();
 
-        let current = get_status(deps.as_ref()).unwrap();
+        let current = load(deps.as_ref()).unwrap();
         assert_eq!(
             current,
             ContractStatus {

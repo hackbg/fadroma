@@ -1,4 +1,4 @@
-//! `Addr`<->`CanonicalAddr` conversion
+//! [`cosmwasm_std::Addr`]<->[`cosmwasm_std::CanonicalAddr`] conversion for types that contain addresses.
 
 use crate::cosmwasm_std::{
     self, Addr, Api, Binary, BlockInfo, CanonicalAddr, Coin, Empty,
