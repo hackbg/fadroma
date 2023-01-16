@@ -1,5 +1,4 @@
 use fadroma::{prelude::*, derive_contract::*};
-use serde::{Deserialize, Serialize};
 
 #[interface]
 pub trait Contract {
@@ -19,10 +18,5 @@ pub trait Contract {
     fn div(value: u64) -> StdResult<Response>;
 
     #[query]
-    fn state() -> StdResult<StateResponse>;
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct StateResponse {
-    pub value: u64,
+    fn value() -> StdResult<u64>;
 }

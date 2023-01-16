@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct State {
     pub value: u64,
 }
+
 impl State {
     const KEY_STATE: &'static [u8] = b"state";
 

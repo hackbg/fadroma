@@ -1,13 +1,9 @@
 [package]
-name = "fadroma-example-ensemble"
+name = "fadroma-example-killswitch"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-path = "src/lib.rs"
-
 [dependencies]
 fadroma = { path = "../../crates/fadroma", features = ["scrt", "ensemble"] }
-serde = { version = "1.0.114", default-features = false, features = ["derive"] }
 counter = { package = "fadroma-example-derive-contract-impl", path = "../derive-contract-impl" }
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }

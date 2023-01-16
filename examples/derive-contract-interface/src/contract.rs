@@ -4,7 +4,6 @@ mod state;
 use state::State;
 
 pub mod interface;
-use interface::StateResponse;
 
 #[contract_impl(entry, path = "interface")]
 pub trait Contract {
@@ -61,9 +60,9 @@ pub trait Contract {
     }
 
     #[query]
-    fn state() -> StdResult<StateResponse> {
+    fn value() -> StdResult<u64> {
         let state = State::load_state(deps.storage)?;
 
-        Ok(StateResponse { value: state.value })
+        Ok(state.value)
     }
 }

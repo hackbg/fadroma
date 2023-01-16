@@ -9,5 +9,5 @@ crate-type = ["cdylib", "rlib"]
 path = "kv.rs"
 
 [dependencies]
-fadroma = { path = "../../crates/fadroma", features = ["storage"] }
-serde   = { version = "1.0.103", default-features = false, features = ["derive"] }
+fadroma = { path = "../../crates/fadroma", features = ["scrt"] }
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }

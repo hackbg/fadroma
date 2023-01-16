@@ -288,6 +288,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "fadroma-example-ensemble"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "fadroma-example-derive-contract-impl",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-killswitch"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "fadroma-example-derive-contract-impl",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-kv"
+version = "1.0.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
 name = "fadroma-proc-auth"
 version = "0.1.0"
 dependencies = [
