@@ -13,10 +13,10 @@ use crate::cosmwasm_std::{
 const ADMIN_KEY: &[u8] = b"ltp5P6sFZT";
 
 /// Initializes the admin module. Sets the messages sender as the admin
-/// if `address` is `None`.
-pub fn init_admin(
+/// if `address` is `None`. You must **must** call this in you instantiate message.
+pub fn init(
     deps: DepsMut,
-    address: Option<&String>,
+    address: Option<&str>,
     info: &MessageInfo
 ) -> StdResult<()> {
     let admin = if let Some(addr) = address {
@@ -25,11 +25,11 @@ pub fn init_admin(
         info.sender.as_str()
     };
 
-    save_admin(deps, &admin)
+    save(deps, &admin)
 }
 
 /// Loads the current admin from storage if any was set. 
-pub fn load_admin(deps: Deps) -> StdResult<Option<Addr>> {
+pub fn load(deps: Deps) -> StdResult<Option<Addr>> {
     let result = deps.storage.get(ADMIN_KEY);
 
     match result {
@@ -43,7 +43,7 @@ pub fn load_admin(deps: Deps) -> StdResult<Option<Addr>> {
 }
 
 /// Saves the `address` as the new admin to storage.
-pub fn save_admin(deps: DepsMut, address: &str) -> StdResult<()> {
+pub fn save(deps: DepsMut, address: &str) -> StdResult<()> {
     let address = deps.api.addr_canonicalize(address)?;
     deps.storage.set(ADMIN_KEY, address.as_slice());
 
@@ -51,8 +51,8 @@ pub fn save_admin(deps: DepsMut, address: &str) -> StdResult<()> {
 }
 
 /// Asserts that the message sender is the admin. Otherwise returns an `Err`.
-pub fn assert_admin(deps: Deps, info: &MessageInfo) -> StdResult<()> {
-    let admin = load_admin(deps)?;
+pub fn assert(deps: Deps, info: &MessageInfo) -> StdResult<()> {
+    let admin = load(deps)?;
 
     if let Some(addr) = admin {
         if addr == info.sender {

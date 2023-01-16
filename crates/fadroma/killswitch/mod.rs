@@ -4,7 +4,7 @@ use std::fmt;
 
 use crate::{
     self as fadroma,
-    admin::{assert_admin, require_admin},
+    admin,
     cosmwasm_std,
     derive_contract::*,
     impl_canonize_default,
@@ -180,7 +180,7 @@ pub fn can_set_status(deps: Deps, to_level: ContractStatusLevel) -> StdResult<()
 }
 
 /// Store a new contract status. Requires the admin component in order to check for admin.
-#[require_admin]
+#[admin::require_admin]
 pub fn set_status(
     deps: DepsMut,
     info: MessageInfo,
@@ -206,23 +206,14 @@ pub fn set_status(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::admin::{self, simple::SimpleAdmin};
-    use crate::cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use crate::cosmwasm_std::testing::{mock_dependencies, mock_info};
 
     #[test]
     fn test_migrate() {
         let mut deps = mock_dependencies();
         let admin = "admin";
 
-        admin::simple::DefaultImpl
-            .new(
-                Some(admin.into()),
-                deps.as_mut(),
-                mock_env(),
-                mock_info(admin, &[]),
-            )
-            .unwrap();
+        admin::init(deps.as_mut(), None, &mock_info(admin, &[])).unwrap();
 
         let current = get_status(deps.as_ref()).unwrap();
         assert_eq!(current.level, ContractStatusLevel::Operational);

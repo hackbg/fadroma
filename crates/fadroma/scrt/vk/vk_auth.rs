@@ -18,7 +18,7 @@ pub trait VkAuth {
         ]
         .concat();
 
-        let key = ViewingKey::new(&env, &info, &prng_seed, &(entropy).as_ref());
+        let key = ViewingKey::new(&env, &info, &prng_seed, entropy.as_bytes());
         let address = deps.api.addr_canonicalize(&info.sender.as_str())?;
         save_viewing_key(deps.storage, address.as_slice(), &key)?;
 

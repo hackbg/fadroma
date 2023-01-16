@@ -6,37 +6,32 @@ use crate::{
     schemars,
     derive_contract::*
 };
-use super::{init_admin, save_admin, load_admin, assert_admin};
 
 #[contract]
 pub trait SimpleAdmin {
-    #[init]
-    fn new(admin: Option<String>) -> StdResult<Response> {
-        init_admin(deps, admin.as_ref(), &info)?;
-
-        Ok(Response::default())
-    }
-
     #[execute]
     fn change_admin(address: String) -> StdResult<Response> {
-        assert_admin(deps.as_ref(), &info)?;
-        save_admin(deps, &address)?;
+        super::assert(deps.as_ref(), &info)?;
+        super::save(deps, &address)?;
 
         Ok(Response::new().add_attribute("new_admin", address))
     }
 
     #[query]
     fn admin() -> StdResult<Option<Addr>> {
-        load_admin(deps)
+        super::load(deps)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cosmwasm_std::{
-        StdError, from_binary,
-        testing::{mock_dependencies, mock_env, mock_info},
+    use crate::{
+        admin,
+        cosmwasm_std::{
+            StdError, from_binary,
+            testing::{mock_dependencies, mock_env, mock_info},
+        }
     };
 
     #[test]
@@ -44,13 +39,7 @@ mod tests {
         let mut deps = mock_dependencies();
 
         let admin = "admin";
-        instantiate(
-            deps.as_mut(),
-            mock_env(),
-            mock_info("sender", &[]),
-            InstantiateMsg { admin: Some(admin.into()) },
-            DefaultImpl
-        ).unwrap();
+        admin::init(deps.as_mut(), Some(admin), &mock_info("sender", &[])).unwrap();
 
         let msg = ExecuteMsg::ChangeAdmin { 
             address: "will fail".into()
@@ -97,13 +86,7 @@ mod tests {
         assert!(admin.is_none());
 
         let admin = "admin";
-        instantiate(
-            deps.as_mut(),
-            mock_env(),
-            mock_info(admin, &[]),
-            InstantiateMsg { admin: None },
-            DefaultImpl
-        ).unwrap();
+        admin::init(deps.as_mut(), None, &mock_info(admin, &[])).unwrap();
 
         let result = query(deps.as_ref(), mock_env(), QueryMsg::Admin {}, DefaultImpl).unwrap();
         let stored_admin: Option<Addr> = from_binary(&result).unwrap();

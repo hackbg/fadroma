@@ -77,7 +77,7 @@ fn create_require_admin_stmt(deps: PatIdent, info: PatIdent) -> Stmt {
     let ref info = info.ident;
 
     let code = quote! {
-        assert_admin(#deps.as_ref(), &#info)?;
+        fadroma::admin::assert(#deps.as_ref(), &#info)?;
     };
 
     parse_quote!(#code)
