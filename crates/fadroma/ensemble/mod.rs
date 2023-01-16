@@ -27,43 +27,117 @@ pub use error::*;
 pub use anyhow;
 
 /// Generate a struct and implement ContractHarness for the given contract module.
+/// Alternatively, if using the derive contract macro, specify the third argument
+/// which is the implementation struct to use.
 #[macro_export]
-macro_rules! impl_contract_harness_default {
+macro_rules! impl_contract_harness {
     ($visibility:vis $name:ident, $module:ident) => {
-        struct $name;
+        $visibility struct $name;
 
-        impl ContractHarness for $name {
+        impl fadroma::ensemble::ContractHarness for $name {
             fn instantiate(
                 &self,
-                deps: cosmwasm_std::DepsMut,
-                env: cosmwasm_std::Env,
-                info: cosmwasm_std::MessageInfo,
-                msg: cosmwasm_std::Binary
-            ) -> ensemble::AnyResult<cosmwasm_std::Response> {
-                let result = $module::instantiate(deps, env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+                deps: fadroma::cosmwasm_std::DepsMut,
+                env: fadroma::cosmwasm_std::Env,
+                info: fadroma::cosmwasm_std::MessageInfo,
+                msg: fadroma::cosmwasm_std::Binary
+            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                let result = $module::instantiate(
+                    deps,
+                    env,
+                    info,
+                    fadroma::cosmwasm_std::from_binary(&msg)?
+                )?;
 
                 Ok(result)
             }
 
             fn execute(
                 &self,
-                deps: cosmwasm_std::DepsMut,
-                env: cosmwasm_std::Env,
-                info: cosmwasm_std::MessageInfo,
-                msg: cosmwasm_std::Binary
-            ) -> ensemble::AnyResult<cosmwasm_std::Response> {
-                let result = $module::execute(deps, env, info, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+                deps: fadroma::cosmwasm_std::DepsMut,
+                env: fadroma::cosmwasm_std::Env,
+                info: fadroma::cosmwasm_std::MessageInfo,
+                msg: fadroma::cosmwasm_std::Binary
+            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                let result = $module::execute(
+                    deps,
+                    env,
+                    info,
+                    fadroma::cosmwasm_std::from_binary(&msg)?
+                )?;
 
                 Ok(result)
             }
 
             fn query(
                 &self,
-                deps: cosmwasm_std::Deps,
-                env: cosmwasm_std::Env,
-                msg: cosmwasm_std::Binary
-            ) -> ensemble::AnyResult<cosmwasm_std::Binary> {
-                let result = $module::query(deps, env, cosmwasm_std::from_binary(&msg)?, $module::DefaultImpl)?;
+                deps: fadroma::cosmwasm_std::Deps,
+                env: fadroma::cosmwasm_std::Env,
+                msg: fadroma::cosmwasm_std::Binary
+            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Binary> {
+                let result = $module::query(
+                    deps,
+                    env,
+                    fadroma::cosmwasm_std::from_binary(&msg)?
+                )?;
+
+                Ok(result)
+            }
+        }
+    };
+
+    ($visibility:vis $name:ident, $module:ident, $impl_struct:ident) => {
+        $visibility struct $name;
+
+        impl fadroma::ensemble::ContractHarness for $name {
+            fn instantiate(
+                &self,
+                deps: fadroma::cosmwasm_std::DepsMut,
+                env: fadroma::cosmwasm_std::Env,
+                info: fadroma::cosmwasm_std::MessageInfo,
+                msg: fadroma::cosmwasm_std::Binary
+            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                let result = $module::instantiate(
+                    deps,
+                    env,
+                    info,
+                    fadroma::cosmwasm_std::from_binary(&msg)?,
+                    $impl_struct
+                )?;
+
+                Ok(result)
+            }
+
+            fn execute(
+                &self,
+                deps: fadroma::cosmwasm_std::DepsMut,
+                env: fadroma::cosmwasm_std::Env,
+                info: fadroma::cosmwasm_std::MessageInfo,
+                msg: fadroma::cosmwasm_std::Binary
+            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                let result = $module::execute(
+                    deps,
+                    env,
+                    info,
+                    fadroma::cosmwasm_std::from_binary(&msg)?,
+                    $impl_struct
+                )?;
+
+                Ok(result)
+            }
+
+            fn query(
+                &self,
+                deps: fadroma::cosmwasm_std::Deps,
+                env: fadroma::cosmwasm_std::Env,
+                msg: fadroma::cosmwasm_std::Binary
+            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Binary> {
+                let result = $module::query(
+                    deps,
+                    env,
+                    fadroma::cosmwasm_std::from_binary(&msg)?,
+                    $impl_struct
+                )?;
 
                 Ok(result)
             }
