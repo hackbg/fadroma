@@ -1,0 +1,9 @@
+[package]
+name = "fadroma-example-admin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fadroma = { path = "../../crates/fadroma", features = ["scrt", "ensemble"] }
+counter = { package = "fadroma-example-derive-contract-impl", path = "../derive-contract-impl" }
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }

@@ -57,7 +57,9 @@ pub trait Contract {
     }
 
     #[query]
-    fn state() -> StdResult<State> {
-        State::load_state(deps.storage)
+    fn value() -> StdResult<u64> {
+        let state = State::load_state(deps.storage)?;
+
+        Ok(state.value)
     }
 }
