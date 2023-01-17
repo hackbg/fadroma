@@ -44,7 +44,7 @@ pub mod prelude {
 
     pub use schemars::{self, JsonSchema};
 
-    pub use crate::storage::{load, ns_load, ns_remove, ns_save, remove, save};
+    pub use crate::storage;
 
     pub use crate::proc_message::message;
 

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use fadroma::{
     self,
     cosmwasm_std::{self, testing::mock_dependencies, Addr, Uint128},
-    prelude::{load, save, Binary, CanonicalAddr, Canonize, Humanize},
+    prelude::{storage, Binary, CanonicalAddr, Canonize, Humanize},
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -112,11 +112,17 @@ where
 {
     let mut deps = mock_dependencies();
 
-    save(&mut deps.storage, b"store", &value).unwrap();
+    storage::save(&mut deps.storage, b"store", &value).unwrap();
 
     let canon = value.clone().canonize(&deps.api).unwrap();
-    save(&mut deps.storage, b"store", &canon).unwrap();
+    storage::save(&mut deps.storage, b"store", &canon).unwrap();
 
-    let canon: <T as Canonize>::Output = load(&mut deps.storage, b"store").unwrap().unwrap();
+    let canon: <T as Canonize>::Output = storage::load(
+        &mut deps.storage,
+        b"store"
+    )
+    .unwrap()
+    .unwrap();
+    
     canon.humanize(&deps.api).unwrap();
 }

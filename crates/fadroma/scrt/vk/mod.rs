@@ -13,7 +13,7 @@ use crate::{
     impl_canonize_default
 };
 
-pub mod vk_auth;
+pub mod auth;
 
 const VIEWING_KEY_PREFIX: &str = "api_key_";
 

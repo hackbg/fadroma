@@ -1,7 +1,7 @@
 use fadroma::{
     self,
     cosmwasm_std::{self, testing::mock_dependencies, Addr, Uint128},
-    prelude::{save, Canonize, Humanize},
+    prelude::{storage, Canonize, Humanize},
 };
 
 #[derive(Canonize, PartialEq, Clone, serde::Serialize)]
@@ -34,7 +34,7 @@ fn test_derive() {
 
     let test = Test::default();
 
-    save(&mut deps.storage, b"store", &test).unwrap();
+    storage::save(&mut deps.storage, b"store", &test).unwrap();
 
     let canon = test.clone().canonize(&deps.api).unwrap();
 
@@ -43,7 +43,7 @@ fn test_derive() {
         amount: test.amount,
     };
 
-    save(&mut deps.storage, b"store", &canonized).unwrap();
+    storage::save(&mut deps.storage, b"store", &canonized).unwrap();
 
     assert_eq!(canon.addr, canonized.addr);
     assert_eq!(canon.amount, canonized.amount);

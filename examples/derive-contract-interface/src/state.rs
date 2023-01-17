@@ -10,11 +10,11 @@ impl State {
     const KEY_STATE: &'static [u8] = b"state";
 
     pub fn save_state(storage: &mut dyn Storage, state: &State) -> StdResult<()> {
-        save(storage, Self::KEY_STATE, &state)
+        storage::save(storage, Self::KEY_STATE, &state)
     }
 
     pub fn load_state(storage: &dyn Storage) -> StdResult<State> {
-        let result: State = load(storage, Self::KEY_STATE)?.unwrap();
+        let result: State = storage::load(storage, Self::KEY_STATE)?.unwrap();
 
         Ok(result)
     }

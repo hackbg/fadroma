@@ -419,7 +419,7 @@ fn append_tx(
     let ns = create_tx_ns(for_address);
 
     let index = load_user_tx_index(storage, &ns)?;
-    ns_save(storage, &ns, &index.to_be_bytes(), &tx)?;
+    storage::ns_save(storage, &ns, &index.to_be_bytes(), &tx)?;
 
     save_user_tx_index(storage, &ns, index + 1)
 }
@@ -432,21 +432,21 @@ fn append_transfer(
     let ns = create_transfer_ns(for_address);
 
     let index = load_user_tx_index(storage, &ns)?;
-    ns_save(storage, &ns, &index.to_be_bytes(), &tx)?;
+    storage::ns_save(storage, &ns, &index.to_be_bytes(), &tx)?;
 
     save_user_tx_index(storage, &ns, index + 1)
 }
 
 #[inline]
 fn load_user_tx_index(storage: &dyn Storage, ns: &[u8]) -> StdResult<UserTxIndex> {
-    let result = ns_load(storage, ns, NS_USER_TX_INDEX)?;
+    let result = storage::ns_load(storage, ns, NS_USER_TX_INDEX)?;
 
     Ok(result.unwrap_or(0))
 }
 
 #[inline]
 fn save_user_tx_index(storage: &mut dyn Storage, ns: &[u8], index: UserTxIndex) -> StdResult<()> {
-    ns_save(storage, ns, NS_USER_TX_INDEX, &index)
+    storage::ns_save(storage, ns, NS_USER_TX_INDEX, &index)
 }
 
 #[inline]
@@ -493,7 +493,7 @@ impl<'a, T: DeserializeOwned> Iterator for TxIterator<'a, T> {
             return None;
         }
 
-        let result: Self::Item = ns_load(
+        let result: Self::Item = storage::ns_load(
             self.storage,
             &self.ns,
             &self.current.to_be_bytes()
@@ -524,7 +524,7 @@ impl<'a, T: DeserializeOwned> DoubleEndedIterator for TxIterator<'a, T> {
 
         self.end -= 1;
 
-        let result: Self::Item = ns_load(
+        let result: Self::Item = storage::ns_load(
             self.storage,
             &self.ns,
             &self.end.to_be_bytes()

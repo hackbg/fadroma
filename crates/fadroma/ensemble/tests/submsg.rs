@@ -55,7 +55,7 @@ impl ContractHarness for Contract {
         let msg: InstantiateMsg = from_binary(&msg)?;
 
         if let Some(id) = msg.reply_fail_id {
-            save(deps.storage, b"fail", &id)?;
+            storage::save(deps.storage, b"fail", &id)?;
         }
 
         Ok(Response::default().add_attribute("INSTANTIATE", "test"))
@@ -88,10 +88,10 @@ impl ContractHarness for Contract {
                 })
             }
             ExecuteMsg::ReplyResponse(msg) => {
-                save(deps.storage, b"reply", &msg)?;
+                storage::save(deps.storage, b"reply", &msg)?;
             }
             ExecuteMsg::ReplyData { id, data } => {
-                ns_save(deps.storage, b"reply_data_", &id.to_be_bytes(), &data)?
+                storage::ns_save(deps.storage, b"reply_data_", &id.to_be_bytes(), &data)?
             }
             ExecuteMsg::Fail => bail!(StdError::generic_err("Fail"))
         }
@@ -104,7 +104,7 @@ impl ContractHarness for Contract {
 
         let result = match msg {
             QueryMsg::State => {
-                let num: u32 = load(deps.storage, b"num")?.unwrap_or_default();
+                let num: u32 = storage::load(deps.storage, b"num")?.unwrap_or_default();
                 let balance = deps.querier.query_balance(env.contract.address, "uscrt")?;
         
                 let resp = StateResponse {
@@ -115,7 +115,7 @@ impl ContractHarness for Contract {
                 to_binary(&resp)
             },
             QueryMsg::Reply(id) => {
-                let resp: Option<SubMsgResponse> = ns_load(
+                let resp: Option<SubMsgResponse> = storage::ns_load(
                     deps.storage,
                     b"reply",
                     &id.to_be_bytes()
@@ -133,7 +133,7 @@ impl ContractHarness for Contract {
     }
 
     fn reply(&self, deps: DepsMut, env: Env, reply: Reply) -> AnyResult<Response> {
-        let fail_id: Option<u64> = load(deps.storage, b"fail")?;
+        let fail_id: Option<u64> = storage::load(deps.storage, b"fail")?;
 
         if let Some(id) = fail_id {
             if id == reply.id {
@@ -142,7 +142,7 @@ impl ContractHarness for Contract {
         }
 
         if let SubMsgResult::Ok(resp) = &reply.result {
-            ns_save(deps.storage, b"reply", &reply.id.to_be_bytes(), resp)?;
+            storage::ns_save(deps.storage, b"reply", &reply.id.to_be_bytes(), resp)?;
         }
 
         let mut response = Response::default().add_event(
@@ -158,12 +158,12 @@ impl ContractHarness for Contract {
                 )
         );
 
-        if let Some(msg) = load::<SubMsg>(deps.storage, b"reply")? {
+        if let Some(msg) = storage::load::<SubMsg>(deps.storage, b"reply")? {
             response.messages.push(msg);
             deps.storage.remove(b"reply");
         }
 
-        if let Some(data) = ns_load::<Binary>(
+        if let Some(data) = storage::ns_load::<Binary>(
             deps.storage,
             b"reply_data_",
             &reply.id.to_be_bytes()
@@ -176,10 +176,10 @@ impl ContractHarness for Contract {
 }
 
 fn increment(storage: &mut dyn Storage, amount: u32) -> StdResult<()> {
-    let mut num: u32 = load(storage, b"num")?.unwrap_or_default();
+    let mut num: u32 = storage::load(storage, b"num")?.unwrap_or_default();
     num += amount;
 
-    save(storage, b"num", &num)?;
+    storage::save(storage, b"num", &num)?;
 
     if num > 10 {
         Err(StdError::generic_err("Number is bigger than 10."))

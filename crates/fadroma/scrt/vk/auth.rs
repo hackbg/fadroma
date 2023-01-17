@@ -69,7 +69,7 @@ pub fn save_viewing_key(
     key: &[u8],
     viewing_key: &ViewingKey
 ) -> StdResult<()> {
-    ns_save(storage, VIEWING_KEYS, key, &viewing_key.to_hashed())
+    storage::ns_save(storage, VIEWING_KEYS, key, &viewing_key.to_hashed())
 }
 
 /// Loads the stored viewing key if any using the given storage `key`
@@ -79,7 +79,7 @@ pub fn load_viewing_key(
     storage: &dyn Storage,
     key: &[u8]
 ) -> StdResult<Option<ViewingKeyHashed>> {
-    ns_load(storage, VIEWING_KEYS, key)
+    storage::ns_load(storage, VIEWING_KEYS, key)
 }
 
 pub fn authenticate(

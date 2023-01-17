@@ -46,7 +46,7 @@ impl ContractHarness for Counter {
     ) -> AnyResult<Response> {
         let msg: CounterInit = from_binary(&msg)?;
 
-        save(
+        storage::save(
             deps.storage,
             b"mul",
             &ContractLink {
@@ -92,14 +92,18 @@ impl ContractHarness for Counter {
                 increment(deps.storage)?;
             }
             CounterHandle::RegisterMultiplier => {
-                let mut contract_info: ContractLink<Addr> = load(deps.storage, b"mul")?.unwrap();
+                let mut contract_info: ContractLink<Addr> = storage::load(
+                    deps.storage,
+                    b"mul"
+                )?.unwrap();
+
                 contract_info.address = info.sender;
 
-                save(deps.storage, b"mul", &contract_info)?;
+                storage::save(deps.storage, b"mul", &contract_info)?;
             }
             CounterHandle::IncrementAndMultiply { by } => {
                 let number = increment(deps.storage)?;
-                let multiplier: ContractLink<Addr> = load(deps.storage, b"mul")?.unwrap();
+                let multiplier: ContractLink<Addr> = storage::load(deps.storage, b"mul")?.unwrap();
 
                 return Ok(Response::new().add_message(WasmMsg::Execute {
                     contract_addr: multiplier.address.into_string(),
@@ -121,12 +125,12 @@ impl ContractHarness for Counter {
 
         let bin = match msg {
             CounterQuery::Number => {
-                let number: u8 = load(deps.storage, b"num")?.unwrap_or_default();
+                let number: u8 = storage::load(deps.storage, b"num")?.unwrap_or_default();
 
                 to_binary(&number)?
             }
             CounterQuery::Multiplier => {
-                let multiplier: ContractLink<Addr> = load(deps.storage, b"mul")?.unwrap();
+                let multiplier: ContractLink<Addr> = storage::load(deps.storage, b"mul")?.unwrap();
 
                 to_binary(&multiplier)?
             }
@@ -149,10 +153,10 @@ impl ContractHarness for Counter {
                     .find(|x| x.key == "address")
                     .unwrap();
 
-                let mut contract_info: ContractLink<Addr> = load(deps.storage, b"mul")?.unwrap();
+                let mut contract_info: ContractLink<Addr> = storage::load(deps.storage, b"mul")?.unwrap();
                 contract_info.address = Addr::unchecked(attr.value);
         
-                save(deps.storage, b"mul", &contract_info)?;
+                storage::save(deps.storage, b"mul", &contract_info)?;
             },
             SubMsgResult::Err(err) => bail!(err)
         }
@@ -162,10 +166,10 @@ impl ContractHarness for Counter {
 }
 
 fn increment(storage: &mut dyn Storage) -> StdResult<u8> {
-    let mut number: u8 = load(storage, b"num")?.unwrap_or_default();
+    let mut number: u8 = storage::load(storage, b"num")?.unwrap_or_default();
     number += 1;
 
-    save(storage, b"num", &number)?;
+    storage::save(storage, b"num", &number)?;
 
     Ok(number)
 }
@@ -219,13 +223,13 @@ impl ContractHarness for Multiplier {
             .checked_mul(msg.multiplier)
             .ok_or_else(|| StdError::generic_err("Mul overflow."))?;
 
-        save(deps.storage, b"last", &result)?;
+        storage::save(deps.storage, b"last", &result)?;
 
         Ok(Response::default())
     }
 
     fn query(&self, deps: Deps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
-        let last: u8 = load(deps.storage, b"last")?.unwrap();
+        let last: u8 = storage::load(deps.storage, b"last")?.unwrap();
         let result = to_binary(&last)?;
 
         Ok(result)
@@ -290,7 +294,7 @@ struct Block {
 
 impl ContractHarness for BlockHeight {
     fn instantiate(&self, deps: DepsMut, env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
-        save(
+        storage::save(
             deps.storage,
             b"block",
             &Block {
@@ -312,7 +316,7 @@ impl ContractHarness for BlockHeight {
         let msg: BlockHeightHandle = from_binary(&msg)?;
         match msg {
             BlockHeightHandle::Set => {
-                save(
+                storage::save(
                     deps.storage,
                     b"block",
                     &Block {
@@ -327,7 +331,7 @@ impl ContractHarness for BlockHeight {
     }
 
     fn query(&self, deps: Deps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
-        let block: Block = load(deps.storage, b"block")?.unwrap();
+        let block: Block = storage::load(deps.storage, b"block")?.unwrap();
         let result = to_binary(&block)?;
 
         Ok(result)
@@ -465,7 +469,7 @@ fn test_reverts_state_on_fail() {
     assert_eq!(number, 3);
 
     ensemble.contract_storage(&result.counter.address, |storage| {
-        let number: u8 = load(storage, b"num").unwrap().unwrap();
+        let number: u8 = storage::load(storage, b"num").unwrap().unwrap();
         assert_eq!(number, 3);
     })
     .unwrap();
