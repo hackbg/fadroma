@@ -1,18 +1,19 @@
 //! Utilities for interacting with the native key-value storage.
 
-mod item;
+mod single_item;
+mod item_space;
 mod iterable;
 
-pub use item::*;
+pub use single_item::*;
 pub use iterable::*;
 
-use std::{ptr, marker::PhantomData};
+use std::{ptr, any, convert::{TryFrom, TryInto}};
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::cosmwasm_std::{
-    Storage, StdResult, to_vec, from_slice
+    Storage, StdResult, StdError, to_vec, from_slice
 };
 
 #[macro_export]
@@ -26,34 +27,30 @@ macro_rules! namespace {
     };
 }
 
+pub type Segments<'a> = &'a [&'a [u8]];
+
 pub trait Namespace {
     const NAMESPACE: &'static [u8];
 }
 
 pub trait Key {
-    fn stored_key(&self) -> StoredKey;
+    fn segments(&self) -> Segments;
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Hash, Debug)]
-pub struct StoredKey<'a>(pub &'a [u8]);
+pub struct CompositeKey<'a>(Segments<'a>);
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Hash, Debug)]
-pub struct StaticKey(pub &'static [u8]);
-
-#[derive(Clone, PartialEq, PartialOrd, Hash, Debug)]
-pub struct CompositeKey<N: Namespace> {
-    key: Vec<u8>,
-    data: PhantomData<N>
-}
+pub struct FixedSegmentSizeKey<'a, const N: usize>([&'a [u8]; N]);
 
 /// Save something to the storage.
 #[inline]
-pub fn save<'a, T: Serialize> (
+pub fn save<T: Serialize> (
     storage: &mut dyn Storage,
-    key: impl Into<StoredKey<'a>>,
+    key: impl AsRef<[u8]>,
     value: &T
 ) -> StdResult<()> {
-    storage.set(key.into().as_ref(), &to_vec(value)?);
+    storage.set(key.as_ref(), &to_vec(value)?);
 
     Ok(())
 }
@@ -62,28 +59,102 @@ pub fn save<'a, T: Serialize> (
 #[inline]
 pub fn remove<'a>(
     storage: &mut dyn Storage,
-    key: impl Into<StoredKey<'a>>
+    key: impl AsRef<[u8]>
 ) {
-    storage.remove(key.into().as_ref());
+    storage.remove(key.as_ref());
 }
 
 /// Load something from the storage.
 #[inline]
 pub fn load<'a, T: DeserializeOwned> (
     storage: &dyn Storage,
-    key: impl Into<StoredKey<'a>>
+    key: impl AsRef<[u8]>
 ) -> StdResult<Option<T>> {
-    match storage.get(key.into().as_ref()) {
+    match storage.get(key.as_ref()) {
         Some(data) => Ok(Some(from_slice(&data)?)),
         None => Ok(None)
     }
 }
 
-fn concat(segments: &[&[u8]]) -> Vec<u8> {
-    let total_len = segments.iter().map(|x| x.len()).sum();
-    let result = Vec::<u8>::with_capacity(total_len);
+impl<'a> Key for CompositeKey<'a> {
+    #[inline]
+    fn segments(&self) -> Segments {
+        self.0
+    }
+}
 
-    let mut offset = 0;
+impl<'a> CompositeKey<'a> {
+    #[inline]
+    pub fn new(segments: Segments<'a>) -> Self {
+        Self(segments)
+    }
+}
+
+impl<'a> From<Segments<'a>> for CompositeKey<'a> {
+    #[inline]
+    fn from(segments: Segments<'a>) -> Self {
+        Self(segments)
+    }
+}
+
+impl<'a, const N: usize> Key for FixedSegmentSizeKey<'a, N> {
+    #[inline]
+    fn segments(&self) -> Segments {
+        &self.0
+    }
+}
+
+impl<'a, const N: usize> FixedSegmentSizeKey<'a, N> {
+    #[inline]
+    pub fn new(segments: [&'a [u8]; N]) -> Self {
+        Self(segments)
+    }
+}
+
+impl<'a, const N: usize> From<[&'a [u8]; N]> for FixedSegmentSizeKey<'a, N> {
+    #[inline]
+    fn from(segments: [&'a [u8]; N]) -> Self {
+        Self(segments)
+    }
+}
+
+impl<'a, const N: usize> TryFrom<Segments<'a>> for FixedSegmentSizeKey<'a, N> {
+    type Error = StdError;
+
+    #[inline]
+    fn try_from(segments: Segments<'a>) -> Result<Self, Self::Error> {
+        let segments: [&'a [u8]; N] = segments.try_into()
+            .map_err(|_|
+                StdError::invalid_data_size(N, segments.len())
+            )?;
+
+        Ok(Self(segments))
+    }
+}
+
+#[inline]
+fn concat(segments: Segments) -> Vec<u8> {
+    concat_ns(&[], segments)
+}
+
+fn concat_ns(ns: &[u8], segments: Segments) -> Vec<u8> {
+    let ns_len = ns.len();
+    let segments_len: usize = segments.iter().map(|x| x.len()).sum();
+
+    let mut result = Vec::<u8>::with_capacity(ns_len + segments_len);
+
+    if ns_len > 0 {
+        unsafe {
+            ptr::copy_nonoverlapping(
+                ns.as_ptr(),
+                result.as_mut_ptr(),
+                ns_len
+            );
+        }
+    }
+
+    let mut offset = ns_len;
+
     for segment in segments {
         let bytes_len = segment.len();
 
@@ -101,59 +172,7 @@ fn concat(segments: &[&[u8]]) -> Vec<u8> {
     result
 }
 
-impl Key for StaticKey {
-    fn stored_key(&self) -> StoredKey {
-        StoredKey(self.0)
-    }
-}
-
-impl From<&'static [u8]> for StaticKey {
-    fn from(key: &'static [u8]) -> Self {
-        Self(key)
-    }
-}
-
-impl AsRef<[u8]> for StaticKey {
-    fn as_ref(&self) -> &[u8] {
-        self.0
-    }
-}
-
-impl<N: Namespace> Key for CompositeKey<N> {
-    fn stored_key(&self) -> StoredKey {
-        StoredKey(&self.key)
-    }
-}
-
-impl<'a, N: Namespace> Into<StoredKey<'a>> for &'a CompositeKey<N> {
-    fn into(self) -> StoredKey<'a> {
-        StoredKey(&self.key)
-    }
-}
-
-impl<N: Namespace, A: AsRef<[u8]>, B: AsRef<[u8]>> Into<CompositeKey<N>> for (A, B) {
-    fn into(self) -> CompositeKey<N> {
-        CompositeKey {
-            key: concat(&[N::NAMESPACE, self.0.as_ref(), self.1.as_ref()]),
-            data: PhantomData
-        }
-    }
-}
-
-impl<const N: usize> From<&'static [u8; N]> for StoredKey<'static> {
-    fn from(key: &'static [u8; N]) -> Self {
-        Self(key.as_slice())
-    }
-}
-
-impl<'a> From<&'a [u8]> for StoredKey<'a> {
-    fn from(key: &'a [u8]) -> Self {
-        Self(key)
-    }
-}
-
-impl<'a> AsRef<[u8]> for StoredKey<'a> {
-    fn as_ref(&self) -> &[u8] {
-        self.0
-    }
+#[inline]
+fn not_found_error<T>() -> StdError {
+    StdError::not_found(format!("Storage load: {}", any::type_name::<T>()))
 }

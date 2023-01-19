@@ -1,17 +1,18 @@
 use std::marker::PhantomData;
 
+use serde::{Serialize, de::DeserializeOwned};
+
 use crate::cosmwasm_std::{
     Storage, StdResult, StdError
 };
-use serde::{Serialize, de::DeserializeOwned};
+use super::concat;
 
-use super::StoredKey;
 
 /// Stores items in a way that allows for iterating over them
 /// in a sequential order just like a Vec. It's also possible to
 /// retrieve or update inidividual items based on their index.
 pub struct IterableStorage<'ns ,T: DeserializeOwned + Serialize> {
-    ns: StoredKey<'ns>,
+    ns: &'ns [u8],
     len: Option<u64>,
     data: PhantomData<T>
 }
@@ -24,9 +25,9 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
     #[inline]
-    pub fn new(ns: impl Into<StoredKey<'ns>>) -> Self {
+    pub fn new(ns: impl AsRef<[u8]>) -> Self {
         Self {
-            ns: ns.into(),
+            ns: ns.as_ref(),
             len: None,
             data: PhantomData
         }
@@ -82,7 +83,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// ```
     pub fn push(&mut self, storage: &mut dyn Storage, value: &T) -> StdResult<u64> {
         let index = self.increment_index(storage)?;
-        ns_save(storage, self.ns, &index.to_be_bytes(), value)?;
+        super::save(storage, self.key(index), value)?;
 
         Ok(index)
     }
@@ -110,7 +111,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// ```
     pub fn pop(&mut self, storage: &mut dyn Storage) -> StdResult<()> {
         let index = self.decrement_index(storage)?;
-        ns_remove(storage, self.ns, &index.to_be_bytes());
+        super::remove(storage, self.key(index));
 
         Ok(())
     }
@@ -134,7 +135,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// assert_eq!(storage.get_at(s, 1).unwrap(), None);
     /// ```
     pub fn get_at(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<T>> {
-        ns_load(storage, self.ns, &index.to_be_bytes())
+        super::load(storage, self.key(index))
     }
 
     /// Returns the value returned by the provided `update` closure or [`None`] if nothing is stored at the given `index`.
@@ -176,7 +177,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         match item {
             Some(item) => {
                 let item = update(item)?;
-                ns_save(storage, self.ns, &index.to_be_bytes(), &item)?;
+                super::save(storage, self.key(index), &item)?;
 
                 Ok(Some(item))
             },
@@ -239,7 +240,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         }
 
         let last_item = self.get_at(storage, tail)?.unwrap();
-        ns_save(storage, self.ns, &index.to_be_bytes(), &last_item)?;
+        super::save(storage, self.key(index), &last_item)?;
 
         self.pop(storage)?;
 
@@ -270,7 +271,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
             return Ok(len)
         }
 
-        let result: Option<u64> = ns_load(storage, self.ns, Self::KEY_INDEX)?;
+        let result: Option<u64> = super::load(storage, self.key_len())?;
 
         Ok(result.unwrap_or(0))
     }
@@ -279,7 +280,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         let current = self.len(storage)?;
         let new = current + 1;
 
-        ns_save(storage, self.ns, Self::KEY_INDEX, &new)?;
+        super::save(storage, self.key_len(), &new)?;
         self.len = Some(new);
 
         Ok(current)
@@ -289,10 +290,18 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         let current = self.len(storage)?;
         let new = current.saturating_sub(1);
 
-        ns_save(storage, self.ns, Self::KEY_INDEX, &new)?;
+        super::save(storage, self.key_len(), &new)?;
         self.len = Some(new);
 
         Ok(new)
+    }
+
+    fn key(&self, index: u64) -> Vec<u8> {
+        concat(&[self.ns, &index.to_be_bytes()])
+    }
+
+    fn key_len(&self) -> Vec<u8> {
+        concat(&[self.ns, Self::KEY_INDEX])
     }
 }
 
@@ -300,14 +309,14 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
 /// You don't instantiate this type directly but by calling [`IterableStorage::iter`] instead.
 pub struct Iter<'storage, 'ns, T: DeserializeOwned> {
     storage: &'storage dyn Storage,
-    ns: StoredKey<'ns>,
+    ns: &'ns [u8],
     current: u64,
     end: u64,
     result: PhantomData<T>
 }
 
 impl<'storage, 'ns, T: DeserializeOwned> Iter<'storage, 'ns, T> {
-    pub fn new(storage: &'storage dyn Storage, ns: StoredKey<'ns>, len: u64) -> Self {
+    pub fn new(storage: &'storage dyn Storage, ns: &'ns [u8], len: u64) -> Self {
         Self {
             storage,
             ns,
@@ -320,6 +329,14 @@ impl<'storage, 'ns, T: DeserializeOwned> Iter<'storage, 'ns, T> {
     pub fn len(&self) -> u64 {
         self.end.saturating_sub(self.current)
     }
+
+    #[inline]
+    fn load_next(&self) -> StdResult<T> {
+        super::load(
+            self.storage,
+            concat(&[self.ns, &self.current.to_be_bytes()])
+        ).map(|x| x.unwrap())
+    }
 }
 
 impl<'storage, 'ns, T: DeserializeOwned> Iterator for Iter<'storage, 'ns, T> {
@@ -330,12 +347,7 @@ impl<'storage, 'ns, T: DeserializeOwned> Iterator for Iter<'storage, 'ns, T> {
             return None;
         }
 
-        let result: Self::Item = ns_load(
-            self.storage,
-            &self.ns,
-            &self.current.to_be_bytes()
-        ).map(|x| x.unwrap());
-
+        let result = self.load_next();
         self.current += 1;
 
         Some(result)
@@ -359,13 +371,7 @@ impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, 
         }
 
         self.end -= 1;
-
-        let result: Self::Item = ns_load(
-            self.storage,
-            &self.ns,
-            &self.end.to_be_bytes()
-        )
-        .map(|x| x.unwrap());
+        let result = self.load_next();
 
         Some(result)
     }
