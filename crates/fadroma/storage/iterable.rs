@@ -5,13 +5,13 @@ use crate::cosmwasm_std::{
 };
 use serde::{Serialize, de::DeserializeOwned};
 
-use super::{ns_load, ns_save, ns_remove};
+use super::StoredKey;
 
 /// Stores items in a way that allows for iterating over them
 /// in a sequential order just like a Vec. It's also possible to
 /// retrieve or update inidividual items based on their index.
 pub struct IterableStorage<'ns ,T: DeserializeOwned + Serialize> {
-    ns: &'ns [u8],
+    ns: StoredKey<'ns>,
     len: Option<u64>,
     data: PhantomData<T>
 }
@@ -24,9 +24,9 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
     #[inline]
-    pub fn new(ns: &'ns [u8]) -> Self {
+    pub fn new(ns: impl Into<StoredKey<'ns>>) -> Self {
         Self {
-            ns,
+            ns: ns.into(),
             len: None,
             data: PhantomData
         }
@@ -300,14 +300,14 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
 /// You don't instantiate this type directly but by calling [`IterableStorage::iter`] instead.
 pub struct Iter<'storage, 'ns, T: DeserializeOwned> {
     storage: &'storage dyn Storage,
-    ns: &'ns [u8],
+    ns: StoredKey<'ns>,
     current: u64,
     end: u64,
     result: PhantomData<T>
 }
 
 impl<'storage, 'ns, T: DeserializeOwned> Iter<'storage, 'ns, T> {
-    pub fn new(storage: &'storage dyn Storage, ns: &'ns [u8], len: u64) -> Self {
+    pub fn new(storage: &'storage dyn Storage, ns: StoredKey<'ns>, len: u64) -> Self {
         Self {
             storage,
             ns,
