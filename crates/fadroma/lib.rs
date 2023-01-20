@@ -44,7 +44,10 @@ pub mod prelude {
 
     pub use schemars::{self, JsonSchema};
 
-    pub use crate::storage;
+    pub use crate::storage::{
+        self, Key, Namespace, CompositeKey, StaticKey, FixedSegmentSizeKey,
+        TypedKey, TypedKey2, TypedKey3, TypedKey4, SingleItem, ItemSpace
+    };
 
     pub use crate::proc_message::message;
 

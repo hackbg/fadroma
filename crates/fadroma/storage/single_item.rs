@@ -50,7 +50,7 @@ impl<T: Serialize + DeserializeOwned, N: Namespace> SingleItem<T, N> {
         &self,
         storage: &dyn Storage,
     ) -> StdResult<T> {
-        let result: Option<T> = super::load(storage, N::NAMESPACE)?;
+        let result: Option<T> = self.load(storage)?;
 
         result.ok_or_else(|| not_found_error::<T>())
     }
@@ -62,31 +62,29 @@ impl<T: Serialize + DeserializeOwned, N: Namespace> SingleItem<T, N> {
     ) {
         super::remove(storage, N::NAMESPACE)
     }
-}
 
-impl<
-    C: Serialize,
-    H: DeserializeOwned,
-    T: Serialize + DeserializeOwned + Humanize<Output = H> + Canonize<Output = C>,
-    N: Namespace
-> SingleItem<T, N> {
     #[inline]
-    pub fn save_canonized(
+    pub fn canonize_and_save<Input: Canonize<Output = T>>(
         &self,
         deps: DepsMut,
-        item: T
+        item: Input
     ) -> StdResult<()> {
         let item = item.canonize(deps.api)?;
 
-        super::save(deps.storage, N::NAMESPACE, &item)
+        self.save(deps.storage, &item)
     }
+}
 
+impl<
+    T: Serialize + DeserializeOwned + Humanize,
+    N: Namespace
+> SingleItem<T, N> {
     #[inline]
-    pub fn load_humanized(
+    pub fn load_humanize(
         &self,
         deps: Deps
     ) -> StdResult<Option<<T as Humanize>::Output>> {
-        let result: Option<T> = super::load(deps.storage, N::NAMESPACE)?;
+        let result: Option<T> = self.load(deps.storage)?;
 
         match result {
             Some(item) => Ok(Some(item.humanize(deps.api)?)),
@@ -95,40 +93,43 @@ impl<
     }
 
     #[inline]
-    pub fn load_humanized_or_error(
+    pub fn load_humanize_or_error(
         &self,
         deps: Deps
     ) -> StdResult<<T as Humanize>::Output> {
-        let result = self.load_humanized(deps)?;
+        let result = self.load_humanize(deps)?;
 
         result.ok_or_else(|| not_found_error::<T>())
     }
 }
 
 impl<
-    C: Serialize,
-    H: DeserializeOwned + Default,
-    T: Serialize + DeserializeOwned + Humanize<Output = H> + Canonize<Output = C>,
+    T: Serialize + DeserializeOwned + Humanize,
     N: Namespace
-> SingleItem<T, N> {
+> SingleItem<T, N>
+    where <T as Humanize>::Output: Default
+{
     #[inline]
-    pub fn load_humanized_or_default(
+    pub fn load_humanize_or_default(
         &self,
         deps: Deps,
     ) -> StdResult<<T as Humanize>::Output> {
-        let result = self.load_humanized(deps)?;
+        let result = self.load_humanize(deps)?;
 
         Ok(result.unwrap_or_default())
     }
 }
 
-impl<T: Serialize + DeserializeOwned + Default, N: Namespace> SingleItem<T, N> {
+impl<
+    T: Serialize + DeserializeOwned + Default,
+    N: Namespace
+> SingleItem<T, N> {
     #[inline]
     pub fn load_or_default(
         &self,
         storage: &dyn Storage,
     ) -> StdResult<T> {
-        let result: Option<T> = super::load(storage, N::NAMESPACE)?;
+        let result: Option<T> = self.load(storage)?;
 
         Ok(result.unwrap_or_default())
     }

@@ -7,7 +7,7 @@ use crate::{
     core::{Humanize, Canonize},
     cosmwasm_std::{Deps, DepsMut, Storage, StdResult}
 };
-use super::{Key, Namespace, concat_ns, not_found_error};
+use super::{Key, Namespace, not_found_error};
 
 pub struct ItemSpace<T: Serialize + DeserializeOwned, N: Namespace, K: Key> {
     namespace_data: PhantomData<N>,
@@ -65,34 +65,32 @@ impl<T: Serialize + DeserializeOwned, N: Namespace, K: Key> ItemSpace<T, N, K> {
     }
 
     #[inline]
+    pub fn canonize_and_save<Input: Canonize<Output = T>>(
+        &self,
+        deps: DepsMut,
+        key: impl Into<K>,
+        item: Input
+    ) -> StdResult<()> {
+        let item = item.canonize(deps.api)?;
+
+        self.save(deps.storage, key, &item)
+    }
+
+    #[inline]
     fn key(key: impl Into<K>) -> Vec<u8> {
         let key = key.into();
 
-        concat_ns(N::NAMESPACE, key.segments())
+        key.build(Some(N::NAMESPACE))
     }
 }
 
 impl<
-    C: Serialize,
-    H: DeserializeOwned,
-    T: Serialize + DeserializeOwned + Humanize<Output = H> + Canonize<Output = C>,
+    T: Serialize + DeserializeOwned + Humanize,
     N: Namespace,
     K: Key
 > ItemSpace<T, N, K> {
     #[inline]
-    pub fn save_canonized(
-        &self,
-        deps: DepsMut,
-        key: impl Into<K>,
-        item: T
-    ) -> StdResult<()> {
-        let item = item.canonize(deps.api)?;
-
-        super::save(deps.storage, Self::key(key), &item)
-    }
-
-    #[inline]
-    pub fn load_humanized(
+    pub fn load_humanize(
         &self,
         deps: Deps,
         key: impl Into<K>
@@ -106,37 +104,41 @@ impl<
     }
 
     #[inline]
-    pub fn load_humanized_or_error(
+    pub fn load_humanize_or_error(
         &self,
         deps: Deps,
         key: impl Into<K>
     ) -> StdResult<<T as Humanize>::Output> {
-        let result = self.load_humanized(deps, key)?;
+        let result = self.load_humanize(deps, key)?;
 
         result.ok_or_else(|| not_found_error::<T>())
     }
 }
 
 impl<
-    C: Serialize,
-    H: DeserializeOwned + Default,
-    T: Serialize + DeserializeOwned + Humanize<Output = H> + Canonize<Output = C>,
+    T: Serialize + DeserializeOwned + Humanize,
     N: Namespace,
     K: Key
-> ItemSpace<T, N, K> {
+> ItemSpace<T, N, K>
+    where <T as Humanize>::Output: Default
+{
     #[inline]
-    pub fn load_humanized_or_default(
+    pub fn load_humanize_or_default(
         &self,
         deps: Deps,
         key: impl Into<K>
     ) -> StdResult<<T as Humanize>::Output> {
-        let result = self.load_humanized(deps, key)?;
+        let result = self.load_humanize(deps, key)?;
 
         Ok(result.unwrap_or_default())
     }
 }
 
-impl<T: Serialize + DeserializeOwned + Default, N: Namespace, K: Key> ItemSpace<T, N, K> {
+impl<
+    T: Serialize + DeserializeOwned + Default,
+    N: Namespace,
+    K: Key
+> ItemSpace<T, N, K> {
     #[inline]
     pub fn load_or_default(
         &self,

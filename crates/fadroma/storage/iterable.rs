@@ -5,8 +5,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::cosmwasm_std::{
     Storage, StdResult, StdError
 };
-use super::concat;
-
+use super::{Key, CompositeKey};
 
 /// Stores items in a way that allows for iterating over them
 /// in a sequential order just like a Vec. It's also possible to
@@ -25,9 +24,9 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
     #[inline]
-    pub fn new(ns: impl AsRef<[u8]>) -> Self {
+    pub fn new(ns: &'ns [u8]) -> Self {
         Self {
-            ns: ns.as_ref(),
+            ns,
             len: None,
             data: PhantomData
         }
@@ -296,12 +295,18 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         Ok(new)
     }
 
+    #[inline]
     fn key(&self, index: u64) -> Vec<u8> {
-        concat(&[self.ns, &index.to_be_bytes()])
+        let segments = &[self.ns, &index.to_be_bytes()];
+
+        CompositeKey::new(segments).build(None)
     }
 
+    #[inline]
     fn key_len(&self) -> Vec<u8> {
-        concat(&[self.ns, Self::KEY_INDEX])
+        let segments = &[self.ns, Self::KEY_INDEX];
+
+        CompositeKey::new(segments).build(None)
     }
 }
 
@@ -331,10 +336,11 @@ impl<'storage, 'ns, T: DeserializeOwned> Iter<'storage, 'ns, T> {
     }
 
     #[inline]
-    fn load_next(&self) -> StdResult<T> {
+    fn load_next(&self, index: u64) -> StdResult<T> {
+        let segments = &[self.ns, &index.to_be_bytes()];
         super::load(
             self.storage,
-            concat(&[self.ns, &self.current.to_be_bytes()])
+            CompositeKey::new(segments).build(None)
         ).map(|x| x.unwrap())
     }
 }
@@ -347,7 +353,7 @@ impl<'storage, 'ns, T: DeserializeOwned> Iterator for Iter<'storage, 'ns, T> {
             return None;
         }
 
-        let result = self.load_next();
+        let result = self.load_next(self.current);
         self.current += 1;
 
         Some(result)
@@ -371,7 +377,7 @@ impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, 
         }
 
         self.end -= 1;
-        let result = self.load_next();
+        let result = self.load_next(self.end);
 
         Some(result)
     }
