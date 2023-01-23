@@ -340,8 +340,7 @@ export class DockerBuilder extends LocalBuilder {
     if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
 
     // Return a sparse array of the resulting artifacts
-    const results = outputWasms.map(x=>this.locationToContract(x))
-    return results
+    return outputWasms.map(x=>this.locationToContract(x) as Built)
 
   }
 
