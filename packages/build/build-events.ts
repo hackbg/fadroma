@@ -20,14 +20,14 @@ export class BuildConsole extends CommandsConsole {
       `@`, bold(ref)
     )
   }
-  buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractTemplate>) {
+  buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractTemplate<any>>) {
     this.log('Building ', bold(crate), ...
       (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
   }
-  buildingMany (sources: ContractTemplate[]) {
+  buildingMany (sources: ContractTemplate<any>[]) {
     for (const source of sources) this.buildingOne(source)
   }
-  prebuilt (prebuilt: ContractTemplate) {
+  prebuilt (prebuilt: ContractTemplate<any>) {
     this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
   }
   usage () {

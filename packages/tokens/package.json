@@ -16,6 +16,8 @@
     "@fadroma/scrt": "workspace:^6",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1",
+    "@hackbg/many":  "workspace:^1",
+    "@hackbg/task":  "workspace:^1",
     "@hackbg/oops":  "workspace:^1"
   },
   "devDependencies": {

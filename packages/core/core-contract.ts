@@ -558,7 +558,7 @@ export interface Uploaded {
 
 /** @returns the data for saving an upload receipt. */
 export function toUploadReceipt (
-  t: Buildable & Built & Uploadable & Uploaded
+  t: ((Buildable & Built)|undefined) & Uploadable & Uploaded
 ) {
   return {
     ...toBuildReceipt(t),

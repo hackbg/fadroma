@@ -74,8 +74,8 @@ export class YAMLDeployments_v1 extends DeployStore {
     name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })
     for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
-      if (!receipt.id) continue
-      deployment.state[receipt.id] = new Contract(receipt)
+      if (!receipt.name) continue
+      deployment.state[receipt.name] = new Contract(receipt)
     }
     return deployment
   }
@@ -98,7 +98,7 @@ export class YAMLDeployments_v1 extends DeployStore {
     let output = ''
     for (let [name, data] of Object.entries(state)) {
       output += '---\n'
-      name ??= data.id!
+      name ??= data.name!
       if (!name) throw new Error('Deployment: no name')
       const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
       data = JSON.parse(JSON.stringify({
