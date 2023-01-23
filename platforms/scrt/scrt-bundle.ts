@@ -116,8 +116,8 @@ export class ScrtBundle extends Bundle {
     const chainId = assertChain(this).id
     const results: ScrtBundleResult[] = []
     const msgs  = await this.conformedMsgs
-    const limit = Number(Scrt.defaultFees.exec.amount[0].amount)
-    const gas   = msgs.length * limit
+    const limit = Number(Scrt.defaultFees.exec?.amount[0].amount) || undefined
+    const gas   = msgs.length * (limit || 0)
     try {
       const agent = this.agent as unknown as ScrtAgent
       const txResult = await agent.api.tx.broadcast(msgs, { gasLimit: gas })
@@ -163,7 +163,7 @@ export class ScrtBundle extends Bundle {
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
     return Promise.all(this.assertMessages().map(async ({init, exec})=>{
-      const SecretJS = (this.agent?.chain as Scrt).SecretJS
+      const SecretJS = (this.agent.chain as Scrt).SecretJS
       if (init) return new SecretJS.MsgInstantiateContract({
         sender:          init.sender,
         code_id:         init.codeId,

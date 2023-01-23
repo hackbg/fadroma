@@ -1,7 +1,7 @@
 import { loadAll, dump } from 'js-yaml'
 import { timestamp, bold } from '@hackbg/logs'
 import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/file'
-import { Agent, Contract, Client, Deployment, DeployStore, toInstanceReceipt } from '@fadroma/core'
+import { Agent, Contract, AnyContract, Client, Deployment, DeployStore, toInstanceReceipt } from '@fadroma/core'
 import { DeployConsole, DeployError, log } from './deploy-events'
 import { basename } from 'node:path'
 
@@ -63,7 +63,6 @@ export class YAMLDeployments_v1 extends DeployStore {
     throw new DeployError.DeploymentDoesNotExist(name)
   }
 
-  // FIXME turn this into a getDeployment(name) factory?
   get active () {
     return this.get(this.KEY)
   }

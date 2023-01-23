@@ -23,7 +23,7 @@ export class ConnectConfig extends EnvConfig {
   }
 
   /** Name of chain to use. */
-  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN', ()=> undefined)
+  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN', ()=>undefined)
 
   /** Get a chain ID corresponding to the value of `this.chain`.
     * (Used by subclasses to include chain ID in paths.) */

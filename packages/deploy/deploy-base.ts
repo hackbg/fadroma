@@ -17,10 +17,10 @@ import { DeployError, DeployConsole } from './deploy-events'
 export class DeployConfig extends ConnectConfig {
   constructor (
     defaults: Partial<DeployConfig> = {},
-    readonly env: Env    = process.env,
-    readonly cwd: string = process.cwd(),
+    readonly env: Env,
+    readonly cwd: string,
   ) {
-    super(defaults as Partial<ConnectConfig>, env, cwd)
+    super(defaults as Partial<ConnectConfig>, env ?? process.env, cwd ?? process.cwd())
     this.override(defaults)
   }
   /** Project root. Defaults to current working directory. */
@@ -42,7 +42,7 @@ export class DeployConfig extends ConnectConfig {
     return DeployStore.variants[this.deploymentFormat]
   }
   async getDeployStore <S extends DeployStore> (
-    $S: DeployStoreClass<S>|undefined = this.DeployStore as DeployStoreClass<D>
+    $S: DeployStoreClass<S>|undefined = this.DeployStore as DeployStoreClass<S>
   ): Promise<S> {
     if (!$S) throw new Error('Missing deployment store constructor')
     return new $S(this.deploys)
@@ -150,7 +150,7 @@ export class Deployer extends Connector {
     await store.create(name)
     return await this.selectDeployment(name)
   }
-  /** Make a new deployment the active one. */
+  /** Set a deployment as active for this deployer. */
   async selectDeployment (id: string): Promise<Deployer> {
     const store = await this.provideStore()
     const list  = store.list()

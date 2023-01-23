@@ -173,7 +173,7 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   /** Get an instance of this contract, or define a new one.
     * @returns task for deploying a contract, returning its client */
   instance (overrides?: Partial<Contract<C>>): Task<Contract<C>, C> {
-    const options: Partial<Contract<C>> = { ...this, ...overrides }
+    const options: Partial<Contract<C>> = { ...this as Partial<Contract<C>>, ...overrides }
     console.log(this, {options})
     const instance: Contract<C> = this.context
       ? this.context.contract(options)
