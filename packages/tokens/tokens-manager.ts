@@ -22,10 +22,6 @@ export interface TokenOptions {
   config?:   Snip20InitConfig
 }
 
-export type Tokens = Record<string, Snip20|Token>
-
-type TokenSlots = Record<TokenSymbol, TokenContract>
-
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
 export class TokenManager extends CommandContext {
 
@@ -82,7 +78,7 @@ export class TokenManager extends CommandContext {
   log = new ClientConsole('Fadroma Token Manager')
 
   /** Collection of known tokens in descriptor format, keyed by symbol. */
-  tokens: TokenSlots = {}
+  tokens: Record<TokenSymbol, TokenContract> = {}
 
   get config () { return this.context.config }
 
@@ -92,8 +88,12 @@ export class TokenManager extends CommandContext {
   }
 
   /** Register a token contract. */
-  add (symbol: TokenSymbol, spec: Partial<TokenContract>): TokenContract {
-    const token = (spec instanceof Contract) ? spec : this.context.contract(spec)
+  add (symbol: TokenSymbol, contract: TokenContract): TokenContract
+  add (symbol: TokenSymbol, contract: Partial<TokenContract>): TokenContract
+  add (symbol: TokenSymbol, contract: unknown): TokenContract {
+    const token = (contract instanceof Contract)
+      ? contract
+      : this.context.contract(contract as Partial<TokenContract>)
     token.name ??= symbol
     this.tokens[symbol] = token
     return token
@@ -142,9 +142,9 @@ export class TokenManager extends CommandContext {
           options?.admin    ?? this.context.agent!.address!,
           options?.config
         ),
-      })
+      }).context! as TokenContract
 
-      this.add(symbol, this.context.addContract(name, instance.context!))
+      this.add(symbol, this.context.addContract(name, instance))
     }
 
     return this.get(symbol)

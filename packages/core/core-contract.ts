@@ -516,7 +516,7 @@ export interface Buildable {
 }
 
 /** Result of building a contract. */
-export interface Built {
+export interface Built extends Partial<Buildable> {
   artifact:   string|URL
   codeHash?:  CodeHash
   builder?:   Builder
@@ -524,7 +524,7 @@ export interface Built {
 }
 
 /** @returns the data for saving a build receipt. */
-export function toBuildReceipt (s: Buildable & Built) {
+export function toBuildReceipt (s: Partial<Built>) {
   return {
     repository: s.repository,
     revision:   s.revision,
@@ -540,14 +540,14 @@ export function toBuildReceipt (s: Buildable & Built) {
 }
 
 /** Parameters involved in uploading a contract */
-export interface Uploadable {
+export interface Uploadable extends Partial<Built> {
   artifact:  string|URL
   chainId:   ChainId,
   codeHash?: CodeHash
 }
 
 /** Result of uploading a contract */
-export interface Uploaded {
+export interface Uploaded extends Partial<Uploadable> {
   chainId:   ChainId
   codeId:    CodeId
   codeHash:  CodeHash
@@ -557,9 +557,7 @@ export interface Uploaded {
 }
 
 /** @returns the data for saving an upload receipt. */
-export function toUploadReceipt (
-  t: ((Buildable & Built)|undefined) & Uploadable & Uploaded
-) {
+export function toUploadReceipt (t: Partial<Uploaded>) {
   return {
     ...toBuildReceipt(t),
     chainId:    t.chainId,

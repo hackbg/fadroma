@@ -128,7 +128,7 @@ export abstract class LocalBuilder extends Builder {
       if (location.exists()) {
         const artifact = location.url
         const codeHash = this.hashPath(location)
-        return new Contract({ crate, revision, artifact, codeHash })
+        return { crate, revision, artifact, codeHash }
       }
     }
     return null
