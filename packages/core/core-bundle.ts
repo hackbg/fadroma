@@ -151,14 +151,20 @@ export abstract class Bundle extends Agent {
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
     *   the unmodified input. */
-  async instantiate <C extends Client> (instance: Contract<C>): Promise<Contract<C>> {
+  async instantiate <C extends Client> (instance: Contract<C>) {
     const label    = instance.label
     const codeId   = String(instance.codeId)
     const codeHash = instance.codeHash
     const sender   = this.address
     const msg = instance.initMsg = await into(instance.initMsg)
     this.add({ init: { codeId, codeHash, label, msg, sender, funds: [] } })
-    return instance
+    return {
+      chainId:  this.chain!.id,
+      address:  '(bundle not submitted)',
+      codeHash: codeHash!,
+      label:    label!,
+      initBy:   this.address,
+    }
   }
 
   /** Add multiple init messages to the bundle.

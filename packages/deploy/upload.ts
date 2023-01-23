@@ -1,13 +1,9 @@
 import { colors, bold } from '@hackbg/logs'
-import { Task } from '@hackbg/task'
-import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/file'
-import { Contract, ClientConsole, Uploader, assertAgent, override } from '@fadroma/core'
-import type { Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/core'
-import { Console as CustomConsole } from '@hackbg/logs'
-
-export class UploadConsole extends ClientConsole {
-  label = 'Fadroma.Uploader'
-}
+import $, { Path, BinaryFile } from '@hackbg/file'
+import { Uploader, assertAgent, override, toUploadReceipt } from '@fadroma/core'
+import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/core'
+import { UploadStore, UploadReceipt } from './upload-store'
+import { UploadConsole } from './upload-events'
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,
@@ -73,10 +69,12 @@ export class FSUploader extends Uploader {
     }
     const { codeId, codeHash, uploadTx } = result
     Object.assign(contract, { codeId, codeHash, uploadTx })
+
     // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
-      receipt.save((contract as AnyContract).asUploadReceipt)
+      receipt.save(toUploadReceipt(contract as AnyContract))
     }
+
     //await this.agent.nextBlock
     return contract as Uploaded & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
   }
@@ -161,7 +159,7 @@ export class FSUploader extends Uploader {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const template = uploaded[i]
         $(this.cache, this.getUploadReceiptName(toUpload[i]))
-          .as(UploadReceipt).save(template.asUploadReceipt)
+          .as(UploadReceipt).save(toUploadReceipt(template))
         outputs[i] = template
       }
     }
@@ -227,35 +225,4 @@ export class FSUploader extends Uploader {
     }
   }
 
-}
-
-/** Directory collecting upload receipts.
-  * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
-  * and are kept so that we don't reupload the same contracts. */
-export class UploadStore extends JSONDirectory<UploadReceipt> {}
-
-/** Class that convert itself to a Contract, from which contracts can be instantiated. */
-export class UploadReceipt extends JSONFile<UploadReceiptFormat> {
-  /** Create a Contract object with the data from the receipt. */
-  toContract (defaultChainId?: string) {
-    let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
-    chainId ??= defaultChainId
-    codeId  = String(codeId)
-    return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
-  }
-}
-
-/** Fields in the upload receipt. */
-export interface UploadReceiptFormat {
-  artifact?:          any
-  chainId?:           string
-  codeHash:           string
-  codeId:             number|string
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               any[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-  uploadTx?:          string
 }

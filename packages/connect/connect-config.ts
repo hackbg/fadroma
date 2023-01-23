@@ -69,7 +69,7 @@ export class ConnectConfig extends EnvConfig {
       getChain = Chain.variants[getChain]
     }
     if (!getChain) { // if still unspecified, throw
-      throw new Error.UnknownChainSelected(this.chain, Chain.variants)
+      throw new Error.UnknownChainSelected(this.chain!, Chain.variants)
     }
     return await Promise.resolve(getChain(this)) as C // create Chain object
   }

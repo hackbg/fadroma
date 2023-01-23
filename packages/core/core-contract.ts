@@ -173,7 +173,10 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   /** Get an instance of this contract, or define a new one.
     * @returns task for deploying a contract, returning its client */
   instance (overrides?: Partial<Contract<C>>): Task<Contract<C>, C> {
-    const options: Partial<Contract<C>> = { ...this as Partial<Contract<C>>, ...overrides }
+    const options: Partial<Contract<C>> = {
+      ...this as unknown as Partial<Contract<C>>,
+      ...overrides
+    }
     console.log(this, {options})
     const instance: Contract<C> = this.context
       ? this.context.contract(options)
@@ -411,7 +414,7 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
         override(this as Contract<C>, instance)
         this.log?.afterDeploy(this as Partial<Contract<C>>)
         // Add self to deployment (FIXME necessary?)
-        if (this.context) this.context.addContract(this.name!, instance)
+        if (this.context) this.context.addContract(this.name!, this)
       }
       // Create and return the Client instance used to interact with the contract
       const $C = (this.client ?? Client)

@@ -125,7 +125,7 @@ export class TokenManager extends CommandContext {
       workspace,
       id: name,
       client: Snip20,
-      label: writeLabel({ prefix: this.context.name, id: name }),
+      label: writeLabel({ prefix: this.context.name, name }),
       initMsg: Snip20.init(
         name,
         symbol,
