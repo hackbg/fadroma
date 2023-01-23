@@ -17,8 +17,8 @@ import { DeployError, DeployConsole } from './deploy-events'
 export class DeployConfig extends ConnectConfig {
   constructor (
     defaults: Partial<DeployConfig> = {},
-    readonly env: Env,
-    readonly cwd: string,
+    readonly env: Env    = process.env,
+    readonly cwd: string = process.cwd(),
   ) {
     super(defaults as Partial<ConnectConfig>, env ?? process.env, cwd ?? process.cwd())
     this.override(defaults)
@@ -76,7 +76,9 @@ export interface DeployerClass<D extends Deployer> extends Class<D, [
   * Can switch to another set of receipts to represent
   * another group of contracts with the same relations. */
 export class Deployer extends Connector {
-  constructor (options: Partial<Deployer> = { config: new DeployConfig() }) {
+  constructor (
+    options: Partial<Deployer> = { config: new DeployConfig() }
+  ) {
     const { store } = options
     if (store && store.active?.name) options.name = store.active.name
     super(options as Partial<Connector>)

@@ -181,7 +181,7 @@ export class Deployment extends CommandContext {
     opts: Partial<Contract<C>> = {}
   ): Contract<C> {
     if (opts.name && this.hasContract(opts.name)) {
-      return this.getContract(opts.name)
+      return this.getContract(opts.name) as unknown as Contract<C>
     }
     return this.addContract(opts.name!, new Contract({
       workspace: this.config?.build?.project,
