@@ -73,7 +73,7 @@ export class FSUploader extends Uploader {
 
     // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
-      receipt.save(toUploadReceipt(contract as AnyContract))
+      (receipt as UploadReceipt).save(toUploadReceipt(contract as AnyContract))
     }
 
     //await this.agent.nextBlock
@@ -147,6 +147,7 @@ export class FSUploader extends Uploader {
 
       // Otherwise reuse the code ID from the receipt.
       outputs[i] = Object.assign(input, {
+        codeHash: input.codeHash!,
         codeId:   String(receiptData.codeId),
         uploadTx: receiptData.transactionHash as string
       })

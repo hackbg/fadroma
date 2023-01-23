@@ -3,7 +3,7 @@ import $ from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { colors, bold } from '@hackbg/logs'
 import { HEAD } from '@fadroma/core'
-import type { ContractTemplate } from '@fadroma/core'
+import type { ContractTemplate, Built } from '@fadroma/core'
 
 export class BuildConsole extends CommandsConsole {
   label = 'Fadroma.Builder'
@@ -27,7 +27,7 @@ export class BuildConsole extends CommandsConsole {
   buildingMany (sources: ContractTemplate<any>[]) {
     for (const source of sources) this.buildingOne(source)
   }
-  prebuilt (prebuilt: ContractTemplate<any>) {
+  prebuilt (prebuilt: Built) {
     this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
   }
   usage () {

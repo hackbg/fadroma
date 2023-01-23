@@ -1,7 +1,9 @@
 import { loadAll, dump } from 'js-yaml'
 import { timestamp, bold } from '@hackbg/logs'
 import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/file'
-import { Agent, Contract, AnyContract, Client, Deployment, DeployStore, toInstanceReceipt } from '@fadroma/core'
+import {
+  Agent, Contract, AnyContract, Client, Deployment, DeployStore, toInstanceReceipt
+} from '@fadroma/core'
 import { DeployConsole, DeployError, log } from './deploy-events'
 import { basename } from 'node:path'
 
@@ -91,7 +93,7 @@ export class YAMLDeployments_v1 extends DeployStore {
     }
   }
 
-  set (name: string, state: Record<string, Partial<AnyContract>> = {}) {
+  set (name: string, state: Record<string, AnyContract> = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML

@@ -12,8 +12,10 @@ import { assertAgent } from './core-agent'
 import { into, intoRecord, defineTask, call } from './core-fields'
 import { writeLabel } from './core-labels'
 
-import { AnyContract, Contract, ContractTemplate, ContractGroup } from './core-contract'
-import type { Buildable, Uploadable, Instantiable, Instantiated } from './core-contract'
+import { Contract, ContractTemplate, ContractGroup } from './core-contract'
+import type {
+  AnyContract, Buildable, Uploadable, Instantiable, Instantiated
+} from './core-contract'
 
 import type { Agent } from './core-agent'
 import type { Builder } from './core-build'
@@ -21,9 +23,6 @@ import type { Chain } from './core-chain'
 import type { Class, Many, Name, Named, IntoRecord } from './core-fields'
 import type { Client } from './core-client'
 import type { Uploader } from './core-upload'
-
-/** The collection of contracts that constitute a deployment. */
-export type DeploymentState = Record<string, Contract<any>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -43,7 +42,7 @@ export async function defineDeployment <D extends Deployment> (
 export class Deployment extends CommandContext {
   log = new ClientConsole('Fadroma.Deployment')
   /** Mapping of names to contract instances. */
-  state:       DeploymentState = {}
+  state:       Record<string, AnyContract> = {}
   /** Name of deployment. Used as label prefix of deployed contracts. */
   name:        string
   /** Default Git ref from which contracts will be built if needed. */

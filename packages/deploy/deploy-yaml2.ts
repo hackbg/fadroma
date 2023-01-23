@@ -1,6 +1,6 @@
 import { timestamp } from '@hackbg/logs'
+import type { AnyContract } from '@fadroma/core'
 import { Contract, Deployment, DeployStore } from '@fadroma/core'
-import { } from './deploy-base'
 import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/file'
 
 /** Output of the alternate Rust-based deployer. */
@@ -36,7 +36,7 @@ export class YAMLDeployments_v2 extends DeployStore {
     throw new Error('Not implemented')
   }
 
-  set (name: string, state: Record<string, Partial<Contract<any>>> = {}) {
+  set (name: string, state: Record<string, AnyContract> = {}) {
     throw new Error('Not implemented')
   }
 

@@ -1,4 +1,5 @@
 import { timestamp } from '@hackbg/logs'
+import type { AnyContract } from '@fadroma/core'
 import { Contract, Deployment, DeployStore } from '@fadroma/core'
 import $, { Path, JSONDirectory } from '@hackbg/file'
 
@@ -35,7 +36,7 @@ export class JSONDeployments_v1 extends DeployStore {
     throw new Error('Not implemented')
   }
 
-  set (name: string, state: Record<string, Partial<Contract<any>>> = {}) {
+  set (name: string, state: Record<string, AnyContract> = {}) {
     throw new Error('Not implemented')
   }
 

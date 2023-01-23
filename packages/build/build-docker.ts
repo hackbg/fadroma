@@ -198,7 +198,7 @@ export class DockerBuilder extends LocalBuilder {
     $(outputDir).as(OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates: Array<Buildable|null> = crates.map(()=>null)
+    const templates: Array<Built|null> = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
