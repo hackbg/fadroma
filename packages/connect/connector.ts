@@ -12,7 +12,7 @@ export interface ConnectorClass<C extends Connector> extends Class<C, [
 /** A Deployment with associated Agent and awareness of other chains. */
 export class Connector extends Deployment {
   constructor (options: Partial<Connector> = { config: new ConnectConfig() }) {
-    super(options)
+    super(options as Partial<Deployment>)
     this.config = new ConnectConfig(options?.config, this.env, this.cwd)
   }
   /** Logger */

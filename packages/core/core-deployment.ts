@@ -120,7 +120,7 @@ export class Deployment extends CommandContext {
     return this.chain?.isMocknet ?? false
   }
 
-  config?: { build?: { project?: any } }
+  config?: { build?: { project?: any } } & any // FIXME
 
   /** Check if the deployment contains a contract with a certain name. */
   hasContract (id: Name) {

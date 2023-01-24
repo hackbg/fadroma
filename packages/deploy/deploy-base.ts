@@ -153,11 +153,20 @@ export class Deployer extends Connector {
     return await this.selectDeployment(name)
   }
   /** Set a deployment as active for this deployer. */
-  async selectDeployment (id: string): Promise<Deployer> {
+  async selectDeployment (id?: string): Promise<Deployer> {
     const store = await this.provideStore()
     const list  = store.list()
-    if (list.length < 1) this.log.info('No deployments.')
-    const deployment = await store.select(id)
+    if (list.length < 1) {
+      throw new Error('No deployments in this store')
+    }
+    let deployment
+    if (id) {
+      deployment = await store.select(id)
+    } else if (store.active) {
+      deployment = store.active
+    } else {
+      throw new Error('No active deployment in this store and no name passed')
+    }
     if (deployment) Object.assign(this, {
       name:  deployment.name,
       state: deployment.state
