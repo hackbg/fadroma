@@ -2,6 +2,7 @@
 
 use crate::{
     crypto::sha_256,
+    admin,
     scrt::{
         vk::{ViewingKey, ViewingKeyHashed},
         snip20::client::msg::*
@@ -212,11 +213,11 @@ fn test_init_sanity() {
     );
 
     let storage = deps.as_ref().storage;
-    let constants = Config::get_constants(storage).unwrap();
+    let constants = CONSTANTS.load_or_error(storage).unwrap();
 
-    assert_eq!(Config::get_total_supply(storage).unwrap().u128(), 5000);
+    assert_eq!(TOTAL_SUPPLY.load_or_default(storage).unwrap(), Uint128::new(5000));
     assert_eq!(
-        Config::get_contract_status(storage).unwrap(),
+        STATUS.load_or_error(storage).unwrap(),
         ContractStatusLevel::NormalRun
     );
     assert_eq!(constants.name, "sec-sec".to_string());
@@ -250,10 +251,10 @@ fn test_init_with_config_sanity() {
     );
 
     let storage = deps.as_ref().storage;
-    let constants = Config::get_constants(storage).unwrap();
-    assert_eq!(Config::get_total_supply(storage).unwrap().u128(), 5000);
+    let constants = CONSTANTS.load_or_error(storage).unwrap();
+    assert_eq!(TOTAL_SUPPLY.load_or_default(storage).unwrap(), Uint128::new(5000));
     assert_eq!(
-        Config::get_contract_status(storage).unwrap(),
+        STATUS.load_or_error(storage).unwrap(),
         ContractStatusLevel::NormalRun
     );
     assert_eq!(constants.name, "sec-sec".to_string());
@@ -329,8 +330,8 @@ fn test_handle_transfer() {
     let acc_bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
     let acc_alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
 
-    assert_eq!(5000 - 1000, acc_bob.get_balance(storage).unwrap().u128());
-    assert_eq!(1000, acc_alice.get_balance(storage).unwrap().u128());
+    assert_eq!(5000 - 1000, acc_bob.balance(storage).unwrap().u128());
+    assert_eq!(1000, acc_alice.balance(storage).unwrap().u128());
 
     let handle_msg = ExecuteMsg::Transfer {
         recipient: "alice".to_string(),
@@ -339,10 +340,9 @@ fn test_handle_transfer() {
         padding: None,
     };
 
-    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
-    let error = extract_error_msg(handle_result);
+    let error = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg).unwrap_err();
 
-    assert!(error.contains("insufficient funds"));
+    assert!(matches!(error, StdError::Overflow { .. }));
 }
 
 #[test]
@@ -481,7 +481,7 @@ fn test_handle_register_receive() {
     let account = Account::of(deps.api.addr_canonicalize("contract").unwrap());
 
     let hash = account
-        .get_receiver_hash(deps.as_ref().storage)
+        .receiver_hash(deps.as_ref().storage)
         .unwrap()
         .unwrap();
 
@@ -519,7 +519,7 @@ fn test_handle_create_viewing_key() {
 
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
 
-    let saved_vk = bob.get_viewing_key(deps.as_ref().storage).unwrap().unwrap();
+    let saved_vk = bob.viewing_key(deps.as_ref().storage).unwrap().unwrap();
     assert!(key.check_hashed(&saved_vk));
 }
 
@@ -570,7 +570,7 @@ fn test_handle_set_viewing_key() {
 
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
 
-    let saved_vk = bob.get_viewing_key(deps.as_ref().storage).unwrap().unwrap();
+    let saved_vk = bob.viewing_key(deps.as_ref().storage).unwrap().unwrap();
     assert!(actual_vk.check_hashed(&saved_vk));
 }
 
@@ -666,13 +666,13 @@ fn test_handle_transfer_from() {
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
     let alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
 
-    let bob_balance = bob.get_balance(deps.as_ref().storage).unwrap().u128();
-    let alice_balance = alice.get_balance(deps.as_ref().storage).unwrap().u128();
+    let bob_balance = bob.balance(deps.as_ref().storage).unwrap().u128();
+    let alice_balance = alice.balance(deps.as_ref().storage).unwrap().u128();
 
     assert_eq!(bob_balance, 5000 - 2000);
     assert_eq!(alice_balance, 2000);
 
-    let total_supply = Config::get_total_supply(deps.as_ref().storage).unwrap();
+    let total_supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
     assert_eq!(total_supply.u128(), 5000);
 
     // Second send more than allowance
@@ -814,14 +814,13 @@ fn test_handle_send_from() {
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
     let contract = Account::of(deps.api.addr_canonicalize("contract").unwrap());
 
-    let bob_balance = bob.get_balance(deps.as_ref().storage).unwrap().u128();
-    let contract_balance = contract.get_balance(deps.as_ref().storage).unwrap().u128();
+    let bob_balance = bob.balance(deps.as_ref().storage).unwrap().u128();
+    let contract_balance = contract.balance(deps.as_ref().storage).unwrap().u128();
     assert_eq!(bob_balance, 5000 - 2000);
     assert_eq!(contract_balance, 2000);
-    let total_supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
-    assert_eq!(total_supply, 5000);
+
+    let total_supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
+    assert_eq!(total_supply, Uint128::new(5000));
 
     // Second send more than allowance
     let handle_msg = ExecuteMsg::SendFrom {
@@ -1021,13 +1020,11 @@ fn test_handle_burn_from() {
     );
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
 
-    let bob_balance = bob.get_balance(deps.as_ref().storage).unwrap().u128();
+    let bob_balance = bob.balance(deps.as_ref().storage).unwrap().u128();
     assert_eq!(bob_balance, 10000 - 2000);
 
-    let total_supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
-    assert_eq!(total_supply, 10000 - 2000);
+    let total_supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
+    assert_eq!(total_supply, Uint128::new(10000 - 2000));
 
     // Second burn more than allowance
     let handle_msg = ExecuteMsg::BurnFrom {
@@ -1175,14 +1172,12 @@ fn test_handle_batch_burn_from() {
     for (name, amount) in &[("bob", 200_u128), ("jerry", 300), ("mike", 400)] {
         let account = Account::of(deps.api.addr_canonicalize(&name).unwrap());
 
-        let balance = account.get_balance(deps.as_ref().storage).unwrap().u128();
+        let balance = account.balance(deps.as_ref().storage).unwrap().u128();
         assert_eq!(balance, 10000 - amount);
     }
 
-    let total_supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
-    assert_eq!(total_supply, 10000 * 3 - (200 + 300 + 400));
+    let total_supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
+    assert_eq!(total_supply, Uint128::new(10000 * 3 - (200 + 300 + 400)));
 
     // Burn the rest of the allowance
     let actions: Vec<_> = [("bob", 200_u128), ("jerry", 300), ("mike", 400)]
@@ -1212,13 +1207,12 @@ fn test_handle_batch_burn_from() {
     for name in &["bob", "jerry", "mike"] {
         let account = Account::of(deps.api.addr_canonicalize(&name).unwrap());
 
-        let balance = account.get_balance(deps.as_ref().storage).unwrap().u128();
+        let balance = account.balance(deps.as_ref().storage).unwrap().u128();
         assert_eq!(balance, 10000 - allowance_size);
     }
-    let total_supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
-    assert_eq!(total_supply, 3 * (10000 - allowance_size));
+    
+    let total_supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
+    assert_eq!(total_supply, Uint128::new(3 * (10000 - allowance_size)));
 
     // Second burn more than allowance
     let actions: Vec<_> = ["bob", "jerry", "mike"]
@@ -1272,7 +1266,7 @@ fn test_handle_decrease_allowance() {
     let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
 
     let allowance = bob
-        .get_allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice_canonical)
         .unwrap();
     assert_eq!(
         allowance,
@@ -1309,7 +1303,7 @@ fn test_handle_decrease_allowance() {
     );
 
     let allowance = bob
-        .get_allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice_canonical)
         .unwrap();
     assert_eq!(
         allowance,
@@ -1349,7 +1343,7 @@ fn test_handle_increase_allowance() {
     let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
 
     let allowance = bob
-        .get_allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice_canonical)
         .unwrap();
 
     assert_eq!(
@@ -1374,7 +1368,7 @@ fn test_handle_increase_allowance() {
     );
 
     let allowance = bob
-        .get_allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice_canonical)
         .unwrap();
     assert_eq!(
         allowance,
@@ -1413,7 +1407,7 @@ fn test_handle_change_admin() {
         handle_result.err().unwrap()
     );
 
-    let admin = get_admin(deps.as_ref()).unwrap();
+    let admin = admin::STORE.load_humanize_or_error(deps.as_ref()).unwrap();
     assert_eq!(admin, Addr::unchecked("bob"));
 }
 
@@ -1445,7 +1439,7 @@ fn test_handle_set_contract_status() {
         handle_result.err().unwrap()
     );
 
-    let contract_status = Config::get_contract_status(deps.as_ref().storage).unwrap();
+    let contract_status = STATUS.load_or_error(deps.as_ref().storage).unwrap();
     assert!(matches!(
         contract_status,
         ContractStatusLevel::StopAll { .. }
@@ -1548,7 +1542,7 @@ fn test_handle_redeem() {
 
     let butler = Account::of(deps.api.addr_canonicalize("butler").unwrap());
 
-    let balance = butler.get_balance(deps.as_ref().storage).unwrap().u128();
+    let balance = butler.balance(deps.as_ref().storage).unwrap().u128();
     assert_eq!(balance, 4000)
 }
 
@@ -1618,7 +1612,7 @@ fn test_handle_deposit() {
 
     let butler = Account::of(deps.api.addr_canonicalize("lebron").unwrap());
 
-    let balance = butler.get_balance(deps.as_ref().storage).unwrap().u128();
+    let balance = butler.balance(deps.as_ref().storage).unwrap().u128();
     assert_eq!(balance, 6000)
 }
 
@@ -1665,12 +1659,10 @@ fn test_handle_burn() {
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Burn functionality is not enabled for this token."));
 
-    let supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
-    let burn_amount: u128 = 100;
+    let supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
+    let burn_amount = Uint128::new(100);
     let handle_msg = ExecuteMsg::Burn {
-        amount: Uint128::new(burn_amount),
+        amount: burn_amount,
         memo: None,
         padding: None,
     };
@@ -1686,9 +1678,7 @@ fn test_handle_burn() {
         handle_result.err().unwrap()
     );
 
-    let new_supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
+    let new_supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
     assert_eq!(new_supply, supply - burn_amount);
 }
 
@@ -1736,13 +1726,11 @@ fn test_handle_mint() {
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Mint functionality is not enabled for this token"));
 
-    let supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
-    let mint_amount: u128 = 100;
+    let supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
+    let mint_amount = Uint128::new(100);
     let handle_msg = ExecuteMsg::Mint {
         recipient: "lebron".to_string(),
-        amount: Uint128::new(mint_amount),
+        amount: mint_amount,
         memo: None,
         padding: None,
     };
@@ -1758,15 +1746,13 @@ fn test_handle_mint() {
         handle_result.err().unwrap()
     );
 
-    let new_supply = Config::get_total_supply(deps.as_ref().storage)
-        .unwrap()
-        .u128();
+    let new_supply = TOTAL_SUPPLY.load_or_default(deps.as_ref().storage).unwrap();
     assert_eq!(new_supply, supply + mint_amount);
 }
 
 #[test]
 fn test_handle_admin_commands() {
-    let admin_err = "Admin commands can only be run from admin address".to_string();
+    let admin_err = "Unauthorized";
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
             address: "lebron".to_string(),
@@ -1795,7 +1781,7 @@ fn test_handle_admin_commands() {
         pause_msg,
     );
     let error = extract_error_msg(handle_result);
-    assert!(error.contains(&admin_err.clone()));
+    assert!(error.contains(admin_err));
 
     let mint_msg = ExecuteMsg::AddMinters {
         minters: vec!["not_admin".to_string()],
@@ -1808,7 +1794,7 @@ fn test_handle_admin_commands() {
         mint_msg,
     );
     let error = extract_error_msg(handle_result);
-    assert!(error.contains(&admin_err.clone()));
+    assert!(error.contains(admin_err));
 
     let mint_msg = ExecuteMsg::RemoveMinters {
         minters: vec!["admin".to_string()],
@@ -1821,7 +1807,7 @@ fn test_handle_admin_commands() {
         mint_msg,
     );
     let error = extract_error_msg(handle_result);
-    assert!(error.contains(&admin_err.clone()));
+    assert!(error.contains(admin_err));
 
     let mint_msg = ExecuteMsg::SetMinters {
         minters: vec!["not_admin".to_string()],
@@ -1834,7 +1820,7 @@ fn test_handle_admin_commands() {
         mint_msg,
     );
     let error = extract_error_msg(handle_result);
-    assert!(error.contains(&admin_err.clone()));
+    assert!(error.contains(admin_err));
 
     let change_admin_msg = ExecuteMsg::ChangeAdmin {
         address: "not_admin".to_string(),
@@ -1847,7 +1833,7 @@ fn test_handle_admin_commands() {
         change_admin_msg,
     );
     let error = extract_error_msg(handle_result);
-    assert!(error.contains(&admin_err.clone()));
+    assert!(error.contains(admin_err));
 }
 
 #[test]
@@ -2024,7 +2010,7 @@ fn test_handle_set_minters() {
     };
     let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
-    assert!(error.contains("Admin commands can only be run from admin address"));
+    assert!(error.contains("Unauthorized"));
 
     let handle_msg = ExecuteMsg::SetMinters {
         minters: vec!["bob".to_string()],
@@ -2110,7 +2096,7 @@ fn test_handle_add_minters() {
     };
     let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
-    assert!(error.contains("Admin commands can only be run from admin address"));
+    assert!(error.contains("Unauthorized"));
 
     let handle_msg = ExecuteMsg::AddMinters {
         minters: vec!["bob".to_string()],
@@ -2195,7 +2181,7 @@ fn test_handle_remove_minters() {
     };
     let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
-    assert!(error.contains("Admin commands can only be run from admin address"));
+    assert!(error.contains("Unauthorized"));
 
     let handle_msg = ExecuteMsg::RemoveMinters {
         minters: vec!["admin".to_string()],

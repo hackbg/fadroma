@@ -32,14 +32,13 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
         }
     }
 
-    #[inline]
     /// Returns an iterator that iterates through the stored
     /// elements in a sequential order.
     /// 
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::{IterableStorage, CompositeKey};
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
@@ -56,6 +55,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// assert_eq!(iter.next().unwrap(), Ok(2));
     /// assert_eq!(iter.next(), None)
     /// ```
+    #[inline]
     pub fn iter<'storage>(
         &self,
         storage: &'storage dyn Storage
@@ -68,7 +68,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::{IterableStorage, CompositeKey};
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
@@ -83,6 +83,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// let index = storage.push(s, &2).unwrap();
     /// assert_eq!(index, 1);
     /// ```
+    #[inline]
     pub fn push(&mut self, storage: &mut dyn Storage, value: &T) -> StdResult<u64> {
         let index = self.increment_index(storage)?;
         super::save(storage, self.key(index), value)?;
@@ -97,7 +98,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::{IterableStorage, CompositeKey};
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
@@ -112,6 +113,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// storage.pop(s).unwrap();
     /// assert_eq!(storage.len(s).unwrap(), 0);
     /// ```
+    #[inline]
     pub fn pop(&mut self, storage: &mut dyn Storage) -> StdResult<()> {
         let index = self.decrement_index(storage)?;
         super::remove(storage, self.key(index));
@@ -119,13 +121,12 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
         Ok(())
     }
 
-    #[inline]
     /// Retruns the element stored at the given index or [`None`] if the index is out of bounds.
     /// 
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::{IterableStorage, CompositeKey};
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
@@ -139,6 +140,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(1));
     /// assert_eq!(storage.get_at(s, 1).unwrap(), None);
     /// ```
+    #[inline]
     pub fn get_at(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<T>> {
         super::load(storage, self.key(index))
     }
@@ -148,7 +150,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::{IterableStorage, CompositeKey};
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
@@ -201,7 +203,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::{IterableStorage, CompositeKey};
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::{
     ///     StdError,
     ///     testing::mock_dependencies
@@ -261,7 +263,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::{IterableStorage, CompositeKey};
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();

@@ -1,12 +1,12 @@
 //! Utilities for interacting with the native key-value storage.
 
+pub mod iterable;
+
 mod single_item;
 mod item_space;
-mod iterable;
 
 pub use single_item::*;
 pub use item_space::*;
-pub use iterable::*;
 
 use std::{any, convert::{TryFrom, TryInto}};
 
