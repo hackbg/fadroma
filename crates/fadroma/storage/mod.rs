@@ -193,7 +193,7 @@ impl<'a, T: Segment + ?Sized> From<&'a T> for TypedKey<'a, T> {
 
 macro_rules! impl_typed_key {
     ($name:ident $(<$lt:lifetime, $($param:ident),+>)+ [$($num:tt),+]) => {
-        #[derive(Clone, Copy, PartialEq, PartialOrd, Hash, Debug)]
+        #[derive(Clone, Copy, PartialEq, Hash, Debug)]
         pub struct $name $(<$lt, $($param: Segment + ?Sized),+>)+ (($($(&$lt $param),+)+));
 
         impl $(<$lt, $($param: Segment + ?Sized),+>)+ Key for $name $(<$lt, $($param),+>)+ {
