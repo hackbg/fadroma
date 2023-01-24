@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ensemble::{
-    ContractEnsemble, ContractHarness,
-    MockEnv, AnyResult,
-    anyhow::{bail, anyhow},
-    response::ResponseVariants, EnsembleResult
+use crate::{
+    storage::{SingleItem, ItemSpace, TypedKey},
+    ensemble::{
+        ContractEnsemble, ContractHarness,
+        MockEnv, AnyResult,
+        anyhow::{bail, anyhow},
+        response::ResponseVariants, EnsembleResult
+    }
 };
 use crate::prelude::*;
 
@@ -50,6 +53,13 @@ struct StateResponse {
     balance: Coin
 }
 
+crate::namespace!(ReplyDataNs, b"reply_data_");
+const REPLY_DATA: ItemSpace<Binary, ReplyDataNs, TypedKey<u64>> = ItemSpace::new();
+
+crate::namespace!(ReplyNs, b"reply");
+const REPLY_RESP: SingleItem<SubMsg, ReplyNs> = SingleItem::new();
+const REPLIES: ItemSpace<SubMsgResponse, ReplyNs, TypedKey<u64>> = ItemSpace::new();
+
 impl ContractHarness for Contract {
     fn instantiate(&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
         let msg: InstantiateMsg = from_binary(&msg)?;
@@ -88,10 +98,10 @@ impl ContractHarness for Contract {
                 })
             }
             ExecuteMsg::ReplyResponse(msg) => {
-                storage::save(deps.storage, b"reply", &msg)?;
+                REPLY_RESP.save(deps.storage, &msg)?;
             }
             ExecuteMsg::ReplyData { id, data } => {
-                storage::ns_save(deps.storage, b"reply_data_", &id.to_be_bytes(), &data)?
+                REPLY_DATA.save(deps.storage, &id, &data)?;
             }
             ExecuteMsg::Fail => bail!(StdError::generic_err("Fail"))
         }
@@ -115,11 +125,7 @@ impl ContractHarness for Contract {
                 to_binary(&resp)
             },
             QueryMsg::Reply(id) => {
-                let resp: Option<SubMsgResponse> = storage::ns_load(
-                    deps.storage,
-                    b"reply",
-                    &id.to_be_bytes()
-                )?;
+                let resp = REPLIES.load(deps.storage, &id)?;
 
                 if let Some(resp) = resp {
                     to_binary(&resp)
@@ -142,7 +148,7 @@ impl ContractHarness for Contract {
         }
 
         if let SubMsgResult::Ok(resp) = &reply.result {
-            storage::ns_save(deps.storage, b"reply", &reply.id.to_be_bytes(), resp)?;
+            REPLIES.save(deps.storage, &reply.id, resp)?;
         }
 
         let mut response = Response::default().add_event(
@@ -158,16 +164,12 @@ impl ContractHarness for Contract {
                 )
         );
 
-        if let Some(msg) = storage::load::<SubMsg>(deps.storage, b"reply")? {
+        if let Some(msg) = REPLY_RESP.load(deps.storage)? {
             response.messages.push(msg);
-            deps.storage.remove(b"reply");
+            REPLY_RESP.remove(deps.storage);
         }
 
-        if let Some(data) = storage::ns_load::<Binary>(
-            deps.storage,
-            b"reply_data_",
-            &reply.id.to_be_bytes()
-        )? {
+        if let Some(data) = REPLY_DATA.load(deps.storage, &reply.id)? {
             response.data = Some(data);
         }
 

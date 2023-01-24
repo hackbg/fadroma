@@ -1,22 +1,22 @@
-use std::marker::PhantomData;
+use std::{mem, marker::PhantomData};
+
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::cosmwasm_std::{
     Storage, StdResult, StdError
 };
-use serde::{Serialize, de::DeserializeOwned};
-
-use super::{ns_load, ns_save, ns_remove};
+use super::Key;
 
 /// Stores items in a way that allows for iterating over them
 /// in a sequential order just like a Vec. It's also possible to
 /// retrieve or update inidividual items based on their index.
-pub struct IterableStorage<'ns ,T: DeserializeOwned + Serialize> {
-    ns: &'ns [u8],
+pub struct IterableStorage<T: DeserializeOwned + Serialize, K: Key> {
+    ns: K,
     len: Option<u64>,
     data: PhantomData<T>
 }
 
-impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
+impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
     const KEY_INDEX: &'static [u8] = b"index";
 
     /// Creates an instance for the given namespace.
@@ -24,7 +24,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
     #[inline]
-    pub fn new(ns: &'ns [u8]) -> Self {
+    pub fn new(ns: K) -> Self {
         Self {
             ns,
             len: None,
@@ -32,20 +32,21 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         }
     }
 
-    #[inline]
     /// Returns an iterator that iterates through the stored
     /// elements in a sequential order.
     /// 
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
     /// let s = deps.as_mut().storage;
     /// 
-    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
+    /// 
     /// storage.push(s, &1).unwrap();
     /// storage.push(s, &2).unwrap();
     /// 
@@ -54,10 +55,11 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// assert_eq!(iter.next().unwrap(), Ok(2));
     /// assert_eq!(iter.next(), None)
     /// ```
+    #[inline]
     pub fn iter<'storage>(
         &self,
         storage: &'storage dyn Storage
-    ) -> StdResult<Iter<'storage, '_, T>> {
+    ) -> StdResult<Iter<'storage, T>> {
         Ok(Iter::new(storage, &self.ns, self.len(storage)?))
     }
 
@@ -66,13 +68,14 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
     /// let s = deps.as_mut().storage;
     /// 
-    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
     /// 
     /// let index = storage.push(s, &1).unwrap();
     /// assert_eq!(index, 0);
@@ -80,9 +83,10 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// let index = storage.push(s, &2).unwrap();
     /// assert_eq!(index, 1);
     /// ```
+    #[inline]
     pub fn push(&mut self, storage: &mut dyn Storage, value: &T) -> StdResult<u64> {
         let index = self.increment_index(storage)?;
-        ns_save(storage, self.ns, &index.to_be_bytes(), value)?;
+        super::save(storage, self.key(index), value)?;
 
         Ok(index)
     }
@@ -94,13 +98,14 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
     /// let s = deps.as_mut().storage;
     /// 
-    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
     /// 
     /// storage.push(s, &1).unwrap();
     /// assert_eq!(storage.len(s).unwrap(), 1);
@@ -108,33 +113,36 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// storage.pop(s).unwrap();
     /// assert_eq!(storage.len(s).unwrap(), 0);
     /// ```
+    #[inline]
     pub fn pop(&mut self, storage: &mut dyn Storage) -> StdResult<()> {
         let index = self.decrement_index(storage)?;
-        ns_remove(storage, self.ns, &index.to_be_bytes());
+        super::remove(storage, self.key(index));
 
         Ok(())
     }
 
-    #[inline]
     /// Retruns the element stored at the given index or [`None`] if the index is out of bounds.
     /// 
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
     /// let s = deps.as_mut().storage;
     /// 
-    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
+    /// 
     /// storage.push(s, &1).unwrap();
     /// 
     /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(1));
     /// assert_eq!(storage.get_at(s, 1).unwrap(), None);
     /// ```
+    #[inline]
     pub fn get_at(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<T>> {
-        ns_load(storage, self.ns, &index.to_be_bytes())
+        super::load(storage, self.key(index))
     }
 
     /// Returns the value returned by the provided `update` closure or [`None`] if nothing is stored at the given `index`.
@@ -142,13 +150,15 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
     /// let s = deps.as_mut().storage;
     /// 
-    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
+    /// 
     /// storage.push(s, &1).unwrap();
     /// 
     /// let add_one = |mut x| {
@@ -176,7 +186,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         match item {
             Some(item) => {
                 let item = update(item)?;
-                ns_save(storage, self.ns, &index.to_be_bytes(), &item)?;
+                super::save(storage, self.key(index), &item)?;
 
                 Ok(Some(item))
             },
@@ -193,7 +203,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::{
     ///     StdError,
     ///     testing::mock_dependencies
@@ -202,7 +212,9 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// let mut deps = mock_dependencies();
     /// let s = deps.as_mut().storage;
     /// 
-    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
+    /// 
     /// storage.push(s, &1).unwrap();
     /// storage.push(s, &2).unwrap();
     /// 
@@ -239,7 +251,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         }
 
         let last_item = self.get_at(storage, tail)?.unwrap();
-        ns_save(storage, self.ns, &index.to_be_bytes(), &last_item)?;
+        super::save(storage, self.key(index), &last_item)?;
 
         self.pop(storage)?;
 
@@ -251,13 +263,14 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::storage::IterableStorage;
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
     /// use fadroma::cosmwasm_std::testing::mock_dependencies;
     /// 
     /// let mut deps = mock_dependencies();
     /// let s = deps.as_mut().storage;
     /// 
-    /// let mut storage = IterableStorage::<u8>::new(b"numbers");
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
     /// 
     /// storage.push(s, &1).unwrap();
     /// assert_eq!(storage.len(s).unwrap(), 1);
@@ -270,7 +283,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
             return Ok(len)
         }
 
-        let result: Option<u64> = ns_load(storage, self.ns, Self::KEY_INDEX)?;
+        let result: Option<u64> = super::load(storage, self.key_len())?;
 
         Ok(result.unwrap_or(0))
     }
@@ -279,7 +292,7 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         let current = self.len(storage)?;
         let new = current + 1;
 
-        ns_save(storage, self.ns, Self::KEY_INDEX, &new)?;
+        super::save(storage, self.key_len(), &new)?;
         self.len = Some(new);
 
         Ok(current)
@@ -289,28 +302,49 @@ impl<'ns, T: DeserializeOwned + Serialize> IterableStorage<'ns, T> {
         let current = self.len(storage)?;
         let new = current.saturating_sub(1);
 
-        ns_save(storage, self.ns, Self::KEY_INDEX, &new)?;
+        super::save(storage, self.key_len(), &new)?;
         self.len = Some(new);
 
         Ok(new)
+    }
+
+    #[inline]
+    fn key(&self, index: u64) -> Vec<u8> {
+        let mut key = Vec::with_capacity(self.ns.size() + 8);
+        self.ns.write_segments(&mut key);
+        key.extend_from_slice(&index.to_be_bytes());
+
+        key
+    }
+
+    #[inline]
+    fn key_len(&self) -> Vec<u8> {
+        let mut key = Vec::with_capacity(self.ns.size() + Self::KEY_INDEX.len());
+        self.ns.write_segments(&mut key);
+        key.extend_from_slice(Self::KEY_INDEX);
+        
+        key
     }
 }
 
 /// [`IterableStorage`] iterator. Iterates over values in order.
 /// You don't instantiate this type directly but by calling [`IterableStorage::iter`] instead.
-pub struct Iter<'storage, 'ns, T: DeserializeOwned> {
+pub struct Iter<'storage, T: DeserializeOwned> {
     storage: &'storage dyn Storage,
-    ns: &'ns [u8],
+    ns: Vec<u8>,
     current: u64,
     end: u64,
     result: PhantomData<T>
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> Iter<'storage, 'ns, T> {
-    pub fn new(storage: &'storage dyn Storage, ns: &'ns [u8], len: u64) -> Self {
+impl<'storage, T: DeserializeOwned> Iter<'storage, T> {
+    pub fn new<K: Key>(storage: &'storage dyn Storage, ns: &K, len: u64) -> Self {
+        let mut key = Vec::with_capacity(ns.size() + mem::size_of::<u64>());
+        ns.write_segments(&mut key);
+
         Self {
             storage,
-            ns,
+            ns: key,
             current: 0,
             end: len,
             result: PhantomData
@@ -320,9 +354,19 @@ impl<'storage, 'ns, T: DeserializeOwned> Iter<'storage, 'ns, T> {
     pub fn len(&self) -> u64 {
         self.end.saturating_sub(self.current)
     }
+
+    #[inline]
+    fn load_next(&mut self, index: u64) -> StdResult<T> {
+        self.ns.extend_from_slice(&index.to_be_bytes());
+        let next = super::load(self.storage, &self.ns).map(|x| x.unwrap());
+
+        self.ns.truncate(self.ns.len() - mem::size_of::<u64>());
+
+        next
+    }
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> Iterator for Iter<'storage, 'ns, T> {
+impl<'storage, T: DeserializeOwned> Iterator for Iter<'storage, T> {
     type Item = StdResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -330,12 +374,7 @@ impl<'storage, 'ns, T: DeserializeOwned> Iterator for Iter<'storage, 'ns, T> {
             return None;
         }
 
-        let result: Self::Item = ns_load(
-            self.storage,
-            &self.ns,
-            &self.current.to_be_bytes()
-        ).map(|x| x.unwrap());
-
+        let result = self.load_next(self.current);
         self.current += 1;
 
         Some(result)
@@ -352,20 +391,14 @@ impl<'storage, 'ns, T: DeserializeOwned> Iterator for Iter<'storage, 'ns, T> {
     }
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, 'ns, T> {
+impl<'storage, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.current >= self.end {
             return None;
         }
 
         self.end -= 1;
-
-        let result: Self::Item = ns_load(
-            self.storage,
-            &self.ns,
-            &self.end.to_be_bytes()
-        )
-        .map(|x| x.unwrap());
+        let result = self.load_next(self.end);
 
         Some(result)
     }
@@ -376,18 +409,22 @@ impl<'storage, 'ns, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, 
     }
 }
 
-impl<'storage, 'ns, T: DeserializeOwned> ExactSizeIterator for Iter<'storage, 'ns, T> { }
+impl<'storage, T: DeserializeOwned> ExactSizeIterator for Iter<'storage, T> { }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cosmwasm_std::testing::mock_dependencies;
+    use crate::{
+        cosmwasm_std::testing::mock_dependencies,
+        storage::CompositeKey
+    };
 
     #[test]
     fn iterable_storage_insertion() {
         let ref mut deps = mock_dependencies();
 
-        let mut storage = IterableStorage::<u8>::new(b"numbers");
+        let key = CompositeKey::new(&[b"numbers"]);
+        let mut storage = IterableStorage::<u8, _>::new(key);
         
         for i in 0..5 {
             storage.push(&mut deps.storage, &i).unwrap();
@@ -399,7 +436,7 @@ mod tests {
         assert_eq!(storage.len(&deps.storage).unwrap(), 4);
 
         // Create new to invalidate cached len
-        let mut storage = IterableStorage::<u8>::new(b"numbers");
+        let mut storage = IterableStorage::<u8, _>::new(key);
 
         assert_eq!(storage.len(&deps.storage).unwrap(), 4);
 
@@ -439,7 +476,8 @@ mod tests {
     fn iterable_storage_iter() {
         let ref mut deps = mock_dependencies();
 
-        let mut storage = IterableStorage::<u8>::new(b"numbers");
+        let key = CompositeKey::new(&[b"numbers"]);
+        let mut storage = IterableStorage::<u8, _>::new(key);
         
         for i in 1..=6 {
             storage.push(&mut deps.storage, &i).unwrap();
@@ -474,7 +512,9 @@ mod tests {
     #[test]
     fn iterable_storage_swap_remove() {
         let ref mut deps = mock_dependencies();
-        let mut storage = IterableStorage::<u8>::new(b"numbers");
+
+        let key = CompositeKey::new(&[b"numbers"]);
+        let mut storage = IterableStorage::<u8, _>::new(key);
 
         for i in 1..=6 {
             storage.push(&mut deps.storage, &i).unwrap();
@@ -536,7 +576,7 @@ mod tests {
         let num_items: u8 = 20;
 
         let ref mut deps = mock_dependencies();
-        let mut storage = IterableStorage::<u8>::new(b"numbers");
+        let mut storage = IterableStorage::<u8, _>::new(key);
 
         for i in 0..num_items {
             storage.push(&mut deps.storage, &i).unwrap();
@@ -557,7 +597,7 @@ mod tests {
         assert_eq!(storage.len(&deps.storage).unwrap(), 0);
 
         let ref mut deps = mock_dependencies();
-        let mut storage = IterableStorage::<u8>::new(b"numbers");
+        let mut storage = IterableStorage::<u8, _>::new(key);
 
         for i in 0..num_items {
             storage.push(&mut deps.storage, &i).unwrap();

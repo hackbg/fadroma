@@ -7,19 +7,21 @@ use crate::{
     derive_contract::*
 };
 
+use super::STORE;
+
 #[contract]
 pub trait SimpleAdmin {
     #[execute]
     fn change_admin(address: String) -> StdResult<Response> {
         super::assert(deps.as_ref(), &info)?;
-        super::save(deps, &address)?;
+        STORE.canonize_and_save(deps, address.as_str())?;
 
         Ok(Response::new().add_attribute("new_admin", address))
     }
 
     #[query]
     fn admin() -> StdResult<Option<Addr>> {
-        super::load(deps)
+        STORE.load_humanize(deps)
     }
 }
 

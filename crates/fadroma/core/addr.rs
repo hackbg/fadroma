@@ -180,6 +180,14 @@ impl Canonize for &[String] {
     }
 }
 
+impl Canonize for &str {
+    type Output = CanonicalAddr;
+
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
+        api.addr_canonicalize(self)
+    }
+}
+
 impl Canonize for &[&str] {
     type Output = Vec<CanonicalAddr>;
 
