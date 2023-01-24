@@ -79,8 +79,8 @@ export class Snip20 extends Client implements CustomToken {
     * reference to the Client which produced it. */
   get asDescriptor () {
     return Object.defineProperty({
-      custom_token: this.custom_token,
-      client:       this
+      custom_token: this.custom_token as any,
+      client:       this as any
     }, 'client', {
       enumerable: false
     })

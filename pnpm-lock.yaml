@@ -11,7 +11,7 @@ importers:
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
       '@fadroma/scrt': workspace:^7
-      '@fadroma/tokens': workspace:^5.1
+      '@fadroma/tokens': workspace:^6
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1
       '@hackbg/conf': workspace:^1
