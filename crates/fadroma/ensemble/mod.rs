@@ -34,19 +34,19 @@ macro_rules! impl_contract_harness {
     ($visibility:vis $name:ident, $module:ident) => {
         $visibility struct $name;
 
-        impl fadroma::ensemble::ContractHarness for $name {
+        impl $crate::ensemble::ContractHarness for $name {
             fn instantiate(
                 &self,
-                deps: fadroma::cosmwasm_std::DepsMut,
-                env: fadroma::cosmwasm_std::Env,
-                info: fadroma::cosmwasm_std::MessageInfo,
-                msg: fadroma::cosmwasm_std::Binary
-            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                deps: $crate::cosmwasm_std::DepsMut,
+                env: $crate::cosmwasm_std::Env,
+                info: $crate::cosmwasm_std::MessageInfo,
+                msg: $crate::cosmwasm_std::Binary
+            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
                 let result = $module::instantiate(
                     deps,
                     env,
                     info,
-                    fadroma::cosmwasm_std::from_binary(&msg)?
+                    $crate::cosmwasm_std::from_binary(&msg)?
                 )?;
 
                 Ok(result)
@@ -54,16 +54,16 @@ macro_rules! impl_contract_harness {
 
             fn execute(
                 &self,
-                deps: fadroma::cosmwasm_std::DepsMut,
-                env: fadroma::cosmwasm_std::Env,
-                info: fadroma::cosmwasm_std::MessageInfo,
-                msg: fadroma::cosmwasm_std::Binary
-            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                deps: $crate::cosmwasm_std::DepsMut,
+                env: $crate::cosmwasm_std::Env,
+                info: $crate::cosmwasm_std::MessageInfo,
+                msg: $crate::cosmwasm_std::Binary
+            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
                 let result = $module::execute(
                     deps,
                     env,
                     info,
-                    fadroma::cosmwasm_std::from_binary(&msg)?
+                    $crate::cosmwasm_std::from_binary(&msg)?
                 )?;
 
                 Ok(result)
@@ -71,14 +71,14 @@ macro_rules! impl_contract_harness {
 
             fn query(
                 &self,
-                deps: fadroma::cosmwasm_std::Deps,
-                env: fadroma::cosmwasm_std::Env,
-                msg: fadroma::cosmwasm_std::Binary
-            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Binary> {
+                deps: $crate::cosmwasm_std::Deps,
+                env: $crate::cosmwasm_std::Env,
+                msg: $crate::cosmwasm_std::Binary
+            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Binary> {
                 let result = $module::query(
                     deps,
                     env,
-                    fadroma::cosmwasm_std::from_binary(&msg)?
+                    $crate::cosmwasm_std::from_binary(&msg)?
                 )?;
 
                 Ok(result)
@@ -89,19 +89,19 @@ macro_rules! impl_contract_harness {
     ($visibility:vis $name:ident, $module:ident, $impl_struct:path) => {
         $visibility struct $name;
 
-        impl fadroma::ensemble::ContractHarness for $name {
+        impl $crate::ensemble::ContractHarness for $name {
             fn instantiate(
                 &self,
-                deps: fadroma::cosmwasm_std::DepsMut,
-                env: fadroma::cosmwasm_std::Env,
-                info: fadroma::cosmwasm_std::MessageInfo,
-                msg: fadroma::cosmwasm_std::Binary
-            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                deps: $crate::cosmwasm_std::DepsMut,
+                env: $crate::cosmwasm_std::Env,
+                info: $crate::cosmwasm_std::MessageInfo,
+                msg: $crate::cosmwasm_std::Binary
+            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
                 let result = $module::instantiate(
                     deps,
                     env,
                     info,
-                    fadroma::cosmwasm_std::from_binary(&msg)?,
+                    $crate::cosmwasm_std::from_binary(&msg)?,
                     $impl_struct
                 )?;
 
@@ -110,16 +110,16 @@ macro_rules! impl_contract_harness {
 
             fn execute(
                 &self,
-                deps: fadroma::cosmwasm_std::DepsMut,
-                env: fadroma::cosmwasm_std::Env,
-                info: fadroma::cosmwasm_std::MessageInfo,
-                msg: fadroma::cosmwasm_std::Binary
-            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Response> {
+                deps: $crate::cosmwasm_std::DepsMut,
+                env: $crate::cosmwasm_std::Env,
+                info: $crate::cosmwasm_std::MessageInfo,
+                msg: $crate::cosmwasm_std::Binary
+            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
                 let result = $module::execute(
                     deps,
                     env,
                     info,
-                    fadroma::cosmwasm_std::from_binary(&msg)?,
+                    $crate::cosmwasm_std::from_binary(&msg)?,
                     $impl_struct
                 )?;
 
@@ -128,14 +128,14 @@ macro_rules! impl_contract_harness {
 
             fn query(
                 &self,
-                deps: fadroma::cosmwasm_std::Deps,
-                env: fadroma::cosmwasm_std::Env,
-                msg: fadroma::cosmwasm_std::Binary
-            ) -> fadroma::ensemble::AnyResult<fadroma::cosmwasm_std::Binary> {
+                deps: $crate::cosmwasm_std::Deps,
+                env: $crate::cosmwasm_std::Env,
+                msg: $crate::cosmwasm_std::Binary
+            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Binary> {
                 let result = $module::query(
                     deps,
                     env,
-                    fadroma::cosmwasm_std::from_binary(&msg)?,
+                    $crate::cosmwasm_std::from_binary(&msg)?,
                     $impl_struct
                 )?;
 

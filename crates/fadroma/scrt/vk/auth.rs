@@ -4,7 +4,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    self as fadroma,
     derive_contract::*,
     core::Canonize,
     storage::{ItemSpace, TypedKey},

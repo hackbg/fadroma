@@ -23,7 +23,7 @@ macro_rules! namespace {
     ($visibility:vis $name:ident, $bytes: literal) => {
         $visibility struct $name;
 
-        impl fadroma::storage::Namespace for $name {
+        impl $crate::storage::Namespace for $name {
             const NAMESPACE: &'static [u8] = $bytes;
         }
     };
@@ -59,15 +59,16 @@ pub trait Segment {
     fn write_segment(&self, buf: &mut Vec<u8>);
 }
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct CompositeKey<'a>(Segments<'a>);
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct StaticKey(pub &'static [u8]);
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct FixedSegmentSizeKey<'a, const N: usize>([&'a [u8]; N]);
 
+#[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct TypedKey<'a, T: Segment + ?Sized>(&'a T);
 
 /// Save something to the storage.
@@ -206,6 +207,7 @@ impl<'a, T: Segment + ?Sized> From<&'a T> for TypedKey<'a, T> {
 
 macro_rules! impl_typed_key {
     ($name:ident $(<$lt:lifetime, $($param:ident),+>)+ [$($num:tt),+]) => {
+        #[derive(Clone, Copy, PartialEq, PartialOrd, Hash, Debug)]
         pub struct $name $(<$lt, $($param: Segment + ?Sized),+>)+ (($($(&$lt $param),+)+));
 
         impl $(<$lt, $($param: Segment + ?Sized),+>)+ Key for $name $(<$lt, $($param),+>)+ {
@@ -234,12 +236,25 @@ impl_typed_key!(TypedKey2<'a, T1, T2> [1]);
 impl_typed_key!(TypedKey3<'a, T1, T2, T3> [1, 2]);
 impl_typed_key!(TypedKey4<'a, T1, T2, T3, T4> [1, 2, 3]);
 
+impl<T: Namespace> Segment for T {
+    #[inline]
+    fn size(&self) -> usize {
+        T::NAMESPACE.len()
+    }
+
+    #[inline]
+    fn write_segment(&self, buf: &mut Vec<u8>) {
+        buf.extend_from_slice(T::NAMESPACE);
+    }
+}
+
 impl Segment for &str {
     #[inline]
     fn size(&self) -> usize {
         self.as_bytes().len()
     }
 
+    #[inline]
     fn write_segment(&self, buf: &mut Vec<u8>) {
         buf.extend_from_slice(self.as_bytes());
     }
@@ -251,6 +266,7 @@ impl Segment for String {
         self.as_bytes().len()
     }
 
+    #[inline]
     fn write_segment(&self, buf: &mut Vec<u8>) {
         buf.extend_from_slice(self.as_bytes());
     }

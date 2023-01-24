@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    self as fadroma,
     storage::{SingleItem, ItemSpace, TypedKey},
     ensemble::{
         ContractEnsemble, ContractHarness,

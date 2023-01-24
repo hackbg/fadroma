@@ -3,7 +3,6 @@
 //! Use this when the admin is always a wallet address and not a contract.
 
 use crate::{
-    self as fadroma,
     storage::SingleItem,
     cosmwasm_std::{
         self, StdResult, Response, Addr, CanonicalAddr, StdError
