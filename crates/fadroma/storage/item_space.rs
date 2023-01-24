@@ -80,7 +80,11 @@ impl<T: Serialize + DeserializeOwned, N: Namespace, K: Key> ItemSpace<T, N, K> {
     fn key(key: impl Into<K>) -> Vec<u8> {
         let key = key.into();
 
-        key.build(Some(N::NAMESPACE))
+        let mut buf = Vec::with_capacity(N::NAMESPACE.len() + key.size());
+        buf.extend_from_slice(N::NAMESPACE);
+        key.write_segments(&mut buf);
+
+        buf
     }
 }
 

@@ -38,20 +38,6 @@ pub trait Namespace {
 pub trait Key {
     fn size(&self) -> usize;
     fn write_segments(&self, buf: &mut Vec<u8>);
-
-    #[doc(hidden)]
-    fn build(&self, namespace: Option<&[u8]>) -> Vec<u8> {
-        let ns_len = namespace.and_then(|x| Some(x.len())).unwrap_or(0);
-        let mut key = Vec::with_capacity(self.size() + ns_len);
-
-        if let Some(ns) = namespace {
-            key.extend_from_slice(ns);
-        }
-
-        self.write_segments(&mut key);
-
-        key
-    }
 }
 
 pub trait Segment {
@@ -325,7 +311,11 @@ mod tests {
 
         fn test(key: impl Key, len: usize) {
             assert_eq!(key.size(), WORD.len() * len);
-            assert_eq!(key.build(None), WORD.as_bytes().repeat(len));
+
+            let mut buf = Vec::with_capacity(key.size());
+            key.write_segments(&mut buf);
+
+            assert_eq!(buf, WORD.as_bytes().repeat(len));
         }
 
         test(TypedKey2::from((&WORD, &WORD)), 2);
