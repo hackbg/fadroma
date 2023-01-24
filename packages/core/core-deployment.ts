@@ -225,7 +225,7 @@ export class Deployment extends CommandContext {
   defineSubsystem <X extends Deployment>(
     name: string,
     info: string,
-    ctor: Subsystem<X, typeof this>,
+    ctor: Subsystem<X, any>,
     ...args: unknown[]
   ): X {
     return this.attachSubsystem(new ctor(this, ...args) as X, name, info)

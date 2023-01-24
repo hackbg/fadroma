@@ -48,7 +48,7 @@
     "@fadroma/build":   "workspace:^2",
     "@fadroma/deploy":  "workspace:^2",
     "@fadroma/devnet":  "workspace:^1",
-    "@fadroma/scrt":    "workspace:^6",
+    "@fadroma/scrt":    "workspace:^7",
     "@hackbg/4mat": "workspace:^1",
     "@hackbg/file": "workspace:^1",
     "@hackbg/cmds": "workspace:^1",

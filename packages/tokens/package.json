@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@fadroma/core": "workspace:^1",
-    "@fadroma/scrt": "workspace:^6",
+    "@fadroma/scrt": "workspace:^7",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1",
     "@hackbg/many":  "workspace:^1",
