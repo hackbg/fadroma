@@ -150,7 +150,7 @@ export class Scrt extends Chain {
   ): Promise<SecretJS.SecretNetworkClient> {
     options = { chainId: this.id, url: this.url, ...options }
     if (!options.url) throw new Error.NoApiUrl()
-    return await this.SecretJS.SecretNetworkClient.create(options as SecretJS.CreateClientOptions)
+    return await new (this.SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
   }
 
   /** Create a `ScrtAgent` on this `chain`.
