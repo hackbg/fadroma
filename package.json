@@ -28,9 +28,9 @@
     "ts:ci":            "node --version && npm --version && pnpm --version && ls -al && pnpm ts:clean && concurrently npm:ts:check npm:ts:test:cov && pnpm release:dry && ls -al",
     "ts:clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
     "ts:check":         "time tsc --noEmit",
-    "ts:test":          "time ensuite fadroma.spec.ts.md",
-    "ts:test:cov":      "time ensuite-cov -r text -n packages -n platforms -n toolbox -- fadroma.spec.ts.md",
-    "ts:test:lcov":     "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- fadroma.spec.ts.md",
+    "ts:test":          "time ensuite SPEC.ts.md",
+    "ts:test:cov":      "time ensuite-cov -r text -n packages -n platforms -n toolbox -- SPEC.ts.md",
+    "ts:test:lcov":     "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- SPEC.ts.md",
     "ts:test:build":    "./packages/build/build.ts",
     "ts:test:build:kv": "./packages/build/build.ts examples/kv",
 
