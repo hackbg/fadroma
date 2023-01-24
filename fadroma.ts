@@ -53,7 +53,7 @@ export class Fadroma extends Deployer {
   tokens: TokenManager
 
   constructor (config: Partial<Config> = {}) {
-    super({ config })
+    super({ config: config as DeployConfig })
     this.log.label = this.projectName
     this.config = new Config(config, this.env, this.cwd)
     this.workspace = this.config.project
