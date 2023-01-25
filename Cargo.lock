@@ -272,6 +272,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "fadroma-example-derive-contract-components"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
 name = "fadroma-example-derive-contract-impl"
 version = "0.1.0"
 dependencies = [

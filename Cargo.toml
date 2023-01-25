@@ -9,7 +9,8 @@ members = [
   "examples/ensemble",
   "examples/kv",
   "examples/derive-contract-impl",
-  "examples/derive-contract-interface"
+  "examples/derive-contract-interface",
+  "examples/derive-contract-components"
 ]
 
 #[profile.release]
