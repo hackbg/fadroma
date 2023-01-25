@@ -3145,13 +3145,13 @@ fn test_symbol_validation() {
         allowed_special: None,
     };
 
-    assert_valid_symbol("TOKENA", config.clone()).unwrap();
-    assert_valid_symbol("TOK", config.clone()).unwrap();
-    assert_valid_symbol("TO", config.clone()).unwrap_err();
-    assert_valid_symbol("TOOLONG", config.clone()).unwrap_err();
-    assert_valid_symbol("TOken", config.clone()).unwrap_err();
-    assert_valid_symbol("T0K3N", config.clone()).unwrap_err();
-    assert_valid_symbol("TOK-EN", config).unwrap_err();
+    assert_valid_symbol("TOKENA", &config).unwrap();
+    assert_valid_symbol("TOK", &config).unwrap();
+    assert_valid_symbol("TO", &config).unwrap_err();
+    assert_valid_symbol("TOOLONG", &config).unwrap_err();
+    assert_valid_symbol("TOken", &config).unwrap_err();
+    assert_valid_symbol("T0K3N", &config).unwrap_err();
+    assert_valid_symbol("TOK-EN", &config).unwrap_err();
 
     let config = SymbolValidation {
         length: 3..=6,
@@ -3161,7 +3161,7 @@ fn test_symbol_validation() {
         allowed_special: None,
     };
 
-    assert_valid_symbol("TOKena", config.clone()).unwrap();
+    assert_valid_symbol("TOKena", &config).unwrap();
 
     let config = SymbolValidation {
         length: 3..=6,
@@ -3171,8 +3171,8 @@ fn test_symbol_validation() {
         allowed_special: None,
     };
 
-    assert_valid_symbol("t0k3n", config.clone()).unwrap();
-    assert_valid_symbol("T0K3N", config).unwrap_err();
+    assert_valid_symbol("t0k3n", &config).unwrap();
+    assert_valid_symbol("T0K3N", &config).unwrap_err();
 
     let config = SymbolValidation {
         length: 3..=6,
@@ -3182,6 +3182,6 @@ fn test_symbol_validation() {
         allowed_special: Some(vec![b'-', b'@']),
     };
 
-    assert_valid_symbol("T@K3N-", config.clone()).unwrap();
-    assert_valid_symbol("!@K3N-", config).unwrap_err();
+    assert_valid_symbol("T@K3N-", &config).unwrap();
+    assert_valid_symbol("!@K3N-", &config).unwrap_err();
 }

@@ -33,7 +33,7 @@ pub fn snip20_instantiate(
 ) -> StdResult<Response> {
     // Check name, symbol, decimals
     assert_valid_name(&msg.name, snip20.name_range())?;
-    assert_valid_symbol(&msg.symbol, snip20.symbol_validation())?;
+    assert_valid_symbol(&msg.symbol, &snip20.symbol_validation())?;
 
     if msg.decimals > 18 {
         return Err(StdError::generic_err("Decimals must not exceed 18"));
@@ -1477,7 +1477,7 @@ pub fn assert_valid_name(name: &str, range: RangeInclusive<usize>) -> StdResult<
     )))
 }
 
-pub fn assert_valid_symbol(symbol: &str, validation: SymbolValidation) -> StdResult<()> {
+pub fn assert_valid_symbol(symbol: &str, validation: &SymbolValidation) -> StdResult<()> {
     let len_is_valid = validation.length.contains(&symbol.len());
 
     if len_is_valid {
@@ -1495,7 +1495,7 @@ pub fn assert_valid_symbol(symbol: &str, validation: SymbolValidation) -> StdRes
             cond.push(b'0'..=b'9');
         }
 
-        let special = validation.allowed_special.clone().unwrap_or_default();
+        let special: &[u8] = validation.allowed_special.as_deref().unwrap_or(&[]);
 
         let valid = symbol
             .bytes()
