@@ -175,13 +175,13 @@ fadroma::entrypoint!(fadroma, init, handle, query);
 
 ```json
 {
-  "name":         "@your/api",
-  "version":      "1.0.0",
-  "type":         "module",
-  "main":         "api.ts",
+  "name":    "@your/api",
+  "version": "0.1.0",
+  "type":    "module",
+  "main":    "api.ts",
   "dependencies": {
-    "@fadroma/core":   "workspace:^6.1",
-    "@fadroma/tokens": "workspace:^5.1"
+    "@fadroma/core":   "1",
+    "@fadroma/tokens": "1"
   }
 }
 ```

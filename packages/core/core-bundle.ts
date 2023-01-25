@@ -7,6 +7,7 @@ import type { Contract, AnyContract } from './core-contract'
 import { into } from './core-fields'
 import { Agent } from './core-agent'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
+import type { Many } from '@hackbg/many'
 
 /** A constructor for a Bundle subclass. */
 export interface BundleClass<B extends Bundle> extends Class<B, ConstructorParameters<typeof Bundle>>{}
@@ -181,7 +182,7 @@ export abstract class Bundle extends Agent {
     *   })
     * @returns
     *   the unmodified inputs. */
-  async instantiateMany <C> (inputs: C): Promise<C> {
+  async instantiateMany <C extends Many<AnyContract>> (inputs: C): Promise<C> {
     const outputs: any = (inputs instanceof Array) ? [] : {}
     await Promise.all(Object.entries(inputs).map(
       async ([key, instance]: [Name, AnyContract])=>{

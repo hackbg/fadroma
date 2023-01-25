@@ -1,12 +1,12 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "7.0.2",
+  "version": "7.0.3",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
   "description": "Fadroma Support for Secret Network",
   "dependencies": {
-    "@fadroma/core":           "workspace:^1.0.1",
+    "@fadroma/core":           "workspace:^1.0.2",
     "@hackbg/4mat":            "^1",
     "@hackbg/conf":            "^1",
     "@ungap/structured-clone": "^1.0.1",
