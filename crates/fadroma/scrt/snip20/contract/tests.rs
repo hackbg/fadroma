@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use crate::{
     crypto::sha_256,
     admin,
@@ -23,7 +21,7 @@ use super::{
     receiver::Snip20ReceiveMsg,
     msg::{InitialBalance, InitConfig},
     state::*,
-    DefaultSnip20Impl, SymbolValidation,
+    DefaultImpl, SymbolValidation
 };
 use std::any::Any;
 
@@ -35,15 +33,15 @@ fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
-    super::snip20_instantiate(deps, env, info, msg, DefaultSnip20Impl)
+    super::instantiate(deps, env, info, msg, DefaultImpl)
 }
 
 fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
-    super::snip20_execute(deps, env, info, msg, DefaultSnip20Impl)
+    super::execute(deps, env, info, msg, DefaultImpl)
 }
 
 fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    super::snip20_query(deps, env, msg, DefaultSnip20Impl)
+    super::query(deps, env, msg, DefaultImpl)
 }
 
 // Helper functions

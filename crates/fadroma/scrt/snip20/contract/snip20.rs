@@ -17,14 +17,14 @@ use super::{
     state::{Account, Allowance, Constants, CONSTANTS, TOTAL_SUPPLY, STATUS, MINTERS},
     transaction_history::{
         store_burn, store_deposit, store_mint, store_redeem, store_transfer,
-    },
-    utils::pad_response,
+    }
 };
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;
 
-pub fn snip20_instantiate(
+/// The instantiate entry point of the SNIP-20 contract.
+pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -116,7 +116,8 @@ pub fn snip20_instantiate(
         .add_attribute("token_code_hash", env.contract.code_hash))
 }
 
-pub fn snip20_execute(
+/// The execute entry point of the SNIP-20 contract.
+pub fn execute(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -273,7 +274,8 @@ pub fn snip20_execute(
     pad_response(response)
 }
 
-pub fn snip20_query(deps: Deps, env: Env, msg: QueryMsg, snip20: impl Snip20) -> StdResult<Binary> {
+/// The query entry point of the SNIP-20 contract.
+pub fn query(deps: Deps, env: Env, msg: QueryMsg, snip20: impl Snip20) -> StdResult<Binary> {
     match msg {
         QueryMsg::TokenInfo {} => snip20.query_token_info(deps, env),
         QueryMsg::ContractStatus {} => snip20.query_contract_status(deps, env),
@@ -286,13 +288,7 @@ pub fn snip20_query(deps: Deps, env: Env, msg: QueryMsg, snip20: impl Snip20) ->
 
 pub trait Snip20 {
     fn symbol_validation(&self) -> SymbolValidation {
-        SymbolValidation {
-            length: 3..=6,
-            allow_upper: true,
-            allow_lower: false,
-            allow_numeric: false,
-            allowed_special: None,
-        }
+        SymbolValidation::default()
     }
 
     fn name_range(&self) -> RangeInclusive<usize> {
@@ -1512,6 +1508,11 @@ pub fn assert_valid_symbol(symbol: &str, validation: &SymbolValidation) -> StdRe
     )));
 }
 
+/// Defines the length, letter casing and any special characters
+/// that are allowed as the symbol for the token.
+/// 
+/// By default allows only upper case letters with the length being
+/// from 3 to 6 characters inclusive.
 #[derive(Clone)]
 pub struct SymbolValidation {
     pub length: RangeInclusive<usize>,
@@ -1519,6 +1520,18 @@ pub struct SymbolValidation {
     pub allow_lower: bool,
     pub allow_numeric: bool,
     pub allowed_special: Option<Vec<u8>>,
+}
+
+impl Default for SymbolValidation {
+    fn default() -> Self {
+        Self {
+            length: 3..=6,
+            allow_upper: true,
+            allow_lower: false,
+            allow_numeric: false,
+            allowed_special: None
+        }
+    }
 }
 
 impl fmt::Display for SymbolValidation {

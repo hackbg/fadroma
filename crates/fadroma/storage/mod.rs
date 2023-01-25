@@ -18,6 +18,19 @@ use crate::cosmwasm_std::{
     Uint64, Uint128, Uint256, Uint512, to_vec, from_slice
 };
 
+/// Construct a storage namespace. It creates a
+/// zero-sized struct with the given type name and
+/// implements [`Namespace`] on it with the provied
+/// byte slice literal.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use fadroma::storage::Namespace;
+/// 
+/// fadroma::namespace!(MyNamespace, b"ns_bytes");
+/// assert_eq!(MyNamespace::NAMESPACE, b"ns_bytes");
+/// ```
 #[macro_export]
 macro_rules! namespace {
     ($visibility:vis $name:ident, $bytes: literal) => {
@@ -31,29 +44,103 @@ macro_rules! namespace {
 
 pub type Segments<'a> = &'a [&'a [u8]];
 
+/// Represents a namespace, usually acting as a prefix
+/// to a dynamically generated key. We only do this so
+/// that we can have strongly typed keys and storage types.
+/// Use the [`namespace`] macro to generate one.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use fadroma::storage::Namespace;
+/// 
+/// fadroma::namespace!(MyNamespace, b"ns_bytes");
+/// assert_eq!(MyNamespace::NAMESPACE, b"ns_bytes");
+/// ```
 pub trait Namespace {
     const NAMESPACE: &'static [u8];
 }
 
+/// Implemented for types that act as CW storage keys by writing
+/// bytes into the given buffer. What those bytes represent and
+/// where they are coming from as well as how they are written
+/// into the buffer entirely depends on the implementing type.
+/// 
+/// The [`Key::size`] method is used to report the amount of
+/// bytes that the key will write. This allows us to efficiently
+/// allocate the exact amount of memory that we will need to construct
+/// the final key. It exists because the provided buffer might be larger
+/// than the size of the given key since multiple keys can be concatenated
+/// or a prefix (such as a [`Namespace`]) might be added to the final key.
+/// This depends entirely on the given scenario and is taken care of by the
+/// storage types. There are already several key types provided which should
+/// cover pretty much all use cases.
 pub trait Key {
     fn size(&self) -> usize;
     fn write_segments(&self, buf: &mut Vec<u8>);
 }
 
+/// Represents types that can be used to construct a [`TypedKey`] and
+/// its variants. Although it has the exact same method definitions as
+/// the [`Key`] trait, it differs in its specific usage scenario and as
+/// such the two traits are not connected in any way at the type level.
 pub trait Segment {
     fn size(&self) -> usize;
     fn write_segment(&self, buf: &mut Vec<u8>);
 }
 
+/// A key with an arbitrary number of segments.
+/// Writes them in order of the iteration.
 #[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct CompositeKey<'a>(Segments<'a>);
 
+/// A key which consists of a static byte slice.
 #[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct StaticKey(pub &'static [u8]);
 
+/// A key with a pre-defined number of segments.
+/// Writes them in order of the iteration.
 #[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct FixedSegmentSizeKey<'a, const N: usize>([&'a [u8]; N]);
 
+/// A strongly-typed key with segments defined by the concrete type
+/// which must implement [`Segment`]. For typed keys which consist of
+/// multiple types use [`TypedKey2`], [`TypedKey3`] and [`TypedKey4`].
+/// Constructs the key in order of definition.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use fadroma::{
+///     cosmwasm_std::testing::mock_dependencies,
+///     storage::{Key, ItemSpace, TypedKey2}
+/// };
+/// 
+/// fadroma::namespace!(NumbersNs, b"numbers");
+/// 
+/// // Storage for u64 numbers with a key that consists of b"numbers" + a string + a byte.
+/// const NUMBERS: ItemSpace::<u64, NumbersNs, TypedKey2<String, u8>> = ItemSpace::new();
+/// 
+/// let mut deps = mock_dependencies();
+/// let storage = deps.as_mut().storage;
+/// 
+/// let string_segment = "hello".to_string();
+/// let number_segment = 33u8;
+/// 
+/// NUMBERS.save(storage, (&string_segment, &number_segment), &1).unwrap();
+/// 
+/// // Can also be constructed like this
+/// let key = TypedKey2::from((&string_segment, &number_segment));
+/// NUMBERS.save(storage, key.clone(), &1).unwrap();
+/// 
+/// let mut bytes: Vec<u8> = Vec::with_capacity(key.size());
+/// key.write_segments(&mut bytes);
+/// 
+/// assert_eq!(
+///     bytes,
+///     [string_segment.as_bytes(), &number_segment.to_be_bytes()].concat()
+/// );
+/// ```
 #[derive(Clone, Copy, PartialEq, Hash, Debug)]
 pub struct TypedKey<'a, T: Segment + ?Sized>(&'a T);
 

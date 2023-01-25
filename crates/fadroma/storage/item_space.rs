@@ -9,6 +9,41 @@ use crate::{
 };
 use super::{Key, Namespace, not_found_error};
 
+/// Storage type that stores many items under the given [`Namespace`].
+/// The key can be anything that implements [`Key`] and the most suitable
+/// type of key should be chosen depending on the scenario.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use fadroma::{
+///     cosmwasm_std::{
+///         CanonicalAddr, Api,
+///         testing::mock_dependencies
+///     },
+///     storage::{ItemSpace, TypedKey2}
+/// };
+/// 
+/// fadroma::namespace!(NumbersNs, b"numbers");
+/// const NUMBERS: ItemSpace::<u64, NumbersNs, TypedKey2<CanonicalAddr, u8>> = ItemSpace::new();
+/// 
+/// let mut deps = mock_dependencies();
+/// 
+/// let address = deps.api.addr_canonicalize("user").unwrap();
+/// let index = 1u8;
+/// 
+/// let storage = deps.as_mut().storage;
+/// 
+/// NUMBERS.save(storage, (&address, &index), &100).unwrap();
+/// 
+/// let stored = NUMBERS.load_or_default(storage, (&address, &index)).unwrap();
+/// assert_eq!(stored, 100);
+/// 
+/// let index = 2u8;
+/// let stored = NUMBERS.load(storage, (&address, &index)).unwrap();
+/// assert!(stored.is_none());
+/// 
+/// ```
 pub struct ItemSpace<T: Serialize + DeserializeOwned, N: Namespace, K: Key> {
     namespace_data: PhantomData<N>,
     item_data: PhantomData<T>,

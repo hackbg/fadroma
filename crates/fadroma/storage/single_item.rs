@@ -9,6 +9,29 @@ use crate::{
 };
 use super::{Namespace, not_found_error};
 
+/// Storage type that stores a single item under the given [`Namespace`].
+/// Use this when there is only "one of" something.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use fadroma::{
+///     cosmwasm_std::testing::mock_dependencies,
+///     storage::SingleItem
+/// };
+/// 
+/// fadroma::namespace!(NumberNs, b"number");
+/// const NUMBER: SingleItem::<u64, NumberNs> = SingleItem::new();
+/// 
+/// let mut deps = mock_dependencies();
+/// let storage = deps.as_mut().storage;
+/// 
+/// NUMBER.save(storage, &13).unwrap();
+/// 
+/// let stored = NUMBER.load_or_default(storage).unwrap();
+/// assert_eq!(stored, 13);
+/// 
+/// ```
 pub struct SingleItem<T: Serialize + DeserializeOwned, N: Namespace> {
     namespace_data: PhantomData<N>,
     item_data: PhantomData<T>

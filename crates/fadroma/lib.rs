@@ -38,7 +38,7 @@ pub mod prelude {
 
     pub use crate::cosmwasm_std::{self, *};
     #[cfg(feature = "scrt")]
-    pub use crate::scrt::{BLOCK_SIZE, to_cosmos_msg, space_pad};
+    pub use crate::scrt::{BLOCK_SIZE, to_cosmos_msg, space_pad, pad_response};
 
     pub use crate::tokens::*;
 

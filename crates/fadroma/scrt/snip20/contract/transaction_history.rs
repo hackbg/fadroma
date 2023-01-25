@@ -217,7 +217,7 @@ impl Account {
         RichTxCanon,
         TypedKey2<TxsNs, Self>
     > {
-        IterableStorage::new(TypedKey2::from((&TxsNs, self)).into())
+        IterableStorage::new(TypedKey2::from((&TxsNs, self)))
     }
 
     #[inline]
@@ -225,7 +225,7 @@ impl Account {
         Tx<CanonicalAddr>,
         TypedKey2<TransfersNs, Self>
     > {
-        IterableStorage::new(TypedKey2::from((&TransfersNs, self)).into())
+        IterableStorage::new(TypedKey2::from((&TransfersNs, self)))
     }
 }
 
