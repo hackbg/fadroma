@@ -1,10 +1,10 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "7.0.6",
+  "version": "7.0.7",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
-  "description": "Fadroma Support for Secret Network",
+  "description": "Fadroma support for Secret Network. Wraps secretjs to provide a consistent API for the core set of smart contract operations.",
   "dependencies": {
     "@fadroma/core":           "workspace:^1.0.3",
     "@hackbg/4mat":            "^1",
