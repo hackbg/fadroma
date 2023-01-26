@@ -1,3 +1,8 @@
+use std::{
+    fmt::{self, Write},
+    ops::RangeInclusive
+};
+
 use crate::{
     self as fadroma,
     prelude::*,
@@ -16,12 +21,9 @@ use super::{
     receiver::Snip20ReceiveMsg,
     state::{Account, Allowance, Constants, CONSTANTS, TOTAL_SUPPLY, STATUS, MINTERS},
     transaction_history::{
-        store_burn, store_deposit, store_mint, store_redeem, store_transfer,
+        store_burn, store_deposit, store_mint, store_redeem, store_transfer
     }
 };
-use std::fmt;
-use std::fmt::Write;
-use std::ops::RangeInclusive;
 
 /// The instantiate entry point of the SNIP-20 contract.
 pub fn instantiate(

@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::{
     scrt::snip20::client::msg::ContractStatusLevel,
     storage::Segment,
@@ -15,13 +17,19 @@ crate::namespace!(pub ConstantsNs, b"N3QP0mNoPG");
 pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
 
 crate::namespace!(pub TotalSupplyNs, b"bx98UUOWYa");
-pub const TOTAL_SUPPLY: SingleItem<Uint128, TotalSupplyNs> = SingleItem::new();
+pub const TOTAL_SUPPLY: TotalSupplyStore = TotalSupplyStore(SingleItem::new());
 
 crate::namespace!(pub ContractStatusNs, b"EhYS9rzai1");
 pub const STATUS: SingleItem<ContractStatusLevel, ContractStatusNs> = SingleItem::new();
 
 crate::namespace!(pub MintersNs, b"wpitCjS7wB");
-pub const MINTERS: SingleItem<Vec<CanonicalAddr>, MintersNs> = SingleItem::new();
+pub const MINTERS: MintersStore = MintersStore(SingleItem::new());
+
+#[doc(hidden)]
+pub struct MintersStore(pub SingleItem<Vec<CanonicalAddr>, MintersNs>);
+
+#[doc(hidden)]
+pub struct TotalSupplyStore(pub SingleItem<Uint128, TotalSupplyNs>);
 
 // Config
 #[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema)]
@@ -67,7 +75,7 @@ impl Allowance {
     }
 }
 
-impl SingleItem<Uint128, TotalSupplyNs> {
+impl TotalSupplyStore {
     #[inline]
     pub fn increase(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
         let total_supply = self.load_or_default(storage)?;
@@ -85,7 +93,7 @@ impl SingleItem<Uint128, TotalSupplyNs> {
     }
 }
 
-impl SingleItem<Vec<CanonicalAddr>, MintersNs> {
+impl MintersStore {
     #[inline]
     pub fn add(
         &self,
@@ -114,6 +122,25 @@ impl SingleItem<Vec<CanonicalAddr>, MintersNs> {
     }
 }
 
+impl Deref for MintersStore {
+    type Target = SingleItem<Vec<CanonicalAddr>, MintersNs>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Deref for TotalSupplyStore {
+    type Target = SingleItem<Uint128, TotalSupplyNs>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[doc(hidden)]
 impl Segment for Account {
     fn size(&self) -> usize {
         self.addr.len()

@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
@@ -8,12 +10,14 @@ use crate::{
 use super::state::Account;
 
 crate::namespace!(pub TxCountNs, b"n8BHFWp7eT");
-pub const TX_COUNT: SingleItem<u64, TxCountNs> = SingleItem::new();
+pub const TX_COUNT: TxCountStore = TxCountStore(SingleItem::new());
+
+#[doc(hidden)]
+pub struct TxCountStore(pub SingleItem<u64, TxCountNs>);
 
 crate::namespace!(TransfersNs, b"pySCWXqPR3");
 crate::namespace!(TxsNs, b"POTbfDvq01");
 
-// Storage functions:
 pub fn store_transfer(
     store: &mut dyn Storage,
     owner: &Account,
@@ -271,12 +275,20 @@ impl RichTxCanon {
     }
 }
 
-impl SingleItem<u64, TxCountNs> {
+impl TxCountStore {
     #[inline]
     pub fn increment(&self, storage: &mut dyn Storage) -> StdResult<u64> {
         let count = self.load_or_default(storage)? + 1;
         self.save(storage, &count)?;
 
         Ok(count)
+    }
+}
+
+impl Deref for TxCountStore {
+    type Target = SingleItem<u64, TxCountNs>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
