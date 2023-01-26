@@ -1,4 +1,4 @@
-<div style="text-align: center;">
+<div align="center">
 
 [![Fadroma](https://fadroma.tech/logo.svg)](https://fadroma.tech)
 
