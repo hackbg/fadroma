@@ -1,9 +1,9 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "6.0.2",
+  "version": "6.0.3",
   "type":    "module",
   "main":    "tokens.ts",
-  "files": [ "tokens.ts" ],
+  "files": [ "*.ts" ],
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "true || ensuite tokens.spec.ts.md",
