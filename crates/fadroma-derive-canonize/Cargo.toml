@@ -15,5 +15,5 @@ syn = { version = "1.0", features = ["full", "extra-traits"] }
 quote = "1.0"
 
 [dev-dependencies]
-fadroma = { path = "../fadroma", default-features = false, features = [] }
+fadroma = { path = "../fadroma", default-features = false, features = ["scrt"] }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }

@@ -1,5 +1,5 @@
 [package]
-name    = "fadroma-proc-derive"
+name = "fadroma-proc-derive"
 version = "0.6.0"
 edition = "2018"
 license = "AGPL-3.0"
