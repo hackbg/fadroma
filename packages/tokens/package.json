@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "6.0.3",
+  "version": "6.0.4",
   "type":    "module",
   "main":    "tokens.ts",
   "files": [ "*.ts" ],
@@ -12,7 +12,7 @@
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
-    "@fadroma/core": "workspace:^1.0.2",
+    "@fadroma/core": "workspace:^1.0.3",
     "@fadroma/scrt": "workspace:^7",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1",

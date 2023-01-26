@@ -79,9 +79,7 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
 
   constructor (options: Partial<ContractTemplate<C>> = {}) {
     super()
-    console.log({options})
     this.define(options)
-    console.log(this)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
       defineDefault(this, this.context, 'builder')
@@ -177,7 +175,6 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
       ...this as unknown as Partial<Contract<C>>,
       ...overrides
     }
-    console.log(this, {options})
     const instance: Contract<C> = this.context
       ? this.context.contract(options)
       : new Contract(options)
