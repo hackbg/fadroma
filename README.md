@@ -6,6 +6,10 @@
 
 **Groundwork** for **dApp development** with **Rust** and **TypeScript** on **Secret Network**.
 
+[![Latest version](https://img.shields.io/crates/v/fadroma.svg?style=for-the-badge)](https://crates.io/crates/fadroma)
+
+[![Documentation](https://img.shields.io/docsrs/fadroma/latest?color=%2365b34c&style=for-the-badge)](https://docs.rs/fadroma)
+
 [![](https://img.shields.io/npm/v/@hackbg/fadroma?color=%2365b34c&label=%40hackbg%2Ffadroma&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/fadroma)
 
 ---

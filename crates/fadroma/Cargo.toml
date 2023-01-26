@@ -1,8 +1,12 @@
 [package]
 name = "fadroma"
-version = "1.0.0"
+version = "0.6.0"
 edition = "2018"
 license = "AGPL-3.0"
+keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
+description = "Tools and frequently used functionality for developing CosmWasm smart contracts"
+repository = "https://github.com/hackbg/fadroma"
+readme = "../../README.md"
 authors = [
   # Core maintainers:
   "Adam A. <adam@hack.bg>",

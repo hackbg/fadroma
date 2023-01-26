@@ -229,7 +229,7 @@ dependencies = [
 
 [[package]]
 name = "fadroma"
-version = "1.0.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "bech32",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "fadroma-derive-canonize"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "fadroma",
  "proc-macro2",
@@ -331,7 +331,7 @@ dependencies = [
 
 [[package]]
 name = "fadroma-proc-derive"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "proc-macro2",
  "quote",
