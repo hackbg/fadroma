@@ -7,9 +7,9 @@ export class ScrtConfig extends EnvConfig {
 
   static defaultTestnetChainId: string = 'pulsar-2'
 
-  static defaultMainnetUrl:     string = 'https://secret-4.api.trivium.network:1317'
+  static defaultMainnetUrl:     string = 'https://lcd.mainnet.secretsaturn.net'
 
-  static defaultTestnetUrl:     string = 'https://pulsar-2.api.trivium.network:1317'
+  static defaultTestnetUrl:     string = 'https://lcd.testnet.secretsaturn.net'
 
   agentName:      string|null
     = this.getString('SCRT_AGENT_NAME',       ()=>null)
