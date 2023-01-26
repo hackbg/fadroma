@@ -619,7 +619,7 @@ importers:
 
   packages/tokens:
     specifiers:
-      '@fadroma/core': workspace:^1.0.2
+      '@fadroma/core': workspace:^1.0.3
       '@fadroma/scrt': workspace:^7
       '@hackbg/4mat': workspace:^1
       '@hackbg/ensuite': ^1.1
@@ -640,7 +640,7 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@fadroma/core': workspace:^1.0.2
+      '@fadroma/core': workspace:^1.0.3
       '@hackbg/4mat': ^1
       '@hackbg/conf': ^1
       '@hackbg/ensuite': ^1.0.2

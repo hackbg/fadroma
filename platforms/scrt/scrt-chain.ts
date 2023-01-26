@@ -21,18 +21,18 @@ export interface ScrtOpts extends ChainOpts {
 export class Scrt extends Chain {
 
   /** Connect to the Secret Network Mainnet. */
-  static Mainnet (config: Config) {
-    return new Scrt(config.mainnetChainId ?? Scrt.defaultMainnetChainId, {
+  static Mainnet (config?: Config) {
+    return new Scrt(config?.mainnetChainId ?? Scrt.defaultMainnetChainId, {
       mode: Chain.Mode.Mainnet,
-      url:  config.mainnetUrl || Scrt.defaultMainnetUrl,
+      url:  config?.mainnetUrl || Scrt.defaultMainnetUrl,
     })
   }
 
   /** Connect to the Secret Network Testnet. */
-  static Testnet (config: Config) {
-    return new Scrt(config.testnetChainId ?? Scrt.defaultTestnetChainId, {
+  static Testnet (config?: Config) {
+    return new Scrt(config?.testnetChainId ?? Scrt.defaultTestnetChainId, {
       mode: Chain.Mode.Testnet,
-      url:  config.testnetUrl || Scrt.defaultTestnetUrl,
+      url:  config?.testnetUrl || Scrt.defaultTestnetUrl,
     })
   }
 
