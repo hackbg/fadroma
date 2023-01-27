@@ -130,13 +130,17 @@ export class ScrtAgent extends Agent {
     return base64.encode(encrypted)
   }
 
+  /** Query a Client.
+    * @returns the result of the query */
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
-    const { address: contractAddress, codeHash } = instance
-    const args = { contractAddress, codeHash, query: query as Record<string, unknown> }
-    // @ts-ignore
-    return await this.api.query.compute.queryContract(args) as U
+    return await this.api.query.compute.queryContract({
+      contract_address: instance.address!,
+      code_hash:        instance.codeHash,
+      query: query as Record<string, unknown>
+    }) as U
   }
 
+  /** Upload a WASM binary. */
   async upload (data: Uint8Array): Promise<Uploaded> {
 
     type Log = { type: string, key: string }
