@@ -42,7 +42,7 @@ export async function defineDeployment <D extends Deployment> (
 export class Deployment extends CommandContext {
   log = new ClientConsole('Fadroma.Deployment')
   /** Mapping of names to contract instances. */
-  state:       Record<string, AnyContract> = {}
+  state:       Record<string, AnyContract>
   /** Name of deployment. Used as label prefix of deployed contracts. */
   name:        string
   /** Default Git ref from which contracts will be built if needed. */
@@ -61,16 +61,16 @@ export class Deployment extends CommandContext {
     * except by using `agent.upload` directly, which does not cache or log uploads. */
   uploader?:   Uploader
 
-  constructor (context: Partial<Deployment> = {}) {
-    const name = context.name ?? timestamp()
+  constructor (options: Partial<Deployment> = {}) {
+    const name = options.name ?? timestamp()
     super(name)
     this.name = name
     this.log.label = this.name ?? this.log.label
-    // These propertied are inherited by default
+    // These properties are inherited by default
     for (const field of [
       'name', 'state', 'agent', 'chain', 'builder', 'uploader', 'workspace', 'revision'
     ]) {
-      defineDefault(this, context, field as keyof Partial<Deployment>)
+      defineDefault(this, options, field as keyof Partial<Deployment>)
     }
     // Hidden properties
     hideProperties(this, ...[
@@ -123,17 +123,24 @@ export class Deployment extends CommandContext {
   config?: { build?: { project?: any } } & any // FIXME
 
   /** Check if the deployment contains a contract with a certain name. */
-  hasContract (id: Name) {
-    return !!this.state[id]
+  hasContract (name: Name) {
+    return !!this.state[name]
   }
 
-  /** Get the Contract corresponding to a given name. */
-  getContract (id: Name) {
-    return this.state[id]
+  /** Get the Contract corresponding to a given name.
+    * If the data is not a Contract instance, converts it internally to a Contract
+    * @returns Contract */
+  getContract (name: Name) {
+    let state = this.state[name] || {}
+    if (state instanceof Contract) {
+      return state
+    } else {
+      return this.state[name] = this.defineContract({ ...this.state[name], name })
+    }
   }
 
-  /** @returns one contracts from this contract's deployment which matches
-    * this contract's properties, as well as an optional predicate function. */
+  /** Find the first contract that matches the passed filter function.
+    * @returns Contract */
   findContract <C extends Client> (
     predicate: (meta: AnyContract) => boolean = (x) => true
   ): Contract<C>|null {
@@ -184,14 +191,20 @@ export class Deployment extends CommandContext {
     if (opts.name && this.hasContract(opts.name)) {
       return this.getContract(opts.name) as unknown as Contract<C>
     }
-    return this.addContract(opts.name!, new Contract({
+    return this.addContract(opts.name!, this.defineContract(opts))
+  }
+
+  /** Define a contract without adding it to the state.
+    * @returns a Contract object belonging to this Deployment. */
+  defineContract <C extends Client> (opts: Partial<Contract<C>> = {}): Contract<C> {
+    return new Contract({
       workspace: this.config?.build?.project,
       revision:  this.revision ?? 'HEAD',
       agent:     this.agent,
       ...opts,
       prefix:    this.name,
       context:   this
-    }))
+    })
   }
 
   /** Specify a contract template.

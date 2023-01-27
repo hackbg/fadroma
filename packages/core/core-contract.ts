@@ -1,4 +1,3 @@
-import type { Task } from '@hackbg/task'
 import type { Into, Name, Named, Many, Class } from './core-fields'
 import type { ClientClass } from './core-client'
 import type { Builder } from './core-build'
@@ -12,6 +11,7 @@ import type { Deployment } from './core-deployment'
 
 import { defineCallable } from '@hackbg/allo'
 import { hideProperties } from '@hackbg/hide'
+import { Task } from '@hackbg/task'
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
 import { defineTask, override, Maybe, into, map, mapAsync, defineDefault } from './core-fields'
@@ -203,8 +203,50 @@ export interface Contract<C extends Client> {
   (): Task<Contract<C>, C>
 }
 
+/** Calling a Contract instance invokes this function.
+  *
+  * - If the contract's address is already populated,
+  *   it returns the corresponding Client instance.
+  *
+  * - If the contract's address is not already available,
+  *   it looks up the contract in the deployment receipt by name.
+  *
+  * - If the contract's name is not in the receipt, it
+  *   returns a task that will deploy the contract when `await`ed. */
 function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>, C> {
-  return this.deployed
+
+  if (this.address) {
+
+    // If the address is available, this contract already exists
+    return new Task(`Found ${this.name}`, ()=>{
+      return getClientTo(this)
+    }, this)
+
+  } else if (this.name && this.context && this.context.hasContract(this.name)) {
+
+    // If the address is not available, but the name is in the receipt,
+    // populate self with the data from the receipt, and return the client
+    return new Task(`Found ${this.name}`, ()=>{
+      const data = this.context!.getContract(this.name!)
+      console.log(this.name!, data)
+      process.exit(123)
+      Object.assign(this, data)
+      return getClientTo(this)
+    }, this)
+
+  } else {
+
+    // Otherwise, deploy the contract
+    return this.deployed
+
+  }
+}
+
+function getClientTo <C extends Client> (contract: Contract<C>): C {
+  const $C = (contract.client ?? Client)
+  //@ts-ignore
+  const client = new $C(contract.agent, contract.address, contract.codeHash, contract as Contract<C>)
+  return client as unknown as C
 }
 
 /** Callable object: contract.
@@ -414,10 +456,7 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
         if (this.context) this.context.addContract(this.name!, this)
       }
       // Create and return the Client instance used to interact with the contract
-      const $C = (this.client ?? Client)
-      //@ts-ignore
-      const client = new $C(this.agent, this.address, this.codeHash, this as Contract<C>)
-      return client as unknown as C
+      return getClientTo(this)
     })
 
   }
