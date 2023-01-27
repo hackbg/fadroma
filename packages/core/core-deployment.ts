@@ -21,7 +21,7 @@ import type { Agent } from './core-agent'
 import type { Builder } from './core-build'
 import type { Chain } from './core-chain'
 import type { Class, Many, Name, Named, IntoRecord } from './core-fields'
-import type { Client } from './core-client'
+import type { Client, ClientClass } from './core-client'
 import type { Uploader } from './core-upload'
 
 /** A constructor for a Deployment subclass. */
@@ -90,7 +90,7 @@ export class Deployment extends CommandContext {
     this.log.deployment(this)
   }
 
-  /** Number of contracts in deployment. */
+  /** @returns the number of contracts in this deployment */
   get size (): number {
     return Object.keys(this.state).length
   }
@@ -122,20 +122,23 @@ export class Deployment extends CommandContext {
 
   config?: { build?: { project?: any } } & any // FIXME
 
-  /** Check if the deployment contains a contract with a certain name. */
-  hasContract (name: Name) {
+  /** Check if the deployment contains a contract with a certain name.
+    * @returns boolean */
+  hasContract (name: Name): boolean {
     return !!this.state[name]
   }
 
   /** Get the Contract corresponding to a given name.
     * If the data is not a Contract instance, converts it internally to a Contract
     * @returns Contract */
-  getContract (name: Name) {
+  getContract <C extends Client> (name: Name, client?: ClientClass<C>) {
     let state = this.state[name] || {}
     if (state instanceof Contract) {
       return state
     } else {
-      return this.state[name] = this.defineContract({ ...this.state[name], name })
+      return this.state[name] = this.defineContract({
+        ...this.state[name], name, client
+      }) as unknown as AnyContract
     }
   }
 
@@ -147,8 +150,8 @@ export class Deployment extends CommandContext {
     return this.findContracts<C>(predicate)[0]
   }
 
-  /** @returns all contracts from this contract's deployment
-    * that match this contract's properties, as well as an optional predicate function. */
+  /** Find all contracts that match the passed filter function.
+    * @returns Array<Contract> */
   findContracts <C extends Client> (
     predicate: (meta: AnyContract) => boolean = (x) => true
   ): Contract<C>[] {
@@ -164,7 +167,8 @@ export class Deployment extends CommandContext {
     return contract
   }
 
-  /** Throw if a contract with the specified name is not found in this deployment. */
+  /** Throw if a contract with the specified name is not found in this deployment.
+    * @returns the Contract instance, if present */
   expectContract (id: Name, message?: string) {
     message ??= `${id}: no such contract in deployment`
     if (!this.hasContract(id)) throw new Error(message)
@@ -189,7 +193,7 @@ export class Deployment extends CommandContext {
     opts: Partial<Contract<C>> = {}
   ): Contract<C> {
     if (opts.name && this.hasContract(opts.name)) {
-      return this.getContract(opts.name) as unknown as Contract<C>
+      return this.getContract(opts.name, opts.client) as unknown as Contract<C>
     }
     return this.addContract(opts.name!, this.defineContract(opts))
   }
@@ -244,6 +248,8 @@ export class Deployment extends CommandContext {
     return this.attachSubsystem(new ctor(this, ...args) as X, name, info)
   }
 
+  /** Attach another deployment to this one.
+    * @returns the attached deployment */
   attachSubsystem <X extends Deployment> (
     inst: X,
     name: string = inst.constructor.name,
