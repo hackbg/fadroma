@@ -26,6 +26,10 @@ authors = [
 [lib]
 path = "lib.rs"
 
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]
+all-features = true
+
 [features]
 scrt = [
   # Dependencies
