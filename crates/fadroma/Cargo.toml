@@ -67,10 +67,10 @@ staking = ["secret-cosmwasm-std/staking"]
 secret-cosmwasm-std = { version = "1.0.0", default-features = false, optional = true }
 
 # Procedural macro crates
-fadroma-derive-canonize = { path = "../fadroma-derive-canonize" }
-fadroma-proc-derive = { path = "../fadroma-proc-derive" }
-fadroma-proc-auth = { path = "../fadroma-proc-auth" }
-fadroma-proc-message = { path = "../fadroma-proc-message" }
+fadroma-derive-canonize = { version = "0.3.0", path = "../fadroma-derive-canonize" }
+fadroma-proc-derive = { version = "0.6.0", path = "../fadroma-proc-derive" }
+fadroma-proc-auth = { version = "0.1.0", path = "../fadroma-proc-auth" }
+fadroma-proc-message = { version = "0.1.0", path = "../fadroma-proc-message" }
 
 # Dependencies
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
