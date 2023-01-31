@@ -3,6 +3,7 @@ name = "fadroma-derive-canonize"
 version = "0.3.0"
 edition = "2018"
 license = "AGPL-3.0"
+description = "Canonize/Humanize derive macro for Fadroma"
 repository = "https://github.com/hackbg/fadroma"
 authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 
