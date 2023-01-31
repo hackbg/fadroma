@@ -1,6 +1,6 @@
 [package]
 name = "fadroma"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2018"
 license = "AGPL-3.0"
 keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
