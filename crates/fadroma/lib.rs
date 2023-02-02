@@ -6,6 +6,7 @@ pub use secret_cosmwasm_std as cosmwasm_std;
 pub use schemars;
 pub use serde;
 
+pub mod bin_serde;
 pub mod core;
 
 #[cfg(feature = "scrt")]
@@ -35,6 +36,8 @@ pub mod prelude {
     pub type Eventually<V> = cosmwasm_std::StdResult<Option<V>>;
 
     pub use crate::core::*;
+
+    pub use crate::bin_serde::{FadromaSerialize, FadromaDeserialize};
 
     pub use crate::cosmwasm_std::{self, *};
     #[cfg(feature = "scrt")]
