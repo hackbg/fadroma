@@ -260,7 +260,7 @@ export class Deployment extends CommandContext {
   ): Record<Version, D> {
     const versions: Partial<Record<Version, D>> = {}
     for (const [version, config] of Object.entries(configs) as [Version, Config][]) {
-      versions[version] = this.attach(new $D(this, config), '(unnamed)', '(undocumented)')
+      versions[version] = new $D(this, config)
     }
     return versions as Record<Version, D>
   }
