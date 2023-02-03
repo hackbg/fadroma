@@ -72,6 +72,7 @@ export class Deployment extends CommandContext {
     ]) {
       defineDefault(this, options, field as keyof Partial<Deployment>)
     }
+    this.state ??= {}
     // Hidden properties
     hideProperties(this, ...[
       'log', 'state', 'name', 'description', 'timestamp',
@@ -125,7 +126,7 @@ export class Deployment extends CommandContext {
   /** Check if the deployment contains a contract with a certain name.
     * @returns boolean */
   hasContract (name: Name): boolean {
-    return !!this.state[name]
+    return !!(this.state||{})[name]
   }
 
   /** Get the Contract corresponding to a given name.

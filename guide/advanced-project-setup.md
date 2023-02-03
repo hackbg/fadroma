@@ -109,7 +109,7 @@ strict-peer-dependencies=false
   "main":      "index.ts",
   "workspace": true,
   "devDependencies": {
-    "typescript":      "^4.7",
+    "typescript":      "^4.9",
     "@hackbg/fadroma": "workspace:*",
     "@your/api":       "workspace:*"
   },
