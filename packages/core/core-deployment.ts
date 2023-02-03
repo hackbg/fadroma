@@ -123,69 +123,6 @@ export class Deployment extends CommandContext {
 
   config?: { build?: { project?: any } } & any // FIXME
 
-  /** Check if the deployment contains a contract with a certain name.
-    * @returns boolean */
-  hasContract (name: Name): boolean {
-    return !!(this.state||{})[name]
-  }
-
-  /** Get the Contract corresponding to a given name.
-    * If the data is not a Contract instance, converts it internally to a Contract
-    * @returns Contract */
-  getContract <C extends Client> (name: Name, client?: ClientClass<C>) {
-    let state = this.state[name] || {}
-    if (state instanceof Contract) {
-      return state
-    } else {
-      return this.state[name] = this.defineContract({
-        ...this.state[name], name, client
-      }) as unknown as AnyContract
-    }
-  }
-
-  /** Find the first contract that matches the passed filter function.
-    * @returns Contract */
-  findContract <C extends Client> (
-    predicate: (meta: AnyContract) => boolean = (x) => true
-  ): Contract<C>|null {
-    return this.findContracts<C>(predicate)[0]
-  }
-
-  /** Find all contracts that match the passed filter function.
-    * @returns Array<Contract> */
-  findContracts <C extends Client> (
-    predicate: (meta: AnyContract) => boolean = (x) => true
-  ): Contract<C>[] {
-    return Object.values(this.state)
-      .filter(contract=>predicate(contract!)) as unknown as Contract<C>[]
-  }
-
-  /** Set the Contract corresponding to a given name,
-    * attaching it to this deployment. */
-  addContract <C extends Client> (id: Name, contract: Contract<C>) {
-    this.state[id] = contract as unknown as AnyContract
-    this.save()
-    return contract
-  }
-
-  /** Throw if a contract with the specified name is not found in this deployment.
-    * @returns the Contract instance, if present */
-  expectContract (id: Name, message?: string) {
-    message ??= `${id}: no such contract in deployment`
-    if (!this.hasContract(id)) throw new Error(message)
-    return this.getContract(id)
-  }
-
-  /** Compile multiple contracts. */
-  buildContracts (contracts: (string|AnyContract)[]) {
-    return buildMany(contracts as unknown as Buildable[], this)
-  }
-
-  /** Upload multiple contracts. */
-  uploadContracts (contracts: AnyContract[]) {
-    return uploadMany(contracts as unknown as Uploadable[], this)
-  }
-
   /** Specify a contract.
     * @returns a callable instance of `Contract` bearing the specified parameters.
     * Calling it will deploy the contract, or retrieve it if already deployed. */
@@ -210,6 +147,71 @@ export class Deployment extends CommandContext {
       prefix:    this.name,
       context:   this
     })
+  }
+
+  /** Check if the deployment contains a contract with a certain name.
+    * @returns boolean */
+  hasContract (name: Name): boolean {
+    return !!(this.state||{})[name]
+  }
+
+  /** Get the Contract corresponding to a given name.
+    * If the data is not a Contract instance, converts it internally to a Contract
+    * @returns Contract */
+  getContract <C extends Client> (name: Name, client?: ClientClass<C>) {
+    let state = this.state[name] || {}
+    if (state instanceof Contract) {
+      return state
+    } else {
+      return this.state[name] = this.defineContract({
+        ...this.state[name], name, client
+      }) as unknown as AnyContract
+    }
+  }
+
+  /** Find the first contract that matches the passed filter function.
+    * @returns Contract or null */
+  findContract <C extends Client> (
+    predicate: (meta: AnyContract) => boolean = (x) => true
+  ): Contract<C>|null {
+    return this.findContracts<C>(predicate)[0]
+  }
+
+  /** Find all contracts that match the passed filter function.
+    * @returns Array<Contract> */
+  findContracts <C extends Client> (
+    predicate: (meta: AnyContract) => boolean = (x) => true
+  ): Contract<C>[] {
+    return Object.values(this.state).filter(
+      contract=>predicate(contract!)
+    ) as unknown as Contract<C>[]
+  }
+
+  /** Set the Contract corresponding to a given name,
+    * attaching it to this deployment. =
+    * @returns the passed Contract */
+  addContract <C extends Client> (id: Name, contract: Contract<C>) {
+    this.state[id] = contract as unknown as AnyContract
+    this.save()
+    return contract
+  }
+
+  /** Throw if a contract with the specified name is not found in this deployment.
+    * @returns the Contract instance, if present */
+  expectContract (id: Name, message?: string) {
+    message ??= `${id}: no such contract in deployment`
+    if (!this.hasContract(id)) throw new Error(message)
+    return this.getContract(id)
+  }
+
+  /** Compile multiple contracts. */
+  buildContracts (contracts: (string|AnyContract)[]) {
+    return buildMany(contracts as unknown as Buildable[], this)
+  }
+
+  /** Upload multiple contracts. */
+  uploadContracts (contracts: AnyContract[]) {
+    return uploadMany(contracts as unknown as Uploadable[], this)
   }
 
   /** Specify a contract template.
@@ -240,18 +242,32 @@ export class Deployment extends CommandContext {
     * to the command tree under `name`, with usage description `info`.
     * See the documentation of `interface Subsystem` for more info.
     * @returns an instance of `ctor` */
-  defineSubsystem <X extends Deployment>(
+  subsystem <D extends Deployment>(
     name: string,
     info: string,
-    ctor: Subsystem<X, any>,
+    $D: Subsystem<D, any>,
     ...args: unknown[]
-  ): X {
-    return this.attachSubsystem(new ctor(this, ...args) as X, name, info)
+  ): D {
+    const inst: D = new $D(this, ...args)
+    return this.attach(inst, name, info)
+  }
+
+  /** Create and attach a subsystem of class $C for each pair of version and configuration.
+    * @returns Record<Version, T> */
+  versioned <D extends Deployment, Version extends string, Config> (
+    $D:      Class<D, [this, Config]>,
+    configs: Record<Version, Config>
+  ): Record<Version, D> {
+    const versions: Partial<Record<Version, D>> = {}
+    for (const [version, config] of Object.entries(configs) as [Version, Config][]) {
+      versions[version] = this.attach(new $D(this, config), '(unnamed)', '(undocumented)')
+    }
+    return versions as Record<Version, D>
   }
 
   /** Attach another deployment to this one.
     * @returns the attached deployment */
-  attachSubsystem <X extends Deployment> (
+  attach <X extends Deployment> (
     inst: X,
     name: string = inst.constructor.name,
     info: string = `(undocumented)`,
