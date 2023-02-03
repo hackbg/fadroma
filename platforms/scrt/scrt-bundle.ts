@@ -149,7 +149,7 @@ export class ScrtBundle extends Bundle {
         results[Number(i)] = result as ScrtBundleResult
       }
     } catch (err) {
-      this.log.submittingBundleFailed(err)
+      this.log.submittingBundleFailed(err as Error)
       throw err
     }
     return results
