@@ -461,6 +461,20 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
 
   }
 
+  /** @returns an instance of this contract's client
+    * @throws tf the contract has no known address. */
+  expect (): C {
+    if (!this.address) {
+      if (this.name) {
+        throw new Error(`Expected unnamed contract to be already deployed.`)
+      } else {
+        throw new Error(`Expected contract to be already deployed: ${this.name}`)
+      }
+    } else {
+      return getClientTo(this)
+    }
+  }
+
   /** @returns true if the specified properties match the properties of this contract. */
   matches (predicate: Partial<Contract<C>>): boolean {
     for (const key in predicate) {
