@@ -9,7 +9,7 @@ use super::{
 
 impl FadromaSerialize for u8 {
     #[inline]
-    fn size(&self) -> usize {
+    fn size_hint(&self) -> usize {
         1
     }
 
@@ -28,7 +28,7 @@ impl FadromaDeserialize for u8 {
 
 impl FadromaSerialize for bool {
     #[inline]
-    fn size(&self) -> usize {
+    fn size_hint(&self) -> usize {
         1
     }
 
@@ -51,7 +51,7 @@ impl FadromaDeserialize for bool {
 
 impl FadromaSerialize for u16 {
     #[inline]
-    fn size(&self) -> usize {
+    fn size_hint(&self) -> usize {
         2
     }
 
@@ -65,18 +65,9 @@ impl FadromaDeserialize for u16 {
     #[inline]
     fn from_bytes(de: &mut Deserializer) -> Result<Self> {
         const SIZE: usize = mem::size_of::<u16>();
-
         let le_bytes = de.read(SIZE)?;
-        let mut buf = [0; SIZE];
 
-        // SAFETY: `read_bytes` will either return the requested amount of bytes
-        // or an error. The slices cannot overlap because the read bytes come from
-        // heap memory.
-        unsafe {
-            ptr::copy_nonoverlapping(le_bytes.as_ptr(), buf.as_mut_ptr(), SIZE);
-        }
-
-        Ok(Self::from_le_bytes(buf))
+        Ok(Self::from_le_bytes([le_bytes[0], le_bytes[1]]))
     }
 }
 
@@ -89,7 +80,7 @@ macro_rules! impl_uint {
     ($int:ty, $zero:expr) => {
         impl FadromaSerialize for $int {
             #[inline]
-            fn size(&self) -> usize {
+            fn size_hint(&self) -> usize {
                 mem::size_of::<Self>()
             }
         
@@ -98,7 +89,7 @@ macro_rules! impl_uint {
                 let bytes = self.to_le_bytes();
                 let mut len = bytes.len();
         
-                while bytes[len] == 0 && len > 0 {
+                while len > 0 && bytes[len - 1] == 0 {
                     len -= 1;
                 }
         
@@ -123,7 +114,7 @@ macro_rules! impl_uint {
         
                     let le_bytes = de.read(len)?;
         
-                    // SAFETY: `read_bytes` will either return the requested amount of bytes
+                    // SAFETY: `read` will either return the requested amount of bytes
                     // or an error. The slices cannot overlap because the read bytes come from
                     // heap memory.
                     unsafe {
@@ -149,7 +140,7 @@ impl_uint!(Uint512, Self::zero());
 
 impl FadromaSerialize for Uint64 {
     #[inline]
-    fn size(&self) -> usize {
+    fn size_hint(&self) -> usize {
         mem::size_of::<Self>()
     }
 
@@ -170,7 +161,7 @@ impl FadromaDeserialize for Uint64 {
 
 impl FadromaSerialize for Uint128 {
     #[inline]
-    fn size(&self) -> usize {
+    fn size_hint(&self) -> usize {
         mem::size_of::<Self>()
     }
 
@@ -192,6 +183,7 @@ impl FadromaDeserialize for Uint128 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bin_serde::testing::{serde, serde_len};
 
     // This makes sure that if the underlying representation
     // of the CW uints changes, we get notified about it.
@@ -201,5 +193,136 @@ mod tests {
         assert_eq!(mem::size_of::<Uint128>(), 16);
         assert_eq!(mem::size_of::<Uint256>(), 32);
         assert_eq!(mem::size_of::<Uint512>(), 64);
+    }
+
+    #[test]
+    fn serde_u8() {
+        serde(&0u8);
+        serde(&10u8);
+        serde(&100u8);
+        serde(&u8::MAX);
+    }
+
+    #[test]
+    fn serde_bool() {
+        serde_len(&true, 1);
+        serde_len(&false, 1);
+
+        let mut de = Deserializer::from(vec![2]);
+        let err = de.deserialize::<bool>().unwrap_err();
+        assert_eq!(err, Error::InvalidType);
+    }
+
+    #[test]
+    fn serde_u16() {
+        serde_len(&0u16, 2);
+        serde_len(&0xFFu16, 2);
+        serde_len(&0x100u16, 2);
+        serde_len(&u16::MAX, 2);
+    }
+
+    #[test]
+    fn serde_u32() {
+        serde_len(&0u32, 1);
+
+        let mut num = 1u32;
+
+        for i in 3..6 {
+            num <<= 8;
+            serde_len(&num, i);
+            serde_len(&(num - 1), i - 1);
+        }
+
+        serde_len(&u32::MAX, 5);
+    }
+
+    #[test]
+    fn serde_u64() {
+        serde_len(&0u64, 1);
+
+        let mut num = 1u64;
+
+        for i in 3..10 {
+            num <<= 8;
+            serde_len(&num, i);
+            serde_len(&(num - 1), i - 1);
+        }
+
+        serde_len(&u64::MAX, 9);
+    }
+
+    #[test]
+    fn serde_u128() {
+        serde_len(&0u128, 1);
+
+        let mut num = 1u128;
+
+        for i in 3..18 {
+            num <<= 8;
+            serde_len(&num, i);
+            serde_len(&(num - 1), i - 1);
+        }
+
+        serde_len(&u128::MAX, 17);
+    }
+
+    #[test]
+    fn serde_uint64() {
+        serde_len(&Uint64::zero(), 1);
+        serde_len(&Uint64::MAX, 9);
+    }
+
+    #[test]
+    fn serde_uint128() {
+        serde_len(&Uint128::zero(), 1);
+        serde_len(&Uint128::MAX, 17);
+    }
+
+    #[test]
+    fn serde_uint256() {
+        serde_len(&Uint256::zero(), 1);
+
+        for i in 0..32 {
+            let mut bytes = [0u8; 32];
+            bytes[i] = 1;
+
+            let num = Uint256::from_le_bytes(bytes);
+            serde_len(&num, i + 2);
+
+            if i > 0 {
+                let mut bytes = [0u8; 32];
+
+                for j in 0..i {
+                    bytes[j] = 0xFF;
+                }
+    
+                let num = Uint256::from_le_bytes(bytes);
+                serde_len(&num, i + 1);
+            }
+        }
+    }
+
+    #[test]
+    fn serde_uint512() {
+        serde_len(&Uint512::zero(), 1);
+
+        for i in 0..64 {
+            let mut bytes = [0u8; 64];
+            bytes[i] = 1;
+
+            let num = Uint512::from_le_bytes(bytes);
+            serde_len(&num, i + 2);
+
+            if i > 0 {
+                let mut bytes = [0u8; 64];
+
+                for j in 0..i {
+                    bytes[j] = 0xFF;
+                }
+    
+                let num = Uint512::from_le_bytes(bytes);
+                serde_len(&num, i + 1);
+            }
+        }
     }
 }

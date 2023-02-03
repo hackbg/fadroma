@@ -6,7 +6,7 @@ pub use byte_len::ByteLen;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub enum Error {
     EndOfStream {
         total: usize,
@@ -20,7 +20,7 @@ pub enum Error {
 }
 
 pub trait FadromaSerialize {
-    fn size(&self) -> usize;
+    fn size_hint(&self) -> usize;
     fn to_bytes(&self, ser: &mut Serializer) -> Result<()>;
 }
 
@@ -86,7 +86,7 @@ impl Serializer {
 impl<T: FadromaSerialize> FadromaSerializeExt for T {
     #[inline]
     fn serialize(&self) -> Result<Vec<u8>> {
-        let mut ser = Serializer::with_capacity(self.size());
+        let mut ser = Serializer::with_capacity(self.size_hint());
         self.to_bytes(&mut ser)?;
 
         Ok(ser.finish())
@@ -139,5 +139,34 @@ impl From<Vec<u8>> for Deserializer {
             read: 0,
             bytes
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod testing {
+    use std::fmt::Debug;
+    use super::*;
+
+    pub fn serde<T>(item: &T)
+        where T: FadromaSerialize + FadromaDeserialize + PartialEq + Debug
+    {
+        let bytes = item.serialize().unwrap();
+        
+        let mut de = Deserializer::from(bytes);
+        let result = de.deserialize::<T>().unwrap();
+
+        assert_eq!(result, *item);
+    }
+
+    pub fn serde_len<T>(item: &T, byte_len: usize)
+        where T: FadromaSerialize + FadromaDeserialize + PartialEq + Debug
+    {
+        let bytes = item.serialize().unwrap();
+        assert_eq!(bytes.len(), byte_len);
+
+        let mut de = Deserializer::from(bytes);
+        let result = de.deserialize::<T>().unwrap();
+
+        assert_eq!(result, *item);
     }
 }

@@ -11,7 +11,7 @@ impl ByteLen {
     // byte, however the current max is already unreasonable in practice.
 
     /// ~268MB
-    pub const MAX: u32 = u32::from_be_bytes([0x0F, 0xFF, 0xFF, 0xFF]);
+    pub const MAX: u32 = u32::from_le_bytes([0xFF, 0xFF, 0xFF, 0x0F]);
 
     /// The maximum size in bytes.
     pub const MAX_SIZE: usize = 4;
@@ -44,6 +44,11 @@ impl ByteLen {
         &self.bytes[0..self.len as usize]
     }
 
+    #[inline]
+    pub fn size(&self) -> usize {
+        self.len as usize
+    }
+
     pub fn decode(de: &mut Deserializer) -> Result<usize> {
         let mut result = 0u32;
         let mut shift = 0u32;
@@ -62,17 +67,14 @@ impl ByteLen {
     }
 }
 
-/*
-This test takes too long to run. Can be used if the implementation changes.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /* This test takes too long to run. Can be used if the implementation changes.
     #[test]
     fn all_possible_inputs() {
-        let mut max = ByteLen::MAX;
-
-        for i in 0..max {
+        for i in 0..ByteLen::MAX {
             let encoded = ByteLen::encode(i as usize).unwrap();
 
             let mut de = Deserializer::from(Vec::from(encoded.as_bytes()));
@@ -81,11 +83,33 @@ mod tests {
             assert!(de.is_finished());
             assert_eq!(len as u32, i);
         }
+    }
+    */
 
-        max += 1;
+    #[test]
+    fn byte_len() {
+        let len = ByteLen::encode(127).unwrap();
+        assert_eq!(len.size(), 1);
 
-        let err = ByteLen::encode(max as usize).unwrap_err();
+        let len = ByteLen::encode(128).unwrap();
+        assert_eq!(len.size(), 2);
+
+        let len = ByteLen::encode(16383).unwrap();
+        assert_eq!(len.size(), 2);
+
+        let len = ByteLen::encode(16384).unwrap();
+        assert_eq!(len.size(), 3);
+
+        let len = ByteLen::encode(2097151).unwrap();
+        assert_eq!(len.size(), 3);
+
+        let len = ByteLen::encode(2097152).unwrap();
+        assert_eq!(len.size(), 4);
+
+        let len = ByteLen::encode(ByteLen::MAX as usize).unwrap();
+        assert_eq!(len.size(), 4);
+
+        let err = ByteLen::encode((ByteLen::MAX + 1) as usize).unwrap_err();
         assert!(matches!(err, Error::ByteLenTooLong { .. }));
     }
 }
-*/
