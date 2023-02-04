@@ -25,6 +25,8 @@ export class DevnetConfig extends EnvConfig {
   ephemeral: boolean     = this.getBoolean('FADROMA_DEVNET_EPHEMERAL', ()=>false)
   /** Chain id for devnet .*/
   chainId:   string      = this.getString ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet")
+  /** Host for devnet. */
+  host:      string|null = this.getString ('FADROMA_DEVNET_HOST',      ()=>null)
   /** Port for devnet. */
   port:      string|null = this.getString ('FADROMA_DEVNET_PORT',      ()=>null)
 }
@@ -38,6 +40,8 @@ export interface DevnetOpts {
   identities?: Array<string>
   /** Path to directory where state will be stored. */
   stateRoot?:  string,
+  /** Host to connect to. */
+  host?:       string
   /** Port to connect to. */
   port?:       number
   /** Which of the services should be exposed the devnet's port. */
@@ -52,6 +56,8 @@ export interface DevnetState {
   containerId?: string
   /** Chain ID that was set when creating the devnet. */
   chainId:      string
+  /** The port on which the devnet will be listening. */
+  host?:        string
   /** The port on which the devnet will be listening. */
   port:         number|string
 }
@@ -75,6 +81,7 @@ export abstract class Devnet implements DevnetHandle {
     chainId,
     identities,
     stateRoot,
+    host,
     port,
     portMode,
     ephemeral
@@ -82,6 +89,9 @@ export abstract class Devnet implements DevnetHandle {
     this.ephemeral = ephemeral ?? this.ephemeral
     this.chainId   = chainId   ?? this.chainId
     this.portMode  = portMode!
+    if (host) {
+      this.host = host
+    }
     if (port) {
       this.port = port
     } else {

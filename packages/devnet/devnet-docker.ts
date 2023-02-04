@@ -129,7 +129,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
       containerName, this.spawnOptions, ['node', this.initScriptMount], '/usr/bin/env'
     )
     // address the container by ip if possible to support docker-in-docker scenarios
-    this.host = await this.container.ip ?? 'localhost'
+    //this.host = await this.container.ip ?? 'localhost'
     // update the record
     this.save()
     // wait for logs to confirm that the genesis is done
