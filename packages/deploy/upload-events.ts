@@ -1,7 +1,7 @@
 import { ConnectConsole, ConnectError } from '@fadroma/connect'
 
 export class UploadConsole extends ConnectConsole {
-  label = 'Fadroma.Uploader'
+  label = '@fadroma/deploy'
 }
 
 export class UploadError extends ConnectError {}

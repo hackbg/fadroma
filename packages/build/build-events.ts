@@ -6,7 +6,9 @@ import { HEAD } from '@fadroma/core'
 import type { ContractTemplate, Built } from '@fadroma/core'
 
 export class BuildConsole extends CommandsConsole {
-  label = 'Fadroma.Builder'
+
+  label = '@fadroma/build'
+
   buildingFromCargoToml (file: Path|string) {
     this.log('Building from', bold($(file).shortPath))
   }

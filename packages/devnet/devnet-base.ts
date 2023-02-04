@@ -6,7 +6,13 @@ import { Chain, ClientConsole } from '@fadroma/core'
 import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
 /** Supported devnet variants. */
-export type DevnetPlatform = 'scrt_1.2'|'scrt_1.3'|'scrt_1.4'|'scrt_1.5'
+export type DevnetPlatform =
+  |'scrt_1.2'
+  |'scrt_1.3'
+  |'scrt_1.4'
+  |'scrt_1.5'
+  |'scrt_1.6'
+  |'scrt_1.7'
 
 /** Supported connection types. */
 export type DevnetPortMode = 'lcp'|'grpcWeb'
@@ -55,7 +61,9 @@ export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
   'scrt_1.2': 'lcp',
   'scrt_1.3': 'grpcWeb',
   'scrt_1.4': 'grpcWeb',
-  'scrt_1.5': 'lcp'
+  'scrt_1.5': 'lcp',
+  'scrt_1.6': 'lcp',
+  'scrt_1.7': 'lcp'
 }
 
 /** An ephemeral private instance of a network. */

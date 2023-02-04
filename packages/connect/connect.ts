@@ -40,7 +40,7 @@ Object.assign(Chain.variants as ChainRegistry, {
   // Support for Secret Network
   ScrtMainnet: Scrt.Mainnet,
   ScrtTestnet: Scrt.Testnet,
-  ScrtDevnet:  defineDevnet(Scrt, 'scrt_1.5'),
+  ScrtDevnet:  defineDevnet(Scrt, 'scrt_1.7'),
 })
 
 export * from './connect-events'

@@ -8,6 +8,7 @@
   "dependencies": {
     "@fadroma/core":           "workspace:^1.0.3",
     "@hackbg/4mat":            "^1",
+    "@hackbg/into":            "^1",
     "@hackbg/conf":            "^1",
     "@ungap/structured-clone": "^1.0.1",
     "secretjs":                "1.7.1-beta.0"

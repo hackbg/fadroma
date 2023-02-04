@@ -198,7 +198,7 @@ export class Scrt extends Chain {
         let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
         this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
         if (max_gas < 0) {
-          max_gas = 1500000
+          max_gas = 10000000
           this.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
         }
         fees = {

@@ -21,7 +21,7 @@ export class ClientError extends Error {
   static UploadFailed = this.define('UploadFailed',
     () => 'Upload failed.')
 
-  static InitFailed = this.define('UploadFailed',
+  static InitFailed = this.define('InitFailed',
     (id: any) => `Instantiation of code id ${id} failed.`)
 
   static CantInit_NoName = this.define("NoName",

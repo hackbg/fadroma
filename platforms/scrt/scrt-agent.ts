@@ -1,9 +1,10 @@
 import type * as SecretJS from 'secretjs'
 import { base64 } from '@hackbg/4mat'
+import { into } from '@hackbg/into'
 import type {
   Address, AgentClass, AgentOpts, Built, Uploaded,
   BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message,
-  Name, AnyContract,
+  Name, AnyContract, into
 } from '@fadroma/core'
 import { Agent, Contract, assertAddress, assertChain } from '@fadroma/core'
 import { Scrt } from './scrt'
@@ -157,6 +158,7 @@ export class ScrtAgent extends Agent {
     })
 
     if (result.code !== 0) {
+      this.log.warn(`Upload failed with result`, result)
       throw Object.assign(new Error.UploadFailed(), { result })
     }
 
@@ -195,13 +197,16 @@ export class ScrtAgent extends Agent {
       sender: this.address,
       code_id,
       code_hash: codeHash!,
-      init_msg: initMsg,
+      init_msg: await into(initMsg),
       label,
       init_funds
     }, {
       gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
     })
-    if (result.code !== 0) throw Object.assign(new Error.InitFailed(code_id), { result })
+    if (result.code !== 0) {
+      this.log.error('Init failed:', { initMsg, result })
+      throw Object.assign(new Error.InitFailed(code_id), { result })
+    }
     type Log = { type: string, key: string }
     const address  = result.arrayLog!
       .find((log: Log) => log.type === "message" && log.key === "contract_address")
