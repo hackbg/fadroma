@@ -110,12 +110,16 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   async spawn () {
     // if no port is specified, use a random port
+    this.host = process.env.FADROMA_DEVNET_HOST ?? this.host
+    // if no port is specified, use a random port
     this.port ??= (await freePort()) as number
     // tell the user that we have begun
     this.log.info(`Spawning new node to listen on`, bold(this.url))
     // create the state dirs and files
-    const items = [this.stateRoot, this.nodeState]
-    for (const item of items) {
+    for (const item of [
+      this.stateRoot,
+      this.nodeState
+    ]) {
       try {
         item.make()
       } catch (e: any) {
