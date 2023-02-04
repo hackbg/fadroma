@@ -4,10 +4,10 @@ import type { DevnetOpts, DevnetPlatform, DevnetState } from './devnet-base'
 import { ClientConsole } from '@fadroma/core'
 import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
-import * as Dokeres                   from '@hackbg/dock'
+import * as Dock from '@hackbg/dock'
 import $, { JSONFile, JSONDirectory } from '@hackbg/file'
-import { bold }                       from '@hackbg/logs'
-import { freePort, waitPort }         from '@hackbg/port'
+import { bold } from '@hackbg/logs'
+import { freePort, waitPort } from '@hackbg/port'
 
 import { dirname }       from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,7 +22,7 @@ export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource
   * (https://www.npmjs.com/package/dockerode) */
 export interface DockerDevnetOpts extends DevnetOpts {
   /** Docker image of the chain's runtime. */
-  image?:       Dokeres.Image
+  image?:       Dock.Image
   /** Init script to launch the devnet. */
   initScript?:  string
   /** Once this string is encountered in the log output
@@ -54,13 +54,13 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   static initScriptMount = 'devnet.init.mjs'
 
-  static getOrCreate (kind: DevnetPlatform, dokeres = new Dokeres.Engine()) {
+  static getOrCreate (kind: DevnetPlatform, dock = new Dock.Engine()) {
     const portMode    = devnetPortModes[kind]
     const dockerfile  = this.dockerfiles[kind]
     const imageTag    = this.dockerTags[kind]
     const readyPhrase = 'indexed block'
     const initScript  = $(devnetPackage, this.initScriptMount).path
-    const image       = dokeres.image(imageTag, dockerfile, [this.initScriptMount])
+    const image       = dock.image(imageTag, dockerfile, [this.initScriptMount])
     return new DockerDevnet({ portMode, image, readyPhrase, initScript })
   }
 
@@ -73,18 +73,18 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     this.readyPhrase ??= options.readyPhrase!
   }
 
-  log = new ClientConsole('@fadroma/devnet + Docker')
+  log = new ClientConsole('@fadroma/devnet: docker')
 
   /** Handle to Docker API if configured. */
-  get dokeres (): Dokeres.Engine|null {
-    return this.image.dokeres
+  get dock (): Dock.Engine|null {
+    return this.image.dock
   }
 
   /** This should point to the standard production docker image for the network. */
-  image: Dokeres.Image
+  image: Dock.Image
 
   /** Handle to created devnet container */
-  container: Dokeres.Container|null = null
+  container: Dock.Container|null = null
 
   /** Mounted into devnet container in place of default init script
     * in order to add custom genesis accounts with initial balances
@@ -128,6 +128,8 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     this.container = await this.image.run(
       containerName, this.spawnOptions, ['node', this.initScriptMount], '/usr/bin/env'
     )
+    // address the container by ip if possible to support docker-in-docker scenarios
+    this.host = await this.container.ip ?? 'localhost'
     // update the record
     this.save()
     // wait for logs to confirm that the genesis is done
@@ -199,7 +201,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   async load (): Promise<DevnetState> {
     const data = await super.load()
     if (data?.containerId) {
-      this.container = await this.dokeres!.container(data.containerId)
+      this.container = await this.dock!.container(data.containerId)
     } else {
       throw new Error('@fadroma/ops/Devnet: missing container id in devnet state')
     }
@@ -233,7 +235,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
       return this.spawn()
     }
 
-    this.container = await this.dokeres!.container(id)
+    this.container = await this.dock!.container(id)
 
     // check if contract is running
     let running: boolean
