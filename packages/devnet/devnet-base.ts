@@ -176,7 +176,7 @@ export abstract class Devnet implements DevnetHandle {
 
 }
 
-const log = new ClientConsole('Fadroma.Devnet')
+const log = new ClientConsole('@fadroma/devnet')
 
 export class DevnetCommands extends CommandContext {
 

@@ -250,7 +250,7 @@ function getClientTo <C extends Client> (contract: Contract<C>): C {
 /** Callable object: contract.
   * Can build and upload, and instantiate itself. */
 export class Contract<C extends Client> extends defineCallable(ensureContract) {
-  log = new Console(this.constructor.name)
+  log: Console
   /** The deployment that this contract belongs to. */
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
@@ -319,6 +319,7 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
 
   constructor (options: Partial<Contract<C>> = {}) {
     super({})
+    this.log = new Console(new.target.name)
     const self = this
     if (options.name) {
       setName(options.name)

@@ -27,13 +27,13 @@ export class TokenManager extends CommandContext {
 
   constructor (
     /** Function that returns the active deployment. */
-    public context:       Deployment,
+    public context: Deployment,
     /** Template for deploying new tokens. */
-    public template:      TokenTemplate = context.template({ client: Snip20 }),
+    public template: TokenTemplate = context.template({ client: Snip20 }),
     /** Default token config. */
     public defaultConfig: Snip20InitConfig = {
       public_total_supply: true,
-      enable_mint:         true
+      enable_mint: true
     }
   ) {
 
@@ -139,7 +139,7 @@ export class TokenManager extends CommandContext {
           name,
           symbol,
           options?.decimals ?? 8,
-          options?.admin    ?? this.context.agent!.address!,
+          options?.admin    ?? this.context.agent?.address!,
           options?.config
         ),
       }).context! as TokenContract
@@ -207,7 +207,6 @@ export class TokenManager extends CommandContext {
         results[symbol] = client as Snip20
         this.add(symbol, contracts.contract(client as Partial<Contract>))
       }
-      console.log({tokens: results})
       return results
     })*/
   }

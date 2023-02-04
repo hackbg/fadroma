@@ -52,10 +52,12 @@ export class Fadroma extends Deployer {
   /** The token manager API. */
   tokens: TokenManager
 
-  constructor (config: Partial<Config> = {}) {
-    super({ config: config as DeployConfig })
+  constructor (options: { config?: Partial<Config> } = {}) {
+    super(options)
     this.log.label = this.projectName
-    this.config = new Config(config, this.env, this.cwd)
+    this.config = (options.config instanceof Config)
+      ? options.config
+      : new Config(options.config, this.env, this.cwd)
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
     this.tokens = new TokenManager(this as Deployment)

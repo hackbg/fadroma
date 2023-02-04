@@ -40,39 +40,20 @@ export async function defineDeployment <D extends Deployment> (
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
 export class Deployment extends CommandContext {
-  log = new ClientConsole('Fadroma.Deployment')
-  /** Mapping of names to contract instances. */
-  state:       Record<string, AnyContract>
-  /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:        string
-  /** Default Git ref from which contracts will be built if needed. */
-  repository?: string = undefined
-  /** Default Cargo workspace from which contracts will be built if needed. */
-  workspace?:  string = undefined
-  /** Default Git ref from which contracts will be built if needed. */
-  revision?:   string = 'HEAD'
-  /** Build implementation. Contracts can't be built from source if this is missing. */
-  builder?:    Builder
-  /** Agent to use when deploying contracts. */
-  agent?:      Agent
-  /** Chain on which operations are executed. */
-  chain?:      Chain
-  /** Upload implementation. Contracts can't be uploaded if this is missing --
-    * except by using `agent.upload` directly, which does not cache or log uploads. */
-  uploader?:   Uploader
 
   constructor (options: Partial<Deployment> = {}) {
     const name = options.name ?? timestamp()
     super(name)
     this.name = name
     this.log.label = this.name ?? this.log.label
-    // These properties are inherited by default
-    for (const field of [
-      'name', 'state', 'agent', 'chain', 'builder', 'uploader', 'workspace', 'revision'
-    ]) {
-      defineDefault(this, options, field as keyof Partial<Deployment>)
-    }
-    this.state ??= {}
+    this.state     ??= options.state ?? {}
+    this.agent     ??= options.agent
+    this.chain     ??= options.chain ?? options.agent?.chain
+    this.builder   ??= options.builder
+    this.uploader  ??= options.uploader
+    this.workspace ??= options.workspace
+    this.revision  ??= options.revision
+    this.state     ??= {}
     // Hidden properties
     hideProperties(this, ...[
       'log', 'state', 'name', 'description', 'timestamp',
@@ -81,6 +62,36 @@ export class Deployment extends CommandContext {
     ])
     this.addCommand('status', 'show the status of this deployment', this.showStatus.bind(this))
   }
+
+  log = new ClientConsole(this.constructor.name)
+
+  /** Name of deployment. Used as label prefix of deployed contracts. */
+  name:        string
+
+  /** Mapping of contract names to contract instances. */
+  state:       Record<string, AnyContract>
+
+  /** Default Git ref from which contracts will be built if needed. */
+  repository?: string = undefined
+
+  /** Default Cargo workspace from which contracts will be built if needed. */
+  workspace?:  string = undefined
+
+  /** Default Git ref from which contracts will be built if needed. */
+  revision?:   string = 'HEAD'
+
+  /** Build implementation. Contracts can't be built from source if this is missing. */
+  builder?:    Builder
+
+  /** Agent to use when deploying contracts. */
+  agent?:      Agent
+
+  /** Chain on which operations are executed. */
+  chain?:      Chain
+
+  /** Upload implementation. Contracts can't be uploaded if this is missing --
+    * except by using `agent.upload` directly, which does not cache or log uploads. */
+  uploader?:   Uploader
 
   get [Symbol.toStringTag]() {
     return `${this.name??'-'}`
