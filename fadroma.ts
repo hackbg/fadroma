@@ -49,7 +49,7 @@ export class Fadroma extends Deployer {
   /** The current configuration. */
   config: Config
 
-  /** The token manager API. */
+  /** The token manager, containing all tokens known to the project */
   tokens: TokenManager
 
   constructor (options: { config?: Partial<Config> } = {}) {

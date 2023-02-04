@@ -156,6 +156,8 @@ export class Deployment extends CommandContext {
       workspace: this.config?.build?.project,
       revision:  this.revision ?? 'HEAD',
       agent:     this.agent,
+      builder:   this.builder,
+      uploader:  this.uploader,
       ...opts,
       prefix:    this.name,
       context:   this

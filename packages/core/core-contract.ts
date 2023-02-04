@@ -326,13 +326,13 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
     }
     if (this.context) {
       setPrefix(this.context.name)
-      defineDefault(this, this.context, 'agent')
-      defineDefault(this, this.context, 'builder')
-      defineDefault(this, this.context, 'uploader')
-      defineDefault(this, this.context, 'repository')
-      defineDefault(this, this.context, 'revision')
-      defineDefault(this, this.context, 'workspace')
     }
+    this.agent      = this.context?.agent ?? this.agent
+    this.builder    = this.context?.builder ?? this.builder
+    this.uploader   = this.context?.builder ?? this.uploader
+    this.repository = this.context?.builder ?? this.uploader
+    this.revision   = this.context?.builder ?? this.uploader
+    this.workspace  = this.context?.builder ?? this.uploader
     override(this, options)
     hideProperties(this, 'log')
 
