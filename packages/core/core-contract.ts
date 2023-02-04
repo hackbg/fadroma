@@ -228,8 +228,6 @@ function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>
     // populate self with the data from the receipt, and return the client
     return new Task(`Found ${this.name}`, ()=>{
       const data = this.context!.getContract(this.name!)
-      console.log(this.name!, data)
-      process.exit(123)
       Object.assign(this, data)
       return getClientTo(this)
     }, this)
