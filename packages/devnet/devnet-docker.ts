@@ -62,7 +62,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    this.log.debug('Preparing a containerized devnet')
+    this.log.debug('Using a containerized devnet')
     this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!

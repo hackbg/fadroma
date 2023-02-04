@@ -97,7 +97,7 @@ export class Deployment extends CommandContext {
   }
 
   /** @returns true if the chain is a devnet or mocknet */
-  get devMode   (): boolean {
+  get devMode (): boolean {
     return this.chain?.devMode   ?? false
   }
 
@@ -135,6 +135,8 @@ export class Deployment extends CommandContext {
     }
     return this.addContract(opts.name!, this.defineContract(opts))
   }
+
+  contracts = (_: any) => { /* #worryaboutitlater */ }
 
   /** Define a contract without adding it to the state.
     * @returns a Contract object belonging to this Deployment. */
