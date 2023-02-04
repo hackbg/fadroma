@@ -1,6 +1,6 @@
 import type { Env } from '@hackbg/conf'
 import { EnvConfig } from '@hackbg/conf'
-import { Chain } from '@fadroma/core'
+import { Chain, ChainMode } from '@fadroma/core'
 import type { Agent, AgentOpts, ChainId, ChainRegistry } from '@fadroma/core'
 import { Scrt } from '@fadroma/scrt'
 import { DevnetConfig } from '@fadroma/devnet'
@@ -31,13 +31,29 @@ export class ConnectConfig extends EnvConfig {
     const chainIds = {
       Mocknet_CW0: 'mocknet-cw0',
       Mocknet_CW1: 'mocknet-cw1',
-      ScrtMainnet:  Scrt.defaultMainnetChainId,
-      ScrtTestnet:  Scrt.defaultTestnetChainId,
       ScrtDevnet:   'fadroma-devnet',
+      ScrtTestnet:  Scrt.defaultTestnetChainId,
+      ScrtMainnet:  Scrt.defaultMainnetChainId,
     }
     if (!this.chain) throw new Error.NoChainSelected(chainIds)
     const result = chainIds[this.chain as keyof typeof chainIds]
     if (!result) throw new Error.UnknownChainSelected(this.chain, chainIds)
+    return result
+  }
+
+  /** Get a chain mode corresponding to the value of `this.chain`.
+    * (Used by settings to dispatch on chain mode.) */
+  get chainMode (): ChainMode {
+    const chainModes = {
+      Mocknet_CW0: ChainMode.Mocknet,
+      Mocknet_CW1: ChainMode.Mocknet,
+      ScrtDevnet:  ChainMode.Devnet,
+      ScrtTestnet: ChainMode.Testnet,
+      ScrtMainnet: ChainMode.Mainnet,
+    }
+    if (!this.chain) throw new Error.NoChainSelected(chainModes)
+    const result = chainModes[this.chain as keyof typeof chainModes]
+    if (!result) throw new Error.UnknownChainSelected(this.chain, chainModes)
     return result
   }
 
@@ -59,7 +75,7 @@ export class ConnectConfig extends EnvConfig {
 
   // Create the Chain instance specified by the configuration.
   async getChain <C extends Chain> (
-    getChain?: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]
+    getChain: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chain
   ): Promise<C> {
     if (!getChain) { // default to configured
       getChain = this.chain
