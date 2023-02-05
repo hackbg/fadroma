@@ -1,7 +1,7 @@
 FROM rust:1.65-slim
 
 RUN apt update && \
-  apt install -y nodejs npm curl wget binaryen git clang cmake wabt && \
+  apt install -y nodejs npm curl wget binaryen git clang cmake wabt jq docker && \
   ls -al /var/cache/apt/archives && \
   apt-get clean
 
