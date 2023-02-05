@@ -1,7 +1,6 @@
 import {
   Chain,
   ChainMode,
-  ClientConsole
 } from '@fadroma/core'
 import {
   Devnet,
@@ -43,6 +42,10 @@ export function getDevnet (
     return DockerDevnet.getOrCreate(platform, dokeres)
   //}
 }
+
+export {
+  DevnetError
+} from './devnet-events'
 
 export type {
   DevnetPlatform,

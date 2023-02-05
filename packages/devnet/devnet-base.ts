@@ -1,9 +1,8 @@
 import { EnvConfig } from '@hackbg/conf'
 import { CommandContext } from '@hackbg/cmds'
-import { Error as CustomError } from '@hackbg/oops'
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
-import { Chain, ClientConsole } from '@fadroma/core'
-import type { AgentOpts, DevnetHandle } from '@fadroma/core'
+import { Chain, AgentOpts, DevnetHandle } from '@fadroma/core'
+import { DevnetError as Error, DevnetConsole as Console } from './devnet-events'
 
 /** Supported devnet variants. */
 export type DevnetPlatform =
@@ -86,31 +85,14 @@ export abstract class Devnet implements DevnetHandle {
     portMode,
     ephemeral
   }: Partial<DevnetOpts> = {}) {
+    this.chainId = chainId ?? this.chainId
+    if (!this.chainId) throw new Error.NoChainId()
     this.ephemeral = ephemeral ?? this.ephemeral
-    this.chainId   = chainId   ?? this.chainId
-    this.portMode  = portMode!
-    if (host) {
-      this.host = host
-    }
-    if (port) {
-      this.port = port
-    } else {
-      if (this.portMode === 'lcp') {
-        this.port = 1317
-      } else {
-        this.port = 9091
-      }
-    }
-    if (!this.chainId) {
-      throw new Error(
-        '@fadroma/ops/Devnet: refusing to create directories for devnet with empty chain id'
-      )
-    }
-    if (identities) {
-      this.genesisAccounts = identities
-    }
-    stateRoot      = stateRoot || $('receipts', this.chainId).path
-    this.stateRoot = $(stateRoot).as(OpaqueDirectory)
+    this.host = host ?? this.host
+    this.portMode = portMode!
+    this.port = port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
+    this.genesisAccounts = identities ?? this.genesisAccounts
+    this.stateRoot = $(stateRoot || $('receipts', this.chainId).path).as(OpaqueDirectory)
     this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
   }
 
@@ -123,7 +105,7 @@ export abstract class Devnet implements DevnetHandle {
   /** The protocol of the API URL without the trailing colon. */
   protocol = 'http'
   /** The hostname of the API URL. */
-  host     = 'localhost'
+  host     = process.env.FADROMA_DEVNET_HOST ?? 'localhost'
   /** The port of the API URL. If `null`, `freePort` will be used to obtain a random port. */
   port:     number
   /** Which service does the API URL port correspond to. */
@@ -154,18 +136,16 @@ export abstract class Devnet implements DevnetHandle {
       try {
         const data = this.nodeState.load()
         const { chainId, port } = data
-        if (this.chainId !== chainId) {
-          this.log.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
-        }
+        if (this.chainId !== chainId) this.log.loadingState(chainId, this.chainId)
         this.port = port as number
         return data
       } catch (e) {
-        this.log.warn(`Failed to load ${path}. Deleting it`)
+        this.log.loadingFailed(path)
         this.stateRoot.delete()
         throw e
       }
     } else {
-      this.log.info(`${path} does not exist.`)
+      this.log.loadingRejected(path)
       return null
     }
   }
@@ -194,7 +174,7 @@ export abstract class Devnet implements DevnetHandle {
 
 }
 
-const log = new ClientConsole('@fadroma/devnet')
+const log = new Console('@fadroma/devnet')
 
 export class DevnetCommands extends CommandContext {
 
@@ -222,21 +202,3 @@ export async function resetDevnet ({ chain }: { chain?: Chain } = {}) {
     await chain.node.terminate()
   }
 }
-
-export class DevnetError extends CustomError {
-
-  static NoChainId = this.define('NoChainId',
-    ()=>'No chain id')
-
-  static PortMode = this.define('PortMode',
-    ()=>"DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'")
-
-  static NoContainerId = this.define('NoContainerId',
-    ()=>'Missing container id in devnet state')
-
-  static NoGenesisAccount = this.define('NoGenesisAccount',
-    (name: string, error: any)=>
-      `Genesis account not found: ${name} (${error})`)
-
-}
-

@@ -1,7 +1,7 @@
 import { Devnet, devnetPortModes } from './devnet-base'
 import type { DevnetOpts, DevnetPlatform, DevnetState } from './devnet-base'
+import { DevnetError as Error, DevnetConsole as Console } from './devnet-events'
 
-import { ClientConsole } from '@fadroma/core'
 import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
 import * as Dock from '@hackbg/dock'
@@ -11,6 +11,7 @@ import { freePort, waitPort } from '@hackbg/port'
 
 import { dirname }       from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 
 /** Root of this module.
   * Used for finding embedded assets, e.g. Dockerfiles.
@@ -73,7 +74,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     this.readyPhrase ??= options.readyPhrase!
   }
 
-  log = new ClientConsole('@fadroma/devnet: docker')
+  log = new Console('@fadroma/devnet: docker')
 
   /** Handle to Docker API if configured. */
   get dock (): Dock.Engine|null {

@@ -6,7 +6,7 @@ const exit = {
   },
   async scriptError (e) {
     const {Console} = await import('@hackbg/logs')
-    const log = new Console('Fadroma Deploy CLI')
+    const log = new Console('@fadroma/deploy: cli')
     log.error(e.message)
     for (const key in e) {
       if (key === 'message' || key === 'stack' || key === 'txBytes') continue
