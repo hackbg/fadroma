@@ -65,10 +65,19 @@ export class ConnectCommands extends CommandContext {
       connector.listChains.bind(connector)
     )
     if (connector.chain?.node instanceof DockerDevnet) {
+      const devnet = connector.chain.node as unknown as DockerDevnet
       this.addCommand(
         'export',
         'export the current devnet as a new Docker image',
-        (...args) => (connector.chain?.node as unknown as DockerDevnet).export(...args)
+        (...args) => devnet.export(...args)
+      ).addCommand(
+        'kill',
+        'terminate the devnet immediately',
+        devnet.kill.bind(devnet)
+      ).addCommand(
+        'reset',
+        'kill and erase the devnet',
+        devnet.terminate.bind(devnet)
       )
     }
   }
