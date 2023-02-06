@@ -10,8 +10,8 @@ importers:
       '@fadroma/deploy': workspace:^2
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
-      '@fadroma/scrt': workspace:^7
-      '@fadroma/tokens': workspace:^6
+      '@fadroma/scrt': workspace:^8
+      '@fadroma/tokens': workspace:^7
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1
       '@hackbg/conf': workspace:^1
@@ -514,7 +514,7 @@ importers:
       '@fadroma/core': workspace:^2
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
-      '@fadroma/scrt': workspace:^7
+      '@fadroma/scrt': workspace:^8
       '@hackbg/cmds': ^1
       '@hackbg/conf': ^1
     dependencies:
@@ -622,7 +622,7 @@ importers:
   packages/tokens:
     specifiers:
       '@fadroma/core': workspace:^2
-      '@fadroma/scrt': workspace:^7
+      '@fadroma/scrt': workspace:^8
       '@hackbg/4mat': workspace:^1
       '@hackbg/ensuite': ^1.1
       '@hackbg/logs': workspace:^1
@@ -649,14 +649,14 @@ importers:
       '@hackbg/into': ^1
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
-      secretjs: 1.7.1-beta.0
+      secretjs: 1.7.1-beta.3
     dependencies:
       '@fadroma/core': link:../../packages/core
       '@hackbg/4mat': link:../../ensuite/toolbox/4mat
       '@hackbg/conf': link:../../ensuite/toolbox/conf
       '@hackbg/into': link:../../ensuite/toolbox/into
       '@ungap/structured-clone': 1.0.1
-      secretjs: 1.7.1-beta.0
+      secretjs: 1.7.1-beta.3
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
       '@types/ungap__structured-clone': 0.3.0
@@ -1373,10 +1373,10 @@ packages:
 
   /@types/node/18.11.18:
     resolution: {integrity: sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==}
+    dev: true
 
   /@types/node/18.11.19:
     resolution: {integrity: sha512-YUgMWAQBWLObABqrvx8qKO1enAvBUdjZOAWQ5grBAkp5LQv45jBvYKZ3oFS9iKRCQyFjqw6iuEa1vmFqtxYLZw==}
-    dev: true
 
   /@types/node/18.11.9:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
@@ -4115,7 +4115,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.11.18
+      '@types/node': 18.11.19
       long: 4.0.0
     dev: false
 
@@ -4458,8 +4458,8 @@ packages:
     resolution: {integrity: sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==}
     dev: true
 
-  /secretjs/1.7.1-beta.0:
-    resolution: {integrity: sha512-NzlN2+amkdKXAJ+kMflOwrXuqWf3yvY1CS/b+bYO38PdJKHtsqLAWhW5bpl3824SO8TtV7x/BUXojQQIvPoG6Q==}
+  /secretjs/1.7.1-beta.3:
+    resolution: {integrity: sha512-gJNpWmh5XEReNyeUBp75Osg+kyHVtImk3+d33bIIQ4gFzuzEaT8sD7bP5Ie9um2+F2PqFvKe1IRRjvadm3o14w==}
     dependencies:
       '@cosmjs/encoding': 0.27.1
       '@cosmjs/math': 0.27.1

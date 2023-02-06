@@ -14,7 +14,7 @@
   "dependencies": {
     "@fadroma/core":    "workspace:^2",
     "@fadroma/devnet":  "workspace:^1",
-    "@fadroma/scrt":    "workspace:^7",
+    "@fadroma/scrt":    "workspace:^8",
     "@fadroma/mocknet": "workspace:^2",
     "@hackbg/cmds":     "^1",
     "@hackbg/conf":     "^1"
