@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "7.0.3",
+  "version": "7.0.4",
   "type":    "module",
   "main":    "tokens.ts",
   "files": [ "*.ts" ],
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@fadroma/core": "workspace:^2.0.3",
-    "@fadroma/scrt": "workspace:^8.0.2",
+    "@fadroma/scrt": "workspace:^8.0.3",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1.1.1",
     "@hackbg/many":  "workspace:^1",
