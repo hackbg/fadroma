@@ -17,6 +17,7 @@
 **/
 
 import { Env, EnvConfig } from '@hackbg/conf'
+import { CommandContext } from '@hackbg/cmds'
 import {
   Agent,
   AgentOpts,
@@ -28,7 +29,7 @@ import {
   Deployment,
   bold
 } from '@fadroma/core'
-import { Devnet, DevnetConfig, defineDevnet } from '@fadroma/devnet'
+import { Devnet, DevnetConfig, DockerDevnet, defineDevnet } from '@fadroma/devnet'
 import { Scrt } from '@fadroma/scrt'
 import { Mocknet_CW0, Mocknet_CW1 } from '@fadroma/mocknet'
 import { ConnectConsole as Console, ConnectError as Error } from './connect-events'
@@ -55,6 +56,24 @@ export async function connect (
   return await new ConnectConfig(config).getConnector()
 }
 
+export class ConnectCommands extends CommandContext {
+  constructor (readonly connector: Connector) {
+    super('@fadroma/connect')
+    this.addCommand(
+      'list',
+      'print a list of all known chains',
+      connector.listChains.bind(connector)
+    )
+    if (connector.chain?.node instanceof DockerDevnet) {
+      this.addCommand(
+        'export',
+        'export the current devnet as a new Docker image',
+        (tag) => (connector.chain?.node as unknown as DockerDevnet).export(tag)
+      )
+    }
+  }
+}
+
 /** Constructor for a subclass of Connector that
   * maintains the original constructor signature. */
 export interface ConnectorClass<C extends Connector> extends Class<C, [
@@ -67,17 +86,17 @@ export class Connector extends Deployment {
   constructor (options: Partial<Connector> = { config: new ConnectConfig() }) {
     super(options as Partial<Deployment>)
     this.config = new ConnectConfig(options?.config, this.env, this.cwd)
-    this.addCommand(
+    this.addCommands(
       'chain',
       'manage chains' + (
         this.config.chainSelector ? ` (current: ${bold(this.config.chainSelector)})` : ''
       ),
-      this.listChains.bind(this)
+      new ConnectCommands(this) as CommandContext
     )
   }
 
   /** Logger */
-  log = new Console('Fadroma.Connector')
+  log = new Console('@fadroma/connect')
 
   /** Configuration. */
   config: ConnectConfig

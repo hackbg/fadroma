@@ -49,13 +49,7 @@ Object.assign(DeployStore.variants, {
   'JSON1': JSON1.JSONDeployments_v1
 })
 
-/** Constructor for a subclass of Deployer that
-  * maintains the original constructor signature. */
-export interface DeployerClass<D extends Deployer> extends Class<D, [
-  Partial<Deployer>
-]>{}
-
-class DeployerCommands extends CommandContext {
+export class DeployerCommands extends CommandContext {
   constructor (readonly deployer: Deployer) {
     super(deployer.projectName)
     const name  = deployer.name
@@ -85,6 +79,12 @@ class DeployerCommands extends CommandContext {
     }
   }
 }
+
+/** Constructor for a subclass of Deployer that
+  * maintains the original constructor signature. */
+export interface DeployerClass<D extends Deployer> extends Class<D, [
+  Partial<Deployer>
+]>{}
 
 /** A deployment with associated agent and storage.
   * Can switch to another set of receipts to represent
