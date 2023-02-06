@@ -4,6 +4,7 @@ import type { Address, Message, ExecOpts } from './core-tx'
 import type { CodeHash } from './core-code'
 import type { IFee } from './core-fee'
 import type { ContractLink } from './core-contract'
+import type { Chain } from './core-chain'
 import { assertAgent } from './core-agent'
 import { assertAddress } from './core-tx'
 import { validated, hideProperties } from './core-fields'
@@ -52,7 +53,7 @@ export class Client {
   fees?: Record<string, IFee> = undefined
 
   /** The chain on which this contract exists. */
-  get chain () {
+  get chain (): Chain|undefined {
     return this.agent?.chain
   }
 
