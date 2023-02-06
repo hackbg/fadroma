@@ -68,7 +68,7 @@ export class ConnectCommands extends CommandContext {
       this.addCommand(
         'export',
         'export the current devnet as a new Docker image',
-        (tag) => (connector.chain?.node as unknown as DockerDevnet).export(tag)
+        (...args) => (connector.chain?.node as unknown as DockerDevnet).export(...args)
       )
     }
   }

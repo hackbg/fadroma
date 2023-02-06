@@ -347,9 +347,16 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     }
   }
 
-  async export (tag?: string) {
-    console.log(this.container)
-    process.exit(123)
+  async export (repository?: string, tag?: string) {
+    if (!this.container) {
+      throw new Error("Can't export: no container")
+    }
+    if (!this.container.container) {
+      throw new Error("Can't export: no internal container")
+    }
+    const { Id } = await this.container.container.commit({ repository, tag })
+    this.log.info(`Exported snapshot:`, bold(Id))
+    return Id
   }
 
 }
