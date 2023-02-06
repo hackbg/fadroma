@@ -397,11 +397,11 @@ importers:
       '@hackbg/allo': workspace:^1
       '@hackbg/ganesha': ^2.2.5
       '@hackbg/hide': workspace:^1
-      chalk: ^5
+      chalk: ^4
     dependencies:
       '@hackbg/allo': link:../allo
       '@hackbg/hide': link:../hide
-      chalk: 5.0.1
+      chalk: 4.1.2
     devDependencies:
       '@hackbg/ganesha': link:../../ganesha
 
@@ -532,7 +532,7 @@ importers:
       '@hackbg/ensuite': ^1.1
       '@hackbg/hide': ^1
       '@hackbg/into': ^1.0.1
-      '@hackbg/logs': ^1
+      '@hackbg/logs': ^1.1.1
       '@hackbg/many': ^1
       '@hackbg/oops': ^1
       '@hackbg/over': ^1.0.1
@@ -625,7 +625,7 @@ importers:
       '@fadroma/scrt': workspace:^8.0.1
       '@hackbg/4mat': workspace:^1
       '@hackbg/ensuite': ^1.1
-      '@hackbg/logs': workspace:^1
+      '@hackbg/logs': workspace:^1.1.1
       '@hackbg/many': workspace:^1
       '@hackbg/oops': workspace:^1
       '@hackbg/task': workspace:^1
@@ -642,7 +642,7 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@fadroma/core': workspace:^2.0.1
+      '@fadroma/core': workspace:^2.0.2
       '@hackbg/4mat': ^1
       '@hackbg/conf': ^1
       '@hackbg/ensuite': ^1.0.2
