@@ -12,7 +12,7 @@
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
-    "@fadroma/core": "workspace:^1.0.3",
+    "@fadroma/core": "workspace:^2",
     "@fadroma/scrt": "workspace:^7",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1",

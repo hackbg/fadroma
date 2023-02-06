@@ -18,7 +18,7 @@
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-devnet command." }
   },
   "dependencies": {
-    "@fadroma/core": "workspace:^1",
+    "@fadroma/core": "workspace:^2",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/cmds":  "workspace:^1",
     "@hackbg/conf":  "workspace:^1",

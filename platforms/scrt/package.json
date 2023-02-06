@@ -6,7 +6,7 @@
   "files": [ "*.ts" ],
   "description": "Fadroma support for Secret Network. Wraps secretjs to provide a consistent API for the core set of smart contract operations.",
   "dependencies": {
-    "@fadroma/core":           "workspace:^1.0.3",
+    "@fadroma/core":           "workspace:^2",
     "@hackbg/4mat":            "^1",
     "@hackbg/into":            "^1",
     "@hackbg/conf":            "^1",

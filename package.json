@@ -41,7 +41,7 @@
     "docs:vp:serve": "vitepress serve"
   },
   "dependencies": {
-    "@fadroma/core":    "workspace:^1",
+    "@fadroma/core":    "workspace:^2",
     "@fadroma/connect": "workspace:^2",
     "@fadroma/mocknet": "workspace:^2",
     "@fadroma/tokens":  "workspace:^6",

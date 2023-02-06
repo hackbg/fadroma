@@ -12,7 +12,7 @@
     "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "dependencies": {
-    "@fadroma/core":    "workspace:^1",
+    "@fadroma/core":    "workspace:^2",
     "@fadroma/devnet":  "workspace:^1",
     "@fadroma/scrt":    "workspace:^7",
     "@fadroma/mocknet": "workspace:^2",

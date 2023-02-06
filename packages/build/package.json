@@ -20,7 +20,7 @@
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-build command." }
   },
   "dependencies": {
-    "@fadroma/core": "workspace:^1",
+    "@fadroma/core": "workspace:^2",
     "@hackbg/dock":  "workspace:^1",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/file":  "workspace:^1",
