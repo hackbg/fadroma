@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/core",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "type":    "module",
   "main":    "core.ts",
   "files": [ "*.ts" ],
@@ -19,7 +19,7 @@
     "@hackbg/into": "^1.0.1",
     "@hackbg/logs": "^1.1.1",
     "@hackbg/many": "^1",
-    "@hackbg/oops": "^1",
+    "@hackbg/oops": "workspace:^1.0.1",
     "@hackbg/over": "^1.0.1",
     "@hackbg/task": "^1"
   },
