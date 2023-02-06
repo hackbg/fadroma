@@ -4,6 +4,7 @@
   "type":    "module",
   "main":    "tokens.ts",
   "files": [ "*.ts" ],
+  "description": "Fadroma support package for operating smart contracts that emit tokens. Supports SNIP-20 tokens on Secret Network via @fadroma/scrt",
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "true || ensuite tokens.spec.ts.md",
