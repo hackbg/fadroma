@@ -1,7 +1,7 @@
 import { EnvConfig } from '@hackbg/conf'
 import { CommandContext } from '@hackbg/cmds'
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
-import { Chain, AgentOpts, DevnetHandle } from '@fadroma/core'
+import { AgentOpts, Chain, ChainId, DevnetHandle } from '@fadroma/core'
 import { DevnetError as Error, DevnetConsole as Console } from './devnet-events'
 
 /** Supported devnet variants. */
@@ -72,7 +72,7 @@ export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
 }
 
 /** An ephemeral private instance of a network. */
-export abstract class Devnet implements DevnetHandle {
+export abstract class Devnet extends CommandContext implements DevnetHandle {
 
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
@@ -85,38 +85,65 @@ export abstract class Devnet implements DevnetHandle {
     portMode,
     ephemeral
   }: Partial<DevnetOpts> = {}) {
+    super('devnet')
     this.chainId = chainId ?? this.chainId
     if (!this.chainId) throw new Error.NoChainId()
+
+    // FIXME: Is the auto-destroy working?
     this.ephemeral = ephemeral ?? this.ephemeral
-    this.host = host ?? this.host
-    this.portMode = portMode!
-    this.port = port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
+
+    // Define connection method
+    this.host     = host ?? this.host
+    this.portMode = portMode! // this should go, in favor of exposing all ports
+    this.port     = port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
+
+    // Define initial wallets
     this.genesisAccounts = identities ?? this.genesisAccounts
+
+    // Define storage
     this.stateRoot = $(stateRoot || $('receipts', this.chainId).path).as(OpaqueDirectory)
     this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
+
+    // Define CLI commands
+    this.addCommand('reset',  'kill and erase the devnet', () => {})
+    this.addCommand('stop',   'gracefully pause the devnet', () => {})
+    this.addCommand('kill',   'terminate the devnet immediately', () => {})
+    this.addCommand('export', 'stop the devnet and save it as a new Docker image', () => {})
   }
 
   /** Logger. */
-  log       = log
+  log: Console = log
+
   /** Whether to destroy this devnet on exit. */
-  ephemeral = false
+  ephemeral: boolean = false
+
   /** The chain ID that will be passed to the devnet node. */
-  chainId  = 'fadroma-devnet'
+  chainId: ChainId = 'fadroma-devnet'
+
   /** The protocol of the API URL without the trailing colon. */
-  protocol = 'http'
+  protocol: string = 'http'
+
   /** The hostname of the API URL. */
-  host     = process.env.FADROMA_DEVNET_HOST ?? 'localhost'
+  host: string = process.env.FADROMA_DEVNET_HOST ?? 'localhost'
+
   /** The port of the API URL. If `null`, `freePort` will be used to obtain a random port. */
-  port:     number
+  port: number
+
   /** Which service does the API URL port correspond to. */
   portMode: DevnetPortMode
+
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL { return new URL(`${this.protocol}://${this.host}:${this.port}`) }
+
   /** This directory is created to remember the state of the devnet setup. */
   stateRoot: OpaqueDirectory
+
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
-  genesisAccounts: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
+  genesisAccounts: Array<string> = [
+    'ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY'
+  ]
+
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
   nodeState: JSONFile<DevnetState>
@@ -136,7 +163,9 @@ export abstract class Devnet implements DevnetHandle {
       try {
         const data = this.nodeState.load()
         const { chainId, port } = data
-        if (this.chainId !== chainId) this.log.loadingState(chainId, this.chainId)
+        if (this.chainId !== chainId) {
+          this.log.loadingState(chainId, this.chainId)
+        }
         this.port = port as number
         return data
       } catch (e) {

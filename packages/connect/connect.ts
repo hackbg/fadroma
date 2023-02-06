@@ -25,7 +25,8 @@ import {
   ChainMode,
   ChainRegistry,
   Class,
-  Deployment
+  Deployment,
+  bold
 } from '@fadroma/core'
 import { Devnet, DevnetConfig, defineDevnet } from '@fadroma/devnet'
 import { Scrt } from '@fadroma/scrt'
@@ -62,19 +63,31 @@ export interface ConnectorClass<C extends Connector> extends Class<C, [
 
 /** A Deployment with associated Agent and awareness of other chains. */
 export class Connector extends Deployment {
+
   constructor (options: Partial<Connector> = { config: new ConnectConfig() }) {
     super(options as Partial<Deployment>)
     this.config = new ConnectConfig(options?.config, this.env, this.cwd)
+    this.addCommand(
+      'chain',
+      'manage chains' + (
+        this.config.chainSelector ? ` (current: ${bold(this.config.chainSelector)})` : ''
+      ),
+      this.listChains.bind(this)
+    )
   }
+
   /** Logger */
   log = new Console('Fadroma.Connector')
+
   /** Configuration. */
   config: ConnectConfig
+
   /** List all known chains. */
-  chains = this.command('chains', 'print a list of all known chains', async () => {
+  async listChains () {
     this.log.supportedChains()
     this.log.selectedChain(this.config.chainSelector as string)
-  })
+  }
+
 }
 
 /** Connection configuration and Connector factory.

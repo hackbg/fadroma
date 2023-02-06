@@ -54,13 +54,20 @@ export class Deployment extends CommandContext {
     this.workspace ??= options.workspace
     this.revision  ??= options.revision
     this.state     ??= {}
-    // Hidden properties
+
+    // Hide non-essential properties
     hideProperties(this, ...[
-      'log', 'state', 'name', 'description', 'timestamp',
-      'commandTree', 'currentCommand',
-      'args', 'task', 'before'
+      'args',
+      'before',
+      'commandTree',
+      'currentCommand',
+      'description',
+      'log',
+      'name',
+      'state',
+      'task',
+      'timestamp',
     ])
-    this.addCommand('status', 'show the status of this deployment', this.showStatus.bind(this))
   }
 
   log = new ClientConsole(this.constructor.name)

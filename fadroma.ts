@@ -43,9 +43,6 @@ export class Config extends DeployConfig {
 /** Context for Fadroma commands. */
 export class Fadroma extends Deployer {
 
-  /** Override this to set your project name. */
-  projectName: string = 'Fadroma'
-
   /** The current configuration. */
   config: Config
 
@@ -58,18 +55,13 @@ export class Fadroma extends Deployer {
     this.config = (options.config instanceof Config)
       ? options.config
       : new Config(options.config, this.env, this.cwd)
+    // Configure build context
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
+    // Create token manager
     this.tokens = new TokenManager(this as Deployment)
-    this
-      .addCommands('tokens', 'manage token contracts',
-                   this.tokens as any)
-      .addCommand('repl',   'interact with this project from a Node.js REPL',
-                  () => this.startREPL())
-      .addCommand('update', 'update the current deployment',
-                  () => this.selectDeployment().then(()=>this.update()))
-      .addCommand('deploy', 'create a new deployment of this project',
-                  () => this.deploy())
+    // Define commands
+    this.addCommands('tokens', 'manage token contracts', this.tokens as any)
   }
 
   get ready () {
@@ -83,31 +75,6 @@ export class Fadroma extends Deployer {
     })()
     Object.defineProperty(this, 'ready', { get () { return ready } })
     return ready
-  }
-
-  /** Override this to implement your pre-deploy procedure. */
-  async deploy () {
-    await this.createDeployment()
-    await this.update()
-  }
-
-  /** Override this to implement your deploy/update procedure. */
-  async update (overridden: boolean = false) {
-    if (!overridden) {
-      this.log.info('Fadroma#update: override this method with your deploy/update procedure.')
-    }
-  }
-
-  /** Start an interactive REPL. */
-  async startREPL () {
-    setTimeout(()=>Object.assign(
-      repl.start({ prompt: '\nFadroma> ' }),
-      { context: this.replContext() }
-    ))
-  }
-
-  protected replContext () {
-    return createContext(this)
   }
 
 }

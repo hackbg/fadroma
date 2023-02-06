@@ -20,6 +20,7 @@ import YAML from 'js-yaml'
 import { bold } from '@hackbg/logs'
 import $, { JSONFile, Path } from '@hackbg/file'
 import { Env, EnvConfig } from '@hackbg/conf'
+import { CommandContext } from '@hackbg/cmds'
 import { Connector, ConnectConfig } from '@fadroma/connect'
 import {
   Agent,
@@ -54,6 +55,37 @@ export interface DeployerClass<D extends Deployer> extends Class<D, [
   Partial<Deployer>
 ]>{}
 
+class DeployerCommands extends CommandContext {
+  constructor (readonly deployer: Deployer) {
+    super(deployer.projectName)
+    const name  = deployer.name
+    const chain = deployer.chain?.id
+    if (chain) {
+      this.addCommand(
+        'list',
+        `print a list of all deployments on ${chain}`,
+        deployer.listDeployments.bind(deployer)
+      ).addCommand(
+        'create',
+        `create a new empty deployment on ${chain}`,
+        deployer.createDeployment.bind(deployer)
+      ).addCommand(
+        'select',
+        `activate another deployment on ${chain}`,
+        deployer.selectDeployment.bind(deployer)
+      ).addCommand(
+        'status',
+        `list all contracts in ${name}`,
+        deployer.showStatus.bind(deployer)
+      ).addCommand(
+        'export',
+        `export current deployment to ${name}.json`,
+        deployer.exportContracts.bind(deployer)
+      )
+    }
+  }
+}
+
 /** A deployment with associated agent and storage.
   * Can switch to another set of receipts to represent
   * another group of contracts with the same relations. */
@@ -74,21 +106,18 @@ export class Deployer extends Connector {
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
     const chain = this.chain?.id ? bold(this.chain.id) : 'this chain'
     const name  = this.name ? bold(this.name) : 'this deployment'
-    this
-      .addCommand('deployments', `print a list of all deployments on ${chain}`,
-                  this.listDeployments.bind(this))
-      .addCommand('create',      `create a new empty deployment on ${chain}`,
-                  this.createDeployment.bind(this))
-      .addCommand('switch',      `activate another deployment on ${chain}`,
-                  this.selectDeployment.bind(this))
-      .addCommand('status',      `list all contracts in ${name}`,
-                  this.listContracts.bind(this))
-      .addCommand('export',      `export current deployment to ${name}.json`,
-                  this.exportContracts.bind(this))
+    this.addCommands(
+      'deployment',
+      'manage deployments' + (this.name ? ` (current: ${bold(this.name)})` : ''),
+      new DeployerCommands(this) as CommandContext
+    )
   }
 
   /** Logger. */
   log = new DeployConsole(this.constructor.name)
+
+  /** Override this to set your project name. */
+  projectName: string = 'Fadroma'
 
   /** Configuration. */
   config: DeployConfig
@@ -129,7 +158,9 @@ export class Deployer extends Connector {
 
   /** Path to root of project directory. */
   get project (): Path|undefined {
-    if (typeof this.config.project !== 'string') return undefined
+    if (typeof this.config.project !== 'string') {
+      return undefined
+    }
     return $(this.config.project)
   }
 
