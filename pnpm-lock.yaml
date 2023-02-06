@@ -20,9 +20,9 @@ importers:
       '@hackbg/logs': workspace:^1
       '@hackbg/spec': ^1
       '@hackbg/ubik': ^1.2
-      '@types/dockerode': ^3.3.9
+      '@types/dockerode': ^3.3.14
       '@types/js-yaml': ^4.0.5
-      '@types/node': ^16.11.55
+      '@types/node': latest
       '@types/prettyjson': ^0.0.30
       '@types/secure-random': ^1.1.0
       body-parser: ^1.20.0
@@ -33,7 +33,7 @@ importers:
       js-yaml: ^4.1.0
       pug: ^3.0.2
       typedoc: ^0.22.18
-      typescript: ^4.7.4
+      typescript: ^4.9
       vitepress: ^1.0.0-alpha.10
     dependencies:
       '@fadroma/build': link:packages/build
@@ -53,9 +53,9 @@ importers:
       '@hackbg/ensuite': link:ensuite
       '@hackbg/spec': link:ensuite/toolbox/spec
       '@hackbg/ubik': link:ensuite/toolbox/ubik
-      '@types/dockerode': 3.3.9
+      '@types/dockerode': 3.3.14
       '@types/js-yaml': 4.0.5
-      '@types/node': 16.11.55
+      '@types/node': 18.11.19
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
@@ -65,8 +65,8 @@ importers:
       freeport-async: 2.0.0
       js-yaml: 4.1.0
       pug: 3.0.2
-      typedoc: 0.22.18_typescript@4.7.4
-      typescript: 4.7.4
+      typedoc: 0.22.18_typescript@4.9.4
+      typescript: 4.9.4
       vitepress: 1.0.0-alpha.10
 
   ensuite:
@@ -93,7 +93,7 @@ importers:
       c8: ^7.11.0
       chokidar: ^3.5.3
       cross-spawn: ^7.0.3
-      typescript: ^4.7
+      typescript: ^4.9
       vite: ^2.8.4
     dependencies:
       '@ganesha/core': link:src/core
@@ -104,18 +104,18 @@ importers:
       '@hackbg/spec': link:../toolbox/spec
       c8: 7.12.0
       chokidar: 3.5.3
-      typescript: 4.8.4
+      typescript: 4.9.4
       vite: 2.9.14
 
   ensuite/ganesha/src/core:
     specifiers:
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
-      typescript: ^4.7
+      typescript: ^4.9
     dependencies:
       joycon: 3.1.1
       jsonc-parser: 3.1.0
-      typescript: 4.7.4
+      typescript: 4.9.4
 
   ensuite/ganesha/src/node:
     specifiers:
@@ -158,17 +158,17 @@ importers:
       '@ganesha/core': workspace:^2
       '@ganesha/node': workspace:^2.3
       '@hackbg/ganesha': workspace:../..
-      typescript: ^4.6.4
+      typescript: ^4.9
     dependencies:
       '@ganesha/core': link:../core
       '@ganesha/node': link:../node
     devDependencies:
       '@hackbg/ganesha': link:../..
-      typescript: 4.7.4
+      typescript: 4.9.4
 
   ensuite/ganesha/src/vsc:
     specifiers:
-      typescript: latest
+      typescript: ^4.9
       vsce: latest
     devDependencies:
       typescript: 4.9.4
@@ -183,7 +183,7 @@ importers:
       '@ganesha/vscode-shared': link:../shared
       vscode-languageclient: 7.1.0-next.5
     devDependencies:
-      '@types/vscode': 1.74.0
+      '@types/vscode': 1.75.0
 
   ensuite/ganesha/src/vsc/server:
     specifiers:
@@ -205,7 +205,7 @@ importers:
 
   ensuite/ganesha/src/vsc/shared:
     specifiers:
-      typescript: latest
+      typescript: ^4.9
     devDependencies:
       typescript: 4.9.4
 
@@ -217,7 +217,7 @@ importers:
       '@hackbg/spec': ^1
       mkdirp: ^1.0.4
       tap: ^15.0.9
-      typescript: ^4.7
+      typescript: ^4.9
       vite: ^2.7.6
     devDependencies:
       '@ganesha/core': link:../src/core
@@ -225,8 +225,8 @@ importers:
       '@ganesha/rollup': link:../src/rollup
       '@hackbg/spec': link:../../toolbox/spec
       mkdirp: 1.0.4
-      tap: 15.2.3_typescript@4.7.4
-      typescript: 4.7.4
+      tap: 15.2.3_typescript@4.9.4
+      typescript: 4.9.4
       vite: 2.9.14
 
   ensuite/toolbox:
@@ -246,7 +246,7 @@ importers:
       rimraf: ^3.0.2
       signal-exit: ^3.0.7
       typedoc: beta
-      typescript: ^4.7.4
+      typescript: ^4.9
       vitepress: ^1.0.0-alpha.4
     dependencies:
       '@hackbg/4mat': link:4mat
@@ -262,10 +262,10 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.11.18
+      '@types/node': 18.11.19
       concurrently: 7.2.2
-      typedoc: 0.23.0-beta.7_typescript@4.8.4
-      typescript: 4.8.4
+      typedoc: 0.23.0-beta.7_typescript@4.9.4
+      typescript: 4.9.4
       vitepress: 1.0.0-alpha.10
 
   ensuite/toolbox/4mat:
@@ -315,16 +315,16 @@ importers:
     specifiers:
       '@hackbg/allo': workspace:^1
       '@hackbg/logs': workspace:^1
-      '@types/dockerode': ^3.3.8
+      '@types/dockerode': ^3.3.14
       colors: 1.4.0
-      dockerode: ^3.3.1
+      dockerode: ^3.3.4
     dependencies:
       '@hackbg/allo': link:../allo
       '@hackbg/logs': link:../logs
       colors: 1.4.0
       dockerode: 3.3.4
     devDependencies:
-      '@types/dockerode': 3.3.9
+      '@types/dockerode': 3.3.14
 
   ensuite/toolbox/dump:
     specifiers:
@@ -425,8 +425,10 @@ importers:
 
   ensuite/toolbox/port:
     specifiers:
+      '@hackbg/logs': workspace:*
       exponential-backoff: ^3.1.0
     dependencies:
+      '@hackbg/logs': link:../logs
       exponential-backoff: 3.1.0
 
   ensuite/toolbox/spec:
@@ -644,6 +646,7 @@ importers:
       '@hackbg/4mat': ^1
       '@hackbg/conf': ^1
       '@hackbg/ensuite': ^1.0.2
+      '@hackbg/into': ^1
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
       secretjs: 1.7.1-beta.0
@@ -651,6 +654,7 @@ importers:
       '@fadroma/core': link:../../packages/core
       '@hackbg/4mat': link:../../ensuite/toolbox/4mat
       '@hackbg/conf': link:../../ensuite/toolbox/conf
+      '@hackbg/into': link:../../ensuite/toolbox/into
       '@ungap/structured-clone': 1.0.1
       secretjs: 1.7.1-beta.0
     devDependencies:
@@ -1320,15 +1324,15 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 16.11.55
+      '@types/node': 18.11.19
       '@types/ssh2': 1.11.5
     dev: true
 
-  /@types/dockerode/3.3.9:
-    resolution: {integrity: sha512-SYRN5FF/qmwpxUT6snJP5D8k0wgoUKOGVs625XvpRJOOUi6s//UYI4F0tbyE3OmzpI70Fo1+aqpzX27zCrInww==}
+  /@types/dockerode/3.3.14:
+    resolution: {integrity: sha512-PUTwtySPzCbjZ/uqRMBWKHtLGqBAlhnLitzHuom19NEX0KBYsQXqbVlig+zbUgYQU1paDeQURXj7QNglh1RI6A==}
     dependencies:
       '@types/docker-modem': 3.0.2
-      '@types/node': 16.11.55
+      '@types/node': 18.11.18
     dev: true
 
   /@types/glob/7.2.0:
@@ -1367,12 +1371,12 @@ packages:
     resolution: {integrity: sha512-Exw4yUWMBXM3X+8oqzJNRqZSwUAaS4+7NdvHqQuFi/d+synz++xmX3QIf+BFqneW8N31R8Ky+sikfZUXq07ggQ==}
     dev: false
 
-  /@types/node/16.11.55:
-    resolution: {integrity: sha512-ZZepNkqPNCBy6PlCjeOY0gI1q91v7l5MUhVc5RMAUV39OxRO8lF8fqGnhY2j8FWz8fxcN8HvAUWoccWpOzl/Ug==}
-    dev: true
-
   /@types/node/18.11.18:
     resolution: {integrity: sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==}
+
+  /@types/node/18.11.19:
+    resolution: {integrity: sha512-YUgMWAQBWLObABqrvx8qKO1enAvBUdjZOAWQ5grBAkp5LQv45jBvYKZ3oFS9iKRCQyFjqw6iuEa1vmFqtxYLZw==}
+    dev: true
 
   /@types/node/18.11.9:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
@@ -1396,7 +1400,7 @@ packages:
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 16.11.55
+      '@types/node': 18.11.19
     dev: true
 
   /@types/tmp/0.2.3:
@@ -1407,8 +1411,8 @@ packages:
     resolution: {integrity: sha512-eBWREUhVUGPze+bUW22AgUr05k8u+vETzuYdLYSvWqGTUe0KOf+zVnOB1qER5wMcw8V6D9Ar4DfJmVvD1yu0kQ==}
     dev: true
 
-  /@types/vscode/1.74.0:
-    resolution: {integrity: sha512-LyeCIU3jb9d38w0MXFwta9r0Jx23ugujkAxdwLTNCyspdZTKUc43t7ppPbCiPoQ/Ivd/pnDFZrb4hWd45wrsgA==}
+  /@types/vscode/1.75.0:
+    resolution: {integrity: sha512-SAr0PoOhJS6FUq5LjNr8C/StBKALZwDVm3+U4pjF/3iYkt3GioJOPV/oB1Sf1l7lROe4TgrMyL5N1yaEgTWycw==}
     dev: true
 
   /@types/web-bluetooth/0.0.14:
@@ -4818,7 +4822,7 @@ packages:
       yaml: 1.10.2
     dev: true
 
-  /tap/15.2.3_typescript@4.7.4:
+  /tap/15.2.3_typescript@4.9.4:
     resolution: {integrity: sha512-EVbovHd/SdevGMUnkNU5JJqC1YC0hzaaZ2jnqs0fKHv9Oudx27qW3Xwox7A6TB92wvR0mqgQPr+Au2w56kD+aQ==}
     engines: {node: '>=10'}
     hasBin: true
@@ -4855,7 +4859,7 @@ packages:
       tap-parser: 11.0.1
       tap-yaml: 1.0.0
       tcompare: 5.0.7
-      typescript: 4.7.4
+      typescript: 4.9.4
       which: 2.0.2
     transitivePeerDependencies:
       - supports-color
@@ -5015,7 +5019,7 @@ packages:
       is-typedarray: 1.0.0
     dev: true
 
-  /typedoc/0.22.18_typescript@4.7.4:
+  /typedoc/0.22.18_typescript@4.9.4:
     resolution: {integrity: sha512-NK9RlLhRUGMvc6Rw5USEYgT4DVAUFk7IF7Q6MYfpJ88KnTZP7EneEa4RcP+tX1auAcz7QT1Iy0bUSZBYYHdoyA==}
     engines: {node: '>= 12.10.0'}
     hasBin: true
@@ -5027,10 +5031,10 @@ packages:
       marked: 4.0.19
       minimatch: 5.1.0
       shiki: 0.10.1
-      typescript: 4.7.4
+      typescript: 4.9.4
     dev: true
 
-  /typedoc/0.23.0-beta.7_typescript@4.8.4:
+  /typedoc/0.23.0-beta.7_typescript@4.9.4:
     resolution: {integrity: sha512-k8GKXXY4z3HIs7HdSu92jcze1nl71cLiHR329ZflhiO4Ta1rJc4F5uEtwUjCSChXFQaVZUI2l3VaF9nWm1/p7A==}
     engines: {node: '>= 14.14'}
     hasBin: true
@@ -5041,29 +5045,17 @@ packages:
       marked: 4.0.19
       minimatch: 5.1.0
       shiki: 0.10.1
-      typescript: 4.8.4
+      typescript: 4.9.4
     dev: true
 
   /typeforce/1.18.0:
     resolution: {integrity: sha512-7uc1O8h1M1g0rArakJdf0uLRSSgFcYexrVoKo+bzJd32gd4gDy2L/Z+8/FjPnU9ydY3pEnVPtr9FyscYY60K1g==}
     dev: false
 
-  /typescript/4.7.4:
-    resolution: {integrity: sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==}
-    engines: {node: '>=4.2.0'}
-    hasBin: true
-
-  /typescript/4.8.4:
-    resolution: {integrity: sha512-QCh+85mCy+h0IGff8r5XWzOVSbBO+KfeYrMQh7NJ58QujwcE22u+NUSmUxqF+un70P9GXKxa2HCNiTTMJknyjQ==}
-    engines: {node: '>=4.2.0'}
-    hasBin: true
-    dev: true
-
   /typescript/4.9.4:
     resolution: {integrity: sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==}
     engines: {node: '>=4.2.0'}
     hasBin: true
-    dev: true
 
   /uc.micro/1.0.6:
     resolution: {integrity: sha512-8Y75pvTYkLJW2hWQHXxoqRgV7qb9B+9vFEtidML+7koHUFapnVJAZ6cKs+Qjz5Aw3aZWHMC6u0wJE3At+nSGwA==}

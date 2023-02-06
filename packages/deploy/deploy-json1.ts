@@ -2,6 +2,7 @@ import { timestamp } from '@hackbg/logs'
 import type { AnyContract } from '@fadroma/core'
 import { Contract, Deployment, DeployStore } from '@fadroma/core'
 import $, { Path, JSONDirectory } from '@hackbg/file'
+import { DeployConsole } from './deploy-events'
 
 /** JSON receipts. Importable from client libraries. */
 export class JSONDeployments_v1 extends DeployStore {
@@ -15,6 +16,8 @@ export class JSONDeployments_v1 extends DeployStore {
   }
 
   store: JSONDirectory<unknown>
+
+  log = new DeployConsole('@fadroma/deploy: json 1')
 
   async create (name: string = timestamp()): Promise<Deployment> {
     throw new Error('Not implemented')

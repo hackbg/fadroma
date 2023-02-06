@@ -74,7 +74,7 @@
     "@hackbg/ubik":         "^1.2",
     "@types/dockerode":     "^3.3.14",
     "@types/js-yaml":       "^4.0.5",
-    "@types/node":          "^16.11.55",
+    "@types/node":          "latest",
     "@types/prettyjson":    "^0.0.30",
     "@types/secure-random": "^1.1.0",
     "body-parser":          "^1.20.0",

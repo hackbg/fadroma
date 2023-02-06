@@ -114,7 +114,7 @@ export class Deployer extends Connector {
   }
 
   /** Logger. */
-  log = new DeployConsole(this.constructor.name)
+  log = new DeployConsole(`@fadroma/deploy: ${this.name??this.constructor.name}`)
 
   /** Override this to set your project name. */
   projectName: string = 'Fadroma'
@@ -184,7 +184,7 @@ export class Deployer extends Connector {
   /** Set a deployment as active for this deployer. */
   async selectDeployment (id?: string): Promise<Deployer> {
     const store = await this.provideStore()
-    const list  = store.list()
+    const list = store.list()
     if (list.length < 1) {
       throw new Error('No deployments in this store')
     }
@@ -205,7 +205,7 @@ export class Deployer extends Connector {
 
   /** Print the contracts contained in a deployment receipt. */
   async listContracts (id?: string): Promise<void> {
-    const store      = await this.provideStore()
+    const store = await this.provideStore()
     const deployment = id ? store.get(id) : store.active
     if (deployment) {
       this.log.deployment(deployment)
@@ -230,6 +230,15 @@ export class Deployer extends Connector {
     file.save(state)
     this.log.info('Wrote', Object.keys(state).length, 'contracts to', bold(file.shortPath))
     this.log.br()
+  }
+
+  /** Print the status of this deployment. */
+  async showStatus () {
+    const store = await this.provideStore()
+    console.log({store})
+    const deployment = store.active
+    if (!deployment) throw new DeployError.NoDeployment()
+    this.log.deployment(this as Deployment)
   }
 
 }

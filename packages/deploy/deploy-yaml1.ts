@@ -27,7 +27,7 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   root: YAMLDirectory<unknown>
 
-  log = new DeployConsole('Fadroma Deploy (YAML1)')
+  log = new DeployConsole('@fadroma/deploy: yaml 1')
 
   /** Name of symlink pointing to active deployment, without extension. */
   KEY = '.active'
@@ -72,6 +72,7 @@ export class YAMLDeployments_v1 extends DeployStore {
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   get (name: string): Deployment|null {
     let file = this.root.at(`${name}.yml`)
+    console.log(this.KEY, file)
     if (!file.exists()) return null
     name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })

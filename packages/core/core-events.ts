@@ -175,16 +175,15 @@ export class ClientConsole extends CommandsConsole {
       let contracts: string|number = Object.values(state).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
       const len = Math.max(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
-      this.info('Active deployment:'.padEnd(len+2), bold(name), contracts)
       const count = Object.values(state).length
       if (count > 0) {
         this.br()
-        this.info('Contracts in this deployment:')
-        for (const name of Object.keys(state)) {
+        this.info(`${bold(String(count))} contracts in deployment ${bold(name)}:`)
+        for (const name of Object.keys(state).sort()) {
           this.receipt(name, state[name], len)
         }
       } else {
-        this.info('No contracts in this deployment.')
+        this.info(`No contracts in deployment ${bold(name)}.`)
       }
     } else {
       this.info('There is no selected deployment.')
@@ -199,18 +198,18 @@ export class ClientConsole extends CommandsConsole {
     let {
       address    = colors.gray('(unspecified address)'),
       codeHash   = colors.gray('(unspecified code hash)'),
-      codeId     = colors.gray('(unspecified code id)'.padEnd(len)),
-      crate      = colors.gray('(unspecified crate)'.padEnd(len)),
-      repository = colors.gray('(unspecified source)'.padEnd(len))
+      codeId     = colors.gray('(unspecified code id)'),
+      crate      = colors.gray('(unspecified crate)'),
+      repository = colors.gray('(unspecified source)')
     } = receipt
-    name = bold(name.padEnd(len))
+    name = bold(name)
     if (this.indent + len + 64 < this.width - 4) {
-      codeId = bold(codeId.padEnd(len))
-      crate  = bold(crate.padEnd(len))
-      this.info()
-      this.info(name,   '│', address)
-      this.info(codeId, '│', codeHash)
-      if (receipt.crate || receipt.repository) this.info(crate, repository)
+      codeId = bold(codeId)
+      crate  = bold(crate)
+      this.br()
+      this.info(name)
+      this.info(`at ${address} : ${codeHash}`)
+      this.info(`is ${crate} from ${repository} as ${codeId}`)
     } else {
       this.info()
       this.info(name)

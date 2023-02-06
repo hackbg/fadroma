@@ -1,12 +1,11 @@
 import type * as SecretJS from 'secretjs'
 import { base64 } from '@hackbg/4mat'
-import { into } from '@hackbg/into'
 import type {
   Address, AgentClass, AgentOpts, Built, Uploaded,
   BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message,
-  Name, AnyContract, into
+  Name, AnyContract
 } from '@fadroma/core'
-import { Agent, Contract, assertAddress, assertChain } from '@fadroma/core'
+import { Agent, Contract, assertAddress, assertChain, into } from '@fadroma/core'
 import { Scrt } from './scrt'
 import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 import type { ScrtBundle } from './scrt-bundle'
