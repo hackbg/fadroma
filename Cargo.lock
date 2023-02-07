@@ -229,7 +229,7 @@ dependencies = [
 
 [[package]]
 name = "fadroma"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "bech32",
