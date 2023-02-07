@@ -4,12 +4,7 @@ members = [
   "crates/fadroma-proc-auth",
   "crates/fadroma-proc-derive",
   "crates/fadroma-proc-message",
-  "examples/admin",
-  "examples/killswitch",
-  "examples/ensemble",
-  "examples/kv",
-  "examples/derive-contract-impl",
-  "examples/derive-contract-interface"
+  "examples/*"
 ]
 
 #[profile.release]

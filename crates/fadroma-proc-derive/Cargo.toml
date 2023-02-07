@@ -1,8 +1,11 @@
 [package]
-name    = "fadroma-proc-derive"
-version = "0.1.0"
-authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+name = "fadroma-proc-derive"
+version = "0.7.0"
 edition = "2018"
+license = "AGPL-3.0"
+repository = "https://github.com/hackbg/fadroma"
+description = "DSL for generating CosmWasm contract boilerplate and enabling code composition"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 
 [lib]
 proc-macro = true

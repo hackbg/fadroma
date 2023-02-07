@@ -1,13 +1,11 @@
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, AttributeArgs, ItemEnum, ItemTrait, TraitItemMethod};
+use syn::{parse_macro_input, parse_quote, AttributeArgs, ItemTrait, TraitItemMethod};
 
 use crate::contract::{Contract, ContractType};
-use crate::deserialize_flat::impl_deserialize_flat;
 
 mod args;
 mod attr;
 mod contract;
-mod deserialize_flat;
 mod utils;
 
 #[proc_macro_attribute]
@@ -106,19 +104,6 @@ pub fn execute_guard(
 
     let result = quote! {
         #ast
-    };
-
-    proc_macro::TokenStream::from(result)
-}
-
-#[proc_macro_derive(DeserializeFlat)]
-pub fn deserialize_flat(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ast = parse_macro_input!(item as ItemEnum);
-
-    let impl_item = impl_deserialize_flat(&ast);
-
-    let result = quote! {
-        #impl_item
     };
 
     proc_macro::TokenStream::from(result)

@@ -9,7 +9,7 @@ pub fn message (
     let body: proc_macro2::TokenStream = body.into();
     TokenStream::from(quote! {
         #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
-        #[serde(rename_all="snake_case",deny_unknown_fields)]
+        #[serde(rename_all="snake_case")]
         #body
     })
 }

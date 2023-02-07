@@ -1,8 +1,12 @@
 [package]
 name = "fadroma"
-version = "1.0.0"
+version = "0.7.0"
 edition = "2018"
 license = "AGPL-3.0"
+keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
+description = "Tools and frequently used functionality for developing CosmWasm smart contracts"
+repository = "https://github.com/hackbg/fadroma"
+readme = "README.md"
 authors = [
   # Core maintainers:
   "Adam A. <adam@hack.bg>",
@@ -21,6 +25,10 @@ authors = [
 
 [lib]
 path = "lib.rs"
+
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]
+all-features = true
 
 [features]
 scrt = [
@@ -63,10 +71,10 @@ staking = ["secret-cosmwasm-std/staking"]
 secret-cosmwasm-std = { version = "1.0.0", default-features = false, optional = true }
 
 # Procedural macro crates
-fadroma-derive-canonize = { path = "../fadroma-derive-canonize" }
-fadroma-proc-derive = { path = "../fadroma-proc-derive" }
-fadroma-proc-auth = { path = "../fadroma-proc-auth" }
-fadroma-proc-message = { path = "../fadroma-proc-message" }
+fadroma-derive-canonize = { version = "0.3.0", path = "../fadroma-derive-canonize" }
+fadroma-proc-derive = { version = "0.7.0", path = "../fadroma-proc-derive" }
+fadroma-proc-auth = { version = "0.1.0", path = "../fadroma-proc-auth" }
+fadroma-proc-message = { version = "0.1.0", path = "../fadroma-proc-message" }
 
 # Dependencies
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }

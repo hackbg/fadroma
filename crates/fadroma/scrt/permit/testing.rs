@@ -84,14 +84,13 @@ mod tests {
         );
 
         let wrong_contract = "wrong_contract";
-        let err = permit
-            .validate(
-                deps.as_ref(),
-                wrong_contract,
-                None,
-                &permissions,
-            )
-            .unwrap_err();
+        let err = permit.validate(
+            deps.as_ref(),
+            wrong_contract,
+            None,
+            &permissions,
+        )
+        .unwrap_err();
 
         match err {
             StdError::GenericErr { msg, .. } => {
@@ -108,14 +107,13 @@ mod tests {
         }
 
         let expected_permissions = vec![Permission::One, Permission::Two];
-        let err = permit
-            .validate(
-                deps.as_ref(),
-                contract_addr.clone().into(),
-                None,
-                &expected_permissions,
-            )
-            .unwrap_err();
+        let err = permit.validate(
+            deps.as_ref(),
+            contract_addr,
+            None,
+            &expected_permissions,
+        )
+        .unwrap_err();
 
         match err {
             StdError::GenericErr { msg, .. } => {
@@ -131,14 +129,23 @@ mod tests {
             _ => panic!("Expected StdError::GenericErr"),
         }
 
-        let result = permit
-            .validate(
-                deps.as_ref(),
-                contract_addr.into(),
-                None,
-                &permissions,
-            )
-            .unwrap();
+        let result = permit.validate(
+            deps.as_ref(),
+            contract_addr,
+            None,
+            &permissions,
+        )
+        .unwrap();
+
+        assert_eq!(result, sender);
+
+        let result = permit.validate(
+            deps.as_ref(),
+            contract_addr,
+            None,
+            &[],
+        )
+        .unwrap();
 
         assert_eq!(result, sender);
     }

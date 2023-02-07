@@ -1,8 +1,11 @@
 [package]
 name    = "fadroma-proc-message"
 version = "0.1.0"
-authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
+license = "AGPL-3.0"
+repository = "https://github.com/hackbg/fadroma"
+description = "Generate derives for types used as messages in CosmWasm contracts"
+authors = ["Adam Avramov <adam@hack.bg>"]
 
 [lib]
 proc-macro = true

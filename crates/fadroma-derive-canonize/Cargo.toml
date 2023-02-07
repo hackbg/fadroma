@@ -1,8 +1,11 @@
 [package]
 name = "fadroma-derive-canonize"
-version = "0.1.0"
-authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+version = "0.3.0"
 edition = "2018"
+license = "AGPL-3.0"
+description = "Canonize/Humanize derive macro for Fadroma"
+repository = "https://github.com/hackbg/fadroma"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 
 [lib]
 proc-macro = true
@@ -13,5 +16,5 @@ syn = { version = "1.0", features = ["full", "extra-traits"] }
 quote = "1.0"
 
 [dev-dependencies]
-fadroma = { path = "../fadroma", default-features = false, features = [] }
+fadroma = { path = "../fadroma", default-features = false, features = ["scrt"] }
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }

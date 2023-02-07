@@ -3,71 +3,50 @@
 //! Use this when the admin is always a wallet address and not a contract.
 
 use crate::{
+    storage::SingleItem,
     cosmwasm_std::{
-        self, StdResult, Response, Addr,
-        CanonicalAddr, Deps, DepsMut, StdError
+        self, StdResult, Response, Addr, CanonicalAddr, StdError
     },
     schemars,
     derive_contract::*
 };
+use super::STORE;
 
-const PENDING_ADMIN_KEY: &[u8] = b"b5QaJXDibK";
+crate::namespace!(pub PendingAdminNs, b"b5QaJXDibK");
+pub const PENDING_ADMIN: SingleItem<CanonicalAddr, PendingAdminNs> = SingleItem::new();
 
 #[contract]
 pub trait TwoStepAdmin {
     #[execute]
     fn change_admin(address: String) -> StdResult<Response> {
         super::assert(deps.as_ref(), &info)?;
-        save_pending_admin(deps, &address)?;
+        PENDING_ADMIN.canonize_and_save(deps.branch(), address.as_str())?;
 
         Ok(Response::new().add_attribute("pending_admin", address))
     }
 
     #[execute]
     fn accept_admin() -> StdResult<Response> {
-        let pending = load_pending_admin(deps.as_ref())?;
+        let pending = PENDING_ADMIN.load_humanize(deps.as_ref())?;
 
         if let Some(pending_admin) = pending {
             if pending_admin != info.sender {
                 return Err(StdError::generic_err("Unauthorized"));
             }
 
-            super::save(deps.branch(), pending_admin.as_str())?;
+            STORE.canonize_and_save(deps.branch(), pending_admin)?;
+            PENDING_ADMIN.remove(deps.storage);
+
+            Ok(Response::new().add_attribute("new_admin", info.sender))
         } else {
-            return Err(StdError::generic_err("New admin is not set."));
+            Err(StdError::generic_err("New admin is not set."))
         }
-
-        deps.storage.remove(PENDING_ADMIN_KEY);
-
-        Ok(Response::new().add_attribute("new_admin", info.sender))
     }
 
     #[query]
     fn admin() -> StdResult<Option<Addr>> {
-        super::load(deps)
+        STORE.load_humanize(deps)
     }
-}
-
-/// Loads the currently pending admin from storage if there is such. 
-pub fn load_pending_admin(deps: Deps) -> StdResult<Option<Addr>> {
-    let result = deps.storage.get(PENDING_ADMIN_KEY);
-
-    match result {
-        Some(bytes) => {
-            let admin = CanonicalAddr::from(bytes);
-
-            Ok(Some(deps.api.addr_humanize(&admin)?))
-        }
-        None => Ok(None),
-    }
-}
-
-/// Saves the new admin address that needs to accept the role to storage.
-pub fn save_pending_admin(deps: DepsMut, address: &str) -> StdResult<()> {
-    let address = deps.api.addr_canonicalize(address)?;
-    deps.storage.set(PENDING_ADMIN_KEY, address.as_slice());
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -76,7 +55,7 @@ mod tests {
     use crate::{
         admin,
         cosmwasm_std::{
-            Storage, from_binary,
+            from_binary,
             testing::{mock_dependencies, mock_env, mock_info},
         }
     };
@@ -140,7 +119,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            load_pending_admin(deps.as_ref()).unwrap().unwrap(),
+            PENDING_ADMIN.load_humanize_or_error(deps.as_ref()).unwrap(),
             new_admin
         );
 
@@ -193,7 +172,7 @@ mod tests {
         let stored_admin: Option<Addr> = from_binary(&result).unwrap();
         assert_eq!(stored_admin.unwrap(), new_admin);
         
-        assert!(deps.storage.get(PENDING_ADMIN_KEY).is_none())
+        assert!(PENDING_ADMIN.load_humanize(deps.as_ref()).unwrap().is_none())
     }
 
     #[test]

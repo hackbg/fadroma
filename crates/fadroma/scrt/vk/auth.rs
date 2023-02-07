@@ -1,12 +1,26 @@
 //! Customizable functionality for implementing
 //! viewing keys in your smart contract.
 
-use super::{ViewingKey, ViewingKeyHashed};
-use crate::derive_contract::*;
-use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
-const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
+use crate::{
+    derive_contract::*,
+    core::Canonize,
+    storage::{ItemSpace, TypedKey},
+    cosmwasm_std::{
+        self, StdResult, StdError, Storage,
+        Response, CanonicalAddr, to_binary
+    },
+    schemars::JsonSchema
+};
+use super::{ViewingKey, ViewingKeyHashed};
+
+crate::namespace!(pub ViewingKeysNs, b"XXzo7ZXRJ2");
+pub const STORE: ItemSpace<
+    ViewingKeyHashed,
+    ViewingKeysNs,
+    TypedKey<CanonicalAddr>
+> = ItemSpace::new();
 
 #[contract]
 pub trait VkAuth {
@@ -19,8 +33,11 @@ pub trait VkAuth {
         .concat();
 
         let key = ViewingKey::new(&env, &info, &prng_seed, entropy.as_bytes());
-        let address = deps.api.addr_canonicalize(&info.sender.as_str())?;
-        save_viewing_key(deps.storage, address.as_slice(), &key)?;
+        STORE.save(
+            deps.storage,
+            &info.sender.canonize(deps.api)?,
+            &key.to_hashed()
+        )?;
 
         Ok(Response::new().set_data(
             to_binary(&AuthExecuteAnswer::CreateViewingKey { key })?
@@ -30,8 +47,11 @@ pub trait VkAuth {
     #[execute]
     fn set_viewing_key(key: String, _padding: Option<String>) -> StdResult<Response> {
         let key = ViewingKey(key);
-        let address = deps.api.addr_canonicalize(&info.sender.as_str())?;
-        save_viewing_key(deps.storage, address.as_slice(), &key)?;
+        STORE.save(
+            deps.storage,
+            &info.sender.canonize(deps.api)?,
+            &key.to_hashed()
+        )?;
 
         Ok(Response::new().set_data(
             to_binary(
@@ -59,35 +79,12 @@ pub enum AuthResponseStatus {
     Failure,
 }
 
-/// Saves the `viewing_key` under the given storage `key` which should
-/// be **unique**. This would usualy be the [`CanonicalAddr`] bytes.
-/// The `key` is concatenated with random bytes before storing to prevent
-/// storage collisions.
-#[inline]
-pub fn save_viewing_key(
-    storage: &mut dyn Storage,
-    key: &[u8],
-    viewing_key: &ViewingKey
-) -> StdResult<()> {
-    storage::ns_save(storage, VIEWING_KEYS, key, &viewing_key.to_hashed())
-}
-
-/// Loads the stored viewing key if any using the given storage `key`
-/// which should be **unique**. This would usualy be the [`CanonicalAddr`] bytes.
-#[inline]
-pub fn load_viewing_key(
-    storage: &dyn Storage,
-    key: &[u8]
-) -> StdResult<Option<ViewingKeyHashed>> {
-    storage::ns_load(storage, VIEWING_KEYS, key)
-}
-
 pub fn authenticate(
-    storage: &impl Storage,
+    storage: &dyn Storage,
     provided_key: &ViewingKey,
-    storage_key: &[u8],
+    addr: &CanonicalAddr,
 ) -> StdResult<()> {
-    let stored_vk = load_viewing_key(storage, storage_key)?;
+    let stored_vk = STORE.load(storage, addr)?;
 
     if let Some(key) = stored_vk {
         if provided_key.check_hashed(&key) {
@@ -103,7 +100,7 @@ pub fn authenticate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::from_binary;
+    use cosmwasm_std::{Api, from_binary};
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     #[test]
@@ -132,21 +129,20 @@ mod tests {
             _ => panic!("Expecting AuthHandleAnswer::CreateViewingKey"),
         };
 
-
-        let stored_vk = load_viewing_key(deps.as_ref().storage, sender_canonical.as_slice()).unwrap().unwrap();
+        let stored_vk = STORE.load(deps.as_ref().storage, &sender_canonical).unwrap().unwrap();
         assert!(created_vk.check_hashed(&stored_vk));
 
         let auth_result = authenticate(
             &deps.storage,
             &ViewingKey("invalid".into()),
-            sender_canonical.as_slice(),
+            &sender_canonical
         );
         assert_eq!(
             auth_result.unwrap_err(),
             StdError::generic_err("Unauthorized")
         );
 
-        let auth_result = authenticate(&deps.storage, &created_vk, sender_canonical.as_slice());
+        let auth_result = authenticate(&deps.storage, &created_vk, &sender_canonical);
         assert!(auth_result.is_ok());
 
         let new_key = String::from("new_key");
@@ -164,13 +160,13 @@ mod tests {
         .unwrap();
 
         let new_key = ViewingKey(new_key);
-        let stored_vk = load_viewing_key(deps.as_ref().storage, sender_canonical.as_slice()).unwrap().unwrap();
+        let stored_vk = STORE.load(deps.as_ref().storage, &sender_canonical).unwrap().unwrap();
         assert!(new_key.check_hashed(&stored_vk));
 
         let auth_result = authenticate(
             &deps.storage,
             &new_key,
-            sender_canonical.as_slice(),
+            &sender_canonical
         );
         assert!(auth_result.is_ok());
     }
