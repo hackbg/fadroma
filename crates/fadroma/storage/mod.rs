@@ -158,7 +158,7 @@ pub fn save<T: Serialize> (
 
 /// Remove something from the storage.
 #[inline]
-pub fn remove<'a>(
+pub fn remove(
     storage: &mut dyn Storage,
     key: impl AsRef<[u8]>
 ) {
@@ -167,7 +167,7 @@ pub fn remove<'a>(
 
 /// Load something from the storage.
 #[inline]
-pub fn load<'a, T: DeserializeOwned> (
+pub fn load<T: DeserializeOwned> (
     storage: &dyn Storage,
     key: impl AsRef<[u8]>
 ) -> StdResult<Option<T>> {
