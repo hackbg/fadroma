@@ -521,9 +521,7 @@ impl Contract {
                     env: Env,
                     msg: #query_msg
                 ) -> StdResult<QueryResponse> {
-                    let result = super::#query_fn(deps, env, msg, super::DefaultImpl)?;
-
-                    to_binary(&result)
+                    super::#query_fn(deps, env, msg, super::DefaultImpl)
                 }
 
                 #[no_mangle]

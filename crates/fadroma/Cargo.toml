@@ -1,6 +1,6 @@
 [package]
 name = "fadroma"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2018"
 license = "AGPL-3.0"
 keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
@@ -72,7 +72,7 @@ secret-cosmwasm-std = { version = "1.0.0", default-features = false, optional = 
 
 # Procedural macro crates
 fadroma-derive-canonize = { version = "0.3.0", path = "../fadroma-derive-canonize" }
-fadroma-proc-derive = { version = "0.6.0", path = "../fadroma-proc-derive" }
+fadroma-proc-derive = { version = "0.7.0", path = "../fadroma-proc-derive" }
 fadroma-proc-auth = { version = "0.1.0", path = "../fadroma-proc-auth" }
 fadroma-proc-message = { version = "0.1.0", path = "../fadroma-proc-message" }
 
