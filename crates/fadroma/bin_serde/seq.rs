@@ -197,7 +197,7 @@ mod tests {
         FadromaSerialize::to_bytes(slice, &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 1);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::new(ser.into())
             .deserialize::<Vec<u8>>()
             .unwrap();
 
@@ -210,7 +210,7 @@ mod tests {
         FadromaSerialize::to_bytes(bytes.as_slice(), &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 128);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::new(ser.into())
             .deserialize::<Vec<u8>>()
             .unwrap();
 
@@ -222,7 +222,7 @@ mod tests {
         FadromaSerialize::to_bytes(bytes.as_slice(), &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 130);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::new(ser.into())
             .deserialize::<Vec<u8>>()
             .unwrap();
 
@@ -237,7 +237,7 @@ mod tests {
         FadromaSerialize::to_bytes(slice, &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 1);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::new(ser.into())
             .deserialize::<String>()
             .unwrap();
 
@@ -254,7 +254,7 @@ mod tests {
         FadromaSerialize::to_bytes(string.as_str(), &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 128);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::new(ser.into())
             .deserialize::<String>()
             .unwrap();
 
