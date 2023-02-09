@@ -1,6 +1,6 @@
 use std::{mem, ptr};
 
-use crate::cosmwasm_std::{Uint64, Uint128,Uint256, Uint512};
+use crate::cosmwasm_std::{Uint64, Uint128,Uint256, Uint512, Decimal, Decimal256};
 
 use super::{
     FadromaSerialize, FadromaDeserialize,
@@ -180,8 +180,52 @@ impl FadromaDeserialize for Uint128 {
     }
 }
 
+impl FadromaSerialize for Decimal {
+    #[inline]
+    fn size_hint(&self) -> usize {
+        mem::size_of::<Self>()
+    }
+
+    #[inline]
+    fn to_bytes(&self, ser: &mut Serializer) -> Result<()> {
+        self.atomics().u128().to_bytes(ser)
+    }
+}
+
+impl FadromaDeserialize for Decimal {
+    #[inline]
+    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+        let value = de.deserialize::<u128>()?;
+
+        Ok(Self::raw(value))
+    }
+}
+
+impl FadromaSerialize for Decimal256 {
+    #[inline]
+    fn size_hint(&self) -> usize {
+        mem::size_of::<Self>()
+    }
+
+    #[inline]
+    fn to_bytes(&self, ser: &mut Serializer) -> Result<()> {
+        self.atomics().to_bytes(ser)
+    }
+}
+
+impl FadromaDeserialize for Decimal256 {
+    #[inline]
+    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+        let value = de.deserialize::<Uint256>()?;
+
+        Ok(Self::new(value))
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use crate::bin_serde::testing::{serde, serde_len};
 
@@ -193,6 +237,8 @@ mod tests {
         assert_eq!(mem::size_of::<Uint128>(), 16);
         assert_eq!(mem::size_of::<Uint256>(), 32);
         assert_eq!(mem::size_of::<Uint512>(), 64);
+        assert_eq!(mem::size_of::<Decimal>(), 16);
+        assert_eq!(mem::size_of::<Decimal256>(), 32);
     }
 
     #[test]
@@ -324,5 +370,27 @@ mod tests {
                 serde_len(&num, i + 1);
             }
         }
+    }
+
+    #[test]
+    fn serde_decimal128() {
+        let num = Decimal::from_str("1.5").unwrap();
+        serde_len(&num, 9);
+
+        let num = Decimal::from_str("123.321").unwrap();
+        serde_len(&num, 10);
+
+        serde_len(&Decimal::MAX, 17);
+    }
+
+    #[test]
+    fn serde_decimal256() {
+        let num = Decimal256::from_str("123.321").unwrap();
+        serde_len(&num, 10);
+
+        let num = Decimal256::from_str("123456789.987654321").unwrap();
+        serde_len(&num, 12);
+
+        serde_len(&Decimal256::MAX, 33);
     }
 }

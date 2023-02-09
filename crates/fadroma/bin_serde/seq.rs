@@ -37,6 +37,7 @@ impl<T: FadromaSerialize> FadromaSerialize for Vec<T> {
 }
 
 impl<T: FadromaDeserialize> FadromaDeserialize for Vec<T> {
+    #[inline]
     fn from_bytes(de: &mut Deserializer) -> Result<Self> {
         let len = ByteLen::decode(de)?;
 
