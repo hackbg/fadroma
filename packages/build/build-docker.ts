@@ -280,21 +280,22 @@ export class DockerBuilder extends LocalBuilder {
       env: {
         // Variables used by the build script are prefixed with underscore;
         // variables used by the tools that the build script uses are left as is
-        _BUILD_USER:                  process.env.FADROMA_BUILD_USER || 'fadroma-builder',
-        _BUILD_UID:                   process.env.FADROMA_BUILD_UID  || process.getuid(),
-        _BUILD_GID:                   process.env.FADROMA_BUILD_GID  || process.getgid(),
-        _GIT_REMOTE:                  process.env.FADROMA_PREFERRED_REMOTE||'origin',
-        _GIT_SUBDIR:                  gitSubdir,
-        _SUBDIR:                      subdir,
-        _NO_FETCH:                    this.noFetch,
-        _VERBOSE:                     this.verbose,
-        CARGO_HTTP_TIMEOUT:           '240',
+        _BUILD_USER: process.env.FADROMA_BUILD_USER ?? 'fadroma-builder',
+        _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getgid ? process.getgid() : undefined),
+        _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getuid ? process.getuid() : undefined),
+        _GIT_REMOTE: process.env.FADROMA_PREFERRED_REMOTE ?? 'origin',
+        _GIT_SUBDIR: gitSubdir,
+        _SUBDIR:     subdir,
+        _NO_FETCH:   this.noFetch,
+        _VERBOSE:    this.verbose,
+
+        LOCKED: '',/*'--locked'*/
+        CARGO_HTTP_TIMEOUT: '240',
         CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-        GIT_PAGER:                    'cat',
-        GIT_TERMINAL_PROMPT:          '0',
-        LOCKED:                       '',/*'--locked'*/
-        SSH_AUTH_SOCK:                '/ssh_agent_socket',
-        TERM:                         process.env.TERM,
+        GIT_PAGER: 'cat',
+        GIT_TERMINAL_PROMPT: '0',
+        SSH_AUTH_SOCK: '/ssh_agent_socket',
+        TERM: process.env.TERM,
       },
       extra: {
         Tty: true,

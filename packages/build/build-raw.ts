@@ -30,8 +30,8 @@ export class RawBuilder extends LocalBuilder {
     // Most of the parameters are passed to the build script
     // by way of environment variables.
     const env = {
-      _BUILD_GID: process.getgid(),
-      _BUILD_UID: process.getuid(),
+      _BUILD_GID: process.getgid ? process.getgid() : undefined,
+      _BUILD_UID: process.getuid ? process.getuid() : undefined,
       _OUTPUT:    $(workspace).in('artifacts').path,
       _REGISTRY:  '',
       _TOOLCHAIN: this.toolchain,
