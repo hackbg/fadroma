@@ -420,6 +420,7 @@ dependencies = [
  "bincode2",
  "criterion",
  "fadroma-derive-canonize",
+ "fadroma-derive-serde",
  "fadroma-proc-auth",
  "fadroma-proc-derive",
  "fadroma-proc-message",
@@ -445,6 +446,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
+ "syn",
+]
+
+[[package]]
+name = "fadroma-derive-serde"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "proc-macro2",
+ "quote",
  "syn",
 ]
 

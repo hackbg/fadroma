@@ -2,6 +2,7 @@ mod byte_len;
 mod uint;
 mod seq;
 
+pub use fadroma_derive_serde::{FadromaSerialize, FadromaDeserialize};
 pub use byte_len::ByteLen;
 
 pub type Result<T> = std::result::Result<T, Error>;

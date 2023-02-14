@@ -21,6 +21,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
     let humanize_impl = generate_match_arms(&mut variants, &ident, &ident, false);
 
     proc_macro::TokenStream::from(quote! {
+        #[automatically_derived]
         impl fadroma::prelude::Canonize for #ident<cosmwasm_std::Addr> {
             type Output = #ident<cosmwasm_std::CanonicalAddr>;
 
@@ -31,6 +32,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
             }
         }
 
+        #[automatically_derived]
         impl fadroma::prelude::Humanize for #ident<cosmwasm_std::CanonicalAddr> {
             type Output = #ident<cosmwasm_std::Addr>;
 

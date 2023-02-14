@@ -1,0 +1,20 @@
+[package]
+name = "fadroma-derive-serde"
+version = "0.1.0"
+edition = "2018"
+license = "AGPL-3.0"
+description = "Derive macros for Fadroma's binary serialization/deserialization traits."
+repository = "https://github.com/hackbg/fadroma"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "^1.0.20"
+syn = { version = "1.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+
+[dev-dependencies]
+fadroma = { path = "../fadroma", default-features = false, features = ["scrt"] }
+
