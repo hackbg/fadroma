@@ -1,5 +1,6 @@
 name: Fadroma Devnet Containers
-on: [push, pull_request]
+on: [push]
+
 jobs:
   build-container:
     name: build the build container image
@@ -16,22 +17,23 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - run: echo `TAG=$(${{ github.ref_name }} | tr '/' '_')` | tee -a $GITHUB_ENV
       - uses: docker/build-push-action@v2
         with:
           context: ./packages/devnet
           file:    scrt_1_4.Dockerfile
-          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.4:${{ github.ref_name }}
+          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.4:${{ env.TAG }}
           push:    true
       - uses: docker/build-push-action@v2
         with:
           context: ./packages/devnet
           file:    scrt_1_3.Dockerfile
-          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.3:${{ github.ref_name }}
+          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.3:${{ env.TAG }}
           push:    true
       - uses: docker/build-push-action@v2
         with:
           context: ./packages/devnet
           file:    scrt_1_2.Dockerfile
-          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.1:${{ github.ref_name }}
+          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.1:${{ env.TAG }}
           push:    true
       - run: echo ${{ steps.docker_build.outputs.digest }}
