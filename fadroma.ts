@@ -50,7 +50,7 @@ export class Fadroma extends Deployer {
   tokens: TokenManager
 
   constructor (options: { config?: Partial<Config> } = {}) {
-    super(options)
+    super(options as any /* FIXME */)
     this.log.label = this.projectName
     this.config = (options.config instanceof Config)
       ? options.config

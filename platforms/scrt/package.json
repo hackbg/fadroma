@@ -6,12 +6,12 @@
   "files": [ "*.ts" ],
   "description": "Fadroma support for Secret Network. Provides a SecretJS-based implementation of the base classes in @fadroma/core to operate smart contracts on the Secret Network.",
   "dependencies": {
-    "@fadroma/core":           "workspace:^2.0.3",
-    "@hackbg/4mat":            "^1",
-    "@hackbg/into":            "^1",
-    "@hackbg/conf":            "^1",
+    "@fadroma/core": "workspace:^2.0.3",
+    "@hackbg/4mat":  "^1",
+    "@hackbg/into":  "^1",
+    "@hackbg/conf":  "^1",
     "@ungap/structured-clone": "^1.0.1",
-    "secretjs":                "1.7.1-beta.3"
+    "secretjs": "1.7.1-beta.3"
   },
   "devDependencies": {
     "@types/ungap__structured-clone": "^0.3.0",

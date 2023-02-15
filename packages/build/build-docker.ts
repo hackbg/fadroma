@@ -272,31 +272,41 @@ export class DockerBuilder extends LocalBuilder {
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
     const buildCommand = [ 'node', buildScript, 'phase1', revision, ...cratesToBuild ]
+
+    const buildEnv = {
+      // Variables used by the build script are prefixed with underscore;
+      // variables used by the tools that the build script uses are left as is
+      _BUILD_USER: process.env.FADROMA_BUILD_USER ?? 'fadroma-builder',
+      _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getgid ? process.getgid() : undefined),
+      _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getuid ? process.getuid() : undefined),
+      _GIT_REMOTE: process.env.FADROMA_PREFERRED_REMOTE ?? 'origin',
+      _GIT_SUBDIR: gitSubdir,
+      _SUBDIR:     subdir,
+      _NO_FETCH:   String(this.noFetch),
+      _VERBOSE:    String(this.verbose),
+
+      LOCKED: '',/*'--locked'*/
+      CARGO_HTTP_TIMEOUT: '240',
+      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+      GIT_PAGER: 'cat',
+      GIT_TERMINAL_PROMPT: '0',
+      SSH_AUTH_SOCK: '/ssh_agent_socket',
+      TERM: process.env.TERM,
+    }
+
+    // Clean up the buildEnv so as not to run afoul of TS
+    for (const key of Object.keys(buildEnv)) {
+      if (buildEnv[key as keyof typeof buildEnv] === undefined) {
+        delete buildEnv[key as keyof typeof buildEnv]
+      }
+    }
+
     const buildOptions = {
       remove: true,
       readonly,
       writable,
       cwd: '/src',
-      env: {
-        // Variables used by the build script are prefixed with underscore;
-        // variables used by the tools that the build script uses are left as is
-        _BUILD_USER: process.env.FADROMA_BUILD_USER ?? 'fadroma-builder',
-        _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getgid ? process.getgid() : undefined),
-        _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getuid ? process.getuid() : undefined),
-        _GIT_REMOTE: process.env.FADROMA_PREFERRED_REMOTE ?? 'origin',
-        _GIT_SUBDIR: gitSubdir,
-        _SUBDIR:     subdir,
-        _NO_FETCH:   this.noFetch,
-        _VERBOSE:    this.verbose,
-
-        LOCKED: '',/*'--locked'*/
-        CARGO_HTTP_TIMEOUT: '240',
-        CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-        GIT_PAGER: 'cat',
-        GIT_TERMINAL_PROMPT: '0',
-        SSH_AUTH_SOCK: '/ssh_agent_socket',
-        TERM: process.env.TERM,
-      },
+      env: buildEnv as Record<string, string>,
       extra: {
         Tty: true,
         AttachStdin: true

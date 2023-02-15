@@ -39,7 +39,7 @@ export function getDevnet (
   //if (server) {
     //return RemoteDevnet.getOrCreate(platform, 'TODO', server, undefined, chainId, chainId)
   //} else {
-    return DockerDevnet.getOrCreate(platform, dokeres)
+    return DockerDevnet.getOrCreate(platform, dokeres) as Devnet
   //}
 }
 
