@@ -1,4 +1,4 @@
-t<div align="center">
+<div align="center">
 
 # Fadroma Core
 

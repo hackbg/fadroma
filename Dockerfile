@@ -20,7 +20,7 @@ RUN npm i -g n && n i 18
 RUN corepack enable
 
 # Install Docker CLI
-ENV DOCKERVERSION=20.10.21-ce
+ENV DOCKERVERSION=20.10.23
 RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz \
   && tar xzvf docker-${DOCKERVERSION}.tgz --strip 1 \
                  -C /usr/local/bin docker/docker \

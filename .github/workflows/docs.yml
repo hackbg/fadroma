@@ -1,4 +1,4 @@
-name: https://fadroma.tech
+name: Fadroma (Docs)
 on: [push]
 jobs:
   site:
@@ -7,7 +7,7 @@ jobs:
     steps:
       - name: Get the source with submodules
         uses: actions/checkout@v2
-        with: { submodules: true }
+        with: { submodules: recursive }
       - name: Determine default branch
         run: |
           DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
@@ -22,8 +22,8 @@ jobs:
               args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: Generate TS reference
         run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedoc
-      - name: Generate VitePress guide
-        run:  VITEPRESS_BASE="/${{ github.ref_name }}/" pnpm docs:vp:build
+      #- name: Generate VitePress guide
+        #run:  VITEPRESS_BASE="/${{ github.ref_name }}/" pnpm docs:vp:build
       - name: Get a Rust toolchain going
         uses: actions-rs/toolchain@v1
         with:
@@ -32,7 +32,7 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - name: Generate TypeScript coverage
-        run: pnpm ts:test:lcov || true
+        run: pnpm test:lcov || true
       - name: Unveil Cargo.toml
         run:  cp _Cargo.toml Cargo.toml
       - name: Generate Rust reference
@@ -43,12 +43,13 @@ jobs:
       - name: Collect docs
         run: |
           mkdir -p dist/docs dist/docs/api dist/docs/cov
-          mv .vitepress/dist/* dist/docs
+          #mv .vitepress/dist/* dist/docs
           mv target/doc dist/docs/api/rs
           mv docs dist/docs/api/ts
           mv coverage/lcov-report dist/docs/cov/ts
           tar -cvf dist/docs/nix shell.nix
       - name: Publish docs
+        if: github.ref_name == 'master'
         run: |
           pwd
           ls -al
