@@ -1,6 +1,7 @@
 mod byte_len;
 mod uint;
 mod seq;
+mod enums;
 
 pub use fadroma_derive_serde::{FadromaSerialize, FadromaDeserialize};
 pub use byte_len::ByteLen;

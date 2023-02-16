@@ -176,7 +176,7 @@ impl FadromaDeserialize for Uint128 {
     fn from_bytes(de: &mut Deserializer) -> Result<Self> {
         let value = de.deserialize::<u128>()?;
 
-        Ok(Self::from(value))
+        Ok(Self::new(value))
     }
 }
 
