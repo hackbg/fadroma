@@ -1,13 +1,10 @@
+import { base16, sha256 } from '@hackbg/4mat'
 import { colors, bold } from '@hackbg/logs'
-import { Task } from '@hackbg/task'
-import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/file'
-import { Contract, ClientConsole, Uploader, assertAgent, override } from '@fadroma/core'
-import type { Agent, CodeHash, CodeId, Uploadable, Uploaded } from '@fadroma/core'
-import { Console as CustomConsole } from '@hackbg/logs'
-
-export class UploadConsole extends ClientConsole {
-  label = 'Fadroma.Uploader'
-}
+import $, { Path, BinaryFile } from '@hackbg/file'
+import { Uploader, assertAgent, override, toUploadReceipt, ClientError } from '@fadroma/core'
+import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/core'
+import { UploadStore, UploadReceipt } from './upload-store'
+import { UploadConsole } from './upload-events'
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,
@@ -73,10 +70,12 @@ export class FSUploader extends Uploader {
     }
     const { codeId, codeHash, uploadTx } = result
     Object.assign(contract, { codeId, codeHash, uploadTx })
+
     // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
-      receipt.save((contract as AnyContract).asUploadReceipt)
+      (receipt as UploadReceipt).save(toUploadReceipt(contract as AnyContract))
     }
+
     //await this.agent.nextBlock
     return contract as Uploaded & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
   }
@@ -100,7 +99,9 @@ export class FSUploader extends Uploader {
     //       this will only work if they add up to less than the max API request size
     //       (which is defined who knows where) */
 
-    if (!this.cache) return this.uploadManySansCache(inputs)
+    if (!this.cache) {
+      return this.uploadManySansCache(inputs)
+    }
 
     const outputs:  Uploaded[] = []
     const toUpload: Uploadable[] = []
@@ -146,6 +147,7 @@ export class FSUploader extends Uploader {
 
       // Otherwise reuse the code ID from the receipt.
       outputs[i] = Object.assign(input, {
+        codeHash: input.codeHash!,
         codeId:   String(receiptData.codeId),
         uploadTx: receiptData.transactionHash as string
       })
@@ -161,7 +163,8 @@ export class FSUploader extends Uploader {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const template = uploaded[i]
         $(this.cache, this.getUploadReceiptName(toUpload[i]))
-          .as(UploadReceipt).save(template.asUploadReceipt)
+          .as(UploadReceipt)
+          .save(toUploadReceipt(template))
         outputs[i] = template
       }
     }
@@ -176,19 +179,29 @@ export class FSUploader extends Uploader {
     const outputs: Array<Uploaded> = []
     for (const i in inputs) {
       const input = inputs[i]
-      if (input?.artifact) {
-        const path = $(input.artifact!)
-        const data = path.as(BinaryFile).load()
-        this.log.log('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-        const result = await agent.upload(data)
-        const output = override(input, result) as unknown as Uploaded
-        this.checkLocalCodeHash(input, output)
-        outputs[i] = output
-      } else {
-        outputs[i] = input
-      }
+      if (!input.artifact) throw new ClientError.NoArtifact()
+      const path = $(input.artifact!)
+      const data = path.as(BinaryFile).load()
+      input.codeHash ??= base16.encode(sha256(data))
+      this.log.log('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+      const result = await agent.upload(data)
+      const output = override(input, result) as unknown as Uploaded
+      this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
+      outputs[i] = output
     }
     return outputs
+  }
+
+  /** Panic if the code hash returned by the upload
+    * doesn't match the one specified in the Contract. */
+  private checkLocalCodeHash (input: Uploadable & { codeHash: CodeHash }, output: Uploaded) {
+    if (input.codeHash !== output.codeHash) {
+      throw new Error(`
+        The upload transaction ${output.uploadTx}
+        returned code hash ${output.codeHash} (of code id ${output.codeId})
+        instead of the expected ${input.codeHash} (of artifact ${input.artifact})
+      `.trim().split('\n').map(x=>x.trim()).join(' '))
+    }
   }
 
   /** Make sure that the optional `codeHash` property of an `Uploadable` is populated, by
@@ -215,47 +228,4 @@ export class FSUploader extends Uploader {
     return $(path).as(BinaryFile).sha256
   }
 
-  /** Panic if the code hash returned by the upload
-    * doesn't match the one specified in the Contract. */
-  private checkLocalCodeHash (input: Uploadable & { codeHash: CodeHash }, output: AnyContract) {
-    if (input.codeHash !== output.codeHash) {
-      throw new Error(`
-        The upload transaction ${output.uploadTx}
-        returned code hash ${output.codeHash} (of code id ${output.codeId})
-        instead of the expected ${input.codeHash} (of artifact ${input.artifact})
-      `.trim().split('\n').map(x=>x.trim()).join(' '))
-    }
-  }
-
-}
-
-/** Directory collecting upload receipts.
-  * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
-  * and are kept so that we don't reupload the same contracts. */
-export class UploadStore extends JSONDirectory<UploadReceipt> {}
-
-/** Class that convert itself to a Contract, from which contracts can be instantiated. */
-export class UploadReceipt extends JSONFile<UploadReceiptFormat> {
-  /** Create a Contract object with the data from the receipt. */
-  toContract (defaultChainId?: string) {
-    let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
-    chainId ??= defaultChainId
-    codeId  = String(codeId)
-    return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
-  }
-}
-
-/** Fields in the upload receipt. */
-export interface UploadReceiptFormat {
-  artifact?:          any
-  chainId?:           string
-  codeHash:           string
-  codeId:             number|string
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               any[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-  uploadTx?:          string
 }

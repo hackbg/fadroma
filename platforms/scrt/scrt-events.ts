@@ -23,16 +23,16 @@ export class ScrtError extends ClientError {
 export class ScrtConsole extends ClientConsole {
   label = '@fadroma/scrt'
   warnIgnoringKeyPair = () =>
-    this.warn('ScrtGrpcAgent: Ignoring keyPair (only supported by ScrtAminoAgent)')
+    this.warn('ScrtAgent: Ignoring keyPair (only supported by ScrtAminoAgent)')
   warnIgnoringMnemonic = () =>
-    this.warn('ScrtGrpcAgent: Created from wallet, ignoring mnemonic')
+    this.warn('ScrtAgent: Created from wallet, ignoring mnemonic')
   warnNoMemos = () =>
-    this.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
+    this.warn("ScrtAgent: Transaction memos are not supported in SecretJS RPC API")
   warnCouldNotFetchBlockLimit = (fees: Fee[]) =>
-    this.warn("ScrtGrpc: Could not fetch block gas limit, defaulting to:",
+    this.warn("Scrt: Could not fetch block gas limit, defaulting to:",
       fees.map(fee=>fee.gas).join('/'))
   warnGeneratedMnemonic = (mnemonic: string) =>
-    this.warn("ScrtGrpcAgent: No mnemonic passed, generated this one:", mnemonic)
+    this.warn("ScrtAgent: No mnemonic passed, generated this one:", mnemonic)
   bundleMessages = (msgs: any, N: number) => {
     this.info(`\nMessages in bundle`, `#${N}:`)
     this.br()

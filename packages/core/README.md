@@ -6,6 +6,4 @@
 
 Base layer for isomorphic dAPI clients.
 
-For usage info see the [**Specification**](./client.spec.ts.md).
-
 </div>

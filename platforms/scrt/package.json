@@ -1,16 +1,17 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "6.0.0",
+  "version": "8.0.3",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
-  "description": "Fadroma Support for Secret Network",
+  "description": "Fadroma support for Secret Network. Provides a SecretJS-based implementation of the base classes in @fadroma/core to operate smart contracts on the Secret Network.",
   "dependencies": {
-    "@fadroma/core":           "workspace:^1",
-    "@hackbg/formati":         "^5.1.1",
-    "@hackbg/konfizi":         "^3.0.1",
+    "@fadroma/core": "workspace:^2.0.3",
+    "@hackbg/4mat":  "^1",
+    "@hackbg/into":  "^1",
+    "@hackbg/conf":  "^1",
     "@ungap/structured-clone": "^1.0.1",
-    "secretjs":                "1.5.0-beta.1"
+    "secretjs": "1.7.1-beta.3"
   },
   "devDependencies": {
     "@types/ungap__structured-clone": "^0.3.0",

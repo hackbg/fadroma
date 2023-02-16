@@ -2,16 +2,35 @@
 
 [![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)
 
+## Connecting to mainnet or testnet
+
+```typescript
+import { Scrt } from '@fadroma/scrt'
+
+/// with the default API URL (defined in scrt-config.ts):
+const a = await Scrt.Mainnet().getAgent({ mnemonic: '...' })
+const b = await Scrt.Testnet().getAgent({ mnemonic: '...' })
+
+// with custom API URL:
+const c = await Scrt.Mainnet({ url: '...' }).getAgent({ mnemonic: '...' })
+const d = await Scrt.Testnet({ url: '...' }).getAgent({ mnemonic: '...' })
+
+// multiple identities:
+const e = Scrt.Mainnet()
+const f = await e.getAgent({ mnemonic: '...' })
+const g = await e.getAgent({ mnemonic: '...' })
+
+// identity from Keplr:
+const h = await e.getAgent({ encryptionUtils: window.getEnigmaUtils(e.chainId) })
+```
+
 ## Overriding the SecretJS implementation
 
 By default the static property `Scrt.SecretJS` points to the SecretJS module from the
 dependencies of `@fadroma/scrt` (see [`package.json`](./package.json) for version info.)
 
 ```typescript
-import { Scrt } from '@fadroma/scrt'
-
 const raw = new Scrt('raw')
-
 assert.equal(raw.SecretJS, Scrt.SecretJS)
 ```
 

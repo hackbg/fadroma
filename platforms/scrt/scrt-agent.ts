@@ -1,10 +1,11 @@
 import type * as SecretJS from 'secretjs'
 import { base64 } from '@hackbg/4mat'
 import type {
-  Address, AgentClass, AgentOpts,
+  Address, AgentClass, AgentOpts, Built, Uploaded,
   BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message,
+  Name, AnyContract
 } from '@fadroma/core'
-import { Agent, Contract, assertAddress, assertChain } from '@fadroma/core'
+import { Agent, Contract, assertAddress, assertChain, into } from '@fadroma/core'
 import { Scrt } from './scrt'
 import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 import type { ScrtBundle } from './scrt-bundle'
@@ -129,35 +130,53 @@ export class ScrtAgent extends Agent {
     return base64.encode(encrypted)
   }
 
+  /** Query a Client.
+    * @returns the result of the query */
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
-    const { address: contractAddress, codeHash } = instance
-    const args = { contractAddress, codeHash, query: query as Record<string, unknown> }
-    // @ts-ignore
-    return await this.api.query.compute.queryContract(args) as U
+    return await this.api.query.compute.queryContract({
+      contract_address: instance.address!,
+      code_hash:        instance.codeHash,
+      query: query as Record<string, unknown>
+    }) as U
   }
 
-  async upload (data: Uint8Array): Promise<Contract<any>> {
+  /** Upload a WASM binary. */
+  async upload (data: Uint8Array): Promise<Uploaded> {
+
     type Log = { type: string, key: string }
+
     if (!this.address) throw new Error("No address")
-    const sender     = this.address
-    const args       = { sender, wasm_byte_code: data, source: "", builder: "" }
-    const gasLimit   = Number(this.fees.upload.amount[0].amount)
-    const result     = await this.api.tx.compute.storeCode(args, { gasLimit })
+
+    const result = await this.api.tx.compute.storeCode({
+      sender: this.address,
+      wasm_byte_code: data,
+      source: "",
+      builder: ""
+    }, {
+      gasLimit: Number(this.fees.upload?.amount[0].amount) || undefined
+    })
+
     if (result.code !== 0) {
+      this.log.warn(`Upload failed with result`, result)
       throw Object.assign(new Error.UploadFailed(), { result })
     }
-    const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
-    const codeId     = result.arrayLog?.find(findCodeId)?.value
-    const codeHash   = await this.getHash(Number(codeId))
-    const chainId    = assertChain(this).id
-    const contract   = new Contract({
-      agent: this,
-      codeHash,
-      chainId,
+
+    const codeId = result.arrayLog
+      ?.find((log: Log) => log.type === "message" && log.key === "code_id")
+      ?.value
+
+    if (!codeId) {
+      throw Object.assign(new Error.UploadFailed(), { noCodeId: true })
+    }
+
+    return {
+      chainId:  assertChain(this).id,
       codeId,
+      codeHash: await this.getHash(Number(codeId)),
+      uploadBy: this.address,
       uploadTx: result.transactionHash
-    })
-    return contract
+    }
+
   }
 
   async instantiate <C extends Client> (
@@ -167,38 +186,60 @@ export class ScrtAgent extends Agent {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) throw new Error.NoInitCodeId()
-    if (!label) throw new Error.NoInitLabel()
-    if (!initMsg) throw new Error.NoInitMessage()
-    if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
-    const sender = this.address
-    const args = { sender, code_id, code_hash: codeHash!, init_msg: initMsg, label, init_funds }
-    const gasLimit = Number(this.fees.init.amount[0].amount)
-    const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
-    if (result.code !== 0) throw Object.assign(new Error.InitFailed(code_id), { result })
+    if (isNaN(code_id)) throw new Error.CantInit_NoCodeId()
+    if (!label) throw new Error.CantInit_NoLabel()
+    if (!initMsg) throw new Error.CantInit_NoMessage()
+    if (chainId && chainId !== assertChain(this).id) {
+      throw new Error.WrongChain()
+    }
+    const result = await this.api.tx.compute.instantiateContract({
+      sender: this.address,
+      code_id,
+      code_hash: codeHash!,
+      init_msg: await into(initMsg),
+      label,
+      init_funds
+    }, {
+      gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
+    })
+    if (result.code !== 0) {
+      this.log.error('Init failed:', { initMsg, result })
+      throw Object.assign(new Error.InitFailed(code_id), { result })
+    }
     type Log = { type: string, key: string }
-    const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
-    const address  = result.arrayLog!.find(findAddr)?.value!
-    const initTx   = result.transactionHash
-    return Object.assign(instance, { address })
+    const address  = result.arrayLog!
+      .find((log: Log) => log.type === "message" && log.key === "contract_address")
+      ?.value!
+    return {
+      chainId: chainId!,
+      address,
+      codeHash: codeHash!,
+      initTx: result.transactionHash,
+      initBy: this.address,
+      label,
+    }
   }
 
-  async instantiateMany (template: Contract<any>, configs: DeployArgs[]) {
-    // instantiate multiple contracts in a bundle:
-    const instances = await this.bundle().wrap(async bundle=>{
-      await bundle.instantiateMany(template, configs)
-    })
-    // add code hashes to them:
-    for (const i in configs) {
-      const instance = instances[i]
-      if (instance) {
-        instance.codeId   = template.codeId
-        instance.codeHash = template.codeHash
-        instance.label    = configs[i][0]
-      }
-    }
-    return instances
-  }
+  //instantiateMany (instances: Record<Name, AnyContract>):
+    //Promise<Record<Name, AnyContract>>
+  //instantiateMany (instances: AnyContract[]):
+    //Promise<AnyContract[]>
+  //async instantiateMany <C> (instances: C): Promise<C> {
+    //// instantiate multiple contracts in a bundle:
+    //const response = await this.bundle().wrap(async bundle=>{
+      //await bundle.instantiateMany(template, configs)
+    //})
+    //// add code hashes to them:
+    //for (const i in configs) {
+      //const instance = instances[i]
+      //if (instance) {
+        //instance.codeId   = template.codeId
+        //instance.codeHash = template.codeHash
+        //instance.label    = configs[i][0]
+      //}
+    //}
+    //return instances
+  //}
 
   async execute (
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
@@ -215,7 +256,7 @@ export class ScrtAgent extends Agent {
       sentFunds:        send
     }
     const txOpts = {
-      gasLimit: Number(fee.gas)
+      gasLimit: Number(fee?.gas) || undefined
     }
     if (this.simulate) {
       this.log.info('Simulating transaction...')

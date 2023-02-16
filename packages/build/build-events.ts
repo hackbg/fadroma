@@ -3,10 +3,12 @@ import $ from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { colors, bold } from '@hackbg/logs'
 import { HEAD } from '@fadroma/core'
-import type { ContractTemplate } from '@fadroma/core'
+import type { ContractTemplate, Built } from '@fadroma/core'
 
 export class BuildConsole extends CommandsConsole {
-  label = 'Fadroma.Builder'
+
+  label = '@fadroma/build'
+
   buildingFromCargoToml (file: Path|string) {
     this.log('Building from', bold($(file).shortPath))
   }
@@ -20,14 +22,14 @@ export class BuildConsole extends CommandsConsole {
       `@`, bold(ref)
     )
   }
-  buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractTemplate>) {
+  buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractTemplate<any>>) {
     this.log('Building ', bold(crate), ...
       (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
   }
-  buildingMany (sources: ContractTemplate[]) {
+  buildingMany (sources: ContractTemplate<any>[]) {
     for (const source of sources) this.buildingOne(source)
   }
-  prebuilt (prebuilt: ContractTemplate) {
+  prebuilt (prebuilt: Built) {
     this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
   }
   usage () {

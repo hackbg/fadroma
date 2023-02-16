@@ -1,16 +1,17 @@
 import { Devnet, devnetPortModes } from './devnet-base'
 import type { DevnetOpts, DevnetPlatform, DevnetState } from './devnet-base'
+import { DevnetError as Error, DevnetConsole as Console } from './devnet-events'
 
-import { ClientConsole } from '@fadroma/core'
 import type { AgentOpts, DevnetHandle } from '@fadroma/core'
 
-import * as Dokeres                   from '@hackbg/dock'
+import * as Dock from '@hackbg/dock'
 import $, { JSONFile, JSONDirectory } from '@hackbg/file'
-import { bold }                       from '@hackbg/logs'
-import { freePort, waitPort }         from '@hackbg/port'
+import { bold } from '@hackbg/logs'
+import { freePort, waitPort } from '@hackbg/port'
 
 import { dirname }       from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 
 /** Root of this module.
   * Used for finding embedded assets, e.g. Dockerfiles.
@@ -22,7 +23,7 @@ export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource
   * (https://www.npmjs.com/package/dockerode) */
 export interface DockerDevnetOpts extends DevnetOpts {
   /** Docker image of the chain's runtime. */
-  image?:       Dokeres.Image
+  image?:       Dock.Image
   /** Init script to launch the devnet. */
   initScript?:  string
   /** Once this string is encountered in the log output
@@ -38,7 +39,9 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     'scrt_1.2': $(devnetPackage, 'scrt_1_2.Dockerfile').path,
     'scrt_1.3': $(devnetPackage, 'scrt_1_3.Dockerfile').path,
     'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path,
-    'scrt_1.5': $(devnetPackage, 'scrt_1_5.Dockerfile').path
+    'scrt_1.5': $(devnetPackage, 'scrt_1_5.Dockerfile').path,
+    'scrt_1.6': $(devnetPackage, 'scrt_1_6.Dockerfile').path,
+    'scrt_1.7': $(devnetPackage, 'scrt_1_7.Dockerfile').path
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
@@ -46,41 +49,43 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     'scrt_1.3': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:unstable',
     'scrt_1.4': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:unstable',
     'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:unstable',
+    'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:unstable',
+    'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:unstable',
   }
 
   static initScriptMount = 'devnet.init.mjs'
 
-  static getOrCreate (kind: DevnetPlatform, dokeres = new Dokeres.Engine()) {
+  static getOrCreate (kind: DevnetPlatform, dock = new Dock.Engine()) {
     const portMode    = devnetPortModes[kind]
     const dockerfile  = this.dockerfiles[kind]
     const imageTag    = this.dockerTags[kind]
     const readyPhrase = 'indexed block'
     const initScript  = $(devnetPackage, this.initScriptMount).path
-    const image       = dokeres.image(imageTag, dockerfile, [this.initScriptMount])
+    const image       = dock.image(imageTag, dockerfile, [this.initScriptMount])
     return new DockerDevnet({ portMode, image, readyPhrase, initScript })
   }
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    this.log.debug('Preparing a containerized devnet')
+    this.log.debug('Using a containerized devnet')
     this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
   }
 
-  log = new ClientConsole('Fadroma.Devnet')
+  log = new Console('@fadroma/devnet: docker')
 
   /** Handle to Docker API if configured. */
-  get dokeres (): Dokeres.Engine|null {
-    return this.image.dokeres
+  get dock (): Dock.Engine|null {
+    return this.image.dock
   }
 
   /** This should point to the standard production docker image for the network. */
-  image: Dokeres.Image
+  image: Dock.Image
 
   /** Handle to created devnet container */
-  container: Dokeres.Container|null = null
+  container: Dock.Container|null = null
 
   /** Mounted into devnet container in place of default init script
     * in order to add custom genesis accounts with initial balances
@@ -106,12 +111,16 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   async spawn () {
     // if no port is specified, use a random port
+    this.host = process.env.FADROMA_DEVNET_HOST ?? this.host
+    // if no port is specified, use a random port
     this.port ??= (await freePort()) as number
     // tell the user that we have begun
     this.log.info(`Spawning new node to listen on`, bold(this.url))
     // create the state dirs and files
-    const items = [this.stateRoot, this.nodeState]
-    for (const item of items) {
+    for (const item of [
+      this.stateRoot,
+      this.nodeState
+    ]) {
       try {
         item.make()
       } catch (e: any) {
@@ -124,6 +133,8 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     this.container = await this.image.run(
       containerName, this.spawnOptions, ['node', this.initScriptMount], '/usr/bin/env'
     )
+    // address the container by ip if possible to support docker-in-docker scenarios
+    //this.host = await this.container.ip ?? 'localhost'
     // update the record
     this.save()
     // wait for logs to confirm that the genesis is done
@@ -195,7 +206,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   async load (): Promise<DevnetState> {
     const data = await super.load()
     if (data?.containerId) {
-      this.container = await this.dokeres!.container(data.containerId)
+      this.container = await this.dock!.container(data.containerId)
     } else {
       throw new Error('@fadroma/ops/Devnet: missing container id in devnet state')
     }
@@ -229,7 +240,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
       return this.spawn()
     }
 
-    this.container = await this.dokeres!.container(id)
+    this.container = await this.dock!.container(id)
 
     // check if contract is running
     let running: boolean
@@ -334,6 +345,18 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
         throw e
       }
     }
+  }
+
+  async export (repository?: string, tag?: string) {
+    if (!this.container) {
+      throw new Error("Can't export: no container")
+    }
+    if (!this.container.container) {
+      throw new Error("Can't export: no internal container")
+    }
+    const { Id } = await this.container.container.commit({ repository, tag })
+    this.log.info(`Exported snapshot:`, bold(Id))
+    return Id
   }
 
 }

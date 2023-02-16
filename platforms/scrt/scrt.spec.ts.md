@@ -2,9 +2,23 @@
 
 ```typescript
 import * as Scrt from '@fadroma/scrt'
-new Scrt.ScrtConfig()
-new Scrt.Scrt({ chainId: Symbol() })
-new Scrt.ScrtAgent()
-new Scrt.ScrtBundle({ agent: Symbol() })
-new Scrt.ViewingKeyClient()
+
+const config = new Scrt.ScrtConfig()
+
+const chain = new Scrt.Scrt({
+  chainId: Symbol()
+})
+
+await chain.getAgent()
+
+const agent = new Scrt.ScrtAgent({
+  api: Symbol(),
+  wallet: Symbol()
+})
+
+const bundle = new Scrt.ScrtBundle({
+  agent: Symbol()
+})
+
+const client = new Scrt.ViewingKeyClient()
 ```

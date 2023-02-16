@@ -1,6 +1,8 @@
 import { CommandContext } from '@hackbg/cmds'
+import type { Task } from '@hackbg/task'
+import type { Many } from '@hackbg/many'
 import { ClientConsole, Contract, writeLabel } from '@fadroma/core'
-import type { Address, Deployment } from '@fadroma/core'
+import type { Address, Deployment, AnyContract, ContractTemplate } from '@fadroma/core'
 import { Snip20 } from './tokens-snip20'
 import type { Snip20InitConfig } from './tokens-snip20'
 import { TokenPair } from './tokens-desc'
@@ -10,6 +12,8 @@ export type TokenSymbol = string
 
 export type TokenContract = Contract<Snip20>
 
+export type TokenTemplate = ContractTemplate<Snip20>
+
 export interface TokenOptions {
   template?: TokenContract
   name:      string
@@ -18,26 +22,18 @@ export interface TokenOptions {
   config?:   Snip20InitConfig
 }
 
-export type Tokens = Record<string, Snip20|Token>
-
-type TokenSlots = Record<TokenSymbol, TokenContract>
-
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
 export class TokenManager extends CommandContext {
-  /* Logger. */
-  log = new ClientConsole('Fadroma Token Manager')
-  /** Collection of known tokens in descriptor format, keyed by symbol. */
-  tokens: TokenSlots = {}
 
   constructor (
     /** Function that returns the active deployment. */
-    public context:       Deployment,
+    public context: Deployment,
     /** Template for deploying new tokens. */
-    public template:      TokenContract = context.defineContract({ client: Snip20 }),
+    public template: TokenTemplate = context.template({ client: Snip20 }),
     /** Default token config. */
     public defaultConfig: Snip20InitConfig = {
       public_total_supply: true,
-      enable_mint:         true
+      enable_mint: true
     }
   ) {
 
@@ -73,10 +69,16 @@ export class TokenManager extends CommandContext {
         if (args.includes('--can-burn'))    config.enable_burn    = true
         if (args.includes('--can-deposit')) config.enable_deposit = true
         if (args.includes('--can-redeem'))  config.enable_redeem  = true
-        if (typeof template === 'string') template = this.context.defineContract({ crate: template })
+        if (typeof template === 'string') template = this.context.contract({ crate: template })
         return await this.define(symbol, { name, decimals, admin, template })
       })
   }
+
+  /* Logger. */
+  log = new ClientConsole('Fadroma Token Manager')
+
+  /** Collection of known tokens in descriptor format, keyed by symbol. */
+  tokens: Record<TokenSymbol, TokenContract> = {}
 
   get config () { return this.context.config }
 
@@ -86,15 +88,19 @@ export class TokenManager extends CommandContext {
   }
 
   /** Register a token contract. */
-  add (symbol: TokenSymbol, spec: Partial<TokenContract>): TokenContract {
-    const token = (spec instanceof Contract) ? spec : this.context.defineContract(spec)
-    token.id ??= symbol
+  add (symbol: TokenSymbol, contract: TokenContract): TokenContract
+  add (symbol: TokenSymbol, contract: Partial<TokenContract>): TokenContract
+  add (symbol: TokenSymbol, contract: unknown): TokenContract {
+    const token = (contract instanceof Contract)
+      ? contract
+      : this.context.contract(contract as Partial<TokenContract>)
+    token.name ??= symbol
     this.tokens[symbol] = token
     return token
   }
 
   /** Return token or throw */
-  async get (symbol: TokenSymbol): Promise<TokenContract> {
+  get (symbol: TokenSymbol): TokenContract {
     if (this.has(symbol)) return this.tokens[symbol]
     if (this.context.devMode) return this.define(symbol)
     throw new Error(`No token "${symbol}"`)
@@ -112,40 +118,52 @@ export class TokenManager extends CommandContext {
     return new TokenPair(token_0_client.asDescriptor, token_1_client.asDescriptor)
   }
 
-  /** Define a Snip20 token, get/deploy it, and add it to the registry. */
+  /** Define a Snip20 token and add it to the registry. */
   define (symbol: TokenSymbol, options?: Partial<TokenOptions>): TokenContract {
-    // If this token is already known, return it
-    if (this.has(symbol)) return this.get(symbol)
-    // Need a name to proceed. Defaults to symbol
-    const name = options?.name ?? symbol
-    if (!name) throw new Error('no name')
-    // Define and register a contract; await it to deploy.
-    const workspace = this.config?.build?.project
-    const contractOptions = {
-      workspace,
-      id: name,
-      client: Snip20,
-      label: writeLabel({ prefix: this.context.name, id: name }),
-      initMsg: Snip20.init(
+
+    // If this token is not already known, define it it
+    if (!this.has(symbol)) {
+
+      // Need a name to proceed. Defaults to symbol
+      const name = options?.name ?? symbol
+      if (!name) throw new Error('no name')
+
+      // Define and register a contract.
+      const instance = this.template.instance({
+        workspace: this.config?.build?.project,
         name,
-        symbol,
-        options?.decimals ?? 8,
-        options?.admin    ?? this.context.agent!.address!,
-        options?.config
-      ),
+        prefix: this.context.name,
+        label: writeLabel({ prefix: this.context.name, name }),
+        client: Snip20,
+        initMsg: Snip20.init(
+          name,
+          symbol,
+          options?.decimals ?? 8,
+          options?.admin    ?? this.context.agent?.address!,
+          options?.config
+        ),
+      }).context! as TokenContract
+
+      this.add(symbol, this.context.addContract(name, instance))
     }
-    const instance = this.context.defineContract(this.template).define(contractOptions)
-    this.context.addContract(name, instance)
-    return this.add(symbol, instance as TokenContract)
+
+    return this.get(symbol)
+
   }
 
   /** Define multiple Snip20 tokens, keyed by symbol. */
-  defineMany (inputs: Record<TokenSymbol, Partial<TokenOptions>>): TokenSlots {
-    const outputs: Record<TokenSymbol, Contract> = {}
+  defineMany (inputs: Record<TokenSymbol, Partial<TokenOptions>>):
+    Task<TokenTemplate, Many<Task<Contract<Snip20>, Snip20>>>
+  {
+
+    const outputs: Record<TokenSymbol, TokenContract> = {}
+
     for (const [symbol, options] of Object.entries(inputs)) {
       outputs[symbol] = this.define(symbol, options)
     }
-    return this.template.contracts(outputs)
+
+    return this.template.instances(outputs)
+
     /*
     // Find out which tokens to deploy and which already exist
     // (at the point of time where the task is defined)
@@ -189,7 +207,6 @@ export class TokenManager extends CommandContext {
         results[symbol] = client as Snip20
         this.add(symbol, contracts.contract(client as Partial<Contract>))
       }
-      console.log({tokens: results})
       return results
     })*/
   }

@@ -12,18 +12,17 @@ import { assertAgent } from './core-agent'
 import { into, intoRecord, defineTask, call } from './core-fields'
 import { writeLabel } from './core-labels'
 
-import { AnyContract, Contract, ContractTemplate, ContractGroup } from './core-contract'
-import type { Buildable, Uploadable, Instantiable, Instantiated } from './core-contract'
+import { Contract, ContractTemplate, ContractGroup } from './core-contract'
+import type {
+  AnyContract, Buildable, Uploadable, Instantiable, Instantiated
+} from './core-contract'
 
 import type { Agent } from './core-agent'
 import type { Builder } from './core-build'
 import type { Chain } from './core-chain'
 import type { Class, Many, Name, Named, IntoRecord } from './core-fields'
-import type { Client } from './core-client'
+import type { Client, ClientClass } from './core-client'
 import type { Uploader } from './core-upload'
-
-/** The collection of contracts that constitute a deployment. */
-export type DeploymentState = Record<string, Contract<any>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -41,46 +40,65 @@ export async function defineDeployment <D extends Deployment> (
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
 export class Deployment extends CommandContext {
-  log = new ClientConsole('Fadroma.Deployment')
-  /** Mapping of names to contract instances. */
-  state:       DeploymentState = {}
-  /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:        string
-  /** Default Git ref from which contracts will be built if needed. */
-  repository?: string = undefined
-  /** Default Cargo workspace from which contracts will be built if needed. */
-  workspace?:  string = undefined
-  /** Default Git ref from which contracts will be built if needed. */
-  revision?:   string = 'HEAD'
-  /** Build implementation. Contracts can't be built from source if this is missing. */
-  builder?:    Builder
-  /** Agent to use when deploying contracts. */
-  agent?:      Agent
-  /** Chain on which operations are executed. */
-  chain?:      Chain
-  /** Upload implementation. Contracts can't be uploaded if this is missing --
-    * except by using `agent.upload` directly, which does not cache or log uploads. */
-  uploader?:   Uploader
 
-  constructor (context: Partial<Deployment> = {}) {
-    const name = context.name ?? timestamp()
+  constructor (options: Partial<Deployment> = {}) {
+    const name = options.name ?? timestamp()
     super(name)
     this.name = name
     this.log.label = this.name ?? this.log.label
-    // These propertied are inherited by default
-    for (const field of [
-      'name', 'state', 'agent', 'chain', 'builder', 'uploader', 'workspace', 'revision'
-    ]) {
-      defineDefault(this, context, field as keyof Partial<Deployment>)
-    }
-    // Hidden properties
+    this.state     ??= options.state ?? {}
+    this.agent     ??= options.agent
+    this.chain     ??= options.chain ?? options.agent?.chain
+    this.builder   ??= options.builder
+    this.uploader  ??= options.uploader
+    this.workspace ??= options.workspace
+    this.revision  ??= options.revision
+    this.state     ??= {}
+
+    // Hide non-essential properties
     hideProperties(this, ...[
-      'log', 'state', 'name', 'description', 'timestamp',
-      'commandTree', 'currentCommand',
-      'args', 'task', 'before'
+      'args',
+      'before',
+      'commandTree',
+      'currentCommand',
+      'description',
+      'log',
+      'name',
+      'state',
+      'task',
+      'timestamp',
     ])
-    this.addCommand('status', 'show the status of this deployment', this.showStatus.bind(this))
   }
+
+  log = new ClientConsole(this.constructor.name)
+
+  /** Name of deployment. Used as label prefix of deployed contracts. */
+  name:        string
+
+  /** Mapping of contract names to contract instances. */
+  state:       Record<string, AnyContract>
+
+  /** Default Git ref from which contracts will be built if needed. */
+  repository?: string = undefined
+
+  /** Default Cargo workspace from which contracts will be built if needed. */
+  workspace?:  string = undefined
+
+  /** Default Git ref from which contracts will be built if needed. */
+  revision?:   string = 'HEAD'
+
+  /** Build implementation. Contracts can't be built from source if this is missing. */
+  builder?:    Builder
+
+  /** Agent to use when deploying contracts. */
+  agent?:      Agent
+
+  /** Chain on which operations are executed. */
+  chain?:      Chain
+
+  /** Upload implementation. Contracts can't be uploaded if this is missing --
+    * except by using `agent.upload` directly, which does not cache or log uploads. */
+  uploader?:   Uploader
 
   get [Symbol.toStringTag]() {
     return `${this.name??'-'}`
@@ -91,13 +109,13 @@ export class Deployment extends CommandContext {
     this.log.deployment(this)
   }
 
-  /** Number of contracts in deployment. */
+  /** @returns the number of contracts in this deployment */
   get size (): number {
     return Object.keys(this.state).length
   }
 
   /** @returns true if the chain is a devnet or mocknet */
-  get devMode   (): boolean {
+  get devMode (): boolean {
     return this.chain?.devMode   ?? false
   }
 
@@ -121,43 +139,87 @@ export class Deployment extends CommandContext {
     return this.chain?.isMocknet ?? false
   }
 
-  config?: { build?: { project?: any } }
+  config?: { build?: { project?: any } } & any // FIXME
 
-  /** Check if the deployment contains a contract with a certain name. */
-  hasContract (id: Name) {
-    return !!this.state[id]
+  /** Specify a contract.
+    * @returns a callable instance of `Contract` bearing the specified parameters.
+    * Calling it will deploy the contract, or retrieve it if already deployed. */
+  contract <C extends Client> (
+    /** Parameters of the contract. */
+    opts: Partial<Contract<C>> = {}
+  ): Contract<C> {
+    if (opts.name && this.hasContract(opts.name)) {
+      return this.getContract(opts.name, opts.client) as unknown as Contract<C>
+    }
+    return this.addContract(opts.name!, this.defineContract(opts))
   }
 
-  /** Get the Contract corresponding to a given name. */
-  getContract (id: Name) {
-    return this.state[id]
+  contracts = (_: any) => { /* #worryaboutitlater */ }
+
+  /** Define a contract without adding it to the state.
+    * @returns a Contract object belonging to this Deployment. */
+  defineContract <C extends Client> (opts: Partial<Contract<C>> = {}): Contract<C> {
+    return new Contract({
+      workspace: this.config?.build?.project,
+      revision:  this.revision ?? 'HEAD',
+      agent:     this.agent,
+      builder:   this.builder,
+      uploader:  this.uploader,
+      ...opts,
+      prefix:    this.name,
+      context:   this
+    })
   }
 
-  /** @returns one contracts from this contract's deployment which matches
-    * this contract's properties, as well as an optional predicate function. */
+  /** Check if the deployment contains a contract with a certain name.
+    * @returns boolean */
+  hasContract (name: Name): boolean {
+    return !!(this.state||{})[name]
+  }
+
+  /** Get the Contract corresponding to a given name.
+    * If the data is not a Contract instance, converts it internally to a Contract
+    * @returns Contract */
+  getContract <C extends Client> (name: Name, client?: ClientClass<C>) {
+    let state = this.state[name] || {}
+    if (state instanceof Contract) {
+      return state
+    } else {
+      return this.state[name] = this.defineContract({
+        ...this.state[name], name, client
+      }) as unknown as AnyContract
+    }
+  }
+
+  /** Find the first contract that matches the passed filter function.
+    * @returns Contract or null */
   findContract <C extends Client> (
-    predicate: (meta: Partial<Contract<any>>) => boolean = (x) => true
+    predicate: (meta: AnyContract) => boolean = (x) => true
   ): Contract<C>|null {
     return this.findContracts<C>(predicate)[0]
   }
 
-  /** @returns all contracts from this contract's deployment
-    * that match this contract's properties, as well as an optional predicate function. */
+  /** Find all contracts that match the passed filter function.
+    * @returns Array<Contract> */
   findContracts <C extends Client> (
-    predicate: (meta: Partial<Contract<any>>) => boolean = (x) => true
+    predicate: (meta: AnyContract) => boolean = (x) => true
   ): Contract<C>[] {
-    return Object.values(this.state).filter(contract=>predicate(contract!))
+    return Object.values(this.state).filter(
+      contract=>predicate(contract!)
+    ) as unknown as Contract<C>[]
   }
 
   /** Set the Contract corresponding to a given name,
-    * attaching it to this deployment. */
+    * attaching it to this deployment. =
+    * @returns the passed Contract */
   addContract <C extends Client> (id: Name, contract: Contract<C>) {
-    this.state[id] = contract
+    this.state[id] = contract as unknown as AnyContract
     this.save()
     return contract
   }
 
-  /** Throw if a contract with the specified name is not found in this deployment. */
+  /** Throw if a contract with the specified name is not found in this deployment.
+    * @returns the Contract instance, if present */
   expectContract (id: Name, message?: string) {
     message ??= `${id}: no such contract in deployment`
     if (!this.hasContract(id)) throw new Error(message)
@@ -172,26 +234,6 @@ export class Deployment extends CommandContext {
   /** Upload multiple contracts. */
   uploadContracts (contracts: AnyContract[]) {
     return uploadMany(contracts as unknown as Uploadable[], this)
-  }
-
-  /** Specify a contract.
-    * @returns a callable instance of `Contract` bearing the specified parameters.
-    * Calling it will deploy the contract, or retrieve it if already deployed. */
-  contract <C extends Client> (
-    /** Parameters of the contract. */
-    opts: Partial<Contract<C>> = {}
-  ): Contract<C> {
-    if (opts.name && this.hasContract(opts.name)) {
-      return this.getContract(opts.name)
-    }
-    return this.addContract(opts.name!, new Contract({
-      workspace: this.config?.build?.project,
-      revision:  this.revision ?? 'HEAD',
-      agent:     this.agent,
-      ...opts,
-      prefix:    this.name,
-      context:   this
-    }))
   }
 
   /** Specify a contract template.
@@ -222,16 +264,32 @@ export class Deployment extends CommandContext {
     * to the command tree under `name`, with usage description `info`.
     * See the documentation of `interface Subsystem` for more info.
     * @returns an instance of `ctor` */
-  defineSubsystem <X extends Deployment>(
+  subsystem <D extends Deployment>(
     name: string,
     info: string,
-    ctor: Subsystem<X, typeof this>,
+    $D: Subsystem<D, any>,
     ...args: unknown[]
-  ): X {
-    return this.attachSubsystem(new ctor(this, ...args) as X, name, info)
+  ): D {
+    const inst: D = new $D(this, ...args)
+    return this.attach(inst, name, info)
   }
 
-  attachSubsystem <X extends Deployment> (
+  /** Create and attach a subsystem of class $C for each pair of version and configuration.
+    * @returns Record<Version, T> */
+  versioned <D extends Deployment, Version extends string, Config> (
+    $D:      Class<D, [this, Config]>,
+    configs: Record<Version, Config>
+  ): Record<Version, D> {
+    const versions: Partial<Record<Version, D>> = {}
+    for (const [version, config] of Object.entries(configs) as [Version, Config][]) {
+      versions[version] = new $D(this, config)
+    }
+    return versions as Record<Version, D>
+  }
+
+  /** Attach another deployment to this one.
+    * @returns the attached deployment */
+  attach <X extends Deployment> (
     inst: X,
     name: string = inst.constructor.name,
     info: string = `(undocumented)`,

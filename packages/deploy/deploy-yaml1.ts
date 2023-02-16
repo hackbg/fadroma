@@ -1,7 +1,9 @@
 import { loadAll, dump } from 'js-yaml'
 import { timestamp, bold } from '@hackbg/logs'
 import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/file'
-import { Agent, Contract, Client, Deployment, DeployStore, toInstanceReceipt } from '@fadroma/core'
+import {
+  Agent, Contract, AnyContract, Client, Deployment, DeployStore, toInstanceReceipt
+} from '@fadroma/core'
 import { DeployConsole, DeployError, log } from './deploy-events'
 import { basename } from 'node:path'
 
@@ -25,7 +27,7 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   root: YAMLDirectory<unknown>
 
-  log = new DeployConsole('Fadroma Deploy (YAML1)')
+  log = new DeployConsole('@fadroma/deploy: yaml 1')
 
   /** Name of symlink pointing to active deployment, without extension. */
   KEY = '.active'
@@ -63,7 +65,6 @@ export class YAMLDeployments_v1 extends DeployStore {
     throw new DeployError.DeploymentDoesNotExist(name)
   }
 
-  // FIXME turn this into a getDeployment(name) factory?
   get active () {
     return this.get(this.KEY)
   }
@@ -71,12 +72,13 @@ export class YAMLDeployments_v1 extends DeployStore {
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   get (name: string): Deployment|null {
     let file = this.root.at(`${name}.yml`)
+    console.log(this.KEY, file)
     if (!file.exists()) return null
     name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })
     for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
-      if (!receipt.id) continue
-      deployment.state[receipt.id] = new Contract(receipt)
+      if (!receipt.name) continue
+      deployment.state[receipt.name] = new Contract(receipt)
     }
     return deployment
   }
@@ -92,14 +94,14 @@ export class YAMLDeployments_v1 extends DeployStore {
     }
   }
 
-  set (name: string, state: Record<string, Partial<AnyContract>> = {}) {
+  set (name: string, state: Record<string, AnyContract> = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
     let output = ''
     for (let [name, data] of Object.entries(state)) {
       output += '---\n'
-      name ??= data.id!
+      name ??= data.name!
       if (!name) throw new Error('Deployment: no name')
       const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
       data = JSON.parse(JSON.stringify({

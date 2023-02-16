@@ -6,6 +6,6 @@
 
 Tokenomics vocabulary.
 
-For usage info see the [**Specification**](./tokens.spec.ts.md).
+Supports SNIP-20 tokens on Secret Network via `@fadroma/scrt`.
 
 </div>

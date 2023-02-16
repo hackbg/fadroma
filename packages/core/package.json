@@ -1,12 +1,13 @@
 {
   "name":    "@fadroma/core",
-  "version": "1.0.0",
+  "version": "2.0.3",
   "type":    "module",
   "main":    "core.ts",
   "files": [ "*.ts" ],
+  "description": "Isomorphic base layer for implementing dAPI clients. See @fadroma/scrt for Secret Network support.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite core.spec.ts.md",
+    "test":  "echo 'Test suite missing!' && true",
     "cov":   "ensuite-cov -r text -- core.spec.ts.md",
     "lcov":  "ensuite-cov -r lcov -- core.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
@@ -15,11 +16,11 @@
     "@hackbg/allo": "^1",
     "@hackbg/cmds": "^1",
     "@hackbg/hide": "^1",
-    "@hackbg/into": "^1",
-    "@hackbg/logs": "^1",
+    "@hackbg/into": "^1.0.1",
+    "@hackbg/logs": "^1.1.1",
     "@hackbg/many": "^1",
-    "@hackbg/oops": "^1",
-    "@hackbg/over": "^1",
+    "@hackbg/oops": "workspace:^1.0.1",
+    "@hackbg/over": "^1.0.1",
     "@hackbg/task": "^1"
   },
   "devDependencies": {

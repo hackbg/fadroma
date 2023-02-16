@@ -53,6 +53,7 @@ export async function upload (
 
 }
 
+/** Standalone multi-upload function. */
 export async function uploadMany (
   contracts: Uploadable[],
   context:   Partial<Deployment>,
@@ -70,18 +71,14 @@ export async function uploadMany (
   }, context)
 }
 
-export type IntoUploader = string|UploaderClass<Uploader>|Partial<Uploader>
-
 /** A constructor for an Uploader subclass. */
-export interface UploaderClass<U extends Uploader> extends Overridable<Uploader, IntoUploader> {
+export interface UploaderClass<U extends Uploader> {
+  new (agent?: Agent|null): U
 }
 
 /** Uploader: uploads a `Contract`'s `artifact` to a specific `Chain`,
   * binding the `Contract` to a particular `chainId` and `codeId`. */
 export abstract class Uploader {
-  /** Populated by @fadroma/deploy */
-  static variants: Record<string, UploaderClass<Uploader>> = {}
-
   constructor (public agent?: Agent|null) {}
   /** Chain to which this uploader uploads contracts. */
   get chain () { return this.agent?.chain }
@@ -96,6 +93,10 @@ export abstract class Uploader {
   abstract upload (source: Uploadable): Promise<Uploaded>
   /** Upload multiple contracts. */
   abstract uploadMany (sources: Uploadable[]): Promise<Uploaded[]>
+
+  /** Global registry of Uploader implementations.
+    * Populated by @fadroma/deploy */
+  static variants: Record<string, UploaderClass<Uploader>> = {}
 }
 
 /** @returns the uploader of the thing

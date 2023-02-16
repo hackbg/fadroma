@@ -39,7 +39,7 @@ export class BuilderConfig extends EnvConfig {
     ()=>false)
   /** Name of output directory. */
   outputDir:    string  = this.getString('FADROMA_ARTIFACTS',
-    ()=>$(this.project).in('dist').in('artifacts').path)
+    ()=>$(this.project).in('artifacts').path)
   /** Script that runs inside the build container, e.g. build.impl.mjs */
   script:       string  = this.getString('FADROMA_BUILD_SCRIPT',
     ()=>$(buildPackage).at('build.impl.mjs').path)
@@ -128,7 +128,7 @@ export abstract class LocalBuilder extends Builder {
       if (location.exists()) {
         const artifact = location.url
         const codeHash = this.hashPath(location)
-        return new Contract({ crate, revision, artifact, codeHash })
+        return { crate, revision, artifact, codeHash }
       }
     }
     return null

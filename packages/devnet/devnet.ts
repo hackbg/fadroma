@@ -1,31 +1,21 @@
-import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
-import { bold } from '@hackbg/logs'
-import { Error as CustomError } from '@hackbg/oops'
-import { EnvConfig } from '@hackbg/conf'
-import { CommandContext } from '@hackbg/cmds'
-import { freePort, waitPort, Endpoint } from '@hackbg/port'
-import { randomHex } from '@hackbg/4mat'
-import * as Dokeres from '@hackbg/dock'
-import * as Fadroma from '@fadroma/core'
-import { AgentOpts, DevnetHandle, Chain, ChainMode, ClientConsole } from '@fadroma/core'
-
-import { resolve, relative, basename, dirname } from 'path'
-import { cwd }                                  from 'process'
-import { readlinkSync, symlinkSync }            from 'fs'
-import { fileURLToPath }                        from 'url'
-
+import {
+  Chain,
+  ChainMode,
+} from '@fadroma/core'
 import {
   Devnet,
-  DevnetConfig,
   DevnetCommands,
+  DevnetConfig,
+  DevnetPlatform,
+  DevnetPortMode,
   devnetPortModes,
   resetDevnet
 } from './devnet-base'
-import type { DevnetPlatform, DevnetPortMode } from './devnet-base'
 //import { RemoteDevnet } from './devnet-remote'
 import { DockerDevnet } from './devnet-docker'
+import * as Dock from '@hackbg/dock'
 
-/** Returns the function that goes into Fadroma.Chain.variants (when it's populated
+/** Returns the function that goes into Chain.variants (when it's populated
   * in @fadroma/connect) to enable devnets for a target platform. */
 export function defineDevnet (
   Chain: { new(...args:any[]): Chain },
@@ -44,14 +34,18 @@ export function getDevnet (
   platform: DevnetPlatform,
   server?:  string,
   chainId?: string,
-  dokeres?: Dokeres.Engine
+  dokeres?: Dock.Engine
 ): Devnet {
   //if (server) {
     //return RemoteDevnet.getOrCreate(platform, 'TODO', server, undefined, chainId, chainId)
   //} else {
-    return DockerDevnet.getOrCreate(platform, dokeres)
+    return DockerDevnet.getOrCreate(platform, dokeres) as Devnet
   //}
 }
+
+export {
+  DevnetError
+} from './devnet-events'
 
 export type {
   DevnetPlatform,
