@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["ExecuteMsg",""],["QueryMsg",""]],"fn":[["execute",""],["query",""]],"struct":[["DefaultImpl",""]],"trait":[["SimpleAdmin",""]]};

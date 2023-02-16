@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["client","Command SNIP-20 tokens from a contract."],["contract","Customizable implementation of a SNIP-20 token. Feature flag: `snip20-impl`"]]};

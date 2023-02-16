@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"fadroma_example_ensemble":[["impl <a class=\"trait\" href=\"fadroma/ensemble/ensemble/trait.ContractHarness.html\" title=\"trait fadroma::ensemble::ensemble::ContractHarness\">ContractHarness</a> for <a class=\"struct\" href=\"fadroma_example_ensemble/struct.Oracle.html\" title=\"struct fadroma_example_ensemble::Oracle\">Oracle</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["CONSTANTS",""],["MINTERS",""],["STATUS",""],["TOTAL_SUPPLY",""]],"struct":[["Account",""],["Allowance",""],["Constants",""],["ConstantsNs",""],["ContractStatusNs",""],["MintersNs",""],["TotalSupplyNs",""]]};

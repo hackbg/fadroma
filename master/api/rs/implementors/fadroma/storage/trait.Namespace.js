@@ -1,0 +1,6 @@
+(function() {var implementors = {
+"fadroma":[],
+"fadroma_example_derive_contract_components":[["impl <a class=\"trait\" href=\"fadroma/storage/trait.Namespace.html\" title=\"trait fadroma::storage::Namespace\">Namespace</a> for <a class=\"struct\" href=\"fadroma_example_derive_contract_components/struct.StateNs.html\" title=\"struct fadroma_example_derive_contract_components::StateNs\">StateNs</a>"]],
+"fadroma_example_derive_contract_impl":[["impl <a class=\"trait\" href=\"fadroma/storage/trait.Namespace.html\" title=\"trait fadroma::storage::Namespace\">Namespace</a> for <a class=\"struct\" href=\"fadroma_example_derive_contract_impl/struct.StateNs.html\" title=\"struct fadroma_example_derive_contract_impl::StateNs\">StateNs</a>"]],
+"fadroma_example_derive_contract_interface":[["impl <a class=\"trait\" href=\"fadroma/storage/trait.Namespace.html\" title=\"trait fadroma::storage::Namespace\">Namespace</a> for <a class=\"struct\" href=\"fadroma_example_derive_contract_interface/struct.StateNs.html\" title=\"struct fadroma_example_derive_contract_interface::StateNs\">StateNs</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

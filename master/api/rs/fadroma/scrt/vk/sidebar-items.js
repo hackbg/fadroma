@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["auth","Customizable functionality for implementing viewing keys in your smart contract."]],"struct":[["ViewingKey","Represents a viewing key string which is provided as unverified input to a query."],["ViewingKeyHashed","[`ViewingKey`] as a SHA-256 hash."]]};

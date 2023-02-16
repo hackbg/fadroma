@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":[["entry_point","This attribute macro generates the boilerplate required to call into the contract-specific logic from the entry-points to the Wasm module."]]};
