@@ -1,11 +1,13 @@
-use std::iter::FromIterator;
+use std::{iter::FromIterator, ops::DerefMut};
 
 use syn::{
     parse_macro_input, Item, ItemStruct, ItemEnum, Fields,
     Field, Member, Index, punctuated::Punctuated, Expr,
     FieldsNamed, FieldsUnnamed, FieldValue, ExprMatch,
     Arm, Pat, Ident, Visibility, Type, PatIdent, Stmt,
-    FieldPat, token::{Comma, Add}, parse_quote
+    FieldPat, ItemImpl, Generics, GenericParam, PathArguments,
+    GenericArgument, TraitBound, AngleBracketedGenericArguments,
+    TypeParamBound, token::{Comma, Add, Lt, Gt}, parse_quote
 };
 use quote::{quote, ToTokens};
 use proc_macro2::Span;
@@ -23,39 +25,73 @@ enum FieldsFor {
 pub fn derive_serialize(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item = parse_macro_input!(stream as Item);
 
-    match &item {
-        Item::Struct(s) => impl_struct_serialize(s),
-        Item::Enum(e) => impl_enum_serialize(e),
+    let result = match &item {
+        Item::Struct(s) => {
+            let result = impl_struct_serialize(s);
+
+            quote!(#result)
+        },
+        Item::Enum(e) => {
+            match check_num_variants(&e) {
+                Ok(_) => {
+                    let result = impl_enum_serialize(e);
+
+                    quote!(#result)
+                },
+                Err(e) => e.to_compile_error()
+            }
+        },
         _ => {
-            let err = syn::Error::new(
+            syn::Error::new(
                 Span::call_site(),
                 "This macro can only be used on enum and struct definitions."
-            ).to_compile_error();
-
-            proc_macro::TokenStream::from(quote!(#err))
+            ).to_compile_error()
         }
-    }
+    };
+
+    proc_macro::TokenStream::from(quote!(#result))
 }
 
 #[proc_macro_derive(FadromaDeserialize)]
 pub fn derive_deserialize(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item = parse_macro_input!(stream as Item);
 
-    match item {
-        Item::Struct(s) => impl_struct_deserialize(&s),
-        Item::Enum(e) => impl_enum_deserialize(&e),
+    let result = match &item {
+        Item::Struct(s) => {
+            let result = impl_struct_deserialize(s);
+
+            quote!(#result)
+        },
+        Item::Enum(e) => {
+            match check_num_variants(&e) {
+                Ok(_) => {
+                    let result = impl_enum_deserialize(e);
+
+                    quote!(#result)
+                },
+                Err(e) => e.to_compile_error()
+            }
+        },
         _ => {
-            let err = syn::Error::new(
+            syn::Error::new(
                 Span::call_site(),
                 "This macro can only be used on enum and struct definitions."
-            ).to_compile_error();
-
-            proc_macro::TokenStream::from(quote!(#err))
+            ).to_compile_error()
         }
-    }
+    };
+
+    proc_macro::TokenStream::from(quote!(#result))
 }
 
-fn impl_struct_serialize(s: &ItemStruct) -> proc_macro::TokenStream {    
+fn check_num_variants(item: &ItemEnum) -> syn::Result<()> {
+    if item.variants.len() > u8::MAX as usize {
+        syn::Error::new(Span::call_site(), "Enum variants cannot exceed 255.");
+    }
+
+    Ok(())
+}
+
+fn impl_struct_serialize(s: &ItemStruct) -> ItemImpl {    
     let (size_hint, to_bytes) = match &s.fields {
         Fields::Named(f) => (
             size_hint_fields(&f.named, FieldsFor::Struct),
@@ -68,25 +104,10 @@ fn impl_struct_serialize(s: &ItemStruct) -> proc_macro::TokenStream {
         Fields::Unit => (quote!(0), quote!(Ok(())))
     };
 
-    let struct_ident = &s.ident;
-
-    proc_macro::TokenStream::from(quote! {
-        #[automatically_derived]
-        impl fadroma::bin_serde::FadromaSerialize for #struct_ident {
-            #[inline]
-            fn size_hint(&self) -> usize {
-                #size_hint
-            }
-
-            #[inline]
-            fn to_bytes(&self, ser: &mut fadroma::bin_serde::Serializer) -> fadroma::bin_serde::Result<()> {
-                #to_bytes
-            }
-        }
-    })
+    impl_ser(&s.ident, &s.generics, &size_hint, &to_bytes)
 }
 
-fn impl_enum_serialize(e: &ItemEnum) -> proc_macro::TokenStream {
+fn impl_enum_serialize(e: &ItemEnum) -> ItemImpl {
     let mut size_hint_arms = Punctuated::<Arm, Comma>::new();
     let mut to_bytes_arms = Punctuated::<Arm, Comma>::new();
 
@@ -180,27 +201,13 @@ fn impl_enum_serialize(e: &ItemEnum) -> proc_macro::TokenStream {
         to_bytes_arms.push(to_bytes);
     }
 
-    let struct_ident = &e.ident;
-    let match_size_hint: ExprMatch = parse_quote!(match self { #size_hint_arms });
-    let match_to_bytes: ExprMatch = parse_quote!(match self { #to_bytes_arms });
+    let match_size_hint = quote!(1 + match self { #size_hint_arms });
+    let match_to_bytes = quote!(match self { #to_bytes_arms });
 
-    proc_macro::TokenStream::from(quote! {
-        #[automatically_derived]
-        impl fadroma::bin_serde::FadromaSerialize for #struct_ident {
-            #[inline]
-            fn size_hint(&self) -> usize {
-                1 + #match_size_hint
-            }
-
-            #[inline]
-            fn to_bytes(&self, ser: &mut fadroma::bin_serde::Serializer) -> fadroma::bin_serde::Result<()> {
-                #match_to_bytes
-            }
-        }
-    })
+    impl_ser(&e.ident, &e.generics, &match_size_hint, &match_to_bytes)
 }
 
-fn impl_struct_deserialize(s: &ItemStruct) -> proc_macro::TokenStream {
+fn impl_struct_deserialize(s: &ItemStruct) -> ItemImpl {
     let from_bytes = match &s.fields {
         Fields::Named(f) => {
             let from_bytes = from_bytes_struct(f);
@@ -215,20 +222,10 @@ fn impl_struct_deserialize(s: &ItemStruct) -> proc_macro::TokenStream {
         Fields::Unit => quote!(Self)
     };
 
-    let struct_ident = &s.ident;
-
-    proc_macro::TokenStream::from(quote! {
-        #[automatically_derived]
-        impl fadroma::bin_serde::FadromaDeserialize for #struct_ident {
-            #[inline]
-            fn from_bytes(de: &mut fadroma::bin_serde::Deserializer) -> fadroma::bin_serde::Result<Self> {
-                Ok(#from_bytes)
-            }
-        }
-    })
+    impl_de(&s.ident, &s.generics, &quote!(Ok(#from_bytes)))
 }
 
-fn impl_enum_deserialize(e: &ItemEnum) -> proc_macro::TokenStream {
+fn impl_enum_deserialize(e: &ItemEnum) -> ItemImpl {
     let tag_var = Ident::new("tag".into(), Span::call_site());
     let mut arms = Punctuated::<Arm, Comma>::new();
 
@@ -258,20 +255,14 @@ fn impl_enum_deserialize(e: &ItemEnum) -> proc_macro::TokenStream {
         arms.push(arm);
     }
 
-    let struct_ident = &e.ident;
     let tag_stmt: Stmt = parse_quote!(let #tag_var = de.read_byte()?;);
     let match_expr: ExprMatch = parse_quote!(match #tag_var { #arms });
+    let body = quote!{
+        #tag_stmt
+        #match_expr
+    };
 
-    proc_macro::TokenStream::from(quote! {
-        #[automatically_derived]
-        impl fadroma::bin_serde::FadromaDeserialize for #struct_ident {
-            #[inline]
-            fn from_bytes(de: &mut fadroma::bin_serde::Deserializer) -> fadroma::bin_serde::Result<Self> {
-                #tag_stmt
-                #match_expr
-            }
-        }
-    })
+    impl_de(&e.ident, &e.generics, &body)
 }
 
 fn size_hint_fields(fields: &Punctuated<Field, Comma>, fields_for: FieldsFor) -> proc_macro2::TokenStream {
@@ -352,4 +343,98 @@ fn from_bytes_tuple(fields: &FieldsUnnamed) -> Punctuated::<Expr, Comma> {
     }
 
     result
+}
+
+fn impl_ser(
+    ident: &Ident,
+    generics: &Generics,
+    size_hint_body: &proc_macro2::TokenStream,
+    to_bytes_body: &proc_macro2::TokenStream,
+) -> ItemImpl {
+    let mut item: ItemImpl = parse_quote! {
+        #[automatically_derived]
+        impl fadroma::bin_serde::FadromaSerialize for #ident {
+            #[inline]
+            fn size_hint(&self) -> usize {
+                #size_hint_body
+            }
+
+            #[inline]
+            fn to_bytes(&self, ser: &mut fadroma::bin_serde::Serializer) -> fadroma::bin_serde::Result<()> {
+                #to_bytes_body
+            }
+        }
+    };
+
+    let bound = parse_quote!(fadroma::bin_serde::FadromaSerialize);
+    apply_generics_to_impl(&mut item, generics, bound);
+
+    item
+}
+
+fn impl_de(
+    ident: &Ident,
+    generics: &Generics,
+    from_bytes_body: &proc_macro2::TokenStream
+) -> ItemImpl {
+    let mut item = parse_quote! {
+        #[automatically_derived]
+        impl fadroma::bin_serde::FadromaDeserialize for #ident {
+            #[inline]
+            fn from_bytes(de: &mut fadroma::bin_serde::Deserializer) -> fadroma::bin_serde::Result<Self> {
+                #from_bytes_body
+            }
+        }
+    };
+
+    let bound = parse_quote!(fadroma::bin_serde::FadromaDeserialize);
+    apply_generics_to_impl(&mut item, generics, bound);
+
+    item
+}
+
+fn apply_generics_to_impl(item: &mut ItemImpl, generics: &Generics, bound: TraitBound) {
+    if generics.params.is_empty() {
+        return;
+    }
+
+    let Type::Path(type_path) = item.self_ty.deref_mut() else {
+        unreachable!();
+    };
+
+    let mut args = AngleBracketedGenericArguments {
+        colon2_token: None,
+        lt_token: Lt::default(),
+        args: Punctuated::new(),
+        gt_token: Gt::default()
+    };
+
+    for mut param in generics.params.clone() {
+        let arg: GenericArgument = match &mut param {
+            GenericParam::Type(type_param) =>  {
+                let bound = TypeParamBound::Trait(bound.clone());
+                type_param.bounds.push(bound);
+
+                let ident = &type_param.ident;
+                
+                parse_quote!(#ident)
+            },
+            GenericParam::Lifetime(lt) => {
+                GenericArgument::Lifetime(lt.lifetime.clone())
+            },
+            GenericParam::Const(c) => {
+                let ident = &c.ident;
+
+                parse_quote!(#ident)
+            }
+        };
+
+        args.args.push(arg);
+        item.generics.params.push(param);
+    }
+
+    let segment = &mut type_path.path.segments[0];
+    segment.arguments = PathArguments::AngleBracketed(args);
+
+    item.generics.where_clause = generics.where_clause.clone();
 }
