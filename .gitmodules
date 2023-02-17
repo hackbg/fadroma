@@ -5,6 +5,10 @@
 	path   = ensuite/toolbox
 	url    = https://github.com/hackbg/toolbox.git
 	branch = main
+[submodule "toolbox-for-docs"]
+	path   = toolbox
+	url    = https://github.com/hackbg/toolbox.git
+	branch = main
 [submodule "ganesha"]
 	path   = ensuite/ganesha
 	url    = https://github.com/hackbg/ganesha.git
