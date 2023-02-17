@@ -60,13 +60,14 @@ jobs:
           echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/refs/heads/gh-pages
           mkdir -p ../page
           mv dist/docs/* ../page
-          rm .gitmodules
+          cp .gitmodules .. || true
           git checkout gh-pages
           git clean -fdx
           touch .nojekyll
           echo "fadroma.tech" > CNAME
           rm -rf "${{ github.ref_name }}"
           mv ../page "${{ github.ref_name }}"
+          mv ../.gitmodules . || true
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
           git add .
