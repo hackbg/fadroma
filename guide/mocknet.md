@@ -12,7 +12,7 @@ From this, it follows that by providing implementations of the contract-facing C
 we could run the production builds of smart contracts inside a simulated blockchain-like
 environment.
 
-Such an environment would not be bound to the distrubuted consensus mechanisms of a blockchan,
+Such an environment would not be bound to the distributed consensus mechanisms of a blockchain,
 and would thus allow the contracts to be tested more quickly. This is especially useful in CI
 environments, where launching a devnet container might not be possible or desirable.
 
