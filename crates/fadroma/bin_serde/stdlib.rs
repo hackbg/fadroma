@@ -32,7 +32,7 @@ impl<T: FadromaSerialize> FadromaSerialize for Option<T> {
 
 impl<T: FadromaDeserialize> FadromaDeserialize for Option<T> {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let tag = de.read_byte()?;
 
         match tag {
@@ -74,7 +74,7 @@ impl<T: FadromaSerialize> FadromaSerialize for Vec<T> {
 
 impl<T: FadromaDeserialize> FadromaDeserialize for Vec<T> {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let len = ByteLen::decode(de)?;
 
         if len == 0 {
@@ -137,7 +137,7 @@ impl FadromaSerialize for String {
 
 impl FadromaDeserialize for String {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let len = ByteLen::decode(de)?;
         let bytes = de.read(len)?;
 
@@ -166,7 +166,7 @@ impl<const N: usize> FadromaSerialize for [u8; N] {
 }
 
 impl<const N: usize> FadromaDeserialize for [u8; N] {
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let len = ByteLen::decode(de)?;
         let bytes = de.read(len)?;
 
@@ -211,7 +211,7 @@ mod tests {
         FadromaSerialize::to_bytes(slice, &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 1);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::from(&ser.finish())
             .deserialize::<Vec<u8>>()
             .unwrap();
 
@@ -224,7 +224,7 @@ mod tests {
         FadromaSerialize::to_bytes(bytes.as_slice(), &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 128);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::from(&ser.finish())
             .deserialize::<Vec<u8>>()
             .unwrap();
 
@@ -236,7 +236,7 @@ mod tests {
         FadromaSerialize::to_bytes(bytes.as_slice(), &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 130);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::from(&ser.finish())
             .deserialize::<Vec<u8>>()
             .unwrap();
 
@@ -251,7 +251,7 @@ mod tests {
         FadromaSerialize::to_bytes(slice, &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 1);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::from(&ser.finish())
             .deserialize::<String>()
             .unwrap();
 
@@ -268,7 +268,7 @@ mod tests {
         FadromaSerialize::to_bytes(string.as_str(), &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 128);
 
-        let deserialized = Deserializer::from(ser.finish())
+        let deserialized = Deserializer::from(&ser.finish())
             .deserialize::<String>()
             .unwrap();
 

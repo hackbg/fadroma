@@ -21,7 +21,7 @@ impl FadromaSerialize for u8 {
 
 impl FadromaDeserialize for u8 {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         de.read_byte()
     }
 }
@@ -40,7 +40,7 @@ impl FadromaSerialize for bool {
 
 impl FadromaDeserialize for bool {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         match de.read_byte()? {
             0 => Ok(false),
             1 => Ok(true),
@@ -63,7 +63,7 @@ impl FadromaSerialize for u16 {
 
 impl FadromaDeserialize for u16 {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         const SIZE: usize = mem::size_of::<u16>();
         let le_bytes = de.read(SIZE)?;
 
@@ -105,7 +105,7 @@ macro_rules! impl_uint {
 
         impl FadromaDeserialize for $int {
             #[inline]
-            fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+            fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
                 let len = de.read_byte()? as usize;
         
                 let value = if len > 0 {
@@ -152,7 +152,7 @@ impl FadromaSerialize for Uint64 {
 
 impl FadromaDeserialize for Uint64 {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let value = de.deserialize::<u64>()?;
 
         Ok(Self::from(value))
@@ -173,7 +173,7 @@ impl FadromaSerialize for Uint128 {
 
 impl FadromaDeserialize for Uint128 {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let value = de.deserialize::<u128>()?;
 
         Ok(Self::new(value))
@@ -194,7 +194,7 @@ impl FadromaSerialize for Decimal {
 
 impl FadromaDeserialize for Decimal {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let value = de.deserialize::<u128>()?;
 
         Ok(Self::raw(value))
@@ -215,7 +215,7 @@ impl FadromaSerialize for Decimal256 {
 
 impl FadromaDeserialize for Decimal256 {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let value = de.deserialize::<Uint256>()?;
 
         Ok(Self::new(value))
@@ -254,7 +254,7 @@ mod tests {
         serde_len(&true, 1);
         serde_len(&false, 1);
 
-        let mut de = Deserializer::from(vec![2]);
+        let mut de = Deserializer::from(&[2]);
         let err = de.deserialize::<bool>().unwrap_err();
         assert_eq!(err, Error::InvalidType);
     }

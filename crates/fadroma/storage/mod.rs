@@ -177,7 +177,7 @@ pub fn load<T: FadromaDeserialize> (
 ) -> StdResult<Option<T>> {
     match storage.get(key.as_ref()) {
         Some(data) => {
-            let mut de = Deserializer::from(data);
+            let mut de = Deserializer::from(&data);
             let item = de.deserialize::<T>().map_err(|e|
                 StdError::parse_err(any::type_name::<T>(), e)
             )?;

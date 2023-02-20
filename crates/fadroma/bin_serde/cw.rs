@@ -23,7 +23,7 @@ impl FadromaSerialize for Binary {
 
 impl FadromaDeserialize for Binary {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let len = ByteLen::decode(de)?;
         let bytes = de.read(len)?;
 
@@ -45,7 +45,7 @@ impl FadromaSerialize for CanonicalAddr {
 
 impl FadromaDeserialize for CanonicalAddr {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let addr = Binary::from_bytes(de)?;
 
         Ok(Self(addr))
@@ -66,7 +66,7 @@ impl FadromaSerialize for Addr {
 
 impl FadromaDeserialize for Addr {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let addr = String::from_bytes(de)?;
 
         Ok(Self::unchecked(addr))
@@ -90,7 +90,7 @@ impl FadromaSerialize for Coin {
 
 impl FadromaDeserialize for Coin {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         Ok(Self {
             denom: de.deserialize()?,
             amount: de.deserialize()?

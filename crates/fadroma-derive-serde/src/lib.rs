@@ -381,7 +381,7 @@ fn impl_de(
         #[automatically_derived]
         impl fadroma::bin_serde::FadromaDeserialize for #ident {
             #[inline]
-            fn from_bytes(de: &mut fadroma::bin_serde::Deserializer) -> fadroma::bin_serde::Result<Self> {
+            fn from_bytes<'a>(de: &mut fadroma::bin_serde::Deserializer<'a>) -> fadroma::bin_serde::Result<Self> {
                 #from_bytes_body
             }
         }

@@ -23,7 +23,7 @@ impl<T: Serialize + DeserializeOwned> FadromaSerialize for SerdeAdapter<T> {
 
 impl<T: Serialize + DeserializeOwned> FadromaDeserialize for SerdeAdapter<T> {
     #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self> {
         let bytes = de.read(de.len())?;
         let result = from_slice::<T>(bytes).map_err(|_| Error::InvalidType)?;
 

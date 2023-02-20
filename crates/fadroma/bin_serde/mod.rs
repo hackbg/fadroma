@@ -31,7 +31,7 @@ pub trait FadromaSerialize {
 }
 
 pub trait FadromaDeserialize: Sized {
-    fn from_bytes(de: &mut Deserializer) -> Result<Self>;
+    fn from_bytes<'a>(de: &mut Deserializer<'a>) -> Result<Self>;
 }
 
 pub trait FadromaSerializeExt: FadromaSerialize {
@@ -42,9 +42,9 @@ pub struct Serializer {
     buf: Vec<u8>
 }
 
-pub struct Deserializer {
+pub struct Deserializer<'a> {
     read: usize,
-    bytes: Vec<u8>
+    bytes: &'a [u8]
 }
 
 impl Serializer {
@@ -99,7 +99,7 @@ impl<T: FadromaSerialize> FadromaSerializeExt for T {
     }
 }
 
-impl Deserializer {
+impl<'a> Deserializer<'a> {
     #[inline]
     pub fn deserialize<T: FadromaDeserialize>(&mut self) -> Result<T> {
         T::from_bytes(self)
@@ -113,7 +113,7 @@ impl Deserializer {
             return Err(self.end_of_stream_err(n));
         }
 
-        let bytes = &mut self.bytes[self.read..upper];
+        let bytes = &self.bytes[self.read..upper];
         self.read += n;
 
         Ok(bytes)
@@ -144,11 +144,11 @@ impl Deserializer {
     }
 }
 
-impl From<Vec<u8>> for Deserializer {
-    fn from(bytes: Vec<u8>) -> Self {
+impl<'a, T: AsRef<[u8]>> From<&'a T> for Deserializer<'a> {
+    fn from(bytes: &'a T) -> Self {
         Self {
             read: 0,
-            bytes
+            bytes: bytes.as_ref()
         }
     }
 }
@@ -181,7 +181,7 @@ pub(crate) mod testing {
     {
         let bytes = item.serialize().unwrap();
         
-        let mut de = Deserializer::from(bytes);
+        let mut de = Deserializer::from(&bytes);
         let result = de.deserialize::<T>().unwrap();
 
         assert_eq!(result, *item);
@@ -193,7 +193,7 @@ pub(crate) mod testing {
         let bytes = item.serialize().unwrap();
         assert_eq!(bytes.len(), byte_len);
 
-        let mut de = Deserializer::from(bytes);
+        let mut de = Deserializer::from(&bytes);
         let result = de.deserialize::<T>().unwrap();
 
         assert_eq!(result, *item);

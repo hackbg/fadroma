@@ -55,7 +55,7 @@ pub fn test_serde<T>(item: &T, byte_len: usize)
     let bytes = item.serialize().unwrap();
     assert_eq!(bytes.len(), byte_len);
 
-    let mut de = Deserializer::from(bytes);
+    let mut de = Deserializer::from(&bytes);
     let result = de.deserialize::<T>().unwrap();
 
     assert_eq!(result, *item);
