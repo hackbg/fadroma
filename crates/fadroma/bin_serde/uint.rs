@@ -81,7 +81,7 @@ macro_rules! impl_uint {
         impl FadromaSerialize for $int {
             #[inline]
             fn size_hint(&self) -> usize {
-                mem::size_of::<Self>()
+                1 + mem::size_of::<Self>()
             }
         
             #[inline]
@@ -141,7 +141,7 @@ impl_uint!(Uint512, Self::zero());
 impl FadromaSerialize for Uint64 {
     #[inline]
     fn size_hint(&self) -> usize {
-        mem::size_of::<Self>()
+        1 + mem::size_of::<Self>()
     }
 
     #[inline]
@@ -162,7 +162,7 @@ impl FadromaDeserialize for Uint64 {
 impl FadromaSerialize for Uint128 {
     #[inline]
     fn size_hint(&self) -> usize {
-        mem::size_of::<Self>()
+        1 + mem::size_of::<Self>()
     }
 
     #[inline]
@@ -183,7 +183,7 @@ impl FadromaDeserialize for Uint128 {
 impl FadromaSerialize for Decimal {
     #[inline]
     fn size_hint(&self) -> usize {
-        mem::size_of::<Self>()
+        1 + mem::size_of::<Self>()
     }
 
     #[inline]
@@ -204,7 +204,7 @@ impl FadromaDeserialize for Decimal {
 impl FadromaSerialize for Decimal256 {
     #[inline]
     fn size_hint(&self) -> usize {
-        mem::size_of::<Self>()
+        1 + mem::size_of::<Self>()
     }
 
     #[inline]
