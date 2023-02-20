@@ -1,10 +1,14 @@
+pub mod adapter;
+
 mod byte_len;
 mod uint;
-mod seq;
-mod enums;
+mod stdlib;
+mod cw;
 
 pub use fadroma_derive_serde::{FadromaSerialize, FadromaDeserialize};
 pub use byte_len::ByteLen;
+
+use std::fmt::Display;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -121,6 +125,11 @@ impl Deserializer {
     }
 
     #[inline]
+    pub fn len(&self) -> usize {
+        self.bytes.len()
+    }
+
+    #[inline]
     pub fn is_finished(&self) -> bool {
         self.read == self.bytes.len()
     }
@@ -140,6 +149,24 @@ impl From<Vec<u8>> for Deserializer {
         Self {
             read: 0,
             bytes
+        }
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::EndOfStream { total, read, requested } => f.write_fmt(
+                    format_args!(
+                        "Attempted to read {} bytes but only {} remained.",
+                        requested,
+                        total - read
+                    )
+                ),
+            Error::ByteLenTooLong { len } => f.write_fmt(
+                format_args!("Sequence item length ({}) exceeded. Max: {}", len, ByteLen::MAX)
+            ),
+            Error::InvalidType => f.write_str("Invalid type.")
         }
     }
 }

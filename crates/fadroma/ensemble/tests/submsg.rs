@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    bin_serde::adapter::SerdeAdapter,
     storage::{SingleItem, ItemSpace, TypedKey},
     ensemble::{
         ContractEnsemble, ContractHarness,
@@ -57,8 +58,8 @@ crate::namespace!(ReplyDataNs, b"reply_data_");
 const REPLY_DATA: ItemSpace<Binary, ReplyDataNs, TypedKey<u64>> = ItemSpace::new();
 
 crate::namespace!(ReplyNs, b"reply");
-const REPLY_RESP: SingleItem<SubMsg, ReplyNs> = SingleItem::new();
-const REPLIES: ItemSpace<SubMsgResponse, ReplyNs, TypedKey<u64>> = ItemSpace::new();
+const REPLY_RESP: SingleItem<SerdeAdapter<SubMsg>, ReplyNs> = SingleItem::new();
+const REPLIES: ItemSpace<SerdeAdapter<SubMsgResponse>, ReplyNs, TypedKey<u64>> = ItemSpace::new();
 
 impl ContractHarness for Contract {
     fn instantiate(&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
@@ -98,7 +99,7 @@ impl ContractHarness for Contract {
                 })
             }
             ExecuteMsg::ReplyResponse(msg) => {
-                REPLY_RESP.save(deps.storage, &msg)?;
+                REPLY_RESP.save(deps.storage, &msg.into())?;
             }
             ExecuteMsg::ReplyData { id, data } => {
                 REPLY_DATA.save(deps.storage, &id, &data)?;
@@ -128,7 +129,7 @@ impl ContractHarness for Contract {
                 let resp = REPLIES.load(deps.storage, &id)?;
 
                 if let Some(resp) = resp {
-                    to_binary(&resp)
+                    to_binary(&resp.0)
                 } else {
                     bail!(no_reply_stored_err(id))
                 }
@@ -147,8 +148,9 @@ impl ContractHarness for Contract {
             }
         }
 
-        if let SubMsgResult::Ok(resp) = &reply.result {
-            REPLIES.save(deps.storage, &reply.id, resp)?;
+        let result_ok = reply.result.is_ok();
+        if let SubMsgResult::Ok(resp) = reply.result {
+            REPLIES.save(deps.storage, &reply.id, &resp.into())?;
         }
 
         let mut response = Response::default().add_event(
@@ -159,13 +161,13 @@ impl ContractHarness for Contract {
                         "address: {}, id: {}, success: {}",
                         env.contract.address,
                         reply.id,
-                        reply.result.is_ok()
+                        result_ok
                     )
                 )
         );
 
         if let Some(msg) = REPLY_RESP.load(deps.storage)? {
-            response.messages.push(msg);
+            response.messages.push(msg.0);
             REPLY_RESP.remove(deps.storage);
         }
 

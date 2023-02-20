@@ -1,10 +1,8 @@
 use std::marker::PhantomData;
 
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-
 use crate::{
     core::{Humanize, Canonize},
+    bin_serde::{FadromaSerialize, FadromaDeserialize},
     cosmwasm_std::{Deps, DepsMut, Storage, StdResult}
 };
 use super::{Key, Namespace, not_found_error};
@@ -44,13 +42,13 @@ use super::{Key, Namespace, not_found_error};
 /// assert!(stored.is_none());
 /// 
 /// ```
-pub struct ItemSpace<T: Serialize + DeserializeOwned, N: Namespace, K: Key> {
+pub struct ItemSpace<T: FadromaSerialize + FadromaDeserialize, N: Namespace, K: Key> {
     namespace_data: PhantomData<N>,
     item_data: PhantomData<T>,
     key_data: PhantomData<K>
 }
 
-impl<T: Serialize + DeserializeOwned, N: Namespace, K: Key> ItemSpace<T, N, K> {
+impl<T: FadromaSerialize + FadromaDeserialize, N: Namespace, K: Key> ItemSpace<T, N, K> {
     #[inline]
     pub const fn new() -> Self {
         Self {
@@ -124,7 +122,7 @@ impl<T: Serialize + DeserializeOwned, N: Namespace, K: Key> ItemSpace<T, N, K> {
 }
 
 impl<
-    T: Serialize + DeserializeOwned + Humanize,
+    T: FadromaSerialize + FadromaDeserialize + Humanize,
     N: Namespace,
     K: Key
 > ItemSpace<T, N, K> {
@@ -155,7 +153,7 @@ impl<
 }
 
 impl<
-    T: Serialize + DeserializeOwned + Humanize,
+    T: FadromaSerialize + FadromaDeserialize + Humanize,
     N: Namespace,
     K: Key
 > ItemSpace<T, N, K>
@@ -174,7 +172,7 @@ impl<
 }
 
 impl<
-    T: Serialize + DeserializeOwned + Default,
+    T: FadromaSerialize + FadromaDeserialize + Default,
     N: Namespace,
     K: Key
 > ItemSpace<T, N, K> {

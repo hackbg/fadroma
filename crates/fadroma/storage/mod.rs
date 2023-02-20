@@ -10,12 +10,12 @@ pub use item_space::*;
 
 use std::{any, convert::{TryFrom, TryInto}};
 
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-
-use crate::cosmwasm_std::{
-    Storage, StdResult, StdError, CanonicalAddr,
-    Uint64, Uint128, Uint256, Uint512, to_vec, from_slice
+use crate::{
+    bin_serde::{FadromaSerialize, FadromaDeserialize, FadromaSerializeExt, Deserializer},
+    cosmwasm_std::{
+        Storage, StdResult, StdError, CanonicalAddr,
+        Uint64, Uint128, Uint256, Uint512
+    }
 };
 
 /// Construct a storage namespace. It creates a
@@ -146,12 +146,16 @@ pub struct TypedKey<'a, T: Segment + ?Sized>(&'a T);
 
 /// Save something to the storage.
 #[inline]
-pub fn save<T: Serialize> (
+pub fn save<T: FadromaSerialize> (
     storage: &mut dyn Storage,
     key: impl AsRef<[u8]>,
     value: &T
 ) -> StdResult<()> {
-    storage.set(key.as_ref(), &to_vec(value)?);
+    let bytes = value.serialize().map_err(|e|
+        StdError::serialize_err(any::type_name::<T>(), e)
+    )?;
+
+    storage.set(key.as_ref(), &bytes);
 
     Ok(())
 }
@@ -167,12 +171,19 @@ pub fn remove(
 
 /// Load something from the storage.
 #[inline]
-pub fn load<T: DeserializeOwned> (
+pub fn load<T: FadromaDeserialize> (
     storage: &dyn Storage,
     key: impl AsRef<[u8]>
 ) -> StdResult<Option<T>> {
     match storage.get(key.as_ref()) {
-        Some(data) => Ok(Some(from_slice(&data)?)),
+        Some(data) => {
+            let mut de = Deserializer::from(data);
+            let item = de.deserialize::<T>().map_err(|e|
+                StdError::parse_err(any::type_name::<T>(), e)
+            )?;
+
+            Ok(Some(item))
+        },
         None => Ok(None)
     }
 }

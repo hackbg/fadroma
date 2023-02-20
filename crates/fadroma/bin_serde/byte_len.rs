@@ -1,6 +1,6 @@
 use super::{Result, Error, Deserializer};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct ByteLen {
     len: u8,
     bytes: [u8; 4]
@@ -90,24 +90,31 @@ mod tests {
     fn byte_len() {
         let len = ByteLen::encode(127).unwrap();
         assert_eq!(len.size(), 1);
+        assert_eq!(len.as_bytes().len(), 1);
 
         let len = ByteLen::encode(128).unwrap();
         assert_eq!(len.size(), 2);
+        assert_eq!(len.as_bytes().len(), 2);
 
         let len = ByteLen::encode(16383).unwrap();
         assert_eq!(len.size(), 2);
+        assert_eq!(len.as_bytes().len(), 2);
 
         let len = ByteLen::encode(16384).unwrap();
         assert_eq!(len.size(), 3);
+        assert_eq!(len.as_bytes().len(), 3);
 
         let len = ByteLen::encode(2097151).unwrap();
         assert_eq!(len.size(), 3);
+        assert_eq!(len.as_bytes().len(), 3);
 
         let len = ByteLen::encode(2097152).unwrap();
         assert_eq!(len.size(), 4);
+        assert_eq!(len.as_bytes().len(), 4);
 
         let len = ByteLen::encode(ByteLen::MAX as usize).unwrap();
         assert_eq!(len.size(), 4);
+        assert_eq!(len.as_bytes().len(), 4);
 
         let err = ByteLen::encode((ByteLen::MAX + 1) as usize).unwrap_err();
         assert!(matches!(err, Error::ByteLenTooLong { .. }));

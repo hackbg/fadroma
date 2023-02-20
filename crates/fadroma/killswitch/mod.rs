@@ -21,7 +21,7 @@ pub const STORE: SingleItem<ContractStatus<CanonicalAddr>, KillswitchNs> = Singl
 // this structure can be merged with `ContractStatusLevel`, with
 // `reason` and `new_address` becoming propeties of `Migrating`
 /// Current state of a contract w/ optional description and pointer to new version.
-#[derive(Serialize, Deserialize, Canonize, JsonSchema, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ContractStatus<A> {
     pub level: ContractStatusLevel,
     pub reason: String,
@@ -29,7 +29,7 @@ pub struct ContractStatus<A> {
 }
 
 /// Possible states of a contract.
-#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, PartialEq, Debug, Clone, Copy)]
 pub enum ContractStatusLevel {
     /// Live
     Operational,

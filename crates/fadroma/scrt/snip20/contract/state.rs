@@ -1,12 +1,13 @@
 use std::ops::Deref;
 
 use crate::{
+    self as fadroma,
     scrt::snip20::client::msg::ContractStatusLevel,
     storage::Segment,
     prelude::{
         BlockInfo, CanonicalAddr, StdResult, Storage, Uint128,
         ViewingKey, ViewingKeyHashed, SingleItem, ItemSpace,
-        TypedKey, TypedKey2
+        TypedKey, TypedKey2, FadromaSerialize, FadromaDeserialize
     }
 };
 
@@ -32,7 +33,7 @@ pub struct MintersStore(pub SingleItem<Vec<CanonicalAddr>, MintersNs>);
 pub struct TotalSupplyStore(pub SingleItem<Uint128, TotalSupplyNs>);
 
 // Config
-#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Constants {
     pub name: String,
     pub symbol: String,
@@ -60,7 +61,7 @@ pub struct Account {
     addr: CanonicalAddr
 }
 
-#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, Default, JsonSchema)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, Default, JsonSchema, Debug)]
 pub struct Allowance {
     pub amount: Uint128,
     pub expiration: Option<u64>

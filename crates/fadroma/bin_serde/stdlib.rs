@@ -1,11 +1,47 @@
-use std::mem;
-
-use crate::cosmwasm_std::{Binary, CanonicalAddr, Addr};
+use std::{mem, ptr};
 
 use super::{
     FadromaSerialize, FadromaDeserialize,
-    Serializer, Deserializer, Result, ByteLen
+    Serializer, Deserializer, Result, Error,
+    ByteLen
 };
+
+impl<T: FadromaSerialize> FadromaSerialize for Option<T> {
+    #[inline]
+    fn size_hint(&self) -> usize {
+        1 + match self {
+            None => 0,
+            Some(x) => x.size_hint()
+        }
+    }
+
+    #[inline]
+    fn to_bytes(&self, ser: &mut Serializer) -> Result<()> {
+        match self {
+            None => {
+                ser.write_byte(0);
+                Ok(())
+            }
+            Some(x) => {
+                ser.write_byte(1);
+                x.to_bytes(ser)
+            }
+        }
+    }
+}
+
+impl<T: FadromaDeserialize> FadromaDeserialize for Option<T> {
+    #[inline]
+    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
+        let tag = de.read_byte()?;
+
+        match tag {
+            0 => Ok(None),
+            1 => Ok(Some(T::from_bytes(de)?)),
+            _ => Err(Error::InvalidType)
+        }
+    }
+}
 
 impl<T: FadromaSerialize> FadromaSerialize for Vec<T> {
     #[inline]
@@ -113,81 +149,59 @@ impl FadromaDeserialize for String {
     }
 }
 
-impl FadromaSerialize for Binary {
+impl<const N: usize> FadromaSerialize for [u8; N] {
     #[inline]
     fn size_hint(&self) -> usize {
-        ByteLen::MAX_SIZE + self.len()
+        ByteLen::MAX_SIZE + N
     }
 
     #[inline]
     fn to_bytes(&self, ser: &mut Serializer) -> Result<()> {
         let len = ByteLen::encode(self.len())?;
         ser.write(len.as_bytes());
-        ser.write(&self);
+        ser.write(self.as_slice());
 
         Ok(())
     }
 }
 
-impl FadromaDeserialize for Binary {
-    #[inline]
+impl<const N: usize> FadromaDeserialize for [u8; N] {
     fn from_bytes(de: &mut Deserializer) -> Result<Self> {
         let len = ByteLen::decode(de)?;
         let bytes = de.read(len)?;
 
-        Ok(Self(Vec::from(bytes)))
-    }
-}
+        let mut result = [0; N];
 
-impl FadromaSerialize for CanonicalAddr {
-    #[inline]
-    fn size_hint(&self) -> usize {
-        FadromaSerialize::size_hint(&self.0)
-    }
+        unsafe {
+            // SAFETY: `read` will either return the requested amount of bytes
+            // or an error. The slices cannot overlap because the read bytes come from
+            // heap memory.
+            ptr::copy_nonoverlapping(
+                bytes.as_ptr(),
+                result.as_mut_ptr(),
+                N
+            )
+        }
 
-    #[inline]
-    fn to_bytes(&self, ser: &mut Serializer) -> Result<()> {
-        FadromaSerialize::to_bytes(&self.0, ser)
-    }
-}
-
-impl FadromaDeserialize for CanonicalAddr {
-    #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
-        let addr = Binary::from_bytes(de)?;
-
-        Ok(Self(addr))
-    }
-}
-
-impl FadromaSerialize for Addr {
-    #[inline]
-    fn size_hint(&self) -> usize {
-        FadromaSerialize::size_hint(self.as_str())
-    }
-
-    #[inline]
-    fn to_bytes(&self, ser: &mut Serializer) -> Result<()> {
-        FadromaSerialize::to_bytes(self.as_str(), ser)
-    }
-}
-
-impl FadromaDeserialize for Addr {
-    #[inline]
-    fn from_bytes(de: &mut Deserializer) -> Result<Self> {
-        let addr = String::from_bytes(de)?;
-
-        Ok(Self::unchecked(addr))
+        Ok(result)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::bin_serde::{
         FadromaSerialize, Serializer, Deserializer,
         testing::serde_len
     };
+
+    #[test]
+    fn serde_option() {
+        serde_len(&Some(String::from("option")), 8);
+        serde_len::<Option<String>>(&None, 1);
+
+        serde_len(&Some(257u64), 4);
+        serde_len::<Option<u64>>(&None, 1);
+    }
 
     #[test]
     fn serde_byte_slice() {
@@ -262,20 +276,5 @@ mod tests {
 
         string.push('W');
         serde_len(&string, 130);
-
-        let addr = Addr::unchecked(string);
-        serde_len(&addr, 130);
-    }
-
-    #[test]
-    fn serde_binary() {
-        let binary = Binary(vec![13u8; 127]);
-        serde_len(&binary, 128);
-
-        let addr = CanonicalAddr(binary);
-        serde_len(&addr, 128);
-
-        let binary = Binary(vec![33u8; 16384]);
-        serde_len(&binary, 16387);
     }
 }

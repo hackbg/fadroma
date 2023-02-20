@@ -1,7 +1,5 @@
 use std::ops::Deref;
 
-use serde::{Serialize, de::DeserializeOwned};
-
 use crate::{
     prelude::*,
     storage::iterable::{self, IterableStorage},
@@ -233,7 +231,7 @@ impl Account {
     }
 }
 
-fn pages<'a, T: Serialize + DeserializeOwned + Humanize>(
+fn pages<'a, T: FadromaSerialize + FadromaDeserialize + Humanize>(
     iter: iterable::Iter<'a, T>,
     api: &dyn Api,
     page: u32,

@@ -1,22 +1,23 @@
 use std::{mem, marker::PhantomData};
 
-use serde::{Serialize, de::DeserializeOwned};
-
-use crate::cosmwasm_std::{
-    Storage, StdResult, StdError
+use crate::{
+    bin_serde::{FadromaSerialize, FadromaDeserialize},
+    cosmwasm_std::{
+        Storage, StdResult, StdError
+    }
 };
 use super::Key;
 
 /// Stores items in a way that allows for iterating over them
 /// in a sequential order just like a Vec. It's also possible to
 /// retrieve or update inidividual items based on their index.
-pub struct IterableStorage<T: DeserializeOwned + Serialize, K: Key> {
+pub struct IterableStorage<T: FadromaSerialize + FadromaDeserialize, K: Key> {
     ns: K,
     len: Option<u64>,
     data: PhantomData<T>
 }
 
-impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
+impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
     const KEY_INDEX: &'static [u8] = b"index";
 
     /// Creates an instance for the given namespace.
@@ -329,7 +330,7 @@ impl<T: DeserializeOwned + Serialize, K: Key> IterableStorage<T, K> {
 
 /// [`IterableStorage`] iterator. Iterates over values in order.
 /// You don't instantiate this type directly but by calling [`IterableStorage::iter`] instead.
-pub struct Iter<'storage, T: DeserializeOwned> {
+pub struct Iter<'storage, T: FadromaDeserialize> {
     storage: &'storage dyn Storage,
     ns: Vec<u8>,
     current: u64,
@@ -337,7 +338,7 @@ pub struct Iter<'storage, T: DeserializeOwned> {
     result: PhantomData<T>
 }
 
-impl<'storage, T: DeserializeOwned> Iter<'storage, T> {
+impl<'storage, T: FadromaDeserialize> Iter<'storage, T> {
     pub fn new<K: Key>(storage: &'storage dyn Storage, ns: &K, len: u64) -> Self {
         let mut key = Vec::with_capacity(ns.size() + mem::size_of::<u64>());
         ns.write_segments(&mut key);
@@ -366,7 +367,7 @@ impl<'storage, T: DeserializeOwned> Iter<'storage, T> {
     }
 }
 
-impl<'storage, T: DeserializeOwned> Iterator for Iter<'storage, T> {
+impl<'storage, T: FadromaDeserialize> Iterator for Iter<'storage, T> {
     type Item = StdResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -391,7 +392,7 @@ impl<'storage, T: DeserializeOwned> Iterator for Iter<'storage, T> {
     }
 }
 
-impl<'storage, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, T> {
+impl<'storage, T: FadromaDeserialize> DoubleEndedIterator for Iter<'storage, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.current >= self.end {
             return None;
@@ -409,7 +410,7 @@ impl<'storage, T: DeserializeOwned> DoubleEndedIterator for Iter<'storage, T> {
     }
 }
 
-impl<'storage, T: DeserializeOwned> ExactSizeIterator for Iter<'storage, T> { }
+impl<'storage, T: FadromaDeserialize> ExactSizeIterator for Iter<'storage, T> { }
 
 #[cfg(test)]
 mod tests {

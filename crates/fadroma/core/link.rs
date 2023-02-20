@@ -2,7 +2,7 @@ use crate::{
     self as fadroma,
     cosmwasm_std::{self, StdResult, Addr, Env, Api},
     impl_canonize_default,
-    prelude::{Canonize, Humanize},
+    prelude::{Canonize, Humanize, FadromaSerialize, FadromaDeserialize},
     schemars::{self, JsonSchema},
 };
 
@@ -12,7 +12,7 @@ pub type CodeId = u64;
 pub type CodeHash = String;
 
 /// Info needed to instantiate a contract.
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
 pub struct ContractInstantiationInfo {
     pub code_hash: CodeHash,
     pub id: CodeId,
@@ -31,7 +31,7 @@ impl PartialEq for ContractInstantiationInfo {
 }
 
 /// Info needed to talk to a contract instance.
-#[derive(Default, Serialize, Canonize, Deserialize, JsonSchema, Clone, Debug)]
+#[derive(Default, Serialize, Canonize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
 pub struct ContractLink<A> {
     pub address: A,
     pub code_hash: CodeHash,
