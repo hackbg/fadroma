@@ -3,6 +3,14 @@ use serde::{Serialize, de::DeserializeOwned};
 use crate::cosmwasm_std::{to_vec, from_slice};
 use super::{FadromaSerialize, FadromaDeserialize, Serializer, Deserializer, Result, Error};
 
+/// A wrapper that allows serializing types that only
+/// implement CWs serialization traits. It simply uses
+/// CWs facilities to convert to JSON text bytes which
+/// Fadroma's binary serialization understands.
+///
+/// By using this you are effectively **bypassing** Fadroma's
+/// binary serialization benefits. As such, you probably don't
+/// want to use it outside of testing...
 #[derive(Clone, PartialEq, Debug)]
 pub struct SerdeAdapter<T: Serialize + DeserializeOwned>(pub T);
 

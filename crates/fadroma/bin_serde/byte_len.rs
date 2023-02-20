@@ -1,5 +1,9 @@
 use super::{Result, Error, Deserializer};
 
+/// Used to encode the number of items that a sequence type
+/// (such as [`String::len`] or a [`Vec::len`]) has. This allows us
+/// to represent that length with as few bytes as possible
+/// while allowing it to be dynamic.
 #[derive(Clone, Copy, Debug)]
 pub struct ByteLen {
     len: u8,
@@ -10,12 +14,14 @@ impl ByteLen {
     // We can increase that max by skipping the encoding on the last
     // byte, however the current max is already unreasonable in practice.
 
-    /// ~268MB
     pub const MAX: u32 = u32::from_le_bytes([0xFF, 0xFF, 0xFF, 0x0F]);
 
     /// The maximum size in bytes.
     pub const MAX_SIZE: usize = 4;
 
+    /// Encodes the given length as bytes to be serialized.
+    /// Returns an [`Error::ByteLenTooLong`] if the length
+    /// is bigger than [`ByteLen::MAX`].
     pub fn encode(len: usize) -> Result<Self> {
         if len > Self::MAX as usize {
             return Err(Error::ByteLenTooLong { len });
@@ -39,16 +45,25 @@ impl ByteLen {
         })
     }
 
+    /// The raw bytes the represent the encoded length.
+    /// The size of the slice is always between 1 and [`ByteLen::MAX_SIZE`].
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes[0..self.len as usize]
     }
 
+    /// The size in bytes of the encoded length.
+    /// Is always between 1 and [`ByteLen::MAX_SIZE`].
     #[inline]
     pub fn size(&self) -> usize {
         self.len as usize
     }
 
+    /// Decodes a length from a sequence of bytes as a `usize`.
+    /// It relies on the bytes to have previously been encoded
+    /// using [`ByteLen::encode`] and for the given [`Deserializer`]
+    /// to be at the correct position at which those were written before.
+    /// It is up to the implementor to ensure that these invariants hold true.
     pub fn decode(de: &mut Deserializer) -> Result<usize> {
         let mut result = 0u32;
         let mut shift = 0u32;
@@ -88,9 +103,15 @@ mod tests {
 
     #[test]
     fn byte_len() {
+        let len = ByteLen::encode(0).unwrap();
+        assert_eq!(len.size(), 1);
+        assert_eq!(len.as_bytes().len(), 1);
+        assert_eq!(len.as_bytes(), &[0]);
+
         let len = ByteLen::encode(127).unwrap();
         assert_eq!(len.size(), 1);
         assert_eq!(len.as_bytes().len(), 1);
+        assert_eq!(len.as_bytes(), &[127]);
 
         let len = ByteLen::encode(128).unwrap();
         assert_eq!(len.size(), 2);
