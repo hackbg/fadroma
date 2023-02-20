@@ -198,7 +198,7 @@ export class DockerBuilder extends LocalBuilder {
     $(outputDir).as(OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates: Array<Buildable|null> = crates.map(()=>null)
+    const templates: Array<Built|null> = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
@@ -272,30 +272,41 @@ export class DockerBuilder extends LocalBuilder {
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
     const buildCommand = [ 'node', buildScript, 'phase1', revision, ...cratesToBuild ]
+
+    const buildEnv = {
+      // Variables used by the build script are prefixed with underscore;
+      // variables used by the tools that the build script uses are left as is
+      _BUILD_USER: process.env.FADROMA_BUILD_USER ?? 'fadroma-builder',
+      _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getgid ? process.getgid() : undefined),
+      _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getuid ? process.getuid() : undefined),
+      _GIT_REMOTE: process.env.FADROMA_PREFERRED_REMOTE ?? 'origin',
+      _GIT_SUBDIR: gitSubdir,
+      _SUBDIR:     subdir,
+      _NO_FETCH:   String(this.noFetch),
+      _VERBOSE:    String(this.verbose),
+
+      LOCKED: '',/*'--locked'*/
+      CARGO_HTTP_TIMEOUT: '240',
+      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+      GIT_PAGER: 'cat',
+      GIT_TERMINAL_PROMPT: '0',
+      SSH_AUTH_SOCK: '/ssh_agent_socket',
+      TERM: process.env.TERM,
+    }
+
+    // Clean up the buildEnv so as not to run afoul of TS
+    for (const key of Object.keys(buildEnv)) {
+      if (buildEnv[key as keyof typeof buildEnv] === undefined) {
+        delete buildEnv[key as keyof typeof buildEnv]
+      }
+    }
+
     const buildOptions = {
       remove: true,
       readonly,
       writable,
       cwd: '/src',
-      env: {
-        // Variables used by the build script are prefixed with underscore;
-        // variables used by the tools that the build script uses are left as is
-        _BUILD_USER:                  process.env.FADROMA_BUILD_USER || 'fadroma-builder',
-        _BUILD_UID:                   process.env.FADROMA_BUILD_UID  || process.getuid(),
-        _BUILD_GID:                   process.env.FADROMA_BUILD_GID  || process.getgid(),
-        _GIT_REMOTE:                  process.env.FADROMA_PREFERRED_REMOTE||'origin',
-        _GIT_SUBDIR:                  gitSubdir,
-        _SUBDIR:                      subdir,
-        _NO_FETCH:                    this.noFetch,
-        _VERBOSE:                     this.verbose,
-        CARGO_HTTP_TIMEOUT:           '240',
-        CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-        GIT_PAGER:                    'cat',
-        GIT_TERMINAL_PROMPT:          '0',
-        LOCKED:                       '',/*'--locked'*/
-        SSH_AUTH_SOCK:                '/ssh_agent_socket',
-        TERM:                         process.env.TERM,
-      },
+      env: buildEnv as Record<string, string>,
       extra: {
         Tty: true,
         AttachStdin: true
@@ -340,8 +351,7 @@ export class DockerBuilder extends LocalBuilder {
     if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
 
     // Return a sparse array of the resulting artifacts
-    const results = outputWasms.map(x=>this.locationToContract(x))
-    return results
+    return outputWasms.map(x=>this.locationToContract(x) as Built)
 
   }
 

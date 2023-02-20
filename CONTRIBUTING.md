@@ -19,6 +19,7 @@ all contributors are expected to adhere to.
 
 ---
 ## Filing Issues
+
 ### How Do I Submit A Bug Report?
 After you have determined that the issue is present in the latest version of the default branch, create an issue and provide the following information:
 
@@ -54,3 +55,12 @@ items. In addition, use the following review explanations:
     - Naming must be consistent with conventions and the rest of the codebase
     - Code must live in a reasonable location.
 - If you are only making "surface level" reviews, submit any notes as `Comments` without adding a review.
+
+---
+## Publishing packages
+
+The TypeScript packages have been configured to use `@hackbg/ubik` for publishing.
+Packages published using Ubik contain TS, ESM and CJS code side by side.
+This is all because in 2022 TypeScript made the decision to generate invalid ESM modules
+that Node 16+ would not consume. (Ubik "fixes it in post" by rewriting the `import` statements.)
+The command to publish a package to NPM is `pnpm ubik wet`; to do a "dry run", use `pnpm ubik dry`.

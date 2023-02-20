@@ -1,16 +1,15 @@
 import { EnvConfig } from '@hackbg/conf'
 
-/** Environment settings for Secret Network API
-  * that are common between gRPC and Amino implementations. */
+/** Environment settings for Secret Network. */
 export class ScrtConfig extends EnvConfig {
 
   static defaultMainnetChainId: string = 'secret-4'
 
   static defaultTestnetChainId: string = 'pulsar-2'
 
-  static defaultMainnetUrl:     string = 'https://secret-4.api.trivium.network:9091'
+  static defaultMainnetUrl:     string = 'https://lcd.mainnet.secretsaturn.net'
 
-  static defaultTestnetUrl:     string = 'https://grpc.testnet.secretsaturn.net'
+  static defaultTestnetUrl:     string = 'https://lcd.testnet.secretsaturn.net'
 
   agentName:      string|null
     = this.getString('SCRT_AGENT_NAME',       ()=>null)

@@ -1,7 +1,7 @@
 import { randomBech32 } from '@hackbg/4mat'
 import { Agent, Contract, assertChain, into } from '@fadroma/core'
 import type {
-  Address, AgentOpts, BundleClass, Client, ExecOpts, Message, Uploaded
+  Address, AgentOpts, BundleClass, Client, ExecOpts, Message, Uploaded, AnyContract
 } from '@fadroma/core'
 import type { Mocknet } from './mocknet-chain'
 import type { MocknetBundle } from './mocknet-bundle'
@@ -35,13 +35,17 @@ export class MocknetAgent extends Agent {
     return new Contract(this.backend.upload(blob)) as unknown as Uploaded
   }
 
-  async instantiate <C extends Client> (instance: Contract<C>): Promise<Contract<C>> {
+  async instantiate <C extends Client> (instance: Contract<C>) {
     instance.initMsg = await into(instance.initMsg)
-    const result = instance.define({
-      ...await this.backend.instantiate(this.address, instance),
-      agent: this
-    })
-    return result
+    const result = await this.backend.instantiate(this.address, instance as unknown as AnyContract)
+    return {
+      chainId:  this.chain.id,
+      address:  result.address!,
+      codeHash: result.codeHash!,
+      label:    result.label!,
+      initBy:   this.address,
+      initTx:   ''
+    }
   }
 
   async execute <R> (

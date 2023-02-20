@@ -15,7 +15,7 @@ It defines the following entities:
 ## [Base build logic](./build-base.spec.ts.md)
 
 * `BuilderConfig`: configure build environment
-  from environment variables. Uses `@hackbg/konfizi`.
+  from environment variables. Uses `@hackbg/conf`.
 * `LocalBuilder`: base class for compiling contracts
   on the developer's workstation.
   * Implements basic **build caching**: existing build artifacts are reused.

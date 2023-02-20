@@ -1,7 +1,7 @@
 import type { Class } from './core-fields'
 import type { Client } from './core-client'
 import type { AnyContract } from './core-contract'
-import type { Deployment, DeploymentState } from './core-deployment'
+import type { Deployment } from './core-deployment'
 
 /** Transitional support for several of these:
   *  - YAML1 is how the latest @fadroma/deploy stores data
@@ -35,7 +35,7 @@ export abstract class DeployStore {
   /** Get a deployment by name, or null if such doesn't exist. */
   abstract get    (name: string):  Deployment|null
   /** Update a deployment's data. */
-  abstract set    (name: string, state?: Record<string, Partial<AnyContract>>): void
+  abstract set    (name: string, state?: Record<string, AnyContract>): void
   /** Create a new deployment. */
   abstract create (name?: string): Promise<Deployment>
   /** Activate a new deployment, or throw if such doesn't exist. */

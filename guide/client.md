@@ -114,7 +114,7 @@ environment support and the least amount of hurdles during development.
     "@fadroma/core": "^3"
   },
   "devDependencies": {
-    "typescript": "^4.7"
+    "typescript": "^4.9"
   }
 }
 ```
@@ -188,7 +188,7 @@ Now we're getting somewhere! There are a few things going on in the above exampl
 most importantly, it demonstrates the three-tier model of Fadroma Client.
 
 When using a client class, you're broadcasting transactions from a **specific address** on a
-**specific chain**, to a a **specific smart contract** on the **same chain**. This is specified
+**specific chain**, to a **specific smart contract** on the **same chain**. This is specified
 in terms of the following entities:
 
 ### `Chain`s
@@ -258,7 +258,7 @@ all blockchains supported by the contract.
 
 When executing a transaction, a gas limit is specified so that invoking a transaction cannot
 consume too much gas. However, each smart contract transaction method performs different
-computations, and therefore need a different amount of gas.
+computations, and therefore needs a different amount of gas.
 
 You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
 property of your client class:

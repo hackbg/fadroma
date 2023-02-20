@@ -5,12 +5,13 @@ import type { Address, Message, ExecOpts } from './core-tx'
 import type { AgentFees, ICoin, IFee } from './core-fee'
 import type { CodeHash } from './core-code'
 import type { Client, ClientClass } from './core-client'
-import type { Uploaded, AnyContract } from './core-contract'
+import type { Uploaded, Instantiated, AnyContract } from './core-contract'
 import type { Contract } from './core-contract'
 import type { Uploader, UploaderClass } from './core-upload'
 import type { Name } from './core-fields'
 import { ClientError as Error, ClientConsole as Console } from './core-events'
 import { assertChain } from './core-chain'
+import type { Many } from '@hackbg/many'
 
 /** A constructor for an Agent subclass. */
 export interface AgentClass<A extends Agent> extends Class<A, ConstructorParameters<typeof Agent>>{
@@ -114,7 +115,7 @@ export abstract class Agent {
     * @returns
     *   AnyContract with no `address` populated yet.
     *   This will be populated after executing the bundle. */
-  abstract instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Contract<C>>
+  abstract instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated>
   /** Create multiple smart contracts from a ContractTemplate (providing code id)
     * and a list or map of label/initmsg pairs.
     * Uses this agent's Bundle class to instantiate them in a single transaction.
@@ -130,11 +131,7 @@ export abstract class Agent {
     * @returns
     *   either an Array<AnyContract> or a Record<string, AnyContract>,
     *   depending on what is passed as inputs. */
-  instantiateMany (instances: Record<Name, AnyContract>):
-    Promise<Record<Name, AnyContract>>
-  instantiateMany (instances: AnyContract[]):
-    Promise<AnyContract[]>
-  async instantiateMany <C> (instances: C): Promise<C> {
+  async instantiateMany <C extends Many<AnyContract>> (instances: C): Promise<C> {
     // Returns an array of TX results.
     const response = await this.bundle().wrap(async bundle=>{
       await bundle.instantiateMany(instances)
@@ -146,7 +143,7 @@ export abstract class Agent {
       const found = response.find(({ label })=>label===instance.label)
       if (found) {
         const { address, tx, sender } = found // FIXME: implementation dependent
-        instance.define({ address, initTx: tx, initBy: sender })
+        instance.define({ address, initTx: tx, initBy: sender } as any)
       } else {
         this.log.warn(`Failed to find address for ${instance.label}.`)
         continue

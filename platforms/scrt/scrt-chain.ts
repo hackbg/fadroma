@@ -1,7 +1,9 @@
 import type * as SecretJS from 'secretjs'
 import { bip39, bip39EN } from '@hackbg/4mat'
 import { Chain, Fee } from '@fadroma/core'
-import type { Address, AgentClass, ChainClass, ChainId, ChainOpts, Client, Message, Uint128 } from '@fadroma/core'
+import type {
+  Address, AgentClass, AgentFees, ChainClass, ChainId, ChainOpts, Client, Message, Uint128
+} from '@fadroma/core'
 import type { ScrtAgent, ScrtAgentOpts } from './scrt-agent'
 import { ScrtConsole as Console, ScrtError as Error } from './scrt-events'
 import { ScrtConfig as Config } from './scrt-config'
@@ -19,18 +21,18 @@ export interface ScrtOpts extends ChainOpts {
 export class Scrt extends Chain {
 
   /** Connect to the Secret Network Mainnet. */
-  static Mainnet (config: Config) {
-    return new Scrt(config.mainnetChainId ?? Scrt.defaultMainnetChainId, {
+  static Mainnet (config?: Config) {
+    return new Scrt(config?.mainnetChainId ?? Scrt.defaultMainnetChainId, {
       mode: Chain.Mode.Mainnet,
-      url:  config.mainnetUrl || Scrt.defaultMainnetUrl,
+      url:  config?.mainnetUrl || Scrt.defaultMainnetUrl,
     })
   }
 
   /** Connect to the Secret Network Testnet. */
-  static Testnet (config: Config) {
-    return new Scrt(config.testnetChainId ?? Scrt.defaultTestnetChainId, {
+  static Testnet (config?: Config) {
+    return new Scrt(config?.testnetChainId ?? Scrt.defaultTestnetChainId, {
       mode: Chain.Mode.Testnet,
-      url:  config.testnetUrl || Scrt.defaultTestnetUrl,
+      url:  config?.testnetUrl || Scrt.defaultTestnetUrl,
     })
   }
 
@@ -59,7 +61,7 @@ export class Scrt extends Chain {
     return new Fee(amount, this.defaultDenom)
   }
 
-  static defaultFees = {
+  static defaultFees: AgentFees = {
     upload: this.gas(1000000),
     init:   this.gas(1000000),
     exec:   this.gas(1000000),
@@ -148,7 +150,7 @@ export class Scrt extends Chain {
   ): Promise<SecretJS.SecretNetworkClient> {
     options = { chainId: this.id, url: this.url, ...options }
     if (!options.url) throw new Error.NoApiUrl()
-    return await this.SecretJS.SecretNetworkClient.create(options as SecretJS.CreateClientOptions)
+    return await new (this.SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
   }
 
   /** Create a `ScrtAgent` on this `chain`.
@@ -196,7 +198,7 @@ export class Scrt extends Chain {
         let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
         this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
         if (max_gas < 0) {
-          max_gas = 1500000
+          max_gas = 10000000
           this.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
         }
         fees = {

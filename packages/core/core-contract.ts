@@ -1,4 +1,3 @@
-import type { Task } from '@hackbg/task'
 import type { Into, Name, Named, Many, Class } from './core-fields'
 import type { ClientClass } from './core-client'
 import type { Builder } from './core-build'
@@ -12,6 +11,7 @@ import type { Deployment } from './core-deployment'
 
 import { defineCallable } from '@hackbg/allo'
 import { hideProperties } from '@hackbg/hide'
+import { Task } from '@hackbg/task'
 import { codeHashOf } from './core-code'
 import { assertAddress } from './core-tx'
 import { defineTask, override, Maybe, into, map, mapAsync, defineDefault } from './core-fields'
@@ -79,9 +79,7 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
 
   constructor (options: Partial<ContractTemplate<C>> = {}) {
     super()
-    console.log({options})
     this.define(options)
-    console.log(this)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
       defineDefault(this, this.context, 'builder')
@@ -173,8 +171,10 @@ export class ContractTemplate<C extends Client> extends defineCallable(ensureTem
   /** Get an instance of this contract, or define a new one.
     * @returns task for deploying a contract, returning its client */
   instance (overrides?: Partial<Contract<C>>): Task<Contract<C>, C> {
-    const options: Partial<Contract<C>> = { ...this, ...overrides }
-    console.log(this, {options})
+    const options: Partial<Contract<C>> = {
+      ...this as unknown as Partial<Contract<C>>,
+      ...overrides
+    }
     const instance: Contract<C> = this.context
       ? this.context.contract(options)
       : new Contract(options)
@@ -203,14 +203,54 @@ export interface Contract<C extends Client> {
   (): Task<Contract<C>, C>
 }
 
+/** Calling a Contract instance invokes this function.
+  *
+  * - If the contract's address is already populated,
+  *   it returns the corresponding Client instance.
+  *
+  * - If the contract's address is not already available,
+  *   it looks up the contract in the deployment receipt by name.
+  *
+  * - If the contract's name is not in the receipt, it
+  *   returns a task that will deploy the contract when `await`ed. */
 function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>, C> {
-  return this.deployed
+
+  if (this.address) {
+
+    // If the address is available, this contract already exists
+    return new Task(`Found ${this.name}`, ()=>{
+      return getClientTo(this)
+    }, this)
+
+  } else if (this.name && this.context && this.context.hasContract(this.name)) {
+
+    // If the address is not available, but the name is in the receipt,
+    // populate self with the data from the receipt, and return the client
+    return new Task(`Found ${this.name}`, ()=>{
+      const data = this.context!.getContract(this.name!)
+      Object.assign(this, data)
+      return getClientTo(this)
+    }, this)
+
+  } else {
+
+    // Otherwise, deploy the contract
+    return this.deployed
+
+  }
+}
+
+function getClientTo <C extends Client> (contract: Contract<C>): C {
+  const $C = (contract.client ?? Client)
+  //@ts-ignore
+  const client = new $C(contract.agent, contract.address, contract.codeHash, contract as Contract<C>)
+  return client as unknown as C
 }
 
 /** Callable object: contract.
   * Can build and upload, and instantiate itself. */
 export class Contract<C extends Client> extends defineCallable(ensureContract) {
-  log = new Console(this.constructor.name)
+  log: Console
   /** The deployment that this contract belongs to. */
   context?:    Deployment     = undefined
   /** URL pointing to Git repository containing the source code. */
@@ -279,19 +319,20 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
 
   constructor (options: Partial<Contract<C>> = {}) {
     super({})
+    this.log = new Console(new.target.name)
     const self = this
     if (options.name) {
       setName(options.name)
     }
     if (this.context) {
       setPrefix(this.context.name)
-      defineDefault(this, this.context, 'agent')
-      defineDefault(this, this.context, 'builder')
-      defineDefault(this, this.context, 'uploader')
-      defineDefault(this, this.context, 'repository')
-      defineDefault(this, this.context, 'revision')
-      defineDefault(this, this.context, 'workspace')
     }
+    this.agent      = this.context?.agent      ?? this.agent
+    this.builder    = this.context?.builder    ?? this.builder
+    this.uploader   = this.context?.uploader   ?? this.uploader
+    this.repository = this.context?.repository ?? this.repository
+    this.revision   = this.context?.revision   ?? this.revision
+    this.workspace  = this.context?.workspace  ?? this.workspace
     override(this, options)
     hideProperties(this, 'log')
 
@@ -411,15 +452,26 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
         override(this as Contract<C>, instance)
         this.log?.afterDeploy(this as Partial<Contract<C>>)
         // Add self to deployment (FIXME necessary?)
-        if (this.context) this.context.addContract(this.name!, instance)
+        if (this.context) this.context.addContract(this.name!, this)
       }
       // Create and return the Client instance used to interact with the contract
-      const $C = (this.client ?? Client)
-      //@ts-ignore
-      const client = new $C(this.agent, this.address, this.codeHash, this as Contract<C>)
-      return client as unknown as C
+      return getClientTo(this)
     })
 
+  }
+
+  /** @returns an instance of this contract's client
+    * @throws tf the contract has no known address. */
+  expect (): C {
+    if (!this.address) {
+      if (this.name) {
+        throw new Error(`Expected unnamed contract to be already deployed.`)
+      } else {
+        throw new Error(`Expected contract to be already deployed: ${this.name}`)
+      }
+    } else {
+      return getClientTo(this)
+    }
   }
 
   /** @returns true if the specified properties match the properties of this contract. */
@@ -513,7 +565,7 @@ export interface Buildable {
 }
 
 /** Result of building a contract. */
-export interface Built {
+export interface Built extends Partial<Buildable> {
   artifact:   string|URL
   codeHash?:  CodeHash
   builder?:   Builder
@@ -521,7 +573,7 @@ export interface Built {
 }
 
 /** @returns the data for saving a build receipt. */
-export function toBuildReceipt (s: Buildable & Built) {
+export function toBuildReceipt (s: Partial<Built>) {
   return {
     repository: s.repository,
     revision:   s.revision,
@@ -537,14 +589,14 @@ export function toBuildReceipt (s: Buildable & Built) {
 }
 
 /** Parameters involved in uploading a contract */
-export interface Uploadable {
+export interface Uploadable extends Partial<Built> {
   artifact:  string|URL
   chainId:   ChainId,
   codeHash?: CodeHash
 }
 
 /** Result of uploading a contract */
-export interface Uploaded {
+export interface Uploaded extends Partial<Uploadable> {
   chainId:   ChainId
   codeId:    CodeId
   codeHash:  CodeHash
@@ -554,9 +606,7 @@ export interface Uploaded {
 }
 
 /** @returns the data for saving an upload receipt. */
-export function toUploadReceipt (
-  t: Buildable & Built & Uploadable & Uploaded
-) {
+export function toUploadReceipt (t: Partial<Uploaded>) {
   return {
     ...toBuildReceipt(t),
     chainId:    t.chainId,
