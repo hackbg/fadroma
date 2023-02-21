@@ -16,7 +16,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }})" >> $GITHUB_ENV
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v4
         with:
           context: .
           tags: ghcr.io/hackbg/fadroma:${{ env.IMAGE_TAG }}
