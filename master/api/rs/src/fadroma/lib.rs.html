@@ -92,7 +92,17 @@
 <a href="#92" id="92">92</a>
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
-</pre><pre class="rust"><code><span class="attr">#[cfg(not(feature = <span class="string">&quot;scrt&quot;</span>))]
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+</pre><pre class="rust"><code><span class="doccomment">//! # Note on network support
+//! Fadroma currently only supports Secret Network flavoured CosmWasm.
+//! As such, you **MUST** enable the `scrt` feature flag. Otherwise,
+//! you will get compilation errors - this is by design.
+
+</span><span class="attr">#[cfg(not(feature = <span class="string">&quot;scrt&quot;</span>))]
 </span><span class="macro">std::compile_error!</span>(<span class="string">&quot;Fadroma only currently supports Secret Network so the \&quot;scrt\&quot; feature must be enabled.&quot;</span>);
 
 <span class="attr">#[cfg(feature = <span class="string">&quot;scrt&quot;</span>)]
