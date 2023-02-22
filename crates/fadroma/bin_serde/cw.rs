@@ -119,8 +119,17 @@ impl FadromaDeserialize for Empty {
 
 #[cfg(test)]
 mod tests {
+    use proptest::{
+        prelude::*,
+        num,
+        collection::vec
+    };
+
+    use crate::{
+        cosmwasm_std::Uint128,
+        bin_serde::testing::{serde_len, proptest_serde_len, proptest_serde}
+    };
     use super::*;
-    use crate::bin_serde::testing::serde_len;
 
     #[test]
     fn serde_binary() {
@@ -132,5 +141,47 @@ mod tests {
 
         let binary = Binary(vec![33u8; 16384]);
         serde_len(&binary, 16387);
+    }
+
+    proptest! {
+        #[test]
+        fn proptest_serde_binary(bytes in vec(num::u8::ANY, 0..=1024)) {
+            let len = ByteLen::encode(bytes.len()).unwrap();
+            let byte_len = bytes.len();
+
+            proptest_serde_len(&Binary(bytes), len.size() + byte_len)?;
+        }
+
+        #[test]
+        fn proptest_serde_canonical_addr(bytes in vec(num::u8::ANY, 0..=1024)) {
+            let len = ByteLen::encode(bytes.len()).unwrap();
+            let byte_len = bytes.len();
+
+            proptest_serde_len(
+                &CanonicalAddr(Binary(bytes)),
+                len.size() + byte_len
+            )?;
+        }
+
+        #[test]
+        fn proptest_serde_addr(string in "\\PC*") {
+            let len = ByteLen::encode(string.len()).unwrap();
+            let byte_len = string.len();
+
+            proptest_serde_len(
+                &Addr::unchecked(string),
+                len.size() + byte_len
+            )?;
+        }
+
+        #[test]
+        fn proptest_serde_coin(denom in "\\PC*", amount in 064..u64::MAX) {
+            let coin = Coin {
+                denom,
+                amount: Uint128::new(amount as u128)
+            };
+
+            proptest_serde(&coin)?;
+        }
     }
 }

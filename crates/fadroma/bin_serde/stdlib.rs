@@ -189,10 +189,18 @@ impl<const N: usize> FadromaDeserialize for [u8; N] {
 
 #[cfg(test)]
 mod tests {
+    use proptest::{
+        prelude::*,
+        num,
+        collection::vec,
+        array::{uniform7, uniform13, uniform27}
+    };
+
     use crate::bin_serde::{
         FadromaSerialize, Serializer, Deserializer,
-        testing::serde_len
+        testing::{serde_len, proptest_serde_len}
     };
+    use super::*;
 
     #[test]
     fn serde_option() {
@@ -276,5 +284,75 @@ mod tests {
 
         string.push('W');
         serde_len(&string, 130);
+    }
+
+    proptest! {
+        #[test]
+        fn proptest_serde_byte_slice(bytes in vec(num::u8::ANY, 0..=1024)) {
+            let len = ByteLen::encode(bytes.len()).unwrap();
+
+            let mut ser = Serializer::with_capacity(len.size() + bytes.len());
+            FadromaSerialize::to_bytes(bytes.as_slice(), &mut ser).unwrap();
+
+            let serialized_bytes = ser.finish();
+            prop_assert_eq!(serialized_bytes.len(), len.size() + bytes.len());
+
+            let mut de = Deserializer::from(&serialized_bytes);
+            let result: Vec<u8> = de.deserialize().unwrap();
+            prop_assert_eq!(de.is_finished(), true);
+
+            prop_assert_eq!(result, bytes);
+        }
+
+        #[test]
+        fn proptest_serde_str(string in "\\PC*") {
+            let len = ByteLen::encode(string.len()).unwrap();
+
+            let mut ser = Serializer::with_capacity(len.size() + string.len());
+            FadromaSerialize::to_bytes(string.as_bytes(), &mut ser).unwrap();
+
+            let serialized_bytes = ser.finish();
+            prop_assert_eq!(serialized_bytes.len(), len.size() + string.len());
+
+            let mut de = Deserializer::from(&serialized_bytes);
+            let result: String = de.deserialize().unwrap();
+            prop_assert_eq!(de.is_finished(), true);
+
+            prop_assert_eq!(result, string);
+        }
+
+        #[test]
+        fn proptest_serde_string(string in "\\PC*") {
+            let len = ByteLen::encode(string.len()).unwrap();
+            proptest_serde_len(&string, len.size() + string.len())?;
+        }
+
+        #[test]
+        fn proptest_serde_vec_string(vec in vec("\\PC*", 0..=100)) {
+            let vec_byte_len = ByteLen::encode(vec.len()).unwrap();
+            let mut byte_len = vec_byte_len.size();
+
+            for s in &vec {
+                let len = ByteLen::encode(s.len()).unwrap();
+                byte_len += len.size() + s.len();
+            }
+
+            proptest_serde_len(&vec, byte_len)?;
+        }
+
+        #[test]
+        fn proptest_serde_array7(bytes in uniform7(0..u8::MAX)) {
+            proptest_serde_len(&bytes, 1 + 7)?;
+        }
+
+        #[test]
+        fn proptest_serde_array13(bytes in uniform13(0..u8::MAX)) {
+            proptest_serde_len(&bytes, 1 + 13)?;
+        }
+
+        #[test]
+        fn proptest_serde_array27(bytes in uniform27(0..u8::MAX)) {
+            proptest_serde_len(&bytes, 1 + 27)?;
+        }
     }
 }

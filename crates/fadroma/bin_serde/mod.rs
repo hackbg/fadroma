@@ -214,6 +214,7 @@ impl Display for Error {
 #[cfg(test)]
 pub(crate) mod testing {
     use std::fmt::Debug;
+    use proptest::{prelude::TestCaseError, prop_assert_eq};
     use super::*;
 
     pub fn serde<T>(item: &T)
@@ -224,7 +225,7 @@ pub(crate) mod testing {
         let mut de = Deserializer::from(&bytes);
         let result = de.deserialize::<T>().unwrap();
 
-        assert_eq!(de.len(), de.read);
+        assert!(de.is_finished());
         assert_eq!(result, *item);
     }
 
@@ -237,7 +238,36 @@ pub(crate) mod testing {
         let mut de = Deserializer::from(&bytes);
         let result = de.deserialize::<T>().unwrap();
 
-        assert_eq!(de.len(), de.read);
+        assert!(de.is_finished());
         assert_eq!(result, *item);
+    }
+
+    pub fn proptest_serde<T>(item: &T) -> std::result::Result<(), TestCaseError>
+        where T: FadromaSerialize + FadromaDeserialize + PartialEq + Debug
+    {
+        let bytes = item.serialize().unwrap();
+        
+        let mut de = Deserializer::from(&bytes);
+        let result = de.deserialize::<T>().unwrap();
+
+        assert!(de.is_finished());
+        assert_eq!(result, *item);
+
+        Ok(())
+    }
+
+    pub fn proptest_serde_len<T>(item: &T, byte_len: usize) -> std::result::Result<(), TestCaseError>
+        where T: FadromaSerialize + FadromaDeserialize + PartialEq + Debug
+    {
+        let bytes = item.serialize().unwrap();
+        prop_assert_eq!(bytes.len(), byte_len);
+
+        let mut de = Deserializer::from(&bytes);
+        let result = de.deserialize::<T>().unwrap();
+
+        prop_assert_eq!(de.is_finished(), true);
+        prop_assert_eq!(&result, item);
+
+        Ok(())
     }
 }

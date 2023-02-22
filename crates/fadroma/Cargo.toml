@@ -99,6 +99,7 @@ secret-cosmwasm-std = { version = "1.0.0", default-features = false, features = 
 [dev-dependencies]
 criterion = "0.4.0"
 bincode2 = "2.0.1"
+proptest = "1.1.0"
 
 [[bench]]
 name = "bench_main"

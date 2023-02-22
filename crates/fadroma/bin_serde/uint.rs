@@ -224,10 +224,18 @@ impl FadromaDeserialize for Decimal256 {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use std::{str::FromStr, convert::TryInto};
+    use proptest::{
+        prelude::*,
+        array::{uniform16, uniform32},
+        collection::vec,
+        num
+    };
 
     use super::*;
-    use crate::bin_serde::testing::{serde, serde_len};
+    use crate::bin_serde::testing::{
+        serde, serde_len, proptest_serde, proptest_serde_len
+    };
 
     // This makes sure that if the underlying representation
     // of the CW uints changes, we get notified about it.
@@ -392,5 +400,78 @@ mod tests {
         serde_len(&num, 12);
 
         serde_len(&Decimal256::MAX, 33);
+    }
+
+    proptest! {
+        #[test]
+        fn proptest_serde_u16(num in 0u16..=u16::MAX) {
+            proptest_serde_len(&num, 2)?;
+        }
+
+        #[test]
+        fn proptest_serde_u32(num in 0u32..=u32::MAX) {
+            proptest_serde(&num)?;
+        }
+
+        #[test]
+        fn proptest_serde_u64(num in 0u64..=u64::MAX) {
+            proptest_serde(&num)?;
+        }
+
+        #[test]
+        fn proptest_serde_u128(bytes in uniform16(0..u8::MAX)) {
+            let num = u128::from_le_bytes(bytes);
+            proptest_serde(&num)?;
+
+            let num = u128::from_be_bytes(bytes);
+            proptest_serde(&num)?;
+        }
+
+        #[test]
+        fn proptest_serde_uint128(bytes in uniform16(0..u8::MAX)) {
+            let num = u128::from_le_bytes(bytes);
+            proptest_serde(&Uint128::new(num))?;
+
+            let num = u128::from_be_bytes(bytes);
+            proptest_serde(&Uint128::new(num))?;
+        }
+
+        #[test]
+        fn proptest_serde_decimal(bytes in uniform16(0..u8::MAX)) {
+            let num = u128::from_le_bytes(bytes);
+            proptest_serde(&Decimal::new(Uint128::new(num)))?;
+
+            let num = u128::from_be_bytes(bytes);
+            proptest_serde(&Decimal::new(Uint128::new(num)))?;
+        }
+
+        #[test]
+        fn proptest_serde_uint256(bytes in uniform32(0..u8::MAX)) {
+            let num = Uint256::from_le_bytes(bytes);
+            proptest_serde(&num)?;
+
+            let num = Uint256::from_be_bytes(bytes);
+            proptest_serde(&num)?;
+        }
+
+        #[test]
+        fn proptest_serde_decimal256(bytes in uniform32(0..u8::MAX)) {
+            let num = Uint256::from_le_bytes(bytes);
+            proptest_serde(&Decimal256::new(num))?;
+
+            let num = Uint256::from_be_bytes(bytes);
+            proptest_serde(&Decimal256::new(num))?;
+        }
+
+        #[test]
+        fn proptest_serde_uint512(bytes in vec(num::u8::ANY, 64..=64)) {
+            let bytes: [u8; 64] = bytes.try_into().unwrap();
+            
+            let num = Uint512::from_le_bytes(bytes);
+            proptest_serde(&num)?;
+
+            let num = Uint512::from_be_bytes(bytes);
+            proptest_serde(&num)?;
+        }
     }
 }
