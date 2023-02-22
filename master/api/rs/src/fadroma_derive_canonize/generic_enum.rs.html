@@ -42,6 +42,8 @@
 <a href="#42" id="42">42</a>
 <a href="#43" id="43">43</a>
 <a href="#44" id="44">44</a>
+<a href="#45" id="45">45</a>
+<a href="#46" id="46">46</a>
 </pre><pre class="rust"><code><span class="kw">use super</span>::r#enum::generate_match_arms;
 <span class="kw">use </span>proc_macro2::Span;
 <span class="kw">use </span>quote::quote;
@@ -65,7 +67,8 @@
     <span class="kw">let </span>humanize_impl = generate_match_arms(<span class="kw-2">&amp;mut </span>variants, <span class="kw-2">&amp;</span>ident, <span class="kw-2">&amp;</span>ident, <span class="bool-val">false</span>);
 
     proc_macro::TokenStream::from(<span class="macro">quote! </span>{
-        <span class="kw">impl </span>fadroma::prelude::Canonize <span class="kw">for </span>#ident&lt;cosmwasm_std::Addr&gt; {
+        <span class="attr">#[automatically_derived]
+        </span><span class="kw">impl </span>fadroma::prelude::Canonize <span class="kw">for </span>#ident&lt;cosmwasm_std::Addr&gt; {
             <span class="kw">type </span>Output = #ident&lt;cosmwasm_std::CanonicalAddr&gt;;
 
             <span class="kw">fn </span>canonize(<span class="self">self</span>, api: <span class="kw-2">&amp;</span><span class="kw">dyn </span>cosmwasm_std::Api) -&gt; cosmwasm_std::StdResult&lt;<span class="self">Self</span>::Output&gt; {
@@ -75,7 +78,8 @@
             }
         }
 
-        <span class="kw">impl </span>fadroma::prelude::Humanize <span class="kw">for </span>#ident&lt;cosmwasm_std::CanonicalAddr&gt; {
+        <span class="attr">#[automatically_derived]
+        </span><span class="kw">impl </span>fadroma::prelude::Humanize <span class="kw">for </span>#ident&lt;cosmwasm_std::CanonicalAddr&gt; {
             <span class="kw">type </span>Output = #ident&lt;cosmwasm_std::Addr&gt;;
 
             <span class="kw">fn </span>humanize(<span class="self">self</span>, api: <span class="kw-2">&amp;</span><span class="kw">dyn </span>cosmwasm_std::Api) -&gt; cosmwasm_std::StdResult&lt;<span class="self">Self</span>::Output&gt; {

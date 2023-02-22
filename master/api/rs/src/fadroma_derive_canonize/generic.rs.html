@@ -49,6 +49,8 @@
 <a href="#49" id="49">49</a>
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
 </pre><pre class="rust"><code><span class="kw">use </span>syn::{ItemStruct, ItemImpl, parse_quote};
 <span class="kw">use </span>proc_macro2::Span;
 <span class="kw">use </span>quote::quote;
@@ -75,7 +77,8 @@
 
     <span class="kw">let </span>fields = canonize_fields(<span class="kw-2">&amp;</span>strukt.fields, <span class="bool-val">true</span>);
     <span class="kw">let </span>canonize_impl: ItemImpl = <span class="macro">parse_quote! </span>{
-        <span class="kw">impl </span>fadroma::prelude::Canonize <span class="kw">for </span>#ident&lt;cosmwasm_std::Addr&gt; {
+        <span class="attr">#[automatically_derived]
+        </span><span class="kw">impl </span>fadroma::prelude::Canonize <span class="kw">for </span>#ident&lt;cosmwasm_std::Addr&gt; {
             <span class="kw">type </span>Output = #ident&lt;cosmwasm_std::CanonicalAddr&gt;;
 
             <span class="kw">fn </span>canonize(<span class="self">self</span>, api: <span class="kw-2">&amp;</span><span class="kw">dyn </span>cosmwasm_std::Api) -&gt; cosmwasm_std::StdResult&lt;<span class="self">Self</span>::Output&gt; {
@@ -86,7 +89,8 @@
 
     <span class="kw">let </span>fields = canonize_fields(<span class="kw-2">&amp;</span>strukt.fields, <span class="bool-val">false</span>);
     <span class="kw">let </span>humanize_impl: ItemImpl = <span class="macro">parse_quote! </span>{
-        <span class="kw">impl </span>fadroma::prelude::Humanize <span class="kw">for </span>#ident&lt;cosmwasm_std::CanonicalAddr&gt; {
+        <span class="attr">#[automatically_derived]
+        </span><span class="kw">impl </span>fadroma::prelude::Humanize <span class="kw">for </span>#ident&lt;cosmwasm_std::CanonicalAddr&gt; {
             <span class="kw">type </span>Output = #ident&lt;cosmwasm_std::Addr&gt;;
 
             <span class="kw">fn </span>humanize(<span class="self">self</span>, api: <span class="kw-2">&amp;</span><span class="kw">dyn </span>cosmwasm_std::Api) -&gt; cosmwasm_std::StdResult&lt;<span class="self">Self</span>::Output&gt; {

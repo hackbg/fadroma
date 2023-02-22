@@ -76,6 +76,7 @@
 <a href="#76" id="76">76</a>
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
 </pre><pre class="rust"><code><span class="kw">use </span>proc_macro2::Span;
 <span class="kw">use </span>quote::quote;
 <span class="kw">use </span>syn::{
@@ -127,8 +128,9 @@
     attrs.clear();
     attrs.push(<span class="macro">parse_quote!</span>(<span class="attr">#[derive(serde::Serialize)]</span>));
     attrs.push(<span class="macro">parse_quote!</span>(<span class="attr">#[derive(serde::Deserialize)]</span>));
+    attrs.push(<span class="macro">parse_quote!</span>(<span class="attr">#[derive(fadroma::bin_serde::FadromaSerialize)]</span>));
+    attrs.push(<span class="macro">parse_quote!</span>(<span class="attr">#[derive(fadroma::bin_serde::FadromaDeserialize)]</span>));
 }
-
 
 <span class="kw">pub fn </span>transform_fields(fields: <span class="kw-2">&amp;mut </span>Fields) -&gt; syn::Result&lt;()&gt; {
     <span class="kw">match </span>fields {

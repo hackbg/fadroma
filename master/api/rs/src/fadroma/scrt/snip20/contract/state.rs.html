@@ -272,15 +272,17 @@
 <a href="#272" id="272">272</a>
 <a href="#273" id="273">273</a>
 <a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::ops::Deref;
 
 <span class="kw">use crate</span>::{
+    <span class="self">self </span><span class="kw">as </span>fadroma,
     scrt::snip20::client::msg::ContractStatusLevel,
     storage::Segment,
     prelude::{
         BlockInfo, CanonicalAddr, StdResult, Storage, Uint128,
         ViewingKey, ViewingKeyHashed, SingleItem, ItemSpace,
-        TypedKey, TypedKey2
+        TypedKey, TypedKey2, FadromaSerialize, FadromaDeserialize
     }
 };
 
@@ -306,7 +308,7 @@
 </span><span class="kw">pub struct </span>TotalSupplyStore(<span class="kw">pub </span>SingleItem&lt;Uint128, TotalSupplyNs&gt;);
 
 <span class="comment">// Config
-</span><span class="attr">#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema)]
+</span><span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, JsonSchema, Debug)]
 </span><span class="kw">pub struct </span>Constants {
     <span class="kw">pub </span>name: String,
     <span class="kw">pub </span>symbol: String,
@@ -334,7 +336,7 @@
     addr: CanonicalAddr
 }
 
-<span class="attr">#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, Default, JsonSchema)]
+<span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, Default, JsonSchema, Debug)]
 </span><span class="kw">pub struct </span>Allowance {
     <span class="kw">pub </span>amount: Uint128,
     <span class="kw">pub </span>expiration: <span class="prelude-ty">Option</span>&lt;u64&gt;

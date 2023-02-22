@@ -619,25 +619,27 @@
 <a href="#619" id="619">619</a>
 <a href="#620" id="620">620</a>
 <a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{mem, marker::PhantomData};
 
-<span class="kw">use </span>serde::{Serialize, de::DeserializeOwned};
-
-<span class="kw">use </span><span class="kw">crate</span>::cosmwasm_std::{
-    Storage, StdResult, StdError
+<span class="kw">use crate</span>::{
+    bin_serde::{FadromaSerialize, FadromaDeserialize},
+    cosmwasm_std::{
+        Storage, StdResult, StdError
+    }
 };
 <span class="kw">use </span><span class="kw">super</span>::Key;
 
 <span class="doccomment">/// Stores items in a way that allows for iterating over them
 /// in a sequential order just like a Vec. It&#39;s also possible to
 /// retrieve or update inidividual items based on their index.
-</span><span class="kw">pub struct </span>IterableStorage&lt;T: DeserializeOwned + Serialize, K: Key&gt; {
+</span><span class="kw">pub struct </span>IterableStorage&lt;T: FadromaSerialize + FadromaDeserialize, K: Key&gt; {
     ns: K,
     len: <span class="prelude-ty">Option</span>&lt;u64&gt;,
     data: PhantomData&lt;T&gt;
 }
 
-<span class="kw">impl</span>&lt;T: DeserializeOwned + Serialize, K: Key&gt; IterableStorage&lt;T, K&gt; {
+<span class="kw">impl</span>&lt;T: FadromaSerialize + FadromaDeserialize, K: Key&gt; IterableStorage&lt;T, K&gt; {
     <span class="kw">const </span>KEY_INDEX: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>[u8] = <span class="string">b&quot;index&quot;</span>;
 
     <span class="doccomment">/// Creates an instance for the given namespace.
@@ -950,7 +952,7 @@
 
 <span class="doccomment">/// [`IterableStorage`] iterator. Iterates over values in order.
 /// You don&#39;t instantiate this type directly but by calling [`IterableStorage::iter`] instead.
-</span><span class="kw">pub struct </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T: DeserializeOwned&gt; {
+</span><span class="kw">pub struct </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T: FadromaDeserialize&gt; {
     storage: <span class="kw-2">&amp;</span><span class="lifetime">&#39;storage </span><span class="kw">dyn </span>Storage,
     ns: Vec&lt;u8&gt;,
     current: u64,
@@ -958,7 +960,7 @@
     result: PhantomData&lt;T&gt;
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: DeserializeOwned&gt; Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: FadromaDeserialize&gt; Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; {
     <span class="kw">pub fn </span>new&lt;K: Key&gt;(storage: <span class="kw-2">&amp;</span><span class="lifetime">&#39;storage </span><span class="kw">dyn </span>Storage, ns: <span class="kw-2">&amp;</span>K, len: u64) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>key = Vec::with_capacity(ns.size() + mem::size_of::&lt;u64&gt;());
         ns.write_segments(<span class="kw-2">&amp;mut </span>key);
@@ -987,7 +989,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: DeserializeOwned&gt; Iterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: FadromaDeserialize&gt; Iterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; {
     <span class="kw">type </span>Item = StdResult&lt;T&gt;;
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
@@ -1012,7 +1014,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: DeserializeOwned&gt; DoubleEndedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: FadromaDeserialize&gt; DoubleEndedIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; {
     <span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">if </span><span class="self">self</span>.current &gt;= <span class="self">self</span>.end {
             <span class="kw">return </span><span class="prelude-val">None</span>;
@@ -1030,7 +1032,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: DeserializeOwned&gt; ExactSizeIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; { }
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;storage</span>, T: FadromaDeserialize&gt; ExactSizeIterator <span class="kw">for </span>Iter&lt;<span class="lifetime">&#39;storage</span>, T&gt; { }
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {

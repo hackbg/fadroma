@@ -155,7 +155,7 @@
     <span class="self">self </span><span class="kw">as </span>fadroma,
     cosmwasm_std::{<span class="self">self</span>, StdResult, Addr, Env, Api},
     impl_canonize_default,
-    prelude::{Canonize, Humanize},
+    prelude::{Canonize, Humanize, FadromaSerialize, FadromaDeserialize},
     schemars::{<span class="self">self</span>, JsonSchema},
 };
 
@@ -165,7 +165,7 @@
 <span class="kw">pub type </span>CodeHash = String;
 
 <span class="doccomment">/// Info needed to instantiate a contract.
-</span><span class="attr">#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+</span><span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
 </span><span class="kw">pub struct </span>ContractInstantiationInfo {
     <span class="kw">pub </span>code_hash: CodeHash,
     <span class="kw">pub </span>id: CodeId,
@@ -184,7 +184,7 @@
 }
 
 <span class="doccomment">/// Info needed to talk to a contract instance.
-</span><span class="attr">#[derive(Default, Serialize, Canonize, Deserialize, JsonSchema, Clone, Debug)]
+</span><span class="attr">#[derive(Default, Serialize, Canonize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
 </span><span class="kw">pub struct </span>ContractLink&lt;A&gt; {
     <span class="kw">pub </span>address: A,
     <span class="kw">pub </span>code_hash: CodeHash,

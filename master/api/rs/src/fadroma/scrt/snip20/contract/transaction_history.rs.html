@@ -290,11 +290,7 @@
 <a href="#290" id="290">290</a>
 <a href="#291" id="291">291</a>
 <a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a>
-<a href="#294" id="294">294</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::ops::Deref;
-
-<span class="kw">use </span>serde::{Serialize, de::DeserializeOwned};
 
 <span class="kw">use crate</span>::{
     prelude::<span class="kw-2">*</span>,
@@ -527,7 +523,7 @@
     }
 }
 
-<span class="kw">fn </span>pages&lt;<span class="lifetime">&#39;a</span>, T: Serialize + DeserializeOwned + Humanize&gt;(
+<span class="kw">fn </span>pages&lt;<span class="lifetime">&#39;a</span>, T: FadromaSerialize + FadromaDeserialize + Humanize&gt;(
     iter: iterable::Iter&lt;<span class="lifetime">&#39;a</span>, T&gt;,
     api: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Api,
     page: u32,

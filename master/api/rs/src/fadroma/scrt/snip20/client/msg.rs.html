@@ -996,7 +996,7 @@
     }
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+<span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Debug, PartialEq, JsonSchema)]
 </span><span class="kw">pub struct </span>TokenInfo {
     <span class="kw">pub </span>name: String,
     <span class="kw">pub </span>symbol: String,
@@ -1017,7 +1017,7 @@
     Failure
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+<span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = <span class="string">&quot;snake_case&quot;</span>)]
 </span><span class="kw">pub enum </span>ContractStatusLevel {
     NormalRun,
@@ -1026,7 +1026,7 @@
 }
 
 <span class="comment">// Transfer history
-</span><span class="attr">#[derive(Serialize, Deserialize, Canonize, JsonSchema, Clone, Debug)]
+</span><span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, Clone, Debug)]
 </span><span class="kw">pub struct </span>Tx&lt;T&gt; {
     <span class="kw">pub </span>id: u64,
     <span class="kw">pub </span>from: T,
@@ -1083,7 +1083,7 @@
     Redeem = <span class="number">4
 </span>}
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone, Debug)]
+<span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Debug)]
 #[serde(rename_all = <span class="string">&quot;snake_case&quot;</span>)]
 </span><span class="kw">pub struct </span>TxActionCanon {
     tx_type: u8,

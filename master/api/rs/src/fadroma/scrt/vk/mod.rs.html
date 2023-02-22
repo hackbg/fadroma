@@ -154,6 +154,7 @@
 <a href="#154" id="154">154</a>
 <a href="#155" id="155">155</a>
 <a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
 </pre><pre class="rust"><code><span class="doccomment">//! Viewing key authentication.
 //! *Feature flag: `vk`*
 
@@ -164,6 +165,7 @@
 <span class="kw">use </span>subtle::ConstantTimeEq;
 
 <span class="kw">use crate</span>::{
+    <span class="self">self </span><span class="kw">as </span>fadroma,
     prelude::<span class="kw-2">*</span>,
     crypto::{Prng, sha_256},
     impl_canonize_default
@@ -180,7 +182,7 @@
 /// (using [`ViewingKey::to_hashed`]) and then call [`ViewingKeyHashed::check`] which performs
 /// a specialized constant time equality comparison. [`ViewingKey::check`] and
 /// [`ViewingKey::check_hashed`] are also provided for convenience.
-</span><span class="attr">#[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
+</span><span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Default, Debug)]
 </span><span class="kw">pub struct </span>ViewingKey(<span class="kw">pub </span>String);
 
 <span class="doccomment">/// [`ViewingKey`] as a SHA-256 hash.
@@ -188,7 +190,7 @@
 /// [`PartialEq`] is intentionally not implemented on this type in order to prevent
 /// from using it to check viewing keys that way. Use [`ViewingKeyHashed::check`]
 /// instead which performs a specialized constant time equality comparison.
-</span><span class="attr">#[derive(Serialize, Deserialize, JsonSchema, Clone, Copy, Default, Debug)]
+</span><span class="attr">#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Copy, Default, Debug)]
 </span><span class="kw">pub struct </span>ViewingKeyHashed([u8; <span class="self">Self</span>::SIZE]);
 
 <span class="macro">impl_canonize_default!</span>(ViewingKey);
