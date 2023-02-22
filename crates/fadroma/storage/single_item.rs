@@ -1,10 +1,8 @@
 use std::marker::PhantomData;
 
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-
 use crate::{
     core::{Humanize, Canonize},
+    bin_serde::{FadromaSerialize, FadromaDeserialize},
     cosmwasm_std::{Deps, DepsMut, Storage, StdResult}
 };
 use super::{Namespace, not_found_error};
@@ -32,12 +30,12 @@ use super::{Namespace, not_found_error};
 /// assert_eq!(stored, 13);
 /// 
 /// ```
-pub struct SingleItem<T: Serialize + DeserializeOwned, N: Namespace> {
+pub struct SingleItem<T: FadromaSerialize + FadromaDeserialize, N: Namespace> {
     namespace_data: PhantomData<N>,
     item_data: PhantomData<T>
 }
 
-impl<T: Serialize + DeserializeOwned, N: Namespace> SingleItem<T, N> {
+impl<T: FadromaSerialize + FadromaDeserialize, N: Namespace> SingleItem<T, N> {
     #[inline]
     pub const fn new() -> Self {
         Self {
@@ -99,7 +97,7 @@ impl<T: Serialize + DeserializeOwned, N: Namespace> SingleItem<T, N> {
 }
 
 impl<
-    T: Serialize + DeserializeOwned + Humanize,
+    T: FadromaSerialize + FadromaDeserialize + Humanize,
     N: Namespace
 > SingleItem<T, N> {
     #[inline]
@@ -127,7 +125,7 @@ impl<
 }
 
 impl<
-    T: Serialize + DeserializeOwned + Humanize,
+    T: FadromaSerialize + FadromaDeserialize + Humanize,
     N: Namespace
 > SingleItem<T, N>
     where <T as Humanize>::Output: Default
@@ -144,7 +142,7 @@ impl<
 }
 
 impl<
-    T: Serialize + DeserializeOwned + Default,
+    T: FadromaSerialize + FadromaDeserialize + Default,
     N: Namespace
 > SingleItem<T, N> {
     #[inline]

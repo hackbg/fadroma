@@ -49,8 +49,9 @@ pub fn add_serde_derive(attrs: &mut Vec<Attribute>) {
     attrs.clear();
     attrs.push(parse_quote!(#[derive(serde::Serialize)]));
     attrs.push(parse_quote!(#[derive(serde::Deserialize)]));
+    attrs.push(parse_quote!(#[derive(fadroma::bin_serde::FadromaSerialize)]));
+    attrs.push(parse_quote!(#[derive(fadroma::bin_serde::FadromaDeserialize)]));
 }
-
 
 pub fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
     match fields {

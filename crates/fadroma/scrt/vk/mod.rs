@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use subtle::ConstantTimeEq;
 
 use crate::{
+    self as fadroma,
     prelude::*,
     crypto::{Prng, sha_256},
     impl_canonize_default
@@ -24,7 +25,7 @@ const VIEWING_KEY_PREFIX: &str = "api_key_";
 /// (using [`ViewingKey::to_hashed`]) and then call [`ViewingKeyHashed::check`] which performs
 /// a specialized constant time equality comparison. [`ViewingKey::check`] and
 /// [`ViewingKey::check_hashed`] are also provided for convenience.
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Default, Debug)]
 pub struct ViewingKey(pub String);
 
 /// [`ViewingKey`] as a SHA-256 hash.
@@ -32,7 +33,7 @@ pub struct ViewingKey(pub String);
 /// [`PartialEq`] is intentionally not implemented on this type in order to prevent
 /// from using it to check viewing keys that way. Use [`ViewingKeyHashed::check`]
 /// instead which performs a specialized constant time equality comparison.
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Copy, Default, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Copy, Default, Debug)]
 pub struct ViewingKeyHashed([u8; Self::SIZE]);
 
 impl_canonize_default!(ViewingKey);

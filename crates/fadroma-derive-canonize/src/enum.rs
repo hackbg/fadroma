@@ -34,6 +34,8 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
 
     proc_macro::TokenStream::from(quote! {
         #input
+
+        #[automatically_derived]
         impl fadroma::prelude::Canonize for #humanized {
             type Output = #canonized;
 
@@ -43,6 +45,8 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
                 })
             }
         }
+
+        #[automatically_derived]
         impl fadroma::prelude::Humanize for #canonized {
             type Output = #humanized;
 
@@ -64,9 +68,7 @@ pub fn generate_match_arms(
     let mut res = Vec::new();
     for (_, variant) in variants.iter_mut().enumerate() {
         let name = &variant.ident;
-
         let names = extract_field_names(&variant.fields);
-
         let fields = canonize_fields(&variant.fields, canonize);
 
         res.push(quote! {

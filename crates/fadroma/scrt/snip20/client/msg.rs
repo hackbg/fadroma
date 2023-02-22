@@ -356,7 +356,7 @@ pub enum QueryAnswer {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TokenInfo {
     pub name: String,
     pub symbol: String,
@@ -377,7 +377,7 @@ pub enum ResponseStatus {
     Failure
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ContractStatusLevel {
     NormalRun,
@@ -386,7 +386,7 @@ pub enum ContractStatusLevel {
 }
 
 // Transfer history
-#[derive(Serialize, Deserialize, Canonize, JsonSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, Clone, Debug)]
 pub struct Tx<T> {
     pub id: u64,
     pub from: T,
@@ -443,7 +443,7 @@ pub enum TxCode {
     Redeem = 4
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct TxActionCanon {
     tx_type: u8,

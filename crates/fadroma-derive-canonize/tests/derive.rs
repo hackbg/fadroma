@@ -1,16 +1,16 @@
 use fadroma::{
     self,
     cosmwasm_std::{self, testing::mock_dependencies, Addr, Uint128},
-    prelude::{storage, Canonize, Humanize},
+    prelude::{storage, Canonize, Humanize, FadromaSerialize},
 };
 
-#[derive(Canonize, PartialEq, Clone, serde::Serialize)]
+#[derive(Canonize, PartialEq, Clone, FadromaSerialize)]
 struct Test {
     pub addr: Addr,
     amount: Uint128,
 }
 
-#[derive(Canonize, PartialEq, Clone, serde::Deserialize)]
+#[derive(Canonize, PartialEq, Clone, FadromaSerialize)]
 struct TestTuple(pub Addr, Uint128);
 
 impl Default for Test {

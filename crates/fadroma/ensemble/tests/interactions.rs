@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
 use anyhow::{Result as AnyResult, bail};
 
-use crate::ensemble::{
-    ContractEnsemble, ContractHarness,
-    MockEnv, EnsembleResult, EnsembleError
+use crate::{
+    self as fadroma,
+    ensemble::{
+        ContractEnsemble, ContractHarness,
+        MockEnv, EnsembleResult, EnsembleError
+    }
 };
 use crate::prelude::*;
 
@@ -286,7 +289,7 @@ enum BlockHeightHandle {
     Set,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Debug, PartialEq)]
 struct Block {
     height: u64,
     time: u64,
@@ -401,7 +404,7 @@ fn test_reverts_state_on_fail() {
     assert_eq!(number, 1);
 
     ensemble.contract_storage_mut(result.counter.address.clone(), |storage| {
-        storage.set(b"num", &to_vec(&2u8).unwrap());
+        storage.set(b"num", &[2]);
 
         Ok(())
     })

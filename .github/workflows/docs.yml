@@ -44,9 +44,6 @@ jobs:
       - name: Generate TypeScript coverage
         run: pnpm test:lcov || true
 
-      - name: Unveil Cargo.toml
-        run:  cp _Cargo.toml Cargo.toml
-
       - name: Generate Rust reference
         uses: actions-rs/cargo@v1
         with:

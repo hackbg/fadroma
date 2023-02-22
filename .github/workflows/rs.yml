@@ -13,15 +13,8 @@ jobs:
           toolchain: stable
           target:    wasm32-unknown-unknown
           override:  true
-      - name: Unveil Cargo.toml
-        run: cp _Cargo.toml Cargo.toml
-      - name: Run cargo publish --dry-run
-        run: |
-          cargo publish --dry-run -p fadroma -F scrt
-          cargo publish --dry-run -p fadroma-derive-canonize
-          cargo publish --dry-run -p fadroma-proc-auth
-          cargo publish --dry-run -p fadroma-proc-derive
-          cargo publish --dry-run -p fadroma-proc-message
+      - name: Try building for WASM
+        run: cargo build --all-features
   #rs-coverage:
     #name: cargo tarpaulin
     #runs-on: ubuntu-latest

@@ -24,6 +24,7 @@ fn generate_trait_impls(strukt: &ItemStruct) -> proc_macro2::TokenStream {
 
     let fields = canonize_fields(&strukt.fields, true);
     let canonize_impl: ItemImpl = parse_quote! {
+        #[automatically_derived]
         impl fadroma::prelude::Canonize for #ident<cosmwasm_std::Addr> {
             type Output = #ident<cosmwasm_std::CanonicalAddr>;
 
@@ -35,6 +36,7 @@ fn generate_trait_impls(strukt: &ItemStruct) -> proc_macro2::TokenStream {
 
     let fields = canonize_fields(&strukt.fields, false);
     let humanize_impl: ItemImpl = parse_quote! {
+        #[automatically_derived]
         impl fadroma::prelude::Humanize for #ident<cosmwasm_std::CanonicalAddr> {
             type Output = #ident<cosmwasm_std::Addr>;
 

@@ -3,11 +3,13 @@ use std::fmt::Debug;
 use fadroma::{
     self,
     cosmwasm_std::{self, testing::mock_dependencies, Addr, Uint128},
-    prelude::{storage, Binary, CanonicalAddr, Canonize, Humanize},
+    prelude::{
+        storage, Binary, CanonicalAddr, Canonize,
+        Humanize, FadromaSerialize, FadromaDeserialize
+    },
 };
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-#[derive(Canonize, PartialEq, Clone, Debug, Serialize, Deserialize)]
+#[derive(Canonize, PartialEq, Clone, Debug, FadromaSerialize, FadromaDeserialize)]
 struct Test<T> {
     addr: T,
     amount: Uint128,
@@ -31,7 +33,7 @@ impl Default for Test<CanonicalAddr> {
     }
 }
 
-#[derive(Canonize, PartialEq, Clone, Debug, Serialize, Deserialize)]
+#[derive(Canonize, PartialEq, Clone, Debug, FadromaSerialize, FadromaDeserialize)]
 struct TestBounds<T: Clone> {
     addr: T,
     amount: Uint128,
@@ -106,9 +108,9 @@ fn test_derive_generic() {
     assert_eq!(b.1, a.1);
 }
 
-fn do_test<T: Canonize + Clone + PartialEq + Debug + Serialize + DeserializeOwned>(value: T)
+fn do_test<T: Canonize + Clone + PartialEq + Debug + FadromaSerialize + FadromaDeserialize>(value: T)
 where
-    <T as Canonize>::Output: Serialize + DeserializeOwned,
+    <T as Canonize>::Output: FadromaSerialize + FadromaDeserialize
 {
     let mut deps = mock_dependencies();
 
