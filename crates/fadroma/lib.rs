@@ -1,3 +1,8 @@
+//! # Note on network support
+//! Fadroma currently only supports Secret Network flavoured CosmWasm.
+//! As such, you **MUST** enable the `scrt` feature flag. Otherwise,
+//! you will get compilation errors - this is by design.
+
 #[cfg(not(feature = "scrt"))]
 std::compile_error!("Fadroma only currently supports Secret Network so the \"scrt\" feature must be enabled.");
 
