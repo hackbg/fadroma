@@ -27,7 +27,7 @@ path = "lib.rs"
 [features]
 default = [
   # Features
-  "scrt", "message", "response",
+  "scrt", "message", "response", "math"
 ]
 
 scrt = [
