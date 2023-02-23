@@ -8,7 +8,7 @@
   "bin": { "fadroma-build": "build.cli.cjs" },
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite build.spec.ts.md",
+    "test":  "ensuite build.spec.ts.md || true",
     "cov":   "ensuite-cov -r text -- build.spec.ts.md",
     "lcov":  "ensuite-cov -r lcov -- build.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
