@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs'
 
 /** Path to this package. Used to find the build script, dockerfile, etc. */
 //@ts-ignore
-export const buildPackage = dirname(fileURLToPath(import.meta.url))
+export const buildPackage = __dirname //dirname(fileURLToPath(import.meta.url))
 
 export class BuilderConfig extends EnvConfig {
   constructor (
