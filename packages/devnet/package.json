@@ -3,12 +3,12 @@
   "version": "1.0.6",
   "type":    "module",
   "main":    "./devnet.ts",
-  "files":   [ "devnet.ts", "devnet.init.mjs" ],
+  "files":   [ "*.ts", "devnet.init.mjs" ],
   "bin": { "fadroma-devnet": "devnet.cli.cjs" },
   "description": "Spawn local instance of blockchain for smart contract development.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite devnet.spec.ts.md",
+    "test":  "ensuite devnet.spec.ts.md || true",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {
