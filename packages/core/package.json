@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@hackbg/allo": "^1",
-    "@hackbg/cmds": "^1",
+    "@hackbg/cmds": "^1.1.2",
     "@hackbg/hide": "^1",
     "@hackbg/into": "^1.0.1",
     "@hackbg/logs": "^1.1.1",
