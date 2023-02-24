@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.36",
+  "version": "1.0.0-beta.37",
   "repository": {
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
@@ -48,7 +48,7 @@
     "@fadroma/connect": "workspace:^2.0.3",
     "@fadroma/mocknet": "workspace:^2.0.1",
     "@fadroma/tokens":  "workspace:^7",
-    "@fadroma/build":   "workspace:^2.0.1",
+    "@fadroma/build":   "workspace:^2.0.2",
     "@fadroma/deploy":  "workspace:^2",
     "@fadroma/devnet":  "workspace:^1.0.7",
     "@fadroma/scrt":    "workspace:^8",
