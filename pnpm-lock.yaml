@@ -13,7 +13,7 @@ importers:
       '@fadroma/scrt': workspace:^8
       '@fadroma/tokens': workspace:^7
       '@hackbg/4mat': workspace:^1
-      '@hackbg/cmds': workspace:^1.1.2
+      '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/conf': workspace:^1
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/file': workspace:^1
@@ -236,7 +236,7 @@ importers:
   ensuite/toolbox:
     specifiers:
       '@hackbg/4mat': workspace:^1
-      '@hackbg/cmds': workspace:^1.1.2
+      '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/dock': workspace:^1
       '@hackbg/file': workspace:^1
       '@hackbg/logs': workspace:^1
@@ -506,7 +506,7 @@ importers:
     specifiers:
       '@fadroma/core': workspace:^2
       '@hackbg/4mat': workspace:^1
-      '@hackbg/cmds': workspace:^1.1.2
+      '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/conf': workspace:^1
       '@hackbg/dock': workspace:^1
       '@hackbg/ensuite': ^1.1
@@ -533,7 +533,7 @@ importers:
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
       '@fadroma/scrt': workspace:^8
-      '@hackbg/cmds': ^1.1.2
+      '@hackbg/cmds': ^1.1.4
       '@hackbg/conf': ^1
     dependencies:
       '@fadroma/core': link:../core
@@ -546,7 +546,7 @@ importers:
   packages/core:
     specifiers:
       '@hackbg/allo': ^1
-      '@hackbg/cmds': ^1.1.2
+      '@hackbg/cmds': ^1.1.4
       '@hackbg/ensuite': ^1.1
       '@hackbg/hide': ^1
       '@hackbg/into': ^1.0.1
@@ -601,7 +601,7 @@ importers:
     specifiers:
       '@fadroma/core': workspace:^2.0.3
       '@hackbg/4mat': workspace:^1
-      '@hackbg/cmds': workspace:^1.1.2
+      '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/conf': workspace:^1
       '@hackbg/dock': workspace:^1
       '@hackbg/ensuite': ^1
@@ -2126,7 +2126,7 @@ packages:
     resolution: {integrity: sha512-7O+FbCihrB5WGbFYesctwmTKae6rOiIzmz1icreWJ+0aA7LJfuqhEso2T9ncpcFtzMQtzXf2QGGueWJGTYsqrA==}
     dependencies:
       function-bind: 1.1.1
-      get-intrinsic: 1.1.2
+      get-intrinsic: 1.2.0
 
   /camelcase/5.3.1:
     resolution: {integrity: sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==}
@@ -3195,6 +3195,7 @@ packages:
       function-bind: 1.1.1
       has: 1.0.3
       has-symbols: 1.0.3
+    dev: false
 
   /get-intrinsic/1.2.0:
     resolution: {integrity: sha512-L049y6nFOuom5wGyRc3/gdTLO94dySVKRACj1RmJZBQXlbTMhtNIgkWkUHq+jYmZvKf14EW1EoJnnjbmoHij0Q==}
