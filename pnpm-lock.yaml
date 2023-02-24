@@ -5,11 +5,11 @@ importers:
   .:
     specifiers:
       '@fadroma/build': workspace:^2.0.1
-      '@fadroma/connect': workspace:^2.0.1
+      '@fadroma/connect': workspace:^2.0.2
       '@fadroma/core': workspace:^2
       '@fadroma/deploy': workspace:^2
       '@fadroma/devnet': workspace:^1.0.6
-      '@fadroma/mocknet': workspace:^2
+      '@fadroma/mocknet': workspace:^2.0.1
       '@fadroma/scrt': workspace:^8
       '@fadroma/tokens': workspace:^7
       '@hackbg/4mat': workspace:^1
@@ -530,12 +530,14 @@ importers:
   packages/connect:
     specifiers:
       '@fadroma/core': workspace:^2
-      '@fadroma/mocknet': workspace:^2
+      '@fadroma/devnet': workspace:^1.0.6
+      '@fadroma/mocknet': workspace:^2.0.1
       '@fadroma/scrt': workspace:^8
       '@hackbg/cmds': ^1.1.4
       '@hackbg/conf': ^1
     dependencies:
       '@fadroma/core': link:../core
+      '@fadroma/devnet': link:../devnet
       '@fadroma/mocknet': link:../mocknet
       '@fadroma/scrt': link:../../platforms/scrt
       '@hackbg/cmds': link:../../ensuite/toolbox/cmds

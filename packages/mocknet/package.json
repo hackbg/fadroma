@@ -1,9 +1,9 @@
 {
   "name":    "@fadroma/mocknet",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type":    "module",
   "main":    "./mocknet.ts",
-  "files":   [ "mocknet.ts" ],
+  "files":   [ "*.ts" ],
   "description": "Test smart contracts without the overhead of spawning a real chain.",
   "scripts": {
     "check": "tsc --noEmit",
