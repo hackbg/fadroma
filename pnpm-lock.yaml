@@ -8,7 +8,7 @@ importers:
       '@fadroma/connect': workspace:^2
       '@fadroma/core': workspace:^2
       '@fadroma/deploy': workspace:^2
-      '@fadroma/devnet': workspace:^1
+      '@fadroma/devnet': workspace:^1.0.6
       '@fadroma/mocknet': workspace:^2
       '@fadroma/scrt': workspace:^8
       '@fadroma/tokens': workspace:^7
