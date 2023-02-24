@@ -4,7 +4,7 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/build': workspace:^2
+      '@fadroma/build': workspace:^2.0.1
       '@fadroma/connect': workspace:^2
       '@fadroma/core': workspace:^2
       '@fadroma/deploy': workspace:^2

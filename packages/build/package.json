@@ -1,11 +1,13 @@
 {
   "name":    "@fadroma/build",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type":    "module",
   "main":    "./build.ts",
-  "files":   [ "build.ts", "build.impl.mjs" ],
+  "files":   [ "*.ts", "build.impl.mjs" ],
   "description": "Build smart contracts with or without container.",
-  "bin": { "fadroma-build": "build.cli.cjs" },
+  "bin": {
+    "fadroma-build": "build.cli.cjs"
+  },
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "ensuite build.spec.ts.md || true",
