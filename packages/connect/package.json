@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts", "*.cli.cjs" ],
@@ -13,14 +13,13 @@
   },
   "dependencies": {
     "@fadroma/core":    "workspace:^2",
-    "@fadroma/devnet":  "workspace:^1",
     "@fadroma/scrt":    "workspace:^8",
     "@fadroma/mocknet": "workspace:^2",
     "@hackbg/cmds":     "^1.1.4",
     "@hackbg/conf":     "^1"
   },
   "peerDependencies": {
-    "@fadroma/devnet": "workspace:^1.0.3",
+    "@fadroma/devnet": "workspace:^1.0.6",
     "@hackbg/ganesha": "^2.2.5"
   },
   "peerDependenciesMeta": {
