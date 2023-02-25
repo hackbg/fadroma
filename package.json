@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.38",
+  "version": "1.0.0-beta.39",
   "repository": {
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
@@ -45,12 +45,12 @@
   },
   "dependencies": {
     "@fadroma/core":    "workspace:^2",
-    "@fadroma/connect": "workspace:^2.0.3",
+    "@fadroma/connect": "workspace:^2.0.4",
     "@fadroma/mocknet": "workspace:^2.0.1",
     "@fadroma/tokens":  "workspace:^7",
     "@fadroma/build":   "workspace:^2.0.2",
     "@fadroma/deploy":  "workspace:^2",
-    "@fadroma/devnet":  "workspace:^1.0.7",
+    "@fadroma/devnet":  "workspace:^1.0.9",
     "@fadroma/scrt":    "workspace:^8",
     "@hackbg/4mat": "workspace:^1",
     "@hackbg/file": "workspace:^1",

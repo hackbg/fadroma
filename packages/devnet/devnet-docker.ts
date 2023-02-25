@@ -165,7 +165,6 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
         HostConfig:   {
           NetworkMode: 'bridge',
           Binds: [
-            ,
             `${this.stateRoot.path}:/receipts/${this.chainId}:rw`
           ],
           PortBindings: {
