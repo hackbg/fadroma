@@ -12,7 +12,6 @@ import { freePort, waitPort } from '@hackbg/port'
 import { dirname }       from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-
 /** Root of this module.
   * Used for finding embedded assets, e.g. Dockerfiles.
   * TypeScript doesn't like `import.meta.url` when compiling to JS. */
@@ -60,9 +59,9 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     const dockerfile  = this.dockerfiles[kind]
     const imageTag    = this.dockerTags[kind]
     const readyPhrase = 'indexed block'
-    const initScript  = $(devnetPackage, this.initScriptMount).path
+    //const initScript  = $(devnetPackage, this.initScriptMount).path
     const image       = dock.image(imageTag, dockerfile, [this.initScriptMount])
-    return new DockerDevnet({ portMode, image, readyPhrase, initScript })
+    return new DockerDevnet({ portMode, image, readyPhrase })
   }
 
   constructor (options: DockerDevnetOpts = {}) {
@@ -87,10 +86,8 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   /** Handle to created devnet container */
   container: Dock.Container|null = null
 
-  /** Mounted into devnet container in place of default init script
-    * in order to add custom genesis accounts with initial balances
-    * and store their keys. */
-  initScript: string
+  /** If set, overrides the script that launches the devnet in the container. */
+  initScript: string|null = null
 
   /** Mounted out of devnet container to persist keys of genesis wallets. */
   identities: JSONDirectory<unknown>
@@ -106,7 +103,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   /** Virtual path inside the container where the init script is mounted. */
   get initScriptMount (): string {
-    return $('/', $(this.initScript).name).path
+    return this.initScript ? $('/', $(this.initScript).name).path : '/devnet.init.mjs'
   }
 
   async spawn () {
@@ -130,9 +127,9 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     // run the container
     const containerName = `${this.chainId}-${this.port}`
     this.log.info('Creating and starting devnet container:', bold(containerName))
-    this.container = await this.image.run(
-      containerName, this.spawnOptions, ['node', this.initScriptMount], '/usr/bin/env'
-    )
+    const opts = this.spawnOptions
+    const args = this.initScript ? [this.initScriptMount] : []
+    this.container = await this.image.run(containerName, opts, args)
     // address the container by ip if possible to support docker-in-docker scenarios
     //this.host = await this.container.ip ?? 'localhost'
     // update the record
@@ -155,7 +152,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
       case 'grpcWeb': env.grpcWebAddr = `0.0.0.0:${this.port}`; break
       default: throw new Error(`DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
     }
-    return {
+    const options = {
       env,
       exposed: [`${this.port}/tcp`],
       extra: {
@@ -168,7 +165,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
         HostConfig:   {
           NetworkMode: 'bridge',
           Binds: [
-            `${this.initScript}:${this.initScriptMount}:ro`,
+            ,
             `${this.stateRoot.path}:/receipts/${this.chainId}:rw`
           ],
           PortBindings: {
@@ -177,6 +174,12 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
         }
       }
     }
+    if (this.initScript) {
+      options.extra.HostConfig.Binds.push(
+        `${this.initScript}:${this.initScriptMount}:ro`
+      )
+    }
+    return options
   }
 
   /** Overridable for testing. */
