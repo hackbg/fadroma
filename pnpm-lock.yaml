@@ -4,11 +4,11 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/build': workspace:^2.0.2
-      '@fadroma/connect': workspace:^2.0.4
+      '@fadroma/build': workspace:^2.0.3
+      '@fadroma/connect': workspace:^2.0.6
       '@fadroma/core': workspace:^2
-      '@fadroma/deploy': workspace:^2
-      '@fadroma/devnet': workspace:^1.0.9
+      '@fadroma/deploy': workspace:^2.0.2
+      '@fadroma/devnet': workspace:^1.0.10
       '@fadroma/mocknet': workspace:^2.0.1
       '@fadroma/scrt': workspace:^8
       '@fadroma/tokens': workspace:^7
@@ -237,7 +237,7 @@ importers:
     specifiers:
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1.1.4
-      '@hackbg/dock': workspace:^1
+      '@hackbg/dock': workspace:^1.1
       '@hackbg/file': workspace:^1
       '@hackbg/logs': workspace:^1
       '@hackbg/port': workspace:^1
@@ -508,7 +508,7 @@ importers:
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/conf': workspace:^1
-      '@hackbg/dock': workspace:^1
+      '@hackbg/dock': workspace:^1.1
       '@hackbg/ensuite': ^1.1
       '@hackbg/file': workspace:^1
       '@hackbg/logs': workspace:^1
@@ -530,7 +530,7 @@ importers:
   packages/connect:
     specifiers:
       '@fadroma/core': workspace:^2
-      '@fadroma/devnet': workspace:^1.0.9
+      '@fadroma/devnet': workspace:^1.0.10
       '@fadroma/mocknet': workspace:^2.0.1
       '@fadroma/scrt': workspace:^8
       '@hackbg/cmds': ^1.1.4
@@ -576,7 +576,7 @@ importers:
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1
       '@hackbg/conf': workspace:^1
-      '@hackbg/dock': workspace:^1
+      '@hackbg/dock': workspace:^1.1
       '@hackbg/ensuite': ^1.1
       '@hackbg/file': workspace:^1
       '@hackbg/port': workspace:^1
@@ -603,7 +603,7 @@ importers:
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/conf': workspace:^1
-      '@hackbg/dock': workspace:^1.0.2
+      '@hackbg/dock': workspace:^1.1
       '@hackbg/ensuite': ^1
       '@hackbg/file': workspace:^1
       '@hackbg/logs': workspace:^1
