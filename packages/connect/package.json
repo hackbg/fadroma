@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts", "*.cli.cjs" ],
@@ -14,7 +14,7 @@
   "dependencies": {
     "@fadroma/core":    "workspace:2.0.4",
     "@fadroma/scrt":    "workspace:8.0.4",
-    "@fadroma/devnet":  "workspace:1.1.4",
+    "@fadroma/devnet":  "workspace:1.1.5",
     "@fadroma/mocknet": "workspace:2.0.1",
     "@hackbg/cmds":     "^1.1.4",
     "@hackbg/conf":     "^1"

@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "type":    "module",
   "main":    "./deploy.ts",
   "files":   [ "*.ts" ],
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@fadroma/core":    "workspace:2.0.4",
-    "@fadroma/connect": "workspace:2.1.4",
+    "@fadroma/connect": "workspace:2.1.5",
     "@fadroma/build":   "workspace:2.0.6",
     "@hackbg/4mat": "workspace:^1",
     "@hackbg/file": "workspace:^1",
