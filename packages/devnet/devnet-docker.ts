@@ -44,12 +44,12 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
-    'scrt_1.2': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:unstable',
-    'scrt_1.3': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:unstable',
-    'scrt_1.4': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:unstable',
-    'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:unstable',
-    'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:unstable',
-    'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:unstable',
+    'scrt_1.2': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
+    'scrt_1.3': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
+    'scrt_1.4': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
+    'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
+    'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
+    'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
   }
 
   static initScriptMount = 'devnet.init.mjs'
