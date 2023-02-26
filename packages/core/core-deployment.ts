@@ -274,14 +274,20 @@ export class Deployment extends CommandContext {
     return this.attach(inst, name, info)
   }
 
-  /** Create and attach a subsystem of class $C for each pair of version and configuration.
+  /** Create and attach a subsystem of class $D for each pair of version and configuration.
     * @returns Record<Version, T> */
-  versioned <D extends Deployment, Version extends string, Config> (
+  versioned <D extends Deployment, Version extends string, Config extends { version: Version }> (
     $D:      Class<D, [this, Config]>,
     configs: Record<Version, Config>
   ): Record<Version, D> {
     const versions: Partial<Record<Version, D>> = {}
-    for (const [version, config] of Object.entries(configs) as [Version, Config][]) {
+    // Instantiate a deployment for each version
+    for (let [version, config] of Object.entries(configs) as [Version, Config][]) {
+      // Copy the passed config
+      config = { ...config }
+      // Set the version if missing
+      config.version ??= version
+      // Create an instance of $D with this config
       versions[version] = new $D(this, config)
     }
     return versions as Record<Version, D>

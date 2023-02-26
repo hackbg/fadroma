@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/build",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "type":    "module",
   "main":    "./build.ts",
   "files":   [ "*.ts", "build.impl.mjs" ],
@@ -22,7 +22,7 @@
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-build command." }
   },
   "dependencies": {
-    "@fadroma/core": "workspace:^2",
+    "@fadroma/core": "workspace:2.0.4",
     "@hackbg/dock":  "workspace:1.2",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/file":  "workspace:^1",

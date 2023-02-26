@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/devnet",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "type":    "module",
   "main":    "./devnet.ts",
   "files":   [ "*.ts", "*.Dockerfile", "devnet.init.mjs" ],
@@ -18,7 +18,7 @@
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-devnet command." }
   },
   "dependencies": {
-    "@fadroma/core": "workspace:^2.0.3",
+    "@fadroma/core": "workspace:2.0.",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/cmds":  "workspace:^1.1.4",
     "@hackbg/conf":  "workspace:^1",

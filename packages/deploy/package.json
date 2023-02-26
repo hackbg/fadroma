@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "type":    "module",
   "main":    "./deploy.ts",
   "files":   [ "*.ts" ],
@@ -21,9 +21,9 @@
     "@fadroma/build":  { "optional": true, "description": "For building from deployment scripts." }
   },
   "dependencies": {
-    "@fadroma/core":    "workspace:2.0.3",
-    "@fadroma/connect": "workspace:2.1.3",
-    "@fadroma/build":   "workspace:2.0.5",
+    "@fadroma/core":    "workspace:2.0.4",
+    "@fadroma/connect": "workspace:2.1.4",
+    "@fadroma/build":   "workspace:2.0.6",
     "@hackbg/4mat": "workspace:^1",
     "@hackbg/file": "workspace:^1",
     "@hackbg/cmds": "workspace:^1.1.4",

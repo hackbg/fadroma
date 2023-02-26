@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts", "*.cli.cjs" ],
@@ -12,9 +12,9 @@
     "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "dependencies": {
-    "@fadroma/core":    "workspace:2.0.3",
-    "@fadroma/scrt":    "workspace:8.0.3",
-    "@fadroma/devnet":  "workspace:1.1.3",
+    "@fadroma/core":    "workspace:2.0.4",
+    "@fadroma/scrt":    "workspace:8.0.4",
+    "@fadroma/devnet":  "workspace:1.1.4",
     "@fadroma/mocknet": "workspace:2.0.1",
     "@hackbg/cmds":     "^1.1.4",
     "@hackbg/conf":     "^1"
