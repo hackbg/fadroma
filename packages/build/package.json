@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/build",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "type":    "module",
   "main":    "./build.ts",
   "files":   [ "*.ts", "build.impl.mjs" ],
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@fadroma/core": "workspace:^2",
-    "@hackbg/dock":  "workspace:^1.1.1",
+    "@hackbg/dock":  "workspace:1.2",
     "@hackbg/4mat":  "workspace:^1",
     "@hackbg/file":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1",

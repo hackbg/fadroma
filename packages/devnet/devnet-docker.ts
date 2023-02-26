@@ -64,6 +64,23 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     return new DockerDevnet({ portMode, image, readyPhrase })
   }
 
+  /** Filter logs when waiting for the ready phrase. */
+  static logFilter (data: string) {
+    const RE_GARBAGE = /[\x00-\x1F]/
+    return (
+      data.length > 0                            &&
+      !data.startsWith('TRACE ')                 &&
+      !data.startsWith('DEBUG ')                 &&
+      !data.startsWith('INFO ')                  &&
+      !data.startsWith('I[')                     &&
+      !data.startsWith('Storing key:')           &&
+      !RE_GARBAGE.test(data)                     &&
+      !data.startsWith('{"app_message":')        &&
+      !data.startsWith('configuration saved to') &&
+      !(data.length>1000)
+    )
+  }
+
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
     this.log.debug('Using a containerized devnet')
@@ -74,11 +91,6 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   log = new Console('@fadroma/devnet: docker')
-
-  /** Handle to Docker API if configured. */
-  get dock (): Dock.Engine|null {
-    return this.image.dock
-  }
 
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
@@ -92,14 +104,32 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   /** Mounted out of devnet container to persist keys of genesis wallets. */
   identities: JSONDirectory<unknown>
 
-  /** Gets the info for a genesis account, including the mnemonic */
-  async getGenesisAccount (name: string): Promise<AgentOpts> {
-    return this.identities.at(`${name}.json`).as(JSONFile).load() as AgentOpts
-  }
-
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyPhrase: string
+
+  /** Overridable for testing. */
+  //@ts-ignore
+  protected waitPort = waitPort
+
+  /** Overridable for testing. */
+  protected waitSeconds = 7
+
+  /** Handle to Docker API if configured. */
+  get dock (): Dock.Engine|null {
+    return this.image.dock
+  }
+
+  /** Gets the info for a genesis account, including the mnemonic */
+  async getGenesisAccount (name: string): Promise<AgentOpts> {
+    if (process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
+      if (!this.container) throw new Error.ContainerNotSet()
+      const [identity] = await this.container.exec('cat', `/receipts/${this.chainId}/identities/${name}.json`)
+      return JSON.parse(identity)
+    } else {
+      return this.identities.at(`${name}.json`).as(JSONFile).load() as AgentOpts
+    }
+  }
 
   /** Virtual path inside the container where the init script is mounted. */
   get initScriptMount (): string {
@@ -107,7 +137,6 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   async spawn () {
-
     // if no port is specified, use a random port
     this.host = process.env.FADROMA_DEVNET_HOST ?? this.host
 
@@ -128,11 +157,11 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     }
 
     // run the container
-    const containerName = `${this.chainId}-${this.port}`
-    this.log.info('Creating and starting devnet container:', bold(containerName))
-    const opts = this.spawnOptions
-    const args = this.initScript ? [this.initScriptMount] : []
-    this.container = await this.image.run(containerName, opts, args)
+    this.container = await this.image.run(
+      `${this.chainId}-${this.port}`,               // container name
+      this.spawnOptions,                            // container options
+      this.initScript ? [this.initScriptMount] : [] // command and arguments
+    )
 
     // address the container by ip if possible to support docker-in-docker scenarios
     // FIXME: this currently uses an env var; move it to DevnetConfig
@@ -142,10 +171,18 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     this.save()
 
     // wait for logs to confirm that the genesis is done
-    await this.container.waitLog(this.readyPhrase, false, this.waitSeconds, DockerDevnet.logFilter)
+    await this.container.waitLog(
+      this.readyPhrase,
+      false,
+      this.waitSeconds,
+      DockerDevnet.logFilter
+    )
 
     // wait for port to be open
-    await this.waitPort({ host: this.host, port: Number(this.port) })
+    await this.waitPort({
+      host: this.host,
+      port: Number(this.port)
+    })
 
     return this
   }
@@ -204,30 +241,6 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
     return options
 
-  }
-
-  /** Overridable for testing. */
-  //@ts-ignore
-  protected waitPort = waitPort
-
-  /** Overridable for testing. */
-  protected waitSeconds = 7
-
-  /** Filter logs when waiting for the ready phrase. */
-  static logFilter (data: string) {
-    const RE_GARBAGE = /[\x00-\x1F]/
-    return (
-      data.length > 0                            &&
-      !data.startsWith('TRACE ')                 &&
-      !data.startsWith('DEBUG ')                 &&
-      !data.startsWith('INFO ')                  &&
-      !data.startsWith('I[')                     &&
-      !data.startsWith('Storing key:')           &&
-      !RE_GARBAGE.test(data)                     &&
-      !data.startsWith('{"app_message":')        &&
-      !data.startsWith('configuration saved to') &&
-      !(data.length>1000)
-    )
   }
 
   async load (): Promise<DevnetState> {
@@ -295,12 +308,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
           this.container!.kill()
         } else {
           this.log.br()
-          this.log.info(
-            `Devnet is running on port ${bold(String(this.port))}`,
-            `from container ${bold(this.container!.id.slice(0,8))}.`
-          )
-          this.log.info('Use this command to reset it:')
-          this.log.info(`  docker kill ${this.container!.id.slice(0,8)} && sudo rm -rf receipts/fadroma-devnet`)
+          this.log.devnetIsRunning(this)
         }
       })
       this.exitHandlerSet = true

@@ -1,5 +1,5 @@
 import { Error } from '@hackbg/oops'
-import { ClientConsole as Console } from '@fadroma/core'
+import { ClientConsole as Console, bold } from '@fadroma/core'
 
 export class DevnetError extends Error {
 
@@ -7,10 +7,13 @@ export class DevnetError extends Error {
     ()=>"DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'")
 
   static NoChainId = this.define('NoChainId',
-    ()=>'refusing to create directories for devnet with empty chain id')
+    ()=>'Refusing to create directories for devnet with empty chain id')
 
   static NoContainerId = this.define('NoContainerId',
     ()=>'Missing container id in devnet state')
+
+  static ContainerNotSet = this.define('ContainerNotSet',
+    ()=>'DockerDevnet#container is not set')
 
   static NoGenesisAccount = this.define('NoGenesisAccount',
     (name: string, error: any)=>
@@ -28,5 +31,13 @@ export class DevnetConsole extends Console {
 
   loadingRejected = (path: string) =>
     this.info(`${path} does not exist.`)
+
+  devnetIsRunning = (devnet: { port: any, container: { id: string }|null }) => {
+    const port = String(devnet.port)
+    const id = devnet.container!.id.slice(0,8)
+    this.info(`Devnet is running on port ${bold(port)} from container ${bold(id)}.`)
+    this.info('Use this command to reset it:')
+    this.info(`  docker kill ${id} && sudo rm -rf receipts/fadroma-devnet`)
+  }
 
 }
