@@ -107,51 +107,67 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   async spawn () {
+
     // if no port is specified, use a random port
     this.host = process.env.FADROMA_DEVNET_HOST ?? this.host
+
     // if no port is specified, use a random port
     this.port ??= (await freePort()) as number
+
     // tell the user that we have begun
     this.log.info(`Spawning new node to listen on`, bold(this.url))
+
     // create the state dirs and files
-    for (const item of [
-      this.stateRoot,
-      this.nodeState
-    ]) {
+    const stateDirs = [ this.stateRoot, this.nodeState ]
+    for (const item of stateDirs) {
       try {
         item.make()
       } catch (e: any) {
         this.log.warn(`Failed to create ${item.path}: ${e.message}`)
       }
     }
+
     // run the container
     const containerName = `${this.chainId}-${this.port}`
     this.log.info('Creating and starting devnet container:', bold(containerName))
     const opts = this.spawnOptions
     const args = this.initScript ? [this.initScriptMount] : []
     this.container = await this.image.run(containerName, opts, args)
+
     // address the container by ip if possible to support docker-in-docker scenarios
+    // FIXME: this currently uses an env var; move it to DevnetConfig
     //this.host = await this.container.ip ?? 'localhost'
+
     // update the record
     this.save()
+
     // wait for logs to confirm that the genesis is done
     await this.container.waitLog(this.readyPhrase, false, this.waitSeconds, DockerDevnet.logFilter)
+
     // wait for port to be open
     await this.waitPort({ host: this.host, port: Number(this.port) })
+
     return this
   }
 
+  /** The @hackbg/dock options for spawining a container */
   get spawnOptions () {
+
+    // Environment variables in devnet container
     const env: Record<string, string> = {
       Verbose:         process.env.FADROMA_DEVNET_VERBOSE ? 'yes' : '',
       ChainID:         this.chainId,
       GenesisAccounts: this.genesisAccounts.join(' '),
     }
+
+    // Which kind of API to expose at the default container port
     switch (this.portMode) {
       case 'lcp':     env.lcpPort     = String(this.port);      break
       case 'grpcWeb': env.grpcWebAddr = `0.0.0.0:${this.port}`; break
       default: throw new Error(`DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
     }
+
+    // Container options
     const options = {
       env,
       exposed: [`${this.port}/tcp`],
@@ -164,21 +180,30 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
         Domainname:   this.chainId,
         HostConfig:   {
           NetworkMode: 'bridge',
-          Binds: [
-            `${this.stateRoot.path}:/receipts/${this.chainId}:rw`
-          ],
-          PortBindings: {
-            [`${this.port}/tcp`]: [{HostPort: `${this.port}`}]
-          }
+          Binds: [] as string[],
+          PortBindings: { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] }
         }
       }
     }
+
+    // Override init script for development
     if (this.initScript) {
       options.extra.HostConfig.Binds.push(
         `${this.initScript}:${this.initScriptMount}:ro`
       )
     }
+
+    // Mount receipts directory (FIXME:
+    // - breaks Drone DinD CI
+    // - leaves root-owned files in project dir)
+    if (!process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
+      options.extra.HostConfig.Binds.push(
+        `${this.stateRoot.path}:/receipts/${this.chainId}:rw`
+      )
+    }
+
     return options
+
   }
 
   /** Overridable for testing. */
