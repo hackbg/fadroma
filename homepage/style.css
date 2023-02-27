@@ -190,13 +190,13 @@ code.block {
 }
 
 .tag {
-  font-size:  0.8rem;
+  font-size: 0.8rem;
   background: #f5faf3;
   border: 1px solid #437733;
   color: #437733;
-  display:    inline-block;
-  padding:    0.25rem 0.5rem;
-  margin:     0.5rem 0 0;
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 0 0;
   align-self: flex-start;
   border-radius: 3px;
   font-weight: bold;
