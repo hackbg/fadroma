@@ -73,6 +73,7 @@ jobs:
           mv dist/docs/* ../page
           cp .gitmodules .. || true
           cp homepage/index.html ..
+          cp homepage/style.css ..
           git checkout gh-pages
           git clean -fdx
           touch .nojekyll
