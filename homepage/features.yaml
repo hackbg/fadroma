@@ -40,17 +40,17 @@ name: 256-bit arithmetic
 info: 256-bit integer support in Cosmos for easy EVM interop.
 docs: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
 ---
-name: On-chain checksum generation
-info: Generate SHA256 checksums for arbitrary data from your contract.
+name: Address conversion
+info: Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
+docs: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
+---
+name: On-chain checksums
+info: Generate SHA256 checksums for your data from a contract.
 docs: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
 ---
 name: Randomness
 info: ChaCha-based pseudo-random number generator.
 docs: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
----
-name: Address conversion
-info: Convert between Addr and CanonicalAddr types.
-docs: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
 ---
 name: Contract admin role
 info: Allow a privileged user to perform administrative operations. Single-step and two-step transfer of admin role.
@@ -62,17 +62,13 @@ info: Emergency pause and permanent termination for your contract.
 docs: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
 big:  right
 ---
-name: Contract clients
-info: Define contract-specific client classes to call contract methods and perform off-chain logic in TypeScript.
-link: https://github.com/hackbg/fadroma/tree/v100/packages/client
----
-name: Scriptable deployments
-info: Manage hundreds of heterogeneous contracts using a declarative TypeScript API.
-link: https://github.com/hackbg/fadroma/blob/v100/spec/Deploy.spec.ts.md
----
 name: Reproducible builds
 info: Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
+---
+name: Contract clients and scriptable deployments
+info: Easily create a TypeScript client library for your dApp. Manage hundreds of heterogeneous contracts using a declarative API.
+big: center
 ---
 name: Automatic devnet management
 info: Spawn local blockchain nodes for development and testing.
@@ -88,30 +84,33 @@ info: Configure your workflow using environment variables and/or a .env file.
 link:
 big:  right
 ---
-name: Transaction bundles
+name: Smart transaction bundling
 tags: [ "🔧 Experimental" ]
-info: Execute multiple messages in a single transaction
+info: Execute multiple messages in a single transaction or query.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
 ---
-name: Executable specifications
+name: Executable specifications and literate programming
 tags: [ "🔧 Experimental" ]
-info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks.
+info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks. Wrap TypeScript in Markdown for in-place documentation of test cases, client code, and deploy logic.
 docs: https://github.com/hackbg/ensuite
+big:  center
 ---
-name: Literate programming
-tags: [ "🔧 Experimental" ]
-info: Wrap TypeScript in Markdown to document client code and deploy logic in place.
-docs: https://github.com/hackbg/ganesha
+name: Docker integration
+tags: [ "⏳ Experimental" ]
+info: Integrate your frontend and any off-chain backends with devnet and development server.
+link:
 ---
 name: Project scaffolding
 tags: [ "⏳ Planned" ]
 info: Generate project boilerplate using "npx fadroma create".
 link:
+big:  left
 ---
-name: Docker Compose integration
+name: Development dashboard
 tags: [ "⏳ Planned" ]
-info: Integrate your frontend and off-chain backend with devnet and development server.
+info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
 link:
+big:  right
 ---
 name: Smart code reloading
 tags: [ "⏳ Planned" ]
@@ -121,11 +120,6 @@ link:
 name: Privacy-preserving migrations
 tags: [ "⏳ Planned" ]
 info: Allow your users to migrate their private state to newer versions of deployed contracts.
-link:
----
-name: Development dashboard
-tags: [ "⏳ Planned" ]
-info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
 link:
 ---
 name: Schema-based clients
