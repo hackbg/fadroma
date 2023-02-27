@@ -1,130 +1,139 @@
-name: Derive contract
-info: Procedural macro for generating smart contract boilerplate
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-proc-derive
+name: Procedural macro for defining contracts
+info: |
+  Generates smart contract boilerplate, making it easier to focus on domain logic.
+  Enables composition of smart contracts out of standalone components.
+docs: https://docs.rs/fadroma-proc-derive/0.7.0/fadroma_proc_derive/index.html
+big:  left
 ---
-name: Reproducible builder
-info: Perform production builds of your contracts in a Docker container
-link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
+name: Gas-efficient key-value storage
+info: Highly performant keyed, namepaced, and iterable data storage primitives.
+docs: https://docs.rs/fadroma/latest/fadroma/storage/index.html
+big:  right
 ---
-name: Scriptable deployments
-info: Manage hundreds of heterogeneous contracts using TypeScript without a compilation step
-link: https://github.com/hackbg/fadroma/blob/v100/spec/Deploy.spec.ts.md
----
-name: Automatic devnet management
-info: Spawn local blockchain nodes for development and testing
-link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
----
-name: Transaction receipts
-info: Keep track of uploads, instantiations, and configuration
-link:
----
-name: Contract clients
-info: Define contract-specific client classes to call contract methods perform off-chain logic in TypeScript
-link: https://github.com/hackbg/fadroma/tree/v100/packages/client
----
-name: Ensemble testing
-info: Test multiple interoperating smart contracts using a Rust API
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/ensemble
----
-name: Executable specifications
-info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks
-link: https://github.com/hackbg/ganesha
----
-name: Environment-based configuration
-info: Configure your workflow using environment variables and/or a .env file
-link:
----
-name: 256-bit arithmetic
-info: 256-bit integer support in Cosmos for easy EVM interop
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/math
----
-name: On-chain checksum generation
-info: Generate SHA256 checksums for arbitrary data from your contract
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/math
----
-name: Pseudo-random number generator
-info: ChaCha-based PRNG
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/math
----
-name: Contract ownership
-info: Allow a privileged user to perform administrative operations
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/admin
----
-name: Killswitch
-info: Emergency pause and permanent termination for your contract
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/killswitch
+name: Query permits
+info: Generate and use revokable SNIP-24 query permits.
+docs: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
 ---
 name: Viewing keys
-info: Generate and use viewing keys in any contract
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/vk
----
-name: Permits
-info: Generate and use revokable query permits
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/permit
----
-name: ISNIP20
-info: Make calls to SNIP20 tokens
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/snip20_client
+info: Generate and use SNIP-20 compatible viewing keys in any contract.
+docs: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
 ---
 name: SNIP20
-info: Customize a SNIP20 token's functionality, or embed it in your contract alongside custom logic
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/snip20_impl
+info: Customize a SNIP20 token's functionality, or embed it in your contract alongside custom logic.
+docs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
 ---
-name: Storage helpers
-info: Keyed, namepaced, and iterable data storage on top of Cosmos built-in KV
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/storage
+name: ISNIP20
+info: Make calls to SNIP20 tokens.
+docs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
+---
+name: Ensemble testing
+info: Test multiple interoperating smart contracts using a Rust API.
+docs: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
+big:  left
 ---
 name: Mocknet
 tags: [ "🔧 Experimental" ]
-info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation
-link: https://github.com/hackbg/fadroma/blob/v100/spec/Mocknet.spec.ts.md
+info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation.
+big:  right
+---
+name: 256-bit arithmetic
+info: 256-bit integer support in Cosmos for easy EVM interop.
+docs: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
+---
+name: On-chain checksum generation
+info: Generate SHA256 checksums for arbitrary data from your contract.
+docs: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
+---
+name: Randomness
+info: ChaCha-based pseudo-random number generator.
+docs: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
+---
+name: Address conversion
+info: Convert between Addr and CanonicalAddr types.
+docs: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
+---
+name: Contract admin role
+info: Allow a privileged user to perform administrative operations. Single-step and two-step transfer of admin role.
+docs: https://docs.rs/fadroma/latest/fadroma/admin/index.html
+big:  left
+---
+name: Killswitch
+info: Emergency pause and permanent termination for your contract.
+docs: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
+big:  right
+---
+name: Contract clients
+info: Define contract-specific client classes to call contract methods and perform off-chain logic in TypeScript.
+link: https://github.com/hackbg/fadroma/tree/v100/packages/client
+---
+name: Scriptable deployments
+info: Manage hundreds of heterogeneous contracts using a declarative TypeScript API.
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Deploy.spec.ts.md
+---
+name: Reproducible builds
+info: Perform production builds of your contracts in a Docker container.
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
+---
+name: Automatic devnet management
+info: Spawn local blockchain nodes for development and testing.
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
+---
+name: Transaction log
+info: Keep track of uploads, instantiations, and configuration.
+link:
+big:  left
+---
+name: Environment-based configuration
+info: Configure your workflow using environment variables and/or a .env file.
+link:
+big:  right
 ---
 name: Transaction bundles
 tags: [ "🔧 Experimental" ]
 info: Execute multiple messages in a single transaction
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
 ---
-name: Composability
+name: Executable specifications
 tags: [ "🔧 Experimental" ]
-info: Compose self-contained subsystems into a single contract
-link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/composability
+info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks.
+docs: https://github.com/hackbg/ensuite
 ---
 name: Literate programming
 tags: [ "🔧 Experimental" ]
-info: Wrap TypeScript in Markdown to document client code and deploy logic in place
-link: https://github.com/hackbg/ganesha
+info: Wrap TypeScript in Markdown to document client code and deploy logic in place.
+docs: https://github.com/hackbg/ganesha
 ---
 name: Project scaffolding
 tags: [ "⏳ Planned" ]
-info: Generate project boilerplate using "npx fadroma create"
+info: Generate project boilerplate using "npx fadroma create".
 link:
 ---
 name: Docker Compose integration
 tags: [ "⏳ Planned" ]
-info: Integrate your frontend and off-chain backend with devnet and development server
+info: Integrate your frontend and off-chain backend with devnet and development server.
 link:
 ---
 name: Smart code reloading
 tags: [ "⏳ Planned" ]
-info: Automatically redeploy contracts on changes to source code
+info: Automatically redeploy contracts on changes to source code.
 link:
 ---
 name: Privacy-preserving migrations
 tags: [ "⏳ Planned" ]
-info: Allow your users to migrate their private state to newer versions of deployed contracts
+info: Allow your users to migrate their private state to newer versions of deployed contracts.
 link:
 ---
 name: Development dashboard
 tags: [ "⏳ Planned" ]
-info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard
+info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
 link:
 ---
 name: Schema-based clients
 tags: [ "⏳ Planned" ]
-info: Generate client classes and microfrontends from the JSON schema exported by contracts
+info: Generate client classes and microfrontends from the JSON schema exported by contracts.
 link:
 ---
 name: Property-based testing
 tags: [ "⏳ Planned" ]
-info: Test smart contracts for edge cases using auto-generated input data
+info: Test smart contracts for edge cases using auto-generated input data.
 link:
