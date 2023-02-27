@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":[["STORE",""]],"enum":[["AuthExecuteAnswer",""],["AuthResponseStatus",""],["ExecuteMsg",""],["QueryMsg",""]],"fn":[["authenticate",""],["execute",""],["query",""]],"struct":[["DefaultImpl",""],["ViewingKeysNs",""]],"trait":[["VkAuth",""]]};

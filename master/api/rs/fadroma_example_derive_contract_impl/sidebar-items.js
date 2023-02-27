@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":[["STATE",""]],"enum":[["ExecuteMsg",""],["QueryMsg",""]],"fn":[["execute",""],["instantiate",""],["query",""]],"struct":[["DefaultImpl",""],["InstantiateMsg",""],["StateNs",""]],"trait":[["Contract",""]]};

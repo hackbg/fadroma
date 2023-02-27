@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":[["convert","Convert between tokens with different decimals."],["one_token","Get the amount needed to represent 1 whole token given its decimals."]]};

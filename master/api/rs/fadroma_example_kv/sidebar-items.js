@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":[["HandleMsg","Changing the value of the register."],["QueryMsg","Reading the value of the register."]],"fn":[["execute",""],["instantiate",""],["query",""]],"struct":[["InitMsg","Initial configuration of the register."]]};

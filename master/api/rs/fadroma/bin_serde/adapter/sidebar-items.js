@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":[["SerdeAdapter","A wrapper that allows serializing types that only implement CWs serialization traits. It simply uses CWs facilities to convert to JSON text bytes which Fadroma’s binary serialization understands."]]};

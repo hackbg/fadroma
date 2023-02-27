@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":[["Arcs","[`Iterator`] over arcs (a.k.a. nodes) in an [`ObjectIdentifier`]."],["Error","Error type"],["ObjectIdentifier","Object identifier (OID)."]],"type":[["Arc","Type used to represent an “arc” (i.e. integer identifier value)."],["Result","Result type"]]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":[["SchemaGenerator","The main type used to generate JSON Schemas."],["SchemaSettings","Settings to customize how Schemas are generated."]],"trait":[["GenVisitor","A Visitor which implements additional traits required to be included in a [SchemaSettings]."]]};

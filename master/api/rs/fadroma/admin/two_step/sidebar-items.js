@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":[["PENDING_ADMIN",""]],"enum":[["ExecuteMsg",""],["QueryMsg",""]],"fn":[["execute",""],["query",""]],"struct":[["DefaultImpl",""],["PendingAdminNs",""]],"trait":[["TwoStepAdmin",""]]};
