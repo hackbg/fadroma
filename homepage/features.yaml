@@ -19,11 +19,11 @@ info: Generate and use SNIP-20 compatible viewing keys in any contract.
 docs: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
 ---
 name: SNIP20
-info: Customize a SNIP20 token's functionality, or embed it in your contract alongside custom logic.
+info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
 docs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
 ---
 name: ISNIP20
-info: Make calls to SNIP20 tokens.
+info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
 docs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
 ---
 name: Ensemble testing
