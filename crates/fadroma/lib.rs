@@ -19,6 +19,7 @@ pub mod scrt;
 
 pub mod tokens;
 pub use fadroma_proc_derive as derive_contract;
+pub use fadroma_dsl as dsl;
 pub mod killswitch;
 pub mod admin;
 #[cfg(feature = "crypto")]

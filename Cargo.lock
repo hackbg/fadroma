@@ -436,6 +436,7 @@ dependencies = [
  "criterion",
  "fadroma-derive-canonize",
  "fadroma-derive-serde",
+ "fadroma-dsl",
  "fadroma-proc-auth",
  "fadroma-proc-derive",
  "fadroma-proc-message",
@@ -468,6 +469,16 @@ dependencies = [
 [[package]]
 name = "fadroma-derive-serde"
 version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "fadroma-dsl"
+version = "0.5.0"
 dependencies = [
  "fadroma",
  "proc-macro2",

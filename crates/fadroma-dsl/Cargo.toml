@@ -1,0 +1,19 @@
+[package]
+name = "fadroma-dsl"
+version = "0.5.0"
+edition = "2021"
+license = "AGPL-3.0"
+repository = "https://github.com/hackbg/fadroma"
+description = "DSL for generating CosmWasm contract boilerplate and enabling code composition"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "^1.0.20"
+syn = { version = "1.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+
+[dev-dependencies]
+fadroma = { path = "../fadroma", default-features = false, features = ["scrt"] }

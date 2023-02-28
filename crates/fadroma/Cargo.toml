@@ -71,6 +71,7 @@ staking = ["secret-cosmwasm-std/staking"]
 secret-cosmwasm-std = { version = "1.0.0", default-features = false, optional = true }
 
 # Procedural macro crates
+fadroma-dsl = { version = "0.5.0", path = "../fadroma-dsl" }
 fadroma-derive-canonize = { version = "0.3.0", path = "../fadroma-derive-canonize" }
 fadroma-derive-serde = { version = "0.1.0", path = "../fadroma-derive-serde" }
 fadroma-proc-derive = { version = "0.7.0", path = "../fadroma-proc-derive" }
