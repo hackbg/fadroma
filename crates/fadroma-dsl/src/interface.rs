@@ -1,7 +1,8 @@
 use syn::{
     ItemTrait, TraitItem, TraitItemMethod, Type,
     ReturnType, PathArguments, GenericArgument,
-    PathSegment, parse_quote, TypePath
+    PathSegment, parse_quote, TypePath, token::Add,
+    TypeParamBound, TraitBoundModifier, punctuated::Punctuated
 };
 use quote::quote;
 
@@ -92,10 +93,10 @@ impl Interface {
                 {
                     has_error_ty = true;
 
-                    if !type_def.bounds.is_empty() {
+                    if !validate_err_bound(&type_def.bounds) {
                         sink.push_spanned(
-                            type_def.bounds,
-                            format!("{} type cannot have any bounds.", ERROR_TYPE_IDENT)
+                            &type_def,
+                            format!("{} type must have a single \"std::string::ToString\" bound.", ERROR_TYPE_IDENT)
                         );
                     }
 
@@ -114,7 +115,7 @@ impl Interface {
         if !has_error_ty {
             sink.push_spanned(
                 &trait_ident,
-                format!("Missing \"{}\" trait type declaration.", ERROR_TYPE_IDENT)
+                format!("Missing \"type {}: ToString;\" trait type declaration.", ERROR_TYPE_IDENT)
             );
         }
 
@@ -164,7 +165,7 @@ fn validate_method(
 
     sink.push_spanned(
         &method,
-        format!("Expecting return type to be std::result::Result<{}, Self::Error>", result_type)
+        format!("Expecting return type to be \"std::result::Result<{}, Self::Error>\"", result_type)
     );
 }
 
@@ -206,4 +207,27 @@ fn validate_return_type(segment: &PathSegment, expected: &Option<TypePath>) -> b
     } else {
         false
     }
+}
+
+fn validate_err_bound(bounds: &Punctuated<TypeParamBound, Add>) -> bool {
+    if bounds.len() != 1 {
+        return false;
+    }
+
+    let TypeParamBound::Trait(bound) = bounds.first().unwrap() else {
+        return false;
+    };
+
+    if !matches!(bound.modifier, TraitBoundModifier::None) ||
+        bound.lifetimes.is_some()
+    {
+        return false;
+    }
+
+    let Some(segment) = bound.path.segments.last() else {
+        return false;
+    };
+
+    segment.ident.to_string() == "ToString" &&
+        segment.arguments == PathArguments::None
 }
