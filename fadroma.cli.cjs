@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 const exit = {
+
   ok () {
     process.exit(0)
   },
+
   async scriptError (e) {
     const {Console} = await import('@hackbg/logs')
     const log = new Console('@fadroma/deploy: cli')
@@ -15,15 +17,18 @@ const exit = {
     log.error(`\n${e.stack}`)
     process.exit(1)
   },
+
   noScript () {
     console.error('Pass a deploy script.')
     process.exit(2)
   },
+
   importError (scriptPath, e) {
     console.error('Failed to load', scriptPath)
     console.error(e)
     process.exit(3)
   },
+
   noEntrypoint (script) {
     console.error(
       `${script} has no default export.\n` +
@@ -36,21 +41,44 @@ const exit = {
     )
     process.exit(4)
   },
+
 }
 
+// The process.env.Fadroma environment variable is set
+// after Ganesha has enabled on-demand loading of TypeScript
 if (process.env.Fadroma) {
-  // Call the default export of the deploy script
-  const script = process.argv[2]
-  if (!script) exit.noScript()
+
+  const command = process.argv[2]
+  if (!command) exit.noScript()
+
   console.log()
-  const scriptPath = require('path').resolve(process.cwd(), script)
-  import(scriptPath).then(
-    async ({ default: entrypoint })=>{
-      if (!entrypoint) exit.noEntrypoint(script)
-      await Promise.resolve(entrypoint(process.argv.slice(3))).catch(exit.scriptError)
-    },
-    e => exit.importError(scriptPath, e)
-  )
+  switch (command) {
+
+    case 'build':
+      require('./packages/build/build.cli.cjs')
+      break
+
+    case 'deploy':
+      require('./packages/deploy/deploy.cli.cjs')
+      break
+
+    case 'devnet':
+      require('./packages/devnet/devnet.cli.cjs')
+      break
+
+    default:
+      // Call the default export of the deploy script
+      const scriptPath = require('path').resolve(process.cwd(), command)
+      import(scriptPath).then(
+        async ({ default: entrypoint })=>{
+          if (!entrypoint) exit.noEntrypoint(script)
+          await Promise.resolve(entrypoint(process.argv.slice(3))).catch(exit.scriptError)
+        },
+        e => exit.importError(scriptPath, e)
+      )
+
+  }
+
 } else {
   // Trampoline to the entry point of Komandi, which then trampolines
   // back to this script with TypeScript support enabled by Ganesha

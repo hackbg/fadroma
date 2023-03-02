@@ -9,7 +9,7 @@ import $, { JSONFile, JSONDirectory } from '@hackbg/file'
 import { bold } from '@hackbg/logs'
 import { freePort, waitPort } from '@hackbg/port'
 
-import { dirname }       from 'node:path'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Root of this module.
@@ -21,10 +21,10 @@ export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource
 /** Parameters for the Dockerode-based implementation of Devnet.
   * (https://www.npmjs.com/package/dockerode) */
 export interface DockerDevnetOpts extends DevnetOpts {
-  /** Docker image of the chain's runtime. */
-  image?:       Dock.Image
+  /** Container image of the chain's runtime. */
+  image?: Dock.Image
   /** Init script to launch the devnet. */
-  initScript?:  string
+  initScript?: string
   /** Once this string is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyPhrase?: string
@@ -54,13 +54,13 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   static initScriptMount = 'devnet.init.mjs'
 
-  static getOrCreate (kind: DevnetPlatform, dock = new Dock.Engine()) {
-    const portMode    = devnetPortModes[kind]
-    const dockerfile  = this.dockerfiles[kind]
-    const imageTag    = this.dockerTags[kind]
+  static getOrCreate (kind: DevnetPlatform, dock: Dock.Engine) {
+    const portMode = devnetPortModes[kind]
+    const dockerfile = this.dockerfiles[kind]
+    const imageTag = this.dockerTags[kind]
     const readyPhrase = 'indexed block'
-    //const initScript  = $(devnetPackage, this.initScriptMount).path
-    const image       = dock.image(imageTag, dockerfile, [this.initScriptMount])
+    //const initScript = $(devnetPackage, this.initScriptMount).path
+    const image = dock.image(imageTag, dockerfile, [this.initScriptMount])
     return new DockerDevnet({ portMode, image, readyPhrase })
   }
 
@@ -117,7 +117,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   /** Handle to Docker API if configured. */
   get dock (): Dock.Engine|null {
-    return this.image.dock
+    return this.image.engine
   }
 
   /** Gets the info for a genesis account, including the mnemonic */
@@ -383,15 +383,8 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   async export (repository?: string, tag?: string) {
-    if (!this.container) {
-      throw new Error("Can't export: no container")
-    }
-    if (!this.container.container) {
-      throw new Error("Can't export: no internal container")
-    }
-    const { Id } = await this.container.container.commit({ repository, tag })
-    this.log.info(`Exported snapshot:`, bold(Id))
-    return Id
+    if (!this.container) throw new Error("Can't export: no container")
+    return this.container.export(repository, tag)
   }
 
 }

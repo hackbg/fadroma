@@ -5,12 +5,12 @@ import {
 import {
   Devnet,
   DevnetCommands,
-  DevnetConfig,
   DevnetPlatform,
   DevnetPortMode,
   devnetPortModes,
   resetDevnet
 } from './devnet-base'
+import { DevnetConfig } from './devnet-config'
 //import { RemoteDevnet } from './devnet-remote'
 import { DockerDevnet } from './devnet-docker'
 import * as Dock from '@hackbg/dock'
@@ -23,24 +23,11 @@ export function defineDevnet (
 ) {
   return async <T> (config: T) => {
     const mode = ChainMode.Devnet
-    const node = await getDevnet(version)
+    const node = await new DevnetConfig().getDevnetContainer(version)
     const id   = node.chainId
     const url  = node.url.toString()
     return new Chain(id, { url, mode, node })
   }
-}
-
-export function getDevnet (
-  platform: DevnetPlatform,
-  server?:  string,
-  chainId?: string,
-  dokeres?: Dock.Engine
-): Devnet {
-  //if (server) {
-    //return RemoteDevnet.getOrCreate(platform, 'TODO', server, undefined, chainId, chainId)
-  //} else {
-    return DockerDevnet.getOrCreate(platform, dokeres) as Devnet
-  //}
 }
 
 export {

@@ -16,19 +16,6 @@ export type DevnetPlatform =
 /** Supported connection types. */
 export type DevnetPortMode = 'lcp'|'grpcWeb'
 
-/** Gets devnet settings from environment. */
-export class DevnetConfig extends EnvConfig {
-  /** URL to the devnet manager endpoint, if used. */
-  manager:   string|null = this.getString ('FADROMA_DEVNET_MANAGER',   ()=>null)
-  /** Whether to remove the devnet after the command ends. */
-  ephemeral: boolean     = this.getBoolean('FADROMA_DEVNET_EPHEMERAL', ()=>false)
-  /** Chain id for devnet .*/
-  chainId:   string      = this.getString ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet")
-  /** Host for devnet. */
-  host:      string|null = this.getString ('FADROMA_DEVNET_HOST',      ()=>null)
-  /** Port for devnet. */
-  port:      string|null = this.getString ('FADROMA_DEVNET_PORT',      ()=>null)
-}
 
 /** A Devnet is created from a given chain ID with given pre-configured identities,
   * and its state is stored in a given directory (e.g. `receipts/fadroma-devnet`). */

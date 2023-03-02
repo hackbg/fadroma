@@ -3,7 +3,7 @@ import { BuildConsole } from './build-events'
 import type { BuilderConfig } from './build-base'
 import { getGitDir } from './build-history'
 
-import * as Dokeres from '@hackbg/dock'
+import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
 import { bold } from '@hackbg/logs'
 import $, { Path, OpaqueDirectory } from '@hackbg/file'
 
@@ -16,33 +16,25 @@ import { default as simpleGit } from 'simple-git'
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends LocalBuilder {
-  readonly id = 'docker-local'
-  /** Logger */
-  log = new BuildConsole('Builder: Docker')
-  /** Used to launch build container. */
-  docker: Dokeres.Engine
-  /** Tag of the docker image for the build container. */
-  image:  Dokeres.Image
-  /** Path to the dockerfile to build the build container if missing. */
-  dockerfile: string
 
-  constructor (opts: Partial<BuilderConfig & { docker?: Dokeres.Engine }> = {}) {
+  constructor (opts: Partial<BuilderConfig & { docker?: Engine }> = {}) {
     super(opts)
     const { docker, dockerSocket, dockerImage } = opts
     // Set up Docker API handle
+    const Containers = opts.podman ? Podman : Docker
     if (dockerSocket) {
-      this.docker = new Dokeres.Engine(dockerSocket)
+      this.docker = new Containers.Engine(dockerSocket)
     } else if (docker) {
       this.docker = docker
     } else {
-      this.docker = new Dokeres.Engine()
+      this.docker = new Containers.Engine()
     }
-    if ((dockerImage as unknown) instanceof Dokeres.Image) {
-      this.image = opts.dockerImage as unknown as Dokeres.Image
+    if ((dockerImage as unknown) instanceof Containers.Image) {
+      this.image = opts.dockerImage as unknown as Image
     } else if (opts.dockerImage) {
-      this.image = new Dokeres.Image(this.docker, opts.dockerImage)
+      this.image = this.docker.image(opts.dockerImage)
     } else {
-      this.image = new Dokeres.Image(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
+      this.image = this.docker.image('ghcr.io/hackbg/fadroma:unstable')
     }
     // Set up Docker image
     this.dockerfile ??= opts.dockerfile!
@@ -53,6 +45,20 @@ export class DockerBuilder extends LocalBuilder {
       'args', 'task', 'before'
     ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
   }
+
+  readonly id = 'docker-local'
+
+  /** Logger */
+  log = new BuildConsole('Builder: Docker')
+
+  /** Used to launch build container. */
+  docker: Engine
+
+  /** Tag of the docker image for the build container. */
+  image: Image
+
+  /** Path to the dockerfile to build the build container if missing. */
+  dockerfile: string
 
   /** Build a Source into a Template. */
   async build (contract: Buildable): Promise<Built> {
@@ -314,7 +320,7 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // This stream collects the output from the build container, i.e. the build logs.
-    const buildLogStream = new Dokeres.LineTransformStream((!this.quiet)
+    const buildLogStream = new LineTransformStream((!this.quiet)
       // In normal and verbose mode, build logs are printed to the console in real time,
       // with an addition prefix to show what is being built.
       ? (line:string)=>`${bold('BUILD')} @ ${revision} │ ${line}`
@@ -327,7 +333,7 @@ export class DockerBuilder extends LocalBuilder {
       buildLogStream.pipe(process.stdout)
     } else {
       // In non-verbose mode, build logs are collected in a string
-      buildLogStream.on('data', data => buildLogs += data)
+      buildLogStream.on('data', (data: string) => buildLogs += data)
     }
 
     // Run the build container
@@ -340,11 +346,11 @@ export class DockerBuilder extends LocalBuilder {
       '/usr/bin/env', // container entrypoint command
       buildLogStream  // container log stream
     )
-    const {Error: err, StatusCode: code} = await buildContainer.wait()
+    const {error, code} = await buildContainer.wait()
 
     // Throw error if launching the container failed
-    if (err) {
-      throw new Error(`[@fadroma/build] Docker error: ${err}`)
+    if (error) {
+      throw new Error(`[@fadroma/build] Docker error: ${error}`)
     }
 
     // Throw error if the build failed
@@ -369,7 +375,9 @@ export class DockerBuilder extends LocalBuilder {
     return new Contract({ artifact, codeHash })
   }
 
-  get [Symbol.toStringTag]() { return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}` }
+  get [Symbol.toStringTag]() {
+    return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}`
+  }
 
 }
 
