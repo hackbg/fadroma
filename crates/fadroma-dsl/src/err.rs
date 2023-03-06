@@ -27,6 +27,11 @@ impl ErrorSink {
     }
 
     #[inline]
+    pub fn push_err(&mut self, err: syn::Error) {
+        self.0.push(err);
+    }
+
+    #[inline]
     pub fn check(self) -> Result<(), CompileErrors> {
         if self.0.is_empty() {
             Ok(())

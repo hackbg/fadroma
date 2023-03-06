@@ -1,13 +1,16 @@
 mod interface;
+mod contract;
 mod attr;
 mod err;
 mod generate;
+mod validate;
 mod utils;
 
-use syn::{parse_macro_input, ItemTrait, TraitItemMethod, parse_quote};
+use syn::{parse_macro_input, Item, ItemTrait, TraitItemMethod, ItemMod, parse_quote};
+use proc_macro2::Span;
 use quote::quote;
 
-use interface::Interface;
+use attr::MsgAttr;
 
 #[proc_macro_attribute]
 pub fn interface(
@@ -17,7 +20,7 @@ pub fn interface(
     let item = parse_macro_input!(trait_ as ItemTrait);
     let item_trait = quote!(#item);
 
-    let boilerplate = match Interface::derive(item) {
+    let boilerplate = match interface::derive(item) {
         Ok(stream) => stream,
         Err(errors) => to_compile_errors(errors)
     };
@@ -31,17 +34,27 @@ pub fn interface(
 }
 
 #[proc_macro_attribute]
+pub fn contract(
+    _args: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let item = parse_macro_input!(item as ItemMod);
+
+    let boilerplate = match contract::derive(item) {
+        Ok(stream) => stream,
+        Err(errors) => to_compile_errors(errors)
+    };
+
+    proc_macro::TokenStream::from(boilerplate)
+}
+
+#[proc_macro_attribute]
 pub fn init(
     _args: proc_macro::TokenStream,
-    func: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let mut ast = parse_macro_input!(func as TraitItemMethod);
-
-    add_fn_args(&mut ast, true, false, false);
-
-    let result = quote! {
-        #ast
-    };
+    let item = parse_macro_input!(item as Item);
+    let result = add_fn_args(item, MsgAttr::Init { entry: false });
 
     proc_macro::TokenStream::from(result)
 }
@@ -49,15 +62,10 @@ pub fn init(
 #[proc_macro_attribute]
 pub fn execute(
     _args: proc_macro::TokenStream,
-    func: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let mut ast = parse_macro_input!(func as TraitItemMethod);
-
-    add_fn_args(&mut ast, true, false, false);
-
-    let result = quote! {
-        #ast
-    };
+    let item = parse_macro_input!(item as Item);
+    let result = add_fn_args(item, MsgAttr::Execute);
 
     proc_macro::TokenStream::from(result)
 }
@@ -65,49 +73,31 @@ pub fn execute(
 #[proc_macro_attribute]
 pub fn query(
     _args: proc_macro::TokenStream,
-    func: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let mut ast = parse_macro_input!(func as TraitItemMethod);
-
-    add_fn_args(&mut ast, false, false, false);
-
-    let result = quote! {
-        #ast
-    };
+    let item = parse_macro_input!(item as Item);
+    let result = add_fn_args(item, MsgAttr::Query);
 
     proc_macro::TokenStream::from(result)
 }
 
-fn add_fn_args(func: &mut TraitItemMethod, is_tx: bool, ref_env: bool, ref_info: bool) {
-    func.sig.inputs.insert(0, parse_quote!(&self));
+fn add_fn_args(mut item: Item, attr: MsgAttr) -> proc_macro2::TokenStream {
+    match &mut item {
+        Item::Fn(item) => {
+            generate::cw_arguments(&mut item.sig, attr, true);
 
-    if is_tx {
-        if func.default.is_none() {
-            func.sig
-                .inputs
-                .push(parse_quote!(deps: cosmwasm_std::DepsMut));
-        } else {
-            func.sig
-                .inputs
-                .push(parse_quote!(mut deps: cosmwasm_std::DepsMut));
-        }
-        if ref_env {
-            func.sig.inputs.push(parse_quote!(env: &cosmwasm_std::Env));
-        } else {
-            func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
-        }
-        if ref_info {
-            func.sig
-                .inputs
-                .push(parse_quote!(info: &cosmwasm_std::MessageInfo));
-        } else {
-            func.sig
-                .inputs
-                .push(parse_quote!(info: cosmwasm_std::MessageInfo));
-        }
-    } else {
-        func.sig.inputs.push(parse_quote!(deps: cosmwasm_std::Deps));
-        func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
+            quote!(#item)
+        },
+        Item::Verbatim(stream) => {
+            let mut item: TraitItemMethod = parse_quote!(#stream);
+            generate::cw_arguments(&mut item.sig, attr, item.default.is_some());
+
+            quote!(#item)
+        },
+        _ => return syn::Error::new(
+            Span::call_site(),
+            "This macro is only valid for methods."
+        ).to_compile_error()
     }
 }
 
