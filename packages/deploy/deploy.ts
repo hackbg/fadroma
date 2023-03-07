@@ -16,41 +16,24 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { bold } from '@hackbg/logs'
-import $, { JSONFile, Path } from '@hackbg/file'
-import { Env, EnvConfig } from '@hackbg/conf'
-import { CommandContext } from '@hackbg/cmds'
-import { Connector, ConnectConfig } from '@fadroma/connect'
-import {
-  Agent,
-  Chain,
-  Class,
-  Client,
-  Contract,
-  DeployStoreClass,
-  Deployment,
-  DeploymentFormat,
-  Uploader,
-  UploaderClass,
-  override,
-} from '@fadroma/core'
-
-export { default as DeployConfig } from './DeployConfig';         export * from './DeployConfig';     
-export { default as DeployConsole } from './DeployConsole';       export * from './DeployConsole';    
-export { default as DeployError } from './DeployError';           export * from './DeployError';      
-export { default as DeployerCommands } from './DeployerCommands'; export * from './DeployerCommands'; 
-export { default as Deployer } from './Deployer';                 export * from './Deployer';         
-
-import YAML from 'js-yaml'
 import { DeployStore } from '@fadroma/core'
+import YAML from 'js-yaml'
 import YAML1 from './DeployStore_YAML_v1'
 import YAML2 from './DeployStore_YAML_v2'
 import JSON1 from './DeployStore_JSON_v1'
+
 Object.assign(DeployStore.variants, { YAML1, YAML2, JSON1 })
+
 export { DeployStore, YAML, YAML1, YAML2, JSON1 }
 
-export { default as FSUploader } from './FSUploader';       export * from './FSUploader'; 
-export { default as UploadConsole } from './UploadConsole'; export * from './UploadConsole'; 
-export { default as UploadError } from './UploadError';     export * from './UploadError'; 
-export { default as UploadReceipt } from './UploadReceipt'; export * from './UploadReceipt'; 
-export { default as UploadStore } from './UploadStore';     export * from './UploadStore'; 
+export { default as DeployConfig } from './DeployConfig';         export * from './DeployConfig';
+export { default as DeployConsole } from './DeployConsole';       export * from './DeployConsole';
+export { default as DeployError } from './DeployError';           export * from './DeployError';
+export { default as DeployerCommands } from './DeployerCommands'; export * from './DeployerCommands';
+export { default as Deployer } from './Deployer';                 export * from './Deployer';
+
+export { default as FSUploader } from './FSUploader';       export * from './FSUploader';
+export { default as UploadConsole } from './UploadConsole'; export * from './UploadConsole';
+export { default as UploadError } from './UploadError';     export * from './UploadError';
+export { default as UploadReceipt } from './UploadReceipt'; export * from './UploadReceipt';
+export { default as UploadStore } from './UploadStore';     export * from './UploadStore';
