@@ -12,9 +12,14 @@ import APIPackage     from './ProjectAPIPackage'
 import OpsPackage     from './ProjectOpsPackage'
 import ProjectState   from './ProjectState'
 
+export * from './projectWizard'
+
 export type ProjectContract = {
-  source?:   string,
-  package?:  string,
+  /** Source crate/workspace. Defaults to root crate of project. */
+  source?: string,
+  /** -p flag that selects the contract to compile, if the source is a workspace. */
+  package?: string,
+  /** One or more -f flags that select the contract to compile, if the source is a multi-contract crate. */
   features?: string[]
 }
 
@@ -38,27 +43,24 @@ export default class Project {
     this.state       = new ProjectState(this)
   }
 
-  /** Root package manifest. */
-  packageJson:    JSONFile<any>
-
-  apiPackage:     APIPackage
-
-  opsPackage:     OpsPackage
-
   crate:          ContractsCrate
-
+  apiPackage:     APIPackage
+  opsPackage:     OpsPackage
   state:          ProjectState
 
+  /** Root package manifest. */
+  packageJson:    JSONFile<any>
+  /** Root of documentation. */
   readme:         TextFile
-
+  /** List of files to be ignored by Git. */
   gitignore:      TextFile
-
+  /** List of environment variables to set. */
   envfile:        TextFile
-
+  /** A custom Dockerfile for building the project. */
   dockerfile:     TextFile|null = null
-
+  /** A GitHub Actions CI workflow. */
   githubWorkflow: TextFile|null = null
-
+  /** A Drone CI workflow. */
   droneWorkflow:  TextFile|null = null
 
   create () {
@@ -93,10 +95,11 @@ export default class Project {
 
   static create (
     name: string,
-    root: OpaqueDirectory = $(process.cwd()).in(name).as(OpaqueDirectory),
+    root: string|Path = $(process.cwd()).in(name),
     contracts: Record<string, ProjectContract> = {}
   ) {
-    return new this(name, root, contracts).create()
+    if (typeof root === 'string') root = $(root)
+    return new this(name, root.as(OpaqueDirectory), contracts).create()
   }
 
 }

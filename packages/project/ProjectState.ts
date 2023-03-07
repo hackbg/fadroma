@@ -13,14 +13,21 @@ export default class ProjectState {
   artifacts: TextFile
 
   /** Directory containing upload receipts. */
-  uploads:   OpaqueDirectory
+  uploads: OpaqueDirectory
 
   /** Directory containing deployment receipts. */
-  receipts:  OpaqueDirectory
+  receipts: OpaqueDirectory
 
   create () {
-    this.artifacts.make()
+    let artifacts = ``
+    const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
+    Object.keys(this.project.contracts).forEach(contract=>{
+      artifacts += `${sha256}  ${contract}.wasm`
+    })
+    this.artifacts.save(artifacts)
+
     this.uploads.make()
+
     this.receipts.make()
   }
 

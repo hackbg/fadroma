@@ -1,5 +1,3 @@
-#!/usr/bin/env cmds-ts
-
 /**
 
   Fadroma
@@ -85,7 +83,7 @@ export class Fadroma extends Deployer {
 import { BuildCommands } from '@fadroma/build'
 import { ConnectCommands } from '@fadroma/connect'
 
-import Project from '@fadroma/project'
+import { projectWizard } from '@fadroma/project'
 import $, { OpaqueDirectory } from '@hackbg/file'
 
 export default class FadromaCommands extends CommandContext {
@@ -93,7 +91,7 @@ export default class FadromaCommands extends CommandContext {
     readonly fadroma: Fadroma = new Fadroma()
   ) {
     super()
-    this.addCommand('create', 'create a new project', Project.create)
+    this.addCommand('create', 'create a new project', projectWizard)
         //.addCommands('chain', 'manage chains and connections', new ChainCommands())
         //.addCommands('contract', 'manage contracts', new ContractCommands())
         //.addCommands('deployment', 'manage contracts', new DeploymentCommands())

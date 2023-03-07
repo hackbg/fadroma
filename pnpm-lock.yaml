@@ -651,8 +651,10 @@ importers:
       '@hackbg/ensuite': ^1.1
       '@hackbg/file': workspace:^1
       '@hackbg/logs': workspace:^1
+      '@types/prompts': ^2.4.2
       case: ^1.6.3
       dotenv: ^16.0.1
+      prompts: ^2.4.2
       simple-git: ^3.7.1
     dependencies:
       '@fadroma/core': link:../core
@@ -662,9 +664,11 @@ importers:
       '@hackbg/logs': link:../../ensuite/toolbox/logs
       case: 1.6.3
       dotenv: 16.0.1
+      prompts: 2.4.2
       simple-git: 3.10.0
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
+      '@types/prompts': 2.4.2
 
   packages/tokens:
     specifiers:
@@ -1439,6 +1443,13 @@ packages:
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
+    dev: true
+
+  /@types/prompts/2.4.2:
+    resolution: {integrity: sha512-TwNx7qsjvRIUv/BCx583tqF5IINEVjCNqg9ofKHRlSoUHE62WBHrem4B1HGXcIrG511v29d1kJ9a/t2Esz7MIg==}
+    dependencies:
+      '@types/node': 18.14.6
+      kleur: 3.0.3
     dev: true
 
   /@types/rimraf/3.0.2:
@@ -3756,6 +3767,10 @@ packages:
       prebuild-install: 7.1.1
     dev: true
 
+  /kleur/3.0.3:
+    resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
+    engines: {node: '>=6'}
+
   /lcov-parse/1.0.0:
     resolution: {integrity: sha512-aprLII/vPzuQvYZnDRU78Fns9I2Ag3gi4Ipga/hxnVMCZC8DnR2nI7XBqrPoywGfxqIx/DgarGvDJZAD3YBTgQ==}
     hasBin: true
@@ -4477,6 +4492,14 @@ packages:
     dependencies:
       asap: 2.0.6
 
+  /prompts/2.4.2:
+    resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
+    engines: {node: '>= 6'}
+    dependencies:
+      kleur: 3.0.3
+      sisteransi: 1.0.5
+    dev: false
+
   /protobufjs/6.11.3:
     resolution: {integrity: sha512-xL96WDdCZYdU7Slin569tFX712BxsxslWwAfAhCYjQKGTq7dAU91Lomy6nLLhh/dyGhk/YH4TwTSRxTzhuHyZg==}
     hasBin: true
@@ -5029,6 +5052,10 @@ packages:
       diff: 5.1.0
       nise: 5.1.4
       supports-color: 7.2.0
+    dev: false
+
+  /sisteransi/1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
     dev: false
 
   /slash/1.0.0:
