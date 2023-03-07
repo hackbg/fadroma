@@ -22,6 +22,8 @@
     "packages/deploy/deploy.cli.cjs"
   ],
   "scripts": {
+    "start": "./fadroma.ts",
+
     "prepare": "husky install",
 
     "ubik": "pnpm i && pnpm clean && pnpm check && ubik",
@@ -45,14 +47,18 @@
   },
   "dependencies": {
 
-    "@fadroma/build":   "workspace:2.0.6",
-    "@fadroma/connect": "workspace:2.1.5",
-    "@fadroma/core":    "workspace:2.0.4",
-    "@fadroma/deploy":  "workspace:2.0.5",
-    "@fadroma/devnet":  "workspace:1.1.5",
-    "@fadroma/mocknet": "workspace:2.0.1",
-    "@fadroma/scrt":    "workspace:8.0.4",
-    "@fadroma/tokens":  "workspace:7.1.1",
+    "@fadroma/core":    "workspace:^2.0.4",
+
+    "@fadroma/project": "workspace:^1",
+    "@fadroma/build":   "workspace:^2.0.6",
+    "@fadroma/deploy":  "workspace:^2.0.5",
+
+    "@fadroma/connect": "workspace:^2.1.5",
+    "@fadroma/scrt":    "workspace:^8.0.4",
+    "@fadroma/devnet":  "workspace:^1.1.5",
+    "@fadroma/mocknet": "workspace:^2.0.1",
+
+    "@fadroma/tokens":  "workspace:^7.1.1",
 
     "@hackbg/4mat": "workspace:^1",
     "@hackbg/file": "workspace:^1",

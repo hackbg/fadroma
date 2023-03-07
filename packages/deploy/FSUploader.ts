@@ -3,13 +3,15 @@ import { colors, bold } from '@hackbg/logs'
 import $, { Path, BinaryFile } from '@hackbg/file'
 import { Uploader, assertAgent, override, toUploadReceipt, ClientError } from '@fadroma/core'
 import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/core'
-import { UploadStore, UploadReceipt } from './upload-store'
-import { UploadConsole } from './upload-events'
+
+import UploadStore   from './UploadStore'
+import UploadReceipt from './UploadReceipt'
+import UploadConsole from './UploadConsole'
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
-export class FSUploader extends Uploader {
+export default class FSUploader extends Uploader {
 
   get id () { return 'fs' }
 

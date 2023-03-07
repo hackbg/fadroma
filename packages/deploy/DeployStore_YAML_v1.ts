@@ -1,17 +1,23 @@
-import { loadAll, dump } from 'js-yaml'
-import { timestamp, bold } from '@hackbg/logs'
-import $, { Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory } from '@hackbg/file'
+import DeployConsole from './DeployConsole'
+import DeployError from './DeployError'
+
 import {
   Agent, Contract, AnyContract, Client, Deployment, DeployStore, toInstanceReceipt
 } from '@fadroma/core'
-import { DeployConsole, DeployError, log } from './deploy-events'
+
+import { timestamp, bold } from '@hackbg/logs'
+import $, {
+  Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
+} from '@hackbg/file'
+
 import { basename } from 'node:path'
+import { loadAll, dump } from 'js-yaml'
 
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class YAMLDeployments_v1 extends DeployStore {
+export default class YAMLDeployments_v1 extends DeployStore {
 
   constructor (
     storePath: string|Path|YAMLDirectory<unknown>,
@@ -124,4 +130,4 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   get [Symbol.toStringTag]() { return `${this.root?.shortPath??'-'}` }
 
-};
+}

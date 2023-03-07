@@ -1,50 +1,20 @@
-import {
-  Chain,
-  ChainMode,
-} from '@fadroma/core'
-import {
-  Devnet,
-  DevnetCommands,
-  DevnetPlatform,
-  DevnetPortMode,
-  devnetPortModes,
-  resetDevnet
-} from './devnet-base'
-import { DevnetConfig } from './devnet-config'
-//import { RemoteDevnet } from './devnet-remote'
-import { DockerDevnet } from './devnet-docker'
-import * as Dock from '@hackbg/dock'
+export * from './DevnetError'
+export { default as DevnetError } from './DevnetError'
 
-/** Returns the function that goes into Chain.variants (when it's populated
-  * in @fadroma/connect) to enable devnets for a target platform. */
-export function defineDevnet (
-  Chain: { new(...args:any[]): Chain },
-  version: DevnetPlatform
-) {
-  return async <T> (config: T) => {
-    const mode = ChainMode.Devnet
-    const node = await new DevnetConfig().getDevnetContainer(version)
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new Chain(id, { url, mode, node })
-  }
-}
+export * from './DevnetConsole'
+export { default as DevnetConsole } from './DevnetConsole'
 
-export {
-  DevnetError
-} from './devnet-events'
+export * from './DevnetConfig'
+export { default as DevnetConfig } from './DevnetConfig'
 
-export type {
-  DevnetPlatform,
-  DevnetPortMode
-} from './devnet-base'
+export * from './DevnetCommands'
+export { default as DevnetCommands } from './DevnetCommands'
 
-export {
-  Devnet,
-  DevnetConfig,
-  DevnetCommands,
-  devnetPortModes,
-  resetDevnet,
-  //RemoteDevnet,
-  DockerDevnet,
-}
+export * from './DevnetBase'
+export { default as DevnetBase } from './DevnetBase'
+
+export * from './DevnetContainer'
+export { default as DevnetContainer } from './DevnetContainer'
+
+export * from './DevnetRemote'
+export { default as DevnetRemote } from './DevnetRemote'

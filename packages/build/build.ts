@@ -1,4 +1,5 @@
-/*
+/**
+
   Fadroma Build System
   Copyright (C) 2022 Hack.bg
 
@@ -14,29 +15,43 @@
 
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 **/
 
-import type { TOMLFile } from '@hackbg/file'
+export * from './BuildConsole'
+export { default as BuildConsole } from './BuildConsole'
+
+export * from './BuildError'
+export { default as BuildError } from './BuildError'
+
+export * from './BuilderConfig'
+export { default as BuilderConfig } from './BuilderConfig'
+
+export * from './BuildCommands'
+export { default as BuildCommands } from './BuildCommands'
+
+export * from './LocalBuilder'
+export { default as LocalBuilder } from './LocalBuilder'
+
+export * from './RawBuilder'
+export { default as RawBuilder } from './RawBuilder'
+
+export * from './ContainerBuilder'
+export { default as ContainerBuilder } from './ContainerBuilder'
+
+export * from './getGitDir'
+export { default as getGitDir } from './getGitDir'
+
 import type { Buildable } from '@fadroma/core'
-import { Contract, Builder, HEAD } from '@fadroma/core'
-
-import { BuilderConfig, LocalBuilder, buildPackage } from './build-base'
-import { BuildConsole }  from './build-events'
-import { RawBuilder }    from './build-raw'
-import { DockerBuilder } from './build-docker'
-
-Object.assign(Builder.variants, {
-  'docker-local': DockerBuilder,
-  'raw-local':    RawBuilder
-})
-
-export async function buildCrates (
+import BuilderConfig from './BuilderConfig'
+import { ContractTemplate, HEAD } from '@fadroma/core'
+export default async function buildCrates (
   crates:   string[]               = [],
   revision: string                 = HEAD,
   config:   Partial<BuilderConfig> = new BuilderConfig(),
   builder:  Builder                = config.getBuilder!()
 ) {
-  return await builder.buildMany(crates.map(crate=>new Contract({
+  return await builder.buildMany(crates.map(crate=>new ContractTemplate({
     repository: config.project,
     workspace:  config.project,
     crate,
@@ -44,19 +59,18 @@ export async function buildCrates (
   }) as Buildable))
 }
 
+import type { TOMLFile } from '@hackbg/file'
+
 /** The parts of Cargo.toml which the builder needs to be aware of. */
 export type CargoTOML = TOMLFile<{ package: { name: string } }>
 
-export {
-  BuilderConfig,
-  BuildConsole,
-  LocalBuilder,
-  RawBuilder,
-  DockerBuilder,
-  buildPackage
-}
+export { Builder }
 
-export {
-  getGitDir,
-  DotGit
-} from './build-history'
+import { Builder } from '@fadroma/core'
+import LocalBuilder from './LocalBuilder'
+import RawBuilder from './RawBuilder'
+import ContainerBuilder from './ContainerBuilder'
+Object.assign(Builder.variants, {
+  'docker-local': ContainerBuilder,
+  'raw-local':    RawBuilder
+})

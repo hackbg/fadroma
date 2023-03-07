@@ -1,13 +1,13 @@
 {
-  "name":    "@fadroma/build",
-  "version": "2.0.6",
-  "type":    "module",
-  "main":    "./build.ts",
-  "files":   [ "*.ts", "build.impl.mjs" ],
-  "description": "Build smart contracts with or without container.",
+  "name": "@fadroma/project",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./Project.ts",
+  "files": [ "*.ts" ],
+  "description": "Create a new Fadroma project.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite build.spec.ts.md || true",
+    "test":  "ensuite create.spec.ts",
     "cov":   "ensuite-cov -r text -- build.spec.ts.md",
     "lcov":  "ensuite-cov -r lcov -- build.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
@@ -20,12 +20,11 @@
   },
   "dependencies": {
     "@fadroma/core": "workspace:2.0.4",
-    "@hackbg/dock":  "workspace:1.2",
-    "@hackbg/4mat":  "workspace:^1",
     "@hackbg/file":  "workspace:^1",
     "@hackbg/logs":  "workspace:^1",
     "@hackbg/cmds":  "workspace:^1.1.4",
     "@hackbg/conf":  "workspace:^1",
+    "case":       "^1.6.3",
     "dotenv":     "^16.0.1",
     "simple-git": "^3.7.1"
   },

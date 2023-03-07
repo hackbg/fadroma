@@ -1,3 +1,5 @@
+#!/usr/bin/env cmds-ts
+
 /**
 
   Fadroma
@@ -28,11 +30,12 @@ import { Scrt } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
 import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 
-import repl from 'node:repl'
-import { createContext } from 'node:vm'
+import { CommandContext } from '@hackbg/cmds'
 
 export class Console extends DeployConsole {
-  constructor (name = 'Fadroma') { super(name) }
+  constructor (name = 'Fadroma') {
+    super(name)
+  }
 }
 
 /** Configuration for the Fadroma environment. */
@@ -54,14 +57,14 @@ export class Fadroma extends Deployer {
     this.log.label = this.projectName
     this.config = (options.config instanceof Config)
       ? options.config
-      : new Config(options.config, this.env, this.cwd)
+      : new Config(options.config, process.env, process.cwd())
     // Configure build context
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
     // Create token manager
     this.tokens = new TokenManager(this as Deployment)
     // Define commands
-    this.addCommands('tokens', 'manage token contracts', this.tokens as any)
+    //this.addCommands('tokens', 'manage token contracts', this.tokens as any)
   }
 
   get ready () {
@@ -79,8 +82,24 @@ export class Fadroma extends Deployer {
 
 }
 
-/** Default export of command module. */
-export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
+import { BuildCommands } from '@fadroma/build'
+import { ConnectCommands } from '@fadroma/connect'
+
+import Project from '@fadroma/project'
+import $, { OpaqueDirectory } from '@hackbg/file'
+
+export default class FadromaCommands extends CommandContext {
+  constructor (
+    readonly fadroma: Fadroma = new Fadroma()
+  ) {
+    super()
+    this.addCommand('create', 'create a new project', Project.create)
+        //.addCommands('chain', 'manage chains and connections', new ChainCommands())
+        //.addCommands('contract', 'manage contracts', new ContractCommands())
+        //.addCommands('deployment', 'manage contracts', new DeploymentCommands())
+        //.addCommands('token', 'manage token contracts', new TokensCommands())
+  }
+}
 
 export * from '@hackbg/logs'
 export * from '@hackbg/cmds'

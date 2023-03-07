@@ -4,14 +4,15 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/build': workspace:2.0.6
-      '@fadroma/connect': workspace:2.1.5
-      '@fadroma/core': workspace:2.0.4
-      '@fadroma/deploy': workspace:2.0.5
-      '@fadroma/devnet': workspace:1.1.5
-      '@fadroma/mocknet': workspace:2.0.1
-      '@fadroma/scrt': workspace:8.0.4
-      '@fadroma/tokens': workspace:7.1.1
+      '@fadroma/build': workspace:^2.0.6
+      '@fadroma/connect': workspace:^2.1.5
+      '@fadroma/core': workspace:^2.0.4
+      '@fadroma/deploy': workspace:^2.0.5
+      '@fadroma/devnet': workspace:^1.1.5
+      '@fadroma/mocknet': workspace:^2.0.1
+      '@fadroma/project': workspace:^1
+      '@fadroma/scrt': workspace:^8.0.4
+      '@fadroma/tokens': workspace:^7.1.1
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/conf': workspace:^1
@@ -45,6 +46,7 @@ importers:
       '@fadroma/deploy': link:packages/deploy
       '@fadroma/devnet': link:packages/devnet
       '@fadroma/mocknet': link:packages/mocknet
+      '@fadroma/project': link:packages/project
       '@fadroma/scrt': link:platforms/scrt
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/4mat': link:ensuite/toolbox/4mat
@@ -59,7 +61,7 @@ importers:
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
       '@types/js-yaml': 4.0.5
-      '@types/node': 18.14.2
+      '@types/node': 18.14.6
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
@@ -270,7 +272,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.14.2
+      '@types/node': 18.14.6
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -638,6 +640,29 @@ importers:
       '@hackbg/4mat': link:../../ensuite/toolbox/4mat
       '@hackbg/dump': link:../../ensuite/toolbox/dump
       '@hackbg/logs': link:../../ensuite/toolbox/logs
+    devDependencies:
+      '@hackbg/ensuite': link:../../ensuite
+
+  packages/project:
+    specifiers:
+      '@fadroma/core': workspace:2.0.4
+      '@hackbg/cmds': workspace:^1.1.4
+      '@hackbg/conf': workspace:^1
+      '@hackbg/ensuite': ^1.1
+      '@hackbg/file': workspace:^1
+      '@hackbg/logs': workspace:^1
+      case: ^1.6.3
+      dotenv: ^16.0.1
+      simple-git: ^3.7.1
+    dependencies:
+      '@fadroma/core': link:../core
+      '@hackbg/cmds': link:../../ensuite/toolbox/cmds
+      '@hackbg/conf': link:../../ensuite/toolbox/conf
+      '@hackbg/file': link:../../ensuite/toolbox/file
+      '@hackbg/logs': link:../../ensuite/toolbox/logs
+      case: 1.6.3
+      dotenv: 16.0.1
+      simple-git: 3.10.0
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
 
@@ -1346,7 +1371,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 18.14.2
+      '@types/node': 18.14.6
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -1408,8 +1433,8 @@ packages:
   /@types/node/18.11.9:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
 
-  /@types/node/18.14.2:
-    resolution: {integrity: sha512-1uEQxww3DaghA0RxqHx0O0ppVlo43pJhepY51OxuQIKHpjbnYLA7vcdwioNPzIqmC2u3I/dmylcqjlh0e7AyUA==}
+  /@types/node/18.14.6:
+    resolution: {integrity: sha512-93+VvleD3mXwlLI/xASjw0FzKcwzl3OdTCzm1LaRfqgS21gfFtK3zDXM5Op9TeeMsJVOaJ2VRDpT9q4Y3d0AvA==}
     dev: true
 
   /@types/prettyjson/0.0.30:
@@ -1431,7 +1456,7 @@ packages:
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 18.14.2
+      '@types/node': 18.14.6
     dev: true
 
   /@types/tmp/0.2.3:
@@ -2145,6 +2170,11 @@ packages:
   /caniuse-lite/1.0.30001419:
     resolution: {integrity: sha512-aFO1r+g6R7TW+PNQxKzjITwLOyDhVRLjW0LcwS/HCZGUUKTGNp9+IwLC4xyDSZBygVL/mxaFR3HIV6wEKQuSzw==}
     dev: true
+
+  /case/1.6.3:
+    resolution: {integrity: sha512-mzDSXIPaFwVDvZAHqZ9VlbyF4yyXRuX6IvB06WvPYkqJVO24kX1PPhv9bfpKNFZyxYFmmgo03HUiD8iklmJYRQ==}
+    engines: {node: '>= 0.8.0'}
+    dev: false
 
   /caseless/0.12.0:
     resolution: {integrity: sha512-4tYFyifaFfGacoiObjJegolkwSU4xQNGbVgUiNYVUxbQ2x2lUsFvY4hVgVzGiIe6WLOPqycWXA40l+PWsxthUw==}

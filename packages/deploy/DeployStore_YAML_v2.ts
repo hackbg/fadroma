@@ -1,11 +1,12 @@
+import DeployConsole from './DeployConsole'
+
 import { timestamp } from '@hackbg/logs'
 import type { AnyContract } from '@fadroma/core'
 import { Contract, Deployment, DeployStore } from '@fadroma/core'
 import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/file'
-import { DeployConsole } from './deploy-events'
 
 /** Output of the alternate Rust-based deployer. */
-export class YAMLDeployments_v2 extends DeployStore {
+export default class YAMLDeployments_v2 extends DeployStore {
 
   constructor (
     storePath: string|Path|YAMLDirectory<unknown>,

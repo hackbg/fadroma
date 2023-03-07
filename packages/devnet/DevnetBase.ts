@@ -1,65 +1,14 @@
-import { EnvConfig } from '@hackbg/conf'
-import { CommandContext } from '@hackbg/cmds'
+import Error from './DevnetError'
+import Console from './DevnetConsole'
+import type { DevnetPortMode } from './DevnetConfig'
+
+import type { AgentOpts, Chain, ChainId, DevnetHandle } from '@fadroma/core'
+
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
-import { AgentOpts, Chain, ChainId, DevnetHandle } from '@fadroma/core'
-import { DevnetError as Error, DevnetConsole as Console } from './devnet-events'
-
-/** Supported devnet variants. */
-export type DevnetPlatform =
-  |'scrt_1.2'
-  |'scrt_1.3'
-  |'scrt_1.4'
-  |'scrt_1.5'
-  |'scrt_1.6'
-  |'scrt_1.7'
-
-/** Supported connection types. */
-export type DevnetPortMode = 'lcp'|'grpcWeb'
-
-
-/** A Devnet is created from a given chain ID with given pre-configured identities,
-  * and its state is stored in a given directory (e.g. `receipts/fadroma-devnet`). */
-export interface DevnetOpts {
-  /** Internal name that will be given to chain. */
-  chainId?:    string
-  /** Names of genesis accounts to be created with the node */
-  identities?: Array<string>
-  /** Path to directory where state will be stored. */
-  stateRoot?:  string,
-  /** Host to connect to. */
-  host?:       string
-  /** Port to connect to. */
-  port?:       number
-  /** Which of the services should be exposed the devnet's port. */
-  portMode?:   DevnetPortMode
-  /** Whether to destroy this devnet on exit. */
-  ephemeral?:  boolean
-}
-
-/** Used to reconnect between runs. */
-export interface DevnetState {
-  /** ID of Docker container to restart. */
-  containerId?: string
-  /** Chain ID that was set when creating the devnet. */
-  chainId:      string
-  /** The port on which the devnet will be listening. */
-  host?:        string
-  /** The port on which the devnet will be listening. */
-  port:         number|string
-}
-
-/** Default connection type to expose on each devnet variant. */
-export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
-  'scrt_1.2': 'lcp',
-  'scrt_1.3': 'grpcWeb',
-  'scrt_1.4': 'grpcWeb',
-  'scrt_1.5': 'lcp',
-  'scrt_1.6': 'lcp',
-  'scrt_1.7': 'lcp'
-}
+import { CommandContext } from '@hackbg/cmds'
 
 /** An ephemeral private instance of a network. */
-export abstract class Devnet extends CommandContext implements DevnetHandle {
+export default abstract class DevnetBase extends CommandContext implements DevnetHandle {
 
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
@@ -99,7 +48,7 @@ export abstract class Devnet extends CommandContext implements DevnetHandle {
   }
 
   /** Logger. */
-  log: Console = log
+  log: Console = new Console('@fadroma/devnet')
 
   /** Whether to destroy this devnet on exit. */
   ephemeral: boolean = false
@@ -190,31 +139,33 @@ export abstract class Devnet extends CommandContext implements DevnetHandle {
 
 }
 
-const log = new Console('@fadroma/devnet')
-
-export class DevnetCommands extends CommandContext {
-
-  constructor (public chain?: Chain) {
-    super('Fadroma Devnet')
-  }
-
-  status = this.command('status', 'print the status of the current devnet', () => {
-    log.chainStatus(this)
-    return this
-  })
-
-  reset = this.command('reset', 'erase the current devnet', () => {
-    if (this.chain) return resetDevnet({ chain: this.chain })
-  })
-
+/** A Devnet is created from a given chain ID with given pre-configured identities,
+  * and its state is stored in a given directory (e.g. `receipts/fadroma-devnet`). */
+export interface DevnetOpts {
+  /** Internal name that will be given to chain. */
+  chainId?:    string
+  /** Names of genesis accounts to be created with the node */
+  identities?: Array<string>
+  /** Path to directory where state will be stored. */
+  stateRoot?:  string,
+  /** Host to connect to. */
+  host?:       string
+  /** Port to connect to. */
+  port?:       number
+  /** Which of the services should be exposed the devnet's port. */
+  portMode?:   DevnetPortMode
+  /** Whether to destroy this devnet on exit. */
+  ephemeral?:  boolean
 }
 
-export async function resetDevnet ({ chain }: { chain?: Chain } = {}) {
-  if (!chain) {
-    log.info('No active chain.')
-  } else if (!chain.isDevnet || !chain.node) {
-    log.error('This command is only valid for devnets.')
-  } else {
-    await chain.node.terminate()
-  }
+/** Used to reconnect between runs. */
+export interface DevnetState {
+  /** ID of Docker container to restart. */
+  containerId?: string
+  /** Chain ID that was set when creating the devnet. */
+  chainId:      string
+  /** The port on which the devnet will be listening. */
+  host?:        string
+  /** The port on which the devnet will be listening. */
+  port:         number|string
 }

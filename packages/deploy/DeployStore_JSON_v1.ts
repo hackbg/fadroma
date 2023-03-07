@@ -1,11 +1,12 @@
+import DeployConsole from './DeployConsole'
+
 import { timestamp } from '@hackbg/logs'
 import type { AnyContract } from '@fadroma/core'
 import { Contract, Deployment, DeployStore } from '@fadroma/core'
 import $, { Path, JSONDirectory } from '@hackbg/file'
-import { DeployConsole } from './deploy-events'
 
 /** JSON receipts. Importable from client libraries. */
-export class JSONDeployments_v1 extends DeployStore {
+export default class JSONDeployments_v1 extends DeployStore {
 
   constructor (
     storePath: string|Path|JSONDirectory<unknown>,
@@ -44,3 +45,4 @@ export class JSONDeployments_v1 extends DeployStore {
   }
 
 }
+

@@ -39,11 +39,11 @@ export async function defineDeployment <D extends Deployment> (
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
-export class Deployment extends CommandContext {
+export class Deployment {
 
   constructor (options: Partial<Deployment> = {}) {
     const name = options.name ?? timestamp()
-    super(name)
+    //super(name)
     this.name = name
     this.log.label = this.name ?? this.log.label
     this.state     ??= options.state ?? {}
@@ -301,18 +301,12 @@ export class Deployment extends CommandContext {
     info: string = `(undocumented)`,
   ) {
     const context = this
-    Object.defineProperty(inst, 'name', {
-      enumerable: true,
-      get () { return context.name }
+    return Object.defineProperties(inst, {
+      name:  { enumerable: true, get () { return context.name } },
+      state: { get () { return context.state } },
+      save:  { get () { return context.save.bind(context) } }
     })
-    Object.defineProperty(inst, 'state', {
-      get () { return context.state }
-    })
-    Object.defineProperty(inst, 'save', {
-      get () { return context.save.bind(context) }
-    })
-    this.addCommands(name, info, inst as any) // TODO
-    return inst
+    //return this.commands(name, info, inst as any) // TODO
   }
 
   /** Implemented by Deployer subclass in @fadroma/deploy
