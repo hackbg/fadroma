@@ -67,11 +67,12 @@ pub fn messages<'a>(
     result
 }
 
-pub fn init_fn(sink: &mut ErrorSink, sig: &Signature) -> Option<ItemFn> {
+pub fn init_fn(sink: &mut ErrorSink, sig: &Signature) -> ItemFn {
     let fn_name = Ident::new(INIT_FN, Span::call_site());
     let msg = Ident::new(INIT_MSG, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
+        #[cosmwasm_std::entry_point]
         pub fn #fn_name(
             mut deps: cosmwasm_std::DepsMut,
             env: cosmwasm_std::Env,
@@ -85,10 +86,10 @@ pub fn init_fn(sink: &mut ErrorSink, sig: &Signature) -> Option<ItemFn> {
     let mut args = Punctuated::<ExprField, Comma>::new();
 
     for input in &sig.inputs {
-        let ident = fn_arg_ident(sink, input)?;
-
-        args.push_value(parse_quote!(msg.#ident));
-        args.push_punct(Comma(Span::call_site()));
+        if let Some(ident) = fn_arg_ident(sink, input) {
+            args.push_value(parse_quote!(msg.#ident));
+            args.push_punct(Comma(Span::call_site()));
+        }
     }
 
     let ref method_name = sig.ident;
@@ -97,7 +98,7 @@ pub fn init_fn(sink: &mut ErrorSink, sig: &Signature) -> Option<ItemFn> {
     let call: Expr = parse_quote!(#contract_ident::#method_name(deps, env, info, #args));
     result.block.stmts.push(Stmt::Expr(call));
 
-    Some(result)
+    result
 }
 
 pub fn execute_fn<'a>(
@@ -108,6 +109,7 @@ pub fn execute_fn<'a>(
     let msg = Ident::new(EXECUTE_MSG, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
+        #[cosmwasm_std::entry_point]
         pub fn #fn_name(
             mut deps: cosmwasm_std::DepsMut,
             env: cosmwasm_std::Env,
@@ -144,6 +146,7 @@ pub fn query_fn<'a>(
     let msg = Ident::new(QUERY_MSG, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
+        #[cosmwasm_std::entry_point]
         pub fn #fn_name(
             deps: cosmwasm_std::Deps,
             env: cosmwasm_std::Env,

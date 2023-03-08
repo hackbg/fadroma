@@ -33,46 +33,44 @@ impl MsgAttr {
         Self::QUERY
     ];
 
-    const INIT: &str = "init";
-    const EXECUTE: &str = "execute";
-    const QUERY: &str = "query";
+    pub const INIT: &str = "init";
+    pub const EXECUTE: &str = "execute";
+    pub const QUERY: &str = "query";
 
     pub fn parse(sink: &mut ErrorSink, attrs: &[Attribute]) -> Option<Self> {
         for attr in attrs {
             if let Some(ident) = attr.path.get_ident() {
+                let meta = match attr.parse_meta() {
+                    Ok(meta) => meta,
+                    Err(err) => {
+                        sink.push_err(err);
+
+                        continue;
+                    }
+                };
+
                 let instance = match ident.to_string().as_str() {
                     Self::INIT => {
-                        let meta = match attr.parse_meta() {
-                            Ok(meta) => meta,
-                            Err(err) => {
-                                sink.push_err(err);
-                                return None;
-                            }
-                        };
-
                         let mut entry = false;
 
-                        let ok = match meta {
-                            Meta::List(list) => {
-                                entry = validate_entry_meta(&list);
-
-                                entry
-                            },
-                            // This matches when there is no nested meta. The first
-                            // segment will always be the "init" identifier which we
-                            // already verified.
-                            Meta::Path(path) if path.segments.len() == 1 => true,
-                            _ => false
-                        };
-
-                        if !ok {
-                            sink.push_spanned(&attr, "Unexpected meta.");
+                        if let Meta::List(list) = meta {
+                            entry = validate_entry_meta(sink, &list);
+                        } else {
+                            assert_is_path_ident(sink, &meta);
                         }
 
                         Some(Self::Init { entry })
                     },
-                    Self::EXECUTE => Some(Self::Execute),
-                    Self::QUERY => Some(Self::Query),
+                    Self::EXECUTE => {
+                        assert_is_path_ident(sink, &meta);
+
+                        Some(Self::Execute)
+                    }
+                    Self::QUERY => {
+                        assert_is_path_ident(sink, &meta);
+
+                        Some(Self::Query)
+                    }
                     _ => None
                 };
 
@@ -84,18 +82,9 @@ impl MsgAttr {
     
         None
     }
-
-    #[inline]
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Init { .. } => Self::INIT,
-            Self::Execute => Self::EXECUTE,
-            Self::Query => Self::QUERY
-        }
-    }
 }
 
-fn validate_entry_meta(list: &MetaList) -> bool {
+fn validate_entry_meta(sink: &mut ErrorSink, list: &MetaList) -> bool {
     if let Some(first) = list.nested.first() {
         let ident = Ident::new(ENTRY_META, Span::call_site());
         let expected: NestedMeta = parse_quote!(#ident);
@@ -105,5 +94,14 @@ fn validate_entry_meta(list: &MetaList) -> bool {
         }
     }
 
+    sink.push_spanned(list, format!("Only valid nested meta in this position is \"{}\".", ENTRY_META));
+
     false
+}
+
+#[inline]
+fn assert_is_path_ident(sink: &mut ErrorSink, meta: &Meta) {
+    if !matches!(meta, Meta::Path(path) if path.segments.len() == 1) {
+        sink.push_spanned(meta, "Unexpected meta.");
+    }
 }
