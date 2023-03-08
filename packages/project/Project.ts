@@ -100,7 +100,7 @@ export default class Project {
     })
     this.pnpmWorkspace.save('')
     this.shellNix.save([
-      `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in {`,
+      `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
       `  inherit name;`,
       `  nativeBuildInputs = with pkgs; [ git nodejs nodePackages_latest.pnpm rustup ];`,
       `  shellHook = ''`,
