@@ -5,29 +5,29 @@ import Case from 'case'
 export default class OpsPackage {
 
   /** Directory containing deploy tool. */
-  ops:            OpaqueDirectory
+  dir:         OpaqueDirectory
 
   /** Ops package manifest. */
-  opsPackageJson: JSONFile<any>
+  packageJson: JSONFile<any>
 
   /** Main module */
-  opsIndex:       TextFile
+  index:       TextFile
 
   /** Test specification. */
-  opsSpec:        TextFile
+  spec:        TextFile
 
   constructor (readonly project: Project) {
-    this.ops = project.root.in('ops').as(OpaqueDirectory)
-    this.opsPackageJson = this.ops.at('package.json').as(JSONFile)
-    this.opsIndex = this.ops.at('ops.ts').as(TextFile)
-    this.opsSpec = this.ops.at('ops.spec.ts').as(TextFile)
+    this.dir = project.root.in('ops').as(OpaqueDirectory)
+    this.packageJson = this.dir.at('package.json').as(JSONFile)
+    this.index = this.dir.at('ops.ts').as(TextFile)
+    this.spec = this.dir.at('ops.spec.ts').as(TextFile)
   }
 
   create () {
+    this.dir.make()
+
     const { name } = this.project
-    const Name = Case.pascal(name)
-    this.ops.make()
-    this.opsPackageJson.save({
+    this.packageJson.save({
       name:    `@${name}/ops`,
       version: "0.0.0",
       private: true,
@@ -36,10 +36,18 @@ export default class OpsPackage {
         [`@${name}/api`]: "workspace:*",
       }
     })
-    let opsIndex = `import { DeployCommands } from '@fadroma/deploy'\n`
-    opsIndex += `import ${Name} from '@${name}/api'\n\n`
-    opsIndex += `export default class ${Name}Commands extends DeployCommands {}`
-    this.opsIndex.save(opsIndex)
+
+    const Name = Case.pascal(name)
+    this.index.save([
+      `import ${Name} from '@${name}/api'`,
+      `import { DeployCommands } from '@fadroma/deploy'`,
+      ``,
+      `export default class ${Name}Commands extends DeployCommands {`,
+      ``,
+      `  deploy () {}`,
+      ``,
+      `}`
+    ].join('\n'))
   }
 
 }

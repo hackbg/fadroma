@@ -5,51 +5,58 @@ import Case from 'case'
 export default class APIPackage {
 
   /** Directory containing api library. */
-  api:            OpaqueDirectory
+  dir:         OpaqueDirectory
 
   /** API package manifest. */
-  apiPackageJson: JSONFile<any>
+  packageJson: JSONFile<any>
 
   /** Main module */
-  apiIndex:       TextFile
+  index:       TextFile
 
   /** Test specification. */
-  apiSpec:        TextFile
+  spec:        TextFile
 
   constructor (readonly project: Project) {
-    this.api = project.root.in('api').as(OpaqueDirectory)
-    this.apiPackageJson = this.api.at('package.json').as(JSONFile)
-    this.apiIndex = this.api.at('api.ts').as(TextFile)
-    this.apiSpec = this.api.at('api.spec.ts').as(TextFile)
+    this.dir = project.root.in('api').as(OpaqueDirectory)
+    this.packageJson = this.dir.at('package.json').as(JSONFile)
+    this.index = this.dir.at('api.ts').as(TextFile)
+    this.spec = this.dir.at('api.spec.ts').as(TextFile)
   }
 
   create () {
+    this.dir.make()
+
     const name = this.project.name
-    const Name = Case.pascal(name)
-    const contracts = Object.keys(this.project.contracts)
-    const Contracts = contracts.map(Case.pascal)
-    this.api.make()
-    this.apiPackageJson.save({
+    this.packageJson.save({
       name: `@${name}/api`,
       version: "0.0.0",
       devDependencies: {
         "@fadroma/core": "^2",
+        "@fadroma/scrt": "^8",
+        "@fadroma/tokens": "^7",
       }
     })
-    let apiIndex = `import { Client, Deployment } from '@fadroma/core'\n\n`
-    apiIndex += `export default class ${Name} extends Deployment {\n`
-    contracts.forEach(contract => {
-      apiIndex += `  ${contract} = this.contract(`
-      apiIndex += `{ name: "${contract}", crate: "${contract}", client: ${contract} })\n`
-    })
-    apiIndex += `}\n\n`
-    Contracts.forEach(Contract => {
-      apiIndex += `export class ${Contract} extends Client {\n`
-      apiIndex += `  // myTx    = (arg1, arg2) => this.execute({myTx:{arg1, arg2}})`
-      apiIndex += `  // myQuery = (arg1, arg2) => this.query({myQuery:{arg1, arg2}})`
-      apiIndex += `}\n\n`
-    })
-    this.apiIndex.save(apiIndex)
+
+    const Name = Case.pascal(name)
+    const contracts = Object.keys(this.project.contracts)
+    const Contracts = contracts.map(Case.pascal)
+    this.index.save([
+      `import { Client, Deployment } from '@fadroma/core'`,
+      '',
+      `export default class ${Name} extends Deployment {`,
+      ...contracts.map(contract => [
+        `  ${contract} = this.contract(`,
+        `{ name: "${contract}", crate: "${contract}", client: ${Case.pascal(contract)} })`
+      ].join('')),
+      '}',
+      '',
+      ...Contracts.map(Contract => [
+        `export class ${Contract} extends Client {`,
+        `  // myTx    = (arg1, arg2) => this.execute({myTx:{arg1, arg2}})`,
+        `  // myQuery = (arg1, arg2) => this.query({myQuery:{arg1, arg2}})`,
+        `}\n`
+      ].join('\n'))
+    ].join('\n'))
   }
 
 }

@@ -21,42 +21,50 @@ export default class ContractsCrate {
 
   create () {
     const contracts = Object.keys(this.project.contracts).map(Case.snake)
-    let cargoToml = ''
-    cargoToml += `[package]`
-    cargoToml += `\nname = "${this.project.name}"`
-    cargoToml += `\nversion = "0.0.0"`
-    cargoToml += `\nedition = "2021"`
-    cargoToml += `\nauthors = []`
-    cargoToml += `\nlicense = "AGPL-3.0"`
-    cargoToml += `\nkeywords = ["fadroma"]`
-    cargoToml += `\ndescription = ""`
-    cargoToml += `\nreadme = "README.md"`
-    cargoToml += `\nall-features = true`
-    cargoToml += `\n`
-    cargoToml += `\n[lib]`
-    cargoToml += `\ncrate-type = ["cdylib", "rlib"]`
-    cargoToml += `\n`
-    cargoToml += `\n[features]`
-    contracts.forEach(contract=>cargoToml += `\n${contract} = []`)
-    cargoToml += `\n`
-    cargoToml += `\n[dependencies]`
-    cargoToml += `\nfadroma = "0.7.0"`
-    cargoToml += `\n`
-    cargoToml += `\n[package.metadata.docs.rs]`
-    cargoToml += `\nrustc-args = ["--cfg", "docsrs"]`
-    cargoToml += `\nall-features = true`
-    this.cargoToml.save(cargoToml)
+
+    this.cargoToml.save([
+      `[package]`,
+      `name = "${this.project.name}"`,
+      `version = "0.0.0"`,
+      `edition = "2021"`,
+      `authors = []`,
+      `license = "AGPL-3.0"`,
+      `keywords = ["fadroma"]`,
+      `description = ""`,
+      `readme = "README.md"`,
+      ``,
+      `[lib]`,
+      `crate-type = ["cdylib", "rlib"]`,
+      ``,
+      `[features]`,
+      ...contracts.map(contract=>`${contract} = []`),
+      ``,
+      `[dependencies]`,
+      `fadroma = { version = "0.7.0", features = ["scrt"] }`
+    ].join('\n'))
+
     this.src.make()
-    let libRs = 'pub(crate) use fadroma::prelude::*;\n'
-    contracts.forEach(contract => {
-      libRs += `#[cfg(feature = "${contract}")]\n`
-      libRs += `mod ${contract};\n\n`
-      // ?async builder that takes parameters in any order and only executes on await/then?
-    })
-    this.libRs.save(libRs)
+
+    this.libRs.save([
+      `//! Created by @fadroma/project 1.0.0, courtesy of [Hack.bg](https://hack.bg). See [https://fadroma.tech](https://fadroma.tech).`,
+      ``,
+      'pub(crate) use fadroma::prelude::*;',
+      '',
+      ...contracts.map(contract => [
+        `#[cfg(feature = "${contract}")]`,
+        `pub mod ${contract};`,
+        ''
+      ].join('\n'))
+    ].join('\n'))
+
     contracts.forEach(contract=>{
-      this.src.at(`${contract}.rs`).as(TextFile).save(`use crate::*;\n`)
+      this.src.at(`${contract}.rs`).as(TextFile).save([
+        `//! Build with \`cargo build -f ${contract}\``,
+        '',
+        `use crate::*;\n`
+      ].join('\n'))
     })
+
   }
 
 }

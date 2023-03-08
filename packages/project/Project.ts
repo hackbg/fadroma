@@ -12,6 +12,8 @@ import APIPackage     from './ProjectAPIPackage'
 import OpsPackage     from './ProjectOpsPackage'
 import ProjectState   from './ProjectState'
 
+import { execSync } from 'node:child_process'
+
 export * from './projectWizard'
 
 export type ProjectContract = {
@@ -37,6 +39,8 @@ export default class Project {
     this.envfile     = root.at('.env').as(TextFile)
     this.readme      = root.at('README.md').as(TextFile)
     this.packageJson = root.at('package.json').as(JSONFile)
+    this.shellNix    = root.at('shell.nix').as(TextFile)
+    this.pnpmWorkspace = root.at('pnpm-workspace.yaml').as(TextFile)
     this.crate       = new ContractsCrate(this)
     this.apiPackage  = new APIPackage(this)
     this.opsPackage  = new OpsPackage(this)
@@ -50,12 +54,16 @@ export default class Project {
 
   /** Root package manifest. */
   packageJson:    JSONFile<any>
+  /** Empty file that enables PNPM workspaces. */
+  pnpmWorkspace:  TextFile
   /** Root of documentation. */
   readme:         TextFile
   /** List of files to be ignored by Git. */
   gitignore:      TextFile
   /** List of environment variables to set. */
   envfile:        TextFile
+  /** Nix dependency manifest. */
+  shellNix:       TextFile
   /** A custom Dockerfile for building the project. */
   dockerfile:     TextFile|null = null
   /** A GitHub Actions CI workflow. */
@@ -66,8 +74,12 @@ export default class Project {
   create () {
     const { name, contracts } = this
     this.root.make()
-    this.readme.save(`# ${this.name}`)
-    this.gitignore.save('')
+    this.readme.save(`# ${name}`)
+    this.gitignore.save([
+      '.env',
+      'node_modules',
+      'target'
+    ].join('\n'))
     this.envfile.save('')
     this.packageJson.save({
       name: `@${name}/workspace`,
@@ -80,12 +92,23 @@ export default class Project {
         "mainnet": "FADROMA_CHAIN=ScrtMainnet fadroma ./ops",
       },
       devDependencies: {
-        "@hackbg/fadroma": "^1",
+        "@hackbg/fadroma": "latest",
       },
       fadroma: {
         contracts: contracts
       }
     })
+    this.pnpmWorkspace.save('')
+    this.shellNix.save([
+      `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in {`,
+      `  inherit name;`,
+      `  nativeBuildInputs = with pkgs; [ git nodejs nodePackages_latest.pnpm rustup ];`,
+      `  shellHook = ''`,
+      `    export PS1="$PS1[\${name}] "`,
+      `    export PATH="$PATH:$HOME/.cargo/bin:\${./.}/node_modules/.bin"`,
+      `  '';`,
+      `}`,
+    ].join('\n'))
     this.apiPackage.create()
     this.opsPackage.create()
     this.crate.create()
