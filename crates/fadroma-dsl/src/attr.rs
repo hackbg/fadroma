@@ -5,6 +5,9 @@ use crate::err::ErrorSink;
 
 /// Name of the auto-generated struct that represents a contract or a module.
 pub const CONTRACT: &str = "Contract";
+/// Name of the auto-generated enum that aggregates
+/// all error types that a contract might have.
+pub const ERROR_ENUM: &str = "Error";
 
 pub const INIT_MSG: &str = "InstantiateMsg";
 pub const EXECUTE_MSG: &str = "ExecuteMsg";
@@ -15,7 +18,7 @@ pub const EXECUTE_FN: &str = "execute";
 pub const QUERY_FN: &str = "query";
 
 /// Name of the associated type that represents the error type in an interface.
-pub const ERROR_TYPE_IDENT: &str = "Error";
+pub const ERROR_TYPE: &str = "Error";
 /// Used as a meta tag in the `#[init(entry)]` attribute.
 pub const ENTRY_META: &str = "entry";
 

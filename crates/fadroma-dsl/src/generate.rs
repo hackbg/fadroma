@@ -3,14 +3,15 @@ use syn::{
     Signature, ItemStruct, Ident, Field, Fields, FieldsNamed,
     Visibility, parse_quote, FnArg, punctuated::Punctuated, Pat,
     ItemEnum, Variant, ItemFn, Expr, Stmt, ExprField, ExprMatch,
-    token::{Brace, Comma, Colon}
+    ItemImpl, GenericArgument, token::{Brace, Comma, Colon}
 };
 
 use crate::{
     err::ErrorSink,
     attr::{
         MsgAttr, CONTRACT, INIT_MSG, EXECUTE_MSG,
-        QUERY_MSG, INIT_FN, EXECUTE_FN, QUERY_FN
+        QUERY_MSG, INIT_FN, EXECUTE_FN, QUERY_FN,
+        ERROR_ENUM, ERROR_TYPE
     },
     utils::to_pascal
 };
@@ -19,6 +20,11 @@ use crate::{
 pub enum MsgType {
     Execute,
     Query
+}
+
+pub struct ErrorEnum {
+    pub enum_def: ItemEnum,
+    pub display_impl: ItemImpl
 }
 
 pub fn init_msg(sink: &mut ErrorSink, init: &Signature) -> ItemStruct {
@@ -107,6 +113,7 @@ pub fn execute_fn<'a>(
 ) -> ItemFn {
     let fn_name = Ident::new(EXECUTE_FN, Span::call_site());
     let msg = Ident::new(EXECUTE_MSG, Span::call_site());
+    let error_enum = Ident::new(ERROR_ENUM, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
         #[cosmwasm_std::entry_point]
@@ -115,14 +122,12 @@ pub fn execute_fn<'a>(
             env: cosmwasm_std::Env,
             info: cosmwasm_std::MessageInfo,
             msg: #msg
-        ) { }
+        ) -> std::result::Result<cosmwasm_std::Binary, #error_enum> { }
     };
 
     let mut signatures = signatures.peekable();
     match signatures.peek() {
-        Some(next) => {
-            result.sig.output = next.output.clone();
-
+        Some(_) => {
             if let Some(match_expr) = create_match_expr(sink, signatures, MsgType::Execute) {
                 result.block.stmts.push(Stmt::Expr(match_expr));
             }
@@ -144,6 +149,7 @@ pub fn query_fn<'a>(
 ) -> ItemFn {
     let fn_name = Ident::new(QUERY_FN, Span::call_site());
     let msg = Ident::new(QUERY_MSG, Span::call_site());
+    let error_enum = Ident::new(ERROR_ENUM, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
         #[cosmwasm_std::entry_point]
@@ -151,7 +157,7 @@ pub fn query_fn<'a>(
             deps: cosmwasm_std::Deps,
             env: cosmwasm_std::Env,
             msg: #msg
-        ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> { }
+        ) -> std::result::Result<cosmwasm_std::Binary, #error_enum> { }
     };
 
     if let Some(match_expr) = create_match_expr(sink, signatures, MsgType::Query) {
@@ -159,6 +165,68 @@ pub fn query_fn<'a>(
     }
 
     result
+}
+
+pub fn error_enum(
+    sink: &mut ErrorSink,
+    contract: Option<&GenericArgument>,
+    interfaces: &[&ItemImpl]
+) -> ErrorEnum {
+    let name = Ident::new(ERROR_ENUM, Span::call_site());
+
+    let fmt_arg = Ident::new("f", Span::call_site());
+    let tuple_arg = Ident::new("x", Span::call_site());
+    let fmt_call: Expr = parse_quote!(std::fmt::Display::fmt(#tuple_arg, #fmt_arg));
+
+    let mut match_expr: ExprMatch = parse_quote!(match self { });
+    let mut enum_def: ItemEnum = parse_quote!(pub enum #name { });
+
+    if let Some(contract) = contract {
+        if let GenericArgument::Type(ty) = contract {
+            let contract_variant = Ident::new("Base", Span::call_site());
+            let variant = parse_quote!(#contract_variant(#ty));
+            enum_def.variants.push(variant);
+
+            let arm = parse_quote!(Self::#contract_variant(#tuple_arg) => #fmt_call);
+            match_expr.arms.push(arm);
+        } else {
+            sink.push_spanned(
+                contract,
+                "Unexpected generic argument type. Either a type that won't compile was provided or this is a bug in the macro."
+            );
+        }
+    }
+
+    let contract_struct = Ident::new(CONTRACT, Span::call_site());
+    let error_ty = Ident::new(ERROR_TYPE, Span::call_site());
+
+    for interface in interfaces {
+        let Some(r#trait) = &interface.trait_ else {
+            unreachable!("A non-trait impl was provided. This is a bug.");
+        };
+
+        let trait_path = &r#trait.1;
+        let trait_name = &trait_path.segments.last().unwrap().ident;
+
+        let variant = parse_quote!(#trait_name(<#contract_struct as #trait_path>::#error_ty));
+        enum_def.variants.push(variant);
+
+        let arm = parse_quote!(Self::#trait_name(#tuple_arg) => #fmt_call);
+        match_expr.arms.push(arm);
+    }
+
+    let display_impl: ItemImpl = parse_quote! {
+        impl std::fmt::Display for #name {
+            fn fmt(&self, #fmt_arg: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                #match_expr
+            }
+        }
+    };
+
+    ErrorEnum {
+        enum_def,
+        display_impl
+    }
 }
 
 pub fn cw_arguments(sig: &mut Signature, attr: MsgAttr, has_block: bool) {

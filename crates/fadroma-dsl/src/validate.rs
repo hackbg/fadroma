@@ -3,11 +3,17 @@ use quote::quote;
 
 use crate::err::ErrorSink;
 
-pub fn result_type(
+/// Represents the generic types in `std::result::Result<T, E>`.
+pub struct ResultType<'a> {
+    pub value: &'a GenericArgument,
+    pub error: &'a GenericArgument
+}
+
+pub fn result_type<'a>(
     sink: &mut ErrorSink,
-    sig: &Signature,
+    sig: &'a Signature,
     generics: (Option<GenericArgument>, Option<GenericArgument>)
-) {
+) -> Option<ResultType<'a>> {
     if let ReturnType::Type(_, return_type) = &sig.output {
         if let Type::Path(path) = return_type.as_ref() {
             if path.qself.is_some() {
@@ -20,8 +26,10 @@ pub fn result_type(
             let last = path.path.segments.last();
 
             if let Some(segment) = last {
-                if validate_return_type(&segment, &generics) {
-                    return;
+                let result = validate_return_type(&segment, &generics);
+
+                if result.is_some() {
+                    return result;
                 }
             }
         }
@@ -41,40 +49,45 @@ pub fn result_type(
         &sig,
         format!("Expecting return type to be \"std::result::Result<{}, {}>\"", result_ty, err_ty)
     );
+
+    None
 }
 
-fn validate_return_type(
-    segment: &PathSegment,
-    generics: &(Option<GenericArgument>, Option<GenericArgument>)
-) -> bool {
+fn validate_return_type<'a, 'b>(
+    segment: &'a PathSegment,
+    generics: &'b (Option<GenericArgument>, Option<GenericArgument>)
+) -> Option<ResultType<'a>> {
     if segment.ident.to_string() != "Result" {
-        return false;
+        return None;
     }
 
     let PathArguments::AngleBracketed(args) = &segment.arguments else {
-        return false;
+        return None;
     };
 
     if args.args.len() != 2 {
-        return false;
+        return None;
     }
 
     let mut iter = args.args.iter();
-    let next = iter.next().unwrap();
+    let value = iter.next().unwrap();
 
     if let Some(expected) = &generics.0 {
-        if expected != next {
-            return false;
+        if expected != value {
+            return None;
         }
     }
 
-    let next = iter.next().unwrap();
+    let error = iter.next().unwrap();
 
     if let Some(expected) = &generics.1 {
-        if expected != next {
-            return false;
+        if expected != error {
+            return None;
         }
     }
 
-    true
+    Some(ResultType {
+        value,
+        error
+    })
 }

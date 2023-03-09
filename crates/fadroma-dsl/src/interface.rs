@@ -6,7 +6,7 @@ use syn::{
 use quote::{ToTokens, quote};
 
 use crate::{
-    attr::{MsgAttr, ERROR_TYPE_IDENT},
+    attr::{MsgAttr, ERROR_TYPE},
     err::{ErrorSink, CompileErrors},
     generate::{self, MsgType},
     validate
@@ -53,10 +53,19 @@ impl Interface {
     fn parse(sink: &mut ErrorSink, r#trait: ItemTrait) -> Self {
         let mut has_error_ty = false;
 
-        let trait_ident = r#trait.ident;
+        let trait_ident = &r#trait.ident;
         let mut init = None;
         let mut execute = vec![];
         let mut query = vec![];
+
+        // We forbid generic traits because they will complicate the error type on contracts.
+        if !r#trait.generics.params.is_empty() ||
+            r#trait.generics.where_clause.is_some() {
+            sink.push_spanned(
+                &r#trait,
+                "Interface traits cannot have any generics."
+            );
+        }
 
         for item in r#trait.items {
             match item {
@@ -64,7 +73,7 @@ impl Interface {
                     match MsgAttr::parse(sink, &method.attrs) {
                         Some(attr) => match attr {
                             MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
-                                &trait_ident,
+                                trait_ident,
                                 "Only one method can be annotated as #[init].",
                             ),
                             MsgAttr::Init { entry } => {
@@ -91,14 +100,14 @@ impl Interface {
                     }
                 }
                 TraitItem::Type(type_def)
-                    if type_def.ident.to_string() == ERROR_TYPE_IDENT => 
+                    if type_def.ident.to_string() == ERROR_TYPE => 
                 {
                     has_error_ty = true;
 
                     if !validate_err_bound(&type_def.bounds) {
                         sink.push_spanned(
                             &type_def,
-                            format!("{} type must have a single \"std::string::ToString\" bound.", ERROR_TYPE_IDENT)
+                            format!("{} type must have a single \"std::string::ToString\" bound.", ERROR_TYPE)
                         );
                     }
 
@@ -106,7 +115,7 @@ impl Interface {
                         type_def.generics.where_clause.is_some() {
                         sink.push_spanned(
                             type_def.generics,
-                            format!("{} type cannot have any generics.", ERROR_TYPE_IDENT)
+                            format!("{} type cannot have any generics.", ERROR_TYPE)
                         );
                     }
                 }
@@ -116,8 +125,8 @@ impl Interface {
 
         if !has_error_ty {
             sink.push_spanned(
-                &trait_ident,
-                format!("Missing \"type {}: ToString;\" trait type declaration.", ERROR_TYPE_IDENT)
+                trait_ident,
+                format!("Missing \"type {}: ToString;\" trait type declaration.", ERROR_TYPE)
             );
         }
 

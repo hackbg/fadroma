@@ -9,7 +9,8 @@ use proc_macro2::Span;
 use crate::{
     attr::{MsgAttr, CONTRACT, ENTRY_META},
     err::{ErrorSink, CompileErrors},
-    validate, generate::{self, MsgType}
+    validate::{self, ResultType},
+    generate::{self, MsgType, ErrorEnum}
 };
 
 pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, CompileErrors> {
@@ -24,24 +25,22 @@ pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, Compile
 
     let mut sink = ErrorSink::default();
 
-    let ident = Ident::new(CONTRACT, Span::call_site());
-    let contract_struct: ItemStruct = parse_quote! {
-        #[derive(Clone, Copy, Debug)]
-        pub struct #ident;
-    };
-
-    items.push(Item::Struct(contract_struct));
 
     let contract = Contract::parse(&mut sink, item_mod.ident.span(), items);
+    let g = contract.generate(&mut sink);
+
+    items.push(Item::Struct(g.boilerplate.contract_struct));
+    items.push(Item::Enum(g.boilerplate.error_enum.enum_def));
+    items.push(Item::Impl(g.boilerplate.error_enum.display_impl));
+
+    if let Some(i) = g.interfaces {
+        items.push(Item::Struct(i.init_msg));
+        items.push(Item::Enum(i.execute_msg));
+        items.push(Item::Enum(i.query_msg));
     
-    if let Some(g) = contract.generate(&mut sink) {
-        items.push(Item::Struct(g.init_msg));
-        items.push(Item::Enum(g.execute_msg));
-        items.push(Item::Enum(g.query_msg));
-    
-        items.push(Item::Fn(g.entry.init));
-        items.push(Item::Fn(g.entry.execute));
-        items.push(Item::Fn(g.entry.query));
+        items.push(Item::Fn(i.entry.init));
+        items.push(Item::Fn(i.entry.execute));
+        items.push(Item::Fn(i.entry.query));
     }
 
     sink.check()?;
@@ -55,6 +54,11 @@ struct Contract<'a> {
 }
 
 struct Generated {
+    interfaces: Option<Interfaces>,
+    boilerplate: Boilerplate
+}
+
+struct Interfaces {
     init_msg: ItemStruct,
     execute_msg: ItemEnum,
     query_msg: ItemEnum,
@@ -65,6 +69,11 @@ struct Entrypoints {
     init: ItemFn,
     execute: ItemFn,
     query: ItemFn
+}
+
+struct Boilerplate {
+    contract_struct: ItemStruct,
+    error_enum: ErrorEnum
 }
 
 impl<'a> Contract<'a> {
@@ -97,8 +106,9 @@ impl<'a> Contract<'a> {
         }
     }
 
-    fn generate(self, sink: &mut ErrorSink) -> Option<Generated> {
+    fn generate(self, sink: &mut ErrorSink) -> Generated {
         let mut init = None;
+        let mut contract_err_ty = None;
         let mut execute = vec![];
         let mut query = vec![];
 
@@ -109,11 +119,15 @@ impl<'a> Contract<'a> {
                 };
 
                 if let Some(attr) = MsgAttr::parse(sink, &method.attrs) {
-                    match attr {
-                        MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
-                            &contract_impl.self_ty,
-                            format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
-                        ),
+                    let return_ty = match attr {
+                        MsgAttr::Init { .. } if init.is_some() => {
+                            sink.push_spanned(
+                                &contract_impl.self_ty,
+                                format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
+                            );
+
+                            None
+                        }
                         MsgAttr::Init { entry } => {
                             if entry {
                                 init = Some(method);
@@ -129,22 +143,41 @@ impl<'a> Contract<'a> {
                                 )
                             }
 
-                            validate_contract_method(sink, &method, Some(parse_quote!(Response)));
+                            validate_contract_method(sink, &method, Some(parse_quote!(Response)))
                         }
                         MsgAttr::Execute => {
-                            validate_contract_method(sink, &method, Some(parse_quote!(Response)));
                             execute.push(method);
+
+                            validate_contract_method(sink, &method, Some(parse_quote!(Response)))
                         }
                         MsgAttr::Query => {
-                            validate_contract_method(sink, &method, None);
                             query.push(method);
+
+                            validate_contract_method(sink, &method, None)
+                        }
+                    };
+
+                    if let Some(return_ty) = return_ty {
+                        match contract_err_ty {
+                            Some(err_ty) => {
+                                if err_ty != return_ty.error {
+                                    sink.push_spanned(
+                                        &method.sig.output,
+                                        format!(
+                                            "All methods in the \"impl {}\" block must have the same error type.",
+                                            CONTRACT
+                                        )
+                                    );
+                                }
+                            },
+                            None => contract_err_ty = Some(return_ty.error)
                         }
                     }
                 }
             }
         }
 
-        for interface in self.interfaces {
+        for interface in &self.interfaces {
             let mut has_init = false;
 
             for item in &interface.items {
@@ -183,53 +216,72 @@ impl<'a> Contract<'a> {
             }
         }
 
-        let Some(init) = init else {
-            return None;
+        let interfaces = if let Some(init) = init {
+            let entry = Entrypoints {
+                init: generate::init_fn(
+                    sink,
+                    &init.sig
+                ),
+                execute: generate::execute_fn(
+                    sink,
+                    execute.iter().map(|x| &x.sig)
+                ),
+                query: generate::query_fn(
+                    sink,
+                    query.iter().map(|x| &x.sig)
+                )
+            };
+    
+            Some(Interfaces {
+                init_msg: generate::init_msg(sink, &init.sig),
+                execute_msg: generate::messages(
+                    sink,
+                    MsgType::Execute,
+                    execute.iter().map(|x| &x.sig)
+                ),
+                query_msg: generate::messages(
+                    sink,
+                    MsgType::Query,
+                    query.iter().map(|x| &x.sig)
+                ),
+                entry
+            })
+        } else {
+            None
         };
 
-        let entry = Entrypoints {
-            init: generate::init_fn(
-                sink,
-                &init.sig
-            ),
-            execute: generate::execute_fn(
-                sink,
-                execute.iter().map(|x| &x.sig)
-            ),
-            query: generate::query_fn(
-                sink,
-                query.iter().map(|x| &x.sig)
-            )
+        let boilerplate = Boilerplate {
+            contract_struct: create_contract_struct(),
+            error_enum: generate::error_enum(sink, contract_err_ty, &self.interfaces)
         };
 
-        Some(Generated {
-            init_msg: generate::init_msg(sink, &init.sig),
-            execute_msg: generate::messages(
-                sink,
-                MsgType::Execute,
-                execute.iter().map(|x| &x.sig)
-            ),
-            query_msg: generate::messages(
-                sink,
-                MsgType::Query,
-                query.iter().map(|x| &x.sig)
-            ),
-            entry
-        })
+        Generated {
+            interfaces,
+            boilerplate
+        }
+    }
+}
+
+fn create_contract_struct() -> ItemStruct {
+    let ident = Ident::new(CONTRACT, Span::call_site());
+
+    parse_quote! {
+        #[derive(Clone, Copy, Debug)]
+        pub struct #ident;
     }
 }
 
 #[inline]
-fn validate_contract_method(
+fn validate_contract_method<'a>(
     sink: &mut ErrorSink,
-    method: &ImplItemMethod,
+    method: &'a ImplItemMethod,
     arg: Option<GenericArgument>
-) {
+) -> Option<ResultType<'a>> {
     if method.vis != parse_quote!(pub) {
         sink.push_spanned(method, "Method must be public.");
     }
 
-    validate::result_type(sink, &method.sig, (arg, None));
+    validate::result_type(sink, &method.sig, (arg, None))
 }
 
 #[inline]
