@@ -156,3 +156,117 @@ import { ConnectError } from './connect-events'
 assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
 assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
 ```
+
+The `ClientConsole` class collects all logging output in one place.
+In the future, this will enable semantic logging and/or GUI notifications.
+
+```typescript
+// Make sure each log message can be created with no arguments:
+import { ClientConsole } from './core-events'
+new ClientConsole().object()
+new ClientConsole().object({foo:'bar',baz(){},quux:[],xyzzy:undefined,fubar:{}})
+new ClientConsole().deployment()
+new ClientConsole().deployment({ state: { foo: {}, bar: {} } })
+new ClientConsole().receipt()
+new ClientConsole().foundDeployedContract()
+new ClientConsole().beforeDeploy()
+new ClientConsole().afterDeploy()
+new ClientConsole().deployFailed()
+new ClientConsole().deployManyFailed()
+new ClientConsole().deployFailedContract()
+new ClientConsole().chainStatus()
+new ClientConsole().warnUrlOverride()
+new ClientConsole().warnIdOverride()
+new ClientConsole().warnNodeNonDevnet()
+new ClientConsole().warnNoAgent()
+new ClientConsole().warnNoAddress()
+new ClientConsole().warnNoCodeHash()
+new ClientConsole().warnNoCodeHashProvided()
+new ClientConsole().warnCodeHashMismatch()
+new ClientConsole().confirmCodeHash()
+new ClientConsole().waitingForNextBlock()
+new ClientConsole().warnEmptyBundle()
+new ClientConsole().chainStatus({})
+new ClientConsole().chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+})
+new ClientConsole().chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] } }
+})
+new ClientConsole().chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] }, active: { name: 4 } }
+})
+```
+# Fadroma Client Fields
+
+```typescript
+import assert from 'node:assert'
+```
+
+## Alignment
+
+For more legible output.
+
+```typescript
+import { getMaxLength } from '@fadroma/core'
+assert.equal(getMaxLength(['a', 'ab', 'abcd', 'abc', 'b']), 4)
+```
+
+## Overrides and fallbacks
+
+Only work on existing properties.
+
+```typescript
+import { override, fallback } from '@fadroma/core'
+assert.deepEqual(
+  override({ a: 1, b: 2 }, { b: 3, c: 4 }),
+  { a: 1, b: 3 }
+)
+assert.deepEqual(
+  fallback({ a: 1, b: undefined }, { a: undefined, b: 3, c: 4 }),
+  { a: 1, b: 3 }
+)
+```
+
+## Validation
+
+Case-insensitive.
+
+```typescript
+import { validated } from '@fadroma/core'
+assert.ok(validated('test', 1))
+assert.ok(validated('test', 1, 1))
+assert.ok(validated('test', 'a', 'A'))
+assert.throws(()=>validated('test', 1, 2))
+assert.throws(()=>validated('test', 'a', 'b'))
+```
+
+## Optionally/partially lazy values
+
+```typescript
+import { into, intoArray, intoRecord } from '@fadroma/core'
+
+assert.equal(await into(1), 1)
+assert.equal(await into(Promise.resolve(1)), 1)
+assert.equal(await into(()=>1), 1)
+assert.equal(await into(async ()=>1), 1)
+
+assert.deepEqual(
+  await intoArray([1, ()=>1, Promise.resolve(1), async () => 1]),
+  [1, 1, 1, 1]
+)
+
+assert.deepEqual(await intoRecord({
+  ready:   1,
+  getter:  () => 2,
+  promise: Promise.resolve(3),
+  asyncFn: async () => 4
+}), {
+  ready:   1,
+  getter:  2,
+  promise: 3,
+  asyncFn: 4
+})
+```

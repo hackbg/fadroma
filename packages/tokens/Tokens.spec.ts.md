@@ -3,13 +3,11 @@
 Tokens are one core primitive of smart contract-based systems.
 Fadroma provides several APIs for interfacing with tokens.
 
+## Table of contents
+
 * [Token descriptors](#token-descriptors)
 * [Token client](#token-client)
 * [Token manager](#token-manager)
-
-```typescript
-import { ok, equal, deepEqual, throws } from 'assert'
-```
 
 ## Token descriptors
 
@@ -239,4 +237,8 @@ const manager2 = new TokenManager({
 }, new ContractTemplate({
   crate: 'snip20'
 }))
+```
+
+```typescript
+import { ok, equal, deepEqual, throws } from 'assert'
 ```

@@ -1,64 +1,85 @@
-# Fadroma Mocknet Specification
+# Mocknet: the blockchain that isn't.
+
+If **mainnet** refers to the main instance of a blockchain where all the real activity happens;
+a **testnet** is another instance which does not attempt to store value, and is used for testing;
+and a **devnet** (or **localnet**) is a local testnet with a single node -- then, what is a
+**mocknet**?
+
+Unlike EVM-based chains, which use Ethereum's custom, domain-specific virtual machine, the
+smart contract runtime used by CosmWasm-based platforms is based on the industry-standard
+WebAssembly platform. This means you can **run real smart contracts without a real blockchain** --
+as long as something provides the required APIs for querying state, propagating transactions,
+storing data, et cetera.
+
+Thus, the **Fadroma Mocknet** is a pure Node.js mock implementation of the API and environment
+that Cosmos contracts expect. Because it does not contain any kind of distributed consensus
+mechanism, it allows the business logic of your smart contracts to be tested much faster
+than with a real devnet.
+
+## Table of contents
+
+* [Getting started with mocknet](#getting-started-with-mocknet)
+* [Testing contracts on mocknet](#testing-contracts-on-mocknet)
+* [Implementation details](#implementation-details)
+
+## Getting started with mocknet
+
+You can interact with a mocknet from TypeScript, the same way you interact with any other chain -
+through the Fadroma Client API. 
+
+* More specifically, `Mocknet` is an implementation of the `Chain`
+  abstract class which represents connection info for chains.
+* **NOTE:** Mocknets are currently not persistent.
 
 ```typescript
-import assert from 'assert'
-import * as Testing from '../../TESTING.ts.md'
+import {
+  Mocknet // A temporary local smart contract environment
+} from '@fadroma/mocknet'
+const mocknet = new Mocknet()
+const agent = await mocknet.getAgent()
+
+import { Chain, Agent } from '@fadroma/core'
+ok(mocknet instanceof Chain)
+ok(agent instanceof Agent)
+ok(agent instanceof Mocknet.Agent)
 ```
 
-The Fadroma Mocknet is a pure Node.js implementation of the API and environment
-that Cosmos contracts expect. Because it does not contain a distributed consensus
-mechanism, it allows the interaction of multiple smart contracts to be tested
-much faster than with a devnet or testnet.
+When creating a mocknet, the block height starts at 0.
+You can increment it manually to represent the passing of block time.
 
-## Mocknet as Chain
-
-```typescript
-import { Chain, Agent, Client, Contract, ContractTemplate, ContractInstance } from '@fadroma/core'
-let chain:     Chain
-let agent:     Agent
-let template:  Contract
-let template2: Contract
-let instance:  Contract
-let client:    Client
-```
-
-Initialize and spawn agent:
+Native token balances also start at 0. You can give native tokens to agents by
+setting the `Mocknet#balances` property:
 
 ```typescript
-import { Mocknet } from '.'
-chain = new Mocknet()
-assert.equal(await chain.height, 0)
+equal(mocknet.height, 0)
 
-agent = await chain.getAgent()
 chain.balances[agent.address] = 1000
-assert.ok(agent instanceof Mocknet.Agent)
 assert.equal(await chain.getBalance(agent.address), 1000)
+
 assert.equal(agent.defaultDenom, chain.defaultDenom)
 assert.ok(await agent.account)
 assert.ok(!await agent.send())
 assert.ok(!await agent.sendMany())
 ```
 
-Upload WASM blob, returning code ID:
+## Testing contracts on mocknet
+
+Uploading WASM blob will return the expected monotonously incrementing code ID...
 
 ```typescript
 import { pathToFileURL } from 'url'
-chain     = new Mocknet()
-agent     = await chain.getAgent()
-template  = await agent.upload(Testing.examples['Echo'].data)
-template2 = await agent.upload(Testing.examples['KV'].data)
-
-assert.equal(template2.codeId,  String(Number(template.codeId) + 1))
+const uploaded_a = await agent.upload(Testing.examples['Echo'].data)
+const uploaded_b = await agent.upload(Testing.examples['KV'].data)
+assert.equal(uploaded_b.codeId,  String(Number(uploaded_a.codeId) + 1))
 ```
 
-Instantiate and call a contract:
+...which you can use to instantiate the contract.
 
 ```typescript
-chain    = new Mocknet()
-agent    = await chain.getAgent()
-template = await agent.upload(Testing.examples['Echo'].data)
-instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { fail: false } }))
-client   = Object.assign(instance.getClientSync(), { agent })
+const client_a = await agent.instantiate(template_a, {
+  label: 'test',
+  initMsg: { fail: false }
+})
 
 assert.equal(await client.query("echo"), 'echo')
 assert.equal(await chain.getLabel(instance.address),   instance.label)
@@ -78,6 +99,11 @@ assert.equal(await client.query("get"), "foo")
 assert.ok(await client.execute({"set": "bar"}))
 assert.equal(await client.query("get"), "bar")
 ```
+
+## Implementation details
+
+The rest of this executable specification is dedicated to testing and documenting the workings
+of the mocknet as implemented by Fadroma.
 
 ### Mock of mocknet environment
 
@@ -101,19 +127,6 @@ export function mockEnv () {
     contract_code_hash: ""
   }
 }
-```
-
-### Backend tests
-
-```typescript
-import './mocknet-backend.spec.ts.md'
-import './mocknet-data.spec.ts.md'
-```
-# Fadroma Mocknet Backend
-
-```typescript
-import assert from 'node:assert'
-import * as Testing from '../../TESTING.ts.md'
 ```
 
 ```typescript
@@ -191,13 +204,8 @@ assert.ok(new MocknetBackend('mocknet', {
   {ignored: true}
 ]))
 ```
-# Fadroma Mocknet: Data passing
 
-```typescript
-import assert from 'assert'
-```
-
-## Base64 IO
+### Base64 IO
 
 * **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
   responses) are returned by the contract as Base64-encoded strings
@@ -209,4 +217,10 @@ import { b64toUtf8, utf8toB64 } from './mocknet-data'
 
 assert.equal(b64toUtf8('IkVjaG8i'), '"Echo"')
 assert.equal(utf8toB64('"Echo"'), 'IkVjaG8i')
+```
+
+```typescript
+import assert from 'assert'
+import { ok, equal } from 'assert'
+import * as Testing from '../../TESTING.ts.md'
 ```
