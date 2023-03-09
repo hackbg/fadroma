@@ -1,5 +1,7 @@
-import type { IFee, ICoin } from './core-fee'
-import { ClientError as Error } from './core-events'
+import Error   from './Error'
+import Console from './Console'
+
+import type { IFee, ICoin } from './Fee'
 
 /** A transaction message that can be sent to a contract. */
 export type Message = string|Record<string, unknown>

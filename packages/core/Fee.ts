@@ -1,4 +1,4 @@
-import type { Uint128 } from './core-math'
+import type { Uint128 } from './Math'
 
 /** A gas fee, payable in native tokens. */
 export interface IFee { amount: readonly ICoin[], gas: Uint128 }

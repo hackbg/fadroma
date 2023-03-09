@@ -1,4 +1,6 @@
-import { ClientConsole as Console, ClientError as Error } from './core-events'
+import Error   from './Error'
+import Console from './Console'
+
 import { Task } from '@hackbg/task'
 
 export function defineTask <T, U> (

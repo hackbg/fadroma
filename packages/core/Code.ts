@@ -1,9 +1,11 @@
-import type { Agent } from './core-agent'
-import type { Address } from './core-tx'
-import type { Buildable, Built, Uploaded, Instantiated, AnyContract } from './core-contract'
-import { assertAddress } from './core-tx'
-import { validated } from './core-fields'
-import { ClientError as Error } from './core-events'
+import Error   from './Error'
+import Console from './Console'
+
+import type { Agent } from './Agent'
+import type { Address } from './Tx'
+import type { Buildable, Built, Uploaded, Instantiated, AnyContract } from './Contract'
+import { assertAddress } from './Tx'
+import { validated } from './Fields'
 
 /** @returns a string in the format `crate[@ref][+flag][+flag]...` */
 export function getSourceSpecifier (meta: Buildable): string {

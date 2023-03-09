@@ -1,12 +1,14 @@
-import type { Class, Name } from './core-fields'
-import type { CodeHash } from './core-code'
-import type { Address, Message, ExecOpts } from './core-tx'
-import type { ICoin } from './core-fee'
-import type { Client } from './core-client'
-import type { Contract, AnyContract } from './core-contract'
-import { into } from './core-fields'
-import { Agent } from './core-agent'
-import { ClientError as Error, ClientConsole as Console } from './core-events'
+import Error   from './Error'
+import Console from './Console'
+
+import type { Class, Name } from './Fields'
+import type { CodeHash } from './Code'
+import type { Address, Message, ExecOpts } from './Tx'
+import type { ICoin } from './Fee'
+import type { Client } from './Client'
+import type { Contract, AnyContract } from './Contract'
+import { into } from './Fields'
+import { Agent } from './Agent'
 import type { Many } from '@hackbg/many'
 
 /** A constructor for a Bundle subclass. */

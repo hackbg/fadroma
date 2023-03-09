@@ -1,9 +1,11 @@
-import type { Address, Message } from './core-tx'
-import type { AgentOpts, AgentClass, Agent } from './core-agent'
-import type { Class } from './core-fields'
-import type { Client } from './core-client'
-import type { CodeId, CodeHash } from './core-code'
-import { ClientError as Error, ClientConsole as Console } from './core-events'
+import Error   from './Error'
+import Console from './Console'
+
+import type { Address, Message } from './Tx'
+import type { AgentOpts, AgentClass, Agent } from './Agent'
+import type { Class } from './Fields'
+import type { Client } from './Client'
+import type { CodeId, CodeHash } from './Code'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {

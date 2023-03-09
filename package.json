@@ -3,15 +3,11 @@
   "version": "1.0.0-beta.49",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
-  "main": "fadroma.ts",
-  "browser": "fadroma.browser.ts",
+  "main": "index.ts",
+  "browser": "index.browser.ts",
   "description": "CosmWasm dApp framework.",
   "bin": { "fadroma": "fadroma.cli.cjs" },
-  "files": [
-    "fadroma.ts",
-    "packages/build/build.cli.cjs",
-    "packages/deploy/deploy.cli.cjs"
-  ],
+  "files": [ "*.ts" ],
   "scripts": {
     "start": "cmds-ts ./fadroma.ts",
 

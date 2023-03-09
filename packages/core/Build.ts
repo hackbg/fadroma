@@ -1,11 +1,12 @@
+import Error   from './Error'
+import Console from './Console'
+
 import { CommandContext } from '@hackbg/cmds'
-import { ClientError } from './core-events'
-import { defineTask, pluralize } from './core-fields'
-import { ClientError as Error } from './core-events'
-import type { Deployment } from './core-deployment'
-import type { Overridable } from './core-fields'
-import type { CodeHash } from './core-code'
-import type { Buildable, Built } from './core-contract'
+import { defineTask, pluralize } from './Fields'
+import type { Deployment } from './Deployment'
+import type { Overridable } from './Fields'
+import type { CodeHash } from './Code'
+import type { Buildable, Built } from './Contract'
 import type { Task } from '@hackbg/task'
 
 /** The default Git ref when not specified. */
@@ -67,7 +68,7 @@ export abstract class Builder extends CommandContext {
 /** Throw appropriate error if not buildable. */
 export function assertBuilder ({ builder }: { builder?: Builder }): Builder {
   //if (!this.crate) throw new ClientError.NoCrate()
-  if (!builder) throw new ClientError.NoBuilder()
+  if (!builder) throw new Error.NoBuilder()
   //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
   return builder
 }

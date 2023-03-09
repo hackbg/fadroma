@@ -1,7 +1,7 @@
-import type { Class } from './core-fields'
-import type { Client } from './core-client'
-import type { AnyContract } from './core-contract'
-import type { Deployment } from './core-deployment'
+import type { Class } from './Fields'
+import type { Client } from './Client'
+import type { AnyContract } from './Contract'
+import type { Deployment } from './Deployment'
 
 /** Transitional support for several of these:
   *  - YAML1 is how the latest @fadroma/deploy stores data

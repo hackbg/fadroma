@@ -1,28 +1,29 @@
+import Error   from './Error'
+import Console from './Console'
+
 import { timestamp }      from '@hackbg/logs'
 import { CommandContext } from '@hackbg/cmds'
 import type { Task }      from '@hackbg/task'
 
-import { ClientError, ClientConsole } from './core-events'
-import { hideProperties, defineDefault } from './core-fields'
-import { mapAsync } from './core-fields'
-import { buildMany } from './core-build'
-import { uploadMany } from './core-upload'
-import { ClientError as Error, ClientConsole as Console } from './core-events'
-import { assertAgent } from './core-agent'
-import { into, intoRecord, defineTask, call } from './core-fields'
-import { writeLabel } from './core-labels'
+import { hideProperties, defineDefault } from './Fields'
+import { mapAsync } from './Fields'
+import { buildMany } from './Build'
+import { uploadMany } from './Upload'
+import { assertAgent } from './Agent'
+import { into, intoRecord, defineTask, call } from './Fields'
+import { writeLabel } from './Labels'
 
-import { Contract, ContractTemplate, ContractGroup } from './core-contract'
+import { Contract, ContractTemplate, ContractGroup } from './Contract'
 import type {
   AnyContract, Buildable, Uploadable, Instantiable, Instantiated
-} from './core-contract'
+} from './Contract'
 
-import type { Agent } from './core-agent'
-import type { Builder } from './core-build'
-import type { Chain } from './core-chain'
-import type { Class, Many, Name, Named, IntoRecord } from './core-fields'
-import type { Client, ClientClass } from './core-client'
-import type { Uploader } from './core-upload'
+import type { Agent } from './Agent'
+import type { Builder } from './Build'
+import type { Chain } from './Chain'
+import type { Class, Many, Name, Named, IntoRecord } from './Fields'
+import type { Client, ClientClass } from './Client'
+import type { Uploader } from './Upload'
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -70,7 +71,7 @@ export class Deployment {
     ])
   }
 
-  log = new ClientConsole(this.constructor.name)
+  log = new Console(this.constructor.name)
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
   name:        string
@@ -321,7 +322,7 @@ export class VersionedDeployment<V> extends Deployment {
     public version: V|undefined = (options as any)?.version
   ) {
     super(options as Partial<Deployment>)
-    if (!this.version) throw new ClientError.NoVersion(this.constructor.name)
+    if (!this.version) throw new Error.NoVersion(this.constructor.name)
   }
 }
 

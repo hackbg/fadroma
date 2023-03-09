@@ -1,11 +1,13 @@
-import type { AnyContract } from './core-contract'
-import type { Agent }       from './core-agent'
-import type { Contract }    from './core-contract'
-import type { Client }      from './core-client'
-import type { Name }        from './core-fields'
-import { assertAddress } from './core-tx'
-import { validated }     from './core-fields'
-import { ClientError }   from './core-events'
+import Error   from './Error'
+import Console from './Console'
+
+import type { AnyContract } from './Contract'
+import type { Agent }       from './Agent'
+import type { Contract }    from './Contract'
+import type { Client }      from './Client'
+import type { Name }        from './Fields'
+import { assertAddress } from './Tx'
+import { validated }     from './Fields'
 
 /** A contract name with optional prefix and suffix, implementing namespacing
   * for append-only platforms where labels have to be globally unique. */
@@ -35,15 +37,15 @@ export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
 /** Parse a label into prefix, name, and suffix. */
 export function parseLabel (label: Label): StructuredLabel {
   const matches = label.match(RE_LABEL)
-  if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
+  if (!matches || !matches.groups) throw new Error.InvalidLabel(label)
   const { name, prefix, suffix } = matches.groups
-  if (!name) throw new ClientError.InvalidLabel(label)
+  if (!name) throw new Error.InvalidLabel(label)
   return { label, name, prefix, suffix }
 }
 
 /** Construct a label from prefix, name, and suffix. */
 export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
-  if (!name) throw new ClientError.NoName()
+  if (!name) throw new Error.NoName()
   let label = name
   if (prefix) label = `${prefix}/${label}`
   if (suffix) label = `${label}+${suffix}`
