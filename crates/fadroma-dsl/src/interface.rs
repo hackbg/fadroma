@@ -107,7 +107,7 @@ impl Interface {
                     if !validate_err_bound(&type_def.bounds) {
                         sink.push_spanned(
                             &type_def,
-                            format!("{} type must have a single \"std::string::ToString\" bound.", ERROR_TYPE)
+                            format!("{} type must have a single \"std::fmt::Display\" bound.", ERROR_TYPE)
                         );
                     }
 
@@ -173,6 +173,6 @@ fn validate_err_bound(bounds: &Punctuated<TypeParamBound, Add>) -> bool {
         return false;
     };
 
-    segment.ident.to_string() == "ToString" &&
+    segment.ident.to_string() == "Display" &&
         segment.arguments == PathArguments::None
 }

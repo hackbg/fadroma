@@ -8,6 +8,13 @@ pub const CONTRACT: &str = "Contract";
 /// Name of the auto-generated enum that aggregates
 /// all error types that a contract might have.
 pub const ERROR_ENUM: &str = "Error";
+/// The [`ERROR_ENUM`] enum variant case that represents an error
+/// returned by a method implemented on the current contract and
+/// not one coming from an interface.
+pub const CONTRACT_ERR_VARIANT: &str = "Base";
+/// The [`ERROR_ENUM`] enum variant case that represents an error
+/// when trying to convert a query response to binary.
+pub const BINARY_SERIALIZE_ERR_VARIANT: &str = "QueryResponseSerialize";
 
 pub const INIT_MSG: &str = "InstantiateMsg";
 pub const EXECUTE_MSG: &str = "ExecuteMsg";

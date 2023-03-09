@@ -4,6 +4,7 @@ mod attr;
 mod err;
 mod generate;
 mod validate;
+mod method;
 mod utils;
 
 use syn::{parse_macro_input, Item, ItemTrait, TraitItemMethod, ItemMod, parse_quote};

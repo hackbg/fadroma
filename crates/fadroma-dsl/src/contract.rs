@@ -10,7 +10,8 @@ use crate::{
     attr::{MsgAttr, CONTRACT, ENTRY_META},
     err::{ErrorSink, CompileErrors},
     validate::{self, ResultType},
-    generate::{self, MsgType, ErrorEnum}
+    generate::{self, MsgType, ErrorEnum},
+    method::{Method, ContractMethod, InterfaceMethod}
 };
 
 pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, CompileErrors> {
@@ -24,7 +25,6 @@ pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, Compile
     };
 
     let mut sink = ErrorSink::default();
-
 
     let contract = Contract::parse(&mut sink, item_mod.ident.span(), items);
     let g = contract.generate(&mut sink);
@@ -146,12 +146,16 @@ impl<'a> Contract<'a> {
                             validate_contract_method(sink, &method, Some(parse_quote!(Response)))
                         }
                         MsgAttr::Execute => {
-                            execute.push(method);
+                            execute.push(Method::Contract(ContractMethod {
+                                sig: &method.sig
+                            }));
 
                             validate_contract_method(sink, &method, Some(parse_quote!(Response)))
                         }
                         MsgAttr::Query => {
-                            query.push(method);
+                            query.push(Method::Contract(ContractMethod {
+                                sig: &method.sig
+                            }));
 
                             validate_contract_method(sink, &method, None)
                         }
@@ -205,11 +209,17 @@ impl<'a> Contract<'a> {
                         }
                         MsgAttr::Execute => {
                             validate_interface_method(sink, &method, Some(parse_quote!(Response)));
-                            execute.push(method);
+                            execute.push(Method::Interface(InterfaceMethod {
+                                sig: &method.sig,
+                                trait_: &interface.trait_.as_ref().unwrap().1
+                            }));
                         }
                         MsgAttr::Query => {
                             validate_interface_method(sink, &method, None);
-                            query.push(method);
+                            query.push(Method::Interface(InterfaceMethod {
+                                sig: &method.sig,
+                                trait_: &interface.trait_.as_ref().unwrap().1
+                            }));
                         }
                     }
                 }
@@ -224,11 +234,11 @@ impl<'a> Contract<'a> {
                 ),
                 execute: generate::execute_fn(
                     sink,
-                    execute.iter().map(|x| &x.sig)
+                    &execute
                 ),
                 query: generate::query_fn(
                     sink,
-                    query.iter().map(|x| &x.sig)
+                    &query
                 )
             };
     
@@ -237,12 +247,12 @@ impl<'a> Contract<'a> {
                 execute_msg: generate::messages(
                     sink,
                     MsgType::Execute,
-                    execute.iter().map(|x| &x.sig)
+                    execute.iter().map(|x| x.sig())
                 ),
                 query_msg: generate::messages(
                     sink,
                     MsgType::Query,
-                    query.iter().map(|x| &x.sig)
+                    query.iter().map(|x| x.sig())
                 ),
                 entry
             })
