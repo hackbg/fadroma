@@ -1,7 +1,7 @@
 use syn::{
     ItemTrait, TraitItem, TraitItemMethod, PathArguments, GenericArgument,
     TypeParamBound, TraitBoundModifier, punctuated::Punctuated, token::Add,
-    parse_quote
+    Generics, parse_quote
 };
 use quote::{ToTokens, quote};
 
@@ -59,8 +59,7 @@ impl Interface {
         let mut query = vec![];
 
         // We forbid generic traits because they will complicate the error type on contracts.
-        if !r#trait.generics.params.is_empty() ||
-            r#trait.generics.where_clause.is_some() {
+        if has_generics(&r#trait.generics) {
             sink.push_spanned(
                 &r#trait,
                 "Interface traits cannot have any generics."
@@ -74,7 +73,7 @@ impl Interface {
                         Some(attr) => match attr {
                             MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
                                 trait_ident,
-                                "Only one method can be annotated as #[init].",
+                                format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
                             ),
                             MsgAttr::Init { entry } => {
                                 if entry {
@@ -111,8 +110,7 @@ impl Interface {
                         );
                     }
 
-                    if !type_def.generics.params.is_empty() ||
-                        type_def.generics.where_clause.is_some() {
+                    if has_generics(&type_def.generics) {
                         sink.push_spanned(
                             type_def.generics,
                             format!("{} type cannot have any generics.", ERROR_TYPE)
@@ -126,7 +124,7 @@ impl Interface {
         if !has_error_ty {
             sink.push_spanned(
                 trait_ident,
-                format!("Missing \"type {}: ToString;\" trait type declaration.", ERROR_TYPE)
+                format!("Missing \"type {}: std::fmt::Display;\" trait type declaration.", ERROR_TYPE)
             );
         }
 
@@ -152,6 +150,11 @@ fn validate_method(
 
     let err_arg: GenericArgument = parse_quote!(Self::Error);
     validate::result_type(sink, &method.sig, (expected, Some(err_arg)));
+}
+
+#[inline]
+fn has_generics(generics: &Generics) -> bool {
+    !generics.params.is_empty() || generics.where_clause.is_some()
 }
 
 fn validate_err_bound(bounds: &Punctuated<TypeParamBound, Add>) -> bool {

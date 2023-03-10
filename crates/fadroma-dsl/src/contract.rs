@@ -189,8 +189,8 @@ impl<'a> Contract<'a> {
                     continue;
                 };
 
-                if let Some(attr) = MsgAttr::parse(sink, &method.attrs) {
-                    match attr {
+                match MsgAttr::parse(sink, &method.attrs) {
+                    Some(attr) => match attr {
                         MsgAttr::Init { .. } if has_init => sink.push_spanned(
                             &item,
                             format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
@@ -221,7 +221,11 @@ impl<'a> Contract<'a> {
                                 trait_: &interface.trait_.as_ref().unwrap().1
                             }));
                         }
-                    }
+                    },
+                    None => sink.push_spanned(
+                        &method.sig.ident,
+                        format!("Expecting exactly one attribute of: {:?}", MsgAttr::ALL)
+                    )
                 }
             }
         }

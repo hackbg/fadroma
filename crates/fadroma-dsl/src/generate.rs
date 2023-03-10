@@ -1,7 +1,7 @@
 use proc_macro2::Span;
 use syn::{
     Signature, ItemStruct, Ident, Field, Fields, FieldsNamed,
-    Visibility, parse_quote, FnArg, punctuated::Punctuated, Pat,
+    Visibility, parse_quote, FnArg, punctuated::Punctuated,
     ItemEnum, Variant, ItemFn, Expr, Stmt, ExprField, ExprMatch,
     ItemImpl, GenericArgument, ExprCall, token::{Brace, Comma, Colon}
 };
@@ -14,7 +14,7 @@ use crate::{
         ERROR_ENUM, ERROR_TYPE, CONTRACT_ERR_VARIANT,
         BINARY_SERIALIZE_ERR_VARIANT
     },
-    method::Method,
+    method::{Method, fn_args_to_idents, fn_arg_ident, pat_ident},
     utils::to_pascal
 };
 
@@ -288,14 +288,7 @@ fn create_match_expr<'a>(
         let variant = to_pascal(&method_name.to_string());
         let variant = Ident::new(&variant, Span::call_site());
 
-        let mut args = Punctuated::<Ident, Comma>::new();
-
-        for input in &sig.inputs {
-            let ident = fn_arg_ident(sink, input)?;
-
-            args.push_value(ident);
-            args.push_punct(Comma(Span::call_site()));
-        }
+        let args = fn_args_to_idents(sink, &sig.inputs);
 
         let err_variant = if let Method::Interface(interface) = method {
             interface.trait_name()
@@ -362,37 +355,6 @@ fn extract_fields(
     }
 
     fields
-}
-
-#[inline]
-fn fn_arg_ident(sink: &mut ErrorSink, arg: &FnArg) -> Option<Ident> {
-    match arg {
-        FnArg::Typed(pat_type) => pat_ident(sink, *pat_type.pat.to_owned()),
-        FnArg::Receiver(_) => {
-            sink.push_spanned(
-                &arg,
-                "Method definition cannot contain \"self\".",
-            );
-
-            None
-        }
-    }
-}
-
-fn pat_ident(sink: &mut ErrorSink, pat: Pat) -> Option<Ident> {
-    if let Pat::Ident(pat_ident) = pat {
-        // Strip leading underscores because we might want to include a field in the
-        // generated message, but not actually use it in the impl. A very rare case,
-        // but it is used in the SNIP-20 implementation ('padding' field), for example.
-        let name = pat_ident.ident.to_string();
-        let name = name.trim_start_matches('_');
-
-        Some(Ident::new(name, pat_ident.ident.span()))
-    } else {
-        sink.push_spanned(pat, "Expected identifier.");
-
-        None
-    }
 }
 
 impl From<MsgType> for Ident {

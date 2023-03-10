@@ -5,12 +5,17 @@ mod err;
 mod generate;
 mod validate;
 mod method;
+mod auto_impl;
 mod utils;
 
-use syn::{parse_macro_input, Item, ItemTrait, TraitItemMethod, ItemMod, parse_quote};
+use syn::{
+    AttributeArgs, Item, ItemTrait, TraitItemMethod,
+    ItemImpl, ItemMod, parse_macro_input, parse_quote
+};
 use proc_macro2::Span;
 use quote::quote;
 
+use auto_impl::AutoImpl;
 use attr::MsgAttr;
 
 #[proc_macro_attribute]
@@ -47,6 +52,27 @@ pub fn contract(
     };
 
     proc_macro::TokenStream::from(boilerplate)
+}
+
+#[proc_macro_attribute]
+pub fn auto_impl(
+    args: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
+    let mut item = parse_macro_input!(item as ItemImpl);
+
+    let result = match AutoImpl::parse(args) {
+        Ok(auto_impl) => {
+            match auto_impl.replace(&mut item) {
+                Ok(()) => quote!(#item),
+                Err(errors) => to_compile_errors(errors)
+            }
+        }
+        Err(err) => err.to_compile_error()
+    };
+
+    proc_macro::TokenStream::from(result)
 }
 
 #[proc_macro_attribute]
