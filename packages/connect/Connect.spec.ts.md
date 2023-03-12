@@ -1,10 +1,4 @@
-# Fadroma Connect Spec
-
-```typescript
-import * as Testing from '../../TESTING.ts.md'
-import * as Fadroma from '@fadroma/connect'
-import assert, { ok, equal, deepEqual } from 'assert'
-```
+# Fadroma Connection Registry
 
 ## Chain variants:
 
@@ -290,177 +284,33 @@ async function supportsSmartContracts (Chain) {
 }
 ```
 
-## Mocks of native chain APIs
-
-This specification only tests whether the Fadroma packages
-wrap the underlying chain APIs correctly. The underlying methods
-are mocked out below.
-
-```typescript
-function mockChainApi (chain, ...agents) {
-  if (chain instanceof ScrtGrpc) return mockScrtGrpcApi(chain, ...agents)
-  if (chain instanceof ScrtAmino) return mockScrtAminoApi(chain, ...agents)
-}
-```
-
-### Mock of SecretJS gRPC
-
-```typescript
-function mockScrtGrpcApi (chain, ...agents) {
-  const balances = {}
-  chain.SecretJS = {
-    SecretNetworkClient: class MockSecretNetworkClient {
-      static create = () => new this()
-      query = {
-        auth: {
-          account: async () => ({})
-        },
-        bank: {
-          async balance ({ address, denom }) {
-            const amount = balances[address]
-            return {balance:{amount}}
-          }
-        },
-        tendermint: {
-          getLatestBlock: async () => ({block:{header:{height:+new Date()}}})
-        },
-        compute: {
-          codeHash: async () => ({}),
-          queryContract: async () => ({})
-        }
-      }
-      tx = {
-        bank: {
-          async send ({ fromAddress, toAddress, amount }) {
-            balances[fromAddress] = String(Number(balances[fromAddress]) - Number(amount))
-            balances[toAddress]   = String(Number(balances[toAddress]) + Number(amount))
-          }
-        },
-        compute: {
-          async storeCode () { return {} },
-          async instantiateContract () { return { arrayLog: [] } },
-          async executeContract () { return { code: 0 } }
-        }
-      }
-    },
-    Wallet: class MockSecretNetworkWallet {
-    }
-  }
-  for (const i in agents) {
-    const agent = agents[i]
-    agent.address ??= `agent${i}`
-    agent.api = new chain.SecretJS.SecretNetworkClient()
-    assert.equal(chain, agent.chain)
-    balances[agent.address] = '1000'
-  }
-}
-```
-
-### Mock of SecretJS Amino
-
-```typescript
-function mockScrtAminoApi (chain, ...agents) {
-  const balances = {}
-  for (const {address} of agents) balances[address] = '1000'
-  chain.API = class MockCosmWasmClient {
-    async getBlock () {
-      return { header: { height: +new Date() } }
-    }
-  }
-  for (const i in agents) {
-    const agent = agents[i]
-    agent.address ??= `agent${i}`
-    agent.API = class MockSigningCosmWasmClient {
-      async getAccount (address) {
-        return { balance: [ { amount: balances[address], denom: 'uscrt' } ] }
-      }
-      async getBlock () {
-        return { header: { height: +new Date() } }
-      }
-      async sendTokens (toAddress, amount) {
-        const fromAddress = agent.address
-        balances[fromAddress] = String(Number(balances[fromAddress]) - Number(amount))
-        balances[toAddress]   = String(Number(balances[toAddress]) + Number(amount))
-      }
-      async upload () { return {} }
-      async instantiate () { return { logs: [ { events: [ { attributes: [null, null, null, null, {}] } ] } ] } }
-      async queryContractSmart () { return {} }
-      async execute () { return {} }
-    }
-  }
-}
-```
-```typescript
-import assert from 'node:assert'
-```
-
-# Fadroma Core: Chains
-
-This package provides the abstract base class, `Chain`.
-
-Platform packages extend `Chain` to represent connections to different chains.
-  * Since the workflow is request-based, no persistent connection is maintained.
-  * The `Chain` object keeps track of the globally unique chain `id` and the connection `url`.
-    * **TODO:** Load balancing between multiple chain endpoints.
-
-```typescript
-import { Chain } from '@fadroma/core'
-let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
-assert.equal(chain.id,   'id')
-assert.equal(chain.url,  'example.com')
-assert.equal(chain.mode, 'mainnet')
-```
-
-Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`:
-
-* **Mocknet** is a fast, nodeless way of executing contract code
-  in the local JS WASM runtime.
-* **Devnet** uses a real chain node, booted up temporarily in
-  a local environment.
-* **Testnet** is a persistent remote chain used for testing.
-* **Mainnet** is the production chain where value is stored.
-
-```typescript
-assert(Chain.mocknet('any').isMocknet)
-assert(Chain.devnet('any').isDevnet)
-assert(Chain.testnet('any').isTestnet)
-assert(Chain.mainnet('any').isMainnet)
-```
-
-## Dev mode
-
-The `chain.devMode` flag basically corresponds to whether you
-have the ability to reset the whole chain and start over.
-
-  * This is true for mocknet and devnet, but not for testnet or mainnet.
-  * This can be used to determine whether to e.g. deploy mocks of
-    third-party contracts, or to use their official testnet/mainnet addresses.
-
-```typescript
-assert(Chain.mocknet('any').devMode)
-assert(Chain.devnet('any').devMode)
-assert(!Chain.testnet('any').devMode)
-assert(!Chain.mainnet('any').devMode)
-```
-
-## Connect logs
+## Connection events
 
 ```typescript
 import { ConnectConsole } from '.'
-const log = new ConnectConsole('(Test) Fadroma.Connect', {
-  log: () => {}, info: () => {}, warn: () => {}, error: () => {}
-})
-log.noName({})
-log.supportedChains()
-log.selectedChain()
+const log = new ConnectConsole()
+
+log.noName({})        // Report When no chain has been selected.
+log.supportedChains() // Report a list of supported chains
+log.selectedChain()   // Report the currently selected chain
 log.selectedChain({})
 log.selectedChain({ chain: 'x' })
 ```
 
-## Connect errors
+## Connection errors
 
 ```typescript
 import { ConnectError } from './connect-events'
+
+// When no target chain has been specified:
 assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
+
+// When an unknown target chain has been requested:
 assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
+```
+
+```typescript
+import * as Testing from '../../TESTING.ts.md'
+import * as Fadroma from '@fadroma/connect'
+import assert, { ok, equal, deepEqual } from 'assert'
 ```

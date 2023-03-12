@@ -20,58 +20,92 @@ This is the portable core of the Fadroma dApp framework.
 ## The Fadroma Agent API
 
 The **Fadroma Agent API** consists of the abstract `Chain`, `Agent`, and `Bundle` classes.
-`@fadroma/scrt` provides the implementations of those classes for Secret Network.
 These classes are used when interacting with existing smart contracts.
+`@fadroma/scrt` provides their concrete implementations for using Secret Network.
 
 ### Chain: connecting
 
-  * [Chains](./core-chain.spec.ts.md)
-  * [Agents](./Agent.spec.ts.md)
-  * [Bundles](./core-bundle.spec.ts.md)
-
-The innermost core of Fadroma consists of the `Chain` and `Agent`
-abstract base classes. They provide a unified base layer for querying
-and transacting on append-only transaction-based systems.
-
-The platform packages (`@fadroma/scrt`, etc.) subclass those,
-calling into the platform API client library (e.g. `secretjs`)
-in order to implement the abstract methods.
+The `Chain` object identifies what chain to connect to -
+such as the Secret Network mainnet or testnet.
 
 ```typescript
-context.command('connect',
-  'test the connection primitives',
-  async () => {
-    await import('./core-chain.spec.ts.md')
-    await import('./Agent.spec.ts.md')
-    await import('./core-bundle.spec.ts.md')
-  })
+import { Chain } from '@fadroma/core'
+let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+assert(chain.id   === 'id')
+assert(chain.url  === 'example.com')
+assert(chain.mode === 'mainnet')
 ```
+
+Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`:
+
+* **Mocknet** is a fast, nodeless way of executing contract code
+  in the local JS WASM runtime.
+* **Devnet** uses a real chain node, booted up temporarily in
+  a local environment.
+* **Testnet** is a persistent remote chain used for testing.
+* **Mainnet** is the production chain where value is stored.
+
+The `Chain#devMode` flag is true if you are able to restart
+the chain and start over (i.e. when using a devnet or mocknet).
+
+```typescript
+chain.mode = 'mainnet'
+assert(chain.devMode === false)
+assert(chain.isMainnet)
+
+chain.mode = 'testnet'
+assert(chain.devMode === false)
+assert(chain.isTestnet)
+assert(!chain.isMainnet)
+
+chain.mode = 'localnet'
+assert(chain.devMode === true)
+assert(chain.isLocalnet)
+assert(!chain.isMainnet)
+
+chain.mode = 'mocknet'
+assert(chain.devMode === true)
+assert(chain.isMocknet)
+assert(!chain.isMainnet)
+```
+
+* Since the workflow is request-based, no persistent connection is maintained.
 
 ### Agent: identifying
 
-To transact on a [chain](./Chains.ts.md) as a certain identity (account, wallet),
-you obtain an `Agent` instance from the `Chain` object by providing credentials (mnemonic).
+To transact on a [chain](./Chains.ts.md), you need to authenticate
+with your identity (account, wallet). To do that, you obtain an
+`Agent` from the `Chain` using `Chain#getAgent({ mnemonic })`.
+
+If you don't pass a mnemonic, a random mnemonic and address will be generated.
 
 ```typescript
-import { Chain, Agent } from '@fadroma/core'
-let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+import { Agent } from '@fadroma/core'
 let agent: Agent = await chain.getAgent()
 assert(agent instanceof Agent)
 assert(agent.chain === chain)
+assert(agent.mnemonic)
+assert(agent.address)
 ```
-
-* If you don't pass a mnemonic, a random mnemonic and address will be generated.
-* Since some of the underlying platform APIs (such as cryptographical key generation)
-  are asynchronous, so is the `getAgent` method.
 
 ### Block height
 
+Now that you have an `Agent`, you can start doing things on the `Chain`.
+The simplest thing to do is nothing: in this case, waiting until the
+block height increments.
+
+* On Secret Network, this can be necessary for uploading multiple contracts.
+
 ```typescript
-await agent.height    // Getting the current block height
-await agent.nextBlock // Waiting for the block height to increment
+const height = await agent.height // Get the current block height
+await agent.nextBlock             // Wait for the block height to increment
+assert(await agent.height === height + 1)
 ```
 
 ### Native token transactions
+
+You're not on the chain to wait around, though.
+The simplest operation you can conduct is transact with native tokens:
 
 ```typescript
 await agent.balance             // In the default native token
@@ -87,6 +121,9 @@ await agent.send('recipient-address', [{denom:'token', amount: '1000'}])
 ```
 
 ### Gas fees
+
+Transacting creates load on the network, which incurs costs on node operators.
+Compensations for transactions are represented by the gas metric.
 
 ```typescript
 import { Fee } from '.'
