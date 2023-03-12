@@ -1,25 +1,24 @@
 # Fadroma Core Specification
 
-## Introduction
+This is the isomorphic core of the Fadroma dApp framework.
+It contains the core abstractions of the Fadroma object model,
+written in a platform-independent way that does not depend on
+specific runtime features (a.k.a. isomorphic JavaScript).
 
-This is the portable core of the Fadroma dApp framework.
+All other NPM packages in the Fadroma ecosystem
+build upon this one, and either:
 
-* It is **portable**, in the sense that it should not depend on any features
-  that are specific to a particular scripting runtime. Also known as
-  **isomorphic JavaScript**.
+* Provide platform-specific implementations of these abstractions
+  (such as an Agent that is specifically for the Secret Network,
+  or a Builder that executes builds specifically in a Docker container), or
 
-* And it is the **core module**, because it contains the core abstractions
-  of the Fadroma object model. All other NPM packages in the Fadroma ecosystem
-  build upon this one, and probably do one of the following:
-  * Provide platform-specific implementations of these abstractions
-    (such as an Agent that is specifically for the Secret Network,
-    or a Builder that executes builds specifically in a Docker container), or
-  * Build atop the abstract object model to deliver new features with
-    the appropriate degree of cross-platform support.
+* Build atop the abstract object model to deliver new features with
+  the appropriate degree of cross-platform support.
 
-## Fadroma Agent API
+## Agent API
 
-The **Fadroma Agent API** is an imperative API for the transaction level.
+The **Agent API** is a simple imperative transaction-level API for
+interacting with Cosmos-like networks.
 
 It revolves around the `Chain` and `Agent` abstract classes, and describes the basic
 building blocks of on-chain activity: identities (wallets) and transactions (sending tokens,
@@ -40,6 +39,8 @@ Since the workflow is request-based, no persistent connection is maintained.
 import { Chain } from '@fadroma/core'
 let chain: Chain
 ```
+
+#### Chain modes
 
 Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`.
 
@@ -100,7 +101,7 @@ assert(agent.mnemonic)
 assert(agent.address)
 ```
 
-### Block height and waiting
+#### Block height and waiting
 
 Now that you have an `Agent`, you can start doing things on the `Chain`.
 The simplest thing to do is nothing: in this case, waiting until the
@@ -114,7 +115,22 @@ await agent.nextBlock             // Wait for the block height to increment
 assert(await agent.height === height + 1)
 ```
 
-### Native token transactions
+#### Gas fees
+
+Transacting creates load on the network, which incurs costs on node operators.
+Compensations for transactions are represented by the gas metric.
+
+```typescript
+import { Fee } from '.'
+```
+
+* `client.fee` is the default fee for all transactions
+* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
+* `client.withFee(fee: IFee)` allows the caller to override the default fees.
+  Calling it returns a new instance of the Client, which talks to the same contract
+  but executes all transactions with the specified custom fee.
+
+#### Native token transactions
 
 You're not on the chain to wait around, though.
 The simplest operation you can conduct is transact with native tokens:
@@ -132,22 +148,7 @@ await agent.send('recipient-address', '1000')
 await agent.send('recipient-address', [{denom:'token', amount: '1000'}])
 ```
 
-### Gas fees
-
-Transacting creates load on the network, which incurs costs on node operators.
-Compensations for transactions are represented by the gas metric.
-
-```typescript
-import { Fee } from '.'
-```
-
-* `client.fee` is the default fee for all transactions
-* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
-* `client.withFee(fee: IFee)` allows the caller to override the default fees.
-  Calling it returns a new instance of the Client, which talks to the same contract
-  but executes all transactions with the specified custom fee.
-
-### Uploading a contract
+#### Uploading code
 
 ```typescript
 // Uploading a single piece of code:
@@ -163,7 +164,7 @@ await agent.uploadMany([
 ])
 ```
 
-### Instantiating a contract
+#### Instantiating a contract
 
 ```typescript
 // Instantiating a single contract:
@@ -180,13 +181,13 @@ await agent.instantiateMany([
 })
 ```
 
-### Querying contracts
+#### Querying contracts
 
 ```typescript
 await agent.query({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
 ```
 
-### Executing contract transactions
+#### Executing contract transactions
 
 ```typescript
 // Executing a single transaction
@@ -199,7 +200,88 @@ await agent.bundle().wrap(bundle=>{
 })
 ```
 
-### Transaction bundling
+### Client: contracts
+
+Represents an interface to an existing contract.
+  * The default `Client` class allows passing messages to the contract instance.
+  * **Implement a custom subclass of `Client` to define specific messages as methods**.
+    This is the main thing to do when defining your Fadroma Client-based API.
+
+User interacts with contract by obtaining an instance of the
+appropriate `Client` subclass from the authorized `Agent`.
+
+```typescript
+import { Client } from '@fadroma/core'
+let client: Client = new Client(agent, 'some-address', 'some-code-hash')
+
+assert.equal(client.agent,    agent)
+assert.equal(client.address,  'some-address')
+assert.equal(client.codeHash, 'some-code-hash')
+
+client.fees = { 'method': 100 }
+
+assert.equal(
+  client.getFee('method'),
+  100
+)
+
+assert.equal(
+  client.getFee({'method':{'parameter':'value'}}),
+  100
+)
+
+let agent2 = Symbol()
+assert.equal(
+  client.as(agent2).agent,
+  agent2
+)
+
+client.agent = { execute: async () => 'ok' }
+assert.equal(
+  await client.execute({'method':{'parameter':'value'}}),
+  'ok'
+)
+```
+
+#### Code hashes
+
+The code hash also uniquely identifies for the code that underpins a contract.
+However, unlike the code ID, which is opaque, the code hash corresponds to the
+actual content of the code. Uploading the same code multiple times will give
+you different code IDs, but the same code hash.
+
+```typescript
+import { fetchCodeHash, assertCodeHash, codeHashOf } from '@fadroma/core'
+
+assert.ok(assertCodeHash({ codeHash: 'hash' }))
+assert.throws(()=>assertCodeHash({}))
+
+assert.ok(await fetchCodeHash(contract, agent))
+assert.ok(await fetchCodeHash(contract, agent, 'hash'))
+assert.rejects(fetchCodeHash(contract, agent, 'unexpected'))
+
+assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
+assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
+assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
+```
+
+#### Code ids
+
+The code ID is a unique identifier for compiled code uploaded to a chain.
+
+```typescript
+import { fetchCodeId } from '@fadroma/core'
+
+assert.ok(await fetchCodeId(contract, agent))
+assert.ok(await fetchCodeId(contract, agent, 'id'))
+assert.rejects(fetchCodeId(contract, agent, 'unexpected'))
+```
+
+#### Fetching metadata
+
+#### Extending Client
+
+### Bundle: Transaction bundling
 
 To submit multiple messages as a single transaction, you can
 use Bundles.
@@ -297,9 +379,9 @@ agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bu
 //await agent.instantiateMany(new Contract(), [], 'prefix')
 ```
 
-## Fadroma Ops API
+## Deployment API
 
-The **Fadroma Ops API** revolves around the `Deployment` class, and associated
+The **Ops API** revolves around the `Deployment` class, and associated
 implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
 
 These classes are used for describing systems consisting of multiple smart contracts,
@@ -316,16 +398,58 @@ smart contract deployments.
 
 Concrete implementations of those are provided in `@fadroma/build` and `@fadroma/deploy`.
 
-### Deployment
+```typescript
+import { Deployment } from '@fadroma/core'
 
-### ContractTemplate
+class MyDeployment extends Deployment {
 
-### Contract
+  contract  = this.contract()
 
-#### Contract labels
+  contracts = this.contracts()
+
+  template  = this.template()
+
+  templates = this.templates()
+
+}
+```
+
+### Defining individual contracts in a Deployment
+
+#### Contract label prefixes and suffixes
 
 The label of a contract has to be unique per chain.
 Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
+
+#### Contract lifecycle
+
+The `Metadata` class is the base class of the
+`ContractSource`->`ContractTemplate`->`ContractInstance` inheritance chain.
+
+#### Contract
+
+Represents a contract that is instantiated from a `codeId`.
+  * Can have an `address`.
+  * You can get a `Client` from a `ContractInstance` using
+    the `getClient` family of methods.
+
+```typescript
+import { ContractInstance } from '@fadroma/core'
+let instance: ContractInstance = new ContractInstance()
+assert.ok(instance.asReceipt)
+//assert.ok(await instance.define({ agent }).found)
+//assert.ok(await instance.define({ agent }).deployed)
+```
+
+### Defining groups of contracts in a Deployment
+
+#### ContractTemplate
+
+### Storing deployment state
+
+#### Exporting deployments
+
+#### Connecting to an exported deployment
 
 ```typescript
 import { fetchLabel, parseLabel, writeLabel } from '@fadroma/core'
@@ -337,81 +461,15 @@ assert.ok(await fetchLabel(c, a, 'label'))
 assert.rejects(fetchLabel(c, a, 'unexpected'))
 ```
 
-#### Code ids
+### Versioned deployments
 
-The code ID is a unique identifier for compiled code uploaded to a chain.
+### Pluggable operations
 
-```typescript
-import { fetchCodeId } from '@fadroma/core'
+#### Builder
 
-assert.ok(await fetchCodeId(contract, agent))
-assert.ok(await fetchCodeId(contract, agent, 'id'))
-assert.rejects(fetchCodeId(contract, agent, 'unexpected'))
-```
+#### Uploader
 
-#### Code hashes
-
-The code hash also uniquely identifies for the code that underpins a contract.
-However, unlike the code ID, which is opaque, the code hash corresponds to the
-actual content of the code. Uploading the same code multiple times will give
-you different code IDs, but the same code hash.
-
-```typescript
-import { fetchCodeHash, assertCodeHash, codeHashOf } from '@fadroma/core'
-
-assert.ok(assertCodeHash({ codeHash: 'hash' }))
-assert.throws(()=>assertCodeHash({}))
-
-assert.ok(await fetchCodeHash(contract, agent))
-assert.ok(await fetchCodeHash(contract, agent, 'hash'))
-assert.rejects(fetchCodeHash(contract, agent, 'unexpected'))
-
-assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
-assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
-assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
-```
-
-#### Inter-contract communication
-
-```typescript
-import { templateStruct, linkStruct } from '@fadroma/core'
-assert.deepEqual(
-  templateStruct({ codeId: '123', codeHash: 'hash'}),
-  { id: 123, code_hash: 'hash' }
-)
-assert.deepEqual(
-  linkStruct({ address: 'addr', codeHash: 'hash'}),
-  { address: 'addr', code_hash: 'hash' }
-)
-```
-
-### Builder
-
-### Uploader
-
-### DeployStore
-
-### Describing and deploying contracts
-
-```typescript
-context.command('contract',
-  'test the contract ops primitives',
-  async () => {
-    await import('./core-contract.spec.ts.md')
-    await import('./core-client.spec.ts.md')
-    await import('./core-build.spec.ts.md')
-    await import('./core-code.spec.ts.md')
-    await import('./core-upload.spec.ts.md')
-    await import('./core-labels.spec.ts.md')
-  })
-```
-
-```typescript
-const contract = { address: 'addr' }
-const agent = { getHash: async x => 'hash', getCodeId: async x => 'id' }
-```
-
-## Error types
+## Errors
 
 The `ClientError` class, based on `@hackbg/oops`, defines
 custom error subclasses for various error conditions.
@@ -473,7 +531,7 @@ for (const subtype of [
 }
 ```
 
-## Log events
+## Events
 
 The `ClientConsole` class, based on `@hackbg/logs`, collects all logging output in one place.
 In the future, this will enable semantic logging and/or GUI notifications.
@@ -525,6 +583,20 @@ log.warnEmptyBundle()
 ```
 
 ## Utilities
+
+### Inter-contract communication
+
+```typescript
+import { templateStruct, linkStruct } from '@fadroma/core'
+assert.deepEqual(
+  templateStruct({ codeId: '123', codeHash: 'hash'}),
+  { id: 123, code_hash: 'hash' }
+)
+assert.deepEqual(
+  linkStruct({ address: 'addr', codeHash: 'hash'}),
+  { address: 'addr', code_hash: 'hash' }
+)
+```
 
 ### Lazy evaluation
 

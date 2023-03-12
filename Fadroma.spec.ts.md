@@ -61,13 +61,36 @@ $ npm i --save fadroma
 
 The core features of Fadroma are invoked using the command-line tool, `fadroma`.
 
+### Setting up a project
+
 ```sh
-$ fadroma contract add my-contract
-$ fadroma build my-contract
-$ fadroma upload my-contract
-$ fadroma init my-contract
-$ fadroma query my-contract "{...}"
-$ fadroma tx my-contract "{...}"
+$ fadroma project create
+$ fadroma contract add CONTRACT
+$ fadroma contract list
+```
+
+### Building and uploading code
+
+```sh
+$ fadroma build
+$ fadroma build CONTRACT
+
+$ fadroma rebuild
+$ fadroma rebuild CONTRACT
+
+$ fadroma upload
+$ fadroma upload CONTRACT
+
+$ fadroma reupload
+$ fadroma reupload CONTRACT
+```
+
+### Instantiating and operating contracts
+
+```sh
+$ fadroma init CONTRACT NAME MESSAGE
+$ fadroma query NAME MESSAGE
+$ fadroma tx NAME MESSAGE
 ```
 
 ## Scripting Fadroma
@@ -75,3 +98,47 @@ $ fadroma tx my-contract "{...}"
 For more complex operations, you can define custom commands, which you implement in TypeScript
 using the Fadroma TypeScript API. **See [@fadroma/core](packages/core/Core.spec.ts.md)** to get
 started with scripting Fadroma.
+
+To run a Fadroma script:
+
+```sh
+$ fadroma run script.ts
+```
+
+Example scripts:
+
+```typescript
+// ... do stuff
+```
+
+```typescript
+export default function doStuff () {
+  // ... do stuff
+}
+```
+
+```typescript
+export function doStuff1 () {
+  // ... do stuff
+}
+
+export function doStuff2 () {
+  // ... do stuff
+}
+```
+
+```typescript
+import Fadroma from '@hackbg/fadroma'
+
+export class MyCommands extends Fadroma {
+  doStuff1 = this.command('do-stuff-1', () => {
+    // ...
+  })
+  doStuff2 = this.command('do-stuff-2', () => {
+    // ...
+  })
+}
+
+export default (...args) =>
+  new MyCommands().run(...args)
+```

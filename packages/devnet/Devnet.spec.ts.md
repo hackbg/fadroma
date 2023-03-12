@@ -11,9 +11,9 @@ which uses Docker or Podman for running a devnet container.
 Fadroma contains container images based on `localsecret`,
 for versions of Secret Network 1.2 to 1.7.
 
-## Creating a devnet
+## Connecting to a devnet
 
-## Using genesis accounts
+### Using genesis accounts
 
 On devnet, Fadroma creates named genesis accounts for you,
 which you can use by passing `name` to `getAgent`:
@@ -64,7 +64,15 @@ await resetDevnet({ chain: null })
 await resetDevnet()
 ```
 
-## Docker-based implementation
+## Exporting a devnet with deployed contracts
+
+## Resetting the devnet
+
+## Internals
+
+### Implementing devnet support for a chain
+
+### Docker-based implementation
 
 ```typescript
 import { Devnet, DockerDevnet } from '@fadroma/devnet'

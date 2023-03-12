@@ -56,19 +56,21 @@ const agent3 = await mainnet.fromSecretCli() // TODO
 ok(agent3 instanceof Scrt.Agent)
 ```
 
-## Transaction bundling
-
-A Secret Network-specific implementation of message bundling is provided:
-
-```typescript
-const bundle = agent.bundle()
-ok(bundle instanceof Scrt.Bundle)
-```
-
 ## Viewing keys
 
 Since viewing keys are a Secret Network-specific feature, they are also implemented here:
 
 ```typescript
 const client = new Scrt.ViewingKeyClient()
+```
+
+## Internals
+
+### Transaction bundling
+
+A Secret Network-specific implementation of message bundling is included:
+
+```typescript
+const bundle = agent.bundle()
+ok(bundle instanceof Scrt.Bundle)
 ```

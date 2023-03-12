@@ -3,16 +3,6 @@
 This package acts as a hub for the available Fadroma Agent API implementations.
 In practical terms, it allows you to connect to every backend that Fadroma supports.
 
-## Connectors
-
-```typescript
-import { Connector, connect } from '.'
-let context: Connector
-//context = connect()
-//context = connect({ config: { chain: 'id' } })
-context = await config.connect()
-```
-
 ## Connection configuration
 
 ```typescript
@@ -20,44 +10,24 @@ import { ConnectConfig } from '.'
 const config = new ConnectConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
 ```
 
-* `ScrtAmino`: creates secretjs@0.17.5 based agent using lcd/amino
-  * **ScrtAmino.Agent** a.k.a. **ScrtAminoAgent**: uses secretjs 0.17.5
-* `Scrt`: creates secretjs@beta based agent using grpc
-  * **Scrt.Agent** a.k.a. **ScrtGrpcAgent**: which uses the new gRPC API
-    provided by secretjs 1.2-beta - as opposed to the old HTTP-based ("Amino"?) API
-    supported in secretjs 0.17.5 and older.
-
-```typescript
-import { ScrtGrpc }  from '@fadroma/scrt'
-import { ScrtAmino } from '@fadroma/scrt-amino'
-import { Mocknet }   from '@fadroma/mocknet'
-
-const mnemonics = [
-  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
-  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
-]
-```
-
 ## Connecting to...
 
 ### Secret Network
 
-* `ScrtAmino`: creates secretjs@0.17.5 based agent using lcd/amino
-* `Scrt`: creates secretjs@beta based agent using grpc
+```typescript
+import Scrt from '@fadroma/scrt'
+const supportedChains = [ Scrt, ]
+```
 
 ```typescript
-import { Scrt } from '@fadroma/scrt'
-
-const supportedChains = [
-  Scrt,
-]
-
 for (const Chain of supportedChains) {
   const chain = new Chain('test')
   const agent = await chain.getAgent({ mnemonic: Testing.mnemonics[0] })
   assert(agent instanceof Chain.Agent)
 }
+```
 
+```typescript
 for (const Chain of supportedChains) {
   ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
   ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
@@ -69,13 +39,6 @@ for (const Chain of supportedChains) {
   equal(chain.id,   node.chainId)
 }
 ```
-
-Agent variants:
-
-* **ScrtAmino.Agent** a.k.a. **ScrtAminoAgent**: uses secretjs 0.17.5
-* **Scrt.Agent** a.k.a. **ScrtGrpcAgent**: which uses the new gRPC API
-  provided by secretjs 1.2-beta - as opposed to the old HTTP-based ("Amino"?) API
-  supported in secretjs 0.17.5 and older.
 
 ```typescript
 for (const Chain of supportedChains) {
@@ -143,6 +106,131 @@ for (const Chain of supportedChains) {
 }
 ```
 
+## Feature parity
+
+Fadroma wraps a common subset of underlying platform featuress into a common API.
+This centers on the compute API (for executing contracts) and the bank API (for paying fees).
+
+```typescript
+const supportedChains = [
+  ScrtGrpc,
+  ScrtAmino,
+]
+
+for (const Chain of supportedChains) {
+  await supportsMainnet(Chain)
+  await supportsTestnet(Chain)
+  await supportsDevnet(Chain)
+  await supportsAgent(Chain)
+  await supportsBundle(Chain)
+  await supportsWaitingForNextBlock(Chain)
+  await supportsNativeTransfers(Chain)
+  await supportsSmartContracts(Chain)
+}
+```
+
+### Chain modes
+
+```typescript
+async function supportsMainnet (Chain) {
+  assert.ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
+}
+
+async function supportsTestnet (Chain) {
+  assert.ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
+}
+
+async function supportsDevnet (Chain) {
+  const node   = { chainId: 'scrt-devnet', url: 'http://test:0' }
+  const devnet = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
+  assert.ok(devnet)
+}
+```
+
+### Agents and Bundles
+
+```typescript
+async function supportsAgent (Chain) {
+  const chain = new Chain('test')
+  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
+  mockChainApi(chain, agent)
+  assert(agent instanceof Chain.Agent)
+  //assert.equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
+  const bundle = agent.bundle()
+  assert.ok(bundle instanceof Chain.Agent.Bundle)
+}
+
+async function supportsBundle (Chain) {
+  const chain = new Chain('test')
+  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
+  mockChainApi(chain, agent)
+  const bundle = agent.bundle()
+  assert.ok(bundle instanceof Chain.Agent.Bundle)
+}
+
+async function supportsWaitingForNextBlock (Chain) {
+  const chain = new Chain('test')
+  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
+  mockChainApi(chain, agent)
+  const [ height1, account1, balance1 ] = await Promise.all([ agent.height, agent.account, agent.balance ])
+  await agent.nextBlock
+  const [ height2, account2, balance2 ] = await Promise.all([ agent.height, agent.account, agent.balance ])
+  assert.ok(height1 < height2)
+  assert.deepEqual(account1, account2)
+  assert.deepEqual(balance1, balance2)
+}
+```
+
+### CosmWasm Bank API
+
+```typescript
+async function supportsNativeTransfers (Chain) {
+  const chain = new Chain('test')
+  const mnemonic1 = Testing.mnemonics[0]
+  const mnemonic2 = Testing.mnemonics[1]
+  const [agent1, agent2] = await Promise.all([
+    chain.getAgent({mnemonic: mnemonic1}), chain.getAgent({mnemonic: mnemonic2}),
+  ])
+  mockChainApi(chain, agent1, agent2)
+
+  assert.equal(await agent1.balance, "1000")
+  assert.equal(await agent2.balance, "1000")
+
+  await agent1.send(agent2.address,   "500")
+  assert.equal(await agent1.balance,  "500")
+  assert.equal(await agent2.balance, "1500")
+
+  await agent2.send(agent1.address,    250)
+  assert.equal(await agent1.balance,  "750")
+  assert.equal(await agent2.balance, "1250")
+}
+```
+
+### CosmWasm Compute API
+
+```typescript
+import { ContractInstance } from '@fadroma/core'
+async function supportsSmartContracts (Chain) {
+  const chain = new Chain('test')
+  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
+  mockChainApi(chain, agent)
+  assert.ok(await agent.upload(new Uint8Array()))
+  assert.ok(await agent.instantiate(new ContractInstance({codeId: 1, codeHash: 'hash'})))
+  assert.ok(await agent.execute(new ContractInstance({})))
+  assert.ok(await agent.query(new ContractInstance({})))
+}
+```
+
+## Deployment connectors
+
+```typescript
+import { Connector, connect } from '.'
+let context: Connector
+//context = connect()
+//context = connect({ config: { chain: 'id' } })
+context = await config.connect()
+```
+
 ## Connection events
 
 ```typescript
@@ -186,119 +274,4 @@ assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
 import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/connect'
 import assert, { ok, equal, deepEqual } from 'assert'
-```
-
-## Supported features
-
-Fadroma wraps a common subset of underlying platform featuress into a common API.
-This centers on the compute API (for executing contracts) and the bank API (for paying fees).
-
-```typescript
-const supportedChains = [
-  ScrtGrpc,
-  ScrtAmino,
-]
-
-for (const Chain of supportedChains) {
-  await supportsMainnet(Chain)
-  await supportsTestnet(Chain)
-  await supportsDevnet(Chain)
-  await supportsAgent(Chain)
-  await supportsBundle(Chain)
-  await supportsWaitingForNextBlock(Chain)
-  await supportsNativeTransfers(Chain)
-  await supportsSmartContracts(Chain)
-}
-```
-
-### Chain modes
-
-```typescript
-async function supportsMainnet (Chain) {
-  assert.ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
-}
-
-async function supportsTestnet (Chain) {
-  assert.ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
-}
-
-async function supportsDevnet (Chain) {
-  const node   = { chainId: 'scrt-devnet', url: 'http://test:0' }
-  const devnet = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
-  assert.ok(devnet)
-}
-```
-
-### Agents and bundles
-
-```typescript
-async function supportsAgent (Chain) {
-  const chain = new Chain('test')
-  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
-  mockChainApi(chain, agent)
-  assert(agent instanceof Chain.Agent)
-  //assert.equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
-  const bundle = agent.bundle()
-  assert.ok(bundle instanceof Chain.Agent.Bundle)
-}
-
-async function supportsBundle (Chain) {
-  const chain = new Chain('test')
-  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
-  mockChainApi(chain, agent)
-  const bundle = agent.bundle()
-  assert.ok(bundle instanceof Chain.Agent.Bundle)
-}
-
-async function supportsWaitingForNextBlock (Chain) {
-  const chain = new Chain('test')
-  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
-  mockChainApi(chain, agent)
-  const [ height1, account1, balance1 ] = await Promise.all([ agent.height, agent.account, agent.balance ])
-  await agent.nextBlock
-  const [ height2, account2, balance2 ] = await Promise.all([ agent.height, agent.account, agent.balance ])
-  assert.ok(height1 < height2)
-  assert.deepEqual(account1, account2)
-  assert.deepEqual(balance1, balance2)
-}
-```
-
-### Bank API
-
-```typescript
-async function supportsNativeTransfers (Chain) {
-  const chain = new Chain('test')
-  const mnemonic1 = Testing.mnemonics[0]
-  const mnemonic2 = Testing.mnemonics[1]
-  const [agent1, agent2] = await Promise.all([
-    chain.getAgent({mnemonic: mnemonic1}), chain.getAgent({mnemonic: mnemonic2}),
-  ])
-  mockChainApi(chain, agent1, agent2)
-
-  assert.equal(await agent1.balance, "1000")
-  assert.equal(await agent2.balance, "1000")
-
-  await agent1.send(agent2.address,   "500")
-  assert.equal(await agent1.balance,  "500")
-  assert.equal(await agent2.balance, "1500")
-
-  await agent2.send(agent1.address,    250)
-  assert.equal(await agent1.balance,  "750")
-  assert.equal(await agent2.balance, "1250")
-}
-```
-
-### Compute API
-
-```typescript
-import { ContractInstance } from '@fadroma/core'
-async function supportsSmartContracts (Chain) {
-  const chain = new Chain('test')
-  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
-  mockChainApi(chain, agent)
-  assert.ok(await agent.upload(new Uint8Array()))
-  assert.ok(await agent.instantiate(new ContractInstance({codeId: 1, codeHash: 'hash'})))
-  assert.ok(await agent.execute(new ContractInstance({})))
-  assert.ok(await agent.query(new ContractInstance({})))
-}
 ```

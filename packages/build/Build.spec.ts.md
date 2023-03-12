@@ -14,6 +14,8 @@ $ fadroma rebuild CONTRACT  # always rebuilds
 
 ## Build API
 
+### Building with default builder
+
 ```typescript
 import builder from '@fadroma/build'
 
@@ -30,7 +32,7 @@ const {template3, template4} = await builder.buildMany({
 })
 ```
 
-## Builder configuration
+### Builder configuration
 
 |environment variable|kind|description|
 |-|-|-|
@@ -57,18 +59,18 @@ import { Builder } from '@fadroma/build'
 assert(myBuilder instanceof Builder)
 ```
 
-## Build caching
+### Build caching
 
 When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
 for a corresponding pre-existing build and reuses it if present.
 
 Setting `FADROMA_REBUILD` disables build caching.
 
-## Build procedure
+### Build procedure
 
 The ultimate build procedure, i.e. actual calls to `cargo` and such,
-is implemented in the standalone script `build.impl.mjs`, which is
-launched by the builders.
+is implemented in the standalone script `FADROMA_BUILD_SCRIPT` (default: `build.impl.mjs`),
+which is launched by the builders.
 
 ## Build environments
 
@@ -281,6 +283,8 @@ const contractWithSource = new ContractSource({
 ok(getGitDir(contractWithSource) instanceof DotGit)
 ```
 
+## Build events
+
 ```typescript
 import { BuildConsole } from '@fadroma/build'
 import { ContractSource } from '@fadroma/core'
@@ -299,7 +303,5 @@ log.buildingMany([
   new ContractSource({ crate: 'bar', revision: 'commit' })
 ])
 ```
-
-## Build events
 
 ## Build errors

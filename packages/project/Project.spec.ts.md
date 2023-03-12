@@ -1,3 +1,20 @@
+# Fadroma Project Scope
+
+## Creating a project
+
+```shell
+$ npx fadroma project create
+```
+
+## Contract definitions
+
+```shell
+$ npx fadroma contract create
+$ npx fadroma contract list
+```
+
+## State directories
+
 ```typescript
 import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
 import Project from './Project'

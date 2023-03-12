@@ -37,6 +37,34 @@ await config.getDeployStore()
 await config.getDeployer()
 ```
 
+## Deployment events
+
+```typescript
+import { DeployConsole } from '.'
+
+const log = new DeployConsole()
+log.console = { log: () => {}, info: () => {}, warn: () => {}, error: () => {} }
+
+log.deployment({})
+log.deployment({ deployment: { name: '', state: {} } })
+log.deployment({ deployment: { name: '', state: { x: { address: 'x' } } } })
+
+log.receipt('', '')
+
+log.deployFailed(new Error(), {}, '', '')
+
+log.deployManyFailed({}, [], new Error())
+log.deployManyFailed({}, [['name', 'init']], new Error())
+
+log.deployFailedContract()
+
+log.warnNoDeployment()
+log.warnNoAgent()
+log.warnNoDeployAgent()
+
+log.deployStoreDoesNotExist()
+```
+
 ## Deployment
 
 ```typescript
@@ -238,13 +266,7 @@ for (const $DeployStore of [
 
 ```
 
-# Fadroma: Contract deployment guide
-
-```typescript
-import assert from 'node:assert'
-```
-
-## The shape of the world
+## Deploying contracts
 
 >“Tell me, as you promised!” implored the Master of space-time,
 >hot tears thundering to the earth like mighty comets, “What is the shape of the universe?”
@@ -294,7 +316,7 @@ or who is it that will deploy it. Let's do that now.
 assert.rejects(async () => await deployingNullContract)
 ```
 
-## Some preparation
+### Test preparation
 
 To simplify this test, we'll stub out the external world. Let's create test-only instances of
 `Chain` and `Agent`:
@@ -310,7 +332,7 @@ const agent = Object.assign(await chain.getAgent(), {
 })
 ```
 
-## Defining and deploying a contract
+### Defining and deploying a contract
 
 Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.md)
 (that is, a contract that is already built and uploaded):
@@ -482,110 +504,6 @@ By publishing a library of `Client` subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn
 integrate it into their systems.
 
-## Contract metadata
-
-The `Metadata` class is the base class of the
-`ContractSource`->`ContractTemplate`->`ContractInstance` inheritance chain.
-
-### `ContractInstance`
-
-Represents a contract that is instantiated from a `codeId`.
-  * Can have an `address`.
-  * You can get a `Client` from a `ContractInstance` using
-    the `getClient` family of methods.
-
-```typescript
-import { ContractInstance } from '@fadroma/core'
-let instance: ContractInstance = new ContractInstance()
-assert.ok(instance.asReceipt)
-//assert.ok(await instance.define({ agent }).found)
-//assert.ok(await instance.define({ agent }).deployed)
-```
-
-## Contract client
-
-Represents an interface to an existing contract.
-  * The default `Client` class allows passing messages to the contract instance.
-  * **Implement a custom subclass of `Client` to define specific messages as methods**.
-    This is the main thing to do when defining your Fadroma Client-based API.
-
-User interacts with contract by obtaining an instance of the
-appropriate `Client` subclass from the authorized `Agent`.
-
-```typescript
-import { Client } from '@fadroma/core'
-let client: Client = new Client(agent, 'some-address', 'some-code-hash')
-
-assert.equal(client.agent,    agent)
-assert.equal(client.address,  'some-address')
-assert.equal(client.codeHash, 'some-code-hash')
-
-client.fees = { 'method': 100 }
-
-assert.equal(
-  client.getFee('method'),
-  100
-)
-
-assert.equal(
-  client.getFee({'method':{'parameter':'value'}}),
-  100
-)
-
-let agent2 = Symbol()
-assert.equal(
-  client.as(agent2).agent,
-  agent2
-)
-
-client.agent = { execute: async () => 'ok' }
-assert.equal(
-  await client.execute({'method':{'parameter':'value'}}),
-  'ok'
-)
-```
-
-```typescript
-/*let agent = {
-  chain: { id: 'test' },
-  getLabel:  () => Promise.resolve('label'),
-  getHash:   () => Promise.resolve('hash'),
-  getCodeId: () => Promise.resolve('id'),
-}
-let builder = {
-  build: async x => x
-}
-let uploader = {
-  agent,
-  upload: async x => x
-}*/
-```
-
-
-## Deploy events
-
-Like the other packages of the Fadroma suite, Fadroma Deploy exposes
-a custom console logger based on `@hackbg/konzola`.
-
-```typescript
-import { DeployConsole } from '.'
-const log = new DeployConsole()
-log.console = { log: () => {}, info: () => {}, warn: () => {}, error: () => {} }
-log.deployment({})
-log.deployment({ deployment: { name: '', state: {} } })
-log.deployment({ deployment: { name: '', state: { x: { address: 'x' } } } })
-log.receipt('', '')
-log.deployFailed(new Error(), {}, '', '')
-log.deployManyFailed({}, [], new Error())
-log.deployManyFailed({}, [['name', 'init']], new Error())
-log.deployFailedContract()
-log.warnNoDeployment()
-log.warnNoAgent()
-log.warnNoDeployAgent()
-log.deployStoreDoesNotExist()
-```
-
 ```typescript
 import assert from 'node:assert'
-import { ok, equal, deepEqual, throws } from 'node:assert'
 ```
