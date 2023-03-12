@@ -1,7 +1,8 @@
-import { Bundle, Contract, ClientConsole } from '@fadroma/core'
-import type { MocknetAgent } from './mocknet-agent'
+import type MocknetAgent from './MocknetAgent'
 
-export class MocknetBundle extends Bundle {
+import { Bundle, Contract, ClientConsole } from '@fadroma/core'
+
+export default class MocknetBundle extends Bundle {
 
   declare agent: MocknetAgent
 

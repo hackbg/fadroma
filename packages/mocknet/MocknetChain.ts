@@ -1,14 +1,25 @@
+import Error from './MocknetError'
+import MocknetAgent from './MocknetAgent'
+import type MocknetBackend from './MocknetBackend'
+import type Mocknet_CW0 from './Mocknet_CW0'
+import type Mocknet_CW1 from './Mocknet_CW1'
+
 import { Chain, ChainMode } from '@fadroma/core'
 import type {
-  Address, AgentClass, AgentOpts, Client, CodeHash, Message, Uint128
+  Address,
+  AgentClass,
+  AgentOpts,
+  Client,
+  CodeHash,
+  Message,
+  Uint128
 } from '@fadroma/core'
-import { MocknetAgent } from './mocknet-agent'
-
-import type { MocknetBackend } from './mocknet-backend'
-import { MocknetBackend_CW0, MocknetBackend_CW1 } from './mocknet-backend'
 
 /** Chain instance containing a local MocknetBackend. */
-export abstract class BaseMocknet extends Chain {
+export default abstract class Mocknet extends Chain {
+
+  static variants: Record<'cw0'|'cw1', (config: any)=>Mocknet>
+
   /** Agent instance calling its Chain's Mocknet backend. */
   static Agent: AgentClass<MocknetAgent> // populated below
 
@@ -18,7 +29,7 @@ export abstract class BaseMocknet extends Chain {
 
   get isMocknet () { return true }
 
-  Agent: AgentClass<MocknetAgent> = BaseMocknet.Agent
+  Agent: AgentClass<MocknetAgent> = Mocknet.Agent
 
   defaultDenom = 'umock'
 
@@ -59,13 +70,3 @@ export abstract class BaseMocknet extends Chain {
   }
 
 }
-
-export class Mocknet_CW0 extends BaseMocknet {
-  backend = new MocknetBackend_CW0(this.id)
-}
-
-export class Mocknet_CW1 extends BaseMocknet {
-  backend = new MocknetBackend_CW1(this.id)
-}
-
-export type Mocknet = Mocknet_CW0|Mocknet_CW1

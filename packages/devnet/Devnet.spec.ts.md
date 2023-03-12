@@ -1,10 +1,28 @@
-# Fadroma Devnet Spec
+# Devnets: local development backends
 
 The **devnet** (a.k.a. localnet) is a local instance of the selected chain.
+Devnets are persistent, and can be started and stopped; info about contracts
+deployed to a devnet is stored in your project's state.
 
-* Devnets are persistent, and can be started and stopped,
-  thanks to the file **devnet.nodeState** which contains
-  info about the devnet container.
+The abstract logic of managing a devnet is implemented in the `Devnet` class.
+There's currently a single concrete devnet implementation, based on `@hackbg/dock`,
+which uses Docker or Podman for running a devnet container.
+
+Fadroma contains container images based on `localsecret`,
+for versions of Secret Network 1.2 to 1.7.
+
+## Creating a devnet
+
+## Using genesis accounts
+
+On devnet, Fadroma creates named genesis accounts for you,
+which you can use by passing `name` to `getAgent`:
+
+```typescript
+const mockNode = { getGenesisAccount () { return {} }, respawn () {} }
+chain = new Chain('id', { mode: Chain.Mode.Devnet, node: mockNode })
+assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
+```
 
 ```typescript
 import {

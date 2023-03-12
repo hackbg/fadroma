@@ -85,10 +85,12 @@ export interface NativeToken {
 
 /** Token amount descriptor. Specifies a particular amount of a particular token. */
 export class TokenAmount {
+
   constructor (
     readonly token:  Token,
     readonly amount: Uint128
   ) {}
+
   /** Pass this to 'send' field of ExecOpts */
   get asNativeBalance (): ICoin[]|undefined {
     let result: ICoin[] | undefined = []
@@ -99,12 +101,18 @@ export class TokenAmount {
     }
     return result
   }
+
 }
 
 /** A pair of two token descriptors. */
 export class TokenPair {
+
   constructor (readonly token_0: Token, readonly token_1: Token) {}
-  get reverse (): TokenPair { return new TokenPair(this.token_1, this.token_0) }
+
+  get reverse (): TokenPair {
+    return new TokenPair(this.token_1, this.token_0)
+  }
+
 }
 
 /** A pair of two token descriptors, and amounts of each token, such as when specifying a swap. */
@@ -136,4 +144,3 @@ export class TokenPairAmount {
   }
 
 }
-

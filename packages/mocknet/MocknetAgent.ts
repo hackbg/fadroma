@@ -1,14 +1,23 @@
-import { randomBech32 } from '@hackbg/4mat'
+import type Mocknet from './MocknetChain'
+import type MocknetBundle from './MocknetBundle'
+import { ADDRESS_PREFIX } from './MocknetData'
+import type MocknetBackend from './MocknetBackend'
+
 import { Agent, Contract, assertChain, into } from '@fadroma/core'
 import type {
-  Address, AgentOpts, BundleClass, Client, ExecOpts, Message, Uploaded, AnyContract
+  Address,
+  AgentOpts,
+  AnyContract,
+  BundleClass,
+  Client,
+  ExecOpts,
+  Message,
+  Uploaded,
 } from '@fadroma/core'
-import type { Mocknet } from './mocknet-chain'
-import type { MocknetBundle } from './mocknet-bundle'
-import { ADDRESS_PREFIX } from './mocknet-data'
-import type { MocknetBackend } from './mocknet-backend'
 
-export class MocknetAgent extends Agent {
+import { randomBech32 } from '@hackbg/4mat'
+
+export default class MocknetAgent extends Agent {
 
   declare chain: Mocknet
 

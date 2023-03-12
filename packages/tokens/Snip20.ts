@@ -4,7 +4,7 @@ import type { Permit } from '@fadroma/scrt'
 import { ViewingKeyClient } from '@fadroma/scrt'
 import { randomBase64 } from '@hackbg/4mat'
 import { bold, colors } from '@hackbg/logs'
-import type { Token, CustomToken } from './tokens'
+import type { Token, CustomToken } from './Token'
 
 /** # Secret Network SNIP20 token client. */
 
@@ -57,7 +57,7 @@ export function createPermitMsg <Q> (
   return { with_permit: { query, permit } }
 }
 
-export class Snip20 extends Client implements CustomToken {
+export default class Snip20 extends Client implements CustomToken {
 
   /** Create a SNIP20 token client from a Token descriptor. */
   static fromDescriptor (agent: Agent, descriptor: CustomToken): Snip20 {

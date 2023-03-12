@@ -3,12 +3,6 @@
 Tokens are one core primitive of smart contract-based systems.
 Fadroma provides several APIs for interfacing with tokens.
 
-## Table of contents
-
-* [Token descriptors](#token-descriptors)
-* [Token client](#token-client)
-* [Token manager](#token-manager)
-
 ## Token descriptors
 
 In the CosmWasm ecosystem, there's a distinction between **native** and **custom** tokens.
@@ -20,33 +14,59 @@ In the CosmWasm ecosystem, there's a distinction between **native** and **custom
   Secret Network is called [SNIP-20](https://docs.scrt.network/secret-network-documentation/development/snips/snip-20-spec-private-fungible-tokens).
 
 ```typescript
-import {
-  Token,             // The token descriptor: an object representing a native or custom token
-  isTokenDescriptor, // Validate a token descriptor
-  nativeToken,       // Create a token descriptor specifying a native token
-  customToken,       // Create a token descriptor specifying a custom token
+import type {
 
-  TokenKind,         // Enumeration with two members, Custom and Native.
-  getTokenKind,      // Return the kind of the token.
-  getTokenId,        // Return either the native token's name or the custom token's address
+  Token,             // NativeToken|CustomToken
+  NativeToken        // { native_token: { denom } }
+  CustomToken        // { custom_token: { contract_addr, token_code_hash? } }
 
-  isNativeToken,     // True iff native token
-  isCustomToken,     // True iff custom token
 } from '@fadroma/tokens'
 ```
 
-These descriptors are plain objects with no extra serializable properties.
-This means they're useful when you want to pass to your contract info about a token from TypeScript.
+`@fadroma/tokens` represents references to tokens as plain serializable objects.
+These are useful when you want to pass info about a token from TypeScript to a contract
+(where parsing is stricter). You can create them like this:
 
 ```typescript
-const native = nativeToken('scrt')         // Native token: SCRT
-const custom = customToken('addr', 'hash') // SNIP-20 custom token: SecretSCRT (SSCRT)
+import {
+
+  TokenKind,         // Enumeration with two members, Custom and Native.
+  nativeToken,       // Create a token descriptor specifying a native token
+  customToken,       // Create a token descriptor specifying a custom token
+
+} from '@fadroma/tokens'
+
+const native: Token = nativeToken('scrt')         // Native token: SCRT
+const custom: Token = customToken('addr', 'hash') // SNIP-20 custom token: SecretSCRT (SSCRT)
+```
+
+And validate them like this:
+
+```typescript
+import {
+
+  isTokenDescriptor, // isNativeToken|isCustomToken
+  isNativeToken,     // True iff native token
+  isCustomToken,     // True iff custom token
+
+} from '@fadroma/tokens'
 
 ok(isTokenDescriptor(native))
 ok(isTokenDescriptor(custom))
 
 ok(isNativeToken(native) && !isCustomToken(native))
 ok(isCustomToken(custom) && !isNativeToken(custom))
+```
+
+And read their properties like this:
+
+```typescript
+import {
+
+  getTokenKind,      // Return the kind of the token.
+  getTokenId,        // Return either the native token's name or the custom token's address
+
+} from '@fadroma/tokens'
 
 equal(getTokenKind(native), TokenKind.Native)
 equal(getTokenKind(custom), TokenKind.Custom)
@@ -65,7 +85,9 @@ To specify an integer amount of a token, use `TokenAmount`.
 
 ```typescript
 import {
+
   TokenAmount, // An object representing an integer amount of a native or custom token
+
 } from '@fadroma/tokens'
 
 const native100 = new TokenAmount(native, '100') // 100 uSCRT
@@ -77,22 +99,33 @@ throws(()=>custom100.asNativeBalance)
 ### Token pair descriptors
 
 To describe a pair of tokens that can be exchanged against each other,
-you can use `TokenPair`. Respectively, `TokenPairAmount` establishes
-an equivalence in value, e.g. `100 TOKENA = 200 TOKENB`.
+you can use `TokenPair`.
 
-* Token pairs have the `reverse` property which returns a
-  new token pair with the places of the tow tokens swapped.
+Token pairs have the `reverse` property which returns a
+new token pair with the places of the tow tokens swapped.
 
 ```typescript
 import {
+
   TokenPair,      // A pair of tokens
-  TokenPairAmount // A pair of tokens with specified amounts
+
 } from '.'
 
 deepEqual(
   new TokenPair(native, custom).reverse,
   new TokenPair(custom, native)
 )
+```
+
+Respectively, `TokenPairAmount` establishes
+an equivalence in value, e.g. `100 TOKENA = 200 TOKENB`.
+
+```typescript
+import {
+
+  TokenPairAmount // A pair of tokens with specified amounts
+
+} from '.'
 
 deepEqual(
   new TokenPairAmount(new TokenPair(native, custom), "100", "200").reverse,
@@ -101,6 +134,7 @@ deepEqual(
 
 new TokenPairAmount(new TokenPair(native, custom), "100", "200").asNativeBalance
 new TokenPairAmount(new TokenPair(custom, native), "100", "200").asNativeBalance
+
 throws(()=>new TokenPairAmount(new TokenPair(native, native), "100", "200").asNativeBalance)
 ```
 
@@ -110,30 +144,36 @@ To interact with a SNIP-20 token from TypeScript, you can use the `Snip20` clien
 
 ```typescript
 import {
-  Snip20 // Client class for SNIP-20 tokens
+
+  Snip20 // The Client class for SNIP-20 tokens
+
 } from '@fadroma/tokens'
 
+import * as some from './mocks'
 // Let's mock out the info returned from the backend
-const [name, symbol, decimals, total_supply] = [Symbol(), Symbol(), Symbol(), Symbol()]
-const agent = {
-  address: 'agent-address',
-  async getHash () { return 'fetchedCodeHash' }
-  async query () { return { token_info: { name, symbol, decimals, total_supply } } }
-}
 
 // Create a client to a token contract
-const yourToken = new Snip20(agent, 'address', 'codeHash')
+const yourToken = new Snip20(some.agent, some.address, some.codeHash)
 
-// Expected value of the descriptor:
-const descriptor = { custom_token: { contractddr: 'address', token_code_hash: 'codeHash' } }
+// A Snip20 instance can be converted into a descriptor,
+// in order to pass info about that contract to some other contract or JSON API.
+deepEqual(yourToken.asDescriptor, {
+  custom_token: {
+    contract_addr:   some.address,
+    token_code_hash: some.codeHash
+  }
+})
 
-// And the client class can be converted into a plain token descriptor.
-// You can pass this descriptor as a JSON object to your smart contract.
-deepEqual(yourToken.asDescriptor, descriptor)
+// And the converse: creating Snip20 clients
+// from descriptors received over the wire:
+ok(
+  Snip20.fromDescriptor(null, yourToken.asDescriptor) instanceof Snip20
+)
 
-// You can also create Snip20 clients from descriptors received over the wire.
-ok(Snip20.fromDescriptor(null, yourToken.asDescriptor) instanceof Snip20)
-deepEqual(Snip20.fromDescriptor(null, yourToken.asDescriptor).asDescriptor, descriptor)
+deepEqual(
+  Snip20.fromDescriptor(null, yourToken.asDescriptor).asDescriptor,
+  descriptor
+)
 ```
 
 ### Populating token metadata
@@ -175,16 +215,20 @@ deepEqual(
 ```typescript
 // This generates an init message for the standard SNIP-20 implementation
 ok(Snip20.init())
+
+// TODO show instantiate
 ```
 
 ### Query permits
 
-Fadroma allows you to use [SNIP-24](https://docs.scrt.network/secret-network-documentation/development/snips/snip-24-query-permits-for-snip-20-tokens)
+Fadroma supports generating [SNIP-24](https://docs.scrt.network/secret-network-documentation/development/snips/snip-24-query-permits-for-snip-20-tokens)
 query permits.
 
 ```typescript
 import {
+
   createPermitMsg // Create a permit message
+
 } from '@fadroma/tokens'
 
 assert.deepEqual(

@@ -1,57 +1,79 @@
-# The Fadroma Ops Guide
+# The Fadroma Agent & Ops Guide
 
-Welcome to the Fadroma Ops Guide! This collection of documents doubles (triples!)
-as documentation, specification, and test suite. We hope that by reading it
-you become familiar with both *what* Fadroma Ops can do, and *how* it does it.
+Welcome to the Fadroma Ops Guide!
 
-If you clone the Fadroma repo, you can use `pnpm ts:test` to run the tests,
-and `pnpm ts:test:cov` or `pnpm ts:test:lcov` to generate a test coverage report. Happy hacking!
+This collection of documents doubles (triples!) as documentation, specification,
+and test suite. We hope that by reading it you become familiar with both *what*
+Fadroma Ops can do, and *how* it does it.
 
-## What is Fadroma Ops
+If you clone the Fadroma repo, you can use `pnpm test` to run the tests,
+and `pnpm test:cov` or `pnpm test:lcov` to generate a test coverage report. Happy hacking!
 
-Fadroma Ops is a framework for building decentralized application backends
+## Design and goals of Fadroma Agent & Fadroma Ops
+
+Fadroma is a framework for building decentralized application backends
 out of smart contracts deployed to blockchains.
 
 We take the approach of viewing the blockchain as a **distributed VM**:
 the platform abstracts over details such as provisioning servers or keeping state in sync,
-and the application developer doesn't need to care about them. In this model,
-**smart contracts are largely equivalent to microservices**: each one is scoped to a
-specific task, and they interoperate with each other to make up a system.
+and the application developer doesn't need to concern oneself with them.
 
-The main architectural differences that power this kind of distributed,
-consensus-based computation are as follows:
+In this model, smart contracts are considered as similar to **persistent objects**:
+each one scoped to a specific task, and interoperating with others to make up a system,
+exposing and API and encapsulating state.
 
-* **The blockchain is append-only** (there's no way to revert to an earlier state)
-* **Usage is metered per VM instruction rather than per minute** (to change state, pay gas fees)
-* **The platform API is comparatively tiny** (unlike POSIX-based microservices)
+Unlike the microservices model, such a globally distributed WebAssembly runtime
+would largely shield implementors from the bulk of the accumulated POSIX heritage,
+instead exposing a **seamless compute substrate** as a simple API 
+(the init/handle/query of the CosmWasm actor model, and the associated get/set
+of the key-value store), backed by a gas metric representing the cost of the resources used.
 
-As a rough analogy, a blockchain-based application backend would look more like
-[9P](https://en.wikipedia.org/wiki/9P_(protocol), and less like [Kubernetes](https://en.wikipedia.org/wiki/Kubernetes).
-These novel constraints necessitate a novel approach to orchestrating the deployment
-and operation of the software. This is what Fadroma Ops sets out to provide.
+This model necessitates a novel approach to orchestrating the deployment and operation
+of the software, to ensure its interoperation with the existing Web ecosystem
+and development workflows. This is the ground that Fadroma sets out to cover
+in the TypeScript realm.
 
-## Command-line entrypoints
+## Obtaining Fadroma
 
-Currently, the main way of interacting with Fadroma is using a combination
-of scripting and terminal commands. You describe how to deploy, test, migrate, etc.
-using the Fadroma Ops API, then you bind the entrypoints of the script to CLI invocation
-using the `@hackbg/cmds` library, which looks like this:
+Fadroma is available as a suite of Cargo crates and NPM packages.
 
-```typescript
-import { CommandContext } from '@hackbg/cmds'
-const context = new CommandContext()
-context.command('all', 'run all tests', async () => {
-  await import('./spec/Metadata.ts.md')
-  await import('./spec/Logging.ts.md')
-  await import('./spec/Errors.ts.md')
-  await import('./spec/ConnectingAndTransacting.ts.md')
-  await import('./spec/BuildingAndUploading.ts.md')
-  await import('./spec/DeployingContracts.ts.md')
-  await import('./spec/Devnet.ts.md')
-  await import('./spec/Mocknet.ts.md')
-  await import('./spec/Tokens.ts.md')
-})
+If you have Nix, a standard development environment (containing Rust and Node.js)
+can be entered using:
+
+```sh
+$ nix-shell https://advanced.fadroma.tech
 ```
+
+If you have Rust and Node.js already set up on your development machine,
+you can create a new Fadroma project using:
+
+```sh
+$ npx fadroma project create
+```
+
+Alternatively, you can add Fadroma to an existing NPM project using:
+
+```sh
+$ npm i --save fadroma
+```
+
+## Using Fadroma from the command line
+
+The core features of Fadroma are invoked using the command-line tool, `fadroma`.
+
+```sh
+$ fadroma contract add my-contract
+$ fadroma build my-contract
+$ fadroma upload my-contract
+$ fadroma init my-contract
+$ fadroma query my-contract "{...}"
+$ fadroma tx my-contract "{...}"
+```
+
+## Scripting Fadroma
+
+For more complex operations, you can define custom commands, which you implement in TypeScript
+using the Fadroma TypeScript API.
 
 ## [Connecting and transacting](./spec/ConnectingAndTransacting.ts.md)
 
@@ -110,4 +132,23 @@ context.command(
     await import('./spec/Tokens')
   }
 )
+```
+
+## Test entrypoints
+
+```typescript
+export default new CommandContext()
+import { CommandContext } from '@hackbg/cmds'
+const context = new CommandContext()
+context.command('all', 'run all tests', async () => {
+  await import('./spec/Metadata.ts.md')
+  await import('./spec/Logging.ts.md')
+  await import('./spec/Errors.ts.md')
+  await import('./spec/ConnectingAndTransacting.ts.md')
+  await import('./spec/BuildingAndUploading.ts.md')
+  await import('./spec/DeployingContracts.ts.md')
+  await import('./spec/Devnet.ts.md')
+  await import('./spec/Mocknet.ts.md')
+  await import('./spec/Tokens.ts.md')
+})
 ```

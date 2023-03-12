@@ -1,19 +1,18 @@
+import Console from './MocknetConsole'
+import type MocknetBackend from './MocknetBackend'
+import type { Ptr, ErrCode, IOExports } from './MocknetData'
+import {
+  parseResult, b64toUtf8, readBuffer, passBuffer,
+  ADDRESS_PREFIX, codeHashForBlob, pass, readUtf8, writeToRegion, writeToRegionUtf8, region
+} from './MocknetData'
+import type ContractImports from './MocknetImports'
+import type ContractExports from './MocknetExports'
+
 import * as Fadroma from '@fadroma/core'
 import type { Address, CodeHash, CodeId, Message } from '@fadroma/core'
 import { ClientConsole, bold } from '@fadroma/core'
-import { bech32, randomBech32, sha256, base16 } from '@hackbg/4mat'
-import type { MocknetBackend } from './mocknet-backend'
-import type { Ptr, ErrCode, IOExports } from './mocknet-data'
-import { parseResult, b64toUtf8, readBuffer, passBuffer } from './mocknet-data'
-import {
-  ADDRESS_PREFIX, codeHashForBlob, pass, readUtf8, writeToRegion, writeToRegionUtf8, region
-} from './mocknet-data'
-import { MocknetConsole } from './mocknet-events'
 
-import type { ContractImports, ContractImports_CW0, ContractImports_CW1 } from './mocknet-imports'
-import { makeImports_CW0, makeImports_CW1 } from './mocknet-imports'
-
-import { ContractExports, ContractExports_CW0, ContractExports_CW1 } from './mocknet-exports'
+import { randomBech32 } from '@hackbg/4mat'
 
 declare namespace WebAssembly {
   class Memory {
@@ -30,11 +29,9 @@ declare namespace WebAssembly {
 
 export type CW = '0.x' | '1.x'
 
-export type MocknetContract = MocknetContract_CW0|MocknetContract_CW1
+export default abstract class MocknetContract<I extends ContractImports, E extends ContractExports> {
 
-export abstract class BaseMocknetContract<I extends ContractImports, E extends ContractExports> {
-
-  log = new MocknetConsole('Fadroma Mocknet')
+  log = new Console('Fadroma Mocknet')
 
   instance?: WebAssembly.Instance<E>
 
@@ -112,76 +109,6 @@ export abstract class BaseMocknetContract<I extends ContractImports, E extends C
       this.log.error(bold(this.address), `crashed on query:`, e.message)
       throw e
     }
-  }
-
-}
-
-export class MocknetContract_CW0 extends BaseMocknetContract<
-  ContractImports_CW0,
-  ContractExports_CW0
-> {
-
-  get initMethod () {
-    return this.instance!.exports.init
-  }
-
-  initPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-
-  get execMethod () {
-    return this.instance!.exports.handle
-  }
-
-  execPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-
-  get queryMethod () {
-    return this.instance!.exports.query
-  }
-
-  queryPtrs (msg: Message): [Ptr] {
-    return [this.pass(msg)]
-  }
-
-  makeImports (): ContractImports_CW0 {
-    return makeImports_CW0(this)
-  }
-
-}
-
-export class MocknetContract_CW1 extends BaseMocknetContract<
-  ContractImports_CW1,
-  ContractExports_CW1
-> {
-
-  get initMethod () {
-    return this.instance!.exports.instantiate
-  }
-
-  initPtrs (env: unknown, info: unknown, msg: Message): [Ptr, Ptr, Ptr] {
-    return [this.pass(env), this.pass(info), this.pass(msg)]
-  }
-
-  get execMethod () {
-    return this.instance!.exports.execute
-  }
-
-  execPtrs (env: unknown, info: unknown, msg: Message): [Ptr, Ptr, Ptr] {
-    return [this.pass(env), this.pass(info), this.pass(msg)]
-  }
-
-  get queryMethod () {
-    return this.instance!.exports.query
-  }
-
-  queryPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-
-  makeImports (): ContractImports_CW1 {
-    return makeImports_CW1(this)
   }
 
 }

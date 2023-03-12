@@ -1,12 +1,14 @@
+import Snip20 from './Snip20'
+import type { Snip20InitConfig } from './Snip20'
+import { TokenPair } from './Token'
+import type { Token } from './Token'
+
+import { ClientConsole, Contract, writeLabel } from '@fadroma/core'
+import type { Address, Deployment, AnyContract, ContractTemplate } from '@fadroma/core'
+
 import { CommandContext } from '@hackbg/cmds'
 import type { Task } from '@hackbg/task'
 import type { Many } from '@hackbg/many'
-import { ClientConsole, Contract, writeLabel } from '@fadroma/core'
-import type { Address, Deployment, AnyContract, ContractTemplate } from '@fadroma/core'
-import { Snip20 } from './tokens-snip20'
-import type { Snip20InitConfig } from './tokens-snip20'
-import { TokenPair } from './tokens-desc'
-import type { Token } from './tokens-desc'
 
 export type TokenSymbol = string
 
@@ -23,7 +25,7 @@ export interface TokenOptions {
 }
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
-export class TokenManager extends CommandContext {
+export default class TokenManager extends CommandContext {
 
   constructor (
     /** Function that returns the active deployment. */

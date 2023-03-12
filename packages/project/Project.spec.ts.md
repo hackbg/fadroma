@@ -1,3 +1,4 @@
+```typescript
 import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
 import Project from './Project'
 
@@ -29,3 +30,4 @@ withTmpDir((tmp: string)=>{
   //4. create contract.rs
   //5. add to workspace
   //6. create api/...
+```

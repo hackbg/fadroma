@@ -68,7 +68,6 @@ are to be considered **unstable**.
 import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/core'
 import $ from '@hackbg/file'
-import assert, { ok, equal, deepEqual, throws } from 'assert'
 ```
 
 ## Specifying projects and sources
@@ -121,10 +120,6 @@ for a corresponding pre-existing build and reuses it if present.
 // TODO example
 ```
 # Fadroma Builder Implementations
-
-```typescript
-import { ok, equal } from 'node:assert'
-```
 
 The subclasses of the abstract base class `Builder` in Fadroma Core
 implement the compilation procedure for contracts.
@@ -250,10 +245,6 @@ ok(await builder.buildMany([
 ```
 # How contracts are built
 
-```typescript
-import assert from 'node:assert'
-```
-
 ## The `ContractSource` class
 
 Represents the source code of a contract.
@@ -268,10 +259,6 @@ assert.ok(await source.define({ builder }).compiled)
 ```
 
 ## Building from history
-
-```typescript
-import { ok, throws } from 'node:assert'
-```
 
 If `.git` directory is present, builders can check out and build a past commits of the repo,
 as specifier by `contract.revision`.
@@ -291,62 +278,6 @@ const contractWithSource = new ContractSource({
 
 ok(getGitDir(contractWithSource) instanceof DotGit)
 ```
-# Fadroma Core Spec: Contract code handling
-
-```typescript
-import assert from 'node:assert'
-const contract = { address: 'addr' }
-const agent = { getHash: async x => 'hash', getCodeId: async x => 'id' }
-```
-
-## Code ids
-
-The code ID is a unique identifier for compiled code uploaded to a chain.
-
-```typescript
-import { fetchCodeId } from '@fadroma/core'
-
-assert.ok(await fetchCodeId(contract, agent))
-assert.ok(await fetchCodeId(contract, agent, 'id'))
-assert.rejects(fetchCodeId(contract, agent, 'unexpected'))
-```
-
-## Code hashes
-
-The code hash also uniquely identifies for the code that underpins a contract.
-However, unlike the code ID, which is opaque, the code hash corresponds to the
-actual content of the code. Uploading the same code multiple times will give
-you different code IDs, but the same code hash.
-
-```typescript
-import { fetchCodeHash, assertCodeHash, codeHashOf } from '@fadroma/core'
-
-assert.ok(assertCodeHash({ codeHash: 'hash' }))
-assert.throws(()=>assertCodeHash({}))
-
-assert.ok(await fetchCodeHash(contract, agent))
-assert.ok(await fetchCodeHash(contract, agent, 'hash'))
-assert.rejects(fetchCodeHash(contract, agent, 'unexpected'))
-
-assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
-assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
-assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
-```
-
-### ICC structs
-
-```typescript
-import { templateStruct, linkStruct } from '@fadroma/core'
-assert.deepEqual(
-  templateStruct({ codeId: '123', codeHash: 'hash'}),
-  { id: 123, code_hash: 'hash' }
-)
-assert.deepEqual(
-  linkStruct({ address: 'addr', codeHash: 'hash'}),
-  { address: 'addr', code_hash: 'hash' }
-)
-```
-
 
 ```typescript
 import { BuildConsole } from '@fadroma/build'
@@ -365,4 +296,8 @@ log.buildingMany([
   new ContractSource({ crate: 'bar' }),
   new ContractSource({ crate: 'bar', revision: 'commit' })
 ])
+```
+
+```typescript
+import assert from 'node:assert'
 ```

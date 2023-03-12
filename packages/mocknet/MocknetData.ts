@@ -147,4 +147,3 @@ export function utf8toBuffer (str: string) {
 export function bufferToUtf8 (buf: Buffer) {
   return buf.toString('utf8')
 }
-

@@ -31,10 +31,13 @@ export { default as Connector } from './Connector'
 export * from './ConnectCommands'
 export { default as ConnectCommands } from './ConnectCommands'
 
+import { Scrt } from '@fadroma/scrt'
 export * as Scrt from '@fadroma/scrt'
 
+import * as Mocknet from '@fadroma/mocknet'
 export * as Mocknet from '@fadroma/mocknet'
 
+import { defineDevnet } from '@fadroma/devnet'
 export * as Devnet from '@fadroma/devnet'
 
 import ConnectConfig from './ConnectConfig'
@@ -42,15 +45,12 @@ import type Connector from './Connector'
 
 import { Chain } from '@fadroma/core'
 import type { ChainRegistry } from '@fadroma/core'
-import { defineDevnet } from '@fadroma/devnet'
-import { Scrt } from '@fadroma/scrt'
-import { Mocknet_CW0, Mocknet_CW1 } from '@fadroma/mocknet'
 
 /** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
 Object.assign(Chain.variants as ChainRegistry, {
   // Support for Mocknet
-  async Mocknet_CW0 (config: unknown): Promise<Mocknet_CW0> { return new Mocknet_CW0() },
-  async Mocknet_CW1 (config: unknown): Promise<Mocknet_CW1> { return new Mocknet_CW1() },
+  async Mocknet_CW0 (config: unknown): Promise<Mocknet.CW0> { return new Mocknet.CW0() },
+  async Mocknet_CW1 (config: unknown): Promise<Mocknet.CW1> { return new Mocknet.CW1() },
   // Support for Secret Network
   ScrtMainnet: Scrt.Mainnet,
   ScrtTestnet: Scrt.Testnet,

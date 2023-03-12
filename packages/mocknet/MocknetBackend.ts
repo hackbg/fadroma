@@ -1,19 +1,18 @@
+import Console from './MocknetConsole'
+import Error from './MocknetError'
+import { parseResult, b64toUtf8, codeHashForBlob } from './MocknetData'
+
+import type MocknetContract from './MocknetContract'
+
 import { into, Contract } from '@fadroma/core'
 import type { Address, Client, CodeId, CodeHash, Label, Message, AnyContract } from '@fadroma/core'
+
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/4mat'
 import { bold } from '@hackbg/logs'
-import type { MocknetContract } from './mocknet-contract'
-import { parseResult, b64toUtf8, codeHashForBlob } from './mocknet-data'
-import { MocknetConsole, MocknetError } from './mocknet-events'
 
-import type { MocknetContract_CW0, MocknetContract_CW1 } from './mocknet-contract'
-import type { ContractImports_CW0, ContractImports_CW1 } from './mocknet-imports'
-import type { ContractExports_CW0, ContractExports_CW1 } from './mocknet-exports'
-import { makeContext_CW0, makeContext_CW1 } from './mocknet-exports'
+export default abstract class MocknetBackend {
 
-export abstract class MocknetBackend {
-
-  log = new MocknetConsole('Fadroma.Mocknet')
+  log = new Console('Fadroma.Mocknet')
 
   codeId = 0
 
@@ -28,7 +27,7 @@ export abstract class MocknetBackend {
     /** Map of code ID to WASM code blobs. */
     readonly uploads:   Record<CodeId, unknown>          = {},
     /** Map of addresses to WASM instances. */
-    readonly instances: Record<Address, MocknetContract> = {},
+    readonly instances: Record<Address, MocknetContract<any, any>> = {},
   ) {
     if (Object.keys(uploads).length > 0) {
       this.codeId = (Math.max(...Object.keys(uploads).map(x=>Number(x))) ?? 0) + 1
@@ -51,9 +50,9 @@ export abstract class MocknetBackend {
   }
 
   getInstance (address?: Address) {
-    if (!address) throw new MocknetError.NoInstance()
+    if (!address) throw new Error.NoInstance()
     const instance = this.instances[address]
-    if (!instance) throw new MocknetError.NoInstanceAtAddress(address)
+    if (!instance) throw new Error.NoInstanceAtAddress(address)
     return instance
   }
 
@@ -151,43 +150,4 @@ export abstract class MocknetBackend {
 
   abstract query ({ address, codeHash }: Partial<Client>, msg: Message): any
 
-}
-
-export class MocknetBackend_CW0 extends MocknetBackend {
-  /** Contract host class for CW0. */
-  static Contract: typeof MocknetContract_CW0
-
-  context (
-    sender:   Address,
-    address?: Address,
-    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
-    now:      number             = + new Date()
-  ): [unknown] {
-    return makeContext_CW0(this.chainId, sender, address, codeHash, now)
-  }
-
-  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
-    const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
-    return JSON.parse(result)
-  }
-}
-
-export class MocknetBackend_CW1 extends MocknetBackend {
-  /** Contract host class for CW1. */
-  static Contract: typeof MocknetContract_CW1
-
-  context (
-    sender:   Address,
-    address?: Address,
-    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
-    now:      number             = + new Date()
-  ): [unknown, unknown] {
-    return makeContext_CW1(this.chainId, sender, address, codeHash, now)
-  }
-
-  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
-    const [env] = this.context('', address, codeHash)
-    const result = b64toUtf8(parseResult(this.getInstance(address).query(env, msg), 'query', address))
-    return JSON.parse(result)
-  }
 }
