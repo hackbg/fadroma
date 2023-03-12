@@ -19,9 +19,12 @@ This is the portable core of the Fadroma dApp framework.
 
 ## The Fadroma Agent API
 
-The **Fadroma Agent API** consists of the abstract `Chain`, `Agent`, and `Bundle` classes.
-These classes are used when interacting with existing smart contracts.
-`@fadroma/scrt` provides their concrete implementations for using Secret Network.
+The **Fadroma Agent API** revolves around the `Chain` and `Agent` abstract classes,
+and describes the basic building blocks of on-chain activity: identities (wallets) and transactions
+(sending tokens, calling contracts, batching transactions, specifying gas fees, etc).
+
+* [`@fadroma/scrt`](../../platforms/scrt/Scrt.spec.ts.md) provides `ScrtChain` and `ScrtAgent`,
+  the concrete classes for using Secret Network.
 
 ### Chain: connecting
 
@@ -38,12 +41,12 @@ assert(chain.mode === 'mainnet')
 
 Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`:
 
-* **Mocknet** is a fast, nodeless way of executing contract code
-  in the local JS WASM runtime.
-* **Devnet** uses a real chain node, booted up temporarily in
-  a local environment.
-* **Testnet** is a persistent remote chain used for testing.
 * **Mainnet** is the production chain where value is stored.
+* **Testnet** is a persistent remote chain used for testing.
+* [**Devnet**](../devnet/Devnet.spec.ts.md) uses a real chain node, booted up temporarily in
+  a local environment.
+* [**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of executing contract code
+  in the local JS WASM runtime.
 
 The `Chain#devMode` flag is true if you are able to restart
 the chain and start over (i.e. when using a devnet or mocknet).
@@ -69,7 +72,7 @@ assert(chain.isMocknet)
 assert(!chain.isMainnet)
 ```
 
-* Since the workflow is request-based, no persistent connection is maintained.
+Since the workflow is request-based, no persistent connection is maintained.
 
 ### Agent: identifying
 

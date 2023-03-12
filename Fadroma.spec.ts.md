@@ -73,37 +73,8 @@ $ fadroma tx my-contract "{...}"
 ## Scripting Fadroma
 
 For more complex operations, you can define custom commands, which you implement in TypeScript
-using the Fadroma TypeScript API.
-
-## [Connecting and transacting](./spec/ConnectingAndTransacting.ts.md)
-
-The first layer of the Fadroma Ops model consists of the `Chain`, `Agent`, and `Bundle` classes.
-They provide APIs that have to do with the basic building blocks of on-chain activity:
-identities (wallets) and transactions (sending tokens, calling contracts, batching transactions,
-specifying gas fees, etc).
-
-* **Explore the [connecting and transacting guide](./spec/ConnectingAndTransacting)**
-* To enable faster development and local full-stack testing, Fadroma Ops implements the
-  [**Devnet**](./spec/Devnet.ts.md) (isolated local chain) and
-  [**Mocknet**](./spec/Mocknet.ts.md) (fast simulated chain).
-
-```typescript
-context.command(
-  'connect', 'test connection and transaction primitives', async () => {
-    await import('./spec/ConnectingAndTransacting.ts.md')
-  }
-)
-context.command(
-  'devnet', 'test devnet', async () => {
-    await import('./spec/Devnet.ts.md')
-  }
-)
-context.command(
-  'mocknet', 'test mocknets', async () => {
-    await import('./spec/Mocknet.ts.md')
-  }
-)
-```
+using the Fadroma TypeScript API. **See [@fadroma/core](packages/core/Core.spec.ts.md)** to get
+started with scripting Fadroma.
 
 ## [Deploying and managing contracts](./spec/DeployingContracts.ts.md)
 
