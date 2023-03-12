@@ -22,49 +22,7 @@ Therefore, caching is implemented in the form of:
 This package concerns itself chiefly with the handling of deploy and upload receipts,
 and defines the following entities:
 
-## [Uploading contract binaries](./upload.spec.ts)
-
-* `FSUploader`: upload compiled code to the chain from local files.
-* **TODO:** `FetchUploader`, which supports uploading code from remote URLs.
-
-```typescript
-import './upload.spec.ts.md'
-```
-
-## [Storing deployed contract instances](./deploy-base.spec.ts)
-
-* `DeployConfig`: configure deployer through environment variables.
-* `Deployer`: a subclass of `Deployment` which stores deploy receipts
-  in a specific `DeployStore` and can load data from them into itself.
-
-```typescript
-import './deploy-base.spec.ts.md'
-```
-
-## [Deploy store variants](./deploy-variants.spec.ts)
-
-Several of those are currently supported for historical and compatibility reasons.
-
-* `YAML1.YAMLDeployments_v1` and `YAML2.YAMLDeploymentss_v2` are ad-hoc
-  storage formats used by the original deployer implementations.
-* `JSON1.JSONDeployments_v1` is the first version of the stable deploy receipt API.
-
-```typescript
-import './deploy-store.spec.ts.md'
-```
-
-## [Deploy logging and errors]('./deploy-events.spec.ts.md)
-
-```typescript
-import './deploy-events.spec.ts.md'
-```
-# Fadroma Deploy Base Specification
-
-```typescript
-import { ok, equal, deepEqual } from 'node:assert'
-```
-
-## `DeployConfig`: Deploy configuration options
+## Deploy config
 
 Interacting with the Fadroma Deploy package starts by creating a `DeployConfig`:
   * It fetches configuration from environment variables
@@ -79,34 +37,7 @@ await config.getDeployStore()
 await config.getDeployer()
 ```
 
-## `Deployer`: The deploy context
-
-The `Deployer` class extends `Deployment` (from `@fadroma/core`)
-by way of `Connector` (from `@fadroma/connect`), adding handling for
-**deploy receipts**, which are records of all the contracts of a `Deployment`:
-  * Saving the current `state` of the `Deployment` to the active `DeployStore`
-    in the form of a **deploy receipt**.
-  * Replacing the current state of a `Deployment` with that from a deploy receipt.
-  * Listing and creating deploy receipts; marking one of them as "active".
-
-```typescript
-import { Deployer } from '.'
-import { Path } from '@hackbg/file'
-let context: Deployer = await config.getDeployer()
-ok(context         instanceof Deployer)
-ok(context.config  instanceof DeployConfig)
-ok(context.store   instanceof DeployStore)
-ok(context.project instanceof Path)
-ok(await context.provideStore())
-ok(await context.provideStore(true))
-ok(await context.listDeployments())
-ok(await context.createDeployment())
-ok(await context.selectDeployment())
-ok(await context.listContracts() ?? true)
-ok(await context.save() ?? true)
-```
-
-## `Deployment` classes
+## Deployment
 
 ```typescript
 import { Client, Deployment } from '@fadroma/core'
@@ -145,8 +76,6 @@ let codeId, codeHash, txHash, result
   assert(result[1] instanceof Contract)
 })*/
 ```
-
-## `Deployment`: collection of contracts
 
 ```typescript
 import { ChainId, ContractSlot, ContractTemplate } from '@fadroma/core'
@@ -222,11 +151,54 @@ await inTmpDeployment(async deployment=>{
   }
 })*/
 ```
-## Deploy store
+
+## Deployer
+
+* `Deployer`: a subclass of `Deployment` which stores deploy receipts
+  in a specific `DeployStore` and can load data from them into itself.
+
+The `Deployer` class extends `Deployment` (from `@fadroma/core`)
+by way of `Connector` (from `@fadroma/connect`), adding handling for
+**deploy receipts**, which are records of all the contracts of a `Deployment`:
+  * Saving the current `state` of the `Deployment` to the active `DeployStore`
+    in the form of a **deploy receipt**.
+  * Replacing the current state of a `Deployment` with that from a deploy receipt.
+  * Listing and creating deploy receipts; marking one of them as "active".
 
 ```typescript
-import assert, { ok, equal, deepEqual, throws } from 'node:assert'
+import { Deployer } from '.'
+import { Path } from '@hackbg/file'
+let context: Deployer = await config.getDeployer()
+ok(context         instanceof Deployer)
+ok(context.config  instanceof DeployConfig)
+ok(context.store   instanceof DeployStore)
+ok(context.project instanceof Path)
+ok(await context.provideStore())
+ok(await context.provideStore(true))
+ok(await context.listDeployments())
+ok(await context.createDeployment())
+ok(await context.selectDeployment())
+ok(await context.listContracts() ?? true)
+ok(await context.save() ?? true)
 ```
+
+## Uploader
+
+### FSUploader
+
+`FSUploader` uploads WASM to the chain from local files.
+
+### FetchUploader
+
+`FetchUploader`, uploads WASM to the chain from remote URLs.
+
+## Deploy store
+
+Several of those are currently supported for historical and compatibility reasons.
+
+* `YAML1.YAMLDeployments_v1` and `YAML2.YAMLDeploymentss_v2` are ad-hoc
+  storage formats used by the original deployer implementations.
+* `JSON1.JSONDeployments_v1` is the first version of the stable deploy receipt API.
 
 ```typescript
 import { Deployment } from '@fadroma/core'
@@ -263,7 +235,9 @@ for (const $DeployStore of [
 
   })
 }
+
 ```
+
 # Fadroma: Contract deployment guide
 
 ```typescript
@@ -611,3 +585,7 @@ log.warnNoDeployAgent()
 log.deployStoreDoesNotExist()
 ```
 
+```typescript
+import assert from 'node:assert'
+import { ok, equal, deepEqual, throws } from 'node:assert'
+```

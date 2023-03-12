@@ -5,72 +5,114 @@ What to compile is specified using the primitives defined in [Fadroma Core](../c
 
 ## Build CLI
 
-## Builder config
-
-* `BuilderConfig`: configure build environment from environment variables. Uses `@hackbg/conf`.
-
-### Caching
-
-When **builder.caching == true**, each build call first checks in `./artifacts`
-for a corresponding pre-existing build and reuses it if present.
-
-* Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
-
-```typescript
-// TODO example
+```shell
+$ fadroma build CONTRACT    # nop if already built
+$ fadroma rebuild CONTRACT  # always rebuilds
 ```
 
-## Build events
+  * **`CONTRACT`**: one of the contracts defined in the [project](../project/Project.spec.ts).
 
-## Build errors
+## Build API
 
-## The build procedure
+```typescript
+import builder from '@fadroma/build'
 
-* `build.impl.js`, the build script
+const template = await builder.build('contract_0')
+
+const [template1, template2] = await builder.build([
+  'contract_1',
+  'contract_2'
+])
+
+const {template3, template4} = await builder.buildMany({
+  template3: 'contract_3',
+  template4: 'contract_4'
+})
+```
+
+## Builder configuration
+
+|environment variable|kind|description|
+|-|-|-|
+|`FADROMA_BUILD_VERBOSE`|flag|more log output
+|`FADROMA_BUILD_QUIET`|flag|less log output
+|`FADROMA_BUILD_SCRIPT`|path to script|build implementation
+|`FADROMA_BUILD_RAW`|flag|run the build script in the current environment instead of container
+|`FADROMA_DOCKER`|host:port or socket|non-default docker socket address
+|`FADROMA_BUILD_IMAGE`|docker image tag|image to run
+|`FADROMA_BUILD_DOCKERFILE`|path to dockerfile|dockerfile to build image if missing
+|`FADROMA_BUILD_PODMAN`|flag|whether to use podman instead of docker
+|`FADROMA_PROJECT`|path|root of project
+|`FADROMA_ARTIFACTS`|path|project artifact cache
+|`FADROMA_REBUILD`|flag|builds always run, artifact cache is ignored
+
+The above options are defined on the [`BuilderConfig`](./BuilderConfig.ts) class,
+using [`@hackbg/conf`](#). To get a builder with customized configuration from a script:
+
+```typescript
+import { BuilderConfig } from '@fadroma/build'
+const myBuilder = new BuilderConfig({ verbose: true, caching: true }).getBuilder()
+
+import { Builder } from '@fadroma/build'
+assert(myBuilder instanceof Builder)
+```
+
+## Build caching
+
+When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
+for a corresponding pre-existing build and reuses it if present.
+
+Setting `FADROMA_REBUILD` disables build caching.
+
+## Build procedure
+
+The ultimate build procedure, i.e. actual calls to `cargo` and such,
+is implemented in the standalone script `build.impl.mjs`, which is
+launched by the builders.
 
 ## Build environments
 
 The subclasses of the abstract base class `Builder` in Fadroma Core
 implement the compilation procedure for contracts.
 
-```typescript
-import { BuilderConfig, Builder } from '@fadroma/build'
-let config:  BuilderConfig
-let builder: Builder
-```
+### ContainerBuilder
 
-When inheriting from the `Fadroma` class, a `Builder` should be automatically
-provided, in accordance with the automatically populated `BuildConfig`. Internally/manually, this
-is done by the `getBuilder` method of a builder config.
-
-### Local containerized builder
-
-`DockerBuilder` is the default builder. It provides a basic degree of reproducibility
-by using a pre-defined build container.
+`ContainerBuilder` is the default builder when the `FADROMA_BUILD_RAW` option is false.
 
 ```typescript
-import { DockerBuilder } from '@fadroma/build'
-ok(new BuilderConfig().getBuilder() instanceof DockerBuilder)
+import { ContainerBuilder } from '@fadroma/build'
+
+const containerBuilder = new BuilderConfig({ buildRaw: false }).getBuilder()
+
+ok(containerBuilder instanceof ContainerBuilder)
 ```
 
-  * DockerBuilder launches the [**build script**](./build.impl.mjs)
-    in a Docker container using [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock).
-    You can set the following properties:
-      * **builder.dockerSocket** (at construction only) allows you to select
-        the Docker server to connect to.
-      * **builder.docker** lets you configure the entire instance of `Dokeres.Engine`.
+`ContainerBuilder` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
+operate the container engine. Currently, `@hackbg/dock` supports Docker; soon it will
+also support Podman.
 
 ```typescript
 import * as Dokeres from '@hackbg/dock'
-ok(new DockerBuilder().docker instanceof Dokeres.Engine)
-//ok(typeof new DockerBuilder({ docker: Symbol() }).docker === 'symbol')
-ok(new DockerBuilder({ dockerSocket: "test" }).docker instanceof Dokeres.Engine)
+
+ok(containerBuilder.docker instanceof Dokeres.Engine)
 ```
 
-  * DockerBuilder comes with default **build image** and **Dockerfile**,
-    which can be overridden by setting the following properties:
-    * **builder.image** is the build image to use (`hackbg/fadroma` by default)
-    * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
+Use `FADROMA_DOCKER` to specify a non-default Docker socker path
+
+```typescript
+ok(new BuilderConfig({ buildRaw: false, dockerSocket: 'test' }).getBuilder().docker
+  instanceof Dokeres.Engine)
+```
+
+`ContainerBuilder` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
+in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
+being output to the `FADROMA_ARTIFACTS` directory.
+
+```typescript
+```
+
+If it's not possible to pull the `FADROMA_BUILD_IMAGE`,
+it is built from the `FADROMA_BUILD_DOCKERFILE`.
 
 ```typescript
 config  = new BuilderConfig()
@@ -113,7 +155,7 @@ ok(await builder.buildMany([
 ]))
 ```
 
-### Local raw builder
+### RawBuilder
 
 Where Docker is unavailable (e.g. in a CI that is already running in containers),
 you can use **RawBuilder** to just run builds in the host environment.
@@ -128,7 +170,7 @@ builder = config.getBuilder()
 ok(builder instanceof RawBuilder)
 ```
 
-  * It still uses the same build script as DockerBuilder, but instead of a container
+  * It still uses the same build script as ContainerBuilder, but instead of a container
     it just runs the build script as a subprocess.
 
 ```typescript
@@ -153,65 +195,9 @@ ok(await builder.buildMany([
 ]))
 ```
 
-## Remote building
-* **WIP:** `RemoteBuilder`: base class for compiling
-  contracts using remote resources.
-
-* `LocalBuilder`: base class for compiling contracts
-  on the developer's workstation.
-  * Implements basic **build caching**: existing build artifacts are reused.
-    Invalidation is manual (delete artifact to rebuild).
   * `RawBuilder`, which runs it using the local Rust toolchain.
-  * `DockerBuilder`, which runs it in a Docker container
 
-
-## Building from history
-
-* `DotGit`, a helper for finding the contents of Git history
-  where Git submodules are involved. This works in tandem with
-  `build.impl.mjs` to enable:
-  * **building any commit** from a project's history, and therefore
-  * **pinning versions** for predictability during automated one-step deployments.
-
-If `.git` directory is present, builders can check out and build a past commits of the repo,
-as specifier by `contract.revision`.
-
-```typescript
-import { ContractSource } from '@fadroma/core'
-import { getGitDir, DotGit } from '@fadroma/build'
-
-throws(()=>getGitDir(new ContractSource()))
-
-const contractWithSource = new ContractSource({
-  repository: 'REPO',
-  revision:   'REF',
-  workspace:  'WORKSPACE'
-  crate:      'CRATE'
-})
-
-ok(getGitDir(contractWithSource) instanceof DotGit)
-```
-
-```typescript
-import { BuildConsole } from '@fadroma/build'
-import { ContractSource } from '@fadroma/core'
-const log = new BuildConsole({ info: () => {} })
-log.buildingFromCargoToml('foo')
-log.buildingFromBuildScript('foo')
-log.buildingFromWorkspace('foo')
-log.buildingOne(new ContractSource({ crate: 'bar' }))
-log.buildingOne(new ContractSource({ crate: 'bar', revision: 'commit' }))
-log.buildingOne(
-  new ContractSource({ crate: 'bar', revision: 'commit' }),
-  new ContractSource({ crate: 'bar', revision: 'commit' })
-
-log.buildingMany([
-  new ContractSource({ crate: 'bar' }),
-  new ContractSource({ crate: 'bar', revision: 'commit' })
-])
-```
-
-## The `ContractSource` class
+## Specifying sources
 
 Represents the source code of a contract.
   * Compiling a source populates the `artifact` property.
@@ -267,3 +253,53 @@ import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/core'
 import $ from '@hackbg/file'
 ```
+
+### Building past commits of contracts
+
+* `DotGit`, a helper for finding the contents of Git history
+  where Git submodules are involved. This works in tandem with
+  `build.impl.mjs` to enable:
+  * **building any commit** from a project's history, and therefore
+  * **pinning versions** for predictability during automated one-step deployments.
+
+If `.git` directory is present, builders can check out and build a past commits of the repo,
+as specifier by `contract.revision`.
+
+```typescript
+import { ContractSource } from '@fadroma/core'
+import { getGitDir, DotGit } from '@fadroma/build'
+
+throws(()=>getGitDir(new ContractSource()))
+
+const contractWithSource = new ContractSource({
+  repository: 'REPO',
+  revision:   'REF',
+  workspace:  'WORKSPACE'
+  crate:      'CRATE'
+})
+
+ok(getGitDir(contractWithSource) instanceof DotGit)
+```
+
+```typescript
+import { BuildConsole } from '@fadroma/build'
+import { ContractSource } from '@fadroma/core'
+const log = new BuildConsole({ info: () => {} })
+log.buildingFromCargoToml('foo')
+log.buildingFromBuildScript('foo')
+log.buildingFromWorkspace('foo')
+log.buildingOne(new ContractSource({ crate: 'bar' }))
+log.buildingOne(new ContractSource({ crate: 'bar', revision: 'commit' }))
+log.buildingOne(
+  new ContractSource({ crate: 'bar', revision: 'commit' }),
+  new ContractSource({ crate: 'bar', revision: 'commit' })
+
+log.buildingMany([
+  new ContractSource({ crate: 'bar' }),
+  new ContractSource({ crate: 'bar', revision: 'commit' })
+])
+```
+
+## Build events
+
+## Build errors

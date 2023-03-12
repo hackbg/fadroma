@@ -1,6 +1,46 @@
-# Fadroma Connection Registry
+# Fadroma Connect Registry
 
-## Chain variants:
+This package acts as a hub for the available Fadroma Agent API implementations.
+In practical terms, it allows you to connect to every backend that Fadroma supports.
+
+## Connectors
+
+```typescript
+import { Connector, connect } from '.'
+let context: Connector
+//context = connect()
+//context = connect({ config: { chain: 'id' } })
+context = await config.connect()
+```
+
+## Connection configuration
+
+```typescript
+import { ConnectConfig } from '.'
+const config = new ConnectConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
+```
+
+* `ScrtAmino`: creates secretjs@0.17.5 based agent using lcd/amino
+  * **ScrtAmino.Agent** a.k.a. **ScrtAminoAgent**: uses secretjs 0.17.5
+* `Scrt`: creates secretjs@beta based agent using grpc
+  * **Scrt.Agent** a.k.a. **ScrtGrpcAgent**: which uses the new gRPC API
+    provided by secretjs 1.2-beta - as opposed to the old HTTP-based ("Amino"?) API
+    supported in secretjs 0.17.5 and older.
+
+```typescript
+import { ScrtGrpc }  from '@fadroma/scrt'
+import { ScrtAmino } from '@fadroma/scrt-amino'
+import { Mocknet }   from '@fadroma/mocknet'
+
+const mnemonics = [
+  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
+  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
+]
+```
+
+## Connecting to...
+
+### Secret Network
 
 * `ScrtAmino`: creates secretjs@0.17.5 based agent using lcd/amino
 * `Scrt`: creates secretjs@beta based agent using grpc
@@ -103,34 +143,19 @@ for (const Chain of supportedChains) {
 }
 ```
 
-## Connect config
-
-```typescript
-import { ConnectConfig } from '.'
-const config = new ConnectConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
-```
-
-## Connect context
-
-```typescript
-import { Connector, connect } from '.'
-let context: Connector
-//context = connect()
-//context = connect({ config: { chain: 'id' } })
-context = await config.connect()
-```
-
-## Connect events
+## Connection events
 
 ```typescript
 import { ConnectConsole } from '.'
-const log = new ConnectConsole({
-  log: () => {}, info: () => {}, warn: () => {}, error: () => {}
-})
-log.noName({})
-log.noDeploy()
+const log = new ConnectConsole()
+
+log.noName({})        // Report When no chain has been selected.
+log.supportedChains() // Report a list of supported chains
+
+log.selectedChain()   // Report the currently selected chain
 log.selectedChain({})
 log.selectedChain({ chain: 'x' })
+
 log.chainStatus({})
 log.chainStatus({
   chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
@@ -144,29 +169,23 @@ log.chainStatus({
   deployments: { list () { return [] }, active: { name: 4 } }
 })
 ```
-# Fadroma Connect Variants
+
+## Connection errors
 
 ```typescript
-import assert from 'node:assert'
-import * as Testing from '../../TESTING.ts.md'
+import { ConnectError } from './connect-events'
+
+// When no target chain has been specified:
+assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
+
+// When an unknown target chain has been requested:
+assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
 ```
 
-* `ScrtAmino`: creates secretjs@0.17.5 based agent using lcd/amino
-  * **ScrtAmino.Agent** a.k.a. **ScrtAminoAgent**: uses secretjs 0.17.5
-* `Scrt`: creates secretjs@beta based agent using grpc
-  * **Scrt.Agent** a.k.a. **ScrtGrpcAgent**: which uses the new gRPC API
-    provided by secretjs 1.2-beta - as opposed to the old HTTP-based ("Amino"?) API
-    supported in secretjs 0.17.5 and older.
-
 ```typescript
-import { ScrtGrpc }  from '@fadroma/scrt'
-import { ScrtAmino } from '@fadroma/scrt-amino'
-import { Mocknet }   from '@fadroma/mocknet'
-
-const mnemonics = [
-  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
-  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
-]
+import * as Testing from '../../TESTING.ts.md'
+import * as Fadroma from '@fadroma/connect'
+import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
 ## Supported features
@@ -282,35 +301,4 @@ async function supportsSmartContracts (Chain) {
   assert.ok(await agent.execute(new ContractInstance({})))
   assert.ok(await agent.query(new ContractInstance({})))
 }
-```
-
-## Connection events
-
-```typescript
-import { ConnectConsole } from '.'
-const log = new ConnectConsole()
-
-log.noName({})        // Report When no chain has been selected.
-log.supportedChains() // Report a list of supported chains
-log.selectedChain()   // Report the currently selected chain
-log.selectedChain({})
-log.selectedChain({ chain: 'x' })
-```
-
-## Connection errors
-
-```typescript
-import { ConnectError } from './connect-events'
-
-// When no target chain has been specified:
-assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
-
-// When an unknown target chain has been requested:
-assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
-```
-
-```typescript
-import * as Testing from '../../TESTING.ts.md'
-import * as Fadroma from '@fadroma/connect'
-import assert, { ok, equal, deepEqual } from 'assert'
 ```

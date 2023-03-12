@@ -17,64 +17,73 @@ This is the portable core of the Fadroma dApp framework.
   * Build atop the abstract object model to deliver new features with
     the appropriate degree of cross-platform support.
 
-## The Fadroma Agent API
+## Fadroma Agent API
 
-The **Fadroma Agent API** revolves around the `Chain` and `Agent` abstract classes,
-and describes the basic building blocks of on-chain activity: identities (wallets) and transactions
-(sending tokens, calling contracts, batching transactions, specifying gas fees, etc).
+The **Fadroma Agent API** is an imperative API for the transaction level.
 
-* [`@fadroma/scrt`](../../platforms/scrt/Scrt.spec.ts.md) provides `ScrtChain` and `ScrtAgent`,
-  the concrete classes for using Secret Network.
+It revolves around the `Chain` and `Agent` abstract classes, and describes the basic
+building blocks of on-chain activity: identities (wallets) and transactions (sending tokens,
+calling contracts, batching transactions, specifying gas fees, etc).
+
+* [`@fadroma/scrt`](../../platforms/scrt/Scrt.spec.ts.md) provides
+  **`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
+  of Fadroma Agent API for Secret Network.
 
 ### Chain: connecting
 
 The `Chain` object identifies what chain to connect to -
 such as the Secret Network mainnet or testnet.
 
+Since the workflow is request-based, no persistent connection is maintained.
+
 ```typescript
 import { Chain } from '@fadroma/core'
-let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
-assert(chain.id   === 'id')
-assert(chain.url  === 'example.com')
-assert(chain.mode === 'mainnet')
+let chain: Chain
 ```
 
-Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`:
-
-* **Mainnet** is the production chain where value is stored.
-* **Testnet** is a persistent remote chain used for testing.
-* [**Devnet**](../devnet/Devnet.spec.ts.md) uses a real chain node, booted up temporarily in
-  a local environment.
-* [**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of executing contract code
-  in the local JS WASM runtime.
+Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`.
 
 The `Chain#devMode` flag is true if you are able to restart
 the chain and start over (i.e. when using a devnet or mocknet).
 
+* **Mainnet** is the production chain where value is stored.
+
 ```typescript
-chain.mode = 'mainnet'
+chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mainnet })
 assert(chain.devMode === false)
 assert(chain.isMainnet)
+```
 
-chain.mode = 'testnet'
+* **Testnet** is a persistent remote chain used for testing.
+
+```typescript
+chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Testnet })
 assert(chain.devMode === false)
 assert(chain.isTestnet)
 assert(!chain.isMainnet)
+```
 
-chain.mode = 'localnet'
+* [**Devnet**](../devnet/Devnet.spec.ts.md) uses a real chain node, booted up temporarily in
+  a local environment.
+
+```typescript
+chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Devnet })
 assert(chain.devMode === true)
-assert(chain.isLocalnet)
+assert(chain.isDevnet)
 assert(!chain.isMainnet)
+```
 
-chain.mode = 'mocknet'
+* [**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of executing contract code
+  in the local JS WASM runtime.
+
+```typescript
+chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mocknet })
 assert(chain.devMode === true)
 assert(chain.isMocknet)
 assert(!chain.isMainnet)
 ```
 
-Since the workflow is request-based, no persistent connection is maintained.
-
-### Agent: identifying
+### Agent: authenticating
 
 To transact on a [chain](./Chains.ts.md), you need to authenticate
 with your identity (account, wallet). To do that, you obtain an
@@ -91,7 +100,7 @@ assert(agent.mnemonic)
 assert(agent.address)
 ```
 
-### Block height
+### Block height and waiting
 
 Now that you have an `Agent`, you can start doing things on the `Chain`.
 The simplest thing to do is nothing: in this case, waiting until the
@@ -288,7 +297,7 @@ agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bu
 //await agent.instantiateMany(new Contract(), [], 'prefix')
 ```
 
-## The Fadroma Ops API
+## Fadroma Ops API
 
 The **Fadroma Ops API** revolves around the `Deployment` class, and associated
 implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
@@ -307,35 +316,13 @@ smart contract deployments.
 
 Concrete implementations of those are provided in `@fadroma/build` and `@fadroma/deploy`.
 
-### Describing and deploying contracts
+### Deployment
 
-  * [Labels](./core-upload.spec.ts.md)
-  * [Code hashes](./core-upload.spec.ts.md)
-  * [Clients](./core-client.spec.ts.md)
-  * [Contracts](./core-contract.spec.ts.md)
-  * [Deployments](./core-deploy.spec.ts.md)
-  * [Builders](./core-build.spec.ts.md)
-  * [Uploaders](./core-upload.spec.ts.md)
+### ContractTemplate
 
-```typescript
-context.command('contract',
-  'test the contract ops primitives',
-  async () => {
-    await import('./core-contract.spec.ts.md')
-    await import('./core-client.spec.ts.md')
-    await import('./core-build.spec.ts.md')
-    await import('./core-code.spec.ts.md')
-    await import('./core-upload.spec.ts.md')
-    await import('./core-labels.spec.ts.md')
-  })
-```
+### Contract
 
-```typescript
-const contract = { address: 'addr' }
-const agent = { getHash: async x => 'hash', getCodeId: async x => 'id' }
-```
-
-### Contract labels
+#### Contract labels
 
 The label of a contract has to be unique per chain.
 Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
@@ -350,7 +337,7 @@ assert.ok(await fetchLabel(c, a, 'label'))
 assert.rejects(fetchLabel(c, a, 'unexpected'))
 ```
 
-### Code ids
+#### Code ids
 
 The code ID is a unique identifier for compiled code uploaded to a chain.
 
@@ -362,7 +349,7 @@ assert.ok(await fetchCodeId(contract, agent, 'id'))
 assert.rejects(fetchCodeId(contract, agent, 'unexpected'))
 ```
 
-### Code hashes
+#### Code hashes
 
 The code hash also uniquely identifies for the code that underpins a contract.
 However, unlike the code ID, which is opaque, the code hash corresponds to the
@@ -384,7 +371,7 @@ assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
 assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
 ```
 
-### Inter-contract communication
+#### Inter-contract communication
 
 ```typescript
 import { templateStruct, linkStruct } from '@fadroma/core'
@@ -396,6 +383,32 @@ assert.deepEqual(
   linkStruct({ address: 'addr', codeHash: 'hash'}),
   { address: 'addr', code_hash: 'hash' }
 )
+```
+
+### Builder
+
+### Uploader
+
+### DeployStore
+
+### Describing and deploying contracts
+
+```typescript
+context.command('contract',
+  'test the contract ops primitives',
+  async () => {
+    await import('./core-contract.spec.ts.md')
+    await import('./core-client.spec.ts.md')
+    await import('./core-build.spec.ts.md')
+    await import('./core-code.spec.ts.md')
+    await import('./core-upload.spec.ts.md')
+    await import('./core-labels.spec.ts.md')
+  })
+```
+
+```typescript
+const contract = { address: 'addr' }
+const agent = { getHash: async x => 'hash', getCodeId: async x => 'id' }
 ```
 
 ## Error types
