@@ -290,9 +290,22 @@ agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bu
 
 ## The Fadroma Ops API
 
-The **Fadroma Ops API** consists of the abstract `Builder`, `Uploader`, `Deployment`
-and `DeployStore` classes. Concrete implementations of those are provided in `@fadroma/build`
-and `@fadroma/deploy`. These classes are used when deploying new smart contracts from source.
+The **Fadroma Ops API** revolves around the `Deployment` class, and associated
+implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
+
+These classes are used for describing systems consisting of multiple smart contracts,
+such as when deploying them from source. By defining such a system as one or more
+subclasses of `Deployment`, Fadroma enables declarative, idempotent, and reproducible
+smart contract deployments.
+
+* **Explore the [deployment guide](./spec/DeployingContracts.ts.md)**
+* One commonly used type of contract is a **custom token**. Fadroma Ops provides
+  a deployment API for [managing native and custom tokens](./spec/Tokens.ts.md).
+* The procedures for compiling contracts from source and uploading them to the chain,
+  and for caching the results of those operations so you don't have to do them repeatedly,
+  are implemented in the [`Builder` and `Uploader` classes](./spec/BuildingAndUploading.ts.md).
+
+Concrete implementations of those are provided in `@fadroma/build` and `@fadroma/deploy`.
 
 ### Describing and deploying contracts
 

@@ -24,13 +24,6 @@ for a corresponding pre-existing build and reuses it if present.
 
 ## Build errors
 
-```typescript
-import assert from 'node:assert'
-import * as Testing from '../../TESTING.ts.md'
-import * as Fadroma from '@fadroma/core'
-import $ from '@hackbg/file'
-```
-
 ## The build procedure
 
 * `build.impl.js`, the build script
@@ -211,7 +204,7 @@ log.buildingOne(new ContractSource({ crate: 'bar', revision: 'commit' }))
 log.buildingOne(
   new ContractSource({ crate: 'bar', revision: 'commit' }),
   new ContractSource({ crate: 'bar', revision: 'commit' })
-)
+
 log.buildingMany([
   new ContractSource({ crate: 'bar' }),
   new ContractSource({ crate: 'bar', revision: 'commit' })
@@ -257,13 +250,20 @@ import { ContractSource } from '@fadroma/core'
 
 const contract = new ContractSource({
   repository: 'REPO',
-  revision:   'REF',
-  workspace:  'WORKSPACE'
-  crate:      'CRATE'
+  revision: 'REF',
+  workspace: 'WORKSPACE'
+  crate: 'CRATE'
 })
 
 equal(contract.repository, 'REPO')
 equal(contract.revision,   'REF')
 equal(contract.workspace,  'WORKSPACE')
 equal(contract.crate,      'CRATE')
+```
+
+```typescript
+import assert from 'node:assert'
+import * as Testing from '../../TESTING.ts.md'
+import * as Fadroma from '@fadroma/core'
+import $ from '@hackbg/file'
 ```
