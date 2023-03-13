@@ -1,10 +1,11 @@
-use proc_macro2::Span;
 use syn::{
     Signature, ItemStruct, Ident, Field, Fields, FieldsNamed,
     Visibility, parse_quote, FnArg, punctuated::Punctuated,
     ItemEnum, Variant, ItemFn, Expr, Stmt, ExprField, ExprMatch,
-    ItemImpl, GenericArgument, ExprCall, token::{Brace, Comma, Colon}
+    ItemImpl, GenericArgument, ExprCall, ReturnType, Type,
+    token::{Brace, Comma, Colon, RArrow}
 };
+use proc_macro2::Span;
 
 use crate::{
     err::ErrorSink,
@@ -75,7 +76,7 @@ pub fn messages<'a>(
     result
 }
 
-pub fn init_fn(sink: &mut ErrorSink, sig: &Signature) -> ItemFn {
+pub fn init_fn<'a>(sink: &mut ErrorSink, method: &Method<'a>) -> ItemFn {
     let fn_name = Ident::new(INIT_FN, Span::call_site());
     let msg = Ident::new(INIT_MSG, Span::call_site());
 
@@ -89,7 +90,7 @@ pub fn init_fn(sink: &mut ErrorSink, sig: &Signature) -> ItemFn {
         ) { }
     };
 
-    result.sig.output = sig.output.clone();
+    let sig = method.sig();
 
     let mut args = Punctuated::<ExprField, Comma>::new();
 
@@ -103,15 +104,35 @@ pub fn init_fn(sink: &mut ErrorSink, sig: &Signature) -> ItemFn {
     let ref method_name = sig.ident;
     let contract_ident = Ident::new(CONTRACT, Span::call_site());
 
-    let call: Expr = parse_quote!(#contract_ident::#method_name(deps, env, info, #args));
-    result.block.stmts.push(Stmt::Expr(call));
+    let (expr, output) = match method {
+        Method::Contract(_) => (
+            parse_quote!(#contract_ident::#method_name(deps, env, info, #args)),
+            sig.output.clone()
+        ),
+        Method::Interface(interface) => {
+            let trait_name = interface.trait_name();
+            let error_enum = Ident::new(ERROR_TYPE, Span::call_site());
+
+            let return_ty: Type = parse_quote!(Result<cosmwasm_std::Response, <#contract_ident as #trait_name>::#error_enum>);
+
+            (
+                parse_quote!(<#contract_ident as #trait_name>::#method_name(deps, env, info, #args)),
+                ReturnType::Type(RArrow::default(), Box::new(return_ty))
+            )
+        }
+    };
+
+    result.block.stmts.push(Stmt::Expr(expr));
+    result.sig.output = output;
 
     result
 }
 
 pub fn execute_fn<'a>(
     sink: &mut ErrorSink,
-    methods: &[Method<'a>]
+    methods: &[Method<'a>],
+    execute_guard: Option<&Signature>
+    
 ) -> ItemFn {
     let fn_name = Ident::new(EXECUTE_FN, Span::call_site());
     let msg = Ident::new(EXECUTE_MSG, Span::call_site());
@@ -126,6 +147,18 @@ pub fn execute_fn<'a>(
             msg: #msg
         ) -> std::result::Result<cosmwasm_std::Response, #error_enum> { }
     };
+
+    if let Some(guard) = execute_guard {
+        let contract_ident = Ident::new(CONTRACT, Span::call_site());
+        let method_name = &guard.ident;
+
+        let err_variant = Ident::new(CONTRACT_ERR_VARIANT, Span::call_site());
+        let map_err: ExprCall = parse_quote!(map_err(|x| #error_enum::#err_variant(x)));
+
+        result.block.stmts.push(parse_quote! {
+            #contract_ident::#method_name(deps.branch(), &env, &info, &msg).#map_err;
+        });
+    }
 
     if methods.is_empty() {
         result.sig.output = parse_quote!(-> cosmwasm_std::StdResult<cosmwasm_std::Response>);
@@ -263,6 +296,11 @@ pub fn cw_arguments(sig: &mut Signature, attr: MsgAttr, has_block: bool) {
         MsgAttr::Query => {
             sig.inputs.insert(0, parse_quote!(deps: cosmwasm_std::Deps));
             sig.inputs.insert(1, parse_quote!(env: cosmwasm_std::Env));
+        },
+        MsgAttr::ExecuteGuard => {
+            sig.inputs.insert(0, parse_quote!(mut deps: cosmwasm_std::DepsMut));
+            sig.inputs.insert(1, parse_quote!(env: &cosmwasm_std::Env));
+            sig.inputs.insert(2, parse_quote!(info: &cosmwasm_std::MessageInfo));
         }
     }
 }

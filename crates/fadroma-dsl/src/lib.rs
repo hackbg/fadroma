@@ -6,10 +6,11 @@ mod generate;
 mod validate;
 mod method;
 mod auto_impl;
+mod execute_guard;
 mod utils;
 
 use syn::{
-    AttributeArgs, Item, ItemTrait, TraitItemMethod,
+    AttributeArgs, Item, ItemTrait, TraitItemMethod, ItemFn,
     ItemImpl, ItemMod, parse_macro_input, parse_quote
 };
 use proc_macro2::Span;
@@ -104,6 +105,21 @@ pub fn query(
 ) -> proc_macro::TokenStream {
     let item = parse_macro_input!(item as Item);
     let result = add_fn_args(item, MsgAttr::Query);
+
+    proc_macro::TokenStream::from(result)
+}
+
+#[proc_macro_attribute]
+pub fn execute_guard(
+    _args: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let item = parse_macro_input!(item as ItemFn);
+
+    let result = match execute_guard::derive(item) {
+        Ok(stream) => stream,
+        Err(errors) => to_compile_errors(errors)
+    };
 
     proc_macro::TokenStream::from(result)
 }

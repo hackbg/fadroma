@@ -44,6 +44,13 @@ impl AutoImpl {
             }
 
             match MsgAttr::parse(&mut sink, &method.attrs) {
+                Some(MsgAttr::ExecuteGuard) => sink.push_spanned(
+                    &method.sig.ident,
+                    format!(
+                        "Interfaces cannot have the #[{}] attribute.",
+                        MsgAttr::EXECUTE_GUARD
+                    )
+                ),
                 Some(attr) =>{
                     let fn_name = &method.sig.ident;
                     let args = fn_args_to_idents(&mut sink, &method.sig.inputs);
@@ -52,14 +59,18 @@ impl AutoImpl {
                         MsgAttr::Init { .. } | MsgAttr::Execute => 
                             parse_quote!(<#impl_path as #trait_>::#fn_name(deps, env, info, #args)),
                         MsgAttr::Query =>
-                            parse_quote!(<#impl_path as #trait_>::#fn_name(deps, env, #args))
+                            parse_quote!(<#impl_path as #trait_>::#fn_name(deps, env, #args)),
+                        MsgAttr::ExecuteGuard => unreachable!()
                     };
 
                     method.block.stmts.push(Stmt::Expr(stmt));
                 },
                 None => sink.push_spanned(
                     &method.sig.ident,
-                    format!("Expecting exactly one attribute of: {:?}", MsgAttr::ALL)
+                    format!(
+                        "Expecting exactly one attribute of: {:?}",
+                        [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
+                    )
                 )
             }
         }

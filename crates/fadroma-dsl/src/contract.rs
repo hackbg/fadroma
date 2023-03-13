@@ -109,6 +109,7 @@ impl<'a> Contract<'a> {
     fn generate(self, sink: &mut ErrorSink) -> Generated {
         let mut init = None;
         let mut contract_err_ty = None;
+        let mut execute_guard = None;
         let mut execute = vec![];
         let mut query = vec![];
 
@@ -130,7 +131,7 @@ impl<'a> Contract<'a> {
                         }
                         MsgAttr::Init { entry } => {
                             if entry {
-                                init = Some(method);
+                                init = Some(Method::Contract(ContractMethod { sig: &method.sig }));
                             } else {
                                 sink.push_spanned(
                                     &contract_impl.self_ty,
@@ -158,6 +159,18 @@ impl<'a> Contract<'a> {
                             }));
 
                             validate_contract_method(sink, &method, None)
+                        },
+                        MsgAttr::ExecuteGuard => {
+                            if execute_guard.is_some() {
+                                sink.push_spanned(
+                                    &contract_impl.self_ty,
+                                    format!("Only one method can be annotated as #[{}].", MsgAttr::EXECUTE_GUARD)
+                                );
+                            } else {
+                                execute_guard = Some(&method.sig);
+                            }
+
+                            validate_contract_method(sink, &method, Some(parse_quote!(())))
                         }
                     };
 
@@ -201,7 +214,11 @@ impl<'a> Contract<'a> {
                         ),
                         MsgAttr::Init { entry } => {
                             if entry {
-                                init = Some(method);
+                                init = Some(Method::Interface(InterfaceMethod {
+                                    sig: &method.sig,
+                                    trait_: &interface.trait_.as_ref().unwrap().1
+                                }));
+
                                 has_init = true;
                             }
 
@@ -221,10 +238,20 @@ impl<'a> Contract<'a> {
                                 trait_: &interface.trait_.as_ref().unwrap().1
                             }));
                         }
-                    },
+                        MsgAttr::ExecuteGuard => sink.push_spanned(
+                            &method.sig.ident,
+                            format!(
+                                "Interfaces cannot have the #[{}] attribute.",
+                                MsgAttr::EXECUTE_GUARD
+                            )
+                        )
+                    }
                     None => sink.push_spanned(
                         &method.sig.ident,
-                        format!("Expecting exactly one attribute of: {:?}", MsgAttr::ALL)
+                        format!(
+                            "Expecting exactly one attribute of: {:?}",
+                            [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
+                        )
                     )
                 }
             }
@@ -234,11 +261,12 @@ impl<'a> Contract<'a> {
             let entry = Entrypoints {
                 init: generate::init_fn(
                     sink,
-                    &init.sig
+                    &init
                 ),
                 execute: generate::execute_fn(
                     sink,
-                    &execute
+                    &execute,
+                    execute_guard
                 ),
                 query: generate::query_fn(
                     sink,
@@ -247,7 +275,7 @@ impl<'a> Contract<'a> {
             };
     
             Some(Interfaces {
-                init_msg: generate::init_msg(sink, &init.sig),
+                init_msg: generate::init_msg(sink, init.sig()),
                 execute_msg: generate::messages(
                     sink,
                     MsgType::Execute,
@@ -261,6 +289,16 @@ impl<'a> Contract<'a> {
                 entry
             })
         } else {
+            if let Some(guard) = execute_guard {
+                sink.push_spanned(
+                    guard,
+                    format!(
+                        "#[{}] attribute has no effect when no entry point is defined. Either remove it or set an entry point for the contract.",
+                        MsgAttr::EXECUTE_GUARD
+                    )
+                );
+            }
+
             None
         };
 

@@ -4,6 +4,7 @@ use quote::quote;
 use crate::err::ErrorSink;
 
 /// Represents the generic types in `std::result::Result<T, E>`.
+#[derive(Debug)]
 pub struct ResultType<'a> {
     pub value: &'a GenericArgument,
     pub error: &'a GenericArgument

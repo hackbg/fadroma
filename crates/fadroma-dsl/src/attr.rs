@@ -33,19 +33,15 @@ pub const ENTRY_META: &str = "entry";
 pub enum MsgAttr {
     Init { entry: bool },
     Execute,
-    Query
+    Query,
+    ExecuteGuard
 }
 
 impl MsgAttr {
-    pub const ALL: [&'static str; 3] = [
-        Self::INIT,
-        Self::EXECUTE,
-        Self::QUERY
-    ];
-
     pub const INIT: &str = "init";
     pub const EXECUTE: &str = "execute";
     pub const QUERY: &str = "query";
+    pub const EXECUTE_GUARD: &str = "execute_guard";
 
     pub fn parse(sink: &mut ErrorSink, attrs: &[Attribute]) -> Option<Self> {
         for attr in attrs {
@@ -80,6 +76,11 @@ impl MsgAttr {
                         assert_is_path_ident(sink, &meta);
 
                         Some(Self::Query)
+                    },
+                    Self::EXECUTE_GUARD => {
+                        assert_is_path_ident(sink, &meta);
+
+                        Some(Self::ExecuteGuard)
                     }
                     _ => None
                 };

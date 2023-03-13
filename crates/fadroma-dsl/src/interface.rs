@@ -91,10 +91,20 @@ impl Interface {
                                 validate_method(sink, &method, None);
                                 query.push(method);
                             }
+                            MsgAttr::ExecuteGuard => sink.push_spanned(
+                                &method.sig.ident,
+                                format!(
+                                    "Interfaces cannot have the #[{}] attribute.",
+                                    MsgAttr::EXECUTE_GUARD
+                                )
+                            )
                         }
                         None => sink.push_spanned(
                             &method.sig.ident,
-                            format!("Expecting exactly one attribute of: {:?}", MsgAttr::ALL)
+                            format!(
+                                "Expecting exactly one attribute of: {:?}",
+                                [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
+                            )
                         )
                     }
                 }
