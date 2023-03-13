@@ -1,5 +1,7 @@
 # Fadroma Upload
 
+This package implements **uploading WASM files to get code ids**.
+
 ## Upload CLI
 
 ```shell
@@ -19,12 +21,51 @@ await uploader({ /* options */ }).uploadMany(['contract', 'contract'])
 await uploader({ /* options */ }).uploadMany({ c1: 'contract', c2: 'contract' })
 ```
 
-## Uploader variants
+### Upload state
 
-### FSUploader
+Contracts start out as source code, which `@fadroma/build` compiles to binary artifacts
+(WASM files). The `Uploader` class takes care of uploading them and producing a JSON file
+containing upload metadata, which we call an **upload receipt**.
 
-### FetchUploader
+```typescript
+import { JSONDirectory, withTmpDir } from '@hackbg/file'
+import { DeployConfig, FSUploader } from '@fadroma/deploy'
+import { Agent, Uploader, ContractTemplate } from '@fadroma/core'
+import { examples } from '../../TESTING.ts.md'
+let config:   DeployConfig
+let uploader: Uploader
+let agent:    Agent = { chain: { id: 'testing' }, upload: async x => x }
+let artifact: URL = examples['KV'].url
+let template: ContractTemplate = new ContractTemplate({ artifact })
+```
 
-## Upload events
+When trying to upload a binary file, the `Uploader` checks if a corresponding receipt exists;
+if it does, it returns the existing code ID instead of uploading the same file twice.
 
-## Upload errors
+```typescript
+config = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' })
+uploader = await config.getUploader()
+ok(uploader instanceof Uploader)
+
+await withTmpDir(async path=>{
+  uploader = new FSUploader(agent, new JSONDirectory(path))
+  ok(uploader.agent === agent)
+  ok(await uploader.upload(template))
+  ok(await uploader.upload(template))
+  ok(await uploader.uploadMany([template]))
+})
+```
+
+### Uploader variants
+
+#### FSUploader
+
+`FSUploader` uploads WASM to the chain from local files.
+
+#### FetchUploader
+
+`FetchUploader`, uploads WASM to the chain from remote URLs.
+
+### Upload events
+
+### Upload errors

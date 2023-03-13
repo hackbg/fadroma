@@ -1,14 +1,30 @@
 # Fadroma Deploy Specification
 
-This package implements **uploading contracts from the filesystem**,
-as well as **keeping track of contracts instantiated through the Fadroma Core API**.
+## Deploy CLI
 
-> Run tests with `pnpm test`.
-> Measure coverage with `pnpm cov`.[^1]
-> Publish with `pnpm ubik`.
-> [^1]: Note that stack traces output by `pnpm cov` coverage mode point to line numbers in
->       the compiled code. This is to get correct line numbers in the coverage report.
->       To get the same stack trace with correct line numbers, run `pnpm test`.
+```sh
+$ fadroma deploy
+$ fadroma deploy path-to-script.ts
+$ fadroma redeploy
+```
+
+## Deploy API
+
+```typescript
+import deployer, { Deployment } from '@fadroma/deploy'
+
+export class MyDeployment extends Deployment {
+  foo = this.contract({ /* ... */ })
+}
+
+await deployer({
+  /* options */
+}).deploy(
+  new MyDeployment()
+)
+```
+
+### Deploy configuration
 
 Both uploading and instantiation are *idempotent* actions:
 * Contract instances are only deployed *once*.
@@ -16,56 +32,11 @@ Both uploading and instantiation are *idempotent* actions:
   it only makes sense to upload it *once*.
 
 Therefore, caching is implemented in the form of:
-* **Deploy receipts**: records of one or more deployed contract instances.
-* **Upload receipts**: records of a single uploaded contract binary.
 
 This package concerns itself chiefly with the handling of deploy and upload receipts,
 and defines the following entities:
 
-## Deploy config
-
-Interacting with the Fadroma Deploy package starts by creating a `DeployConfig`:
-  * It fetches configuration from environment variables
-  * It produces configured `DeployStore` instances.
-  * It produces configured `Deployer` instances.
-
-```typescript
-import { DeployConfig, DeployStore } from '@fadroma/deploy'
-let config: DeployConfig = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' }, process.cwd())
-ok(new config.DeployStore() instanceof DeployStore)
-await config.getDeployStore()
-await config.getDeployer()
-```
-
-## Deployment events
-
-```typescript
-import { DeployConsole } from '.'
-
-const log = new DeployConsole()
-log.console = { log: () => {}, info: () => {}, warn: () => {}, error: () => {} }
-
-log.deployment({})
-log.deployment({ deployment: { name: '', state: {} } })
-log.deployment({ deployment: { name: '', state: { x: { address: 'x' } } } })
-
-log.receipt('', '')
-
-log.deployFailed(new Error(), {}, '', '')
-
-log.deployManyFailed({}, [], new Error())
-log.deployManyFailed({}, [['name', 'init']], new Error())
-
-log.deployFailedContract()
-
-log.warnNoDeployment()
-log.warnNoAgent()
-log.warnNoDeployAgent()
-
-log.deployStoreDoesNotExist()
-```
-
-## Deployment
+### Deployment
 
 ```typescript
 import { Client, Deployment } from '@fadroma/core'
@@ -180,7 +151,7 @@ await inTmpDeployment(async deployment=>{
 })*/
 ```
 
-## Deployer
+### Deployer
 
 * `Deployer`: a subclass of `Deployment` which stores deploy receipts
   in a specific `DeployStore` and can load data from them into itself.
@@ -210,22 +181,17 @@ ok(await context.listContracts() ?? true)
 ok(await context.save() ?? true)
 ```
 
-## Uploader
-
-### FSUploader
-
-`FSUploader` uploads WASM to the chain from local files.
-
-### FetchUploader
-
-`FetchUploader`, uploads WASM to the chain from remote URLs.
-
-## Deploy store
+### Deploy store
 
 Several of those are currently supported for historical and compatibility reasons.
 
+#### YAML1
+
 * `YAML1.YAMLDeployments_v1` and `YAML2.YAMLDeploymentss_v2` are ad-hoc
   storage formats used by the original deployer implementations.
+
+#### JSON1
+
 * `JSON1.JSONDeployments_v1` is the first version of the stable deploy receipt API.
 
 ```typescript
@@ -264,6 +230,34 @@ for (const $DeployStore of [
   })
 }
 
+```
+
+### Deployment events
+
+```typescript
+import { DeployConsole } from '.'
+
+const log = new DeployConsole()
+log.console = { log: () => {}, info: () => {}, warn: () => {}, error: () => {} }
+
+log.deployment({})
+log.deployment({ deployment: { name: '', state: {} } })
+log.deployment({ deployment: { name: '', state: { x: { address: 'x' } } } })
+
+log.receipt('', '')
+
+log.deployFailed(new Error(), {}, '', '')
+
+log.deployManyFailed({}, [], new Error())
+log.deployManyFailed({}, [['name', 'init']], new Error())
+
+log.deployFailedContract()
+
+log.warnNoDeployment()
+log.warnNoAgent()
+log.warnNoDeployAgent()
+
+log.deployStoreDoesNotExist()
 ```
 
 ## Deploying contracts
@@ -369,12 +363,12 @@ assert.equal(typeof aClient.execute, 'function')
 
 Congratulations, you've deployed a globally persistent object!
 
-## Interacting with contracts using the `Client`
+### Interacting with contracts using the `Client`
 
 The result of deploying a contract is a `Client` instance -
 an object containing the info needed to talk to the contract.
 
-### `client.meta`
+#### `client.meta`
 
 The original `Contract` object from which the contract
 was deployed can be found on the optional `meta` property of the `Client`.
@@ -384,7 +378,7 @@ assert.ok(aClient.meta instanceof Contract)
 assert.equal(aClient.meta.deployedBy, agent.address)
 ```
 
-### `client.agent`
+#### `client.agent`
 
 By default, the `Client`'s `agent` property is equal to the `agent`
 which deployed the contract. This property determines the address from
@@ -399,7 +393,7 @@ assert.equal(aClient.agent, agent)
 aClient.agent = await chain.getAgent()
 ```
 
-## Retrieving existing contracts from the `Deployment`
+### Retrieving existing contracts from the `Deployment`
 
 > You can't step in the same river twice
 > *-Parmenides*
@@ -442,7 +436,7 @@ assert.equal(clientToContractOne.address, anotherClientToContractOne.address)
 
 This creates a new `Client` pointing to the same contract.
 
-## Deploying more contracts; overriding defaults
+### Deploying more contracts; overriding defaults
 
 What if you want to deploy another contract of the same kind?
 That's easy, just provide a different name, as in the following example;
@@ -457,7 +451,7 @@ assert.equal(templateClientOne.meta.label, 'testing/template-instance-1')
 assert.equal(templateClientTwo.meta.label, 'testing/template-instance-2')
 ```
 
-## Deploying multiple instances
+### Deploying multiple instances
 
 To deploy multiple contract instances from the same code,
 you can use templates.
@@ -474,35 +468,6 @@ const { templateClientFoo, templateClientBar } = await template.instances({
   templateClientFoo: { name: 'name6', initMsg: { parameter: 'value6' } },
 })
 ```
-
-## Defining your contract's methods
-
-Back to the `Client` class. Once you have some idea of what methods your contract will support,
-you'll want to extend `Client` and implement them there:
-
-```typescript
-class MyClient extends Client {
-  myMethod () {
-    return this.execute({ my_method: {} })
-  }
-  myQuery () {
-    return this.query({ my_query: {} })
-  }
-}
-
-const templateWithCustomClient = deployment.template({ codeId: 2, client: MyClient })
-const instanceWithCustomClient = templateWithCustomClient.instance({
-  name: 'custom-client-contract', initMsg: {} 
-})
-const customClient = await instanceWithCustomClient
-assert.ok(customClient instanceof MyClient)
-assert.ok(await customClient.myMethod())
-assert.ok(await customClient.myQuery())
-```
-
-By publishing a library of `Client` subclasses corresponding to your contracts,
-you can provide a robust API to users of your project, so that they can in turn
-integrate it into their systems.
 
 ```typescript
 import assert from 'node:assert'

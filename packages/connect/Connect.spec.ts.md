@@ -3,6 +3,16 @@
 This package acts as a hub for the available Fadroma Agent API implementations.
 In practical terms, it allows you to connect to every backend that Fadroma supports.
 
+## Connect CLI
+
+```typescript
+$ fadroma chain list
+```
+
+### Connection configuration
+
+## Connect API
+
 ```typescript
 import connect from '@fadroma/connect'
 
@@ -11,19 +21,13 @@ const agent = await connect()
 const [agent1, agent2] = await connect.many([{}, {}])
 
 const [agent3, agent4] = await connect.many({ agent3: {}, agent4: {} })
+
+const connectToMocknet = connect.config({ chain: 'mocknet' })
 ```
 
-## Connection configuration
+### Connecting to...
 
-```typescript
-const connectToMocknet = connect.config({
-  chain: 'mocknet'
-})
-```
-
-## Connecting to...
-
-### Secret Network
+#### Secret Network
 
 ```typescript
 import Scrt from '@fadroma/scrt'
@@ -117,7 +121,62 @@ for (const Chain of supportedChains) {
 }
 ```
 
-## Feature parity
+### Connection to deployments
+
+```typescript
+import { Connector, connect } from '.'
+let context: Connector
+//context = connect()
+//context = connect({ config: { chain: 'id' } })
+context = await config.connect()
+```
+
+### Connection events
+
+```typescript
+import { ConnectConsole } from '.'
+const log = new ConnectConsole()
+
+log.noName({})        // Report When no chain has been selected.
+log.supportedChains() // Report a list of supported chains
+
+log.selectedChain()   // Report the currently selected chain
+log.selectedChain({})
+log.selectedChain({ chain: 'x' })
+
+log.chainStatus({})
+log.chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+})
+log.chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] } }
+})
+log.chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] }, active: { name: 4 } }
+})
+```
+
+### Connection errors
+
+```typescript
+import { ConnectError } from './connect-events'
+
+// When no target chain has been specified:
+assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
+
+// When an unknown target chain has been requested:
+assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
+```
+
+```typescript
+import * as Testing from '../../TESTING.ts.md'
+import * as Fadroma from '@fadroma/connect'
+import assert, { ok, equal, deepEqual } from 'assert'
+```
+
+## Feature parity: chain internals
 
 Fadroma wraps a common subset of underlying platform featuress into a common API.
 This centers on the compute API (for executing contracts) and the bank API (for paying fees).
@@ -230,59 +289,4 @@ async function supportsSmartContracts (Chain) {
   assert.ok(await agent.execute(new ContractInstance({})))
   assert.ok(await agent.query(new ContractInstance({})))
 }
-```
-
-## Deployment connectors
-
-```typescript
-import { Connector, connect } from '.'
-let context: Connector
-//context = connect()
-//context = connect({ config: { chain: 'id' } })
-context = await config.connect()
-```
-
-## Connection events
-
-```typescript
-import { ConnectConsole } from '.'
-const log = new ConnectConsole()
-
-log.noName({})        // Report When no chain has been selected.
-log.supportedChains() // Report a list of supported chains
-
-log.selectedChain()   // Report the currently selected chain
-log.selectedChain({})
-log.selectedChain({ chain: 'x' })
-
-log.chainStatus({})
-log.chainStatus({
-  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
-})
-log.chainStatus({
-  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
-  deployments: { list () { return [] } }
-})
-log.chainStatus({
-  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
-  deployments: { list () { return [] }, active: { name: 4 } }
-})
-```
-
-## Connection errors
-
-```typescript
-import { ConnectError } from './connect-events'
-
-// When no target chain has been specified:
-assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
-
-// When an unknown target chain has been requested:
-assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
-```
-
-```typescript
-import * as Testing from '../../TESTING.ts.md'
-import * as Fadroma from '@fadroma/connect'
-import assert, { ok, equal, deepEqual } from 'assert'
 ```

@@ -25,9 +25,9 @@
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve",
 
-    "test":          "time ensuite SPEC.ts.md",
-    "test:cov":      "time ensuite-cov -r text -n packages -n platforms -n toolbox -- SPEC.ts.md",
-    "test:lcov":     "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- SPEC.ts.md",
+    "test":          "time ensuite Fadroma.spec.ts.md",
+    "test:cov":      "time ensuite-cov -r text -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
+    "test:lcov":     "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
     "test:build":    "./packages/build/build.ts",
     "test:build:kv": "./packages/build/build.ts examples/kv",
 

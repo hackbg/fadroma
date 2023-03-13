@@ -109,40 +109,8 @@ To run a Fadroma script:
 $ fadroma run script.ts
 ```
 
-Example scripts:
+### Script API specifications
 
 ```typescript
-// ... do stuff
-```
-
-```typescript
-export default function doStuff () {
-  // ... do stuff
-}
-```
-
-```typescript
-export function doStuff1 () {
-  // ... do stuff
-}
-
-export function doStuff2 () {
-  // ... do stuff
-}
-```
-
-```typescript
-import Fadroma from '@hackbg/fadroma'
-
-export class MyCommands extends Fadroma {
-  doStuff1 = this.command('do-stuff-1', () => {
-    // ...
-  })
-  doStuff2 = this.command('do-stuff-2', () => {
-    // ...
-  })
-}
-
-export default (...args) =>
-  new MyCommands().run(...args)
+import './packages/core/Core.spec.ts.md'
 ```

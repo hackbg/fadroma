@@ -21,9 +21,7 @@ import YAML from 'js-yaml'
 import YAML1 from './DeployStore_YAML_v1'
 import YAML2 from './DeployStore_YAML_v2'
 import JSON1 from './DeployStore_JSON_v1'
-
 Object.assign(DeployStore.variants, { YAML1, YAML2, JSON1 })
-
 export { DeployStore, YAML, YAML1, YAML2, JSON1 }
 
 export { default as DeployConfig } from './DeployConfig'
@@ -41,4 +39,12 @@ export * from './DeployerCommands'
 export { default as Deployer } from './Deployer'
 export * from './Deployer'
 
+export { default as uploader } from './upload'
 export * from './upload'
+
+import type Deployer from './Deployer'
+import DeployConfig from './DeployConfig'
+export function deployer (options: Partial<DeployConfig> = {}): Promise<Deployer> {
+  //@ts-ignore
+  return new DeployConfig(options).getDeployer()
+}

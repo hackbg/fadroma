@@ -11,7 +11,27 @@ which uses Docker or Podman for running a devnet container.
 Fadroma contains container images based on `localsecret`,
 for versions of Secret Network 1.2 to 1.7.
 
-## Connecting to a devnet
+## Devnet CLI
+
+```sh
+$ npx fadroma devnet start
+$ npx fadroma devnet stop
+$ npx fadroma devnet export
+$ npx fadroma devnet clear
+```
+
+## Devnet API
+
+```typescript
+import devnet from '@fadroma/devnet'
+
+const chain = await devnet({ /* options */ }).start()
+await chain.stop()
+await chain.export()
+await chain.clear()
+```
+
+### Connecting to a devnet
 
 ### Using genesis accounts
 
@@ -64,11 +84,11 @@ await resetDevnet({ chain: null })
 await resetDevnet()
 ```
 
-## Exporting a devnet with deployed contracts
+### Exporting a devnet with deployed contracts
 
-## Resetting the devnet
+### Resetting the devnet
 
-## Internals
+## Devnet internals
 
 ### Implementing devnet support for a chain
 

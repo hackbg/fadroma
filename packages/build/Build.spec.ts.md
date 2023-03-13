@@ -52,147 +52,7 @@ const {template3, template4} = await builder().buildMany({
 })
 ```
 
-### Build caching
-
-When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
-for a corresponding pre-existing build and reuses it if present.
-
-Setting `FADROMA_REBUILD` disables build caching.
-
-### The build procedure
-
-The ultimate build procedure, i.e. actual calls to `cargo` and such,
-is implemented in the standalone script `FADROMA_BUILD_SCRIPT` (default: `build.impl.mjs`),
-which is launched by the builders.
-
-## Builders
-
-The subclasses of the abstract base class `Builder` in Fadroma Core
-implement the compilation procedure for contracts.
-
-### ContainerBuilder
-
-`ContainerBuilder` is the default builder when the `FADROMA_BUILD_RAW` option is not set.
-
-```typescript
-import { ContainerBuilder } from '@fadroma/build'
-
-const containerBuilder = new BuilderConfig({ buildRaw: false }).getBuilder()
-
-ok(containerBuilder instanceof ContainerBuilder)
-```
-
-`ContainerBuilder` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
-operate the container engine. Currently, `@hackbg/dock` supports Docker; soon it will
-also support Podman.
-
-```typescript
-import * as Dokeres from '@hackbg/dock'
-
-ok(containerBuilder.docker instanceof Dokeres.Engine)
-```
-
-Use `FADROMA_DOCKER` to specify a non-default Docker socker path
-
-```typescript
-ok(new BuilderConfig({ buildRaw: false, dockerSocket: 'test' }).getBuilder().docker
-  instanceof Dokeres.Engine)
-```
-
-`ContainerBuilder` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
-in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
-being output to the `FADROMA_ARTIFACTS` directory.
-
-```typescript
-```
-
-If it's not possible to pull the `FADROMA_BUILD_IMAGE`,
-it is built from the `FADROMA_BUILD_DOCKERFILE`.
-
-```typescript
-config  = new BuilderConfig()
-builder = config.getBuilder()
-equal(builder.image.name, config.dockerImage)
-equal(builder.dockerfile, config.dockerfile)
-```
-
-Let's mock out the build image and the stateful methods to simplify the test:
-
-```typescript
-// Mocks:
-builder.image        = new Dokeres.Engine().image('test/build:image')
-builder.image.ensure = async () => true
-builder.image.run    = async () => ({ wait: () => Promise.resolve({StatusCode: 0}) })
-builder.hashPath     = () => 'code hash ok'
-builder.prebuilt     = () => false
-builder.fetch        = () => Promise.resolve()
-```
-
-Now, let's build a contract:
-
-```typescript
-import { resolve } from 'path'
-import { fileURLToPath } from 'url'
-const workspace = '/tmp/fadroma-test'
-const crate     = 'crate'
-let { artifact, codeHash } = await builder.build({ workspace, crate })
-equal(fileURLToPath(artifact), builder.outputDir.at(`${crate}@HEAD.wasm`).path)
-equal(codeHash, 'code hash ok')
-```
-
-Building multiple contracts:
-
-```typescript
-ok(await builder.buildMany([
-  { workspace, crate: 'crate1' }
-  { workspace, crate: 'crate2', revision: 'HEAD' }
-  { workspace, crate: 'crate3', revision: 'asdf' }
-]))
-```
-
-### RawBuilder
-
-Where Docker is unavailable (e.g. in a CI that is already running in containers),
-you can use **RawBuilder** to just run builds in the host environment.
-
-  * It is enabled by setting `FADROMA_BUILD_RAW=1` in the environment,
-    or by setting `buildRaw` to `true` in the `BuildConfig`.
-
-```typescript
-import { RawBuilder } from '@fadroma/build'
-config.buildRaw = true
-builder = config.getBuilder()
-ok(builder instanceof RawBuilder)
-```
-
-  * It still uses the same build script as ContainerBuilder, but instead of a container
-    it just runs the build script as a subprocess.
-
-```typescript
-// Mocks:
-builder.spawn     = () => ({ on (event, callback) { callback(0) } })
-builder.hashPath  = () => 'code hash ok'
-builder.prebuilt  = () => false
-builder.fetch     = () => Promise.resolve()
-builder.getGitDir = () => ({ present: true })
-```
-
-  * When using the RawBuilder, you're responsible for providing a working Rust toolchain
-    in its runtime environment, build reproducibility is dependent on the consistency of
-    that environment.
-
-```typescript
-ok(await builder.build({ workspace, crate }))
-ok(await builder.buildMany([
-  { workspace, crate: 'crate1' }
-  { workspace, crate: 'crate2', revision: 'HEAD' }
-  { workspace, crate: 'crate3', revision: 'asdf' }
-]))
-```
-
-  * `RawBuilder`, which runs it using the local Rust toolchain.
-
-## Specifying sources
+### Specifying sources
 
 Represents the source code of a contract.
   * Compiling a source populates the `artifact` property.
@@ -275,6 +135,146 @@ const contractWithSource = new ContractSource({
 
 ok(getGitDir(contractWithSource) instanceof DotGit)
 ```
+
+### Build caching
+
+When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
+for a corresponding pre-existing build and reuses it if present.
+
+Setting `FADROMA_REBUILD` disables build caching.
+
+### The build procedure
+
+The ultimate build procedure, i.e. actual calls to `cargo` and such,
+is implemented in the standalone script `FADROMA_BUILD_SCRIPT` (default: `build.impl.mjs`),
+which is launched by the builders.
+
+### Builders
+
+The subclasses of the abstract base class `Builder` in Fadroma Core
+implement the compilation procedure for contracts.
+
+#### ContainerBuilder
+
+`ContainerBuilder` is the default builder when the `FADROMA_BUILD_RAW` option is not set.
+
+```typescript
+import { ContainerBuilder } from '@fadroma/build'
+
+const containerBuilder = new BuilderConfig({ buildRaw: false }).getBuilder()
+
+ok(containerBuilder instanceof ContainerBuilder)
+```
+
+`ContainerBuilder` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
+operate the container engine. Currently, `@hackbg/dock` supports Docker; soon it will
+also support Podman.
+
+```typescript
+import * as Dokeres from '@hackbg/dock'
+
+ok(containerBuilder.docker instanceof Dokeres.Engine)
+```
+
+Use `FADROMA_DOCKER` to specify a non-default Docker socker path
+
+```typescript
+ok(new BuilderConfig({ buildRaw: false, dockerSocket: 'test' }).getBuilder().docker
+  instanceof Dokeres.Engine)
+```
+
+`ContainerBuilder` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
+in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
+being output to the `FADROMA_ARTIFACTS` directory.
+
+```typescript
+```
+
+If it's not possible to pull the `FADROMA_BUILD_IMAGE`,
+it is built from the `FADROMA_BUILD_DOCKERFILE`.
+
+```typescript
+config  = new BuilderConfig()
+builder = config.getBuilder()
+equal(builder.image.name, config.dockerImage)
+equal(builder.dockerfile, config.dockerfile)
+```
+
+Let's mock out the build image and the stateful methods to simplify the test:
+
+```typescript
+// Mocks:
+builder.image        = new Dokeres.Engine().image('test/build:image')
+builder.image.ensure = async () => true
+builder.image.run    = async () => ({ wait: () => Promise.resolve({StatusCode: 0}) })
+builder.hashPath     = () => 'code hash ok'
+builder.prebuilt     = () => false
+builder.fetch        = () => Promise.resolve()
+```
+
+Now, let's build a contract:
+
+```typescript
+import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+const workspace = '/tmp/fadroma-test'
+const crate     = 'crate'
+let { artifact, codeHash } = await builder.build({ workspace, crate })
+equal(fileURLToPath(artifact), builder.outputDir.at(`${crate}@HEAD.wasm`).path)
+equal(codeHash, 'code hash ok')
+```
+
+Building multiple contracts:
+
+```typescript
+ok(await builder.buildMany([
+  { workspace, crate: 'crate1' }
+  { workspace, crate: 'crate2', revision: 'HEAD' }
+  { workspace, crate: 'crate3', revision: 'asdf' }
+]))
+```
+
+#### RawBuilder
+
+Where Docker is unavailable (e.g. in a CI that is already running in containers),
+you can use **RawBuilder** to just run builds in the host environment.
+
+  * It is enabled by setting `FADROMA_BUILD_RAW=1` in the environment,
+    or by setting `buildRaw` to `true` in the `BuildConfig`.
+
+```typescript
+import { RawBuilder } from '@fadroma/build'
+config.buildRaw = true
+builder = config.getBuilder()
+ok(builder instanceof RawBuilder)
+```
+
+  * It still uses the same build script as ContainerBuilder, but instead of a container
+    it just runs the build script as a subprocess.
+
+```typescript
+// Mocks:
+builder.spawn     = () => ({ on (event, callback) { callback(0) } })
+builder.hashPath  = () => 'code hash ok'
+builder.prebuilt  = () => false
+builder.fetch     = () => Promise.resolve()
+builder.getGitDir = () => ({ present: true })
+```
+
+  * When using the RawBuilder, you're responsible for providing a working Rust toolchain
+    in its runtime environment, build reproducibility is dependent on the consistency of
+    that environment.
+
+```typescript
+ok(await builder.build({ workspace, crate }))
+ok(await builder.buildMany([
+  { workspace, crate: 'crate1' }
+  { workspace, crate: 'crate2', revision: 'HEAD' }
+  { workspace, crate: 'crate3', revision: 'asdf' }
+]))
+```
+
+  * `RawBuilder`, which runs it using the local Rust toolchain.
 
 ## Build events
 

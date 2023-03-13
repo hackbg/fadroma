@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "@hackbg/fadroma": "link:../.."
+  }
+}

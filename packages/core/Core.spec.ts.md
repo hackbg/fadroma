@@ -112,7 +112,7 @@ block height increments.
 ```typescript
 const height = await agent.height // Get the current block height
 await agent.nextBlock             // Wait for the block height to increment
-assert(await agent.height === height + 1)
+assert.equal(await agent.height, height + 1)
 ```
 
 #### Gas fees
@@ -194,13 +194,13 @@ await agent.query({ address: 'address', codeHash: 'codeHash' }, { parameters: 'v
 await agent.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
 
 // Broadcasting multiple execute calls as a single transaction message
-await agent.bundle().wrap(bundle=>{
+await agent.bundle().wrap(async bundle=>{
   await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
   await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
 })
 ```
 
-### Client: contracts
+### Client: talking to contracts
 
 Represents an interface to an existing contract.
   * The default `Client` class allows passing messages to the contract instance.
@@ -242,6 +242,33 @@ assert.equal(
   'ok'
 )
 ```
+
+Once you know what methods your contract will support,
+you'll want to extend `Client` and implement them there:
+
+```typescript
+class MyClient extends Client {
+  myMethod () {
+    return this.execute({ my_method: {} })
+  }
+  myQuery () {
+    return this.query({ my_query: {} })
+  }
+}
+
+const templateWithCustomClient = deployment.template({ codeId: 2, client: MyClient })
+const instanceWithCustomClient = templateWithCustomClient.instance({
+  name: 'custom-client-contract', initMsg: {} 
+})
+const customClient = await instanceWithCustomClient
+assert.ok(customClient instanceof MyClient)
+assert.ok(await customClient.myMethod())
+assert.ok(await customClient.myQuery())
+```
+
+By publishing a library of `Client` subclasses corresponding to your contracts,
+you can provide a robust API to users of your project, so that they can in turn
+integrate it into their systems.
 
 #### Code hashes
 
@@ -294,8 +321,8 @@ use Bundles.
 
 ```typescript
 import { Chain, Agent, Bundle } from '@fadroma/core'
-let chain: Chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
-let agent: Agent = await chain.getAgent()
+chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+agent = await chain.getAgent()
 let bundle: Bundle
 class TestBundle extends Bundle {
   async submit () { return 'submitted' }
@@ -424,18 +451,18 @@ Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
 #### Contract lifecycle
 
 The `Metadata` class is the base class of the
-`ContractSource`->`ContractTemplate`->`ContractInstance` inheritance chain.
+`ContractSource`->`ContractTemplate`->`Contract` inheritance chain.
 
 #### Contract
 
 Represents a contract that is instantiated from a `codeId`.
   * Can have an `address`.
-  * You can get a `Client` from a `ContractInstance` using
+  * You can get a `Client` from a `Contract` using
     the `getClient` family of methods.
 
 ```typescript
-import { ContractInstance } from '@fadroma/core'
-let instance: ContractInstance = new ContractInstance()
+import { Contract } from '@fadroma/core'
+let instance: Contract = new Contract()
 assert.ok(instance.asReceipt)
 //assert.ok(await instance.define({ agent }).found)
 //assert.ok(await instance.define({ agent }).deployed)
@@ -476,7 +503,7 @@ custom error subclasses for various error conditions.
 
 ```typescript
 // Make sure each error subclass can be created with no arguments:
-import { ClientError } from './core-events'
+import ClientError from './Error'
 for (const subtype of [
   'Unimplemented',
   'UploadFailed',
@@ -538,7 +565,7 @@ In the future, this will enable semantic logging and/or GUI notifications.
 
 ```typescript
 // Make sure each log message can be created with no arguments:
-import { ClientConsole } from './core-events'
+import ClientConsole from './Console'
 const log = new ClientConsole()
 
 log.object()
@@ -587,11 +614,13 @@ log.warnEmptyBundle()
 ### Inter-contract communication
 
 ```typescript
-import { templateStruct, linkStruct } from '@fadroma/core'
+/*import { templateStruct } from '@fadroma/core'
 assert.deepEqual(
   templateStruct({ codeId: '123', codeHash: 'hash'}),
   { id: 123, code_hash: 'hash' }
-)
+)*/
+
+import { linkStruct } from '@fadroma/core'
 assert.deepEqual(
   linkStruct({ address: 'addr', codeHash: 'hash'}),
   { address: 'addr', code_hash: 'hash' }

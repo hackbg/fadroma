@@ -56,12 +56,12 @@ importers:
       '@hackbg/logs': link:ensuite/toolbox/logs
     devDependencies:
       '@hackbg/ensuite': link:ensuite
-      '@hackbg/ganesha': link:ensuite/ganesha
+      '@hackbg/ganesha': 2.3.0
       '@hackbg/spec': link:ensuite/toolbox/spec
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
       '@types/js-yaml': 4.0.5
-      '@types/node': 18.15.1
+      '@types/node': 18.15.2
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
@@ -79,7 +79,7 @@ importers:
 
   ensuite:
     specifiers:
-      '@hackbg/ganesha': workspace:^2.3
+      '@hackbg/ganesha': workspace:^3
       '@hackbg/spec': workspace:^1
       '@hackbg/ubik': workspace:^1.2.2
       c8: ^7.12
@@ -104,9 +104,10 @@ importers:
 
   ensuite/ganesha:
     specifiers:
-      '@ganesha/core': workspace:^2
+      '@ganesha/core': workspace:^3
       '@ganesha/node': workspace:^2.3.3
       '@ganesha/node-legacy': workspace:^3.0.2
+      '@ganesha/ts': workspace:^1
       '@hackbg/spec': ^1
       c8: ^7.11.0
       chokidar: ^3.5.3
@@ -114,9 +115,10 @@ importers:
       typescript: ^4.9
       vite: ^2.8.4
     dependencies:
-      '@ganesha/core': link:src/core
-      '@ganesha/node': link:src/node
-      '@ganesha/node-legacy': link:src/node-legacy
+      '@ganesha/core': link:core
+      '@ganesha/node': link:node
+      '@ganesha/node-legacy': link:node-legacy
+      '@ganesha/ts': link:ts
       cross-spawn: 7.0.3
     devDependencies:
       '@hackbg/spec': link:../toolbox/spec
@@ -125,33 +127,30 @@ importers:
       typescript: 4.9.4
       vite: 2.9.14
 
-  ensuite/ganesha/src/core:
+  ensuite/ganesha/core:
     specifiers:
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      typescript: ^4.9
+      marked: ^4.2.12
     dependencies:
-      joycon: 3.1.1
-      jsonc-parser: 3.1.0
-      typescript: 4.9.4
+      marked: 4.2.12
 
-  ensuite/ganesha/src/node:
+  ensuite/ganesha/node:
     specifiers:
-      '@ganesha/core': workspace:^2
+      '@ganesha/core': workspace:^3
+      '@ganesha/ts': workspace:^1
       front-matter: ^4.0.2
-      joycon: ^3.0.1
       jsonc-parser: ^3.0.0
       source-map-support: ^0.5.20
     dependencies:
       '@ganesha/core': link:../core
+      '@ganesha/ts': link:../ts
       front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.1.0
+      jsonc-parser: 3.2.0
       source-map-support: 0.5.21
 
-  ensuite/ganesha/src/node-legacy:
+  ensuite/ganesha/node-legacy:
     specifiers:
-      '@ganesha/core': workspace:^2
+      '@ganesha/core': workspace:^3
+      '@ganesha/ts': workspace:^1
       front-matter: ^4.0.2
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
@@ -159,21 +158,54 @@ importers:
       source-map-support: ^0.5.20
     dependencies:
       '@ganesha/core': link:../core
+      '@ganesha/ts': link:../ts
       front-matter: 4.0.2
       joycon: 3.1.1
-      jsonc-parser: 3.1.0
+      jsonc-parser: 3.2.0
       pirates: 4.0.5
       source-map-support: 0.5.21
 
-  ensuite/ganesha/src/rollup:
+  ensuite/ganesha/rollup:
     specifiers:
-      '@ganesha/core': workspace:^2
+      '@ganesha/core': workspace:^3
     dependencies:
       '@ganesha/core': link:../core
 
-  ensuite/ganesha/src/tsc:
+  ensuite/ganesha/test:
     specifiers:
-      '@ganesha/core': workspace:^2
+      '@ganesha/core': workspace:*
+      '@ganesha/node': workspace:*
+      '@ganesha/rollup': workspace:*
+      '@hackbg/spec': ^1
+      mkdirp: ^1.0.4
+      tap: ^15.0.9
+      typescript: ^4.9
+      vite: ^2.7.6
+    devDependencies:
+      '@ganesha/core': link:../core
+      '@ganesha/node': link:../node
+      '@ganesha/rollup': link:../rollup
+      '@hackbg/spec': link:../../toolbox/spec
+      mkdirp: 1.0.4
+      tap: 15.2.3_typescript@4.9.4
+      typescript: 4.9.4
+      vite: 2.9.14
+
+  ensuite/ganesha/ts:
+    specifiers:
+      '@ganesha/core': workspace:^3
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+      typescript: ^4.9
+    dependencies:
+      '@ganesha/core': link:../core
+      joycon: 3.1.1
+      jsonc-parser: 3.2.0
+      typescript: 4.9.4
+
+  ensuite/ganesha/tsc:
+    specifiers:
+      '@ganesha/core': workspace:^3
       '@ganesha/node': workspace:^2.3
       '@hackbg/ganesha': workspace:../..
       typescript: ^4.9
@@ -184,7 +216,7 @@ importers:
       '@hackbg/ganesha': link:../..
       typescript: 4.9.4
 
-  ensuite/ganesha/src/vsc:
+  ensuite/ganesha/vsc:
     specifiers:
       typescript: ^4.9
       vsce: latest
@@ -192,7 +224,7 @@ importers:
       typescript: 4.9.4
       vsce: 2.15.0
 
-  ensuite/ganesha/src/vsc/client:
+  ensuite/ganesha/vsc/client:
     specifiers:
       '@ganesha/vscode-shared': workspace:*
       '@types/vscode': latest
@@ -203,7 +235,7 @@ importers:
     devDependencies:
       '@types/vscode': 1.76.0
 
-  ensuite/ganesha/src/vsc/server:
+  ensuite/ganesha/vsc/server:
     specifiers:
       '@ganesha/core': workspace:*
       '@ganesha/vscode-shared': workspace:*
@@ -221,31 +253,11 @@ importers:
       vscode-typescript-languageservice: 0.27.25
       vscode-uri: 3.0.6
 
-  ensuite/ganesha/src/vsc/shared:
+  ensuite/ganesha/vsc/shared:
     specifiers:
       typescript: ^4.9
     devDependencies:
       typescript: 4.9.4
-
-  ensuite/ganesha/test:
-    specifiers:
-      '@ganesha/core': workspace:*
-      '@ganesha/node': workspace:*
-      '@ganesha/rollup': workspace:*
-      '@hackbg/spec': ^1
-      mkdirp: ^1.0.4
-      tap: ^15.0.9
-      typescript: ^4.9
-      vite: ^2.7.6
-    devDependencies:
-      '@ganesha/core': link:../src/core
-      '@ganesha/node': link:../src/node
-      '@ganesha/rollup': link:../src/rollup
-      '@hackbg/spec': link:../../toolbox/spec
-      mkdirp: 1.0.4
-      tap: 15.2.3_typescript@4.9.4
-      typescript: 4.9.4
-      vite: 2.9.14
 
   ensuite/toolbox:
     specifiers:
@@ -282,7 +294,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.15.1
+      '@types/node': 18.15.2
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -307,13 +319,13 @@ importers:
       '@types/secure-random': 1.1.0
       secure-random: 1.1.2
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/allo:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/cmds:
     specifiers:
@@ -328,7 +340,7 @@ importers:
       '@hackbg/task': link:../task
       '@hackbg/time': link:../time
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/conf:
     specifiers: {}
@@ -356,7 +368,7 @@ importers:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/file:
     specifiers:
@@ -387,7 +399,7 @@ importers:
       tmp: 0.2.1
       toml: 3.0.0
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
       '@hackbg/spec': link:../spec
       '@types/js-yaml': 4.0.5
       '@types/mkdirp': 1.0.2
@@ -404,19 +416,19 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/hide:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/into:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/logs:
     specifiers:
@@ -429,25 +441,25 @@ importers:
       '@hackbg/hide': link:../hide
       chalk: 4.1.2
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/many:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/oops:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/over:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/port:
     specifiers:
@@ -467,13 +479,13 @@ importers:
     dependencies:
       '@hackbg/logs': link:../logs
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/time:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
     devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
+      '@hackbg/ganesha': 2.3.0
 
   ensuite/toolbox/ubik:
     specifiers:
@@ -504,6 +516,12 @@ importers:
       '@hackbg/ubik': workspace:..
     devDependencies:
       '@hackbg/ubik': link:..
+
+  examples/scripts:
+    specifiers:
+      '@hackbg/fadroma': link:../..
+    dependencies:
+      '@hackbg/fadroma': link:../..
 
   guide:
     specifiers: {}
@@ -1185,6 +1203,24 @@ packages:
     dev: true
     optional: true
 
+  /@ganesha/core/2.0.1:
+    resolution: {integrity: sha512-eaYn9IpHWc8gzPB3sHgksAkluB0/lYKm41KrY+6vwGeUjCp6S6D/Rk5pRqpbQ0RsRyM5ah2ZmkBfnKpOVsyqUg==}
+    dependencies:
+      joycon: 3.1.1
+      jsonc-parser: 3.2.0
+      typescript: 4.9.4
+    dev: true
+
+  /@hackbg/ganesha/2.3.0:
+    resolution: {integrity: sha512-kpSgGTooNwWg5ROR6TMrh+9xKRjGLRy0MWE7L3M/cltZQpvJQ83b5Pf5QM7UiVboaW9iXCSKZTrC8/lNjk1e/w==}
+    hasBin: true
+    dependencies:
+      '@ganesha/core': 2.0.1
+      '@ganesha/node': link:ensuite/ganesha/node
+      '@ganesha/node-legacy': link:ensuite/ganesha/node-legacy
+      cross-spawn: 7.0.3
+    dev: true
+
   /@istanbuljs/load-nyc-config/1.1.0:
     resolution: {integrity: sha512-VjeHSlIzpv/NyD3N0YuHfXOPDIixcA1q2ZV98wsMqcYlPmv2n3Yb2lYP9XMElnaFVXg5A7YLTeLu6V84uQDjmQ==}
     engines: {node: '>=8'}
@@ -1389,7 +1425,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 18.15.1
+      '@types/node': 18.15.2
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -1408,7 +1444,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 18.15.1
+      '@types/node': 18.15.2
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1451,8 +1487,8 @@ packages:
     resolution: {integrity: sha512-93+VvleD3mXwlLI/xASjw0FzKcwzl3OdTCzm1LaRfqgS21gfFtK3zDXM5Op9TeeMsJVOaJ2VRDpT9q4Y3d0AvA==}
     dev: true
 
-  /@types/node/18.15.1:
-    resolution: {integrity: sha512-U2TWca8AeHSmbpi314QBESRk7oPjSZjDsR+c+H4ECC1l+kFgpZf8Ydhv3SJpPy51VyZHHqxlb6mTTqYNNRVAIw==}
+  /@types/node/18.15.2:
+    resolution: {integrity: sha512-sDPHm2wfx2QhrMDK0pOt2J4KLJMAcerqWNvnED0itPRJWvI+bK+uNHzcH1dFsBlf7G3u8tqXmRF3wkvL9yUwMw==}
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -1480,7 +1516,7 @@ packages:
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 18.15.1
+      '@types/node': 18.15.2
     dev: true
 
   /@types/tmp/0.2.3:
@@ -3707,7 +3743,6 @@ packages:
   /joycon/3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
-    dev: false
 
   /js-stringify/1.0.2:
     resolution: {integrity: sha512-rtS5ATOo2Q5k1G+DADISilDA6lv79zIiwFd6CcjuIxGKLFm5C+RLImRscVap9k55i+MOZwgliw+NejvkLuGD5g==}
@@ -3758,12 +3793,8 @@ packages:
     hasBin: true
     dev: true
 
-  /jsonc-parser/3.1.0:
-    resolution: {integrity: sha512-DRf0QjnNeCUds3xTjKlQQ3DpJD51GvDjJfnxUVWg6PZTo2otSm+slzNAxU/35hF8/oJIKoG9slq30JYOsF2azg==}
-
   /jsonc-parser/3.2.0:
     resolution: {integrity: sha512-gfFQZrcTc8CnKXp6Y4/CBT3fTc0OVuDofpre4aEeEpSBPV5X5v4+Vmx+8snU7RLPrNHPKSgLxGo9YuQzz20o+w==}
-    dev: true
 
   /jsprim/1.4.2:
     resolution: {integrity: sha512-P2bSOMAc/ciLz6DzgjVlGJP9+BrJWu5UDGK70C2iweC5QBIeFf0ZXRvGjEj2uYgrY2MkAAhsSWHDWlFtEroZWw==}
@@ -4005,7 +4036,6 @@ packages:
     resolution: {integrity: sha512-yr8hSKa3Fv4D3jdZmtMMPghgVt6TWbk86WQaWhDloQjRSQhMMYCAro7jP7VDJrjjdV8pxVxMssXS8B8Y5DZ5aw==}
     engines: {node: '>= 12'}
     hasBin: true
-    dev: true
 
   /maximatch/0.1.0:
     resolution: {integrity: sha512-9ORVtDUFk4u/NFfo0vG/ND/z7UQCVZBL539YW0+U1I7H1BkZwizcPx5foFv7LCPcBnm2U6RjFnQOsIvN4/Vm2A==}
@@ -4603,7 +4633,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.15.1
+      '@types/node': 18.15.2
       long: 4.0.0
     dev: false
 
@@ -5075,7 +5105,7 @@ packages:
   /shiki/0.10.1:
     resolution: {integrity: sha512-VsY7QJVzU51j5o1+DguUd+6vmCmZ5v/6gYu4vyYAhzjuNQU6P/vmSy4uQaOhvje031qQMiW0d2BwgMH52vqMng==}
     dependencies:
-      jsonc-parser: 3.1.0
+      jsonc-parser: 3.2.0
       vscode-oniguruma: 1.6.2
       vscode-textmate: 5.2.0
     dev: true
