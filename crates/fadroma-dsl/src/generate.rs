@@ -156,7 +156,7 @@ pub fn execute_fn<'a>(
         let map_err: ExprCall = parse_quote!(map_err(|x| #error_enum::#err_variant(x)));
 
         result.block.stmts.push(parse_quote! {
-            #contract_ident::#method_name(deps.branch(), &env, &info, &msg).#map_err;
+            #contract_ident::#method_name(deps.branch(), &env, &info, &msg).#map_err?;
         });
     }
 
