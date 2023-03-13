@@ -12,26 +12,6 @@ $ fadroma rebuild CONTRACT  # always rebuilds
 
   * **`CONTRACT`**: one of the contracts defined in the [project](../project/Project.spec.ts).
 
-## Build API
-
-### Building with default builder
-
-```typescript
-import builder from '@fadroma/build'
-
-const template = await builder.build('contract_0')
-
-const [template1, template2] = await builder.build([
-  'contract_1',
-  'contract_2'
-])
-
-const {template3, template4} = await builder.buildMany({
-  template3: 'contract_3',
-  template4: 'contract_4'
-})
-```
-
 ### Builder configuration
 
 |environment variable|kind|description|
@@ -52,11 +32,24 @@ The above options are defined on the [`BuilderConfig`](./BuilderConfig.ts) class
 using [`@hackbg/conf`](#). To get a builder with customized configuration from a script:
 
 ```typescript
-import { BuilderConfig } from '@fadroma/build'
-const myBuilder = new BuilderConfig({ verbose: true, caching: true }).getBuilder()
-
+import builder, { Builder } from '@fadroma/build'
 import { Builder } from '@fadroma/build'
-assert(myBuilder instanceof Builder)
+assert(builder() instanceof Builder)
+assert(builder({ raw: false, verbose: true, caching: false }) instanceof ContainerBuilder)
+assert(builder({ raw: true }) instanceof RawBuilder)
+```
+
+## Build API
+
+### Building with default builder
+
+```typescript
+const template = await builder().build('contract_0')
+const [template1, template2] = await builder().buildMany([ 'contract_1', 'contract_2' ])
+const {template3, template4} = await builder().buildMany({
+  template3: 'contract_3',
+  template4: 'contract_4'
+})
 ```
 
 ### Build caching
@@ -66,20 +59,20 @@ for a corresponding pre-existing build and reuses it if present.
 
 Setting `FADROMA_REBUILD` disables build caching.
 
-### Build procedure
+### The build procedure
 
 The ultimate build procedure, i.e. actual calls to `cargo` and such,
 is implemented in the standalone script `FADROMA_BUILD_SCRIPT` (default: `build.impl.mjs`),
 which is launched by the builders.
 
-## Build environments
+## Builders
 
 The subclasses of the abstract base class `Builder` in Fadroma Core
 implement the compilation procedure for contracts.
 
 ### ContainerBuilder
 
-`ContainerBuilder` is the default builder when the `FADROMA_BUILD_RAW` option is false.
+`ContainerBuilder` is the default builder when the `FADROMA_BUILD_RAW` option is not set.
 
 ```typescript
 import { ContainerBuilder } from '@fadroma/build'

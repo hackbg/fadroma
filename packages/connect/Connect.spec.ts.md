@@ -3,11 +3,22 @@
 This package acts as a hub for the available Fadroma Agent API implementations.
 In practical terms, it allows you to connect to every backend that Fadroma supports.
 
+```typescript
+import connect from '@fadroma/connect'
+
+const agent = await connect()
+
+const [agent1, agent2] = await connect.many([{}, {}])
+
+const [agent3, agent4] = await connect.many({ agent3: {}, agent4: {} })
+```
+
 ## Connection configuration
 
 ```typescript
-import { ConnectConfig } from '.'
-const config = new ConnectConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
+const connectToMocknet = connect.config({
+  chain: 'mocknet'
+})
 ```
 
 ## Connecting to...

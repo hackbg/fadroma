@@ -11,48 +11,34 @@ import type { Env } from '@hackbg/conf'
 
 /** Deployment system configuration and Deployer factory. */
 export default class DeployConfig extends ConnectConfig {
-
-  constructor (
-    defaults: Partial<DeployConfig> = {},
-    readonly env: Env    = process.env,
-    readonly cwd: string = process.cwd(),
-  ) {
-    super(defaults as Partial<ConnectConfig>, env ?? process.env, cwd ?? process.cwd())
-    this.override(defaults)
-  }
-
+  //constructor (
+    //defaults: Partial<DeployConfig> = {},
+    //readonly env: Env    = process.env,
+    //readonly cwd: string = process.cwd(),
+  //) {
+    //super(defaults as Partial<ConnectConfig>, env ?? process.env, cwd ?? process.cwd())
+    //this.override(defaults)
+  //}
   /** Project root. Defaults to current working directory. */
   project:  string  = this.getString ('FADROMA_PROJECT',  () => this.cwd)
-
   /** Whether to generate unsigned transactions for manual multisig signing. */
   multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
-
-  /** Whether to always upload contracts, ignoring upload receipts that match. */
-  reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
-
   /** Directory to store the receipts for the deployed contracts. */
-  uploads:  string  = this.getString ('FADROMA_UPLOAD_STATE',
-    () => $(this.project).in('receipts').in(this.chainId).in('uploads').path)
-
-  /** Directory to store the receipts for the deployed contracts. */
-  deploys:  string  = this.getString ('FADROMA_DEPLOY_STATE',
+  deployState:  string  = this.getString ('FADROMA_DEPLOY_STATE',
     () => $(this.project).in('receipts').in(this.chainId).in('deployments').path)
-
   /** Which implementation of the receipt store to use. */
   deploymentFormat  = this.getString('FADROMA_DEPLOY_STORE', () => 'YAML1') as DeploymentFormat
-
   /** The deploy receipt store implementation selected by `deploymentFormat`. */
   get DeployStore (): DeployStoreClass<DeployStore>|undefined {
     return DeployStore.variants[this.deploymentFormat]
   }
-
+  /** Get an instance of the selected deploy store implementation. */
   async getDeployStore <S extends DeployStore> (
     $S: DeployStoreClass<S>|undefined = this.DeployStore as DeployStoreClass<S>
   ): Promise<S> {
     if (!$S) throw new Error('Missing deployment store constructor')
-    return new $S(this.deploys)
+    return new $S(this.deployState)
   }
-
   /** Create a new populated Deployer, with the specified DeployStore.
     * @returns Deployer */
   async getDeployer <C extends Deployer, D extends DeployerClass<C>> (
@@ -70,5 +56,4 @@ export default class DeployConfig extends ConnectConfig {
     const deployer = new $D(...args)
     return deployer as unknown as C
   }
-
 }

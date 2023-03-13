@@ -4,18 +4,17 @@ import $, { Path, BinaryFile } from '@hackbg/file'
 import { Uploader, assertAgent, override, toUploadReceipt, ClientError } from '@fadroma/core'
 import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/core'
 
-import UploadStore   from './UploadStore'
-import UploadReceipt from './UploadReceipt'
-import UploadConsole from './UploadConsole'
+import Console from './UploadConsole'
+import UploadStore, { UploadReceipt } from './UploadStore'
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
 export default class FSUploader extends Uploader {
 
-  get id () { return 'fs' }
+  get id () { return 'FS' }
 
-  log = new UploadConsole()
+  log = new Console()
 
   get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '-' }
 
@@ -35,7 +34,7 @@ export default class FSUploader extends Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (contract: Uploadable) {
+  async upload (contract: Uploadable): Promise<Uploaded> {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
       const name = this.getUploadReceiptName(contract)
@@ -231,3 +230,5 @@ export default class FSUploader extends Uploader {
   }
 
 }
+
+Uploader.variants['FS'] = FSUploader

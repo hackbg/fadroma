@@ -74,15 +74,19 @@ $ fadroma contract list
 ```sh
 $ fadroma build
 $ fadroma build CONTRACT
+$ fadroma upload URL
 
 $ fadroma rebuild
 $ fadroma rebuild CONTRACT
+$ fadroma upload URL
 
 $ fadroma upload
 $ fadroma upload CONTRACT
+$ fadroma upload URL
 
 $ fadroma reupload
 $ fadroma reupload CONTRACT
+$ fadroma reupload URL
 ```
 
 ### Instantiating and operating contracts

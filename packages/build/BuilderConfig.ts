@@ -19,6 +19,9 @@ export default class BuilderConfig extends EnvConfig {
     this.override(defaults)
   }
 
+  /** Builder to use */
+  builder: string = this.getString('FADROMA_BUILDER', ()=>Object.keys(Builder.variants)[0])
+
   /** Whether the build process should print more detail to the console. */
   verbose: boolean = this.getBoolean('FADROMA_BUILD_VERBOSE', ()=>false)
 

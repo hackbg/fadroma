@@ -18,6 +18,26 @@
 
 **/
 
+import BuilderConfig from './BuilderConfig'
+import type { Buildable, Built } from '@fadroma/core'
+import { Builder } from '@fadroma/core'
+import type { Many } from '@hackbg/many'
+
+export default function builder (options: Partial<BuilderConfig> = {}): Builder {
+  return new BuilderConfig(options).getBuilder()
+}
+
+import LocalBuilder     from './LocalBuilder'
+import RawBuilder       from './RawBuilder'
+import ContainerBuilder from './ContainerBuilder'
+Object.assign(Builder.variants, { 'container': ContainerBuilder, 'raw': RawBuilder })
+export { Builder }
+
+import type { TOMLFile } from '@hackbg/file'
+
+/** The parts of Cargo.toml which the builder needs to be aware of. */
+export type CargoTOML = TOMLFile<{ package: { name: string } }>
+
 export * from './BuildConsole'
 export { default as BuildConsole } from './BuildConsole'
 
@@ -41,36 +61,3 @@ export { default as ContainerBuilder } from './ContainerBuilder'
 
 export * from './getGitDir'
 export { default as getGitDir } from './getGitDir'
-
-import type { Buildable } from '@fadroma/core'
-import BuilderConfig from './BuilderConfig'
-import { ContractTemplate, HEAD } from '@fadroma/core'
-export default async function buildCrates (
-  crates:   string[]               = [],
-  revision: string                 = HEAD,
-  config:   Partial<BuilderConfig> = new BuilderConfig(),
-  builder:  Builder                = config.getBuilder!()
-) {
-  return await builder.buildMany(crates.map(crate=>new ContractTemplate({
-    repository: config.project,
-    workspace:  config.project,
-    crate,
-    revision
-  }) as Buildable))
-}
-
-import type { TOMLFile } from '@hackbg/file'
-
-/** The parts of Cargo.toml which the builder needs to be aware of. */
-export type CargoTOML = TOMLFile<{ package: { name: string } }>
-
-export { Builder }
-
-import { Builder } from '@fadroma/core'
-import LocalBuilder from './LocalBuilder'
-import RawBuilder from './RawBuilder'
-import ContainerBuilder from './ContainerBuilder'
-Object.assign(Builder.variants, {
-  'docker-local': ContainerBuilder,
-  'raw-local':    RawBuilder
-})

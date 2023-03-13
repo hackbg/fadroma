@@ -26,14 +26,19 @@ Object.assign(DeployStore.variants, { YAML1, YAML2, JSON1 })
 
 export { DeployStore, YAML, YAML1, YAML2, JSON1 }
 
-export { default as DeployConfig } from './DeployConfig';         export * from './DeployConfig';
-export { default as DeployConsole } from './DeployConsole';       export * from './DeployConsole';
-export { default as DeployError } from './DeployError';           export * from './DeployError';
-export { default as DeployerCommands } from './DeployerCommands'; export * from './DeployerCommands';
-export { default as Deployer } from './Deployer';                 export * from './Deployer';
+export { default as DeployConfig } from './DeployConfig'
+export * from './DeployConfig'
 
-export { default as FSUploader } from './FSUploader';       export * from './FSUploader';
-export { default as UploadConsole } from './UploadConsole'; export * from './UploadConsole';
-export { default as UploadError } from './UploadError';     export * from './UploadError';
-export { default as UploadReceipt } from './UploadReceipt'; export * from './UploadReceipt';
-export { default as UploadStore } from './UploadStore';     export * from './UploadStore';
+export { default as DeployConsole } from './DeployConsole'
+export * from './DeployConsole'
+
+export { default as DeployError } from './DeployError'
+export * from './DeployError'
+
+export { default as DeployerCommands } from './DeployerCommands'
+export * from './DeployerCommands'
+
+export { default as Deployer } from './Deployer'
+export * from './Deployer'
+
+export * from './upload'
