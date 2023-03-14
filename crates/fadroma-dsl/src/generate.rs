@@ -27,7 +27,8 @@ pub enum MsgType {
 
 pub struct ErrorEnum {
     pub enum_def: ItemEnum,
-    pub display_impl: ItemImpl
+    pub display_impl: ItemImpl,
+    pub err_impl: ItemImpl
 }
 
 pub fn init_msg(sink: &mut ErrorSink, init: &Signature) -> ItemStruct {
@@ -223,10 +224,12 @@ pub fn error_enum(
 
     let mut match_expr: ExprMatch = parse_quote!(
         match self {
-            Self::#serialize_err_variant(msg) => #fmt_arg.write_fmt(format_args!("Error serializing query response: {}", msg))
+            Self::#serialize_err_variant(msg) =>
+                #fmt_arg.write_fmt(format_args!("Error serializing query response: {}", msg))
         }
     );
     let mut enum_def: ItemEnum = parse_quote!(
+        #[derive(Debug)]
         pub enum #name {
             #[doc(hidden)]
             #serialize_err_variant(String)
@@ -275,9 +278,14 @@ pub fn error_enum(
         }
     };
 
+    let err_impl: ItemImpl = parse_quote! {
+        impl std::error::Error for #name { }
+    };
+
     ErrorEnum {
         enum_def,
-        display_impl
+        display_impl,
+        err_impl
     }
 }
 

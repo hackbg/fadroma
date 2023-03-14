@@ -32,6 +32,7 @@ pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, Compile
     items.push(Item::Struct(g.boilerplate.contract_struct));
     items.push(Item::Enum(g.boilerplate.error_enum.enum_def));
     items.push(Item::Impl(g.boilerplate.error_enum.display_impl));
+    items.push(Item::Impl(g.boilerplate.error_enum.err_impl));
 
     if let Some(i) = g.interfaces {
         items.push(Item::Struct(i.init_msg));
