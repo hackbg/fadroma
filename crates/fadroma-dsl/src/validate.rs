@@ -13,7 +13,7 @@ pub struct ResultType<'a> {
 pub fn result_type<'a>(
     sink: &mut ErrorSink,
     sig: &'a Signature,
-    generics: (Option<GenericArgument>, Option<GenericArgument>)
+    generics: (&[GenericArgument], &[GenericArgument])
 ) -> Option<ResultType<'a>> {
     if let ReturnType::Type(_, return_type) = &sig.output {
         if let Type::Path(path) = return_type.as_ref() {
@@ -36,19 +36,16 @@ pub fn result_type<'a>(
         }
     }
 
-    let result_ty = match generics.0 {
-        Some(ty) => quote!(#ty),
-        None => quote!(T)
-    };
-
-    let err_ty = match generics.1 {
-        Some(ty) => quote!(#ty),
-        None => quote!(E)
-    };
+    let result_ty: Vec<String> = generics.0.iter().map(|x| quote!(#x).to_string()).collect();
+    let err_ty: Vec<String> = generics.1.iter().map(|x| quote!(#x).to_string()).collect();
 
     sink.push_spanned(
         &sig,
-        format!("Expecting return type to be \"std::result::Result<{}, {}>\"", result_ty, err_ty)
+        format!(
+            "Expecting return type to be \"std::result::Result<T, E>\" where\nT is one of: {:?}\nE is one of: {:?}",
+            result_ty,
+            err_ty
+        )
     );
 
     None
@@ -56,7 +53,7 @@ pub fn result_type<'a>(
 
 fn validate_return_type<'a, 'b>(
     segment: &'a PathSegment,
-    generics: &'b (Option<GenericArgument>, Option<GenericArgument>)
+    generics: &'b (&[GenericArgument], &[GenericArgument])
 ) -> Option<ResultType<'a>> {
     if segment.ident.to_string() != "Result" {
         return None;
@@ -71,24 +68,21 @@ fn validate_return_type<'a, 'b>(
     }
 
     let mut iter = args.args.iter();
+
     let value = iter.next().unwrap();
-
-    if let Some(expected) = &generics.0 {
-        if expected != value {
-            return None;
-        }
-    }
-
     let error = iter.next().unwrap();
 
-    if let Some(expected) = &generics.1 {
-        if expected != error {
-            return None;
-        }
+    if contains_arg(generics.0, value) && contains_arg(generics.1, error) {
+        Some(ResultType {
+            value,
+            error
+        })
+    } else {
+        None
     }
+}
 
-    Some(ResultType {
-        value,
-        error
-    })
+#[inline]
+fn contains_arg(valid: &[GenericArgument], arg: &GenericArgument) -> bool {
+    valid.is_empty() || valid.contains(&arg)
 }

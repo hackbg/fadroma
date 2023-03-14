@@ -7,7 +7,7 @@ use quote::quote;
 use proc_macro2::Span;
 
 use crate::{
-    attr::{MsgAttr, CONTRACT, ENTRY_META},
+    attr::{MsgAttr, CONTRACT, ENTRY_META, ERROR_TYPE},
     err::{ErrorSink, CompileErrors},
     validate::{self, ResultType},
     generate::{self, MsgType, ErrorEnum},
@@ -120,6 +120,10 @@ impl<'a> Contract<'a> {
                     continue;
                 };
 
+                let contract_method = Method::Contract(ContractMethod {
+                    sig: &method.sig
+                });
+
                 if let Some(attr) = MsgAttr::parse(sink, &method.attrs) {
                     let return_ty = match attr {
                         MsgAttr::Init { .. } if init.is_some() => {
@@ -132,7 +136,7 @@ impl<'a> Contract<'a> {
                         }
                         MsgAttr::Init { entry } => {
                             if entry {
-                                init = Some(Method::Contract(ContractMethod { sig: &method.sig }));
+                                init = Some(contract_method);
                             } else {
                                 sink.push_spanned(
                                     &contract_impl.self_ty,
@@ -145,21 +149,15 @@ impl<'a> Contract<'a> {
                                 )
                             }
 
-                            validate_contract_method(sink, &method, Some(parse_quote!(Response)))
+                            validate_contract_method(sink, &method, &[parse_quote!(Response)])
                         }
                         MsgAttr::Execute => {
-                            execute.push(Method::Contract(ContractMethod {
-                                sig: &method.sig
-                            }));
-
-                            validate_contract_method(sink, &method, Some(parse_quote!(Response)))
+                            execute.push(contract_method);
+                            validate_contract_method(sink, &method, &[parse_quote!(Response)])
                         }
                         MsgAttr::Query => {
-                            query.push(Method::Contract(ContractMethod {
-                                sig: &method.sig
-                            }));
-
-                            validate_contract_method(sink, &method, None)
+                            query.push(contract_method);
+                            validate_contract_method(sink, &method, &[])
                         },
                         MsgAttr::ExecuteGuard => {
                             if execute_guard.is_some() {
@@ -171,7 +169,7 @@ impl<'a> Contract<'a> {
                                 execute_guard = Some(&method.sig);
                             }
 
-                            validate_contract_method(sink, &method, Some(parse_quote!(())))
+                            validate_contract_method(sink, &method, &[parse_quote!(())])
                         }
                     };
 
@@ -203,6 +201,11 @@ impl<'a> Contract<'a> {
                     continue;
                 };
 
+                let interface_method = InterfaceMethod {
+                    sig: &method.sig,
+                    trait_: &interface.trait_.as_ref().unwrap().1
+                };
+
                 match MsgAttr::parse(sink, &method.attrs) {
                     Some(attr) => match attr {
                         MsgAttr::Init { .. } if has_init => sink.push_spanned(
@@ -214,30 +217,20 @@ impl<'a> Contract<'a> {
                             "Entry point already defined."
                         ),
                         MsgAttr::Init { entry } => {
-                            if entry {
-                                init = Some(Method::Interface(InterfaceMethod {
-                                    sig: &method.sig,
-                                    trait_: &interface.trait_.as_ref().unwrap().1
-                                }));
+                            validate_interface_method(sink, &interface_method, &[parse_quote!(Response)]);
 
+                            if entry {
+                                init = Some(Method::Interface(interface_method));
                                 has_init = true;
                             }
-
-                            validate_interface_method(sink, &method, Some(parse_quote!(Response)));
                         }
                         MsgAttr::Execute => {
-                            validate_interface_method(sink, &method, Some(parse_quote!(Response)));
-                            execute.push(Method::Interface(InterfaceMethod {
-                                sig: &method.sig,
-                                trait_: &interface.trait_.as_ref().unwrap().1
-                            }));
+                            validate_interface_method(sink, &interface_method, &[parse_quote!(Response)]);
+                            execute.push(Method::Interface(interface_method));
                         }
                         MsgAttr::Query => {
-                            validate_interface_method(sink, &method, None);
-                            query.push(Method::Interface(InterfaceMethod {
-                                sig: &method.sig,
-                                trait_: &interface.trait_.as_ref().unwrap().1
-                            }));
+                            validate_interface_method(sink, &interface_method, &[]);
+                            execute.push(Method::Interface(interface_method));
                         }
                         MsgAttr::ExecuteGuard => sink.push_spanned(
                             &method.sig.ident,
@@ -328,23 +321,29 @@ fn create_contract_struct() -> ItemStruct {
 fn validate_contract_method<'a>(
     sink: &mut ErrorSink,
     method: &'a ImplItemMethod,
-    arg: Option<GenericArgument>
+    arg: &[GenericArgument]
 ) -> Option<ResultType<'a>> {
     if method.vis != parse_quote!(pub) {
         sink.push_spanned(method, "Method must be public.");
     }
 
-    validate::result_type(sink, &method.sig, (arg, None))
+    validate::result_type(sink, &method.sig, (arg, &[]))
 }
 
 #[inline]
-fn validate_interface_method(
+fn validate_interface_method<'a>(
     sink: &mut ErrorSink,
-    method: &ImplItemMethod,
-    arg: Option<GenericArgument>
+    method: &InterfaceMethod<'a>,
+    args: &[GenericArgument]
 ) {
-    let err_arg: GenericArgument = parse_quote!(Self::Error);
-    validate::result_type(sink, &method.sig, (arg, Some(err_arg)));
+    let err_ty = Ident::new(ERROR_TYPE, Span::call_site());
+    let trait_ident = method.trait_name();
+    let err_args: &[GenericArgument] = &[
+        parse_quote!(Self::#err_ty),
+        parse_quote!(<Self as #trait_ident>::#err_ty)
+    ];
+
+    validate::result_type(sink, &method.sig, (args, err_args));
 }
 
 #[inline]

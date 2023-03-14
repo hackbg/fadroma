@@ -1,8 +1,9 @@
 use syn::{
     ItemTrait, TraitItem, TraitItemMethod, PathArguments, GenericArgument,
     TypeParamBound, TraitBoundModifier, punctuated::Punctuated, token::Add,
-    Generics, parse_quote
+    Generics, Ident, parse_quote
 };
+use proc_macro2::Span;
 use quote::{ToTokens, quote};
 
 use crate::{
@@ -80,15 +81,15 @@ impl Interface {
                                     sink.push_spanned(&method.attrs[0], "Interfaces cannot have entry points.");
                                 }
 
-                                validate_method(sink, &method, Some(parse_quote!(Response)));
+                                validate_method(sink, &r#trait.ident, &method, &[parse_quote!(Response)]);
                                 init = Some(method);
                             }
                             MsgAttr::Execute => {
-                                validate_method(sink, &method, Some(parse_quote!(Response)));
+                                validate_method(sink, &r#trait.ident, &method, &[parse_quote!(Response)]);
                                 execute.push(method);
                             }
                             MsgAttr::Query => {
-                                validate_method(sink, &method, None);
+                                validate_method(sink, &r#trait.ident, &method, &[]);
                                 query.push(method);
                             }
                             MsgAttr::ExecuteGuard => sink.push_spanned(
@@ -148,8 +149,9 @@ impl Interface {
 
 fn validate_method(
     sink: &mut ErrorSink,
+    trait_ident: &Ident,
     method: &TraitItemMethod,
-    expected: Option<GenericArgument>
+    expected: &[GenericArgument]
 ) {
     if method.default.is_some() {
         sink.push_spanned(
@@ -158,8 +160,13 @@ fn validate_method(
         );
     }
 
-    let err_arg: GenericArgument = parse_quote!(Self::Error);
-    validate::result_type(sink, &method.sig, (expected, Some(err_arg)));
+    let err_ty = Ident::new(ERROR_TYPE, Span::call_site());
+    let err_args: &[GenericArgument] = &[
+        parse_quote!(Self::#err_ty),
+        parse_quote!(<Self as #trait_ident>::#err_ty)
+    ];
+
+    validate::result_type(sink, &method.sig, (expected, err_args));
 }
 
 #[inline]
