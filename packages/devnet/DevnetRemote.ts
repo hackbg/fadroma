@@ -1,6 +1,6 @@
 import Error from './DevnetError'
 import Console from './DevnetConsole'
-import DevnetBase from './DevnetBase'
+import Devnet from './DevnetBase'
 import type { DevnetOpts } from './DevnetBase'
 import { devnetPortModes, DevnetPlatform } from './DevnetConfig'
 
@@ -20,7 +20,7 @@ export type RemoteDevnetOpts = DevnetOpts & {
 /** When running in docker-compose, Fadroma needs to request
   * from the devnet container to spawn a chain node with the
   * given chain id and identities via a HTTP API. */
-export default class RemoteDevnet extends DevnetBase implements DevnetHandle {
+export default class RemoteDevnet extends Devnet implements DevnetHandle {
 
   static managerScriptName = 'devnet.server.mjs'
 

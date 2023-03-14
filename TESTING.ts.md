@@ -66,7 +66,7 @@ function example (name, wasm, hash) {
 ### Mock agent
 
 ```typescript
-import { Agent, Chain, Uploader, ContractInstance, Client } from '@fadroma/core'
+import { Agent, Chain, Uploader, Contract, Client } from '@fadroma/core'
 export const mockAgent = () => new class MockAgent extends Agent {
 
   chain = new (class MockChain extends Chain {
@@ -81,7 +81,7 @@ export const mockAgent = () => new class MockAgent extends Agent {
   async upload () { return {} }
 
   instantiate (template, label, initMsg) {
-    return new ContractInstance({ ...template, label, initMsg, address: 'some address' })
+    return new Contract({ ...template, label, initMsg, address: 'some address' })
   }
 
   async instantiateMany (contract, configs) {
@@ -104,7 +104,7 @@ export const mockAgent = () => new class MockAgent extends Agent {
 
 ```typescript
 import { spawn } from 'child_process'
-const devnetManager = resolve(here, '../packages/devnet/devnet.server.mjs')
+const devnetManager = resolve(here, 'packages/devnet/devnet.server.mjs')
 const devnetInitScript = resolve(here, '_mock-devnet.init.mjs')
 export async function mockDevnetManager (port) {
   port = port || await freePort(10000 + Math.floor(Math.random()*10000))
@@ -144,7 +144,7 @@ export function mockEnv () {
 ### Mock deployment
 
 ```typescript
-import { Deployment } from './packages/client'
+import { Deployment } from '@fadroma/core'
 import { withTmpFile } from '@hackbg/file'
 import { equal } from 'assert'
 import { basename } from 'path'

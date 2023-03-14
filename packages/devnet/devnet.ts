@@ -11,7 +11,7 @@ export * from './DevnetCommands'
 export { default as DevnetCommands } from './DevnetCommands'
 
 export * from './DevnetBase'
-export { default as DevnetBase } from './DevnetBase'
+export { default as Devnet } from './DevnetBase'
 
 export * from './DevnetContainer'
 export { default as DevnetContainer } from './DevnetContainer'

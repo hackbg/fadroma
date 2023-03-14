@@ -50,7 +50,7 @@ for (const version of ['1.2', '1.3']) {
     }
   }))
   const devnet = getScrtDevnet(version, undefined, undefined, dokeres)
-  ok(devnet instanceof DockerDevnet)
+  ok(devnet instanceof DevnetContainer)
   await devnet.respawn()
   await devnet.kill()
   await devnet.erase()

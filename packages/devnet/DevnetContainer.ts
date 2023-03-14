@@ -1,6 +1,6 @@
 import Error from './DevnetError'
 import Console from './DevnetConsole'
-import DevnetBase from './DevnetBase'
+import Devnet from './DevnetBase'
 import { devnetPortModes, DevnetPlatform } from './DevnetConfig'
 import type { DevnetOpts, DevnetState } from './DevnetBase'
 
@@ -34,7 +34,7 @@ export interface DockerDevnetOpts extends DevnetOpts {
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
-export default class DevnetContainer extends DevnetBase implements DevnetHandle {
+export default class DevnetContainer extends Devnet implements DevnetHandle {
 
   static dockerfiles: Record<DevnetPlatform, string> = {
     'scrt_1.2': $(devnetPackage, 'scrt_1_2.Dockerfile').path,

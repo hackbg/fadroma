@@ -57,7 +57,7 @@ Object.assign(Chain.variants as ChainRegistry, {
   ScrtDevnet:  defineDevnet(Scrt, 'scrt_1.7'),
 })
 
-export async function connect (
+export default async function connect (
   config: Partial<ConnectConfig> = new ConnectConfig()
 ): Promise<Connector> {
   return await new ConnectConfig(config).getConnector()

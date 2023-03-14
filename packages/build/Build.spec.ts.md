@@ -10,7 +10,8 @@ $ fadroma build CONTRACT    # nop if already built
 $ fadroma rebuild CONTRACT  # always rebuilds
 ```
 
-  * **`CONTRACT`**: one of the contracts defined in the [project](../project/Project.spec.ts).
+  * **`CONTRACT`**: one of the contracts defined in the [project](../project/Project.spec.ts),
+    *or* a path to a crate assumed to contain a single contract.
 
 ### Builder configuration
 
@@ -28,25 +29,25 @@ $ fadroma rebuild CONTRACT  # always rebuilds
 |`FADROMA_ARTIFACTS`|path|project artifact cache
 |`FADROMA_REBUILD`|flag|builds always run, artifact cache is ignored
 
-The above options are defined on the [`BuilderConfig`](./BuilderConfig.ts) class,
-using [`@hackbg/conf`](#). To get a builder with customized configuration from a script:
-
-```typescript
-import builder, { Builder } from '@fadroma/build'
-import { Builder } from '@fadroma/build'
-assert(builder() instanceof Builder)
-assert(builder({ raw: false, verbose: true, caching: false }) instanceof ContainerBuilder)
-assert(builder({ raw: true }) instanceof RawBuilder)
-```
-
 ## Build API
 
-### Building with default builder
+### Getting a builder
 
 ```typescript
-const template = await builder().build('contract_0')
-const [template1, template2] = await builder().buildMany([ 'contract_1', 'contract_2' ])
-const {template3, template4} = await builder().buildMany({
+import getBuilder, { Builder } from '@fadroma/build'
+const builder = getBuilder(/* { ...options... } */)
+
+assert(builder instanceof Builder)
+```
+
+### Building
+
+```typescript
+const template = await builder.build('contract_0')
+
+const [template1, template2] = await builder.buildMany([ 'contract_1', 'contract_2' ])
+
+const {template3, template4} = await builder.buildMany({
   template3: 'contract_3',
   template4: 'contract_4'
 })
@@ -59,13 +60,12 @@ Represents the source code of a contract.
   * Uploading a source creates a `ContractTemplate`.
 
 ```typescript
-import { ContractSource } from '@fadroma/core'
-let source: ContractSource = new ContractSource()
-let builder = { build: async x => x }
-assert.ok(await source.define({ builder }).compiled)
+import { Contract } from '@fadroma/core'
+let source: Contract = new Contract()
+assert.ok(await source.define({ builder: { build: async x => x } }).compiled)
 ```
 
-The `ContractSource` class has the following properties for specifying the source.
+The `Contract` class has the following properties for specifying the source.
 Use `contract.define({ key: value })` to define their values.
 This returns a new copy of `contract` without modifying the original one.
 
@@ -87,9 +87,9 @@ The outputs of builds are called **artifact**s, and are represented by two prope
     instantiated contracts.
 
 ```typescript
-import { ContractSource } from '@fadroma/core'
+import { Contract } from '@fadroma/core'
 
-const contract = new ContractSource({
+const contract = new Contract({
   repository: 'REPO',
   revision: 'REF',
   workspace: 'WORKSPACE'
@@ -121,12 +121,12 @@ If `.git` directory is present, builders can check out and build a past commits 
 as specifier by `contract.revision`.
 
 ```typescript
-import { ContractSource } from '@fadroma/core'
+import { Contract } from '@fadroma/core'
 import { getGitDir, DotGit } from '@fadroma/build'
 
-throws(()=>getGitDir(new ContractSource()))
+throws(()=>getGitDir(new Contract()))
 
-const contractWithSource = new ContractSource({
+const contractWithSource = new Contract({
   repository: 'REPO',
   revision:   'REF',
   workspace:  'WORKSPACE'
@@ -161,7 +161,7 @@ implement the compilation procedure for contracts.
 ```typescript
 import { ContainerBuilder } from '@fadroma/build'
 
-const containerBuilder = new BuilderConfig({ buildRaw: false }).getBuilder()
+const containerBuilder = getBuilder({ buildRaw: false })
 
 ok(containerBuilder instanceof ContainerBuilder)
 ```
@@ -244,30 +244,24 @@ you can use **RawBuilder** to just run builds in the host environment.
 
 ```typescript
 import { RawBuilder } from '@fadroma/build'
-config.buildRaw = true
-builder = config.getBuilder()
-ok(builder instanceof RawBuilder)
+
+const rawBuilder = getBuilder({ buildRaw: true })
+
+ok(rawBuilder instanceof RawBuilder)
 ```
 
-  * It still uses the same build script as ContainerBuilder, but instead of a container
-    it just runs the build script as a subprocess.
+It still uses the same build script as ContainerBuilder, but instead of a container
+it just runs the build script as a subprocess.
+
+When using the RawBuilder, you're responsible for providing a working Rust toolchain
+in its runtime environment, build reproducibility is dependent on the consistency of
+that environment.
 
 ```typescript
-// Mocks:
-builder.spawn     = () => ({ on (event, callback) { callback(0) } })
-builder.hashPath  = () => 'code hash ok'
-builder.prebuilt  = () => false
-builder.fetch     = () => Promise.resolve()
-builder.getGitDir = () => ({ present: true })
-```
-
-  * When using the RawBuilder, you're responsible for providing a working Rust toolchain
-    in its runtime environment, build reproducibility is dependent on the consistency of
-    that environment.
-
-```typescript
-ok(await builder.build({ workspace, crate }))
-ok(await builder.buildMany([
+import { mockBuilder } from './mocks'
+mockBuilder(rawBuilder)
+ok(await rawBuilder.build({ workspace, crate }))
+ok(await rawBuilder.buildMany([
   { workspace, crate: 'crate1' }
   { workspace, crate: 'crate2', revision: 'HEAD' }
   { workspace, crate: 'crate3', revision: 'asdf' }
@@ -280,20 +274,20 @@ ok(await builder.buildMany([
 
 ```typescript
 import { BuildConsole } from '@fadroma/build'
-import { ContractSource } from '@fadroma/core'
+import { Contract } from '@fadroma/core'
 const log = new BuildConsole({ info: () => {} })
 log.buildingFromCargoToml('foo')
 log.buildingFromBuildScript('foo')
 log.buildingFromWorkspace('foo')
-log.buildingOne(new ContractSource({ crate: 'bar' }))
-log.buildingOne(new ContractSource({ crate: 'bar', revision: 'commit' }))
+log.buildingOne(new Contract({ crate: 'bar' }))
+log.buildingOne(new Contract({ crate: 'bar', revision: 'commit' }))
 log.buildingOne(
-  new ContractSource({ crate: 'bar', revision: 'commit' }),
-  new ContractSource({ crate: 'bar', revision: 'commit' })
+  new Contract({ crate: 'bar', revision: 'commit' }),
+  new Contract({ crate: 'bar', revision: 'commit' })
 
 log.buildingMany([
-  new ContractSource({ crate: 'bar' }),
-  new ContractSource({ crate: 'bar', revision: 'commit' })
+  new Contract({ crate: 'bar' }),
+  new Contract({ crate: 'bar', revision: 'commit' })
 ])
 ```
 

@@ -8,7 +8,7 @@ import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 
 /** An ephemeral private instance of a network. */
-export default abstract class DevnetBase extends CommandContext implements DevnetHandle {
+export default abstract class Devnet extends CommandContext implements DevnetHandle {
 
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */

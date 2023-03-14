@@ -1,9 +1,16 @@
-# Fadroma Core Specification
+# Fadroma Core API Specification
 
-This is the isomorphic core of the Fadroma dApp framework.
-It contains the core abstractions of the Fadroma object model,
-written in a platform-independent way that does not depend on
-specific runtime features (a.k.a. isomorphic JavaScript).
+## Introduction
+
+This document outlines the programmatic vocabulary of the Fadroma dApp framework.
+
+### Contributing
+
+The `@fadroma/core` package is written in a platform-independent way
+(isomorphic JavaScript). Contributors should refrain from depending on
+engine-specific features (be it browser, Node, or other)
+
+### Related packages
 
 All other NPM packages in the Fadroma ecosystem
 build upon this one, and either:
@@ -20,11 +27,11 @@ build upon this one, and either:
 The **Agent API** is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.
 
-It revolves around the `Chain` and `Agent` abstract classes, and describes the basic
-building blocks of on-chain activity: identities (wallets) and transactions (sending tokens,
-calling contracts, batching transactions, specifying gas fees, etc).
+Its core primitives are the **`Chain`** and **`Agent`** abstract classes.
+An `Agent` corresponds to your identity (wallet) on a given chain,
+and lets you operate in terms of transactions (sending tokens, calling contracts, etc.)
 
-* [`@fadroma/scrt`](../../platforms/scrt/Scrt.spec.ts.md) provides
+* [**`@fadroma/scrt`**](../../platforms/scrt/Scrt.spec.ts.md) provides
   **`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
   of Fadroma Agent API for Secret Network.
 
@@ -51,7 +58,8 @@ the chain and start over (i.e. when using a devnet or mocknet).
 
 ```typescript
 chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mainnet })
-assert(chain.devMode === false)
+
+assert(!chain.devMode)
 assert(chain.isMainnet)
 ```
 
@@ -59,7 +67,8 @@ assert(chain.isMainnet)
 
 ```typescript
 chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Testnet })
-assert(chain.devMode === false)
+
+assert(!chain.devMode)
 assert(chain.isTestnet)
 assert(!chain.isMainnet)
 ```
@@ -69,7 +78,8 @@ assert(!chain.isMainnet)
 
 ```typescript
 chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Devnet })
-assert(chain.devMode === true)
+
+assert(chain.devMode)
 assert(chain.isDevnet)
 assert(!chain.isMainnet)
 ```
@@ -79,7 +89,8 @@ assert(!chain.isMainnet)
 
 ```typescript
 chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mocknet })
-assert(chain.devMode === true)
+
+assert(chain.devMode)
 assert(chain.isMocknet)
 assert(!chain.isMainnet)
 ```
@@ -95,6 +106,7 @@ If you don't pass a mnemonic, a random mnemonic and address will be generated.
 ```typescript
 import { Agent } from '@fadroma/core'
 let agent: Agent = await chain.getAgent()
+
 assert(agent instanceof Agent)
 assert(agent.chain === chain)
 assert(agent.mnemonic)
@@ -103,15 +115,16 @@ assert(agent.address)
 
 #### Block height and waiting
 
-Now that you have an `Agent`, you can start doing things on the `Chain`.
-The simplest thing to do is nothing: in this case, waiting until the
-block height increments.
+Having obtained an `Agent`, you are ready to begin performing operations.
+The simplest thing to do is waiting until the block height increments.
+The block height is the heartbeat of the blockchain.
 
 * On Secret Network, this can be necessary for uploading multiple contracts.
 
 ```typescript
 const height = await agent.height // Get the current block height
 await agent.nextBlock             // Wait for the block height to increment
+
 assert.equal(await agent.height, height + 1)
 ```
 
@@ -121,14 +134,8 @@ Transacting creates load on the network, which incurs costs on node operators.
 Compensations for transactions are represented by the gas metric.
 
 ```typescript
-import { Fee } from '.'
+import { Fee } from '@fadroma/core'
 ```
-
-* `client.fee` is the default fee for all transactions
-* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
-* `client.withFee(fee: IFee)` allows the caller to override the default fees.
-  Calling it returns a new instance of the Client, which talks to the same contract
-  but executes all transactions with the specified custom fee.
 
 #### Native token transactions
 
@@ -164,41 +171,87 @@ await agent.uploadMany([
 ])
 ```
 
-#### Instantiating a contract
+#### Code ids and code hashes
+
+The code ID is a unique identifier for compiled code uploaded to a chain.
+
+The code hash also uniquely identifies for the code that underpins a contract.
+However, unlike the code ID, which is opaque, the code hash corresponds to the
+actual content of the code. Uploading the same code multiple times will give
+you different code IDs, but the same code hash.
 
 ```typescript
-// Instantiating a single contract:
-await agent.instantiate({
-  codeId:  '1',
-  label:   'unique contract label',
-  initMsg: { parameters: 'values' }
-})
+import { fetchCodeHash, assertCodeHash, codeHashOf } from '@fadroma/core'
 
-// Instantiating multiple contracts in a single transaction:
+assert.ok(assertCodeHash({ codeHash: 'hash' }))
+assert.throws(()=>assertCodeHash({}))
+
+assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
+assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
+assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
+```
+
+#### Instantiating contracts
+
+* Instantiating a single contract:
+
+```typescript
+await agent.instantiate({ codeId: '1', label: 'unique1', initMsg: { arg: 'val' } })
+```
+
+* Instantiating multiple contracts in a single transaction:
+
+```typescript
 await agent.instantiateMany([
-  { codeId: '2', label: 'unique contract label 2', initMsg: { parameters: 'values' } },
-  { codeId: '3', label: 'unique contract label 3', initMsg: { parameters: 'values' } }
+  { codeId: '2', label: 'unique2', initMsg: { arg: 'values' } },
+  { codeId: '3', label: 'unique3', initMsg: { arg: 'values' } }
 })
 ```
 
 #### Querying contracts
 
 ```typescript
-await agent.query({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
+const response =
+  await agent.query({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
 ```
 
 #### Executing contract transactions
 
-```typescript
-// Executing a single transaction
-await agent.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
+Executing a single transaction:
 
-// Broadcasting multiple execute calls as a single transaction message
-await agent.bundle().wrap(async bundle=>{
-  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
-  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { parameters: 'values' })
-})
+```typescript
+const result =
+  await agent.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
 ```
+
+Broadcasting multiple execute calls as a single transaction message
+(transaction bundling):
+
+```typescript
+const results = await agent.bundle()
+  .wrap(async bundle=>{
+    await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
+    await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
+  })
+```
+
+#### Bundle: bundling transactions
+
+To submit multiple messages as a single transaction, you can
+use Bundles.
+  * A `Bundle` is a special kind of `Agent` that
+    does not broadcast messages immediately.
+  * Instead, messages are collected inside the bundle until
+    the caller explicitly submits them.
+  * Bundles can also be saved for manual signing of multisig
+    transactions
+
+A `Bundle` is designed to serve as a stand-in for its corresponding
+`Agent`, and therefore implements the same API methods.
+  * However, some operations don't make sense in the middle of a Bundle.
+  * Most importantly, querying any state from the chain
+    must be done either before or after the bundle.
+  * Trying to query state from a `Bundle` agent will fail.
 
 ### Client: talking to contracts
 
@@ -270,54 +323,40 @@ By publishing a library of `Client` subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn
 integrate it into their systems.
 
-#### Code hashes
-
-The code hash also uniquely identifies for the code that underpins a contract.
-However, unlike the code ID, which is opaque, the code hash corresponds to the
-actual content of the code. Uploading the same code multiple times will give
-you different code IDs, but the same code hash.
+#### Fetching metadata
 
 ```typescript
-import { fetchCodeHash, assertCodeHash, codeHashOf } from '@fadroma/core'
-
-assert.ok(assertCodeHash({ codeHash: 'hash' }))
-assert.throws(()=>assertCodeHash({}))
-
+import { fetchCodeHash } from '@fadroma/core'
 assert.ok(await fetchCodeHash(contract, agent))
 assert.ok(await fetchCodeHash(contract, agent, 'hash'))
 assert.rejects(fetchCodeHash(contract, agent, 'unexpected'))
-
-assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
-assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
-assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
 ```
-
-#### Code ids
-
-The code ID is a unique identifier for compiled code uploaded to a chain.
 
 ```typescript
 import { fetchCodeId } from '@fadroma/core'
-
 assert.ok(await fetchCodeId(contract, agent))
 assert.ok(await fetchCodeId(contract, agent, 'id'))
 assert.rejects(fetchCodeId(contract, agent, 'unexpected'))
 ```
 
-#### Fetching metadata
+```typescript
+import { fetchLabel } from '@fadroma/core'
+assert.ok(await fetchLabel(c, a))
+assert.ok(await fetchLabel(c, a, 'label'))
+assert.rejects(fetchLabel(c, a, 'unexpected'))
+```
 
 #### Extending Client
 
-### Bundle: Transaction bundling
+#### Per-contract fee defaults
 
-To submit multiple messages as a single transaction, you can
-use Bundles.
-  * A `Bundle` is a special kind of `Agent` that
-    does not broadcast messages immediately.
-  * Instead, messages are collected inside the bundle until
-    the caller explicitly submits them.
-  * Bundles can also be saved for manual signing of multisig
-    transactions
+* `client.fee` is the default fee for all transactions
+* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
+* `client.withFee(fee: IFee)` allows the caller to override the default fees.
+  Calling it returns a new instance of the Client, which talks to the same contract
+  but executes all transactions with the specified custom fee.
+
+### Bundle: Transaction bundling
 
 ```typescript
 import { Chain, Agent, Bundle } from '@fadroma/core'
@@ -330,15 +369,8 @@ class TestBundle extends Bundle {
 }
 ```
 
-A `Bundle` is designed to serve as a stand-in for its corresponding
-`Agent`, and therefore implements the same API methods.
-  * However, some operations don't make sense in the middle of a Bundle.
-  * Most importantly, querying any state from the chain
-    must be done either before or after the bundle.
-  * Trying to query state from a `Bundle` agent will fail.
-
 ```typescript
-import { Client } from '.'
+import { Client } from '@fadroma/core'
 bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
 
 assert(bundle.getClient(Client, '') instanceof Client)
@@ -490,11 +522,15 @@ assert.rejects(fetchLabel(c, a, 'unexpected'))
 
 ### Versioned deployments
 
-### Pluggable operations
+## Internal Plugins API
 
-#### Builder
+### Builder
 
-#### Uploader
+### Uploader
+
+### DeployStore
+
+### DevnetHandle
 
 ## Errors
 
@@ -611,22 +647,6 @@ log.warnEmptyBundle()
 
 ## Utilities
 
-### Inter-contract communication
-
-```typescript
-/*import { templateStruct } from '@fadroma/core'
-assert.deepEqual(
-  templateStruct({ codeId: '123', codeHash: 'hash'}),
-  { id: 123, code_hash: 'hash' }
-)*/
-
-import { linkStruct } from '@fadroma/core'
-assert.deepEqual(
-  linkStruct({ address: 'addr', codeHash: 'hash'}),
-  { address: 'addr', code_hash: 'hash' }
-)
-```
-
 ### Lazy evaluation
 
 ### Generic collections
@@ -694,6 +714,10 @@ For more legible output.
 import { getMaxLength } from '@fadroma/core'
 assert.equal(getMaxLength(['a', 'ab', 'abcd', 'abc', 'b']), 4)
 ```
+
+---
+
+Made with ^%$# @ [**Hack.bg**](https://foss.hack.bg).
 
 ```typescript
 import assert from 'node:assert'

@@ -7,8 +7,8 @@ export default class ConnectCommands extends CommandContext {
   constructor (public config: ConnectConfig = new ConnectConfig()) {
     super('@fadroma/connect')
     this.addCommand('list', 'print a list of all known chains', () => config.listChains())
-    //if (connector.chain?.node instanceof DockerDevnet) {
-      //const devnet = connector.chain.node as unknown as DockerDevnet
+    //if (connector.chain?.node instanceof DevnetContainer) {
+      //const devnet = connector.chain.node as unknown as DevnetContainer
       //this.addCommand(
         //'export',
         //'export the current devnet as a new Docker image',

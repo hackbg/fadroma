@@ -32,9 +32,7 @@ through the Fadroma Client API.
 * **NOTE:** Mocknets are currently not persistent.
 
 ```typescript
-import {
-  Mocknet // A temporary local smart contract environment
-} from '@fadroma/mocknet'
+import Mocknet from '@fadroma/mocknet'
 const mocknet = new Mocknet()
 const agent = await mocknet.getAgent()
 
@@ -130,8 +128,8 @@ export function mockEnv () {
 ```
 
 ```typescript
-import { MocknetBackend, MocknetContract } from './mocknet-backend'
-import { b64toUtf8, utf8toB64 } from './mocknet-data'
+import MocknetBackend, { MocknetContract } from './MocknetBackend'
+import { b64toUtf8, utf8toB64 } from './MocknetData'
 let backend:  MocknetBackend
 let contract: MocknetContract
 let response: { Ok: any, Err: any }
@@ -213,7 +211,7 @@ assert.ok(new MocknetBackend('mocknet', {
   * These functions are used by the mocknet code to encode/decode the base64.
 
 ```typescript
-import { b64toUtf8, utf8toB64 } from './mocknet-data'
+import { b64toUtf8, utf8toB64 } from './MocknetData'
 
 assert.equal(b64toUtf8('IkVjaG8i'), '"Echo"')
 assert.equal(utf8toB64('"Echo"'), 'IkVjaG8i')

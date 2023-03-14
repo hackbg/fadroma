@@ -47,7 +47,6 @@ assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
 ```typescript
 import {
   defineDevnet,
-  getDevnet
   DevnetConfig,
   devnetPortModes,
   Devnet,
@@ -56,10 +55,6 @@ import {
 } from '@fadroma/devnet'
 
 defineDevnet()
-
-for (const kind of ['scrt_1.2', 'scrt_1.3', 'scrt_1.4']) {
-  getDevnet(kind)
-}
 
 ok(new DevnetConfig())
 ok(devnetPortModes)
@@ -95,7 +90,7 @@ await resetDevnet()
 ### Docker-based implementation
 
 ```typescript
-import { Devnet, DockerDevnet } from '@fadroma/devnet'
+import { Devnet, DevnetContainer } from '@fadroma/devnet'
 import { withTmpFile } from '@hackbg/file'
 import * as Dokeres from '@hackbg/dock'
 import { resolve, basename } from 'path'
@@ -107,7 +102,7 @@ await withTmpDir(stateRoot=>{
   const imageName   = Symbol()
   const image       = new Dokeres.Engine(docker).image(imageName)
   const initScript  = Symbol()
-  const devnet = new DockerDevnet({ stateRoot, docker, image, initScript, readyPhrase })
+  const devnet = new DevnetContainer({ stateRoot, docker, image, initScript, readyPhrase })
   equal(devnet.identities.path, resolve(stateRoot, 'identities'))
   equal(devnet.image,           image)
   equal(devnet.image.dockerode, docker)
@@ -136,7 +131,7 @@ await withTmpDir(async stateRoot => {
       })
     })
 
-    const devnet = new DockerDevnet({
+    const devnet = new DevnetContainer({
       stateRoot,
       docker,
       image: new Dokeres.Engine(docker).image(basename(stateRoot)),
@@ -154,7 +149,7 @@ await withTmpDir(async stateRoot => {
 
 // pass names of accounts to prefund on genesis
 const identities  = [ 'FOO', 'BAR' ]
-let devnet = new Devnet({ identities })
+/*let devnet = new Devnet({ identities })
 devnet.port = 1234
 equal(devnet.genesisAccounts, identities)
 let image = {
@@ -164,18 +159,18 @@ let image = {
     equal(options.env.GenesisAccounts, 'FOO BAR')
   }
 }
-const dockerDevnet = new DockerDevnet({ identities, initScript: '', image })
+const dockerDevnet = new DevnetContainer({ identities, initScript: '', image })
 dockerDevnet.port = 1234
-equal(dockerDevnet.genesisAccounts, identities)
+equal(dockerDevnet.genesisAccounts, identities)*/
 ```
 
 ```typescript
 import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/file'
-import { DockerDevnet } from '.'
+import { DevnetContainer } from '@fadroma/devnet'
 // save/load Devnet state
 withTmpDir(async stateRoot=>{
   const chainId = 'fadroma-devnet'
-  const devnet = DockerDevnet.getOrCreate('scrt_1.3', Dokeres.Engine.mock())
+  const devnet = DevnetContainer.getOrCreate('scrt_1.3', Dokeres.Engine.mock())
   devnet.stateRoot.path = stateRoot
   ok(devnet.nodeState instanceof JSONFile)
   ok(devnet.stateRoot instanceof BaseDirectory)

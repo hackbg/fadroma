@@ -109,7 +109,7 @@ import {
 
   TokenPair,      // A pair of tokens
 
-} from '.'
+} from '@fadroma/tokens'
 
 deepEqual(
   new TokenPair(native, custom).reverse,
@@ -125,7 +125,7 @@ import {
 
   TokenPairAmount // A pair of tokens with specified amounts
 
-} from '.'
+} from '@fadroma/tokens'
 
 deepEqual(
   new TokenPairAmount(new TokenPair(native, custom), "100", "200").reverse,

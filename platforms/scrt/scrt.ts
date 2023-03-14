@@ -22,6 +22,8 @@ import { Scrt       } from './scrt-chain'
 import { ScrtAgent  } from './scrt-agent'
 import { ScrtBundle } from './scrt-bundle'
 
+export default Scrt
+
 Object.assign(Scrt, {
   SecretJS: SecretJS,
   Config: ScrtConfig,

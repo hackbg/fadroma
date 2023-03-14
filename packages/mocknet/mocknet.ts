@@ -18,3 +18,5 @@ export * from './MocknetBundle'
 export { default as Contract } from './MocknetContract'
 
 export { ADDRESS_PREFIX } from './MocknetData'
+
+export default Mocknet

@@ -11,7 +11,8 @@ $ fadroma redeploy
 ## Deploy API
 
 ```typescript
-import deployer, { Deployment } from '@fadroma/deploy'
+import { Deployment } from '@fadroma/core'
+import { deployer } from '@fadroma/deploy'
 
 export class MyDeployment extends Deployment {
   foo = this.contract({ /* ... */ })
@@ -43,7 +44,7 @@ import { Client, Deployment } from '@fadroma/core'
 import { connect } from '@fadroma/connect'
 import * as Dokeres from '@hackbg/dock'
 import { BuildContext, getBuilder } from '@fadroma/build'
-import { DeployConfig, Deployer } from '.'
+import { DeployConfig, Deployer } from '@fadroma/deploy'
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/file'
 import { ExampleDeployment } from './deploy.example'
@@ -77,7 +78,7 @@ let codeId, codeHash, txHash, result
 ```
 
 ```typescript
-import { ChainId, ContractSlot, ContractTemplate } from '@fadroma/core'
+import { ChainId, Contract, ContractTemplate } from '@fadroma/core'
 let chainId: ChainId  = 'mocknet'
 
 await inTmpDeployment(async d => {
@@ -103,7 +104,7 @@ await inTmpDeployment(async deployment => {
   deployment.uploader = { upload: x => x, agent: {} }
 
   const contract = deployment.contract({ template, name, crate })
-  ok(contract instanceof ContractSlot)
+  ok(contract instanceof Contract)
   //equal(contract.deployment, deployment)
 
   //const deployed = await contract.deploy(initMsg, contract => contract.client())
@@ -165,7 +166,7 @@ by way of `Connector` (from `@fadroma/connect`), adding handling for
   * Listing and creating deploy receipts; marking one of them as "active".
 
 ```typescript
-import { Deployer } from '.'
+import { Deployer } from '@fadroma/deploy'
 import { Path } from '@hackbg/file'
 let context: Deployer = await config.getDeployer()
 ok(context         instanceof Deployer)
@@ -235,7 +236,7 @@ for (const $DeployStore of [
 ### Deployment events
 
 ```typescript
-import { DeployConsole } from '.'
+import { DeployConsole } from '@fadroma/deploy'
 
 const log = new DeployConsole()
 log.console = { log: () => {}, info: () => {}, warn: () => {}, error: () => {} }

@@ -124,7 +124,7 @@ for (const Chain of supportedChains) {
 ### Connection to deployments
 
 ```typescript
-import { Connector, connect } from '.'
+import { Connector, connect } from '@fadroma/connect'
 let context: Connector
 //context = connect()
 //context = connect({ config: { chain: 'id' } })
@@ -134,7 +134,7 @@ context = await config.connect()
 ### Connection events
 
 ```typescript
-import { ConnectConsole } from '.'
+import { ConnectConsole } from '@fadroma/connect'
 const log = new ConnectConsole()
 
 log.noName({})        // Report When no chain has been selected.
@@ -161,7 +161,7 @@ log.chainStatus({
 ### Connection errors
 
 ```typescript
-import { ConnectError } from './connect-events'
+import ConnectError from './ConnectError'
 
 // When no target chain has been specified:
 assert.ok(new ConnectError.NoChainSelected() instanceof ConnectError)
@@ -182,11 +182,6 @@ Fadroma wraps a common subset of underlying platform featuress into a common API
 This centers on the compute API (for executing contracts) and the bank API (for paying fees).
 
 ```typescript
-const supportedChains = [
-  ScrtGrpc,
-  ScrtAmino,
-]
-
 for (const Chain of supportedChains) {
   await supportsMainnet(Chain)
   await supportsTestnet(Chain)
@@ -279,14 +274,14 @@ async function supportsNativeTransfers (Chain) {
 ### CosmWasm Compute API
 
 ```typescript
-import { ContractInstance } from '@fadroma/core'
+import { Contract } from '@fadroma/core'
 async function supportsSmartContracts (Chain) {
   const chain = new Chain('test')
   const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
   mockChainApi(chain, agent)
   assert.ok(await agent.upload(new Uint8Array()))
-  assert.ok(await agent.instantiate(new ContractInstance({codeId: 1, codeHash: 'hash'})))
-  assert.ok(await agent.execute(new ContractInstance({})))
-  assert.ok(await agent.query(new ContractInstance({})))
+  assert.ok(await agent.instantiate(new Contract({codeId: 1, codeHash: 'hash'})))
+  assert.ok(await agent.execute(new Contract({})))
+  assert.ok(await agent.query(new Contract({})))
 }
 ```
