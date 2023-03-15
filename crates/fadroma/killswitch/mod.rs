@@ -1,13 +1,14 @@
 //! Emergency pause and termination of contracts. You **MUST** implement
-//! [admin] in your contract if you want to use this module.
+//! [admin] in your contract if you want to use this module. This is
+//! enforced when using Fadroma DSL.
 
 use std::fmt;
 
 use crate::{
     self as fadroma,
-    admin,
+    admin::{self, Admin, Mode},
     cosmwasm_std,
-    derive_contract::*,
+    dsl::*,
     impl_canonize_default,
     prelude::*,
 };
@@ -20,6 +21,7 @@ pub const STORE: SingleItem<ContractStatus<CanonicalAddr>, KillswitchNs> = Singl
 // TODO once serde-json-wasm finally supports serializing Rusty enums,
 // this structure can be merged with `ContractStatusLevel`, with
 // `reason` and `new_address` becoming propeties of `Migrating`
+
 /// Current state of a contract w/ optional description and pointer to new version.
 #[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ContractStatus<A> {
@@ -40,8 +42,40 @@ pub enum ContractStatusLevel {
 }
 
 /// Requires the admin component in order to check for admin.
-#[contract]
-pub trait Killswitch {
+#[interface]
+pub trait Killswitch: Admin {
+    type Error: std::fmt::Display;
+
+    #[execute]
+    fn set_status(
+        level: ContractStatusLevel,
+        reason: String,
+        new_address: Option<Addr>
+    ) -> Result<Response, <Self as Killswitch>::Error>;
+
+    #[query]
+    fn status() -> Result<ContractStatus<Addr>, <Self as Killswitch>::Error>;
+}
+
+pub struct DefaultImpl;
+
+impl Admin for DefaultImpl {
+    type Error = StdError;
+
+    #[execute]
+    fn change_admin(mode: Option<Mode>) -> Result<Response, Self::Error> {
+        admin::DefaultImpl::change_admin(deps, env, info, mode)
+    }
+
+    #[query]
+    fn admin() -> Result<Option<Addr>, Self::Error> {
+        admin::DefaultImpl::admin(deps, env)
+    }
+}
+
+impl Killswitch for DefaultImpl {
+    type Error = StdError;
+
     #[execute]
     fn set_status(
         level: ContractStatusLevel,
@@ -120,8 +154,8 @@ pub fn assert_can_set_status(deps: Deps, to_level: ContractStatusLevel) -> StdRe
 }
 
 /// Store a new contract status. Requires the admin component in order to check for admin.
-#[admin::require_admin]
 #[inline]
+#[admin::require_admin]
 pub fn set_status(
     deps: DepsMut,
     info: MessageInfo,

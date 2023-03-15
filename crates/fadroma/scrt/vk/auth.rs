@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    derive_contract::*,
+    dsl::*,
     core::Canonize,
     storage::{ItemSpace, TypedKey},
     cosmwasm_std::{
@@ -22,8 +22,22 @@ pub const STORE: ItemSpace<
     TypedKey<CanonicalAddr>
 > = ItemSpace::new();
 
-#[contract]
+#[interface]
 pub trait VkAuth {
+    type Error: std::fmt::Display;
+
+    #[execute]
+    fn create_viewing_key(entropy: String, _padding: Option<String>) -> Result<Response, Self::Error>;
+
+    #[execute]
+    fn set_viewing_key(key: String, _padding: Option<String>) -> Result<Response, Self::Error>;
+}
+
+pub struct DefaultImpl;
+
+impl VkAuth for DefaultImpl {
+    type Error = StdError;
+
     #[execute]
     fn create_viewing_key(entropy: String, _padding: Option<String>) -> StdResult<Response> {
         let prng_seed = [
@@ -111,17 +125,13 @@ mod tests {
         let sender_canonical = deps.api.addr_canonicalize(&sender).unwrap();
         let env = mock_env();
 
-        let result = execute(
+        let result = DefaultImpl::create_viewing_key(
             deps.as_mut(),
             env.clone(),
             mock_info(sender, &[]),
-            ExecuteMsg::CreateViewingKey {
-                entropy: "123".into(),
-                padding: None,
-            },
-            DefaultImpl,
-        )
-        .unwrap();
+            "123".into(),
+            None
+        ).unwrap();
 
         let result: AuthExecuteAnswer = from_binary(&result.data.unwrap()).unwrap();
         let created_vk = match result {
@@ -147,15 +157,12 @@ mod tests {
 
         let new_key = String::from("new_key");
 
-        execute(
+        DefaultImpl::set_viewing_key(
             deps.as_mut(),
             env.clone(),
             mock_info(sender, &[]),
-            ExecuteMsg::SetViewingKey {
-                key: new_key.clone(),
-                padding: None,
-            },
-            DefaultImpl,
+            new_key.clone(),
+            None,
         )
         .unwrap();
 

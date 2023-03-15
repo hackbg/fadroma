@@ -1,4 +1,4 @@
-use fadroma::{prelude::*, derive_contract::*};
+use fadroma::{prelude::*, dsl::*};
 
 // The message enum variants for this contract will be
 // generated here. This allows you to have just the definitions
@@ -6,22 +6,24 @@ use fadroma::{prelude::*, derive_contract::*};
 // contracts without causing cyclical crate references.
 
 #[interface]
-pub trait Contract {
+pub trait Counter {
+    type Error: std::fmt::Display;
+
     #[init]
-    fn new(initial_value: u64) -> StdResult<Response>;
+    fn new(initial_value: u64) -> Result<Response, Self::Error>;
 
     #[execute]
-    fn add(value: u64) -> StdResult<Response>;
+    fn add(value: u64) -> Result<Response, Self::Error>;
 
     #[execute]
-    fn sub(value: u64) -> StdResult<Response>;
+    fn sub(value: u64) -> Result<Response, Self::Error>;
 
     #[execute]
-    fn mul(value: u64) -> StdResult<Response>;
+    fn mul(value: u64) -> Result<Response, Self::Error>;
 
     #[execute]
-    fn div(value: u64) -> StdResult<Response>;
+    fn div(value: u64) -> Result<Response, Self::Error>;
 
     #[query]
-    fn value() -> StdResult<u64>;
+    fn value() -> Result<u64, Self::Error>;
 }

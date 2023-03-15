@@ -31,7 +31,7 @@ pub use anyhow;
 /// which is the implementation struct to use.
 #[macro_export]
 macro_rules! impl_contract_harness {
-    ($visibility:vis $name:ident, $module:ident) => {
+    ($visibility:vis $name:ident, $module:tt) => {
         $visibility struct $name;
 
         impl $crate::ensemble::ContractHarness for $name {
@@ -79,64 +79,6 @@ macro_rules! impl_contract_harness {
                     deps,
                     env,
                     $crate::cosmwasm_std::from_binary(&msg)?
-                )?;
-
-                Ok(result)
-            }
-        }
-    };
-
-    ($visibility:vis $name:ident, $module:ident, $impl_struct:path) => {
-        $visibility struct $name;
-
-        impl $crate::ensemble::ContractHarness for $name {
-            fn instantiate(
-                &self,
-                deps: $crate::cosmwasm_std::DepsMut,
-                env: $crate::cosmwasm_std::Env,
-                info: $crate::cosmwasm_std::MessageInfo,
-                msg: $crate::cosmwasm_std::Binary
-            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
-                let result = $module::instantiate(
-                    deps,
-                    env,
-                    info,
-                    $crate::cosmwasm_std::from_binary(&msg)?,
-                    $impl_struct
-                )?;
-
-                Ok(result)
-            }
-
-            fn execute(
-                &self,
-                deps: $crate::cosmwasm_std::DepsMut,
-                env: $crate::cosmwasm_std::Env,
-                info: $crate::cosmwasm_std::MessageInfo,
-                msg: $crate::cosmwasm_std::Binary
-            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
-                let result = $module::execute(
-                    deps,
-                    env,
-                    info,
-                    $crate::cosmwasm_std::from_binary(&msg)?,
-                    $impl_struct
-                )?;
-
-                Ok(result)
-            }
-
-            fn query(
-                &self,
-                deps: $crate::cosmwasm_std::Deps,
-                env: $crate::cosmwasm_std::Env,
-                msg: $crate::cosmwasm_std::Binary
-            ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Binary> {
-                let result = $module::query(
-                    deps,
-                    env,
-                    $crate::cosmwasm_std::from_binary(&msg)?,
-                    $impl_struct
                 )?;
 
                 Ok(result)
