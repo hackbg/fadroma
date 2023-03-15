@@ -230,7 +230,7 @@ impl<'a> Contract<'a> {
                         }
                         MsgAttr::Query => {
                             validate_interface_method(sink, &interface_method, &[]);
-                            execute.push(Method::Interface(interface_method));
+                            query.push(Method::Interface(interface_method));
                         }
                         MsgAttr::ExecuteGuard => sink.push_spanned(
                             &method.sig.ident,
