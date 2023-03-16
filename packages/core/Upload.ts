@@ -50,6 +50,7 @@ export async function upload (
       ?? uploader.chain?.id
       ?? uploader.agent?.chain?.id
       ?? (source as any)?.agent?.chain?.id
+
     if (!chainId) throw new Error.NoChainId()
 
     // If we have chain ID and code ID, try to get code hash
@@ -89,24 +90,31 @@ export interface UploaderClass<U extends Uploader> {
 /** Uploader: uploads a `Contract`'s `artifact` to a specific `Chain`,
   * binding the `Contract` to a particular `chainId` and `codeId`. */
 export abstract class Uploader {
+ 
   constructor (public agent?: Agent|null) {}
+
   /** Chain to which this uploader uploads contracts. */
   get chain () { return this.agent?.chain }
+
   /** Fetch the code hash corresponding to a code ID */
   async getHash (id: CodeId): Promise<CodeHash> {
     return await this.agent!.getHash(Number(id))
   }
+
   /** Unique identifier of this uploader implementation. */
   abstract id: string
+
   /** Upload a contract.
     * @returns the contract with populated codeId and codeHash */
   abstract upload (source: Uploadable): Promise<Uploaded>
+
   /** Upload multiple contracts. */
   abstract uploadMany (sources: Uploadable[]): Promise<Uploaded[]>
 
   /** Global registry of Uploader implementations.
     * Populated by @fadroma/deploy */
   static variants: Record<string, UploaderClass<Uploader>> = {}
+
 }
 
 /** @returns the uploader of the thing

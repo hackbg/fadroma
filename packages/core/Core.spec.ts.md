@@ -162,7 +162,7 @@ import { readFileSync } from 'node:fs'
 
 // Uploading a single piece of code:
 //await agent.upload('example.wasm')
-await agent.upload(readFileSync('fixtures/null.wasm'))
+await agent.upload(readFileSync('../../fixtures/null.wasm'))
 //await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' })
 
 // Uploading multiple pieces of code:
@@ -467,13 +467,24 @@ import { Deployment } from '@fadroma/core'
 
 class MyDeployment extends Deployment {
 
-  contract  = this.contract()
+  myContract: PromiseLike<Contract<MyClient>> = this.contract({
+    name: 'my-contract-1',
+    client: MyClient
+  })
 
-  contracts = this.contracts()
+  myTemplate: PromiseLike<Template<Contract<MyClient>>> = this.template({
+    client: MyClient
+  })
 
-  template  = this.template()
+  myInstances1 = this.template.instances({
+    'my-contract-2': {}
+    'my-contract-3': {}
+  })
 
-  templates = this.templates()
+  myInstances2 = this.template.instances([
+    ['my-contract-2', {}],
+    ['my-contract-3', {}],
+  ])
 
 }
 ```
@@ -521,7 +532,33 @@ assert.ok(toInstanceReceipt(instance))
 
 ### Builder
 
+Implemented by `@fadroma/build`.
+
+* **RawBuilder**: runs the build in the current environment
+* **ContainerBuilder**: runs the build in a container for enhanced reproducibility
+
+```typescript
+import { build, buildMany } from './Build'
+
+const builder = { build () {} }
+await build({ builder })
+await buildMany([], { builder })
+```
+
 ### Uploader
+
+Implemented by `@fadroma/upload`.
+
+* **FSUploader**: Support for uploading from Node FS.
+* TODO: **FetchUploader**: Support for uploading from any URL incl. file:///
+
+```typescript
+import { upload, uploadMany } from './Upload'
+
+const uploader = { upload () {}, chain: { id: 'test' } }
+await upload({ builder, uploader })
+await uploadMany([], { builder, uploader })
+```
 
 ### DeployStore
 

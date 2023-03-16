@@ -107,6 +107,6 @@
     }
   },
   "lint-staged": {
-    "*.ts": "pnpm check"
+    "*.ts": "pnpm check && pnpm test"
   }
 }
