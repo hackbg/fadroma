@@ -7,9 +7,9 @@
   "description": "Isomorphic base layer for implementing dAPI clients. See @fadroma/scrt for Secret Network support.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "echo 'Test suite missing!' && true",
-    "cov":   "ensuite-cov -r text -- core.spec.ts.md",
-    "lcov":  "ensuite-cov -r lcov -- core.spec.ts.md",
+    "test":  "ensuite Core.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- Core.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- Core.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {

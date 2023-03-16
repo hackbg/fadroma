@@ -1,29 +1,33 @@
 import Error   from './Error'
 import Console from './Console'
 
+import type { Chain } from './Chain'
+
+import { assertAgent } from './Agent'
+import type { Agent } from './Agent'
+
+import type { Client, ClientClass } from './Client'
+
+import { buildMany } from './Build'
+import type { Builder } from './Build'
+
+import { uploadMany } from './Upload'
+import type { Uploader } from './Upload'
+
+import { writeLabel } from './Labels'
+
+import Template from './Template'
+import type { Buildable, Uploadable } from './Template'
+
+import { Contract, ContractGroup } from './Contract'
+import type { AnyContract, Instantiable, Instantiated } from './Contract'
+
+import { mapAsync, hideProperties, defineDefault, into, intoRecord, defineTask, call } from './Fields'
+import type { Class, Many, Name, Named, IntoRecord } from './Fields'
+
 import { timestamp }      from '@hackbg/logs'
 import { CommandContext } from '@hackbg/cmds'
 import type { Task }      from '@hackbg/task'
-
-import { hideProperties, defineDefault } from './Fields'
-import { mapAsync } from './Fields'
-import { buildMany } from './Build'
-import { uploadMany } from './Upload'
-import { assertAgent } from './Agent'
-import { into, intoRecord, defineTask, call } from './Fields'
-import { writeLabel } from './Labels'
-
-import { Contract, ContractTemplate, ContractGroup } from './Contract'
-import type {
-  AnyContract, Buildable, Uploadable, Instantiable, Instantiated
-} from './Contract'
-
-import type { Agent } from './Agent'
-import type { Builder } from './Build'
-import type { Chain } from './Chain'
-import type { Class, Many, Name, Named, IntoRecord } from './Fields'
-import type { Client, ClientClass } from './Client'
-import type { Uploader } from './Upload'
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -238,12 +242,12 @@ export class Deployment {
   }
 
   /** Specify a contract template.
-    * @returns a callable instance of `ContractTemplate` bearing the specified parameters.
+    * @returns a callable instance of `Template` bearing the specified parameters.
     * Calling it will build and upload the template. */
   template <C extends Client> (
-    opts: Partial<ContractTemplate<C>> = {}
-  ): ContractTemplate<C> {
-    return new ContractTemplate({
+    opts: Partial<Template<C>> = {}
+  ): Template<C> {
+    return new Template({
       workspace: this.config?.build?.project,
       revision:  this.revision ?? 'HEAD',
       ...opts,

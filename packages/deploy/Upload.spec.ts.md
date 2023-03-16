@@ -30,13 +30,13 @@ containing upload metadata, which we call an **upload receipt**.
 ```typescript
 import { JSONDirectory, withTmpDir } from '@hackbg/file'
 import { DeployConfig, FSUploader } from '@fadroma/deploy'
-import { Agent, Uploader, ContractTemplate } from '@fadroma/core'
+import { Agent, Uploader, Template } from '@fadroma/core'
 import { examples } from '../../TESTING.ts.md'
 let config:   DeployConfig
 let uploader: Uploader
 let agent:    Agent = { chain: { id: 'testing' }, upload: async x => x }
 let artifact: URL = examples['KV'].url
-let template: ContractTemplate = new ContractTemplate({ artifact })
+let template: Template = new Template({ artifact })
 ```
 
 When trying to upload a binary file, the `Uploader` checks if a corresponding receipt exists;

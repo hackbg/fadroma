@@ -1,5 +1,5 @@
 import { HEAD } from '@fadroma/core'
-import type { ContractTemplate, Built } from '@fadroma/core'
+import type { Template, Built } from '@fadroma/core'
 
 import { CommandsConsole } from '@hackbg/cmds'
 import $ from '@hackbg/file'
@@ -26,12 +26,12 @@ export default class BuildConsole extends CommandsConsole {
     )
   }
 
-  buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractTemplate<any>>) {
+  buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) {
     this.log('Building ', bold(crate), ...
       (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
   }
 
-  buildingMany (sources: ContractTemplate<any>[]) {
+  buildingMany (sources: Template<any>[]) {
     for (const source of sources) this.buildingOne(source)
   }
 

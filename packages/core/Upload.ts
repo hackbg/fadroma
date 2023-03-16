@@ -1,18 +1,26 @@
 import Error   from './Error'
 import Console from './Console'
 
-import { Client } from './Client'
-import { fetchCodeHash, getSourceSpecifier } from './Code'
-import { build } from './Build'
-import { defineTask, pluralize } from './Fields'
-import type { Agent } from './Agent'
-import type { Maybe, Overridable } from './Fields'
-import type { ChainId } from './Chain'
-import type { ClientClass } from './Client'
 import type { Address, TxHash } from './Tx'
-import type { Hashed, CodeHash, CodeId } from './Code'
-import type { Buildable, Uploadable, Uploaded } from './Contract'
+
+import type { ChainId } from './Chain'
+
+import type { Agent } from './Agent'
+
+import { Client } from './Client'
+import type { ClientClass } from './Client'
+
 import type { Deployment } from './Deployment'
+
+import type { Buildable, Uploadable, Uploaded } from './Template'
+
+import { build } from './Build'
+
+import { defineTask, pluralize } from './Fields'
+import type { Maybe, Overridable } from './Fields'
+
+import { fetchCodeHash, getSourceSpecifier } from './Code'
+import type { Hashed, CodeHash, CodeId } from './Code'
 
 /** Standalone upload function. */
 export async function upload (

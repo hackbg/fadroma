@@ -8,7 +8,8 @@ import type { Address, Message, ExecOpts } from './Tx'
 import type { AgentFees, ICoin, IFee } from './Fee'
 import type { CodeHash } from './Code'
 import type { Client, ClientClass } from './Client'
-import type { Uploaded, Instantiated, AnyContract } from './Contract'
+import type { Uploaded } from './Template'
+import type { Instantiated, AnyContract } from './Contract'
 import type { Contract } from './Contract'
 import type { Uploader, UploaderClass } from './Upload'
 import type { Name } from './Fields'
@@ -143,7 +144,7 @@ export abstract class Agent {
   }
 
   /** Upload multiple pieces of code, generating multiple CodeID/CodeHash pairs.
-    * @returns ContractTemplate[] */
+    * @returns Template[] */
   uploadMany (blobs: Uint8Array[] = []): Promise<Uploaded[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
@@ -164,7 +165,7 @@ export abstract class Agent {
     })
   }
 
-  /** Create multiple smart contracts from a ContractTemplate (providing code id)
+  /** Create multiple smart contracts from a Template (providing code id)
     * and a list or map of label/initmsg pairs.
     * Uses this agent's Bundle class to instantiate them in a single transaction.
     * @example
@@ -205,7 +206,7 @@ export abstract class Agent {
     contract: Partial<Client>, msg: Message, opts?: ExecOpts
   ): Promise<void|unknown> {
     this.log.warn('Agent#execute: not implemented')
-    return Promise.resolve()
+    return Promise.resolve({})
   }
 
   /** Begin a transaction bundle. */

@@ -4,7 +4,7 @@ import { TokenPair } from './Token'
 import type { Token } from './Token'
 
 import { ClientConsole, Contract, writeLabel } from '@fadroma/core'
-import type { Address, Deployment, AnyContract, ContractTemplate } from '@fadroma/core'
+import type { Address, Deployment, AnyContract, Template } from '@fadroma/core'
 
 import { CommandContext } from '@hackbg/cmds'
 import type { Task } from '@hackbg/task'
@@ -14,7 +14,7 @@ export type TokenSymbol = string
 
 export type TokenContract = Contract<Snip20>
 
-export type TokenTemplate = ContractTemplate<Snip20>
+export type TokenTemplate = Template<Snip20>
 
 export interface TokenOptions {
   template?: TokenContract

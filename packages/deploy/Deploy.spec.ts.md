@@ -78,7 +78,7 @@ let codeId, codeHash, txHash, result
 ```
 
 ```typescript
-import { ChainId, Contract, ContractTemplate } from '@fadroma/core'
+import { ChainId, Contract, Template } from '@fadroma/core'
 let chainId: ChainId  = 'mocknet'
 
 await inTmpDeployment(async d => {
@@ -94,7 +94,7 @@ await inTmpDeployment(async d => {
 await inTmpDeployment(async deployment => {
 
   const codeId   = 1
-  const template = new ContractTemplate({ chainId, codeId })
+  const template = new Template({ chainId, codeId })
   const initMsg  = Symbol()
   const name  = 'contract'
   const label = `${deployment.name}/${name}`
@@ -127,7 +127,7 @@ await inTmpDeployment(async deployment => {
 await inTmpDeployment(async deployment=>{
   const codeId   = 2
   const agent    = { instantiateMany: async () => [] }
-  const template = new ContractTemplate({ chainId, codeId })
+  const template = new Template({ chainId, codeId })
   const initMsg  = Symbol()
   const configs  = [['contract1', Symbol()], ['contract2', Symbol()]]
   const receipts = await deployment.contracts(template).define({ agent }).deploy(configs)

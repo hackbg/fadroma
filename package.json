@@ -9,13 +9,18 @@
   "bin": { "fadroma": "fadroma.cli.cjs" },
   "files": [ "*.ts" ],
   "scripts": {
+
     "start": "cmds-ts ./fadroma.ts",
 
     "prepare": "husky install",
 
-    "ubik": "pnpm i && pnpm clean && pnpm check && ubik",
-
+    "ubik":  "pnpm i && pnpm clean && pnpm check && ubik",
     "check": "time tsc --noEmit",
+    "test":  "time ensuite Fadroma.spec.ts.md",
+    "cov":   "time ensuite-cov -r text -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
+    "lcov":  "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
+    "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:test:cov && pnpm ubik dry && ls -al",
+    "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 
     "build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
 
@@ -23,17 +28,8 @@
     "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints platforms/* --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
-    "docs:vp:serve": "vitepress serve",
+    "docs:vp:serve": "vitepress serve"
 
-    "test":          "time ensuite Fadroma.spec.ts.md",
-    "test:cov":      "time ensuite-cov -r text -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
-    "test:lcov":     "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
-    "test:build":    "./packages/build/build.ts",
-    "test:build:kv": "./packages/build/build.ts examples/kv",
-
-    "ci": "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:test:cov && pnpm ubik dry && ls -al",
-
-    "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types"
   },
   "dependencies": {
 

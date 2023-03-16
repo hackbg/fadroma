@@ -302,7 +302,12 @@ Once you know what methods your contract will support,
 you'll want to extend `Client` and implement them there:
 
 ```typescript
+let deployment: Deployment
+let template:   Template
+let instance:   Instance
+
 class MyClient extends Client {
+  address = 'unspecified'
   myMethod () {
     return this.execute({ my_method: {} })
   }
@@ -311,16 +316,13 @@ class MyClient extends Client {
   }
 }
 
-const deployment = new Deployment()
-const templateWithCustomClient = deployment.template({ codeId: 2, client: MyClient })
-const instanceWithCustomClient = templateWithCustomClient.instance({
-  name: 'custom-client-contract',
-  initMsg: {}
-})
-const customClient = await instanceWithCustomClient
-assert.ok(customClient instanceof MyClient)
-assert.ok(await customClient.myMethod())
-assert.ok(await customClient.myQuery())
+deployment = new Deployment({ agent: new Agent({ chain: new Chain('test') }) })
+template = await deployment.template({ codeId: 2, client: MyClient })
+instance = await template.instance({ name: 'custom-client-contract', initMsg: {} })
+
+assert.ok(instance instanceof MyClient)
+assert.ok(await instance.myMethod())
+assert.ok(await instance.myQuery())
 ```
 
 By publishing a library of `Client` subclasses corresponding to your contracts,
@@ -330,24 +332,23 @@ integrate it into their systems.
 #### Fetching metadata
 
 ```typescript
-import { fetchCodeHash } from '@fadroma/core'
-assert.ok(await fetchCodeHash(contract, agent))
-assert.ok(await fetchCodeHash(contract, agent, 'hash'))
-assert.rejects(fetchCodeHash(contract, agent, 'unexpected'))
-```
+import {
+  fetchCodeHash,
+  fetchCodeId,
+  fetchLabel
+} from '@fadroma/core'
 
-```typescript
-import { fetchCodeId } from '@fadroma/core'
-assert.ok(await fetchCodeId(contract, agent))
-assert.ok(await fetchCodeId(contract, agent, 'id'))
-assert.rejects(fetchCodeId(contract, agent, 'unexpected'))
-```
+assert.ok(instance.codeHash = await fetchCodeHash(instance, agent))
+assert.ok(instance.codeId   = await fetchCodeId(instance, agent))
+assert.ok(instance.label    = await fetchLabel(instance, agent))
 
-```typescript
-import { fetchLabel } from '@fadroma/core'
-assert.ok(await fetchLabel(c, a))
-assert.ok(await fetchLabel(c, a, 'label'))
-assert.rejects(fetchLabel(c, a, 'unexpected'))
+assert.equal(instance.codeHash, await fetchCodeHash(instance, agent, instance.codeHash))
+assert.equal(instance.codeId,   await fetchCodeId(instance, agent, instance.codeId))
+assert.equal(instance.label,    await fetchLabel(instance, agent, instance.label))
+
+assert.rejects(fetchCodeHash(instance, agent, 'unexpected'))
+assert.rejects(fetchCodeId(instance, agent, 'unexpected'))
+assert.rejects(fetchLabel(instance, agent, 'unexpected'))
 ```
 
 #### Extending Client
@@ -377,7 +378,7 @@ class TestBundle extends Bundle {
 import { Client } from '@fadroma/core'
 bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
 
-assert(bundle.getClient(Client, '') instanceof Client)
+assert(bundle.getClient(Client, '') instanceof Client, 'Bundle#getClient')
 assert.equal(await bundle.execute({}), bundle)
 assert.equal(bundle.id, 1)
 //assert(await bundle.instantiateMany({}, []))
@@ -487,7 +488,7 @@ Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
 #### Contract lifecycle
 
 The `Metadata` class is the base class of the
-`ContractSource`->`ContractTemplate`->`Contract` inheritance chain.
+`ContractSource`->`Template`->`Contract` inheritance chain.
 
 #### Contract
 
@@ -498,7 +499,7 @@ Represents a contract that is instantiated from a `codeId`.
 
 ```typescript
 import { Contract } from '@fadroma/core'
-let instance: Contract = new Contract()
+instance = new Contract()
 assert.ok(instance.asReceipt)
 //assert.ok(await instance.define({ agent }).found)
 //assert.ok(await instance.define({ agent }).deployed)
@@ -506,23 +507,13 @@ assert.ok(instance.asReceipt)
 
 ### Defining groups of contracts in a Deployment
 
-#### ContractTemplate
+#### Template
 
 ### Storing deployment state
 
 #### Exporting deployments
 
 #### Connecting to an exported deployment
-
-```typescript
-import { fetchLabel, parseLabel, writeLabel } from '@fadroma/core'
-
-let c = { address: 'addr' }
-let a = { getLabel: () => Promise.resolve('label') }
-assert.ok(await fetchLabel(c, a))
-assert.ok(await fetchLabel(c, a, 'label'))
-assert.rejects(fetchLabel(c, a, 'unexpected'))
-```
 
 ### Versioned deployments
 
@@ -543,11 +534,14 @@ custom error subclasses for various error conditions.
 
 ```typescript
 // Make sure each error subclass can be created with no arguments:
-import ClientError from './Error'
+import Error from './Error'
 for (const subtype of [
   'Unimplemented',
+
   'UploadFailed',
+
   'InitFailed',
+
   'CantInit_NoName',
   'CantInit_NoAgent',
   'CantInit_NoCodeId',
@@ -557,15 +551,21 @@ for (const subtype of [
   'BalanceNoAddress',
   'DeployManyFailed',
   'DifferentHashes',
+
   'EmptyBundle',
+
   'ExpectedAddress',
   'ExpectedAgent',
+
   'InvalidLabel',
   'InvalidMessage',
+
   'LinkNoAddress',
   'LinkNoCodeHash',
   'LinkNoTarget',
+
   'NameOutsideDevnet',
+
   'NoAgent',
   'NoArtifact',
   'NoArtifactURL',
@@ -587,14 +587,17 @@ for (const subtype of [
   'NoUploaderAgent',
   'NoUploaderNamed',
   'NoVersion',
+
   'NotFound',
   'NotInBundle',
+
   'ProvideBuilder',
   'ProvideUploader',
+
   'Unpopulated',
   'ValidationFailed'
 ]) {
-  assert(new ClientError[subtype]() instanceof ClientError)
+  assert(new Error[subtype]() instanceof Error, `error ${subtype}`)
 }
 ```
 

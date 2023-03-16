@@ -194,19 +194,19 @@ export abstract class Chain {
   /** Get the code id of a smart contract. */
   getCodeId (address: Address): Promise<CodeId> {
     this.log.warn('Chain#getCodeId: not implemented')
-    return Promise.resolve('0')
+    return Promise.resolve('unimplemented')
   }
 
   /** Get the label of a smart contract. */
   getLabel (address: Address): Promise<string> {
     this.log.warn('Chain#getLabel: not implemented')
-    return Promise.resolve('')
+    return Promise.resolve('unimplemented')
   }
 
   /** Get the code hash of a smart contract. */
   getHash (address: Address|number): Promise<CodeHash> {
     this.log.warn('Chain#getHash: not implemented')
-    return Promise.resolve('')
+    return Promise.resolve('unimplemented')
   }
 
   /** Get the code hash of a smart contract. */

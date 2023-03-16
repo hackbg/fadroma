@@ -6,7 +6,7 @@ import { defineTask, pluralize } from './Fields'
 import type { Deployment } from './Deployment'
 import type { Class } from './Fields'
 import type { CodeHash } from './Code'
-import type { Buildable, Built } from './Contract'
+import type { Buildable, Built } from './Template'
 import type { Task } from '@hackbg/task'
 
 /** The default Git ref when not specified. */

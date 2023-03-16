@@ -27,10 +27,10 @@ $ npx fadroma contract del
 
 ```typescript
 const contract1 = project.getContract('contract1')
-assert(contract1 instanceof ContractTemplate)
+assert(contract1 instanceof Template)
 
 const contract2 = project.addContract('contract2', {})
-assert(contract2 instanceof ContractTemplate)
+assert(contract2 instanceof Template)
 ```
 
 ## Project state

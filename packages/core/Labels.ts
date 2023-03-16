@@ -1,13 +1,16 @@
 import Error   from './Error'
 import Console from './Console'
 
-import type { AnyContract } from './Contract'
-import type { Agent }       from './Agent'
-import type { Contract }    from './Contract'
-import type { Client }      from './Client'
-import type { Name }        from './Fields'
+import type { Contract, AnyContract } from './Contract'
+
+import type { Agent } from './Agent'
+import type { Client } from './Client'
+
+import type { Address } from './Tx'
 import { assertAddress } from './Tx'
-import { validated }     from './Fields'
+
+import { validated } from './Fields'
+import type { Name } from './Fields'
 
 /** A contract name with optional prefix and suffix, implementing namespacing
   * for append-only platforms where labels have to be globally unique. */
@@ -19,16 +22,46 @@ export interface StructuredLabel {
 }
 
 /** A contract's full unique on-chain label. */
-export type Label  = string
+export type Label = string
+
+export class StructuredLabel {
+
+  constructor (
+    public prefix?: string,
+    public name?:   string,
+    public suffix?: string,
+  ) {}
+
+  toString () {
+    let name = this.name
+    if (this.prefix) name = `${this.prefix}/${name}`
+    if (this.suffix) name = `${name}+${this.suffix}`
+    return name
+  }
+
+  static parse (label: string): StructuredLabel {
+    const { prefix, name, suffix } = parseLabel(label)
+    return new StructuredLabel(prefix, name, suffix)
+  }
+
+  static async fetch (address: Address, agent: Agent, expected?: Label): Promise<StructuredLabel> {
+    return StructuredLabel.parse(await agent.getLabel(address))
+  }
+
+}
 
 /** Fetch the label from the chain. */
 export async function fetchLabel <C extends AnyContract> (
   contract: C, agent: Agent, expected?: Label
-): Promise<C & { label: Label }> {
+): Promise<Label> {
   const label = await agent.getLabel(assertAddress(contract))
-  if (!!expected) validated('label', expected, label)
-  const { name, prefix, suffix } = parseLabel(label)
-  return Object.assign(contract, { label, name, prefix, suffix })
+  if (!!expected) validated('label', label, expected)
+  Object.assign(contract, { label })
+  try {
+    const { name, prefix, suffix } = parseLabel(label)
+    Object.assign(contract, { name, prefix, suffix })
+  } catch (e) {}
+  return label
 }
 
 /** RegExp for parsing labels of the format `prefix/name+suffix` */

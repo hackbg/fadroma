@@ -26,9 +26,13 @@ export * from './Build'
 export * from './Upload'
 
 export * from './Client'
-export * from './Contract'
 export * from './Deployment'
 export * from './DeployStore'
+
+export { default as Template } from './Template'
+export * from './Template'
+
+export * from './Contract'
 
 export { Task } from '@hackbg/task'
 export { CommandContext } from '@hackbg/cmds'

@@ -57,7 +57,7 @@ const {template3, template4} = await builder.buildMany({
 
 Represents the source code of a contract.
   * Compiling a source populates the `artifact` property.
-  * Uploading a source creates a `ContractTemplate`.
+  * Uploading a source creates a `Template`.
 
 ```typescript
 import { Contract } from '@fadroma/core'

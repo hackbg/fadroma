@@ -275,10 +275,10 @@ assert.ok(manager.pair('DEPLOY-KNOWN') instanceof TokenPair)
 
 new TokenError()
 
-import { ContractSlot, ContractTemplate } from '@fadroma/core'
+import { ContractSlot, Template } from '@fadroma/core'
 const manager2 = new TokenManager({
   template: (options) => new ContractSlot(options)
-}, new ContractTemplate({
+}, new Template({
   crate: 'snip20'
 }))
 ```

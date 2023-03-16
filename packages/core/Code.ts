@@ -3,7 +3,8 @@ import Console from './Console'
 
 import type { Agent } from './Agent'
 import type { Address } from './Tx'
-import type { Buildable, Built, Uploaded, Instantiated, AnyContract } from './Contract'
+import type { Buildable, Built, Uploaded } from './Template'
+import type { Instantiated, AnyContract } from './Contract'
 import { assertAddress } from './Tx'
 import { validated } from './Fields'
 
@@ -75,11 +76,9 @@ export type CodeId = string
   * @returns `this` but with `codeId` populated. */
 export async function fetchCodeId <C extends AnyContract> (
   meta: C, agent: Agent, expected?: CodeId,
-): Promise<C & { codeId: CodeId }> {
-  return Object.assign(meta, {
-    codeId: validated('codeId',
-      String(await agent.getCodeId(assertAddress(meta))),
-      (expected===undefined) ? undefined : String(expected)
-    )
-  })
+): Promise<CodeId> {
+  return validated('codeId',
+    String(await agent.getCodeId(assertAddress(meta))),
+    (expected===undefined) ? undefined : String(expected)
+  )
 }
