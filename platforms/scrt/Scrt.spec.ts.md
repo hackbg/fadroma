@@ -35,25 +35,48 @@ const mocknet = Scrt.Mocknet()
 
 Then, to authenticate:
 
+* With a fresh wallet (randomly generated mnemonic)
+
+```typescript
+const agent0 = await mainnet.getAgent()
+
+ok(agent0 instanceof Scrt.Agent)
+ok(agent0.chain instanceof Scrt.Chain)
+ok(agent0.mnemonic)
+ok(agent0.address)
+```
+
 * With a mnemonic:
 
 ```typescript
 const agent1 = await mainnet.getAgent({ mnemonic: '...' })
-ok(agent instanceof Scrt.Agent)
+
+ok(agent1 instanceof Scrt.Agent)
+ok(agent1.chain instanceof Scrt.Chain)
+ok(agent1.mnemonic)
+ok(agent1.address)
 ```
 
 * With Keplr:
 
 ```typescript
 const agent2 = await mainnet.fromKeplr() // TODO
+
 ok(agent2 instanceof Scrt.Agent)
+ok(agent2.chain instanceof Scrt.Chain)
+ok(agent2.mnemonic)
+ok(agent2.address)
 ```
 
 * With secretcli:
 
 ```typescript
 const agent3 = await mainnet.fromSecretCli() // TODO
+
 ok(agent3 instanceof Scrt.Agent)
+ok(agent3.chain instanceof Scrt.Chain)
+ok(agent3.mnemonic)
+ok(agent3.address)
 ```
 
 ## Viewing keys

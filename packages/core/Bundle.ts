@@ -225,10 +225,16 @@ export abstract class Bundle extends Agent {
   }
 
   /** Broadcast a bundle to the chain. */
-  abstract submit (memo: string): Promise<unknown>
+  submit (memo: string): Promise<unknown> {
+    this.log.warn('Bundle#submit: not implemented')
+    return Promise.resolve([])
+  }
 
   /** Save a bundle for manual broadcast. */
-  abstract save (name: string): Promise<unknown>
+  save (name: string): Promise<unknown> {
+    this.log.warn('Bundle#save: not implemented')
+    return Promise.resolve()
+  }
 
 }
 

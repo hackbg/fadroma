@@ -4,7 +4,7 @@ import Console from './Console'
 import { CommandContext } from '@hackbg/cmds'
 import { defineTask, pluralize } from './Fields'
 import type { Deployment } from './Deployment'
-import type { Overridable } from './Fields'
+import type { Class } from './Fields'
 import type { CodeHash } from './Code'
 import type { Buildable, Built } from './Contract'
 import type { Task } from '@hackbg/task'
@@ -44,9 +44,7 @@ export async function buildMany (
 
 /** Builders can be specified as ids, class names, or objects. */
 /** A constructor for a Builder subclass. */
-export type BuilderClass<B extends Builder> = Overridable<Builder, [
-  string|BuilderClass<Builder>|Partial<Builder>
-]>
+export type BuilderClass<B extends Builder> = Class<Builder, any>
 
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder extends CommandContext {

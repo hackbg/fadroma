@@ -68,7 +68,7 @@ export default class BuilderConfig extends EnvConfig {
 
   /** Get a configured builder. */
   getBuilder <B extends Builder> ($B?: BuilderClass<B>): B {
-    $B ??= Builder.variants[this.buildRaw?'raw-local':'docker-local'] as unknown as BuilderClass<B>
+    $B ??= Builder.variants[this.buildRaw?'Raw':'Container'] as unknown as BuilderClass<B>
     return new $B(this) as B
   }
 

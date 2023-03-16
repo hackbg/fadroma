@@ -4,8 +4,8 @@ import BuildConsole from './BuildConsole'
 import type BuilderConfig from './BuilderConfig'
 import getGitDir from './getGitDir'
 
-import { Contract, HEAD } from '@fadroma/core'
-import type { Builder, Buildable, Built } from '@fadroma/core'
+import { Builder, Contract, HEAD } from '@fadroma/core'
+import type { BuilderClass, Buildable, Built } from '@fadroma/core'
 
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
 import { bold } from '@hackbg/logs'
@@ -16,7 +16,21 @@ import { default as simpleGit } from 'simple-git'
 import { homedir } from 'node:os'
 
 /** This builder launches a one-off build container using Dockerode. */
-export default class DockerBuilder extends LocalBuilder {
+export default class ContainerBuilder extends LocalBuilder {
+
+  readonly id = 'Container'
+
+  /** Logger */
+  log = new BuildConsole('Builder: Container')
+
+  /** Used to launch build container. */
+  docker: Engine
+
+  /** Tag of the docker image for the build container. */
+  image: Image
+
+  /** Path to the dockerfile to build the build container if missing. */
+  dockerfile: string
 
   constructor (opts: Partial<BuilderConfig & { docker?: Engine }> = {}) {
     super(opts)
@@ -46,20 +60,6 @@ export default class DockerBuilder extends LocalBuilder {
       'args', 'task', 'before'
     ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
   }
-
-  readonly id = 'docker-local'
-
-  /** Logger */
-  log = new BuildConsole('Builder: Docker')
-
-  /** Used to launch build container. */
-  docker: Engine
-
-  /** Tag of the docker image for the build container. */
-  image: Image
-
-  /** Path to the dockerfile to build the build container if missing. */
-  dockerfile: string
 
   /** Build a Source into a Template. */
   async build (contract: Buildable): Promise<Built> {
@@ -381,6 +381,8 @@ export default class DockerBuilder extends LocalBuilder {
   }
 
 }
+
+Builder.variants['Container'] = ContainerBuilder as unknown as BuilderClass<Builder>
 
 export const distinct = <T> (x: T[]): T[] =>
   [...new Set(x) as any]

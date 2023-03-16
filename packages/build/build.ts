@@ -23,7 +23,7 @@ import type { Buildable, Built } from '@fadroma/core'
 import { Builder } from '@fadroma/core'
 import type { Many } from '@hackbg/many'
 
-export default function builder (options: Partial<BuilderConfig> = {}): Builder {
+export default function getBuilder (options: Partial<BuilderConfig> = {}): Builder {
   return new BuilderConfig(options).getBuilder()
 }
 

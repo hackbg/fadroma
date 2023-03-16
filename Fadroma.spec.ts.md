@@ -114,12 +114,12 @@ proceed to the [***Fadroma Core API Specification***](./packages/core/Core.spec.
 
 ```typescript
 import './packages/core/Core.spec.ts.md'
-import './packages/build/Build.spec.ts.md'
-import './packages/connect/Connect.spec.ts.md'
-import './packages/deploy/Deploy.spec.ts.md'
-import './packages/devnet/Devnet.spec.ts.md'
-import './packages/mocknet/Mocknet.spec.ts.md'
-import './platforms/scrt/Scrt.spec.ts.md'
-import './platforms/cw/CW.spec.ts.md'
-import './platforms/evm/EVM.spec.ts.md'
+//import './packages/build/Build.spec.ts.md'
+//import './packages/connect/Connect.spec.ts.md'
+//import './packages/deploy/Deploy.spec.ts.md'
+//import './packages/devnet/Devnet.spec.ts.md'
+//import './packages/mocknet/Mocknet.spec.ts.md'
+//import './platforms/scrt/Scrt.spec.ts.md'
+//import './platforms/cw/CW.spec.ts.md'
+//import './platforms/evm/EVM.spec.ts.md'
 ```

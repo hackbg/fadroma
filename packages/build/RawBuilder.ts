@@ -2,8 +2,8 @@ import LocalBuilder, { artifactName, sanitize } from './LocalBuilder'
 import BuildConsole from './BuildConsole'
 import getGitDir from './getGitDir'
 
-import { Contract, HEAD } from '@fadroma/core'
-import type { Buildable, Built } from '@fadroma/core'
+import { Builder, Contract, HEAD } from '@fadroma/core'
+import type { BuilderClass, Buildable, Built } from '@fadroma/core'
 
 import $ from '@hackbg/file'
 import { bold } from '@hackbg/logs'
@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
   * as the one in which the script is running, i.e. no build container. */
 export default class RawBuilder extends LocalBuilder {
 
-  readonly id = 'raw-local'
+  readonly id = 'Raw'
 
   log = new BuildConsole('Fadroma.RawBuilder')
 
@@ -116,3 +116,5 @@ export default class RawBuilder extends LocalBuilder {
   }
 
 }
+
+Builder.variants['Raw'] = RawBuilder as unknown as BuilderClass<Builder>

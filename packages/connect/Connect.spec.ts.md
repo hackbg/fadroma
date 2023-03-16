@@ -5,7 +5,7 @@ In practical terms, it allows you to connect to every backend that Fadroma suppo
 
 ## Connect CLI
 
-```typescript
+```sh
 $ fadroma chain list
 ```
 

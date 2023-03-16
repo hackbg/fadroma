@@ -32,10 +32,34 @@ export interface AgentOpts {
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
+
+  /** Logger. */
+  log = new Console('Fadroma.Agent')
+
+  /** The chain on which this agent operates. */
+  chain?:   Chain
+
+  /** The address from which transactions are signed and sent. */
+  address?: Address
+
+  /** The friendly name of the agent. */
+  name?:    string
+
+  /** Default fee maximums for send, upload, init, and execute. */
+  fees?:    AgentFees
+
+  /** The Bundle subclass to use. */
+  Bundle:   BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
+
+  get [Symbol.toStringTag]() {
+    return `${this.chain?.id??'-'}: ${this.address}`
+  }
+
   constructor (options: Partial<AgentOpts> = {}) {
     this.chain = options.chain ?? this.chain
-    this.name  = options.name  ?? this.name
-    this.fees  = options.fees  ?? this.fees
+    this.name = options.name  ?? this.name
+    this.fees = options.fees  ?? this.fees
+    this.address = options.address  ?? this.address
     Object.defineProperties(this, {
       'chain':   { enumerable: false, writable: true },
       'address': { enumerable: false, writable: true },
@@ -44,80 +68,102 @@ export abstract class Agent {
     })
   }
 
-  get [Symbol.toStringTag]() { return `${this.chain?.id??'-'}: ${this.address}` }
-
-  /** Logger. */
-  log = new Console('Fadroma.Agent')
-  /** The chain on which this agent operates. */
-  chain?:   Chain
-  /** The address from which transactions are signed and sent. */
-  address?: Address
-  /** The friendly name of the agent. */
-  name?:    string
-  /** Default fee maximums for send, upload, init, and execute. */
-  fees?:    AgentFees
-  /** The Bundle subclass to use. */
-  Bundle:   BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
   /** The default denomination in which the agent operates. */
   get defaultDenom () {
     return assertChain(this).defaultDenom
   }
+
   /** Get the balance of this or another address. */
   getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
     if (!this.chain) throw new Error.NoChain()
     if (!address) throw new Error.BalanceNoAddress()
     return this.chain.getBalance(denom!, address)
   }
+
   /** This agent's balance in the chain's native token. */
   get balance (): Promise<string> {
     return this.getBalance()
   }
+
   /** The chain's current block height. */
   get height (): Promise<number> {
     return assertChain(this).height
   }
+
   /** Wait until the block height increments. */
   get nextBlock () {
     return assertChain(this).nextBlock
   }
+
   /** Get the code ID of a contract. */
   getCodeId (address: Address) {
     return assertChain(this).getCodeId(address)
   }
+
   /** Get the label of a contract. */
   getLabel (address: Address) {
     return assertChain(this).getLabel(address)
   }
+
   /** Get the code hash of a contract or template. */
   getHash (address: Address|number) {
     return assertChain(this).getHash(address)
   }
+
   /** Check the code hash of a contract at an address against an expected value. */
   checkHash (address: Address, codeHash?: CodeHash) {
     return assertChain(this).checkHash(address, codeHash)
   }
+
   /** Query a contract on the chain. */
   query <R> (contract: Client, msg: Message): Promise<R> {
     return assertChain(this).query(contract, msg)
   }
+
   /** Send native tokens to 1 recipient. */
-  abstract send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown>
+  send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
+    this.log.warn('Agent#send: not implemented')
+    return Promise.resolve()
+  }
+
   /** Send native tokens to multiple recipients. */
-  abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
+  sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
+    this.log.warn('Agent#sendMany: not implemented')
+    return Promise.resolve()
+  }
+
   /** Upload code, generating a new code id/hash pair. */
-  abstract upload (blob: Uint8Array): Promise<Uploaded>
+  upload (blob: Uint8Array): Promise<Uploaded> {
+    this.log.warn('Agent#upload: not implemented')
+    return Promise.resolve({
+      chainId:  this.chain!.id,
+      codeId:   '0',
+      codeHash: ''
+    })
+  }
+
   /** Upload multiple pieces of code, generating multiple CodeID/CodeHash pairs.
     * @returns ContractTemplate[] */
   uploadMany (blobs: Uint8Array[] = []): Promise<Uploaded[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
+
   /** Create a new smart contract from a code id, label and init message.
     * @example
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
     *   AnyContract with no `address` populated yet.
     *   This will be populated after executing the bundle. */
-  abstract instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated>
+  instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated> {
+    this.log.warn('Agent#instantiate: not implemented')
+    return Promise.resolve({
+      chainId:  this.chain!.id,
+      address:  '',
+      codeHash: '',
+      label:    ''
+    })
+  }
+
   /** Create multiple smart contracts from a ContractTemplate (providing code id)
     * and a list or map of label/initmsg pairs.
     * Uses this agent's Bundle class to instantiate them in a single transaction.
@@ -153,15 +199,21 @@ export abstract class Agent {
     }
     return instances
   }
+
   /** Call a transaction method on a smart contract. */
-  abstract execute (
+  execute (
     contract: Partial<Client>, msg: Message, opts?: ExecOpts
-  ): Promise<void|unknown>
+  ): Promise<void|unknown> {
+    this.log.warn('Agent#execute: not implemented')
+    return Promise.resolve()
+  }
+
   /** Begin a transaction bundle. */
   bundle (): Bundle {
     //@ts-ignore
     return new this.Bundle(this)
   }
+
   /** Get a client instance for talking to a specific smart contract as this executor. */
   getClient <C extends Client> (
     $Client:   ClientClass<C>,
@@ -175,11 +227,13 @@ export abstract class Agent {
       ...args
     ) as C
   }
+
   /** Get an uploader instance which performs code uploads and optionally caches them. */
   getUploader <U extends Uploader> ($U: UploaderClass<U>, ...options: any[]): U {
     //@ts-ignore
     return new $U(this, ...options) as U
   }
+
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below
 }

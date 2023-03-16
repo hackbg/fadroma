@@ -49,7 +49,7 @@ export default class ConnectConfig extends EnvConfig {
 
   /** Get a chain ID corresponding to the value of `this.chain`.
     * (Used by subclasses to include chain ID in paths.) */
-  get chainId (): ChainId {
+  get chainId (): ChainId|null {
     const chainIds = {
       Mocknet_CW0: 'mocknet-cw0',
       Mocknet_CW1: 'mocknet-cw1',
@@ -57,10 +57,7 @@ export default class ConnectConfig extends EnvConfig {
       ScrtTestnet:  Scrt.defaultTestnetChainId,
       ScrtMainnet:  Scrt.defaultMainnetChainId,
     }
-    if (!this.chainSelector) throw new Error.NoChainSelected(chainIds)
-    const result = chainIds[this.chainSelector as keyof typeof chainIds]
-    if (!result) throw new Error.UnknownChainSelected(this.chainSelector, chainIds)
-    return result
+    return chainIds[this.chainSelector as keyof typeof chainIds] || null
   }
 
   /** Get a chain mode corresponding to the value of `this.chain`.

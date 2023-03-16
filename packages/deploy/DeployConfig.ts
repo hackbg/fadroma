@@ -28,8 +28,8 @@ export default class DeployConfig extends ConnectConfig {
   multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
 
   /** Directory to store the receipts for the deployed contracts. */
-  deployState:  string  = this.getString ('FADROMA_DEPLOY_STATE',
-    () => $(this.project).in('receipts').in(this.chainId).in('deployments').path)
+  deployState: string | null = this.getString ('FADROMA_DEPLOY_STATE',
+    () => this.chainId ? $(this.project).in('receipts').in(this.chainId).in('deployments').path : null)
 
   /** Which implementation of the receipt store to use. */
   deploymentFormat  = this.getString('FADROMA_DEPLOY_STORE', () => 'YAML1') as DeploymentFormat

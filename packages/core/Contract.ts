@@ -323,12 +323,8 @@ export class Contract<C extends Client> extends defineCallable(ensureContract) {
     super({})
     this.log = new Console(new.target.name)
     const self = this
-    if (options.name) {
-      setName(options.name)
-    }
-    if (this.context) {
-      setPrefix(this.context.name)
-    }
+    if (options.name) setName(options.name)
+    if (this.context) setPrefix(this.context.name)
     this.agent      = this.context?.agent      ?? this.agent
     this.builder    = this.context?.builder    ?? this.builder
     this.uploader   = this.context?.uploader   ?? this.uploader

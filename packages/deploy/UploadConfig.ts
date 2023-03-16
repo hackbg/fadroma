@@ -14,9 +14,9 @@ export default class UploadConfig extends ConnectConfig {
       () => false)
 
   /** Directory to store the receipts for the deployed contracts. */
-  uploadState: string =
+  uploadState: string|null =
     this.getString('FADROMA_UPLOAD_STATE',
-      () => $(this.project).in('receipts').in(this.chainId).in('uploads').path)
+      () => this.chainId ? $(this.project).in('receipts').in(this.chainId).in('uploads').path : null)
 
   /** Variant of uploader to use */
   uploader: string =
