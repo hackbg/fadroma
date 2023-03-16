@@ -3,7 +3,7 @@ use syn::{
     Visibility, parse_quote, FnArg, punctuated::Punctuated,
     ItemEnum, Variant, ItemFn, Expr, Stmt, ExprField, ExprMatch,
     ItemImpl, GenericArgument, ExprCall, ReturnType, Type,
-    token::{Brace, Comma, Colon, RArrow}
+    ItemMod, token::{Brace, Comma, Colon, RArrow}
 };
 use proc_macro2::Span;
 
@@ -82,7 +82,6 @@ pub fn init_fn<'a>(sink: &mut ErrorSink, method: &Method<'a>) -> ItemFn {
     let msg = Ident::new(INIT_MSG, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
-        #[cosmwasm_std::entry_point]
         pub fn #fn_name(
             mut deps: cosmwasm_std::DepsMut,
             env: cosmwasm_std::Env,
@@ -140,7 +139,6 @@ pub fn execute_fn<'a>(
     let error_enum = Ident::new(ERROR_ENUM, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
-        #[cosmwasm_std::entry_point]
         pub fn #fn_name(
             mut deps: cosmwasm_std::DepsMut,
             env: cosmwasm_std::Env,
@@ -184,7 +182,6 @@ pub fn query_fn<'a>(
     let error_enum = Ident::new(ERROR_ENUM, Span::call_site());
 
     let mut result: ItemFn = parse_quote! {
-        #[cosmwasm_std::entry_point]
         pub fn #fn_name(
             deps: cosmwasm_std::Deps,
             env: cosmwasm_std::Env,
@@ -206,6 +203,36 @@ pub fn query_fn<'a>(
             result.block.stmts.push(Stmt::Expr(match_expr));
         }
     }
+
+    result
+}
+
+pub fn wasm_entry() -> ItemMod {
+    let init_fn = Ident::new(INIT_FN, Span::call_site());
+    let execute_fn = Ident::new(EXECUTE_FN, Span::call_site());
+    let query_fn = Ident::new(QUERY_FN, Span::call_site());
+
+    let result: ItemMod = parse_quote! {
+        #[cfg(target_arch = "wasm32")]
+        mod wasm_entry {
+            use super::cosmwasm_std::{do_instantiate, do_execute, do_query};
+
+            #[no_mangle]
+            extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                do_instantiate(&super::#init_fn, env_ptr, info_ptr, msg_ptr)
+            }
+
+            #[no_mangle]
+            extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                do_execute(&super::#execute_fn, env_ptr, info_ptr, msg_ptr)
+            }
+
+            #[no_mangle]
+            extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
+                do_query(&super::#query_fn, env_ptr, msg_ptr)
+            }
+        }
+    };
 
     result
 }

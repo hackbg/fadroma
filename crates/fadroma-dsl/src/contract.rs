@@ -42,6 +42,7 @@ pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, Compile
         items.push(Item::Fn(i.entry.init));
         items.push(Item::Fn(i.entry.execute));
         items.push(Item::Fn(i.entry.query));
+        items.push(Item::Mod(i.entry.wasm_ffi));
     }
 
     sink.check()?;
@@ -69,7 +70,8 @@ struct Interfaces {
 struct Entrypoints {
     init: ItemFn,
     execute: ItemFn,
-    query: ItemFn
+    query: ItemFn,
+    wasm_ffi: ItemMod
 }
 
 struct Boilerplate {
@@ -265,7 +267,8 @@ impl<'a> Contract<'a> {
                 query: generate::query_fn(
                     sink,
                     &query
-                )
+                ),
+                wasm_ffi: generate::wasm_entry()
             };
     
             Some(Interfaces {
