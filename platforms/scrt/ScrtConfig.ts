@@ -1,7 +1,7 @@
 import { EnvConfig } from '@hackbg/conf'
 
 /** Environment settings for Secret Network. */
-export class ScrtConfig extends EnvConfig {
+export default class ScrtConfig extends EnvConfig {
 
   static defaultMainnetChainId: string = 'secret-4'
 

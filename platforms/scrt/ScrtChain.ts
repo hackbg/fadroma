@@ -1,12 +1,17 @@
+import Error from './ScrtError'
+import Console from './ScrtConsole'
+import Config from './ScrtConfig'
+import type ScrtAgent from './ScrtAgent'
+import type { ScrtAgentOpts } from './ScrtAgent'
+
 import type * as SecretJS from 'secretjs'
-import { bip39, bip39EN } from '@hackbg/4mat'
+
 import { Chain, Fee } from '@fadroma/core'
 import type {
   Address, AgentClass, AgentFees, ChainClass, ChainId, ChainOpts, Client, Message, Uint128
 } from '@fadroma/core'
-import type { ScrtAgent, ScrtAgentOpts } from './scrt-agent'
-import { ScrtConsole as Console, ScrtError as Error } from './scrt-events'
-import { ScrtConfig as Config } from './scrt-config'
+
+import { bip39, bip39EN } from '@hackbg/4mat'
 
 export interface ScrtOpts extends ChainOpts {
   /** You can set this to a compatible version of the SecretJS module
@@ -18,7 +23,7 @@ export interface ScrtOpts extends ChainOpts {
 }
 
 /** Represents a Secret Network API endpoint. */
-export class Scrt extends Chain {
+export default class Scrt extends Chain {
 
   /** Connect to the Secret Network Mainnet. */
   static Mainnet (config?: Config) {
@@ -176,6 +181,7 @@ export class Scrt extends Chain {
         mnemonic = bip39.generateMnemonic(bip39EN)
         this.log.warnGeneratedMnemonic(mnemonic)
       }
+      console.log({chain})
       wallet = new _SecretJS.Wallet(mnemonic)
     } else if (mnemonic) {
       this.log.warnIgnoringMnemonic()

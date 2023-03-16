@@ -10,6 +10,7 @@ in `@fadroma/devnet`.
 
 ```typescript
 import Scrt from '@fadroma/scrt'
+import assert from 'node:assert'
 ```
 
 ## Configuring
@@ -27,8 +28,8 @@ To connect to Secret Network with Fadroma, use one of the following:
 ```typescript
 const mainnet = Scrt.Mainnet()
 const testnet = Scrt.Testnet()
-const devnet  = Scrt.Devnet()
-const mocknet = Scrt.Mocknet()
+//const devnet  = Scrt.Devnet()
+//const mocknet = Scrt.Mocknet()
 ```
 
 ## Authenticating
@@ -40,10 +41,10 @@ Then, to authenticate:
 ```typescript
 const agent0 = await mainnet.getAgent()
 
-ok(agent0 instanceof Scrt.Agent)
-ok(agent0.chain instanceof Scrt.Chain)
-ok(agent0.mnemonic)
-ok(agent0.address)
+assert.ok(agent0 instanceof Scrt.Agent)
+assert.ok(agent0.chain instanceof Scrt)
+assert.ok(agent0.mnemonic)
+assert.ok(agent0.address)
 ```
 
 * With a mnemonic:

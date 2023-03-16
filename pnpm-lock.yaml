@@ -61,7 +61,7 @@ importers:
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
       '@types/js-yaml': 4.0.5
-      '@types/node': 18.15.2
+      '@types/node': 18.15.3
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
@@ -294,7 +294,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.15.2
+      '@types/node': 18.15.3
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -725,7 +725,6 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@fadroma/core': workspace:2.0.4
       '@hackbg/4mat': ^1
       '@hackbg/conf': ^1
       '@hackbg/ensuite': ^1.0.2
@@ -734,7 +733,6 @@ importers:
       '@ungap/structured-clone': ^1.0.1
       secretjs: 1.7.1-beta.3
     dependencies:
-      '@fadroma/core': link:../../packages/core
       '@hackbg/4mat': link:../../ensuite/toolbox/4mat
       '@hackbg/conf': link:../../ensuite/toolbox/conf
       '@hackbg/into': link:../../ensuite/toolbox/into
@@ -1425,7 +1423,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 18.15.2
+      '@types/node': 18.15.3
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -1444,7 +1442,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 18.15.2
+      '@types/node': 18.15.3
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1482,13 +1480,14 @@ packages:
 
   /@types/node/18.11.9:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
+    dev: true
 
   /@types/node/18.14.6:
     resolution: {integrity: sha512-93+VvleD3mXwlLI/xASjw0FzKcwzl3OdTCzm1LaRfqgS21gfFtK3zDXM5Op9TeeMsJVOaJ2VRDpT9q4Y3d0AvA==}
     dev: true
 
-  /@types/node/18.15.2:
-    resolution: {integrity: sha512-sDPHm2wfx2QhrMDK0pOt2J4KLJMAcerqWNvnED0itPRJWvI+bK+uNHzcH1dFsBlf7G3u8tqXmRF3wkvL9yUwMw==}
+  /@types/node/18.15.3:
+    resolution: {integrity: sha512-p6ua9zBxz5otCmbpb5D3U4B5Nanw6Pk3PPyX05xnxbB/fRv71N7CPmORg7uAD5P70T0xmx1pzAx/FUfa5X+3cw==}
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -1511,12 +1510,12 @@ packages:
   /@types/secure-random/1.1.0:
     resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
     dependencies:
-      '@types/node': 18.11.9
+      '@types/node': 18.15.3
 
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 18.15.2
+      '@types/node': 18.15.3
     dev: true
 
   /@types/tmp/0.2.3:
@@ -4633,7 +4632,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.15.2
+      '@types/node': 18.15.3
       long: 4.0.0
     dev: false
 

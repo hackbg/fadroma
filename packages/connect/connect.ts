@@ -31,7 +31,7 @@ export { default as Connector } from './Connector'
 export * from './ConnectCommands'
 export { default as ConnectCommands } from './ConnectCommands'
 
-import { Scrt } from '@fadroma/scrt'
+import Scrt from '@fadroma/scrt'
 export * as Scrt from '@fadroma/scrt'
 
 import * as Mocknet from '@fadroma/mocknet'

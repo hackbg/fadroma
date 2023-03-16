@@ -1,14 +1,18 @@
+import Error from './ScrtError'
+import Console from './ScrtConsole'
+import Scrt from './ScrtChain'
+import type ScrtBundle from './ScrtBundle'
+
 import type * as SecretJS from 'secretjs'
-import { base64 } from '@hackbg/4mat'
+
+import { Agent, Contract, assertAddress, assertChain, into } from '@fadroma/core'
 import type {
   Address, AgentClass, AgentOpts, Built, Uploaded,
   BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message,
   Name, AnyContract
 } from '@fadroma/core'
-import { Agent, Contract, assertAddress, assertChain, into } from '@fadroma/core'
-import { Scrt } from './scrt'
-import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
-import type { ScrtBundle } from './scrt-bundle'
+
+import { base64 } from '@hackbg/4mat'
 
 export type TxResponse = SecretJS.TxResponse
 
@@ -30,7 +34,7 @@ export interface ScrtAgentOpts extends AgentOpts {
 }
 
 /** Represents a connection to the Secret Network authenticated as a specific address. */
-export class ScrtAgent extends Agent {
+export default class ScrtAgent extends Agent {
 
   static Bundle: BundleClass<ScrtBundle>
 

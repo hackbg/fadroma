@@ -5,7 +5,7 @@ import type { ConnectorClass } from './Connector'
 
 import type { ChainRegistry, ChainId, Agent, AgentOpts } from '@fadroma/core'
 import { ChainMode, Chain } from '@fadroma/core'
-import { Scrt } from '@fadroma/scrt'
+import Scrt from '@fadroma/scrt'
 import { DevnetConfig } from '@fadroma/devnet'
 
 import { EnvConfig } from '@hackbg/conf'

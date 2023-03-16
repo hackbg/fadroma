@@ -1,8 +1,10 @@
+import Error from './ScrtError'
+import Console from './ScrtConsole'
+import Scrt from './ScrtChain'
+import type ScrtAgent from './ScrtAgent'
+
 import { Bundle, assertChain } from '@fadroma/core'
 import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/core'
-import type { ScrtAgent } from './scrt-agent'
-import { Scrt } from './scrt-chain'
-import { ScrtError as Error, ScrtConsole as Console } from './scrt-events'
 
 export interface ScrtBundleClass <B extends ScrtBundle> {
   new (agent: ScrtAgent): B
@@ -20,7 +22,7 @@ export interface ScrtBundleResult {
 }
 
 /** Base class for transaction-bundling Agent for both Secret Network implementations. */
-export class ScrtBundle extends Bundle {
+export default class ScrtBundle extends Bundle {
 
   static bundleCounter: number = 0
 

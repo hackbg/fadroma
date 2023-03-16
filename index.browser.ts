@@ -1,8 +1,8 @@
-export * from '@hackbg/logs'
 export * from '@fadroma/core'
-export * from '@fadroma/scrt'
-export * from '@fadroma/tokens'
-export * from '@hackbg/4mat'
+export * as Logs from '@hackbg/logs'
+export * as Scrt from '@fadroma/scrt'
+export * as Tokens from '@fadroma/tokens'
+export * as Format from '@hackbg/4mat'
 
 // See remark in fadroma.ts
 export { Decimal } from '@fadroma/core'
