@@ -55,7 +55,12 @@ export abstract class Builder extends CommandContext {
   /** Up to the implementation.
     * `@fadroma/build` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  abstract build (source: Buildable, ...args: any[]): Promise<Built>
+  async build (source: Buildable, ...args: any[]): Promise<Built> {
+    this.log.warn('Builder#build: not implemented')
+    return {
+      artifact: 'unimplemented'
+    }
+  }
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
   buildMany (sources: Buildable[], ...args: unknown[]): Promise<Built[]> {

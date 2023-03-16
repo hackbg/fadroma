@@ -30,12 +30,6 @@ export default class Connector extends Deployment {
   /** Configuration. */
   config: ConnectConfig
 
-  /** List all known chains. */
-  async listChains () {
-    this.log.supportedChains()
-    this.log.selectedChain(this.config.chainSelector as string)
-  }
-
 }
 
 /** Constructor for a subclass of Connector that

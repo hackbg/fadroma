@@ -29,7 +29,8 @@ export default class ConnectConfig extends EnvConfig {
   log = new Console('@fadroma/connect')
 
   /** Name of chain to use. */
-  chainSelector?: keyof ChainRegistry = this.getString('FADROMA_CHAIN', ()=>undefined)
+  chainSelector?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
+    ()=>'Mocknet_CW1')
 
   /** Secret Network configuration. */
   scrt = new Scrt.Config(this.env, this.cwd)
@@ -77,25 +78,20 @@ export default class ConnectConfig extends EnvConfig {
   }
 
   // Create the Chain instance specified by the configuration.
-  async getChain <C extends Chain> (
+  getChain <C extends Chain> (
     getChain: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chainSelector
-  ): Promise<C> {
-
+  ): C {
     if (!getChain) {
       getChain = this.chainSelector
       if (!getChain) throw new Error.NoChain()
     }
-
     if (typeof getChain === 'string') { // allow name to be passed
       getChain = Chain.variants[getChain]
     }
-
     if (!getChain) { // if still unspecified, throw
       throw new Error.UnknownChainSelected(this.chainSelector!, Chain.variants)
     }
-
-    return await Promise.resolve(getChain(this)) as C // create Chain object
-
+    return getChain(this) as C // create Chain object
   }
 
   async getAgent <A extends Agent> (chain?: Chain): Promise<A> {

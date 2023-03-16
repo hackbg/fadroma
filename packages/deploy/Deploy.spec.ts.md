@@ -53,8 +53,8 @@ import { examples, inTmpDeployment } from '../../TESTING.ts.md'
 
 ok(await new DeployConfig({ FADROMA_CHAIN: 'Mocknet' }).getDeployer() instanceof Deployer)
 
-let mnemonic: string   = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
-let artifact: URL      = examples['KV'].url
+let mnemonic: string = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
+let artifact: URL = examples['KV'].url
 let codeId, codeHash, txHash, result
 /*await inTmpDeployment(async deployment=>{
   context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildContext())
@@ -404,25 +404,29 @@ it's not possible to deploy a contract more than once, or
 deploy another contract with the same label as an existing one.
 
 Enter the `Deployment` object, which keeps track of the contracts that you deploy.
-You can get a `Deployment` instance by calling `defineDeployment`:
 
 ```typescript
-import { Deployment, defineDeployment } from '@fadroma/core'
-const deployment = await defineDeployment({ agent, name: 'testing' })
+import { Deployment } from '@fadroma/core'
+const deployment = new Deployment({
+  name: 'testing'
+  agent,
+})
 ```
 
 Then, you can use `deployment.contract` in place of `new Contract()`:
 
 ```typescript
 const contractOne = deployment.contract({
-  codeId: 1, name: 'name', initMsg: { parameter: 'value' }
+  codeId: 1,
+  name: 'name',
+  initMsg: { parameter: 'value' }
 })
 ```
 
 Deployments add their names to the labels of deployed contracts:
 
 ```typescript
-const clientToContractOne = await contractOne()
+const clientToContractOne = await contractOne.deploy()
 assert.equal(clientToContractOne.meta.label, 'testing/name')
 assert.equal(clientToContractOne.meta.address, '(address #2)')
 ```
@@ -431,7 +435,7 @@ And they also keep track of the deployed contracts, so that later you
 can call up the same contract:
 
 ```typescript
-const anotherClientToContractOne = await contractOne()
+const anotherClientToContractOne = await contractOne.expect()
 assert.equal(clientToContractOne.address, anotherClientToContractOne.address)
 ```
 

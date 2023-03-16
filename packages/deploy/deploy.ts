@@ -16,12 +16,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { DeployStore } from '@fadroma/core'
-import YAML from 'js-yaml'
 import YAML1 from './DeployStore_YAML_v1'
 import YAML2 from './DeployStore_YAML_v2'
 import JSON1 from './DeployStore_JSON_v1'
+import type Deployer from './Deployer'
+import DeployConfig from './DeployConfig'
+import UploaderConfig from './UploadConfig'
+import { DeployStore, Deployment } from '@fadroma/core'
+import type { Uploader, Uploadable, Uploaded, DeploymentClass } from '@fadroma/core'
+import type { Many } from '@hackbg/many'
+import YAML from 'js-yaml'
+
 Object.assign(DeployStore.variants, { YAML1, YAML2, JSON1 })
+
 export { DeployStore, YAML, YAML1, YAML2, JSON1 }
 
 export { default as DeployConfig } from './DeployConfig'
@@ -33,18 +40,29 @@ export * from './DeployConsole'
 export { default as DeployError } from './DeployError'
 export * from './DeployError'
 
-export { default as DeployerCommands } from './DeployerCommands'
-export * from './DeployerCommands'
-
 export { default as Deployer } from './Deployer'
 export * from './Deployer'
 
-export { default as uploader } from './upload'
-export * from './upload'
+export function deployer <D extends Deployment> (
+  options: Partial<DeployConfig> = {},
+  $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
+  ...args: ConstructorParameters<typeof $D>
+): Promise<Deployer<D>> {
+  return new DeployConfig(options).getDeployer($D, ...args)
+}
 
-import type Deployer from './Deployer'
-import DeployConfig from './DeployConfig'
-export function deployer (options: Partial<DeployConfig> = {}): Promise<Deployer> {
-  //@ts-ignore
-  return new DeployConfig(options).getDeployer()
+export { default as FSUploader } from './FSUploader'
+export * from './FSUploader'
+
+export { default as UploadConsole } from './UploadConsole'
+export * from './UploadConsole'
+
+export { default as UploadError } from './UploadError'
+export * from './UploadError'
+
+export { default as UploadStore } from './UploadStore'
+export * from './UploadStore'
+
+export function uploader (options: Partial<UploaderConfig> = {}): Uploader {
+  return new UploaderConfig(options).getUploader()
 }

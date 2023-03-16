@@ -4,13 +4,13 @@ import { Deployer, FSUploader } from '@fadroma/deploy'
 import { TokenManager } from '@fadroma/tokens'
 
 /** Context for Fadroma commands. */
-export default class Fadroma extends Deployer {
+export default class Fadroma extends Deployment {
 
   constructor (options: { config?: Partial<Config> } = {}) {
 
     super(options as any /* FIXME */)
 
-    this.log.label = this.projectName
+    //this.log.label = this.projectName
 
     this.config = (options.config instanceof Config)
       ? options.config

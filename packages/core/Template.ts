@@ -63,12 +63,6 @@ export interface Uploaded extends Partial<Uploadable> {
   uploadTx?: TxHash
 }
 
-function ensureTemplate <C extends Client> (
-  this: Template<C>
-): Task<Template<C>, Template<C> & Uploaded> {
-  return this.uploaded
-}
-
 /** Callable object: contract template.
   * Can build and upload, but not instantiate.
   * Can produce deployable Contract instances. */
@@ -198,10 +192,7 @@ export default class Template<C extends Client> {
   }
 
   get asInfo (): ContractInfo {
-    return {
-      id:        this.codeId!,
-      code_hash: this.codeHash!
-    }
+    return { id: this.codeId!, code_hash: this.codeHash! }
   }
 
   /** Get an instance of this contract, or define a new one.

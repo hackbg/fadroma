@@ -86,3 +86,5 @@ export default class DeployConsole extends ConnectConsole {
   }
 
 }
+
+export { bold, colors }

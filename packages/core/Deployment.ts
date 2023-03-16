@@ -34,13 +34,6 @@ export interface DeploymentClass<D extends Deployment> extends Class<
   D, ConstructorParameters<typeof Deployment>
 >{}
 
-export async function defineDeployment <D extends Deployment> (
-  options: Partial<D> = {},
-  $D: DeploymentClass<D> = Deployment as DeploymentClass<D>
-): Promise<D> {
-  return new $D(options)
-}
-
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */

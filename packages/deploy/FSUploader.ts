@@ -36,125 +36,71 @@ export default class FSUploader extends Uploader {
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (contract: Uploadable): Promise<Uploaded> {
     let receipt: UploadReceipt|null = null
-    if (this.cache) {
-      const name = this.getUploadReceiptName(contract)
-      const receiptFile = this.cache.at(name)
-      if (receiptFile.exists()) {
-        receipt = receiptFile.as(UploadReceipt)
-        this.log.log(`${colors.green('Found:')}   `, bold(colors.green(receiptFile.shortPath)))
-        const {
-          chainId = this.agent?.chain?.id,
-          codeId,
-          codeHash,
-          uploadTx,
-        } = receipt.toContract()
-        const props = { chainId, codeId, codeHash, uploadTx }
-        return Object.assign(contract, props) as Uploaded & {
-          artifact: URL, codeHash: CodeHash, codeId: CodeId
-        }
-      }
-    }
-
+    const cached: Uploaded|undefined = this.cache?.tryGet(contract, this.agent?.chain?.id)
+    if (cached) return cached
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
     this.log.log('Uploading', bold($(contract.artifact).shortPath))
-
-    const result = await this.agent.upload($(contract.artifact).as(BinaryFile).load())
-    if (
-      contract.codeHash && result.codeHash &&
-      contract.codeHash.toUpperCase() !== result.codeHash.toUpperCase()
-    ) {
-      throw new Error(
-        `Code hash mismatch when uploading ${contract.artifact?.toString()}: ` +
-        `${contract.codeHash} vs ${result.codeHash}`
-      )
-    }
+    const data = $(contract.artifact).as(BinaryFile).load()
+    const result = await this.agent.upload(data)
+    this.checkCodeHash(contract, result)
     const { codeId, codeHash, uploadTx } = result
     Object.assign(contract, { codeId, codeHash, uploadTx })
-
-    // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
+      // don't save receipts for mocknet because it's not stateful yet
       (receipt as UploadReceipt).save(toUploadReceipt(contract as AnyContract))
     }
-
-    //await this.agent.nextBlock
-    return contract as Uploaded & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
-  }
-
-  /** Generate the filename for an upload receipt. */
-  getUploadReceiptName ({ artifact }: Uploadable): string {
-    return `${$(artifact!).name}.json`
-  }
-
-  /** Generate the full path for an upload receipt. */
-  getUploadReceiptPath (contract: Uploadable): string {
-    const receiptName = `${this.getUploadReceiptName(contract)}`
-    const receiptPath = this.cache!.resolve(receiptName)
-    return receiptPath
+    return { ...contract, codeId, codeHash, uploadTx }
   }
 
   /** Upload multiple contracts from the filesystem. */
   async uploadMany (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
-
     // TODO: Optionally bundle the upload messages in one transaction -
     //       this will only work if they add up to less than the max API request size
     //       (which is defined who knows where) */
-
-    if (!this.cache) {
-      return this.uploadManySansCache(inputs)
-    }
-
-    const outputs:  Uploaded[] = []
+    const self = this
+    if (!self.cache) return this.uploadManySansCache(inputs)
     const toUpload: Uploadable[] = []
-
-    for (const i in inputs) {
-
+    const outputs:  Uploaded[]   = []
+    inputs.forEach(function collectInput (input: Uploadable, index: number) {
       // Skip empty positions
-      let input = inputs[i]
-      if (!input) {
-        continue
-      }
-
+      if (!input) return
       // Make sure local code hash is available to compare against the result of the upload
       // If these two don't match, the local contract was rebuilt and needs to be reuploaded.
       // If they still don't match after the reupload, there's a problem.
-      input = this.ensureLocalCodeHash(input)
-
+      input = self.ensureLocalCodeHash(input)
       // If there's no local upload receipt, time to reupload.
       const blobName     = $(input.artifact!).name
-      const receiptPath  = this.getUploadReceiptPath(input)
-      const relativePath = $(receiptPath).shortPath
-      if (!$(receiptPath).exists()) {
-        toUpload[i] = input
-        continue
+      if (self.cache) {
+        const receiptPath  = self.cache.getUploadReceiptPath(input)
+        const relativePath = $(receiptPath).shortPath
+        if (!$(receiptPath).exists()) {
+          toUpload[index] = input
+          return
+        }
+        // If there's a local upload receipt and it doesn't contain a code hash, time to reupload.
+        const receiptData = $(receiptPath).as(UploadReceipt).load()
+        const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
+        if (!receiptCodeHash) {
+          self.log.warn(`No code hash in ${bold(relativePath)}; uploading...`)
+          toUpload[index] = input
+          return
+        }
+        // If there's a local upload receipt and it contains a different code hash
+        // from the one computed earlier, time to reupload.
+        if (receiptCodeHash !== input.codeHash) {
+          self.log.warn(`Different code hash from ${bold(relativePath)}; reuploading...`)
+          toUpload[index] = input
+          return
+        }
+        // Otherwise reuse the code ID from the receipt.
+        outputs[index] = Object.assign(input, {
+          codeHash: input.codeHash!,
+          codeId:   String(receiptData.codeId),
+          uploadTx: receiptData.transactionHash as string
+        })
       }
-
-      // If there's a local upload receipt and it doesn't contain a code hash, time to reupload.
-      const receiptData = $(receiptPath).as(UploadReceipt).load()
-      const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
-      if (!receiptCodeHash) {
-        this.log.warn(`No code hash in ${bold(relativePath)}; uploading...`)
-        toUpload[i] = input
-        continue
-      }
-
-      // If there's a local upload receipt and it contains a different code hash
-      // from the one computed earlier, time to reupload.
-      if (receiptCodeHash !== input.codeHash) {
-        this.log.warn(`Different code hash from ${bold(relativePath)}; reuploading...`)
-        toUpload[i] = input
-        continue
-      }
-
-      // Otherwise reuse the code ID from the receipt.
-      outputs[i] = Object.assign(input, {
-        codeHash: input.codeHash!,
-        codeId:   String(receiptData.codeId),
-        uploadTx: receiptData.transactionHash as string
-      })
-
-    }
-
+    })
     // If any contracts are marked for uploading:
     // - upload them and save the receipts
     // - update outputs with data from upload results (containing new code ids)
@@ -163,15 +109,12 @@ export default class FSUploader extends Uploader {
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const template = uploaded[i]
-        $(this.cache, this.getUploadReceiptName(toUpload[i]))
-          .as(UploadReceipt)
-          .save(toUploadReceipt(template))
+        const receipt = $(this.cache!, this.cache!.getUploadReceiptName(toUpload[i]))
+        receipt.as(UploadReceipt).save(toUploadReceipt(template))
         outputs[i] = template
       }
     }
-
     return outputs
-
   }
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
@@ -191,18 +134,6 @@ export default class FSUploader extends Uploader {
       outputs[i] = output
     }
     return outputs
-  }
-
-  /** Panic if the code hash returned by the upload
-    * doesn't match the one specified in the Contract. */
-  private checkLocalCodeHash (input: Uploadable & { codeHash: CodeHash }, output: Uploaded) {
-    if (input.codeHash !== output.codeHash) {
-      throw new Error(`
-        The upload transaction ${output.uploadTx}
-        returned code hash ${output.codeHash} (of code id ${output.codeId})
-        instead of the expected ${input.codeHash} (of artifact ${input.artifact})
-      `.trim().split('\n').map(x=>x.trim()).join(' '))
-    }
   }
 
   /** Make sure that the optional `codeHash` property of an `Uploadable` is populated, by

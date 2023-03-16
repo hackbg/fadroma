@@ -230,11 +230,10 @@ Broadcasting multiple execute calls as a single transaction message
 (transaction bundling):
 
 ```typescript
-const results = await agent.bundle()
-  .wrap(async bundle=>{
-    await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
-    await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
-  })
+const results = await agent.bundle().wrap(async bundle=>{
+  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
+  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
+})
 ```
 
 #### Bundle: bundling transactions
@@ -308,17 +307,34 @@ let instance:   Instance
 
 class MyClient extends Client {
   address = 'unspecified'
-  myMethod () {
-    return this.execute({ my_method: {} })
-  }
-  myQuery () {
-    return this.query({ my_query: {} })
-  }
+  myMethod () { return this.execute({ my_method: {} }) }
+  myQuery () { return this.query({ my_query: {} }) }
 }
 
-deployment = new Deployment({ agent: new Agent({ chain: new Chain('test') }) })
-template = await deployment.template({ codeId: 2, client: MyClient })
-instance = await template.instance({ name: 'custom-client-contract', initMsg: {} })
+import { Builder } from './Build'
+
+deployment = new Deployment({
+  agent: new Agent({ chain: new Chain('test', { mode: Chain.Mode.Devnet }) }),
+  builder: new Builder()
+})
+
+template = await deployment.template({
+  codeId: 2,
+  client: MyClient,
+  crate: 'fadroma-example-kv'
+})
+
+instance = await template.instance({
+  name: 'custom-client-contract',
+  initMsg: {}
+})
+
+assert.ok(deployment.devMode, 'deployment is in dev mode')
+assert.equal(deployment.size, 1)
+
+assert.ok(template.info)
+assert.ok(await template.compiled)
+assert.ok(await template.uploaded)
 
 assert.ok(instance instanceof MyClient)
 assert.ok(await instance.myMethod())
@@ -467,8 +483,13 @@ import { Deployment } from '@fadroma/core'
 
 class MyDeployment extends Deployment {
 
-  myContract: PromiseLike<Contract<MyClient>> = this.contract({
+  myContract1: PromiseLike<Contract<MyClient>> = this.contract({
     name: 'my-contract-1',
+    client: MyClient
+  })
+
+  myContract2: PromiseLike<Contract<MyClient>> = this.contract({
+    name: 'my-contract-2',
     client: MyClient
   })
 
@@ -476,17 +497,45 @@ class MyDeployment extends Deployment {
     client: MyClient
   })
 
-  myInstances1 = this.template.instances({
-    'my-contract-2': {}
-    'my-contract-3': {}
+  myInstances1 = this.myTemplate.instances({
+    myContract3: {}
+    myContract4: {}
   })
 
-  myInstances2 = this.template.instances([
-    ['my-contract-2', {}],
-    ['my-contract-3', {}],
+  myInstances2 = this.myTemplate.instances([
+    ['my-contract-5', {}],
+    ['my-contract-6', {}],
   ])
 
+  async deploy () {
+    const [
+      myContract1,
+      myContract2,
+      { myContract3, myContract4 },
+      [ myContract5, myContract6 ]
+    ] = await Promise.all([
+      this.myContract1,
+      this.myContract2,
+      this.myInstances1,
+      this.myInstances2
+    ])
+    return {
+      myContract1,
+      myContract2,
+      myContract3,
+      myContract4,
+      myContract5,
+      myContract6,
+    }
+  }
+
 }
+
+const myDeployment1 = new MyDeployment({ name: 'my-deployment-1' })
+await myDeployment1.deploy()
+
+const myDeployment2 = new MyDeployment({ name: 'my-deployment-2' })
+await myDeployment2.deploy()
 ```
 
 ### Defining individual contracts in a Deployment
@@ -540,9 +589,8 @@ Implemented by `@fadroma/build`.
 ```typescript
 import { build, buildMany } from './Build'
 
-const builder = { build () {} }
-await build({ builder })
-await buildMany([], { builder })
+await build({ builder: new Builder() })
+await buildMany([{}, {}], { builder: new Builder() })
 ```
 
 ### Uploader
@@ -555,9 +603,12 @@ Implemented by `@fadroma/upload`.
 ```typescript
 import { upload, uploadMany } from './Upload'
 
-const uploader = { upload () {}, chain: { id: 'test' } }
-await upload({ builder, uploader })
-await uploadMany([], { builder, uploader })
+chain = new Chain('test')
+const uploader = { upload () {}, uploadMany () {}, chain, agent: await chain.getAgent() }
+
+await upload({ builder: new Builder(), uploader })
+await upload({ builder: new Builder(), uploader, chainId: 'test', codeId: 'test' })
+await uploadMany([{}, {}], { builder: new Builder(), uploader })
 ```
 
 ### DeployStore
