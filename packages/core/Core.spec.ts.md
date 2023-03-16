@@ -498,9 +498,9 @@ Represents a contract that is instantiated from a `codeId`.
     the `getClient` family of methods.
 
 ```typescript
-import { Contract } from '@fadroma/core'
+import { Contract, toInstanceReceipt } from '@fadroma/core'
 instance = new Contract()
-assert.ok(instance.asReceipt)
+assert.ok(toInstanceReceipt(instance))
 //assert.ok(await instance.define({ agent }).found)
 //assert.ok(await instance.define({ agent }).deployed)
 ```
