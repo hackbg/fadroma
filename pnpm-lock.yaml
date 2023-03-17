@@ -37,7 +37,7 @@ importers:
       lint-staged: ^13.1.2
       pug: ^3.0.2
       typedoc: ^0.23.25
-      typescript: ^4.9
+      typescript: ^5
       vitepress: 1.0.0-alpha.10
     dependencies:
       '@fadroma/build': link:packages/build
@@ -73,8 +73,8 @@ importers:
       js-yaml: 4.1.0
       lint-staged: 13.1.2
       pug: 3.0.2
-      typedoc: 0.23.25_typescript@4.9.4
-      typescript: 4.9.4
+      typedoc: 0.23.25_typescript@5.0.2
+      typescript: 5.0.2
       vitepress: 1.0.0-alpha.10
 
   ensuite:
@@ -112,7 +112,7 @@ importers:
       c8: ^7.11.0
       chokidar: ^3.5.3
       cross-spawn: ^7.0.3
-      typescript: ^4.9
+      typescript: ^5
       vite: ^2.8.4
     dependencies:
       '@ganesha/core': link:core
@@ -124,7 +124,7 @@ importers:
       '@hackbg/spec': link:../toolbox/spec
       c8: 7.12.0
       chokidar: 3.5.3
-      typescript: 4.9.4
+      typescript: 5.0.2
       vite: 2.9.14
 
   ensuite/ganesha/core:
@@ -179,7 +179,7 @@ importers:
       '@hackbg/spec': ^1
       mkdirp: ^1.0.4
       tap: ^15.0.9
-      typescript: ^4.9
+      typescript: ^5
       vite: ^2.7.6
     devDependencies:
       '@ganesha/core': link:../core
@@ -187,8 +187,8 @@ importers:
       '@ganesha/rollup': link:../rollup
       '@hackbg/spec': link:../../toolbox/spec
       mkdirp: 1.0.4
-      tap: 15.2.3_typescript@4.9.4
-      typescript: 4.9.4
+      tap: 15.2.3_typescript@5.0.2
+      typescript: 5.0.2
       vite: 2.9.14
 
   ensuite/ganesha/ts:
@@ -196,32 +196,32 @@ importers:
       '@ganesha/core': workspace:^3
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
-      typescript: ^4.9
+      typescript: ^5
     dependencies:
       '@ganesha/core': link:../core
       joycon: 3.1.1
       jsonc-parser: 3.2.0
-      typescript: 4.9.4
+      typescript: 5.0.2
 
   ensuite/ganesha/tsc:
     specifiers:
       '@ganesha/core': workspace:^3
       '@ganesha/node': workspace:^2.3
       '@hackbg/ganesha': workspace:../..
-      typescript: ^4.9
+      typescript: ^5
     dependencies:
       '@ganesha/core': link:../core
       '@ganesha/node': link:../node
     devDependencies:
       '@hackbg/ganesha': link:../..
-      typescript: 4.9.4
+      typescript: 5.0.2
 
   ensuite/ganesha/vsc:
     specifiers:
-      typescript: ^4.9
+      typescript: ^5
       vsce: latest
     devDependencies:
-      typescript: 4.9.4
+      typescript: 5.0.2
       vsce: 2.15.0
 
   ensuite/ganesha/vsc/client:
@@ -255,9 +255,9 @@ importers:
 
   ensuite/ganesha/vsc/shared:
     specifiers:
-      typescript: ^4.9
+      typescript: ^5
     devDependencies:
-      typescript: 4.9.4
+      typescript: 5.0.2
 
   ensuite/toolbox:
     specifiers:
@@ -278,7 +278,7 @@ importers:
       rimraf: ^3.0.2
       signal-exit: ^3.0.7
       typedoc: ^0.23.25
-      typescript: ^4.9
+      typescript: ^5
       vitepress: 1.0.0-alpha.10
     dependencies:
       '@hackbg/4mat': link:4mat
@@ -298,8 +298,8 @@ importers:
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
-      typedoc: 0.23.25_typescript@4.9.4
-      typescript: 4.9.4
+      typedoc: 0.23.25_typescript@5.0.2
+      typescript: 5.0.2
       vitepress: 1.0.0-alpha.10
 
   ensuite/toolbox/4mat:
@@ -5405,7 +5405,7 @@ packages:
       yaml: 1.10.2
     dev: true
 
-  /tap/15.2.3_typescript@4.9.4:
+  /tap/15.2.3_typescript@5.0.2:
     resolution: {integrity: sha512-EVbovHd/SdevGMUnkNU5JJqC1YC0hzaaZ2jnqs0fKHv9Oudx27qW3Xwox7A6TB92wvR0mqgQPr+Au2w56kD+aQ==}
     engines: {node: '>=10'}
     hasBin: true
@@ -5442,7 +5442,7 @@ packages:
       tap-parser: 11.0.1
       tap-yaml: 1.0.0
       tcompare: 5.0.7
-      typescript: 4.9.4
+      typescript: 5.0.2
       which: 2.0.2
     transitivePeerDependencies:
       - supports-color
@@ -5611,7 +5611,7 @@ packages:
       is-typedarray: 1.0.0
     dev: true
 
-  /typedoc/0.23.25_typescript@4.9.4:
+  /typedoc/0.23.25_typescript@5.0.2:
     resolution: {integrity: sha512-O1he153qVyoCgJYSvIyY3bPP1wAJTegZfa6tL3APinSZhJOf8CSd8F/21M6ex8pUY/fuY6n0jAsT4fIuMGA6sA==}
     engines: {node: '>= 14.14'}
     hasBin: true
@@ -5622,7 +5622,7 @@ packages:
       marked: 4.2.12
       minimatch: 6.2.0
       shiki: 0.14.1
-      typescript: 4.9.4
+      typescript: 5.0.2
     dev: true
 
   /typeforce/1.18.0:
@@ -5632,6 +5632,12 @@ packages:
   /typescript/4.9.4:
     resolution: {integrity: sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==}
     engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
+
+  /typescript/5.0.2:
+    resolution: {integrity: sha512-wVORMBGO/FAs/++blGNeAVdbNKtIh1rbBL2EyQ1+J9lClJ93KiiKe8PmFIVdXhHcyv44SL9oglmfeSsndo0jRw==}
+    engines: {node: '>=12.20'}
     hasBin: true
 
   /uc.micro/1.0.6:

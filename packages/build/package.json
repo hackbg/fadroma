@@ -7,9 +7,9 @@
   "description": "Build smart contracts with or without container.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite build.spec.ts.md || true",
-    "cov":   "ensuite-cov -r text -- build.spec.ts.md",
-    "lcov":  "ensuite-cov -r lcov -- build.spec.ts.md",
+    "test":  "ensuite Build.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- Build.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- Build.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {

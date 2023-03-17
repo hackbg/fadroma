@@ -114,7 +114,7 @@ environment support and the least amount of hurdles during development.
     "@fadroma/core": "^3"
   },
   "devDependencies": {
-    "typescript": "^4.9"
+    "typescript": "^5"
   }
 }
 ```
