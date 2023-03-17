@@ -1,24 +1,23 @@
 use syn::{
-    ItemTrait, TraitItem, TraitItemMethod, PathArguments, GenericArgument,
-    TypeParamBound, TraitBoundModifier, punctuated::Punctuated, token::Add,
-    Generics, Ident, parse_quote
+    ItemTrait, TraitItem, PathArguments, TypeParamBound,
+    TraitBoundModifier, punctuated::Punctuated, token::Add,
 };
-use proc_macro2::Span;
 use quote::{ToTokens, quote};
 
 use crate::{
     attr::{MsgAttr, ERROR_TYPE},
     err::{ErrorSink, CompileErrors},
     generate::{self, MsgType},
+    method::{Method, trait_methods},
     validate
 };
 
 pub fn derive(r#trait: ItemTrait) -> Result<proc_macro2::TokenStream, CompileErrors> {
     let mut sink = ErrorSink::default();
-    let interface = Interface::parse(&mut sink, r#trait);
+    let interface = Interface::parse(&mut sink, &r#trait);
 
     let init_msg = interface.init.and_then(|x|
-        Some(generate::init_msg(&mut sink, &x.sig)
+        Some(generate::init_msg(&mut sink, &x)
             .to_token_stream()
         ))
         .unwrap_or(proc_macro2::TokenStream::new());
@@ -26,12 +25,12 @@ pub fn derive(r#trait: ItemTrait) -> Result<proc_macro2::TokenStream, CompileErr
     let execute_msg = generate::messages(
         &mut sink,
         MsgType::Execute,
-        interface.execute.iter().map(|x| &x.sig)
+        &interface.execute
     );
     let query_msg = generate::messages(
         &mut sink,
         MsgType::Query,
-        interface.query.iter().map(|x| &x.sig)
+        &interface.query
     );
 
     sink.check()?;
@@ -43,100 +42,83 @@ pub fn derive(r#trait: ItemTrait) -> Result<proc_macro2::TokenStream, CompileErr
     })
 }
 
-struct Interface {
+struct Interface<'a> {
     /// Optional because an interface might not want to have an init method.
-    init: Option<TraitItemMethod>,
-    execute: Vec<TraitItemMethod>,
-    query: Vec<TraitItemMethod>
+    init: Option<Method<'a>>,
+    execute: Vec<Method<'a>>,
+    query: Vec<Method<'a>>
 }
 
-impl Interface {
-    fn parse(sink: &mut ErrorSink, r#trait: ItemTrait) -> Self {
-        let mut has_error_ty = false;
-
+impl<'a> Interface<'a> {
+    fn parse(sink: &mut ErrorSink, r#trait: &'a ItemTrait) -> Self {
         let trait_ident = &r#trait.ident;
-        let mut init = None;
-        let mut execute = vec![];
-        let mut query = vec![];
+        let mut init: Option<Method> = None;
+        let mut execute: Vec<Method> = vec![];
+        let mut query: Vec<Method> = vec![];
 
         // We forbid generic traits because they will complicate the error type on contracts.
-        if has_generics(&r#trait.generics) {
+        if validate::has_generics(&r#trait.generics) {
             sink.push_spanned(
                 &r#trait,
                 "Interface traits cannot have any generics."
             );
         }
 
-        for item in r#trait.items {
-            match item {
-                TraitItem::Method(method) => {
-                    match MsgAttr::parse(sink, &method.attrs) {
-                        Some(attr) => match attr {
-                            MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
-                                trait_ident,
-                                format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
-                            ),
-                            MsgAttr::Init { entry } => {
-                                if entry {
-                                    sink.push_spanned(&method.attrs[0], "Interfaces cannot have entry points.");
-                                }
-
-                                validate_method(sink, &r#trait.ident, &method, &[parse_quote!(Response)]);
-                                init = Some(method);
-                            }
-                            MsgAttr::Execute => {
-                                validate_method(sink, &r#trait.ident, &method, &[parse_quote!(Response)]);
-                                execute.push(method);
-                            }
-                            MsgAttr::Query => {
-                                validate_method(sink, &r#trait.ident, &method, &[]);
-                                query.push(method);
-                            }
-                            MsgAttr::ExecuteGuard => sink.push_spanned(
-                                &method.sig.ident,
-                                format!(
-                                    "Interfaces cannot have the #[{}] attribute.",
-                                    MsgAttr::EXECUTE_GUARD
-                                )
-                            )
-                        }
-                        None => sink.push_spanned(
-                            &method.sig.ident,
-                            format!(
-                                "Expecting exactly one attribute of: {:?}",
-                                [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
-                            )
-                        )
-                    }
-                }
+        let err_ty = r#trait.items.iter().find_map(|x| {
+            match x {
                 TraitItem::Type(type_def)
                     if type_def.ident.to_string() == ERROR_TYPE => 
                 {
-                    has_error_ty = true;
-
-                    if !validate_err_bound(&type_def.bounds) {
-                        sink.push_spanned(
-                            &type_def,
-                            format!("{} type must have a single \"std::fmt::Display\" bound.", ERROR_TYPE)
-                        );
-                    }
-
-                    if has_generics(&type_def.generics) {
-                        sink.push_spanned(
-                            type_def.generics,
-                            format!("{} type cannot have any generics.", ERROR_TYPE)
-                        );
-                    }
+                    Some(type_def)
                 }
-                _ => { }
+                _ => None
             }
-        }
+        });
 
-        if !has_error_ty {
+        if let Some(err_ty) = err_ty {
+            if !validate_err_bound(&err_ty.bounds) {
+                sink.push_spanned(
+                    &err_ty,
+                    format!("{} type must have a single \"std::fmt::Display\" bound.", ERROR_TYPE)
+                );
+            }
+
+            if validate::has_generics(&err_ty.generics) {
+                sink.push_spanned(
+                    &err_ty.generics,
+                    format!("{} type cannot have any generics.", ERROR_TYPE)
+                );
+            }
+        } else {
             sink.push_spanned(
                 trait_ident,
                 format!("Missing \"type {}: std::fmt::Display;\" trait type declaration.", ERROR_TYPE)
             );
+        }
+
+        for method in trait_methods(sink, r#trait) {
+            match method.ty {
+                MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
+                    trait_ident,
+                    format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
+                ),
+                MsgAttr::Init { entry } => {
+                    if entry {
+                        sink.push_spanned(&method.sig, "Interfaces cannot have entry points.");
+                    }
+
+                    init = Some(Method::Interface(method));
+                }
+                MsgAttr::Execute => execute.push(Method::Interface(method)),
+                MsgAttr::Query => query.push(Method::Interface(method)),
+                MsgAttr::ExecuteGuard => sink.push_spanned(
+                    &method.sig.ident,
+                    format!(
+                        "Interfaces cannot have the #[{}] attribute.",
+                        MsgAttr::EXECUTE_GUARD
+                    )
+                )
+            }
         }
 
         Self {
@@ -145,33 +127,6 @@ impl Interface {
             query
         }
     }
-}
-
-fn validate_method(
-    sink: &mut ErrorSink,
-    trait_ident: &Ident,
-    method: &TraitItemMethod,
-    expected: &[GenericArgument]
-) {
-    if method.default.is_some() {
-        sink.push_spanned(
-            method,
-            "Contract interface method cannot contain a default implementation."
-        );
-    }
-
-    let err_ty = Ident::new(ERROR_TYPE, Span::call_site());
-    let err_args: &[GenericArgument] = &[
-        parse_quote!(Self::#err_ty),
-        parse_quote!(<Self as #trait_ident>::#err_ty)
-    ];
-
-    validate::result_type(sink, &method.sig, (expected, err_args));
-}
-
-#[inline]
-fn has_generics(generics: &Generics) -> bool {
-    !generics.params.is_empty() || generics.where_clause.is_some()
 }
 
 fn validate_err_bound(bounds: &Punctuated<TypeParamBound, Add>) -> bool {

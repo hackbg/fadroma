@@ -1,17 +1,16 @@
 use syn::{
-    Item, ItemMod, ItemImpl, Type, TypePath, Ident,
-    ItemStruct, ImplItem, ItemEnum, ItemFn, ImplItemMethod,
+    Item, ItemMod, ItemImpl, Type, TypePath,
+    Ident, ItemStruct, ItemEnum, ItemFn,
     GenericArgument, parse_quote
 };
 use quote::quote;
 use proc_macro2::Span;
 
 use crate::{
-    attr::{MsgAttr, CONTRACT, ENTRY_META, ERROR_TYPE},
+    attr::{MsgAttr, CONTRACT, ENTRY_META},
     err::{ErrorSink, CompileErrors},
-    validate::{self, ResultType},
     generate::{self, MsgType, ErrorEnum},
-    method::{Method, ContractMethod, InterfaceMethod}
+    method::{Method, item_impl_methods}
 };
 
 pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, CompileErrors> {
@@ -110,143 +109,91 @@ impl<'a> Contract<'a> {
     }
 
     fn generate(self, sink: &mut ErrorSink) -> Generated {
-        let mut init = None;
-        let mut contract_err_ty = None;
-        let mut execute_guard = None;
-        let mut execute = vec![];
-        let mut query = vec![];
+        let mut init: Option<Method> = None;
+        let mut contract_err_ty: Option<GenericArgument> = None;
+        let mut execute_guard: Option<Method> = None;
+        let mut execute: Vec<Method> = vec![];
+        let mut query: Vec<Method> = vec![];
 
         if let Some(contract_impl) = self.contract_impl {
-            for item in &contract_impl.items {
-                let ImplItem::Method(method) = item else {
-                    continue;
-                };
+            for method in item_impl_methods(sink, &contract_impl) {
+                match &contract_err_ty {
+                    Some(err_ty) => {
+                        if err_ty != method.return_ty().error {
+                            sink.push_spanned(
+                                &method.sig().output,
+                                format!(
+                                    "All methods in the \"impl {}\" block must have the same error type.",
+                                    CONTRACT
+                                )
+                            );
+                        }
+                    },
+                    None => contract_err_ty = Some(method.return_ty().error.clone())
+                }
 
-                let contract_method = Method::Contract(ContractMethod {
-                    sig: &method.sig
-                });
-
-                if let Some(attr) = MsgAttr::parse(sink, &method.attrs) {
-                    let return_ty = match attr {
-                        MsgAttr::Init { .. } if init.is_some() => {
+                match method.ty() {
+                    MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
+                        &contract_impl.self_ty,
+                        format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
+                    ),
+                    MsgAttr::Init { entry } => {
+                        if entry {
+                            init = Some(method);
+                        } else {
                             sink.push_spanned(
                                 &contract_impl.self_ty,
-                                format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
-                            );
-
-                            None
-                        }
-                        MsgAttr::Init { entry } => {
-                            if entry {
-                                init = Some(contract_method);
-                            } else {
-                                sink.push_spanned(
-                                    &contract_impl.self_ty,
-                                    format!(
-                                        "Init methods in {} implementation must be marked as #[{}({})].",
-                                        CONTRACT,
-                                        MsgAttr::INIT,
-                                        ENTRY_META
-                                    )
+                                format!(
+                                    "Init methods in {} implementation must be marked as #[{}({})].",
+                                    CONTRACT,
+                                    MsgAttr::INIT,
+                                    ENTRY_META
                                 )
-                            }
-
-                            validate_contract_method(sink, &method, &[parse_quote!(Response)])
-                        }
-                        MsgAttr::Execute => {
-                            execute.push(contract_method);
-                            validate_contract_method(sink, &method, &[parse_quote!(Response)])
-                        }
-                        MsgAttr::Query => {
-                            query.push(contract_method);
-                            validate_contract_method(sink, &method, &[])
-                        },
-                        MsgAttr::ExecuteGuard => {
-                            if execute_guard.is_some() {
-                                sink.push_spanned(
-                                    &contract_impl.self_ty,
-                                    format!("Only one method can be annotated as #[{}].", MsgAttr::EXECUTE_GUARD)
-                                );
-                            } else {
-                                execute_guard = Some(&method.sig);
-                            }
-
-                            validate_contract_method(sink, &method, &[parse_quote!(())])
-                        }
-                    };
-
-                    if let Some(return_ty) = return_ty {
-                        match contract_err_ty {
-                            Some(err_ty) => {
-                                if err_ty != return_ty.error {
-                                    sink.push_spanned(
-                                        &method.sig.output,
-                                        format!(
-                                            "All methods in the \"impl {}\" block must have the same error type.",
-                                            CONTRACT
-                                        )
-                                    );
-                                }
-                            },
-                            None => contract_err_ty = Some(return_ty.error)
+                            )
                         }
                     }
-                }
+                    MsgAttr::Execute => execute.push(method),
+                    MsgAttr::Query => query.push(method),
+                    MsgAttr::ExecuteGuard => {
+                        if execute_guard.is_some() {
+                            sink.push_spanned(
+                                &contract_impl.self_ty,
+                                format!("Only one method can be annotated as #[{}].", MsgAttr::EXECUTE_GUARD)
+                            );
+                        } else {
+                            execute_guard = Some(method);
+                        }
+                    }
+                };
             }
         }
 
         for interface in &self.interfaces {
             let mut has_init = false;
 
-            for item in &interface.items {
-                let ImplItem::Method(method) = item else {
-                    continue;
-                };
-
-                let interface_method = InterfaceMethod {
-                    sig: &method.sig,
-                    trait_: &interface.trait_.as_ref().unwrap().1
-                };
-
-                match MsgAttr::parse(sink, &method.attrs) {
-                    Some(attr) => match attr {
-                        MsgAttr::Init { .. } if has_init => sink.push_spanned(
-                            &item,
-                            format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
-                        ),
-                        MsgAttr::Init { entry } if entry && init.is_some() => sink.push_spanned(
-                            &item,
-                            "Entry point already defined."
-                        ),
-                        MsgAttr::Init { entry } => {
-                            validate_interface_method(sink, &interface_method, &[parse_quote!(Response)]);
-
-                            if entry {
-                                init = Some(Method::Interface(interface_method));
-                                has_init = true;
-                            }
+            for method in item_impl_methods(sink, interface) {
+                match method.ty() {
+                    MsgAttr::Init { .. } if has_init => sink.push_spanned(
+                        interface,
+                        format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
+                    ),
+                    MsgAttr::Init { entry } if entry && init.is_some() => sink.push_spanned(
+                        method.sig(),
+                        "Entry point already defined."
+                    ),
+                    MsgAttr::Init { entry } => {
+                        if entry {
+                            init = Some(method);
+                            has_init = true;
                         }
-                        MsgAttr::Execute => {
-                            validate_interface_method(sink, &interface_method, &[parse_quote!(Response)]);
-                            execute.push(Method::Interface(interface_method));
-                        }
-                        MsgAttr::Query => {
-                            validate_interface_method(sink, &interface_method, &[]);
-                            query.push(Method::Interface(interface_method));
-                        }
-                        MsgAttr::ExecuteGuard => sink.push_spanned(
-                            &method.sig.ident,
-                            format!(
-                                "Interfaces cannot have the #[{}] attribute.",
-                                MsgAttr::EXECUTE_GUARD
-                            )
-                        )
                     }
-                    None => sink.push_spanned(
-                        &method.sig.ident,
+                    MsgAttr::Execute => execute.push(method),
+                    MsgAttr::Query => query.push(method),
+                    MsgAttr::ExecuteGuard => sink.push_spanned(
+                        &method.sig().ident,
                         format!(
-                            "Expecting exactly one attribute of: {:?}",
-                            [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
+                            "Interfaces cannot have the #[{}] attribute.",
+                            MsgAttr::EXECUTE_GUARD
                         )
                     )
                 }
@@ -272,23 +219,23 @@ impl<'a> Contract<'a> {
             };
     
             Some(Interfaces {
-                init_msg: generate::init_msg(sink, init.sig()),
+                init_msg: generate::init_msg(sink, &init),
                 execute_msg: generate::messages(
                     sink,
                     MsgType::Execute,
-                    execute.iter().map(|x| x.sig())
+                    &execute
                 ),
                 query_msg: generate::messages(
                     sink,
                     MsgType::Query,
-                    query.iter().map(|x| x.sig())
+                    &query
                 ),
                 entry
             })
         } else {
             if let Some(guard) = execute_guard {
                 sink.push_spanned(
-                    guard,
+                    guard.sig(),
                     format!(
                         "#[{}] attribute has no effect when no entry point is defined. Either remove it or set an entry point for the contract.",
                         MsgAttr::EXECUTE_GUARD
@@ -318,35 +265,6 @@ fn create_contract_struct() -> ItemStruct {
         #[derive(Clone, Copy, Debug)]
         pub struct #ident;
     }
-}
-
-#[inline]
-fn validate_contract_method<'a>(
-    sink: &mut ErrorSink,
-    method: &'a ImplItemMethod,
-    arg: &[GenericArgument]
-) -> Option<ResultType<'a>> {
-    if method.vis != parse_quote!(pub) {
-        sink.push_spanned(method, "Method must be public.");
-    }
-
-    validate::result_type(sink, &method.sig, (arg, &[]))
-}
-
-#[inline]
-fn validate_interface_method<'a>(
-    sink: &mut ErrorSink,
-    method: &InterfaceMethod<'a>,
-    args: &[GenericArgument]
-) {
-    let err_ty = Ident::new(ERROR_TYPE, Span::call_site());
-    let trait_ident = method.trait_name();
-    let err_args: &[GenericArgument] = &[
-        parse_quote!(Self::#err_ty),
-        parse_quote!(<Self as #trait_ident>::#err_ty)
-    ];
-
-    validate::result_type(sink, &method.sig, (args, err_args));
 }
 
 #[inline]

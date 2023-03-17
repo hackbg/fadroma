@@ -31,7 +31,7 @@ pub struct ErrorEnum {
     pub err_impl: ItemImpl
 }
 
-pub fn init_msg(sink: &mut ErrorSink, init: &Signature) -> ItemStruct {
+pub fn init_msg<'a>(sink: &mut ErrorSink, init: &Method<'a>) -> ItemStruct {
     let msg = Ident::new(INIT_MSG, Span::call_site());
 
     let mut result: ItemStruct = parse_quote! {
@@ -41,7 +41,7 @@ pub fn init_msg(sink: &mut ErrorSink, init: &Signature) -> ItemStruct {
         }
     };
 
-    let fields = extract_fields(sink, init, parse_quote!(pub));
+    let fields = extract_fields(sink, init.sig(), parse_quote!(pub));
     result.fields = Fields::Named(fields);
 
     return result;
@@ -50,7 +50,7 @@ pub fn init_msg(sink: &mut ErrorSink, init: &Signature) -> ItemStruct {
 pub fn messages<'a>(
     sink: &mut ErrorSink,
     msg_type: MsgType,
-    signatures: impl Iterator<Item = &'a Signature>
+    methods: &[Method<'a>]
 ) -> ItemEnum {
     let enum_name: Ident = msg_type.into();
 
@@ -62,7 +62,8 @@ pub fn messages<'a>(
         }
     };
 
-    for sig in signatures {
+    for method in methods {
+        let sig = method.sig();
         let variant_name = to_pascal(&sig.ident.to_string());
         let fields = extract_fields(sink, sig, Visibility::Inherited);
 
@@ -131,8 +132,7 @@ pub fn init_fn<'a>(sink: &mut ErrorSink, method: &Method<'a>) -> ItemFn {
 pub fn execute_fn<'a>(
     sink: &mut ErrorSink,
     methods: &[Method<'a>],
-    execute_guard: Option<&Signature>
-    
+    execute_guard: Option<Method<'a>>
 ) -> ItemFn {
     let fn_name = Ident::new(EXECUTE_FN, Span::call_site());
     let msg = Ident::new(EXECUTE_MSG, Span::call_site());
@@ -148,8 +148,10 @@ pub fn execute_fn<'a>(
     };
 
     if let Some(guard) = execute_guard {
+        assert!(matches!(guard.ty(), MsgAttr::ExecuteGuard));
+        
         let contract_ident = Ident::new(CONTRACT, Span::call_site());
-        let method_name = &guard.ident;
+        let method_name = &guard.sig().ident;
 
         let err_variant = Ident::new(CONTRACT_ERR_VARIANT, Span::call_site());
         let map_err: ExprCall = parse_quote!(map_err(|x| #error_enum::#err_variant(x)));
@@ -239,7 +241,7 @@ pub fn wasm_entry() -> ItemMod {
 
 pub fn error_enum(
     sink: &mut ErrorSink,
-    contract: Option<&GenericArgument>,
+    contract: Option<GenericArgument>,
     interfaces: &[&ItemImpl]
 ) -> ErrorEnum {
     let name = Ident::new(ERROR_ENUM, Span::call_site());

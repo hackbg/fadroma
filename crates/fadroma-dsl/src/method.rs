@@ -1,10 +1,17 @@
+use std::slice;
+
 use syn::{
-    Signature, Path, Ident, FnArg, Pat,
-    punctuated::Punctuated, token::Comma
+    Signature, Path, Ident, FnArg, Pat, GenericArgument, ItemTrait,
+    TraitItem, ItemImpl, ImplItem, punctuated::Punctuated,
+    token::Comma, parse_quote
 };
 use proc_macro2::Span;
 
-use crate::err::ErrorSink;
+use crate::{
+    validate::{self, ResultType},
+    attr::{MsgAttr, ERROR_TYPE},
+    err::ErrorSink
+};
 
 pub enum Method<'a> {
     Contract(ContractMethod<'a>),
@@ -12,12 +19,130 @@ pub enum Method<'a> {
 }
 
 pub struct ContractMethod<'a> {
-    pub sig: &'a Signature
+    ty: MsgAttr,
+    sig: &'a Signature,
+    return_ty: ResultType<'a>
 }
 
 pub struct InterfaceMethod<'a> {
+    pub ty: MsgAttr,
     pub sig: &'a Signature,
-    pub trait_: &'a Path
+    pub return_ty: ResultType<'a>,
+    trait_: Path
+}
+
+pub fn trait_methods<'a>(
+    sink: &mut ErrorSink,
+    trait_: &'a ItemTrait
+) -> Vec<InterfaceMethod<'a>> {
+    let mut methods = vec![];
+
+    for item in &trait_.items {
+        let TraitItem::Method(method) = item else {
+            continue;
+        };
+
+        if method.default.is_some() {
+            sink.push_spanned(
+                method,
+                "Contract interface method cannot contain a default implementation."
+            );
+        }
+
+        let Some(ty) = MsgAttr::parse(sink, &method.attrs) else {
+            sink.push_spanned(
+                &method.sig.ident,
+                format!(
+                    "Expecting exactly one attribute of: {:?}",
+                    [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
+                )
+            );
+
+            continue;
+        };
+
+        let trait_ = Path::from(trait_.ident.clone());
+
+        if let Some(return_ty) = interface_method_return_ty(
+            sink,
+            ty,
+            &trait_,
+            &method.sig
+        ) {
+            methods.push(InterfaceMethod {
+                ty,
+                sig: &method.sig,
+                trait_,
+                return_ty
+            });
+        }
+    }
+
+    methods
+}
+
+pub fn item_impl_methods<'a>(
+    sink: &mut ErrorSink,
+    item_impl: &'a ItemImpl
+) -> Vec<Method<'a>> {
+    let mut methods = vec![];
+
+    for item in &item_impl.items {
+        let ImplItem::Method(method) = item else {
+            continue;
+        };
+
+        let Some(ty) = MsgAttr::parse(sink, &method.attrs) else {
+            // Require an attribute for trait impls only.
+            // The "Contract" struct methods don't all
+            // have to be part of its interface.
+            if item_impl.trait_.is_some() {
+                sink.push_spanned(
+                    &method.sig.ident,
+                    format!(
+                        "Expecting exactly one attribute of: {:?}",
+                        [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
+                    )
+                );
+            }
+
+            continue;
+        };
+
+        if let Some((_, trait_, _)) = &item_impl.trait_ {
+            if let Some(return_ty) = interface_method_return_ty(
+                sink,
+                ty,
+                &trait_,
+                &method.sig
+            ) {
+                methods.push(Method::Interface(InterfaceMethod {
+                    ty,
+                    sig: &method.sig,
+                    trait_: trait_.clone(),
+                    return_ty
+                }));
+            }
+        } else {
+            if method.vis != parse_quote!(pub) {
+                sink.push_spanned(method, "Method must be public.");
+            }
+
+            if let Some(return_ty) = contract_method_return_ty(
+                sink,
+                ty,
+                &method.sig
+            ) {
+                methods.push(Method::Contract(ContractMethod {
+                    ty,
+                    sig: &method.sig,
+                    return_ty
+                }));
+            }
+        }
+    }
+
+    methods
 }
 
 pub fn fn_args_to_idents(
@@ -68,12 +193,75 @@ pub fn pat_ident(sink: &mut ErrorSink, pat: Pat) -> Option<Ident> {
     }
 }
 
+fn interface_method_return_ty<'a>(
+    sink: &mut ErrorSink,
+    ty: MsgAttr,
+    trait_ident: &Path,
+    sig: &'a Signature
+) -> Option<validate::ResultType<'a>> {
+    let err_ty = Ident::new(ERROR_TYPE, Span::call_site());
+    let err_args: &[GenericArgument] = &[
+        parse_quote!(Self::#err_ty),
+        parse_quote!(<Self as #trait_ident>::#err_ty)
+    ];
+
+    let expected = expected_value_type(ty);
+    let expected = if let Some(expected) = &expected {
+        slice::from_ref(expected)
+    } else {
+        &[]
+    };
+
+    validate::result_type(sink, sig, (expected, err_args))
+}
+
+#[inline]
+fn contract_method_return_ty<'a>(
+    sink: &mut ErrorSink,
+    ty: MsgAttr,
+    sig: &'a Signature
+) -> Option<ResultType<'a>> {
+    let expected = expected_value_type(ty);
+    let expected = if let Some(expected) = &expected {
+        slice::from_ref(expected)
+    } else {
+        &[]
+    };
+
+    validate::result_type(sink, sig, (expected, &[]))
+}
+
+#[inline]
+fn expected_value_type(ty: MsgAttr) -> Option<GenericArgument> {
+    match ty {
+        MsgAttr::Init { .. } | MsgAttr::Execute => Some(parse_quote!(Response)),
+        MsgAttr::Query => None,
+        MsgAttr::ExecuteGuard => Some(parse_quote!(()))
+    }
+}
+
 impl<'a> Method<'a> {
     #[inline]
     pub fn sig(&self) -> &Signature {
         match self {
             Method::Contract(x) => x.sig,
             Method::Interface(x) => x.sig
+        }
+    }
+
+    #[inline]
+    pub fn ty(&self) -> MsgAttr {
+        match self {
+            Method::Contract(x) => x.ty,
+            Method::Interface(x) => x.ty
+        }
+    }
+
+    #[inline]
+    pub fn return_ty(&self) -> &ResultType<'_> {
+        match self {
+            Method::Contract(x) => &x.return_ty,
+            Method::Interface(x) => &x.return_ty
         }
     }
 }

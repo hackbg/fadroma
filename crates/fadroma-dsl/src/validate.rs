@@ -1,4 +1,7 @@
-use syn::{Signature, ReturnType, Type, PathSegment, PathArguments, GenericArgument};
+use syn::{
+    Signature, ReturnType, Type, PathSegment,
+    PathArguments, GenericArgument, Generics
+};
 use quote::quote;
 
 use crate::err::ErrorSink;
@@ -49,6 +52,11 @@ pub fn result_type<'a>(
     );
 
     None
+}
+
+#[inline]
+pub fn has_generics(generics: &Generics) -> bool {
+    !generics.params.is_empty() || generics.where_clause.is_some()
 }
 
 fn validate_return_type<'a, 'b>(
