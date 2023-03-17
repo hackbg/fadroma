@@ -7,23 +7,14 @@ import { TokenManager } from '@fadroma/tokens'
 export default class Fadroma extends Deployment {
 
   constructor (options: { config?: Partial<Config> } = {}) {
-
     super(options as any /* FIXME */)
-
     //this.log.label = this.projectName
-
-    this.config = (options.config instanceof Config)
-      ? options.config
-      : new Config(options.config, process.env, process.cwd())
-
+    this.config = (options.config instanceof Config) ? options.config : new Config(options.config)
     // Configure build context
     this.workspace = this.config.project
-
     this.builder ??= this.config?.build?.getBuilder()
-
     // Create token manager
     this.tokens = new TokenManager(this as Deployment)
-
     // Define commands
     //this.addCommands('tokens', 'manage token contracts', this.tokens as any)
   }

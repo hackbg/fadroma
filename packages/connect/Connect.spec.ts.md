@@ -30,7 +30,7 @@ const connectToMocknet = connect.config({ chain: 'mocknet' })
 #### Secret Network
 
 ```typescript
-import Scrt from '@fadroma/scrt'
+import { Chain as Scrt } from '@fadroma/scrt'
 const supportedChains = [ Scrt, ]
 ```
 

@@ -27,17 +27,17 @@ export default class Scrt extends Chain {
 
   /** Connect to the Secret Network Mainnet. */
   static Mainnet (config?: Config) {
-    return new Scrt(config?.mainnetChainId ?? Scrt.defaultMainnetChainId, {
+    return new Scrt(config?.mainnetChainId ?? Scrt.Config.defaultMainnetChainId, {
       mode: Chain.Mode.Mainnet,
-      url:  config?.mainnetUrl || Scrt.defaultMainnetUrl,
+      url:  config?.mainnetUrl || Scrt.Config.defaultMainnetUrl,
     })
   }
 
   /** Connect to the Secret Network Testnet. */
   static Testnet (config?: Config) {
-    return new Scrt(config?.testnetChainId ?? Scrt.defaultTestnetChainId, {
+    return new Scrt(config?.testnetChainId ?? Scrt.Config.defaultTestnetChainId, {
       mode: Chain.Mode.Testnet,
-      url:  config?.testnetUrl || Scrt.defaultTestnetUrl,
+      url:  config?.testnetUrl || Scrt.Config.defaultTestnetUrl,
     })
   }
 
@@ -50,17 +50,9 @@ export default class Scrt extends Chain {
   /** The default Agent class for Secret Network. */
   static Agent: AgentClass<ScrtAgent> // set below
 
-  static defaultMainnetUrl:     string  = this.Config.defaultMainnetUrl
+  static isSecretNetwork: boolean = true
 
-  static defaultTestnetUrl:     string  = this.Config.defaultTestnetUrl
-
-  static defaultMainnetChainId: ChainId = this.Config.defaultMainnetChainId
-
-  static defaultTestnetChainId: ChainId = this.Config.defaultTestnetChainId
-
-  static isSecretNetwork:       boolean = true
-
-  static defaultDenom:          string  = 'uscrt'
+  static defaultDenom: string  = 'uscrt'
 
   static gas (amount: Uint128|number) {
     return new Fee(amount, this.defaultDenom)
@@ -82,14 +74,14 @@ export default class Scrt extends Chain {
 
   isSecretNetwork: boolean = true
 
-  defaultDenom: string  = Scrt.defaultDenom
+  defaultDenom: string = Scrt.defaultDenom
 
   log = new Console('Scrt')
 
   constructor (
-    id: ChainId = Scrt.defaultMainnetChainId,
+    id: ChainId = Scrt.Config.defaultMainnetChainId,
     options: Partial<ScrtOpts> = {
-      url:  Scrt.defaultMainnetUrl,
+      url:  Scrt.Config.defaultMainnetUrl,
       mode: Chain.Mode.Mainnet
     }
   ) {

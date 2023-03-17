@@ -42,7 +42,8 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path,
     'scrt_1.5': $(devnetPackage, 'scrt_1_5.Dockerfile').path,
     'scrt_1.6': $(devnetPackage, 'scrt_1_6.Dockerfile').path,
-    'scrt_1.7': $(devnetPackage, 'scrt_1_7.Dockerfile').path
+    'scrt_1.7': $(devnetPackage, 'scrt_1_7.Dockerfile').path,
+    'scrt_1.8': $(devnetPackage, 'scrt_1_8.Dockerfile').path
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
@@ -52,6 +53,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
     'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
     'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
+    'scrt_1.8': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
   }
 
   static initScriptMount = 'devnet.init.mjs'

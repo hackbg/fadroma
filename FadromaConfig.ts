@@ -3,5 +3,7 @@ import { DeployConfig } from '@fadroma/deploy'
 
 /** Configuration for the Fadroma environment. */
 export default class Config extends DeployConfig {
-  build = new BuilderConfig({ project: this.project }, this.env, this.cwd)
+
+  build = new BuilderConfig({ project: this.project })
+
 }

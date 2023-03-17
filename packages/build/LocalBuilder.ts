@@ -4,7 +4,6 @@ import { Builder, HEAD } from '@fadroma/core'
 import type { Class, Built } from '@fadroma/core'
 
 import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/file'
-import { Env, EnvConfig } from '@hackbg/conf'
 import { bold } from '@hackbg/logs'
 
 import { dirname } from 'node:path'
@@ -18,7 +17,7 @@ export default abstract class LocalBuilder extends Builder {
 
   constructor (options: Partial<BuilderConfig>) {
     super('local builder', 'local builder')
-    this.config = new BuilderConfig(options, this.env, this.cwd)
+    this.config = new BuilderConfig(options)
     this.noFetch   = options.noFetch   ?? this.noFetch
     this.toolchain = options.toolchain ?? this.toolchain
     this.verbose   = options.verbose   ?? this.verbose

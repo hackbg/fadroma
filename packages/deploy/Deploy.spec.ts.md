@@ -12,17 +12,15 @@ $ fadroma redeploy
 
 ```typescript
 import { Deployment } from '@fadroma/core'
-import { deployer } from '@fadroma/deploy'
+import { getDeployer } from '@fadroma/deploy'
 
 export class MyDeployment extends Deployment {
   foo = this.contract({ /* ... */ })
 }
 
-await deployer({
-  /* options */
-}).deploy(
-  new MyDeployment()
-)
+const deployer = await getDeployer({ /* options */ })
+
+await deployer.deploy(new MyDeployment(/* args */))
 ```
 
 ### Deploy configuration

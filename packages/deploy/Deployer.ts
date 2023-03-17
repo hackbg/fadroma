@@ -104,4 +104,6 @@ export default class Deployer<D extends Deployment> extends CommandContext {
     }
   }
 
+  async deploy (deployment: D) {}
+
 }

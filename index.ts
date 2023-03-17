@@ -18,18 +18,18 @@
 
 **/
 
-import builder from '@fadroma/build'
-import { deployer, uploader } from '@fadroma/deploy'
-export default {
-  builder,
-  deployer,
-  uploader
+import getBuilder from '@fadroma/build'
+import { getDeployer, getUploader } from '@fadroma/deploy'
+export {
+  getBuilder,
+  getDeployer,
+  getUploader
 }
 
 export { default as Fadroma } from './Fadroma'
-export { default as FadromaConsole } from './FadromaConsole'
-export { default as FadromaConfig } from './FadromaConfig'
-export { default as FadromaCommands } from './FadromaCommands'
+export { default as Console } from './FadromaConsole'
+export { default as Config } from './FadromaConfig'
+export { default as Commands } from './FadromaCommands'
 
 export * as Logs from '@hackbg/logs'
 export * as Cmds from '@hackbg/cmds'

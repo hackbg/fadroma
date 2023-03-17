@@ -23,9 +23,9 @@ $ npx fadroma devnet clear
 ## Devnet API
 
 ```typescript
-import devnet from '@fadroma/devnet'
+import getDevnet from '@fadroma/devnet'
 
-const chain = await devnet({ /* options */ }).start()
+const chain = await getDevnet({ /* options */ }).start()
 await chain.stop()
 await chain.export()
 await chain.clear()

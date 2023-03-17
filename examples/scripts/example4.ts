@@ -1,6 +1,6 @@
-import { Fadroma, FadromaCommands } from '@hackbg/fadroma'
+import { Commands } from '@hackbg/fadroma'
 
-export class MyCommands extends FadromaCommands {
+export class MyCommands extends Commands {
 
   doStuff1 = this.command('do-stuff-1', 'do a thing', () => {
     // ...

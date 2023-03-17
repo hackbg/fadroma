@@ -1,7 +1,7 @@
 import type { Agent, Address, CodeHash, Uint128, ICoin } from '@fadroma/core'
 import { Client, ClientConsole, } from '@fadroma/core'
 import type { Permit } from '@fadroma/scrt'
-import { ViewingKeyClient } from '@fadroma/scrt'
+import { VKClient } from '@fadroma/scrt'
 import { randomBase64 } from '@hackbg/4mat'
 import { bold, colors } from '@hackbg/logs'
 import type { Token, CustomToken } from './Token'
@@ -261,8 +261,8 @@ export default class Snip20 extends Client implements CustomToken {
   }
 
   /** Get a client to the Viewing Key API. */
-  get vk (): ViewingKeyClient {
-    return new ViewingKeyClient(this.agent, this.address, this.codeHash)
+  get vk (): VKClient {
+    return new VKClient(this.agent, this.address, this.codeHash)
   }
 
 }

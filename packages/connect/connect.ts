@@ -31,7 +31,7 @@ export { default as Connector } from './Connector'
 export * from './ConnectCommands'
 export { default as ConnectCommands } from './ConnectCommands'
 
-import Scrt from '@fadroma/scrt'
+import * as Scrt from '@fadroma/scrt'
 export * as Scrt from '@fadroma/scrt'
 
 import * as Mocknet from '@fadroma/mocknet'
@@ -52,9 +52,9 @@ Object.assign(Chain.variants as ChainRegistry, {
   async Mocknet_CW0 (config: unknown): Promise<Mocknet.CW0> { return new Mocknet.CW0() },
   async Mocknet_CW1 (config: unknown): Promise<Mocknet.CW1> { return new Mocknet.CW1() },
   // Support for Secret Network
-  ScrtMainnet: Scrt.Mainnet,
-  ScrtTestnet: Scrt.Testnet,
-  ScrtDevnet:  defineDevnet(Scrt, 'scrt_1.7'),
+  ScrtMainnet: Scrt.Chain.Mainnet,
+  ScrtTestnet: Scrt.Chain.Testnet,
+  ScrtDevnet:  defineDevnet(Scrt.Chain, 'scrt_1.7'),
 })
 
 export default async function connect (

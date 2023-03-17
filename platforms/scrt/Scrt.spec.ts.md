@@ -9,7 +9,7 @@ Platform-specific logic and artifacts for Secret Network also exists
 in `@fadroma/devnet`.
 
 ```typescript
-import Scrt from '@fadroma/scrt'
+import * as Scrt from '@fadroma/scrt'
 import assert from 'node:assert'
 ```
 
@@ -26,8 +26,8 @@ const config = new Scrt.Config()
 To connect to Secret Network with Fadroma, use one of the following:
 
 ```typescript
-const mainnet = Scrt.Mainnet()
-const testnet = Scrt.Testnet()
+const mainnet = Scrt.Chain.Mainnet()
+const testnet = Scrt.Chain.Testnet()
 //const devnet  = Scrt.Devnet()
 //const mocknet = Scrt.Mocknet()
 ```
@@ -42,7 +42,7 @@ Then, to authenticate:
 const agent0 = await mainnet.getAgent()
 
 assert.ok(agent0 instanceof Scrt.Agent)
-assert.ok(agent0.chain instanceof Scrt)
+assert.ok(agent0.chain instanceof Scrt.Chain)
 assert.ok(agent0.mnemonic)
 assert.ok(agent0.address)
 ```

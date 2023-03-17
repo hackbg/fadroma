@@ -178,7 +178,7 @@ export default class ContainerBuilder extends LocalBuilder {
 
   protected prebuilt (contract: Buildable & Partial<Built>): boolean {
     const { workspace, revision, crate } = contract
-    if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
+    //if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
       this.log.prebuilt(prebuilt)

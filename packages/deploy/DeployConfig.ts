@@ -6,32 +6,30 @@ import { Deployment, DeployStore } from '@fadroma/core'
 import type { DeploymentClass, DeploymentFormat, DeployStoreClass } from '@fadroma/core'
 
 import $ from '@hackbg/file'
-import type { Env } from '@hackbg/conf'
 
 /** Deployment system configuration and Deployer factory. */
 export default class DeployConfig extends ConnectConfig {
 
-  //constructor (
-    //defaults: Partial<DeployConfig> = {},
-    //readonly env: Env    = process.env,
-    //readonly cwd: string = process.cwd(),
-  //) {
-    //super(defaults as Partial<ConnectConfig>, env ?? process.env, cwd ?? process.cwd())
-    //this.override(defaults)
-  //}
-
   /** Project root. Defaults to current working directory. */
-  project: string = this.getString ('FADROMA_PROJECT',  () => this.cwd)
+  project: string = this.getString(
+    'FADROMA_PROJECT',
+    () => this.environment.cwd)
 
   /** Whether to generate unsigned transactions for manual multisig signing. */
-  multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
+  multisig: boolean = this.getFlag(
+    'FADROMA_MULTISIG',
+    () => false)
 
   /** Directory to store the receipts for the deployed contracts. */
-  deployState: string | null = this.getString ('FADROMA_DEPLOY_STATE',
+  deployState: string | null = this.getString(
+    'FADROMA_DEPLOY_STATE',
     () => this.chainId ? $(this.project).in('receipts').in(this.chainId).in('deployments').path : null)
 
   /** Which implementation of the receipt store to use. */
-  deploymentFormat  = this.getString('FADROMA_DEPLOY_STORE', () => 'YAML1') as DeploymentFormat
+  deploymentFormat = this.getString(
+    'FADROMA_DEPLOY_STORE',
+    () => 'YAML1'
+  ) as DeploymentFormat
 
   /** The deploy receipt store implementation selected by `deploymentFormat`. */
   get DeployStore (): DeployStoreClass<DeployStore>|undefined {

@@ -18,3 +18,8 @@ export { default as DevnetContainer } from './DevnetContainer'
 
 export * from './DevnetRemote'
 export { default as DevnetRemote } from './DevnetRemote'
+
+import Config from './DevnetConfig'
+export default function getDevnet (options: Partial<Config> = {}) {
+  return new Config(options).getDevnet()
+}

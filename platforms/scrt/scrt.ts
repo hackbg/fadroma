@@ -16,28 +16,27 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import ScrtError     from './ScrtError'
-import ScrtConsole   from './ScrtConsole'
-import ScrtConfig    from './ScrtConfig'
+import Error     from './ScrtError'
+import Console   from './ScrtConsole'
+import Config    from './ScrtConfig'
 
-import ScrtChain     from './ScrtChain'
-import ScrtAgent     from './ScrtAgent'
-import ScrtBundle    from './ScrtBundle'
+import Chain     from './ScrtChain'
+import Agent     from './ScrtAgent'
+import Bundle    from './ScrtBundle'
 
-import ScrtVK        from './ScrtVK'
+import VKClient  from './ScrtVK'
 
 import * as SecretJS from 'secretjs'
-ScrtChain.SecretJS = SecretJS
-
-export default ScrtChain
+Chain.SecretJS = SecretJS
 
 export {
-  ScrtAgent   as Agent,
-  ScrtBundle  as Bundle,
-  ScrtConfig  as Config,
-  ScrtError   as Error,
-  ScrtConsole as Console,
-  ScrtVK      as ViewingKeyClient,
+  Chain,
+  Agent,
+  Bundle,
+  Config,
+  Error,
+  Console,
+  VKClient,
   SecretJS,
 }
 

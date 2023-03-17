@@ -43,7 +43,7 @@ export * from './DeployError'
 export { default as Deployer } from './Deployer'
 export * from './Deployer'
 
-export function deployer <D extends Deployment> (
+export function getDeployer <D extends Deployment> (
   options: Partial<DeployConfig> = {},
   $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
   ...args: ConstructorParameters<typeof $D>
@@ -63,6 +63,6 @@ export * from './UploadError'
 export { default as UploadStore } from './UploadStore'
 export * from './UploadStore'
 
-export function uploader (options: Partial<UploaderConfig> = {}): Uploader {
+export function getUploader (options: Partial<UploaderConfig> = {}): Uploader {
   return new UploaderConfig(options).getUploader()
 }

@@ -5,38 +5,38 @@ import type { ConnectorClass } from './Connector'
 
 import type { ChainRegistry, ChainId, Agent, AgentOpts } from '@fadroma/core'
 import { ChainMode, Chain } from '@fadroma/core'
-import Scrt from '@fadroma/scrt'
+import { Config as ScrtConfig } from '@fadroma/scrt'
 import { DevnetConfig } from '@fadroma/devnet'
 
-import { EnvConfig } from '@hackbg/conf'
-import type { Env } from '@hackbg/conf'
+import { Config } from '@hackbg/conf'
+import type { Environment } from '@hackbg/conf'
 
 /** Connection configuration and Connector factory.
   * Factory pattern and consequent inversion of control
   * here imposed by the lack of `await new` */
-export default class ConnectConfig extends EnvConfig {
+export default class ConnectConfig extends Config {
 
   constructor (
-    defaults: Partial<ConnectConfig> = {},
-    readonly env: Env    = {},
-    readonly cwd: string = '',
+    options: Partial<ConnectConfig> = {},
+    environment?: Environment
   ) {
-    super(env, cwd)
-    this.override(defaults)
+    super(options, environment)
     Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
+    this.scrt = new ScrtConfig(options?.scrt, environment)
+    this.devnet = new DevnetConfig(options?.devnet, environment)
   }
 
   log = new Console('@fadroma/connect')
 
+  /** Secret Network configuration. */
+  scrt: ScrtConfig
+
+  /** Devnets configuration. */
+  devnet: DevnetConfig
+
   /** Name of chain to use. */
   chainSelector?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
     ()=>'Mocknet_CW1')
-
-  /** Secret Network configuration. */
-  scrt = new Scrt.Config(this.env, this.cwd)
-
-  /** Devnets configuration. */
-  devnet = new DevnetConfig(this.env, this.cwd)
 
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   devnetAgentName: string
@@ -55,8 +55,8 @@ export default class ConnectConfig extends EnvConfig {
       Mocknet_CW0: 'mocknet-cw0',
       Mocknet_CW1: 'mocknet-cw1',
       ScrtDevnet:   'fadroma-devnet',
-      ScrtTestnet:  Scrt.defaultTestnetChainId,
-      ScrtMainnet:  Scrt.defaultMainnetChainId,
+      ScrtTestnet:  ScrtConfig.defaultTestnetChainId,
+      ScrtMainnet:  ScrtConfig.defaultMainnetChainId,
     }
     return chainIds[this.chainSelector as keyof typeof chainIds] || null
   }
