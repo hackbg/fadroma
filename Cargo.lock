@@ -438,7 +438,6 @@ dependencies = [
  "fadroma-derive-serde",
  "fadroma-dsl",
  "fadroma-proc-auth",
- "fadroma-proc-derive",
  "fadroma-proc-message",
  "oorandom",
  "primitive-types",
@@ -542,19 +541,6 @@ name = "fadroma-proc-auth"
 version = "0.1.0"
 dependencies = [
  "quote",
- "syn",
-]
-
-[[package]]
-name = "fadroma-proc-derive"
-version = "0.7.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "schemars",
- "secret-cosmwasm-std",
- "serde",
- "serde_json",
  "syn",
 ]
 
