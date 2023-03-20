@@ -2831,8 +2831,6 @@ fn test_query_transfer_history() {
         page_size: 0,
     };
     let query_result = query(deps.as_ref(), mock_env(), query_msg);
-    // let a: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
-    // println!("{:?}", a);
     let transfers = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::TransferHistory { txs, .. } => txs,
         _ => panic!("Unexpected"),

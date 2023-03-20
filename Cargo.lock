@@ -436,8 +436,8 @@ dependencies = [
  "criterion",
  "fadroma-derive-canonize",
  "fadroma-derive-serde",
+ "fadroma-dsl",
  "fadroma-proc-auth",
- "fadroma-proc-derive",
  "fadroma-proc-message",
  "oorandom",
  "primitive-types",
@@ -476,24 +476,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "fadroma-dsl"
+version = "0.5.0"
+dependencies = [
+ "fadroma",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "fadroma-example-admin"
 version = "0.1.0"
 dependencies = [
  "fadroma",
- "fadroma-example-derive-contract-impl",
+ "fadroma-example-derive-contract-interface",
  "serde",
 ]
 
 [[package]]
 name = "fadroma-example-derive-contract-components"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-derive-contract-impl"
 version = "0.1.0"
 dependencies = [
  "fadroma",
@@ -513,7 +515,7 @@ name = "fadroma-example-ensemble"
 version = "0.1.0"
 dependencies = [
  "fadroma",
- "fadroma-example-derive-contract-impl",
+ "fadroma-example-derive-contract-interface",
  "serde",
 ]
 
@@ -522,7 +524,7 @@ name = "fadroma-example-killswitch"
 version = "0.1.0"
 dependencies = [
  "fadroma",
- "fadroma-example-derive-contract-impl",
+ "fadroma-example-derive-contract-interface",
  "serde",
 ]
 
@@ -539,19 +541,6 @@ name = "fadroma-proc-auth"
 version = "0.1.0"
 dependencies = [
  "quote",
- "syn",
-]
-
-[[package]]
-name = "fadroma-proc-derive"
-version = "0.7.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "schemars",
- "secret-cosmwasm-std",
- "serde",
- "serde_json",
  "syn",
 ]
 

@@ -763,14 +763,16 @@ pub trait Snip20 {
         deps: DepsMut,
         env: Env,
         info: MessageInfo,
-        address: String,
+        address: String
     ) -> StdResult<Response> {
-        let resp = admin::simple::SimpleAdmin::change_admin(
-            &admin::simple::DefaultImpl,
-            address,
+        use admin::{Admin, Mode};
+
+        // This checks if the calling address is the current admin.
+        let resp = admin::DefaultImpl::change_admin(
             deps,
             env,
-            info
+            info,
+            Some(Mode::Immediate { new_admin: address })
         );
 
         let data = to_binary(&ExecuteAnswer::ChangeAdmin {
@@ -786,7 +788,7 @@ pub trait Snip20 {
         deps: DepsMut,
         _env: Env,
         info: MessageInfo,
-        status_level: ContractStatusLevel,
+        status_level: ContractStatusLevel
     ) -> StdResult<Response> {
         STATUS.save(deps.storage, &status_level)?;
 

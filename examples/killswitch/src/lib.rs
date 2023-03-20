@@ -1,34 +1,35 @@
 use fadroma::{
-    admin,
-    killswitch,
+    admin::{self, Admin},
+    killswitch::{self, Killswitch},
     cosmwasm_std::{
         Deps, DepsMut, Env, MessageInfo, StdResult,
-        Response, Binary, entry_point
+        Response, Binary, to_binary, entry_point
     },
     schemars::{self, JsonSchema}
 };
+use counter::interface::Counter;
 
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct InstantiateMsg {
-    counter: counter::InstantiateMsg,
+    counter: counter::interface::InstantiateMsg,
     admin: Option<String>
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    Counter(counter::ExecuteMsg),
-    Admin(admin::simple::ExecuteMsg),
+    Counter(counter::interface::ExecuteMsg),
+    Admin(admin::ExecuteMsg),
     Killswitch(killswitch::ExecuteMsg)
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    Counter(counter::QueryMsg),
-    Admin(admin::simple::QueryMsg),
+    Counter(counter::interface::QueryMsg),
+    Admin(admin::QueryMsg),
     Killswitch(killswitch::QueryMsg)
 }
 
@@ -43,7 +44,7 @@ pub fn instantiate(
     // the killswitch module itself needs no setup.
     admin::init(deps.branch(), msg.admin.as_deref(), &info)?;
 
-    counter::instantiate(deps, env, info, msg.counter, counter::DefaultImpl)
+    counter::Contract::new(deps, env, info, msg.counter.initial_value)
 }
 
 #[entry_point]
@@ -60,27 +61,31 @@ pub fn execute(
     }
 
     match msg {
-        ExecuteMsg::Admin(msg) => admin::simple::execute(
-            deps,
-            env,
-            info,
-            msg,
-            admin::simple::DefaultImpl
-        ),
-        ExecuteMsg::Counter(msg) => counter::execute(
-            deps,
-            env,
-            info,
-            msg,
-            counter::DefaultImpl
-        ),
-        ExecuteMsg::Killswitch(msg) => killswitch::execute(
-            deps,
-            env,
-            info,
-            msg,
-            killswitch::DefaultImpl
-        )
+        ExecuteMsg::Admin(msg) => match msg {
+            admin::ExecuteMsg::ChangeAdmin { mode } =>
+                admin::DefaultImpl::change_admin(deps, env, info, mode),
+        }
+        ExecuteMsg::Counter(msg) => match msg {
+            counter::interface::ExecuteMsg::Add { value } =>
+                counter::Contract::add(deps, env, info, value),
+            counter::interface::ExecuteMsg::Sub { value } =>
+                counter::Contract::sub(deps, env, info, value),
+            counter::interface::ExecuteMsg::Mul { value } =>
+                counter::Contract::mul(deps, env, info, value),
+            counter::interface::ExecuteMsg::Div { value } =>
+                counter::Contract::div(deps, env, info, value),
+        }
+        ExecuteMsg::Killswitch(msg) => match msg {
+            killswitch::ExecuteMsg::SetStatus { level, reason, new_address } =>
+                killswitch::DefaultImpl::set_status(
+                    deps,
+                    env,
+                    info,
+                    level,
+                    reason,
+                    new_address
+                )
+        }
     }
 }
 
@@ -91,24 +96,27 @@ pub fn query(
     msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Admin(msg) => admin::simple::query(
-            deps,
-            env,
-            msg,
-            admin::simple::DefaultImpl
-        ),
-        QueryMsg::Counter(msg) => counter::query(
-            deps,
-            env,
-            msg,
-            counter::DefaultImpl,
-        ),
-        QueryMsg::Killswitch(msg) => killswitch::query(
-            deps,
-            env,
-            msg,
-            killswitch::DefaultImpl
-        )
+        QueryMsg::Admin(msg) => match msg {
+            admin::QueryMsg::Admin { } => {
+                let result = admin::DefaultImpl::admin(deps, env)?;
+
+                to_binary(&result)
+            },
+        },
+        QueryMsg::Counter(msg) => match msg {
+            counter::interface::QueryMsg::Value { } => {
+                let result = counter::Contract::value(deps, env)?;
+
+                to_binary(&result)
+            }
+        }
+        QueryMsg::Killswitch(msg) => match msg {
+            killswitch::QueryMsg::Status {  } => {
+                let result = killswitch::DefaultImpl::status(deps, env)?;
+
+                to_binary(&result)
+            }
+        }
     }
 }
 
@@ -135,7 +143,7 @@ mod tests {
             counter.id,
             &InstantiateMsg {
                 admin: None,
-                counter: counter::InstantiateMsg {
+                counter: counter::interface::InstantiateMsg {
                     initial_value: 10
                 }
             },
@@ -152,7 +160,7 @@ mod tests {
         assert_eq!(status, ContractStatus::default());
 
         ensemble.execute(
-            &ExecuteMsg::Counter(counter::ExecuteMsg::Add { value: 1 }),
+            &ExecuteMsg::Counter(counter::interface::ExecuteMsg::Add { value: 1 }),
             MockEnv::new(admin, counter.address.clone())
         ).unwrap();
 
@@ -184,7 +192,7 @@ mod tests {
         assert_eq!(status.level, ContractStatusLevel::Paused);
 
         let error = ensemble.execute(
-            &ExecuteMsg::Counter(counter::ExecuteMsg::Add { value: 1 }),
+            &ExecuteMsg::Counter(counter::interface::ExecuteMsg::Add { value: 1 }),
             MockEnv::new(admin, counter.address.clone())
         ).unwrap_err();
 
@@ -210,13 +218,13 @@ mod tests {
         assert_eq!(status, ContractStatus::default());
 
         ensemble.execute(
-            &ExecuteMsg::Counter(counter::ExecuteMsg::Add { value: 1 }),
+            &ExecuteMsg::Counter(counter::interface::ExecuteMsg::Add { value: 1 }),
             MockEnv::new(admin, counter.address.clone())
         ).unwrap();
 
         let value: u64 = ensemble.query(
             &counter.address,
-            &QueryMsg::Counter(counter::QueryMsg::Value { })
+            &QueryMsg::Counter(counter::interface::QueryMsg::Value { })
         ).unwrap();
         
         assert_eq!(value, 12);
