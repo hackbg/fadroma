@@ -1,4 +1,6 @@
-# 2022-07-08
+# Changelog - Fadroma TypeScript Packages
+
+## 2022-07-08
 
 * `@fadroma/client-scrt` v4.0.1
   * **FIX:** Move all modules into single file.
@@ -8,7 +10,7 @@
   * **BREAKING CHANGE:** decode `Uint8Array`s in TX error result.
     Response with undecoded data moved to `error.result.original`.
 
-# 2022-05-25
+## 2022-05-25
 
 First stable release of Fadroma Client.
 
