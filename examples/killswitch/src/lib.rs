@@ -76,14 +76,12 @@ pub fn execute(
                 counter::Contract::div(deps, env, info, value),
         }
         ExecuteMsg::Killswitch(msg) => match msg {
-            killswitch::ExecuteMsg::SetStatus { level, reason, new_address } =>
+            killswitch::ExecuteMsg::SetStatus { status } =>
                 killswitch::DefaultImpl::set_status(
                     deps,
                     env,
                     info,
-                    level,
-                    reason,
-                    new_address
+                    status
                 )
         }
     }
@@ -125,8 +123,8 @@ mod tests {
     use super::*;
 
     use fadroma::{
-        cosmwasm_std::Addr,
-        killswitch::{ContractStatus, ContractStatusLevel},
+        cosmwasm_std::{Addr, StdError},
+        killswitch::ContractStatus,
         ensemble::{ContractEnsemble, MockEnv}
     };
 
@@ -166,9 +164,9 @@ mod tests {
 
         let error = ensemble.execute(
             &ExecuteMsg::Killswitch(killswitch::ExecuteMsg::SetStatus {
-                level: ContractStatusLevel::Paused,
-                reason: String::new(),
-                new_address: None
+                status: ContractStatus::Paused {
+                    reason: String::new(),
+                }
             }),
             MockEnv::new("rando", counter.address.clone())
         ).unwrap_err();
@@ -177,9 +175,9 @@ mod tests {
 
         ensemble.execute(
             &ExecuteMsg::Killswitch(killswitch::ExecuteMsg::SetStatus {
-                level: ContractStatusLevel::Paused,
-                reason: "Test".into(),
-                new_address: None
+                status: ContractStatus::Paused {
+                    reason: "Test".into(),
+                }
             }),
             MockEnv::new(admin, counter.address.clone())
         ).unwrap();
@@ -189,7 +187,7 @@ mod tests {
             &QueryMsg::Killswitch(killswitch::QueryMsg::Status { })
         ).unwrap();
 
-        assert_eq!(status.level, ContractStatusLevel::Paused);
+        assert!(matches!(status, ContractStatus::Paused { .. }));
 
         let error = ensemble.execute(
             &ExecuteMsg::Counter(counter::interface::ExecuteMsg::Add { value: 1 }),
@@ -198,14 +196,12 @@ mod tests {
 
         assert_eq!(
             error.unwrap_contract_error().to_string(),
-            "Generic error: This contract has been paused. Reason: Test"
+            StdError::generic_err(status.to_string()).to_string()
         );
 
         ensemble.execute(
             &ExecuteMsg::Killswitch(killswitch::ExecuteMsg::SetStatus {
-                level: ContractStatusLevel::Operational,
-                reason: String::new(),
-                new_address: None
+                status: ContractStatus::Operational
             }),
             MockEnv::new(admin, counter.address.clone())
         ).unwrap();

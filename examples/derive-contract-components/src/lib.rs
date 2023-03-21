@@ -4,7 +4,7 @@ use fadroma::dsl::*;
 pub mod contract {
     use fadroma::{
         admin::{self, Admin, Mode},
-        killswitch::{self, Killswitch, ContractStatus, ContractStatusLevel},
+        killswitch::{self, Killswitch, ContractStatus},
         scrt::vk::auth::{self, VkAuth},
         prelude::*
     };
@@ -67,9 +67,7 @@ pub mod contract {
     impl Killswitch for Contract {
         #[execute]
         fn set_status(
-            level: ContractStatusLevel,
-            reason: String,
-            new_address: Option<Addr>
+            status: ContractStatus<Addr>,
         ) -> Result<Response, <Self as Killswitch>::Error> { }
     
         #[query]
@@ -99,7 +97,7 @@ pub mod contract {
 mod tests {
     use fadroma::{
         admin::Mode,
-        cosmwasm_std::Addr,
+        cosmwasm_std::{Addr, StdError},
         prelude::ContractLink,
         killswitch,
         ensemble::{ContractEnsemble, MockEnv, EnsembleResult, ExecuteResponse}
@@ -117,29 +115,27 @@ mod tests {
     #[test]
     fn killswitch() {
         let mut suite = TestSuite::new();
-
         suite.execute("user", &ExecuteMsg::SetNumber { value: 10 }).unwrap();
 
         // Only admin can set contract status
         let err = suite.execute(
             "rando",
             &ExecuteMsg::SetStatus {
-                level: killswitch::ContractStatusLevel::Paused,
-                reason: "".into(),
-                new_address: None
+                status: killswitch::ContractStatus::Paused {
+                    reason: "".into()
+                }
             }
         ).unwrap_err();
 
         assert_eq!(err.unwrap_contract_error().to_string(), "Generic error: Unauthorized");
 
-        suite.execute(
-            ADMIN,
-            &ExecuteMsg::SetStatus {
-                level: killswitch::ContractStatusLevel::Paused,
-                reason: "Test".into(),
-                new_address: None
-            }
-        ).unwrap();
+        let status = killswitch::ContractStatus::Paused {
+            reason: "Test".into()
+        };
+
+        suite.execute(ADMIN, &ExecuteMsg::SetStatus {
+            status: status.clone()
+        }).unwrap();
 
         // The contract is now paused so no messages can be executed
         let err = suite.execute(
@@ -149,42 +145,42 @@ mod tests {
 
         assert_eq!(
             err.unwrap_contract_error().to_string(),
-            "Generic error: This contract has been paused. Reason: Test"
+            StdError::generic_err(status.to_string()).to_string()
         );
 
         // Contract can be unpaused by the admin
         suite.execute(
             ADMIN,
             &ExecuteMsg::SetStatus {
-                level: killswitch::ContractStatusLevel::Operational,
-                reason: "".into(),
-                new_address: None
+                status: killswitch::ContractStatus::Operational
             }
         ).unwrap();
+
+        let status = killswitch::ContractStatus::Migrating {
+            reason: "End of the line".into(),
+            new_address: Some(Addr::unchecked("a new instance"))
+        };
 
         suite.execute(
             ADMIN,
             &ExecuteMsg::SetStatus {
-                level: killswitch::ContractStatusLevel::Migrating,
-                reason: "End of the line".into(),
-                new_address: Some(Addr::unchecked("a new instance"))
+                status: status.clone()
             }
         ).unwrap();
 
         // Contract cannot be resumed anymore because its status
         // has now been set to "migrating".
+        
         let err = suite.execute(
             ADMIN,
             &ExecuteMsg::SetStatus {
-                level: killswitch::ContractStatusLevel::Operational,
-                reason: "".into(),
-                new_address: None
+                status: killswitch::ContractStatus::Operational,
             }
         ).unwrap_err();
 
         assert_eq!(
             err.unwrap_contract_error().to_string(),
-            "Generic error: This contract is being migrated to a new instance, please use that address instead. Reason: End of the line"
+            StdError::generic_err(status.to_string()).to_string()
         );
     }
 
