@@ -66,6 +66,7 @@ pub fn generate_match_arms(
     canonize: bool,
 ) -> proc_macro2::TokenStream {
     let mut res = Vec::new();
+    
     for (_, variant) in variants.iter_mut().enumerate() {
         let name = &variant.ident;
         let names = extract_field_names(&variant.fields);
@@ -106,9 +107,7 @@ fn extract_field_names(fields: &Fields) -> proc_macro2::TokenStream {
 
             quote!((#members))
         }
-        Fields::Unit => {
-            unreachable!()
-        }
+        Fields::Unit => proc_macro2::TokenStream::new()
     }
 }
 
@@ -148,6 +147,6 @@ fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStream 
 
             quote!((#members))
         }
-        Fields::Unit => unreachable!(),
+        Fields::Unit => proc_macro2::TokenStream::new()
     }
 }
