@@ -46,7 +46,7 @@ impl ContractHarness for Oracle {
     }
 }
 
-fadroma::impl_contract_harness!(TestContract, counter, counter::DefaultImpl);
+fadroma::impl_contract_harness!(TestContract, counter);
 
 #[test]
 fn test_contracts() {

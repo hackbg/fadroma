@@ -12,7 +12,7 @@ pub fn generate(mut strukt: ItemStruct) -> proc_macro::TokenStream {
     );
 
     add_serde_derive(&mut strukt.attrs);
-
+    
     if let Err(err) = transform_fields(&mut strukt.fields) {
         let err = err.into_compile_error();
 
@@ -52,6 +52,7 @@ fn generate_trait_impls(strukt: &ItemStruct, humanized: &Ident) -> proc_macro2::
             }
         }
     };
+
     quote! {
         #canonize_impl
         #humanize_impl

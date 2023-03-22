@@ -2,8 +2,9 @@
 name = "fadroma-example-killswitch"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 fadroma = { path = "../../crates/fadroma", features = ["scrt", "ensemble"] }
-counter = { package = "fadroma-example-derive-contract-impl", path = "../derive-contract-impl" }
+counter = { package = "fadroma-example-derive-contract-interface", path = "../derive-contract-interface" }
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }

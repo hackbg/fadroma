@@ -41,7 +41,7 @@ pub fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStr
 
             quote!((#members))
         }
-        Fields::Unit => unreachable!(),
+        Fields::Unit => proc_macro2::TokenStream::new(),
     }
 }
 
@@ -67,12 +67,7 @@ pub fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
                 field.ty = parse_quote!(<#ty as fadroma::prelude::Canonize>::Output);
             }
         }
-        Fields::Unit => {
-            return Err(syn::Error::new(
-                Span::call_site(),
-                "Unit variants are not supported.",
-            ))
-        }
+        Fields::Unit => { }
     }
 
     Ok(())

@@ -2,6 +2,7 @@
 name = "fadroma-example-derive-contract-components"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 fadroma = { path = "../../crates/fadroma", features = ["scrt", "vk", "ensemble"] }

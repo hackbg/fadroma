@@ -1,8 +1,8 @@
 [workspace]
 members = [
   "crates/fadroma",
+  "crates/fadroma-dsl",
   "crates/fadroma-proc-auth",
-  "crates/fadroma-proc-derive",
   "crates/fadroma-proc-message",
   "crates/fadroma-derive-serde",
   "crates/fadroma-derive-canonize",
