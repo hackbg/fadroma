@@ -7,7 +7,7 @@ use quote::quote;
 use proc_macro2::Span;
 
 use crate::{
-    attr::{MsgAttr, CONTRACT, ENTRY_META},
+    attr::{MsgAttr, Entry, CONTRACT},
     err::{ErrorSink, CompileErrors},
     generate::{self, MsgType, ErrorEnum},
     method::{Method, item_impl_methods}
@@ -41,7 +41,10 @@ pub fn derive(mut item_mod: ItemMod) -> Result<proc_macro2::TokenStream, Compile
         items.push(Item::Fn(i.entry.init));
         items.push(Item::Fn(i.entry.execute));
         items.push(Item::Fn(i.entry.query));
-        items.push(Item::Mod(i.entry.wasm_ffi));
+
+        if let Some(wasm) = i.entry.wasm_ffi {
+            items.push(Item::Mod(wasm));
+        }
     }
 
     sink.check()?;
@@ -70,7 +73,7 @@ struct Entrypoints {
     init: ItemFn,
     execute: ItemFn,
     query: ItemFn,
-    wasm_ffi: ItemMod
+    wasm_ffi: Option<ItemMod>
 }
 
 struct Boilerplate {
@@ -138,16 +141,15 @@ impl<'a> Contract<'a> {
                         format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
                     ),
                     MsgAttr::Init { entry } => {
-                        if entry {
+                        if entry.is_some() {
                             init = Some(method);
                         } else {
                             sink.push_spanned(
                                 &contract_impl.self_ty,
                                 format!(
-                                    "Init methods in {} implementation must be marked as #[{}({})].",
+                                    "Init methods in {} implementation must have one of the following meta list parameters: {:?}",
                                     CONTRACT,
-                                    MsgAttr::INIT,
-                                    ENTRY_META
+                                    [MsgAttr::ENTRY_META, MsgAttr::ENTRY_WASM_META]
                                 )
                             )
                         }
@@ -177,12 +179,13 @@ impl<'a> Contract<'a> {
                         interface,
                         format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
                     ),
-                    MsgAttr::Init { entry } if entry && init.is_some() => sink.push_spanned(
-                        method.sig(),
-                        "Entry point already defined."
-                    ),
+                    MsgAttr::Init { entry } if entry.is_some() && init.is_some() =>
+                        sink.push_spanned(
+                            method.sig(),
+                            "Entry point already defined."
+                        ),
                     MsgAttr::Init { entry } => {
-                        if entry {
+                        if entry.is_some() {
                             init = Some(method);
                             has_init = true;
                         }
@@ -215,7 +218,14 @@ impl<'a> Contract<'a> {
                     sink,
                     &query
                 ),
-                wasm_ffi: generate::wasm_entry()
+                wasm_ffi: if matches!(
+                    init.ty(),
+                    MsgAttr::Init { entry } if matches!(entry, Some(Entry::Wasm))
+                ) {
+                    Some(generate::wasm_entry())
+                } else {
+                    None
+                }
             };
     
             Some(Interfaces {

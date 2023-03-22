@@ -82,7 +82,7 @@ pub fn init(
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let item = parse_macro_input!(item as Item);
-    let result = add_fn_args(item, MsgAttr::Init { entry: false });
+    let result = add_fn_args(item, MsgAttr::Init { entry: None });
 
     proc_macro::TokenStream::from(result)
 }

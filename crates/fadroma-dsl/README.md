@@ -32,14 +32,15 @@ interfaces unless the `entry` meta argument is used.
 
 #### Meta arguments
   - `entry`
-    - Used as `#[init(entry)]` and creates the `InstantiateMsg`, `ExecuteMsg` and `QueryMsg` structs,
-      the `instantiate`, `execute` and `query` entry point functions as well as the WASM boilerplate FFI module.
+    - Used as `#[init(entry)]` and creates the `InstantiateMsg`, `ExecuteMsg` and `QueryMsg` structs, the `instantiate`, `execute` and `query` entry point functions.
     - Is optional.
     - Can only be used in `#[contract]`.
     - Only a single `#[init]` can be marked with it and this includes any interfaces that the contract implements.
     - If you have an `#[init]` attribute in one of your contract methods (inside the `impl Contract` block) you must add
       this attribute. The reasoning for this being that since this is what generates the message enums and entry functions,
       having an `#[init]` attribute in a contract method (but not in interface methods) without it would basically do nothing.
+  - `entry_wasm`
+    - Generates the same boilerplate and has the same rules as the `entry` meta but will also generate the WASM boilerplate FFI module.
 
 ### **#[execute]**
 A method that is part of the executable set of methods of the contract. Each method that is to be part of that set must be annotated with that. The generated `ExecuteMsg` enum is comprised of the names of all those methods. Dispatch also happens automatically through the generated `execute` functions. This is all code that you'd write yourself.

@@ -103,7 +103,7 @@ impl<'a> Interface<'a> {
                     format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
                 ),
                 MsgAttr::Init { entry } => {
-                    if entry {
+                    if entry.is_some() {
                         sink.push_spanned(&method.sig, "Interfaces cannot have entry points.");
                     }
 

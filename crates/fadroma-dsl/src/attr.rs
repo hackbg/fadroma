@@ -26,18 +26,27 @@ pub const QUERY_FN: &str = "query";
 
 /// Name of the associated type that represents the error type in an interface.
 pub const ERROR_TYPE: &str = "Error";
-/// Used as a meta tag in the `#[init(entry)]` attribute.
-pub const ENTRY_META: &str = "entry";
 
 #[derive(Clone, Copy, Debug)]
 pub enum MsgAttr {
-    Init { entry: bool },
+    Init { entry: Option<Entry> },
     Execute,
     Query,
     ExecuteGuard
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Entry {
+    Functions,
+    Wasm
+}
+
 impl MsgAttr {
+    /// Used as a meta tag in the `#[init(entry)]` attribute.
+    pub const ENTRY_META: &str = "entry";
+    /// Used as a meta tag in the `#[init(entry_wasm)]` attribute.
+    pub const ENTRY_WASM_META: &str = "entry_wasm";
+
     pub const INIT: &str = "init";
     pub const EXECUTE: &str = "execute";
     pub const QUERY: &str = "query";
@@ -57,7 +66,7 @@ impl MsgAttr {
 
                 let instance = match ident.to_string().as_str() {
                     Self::INIT => {
-                        let mut entry = false;
+                        let mut entry = None;
 
                         if let Meta::List(list) = meta {
                             entry = validate_entry_meta(sink, &list);
@@ -95,19 +104,32 @@ impl MsgAttr {
     }
 }
 
-fn validate_entry_meta(sink: &mut ErrorSink, list: &MetaList) -> bool {
-    if let Some(first) = list.nested.first() {
-        let ident = Ident::new(ENTRY_META, Span::call_site());
-        let expected: NestedMeta = parse_quote!(#ident);
+fn validate_entry_meta(sink: &mut ErrorSink, list: &MetaList) -> Option<Entry> {
+    if list.nested.len() == 1 {
+        let entry = Ident::new(MsgAttr::ENTRY_META, Span::call_site());
+        let entry_wasm = Ident::new(MsgAttr::ENTRY_WASM_META, Span::call_site());
 
-        if *first == expected {
-            return true;
+        let expected: [(NestedMeta, Entry); 2] = [
+            (parse_quote!(#entry), Entry::Functions),
+            (parse_quote!(#entry_wasm), Entry::Wasm)
+        ];
+
+        let first = &list.nested[0];
+
+        if let Some(index) = expected.iter().position(|x| x.0 == *first) {
+            return Some(expected[index].1);
         }
     }
 
-    sink.push_spanned(list, format!("Only valid nested meta in this position is \"{}\".", ENTRY_META));
+    sink.push_spanned(
+        list, 
+        format!(
+            "Expecting one of nested meta: \"{:?}\".",
+            [MsgAttr::ENTRY_META, MsgAttr::ENTRY_WASM_META]
+        )
+    );
 
-    false
+    None
 }
 
 #[inline]
