@@ -6,7 +6,13 @@ members = [
   "crates/fadroma-proc-message",
   "crates/fadroma-derive-serde",
   "crates/fadroma-derive-canonize",
-  "examples/*"
+  "examples/admin",
+  "examples/derive-contract-components",
+  "examples/derive-contract-impl",
+  "examples/derive-contract-interface",
+  "examples/ensemble",
+  "examples/killswitch",
+  "examples/kv",
 ]
 
 #[profile.release]
