@@ -8,7 +8,6 @@ members = [
   "crates/fadroma-derive-canonize",
   "examples/admin",
   "examples/derive-contract-components",
-  "examples/derive-contract-impl",
   "examples/derive-contract-interface",
   "examples/ensemble",
   "examples/killswitch",
