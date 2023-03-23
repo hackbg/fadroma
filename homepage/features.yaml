@@ -31,7 +31,7 @@ name: ISNIP20
 info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
 docs:
   rs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
-  ts: https://fadroma.tech/tokens/
+  ts: ./tokens/
 ---
 name: Ensemble testing
 info: Test multiple interoperating smart contracts using a Rust API.
@@ -43,7 +43,7 @@ name: Mocknet
 info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation.
 big:  right
 docs:
-  ts: https://fadroma.tech/mocknet/
+  ts: ./mocknet/
 ---
 name: 256-bit arithmetic
 info: 256-bit integer support in Cosmos for easy EVM interop.
@@ -81,19 +81,19 @@ name: Reproducible builds
 info: Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
 docs:
-  ts: https://fadroma.tech/build/
+  ts: ./build/
 ---
 name: Contract clients and scriptable deployments
 info: Easily create a TypeScript client library for your dApp. Manage hundreds of heterogeneous contracts using a declarative API.
 big: center
 docs:
-  ts: https://fadroma.tech/core/
+  ts: ./core/
 ---
 name: Automatic devnet management
 info: Spawn local blockchain nodes for development and testing.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
 docs:
-  ts: https://fadroma.tech/devnet/
+  ts: ./devnet/
 ---
 name: Transaction log
 info: Keep track of uploads, instantiations, and configuration.
@@ -105,13 +105,13 @@ info: Configure your workflow using environment variables and/or a .env file.
 link:
 big:  right
 docs:
-  ts: https://fadroma.tech/util/conf/
+  ts: ./util/conf/
 ---
 name: Smart transaction bundling
 info: Execute multiple messages in a single transaction or query.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
 docs:
-  ts: https://fadroma.tech/core/#bundle
+  ts: ./core/#bundle
 ---
 name: Executable specifications and literate programming
 info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks. Wrap TypeScript in Markdown for in-place documentation of test cases, client code, and deploy logic.
@@ -122,14 +122,14 @@ name: Docker integration
 info: Integrate your frontend and any off-chain backends with devnet and development server.
 link:
 docs:
-  ts: https://fadroma.tech/util/dock/
+  ts: ./util/dock/
 ---
 name: Project scaffolding
 info: Generate project boilerplate using "npx fadroma create".
 link:
 big:  left
 docs:
-  ts: https://fadroma.tech/project/
+  ts: ./project/
 ---
 name: Development dashboard
 info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
