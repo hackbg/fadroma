@@ -2,19 +2,6 @@ use std::{fmt::{self, Write}, ops::RangeInclusive};
 
 use crate::cosmwasm_std::{StdResult, StdError};
 
-#[inline]
-pub fn assert_valid_name(name: &str, range: RangeInclusive<usize>) -> StdResult<()> {
-    if range.contains(&name.len()) {
-        return Ok(());
-    }
-
-    Err(StdError::generic_err(format!(
-        "Name is not in the expected format ({}-{} UTF-8 bytes)",
-        range.start(),
-        range.end()
-    )))
-}
-
 /// Defines the allowed range of name for the token and
 /// the allowed constraints for its symbol according to [`SymbolValidation`].
 /// 
