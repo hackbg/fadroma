@@ -3,7 +3,7 @@ info: |
   Generates smart contract boilerplate, making it easier to focus on domain logic.
   Enables composition of smart contracts out of standalone components.
 docs:
-  rs: https://docs.rs/fadroma-proc-derive/0.7.0/fadroma_proc_derive/index.html
+  rs: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/index.html
 big:  left
 ---
 name: Gas-efficient key-value storage
