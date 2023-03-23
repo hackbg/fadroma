@@ -256,3 +256,26 @@ p {
 #description > section > p {
   margin-bottom: 1.5rem;
 }
+
+svg.icon {
+  width: 2rem;
+  height: 2rem;
+}
+a > svg.icon {
+  fill: rgb(101, 179, 76);
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1rem;
+  vertical-align: baseline;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+.feature a.docs {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+  font-weight: normal;
+  color: rgb(67, 119, 51);
+  text-decoration: underline;
+  margin-top: 1rem;
+}

@@ -10,7 +10,7 @@
   "files": [ "*.ts" ],
   "scripts": {
 
-    "start": "cmds-ts ./fadroma.ts",
+    "start": "cmds-ts ./FadromaCommands.ts",
 
     "prepare": "husky install",
 

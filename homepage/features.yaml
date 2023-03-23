@@ -2,64 +2,79 @@ name: Procedural macro for defining contracts
 info: |
   Generates smart contract boilerplate, making it easier to focus on domain logic.
   Enables composition of smart contracts out of standalone components.
-docs: https://docs.rs/fadroma-proc-derive/0.7.0/fadroma_proc_derive/index.html
+docs:
+  rs: https://docs.rs/fadroma-proc-derive/0.7.0/fadroma_proc_derive/index.html
 big:  left
 ---
 name: Gas-efficient key-value storage
 info: Highly performant keyed, namepaced, and iterable data storage primitives.
-docs: https://docs.rs/fadroma/latest/fadroma/storage/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/storage/index.html
 big:  right
 ---
 name: Query permits
 info: Generate and use revokable SNIP-24 query permits.
-docs: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
 ---
 name: Viewing keys
 info: Generate and use SNIP-20 compatible viewing keys in any contract.
-docs: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
 ---
 name: SNIP20
 info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
-docs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
 ---
 name: ISNIP20
 info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
-docs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
+  ts: https://fadroma.tech/tokens/
 ---
 name: Ensemble testing
 info: Test multiple interoperating smart contracts using a Rust API.
-docs: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
 big:  left
 ---
 name: Mocknet
-tags: [ "🔧 Experimental" ]
 info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation.
 big:  right
+docs:
+  ts: https://fadroma.tech/mocknet/
 ---
 name: 256-bit arithmetic
 info: 256-bit integer support in Cosmos for easy EVM interop.
-docs: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
 ---
 name: Address conversion
 info: Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
-docs: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
 ---
 name: On-chain checksums
 info: Generate SHA256 checksums for your data from a contract.
-docs: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
 ---
 name: Randomness
 info: ChaCha-based pseudo-random number generator.
-docs: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
 ---
 name: Contract admin role
 info: Allow a privileged user to perform administrative operations. Single-step and two-step transfer of admin role.
-docs: https://docs.rs/fadroma/latest/fadroma/admin/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/admin/index.html
 big:  left
 ---
 name: Killswitch
 info: Emergency pause and permanent termination for your contract.
-docs: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
+docs:
+  rs: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
 big:  right
 ---
 name: Reproducible builds
@@ -69,10 +84,14 @@ link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
 name: Contract clients and scriptable deployments
 info: Easily create a TypeScript client library for your dApp. Manage hundreds of heterogeneous contracts using a declarative API.
 big: center
+docs:
+  ts: https://fadroma.tech/core/
 ---
 name: Automatic devnet management
 info: Spawn local blockchain nodes for development and testing.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
+docs:
+  ts: https://fadroma.tech/devnet/
 ---
 name: Transaction log
 info: Keep track of uploads, instantiations, and configuration.
@@ -90,7 +109,6 @@ info: Execute multiple messages in a single transaction or query.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
 ---
 name: Executable specifications and literate programming
-tags: [ "🔧 Experimental" ]
 info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks. Wrap TypeScript in Markdown for in-place documentation of test cases, client code, and deploy logic.
 docs: https://github.com/hackbg/ensuite
 big:  center

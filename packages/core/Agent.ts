@@ -52,10 +52,6 @@ export abstract class Agent {
   /** The Bundle subclass to use. */
   Bundle:   BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
 
-  get [Symbol.toStringTag]() {
-    return `${this.chain?.id??'-'}: ${this.address}`
-  }
-
   constructor (options: Partial<AgentOpts> = {}) {
     this.chain = options.chain ?? this.chain
     this.name = options.name  ?? this.name
@@ -67,6 +63,10 @@ export abstract class Agent {
       'log':     { enumerable: false, writable: true },
       'Bundle':  { enumerable: false, writable: true }
     })
+  }
+
+  get [Symbol.toStringTag]() {
+    return `${this.chain?.id??'-'}: ${this.address}`
   }
 
   /** The default denomination in which the agent operates. */
@@ -116,11 +116,6 @@ export abstract class Agent {
     return assertChain(this).checkHash(address, codeHash)
   }
 
-  /** Query a contract on the chain. */
-  query <R> (contract: Client, msg: Message): Promise<R> {
-    return assertChain(this).query(contract, msg)
-  }
-
   /** Send native tokens to 1 recipient. */
   send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
     this.log.warn('Agent#send: not implemented')
@@ -147,6 +142,12 @@ export abstract class Agent {
     * @returns Template[] */
   uploadMany (blobs: Uint8Array[] = []): Promise<Uploaded[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
+  }
+
+  /** Get an uploader instance which performs code uploads and optionally caches them. */
+  getUploader <U extends Uploader> ($U: UploaderClass<U>, ...options: any[]): U {
+    //@ts-ignore
+    return new $U(this, ...options) as U
   }
 
   /** Create a new smart contract from a code id, label and init message.
@@ -201,20 +202,6 @@ export abstract class Agent {
     return instances
   }
 
-  /** Call a transaction method on a smart contract. */
-  execute (
-    contract: Partial<Client>, msg: Message, opts?: ExecOpts
-  ): Promise<void|unknown> {
-    this.log.warn('Agent#execute: not implemented')
-    return Promise.resolve({})
-  }
-
-  /** Begin a transaction bundle. */
-  bundle (): Bundle {
-    //@ts-ignore
-    return new this.Bundle(this)
-  }
-
   /** Get a client instance for talking to a specific smart contract as this executor. */
   getClient <C extends Client> (
     $Client:   ClientClass<C>,
@@ -229,14 +216,28 @@ export abstract class Agent {
     ) as C
   }
 
-  /** Get an uploader instance which performs code uploads and optionally caches them. */
-  getUploader <U extends Uploader> ($U: UploaderClass<U>, ...options: any[]): U {
+  /** Call a transaction method on a smart contract. */
+  execute (
+    contract: Partial<Client>, msg: Message, opts?: ExecOpts
+  ): Promise<void|unknown> {
+    this.log.warn('Agent#execute: not implemented')
+    return Promise.resolve({})
+  }
+
+  /** Query a contract on the chain. */
+  query <R> (contract: Client, msg: Message): Promise<R> {
+    return assertChain(this).query(contract, msg)
+  }
+
+  /** Begin a transaction bundle. */
+  bundle (): Bundle {
     //@ts-ignore
-    return new $U(this, ...options) as U
+    return new this.Bundle(this)
   }
 
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below
+
 }
 
 /** @returns the agent of a thing
