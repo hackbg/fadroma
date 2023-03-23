@@ -317,3 +317,31 @@ svg.icon-todo {
 }
 
 /*.feature .links .icon { fill: #F46623 }*/
+
+.feature.invert {
+  background: rgb(67, 119, 51);
+  color:      white;
+}
+
+.feature.invert * {
+  color:      white;
+  fill:       white;
+}
+
+.feature.invert a.docs {
+  color: white;
+}
+
+.feature.foss {
+  background: #2e0056;
+  color:      white;
+}
+
+.feature.foss * {
+  color:      white;
+  fill:       white;
+}
+
+.feature.foss a.docs {
+  color: white;
+}

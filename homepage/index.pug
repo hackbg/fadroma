@@ -100,9 +100,13 @@ html(lang='en')
 
       .grid
         each feature in self.features
-          .feature(class=feature.big?`big-${feature.big}`:'')
+          .feature(style=feature.style class=[
+            feature.big    && `big-${feature.big}`,
+            feature.invert && `invert`,
+            feature.foss   && `foss`,
+          ].filter(Boolean).join(' '))
             h4= feature.name
-            div.description= feature.info
+            div.description!= self.markdown.render(feature.info)
             each example in (feature.examples||[])
               pre= example
             .spacer

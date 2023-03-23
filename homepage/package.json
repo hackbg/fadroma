@@ -6,7 +6,8 @@
   "devDependencies": {
     "js-yaml":   "^4.1.0",
     "pug":       "^3.0.2",
-    "vitepress": "1.0.0-alpha.4"
+    "vitepress": "1.0.0-alpha.4",
+    "markdown-it": "^13.0.1"
   },
   "scripts": {
     "docs:dev":   "vitepress dev docs",

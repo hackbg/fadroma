@@ -1,12 +1,26 @@
-name: Get started
-info: First steps
-link:
+name: Get started with Fadroma
+info: |
+  **Fadroma** is a framework for building
+  **decentralized applications** with Rust and TypeScript.
+  Fadroma makes it easy to write [CosmWasm](https://cosmwasm.com/)
+  smart contracts and integrate them into your Web app.
+
+  Fadroma is [**free software**](https://foss.hack.bg), 
+  available to the public under the [AGPLv3](href="https://www.gnu.org/licenses/agpl-3.0.txt") 
+  license. This license protects user freedoms and encourages responsibility towards
+  the digital commons. If this license doesn't work for your business case, email
+  us at  *hello at hack dot bg* to arrange for custom licensing options.
+invert: true
+style: grid-row-start:1;grid-row-end:3;
 links:
   - icon: typescript
     text: Get Fadroma
     bold: true
   - icon: typescript
-    text: Create a project
+    text: $ fadroma project
+    bold: true
+  - icon: console
+    text: $ fadroma contract
     bold: true
 ---
 big: center
@@ -20,19 +34,122 @@ links:
     href: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/index.html
     bold: true
   - icon: rust
-    text: Rust example 1
+    text: Example contract
     href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-components
   - icon: rust
-    text: Rust example 2
+    text: Example contract with interface
     href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-interface
+---
+name: Define client API
+info: Easily create a TypeScript client library for your dApp.
+links:
+  - icon: typescript
+    text: "@fadroma/core"
+    href: ./core/
+    bold: true
+  - icon: typescript
+    text: Example client
+    href:
 ---
 name: Build reproducibly
 info: Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
 links:
+  - icon: console
+    text: $ fadroma build
+    href: ./devnet/
+    bold: true
   - icon: typescript
     text: "@fadroma/build"
     href: ./build/
+    bold: true
+---
+name: Deploy and operate
+info: Manage hundreds of heterogeneous contracts using a declarative API.
+links:
+  - icon: console
+    text: $ fadroma deploy
+    href: ./devnet/
+    bold: true
+  - icon: typescript
+    text: "@fadroma/deploy"
+    href: ./deploy/
+    bold: true
+---
+name: Local devnets
+info: Spawn local blockchain nodes for development and testing.
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
+links:
+  - icon: console
+    text: $ fadroma devnet
+    href: ./devnet/
+    bold: true
+  - icon: typescript
+    text: "@fadroma/devnet"
+    href: ./devnet/
+    bold: true
+---
+name: Docker integration
+info: Fadroma runs builds and devnets in containers using Docker or Podman
+foss: true
+link:
+links:
+  - icon: typescript
+    text: "@hackbg/dock"
+    href:
+    bold: true
+  - icon: todo
+    text: Podman support
+---
+name: Scripting
+info: Fadroma scripts are structured as ES/TS modules that export one or more commands.
+foss: true
+links:
+  - icon: typescript
+    text: "@hackbg/cmds"
+    href: 
+    bold: true
+---
+name: Integration testing
+info: Test multiple interoperating smart contracts using a Rust API.
+links:
+  - icon: rust
+    text: fadroma::ensemble
+    href: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
+    bold: true
+  - icon: rust
+    text: Example integration test
+    href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
+---
+name: Configuration
+info: You can configure the TypeScript subsystems of Fadroma using env vars and/or a .env file.
+foss: true
+links:
+  - icon: typescript
+    text: "@hackbg/conf"
+    href: 
+    bold: true
+---
+name: Mocknet
+info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation.
+links:
+  - icon: typescript
+    text: "@fadroma/mocknet"
+    href: ./mocknet/
+    bold: true
+---
+name: Property-based testing
+info: Test smart contracts for edge cases using auto-generated input data.
+link:
+todo: true
+---
+name: Literate programming
+info: Fadroma is tested using the Ensuite documentation and testing harness for Markdown and TypeScript.
+foss: true
+links:
+  - icon: typescript
+    text: "@hackbg/ensuite"
+    href: https://github.com/hackbg/ensuite
     bold: true
 ---
 name: Store state efficiently
@@ -41,24 +158,6 @@ links:
   - icon: rust
     text: fadroma::storage
     href: https://docs.rs/fadroma/latest/fadroma/storage/index.html
-    bold: true
----
-name: Contract clients and scriptable deployments
-info: Easily create a TypeScript client library for your dApp. Manage hundreds of heterogeneous contracts using a declarative API.
-big: center
-links:
-  - icon: typescript
-    text: "@fadroma/core"
-    href: ./core/
-    bold: true
----
-name: Automatic devnet management
-info: Spawn local blockchain nodes for development and testing.
-link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
-links:
-  - icon: typescript
-    text: "@fadroma/devnet"
-    href: ./devnet/
     bold: true
 ---
 name: Query permits
@@ -105,27 +204,6 @@ links:
     href: ./tokens/
     bold: true
 ---
-name: Ensemble testing
-info: Test multiple interoperating smart contracts using a Rust API.
-big:  left
-links:
-  - icon: rust
-    text: fadroma::ensemble
-    href: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
-    bold: true
-  - icon: rust
-    text: Example
-    href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
----
-name: Mocknet
-info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation.
-big:  right
-links:
-  - icon: typescript
-    text: "@fadroma/mocknet"
-    href: ./mocknet/
-    bold: true
----
 name: 256-bit arithmetic
 info: 256-bit integer support in Cosmos for easy EVM interop.
 links:
@@ -148,54 +226,48 @@ links:
 ---
 name: On-chain checksums
 info: Generate SHA256 checksums for your data from a contract.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
+links:
+  - icon: rust
+    text: fadroma::crypto::sha_256
+    href: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
+    bold: true
 ---
-name: Randomness
+name: Randomness source
 info: ChaCha-based pseudo-random number generator.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
+links:
+  - icon: rust
+    text: fadroma::crypto::sha_256
+    href: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
+    bold: true
 ---
 name: Contract admin role
 info: Allow a privileged user to perform administrative operations. Single-step and two-step transfer of admin role.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/admin/index.html
 big:  left
+links:
+  - icon: rust
+    text: fadroma::admin
+    href: https://docs.rs/fadroma/latest/fadroma/admin/index.html
+    bold: true
 ---
 name: Killswitch
 info: Emergency pause and permanent termination for your contract.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
 big:  right
+links:
+  - icon: rust
+    text: fadroma::killswitch
+    href: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
+    bold: true
 ---
 name: Transaction log
 info: Keep track of uploads, instantiations, and configuration.
 link:
 big:  left
 ---
-name: Environment-based configuration
-info: Configure your workflow using environment variables and/or a .env file.
-link:
-big:  right
-docs:
-  ts: ./util/conf/
----
 name: Smart transaction bundling
 info: Execute multiple messages in a single transaction or query.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
 docs:
   ts: ./core/#bundle
----
-name: Executable specifications and literate programming
-info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks. Wrap TypeScript in Markdown for in-place documentation of test cases, client code, and deploy logic.
-docs: https://github.com/hackbg/ensuite
-big:  center
----
-name: Docker integration
-info: Integrate your frontend and any off-chain backends with devnet and development server.
-link:
-docs:
-  ts: ./util/dock/
 ---
 name: Schema-based clients
 info: Generate client classes and microfrontends from the JSON schema exported by contracts.
@@ -215,10 +287,5 @@ todo:
 ---
 name: Privacy-preserving migrations
 info: Allow your users to migrate their private state to newer versions of deployed contracts.
-link:
-todo:
----
-name: Property-based testing
-info: Test smart contracts for edge cases using auto-generated input data.
 link:
 todo:
