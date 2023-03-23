@@ -13,14 +13,14 @@ info: |
 invert: true
 big: left
 links:
-  - icon: typescript
-    text: Get Fadroma
-    bold: true
-  - icon: typescript
-    text: $ fadroma project
+  - icon: console
+    text: Installing Fadroma
     bold: true
   - icon: console
-    text: $ fadroma contract
+    text: Creating a project
+    bold: true
+  - icon: console
+    text: Defining contracts
     bold: true
 ---
 name: Supported platforms
@@ -31,6 +31,8 @@ links:
     text: "@fadroma/scrt"
     href: ./scrt/
     bold: true
+  - icon: todo
+    text: "WIP: Support all Cosmos chains"
 ---
 name: Powered by Fadroma
 info: |
@@ -52,6 +54,38 @@ links:
     text: Example contract with interface
     href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-interface
 ---
+name: Efficient storage
+info: Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
+links:
+  - icon: rust
+    text: fadroma::storage
+    href: https://docs.rs/fadroma/latest/fadroma/storage/index.html
+    bold: true
+  - icon: rust
+    text: fadroma::core:addr
+    href: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
+    bold: true
+  - icon: rust
+    text: fadroma-derive-canonize
+    href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/index.html
+    bold: true
+---
+name: Do the math
+info: 256-bit integer support in Cosmos for easy EVM interop. Generate SHA256 checksums for your data from a contract. ChaCha-based pseudo-random number generator.
+links:
+  - icon: rust
+    text: fadroma::prelude::Uint256
+    href: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
+    bold: true
+  - icon: rust
+    text: fadroma::crypto::sha_256
+    href: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
+    bold: true
+  - icon: rust
+    text: fadroma::crypto::Prng
+    href: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
+    bold: true
+---
 name: Build reproducibly
 info: Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
@@ -72,21 +106,22 @@ links:
     text: "@fadroma/core"
     href: ./core/
     bold: true
-  - icon: typescript
+  - icon: todo
     text: Example client
-    href:
 ---
 name: Deploy and operate
 info: Manage hundreds of heterogeneous contracts using a declarative API.
 links:
-  - icon: console
-    text: $ fadroma deploy
-    href: ./devnet/
-    bold: true
   - icon: typescript
-    text: "@fadroma/deploy"
+    text: Writing a deploy script
     href: ./deploy/
     bold: true
+  - icon: console
+    text: Running a deploy script
+    href: ./devnet/
+    bold: true
+  - icon: todo
+    text: Example deploy script
 ---
 name: Local devnets
 info: Spawn local blockchain nodes for development and testing.
@@ -100,6 +135,25 @@ links:
     text: "@fadroma/devnet"
     href: ./devnet/
     bold: true
+  - icon: todo
+    text: "WIP: Export devnet"
+---
+name: Integration testing
+info: Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
+links:
+  - icon: rust
+    text: fadroma::ensemble
+    href: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
+    bold: true
+  - icon: rust
+    text: Example ensemble test
+    href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
+  - icon: typescript
+    text: "@fadroma/mocknet"
+    href: ./mocknet/
+    bold: true
+  - icon: todo
+    text: Property-based testing
 ---
 name: Docker integration
 info: Fadroma runs builds and devnets in containers using Docker or Podman
@@ -111,7 +165,7 @@ links:
     href:
     bold: true
   - icon: todo
-    text: Podman support
+    text: "WIP: Podman support"
 ---
 name: Scripting
 info: Fadroma scripts are structured as ES/TS modules that export one or more commands.
@@ -122,17 +176,6 @@ links:
     href: 
     bold: true
 ---
-name: Integration testing
-info: Test multiple interoperating smart contracts using a Rust API.
-links:
-  - icon: rust
-    text: fadroma::ensemble
-    href: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
-    bold: true
-  - icon: rust
-    text: Example integration test
-    href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
----
 name: Configuration
 info: You can configure the TypeScript subsystems of Fadroma using env vars and/or a .env file.
 foss: true
@@ -142,19 +185,6 @@ links:
     href: 
     bold: true
 ---
-name: Mocknet
-info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation.
-links:
-  - icon: typescript
-    text: "@fadroma/mocknet"
-    href: ./mocknet/
-    bold: true
----
-name: Property-based testing
-info: Test smart contracts for edge cases using auto-generated input data.
-link:
-todo: true
----
 name: Literate programming
 info: Fadroma is tested using the Ensuite documentation and testing harness for Markdown and TypeScript.
 foss: true
@@ -162,14 +192,6 @@ links:
   - icon: typescript
     text: "@hackbg/ensuite"
     href: https://github.com/hackbg/ensuite
-    bold: true
----
-name: Store state efficiently
-info: Highly performant keyed, namepaced, and iterable data storage primitives.
-links:
-  - icon: rust
-    text: fadroma::storage
-    href: https://docs.rs/fadroma/latest/fadroma/storage/index.html
     bold: true
 ---
 name: Query permits
@@ -214,42 +236,6 @@ links:
   - icon: typescript
     text: "@fadroma/tokens"
     href: ./tokens/
-    bold: true
----
-name: 256-bit arithmetic
-info: 256-bit integer support in Cosmos for easy EVM interop.
-links:
-  - icon: rust
-    text: fadroma::prelude::Uint256
-    href: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
-    bold: true
----
-name: Address conversion
-info: Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
-links:
-  - icon: rust
-    text: fadroma::core:addr
-    href: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
-    bold: true
-  - icon: rust
-    text: fadroma-derive-canonize
-    href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/index.html
-    bold: true
----
-name: On-chain checksums
-info: Generate SHA256 checksums for your data from a contract.
-links:
-  - icon: rust
-    text: fadroma::crypto::sha_256
-    href: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
-    bold: true
----
-name: Randomness source
-info: ChaCha-based pseudo-random number generator.
-links:
-  - icon: rust
-    text: fadroma::crypto::sha_256
-    href: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
     bold: true
 ---
 name: Contract admin role

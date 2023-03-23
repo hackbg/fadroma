@@ -301,7 +301,7 @@ svg.icon-todo {
 
 .links {
   display: flex;
-  flex-flow: row wrap;
+  flex-flow: column nowrap;
 }
 .links > a {
   margin-right: 1rem;
