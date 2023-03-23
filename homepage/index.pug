@@ -29,6 +29,9 @@ html(lang='en')
     header
       a.logo(href="https://github.com/hackbg/fadroma")
         img(src='./logo.svg')
+      #quick-start
+        p
+          strong Made with 💚 at <a href="https://hack.bg">Hack.bg</a>.
       .badges.center
         a.badge(href="https://docs.rs/fadroma")
           img(title="View documentation for Fadroma Contracts" alt="View documentation for Fadroma Contracts" src="https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge")
@@ -44,59 +47,51 @@ html(lang='en')
 
     #description
 
-      section
-        p
-          strong Fadroma
-          |  is a framework for building
-          strong  decentralized applications
-          |  with Rust and TypeScript. Fadroma makes it easy to write
-          strong
-            | 
-            a(href="https://cosmwasm.com/") CosmWasm
-          |  smart contracts and integrate them into your Web app.
+      //-section
+        //-p
+          //-strong Fadroma
+          //-|  is a framework for building
+          //-strong  decentralized applications
+          //-|  with Rust and TypeScript. Fadroma makes it easy to write
+          //-strong
+            //-| 
+            //-a(href="https://cosmwasm.com/") CosmWasm
+          //-|  smart contracts and integrate them into your Web app.
 
-        p
-          | Fadroma is 
-          strong
-            a(href="https://foss.hack.bg") free software
-          | , available to the public under the 
-          strong
-            a(href="https://www.gnu.org/licenses/agpl-3.0.txt") GNU Affero General Public License.
-          |  This license protects user freedoms and encourages responsibility towards the digital
-          |  commons. If this license doesn't work for your business case, email us at 
-          em hello at hack dot bg
-          |  to arrange for 
-          strong custom licensing options.
+        //-p
+          //-| Fadroma is 
+          //-strong
+            //-a(href="https://foss.hack.bg") free software
+          //-| , available to the public under the 
+          //-strong
+            //-a(href="https://www.gnu.org/licenses/agpl-3.0.txt") GNU Affero General Public License.
+          //-|  This license protects user freedoms and encourages responsibility towards the digital
+          //-|  commons. If this license doesn't work for your business case, email us at 
+          //-em hello at hack dot bg
+          //-|  to arrange for 
+          //-strong custom licensing options.
 
-      section
-        p
-          | Presently, we support 
-          strong
-            a(href="https://scrt.network/") Secret Network
-          | , an open-source, permissionless blockchain, based on privacy research and papers
-          |  first written at MIT in 2015, including 
-          strong
-            a(href="https://ieeexplore.ieee.org/document/7163223")
-              em Decentralizing Privacy
-          |  &mdash; now one of the
-          |  most influential papers in the blockchain space.
+      //-section
+        //-p
+          //-| Presently, we support 
+          //-strong
+            //-a(href="https://scrt.network/") Secret Network
+          //-| , an open-source, permissionless blockchain, based on privacy research and papers
+          //-|  first written at MIT in 2015, including 
+          //-strong
+            //-a(href="https://ieeexplore.ieee.org/document/7163223")
+              //-em Decentralizing Privacy
+          //-|  &mdash; now one of the
+          //-|  most influential papers in the blockchain space.
 
-        p
-          | Fadroma powers 
-          strong
-            a(href="https://app.sienna.network") Sienna Network
-          | , a privacy-first and cross-chain decentralized finance platform
-          |  where you can privately swap, lend and convert your tokens into their private equivalents.
-
-    #quick-start
-      p
-        strong Made with 💚 at <a href="https://hack.bg">Hack.bg</a>.
-        |  Add to your project with:
-      code.block cargo add fadroma
+        //-p
+          //-| Fadroma powers 
+          //-strong
+            //-a(href="https://app.sienna.network") Sienna Network
+          //-| , a privacy-first and cross-chain decentralized finance platform
+          //-|  where you can privately swap, lend and convert your tokens into their private equivalents.
 
     #features
-
-      h2 Features &amp; Capabilities:
 
       .grid
         each feature in self.features
@@ -106,7 +101,7 @@ html(lang='en')
             feature.foss   && `foss`,
           ].filter(Boolean).join(' '))
             h4= feature.name
-            div.description!= self.markdown.render(feature.info)
+            div.description!= self.markdown.render(feature.info||'')
             each example in (feature.examples||[])
               pre= example
             .spacer

@@ -1,6 +1,6 @@
 name: Get started with Fadroma
 info: |
-  **Fadroma** is a framework for building
+  [**Fadroma**](https://fadroma.tech/) is a framework for building
   **decentralized applications** with Rust and TypeScript.
   Fadroma makes it easy to write [CosmWasm](https://cosmwasm.com/)
   smart contracts and integrate them into your Web app.
@@ -11,7 +11,7 @@ info: |
   the digital commons. If this license doesn't work for your business case, email
   us at  *hello at hack dot bg* to arrange for custom licensing options.
 invert: true
-style: grid-row-start:1;grid-row-end:3;
+big: left
 links:
   - icon: typescript
     text: Get Fadroma
@@ -23,8 +23,20 @@ links:
     text: $ fadroma contract
     bold: true
 ---
-big: center
-name: Define contracts
+name: Supported platforms
+info: |
+  Presently, we support Secret Network, an open-source, permissionless blockchain, based on privacy research and papers first written at MIT in 2015, including Decentralizing Privacy — now one of the most influential papers in the blockchain space
+links:
+  - icon: typescript
+    text: "@fadroma/scrt"
+    href: ./scrt/
+    bold: true
+---
+name: Powered by Fadroma
+info: |
+  Fadroma powers Sienna Network, a privacy-first and cross-chain decentralized finance platform where you can privately swap, lend and convert your tokens into their private equivalents.
+---
+name: Write contracts
 info: |
   Use attribute macros to abstract away the boilerplate.
   Compose smart contracts out of encapsulated components.
@@ -40,17 +52,6 @@ links:
     text: Example contract with interface
     href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-interface
 ---
-name: Define client API
-info: Easily create a TypeScript client library for your dApp.
-links:
-  - icon: typescript
-    text: "@fadroma/core"
-    href: ./core/
-    bold: true
-  - icon: typescript
-    text: Example client
-    href:
----
 name: Build reproducibly
 info: Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
@@ -63,6 +64,17 @@ links:
     text: "@fadroma/build"
     href: ./build/
     bold: true
+---
+name: Define client API
+info: Easily create a TypeScript client library for your dApp.
+links:
+  - icon: typescript
+    text: "@fadroma/core"
+    href: ./core/
+    bold: true
+  - icon: typescript
+    text: Example client
+    href:
 ---
 name: Deploy and operate
 info: Manage hundreds of heterogeneous contracts using a declarative API.
