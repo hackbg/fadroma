@@ -360,3 +360,7 @@ svg.icon-todo {
 .feature.foss a.docs {
   color: white;
 }
+
+.icon-todo {
+  fill: #aaa !important;
+}

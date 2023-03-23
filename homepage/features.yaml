@@ -22,6 +22,9 @@ links:
   - icon: console
     text: Defining contracts
     bold: true
+  - icon: todo
+    text: Dev server with dashboard
+    info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
 ---
 name: Supported platforms
 info: |
@@ -32,7 +35,7 @@ links:
     href: ./scrt/
     bold: true
   - icon: todo
-    text: "WIP: Support all Cosmos chains"
+    text: "Support for all Cosmos chains"
 ---
 name: Powered by Fadroma
 info: |
@@ -55,7 +58,8 @@ links:
     href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-interface
 ---
 name: Efficient storage
-info: Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
+info: |
+  Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
 links:
   - icon: rust
     text: fadroma::storage
@@ -71,7 +75,8 @@ links:
     bold: true
 ---
 name: Do the math
-info: 256-bit integer support in Cosmos for easy EVM interop. Generate SHA256 checksums for your data from a contract. ChaCha-based pseudo-random number generator.
+info: |
+  256-bit integer support in Cosmos for easy EVM interop. Generate SHA256 checksums for your data from a contract. ChaCha-based pseudo-random number generator.
 links:
   - icon: rust
     text: fadroma::prelude::Uint256
@@ -86,8 +91,66 @@ links:
     href: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
     bold: true
 ---
+name: Tokenomics
+info: |
+  Interact with fungible and non-fungible distributed tokens.
+  Embed a custom SNIP20 token into your contract.
+links:
+  - icon: rust
+    text: fadroma::scrt::snip20::contract
+    info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
+    bold: true
+  - icon: rust
+    text: fadroma::scrt::snip20::client
+    info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
+    bold: true
+  - icon: typescript
+    text: SNIP20 Client class
+    href: ./tokens/
+    bold: true
+  - icon: typescript
+    text: TokenManager
+    href: ./tokens/
+    bold: true
+---
+name: Authorization
+info: |
+  Killswitch, admin account (with one-step and two-step transfer of authority). Viewing key and query permit primitives.
+links:
+  - icon: rust
+    text: fadroma::admin
+    info: Allow a privileged user to perform administrative operations. Single-step and two-step transfer of admin role.
+    href: https://docs.rs/fadroma/latest/fadroma/admin/index.html
+    bold: true
+  - icon: rust
+    text: fadroma::killswitch
+    info: Emergency pause and permanent termination for your contract.
+    href: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
+    bold: true
+  - icon: rust
+    text: fadroma::scrt::permit
+    info: Generate and use revokable SNIP-24 query permits.
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
+    bold: true
+  - icon: typescript
+    text: "@fadroma/scrt"
+    href: ./scrt/
+    bold: true
+  - icon: rust
+    text: fadroma::scrt::vk
+    info: Generate and use SNIP-20 compatible viewing keys in any contract.
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
+    bold: true
+  - icon: typescript
+    text: "@fadroma/scrt"
+    href: ./scrt/
+    bold: true
+---
 name: Build reproducibly
-info: Perform production builds of your contracts in a Docker container.
+info: |
+  Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
 links:
   - icon: console
@@ -108,6 +171,9 @@ links:
     bold: true
   - icon: todo
     text: Example client
+  - icon: todo
+    text: Schema-based clients and validation
+    info: Generate client classes and microfrontends from the JSON schema exported by contracts.
 ---
 name: Deploy and operate
 info: Manage hundreds of heterogeneous contracts using a declarative API.
@@ -122,6 +188,8 @@ links:
     bold: true
   - icon: todo
     text: Example deploy script
+  - icon: todo
+    text: Contract migrations
 ---
 name: Local devnets
 info: Spawn local blockchain nodes for development and testing.
@@ -137,6 +205,8 @@ links:
     bold: true
   - icon: todo
     text: "WIP: Export devnet"
+  - icon: todo
+    text: Smart code reloading
 ---
 name: Integration testing
 info: Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
@@ -154,6 +224,8 @@ links:
     bold: true
   - icon: todo
     text: Property-based testing
+  - icon: todo
+    text: Gas profiling
 ---
 name: Docker integration
 info: Fadroma runs builds and devnets in containers using Docker or Podman
@@ -193,97 +265,3 @@ links:
     text: "@hackbg/ensuite"
     href: https://github.com/hackbg/ensuite
     bold: true
----
-name: Query permits
-info: Generate and use revokable SNIP-24 query permits.
-links:
-  - icon: rust
-    text: fadroma::scrt::permit
-    href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
-    bold: true
-  - icon: typescript
-    text: "@fadroma/scrt"
-    href: ./scrt/
-    bold: true
----
-name: Viewing keys
-info: Generate and use SNIP-20 compatible viewing keys in any contract.
-links:
-  - icon: rust
-    text: fadroma::scrt::vk
-    href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
-    bold: true
-  - icon: typescript
-    text: "@fadroma/scrt"
-    href: ./scrt/
-    bold: true
----
-name: SNIP20
-info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
-links:
-  - icon: rust
-    text: fadroma::scrt::snip20::contract
-    href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
-    bold: true
----
-name: ISNIP20
-info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
-links:
-  - icon: rust
-    text: fadroma::scrt::snip20::client
-    href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
-    bold: true
-  - icon: typescript
-    text: "@fadroma/tokens"
-    href: ./tokens/
-    bold: true
----
-name: Contract admin role
-info: Allow a privileged user to perform administrative operations. Single-step and two-step transfer of admin role.
-big:  left
-links:
-  - icon: rust
-    text: fadroma::admin
-    href: https://docs.rs/fadroma/latest/fadroma/admin/index.html
-    bold: true
----
-name: Killswitch
-info: Emergency pause and permanent termination for your contract.
-big:  right
-links:
-  - icon: rust
-    text: fadroma::killswitch
-    href: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
-    bold: true
----
-name: Transaction log
-info: Keep track of uploads, instantiations, and configuration.
-link:
-big:  left
----
-name: Smart transaction bundling
-info: Execute multiple messages in a single transaction or query.
-link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
-docs:
-  ts: ./core/#bundle
----
-name: Schema-based clients
-info: Generate client classes and microfrontends from the JSON schema exported by contracts.
-link:
-todo:
----
-name: Development dashboard
-info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
-link:
-big:  center
-todo:
----
-name: Smart code reloading
-info: Automatically redeploy contracts on changes to source code.
-link:
-todo:
----
-name: Privacy-preserving migrations
-info: Allow your users to migrate their private state to newer versions of deployed contracts.
-link:
-todo:
