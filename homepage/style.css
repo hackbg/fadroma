@@ -112,10 +112,25 @@ th { padding-right: 5em }
   margin: 0 auto 3rem;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 80rem) {
   .grid {
     display: flex;
     flex-flow: column nowrap;
+  }
+  .grid .feature {
+    display: flex;
+    flex-flow: row nowrap;
+  }
+  .grid .feature .links {
+    flex-shrink: 0;
+    width: 25%;
+    margin: 0 0 1rem 2rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .grid .feature .links {
+    width: 33%;
   }
 }
 

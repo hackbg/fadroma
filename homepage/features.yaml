@@ -62,7 +62,7 @@ links:
     href: https://docs.rs/fadroma/latest/fadroma/storage/index.html
     bold: true
   - icon: rust
-    text: fadroma::core:addr
+    text: fadroma::core::addr
     href: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
     bold: true
   - icon: rust
@@ -99,7 +99,7 @@ links:
     href: ./build/
     bold: true
 ---
-name: Define client API
+name: Define high-level API
 info: Easily create a TypeScript client library for your dApp.
 links:
   - icon: typescript

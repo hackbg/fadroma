@@ -100,10 +100,9 @@ html(lang='en')
             feature.invert && `invert`,
             feature.foss   && `foss`,
           ].filter(Boolean).join(' '))
-            h4= feature.name
-            div.description!= self.markdown.render(feature.info||'')
-            each example in (feature.examples||[])
-              pre= example
+            div
+              h4= feature.name
+              div.description!= self.markdown.render(feature.info||'')
             .spacer
             if feature.tags
               each tag in feature.tags
