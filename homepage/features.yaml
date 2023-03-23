@@ -1,55 +1,109 @@
-name: Procedural macro for defining contracts
+name: Get started
+info: First steps
+link:
+links:
+  - icon: typescript
+    text: Get Fadroma
+    bold: true
+  - icon: typescript
+    text: Create a project
+    bold: true
+---
+big: center
+name: Define contracts
 info: |
-  Generates smart contract boilerplate, making it easier to focus on domain logic.
-  Enables composition of smart contracts out of standalone components.
-docs:
-  rs: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/index.html
-big:  left
+  Use attribute macros to abstract away the boilerplate.
+  Compose smart contracts out of encapsulated components.
+links:
+  - icon: rust
+    text: fadroma_proc_derive
+    href: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/index.html
+    bold: true
+  - icon: rust
+    text: Rust example 1
+    href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-components
+  - icon: rust
+    text: Rust example 2
+    href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-interface
 ---
-name: Gas-efficient key-value storage
-info: Highly performant keyed, namepaced, and iterable data storage primitives.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/storage/index.html
-big:  right
----
-name: Reproducible builds
+name: Build reproducibly
 info: Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
-docs:
-  ts: ./build/
+links:
+  - icon: typescript
+    text: "@fadroma/build"
+    href: ./build/
+    bold: true
+---
+name: Store state efficiently
+info: Highly performant keyed, namepaced, and iterable data storage primitives.
+links:
+  - icon: rust
+    text: fadroma::storage
+    href: https://docs.rs/fadroma/latest/fadroma/storage/index.html
+    bold: true
 ---
 name: Contract clients and scriptable deployments
 info: Easily create a TypeScript client library for your dApp. Manage hundreds of heterogeneous contracts using a declarative API.
 big: center
-docs:
-  ts: ./core/
+links:
+  - icon: typescript
+    text: "@fadroma/core"
+    href: ./core/
+    bold: true
 ---
 name: Automatic devnet management
 info: Spawn local blockchain nodes for development and testing.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
-docs:
-  ts: ./devnet/
+links:
+  - icon: typescript
+    text: "@fadroma/devnet"
+    href: ./devnet/
+    bold: true
 ---
 name: Query permits
 info: Generate and use revokable SNIP-24 query permits.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
+links:
+  - icon: rust
+    text: fadroma::scrt::permit
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
+    bold: true
+  - icon: typescript
+    text: "@fadroma/scrt"
+    href: ./scrt/
+    bold: true
 ---
 name: Viewing keys
 info: Generate and use SNIP-20 compatible viewing keys in any contract.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
+links:
+  - icon: rust
+    text: fadroma::scrt::vk
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
+    bold: true
+  - icon: typescript
+    text: "@fadroma/scrt"
+    href: ./scrt/
+    bold: true
 ---
 name: SNIP20
 info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
+links:
+  - icon: rust
+    text: fadroma::scrt::snip20::contract
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
+    bold: true
 ---
 name: ISNIP20
 info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
-  ts: ./tokens/
+links:
+  - icon: rust
+    text: fadroma::scrt::snip20::client
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
+    bold: true
+  - icon: typescript
+    text: "@fadroma/tokens"
+    href: ./tokens/
+    bold: true
 ---
 name: Ensemble testing
 info: Test multiple interoperating smart contracts using a Rust API.
@@ -124,17 +178,15 @@ link:
 docs:
   ts: ./util/dock/
 ---
-name: Project scaffolding
-info: Generate project boilerplate using "npx fadroma create".
+name: Schema-based clients
+info: Generate client classes and microfrontends from the JSON schema exported by contracts.
 link:
-big:  left
-docs:
-  ts: ./project/
+todo:
 ---
 name: Development dashboard
 info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
 link:
-big:  right
+big:  center
 todo:
 ---
 name: Smart code reloading
@@ -144,11 +196,6 @@ todo:
 ---
 name: Privacy-preserving migrations
 info: Allow your users to migrate their private state to newer versions of deployed contracts.
-link:
-todo:
----
-name: Schema-based clients
-info: Generate client classes and microfrontends from the JSON schema exported by contracts.
 link:
 todo:
 ---

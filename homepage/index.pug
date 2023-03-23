@@ -103,25 +103,36 @@ html(lang='en')
           .feature(class=feature.big?`big-${feature.big}`:'')
             h4= feature.name
             div.description= feature.info
+            each example in (feature.examples||[])
+              pre= example
             .spacer
-            if feature.docs
-              if typeof feature.docs === 'string'
-                a.docs(href=feature.docs)
-                  +icon("book")
-                  | Docs&nbsp;&rarr;
-              else if typeof feature.docs === 'object'
-                if feature.docs.rs
-                  a.docs(href=feature.docs.rs)
-                    +icon("rust")
-                    | Rust docs&nbsp;&rarr;
-                if feature.docs.ts
-                  a.docs(href=feature.docs.ts)
-                    +icon("typescript")
-                    | TS docs&nbsp;&rarr;
             if feature.tags
               each tag in feature.tags
                 .tag= tag
-            if 'todo' in feature
-              a.docs(href=feature.todo)
-                +icon("todo")
-                | Planned
+            .links
+              if 'todo' in feature
+                a.docs(href=feature.todo)
+                  +icon("todo")
+                  | Planned
+              if feature.docs
+                if typeof feature.docs === 'string'
+                  a.docs(href=feature.docs)
+                    +icon("book")
+                    | Docs&nbsp;&rarr;
+                else if typeof feature.docs === 'object'
+                  if feature.docs.rs
+                    a.docs(href=feature.docs.rs)
+                      +icon("rust")
+                      | Rust docs&nbsp;&rarr;
+                  if feature.docs.ts
+                    a.docs(href=feature.docs.ts)
+                      +icon("typescript")
+                      | TS docs&nbsp;&rarr;
+              for link in (feature.links || [])
+                a.docs(href=link.href)
+                  +icon(link.icon)
+                  if link.bold
+                    strong= link.text
+                  else
+                    = link.text
+

@@ -82,7 +82,7 @@ h3 {
 h4 {
   font-size:     1.33em;
   line-height:   1;
-  margin-bottom: 0.33em;
+  margin-bottom: 0.5rem;
   font-weight:   600;
 }
 
@@ -145,7 +145,7 @@ th { padding-right: 5em }
 
 .feature .description {
   line-height: 1.5;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 #quick-start {
@@ -290,4 +290,21 @@ svg.icon-todo {
   animation-duration: 3s;
   animation-delay: 1s;
   animation-iteration-count: infinite;
+}
+
+.links {
+  display: flex;
+  flex-flow: row wrap;
+}
+.links > a {
+  margin-right: 1rem;
+}
+.feature pre {
+  background: #eee;
+  padding: 0.5rem;
+  border-radius: 0.1rem;
+  font-size: 0.875rem;
+  font-weight: normal;
+  margin-top: 1rem;
+  color: #555;
 }
