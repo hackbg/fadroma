@@ -7,7 +7,10 @@ use crate::{
 };
 
 use super::{
-    state::{Account, Constants, CONSTANTS, TOTAL_SUPPLY, MINTERS},
+    state::{
+        Account, Constants, TokenSettings, CONSTANTS,
+        TOTAL_SUPPLY, MINTERS
+    },
     transaction_history::store_mint,
     TokenValidation
 };
@@ -29,7 +32,7 @@ pub fn instantiate(
 
     validation.assert_is_valid(&msg.name, &msg.symbol)?;
 
-    let init_config = msg.config.unwrap_or_default();
+    let token_config = msg.config.unwrap_or_default();
     let admin = admin::init(deps.branch(), msg.admin.as_deref(), &info)?;
     let admin = Account::of(admin);
 
@@ -62,6 +65,11 @@ pub fn instantiate(
     }
 
     let prng_seed_hashed = sha_256(&msg.prng_seed.0);
+    let minters = if token_config.enable_mint {
+        Vec::from([admin.into()])
+    } else {
+        Vec::new()
+    };
 
     CONSTANTS.save(
         deps.storage,
@@ -70,21 +78,11 @@ pub fn instantiate(
             symbol: msg.symbol,
             decimals: msg.decimals,
             prng_seed: prng_seed_hashed.to_vec(),
-            total_supply_is_public: init_config.public_total_supply,
-            deposit_is_enabled: init_config.enable_deposit,
-            redeem_is_enabled: init_config.enable_redeem,
-            mint_is_enabled: init_config.enable_mint,
-            burn_is_enabled: init_config.enable_burn
-        },
+            token_settings: TokenSettings::from(token_config)
+        }
     )?;
 
     TOTAL_SUPPLY.increase(deps.storage, total_supply)?;
-
-    let minters = if init_config.enable_mint {
-        Vec::from([admin.into()])
-    } else {
-        Vec::new()
-    };
 
     MINTERS.save(deps.storage, &minters)?;
 
@@ -129,7 +127,10 @@ pub mod default_impl {
                 },
                 contract::{
                     receiver::Snip20ReceiveMsg,
-                    state::{Account, Allowance, CONSTANTS, TOTAL_SUPPLY, MINTERS},
+                    state::{
+                        Account, Allowance, TokenPermission, CONSTANTS,
+                        TOTAL_SUPPLY, MINTERS
+                    },
                     transaction_history::{
                         store_burn, store_deposit, store_mint, store_redeem, store_transfer
                     },
@@ -302,8 +303,8 @@ pub mod default_impl {
                 return Err(StdError::generic_err("No funds were sent to be deposited"));
             }
     
-            let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.deposit_is_enabled {
+            let settings = CONSTANTS.load_or_error(deps.storage)?.token_settings;
+            if !settings.is_set(TokenPermission::Deposit) {
                 return Err(StdError::generic_err(
                     "Deposit functionality is not enabled for this token.",
                 ));
@@ -334,7 +335,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.redeem_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Redeem) {
                 return Err(StdError::generic_err(
                     "Redeem functionality is not enabled for this token.",
                 ));
@@ -431,7 +432,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.burn_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Burn) {
                 return Err(StdError::generic_err(
                     "Burn functionality is not enabled for this token.",
                 ));
@@ -604,7 +605,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.burn_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Burn) {
                 return Err(StdError::generic_err(
                     "Burn functionality is not enabled for this token.",
                 ));
@@ -642,7 +643,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.mint_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Mint) {
                 return Err(StdError::generic_err(
                     "Mint functionality is not enabled for this token.",
                 ));
@@ -682,7 +683,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.mint_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Mint) {
                 return Err(StdError::generic_err(
                     "Mint functionality is not enabled for this token.",
                 ));
@@ -703,7 +704,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.mint_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Mint) {
                 return Err(StdError::generic_err(
                     "Mint functionality is not enabled for this token.",
                 ));
@@ -724,7 +725,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.mint_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Mint) {
                 return Err(StdError::generic_err(
                     "Mint functionality is not enabled for this token.",
                 ));
@@ -862,7 +863,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.burn_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Burn) {
                 return Err(StdError::generic_err(
                     "Burn functionality is not enabled for this token.",
                 ));
@@ -911,7 +912,7 @@ pub mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-            if !constants.mint_is_enabled {
+            if !constants.token_settings.is_set(TokenPermission::Mint) {
                 return Err(StdError::generic_err(
                     "Mint functionality is not enabled for this token.",
                 ));
@@ -976,7 +977,8 @@ pub mod default_impl {
         fn exchange_rate() -> Result<QueryAnswer, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
 
-            if constants.deposit_is_enabled || constants.redeem_is_enabled {
+            if constants.token_settings.is_set(TokenPermission::Deposit) ||
+                constants.token_settings.is_set(TokenPermission::Redeem) {
                 let rate: Uint128;
                 let denom: String;
 
@@ -1001,8 +1003,9 @@ pub mod default_impl {
         #[query]
         fn token_info() -> Result<QueryAnswer, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
-
-            let total_supply = if constants.total_supply_is_public {
+            let total_supply = if constants.token_settings.is_set(
+                TokenPermission::PublicTotalSupply
+            ) {
                 Some(TOTAL_SUPPLY.load_or_default(deps.storage)?)
             } else {
                 None

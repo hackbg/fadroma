@@ -220,7 +220,10 @@ fn test_init_sanity() {
         constants.prng_seed,
         sha_256("lolz fun yay".to_owned().as_bytes())
     );
-    assert_eq!(constants.total_supply_is_public, false);
+    assert_eq!(
+        constants.token_settings.is_set(TokenPermission::PublicTotalSupply),
+        false
+    );
 }
 
 #[test]
@@ -257,11 +260,12 @@ fn test_init_with_config_sanity() {
         constants.prng_seed,
         sha_256("lolz fun yay".to_owned().as_bytes())
     );
-    assert_eq!(constants.total_supply_is_public, false);
-    assert_eq!(constants.deposit_is_enabled, true);
-    assert_eq!(constants.redeem_is_enabled, true);
-    assert_eq!(constants.mint_is_enabled, true);
-    assert_eq!(constants.burn_is_enabled, true);
+    
+    assert!(!constants.token_settings.is_set(TokenPermission::PublicTotalSupply));
+    assert!(constants.token_settings.is_set(TokenPermission::Deposit));
+    assert!(constants.token_settings.is_set(TokenPermission::Redeem));
+    assert!(constants.token_settings.is_set(TokenPermission::Mint));
+    assert!(constants.token_settings.is_set(TokenPermission::Burn));
 }
 
 #[test]
