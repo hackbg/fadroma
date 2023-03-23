@@ -80,6 +80,8 @@ big:  right
 name: Reproducible builds
 info: Perform production builds of your contracts in a Docker container.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
+docs:
+  ts: https://fadroma.tech/build/
 ---
 name: Contract clients and scriptable deployments
 info: Easily create a TypeScript client library for your dApp. Manage hundreds of heterogeneous contracts using a declarative API.
@@ -102,11 +104,14 @@ name: Environment-based configuration
 info: Configure your workflow using environment variables and/or a .env file.
 link:
 big:  right
+docs:
+  ts: https://fadroma.tech/util/conf/
 ---
 name: Smart transaction bundling
-tags: [ "🔧 Experimental" ]
 info: Execute multiple messages in a single transaction or query.
 link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
+docs:
+  ts: https://fadroma.tech/core/#bundle
 ---
 name: Executable specifications and literate programming
 info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks. Wrap TypeScript in Markdown for in-place documentation of test cases, client code, and deploy logic.
@@ -114,38 +119,40 @@ docs: https://github.com/hackbg/ensuite
 big:  center
 ---
 name: Docker integration
-tags: [ "⏳ Experimental" ]
 info: Integrate your frontend and any off-chain backends with devnet and development server.
 link:
+docs:
+  ts: https://fadroma.tech/util/dock/
 ---
 name: Project scaffolding
-tags: [ "⏳ Planned" ]
 info: Generate project boilerplate using "npx fadroma create".
 link:
 big:  left
+docs:
+  ts: https://fadroma.tech/project/
 ---
 name: Development dashboard
-tags: [ "⏳ Planned" ]
 info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
 link:
 big:  right
+todo:
 ---
 name: Smart code reloading
-tags: [ "⏳ Planned" ]
 info: Automatically redeploy contracts on changes to source code.
 link:
+todo:
 ---
 name: Privacy-preserving migrations
-tags: [ "⏳ Planned" ]
 info: Allow your users to migrate their private state to newer versions of deployed contracts.
 link:
+todo:
 ---
 name: Schema-based clients
-tags: [ "⏳ Planned" ]
 info: Generate client classes and microfrontends from the JSON schema exported by contracts.
 link:
+todo:
 ---
 name: Property-based testing
-tags: [ "⏳ Planned" ]
 info: Test smart contracts for edge cases using auto-generated input data.
 link:
+todo:

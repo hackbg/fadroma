@@ -23,7 +23,7 @@ html(lang='en')
             path(d=icon.path)
 
     mixin icon (id)
-      svg(class="icon")
+      svg(class=`icon icon-${id}`)
         use(xlink:href=`#${id}`)
 
     header
@@ -121,3 +121,7 @@ html(lang='en')
             if feature.tags
               each tag in feature.tags
                 .tag= tag
+            if 'todo' in feature
+              a.docs(href=feature.todo)
+                +icon("todo")
+                | Planned
