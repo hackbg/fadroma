@@ -112,6 +112,13 @@ th { padding-right: 5em }
   margin: 0 auto 3rem;
 }
 
+@media (max-width: 1280px) {
+  .grid {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+}
+
 .big-left { grid-column-start: 1; grid-column-end: 3; }
 .big-center { grid-column-start: 2; grid-column-end: 4; }
 .big-right { grid-column-start: 3; grid-column-end: 5; }
@@ -308,3 +315,5 @@ svg.icon-todo {
   margin-top: 1rem;
   color: #555;
 }
+
+/*.feature .links .icon { fill: #F46623 }*/

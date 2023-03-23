@@ -16,7 +16,7 @@ info: |
   Compose smart contracts out of encapsulated components.
 links:
   - icon: rust
-    text: fadroma_proc_derive
+    text: fadroma-dsl
     href: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/index.html
     bold: true
   - icon: rust
@@ -107,25 +107,44 @@ links:
 ---
 name: Ensemble testing
 info: Test multiple interoperating smart contracts using a Rust API.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
 big:  left
+links:
+  - icon: rust
+    text: fadroma::ensemble
+    href: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
+    bold: true
+  - icon: rust
+    text: Example
+    href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
 ---
 name: Mocknet
 info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation.
 big:  right
-docs:
-  ts: ./mocknet/
+links:
+  - icon: typescript
+    text: "@fadroma/mocknet"
+    href: ./mocknet/
+    bold: true
 ---
 name: 256-bit arithmetic
 info: 256-bit integer support in Cosmos for easy EVM interop.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
+links:
+  - icon: rust
+    text: fadroma::prelude::Uint256
+    href: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
+    bold: true
 ---
 name: Address conversion
 info: Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
-docs:
-  rs: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
+links:
+  - icon: rust
+    text: fadroma::core:addr
+    href: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
+    bold: true
+  - icon: rust
+    text: fadroma-derive-canonize
+    href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/index.html
+    bold: true
 ---
 name: On-chain checksums
 info: Generate SHA256 checksums for your data from a contract.
