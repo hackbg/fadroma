@@ -1,54 +1,40 @@
+use std::any::Any;
+
 use crate::{
     crypto::sha_256,
     admin,
+    killswitch::{self, ContractStatus},
     scrt::{
         vk::{ViewingKey, ViewingKeyHashed},
-        snip20::client::msg::*
+        snip20::client::interface::{
+            ExecuteAnswer, QueryAnswer, ResponseStatus,
+            InitialBalance, TokenConfig, TokenInfo,
+            RichTx, TxAction, BurnFromAction
+        },
     },
     cosmwasm_std::{
-        from_binary,
         testing::{
             mock_dependencies, mock_dependencies_with_balance, mock_env, mock_info, MockApi,
             MockQuerier, MockStorage,
         },
-        to_binary, Addr, Api, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, OwnedDeps,
-        QueryResponse, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128, WasmMsg,
+        Addr, Api, Binary, Coin, CosmosMsg, OwnedDeps, QueryResponse,
+        ReplyOn, Response, StdError, SubMsg, Uint128, WasmMsg,
+        from_binary, to_binary 
     },
 };
 
 use super::{
-    assert_valid_symbol,
     receiver::Snip20ReceiveMsg,
-    msg::{InitialBalance, InitConfig},
     state::*,
-    DefaultImpl, SymbolValidation
+    SymbolValidation,
+    default_impl::{InstantiateMsg, ExecuteMsg, QueryMsg, Error, instantiate, execute, query}
 };
-use std::any::Any;
-
-use super::msg::InstantiateMsg;
-
-fn instantiate(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: InstantiateMsg,
-) -> StdResult<Response> {
-    super::instantiate(deps, env, info, msg, DefaultImpl)
-}
-
-fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
-    super::execute(deps, env, info, msg, DefaultImpl)
-}
-
-fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    super::query(deps, env, msg, DefaultImpl)
-}
 
 // Helper functions
 fn init_helper(
     initial_balances: Vec<InitialBalance>,
 ) -> (
-    StdResult<Response>,
+    Result<Response, Error>,
     OwnedDeps<MockStorage, MockApi, MockQuerier>,
 ) {
     let mut deps = mock_dependencies();
@@ -66,7 +52,10 @@ fn init_helper(
         callback: None,
     };
 
-    (instantiate(deps.as_mut(), env, info, init_msg), deps)
+    let result = instantiate(deps.as_mut(), env, info, init_msg)
+        .map_err(|x| Error::Snip20(x));
+
+    (result, deps)
 }
 
 fn init_helper_with_config(
@@ -77,7 +66,7 @@ fn init_helper_with_config(
     enable_burn: bool,
     contract_bal: u128,
 ) -> (
-    StdResult<Response>,
+    Result<Response, Error>,
     OwnedDeps<MockStorage, MockApi, MockQuerier>,
 ) {
     let mut deps = mock_dependencies_with_balance(&[Coin {
@@ -88,7 +77,7 @@ fn init_helper_with_config(
     let env = mock_env();
     let info = mock_info("instantiator", &[]);
 
-    let init_config: InitConfig = from_binary(&Binary::from(
+    let init_config: TokenConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":false,
         \"enable_deposit\":{},
@@ -112,7 +101,10 @@ fn init_helper_with_config(
         callback: None,
     };
 
-    (instantiate(deps.as_mut(), env, info, init_msg), deps)
+    let result = instantiate(deps.as_mut(), env, info, init_msg)
+        .map_err(|x| Error::Snip20(x));
+
+    (result, deps)
 }
 
 /// Will return a ViewingKey only for the first account in `initial_balances`
@@ -148,7 +140,7 @@ fn _auth_query_helper(
 
     (vk, deps)
 }
-fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
+fn extract_error_msg<T: Any>(error: Result<T, Error>) -> String {
     match error {
         Ok(response) => {
             let bin_err = (&response as &dyn Any)
@@ -160,9 +152,13 @@ fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
             }
         }
         Err(err) => match err {
-            StdError::GenericErr { msg, .. } => msg,
+            Error::Base(StdError::GenericErr { msg, .. }) => msg,
+            Error::VkAuth(StdError::GenericErr { msg, .. }) => msg,
+            Error::Snip20(StdError::GenericErr { msg, .. }) => msg,
+            Error::Admin(StdError::GenericErr { msg, .. }) => msg,
+            Error::Killswitch(StdError::GenericErr { msg, .. }) => msg,
             _ => panic!("Unexpected result from init"),
-        },
+        }
     }
 }
 
@@ -182,7 +178,6 @@ fn ensure_success(handle_result: Response) -> bool {
         | ExecuteAnswer::BurnFrom { status }
         | ExecuteAnswer::Mint { status }
         | ExecuteAnswer::ChangeAdmin { status }
-        | ExecuteAnswer::SetContractStatus { status }
         | ExecuteAnswer::SetMinters { status }
         | ExecuteAnswer::AddMinters { status }
         | ExecuteAnswer::RemoveMinters { status } => {
@@ -215,8 +210,8 @@ fn test_init_sanity() {
 
     assert_eq!(TOTAL_SUPPLY.load_or_default(storage).unwrap(), Uint128::new(5000));
     assert_eq!(
-        STATUS.load_or_error(storage).unwrap(),
-        ContractStatusLevel::NormalRun
+        killswitch::STORE.load_or_default(storage).unwrap(),
+        ContractStatus::Operational
     );
     assert_eq!(constants.name, "sec-sec".to_string());
     assert_eq!(constants.symbol, "SECSEC".to_string());
@@ -252,8 +247,8 @@ fn test_init_with_config_sanity() {
     let constants = CONSTANTS.load_or_error(storage).unwrap();
     assert_eq!(TOTAL_SUPPLY.load_or_default(storage).unwrap(), Uint128::new(5000));
     assert_eq!(
-        STATUS.load_or_error(storage).unwrap(),
-        ContractStatusLevel::NormalRun
+        killswitch::STORE.load_or_default(storage).unwrap(),
+        ContractStatus::Operational
     );
     assert_eq!(constants.name, "sec-sec".to_string());
     assert_eq!(constants.symbol, "SECSEC".to_string());
@@ -340,7 +335,7 @@ fn test_handle_transfer() {
 
     let error = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg).unwrap_err();
 
-    assert!(matches!(error, StdError::Overflow { .. }));
+    assert!(matches!(error, Error::Snip20(_)));
 }
 
 #[test]
@@ -1088,15 +1083,15 @@ fn test_handle_batch_burn_from() {
             memo: None,
         })
         .collect();
-    let handle_msg = ExecuteMsg::BatchBurnFrom {
-        actions,
-        padding: None,
-    };
+
     let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
-        handle_msg.clone(),
+        ExecuteMsg::BatchBurnFrom {
+            actions: actions.clone(),
+            padding: None,
+        },
     );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Burn functionality is not enabled for this token."));
@@ -1106,7 +1101,10 @@ fn test_handle_batch_burn_from() {
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
-        handle_msg,
+        ExecuteMsg::BatchBurnFrom {
+            actions,
+            padding: None,
+        }
     );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
@@ -1390,8 +1388,9 @@ fn test_handle_change_admin() {
     );
 
     let handle_msg = ExecuteMsg::ChangeAdmin {
-        address: "bob".to_string(),
-        padding: None,
+        mode: Some(admin::Mode::Immediate {
+            new_admin: "bob".to_string() 
+        })
     };
     let handle_result = execute(
         deps.as_mut(),
@@ -1405,8 +1404,14 @@ fn test_handle_change_admin() {
         handle_result.err().unwrap()
     );
 
-    let admin = admin::STORE.load_humanize_or_error(deps.as_ref()).unwrap();
-    assert_eq!(admin, Addr::unchecked("bob"));
+    let admin = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::Admin { }
+    ).unwrap();
+    let admin: Option<Addr> = from_binary(&admin).unwrap();
+
+    assert_eq!(admin.unwrap(), Addr::unchecked("bob"));
 }
 
 #[test]
@@ -1421,9 +1426,12 @@ fn test_handle_set_contract_status() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = ExecuteMsg::SetContractStatus {
-        level: ContractStatusLevel::StopAll,
-        padding: None,
+    let status = ContractStatus::Migrating {
+        reason: "stopped".into(),
+        new_address: None
+    };
+    let handle_msg = ExecuteMsg::SetStatus {
+        status: status.clone(),
     };
     let handle_result = execute(
         deps.as_mut(),
@@ -1431,17 +1439,21 @@ fn test_handle_set_contract_status() {
         mock_info("admin", &[]),
         handle_msg,
     );
+
     assert!(
         handle_result.is_ok(),
         "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let contract_status = STATUS.load_or_error(deps.as_ref().storage).unwrap();
-    assert!(matches!(
-        contract_status,
-        ContractStatusLevel::StopAll { .. }
-    ));
+    let stored_status = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::Status { }
+    ).unwrap();
+    let stored_status: ContractStatus<Addr> = from_binary(&stored_status).unwrap();
+
+    assert_eq!(stored_status, status);
 }
 
 #[test]
@@ -1768,9 +1780,8 @@ fn test_handle_admin_commands() {
         init_result.err().unwrap()
     );
 
-    let pause_msg = ExecuteMsg::SetContractStatus {
-        level: ContractStatusLevel::StopAllButRedeems,
-        padding: None,
+    let pause_msg = ExecuteMsg::SetStatus {
+        status: ContractStatus::Paused { reason: "paused".into() }
     };
     let handle_result = execute(
         deps.as_mut(),
@@ -1821,8 +1832,9 @@ fn test_handle_admin_commands() {
     assert!(error.contains(admin_err));
 
     let change_admin_msg = ExecuteMsg::ChangeAdmin {
-        address: "not_admin".to_string(),
-        padding: None,
+        mode: Some(admin::Mode::Immediate {
+            new_admin: "not_admin".into()
+        })
     };
     let handle_result = execute(
         deps.as_mut(),
@@ -1853,9 +1865,8 @@ fn test_handle_pause_with_withdrawals() {
         init_result.err().unwrap()
     );
 
-    let pause_msg = ExecuteMsg::SetContractStatus {
-        level: ContractStatusLevel::StopAllButRedeems,
-        padding: None,
+    let pause_msg = ExecuteMsg::SetStatus {
+        status: ContractStatus::Paused { reason: "paused".into() }
     };
 
     let handle_result = execute(
@@ -1880,7 +1891,7 @@ fn test_handle_pause_with_withdrawals() {
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
-        "This contract is stopped and this action is not allowed".to_string()
+        "Paused\nReason: paused".to_string()
     );
 
     let withdraw_msg = ExecuteMsg::Redeem {
@@ -1913,9 +1924,11 @@ fn test_handle_pause_all() {
         init_result.err().unwrap()
     );
 
-    let pause_msg = ExecuteMsg::SetContractStatus {
-        level: ContractStatusLevel::StopAll,
-        padding: None,
+    let pause_msg = ExecuteMsg::SetStatus {
+        status: ContractStatus::Migrating {
+            reason: "stopped".into(),
+            new_address: None
+        }
     };
 
     let handle_result = execute(
@@ -1940,7 +1953,7 @@ fn test_handle_pause_all() {
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
-        "This contract is stopped and this action is not allowed".to_string()
+        "Migrating\nReason: stopped".to_string()
     );
 
     let withdraw_msg = ExecuteMsg::Redeem {
@@ -1957,7 +1970,7 @@ fn test_handle_pause_all() {
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
-        "This contract is stopped and this action is not allowed".to_string()
+        "Migrating\nReason: stopped".to_string()
     );
 }
 
@@ -2328,10 +2341,7 @@ fn test_query_token_info() {
     let init_admin = "admin".to_string();
     let init_symbol = "SECSEC".to_string();
     let init_decimals = 8;
-    let init_config: InitConfig = from_binary(&Binary::from(
-        r#"{ "public_total_supply": true }"#.as_bytes(),
-    ))
-    .unwrap();
+    let init_config = TokenConfig::default().public_total_supply();
     let init_supply = Uint128::new(5000);
 
     let mut deps = mock_dependencies();
@@ -2392,7 +2402,7 @@ fn test_query_exchange_rate() {
 
     let mut deps = mock_dependencies();
     let info = mock_info("instantiator", &[]);
-    let init_config: InitConfig = from_binary(&Binary::from(
+    let init_config: TokenConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":{},
         \"enable_deposit\":{},
@@ -2450,7 +2460,7 @@ fn test_query_exchange_rate() {
 
     let mut deps = mock_dependencies();
     let info = mock_info("instantiator", &[]);
-    let init_config: InitConfig = from_binary(&Binary::from(
+    let init_config: TokenConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":{},
         \"enable_deposit\":{},
@@ -2508,7 +2518,7 @@ fn test_query_exchange_rate() {
 
     let mut deps = mock_dependencies();
     let info = mock_info("instantiator", &[]);
-    let init_config: InitConfig = from_binary(&Binary::from(
+    let init_config: TokenConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":{},
         \"enable_deposit\":{},
@@ -3141,13 +3151,14 @@ fn test_symbol_validation() {
         allowed_special: None,
     };
 
-    assert_valid_symbol("TOKENA", &config).unwrap();
-    assert_valid_symbol("TOK", &config).unwrap();
-    assert_valid_symbol("TO", &config).unwrap_err();
-    assert_valid_symbol("TOOLONG", &config).unwrap_err();
-    assert_valid_symbol("TOken", &config).unwrap_err();
-    assert_valid_symbol("T0K3N", &config).unwrap_err();
-    assert_valid_symbol("TOK-EN", &config).unwrap_err();
+    assert!(config.is_valid("TOKENA"));
+    assert!(config.is_valid("TOK"));
+    assert!(!config.is_valid("TO"));
+
+    assert!(!config.is_valid("TOOLONG"));
+    assert!(!config.is_valid("TOken"));
+    assert!(!config.is_valid("T0K3N"));
+    assert!(!config.is_valid("TOK-EN"));
 
     let config = SymbolValidation {
         length: 3..=6,
@@ -3157,7 +3168,7 @@ fn test_symbol_validation() {
         allowed_special: None,
     };
 
-    assert_valid_symbol("TOKena", &config).unwrap();
+    assert!(config.is_valid("TOKena"));
 
     let config = SymbolValidation {
         length: 3..=6,
@@ -3167,8 +3178,8 @@ fn test_symbol_validation() {
         allowed_special: None,
     };
 
-    assert_valid_symbol("t0k3n", &config).unwrap();
-    assert_valid_symbol("T0K3N", &config).unwrap_err();
+    assert!(config.is_valid("t0k3n"));
+    assert!(!config.is_valid("T0K3N"));
 
     let config = SymbolValidation {
         length: 3..=6,
@@ -3178,6 +3189,6 @@ fn test_symbol_validation() {
         allowed_special: Some(vec![b'-', b'@']),
     };
 
-    assert_valid_symbol("T@K3N-", &config).unwrap();
-    assert_valid_symbol("!@K3N-", &config).unwrap_err();
+    assert!(config.is_valid("T@K3N-"));
+    assert!(!config.is_valid("!@K3N-"));
 }

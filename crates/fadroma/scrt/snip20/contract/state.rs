@@ -2,7 +2,6 @@ use std::ops::Deref;
 
 use crate::{
     self as fadroma,
-    scrt::snip20::client::msg::ContractStatusLevel,
     storage::Segment,
     prelude::{
         BlockInfo, CanonicalAddr, StdResult, Storage, Uint128,
@@ -19,9 +18,6 @@ pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
 
 crate::namespace!(pub TotalSupplyNs, b"bx98UUOWYa");
 pub const TOTAL_SUPPLY: TotalSupplyStore = TotalSupplyStore(SingleItem::new());
-
-crate::namespace!(pub ContractStatusNs, b"EhYS9rzai1");
-pub const STATUS: SingleItem<ContractStatusLevel, ContractStatusNs> = SingleItem::new();
 
 crate::namespace!(pub MintersNs, b"wpitCjS7wB");
 pub const MINTERS: MintersStore = MintersStore(SingleItem::new());
