@@ -12,6 +12,12 @@ use crate::{
     validate
 };
 
+pub const SUPPORTED_ATTRS: [&'static str; 3] = [
+    MsgAttr::EXECUTE,
+    MsgAttr::QUERY,
+    MsgAttr::INIT
+];
+
 pub fn derive(r#trait: ItemTrait) -> Result<proc_macro2::TokenStream, CompileErrors> {
     let mut sink = ErrorSink::default();
     let interface = Interface::parse(&mut sink, &r#trait);
@@ -40,6 +46,11 @@ pub fn derive(r#trait: ItemTrait) -> Result<proc_macro2::TokenStream, CompileErr
         #execute_msg
         #query_msg
     })
+}
+
+#[inline]
+pub fn is_valid_attr(attr: MsgAttr) -> bool {
+    SUPPORTED_ATTRS.contains(&attr.as_str())
 }
 
 struct Interface<'a> {
@@ -97,11 +108,10 @@ impl<'a> Interface<'a> {
         }
 
         for method in trait_methods(sink, r#trait) {
-            match method.ty {
-                MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
-                    trait_ident,
-                    format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
-                ),
+            let ty = method.ty;
+            match ty {
+                MsgAttr::Init { .. } if init.is_some() =>
+                    sink.duplicate_annotation(trait_ident, ty),
                 MsgAttr::Init { entry } => {
                     if entry.is_some() {
                         sink.push_spanned(&method.sig, "Interfaces cannot have entry points.");
@@ -111,12 +121,9 @@ impl<'a> Interface<'a> {
                 }
                 MsgAttr::Execute => execute.push(Method::Interface(method)),
                 MsgAttr::Query => query.push(Method::Interface(method)),
-                MsgAttr::ExecuteGuard => sink.push_spanned(
+                unsupported => sink.unsupported_interface_attr(
                     &method.sig.ident,
-                    format!(
-                        "Interfaces cannot have the #[{}] attribute.",
-                        MsgAttr::EXECUTE_GUARD
-                    )
+                    unsupported
                 )
             }
         }
