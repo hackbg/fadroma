@@ -13,6 +13,10 @@ use crate::cosmwasm_std::{StdResult, CosmosMsg, WasmMsg, Response, to_binary};
 /// Default Secret Network message padding size.
 pub const BLOCK_SIZE: usize = 256;
 
+pub trait ResponseExt {
+    fn pad(self) -> Self;
+}
+
 /// Creates a new [`WasmMsg::Execute`] using the provided `msg`
 /// and padding it to [`BLOCK_SIZE`].
 pub fn to_cosmos_msg (
@@ -29,17 +33,6 @@ pub fn to_cosmos_msg (
         code_hash,
         funds: vec![]
     }.into())
-}
-
-/// Pad the given response using [`space_pad`] the default [`BLOCK_SIZE`].
-pub fn pad_response(response: StdResult<Response>) -> StdResult<Response> {
-    response.map(|mut response| {
-        response.data = response.data.map(|mut data| {
-            space_pad(&mut data.0, BLOCK_SIZE);
-            data
-        });
-        response
-    })
 }
 
 /// Take a Vec<u8> and pad it up to a multiple of `block_size`
@@ -60,4 +53,14 @@ pub fn space_pad (
     message.extend(std::iter::repeat(b' ').take(missing));
 
     message
+}
+
+impl ResponseExt for Response {
+    fn pad(mut self) -> Self {
+        if let Some(data) = self.data.as_mut() {
+            space_pad(&mut data.0, BLOCK_SIZE);
+        }
+
+        self
+    }
 }

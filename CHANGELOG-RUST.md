@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - All Fadroma storage types now use these traits.
 
 ### Changed
-
+ - BREAKING ⚠️: The SNIP-20 implementation now uses Fadroma DSL. ([#159](https://github.com/hackbg/fadroma/pull/159))
+ - BREAKING ⚠️: `scrt::pad_response` is now implemented as an extension to `cosmwasm_std::Response` via the `ResponseExt` trait. ([#159](https://github.com/hackbg/fadroma/pull/159))
  - BREAKING ⚠️: The killswitch module now only uses a single `ContractStatus` enum, consolidated from previously the `ContractStatusLevel` enum and `ContractStatus` struct ([#158](https://github.com/hackbg/fadroma/pull/158))
  - BREAKING ⚠️: The admin module now is a single implementation that covers both immediate and two-step admin changes ([#155](https://github.com/hackbg/fadroma/pull/155))
    - Now uses the new Fadroma DSL
