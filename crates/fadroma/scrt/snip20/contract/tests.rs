@@ -217,7 +217,7 @@ fn test_init_sanity() {
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
     assert_eq!(
-        constants.prng_seed,
+        PRNG_SEED.load_or_error(storage).unwrap(),
         sha_256("lolz fun yay".to_owned().as_bytes())
     );
     assert_eq!(
@@ -257,7 +257,7 @@ fn test_init_with_config_sanity() {
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
     assert_eq!(
-        constants.prng_seed,
+        PRNG_SEED.load_or_error(storage).unwrap(),
         sha_256("lolz fun yay".to_owned().as_bytes())
     );
     

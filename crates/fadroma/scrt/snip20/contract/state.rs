@@ -17,6 +17,9 @@ use serde::{Deserialize, Serialize};
 crate::namespace!(pub ConstantsNs, b"N3QP0mNoPG");
 pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
 
+crate::namespace!(pub PrngSeedNs, b"Lwr3sTJZmk");
+pub const PRNG_SEED: SingleItem<[u8; 32], PrngSeedNs> = SingleItem::new();
+
 crate::namespace!(pub TotalSupplyNs, b"bx98UUOWYa");
 pub const TOTAL_SUPPLY: TotalSupplyStore = TotalSupplyStore(SingleItem::new());
 
@@ -34,11 +37,10 @@ pub struct Constants {
     pub name: String,
     pub symbol: String,
     pub decimals: u8,
-    pub prng_seed: Vec<u8>,
     pub token_settings: TokenSettings
 }
 
-#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Copy, JsonSchema, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Copy, JsonSchema, PartialEq, Default, Debug)]
 pub struct TokenSettings(u8);
 
 #[repr(u8)]
@@ -290,7 +292,7 @@ impl TokenSettings {
 
 impl From<TokenConfig> for TokenSettings {
     fn from(config: TokenConfig) -> Self {
-        let mut s = TokenSettings(0);
+        let mut s = TokenSettings::default();
 
         if config.public_total_supply {
             s.set(TokenPermission::PublicTotalSupply);
@@ -313,5 +315,44 @@ impl From<TokenConfig> for TokenSettings {
         }
 
         s
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TokenSettings, TokenPermission};
+
+    #[test]
+    fn token_settings() {
+        fn test(s: TokenSettings, e: [bool; 5]) {
+            assert_eq!(s.is_set(TokenPermission::PublicTotalSupply), e[0]);
+            assert_eq!(s.is_set(TokenPermission::Deposit), e[1]);
+            assert_eq!(s.is_set(TokenPermission::Redeem), e[2]);
+            assert_eq!(s.is_set(TokenPermission::Mint), e[3]);
+            assert_eq!(s.is_set(TokenPermission::Burn), e[4]);
+        }
+
+        let mut s = TokenSettings::default();
+        test(s, [false, false, false, false, false]);
+
+        s.set(TokenPermission::PublicTotalSupply);
+        s.set(TokenPermission::Redeem);
+
+        test(s, [true, false, true, false, false]);
+
+        s.set(TokenPermission::Deposit);
+        test(s, [true, true, true, false, false]);
+
+        s.set(TokenPermission::Mint);
+        test(s, [true, true, true, true, false]);
+
+        s.set(TokenPermission::Burn);
+        test(s, [true, true, true, true, true]);
+
+        let mut s = TokenSettings::default();
+
+        s.set(TokenPermission::Deposit);
+        s.set(TokenPermission::Mint);
+        test(s, [false, true, false, true, false]);
     }
 }

@@ -9,7 +9,7 @@ use crate::{
 use super::{
     state::{
         Account, Constants, TokenSettings, CONSTANTS,
-        TOTAL_SUPPLY, MINTERS
+        TOTAL_SUPPLY, MINTERS, PRNG_SEED
     },
     transaction_history::store_mint,
     TokenValidation
@@ -64,12 +64,17 @@ pub fn instantiate(
         }
     }
 
-    let prng_seed_hashed = sha_256(&msg.prng_seed.0);
+    TOTAL_SUPPLY.increase(deps.storage, total_supply)?;
+
     let minters = if token_config.enable_mint {
         Vec::from([admin.into()])
     } else {
         Vec::new()
     };
+    MINTERS.save(deps.storage, &minters)?;
+
+    let prng_seed_hashed = sha_256(&msg.prng_seed.0);
+    PRNG_SEED.save(deps.storage, &prng_seed_hashed)?;
 
     CONSTANTS.save(
         deps.storage,
@@ -77,21 +82,16 @@ pub fn instantiate(
             name: msg.name,
             symbol: msg.symbol,
             decimals: msg.decimals,
-            prng_seed: prng_seed_hashed.to_vec(),
             token_settings: TokenSettings::from(token_config)
         }
     )?;
-
-    TOTAL_SUPPLY.increase(deps.storage, total_supply)?;
-
-    MINTERS.save(deps.storage, &minters)?;
 
     let messages = if let Some(callback) = msg.callback {
         vec![CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: callback.contract.address,
             code_hash: callback.contract.code_hash,
             msg: callback.msg,
-            funds: vec![],
+            funds: vec![]
         })]
     } else {
         vec![]
@@ -129,7 +129,7 @@ pub mod default_impl {
                     receiver::Snip20ReceiveMsg,
                     state::{
                         Account, Allowance, TokenPermission, CONSTANTS,
-                        TOTAL_SUPPLY, MINTERS
+                        TOTAL_SUPPLY, MINTERS, PRNG_SEED
                     },
                     transaction_history::{
                         store_burn, store_deposit, store_mint, store_redeem, store_transfer
@@ -1226,11 +1226,11 @@ pub mod default_impl {
 
         #[execute]
         fn create_viewing_key(entropy: String, _padding: Option<String>) -> Result<Response, Self::Error> {
-            let constants = CONSTANTS.load_or_error(deps.storage)?;
+            let prng_seed = PRNG_SEED.load_or_error(deps.storage)?;
             let key = ViewingKey::new(
                 &env,
                 &info,
-                &constants.prng_seed,
+                &prng_seed,
                 entropy.as_bytes()
             );
     
