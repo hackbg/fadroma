@@ -24,7 +24,8 @@
 
     "build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
 
-    "docs:homepage": "node homepage/render.js",
+    "docs:dev": "ensuite-dev",
+    "docs:render": "ensuite-render",
     "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints platforms/* --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
@@ -68,11 +69,10 @@
   },
   "devDependencies": {
     "@hackbg/ganesha":      "^2.3.0",
-    "@hackbg/ensuite":      "^1.1.1",
+    "@hackbg/ensuite":      "^1.3.0",
     "@hackbg/spec":         "^1",
     "@hackbg/ubik":         "^1.3.5",
     "@types/dockerode":     "^3.3.14",
-    "@types/js-yaml":       "^4.0.5",
     "@types/node":          "latest",
     "@types/prettyjson":    "^0.0.30",
     "@types/secure-random": "^1.1.0",
@@ -81,8 +81,6 @@
     "cross-fetch":          "^3.1.5",
     "express":              "^4.18.1",
     "freeport-async":       "^2.0.0",
-    "js-yaml":              "^4.1.0",
-    "pug":                  "^3.0.2",
 
     "typescript":  "^5",
     "typedoc":     "^0.23.25",
