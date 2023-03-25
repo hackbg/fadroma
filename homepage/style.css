@@ -80,9 +80,9 @@ h3 {
   font-weight: 600;
 }
 h4 {
-  font-size:     1.33em;
+  font-size:     1.5em;
   line-height:   1;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
   font-weight:   600;
 }
 
@@ -123,14 +123,14 @@ th { padding-right: 5em }
   }
   .grid .feature .links {
     flex-shrink: 0;
-    width: 25%;
+    width: 33%;
     margin: 0 0 1rem 2rem;
   }
 }
 
 @media (max-width: 48rem) {
   .grid .feature .links {
-    width: 33%;
+    width: 50%;
   }
 }
 
@@ -168,11 +168,6 @@ th { padding-right: 5em }
 .feature .description {
   line-height: 1.5;
   font-size: 0.875rem;
-}
-
-#quick-start {
-  margin: -1rem auto 0;
-  text-align: center;
 }
 
 code.inline,
@@ -222,7 +217,7 @@ code.block {
 
 .spacer {
   flex-grow:  1;
-  min-height: 1rem;
+  min-height: 0.5rem;
 }
 
 pre {
@@ -230,53 +225,10 @@ pre {
   font-weight: bold;
 }
 
-a.badge {
-  padding-bottom: 0.05rem;
-  border-bottom: 2px dotted #65b34c;
-}
-
-.logo, .logo img {
-  display: block;
-  margin: 0 auto;
-}
-
-.logo {
-  margin: 0 auto 1.5rem;
-}
-
-.logo img {
-  width:32rem;
-  height:20rem;
-}
-
-.badges {
-  height: 2rem;
-  display: flex;
-  flex-flow: row wrap;
-  align-items: flex-start;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
 p {
   line-height: 1.5rem;
   margin-top: 0;
   margin-bottom: 0.5rem;
-}
-
-#description {
-  max-width: 60rem;
-  margin-left: auto;
-  margin-right: auto;
-  display: flex;
-}
-
-#description > section {
-  width: 50%;
-}
-
-#description > section > p {
-  margin-bottom: 1.5rem;
 }
 
 svg.icon {
@@ -297,9 +249,14 @@ a > svg.icon {
   flex-flow: row nowrap;
   align-items: flex-start;
   font-weight: normal;
-  color: rgb(67, 119, 51);
+  text-decoration: none;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  color: #888;
+}
+.feature a.docs[href] {
   text-decoration: underline;
-  margin-top: 1rem;
+  color: rgb(67, 119, 51);
 }
 
 @keyframes hourglass {
@@ -320,6 +277,13 @@ svg.icon-todo {
 }
 .links > a {
   margin-right: 1rem;
+  transition:
+    padding-left 0.33s,
+    margin-right 0.33s;
+}
+.links > a:hover {
+  padding-left: 0.5rem;
+  margin-right: 0.5rem;
 }
 .feature pre {
   background: #eee;
@@ -335,16 +299,20 @@ svg.icon-todo {
 
 .feature.invert {
   background: rgb(67, 119, 51);
-  color:      white;
+  color: white;
 }
 
 .feature.invert * {
-  color:      white;
-  fill:       white;
+  color: white;
+  fill: white;
 }
 
 .feature.invert a.docs {
   color: white;
+}
+
+.feature.invert a.docs[href] {
+  text-decoration: underline;
 }
 
 .feature.foss {
@@ -363,4 +331,45 @@ svg.icon-todo {
 
 .icon-todo {
   fill: #aaa !important;
+}
+
+body > header {
+  max-width: 80rem;
+  display: flex;
+  flex-flow: row nowrap;
+  margin: 0 auto;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.logo, .logo img {
+  display: block;
+  margin: 0;
+  flex-shrink: 1;
+}
+
+.logo {
+}
+
+.logo img {
+  max-width:16rem;
+  max-height:16rem;
+}
+
+.badges {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+a.badge {
+  padding: 0.25rem;
+  border-bottom: 2px dotted #65b34c;
+}
+
+#quick-start {
+  text-align: center;
+  flex-grow: 1;
 }

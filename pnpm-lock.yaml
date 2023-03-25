@@ -61,7 +61,7 @@ importers:
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
       '@types/js-yaml': 4.0.5
-      '@types/node': 18.15.5
+      '@types/node': 18.15.9
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
@@ -89,6 +89,7 @@ importers:
       markdown-it-anchor: ^8.6.7
       markdown-it-table-of-contents: ^0.6.0
       why-is-node-still-running: ^1
+      ws: ^8.13.0
     dependencies:
       '@hackbg/ganesha': link:ganesha
       '@hackbg/spec': link:toolbox/spec
@@ -99,6 +100,7 @@ importers:
       markdown-it-anchor: 8.6.7_markdown-it@13.0.1
       markdown-it-table-of-contents: 0.6.0
       why-is-node-still-running: 1.0.0
+      ws: 8.13.0
     devDependencies:
       '@hackbg/ubik': link:toolbox/ubik
 
@@ -294,7 +296,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.15.5
+      '@types/node': 18.15.9
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -1425,7 +1427,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 18.15.5
+      '@types/node': 18.15.9
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -1444,7 +1446,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 18.15.5
+      '@types/node': 18.15.9
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1488,8 +1490,8 @@ packages:
     resolution: {integrity: sha512-93+VvleD3mXwlLI/xASjw0FzKcwzl3OdTCzm1LaRfqgS21gfFtK3zDXM5Op9TeeMsJVOaJ2VRDpT9q4Y3d0AvA==}
     dev: true
 
-  /@types/node/18.15.5:
-    resolution: {integrity: sha512-Ark2WDjjZO7GmvsyFFf81MXuGTA/d6oP38anyxWOL6EREyBKAxKoFHwBhaZxCfLRLpO8JgVXwqOwSwa7jRcjew==}
+  /@types/node/18.15.9:
+    resolution: {integrity: sha512-dUxhiNzBLr6IqlZXz6e/rN2YQXlFgOei/Dxy+e3cyXTJ4txSUbGT2/fmnD6zd/75jDMeW5bDee+YXxlFKHoV0A==}
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -1512,12 +1514,12 @@ packages:
   /@types/secure-random/1.1.0:
     resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
     dependencies:
-      '@types/node': 18.15.5
+      '@types/node': 18.15.9
 
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 18.15.5
+      '@types/node': 18.15.9
     dev: true
 
   /@types/tmp/0.2.3:
@@ -4631,7 +4633,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.15.5
+      '@types/node': 18.15.9
       long: 4.0.0
     dev: false
 
@@ -6091,6 +6093,19 @@ packages:
       signal-exit: 3.0.7
       typedarray-to-buffer: 3.1.5
     dev: true
+
+  /ws/8.13.0:
+    resolution: {integrity: sha512-x9vcZYTrFPC7aSIbj7sRCYo7L/Xb8Iy+pW0ng0wt2vCJv7M9HOMy0UoN3rr+IFC7hb7vXoqS+P9ktyLLLhO+LA==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+    dev: false
 
   /xml2js/0.4.23:
     resolution: {integrity: sha512-ySPiMjM0+pLDftHgXY4By0uswI3SPKLDw/i3UXbnO8M/p28zqexCUoPmQFrYD+/1BzhGJSs2i1ERWKJAtiLrug==}

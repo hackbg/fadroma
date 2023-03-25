@@ -9,7 +9,7 @@ info: |
   available to the public under the [AGPLv3](href="https://www.gnu.org/licenses/agpl-3.0.txt") 
   license. This license protects user freedoms and encourages responsibility towards
   the digital commons. If this license doesn't work for your business case, email
-  us at  *hello at hack dot bg* to arrange for custom licensing options.
+  us at *\[hello at hack dot bg\]* to arrange for custom licensing options.
 invert: true
 big: left
 links:
@@ -23,23 +23,25 @@ links:
     text: Defining contracts
     bold: true
   - icon: todo
-    text: Dev server with dashboard
+    text: "WIP: Dev server with dashboard"
     info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
 ---
 name: Supported platforms
 info: |
-  Presently, we support Secret Network, an open-source, permissionless blockchain, based on privacy research and papers first written at MIT in 2015, including Decentralizing Privacy — now one of the most influential papers in the blockchain space
+  Presently, we support [Secret Network](https://scrt.network/),
+  an open-source, permissionless blockchain, based on privacy research
+  including [*Decentralizing Privacy*](https://ieeexplore.ieee.org/document/7163223).
 links:
+  - icon: rust
+    text: fadroma::scrt
+    href: ./scrt/
+    bold: true
   - icon: typescript
     text: "@fadroma/scrt"
     href: ./scrt/
     bold: true
   - icon: todo
-    text: "Support for all Cosmos chains"
----
-name: Powered by Fadroma
-info: |
-  Fadroma powers Sienna Network, a privacy-first and cross-chain decentralized finance platform where you can privately swap, lend and convert your tokens into their private equivalents.
+    text: "WIP: @fadroma/cw"
 ---
 name: Write contracts
 info: |
@@ -47,7 +49,7 @@ info: |
   Compose smart contracts out of encapsulated components.
 links:
   - icon: rust
-    text: fadroma-dsl
+    text: fadroma-proc-derive
     href: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/index.html
     bold: true
   - icon: rust
@@ -56,6 +58,10 @@ links:
   - icon: rust
     text: Example contract with interface
     href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-interface
+  - icon: todo
+    text: "WIP: fadroma-dsl"
+    href: https://github.com/hackbg/fadroma/issues/136
+    bold: true
 ---
 name: Efficient storage
 info: |
@@ -94,57 +100,56 @@ links:
 name: Tokenomics
 info: |
   Interact with fungible and non-fungible distributed tokens.
-  Embed a custom SNIP20 token into your contract.
 links:
   - icon: rust
-    text: fadroma::scrt::snip20::contract
+    text: Embed a custom SNIP20 token into your contract
     info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
     href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
     bold: true
   - icon: rust
-    text: fadroma::scrt::snip20::client
+    text: Interact with SNIP20 token from your contract
     info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
     href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
     bold: true
   - icon: typescript
-    text: SNIP20 Client class
+    text: Interact with SNIP20 token from TypeScript
     href: ./tokens/
+    bold: true
+  - icon: todo
+    text: "WIP: SNIP721 Client class"
     bold: true
   - icon: typescript
     text: TokenManager
     href: ./tokens/
     bold: true
 ---
-name: Authorization
-info: |
-  Killswitch, admin account (with one-step and two-step transfer of authority). Viewing key and query permit primitives.
+name: Authorization primitives
 links:
   - icon: rust
-    text: fadroma::admin
-    info: Allow a privileged user to perform administrative operations. Single-step and two-step transfer of admin role.
+    text: Admin role
     href: https://docs.rs/fadroma/latest/fadroma/admin/index.html
     bold: true
   - icon: rust
-    text: fadroma::killswitch
+    text: Killswitch
     info: Emergency pause and permanent termination for your contract.
     href: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
     bold: true
   - icon: rust
-    text: fadroma::scrt::permit
-    info: Generate and use revokable SNIP-24 query permits.
-    href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
-    bold: true
-  - icon: typescript
-    text: "@fadroma/scrt"
-    href: ./scrt/
-    bold: true
-  - icon: rust
-    text: fadroma::scrt::vk
+    text: Viewing keys
     info: Generate and use SNIP-20 compatible viewing keys in any contract.
     href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
     bold: true
   - icon: typescript
-    text: "@fadroma/scrt"
+    text: Viewing key client
+    href: ./scrt/
+    bold: true
+  - icon: rust
+    text: Query permits
+    info: Generate and use revokable SNIP-24 query permits.
+    href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
+    bold: true
+  - icon: typescript
+    text: Query permit client
     href: ./scrt/
     bold: true
 ---
@@ -232,19 +237,19 @@ info: Fadroma runs builds and devnets in containers using Docker or Podman
 foss: true
 link:
 links:
-  - icon: typescript
-    text: "@hackbg/dock"
-    href:
-    bold: true
   - icon: todo
     text: "WIP: Podman support"
+  - icon: typescript
+    text: "Powered by @hackbg/dock"
+    href:
+    bold: true
 ---
 name: Scripting
 info: Fadroma scripts are structured as ES/TS modules that export one or more commands.
 foss: true
 links:
   - icon: typescript
-    text: "@hackbg/cmds"
+    text: "Powered by @hackbg/cmds"
     href: 
     bold: true
 ---
@@ -253,7 +258,7 @@ info: You can configure the TypeScript subsystems of Fadroma using env vars and/
 foss: true
 links:
   - icon: typescript
-    text: "@hackbg/conf"
+    text: "Powered by @hackbg/conf"
     href: 
     bold: true
 ---

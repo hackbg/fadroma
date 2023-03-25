@@ -27,69 +27,30 @@ html(lang='en')
         use(xlink:href=`#${id}`)
 
     header
+      
       a.logo(href="https://github.com/hackbg/fadroma")
-        img(src='./logo.svg')
-      #quick-start
+        img(src='./logo_1024.svg')
+
+      div
         p
-          strong Made with 💚 at <a href="https://hack.bg">Hack.bg</a>.
-      .badges.center
-        a.badge(href="https://docs.rs/fadroma")
-          img(title="View documentation for Fadroma Contracts" alt="View documentation for Fadroma Contracts" src="https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge")
-        | &nbsp;
-        a.badge(href="https://www.npmjs.com/package/@fadroma/core")
-          img(src="https://img.shields.io/npm/v/@fadroma/core?color=%2365b34c&label=%40fadroma%2Fcore&style=for-the-badge")
-        | &nbsp;
-        a.badge(href="https://www.npmjs.com/package/@fadroma/scrt")
-          img(src="https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge")
-        | &nbsp;
-        a.badge(href="https://github.com/hackbg/fadroma/releases.atom")
-          img(src="https://img.shields.io/badge/Releases-Feed-65b34c?logo=rss&style=for-the-badge")
-
-    #description
-
-      //-section
-        //-p
-          //-strong Fadroma
-          //-|  is a framework for building
-          //-strong  decentralized applications
-          //-|  with Rust and TypeScript. Fadroma makes it easy to write
-          //-strong
-            //-| 
-            //-a(href="https://cosmwasm.com/") CosmWasm
-          //-|  smart contracts and integrate them into your Web app.
-
-        //-p
-          //-| Fadroma is 
-          //-strong
-            //-a(href="https://foss.hack.bg") free software
-          //-| , available to the public under the 
-          //-strong
-            //-a(href="https://www.gnu.org/licenses/agpl-3.0.txt") GNU Affero General Public License.
-          //-|  This license protects user freedoms and encourages responsibility towards the digital
-          //-|  commons. If this license doesn't work for your business case, email us at 
-          //-em hello at hack dot bg
-          //-|  to arrange for 
-          //-strong custom licensing options.
-
-      //-section
-        //-p
-          //-| Presently, we support 
-          //-strong
-            //-a(href="https://scrt.network/") Secret Network
-          //-| , an open-source, permissionless blockchain, based on privacy research and papers
-          //-|  first written at MIT in 2015, including 
-          //-strong
-            //-a(href="https://ieeexplore.ieee.org/document/7163223")
-              //-em Decentralizing Privacy
-          //-|  &mdash; now one of the
-          //-|  most influential papers in the blockchain space.
-
-        //-p
-          //-| Fadroma powers 
-          //-strong
-            //-a(href="https://app.sienna.network") Sienna Network
-          //-| , a privacy-first and cross-chain decentralized finance platform
-          //-|  where you can privately swap, lend and convert your tokens into their private equivalents.
+          | This page is the home of 
+          strong Fadroma,
+          |  the
+          strong  Web 3.0 framework
+          |  by
+          strong
+            | 
+            a(href="https://hack.bg") Hack.bg
+          |.
+        .badges.center
+          a.badge(href="https://docs.rs/fadroma")
+            img(title="View documentation for Fadroma Contracts" alt="View documentation for Fadroma Contracts" src="https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge")
+          a.badge(href="https://www.npmjs.com/package/@fadroma/core")
+            img(src="https://img.shields.io/npm/v/@fadroma/core?color=%2365b34c&label=%40fadroma%2Fcore&style=for-the-badge")
+          a.badge(href="https://www.npmjs.com/package/@fadroma/scrt")
+            img(src="https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge")
+          a.badge(href="https://github.com/hackbg/fadroma/releases.atom")
+            img(src="https://img.shields.io/badge/Releases-Feed-65b34c?logo=rss&style=for-the-badge")
 
     #features
 
@@ -108,24 +69,6 @@ html(lang='en')
               each tag in feature.tags
                 .tag= tag
             .links
-              if 'todo' in feature
-                a.docs(href=feature.todo)
-                  +icon("todo")
-                  | Planned
-              if feature.docs
-                if typeof feature.docs === 'string'
-                  a.docs(href=feature.docs)
-                    +icon("book")
-                    | Docs&nbsp;&rarr;
-                else if typeof feature.docs === 'object'
-                  if feature.docs.rs
-                    a.docs(href=feature.docs.rs)
-                      +icon("rust")
-                      | Rust docs&nbsp;&rarr;
-                  if feature.docs.ts
-                    a.docs(href=feature.docs.ts)
-                      +icon("typescript")
-                      | TS docs&nbsp;&rarr;
               for link in (feature.links || [])
                 a.docs(href=link.href)
                   +icon(link.icon)
