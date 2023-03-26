@@ -20,11 +20,7 @@
 
 import getBuilder from '@fadroma/build'
 import { getDeployer, getUploader } from '@fadroma/deploy'
-export {
-  getBuilder,
-  getDeployer,
-  getUploader
-}
+export { getBuilder, getDeployer, getUploader }
 
 export { default as Fadroma } from './Fadroma'
 export { default as Console } from './FadromaConsole'
