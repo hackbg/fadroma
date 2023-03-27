@@ -237,11 +237,13 @@ pub fn wasm_entry(reply: &Option<Method<'_>>) -> ItemMod {
     };
 
     if let Some(reply) = reply {
-        let ident = &reply.sig().ident;
+        let contract = Ident::new(CONTRACT, Span::call_site());
+        let reply_fn = &reply.sig().ident;
+        
         let entry = parse_quote! {
             #[no_mangle]
             extern "C" fn reply(env_ptr: u32, msg_ptr: u32) -> u32 {
-                do_reply(&super::#ident, env_ptr, msg_ptr)
+                do_reply(&super::#contract::#reply_fn, env_ptr, msg_ptr)
             }
         };
 
