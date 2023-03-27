@@ -74,7 +74,7 @@ features:
       the digital commons. If this license doesn't work for your business case, email
       us at *\[hello at hack dot bg\]* to arrange for custom licensing options.
     links:
-      - text: View AGPL3 license
+      - text: View license
         href: https://www.gnu.org/licenses/agpl-3.0.txt
       - text: Hack.bg FOSS Initiative
         href: https://foss.hack.bg
@@ -222,7 +222,7 @@ features:
         href: /packages/build/Build.spec.ts.md#BuildAPI
         bold: true
 
-  - name: Define high-level API
+  - name: Define client API
     info: Easily create a TypeScript client library for your dApp.
     links:
       - icon: typescript
