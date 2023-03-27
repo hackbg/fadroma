@@ -1120,7 +1120,7 @@ pub mod default_impl {
         
             match query {
                 QueryWithPermit::Balance {} => {
-                    if !permit.check_permission(&QueryPermission::Balance) {
+                    if !permit.has_permission(&QueryPermission::Balance) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query balance, got permissions {:?}",
                             permit.params.permissions
@@ -1132,7 +1132,7 @@ pub mod default_impl {
                     Self::query_balance(deps.storage, &account)
                 }
                 QueryWithPermit::TransferHistory { page, page_size } => {
-                    if !permit.check_permission(&QueryPermission::History) {
+                    if !permit.has_permission(&QueryPermission::History) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query history, got permissions {:?}",
                             permit.params.permissions
@@ -1144,7 +1144,7 @@ pub mod default_impl {
                     Self::query_transfers(deps, &account, page, page_size)
                 }
                 QueryWithPermit::TransactionHistory { page, page_size } => {
-                    if !permit.check_permission(&QueryPermission::History) {
+                    if !permit.has_permission(&QueryPermission::History) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query history, got permissions {:?}",
                             permit.params.permissions
@@ -1156,7 +1156,7 @@ pub mod default_impl {
                     Self::query_transactions(deps, &account, page, page_size)
                 }
                 QueryWithPermit::Allowance { owner, spender } => {
-                    if !permit.check_permission(&QueryPermission::Allowance) {
+                    if !permit.has_permission(&QueryPermission::Allowance) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query allowance, got permissions {:?}",
                             permit.params.permissions
