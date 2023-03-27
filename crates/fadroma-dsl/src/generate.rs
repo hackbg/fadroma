@@ -2,7 +2,7 @@ use syn::{
     Signature, ItemStruct, Ident, Field, Fields, FieldsNamed,
     Visibility, parse_quote, FnArg, punctuated::Punctuated,
     ItemEnum, Variant, ItemFn, Expr, Stmt, ExprField, ExprMatch,
-    ItemImpl, GenericArgument, ExprCall, ReturnType, Type,
+    ItemImpl, GenericArgument, ExprCall, ReturnType, Type, Item,
     ItemMod, token::{Brace, Comma, Colon, RArrow}
 };
 use proc_macro2::Span;
@@ -31,7 +31,7 @@ pub struct ErrorEnum {
     pub err_impl: ItemImpl
 }
 
-pub fn init_msg<'a>(sink: &mut ErrorSink, init: &Method<'a>) -> ItemStruct {
+pub fn init_msg(sink: &mut ErrorSink, init: &Method<'_>) -> ItemStruct {
     let msg = Ident::new(INIT_MSG, Span::call_site());
 
     let mut result: ItemStruct = parse_quote! {
@@ -47,10 +47,10 @@ pub fn init_msg<'a>(sink: &mut ErrorSink, init: &Method<'a>) -> ItemStruct {
     return result;
 }
 
-pub fn messages<'a>(
+pub fn messages(
     sink: &mut ErrorSink,
     msg_type: MsgType,
-    methods: &[Method<'a>]
+    methods: &[Method<'_>]
 ) -> ItemEnum {
     let enum_name: Ident = msg_type.into();
 
@@ -78,7 +78,7 @@ pub fn messages<'a>(
     result
 }
 
-pub fn init_fn<'a>(sink: &mut ErrorSink, method: &Method<'a>) -> ItemFn {
+pub fn init_fn(sink: &mut ErrorSink, method: &Method<'_>) -> ItemFn {
     let fn_name = Ident::new(INIT_FN, Span::call_site());
     let msg = Ident::new(INIT_MSG, Span::call_site());
 
@@ -129,10 +129,10 @@ pub fn init_fn<'a>(sink: &mut ErrorSink, method: &Method<'a>) -> ItemFn {
     result
 }
 
-pub fn execute_fn<'a>(
+pub fn execute_fn(
     sink: &mut ErrorSink,
-    methods: &[Method<'a>],
-    execute_guard: Option<Method<'a>>
+    methods: &[Method<'_>],
+    execute_guard: Option<Method<'_>>
 ) -> ItemFn {
     let fn_name = Ident::new(EXECUTE_FN, Span::call_site());
     let msg = Ident::new(EXECUTE_MSG, Span::call_site());
@@ -175,9 +175,9 @@ pub fn execute_fn<'a>(
     result
 }
 
-pub fn query_fn<'a>(
+pub fn query_fn(
     sink: &mut ErrorSink,
-    methods: &[Method<'a>]
+    methods: &[Method<'_>]
 ) -> ItemFn {
     let fn_name = Ident::new(QUERY_FN, Span::call_site());
     let msg = Ident::new(QUERY_MSG, Span::call_site());
@@ -209,15 +209,15 @@ pub fn query_fn<'a>(
     result
 }
 
-pub fn wasm_entry() -> ItemMod {
+pub fn wasm_entry(reply: &Option<Method<'_>>) -> ItemMod {
     let init_fn = Ident::new(INIT_FN, Span::call_site());
     let execute_fn = Ident::new(EXECUTE_FN, Span::call_site());
     let query_fn = Ident::new(QUERY_FN, Span::call_site());
 
-    let result: ItemMod = parse_quote! {
+    let mut result: ItemMod = parse_quote! {
         #[cfg(target_arch = "wasm32")]
         mod wasm_entry {
-            use super::cosmwasm_std::{do_instantiate, do_execute, do_query};
+            use super::cosmwasm_std::{do_instantiate, do_execute, do_query, do_reply};
 
             #[no_mangle]
             extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
@@ -235,6 +235,20 @@ pub fn wasm_entry() -> ItemMod {
             }
         }
     };
+
+    if let Some(reply) = reply {
+        let contract = Ident::new(CONTRACT, Span::call_site());
+        let reply_fn = &reply.sig().ident;
+        
+        let entry = parse_quote! {
+            #[no_mangle]
+            extern "C" fn reply(env_ptr: u32, msg_ptr: u32) -> u32 {
+                do_reply(&super::#contract::#reply_fn, env_ptr, msg_ptr)
+            }
+        };
+
+        result.content.as_mut().unwrap().1.push(Item::Fn(entry));
+    }
 
     result
 }
@@ -330,6 +344,10 @@ pub fn cw_arguments(sig: &mut Signature, attr: MsgAttr, has_block: bool) {
             sig.inputs.insert(1, parse_quote!(env: cosmwasm_std::Env));
             sig.inputs.insert(2, parse_quote!(info: cosmwasm_std::MessageInfo));
         },
+        MsgAttr::Reply => {
+            sig.inputs.insert(0, parse_quote!(mut deps: cosmwasm_std::DepsMut));
+            sig.inputs.insert(1, parse_quote!(env: cosmwasm_std::Env));
+        }
         MsgAttr::Query => {
             sig.inputs.insert(0, parse_quote!(deps: cosmwasm_std::Deps));
             sig.inputs.insert(1, parse_quote!(env: cosmwasm_std::Env));
@@ -342,9 +360,9 @@ pub fn cw_arguments(sig: &mut Signature, attr: MsgAttr, has_block: bool) {
     }
 }
 
-fn create_match_expr<'a>(
+fn create_match_expr(
     sink: &mut ErrorSink,
-    methods: &[Method<'a>],
+    methods: &[Method<'_>],
     msg_type: MsgType
 ) -> Option<Expr> {
     let enum_name: Ident = msg_type.into();

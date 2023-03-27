@@ -50,13 +50,7 @@ pub fn trait_methods<'a>(
         }
 
         let Some(ty) = MsgAttr::parse(sink, &method.attrs) else {
-            sink.push_spanned(
-                &method.sig.ident,
-                format!(
-                    "Expecting exactly one attribute of: {:?}",
-                    [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
-                )
-            );
+            sink.expected_interface_attrs(&method.sig.ident);
 
             continue;
         };
@@ -97,13 +91,7 @@ pub fn item_impl_methods<'a>(
             // The "Contract" struct methods don't all
             // have to be part of its interface.
             if item_impl.trait_.is_some() {
-                sink.push_spanned(
-                    &method.sig.ident,
-                    format!(
-                        "Expecting exactly one attribute of: {:?}",
-                        [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
-                    )
-                );
+                sink.expected_interface_attrs(&method.sig.ident);
             }
 
             continue;
@@ -234,7 +222,8 @@ fn contract_method_return_ty<'a>(
 #[inline]
 fn expected_value_type(ty: MsgAttr) -> Option<GenericArgument> {
     match ty {
-        MsgAttr::Init { .. } | MsgAttr::Execute => Some(parse_quote!(Response)),
+        MsgAttr::Init { .. } | MsgAttr::Execute | MsgAttr::Reply =>
+            Some(parse_quote!(Response)),
         MsgAttr::Query => None,
         MsgAttr::ExecuteGuard => Some(parse_quote!(()))
     }

@@ -7,6 +7,7 @@ mod validate;
 mod method;
 mod auto_impl;
 mod execute_guard;
+mod reply;
 mod utils;
 
 use syn::{
@@ -117,6 +118,21 @@ pub fn execute_guard(
     let item = parse_macro_input!(item as ItemFn);
 
     let result = match execute_guard::derive(item) {
+        Ok(stream) => stream,
+        Err(errors) => to_compile_errors(errors)
+    };
+
+    proc_macro::TokenStream::from(result)
+}
+
+#[proc_macro_attribute]
+pub fn reply(
+    _args: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let item = parse_macro_input!(item as ItemFn);
+
+    let result = match reply::derive(item) {
         Ok(stream) => stream,
         Err(errors) => to_compile_errors(errors)
     };

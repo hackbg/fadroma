@@ -32,6 +32,7 @@ pub enum MsgAttr {
     Init { entry: Option<Entry> },
     Execute,
     Query,
+    Reply,
     ExecuteGuard
 }
 
@@ -50,6 +51,7 @@ impl MsgAttr {
     pub const INIT: &str = "init";
     pub const EXECUTE: &str = "execute";
     pub const QUERY: &str = "query";
+    pub const REPLY: &str = "reply";
     pub const EXECUTE_GUARD: &str = "execute_guard";
 
     pub fn parse(sink: &mut ErrorSink, attrs: &[Attribute]) -> Option<Self> {
@@ -91,6 +93,11 @@ impl MsgAttr {
 
                         Some(Self::ExecuteGuard)
                     }
+                    Self::REPLY => {
+                        assert_is_path_ident(sink, &meta);
+
+                        Some(Self::Reply)
+                    }
                     _ => None
                 };
 
@@ -101,6 +108,17 @@ impl MsgAttr {
         }
     
         None
+    }
+
+    #[inline]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            MsgAttr::Init { .. } => Self::INIT,
+            MsgAttr::Execute => Self::EXECUTE,
+            MsgAttr::Query => Self::QUERY,
+            MsgAttr::Reply => Self::REPLY,
+            MsgAttr::ExecuteGuard => Self::EXECUTE_GUARD
+        }
     }
 }
 
