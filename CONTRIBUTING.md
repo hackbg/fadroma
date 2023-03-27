@@ -13,11 +13,10 @@ via issue, email, or any other method with the owners of this repository before 
 
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
-# Code of Conduct
+## Code of Conduct
 Before contributing please read our [Code of Conduct](CODE_OF_CONDUCT.md) which
 all contributors are expected to adhere to.
 
----
 ## Filing Issues
 
 ### How Do I Submit A Bug Report?
@@ -56,8 +55,15 @@ items. In addition, use the following review explanations:
     - Code must live in a reasonable location.
 - If you are only making "surface level" reviews, submit any notes as `Comments` without adding a review.
 
----
-## Publishing packages
+## Committing code
+
+### Forking
+
+### Submodule setup
+
+### Sending pull requests
+
+### Publishing packages
 
 The TypeScript packages have been configured to use `@hackbg/ubik` for publishing.
 Packages published using Ubik contain TS, ESM and CJS code side by side.

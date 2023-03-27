@@ -1,5 +1,8 @@
 # Icons as inline svg paths, see https://icomoon.io/#docs/inline-svg
 
+styles:
+  - assets/style.css
+
 icons:
 
   - id: book
@@ -47,27 +50,33 @@ features:
       **decentralized applications** with Rust and TypeScript.
       Fadroma makes it easy to write [CosmWasm](https://cosmwasm.com/)
       smart contracts and integrate them into your Web app.
-
-      Fadroma is [**free software**](https://foss.hack.bg), 
-      available to the public under the [AGPLv3](href="https://www.gnu.org/licenses/agpl-3.0.txt") 
-      license. This license protects user freedoms and encourages responsibility towards
-      the digital commons. If this license doesn't work for your business case, email
-      us at *\[hello at hack dot bg\]* to arrange for custom licensing options.
     invert: true
     big: left
     links:
       - icon: console
         text: Installing Fadroma
         bold: true
+        href: docs/GettingStarted#InstallingFadroma
       - icon: console
         text: Creating a project
         bold: true
+        href: docs/GettingStarted#CreatingAProject
       - icon: console
         text: Defining contracts
         bold: true
+        href: docs/GettingStarted#DefiningContracts
       - icon: todo
         text: "WIP: Dev server with dashboard"
         info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
+        href: https://github.com/hackbg/fadroma/issues/90
+
+  - name: Licensing
+    info: |
+      Fadroma is [**free software**](https://foss.hack.bg), 
+      available to the public under the [AGPLv3](href="https://www.gnu.org/licenses/agpl-3.0.txt") 
+      license. This license protects user freedoms and encourages responsibility towards
+      the digital commons. If this license doesn't work for your business case, email
+      us at *\[hello at hack dot bg\]* to arrange for custom licensing options.
 
   - name: Supported platforms
     info: |
@@ -77,14 +86,15 @@ features:
     links:
       - icon: rust
         text: fadroma::scrt
-        href: ./scrt/
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/index.html
         bold: true
       - icon: typescript
         text: "@fadroma/scrt"
-        href: ./scrt/
+        href: platforms/scrt/Scrt.spec.ts.md
         bold: true
       - icon: todo
         text: "WIP: @fadroma/cw"
+        href: https://github.com/hackbg/fadroma/issues/148
 
   - name: Write contracts
     info: |
@@ -104,7 +114,6 @@ features:
       - icon: todo
         text: "WIP: fadroma-dsl"
         href: https://github.com/hackbg/fadroma/issues/136
-        bold: true
 
   - name: Efficient storage
     info: |
@@ -124,19 +133,18 @@ features:
         bold: true
 
   - name: Do the math
-    info: |
-      256-bit integer support in Cosmos for easy EVM interop. Generate SHA256 checksums for your data from a contract. ChaCha-based pseudo-random number generator.
+    info: Fadroma implements 256-bit integer arithmetic, hashing, and randomness for contracts.
     links:
       - icon: rust
-        text: fadroma::prelude::Uint256
+        text: 256-bit math for EVM/Cosmos interop
         href: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
         bold: true
       - icon: rust
-        text: fadroma::crypto::sha_256
+        text: Generate SHA256 hashes from a contract
         href: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
         bold: true
       - icon: rust
-        text: fadroma::crypto::Prng
+        text: ChaCha-based pseudo-random number generator
         href: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
         bold: true
 
@@ -145,28 +153,29 @@ features:
       Interact with fungible and non-fungible distributed tokens.
     links:
       - icon: rust
-        text: Embed a custom SNIP20 token into your contract
+        text: Embed custom SNIP20 token into a contract
         info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
         href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
         bold: true
       - icon: rust
-        text: Interact with SNIP20 token from your contract
+        text: Call SNIP20 token from other contract
         info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
         href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
         bold: true
       - icon: typescript
-        text: Interact with SNIP20 token from TypeScript
-        href: ./tokens/
+        text: Call SNIP20 token from TS
+        href: packages/tokens/Tokens.spec.ts.md#SNIP20Client
         bold: true
       - icon: todo
         text: "WIP: SNIP721 Client class"
         bold: true
       - icon: typescript
         text: TokenManager
-        href: ./tokens/
+        href: packages/tokens/Tokens.spec.ts.md#TokenManager
         bold: true
 
   - name: Authorization primitives
+    info: Fadroma implements several common access control patterns.
     links:
       - icon: rust
         text: Admin role
