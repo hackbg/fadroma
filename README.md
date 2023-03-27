@@ -1,36 +1,73 @@
-<div align="center">
-
 [![Fadroma](./homepage/logo.svg)](https://fadroma.tech)
 
-*Level the landscape.*
+**Fadroma** is an application framework targeting the CosmWasm Compute module.
+Fadroma includes **Rust** libraries for writing smart contracts and a
+**TypeScript** system for building, deploying, and interacting with them.
 
-**Groundwork** for **dApp development** with **Rust** and **TypeScript** on **Secret Network**.
-
-### **Rust**
 [![Latest version](https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge)](https://crates.io/crates/fadroma)
 [![Documentation](https://img.shields.io/docsrs/fadroma/latest?color=%2365b34c&style=for-the-badge)](https://docs.rs/fadroma)
-
-### **TypeScript**
 [![](https://img.shields.io/npm/v/@fadroma/core?color=%2365b34c&label=%40fadroma%2Fcore&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/core)
 [![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)
 
----
+* [**Fadroma Engine**](https://fadroma.tech/rs/fadroma/index.html) is a collection of
+  Rust libraries for developing smart contracts.
+* [**Fadroma DSL**](https://fadroma.tech/rs/fadroma_proc_derive/index.html)
+  is a family of procedural macros for clean, boilerplate-free implementation
+  of smart contract internals,
+* [**Fadroma Ensemble**](https://fadroma.tech/rs/fadroma/ensemble/index.html)
+  is a library for for integration testing of multiple contracts.
+* [**Fadroma Client**](https://fadroma.tech/js/modules/_fadroma_client.html) is a library for
+  interfacing with smart contracts from JavaScript or TypeScript.
+* [**Fadroma Ops**](https://fadroma.tech/js/modules/_fadroma_ops.html) is
+  a library for implementing your custom deployment and operations workflow - from local development
+  to mainnet deployment.
+* [**Fadroma Mocknet**](https://fadroma.tech/js/classes/_fadroma_ops.Mocknet.html) is
+  a simulated environment for fast full-stack testing of your production builds.
 
-Start exploring:
+## Creating a Fadroma project with NPM
 
-[**Getting Started Guide**](./guide/basic-project-setup.md) — [Rust Smart Contract API](https://fadroma.tech/rs/fadroma/index.html) — [TypeScript Operations API](https://fadroma.tech/js/modules.html)
+If you have Node.js set up, you can use `npm init` to create a new Fadroma project:
 
-[**Executable Specification**](./SPEC.ts.md) — [Future Roadmap](./ROADMAP.ts.md) — [Contribution Guidelines](CONTRIBUTING.md)
+```sh
+$ npm init @fadroma
+```
 
----
+This will run the `fadroma project create` command,
+which will ask you a few questions and create a mixed NPM/Cargo project.
 
-**Fadroma** aims to take the CosmWasm Compute module and spin it into a fully integrated app platform.
+## Creating a Fadroma project with Nix
 
-This repository contains assorted **Rust** libraries for smart contracts
-and a **TypeScript** system for building, deploying, and interacting with them.
+If you use Nix, you can create a project with:
 
-Check out our [**example project**](https://github.com/hackbg/fadroma-example) to see how to
-build your dApp with Fadroma.
+```sh
+$ nix-shell https://fadroma.tech/nix -c fadroma project create
+```
+
+Projects are created with a `shell.nix` which you can enter with:
+
+```sh
+$ nix-shell /my/project
+```
+
+Or, if you're already at the root of the project:
+
+```sh
+$ nix-shell
+```
+
+## Standalone Nix shell
+
+```sh
+$ nix-shell https://fadroma.tech/nix
+```
+
+This contains Node, Rust, build utilities,
+and a `fadroma` command in the `PATH`.
+
+## Exploring onward
+
+Now you are ready to write your first smart contract, deploy it,
+and integrate it with the wider Internet-of-Blockchains.
 
 ---
 
@@ -44,5 +81,3 @@ build your dApp with Fadroma.
 ---
 
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
-
-</div>

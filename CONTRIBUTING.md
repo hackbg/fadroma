@@ -57,9 +57,37 @@ items. In addition, use the following review explanations:
 
 ## Committing code
 
-### Forking
+### Prerequisites
+
+You'll need:
+
+* **Your preferred code editor.** We use NeoVim and VSCode.
+* **Linux or macOS.** WSL might also work but we haven't really tested that much.
+  (Whoever runs Fadroma on Plan 9 ascends.)
+* **Git**, for keeping track of your changes.
+* **Node.js, versions >= 16.12, and the [PNPM](https://pnpm.io) package manager**,
+* At least one of the following:
+  * **A Rust toolchain**, stable or nightly.
+  * **Docker, configured to run without `sudo`.** Fadroma uses Docker to encapsulate builds
+    (providing Rust 1.59 in the default build container) and to launch devnets (providing a
+    local development environment).
 
 ### Submodule setup
+
+Fadroma uses Git submodules in its development workflow,
+and can itself be included as a submodule in your project:
+
+To add Fadroma as Git submodule:
+
+```sh
+git submodule add -b refactor/x git@github.com:hackbg/fadroma.git
+git submodule update --init --recursive
+git commit -m "tabula rasa"
+```
+
+(Replacing `hackbg/fadroma` with the name of your fork)
+
+> Read more about [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 
 ### Sending pull requests
 

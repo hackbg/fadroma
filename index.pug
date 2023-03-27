@@ -63,7 +63,7 @@ html(lang='en')
             feature.foss   && `foss`,
           ].filter(Boolean).join(' '))
             div
-              h4= feature.name
+              h3= feature.name
               div.description!= self.markdown.render(feature.info||'')
             .spacer
             if feature.tags
