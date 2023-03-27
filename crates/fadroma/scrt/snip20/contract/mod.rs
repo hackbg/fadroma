@@ -1,5 +1,4 @@
 //! Customizable implementation of a SNIP-20 token.
-//! *Feature flag: `snip20-impl`*
 
 pub mod receiver;
 pub mod state;

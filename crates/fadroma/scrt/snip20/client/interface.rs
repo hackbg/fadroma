@@ -5,7 +5,8 @@ use crate::{
     schemars::JsonSchema,
     dsl::*,
     scrt::{
-        vk::auth::VkAuth,
+        vk::{auth::VkAuth, ViewingKey},
+        permit::Permit,
         ResponseExt
     },
     admin::Admin,
@@ -228,9 +229,8 @@ pub trait Snip20: VkAuth + Admin {
     ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
 
     #[query]
-    #[cfg(feature = "snip20-impl")]
     fn with_permit(
-        permit: crate::scrt::permit::Permit<QueryPermission>,
+        permit: Permit<QueryPermission>,
         query: QueryWithPermit
     ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
 }
@@ -294,9 +294,8 @@ pub enum ExecuteAnswer {
     RegisterReceive {
         status: ResponseStatus,
     },
-    #[cfg(feature = "snip20-impl")]
     CreateViewingKey {
-        key: crate::scrt::vk::ViewingKey,
+        key: ViewingKey,
     },
     SetViewingKey {
         status: ResponseStatus,

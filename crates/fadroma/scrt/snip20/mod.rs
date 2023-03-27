@@ -1,3 +1,5 @@
+// SNIP-20 Interface definitions and a customizable implementation.
+//! *Feature flag: `snip20`*
+
 pub mod client;
-#[cfg(feature = "snip20-impl")]
 pub mod contract;

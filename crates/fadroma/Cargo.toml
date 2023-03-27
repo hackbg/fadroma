@@ -57,7 +57,7 @@ crypto = [
   "rand_core", "rand_chacha", "sha2"
 ]
 
-snip20-impl = [
+snip20 = [
   # Features
   "scrt", "permit", "vk"
 ]

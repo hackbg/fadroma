@@ -94,6 +94,8 @@ Since their usage is always a fact in CosmWasm contracts, the `Deps/DepsMut`, `E
 |execute       |info          |MessageInfo       |
 |query         |deps          |Deps              |
 |query         |env           |Env               |
+|reply         |deps          |DepsMut           |
+|reply         |env           |Env               |
 |execute_guard |deps          |DepsMut           |
 |execute_guard |env           |&Env              |
 |execute_guard |info          |&MessageInfo      |

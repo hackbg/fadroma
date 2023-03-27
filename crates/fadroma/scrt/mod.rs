@@ -6,6 +6,7 @@
 pub mod permit;
 #[cfg(feature = "vk")]
 pub mod vk;
+#[cfg(feature = "snip20")]
 pub mod snip20;
 
 use crate::cosmwasm_std::{StdResult, CosmosMsg, WasmMsg, Response, to_binary};
