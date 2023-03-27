@@ -54,17 +54,13 @@ features:
     big: left
     links:
       - icon: console
-        text: Installing Fadroma
-        bold: true
-        href: docs/GettingStarted#InstallingFadroma
-      - icon: console
         text: Creating a project
         bold: true
-        href: docs/GettingStarted#CreatingAProject
+        href: /README.md#create-a-project
       - icon: console
         text: Defining contracts
         bold: true
-        href: docs/GettingStarted#DefiningContracts
+        href: /README.md#defining-contracts
       - icon: todo
         text: "WIP: Dev server with dashboard"
         info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
@@ -77,6 +73,13 @@ features:
       license. This license protects user freedoms and encourages responsibility towards
       the digital commons. If this license doesn't work for your business case, email
       us at *\[hello at hack dot bg\]* to arrange for custom licensing options.
+    links:
+      - text: View AGPL3 license
+        href: https://www.gnu.org/licenses/agpl-3.0.txt
+      - text: Hack.bg FOSS Initiative
+        href: https://foss.hack.bg
+      - text: Custom licensing and exemptions
+        href: mailto:hello@hack.bg
 
   - name: Supported platforms
     info: |
@@ -90,7 +93,7 @@ features:
         bold: true
       - icon: typescript
         text: "@fadroma/scrt"
-        href: platforms/scrt/Scrt.spec.ts.md
+        href: /platforms/scrt/Scrt.spec.ts.md
         bold: true
       - icon: todo
         text: "WIP: @fadroma/cw"
@@ -164,14 +167,14 @@ features:
         bold: true
       - icon: typescript
         text: Call SNIP20 token from TS
-        href: packages/tokens/Tokens.spec.ts.md#SNIP20Client
+        href: /packages/tokens/Tokens.spec.ts.md#SNIP20Client
         bold: true
       - icon: todo
         text: "WIP: SNIP721 Client class"
         bold: true
       - icon: typescript
         text: TokenManager
-        href: packages/tokens/Tokens.spec.ts.md#TokenManager
+        href: /packages/tokens/Tokens.spec.ts.md#TokenManager
         bold: true
 
   - name: Authorization primitives
@@ -212,11 +215,11 @@ features:
     links:
       - icon: console
         text: $ fadroma build
-        href: ./devnet/
+        href: /packages/build/Build.spec.ts.md#BuildCLI
         bold: true
       - icon: typescript
         text: "@fadroma/build"
-        href: ./build/
+        href: /packages/build/Build.spec.ts.md#BuildAPI
         bold: true
 
   - name: Define high-level API
@@ -224,7 +227,7 @@ features:
     links:
       - icon: typescript
         text: "@fadroma/core"
-        href: ./core/
+        href: /packages/core/Core.spec.ts.md
         bold: true
       - icon: todo
         text: Example client
@@ -237,11 +240,11 @@ features:
     links:
       - icon: typescript
         text: Writing a deploy script
-        href: ./deploy/
+        href: /packages/deploy/Deploy.spec.ts.md#WritingDeployScripts
         bold: true
       - icon: console
-        text: Running a deploy script
-        href: ./devnet/
+        text: Running deploy scripts
+        href: /packages/deploy/Deploy.spec.ts.md#RunningDeployScripts
         bold: true
       - icon: todo
         text: Example deploy script
@@ -254,11 +257,11 @@ features:
     links:
       - icon: console
         text: $ fadroma devnet
-        href: ./devnet/
+        href: /packages/devnet/Devnet.spec.ts.md#DevnetCLI
         bold: true
       - icon: typescript
         text: "@fadroma/devnet"
-        href: ./devnet/
+        href: /packages/devnet/Devnet.spec.ts.md#DevnetAPI
         bold: true
       - icon: todo
         text: "WIP: Export devnet"
@@ -277,7 +280,7 @@ features:
         href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
       - icon: typescript
         text: "@fadroma/mocknet"
-        href: ./mocknet/
+        href: /packages/mocknet/Mocknet.spec.ts.md
         bold: true
       - icon: todo
         text: Property-based testing
@@ -293,7 +296,7 @@ features:
         text: "WIP: Podman support"
       - icon: typescript
         text: "Powered by @hackbg/dock"
-        href:
+        href: https://www.npmjs.com/package/@hackbg/dock
         bold: true
 
   - name: Scripting
@@ -302,7 +305,7 @@ features:
     links:
       - icon: typescript
         text: "Powered by @hackbg/cmds"
-        href: 
+        href: https://www.npmjs.com/package/@hackbg/cmds
         bold: true
 
   - name: Configuration
@@ -311,7 +314,7 @@ features:
     links:
       - icon: typescript
         text: "Powered by @hackbg/conf"
-        href: 
+        href: https://www.npmjs.com/package/@hackbg/conf
         bold: true
 
   - name: Literate programming

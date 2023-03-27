@@ -24,7 +24,9 @@ Fadroma includes **Rust** libraries for writing smart contracts and a
 * [**Fadroma Mocknet**](https://fadroma.tech/js/classes/_fadroma_ops.Mocknet.html) is
   a simulated environment for fast full-stack testing of your production builds.
 
-## Creating a Fadroma project with NPM
+## Creating a project
+
+### Creating a Fadroma project with NPM
 
 If you have Node.js set up, you can use `npm init` to create a new Fadroma project:
 
@@ -35,7 +37,7 @@ $ npm init @fadroma
 This will run the `fadroma project create` command,
 which will ask you a few questions and create a mixed NPM/Cargo project.
 
-## Creating a Fadroma project with Nix
+### Creating a Fadroma project with Nix
 
 If you use Nix, you can create a project with:
 
