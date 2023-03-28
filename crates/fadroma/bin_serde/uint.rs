@@ -73,11 +73,6 @@ impl FadromaDeserialize for u16 {
 
 macro_rules! impl_uint {
     ($int:ty) => {
-        impl_uint!($int, Self::MIN);
-    };
-
-    // TODO: this can go when scrt CW gets updated to the newest version.
-    ($int:ty, $zero:expr) => {
         impl FadromaSerialize for $int {
             #[inline]
             fn size_hint(&self) -> usize {
@@ -123,7 +118,7 @@ macro_rules! impl_uint {
         
                     Self::from_le_bytes(buf)
                 } else {
-                    $zero
+                    Self::MIN
                 };
         
                 Ok(value)
@@ -135,8 +130,8 @@ macro_rules! impl_uint {
 impl_uint!(u32);
 impl_uint!(u64);
 impl_uint!(u128);
-impl_uint!(Uint256, Self::zero());
-impl_uint!(Uint512, Self::zero());
+impl_uint!(Uint256);
+impl_uint!(Uint512);
 
 impl FadromaSerialize for Uint64 {
     #[inline]
