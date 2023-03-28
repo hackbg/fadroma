@@ -109,7 +109,7 @@ pub fn instantiate(
 /// 
 /// If using the DSL you can use this with auto_impl to customize or extend the implementation.
 #[contract]
-pub mod default_impl {
+pub(crate) mod default_impl {
     use crate::{
         self as fadroma,
         dsl::*,

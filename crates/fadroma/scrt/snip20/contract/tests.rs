@@ -27,7 +27,10 @@ use super::{
     receiver::Snip20ReceiveMsg,
     state::*,
     SymbolValidation,
-    default_impl::{InstantiateMsg, ExecuteMsg, QueryMsg, Error, instantiate, execute, query}
+    snip20::default_impl::{
+        InstantiateMsg, ExecuteMsg, QueryMsg, Error,
+        instantiate, execute, query
+    }
 };
 
 // Helper functions
