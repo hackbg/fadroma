@@ -3,7 +3,7 @@ use crate::{
     prelude::*,
     admin,
     crypto::sha_256,
-    scrt::snip20::client::interface::InstantiateMsg
+    scrt::snip20::client::InstantiateMsg
 };
 
 use super::{
@@ -16,8 +16,7 @@ use super::{
 };
 
 /// The instantiate entry point of the SNIP-20 contract.
-/// This is separate from [`default_impl`] to allow to easily customize how the token name and symbol are validated.
-/// [`default_impl`] calls this with [`TokenValidation::default`].
+/// [`super::DefaultImpl`] calls this with [`TokenValidation::default`].
 pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
@@ -119,7 +118,7 @@ pub(crate) mod default_impl {
         scrt::{
             vk::auth::VkAuth,
             snip20::{
-                client::interface::{
+                client::{
                     InstantiateMsg as Snip20InstantiateMsg, ExecuteAnswer, QueryAnswer,
                     QueryPermission, QueryWithPermit, ResponseStatus,
                     MintAction, SendAction, BurnFromAction, SendFromAction, TransferFromAction,

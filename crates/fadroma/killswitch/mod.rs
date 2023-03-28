@@ -1,6 +1,6 @@
 //! Emergency pause and termination of contracts. You **MUST** implement
-//! [admin] in your contract if you want to use this module. This is
-//! enforced when using Fadroma DSL.
+//! [admin] in your contract if you want to use this module. This is enforced when using Fadroma DSL.
+//! See the [examples](https://github.com/hackbg/fadroma/tree/master/examples) on how to implement it.
 
 use std::fmt;
 

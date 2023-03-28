@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::{
     self as fadroma,
     storage::Segment,
-    scrt::snip20::client::interface::TokenConfig,
+    scrt::snip20::client::TokenConfig,
     prelude::{
         BlockInfo, CanonicalAddr, StdResult, Storage, Uint128,
         ViewingKey, ViewingKeyHashed, SingleItem, ItemSpace,

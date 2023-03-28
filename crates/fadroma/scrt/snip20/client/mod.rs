@@ -1,4 +1,7 @@
-//! Command SNIP-20 tokens from a contract.
+//! SNIP-20 token interface definitions from a contract.
+
+mod interface;
+pub use interface::*;
 
 use crate::{
     core::ContractLink,
@@ -9,10 +12,8 @@ use crate::{
     scrt::{vk, BLOCK_SIZE, to_cosmos_msg},
 };
 
-pub mod interface;
-
-use interface::{ExecuteMsg, QueryMsg, QueryAnswer, TokenInfo, TransferAction};
-
+/// SNIP-20 token wrapper to easily call methods
+/// on contracts that implement the standard.
 #[derive(Clone, Debug)]
 pub struct ISnip20 {
     pub link: ContractLink<Addr>,

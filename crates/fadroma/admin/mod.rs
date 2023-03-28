@@ -1,4 +1,5 @@
 //! Transaction authentication by pre-configured admin address.
+//! See the [examples](https://github.com/hackbg/fadroma/tree/master/examples) on how to implement it.
 
 pub use fadroma_proc_auth::*;
 

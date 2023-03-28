@@ -15,6 +15,7 @@ use crate::cosmwasm_std::{StdResult, CosmosMsg, WasmMsg, Response, to_binary};
 pub const BLOCK_SIZE: usize = 256;
 
 pub trait ResponseExt {
+    /// Pads the message data to a multiple of [`BLOCK_SIZE`] if it is set.
     fn pad(self) -> Self;
 }
 

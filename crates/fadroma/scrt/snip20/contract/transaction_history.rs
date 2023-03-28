@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::{
     prelude::*,
     storage::iterable::{self, IterableStorage},
-    scrt::snip20::client::interface::{Tx, RichTx, RichTxCanon, TxActionCanon}
+    scrt::snip20::client::{Tx, RichTx, RichTxCanon, TxActionCanon}
 };
 use super::state::Account;
 

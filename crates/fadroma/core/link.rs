@@ -8,14 +8,11 @@ use crate::{
 
 use serde::{Deserialize, Serialize};
 
-pub type CodeId = u64;
-pub type CodeHash = String;
-
 /// Info needed to instantiate a contract.
 #[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
 pub struct ContractInstantiationInfo {
-    pub code_hash: CodeHash,
-    pub id: CodeId,
+    pub id: u64,
+    pub code_hash: String
 }
 
 impl_canonize_default!(ContractInstantiationInfo);
@@ -34,7 +31,7 @@ impl PartialEq for ContractInstantiationInfo {
 #[derive(Default, Serialize, Canonize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
 pub struct ContractLink<A> {
     pub address: A,
-    pub code_hash: CodeHash,
+    pub code_hash: String
 }
 
 impl ContractLink<String> {

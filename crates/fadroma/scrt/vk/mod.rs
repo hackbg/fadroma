@@ -106,8 +106,16 @@ impl ViewingKeyHashed {
 }
 
 impl AsRef<str> for ViewingKey {
+    #[inline]
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl AsRef<[u8]> for ViewingKey {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
     }
 }
 
@@ -118,18 +126,21 @@ impl fmt::Display for ViewingKey {
 }
 
 impl<T: Into<String>> From<T> for ViewingKey {
+    #[inline]
     fn from (vk: T) -> Self {
         ViewingKey(vk.into())
     }
 }
 
 impl From<&[u8; Self::SIZE]> for ViewingKeyHashed {
+    #[inline]
     fn from(array: &[u8; Self::SIZE]) -> Self {
         Self(*array)
     }
 }
 
 impl From<[u8; Self::SIZE]> for ViewingKeyHashed {
+    #[inline]
     fn from(array: [u8; Self::SIZE]) -> Self {
         Self(array)
     }
@@ -151,6 +162,7 @@ impl TryFrom<&[u8]> for ViewingKeyHashed {
 }
 
 impl AsRef<[u8]> for ViewingKeyHashed {
+    #[inline]
     fn as_ref(&self) -> &[u8] {
         self.as_slice()
     }

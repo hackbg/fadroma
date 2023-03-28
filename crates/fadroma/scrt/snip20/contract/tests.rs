@@ -6,7 +6,7 @@ use crate::{
     killswitch::{self, ContractStatus},
     scrt::{
         vk::{ViewingKey, ViewingKeyHashed},
-        snip20::client::interface::{
+        snip20::client::{
             ExecuteAnswer, QueryAnswer, ResponseStatus,
             InitialBalance, TokenConfig, TokenInfo,
             RichTx, TxAction, BurnFromAction

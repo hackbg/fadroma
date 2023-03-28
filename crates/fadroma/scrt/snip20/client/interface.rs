@@ -19,6 +19,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+/// Interface trait that defines all methods of the SNIP-20 standard.
+/// See [`fadroma::scrt::snip20::contract`] for the default implementation.
 #[interface]
 pub trait Snip20: VkAuth + Admin {
     type Error: std::fmt::Display;
@@ -243,7 +245,7 @@ pub struct InitialBalance {
 
 /// This type represents optional configuration values which can be overridden.
 /// All values are optional and have defaults which are more private by default,
-/// but can be overridden if necessary
+/// but can be overridden if necessary.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct TokenConfig {
