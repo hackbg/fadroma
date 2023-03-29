@@ -27,8 +27,6 @@ pub use error::*;
 pub use anyhow;
 
 /// Generate a struct and implement [`ContractHarness`] for the given contract module.
-/// Alternatively, if using the derive contract macro, specify the third argument
-/// which is the implementation struct to use.
 #[macro_export]
 macro_rules! impl_contract_harness {
     ($visibility:vis $name:ident, $module:tt) => {

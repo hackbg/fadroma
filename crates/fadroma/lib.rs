@@ -66,34 +66,106 @@ pub mod prelude {
     pub use crate::scrt::permit::{Permission, Permit};
 }
 
-/// Define the `mod wasm` entrypoint of production builds.
+/// Define the `mod wasm` entrypoint for production builds.
+/// Supports `instantiate`, `execute` and `query` **or**
+/// `instantiate`, `execute`, `query` and `reply`.
+/// 
+/// Note that Fadroma DSL already handles this for you and
+/// as such this macro is not needed when using it.
+/// 
+/// # Examples
+/// 
+/// ```
+/// # #[macro_use] extern crate fadroma;
+/// # use fadroma::cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, StdResult, Response, Binary, to_binary};
+/// # pub struct InitMsg;
+/// # pub struct ExecuteMsg;
+/// # pub struct QueryMsg;
+/// pub fn instantiate(
+///     _deps: DepsMut,
+///     _env: Env,
+///     _info: MessageInfo,
+///     _msg: InitMsg
+/// ) -> StdResult<Response> {
+///     Ok(Response::default())
+/// }
+///
+/// pub fn execute(
+///     _deps: DepsMut,
+///     _env: Env,
+///     _info: MessageInfo,
+///     _msg: ExecuteMsg
+/// ) -> StdResult<Response> {
+///     Ok(Response::default())
+/// }
+///
+/// pub fn query(
+///     _deps: Deps,
+///     _env: Env,
+///     _msg: QueryMsg
+/// ) -> StdResult<Binary> {
+///     to_binary(&true)
+/// }
+/// 
+/// entrypoint! {
+///     init: instantiate,
+///     execute: execute,
+///     query: query
+/// }
+/// ```
 #[macro_export]
 macro_rules! entrypoint {
-    ($($fadroma:ident)::+, $($contract:ident)::+ $(,)?) => {
-        $($fadroma)::+::entrypoint!(
-            $($fadroma)::+,
-            $($contract)::+::init,
-            $($contract)::+::handle,
-            $($contract)::+::query,
-        );
+    (@init $init:ident) => {
+        #[no_mangle]
+        extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+            $crate::cosmwasm_std::do_instantiate(&super::$init, env_ptr, info_ptr, msg_ptr)
+        }
     };
-    ($($fadroma:ident)::+, $($init:ident)::+, $($handle:ident)::+, $($query:ident)::+ $(,)?) => {
+
+    (@execute $execute:ident) => {
+        #[no_mangle]
+        extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+            $crate::cosmwasm_std::do_execute(&super::$execute, env_ptr, info_ptr, msg_ptr)
+        }
+    };
+
+    (@query $query:ident) => {
+        #[no_mangle]
+        extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
+            $crate::cosmwasm_std::do_query(&super::$query, env_ptr, msg_ptr)
+        }
+    };
+
+    (@reply $reply:ident) => {
+        #[no_mangle]
+        extern "C" fn reply(env_ptr: u32, msg_ptr: u32) -> u32 {
+            $crate::cosmwasm_std::do_reply(&super::$reply, env_ptr, msg_ptr)
+        }
+    };
+
+    (@wasm_mod $($contents:tt)*) =>  {
         #[cfg(target_arch = "wasm32")]
         mod wasm {
-            use $($fadroma)::+::{scrt::cosmwasm_std::{
-                do_instantiate,
-                do_execute,
-                do_query
-            }};
-            #[no_mangle] extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
-                do_instantiate(&super::$($init)::+, env_ptr, info_ptr, msg_ptr)
-            }
-            #[no_mangle] extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
-                do_execute(&super::$($handle)::+, env_ptr, info_ptr, msg_ptr)
-            }
-            #[no_mangle] extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
-                do_query(&super::$($query)::+, env_ptr, msg_ptr)
-            }
+            $($contents)*
         }
-    }
+    };
+
+    (init: $init:ident, execute: $execute:ident, query: $query:ident, reply: $reply:ident) => {
+        $crate::entrypoint! {
+            @wasm_mod
+            $crate::entrypoint!(@init $init);
+            $crate::entrypoint!(@execute $execute);
+            $crate::entrypoint!(@query $query);
+            $crate::entrypoint!(@reply $reply);
+        }
+    };
+
+    (init: $init:ident, execute: $execute:ident, query: $query:ident) => {
+        $crate::entrypoint! {
+            @wasm_mod
+            $crate::entrypoint!(@init $init);
+            $crate::entrypoint!(@execute $execute);
+            $crate::entrypoint!(@query $query);
+        }
+    };
 }

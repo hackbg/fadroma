@@ -9,13 +9,15 @@ use fadroma::{
 };
 
 /// Initial configuration of the register.
-#[message] pub struct InitMsg {
+#[message]
+pub struct InitMsg {
     /// Optionally, the initial value of the register
     value: Option<String>
 }
 
 /// Changing the value of the register.
-#[message] pub enum HandleMsg {
+#[message]
+pub enum HandleMsg {
     /// Set the value of the register
     Set(String),
     /// Empty the register
@@ -23,7 +25,8 @@ use fadroma::{
 }
 
 /// Reading the value of the register.
-#[message] pub enum QueryMsg {
+#[message]
+pub enum QueryMsg {
     /// Get the value of the register
     Get
 }
@@ -70,4 +73,8 @@ pub fn query(
     }
 }
 
-fadroma::entrypoint!(fadroma, instantiate, execute, query);
+fadroma::entrypoint! {
+    init: instantiate,
+    execute: execute,
+    query: query
+}

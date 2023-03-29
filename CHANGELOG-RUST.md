@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - All Fadroma storage types now use these traits.
 
 ### Changed
+ - BREAKING ⚠️: `entrypoint!` macro now supports `reply` entry points and has a slightly different interface.
  - BREAKING ⚠️: `Permit` struct: renamed `check_permission` -> `has_permission` and `check_contract` -> `is_for_contract`.
  - BREAKING ⚠️: The SNIP-20 implementation now uses Fadroma DSL. ([#159](https://github.com/hackbg/fadroma/pull/159))
  - BREAKING ⚠️: `scrt::pad_response` is now implemented as an extension to `cosmwasm_std::Response` via the `ResponseExt` trait. ([#159](https://github.com/hackbg/fadroma/pull/159))
