@@ -75,7 +75,6 @@ fadroma-dsl = { version = "0.5.0", path = "../fadroma-dsl" }
 fadroma-derive-canonize = { version = "0.3.0", path = "../fadroma-derive-canonize" }
 fadroma-derive-serde = { version = "0.1.0", path = "../fadroma-derive-serde" }
 fadroma-proc-auth = { version = "0.1.0", path = "../fadroma-proc-auth" }
-fadroma-proc-message = { version = "0.1.0", path = "../fadroma-proc-message" }
 
 # Dependencies
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }

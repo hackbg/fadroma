@@ -16,8 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - All Fadroma storage types now use these traits.
 
 ### Changed
- - BREAKING ⚠️: `entrypoint!` macro now supports `reply` entry points and has a slightly different interface.
- - BREAKING ⚠️: `Permit` struct: renamed `check_permission` -> `has_permission` and `check_contract` -> `is_for_contract`.
+
+ - BREAKING ⚠️: `entrypoint!` macro now supports `reply` entry points and has a slightly different interface. ([d005e38](https://github.com/hackbg/fadroma/commit/d005e38711989578798d79e1997fcefdd18ce762))
+ - BREAKING ⚠️: `Permit` struct: renamed `check_permission` -> `has_permission` and `check_contract` -> `is_for_contract`. ([693cbb0](https://github.com/hackbg/fadroma/commit/693cbb001c892194172d4af5eb1dd3f6a24895ec))
  - BREAKING ⚠️: The SNIP-20 implementation now uses Fadroma DSL. ([#159](https://github.com/hackbg/fadroma/pull/159))
  - BREAKING ⚠️: `scrt::pad_response` is now implemented as an extension to `cosmwasm_std::Response` via the `ResponseExt` trait. ([#159](https://github.com/hackbg/fadroma/pull/159))
  - BREAKING ⚠️: The killswitch module now only uses a single `ContractStatus` enum, consolidated from previously the `ContractStatusLevel` enum and `ContractStatus` struct ([#158](https://github.com/hackbg/fadroma/pull/158))
@@ -27,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - BREAKING ⚠️: The killswitch module now uses Fadroma DSL ([#155](https://github.com/hackbg/fadroma/pull/155))
 
 ### Removed
-    
+
+ - BREAKING ⚠️: the `#[message]` procedural macro
  - BREAKING ⚠️: the contract derive procedural macro in favour of Fadroma DSL ([#155](https://github.com/hackbg/fadroma/pull/155))
 
 ## [0.7.0] - 2023-02-07

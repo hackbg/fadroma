@@ -500,7 +500,6 @@ dependencies = [
  "fadroma-derive-serde",
  "fadroma-dsl",
  "fadroma-proc-auth",
- "fadroma-proc-message",
  "oorandom",
  "primitive-types",
  "proptest",
@@ -590,27 +589,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "fadroma-example-kv"
-version = "1.0.0"
-dependencies = [
- "fadroma",
- "serde",
-]
-
-[[package]]
 name = "fadroma-proc-auth"
 version = "0.1.0"
 dependencies = [
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "fadroma-proc-message"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
 ]
 
 [[package]]

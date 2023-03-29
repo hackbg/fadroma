@@ -26,7 +26,7 @@ pub mod crypto;
 
 // Storage helpers
 pub mod storage;
-pub use fadroma_proc_message as proc_message;
+
 // Testing system
 #[cfg(all(feature = "ensemble", not(target_arch = "wasm32")))]
 pub mod ensemble;
@@ -56,8 +56,6 @@ pub mod prelude {
         self, Key, Namespace, CompositeKey, StaticKey, FixedSegmentSizeKey,
         TypedKey, TypedKey2, TypedKey3, TypedKey4, SingleItem, ItemSpace
     };
-
-    pub use crate::proc_message::message;
 
     #[cfg(feature = "vk")]
     pub use crate::scrt::vk::{ViewingKey, ViewingKeyHashed};
