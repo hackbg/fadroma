@@ -82,6 +82,13 @@ impl ByteLen {
     }
 }
 
+impl AsRef<[u8]> for ByteLen {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -116,26 +123,32 @@ mod tests {
         let len = ByteLen::encode(128).unwrap();
         assert_eq!(len.size(), 2);
         assert_eq!(len.as_bytes().len(), 2);
+        assert_eq!(len.as_bytes()[1] & 0x80, 0);
 
         let len = ByteLen::encode(16383).unwrap();
         assert_eq!(len.size(), 2);
         assert_eq!(len.as_bytes().len(), 2);
+        assert_eq!(len.as_bytes()[1] & 0x80, 0);
 
         let len = ByteLen::encode(16384).unwrap();
         assert_eq!(len.size(), 3);
         assert_eq!(len.as_bytes().len(), 3);
+        assert_eq!(len.as_bytes()[2] & 0x80, 0);
 
         let len = ByteLen::encode(2097151).unwrap();
         assert_eq!(len.size(), 3);
         assert_eq!(len.as_bytes().len(), 3);
+        assert_eq!(len.as_bytes()[2] & 0x80, 0);
 
         let len = ByteLen::encode(2097152).unwrap();
         assert_eq!(len.size(), 4);
         assert_eq!(len.as_bytes().len(), 4);
+        assert_eq!(len.as_bytes()[3] & 0x80, 0);
 
         let len = ByteLen::encode(ByteLen::MAX as usize).unwrap();
         assert_eq!(len.size(), 4);
         assert_eq!(len.as_bytes().len(), 4);
+        assert_eq!(len.as_bytes()[3] & 0x80, 0);
 
         let err = ByteLen::encode((ByteLen::MAX + 1) as usize).unwrap_err();
         assert!(matches!(err, Error::ByteLenTooLong { .. }));
