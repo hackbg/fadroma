@@ -104,7 +104,6 @@ equal(contract.crate,      'CRATE')
 
 ```typescript
 import assert from 'node:assert'
-import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/core'
 import $ from '@hackbg/file'
 ```

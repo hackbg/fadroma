@@ -171,7 +171,6 @@ assert.ok(new ConnectError.UnknownChainSelected() instanceof ConnectError)
 ```
 
 ```typescript
-import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/connect'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```

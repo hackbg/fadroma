@@ -47,7 +47,7 @@ import { basename } from 'path'
 import { withTmpFile } from '@hackbg/file'
 import { ExampleDeployment } from './deploy.example'
 import { pathToFileURL } from 'url'
-import { examples, inTmpDeployment } from '../../TESTING.ts.md'
+import { examples } from '../../examples/Examples.spec.ts.md'
 
 ok(await new DeployConfig({ FADROMA_CHAIN: 'Mocknet' }).getDeployer() instanceof Deployer)
 
@@ -474,4 +474,12 @@ const { templateClientFoo, templateClientBar } = await template.instances({
 
 ```typescript
 import assert from 'node:assert'
+import { Deployment } from '@fadroma/core'
+import { withTmpFile } from '@hackbg/file'
+function inTmpDeployment (cb) {
+  return withTmpFile(f=>{
+    const d = new Deployment(f, mockAgent())
+    return cb(d)
+  })
+}
 ```

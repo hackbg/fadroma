@@ -14,7 +14,6 @@ import { fileURLToPath } from 'url'
 ```typescript
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
-export const fixture   = x => resolve(here, 'fixtures', x)
+export const fixture   = x => resolve(here, x)
 export const log       = new Console('Fadroma Testing')
 ```
-

@@ -185,8 +185,6 @@ withTmpDir(async stateRoot=>{
 })
 ```
 
-
 ```typescript
-import * as Testing from '../../TESTING.ts.md'
 import { ok, throws, equal, deepEqual } from 'node:assert'
 ```

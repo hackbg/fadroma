@@ -220,5 +220,4 @@ assert.equal(utf8toB64('"Echo"'), 'IkVjaG8i')
 ```typescript
 import assert from 'assert'
 import { ok, equal } from 'assert'
-import * as Testing from '../../TESTING.ts.md'
 ```

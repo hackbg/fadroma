@@ -57,7 +57,7 @@ importers:
       '@hackbg/spec': link:ensuite/toolbox/spec
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
-      '@types/node': 18.15.10
+      '@types/node': 18.15.11
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
@@ -296,7 +296,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.15.10
+      '@types/node': 18.15.11
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -518,6 +518,30 @@ importers:
       '@hackbg/ubik': workspace:..
     devDependencies:
       '@hackbg/ubik': link:..
+
+  examples/project:
+    specifiers:
+      '@hackbg/fadroma': latest
+    devDependencies:
+      '@hackbg/fadroma': link:../..
+
+  examples/project/api:
+    specifiers:
+      '@fadroma/core': ^2
+      '@fadroma/scrt': ^8
+      '@fadroma/tokens': ^7
+    devDependencies:
+      '@fadroma/core': link:../../../packages/core
+      '@fadroma/scrt': link:../../../platforms/scrt
+      '@fadroma/tokens': link:../../../packages/tokens
+
+  examples/project/ops:
+    specifiers:
+      '@fadroma/deploy': ^2
+      '@my-project/api': link:../api
+    devDependencies:
+      '@fadroma/deploy': link:../../../packages/deploy
+      '@my-project/api': link:../api
 
   examples/scripts:
     specifiers:
@@ -1372,7 +1396,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 18.15.10
+      '@types/node': 18.15.11
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -1391,7 +1415,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 18.15.10
+      '@types/node': 18.15.11
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1434,8 +1458,8 @@ packages:
     resolution: {integrity: sha512-93+VvleD3mXwlLI/xASjw0FzKcwzl3OdTCzm1LaRfqgS21gfFtK3zDXM5Op9TeeMsJVOaJ2VRDpT9q4Y3d0AvA==}
     dev: true
 
-  /@types/node/18.15.10:
-    resolution: {integrity: sha512-9avDaQJczATcXgfmMAW3MIWArOO7A+m90vuCFLr8AotWf8igO/mRoYukrk2cqZVtv38tHs33retzHEilM7FpeQ==}
+  /@types/node/18.15.11:
+    resolution: {integrity: sha512-E5Kwq2n4SbMzQOn6wnmBjuK9ouqlURrcZDVfbo9ftDDTFt3nk7ZKK4GMOzoYgnpQJKcxwQw+lGaBvvlMo0qN/Q==}
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -1458,12 +1482,12 @@ packages:
   /@types/secure-random/1.1.0:
     resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
     dependencies:
-      '@types/node': 18.15.10
+      '@types/node': 18.15.11
 
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 18.15.10
+      '@types/node': 18.15.11
     dev: true
 
   /@types/tmp/0.2.3:
@@ -4526,7 +4550,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.15.10
+      '@types/node': 18.15.11
       long: 4.0.0
     dev: false
 

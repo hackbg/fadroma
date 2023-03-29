@@ -31,7 +31,7 @@ containing upload metadata, which we call an **upload receipt**.
 import { JSONDirectory, withTmpDir } from '@hackbg/file'
 import { DeployConfig, FSUploader } from '@fadroma/deploy'
 import { Agent, Uploader, Template } from '@fadroma/core'
-import { examples } from '../../TESTING.ts.md'
+import { examples } from '../../examples/Examples.spec.ts.md'
 let config:   DeployConfig
 let uploader: Uploader
 let agent:    Agent = { chain: { id: 'testing' }, upload: async x => x }

@@ -22,6 +22,7 @@
     "fixtures",
     "homepage",
     "packages/schema",
+    "examples/project",
     "shim",
     "typedoc-theme.tsx",
     "types",

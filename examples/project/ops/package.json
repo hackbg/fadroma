@@ -1,0 +1,9 @@
+{
+  "name": "@my-project/ops",
+  "version": "0.0.0",
+  "private": true,
+  "devDependencies": {
+    "@fadroma/deploy": "^2",
+    "@my-project/api": "link:../api"
+  }
+}

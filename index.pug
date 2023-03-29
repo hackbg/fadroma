@@ -34,11 +34,10 @@ html(lang='en')
 
       div
         p
-          | This page is the home of 
-          strong Fadroma,
-          |  the
-          strong  Web 3.0 framework
-          |  by
+          strong Fadroma
+          |  is a
+          strong  distributed application framework
+          |  maintained by
           strong
             | 
             a(href="https://hack.bg") Hack.bg
@@ -63,7 +62,7 @@ html(lang='en')
             feature.foss   && `foss`,
           ].filter(Boolean).join(' '))
             div
-              h3= feature.name
+              h2= feature.name
               div.description!= self.markdown.render(feature.info||'')
             .spacer
             if feature.tags

@@ -31,10 +31,12 @@ export default class Project {
     /** Name of the project. */
     readonly name: string,
     /** Root directory of the project. */
-    readonly root: OpaqueDirectory,
+    root: string|OpaqueDirectory,
     /** Contract definitions. */
     public contracts: Record<string, ProjectContract> = {}
   ) {
+    if (typeof root === 'string') root = $(root).as(OpaqueDirectory)
+    this.root = root as OpaqueDirectory
     this.gitignore   = root.at('.gitignore').as(TextFile)
     this.envfile     = root.at('.env').as(TextFile)
     this.readme      = root.at('README.md').as(TextFile)
@@ -47,6 +49,7 @@ export default class Project {
     this.state       = new ProjectState(this)
   }
 
+  root:           OpaqueDirectory
   crate:          ContractsCrate
   apiPackage:     APIPackage
   opsPackage:     OpsPackage

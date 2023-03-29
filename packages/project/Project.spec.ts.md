@@ -9,7 +9,7 @@ $ npx fadroma project create
 ```typescript
 import Project from './Project'
 
-const project = new Project('./examples/project', {
+const project = new Project('my-project', './examples/project', {
   name: 'test',
   contracts: {
     contract1: {},
@@ -26,10 +26,10 @@ $ npx fadroma contract del
 ```
 
 ```typescript
-const contract1 = project.getContract('contract1')
+const contract1 = project.addContract('contract')
 assert(contract1 instanceof Template)
 
-const contract2 = project.addContract('contract2', {})
+const contract2 = project.getContract('contract')
 assert(contract2 instanceof Template)
 ```
 

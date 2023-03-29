@@ -65,6 +65,20 @@ for (const version of ['1.2', '1.3']) {
     manager.close()
   }
 }
+
+/// Mock of devnet manager:
+import { spawn } from 'child_process'
+const devnetManager = resolve(here, 'packages/devnet/devnet.server.mjs')
+const devnetInitScript = resolve(here, '_mock-devnet.init.mjs')
+export async function mockDevnetManager (port) {
+  port = port || await freePort(10000 + Math.floor(Math.random()*10000))
+  const manager = spawn(process.argv[0], [devnetManager], {
+    stdio: 'inherit',
+    env: { PORT: port, FADROMA_DEVNET_INIT_SCRIPT: devnetInitScript PATH: process.env.path }
+  })
+  await new Promise(ok=>setTimeout(ok, 1000)) // FIXME flimsy!
+  return { url: `http://localhost:${port}`, port, close () { manager.kill() } }
+}
 ```
 
 ## Usability

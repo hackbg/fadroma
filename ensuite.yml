@@ -56,15 +56,27 @@ features:
       - icon: console
         text: Creating a project
         bold: true
-        href: /README.md#create-a-project
+        href: /GettingStarted.md#create-a-project
       - icon: console
         text: Defining contracts
         bold: true
-        href: /README.md#defining-contracts
+        href: /GettingStarted.md#defining-contracts
+      - icon: console
+        text: Building and deploying
+        bold: true
+        href: /GettingStarted.md#building-and-deploying
       - icon: todo
-        text: "WIP: Dev server with dashboard"
+        text: "WIP: Dev server with GUI"
         info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
         href: https://github.com/hackbg/fadroma/issues/90
+      - icon: rust
+        text: Fadroma on Crates.io
+        bold: true
+        href: https://crates.io/crates/fadroma
+      - icon: typescript
+        text: Fadroma on NPM
+        bold: true
+        href: https://www.npmjs.com/package/@hackbg/fadroma
 
   - name: Licensing
     info: |
@@ -118,6 +130,51 @@ features:
         text: "WIP: fadroma-dsl"
         href: https://github.com/hackbg/fadroma/issues/136
 
+  - name: Build reproducibly
+    info: |
+      Perform production builds of your contracts in a Docker container.
+    link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
+    links:
+      - icon: console
+        text: $ fadroma build
+        href: /packages/build/Build.spec.ts.md#BuildCLI
+        bold: true
+      - icon: typescript
+        text: "@fadroma/build"
+        href: /packages/build/Build.spec.ts.md#BuildAPI
+        bold: true
+
+  - name: Client API
+    info: Easily create a TypeScript client library for your dApp.
+    links:
+      - icon: typescript
+        text: "@fadroma/core"
+        href: /packages/core/Core.spec.ts.md
+        bold: true
+      - icon: typescript
+        text: Example client
+        href: /examples/project/api/api.ts
+      - icon: todo
+        text: "TODO: Schema-based clients and validation"
+        info: Generate client classes and microfrontends from the JSON schema exported by contracts.
+
+  - name: Deploy and operate
+    info: Manage hundreds of heterogeneous contracts using a declarative API.
+    links:
+      - icon: typescript
+        text: Writing a script
+        href: /packages/deploy/Deploy.spec.ts.md#WritingDeployScripts
+        bold: true
+      - icon: console
+        text: Running scripts
+        href: /packages/deploy/Deploy.spec.ts.md#RunningDeployScripts
+        bold: true
+      - icon: typescript
+        text: Example script
+        href: /examples/project/ops/ops.ts
+      - icon: todo
+        text: "TODO: Contract migrations"
+
   - name: Efficient storage
     info: |
       Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
@@ -135,15 +192,15 @@ features:
         href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/index.html
         bold: true
 
-  - name: Do the math
-    info: Fadroma implements 256-bit integer arithmetic, hashing, and randomness for contracts.
+  - name: Math primitives
+    info: Fadroma implements 256-bit math for EVM/Cosmos interop, hashing, and randomness for contracts.
     links:
       - icon: rust
-        text: 256-bit math for EVM/Cosmos interop
+        text: 256-bit integer arithmetic
         href: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
         bold: true
       - icon: rust
-        text: Generate SHA256 hashes from a contract
+        text: Generate SHA256 hashes on-chain
         href: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
         bold: true
       - icon: rust
@@ -161,7 +218,7 @@ features:
         href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
         bold: true
       - icon: rust
-        text: Call SNIP20 token from other contract
+        text: Call SNIP20 token from another contract
         info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
         href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
         bold: true
@@ -171,14 +228,13 @@ features:
         bold: true
       - icon: todo
         text: "WIP: SNIP721 Client class"
-        bold: true
       - icon: typescript
         text: TokenManager
         href: /packages/tokens/Tokens.spec.ts.md#TokenManager
         bold: true
 
-  - name: Authorization primitives
-    info: Fadroma implements several common access control patterns.
+  - name: Authorization
+    info: Fadroma implements several common access control patterns and primitives.
     links:
       - icon: rust
         text: Admin role
@@ -208,49 +264,6 @@ features:
         href: ./scrt/
         bold: true
 
-  - name: Build reproducibly
-    info: |
-      Perform production builds of your contracts in a Docker container.
-    link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
-    links:
-      - icon: console
-        text: $ fadroma build
-        href: /packages/build/Build.spec.ts.md#BuildCLI
-        bold: true
-      - icon: typescript
-        text: "@fadroma/build"
-        href: /packages/build/Build.spec.ts.md#BuildAPI
-        bold: true
-
-  - name: Define client API
-    info: Easily create a TypeScript client library for your dApp.
-    links:
-      - icon: typescript
-        text: "@fadroma/core"
-        href: /packages/core/Core.spec.ts.md
-        bold: true
-      - icon: todo
-        text: Example client
-      - icon: todo
-        text: Schema-based clients and validation
-        info: Generate client classes and microfrontends from the JSON schema exported by contracts.
-
-  - name: Deploy and operate
-    info: Manage hundreds of heterogeneous contracts using a declarative API.
-    links:
-      - icon: typescript
-        text: Writing a deploy script
-        href: /packages/deploy/Deploy.spec.ts.md#WritingDeployScripts
-        bold: true
-      - icon: console
-        text: Running deploy scripts
-        href: /packages/deploy/Deploy.spec.ts.md#RunningDeployScripts
-        bold: true
-      - icon: todo
-        text: Example deploy script
-      - icon: todo
-        text: Contract migrations
-
   - name: Local devnets
     info: Spawn local blockchain nodes for development and testing.
     link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
@@ -266,7 +279,7 @@ features:
       - icon: todo
         text: "WIP: Export devnet"
       - icon: todo
-        text: Smart code reloading
+        text: "TODO: Smart code reloading"
 
   - name: Integration testing
     info: Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
@@ -283,9 +296,9 @@ features:
         href: /packages/mocknet/Mocknet.spec.ts.md
         bold: true
       - icon: todo
-        text: Property-based testing
+        text: "TODO: Property-based testing"
       - icon: todo
-        text: Gas profiling
+        text: "TODO: Gas profiling"
 
   - name: Docker integration
     info: Fadroma runs builds and devnets in containers using Docker or Podman
