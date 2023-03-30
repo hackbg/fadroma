@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2023-03-30
+
 ### Added
 
  - Unit struct and enum variants now supported by the `Canonize` derive macro ([3448523](https://github.com/hackbg/fadroma/commit/34485236ae5c2433fae35905bb59813178c748dc))
@@ -29,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
- - BREAKING ⚠️: the `#[message]` procedural macro
+ - BREAKING ⚠️: the `#[message]` procedural macro ([6e774a2](https://github.com/hackbg/fadroma/commit/6e774a2e500c2bd3d9326219feb48b1302639a5f))
  - BREAKING ⚠️: the contract derive procedural macro in favour of Fadroma DSL ([#155](https://github.com/hackbg/fadroma/pull/155))
 
 ## [0.7.0] - 2023-02-07

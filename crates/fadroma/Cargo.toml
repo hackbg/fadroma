@@ -1,7 +1,7 @@
 [package]
 name = "fadroma"
-version = "0.7.0"
-edition = "2018"
+version = "0.8.0"
+edition = "2021"
 license = "AGPL-3.0"
 keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
 description = "Tools and frequently used functionality for developing CosmWasm smart contracts"
@@ -71,10 +71,10 @@ staking = ["secret-cosmwasm-std/staking"]
 secret-cosmwasm-std = { package = "cosmwasm-std", git = "https://github.com/scrtlabs/cosmwasm", tag = "v1.1.9-secret", default-features = false, optional = true }
 
 # Procedural macro crates
-fadroma-dsl = { version = "0.5.0", path = "../fadroma-dsl" }
-fadroma-derive-canonize = { version = "0.3.0", path = "../fadroma-derive-canonize" }
-fadroma-derive-serde = { version = "0.1.0", path = "../fadroma-derive-serde" }
-fadroma-proc-auth = { version = "0.1.0", path = "../fadroma-proc-auth" }
+fadroma-dsl = { version = "0.8.0", path = "../fadroma-dsl" }
+fadroma-derive-canonize = { version = "0.3.5", path = "../fadroma-derive-canonize" }
+fadroma-derive-serde = { version = "0.3.0", path = "../fadroma-derive-serde" }
+fadroma-proc-auth = { version = "0.1.1", path = "../fadroma-proc-auth" }
 
 # Dependencies
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
