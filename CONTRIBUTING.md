@@ -55,7 +55,7 @@ items. In addition, use the following review explanations:
     - Code must live in a reasonable location.
 - If you are only making "surface level" reviews, submit any notes as `Comments` without adding a review.
 
-## Committing code
+## Contributing code code
 
 ### Prerequisites
 
@@ -89,7 +89,10 @@ git commit -m "tabula rasa"
 
 > Read more about [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 
-### Sending pull requests
+### Running tests
+
+If you clone the Fadroma repo, you can use `pnpm test` to run the TS tests,
+and `pnpm test:cov` or `pnpm test:lcov` to generate a test coverage report. Happy hacking!
 
 ### Publishing packages
 

@@ -1,6 +1,7 @@
 # Icons as inline svg paths, see https://icomoon.io/#docs/inline-svg
 
 styles:
+  - assets/fonts.css
   - assets/style.css
 
 icons:
@@ -88,6 +89,8 @@ features:
     links:
       - text: View license
         href: https://www.gnu.org/licenses/agpl-3.0.txt
+      - text: Maintainers
+        href: /MAINTAINERS.md
       - text: Hack.bg FOSS Initiative
         href: https://foss.hack.bg
       - text: Custom licensing and exemptions
@@ -101,7 +104,7 @@ features:
     links:
       - icon: rust
         text: fadroma::scrt
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/
         bold: true
       - icon: typescript
         text: "@fadroma/scrt"
@@ -118,7 +121,7 @@ features:
     links:
       - icon: rust
         text: fadroma-proc-derive
-        href: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/index.html
+        href: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/
         bold: true
       - icon: rust
         text: Example contract
@@ -153,7 +156,7 @@ features:
         bold: true
       - icon: typescript
         text: Example client
-        href: /examples/project/api/api.ts
+        href: https://github.com/hackbg/fadroma/tree/master/examples/project/api/api.ts
       - icon: todo
         text: "TODO: Schema-based clients and validation"
         info: Generate client classes and microfrontends from the JSON schema exported by contracts.
@@ -171,7 +174,7 @@ features:
         bold: true
       - icon: typescript
         text: Example script
-        href: /examples/project/ops/ops.ts
+        href: https://github.com/hackbg/fadroma/tree/master/examples/project/ops/ops.ts
       - icon: todo
         text: "TODO: Contract migrations"
 
@@ -181,15 +184,15 @@ features:
     links:
       - icon: rust
         text: fadroma::storage
-        href: https://docs.rs/fadroma/latest/fadroma/storage/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/storage/
         bold: true
       - icon: rust
         text: fadroma::core::addr
-        href: https://docs.rs/fadroma/latest/fadroma/core/addr/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/core/addr/
         bold: true
       - icon: rust
         text: fadroma-derive-canonize
-        href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/index.html
+        href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/
         bold: true
 
   - name: Math primitives
@@ -215,12 +218,12 @@ features:
       - icon: rust
         text: Embed custom SNIP20 token into a contract
         info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/
         bold: true
       - icon: rust
         text: Call SNIP20 token from another contract
         info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/
         bold: true
       - icon: typescript
         text: Call SNIP20 token from TS
@@ -238,17 +241,17 @@ features:
     links:
       - icon: rust
         text: Admin role
-        href: https://docs.rs/fadroma/latest/fadroma/admin/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/admin/
         bold: true
       - icon: rust
         text: Killswitch
         info: Emergency pause and permanent termination for your contract.
-        href: https://docs.rs/fadroma/latest/fadroma/killswitch/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/killswitch/
         bold: true
       - icon: rust
         text: Viewing keys
         info: Generate and use SNIP-20 compatible viewing keys in any contract.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/
         bold: true
       - icon: typescript
         text: Viewing key client
@@ -257,7 +260,7 @@ features:
       - icon: rust
         text: Query permits
         info: Generate and use revokable SNIP-24 query permits.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/
         bold: true
       - icon: typescript
         text: Query permit client
@@ -286,7 +289,7 @@ features:
     links:
       - icon: rust
         text: fadroma::ensemble
-        href: https://docs.rs/fadroma/latest/fadroma/ensemble/index.html
+        href: https://docs.rs/fadroma/latest/fadroma/ensemble/
         bold: true
       - icon: rust
         text: Example ensemble test

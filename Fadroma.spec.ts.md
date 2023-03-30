@@ -2,37 +2,6 @@
 
 Welcome to the Fadroma Ops Guide!
 
-This collection of documents doubles (triples!) as documentation, specification,
-and test suite. We hope that by reading it you become familiar with both *what*
-Fadroma Ops can do, and *how* it does it.
-
-If you clone the Fadroma repo, you can use `pnpm test` to run the tests,
-and `pnpm test:cov` or `pnpm test:lcov` to generate a test coverage report. Happy hacking!
-
-## Design and goals of Fadroma Agent & Fadroma Ops
-
-Fadroma is a framework for building decentralized application backends
-out of smart contracts deployed to blockchains.
-
-We take the approach of viewing the blockchain as a **distributed VM**:
-the platform abstracts over details such as provisioning servers or keeping state in sync,
-and the application developer doesn't need to concern oneself with them.
-
-In this model, smart contracts are considered as similar to **persistent objects**:
-each one scoped to a specific task, and interoperating with others to make up a system,
-exposing and API and encapsulating state.
-
-Unlike the microservices model, such a globally distributed WebAssembly runtime
-would largely shield implementors from the bulk of the accumulated POSIX heritage,
-instead exposing a **seamless compute substrate** as a simple API 
-(the init/handle/query of the CosmWasm actor model, and the associated get/set
-of the key-value store), backed by a gas metric representing the cost of the resources used.
-
-This model necessitates a novel approach to orchestrating the deployment and operation
-of the software, to ensure its interoperation with the existing Web ecosystem
-and development workflows. This is the ground that Fadroma sets out to cover
-in the TypeScript realm.
-
 ## Obtaining Fadroma
 
 Fadroma is available as a suite of Cargo crates and NPM packages.
