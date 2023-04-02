@@ -152,8 +152,6 @@ export class Deployment {
     return this.addContract(opts.name!, this.defineContract(opts))
   }
 
-  contracts = (_: any) => { /* #worryaboutitlater */ }
-
   /** Define a contract without adding it to the state.
     * @returns a Contract object belonging to this Deployment. */
   defineContract <C extends Client> (opts: Partial<Contract<C>> = {}): Contract<C> {
