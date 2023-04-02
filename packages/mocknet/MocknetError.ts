@@ -11,4 +11,10 @@ export default class MocknetError extends ClientError {
   static NoInstanceAtAddress = this.define('NoInstanceAtAddress',
     (address: string) => `MocknetBackend#getInstance: no contract at ${address}`)
 
+  static NoChain = this.define('NoInstance',
+    () => `MocknetAgent#chain is not set`)
+
+  static NoBackend = this.define('NoInstance',
+    () => `Mocknet#backend is not set`)
+
 }

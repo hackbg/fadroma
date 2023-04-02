@@ -32,12 +32,12 @@ through the Fadroma Client API.
 * **NOTE:** Mocknets are currently not persistent.
 
 ```typescript
-import Mocknet from '@fadroma/mocknet'
-const mocknet = new Mocknet()
-const agent = await mocknet.getAgent()
+import * as Mocknet from '@fadroma/mocknet'
+const chain = new Mocknet.CW1()
+const agent = await chain.getAgent()
 
 import { Chain, Agent } from '@fadroma/core'
-ok(mocknet instanceof Chain)
+ok(chain instanceof Chain)
 ok(agent instanceof Agent)
 ok(agent instanceof Mocknet.Agent)
 ```
@@ -49,7 +49,7 @@ Native token balances also start at 0. You can give native tokens to agents by
 setting the `Mocknet#balances` property:
 
 ```typescript
-equal(mocknet.height, 0)
+equal(await chain.height, 0)
 
 chain.balances[agent.address] = 1000
 assert.equal(await chain.getBalance(agent.address), 1000)
@@ -66,15 +66,16 @@ Uploading WASM blob will return the expected monotonously incrementing code ID..
 
 ```typescript
 import { pathToFileURL } from 'url'
-const uploaded_a = await agent.upload(Testing.examples['Echo'].data)
-const uploaded_b = await agent.upload(Testing.examples['KV'].data)
+import { examples } from '../../examples/Examples.spec.ts.md'
+const uploaded_a = await agent.upload(examples['Echo'].data.load())
+const uploaded_b = await agent.upload(examples['KV'].data.load())
 assert.equal(uploaded_b.codeId,  String(Number(uploaded_a.codeId) + 1))
 ```
 
 ...which you can use to instantiate the contract.
 
 ```typescript
-const client_a = await agent.instantiate(template_a, {
+const client_a = await agent.instantiate(uploaded_a, {
   label: 'test',
   initMsg: { fail: false }
 })
@@ -89,7 +90,7 @@ Contract can use to platform APIs as provided by Mocknet:
 
 ```typescript
 agent    = await new Mocknet().getAgent()
-template = await agent.upload(Testing.examples['KV'].data)
+template = await agent.upload(examples['KV'].data)
 instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { value: "foo" } }))
 client   = Object.assign(instance.getClientSync(), { agent })
 
@@ -151,7 +152,7 @@ let key:   string
 let value: string
 let data:  string
 
-contract = await new MocknetBackend.Contract().load(Testing.examples['Echo'].data)
+contract = await new MocknetBackend.Contract().load(examples['Echo'].data)
 response = contract.init(Testing.mockEnv(), { fail: false })
 key      = "Echo"
 value    = utf8toB64(JSON.stringify({ fail: false }))
@@ -192,9 +193,9 @@ assert.throws(()=>new MocknetBackend().makeEnv())
 assert.rejects(new MocknetBackend().passCallbacks())
 
 assert.ok(new MocknetBackend('mocknet', {
-  123: Testing.examples['Echo'].data
+  123: examples['Echo'].data
 }, {
-  'someaddr': await new MocknetBackend.Contract().load(Testing.examples['Echo'].data)
+  'someaddr': await new MocknetBackend.Contract().load(examples['Echo'].data)
 }).passCallbacks('sender', [
   {wasm:{instantiate:{msg:utf8toB64('{"fail":false}'), code_id: 123}}},
   {wasm:{execute:    {msg:utf8toB64('"echo"'), contract_addr: 'someaddr'}}},

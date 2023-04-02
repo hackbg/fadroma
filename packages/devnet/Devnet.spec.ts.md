@@ -25,10 +25,12 @@ $ npx fadroma devnet clear
 ```typescript
 import getDevnet from '@fadroma/devnet'
 
-const chain = await getDevnet({ /* options */ }).start()
-await chain.stop()
-await chain.export()
-await chain.clear()
+const node = await getDevnet({ /* options */ })
+await node.spawn()
+await node.respawn()
+await node.kill()
+await node.export()
+await node.erase()
 ```
 
 ### Connecting to a devnet
@@ -39,8 +41,7 @@ On devnet, Fadroma creates named genesis accounts for you,
 which you can use by passing `name` to `getAgent`:
 
 ```typescript
-const mockNode = { getGenesisAccount () { return {} }, respawn () {} }
-chain = new Chain('id', { mode: Chain.Mode.Devnet, node: mockNode })
+const chain = new Chain('id', { mode: Chain.Mode.Devnet, node })
 assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
 ```
 

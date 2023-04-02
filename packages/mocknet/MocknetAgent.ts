@@ -1,3 +1,4 @@
+import Error from './MocknetError'
 import type Mocknet from './MocknetChain'
 import type MocknetBundle from './MocknetBundle'
 import { ADDRESS_PREFIX } from './MocknetData'
@@ -28,8 +29,9 @@ export default class MocknetAgent extends Agent {
 
   address: Address = randomBech32(ADDRESS_PREFIX)
 
-  constructor (readonly options: AgentOpts) {
+  constructor (options: AgentOpts & { chain: Mocknet }) {
     super(options)
+    this.chain = options.chain
   }
 
   get defaultDenom (): string {
@@ -37,7 +39,10 @@ export default class MocknetAgent extends Agent {
   }
 
   get backend (): MocknetBackend {
-    return (this.chain as unknown as Mocknet).backend
+    const chain = this.chain
+    if (!chain) throw new Error.NoChain()
+    if (!chain.backend) throw new Error.NoBackend()
+    return chain.backend
   }
 
   async upload (blob: Uint8Array): Promise<Uploaded> {

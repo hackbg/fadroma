@@ -8,7 +8,7 @@
   "description": "Spawn local instance of blockchain for smart contract development.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite devnet.spec.ts.md || true",
+    "test":  "ensuite Devnet.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {
