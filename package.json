@@ -105,6 +105,6 @@
     }
   },
   "lint-staged": {
-    "*.ts": "pnpm check && pnpm test"
+    "*.ts": "pnpm check && git add pnpm-lock.yaml && pnpm test"
   }
 }
