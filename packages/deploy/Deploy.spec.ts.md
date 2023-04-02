@@ -473,7 +473,7 @@ const { templateClientFoo, templateClientBar } = await template.instances({
 ```
 
 ```typescript
-import assert from 'node:assert'
+import assert, { ok } from 'node:assert'
 import { Deployment } from '@fadroma/core'
 import { withTmpFile } from '@hackbg/file'
 function inTmpDeployment (cb) {

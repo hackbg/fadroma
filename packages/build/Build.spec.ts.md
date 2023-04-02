@@ -42,15 +42,22 @@ assert(builder instanceof Builder)
 
 ### Building
 
+Building asynchronously returns `Template` instances.
+A `Template` is an undeployed contract. You can upload
+it once, and instantiate any number of `Contract`s from it.
+
 ```typescript
-const template = await builder.build('contract_0')
+const contract_0 = await builder.build('contract_0')
 
-const [template1, template2] = await builder.buildMany([ 'contract_1', 'contract_2' ])
+const [contract_1, contract_2] = await builder.buildMany([
+  'contract_1',
+  'contract_2'
+])
 
-const {template3, template4} = await builder.buildMany({
-  template3: 'contract_3',
-  template4: 'contract_4'
-})
+import { Template } from '@fadroma/core'
+assert(contract_0 instanceof Template)
+assert(contract_1 instanceof Template)
+assert(contract_2 instanceof Template)
 ```
 
 ### Specifying sources

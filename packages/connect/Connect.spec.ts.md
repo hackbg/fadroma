@@ -16,13 +16,7 @@ $ fadroma chain list
 ```typescript
 import connect from '@fadroma/connect'
 
-const agent = await connect()
-
-const [agent1, agent2] = await connect.many([{}, {}])
-
-const [agent3, agent4] = await connect.many({ agent3: {}, agent4: {} })
-
-const connectToMocknet = connect.config({ chain: 'mocknet' })
+const agent = await connect({})
 ```
 
 ### Connecting to...
@@ -35,9 +29,10 @@ const supportedChains = [ Scrt, ]
 ```
 
 ```typescript
+import { mnemonics } from '../../examples/Examples.spec.ts.md'
 for (const Chain of supportedChains) {
   const chain = new Chain('test')
-  const agent = await chain.getAgent({ mnemonic: Testing.mnemonics[0] })
+  const agent = await chain.getAgent({ mnemonic: mnemonics[0] })
   assert(agent instanceof Chain.Agent)
 }
 ```
@@ -58,7 +53,7 @@ for (const Chain of supportedChains) {
 ```typescript
 for (const Chain of supportedChains) {
   const chain    = new Chain('test', {})
-  const mnemonic = Testing.mnemonics[0]
+  const mnemonic = mnemonics[0]
   const agent    = await chain.getAgent({ mnemonic })
   assert.equal(agent.chain,    chain)
   assert.equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
@@ -67,9 +62,9 @@ for (const Chain of supportedChains) {
 for (const Chain of [
   ScrtAmino
 ]) {
-  await Testing.withMockAPIEndpoint(async endpoint => {
+  await withMockAPIEndpoint(async endpoint => {
     const chain    = new Chain('test', { url: endpoint.url })
-    const mnemonic = Testing.mnemonics[0]
+    const mnemonic = mnemonics[0]
     const agent    = await chain.getAgent({ mnemonic })
     const [ {header:{height:block1}}, account1, balance1 ] =
       await Promise.all([ agent.block, agent.account, agent.balance ])
@@ -89,8 +84,8 @@ for (const Chain of [
   continue // TODO
   await withMockAPIEndpoint(async endpoint => {
     const chain     = new Chain('test', { url: endpoint.url })
-    const mnemonic1 = Testing.mnemonics[0]
-    const mnemonic2 = Testing.mnemonics[1]
+    const mnemonic1 = mnemonics[0]
+    const mnemonic2 = mnemonics[1]
     const [agent1, agent2] = await Promise.all([
       chain.getAgent({mnemonic: mnemonic1}),
       chain.getAgent({mnemonic: mnemonic2}),
@@ -114,7 +109,7 @@ for (const Chain of [
 
 // bundles implemented on all chains
 for (const Chain of supportedChains) {
-  const mnemonic = Testing.mnemonics[0]
+  const mnemonic = mnemonics[0]
   const agent    = await new Chain('🤡', {}).getAgent({ mnemonic })
   const bundle   = agent.bundle()
   ok(bundle instanceof Chain.Agent.Bundle)
@@ -250,8 +245,8 @@ async function supportsWaitingForNextBlock (Chain) {
 ```typescript
 async function supportsNativeTransfers (Chain) {
   const chain = new Chain('test')
-  const mnemonic1 = Testing.mnemonics[0]
-  const mnemonic2 = Testing.mnemonics[1]
+  const mnemonic1 = mnemonics[0]
+  const mnemonic2 = mnemonics[1]
   const [agent1, agent2] = await Promise.all([
     chain.getAgent({mnemonic: mnemonic1}), chain.getAgent({mnemonic: mnemonic2}),
   ])

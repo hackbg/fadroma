@@ -71,105 +71,94 @@ export default class ContainerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (contracts: (Buildable & Partial<Built>)[]): Promise<Built[]> {
-
-    const self      = this
-    const roots     = new Set<string>()
-    const revisions = new Set<string>()
+  async buildMany (contracts: (string|(Buildable & Partial<Built>))[]): Promise<Built[]> {
+    // Copy the argument because we'll mutate it later on
+    contracts = [...contracts]
+    // For batching together contracts from the same repo+commit
+    const workspaces = new Set<string>()
+    const revisions  = new Set<string>()
+    // For indentation
     let longestCrateName = 0
-
     // Go over the list of contracts, filtering out the ones that are already built,
     // and collecting the source repositories and revisions. This will allow for
     // multiple crates from the same source checkout to be passed to a single build command.
-    for (const contract of contracts) {
-      prebuildContract(contract)
-    }
-
-    // For each repository/revision pair, build the contracts from it.
-    for (const path of roots) {
-      for (const revision of revisions) {
-        await buildContracts(path, revision)
+    for (let id in contracts) {
+      // Contracts passed as strins are converted to object here
+      if (typeof contracts[id] === 'string') contracts[id] = {
+        workspace: this.config.project,
+        crate: contracts[id] as string,
       }
-    }
-
-    return contracts as Built[]
-
-    function prebuildContract (contract: Buildable) {
+      const contract = contracts[id] as Buildable & Partial<Built>
       // Collect maximum length to align console output
       if (contract.crate && contract.crate.length > longestCrateName) {
         longestCrateName = contract.crate.length
       }
       // If the contract is already built, don't build it again
-      if (!self.prebuilt(contract)) {
-        self.log.buildingOne(contract)
+      if (!this.prebuilt(contract)) {
+        this.log.buildingOne(contract)
         // Set ourselves as the contract's builder
-        contract.builder = self as unknown as Builder
+        contract.builder = this as unknown as Builder
         // Add the source repository of the contract to the list of sources to build
-        roots.add(contract.workspace!)
+        workspaces.add(contract.workspace!)
         revisions.add(contract.revision!)
       }
     }
-
-    async function buildContracts (path: string, revision: string) {
-
-      // Which directory to mount into the build container? By default,
-      // this is the root of the workspace. But if the workspace is not
-      // at the root of the Git repo (e.g. when using Git submodules),
-      // a parent directory may need to be mounted to get the full
-      // Git history.
-      let mounted = $(path)
-
-      if (self.verbose) {
-        self.log.buildingFromWorkspace(mounted, revision)
-      }
-
-      // If we're building from history, update `mounted` to make sure
-      // that the full contents of the Git repo will be mounted in the
-      // build container.
-      if (revision !== HEAD) {
-        const gitDir = getGitDir({ workspace: path })
-        mounted = gitDir.rootRepo
-        const remote = process.env.FADROMA_PREFERRED_REMOTE || 'origin'
-        try {
-          await self.fetch(gitDir, remote)
-        } catch (e) {
-          console.warn(`Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`)
-          console.warn(e)
+    // For each repository/revision pair, build the contracts from it.
+    for (const path of workspaces) {
+      for (const revision of revisions) {
+        // Which directory to mount into the build container? By default,
+        // this is the root of the workspace. But if the workspace is not
+        // at the root of the Git repo (e.g. when using Git submodules),
+        // a parent directory may need to be mounted to get the full
+        // Git history.
+        let mounted = $(path)
+        if (this.verbose) this.log.buildingFromWorkspace(mounted, revision)
+        // If we're building from history, update `mounted` to make sure
+        // that the full contents of the Git repo will be mounted in the
+        // build container.
+        if (revision !== HEAD) {
+          const gitDir = getGitDir({ workspace: path })
+          mounted = gitDir.rootRepo
+          const remote = process.env.FADROMA_PREFERRED_REMOTE || 'origin'
+          try {
+            await this.fetch(gitDir, remote)
+          } catch (e) {
+            console.warn(`Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`)
+            console.warn(e)
+          }
+        }
+        // Match each crate from the current repo/ref pair
+        // with its index in the originally passed list of contracts.
+        const crates: [number, string][] = []
+        for (let index = 0; index < contracts.length; index++) {
+          const source = contracts[index] as Buildable & Partial<Built>
+          if (source.workspace === path && source.revision === revision) {
+            crates.push([index, source.crate!])
+          }
+        }
+        // Build the crates from each same workspace/revision pair and collect the results.
+        // sequentially in the same container.
+        // Collect the templates built by the container
+        const results = await this.runBuildContainer(
+          mounted.path,
+          mounted.relative(path),
+          revision,
+          crates,
+          (revision !== HEAD)
+            ? (gitDir=>gitDir.isSubmodule?gitDir.submoduleDir:'')(getGitDir({ workspace: path }))
+            : ''
+        )
+        // Using the previously collected indices,
+        // populate the values in each of the passed contracts.
+        for (const index in results) {
+          if (!results[index]) continue
+          const contract = contracts[index] as Buildable & Partial<Built>
+          contract.artifact = results[index]!.artifact
+          contract.codeHash = results[index]!.codeHash
         }
       }
-
-      // Match each crate from the current repo/ref pair
-      // with its index in the originally passed list of contracts.
-      const crates: [number, string][] = []
-      for (let index = 0; index < contracts.length; index++) {
-        const source = contracts[index]
-        if (source.workspace === path && source.revision === revision) {
-          crates.push([index, source.crate!])
-        }
-      }
-
-      // Build the crates from each same workspace/revision pair and collect the results.
-      // sequentially in the same container.
-      // Collect the templates built by the container
-      const results = await self.runBuildContainer(
-        mounted.path,
-        mounted.relative(path),
-        revision,
-        crates,
-        (revision !== HEAD)
-          ? (gitDir=>gitDir.isSubmodule?gitDir.submoduleDir:'')(getGitDir({ workspace: path }))
-          : ''
-      )
-
-      // Using the previously collected indices,
-      // populate the values in each of the passed contracts.
-      for (const index in results) {
-        if (!results[index]) continue
-        contracts[index].artifact = results[index]!.artifact
-        contracts[index].codeHash = results[index]!.codeHash
-      }
-
     }
+    return contracts as Built[]
   }
 
   protected async fetch (gitDir: Path, remote: string) {

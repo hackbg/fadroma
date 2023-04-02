@@ -162,7 +162,7 @@ import { readFileSync } from 'node:fs'
 
 // Uploading a single piece of code:
 //await agent.upload('example.wasm')
-await agent.upload(readFileSync('../../fixtures/null.wasm'))
+await agent.upload(readFileSync('fixtures/null.wasm'))
 //await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' })
 
 // Uploading multiple pieces of code:
