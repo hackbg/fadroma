@@ -33,7 +33,7 @@ through the Fadroma Client API.
 
 ```typescript
 import * as Mocknet from '@fadroma/mocknet'
-let chain = new Mocknet.CW0()
+let chain = new Mocknet.CW1()
 let agent = await chain.getAgent()
 
 import { Chain, Agent } from '@fadroma/core'

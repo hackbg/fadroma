@@ -106,5 +106,10 @@
   },
   "lint-staged": {
     "*.ts": "pnpm check && git add pnpm-lock.yaml && pnpm test"
+  },
+  "fadroma": {
+    "contracts": {
+      "kv": "./examples/kv"
+    }
   }
 }

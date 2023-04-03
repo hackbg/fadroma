@@ -16,6 +16,12 @@ import { execSync } from 'node:child_process'
 
 export * from './projectWizard'
 
+import type { Buildable } from '@fadroma/core'
+
+export type ProjectConfig = {
+  contracts: Record<string, Buildable>
+}
+
 export type ProjectContract = {
   /** Source crate/workspace. Defaults to root crate of project. */
   source?: string,
@@ -25,7 +31,16 @@ export type ProjectContract = {
   features?: string[]
 }
 
-export default class Project {
+/** @returns the config of the current project, or the project at the specified path */
+export default function getProject (
+  path: string|OpaqueDirectory = process.cwd()
+): ProjectConfig {
+  const packageJSON = $(path).as(OpaqueDirectory).at('package.json').as(JSONFile).load()
+  const { fadroma } = packageJSON as { fadroma: ProjectConfig }
+  return fadroma
+}
+
+export class Project {
 
   constructor (
     /** Name of the project. */

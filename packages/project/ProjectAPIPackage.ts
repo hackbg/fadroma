@@ -1,4 +1,4 @@
-import type Project from './Project'
+import type { Project } from './Project'
 import { OpaqueDirectory, JSONFile, TextFile } from '@hackbg/file'
 import Case from 'case'
 

@@ -1,4 +1,4 @@
-import Project from './Project'
+import { Project } from './Project'
 import $, { Path } from '@hackbg/file'
 import { Console, bold, colors } from '@hackbg/logs'
 import { execSync } from 'node:child_process'
