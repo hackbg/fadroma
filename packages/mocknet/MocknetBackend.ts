@@ -64,6 +64,7 @@ export default abstract class MocknetBackend {
   ): Promise<Partial<AnyContract>> {
     const label    = instance.label
     const initMsg  = await into(instance.initMsg)
+    if (typeof initMsg === 'undefined') throw new Error('Tried to instantiate a contract with undefined initMsg')
     const chainId  = this.chainId
     const code     = this.getCode(instance.codeId!)
     const Contract = (this.constructor as any).Contract

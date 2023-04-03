@@ -80,6 +80,7 @@ export class MocknetContract_CW1 extends MocknetContract<
   }
 
   initPtrs (env: unknown, info: unknown, msg: Message): [Ptr, Ptr, Ptr] {
+    if (typeof msg === 'undefined') throw new Error('Tried to init contract with undefined init msg')
     return [this.pass(env), this.pass(info), this.pass(msg)]
   }
 

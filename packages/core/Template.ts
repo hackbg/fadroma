@@ -195,9 +195,8 @@ export default class Template<C extends Client> {
     return { id: this.codeId!, code_hash: this.codeHash! }
   }
 
-  /** Get an instance of this contract, or define a new one.
-    * @returns task for deploying a contract, returning its client */
-  instance (overrides?: Partial<Contract<C>>): Task<Contract<C>, C> {
+  /** @returns a Contract representing a specific instance of this Template. */
+  instance (overrides?: Partial<Contract<C>>): Contract<C> {
     const options: Partial<Contract<C>> = {
       ...this as unknown as Partial<Contract<C>>,
       ...overrides
@@ -205,7 +204,7 @@ export default class Template<C extends Client> {
     const instance: Contract<C> = this.context
       ? this.context.contract(options)
       : new Contract(options)
-    return instance.deployed
+    return instance
   }
 
   /** Get a collection of multiple clients to instances of this contract.
@@ -218,7 +217,7 @@ export default class Template<C extends Client> {
       this: Self
     ): Promise<Many<Task<Contract<C>, C>>> {
       return map(contracts, (options: Partial<Contract<C>>): Task<Contract<C>, C> => {
-        return this.instance(options)
+        return this.instance(options).deployed
       })
     })
   }

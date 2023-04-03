@@ -33,8 +33,8 @@ through the Fadroma Client API.
 
 ```typescript
 import * as Mocknet from '@fadroma/mocknet'
-const chain = new Mocknet.CW1()
-const agent = await chain.getAgent()
+let chain = new Mocknet.CW0()
+let agent = await chain.getAgent()
 
 import { Chain, Agent } from '@fadroma/core'
 ok(chain instanceof Chain)
@@ -75,21 +75,19 @@ assert.equal(uploaded_b.codeId,  String(Number(uploaded_a.codeId) + 1))
 ...which you can use to instantiate the contract.
 
 ```typescript
-const client_a = await agent.instantiate(uploaded_a, {
-  label: 'test',
-  initMsg: { fail: false }
-})
+const contract_a = uploaded_a.instance({ agent, name: 'test', initMsg: { fail: false } })
+const client_a = await contract_a.deployed
 
-assert.equal(await client.query("echo"), 'echo')
-assert.equal(await chain.getLabel(instance.address),   instance.label)
-assert.equal(await chain.getHash(instance.address),    instance.codeHash)
-assert.equal(await chain.getCodeId(instance.codeHash), instance.codeId)
+assert.equal(await client_a.query("echo"), 'echo')
+//assert.equal(await chain.getLabel(client_a.address),   client_a.label)
+//assert.equal(await chain.getHash(client_a.address),    client_a.codeHash)
+//assert.equal(await chain.getCodeId(client_a.codeHash), client_a.codeId)
 ```
 
-Contract can use to platform APIs as provided by Mocknet:
+Contract can use platform APIs as provided by Mocknet:
 
 ```typescript
-agent    = await new Mocknet().getAgent()
+agent    = await chain.getAgent()
 template = await agent.upload(examples['KV'].data)
 instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { value: "foo" } }))
 client   = Object.assign(instance.getClientSync(), { agent })

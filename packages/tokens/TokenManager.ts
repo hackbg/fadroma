@@ -144,7 +144,7 @@ export default class TokenManager extends CommandContext {
           options?.admin    ?? this.context.agent?.address!,
           options?.config
         ),
-      }).context! as TokenContract
+      }) as TokenContract
 
       this.add(symbol, this.context.addContract(name, instance))
     }
