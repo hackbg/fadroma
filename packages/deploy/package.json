@@ -7,9 +7,9 @@
   "description": "Upload and instantiate smart contracts.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite deploy.spec.ts.md || true",
-    "cov":   "ensuite-cov -r text -- deploy.spec.ts.md",
-    "lcov":  "ensuite-cov -r lcov -- deploy.spec.ts.md",
+    "test":  "ensuite Deploy.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- Deploy.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- Deploy.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {

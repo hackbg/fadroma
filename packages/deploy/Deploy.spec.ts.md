@@ -286,31 +286,15 @@ import { Contract } from '@fadroma/core'
 const nullContract = new Contract()
 ```
 
-This gives you an instance of the `Contract` class, representing a specific contract.
-This `Contract` instance is also callable as a function; calling the function is equivalent
-to instantiating the contract (and, if necessary, building and uploading it beforehand).
+This gives you an instance of the `Contract` class, representing a specific instance of a
+specific contract. The `Contract` class represents the fullest description of a smart contract
+in the Fadroma model: besides the usual address and code hash, it may contain info about
+contract source, upload and init transactions, etc. (In comparison, `Template` contains metadata
+up to right before instantiation, and `Client` does not concern itself with where the contract
+came from.)
 
 ```typescript
-assert(nullContract instanceof Contract)
-assert(typeof nullContract === 'function')
-```
-
-Calling a `Contract` instance returns a `Task`; this is a promise-like object which represents
-the action of deploying the contract. Like a regular `Promise`, a `Task` evaluates once, and
-completes asynchronously; unlike a `Promise` (which executes as soon as it is created), a `Task`
-only starts evaluating when the caller attempts to resolve it:
-
-```typescript
-const deployingNullContract = nullContract()
-assert(deployingNullContract.then instanceof Function)
-```
-
-Of course, the `Task` that we just created by calling the `Contract` instance will fail,
-because we haven't actually specified which contract to deploy; or where to deploy it;
-or who is it that will deploy it. Let's do that now.
-
-```typescript
-assert.rejects(async () => await deployingNullContract)
+assert.rejects(async () => await nullContract.deployed)
 ```
 
 ### Test preparation
@@ -350,7 +334,7 @@ To deploy the contract uploaded as code ID 1, just call `aContract`, passing two
   contract's init method.
 
 ```typescript
-const aClient = await aContract()
+const aClient = await aContract.deployed
 ```
 
 The call will resolve resolve to a `Client` instance. You can use this to talk to the deployed
