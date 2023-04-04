@@ -23,7 +23,7 @@ $ npx fadroma devnet clear
 ## Devnet API
 
 ```typescript
-import getDevnet from '@fadroma/devnet'
+import { getDevnet } from '@fadroma/ops'
 
 const node = await getDevnet({ /* options */ })
 await node.spawn()
@@ -47,15 +47,12 @@ assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
 
 ```typescript
 import {
-  defineDevnet,
   DevnetConfig,
   devnetPortModes,
   Devnet,
   DevnetCommands,
   resetDevnet
-} from '@fadroma/devnet'
-
-defineDevnet()
+} from '@fadroma/ops'
 
 ok(new DevnetConfig())
 ok(devnetPortModes)
@@ -91,7 +88,7 @@ await resetDevnet()
 ### Docker-based implementation
 
 ```typescript
-import { Devnet, DevnetContainer } from '@fadroma/devnet'
+import { Devnet, DevnetContainer } from '@fadroma/ops'
 import { withTmpFile } from '@hackbg/file'
 import * as Dokeres from '@hackbg/dock'
 import { resolve, basename } from 'path'
@@ -167,7 +164,7 @@ equal(dockerDevnet.genesisAccounts, identities)*/
 
 ```typescript
 import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/file'
-import { DevnetContainer } from '@fadroma/devnet'
+import { DevnetContainer } from '@fadroma/ops'
 // save/load Devnet state
 withTmpDir(async stateRoot=>{
   const chainId = 'fadroma-devnet'

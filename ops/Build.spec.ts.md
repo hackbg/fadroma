@@ -264,7 +264,7 @@ in its runtime environment, build reproducibility is dependent on the consistenc
 that environment.
 
 ```typescript
-import { mockBuilder } from './mocks'
+import { mockBuilder } from './build/mocks'
 mockBuilder(rawBuilder)
 ok(await rawBuilder.build({ workspace, crate }))
 ok(await rawBuilder.buildMany([

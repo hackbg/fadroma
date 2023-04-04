@@ -20,6 +20,6 @@ export * from './DevnetRemote'
 export { default as DevnetRemote } from './DevnetRemote'
 
 import Config from './DevnetConfig'
-export default function getDevnet (options: Partial<Config> = {}) {
+export function getDevnet (options: Partial<Config> = {}) {
   return new Config(options).getDevnet()
 }

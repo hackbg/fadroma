@@ -32,7 +32,7 @@ through the Fadroma Client API.
 * **NOTE:** Mocknets are currently not persistent.
 
 ```typescript
-import * as Mocknet from '@fadroma/mocknet'
+import * as Mocknet from '@fadroma/agent'
 let chain = new Mocknet.CW1()
 let agent = await chain.getAgent()
 
@@ -66,7 +66,7 @@ Uploading WASM blob will return the expected monotonously incrementing code ID..
 
 ```typescript
 import { pathToFileURL } from 'url'
-import { examples } from '../../examples/Examples.spec.ts.md'
+import { examples } from '../examples/Examples.spec.ts.md'
 const uploaded_a = await agent.upload(examples['Echo'].data.load())
 const uploaded_b = await agent.upload(examples['KV'].data.load())
 assert.equal(uploaded_b.codeId,  String(Number(uploaded_a.codeId) + 1))
@@ -127,8 +127,7 @@ export function mockEnv () {
 ```
 
 ```typescript
-import MocknetBackend, { MocknetContract } from './MocknetBackend'
-import { b64toUtf8, utf8toB64 } from './MocknetData'
+import { MocknetBackend, MocknetContract, b64toUtf8, utf8toB64 } from '@fadroma/agent'
 let backend:  MocknetBackend
 let contract: MocknetContract
 let response: { Ok: any, Err: any }

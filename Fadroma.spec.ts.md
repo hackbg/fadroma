@@ -82,12 +82,16 @@ To get started with writing Fadroma scripts,
 proceed to the [***Fadroma Core API Specification***](./packages/core/Core.spec.ts.md).
 
 ```typescript
-import './packages/core/Core.spec.ts.md'
-import './packages/build/Build.spec.ts.md'
-import './packages/connect/Connect.spec.ts.md'
-import './packages/deploy/Deploy.spec.ts.md'
-import './packages/devnet/Devnet.spec.ts.md'
-import './packages/mocknet/Mocknet.spec.ts.md'
+import './agent/Core.spec.ts.md'
+import './agent/Mocknet.spec.ts.md'
+
+import './ops/Project.spec.ts.md'
+import './ops/Build.spec.ts.md'
+import './ops/Upload.spec.ts.md'
+import './ops/Deploy.spec.ts.md'
+import './ops/Devnet.spec.ts.md'
+
+import './connect/Connect.spec.ts.md'
 import './platforms/scrt/Scrt.spec.ts.md'
 import './platforms/cw/CW.spec.ts.md'
 import './platforms/evm/EVM.spec.ts.md'

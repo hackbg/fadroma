@@ -7,7 +7,7 @@ $ npx fadroma project create
 ```
 
 ```typescript
-import Project from './Project'
+import { Project } from '@fadroma/ops'
 
 const project = new Project('my-project', './examples/project', {
   name: 'test',

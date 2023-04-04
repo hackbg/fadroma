@@ -567,7 +567,7 @@ importers:
   examples/project/ops:
     specifiers:
       '@fadroma/ops': ^2
-      '@my-project/api': link:../api
+      '@my-project/api': workspace:*
     devDependencies:
       '@fadroma/ops': 2.1.1
       '@my-project/api': link:../api

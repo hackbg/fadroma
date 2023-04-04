@@ -29,7 +29,7 @@ const supportedChains = [ Scrt, ]
 ```
 
 ```typescript
-import { mnemonics } from '../../examples/Examples.spec.ts.md'
+import { mnemonics } from '../examples/Examples.spec.ts.md'
 for (const Chain of supportedChains) {
   const chain = new Chain('test')
   const agent = await chain.getAgent({ mnemonic: mnemonics[0] })

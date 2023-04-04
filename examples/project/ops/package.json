@@ -4,6 +4,6 @@
   "private": true,
   "devDependencies": {
     "@fadroma/ops": "^2",
-    "@my-project/api": "link:../api"
+    "@my-project/api": "workspace:*"
   }
 }

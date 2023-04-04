@@ -52,7 +52,7 @@ import { basename } from 'path'
 import { withTmpFile } from '@hackbg/file'
 import { ExampleDeployment } from './deploy.example'
 import { pathToFileURL } from 'url'
-import { examples } from '../../examples/Examples.spec.ts.md'
+import { examples } from '../examples/Examples.spec.ts.md'
 
 let mnemonic: string = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
 let artifact: URL = examples['KV'].url
@@ -463,7 +463,7 @@ const { templateClientFoo, templateClientBar } = await template.instances({
 import assert, { ok, equal, deepEqual } from 'node:assert'
 import { Deployment } from '@fadroma/agent'
 import { withTmpFile } from '@hackbg/file'
-import { mockAgent } from '../../examples/Examples.spec.ts.md'
+import { mockAgent } from '../examples/Examples.spec.ts.md'
 function inTmpDeployment (cb) {
   return withTmpFile(f=>{
     const d = new Deployment(f, mockAgent())

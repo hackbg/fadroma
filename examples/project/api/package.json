@@ -2,7 +2,7 @@
   "name": "@my-project/api",
   "version": "0.0.0",
   "devDependencies": {
-    "@fadroma/scrt":   "^8",
+    "@fadroma/scrt": "^8",
     "@fadroma/tokens": "^7"
   }
 }

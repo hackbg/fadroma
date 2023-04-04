@@ -311,7 +311,7 @@ class MyClient extends Client {
   myQuery () { return this.query({ my_query: {} }) }
 }
 
-import { Builder } from './Build'
+import { Builder } from '@fadroma/agent'
 
 deployment = new Deployment({
   agent: new Agent({ chain: new Chain('test', { mode: Chain.Mode.Devnet }) }),
@@ -587,7 +587,7 @@ Implemented by `@fadroma/build`.
 * **ContainerBuilder**: runs the build in a container for enhanced reproducibility
 
 ```typescript
-import { build, buildMany } from './Build'
+import { build, buildMany } from '@fadroma/agent'
 
 await build({ builder: new Builder() })
 await buildMany([{}, {}], { builder: new Builder() })
@@ -601,7 +601,7 @@ Implemented by `@fadroma/upload`.
 * TODO: **FetchUploader**: Support for uploading from any URL incl. file:///
 
 ```typescript
-import { upload, uploadMany } from './Upload'
+import { upload, uploadMany } from '@fadroma/agent'
 
 chain = new Chain('test')
 const uploader = { upload () {}, uploadMany () {}, chain, agent: await chain.getAgent() }
@@ -622,7 +622,7 @@ custom error subclasses for various error conditions.
 
 ```typescript
 // Make sure each error subclass can be created with no arguments:
-import Error from './Error'
+import { Error } from '@fadroma/agent'
 for (const subtype of [
   'Unimplemented',
 
@@ -696,7 +696,7 @@ In the future, this will enable semantic logging and/or GUI notifications.
 
 ```typescript
 // Make sure each log message can be created with no arguments:
-import Console from './Console'
+import { Console } from '@fadroma/agent'
 const log = new Console()
 
 log.object()

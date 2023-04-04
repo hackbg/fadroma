@@ -9,7 +9,7 @@ Platform-specific logic and artifacts for Secret Network also exists
 in `@fadroma/devnet`.
 
 ```typescript
-import * as Scrt from '@fadroma/scrt'
+import { Scrt } from '@fadroma/connect'
 import assert from 'node:assert'
 ```
 
