@@ -1266,10 +1266,10 @@ fn test_handle_decrease_allowance() {
     );
 
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
-    let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
+    let alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
     assert_eq!(
         allowance,
@@ -1306,8 +1306,9 @@ fn test_handle_decrease_allowance() {
     );
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
+    
     assert_eq!(
         allowance,
         Allowance {
@@ -1343,10 +1344,10 @@ fn test_handle_increase_allowance() {
     );
 
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
-    let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
+    let alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
 
     assert_eq!(
@@ -1371,8 +1372,9 @@ fn test_handle_increase_allowance() {
     );
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
+
     assert_eq!(
         allowance,
         Allowance {
@@ -1380,6 +1382,218 @@ fn test_handle_increase_allowance() {
             expiration: None
         }
     );
+}
+
+#[test]
+fn test_query_all_allowances() {
+    let num_owners = 3;
+    let num_spenders = 20;
+    let vk = "key".to_string();
+
+    let initial_balances: Vec<InitialBalance> = (0..num_owners).into_iter().map(|i| {
+        InitialBalance {
+            address: format!("owner{}", i),
+            amount: Uint128::new(5000),
+        }
+    }).collect();
+
+    let (init_result, mut deps) = init_helper(initial_balances);
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    for i in 0..num_owners {
+        let handle_msg = ExecuteMsg::SetViewingKey {
+            key: vk.clone(),
+            padding: None,
+        };
+
+        let info = mock_info(format!("owner{}", i).as_str(), &[]);
+
+        let handle_result = execute(deps.as_mut(), mock_env(), info, handle_msg);
+        let unwrapped_result: ExecuteAnswer = from_binary(
+            &handle_result.unwrap().data.unwrap()
+        ).unwrap();
+
+        assert_eq!(
+            to_binary(&unwrapped_result).unwrap(),
+            to_binary(&ExecuteAnswer::SetViewingKey {
+                status: ResponseStatus::Success
+            })
+            .unwrap(),
+        );
+    }
+
+    for i in 0..num_owners {
+        for j in 0..num_spenders {
+            let handle_msg = ExecuteMsg::IncreaseAllowance {
+                spender: format!("spender{}", j),
+                amount: Uint128::new(50),
+                padding: None,
+                expiration: None,
+            };
+            let info = mock_info(format!("owner{}", i).as_str(), &[]);
+
+            let handle_result = execute(deps.as_mut(), mock_env(), info, handle_msg);
+            assert!(
+                handle_result.is_ok(),
+                "handle() failed: {}",
+                handle_result.err().unwrap()
+            );
+
+            let handle_msg = ExecuteMsg::SetViewingKey {
+                key: vk.clone(),
+                padding: None,
+            };
+            let info = mock_info(format!("spender{}", j).as_str(), &[]);
+
+            let handle_result = execute(deps.as_mut(), mock_env(), info, handle_msg);
+
+            let unwrapped_result: ExecuteAnswer =
+                from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
+                
+            assert_eq!(
+                to_binary(&unwrapped_result).unwrap(),
+                to_binary(&ExecuteAnswer::SetViewingKey {
+                    status: ResponseStatus::Success
+                })
+                .unwrap(),
+            );
+        }
+    }
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner0".to_string(),
+        key: vk.clone(),
+        page: None,
+        page_size: 5,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner0".to_string());
+            assert_eq!(allowances.len(), 5);
+            assert_eq!(allowances[0].spender, "spender0");
+            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
+            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner1".to_string(),
+        key: vk.clone(),
+        page: Some(1),
+        page_size: 5,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner1".to_string());
+            assert_eq!(allowances.len(), 5);
+            assert_eq!(allowances[0].spender, "spender5");
+            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
+            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner1".to_string(),
+        key: vk.clone(),
+        page: Some(0),
+        page_size: 23,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner1".to_string());
+            assert_eq!(allowances.len(), 20);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner1".to_string(),
+        key: vk.clone(),
+        page: Some(2),
+        page_size: 8,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner1".to_string());
+            assert_eq!(allowances.len(), 4);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner2".to_string(),
+        key: vk.clone(),
+        page: Some(5),
+        page_size: 5,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner2".to_string());
+            assert_eq!(allowances.len(), 0);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesReceived {
+        spender: "spender0".to_string(),
+        key: vk.clone(),
+        page: None,
+        page_size: 10,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances, count } => {
+            assert_eq!(spender, "spender0".to_string());
+            assert_eq!(allowances.len(), 3);
+            assert_eq!(allowances[0].owner, "owner0");
+            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
+            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(count, num_owners);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesReceived {
+        spender: "spender1".to_string(),
+        key: vk.clone(),
+        page: Some(1),
+        page_size: 1,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances, count } => {
+            assert_eq!(spender, "spender1".to_string());
+            assert_eq!(allowances.len(), 1);
+            assert_eq!(allowances[0].owner, "owner1");
+            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
+            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(count, num_owners);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
 }
 
 #[test]

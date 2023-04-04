@@ -206,13 +206,59 @@ pub(crate) mod default_impl {
             owner: (&Account, String),
             spender: (&Account, String)
         ) -> StdResult<QueryAnswer> {
-            let allowance = owner.0.allowance(storage, spender.0.addr())?;
+            let allowance = owner.0.allowance(storage, spender.0)?;
     
             Ok(QueryAnswer::Allowance {
                 owner: Addr::unchecked(owner.1),
                 spender: Addr::unchecked(spender.1),
                 allowance: allowance.amount,
                 expiration: allowance.expiration
+            })
+        }
+
+        /// **This function does not perform authentication!**
+        /// 
+        /// Must be called after the address was verified via a viewing key or a permit.
+        #[inline]
+        pub fn query_given_allowances(
+            deps: Deps,
+            owner: (&Account, String),
+            page: Option<u32>,
+            page_size: u32
+        ) -> StdResult<QueryAnswer> {
+            let (allowances, count) = owner.0.allowances(
+                deps,
+                page.unwrap_or(0),
+                page_size
+            )?;
+
+            Ok(QueryAnswer::AllowancesGiven {
+                owner: Addr::unchecked(owner.1),
+                allowances,
+                count
+            })
+        }
+
+        /// **This function does not perform authentication!**
+        /// 
+        /// Must be called after the address was verified via a viewing key or a permit.
+        #[inline]
+        pub fn query_received_allowances(
+            deps: Deps,
+            spender: (&Account, String),
+            page: Option<u32>,
+            page_size: u32
+        ) -> StdResult<QueryAnswer> {
+            let (allowances, count) = spender.0.received_allowances(
+                deps,
+                page.unwrap_or(0),
+                page_size
+            )?;
+
+            Ok(QueryAnswer::AllowancesReceived {
+                spender: Addr::unchecked(spender.1),
+                allowances,
+                count
             })
         }
 
@@ -480,10 +526,12 @@ pub(crate) mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let account = Account::of(info.sender.as_str().canonize(deps.api)?);
-            let spender_canon = spender.as_str().canonize(deps.api)?;
+            let spender_acc = Account::of(spender.as_str().canonize(deps.api)?);
     
-            let new_allowance =
-                account.update_allowance(deps.storage, &spender_canon, |allowance| {
+            let new_allowance = account.update_allowance(
+                deps.storage,
+                &spender_acc,
+                |mut allowance| {
                     // If the previous allowance has expired, reset the allowance.
                     // Without this users can take advantage of an expired allowance given to
                     // them long ago.
@@ -498,8 +546,9 @@ pub(crate) mod default_impl {
                         allowance.expiration = expiration;
                     }
     
-                    Ok(())
-                })?;
+                    Ok(allowance)
+                }
+            )?;
     
             ExecuteAnswer::IncreaseAllowance {
                 owner: info.sender,
@@ -516,10 +565,12 @@ pub(crate) mod default_impl {
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let account = Account::of(info.sender.as_str().canonize(deps.api)?);
-            let spender_canon = spender.as_str().canonize(deps.api)?;
+            let spender_acc = Account::of(spender.as_str().canonize(deps.api)?);
     
-            let new_allowance =
-                account.update_allowance(deps.storage, &spender_canon, |allowance| {
+            let new_allowance = account.update_allowance(
+                deps.storage,
+                &spender_acc,
+                |mut allowance| {
                     // If the previous allowance has expired, reset the allowance.
                     // Without this users can take advantage of an expired allowance given to
                     // them long ago.
@@ -534,8 +585,9 @@ pub(crate) mod default_impl {
                         allowance.expiration = expiration;
                     }
     
-                    Ok(())
-                })?;
+                    Ok(allowance)
+                }
+            )?;
             
             ExecuteAnswer::DecreaseAllowance {
                 owner: info.sender,
@@ -1109,6 +1161,56 @@ pub(crate) mod default_impl {
                 Self::query_transactions(deps, &account, page, page_size)
             }
         }
+
+        #[query]
+        fn allowances_given(
+            owner: String,
+            key: String,
+            page: Option<u32>,
+            page_size: u32
+        ) -> Result<QueryAnswer, <Self as Snip20>::Error> {
+            let account = Account::of(owner.as_str().canonize(deps.api)?);
+
+            if let Some(err) = Self::authenticate(
+                deps.storage,
+                &[&account],
+                &ViewingKey(key)
+            )? {
+                Ok(err)
+            } else {
+                Self::query_given_allowances(
+                    deps,
+                    (&account, owner),
+                    page,
+                    page_size
+                )
+            }
+        }
+    
+        #[query]
+        fn allowances_received(
+            spender: String,
+            key: String,
+            page: Option<u32>,
+            page_size: u32
+        ) -> Result<QueryAnswer, <Self as Snip20>::Error> {
+            let account = Account::of(spender.as_str().canonize(deps.api)?);
+
+            if let Some(err) = Self::authenticate(
+                deps.storage,
+                &[&account],
+                &ViewingKey(key)
+            )? {
+                Ok(err)
+            } else {
+                Self::query_received_allowances(
+                    deps,
+                    (&account, spender),
+                    page,
+                    page_size
+                )
+            }
+        }
     
         #[query]
         fn with_permit(
@@ -1176,6 +1278,40 @@ pub(crate) mod default_impl {
                         deps.storage,
                         (&owner_acc, owner),
                         (&spender_acc, spender)
+                    )
+                }
+                QueryWithPermit::AllowancesGiven { owner, page, page_size } => {
+                    if !permit.has_permission(&QueryPermission::Allowance) {
+                        return Err(StdError::generic_err(format!(
+                            "No permission to query given allowances, got permissions {:?}",
+                            permit.params.permissions
+                        )));
+                    }
+
+                    let account = Account::of(owner.as_str().canonize(deps.api)?);
+
+                    Self::query_given_allowances(
+                        deps,
+                        (&account, owner),
+                        page,
+                        page_size
+                    )
+                }
+                QueryWithPermit::AllowancesReceived { spender, page, page_size } => {
+                    if !permit.has_permission(&QueryPermission::Allowance) {
+                        return Err(StdError::generic_err(format!(
+                            "No permission to query given allowances, got permissions {:?}",
+                            permit.params.permissions
+                        )));
+                    }
+
+                    let account = Account::of(spender.as_str().canonize(deps.api)?);
+
+                    Self::query_received_allowances(
+                        deps,
+                        (&account, spender),
+                        page,
+                        page_size
                     )
                 }
             }
@@ -1389,7 +1525,7 @@ pub(crate) mod default_impl {
             ))
         }
 
-        owner.update_allowance(storage, spender.addr(), |allowance| {
+        owner.update_allowance(storage, spender, |mut allowance| {
             if allowance.is_expired_at(&env.block) {
                 return Err(insufficient_allowance(Uint128::zero(), amount));
             }
@@ -1400,7 +1536,7 @@ pub(crate) mod default_impl {
                 return Err(insufficient_allowance(allowance.amount, amount));
             }
 
-            Ok(())
+            Ok(allowance)
         })
     }
 

@@ -2,13 +2,14 @@ use std::ops::Deref;
 
 use crate::{
     self as fadroma,
-    storage::Segment,
-    scrt::snip20::client::TokenConfig,
+    storage::{Segment, iterable::IterableStorage},
+    scrt::snip20::client::{TokenConfig, GivenAllowance, ReceivedAllowance},
+    cosmwasm_std::{self, BlockInfo, CanonicalAddr, StdResult, Storage, Uint128, Deps},
     prelude::{
-        BlockInfo, CanonicalAddr, StdResult, Storage, Uint128,
-        ViewingKey, ViewingKeyHashed, SingleItem, ItemSpace,
-        TypedKey, TypedKey2, FadromaSerialize, FadromaDeserialize
-    }
+        ViewingKey, ViewingKeyHashed, SingleItem, ItemSpace, TypedKey,
+        TypedKey2, FadromaSerialize, FadromaDeserialize, Canonize, Humanize
+    },
+    impl_canonize_default
 };
 
 use schemars::JsonSchema;
@@ -55,6 +56,8 @@ pub enum TokenPermission {
 
 crate::namespace!(BalancesNs, b"DyCKbmlEL8");
 crate::namespace!(AllowancesNs, b"eXDXajOxRG");
+crate::namespace!(AllowancesIndicesNs, b"WHzOdOcMvW");
+crate::namespace!(AllowedNs, b"YjRo4tM6pC");
 crate::namespace!(ViewingKeyNs, b"MLRCoHCV8x");
 crate::namespace!(ReceierHashNs, b"V1SJqXtGju");
 
@@ -63,11 +66,25 @@ pub struct Account {
     addr: CanonicalAddr
 }
 
-#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, Default, JsonSchema, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Copy, PartialEq, Default, JsonSchema, Debug)]
 pub struct Allowance {
     pub amount: Uint128,
     pub expiration: Option<u64>
 }
+
+#[derive(FadromaSerialize, FadromaDeserialize, JsonSchema, Canonize, Debug)]
+struct AllowanceEntry<A> {
+    spender: A,
+    allowance: Allowance
+}
+
+#[derive(FadromaSerialize, FadromaDeserialize, JsonSchema, Debug)]
+struct AllowedEntry {
+    lender: CanonicalAddr,
+    index: u64
+}
+
+impl_canonize_default!(Allowance);
 
 impl Allowance {
     pub fn is_expired_at(&self, block: &BlockInfo) -> bool {
@@ -161,16 +178,16 @@ impl Account {
         TypedKey<'_, Self>
     > = ItemSpace::new();
 
-    const ALLOWANCE: ItemSpace<
-        Allowance,
-        AllowancesNs,
-        TypedKey2<'_, Self, CanonicalAddr>
-    > = ItemSpace::new();
-
     const VIEWING_KEY: ItemSpace<
         ViewingKeyHashed,
         ViewingKeyNs,
         TypedKey<'_, Self>
+    > = ItemSpace::new();
+
+    const ALLOWANCES_INDICES: ItemSpace<
+        u64,
+        AllowancesIndicesNs,
+        TypedKey2<'_, Self, Self>
     > = ItemSpace::new();
 
     const RECEIVER: ItemSpace<
@@ -213,34 +230,64 @@ impl Account {
     pub fn update_allowance<F>(
         &self,
         storage: &mut dyn Storage,
-        spender: &CanonicalAddr,
+        spender: &Self,
         func: F
     ) -> StdResult<Allowance>
     where
-        F: FnOnce(&mut Allowance) -> StdResult<()>,
+        F: FnOnce(Allowance) -> StdResult<Allowance>
     {
+        let mut allowances = self.allowances_storage();
+
         let key = (self, spender);
-        let mut allowance = Self::ALLOWANCE.load(
-            storage,
-            key
-        )?.unwrap_or_default();
+        let result = match Self::ALLOWANCES_INDICES.load(storage, key)? {
+            Some(index) =>
+                allowances.update_at(
+                    storage,
+                    index,
+                    |mut entry| {
+                        entry.allowance = func(entry.allowance)?;
 
-        func(&mut allowance)?;
-        Self::ALLOWANCE.save(storage, key, &allowance)?;
+                        Ok(entry)
+                    }
+                )?
+                .unwrap()
+                .allowance,
+            None => {
+                let allowance = func(Allowance::default())?;
+                let index = allowances.push(storage, &AllowanceEntry {
+                    spender: spender.addr.clone(),
+                    allowance
+                })?;
 
-        Ok(allowance)
+                Self::ALLOWANCES_INDICES.save(storage, key, &index)?;
+
+                let mut allowed = spender.allowed_storage();
+                allowed.push(storage, &AllowedEntry {
+                    lender: self.addr.clone(),
+                    index
+                })?;
+
+                allowance
+            }
+        };
+
+        Ok(result)
     }
 
     #[inline]
     pub fn allowance(
         &self,
         storage: &dyn Storage,
-        spender: &CanonicalAddr
+        spender: &Account
     ) -> StdResult<Allowance> {
-        Self::ALLOWANCE.load_or_default(
-            storage,
-            (self, spender)
-        )
+        match Self::ALLOWANCES_INDICES.load(storage, (self, spender))? {
+            Some(index) => {
+                let allowances = self.allowances_storage();
+
+                Ok(allowances.get_at(storage, index)?.unwrap().allowance)
+            },
+            None => Ok(Allowance::default())
+        }
     }
 
     #[inline]
@@ -261,6 +308,86 @@ impl Account {
     #[inline]
     pub fn set_receiver_hash(&self, storage: &mut dyn Storage, code_hash: String) -> StdResult<()> {
         Self::RECEIVER.save(storage, self, &code_hash)
+    }
+
+    pub fn allowances(
+        &self,
+        deps: Deps,
+        page: u32,
+        page_size: u32
+    ) -> StdResult<(Vec<GivenAllowance>, u64)> {
+        let iter = self.allowances_storage().iter(deps.storage)?;
+        let total_len = iter.len();
+
+        let iter = iter
+            .into_iter()
+            .skip((page * page_size) as _)
+            .take(page_size as _);
+
+        let mut result = Vec::with_capacity(iter.len());
+
+        for item in iter {
+            let item = item?.humanize(deps.api)?;
+            result.push(GivenAllowance {
+                spender: item.spender,
+                allowance: item.allowance.amount,
+                expiration: item.allowance.expiration
+            });
+        }
+
+        Ok((result, total_len))
+    }
+
+    pub fn received_allowances(
+        &self,
+        deps: Deps,
+        page: u32,
+        page_size: u32
+    ) -> StdResult<(Vec<ReceivedAllowance>, u64)> {
+        let iter = self.allowed_storage().iter(deps.storage)?;
+        let total_len = iter.len();
+
+        let iter = iter
+            .into_iter()
+            .skip((page * page_size) as _)
+            .take(page_size as _);
+
+        let mut result = Vec::with_capacity(iter.len());
+
+        for item in iter {
+            let item = item?;
+            let account = Self { addr: item.lender };
+            
+            let allowances = account.allowances_storage();
+            let allowance = allowances
+                .get_at(deps.storage, item.index)?
+                .unwrap()
+                .allowance;
+
+            result.push(ReceivedAllowance {
+                owner: account.addr.humanize(deps.api)?,
+                allowance: allowance.amount,
+                expiration: allowance.expiration
+            });
+        }
+
+        Ok((result, total_len))
+    }
+
+    #[inline]
+    fn allowances_storage(&self) -> IterableStorage<
+        AllowanceEntry<CanonicalAddr>,
+        TypedKey2<AllowancesNs, Self>
+    > {
+        IterableStorage::new(TypedKey2::from((&AllowancesNs, self)))
+    }
+
+    #[inline]
+    fn allowed_storage(&self) -> IterableStorage<
+        AllowedEntry,
+        TypedKey2<AllowedNs, Self>
+    > {
+        IterableStorage::new(TypedKey2::from((&AllowedNs, self)))
     }
 }
 
