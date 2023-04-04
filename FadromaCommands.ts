@@ -1,6 +1,5 @@
 import Fadroma from './Fadroma'
-import getBuilder from '@fadroma/build'
-import getProject, { projectWizard } from '@fadroma/project'
+import { getBuilder, getProject, projectWizard } from '@fadroma/ops'
 import { CommandContext } from '@hackbg/cmds'
 
 export default class FadromaCommands extends CommandContext {

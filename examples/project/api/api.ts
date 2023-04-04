@@ -1,4 +1,4 @@
-import { Client, Deployment } from '@fadroma/core'
+import { Client, Deployment } from '@fadroma/agent'
 
 export default class MyProject extends Deployment {
   contract1 = this.contract({ name: "contract", crate: "contract", client: Contract1 })

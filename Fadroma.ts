@@ -1,6 +1,6 @@
 import Config from './FadromaConfig'
-import { Deployment } from '@fadroma/core'
-import { Deployer, FSUploader } from '@fadroma/deploy'
+import { Deployment } from '@fadroma/agent'
+import { Deployer, FSUploader } from '@fadroma/ops'
 import { TokenManager } from '@fadroma/tokens'
 
 /** Context for Fadroma commands. */

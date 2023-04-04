@@ -18,10 +18,6 @@
 
 **/
 
-import getBuilder from '@fadroma/build'
-import { getDeployer, getUploader } from '@fadroma/deploy'
-export { getBuilder, getDeployer, getUploader }
-
 export { default as Fadroma } from './Fadroma'
 export { default as Console } from './FadromaConsole'
 export { default as Config } from './FadromaConfig'
@@ -32,10 +28,9 @@ export * as Cmds from '@hackbg/cmds'
 export * as Conf from '@hackbg/conf'
 export * as File from '@hackbg/file'
 export * as Format from '@hackbg/4mat'
-export * from '@fadroma/core'
-export { override } from '@fadroma/core'
-export type { Decimal, Overridable } from '@fadroma/core'
-export * as Build from '@fadroma/build'
-export * as Deploy from '@fadroma/deploy'
+export * from '@fadroma/agent'
+export { override } from '@fadroma/agent'
+export type { Decimal, Overridable } from '@fadroma/agent'
+export * from '@fadroma/ops'
 export * as Connect from '@fadroma/connect'
 export * as Tokens from '@fadroma/tokens'

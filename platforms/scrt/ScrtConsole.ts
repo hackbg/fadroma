@@ -1,7 +1,7 @@
-import type { Address, ChainId, Fee } from '@fadroma/core'
-import { ClientConsole, ClientError, bold } from '@fadroma/core'
+import type { Address, ChainId, Fee } from '@fadroma/agent'
+import { Console, Error, bold } from '@fadroma/agent'
 
-export default class ScrtConsole extends ClientConsole {
+export default class ScrtConsole extends Console {
 
   label = '@fadroma/scrt'
 

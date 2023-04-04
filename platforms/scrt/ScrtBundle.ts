@@ -3,8 +3,8 @@ import Console from './ScrtConsole'
 import Scrt from './ScrtChain'
 import type ScrtAgent from './ScrtAgent'
 
-import { Bundle, assertChain } from '@fadroma/core'
-import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/core'
+import { Bundle, assertChain } from '@fadroma/agent'
+import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/agent'
 
 export interface ScrtBundleClass <B extends ScrtBundle> {
   new (agent: ScrtAgent): B

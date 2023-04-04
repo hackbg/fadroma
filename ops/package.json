@@ -1,0 +1,50 @@
+{
+  "name": "@fadroma/ops",
+  "version": "1.0.0-rc.0",
+  "type": "module",
+  "main": "./index.ts",
+  "files": [ "*.ts" ],
+  "description": "Devops tooling for smart contract platforms.",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test":  "ensuite Ops.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- Ops.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- Ops.spec.ts.md",
+    "ubik":  "npm run check && npm test && ubik"
+  },
+  "peerDependencies": {
+    "@hackbg/ganesha": "^2.2.5"
+  },
+  "peerDependenciesMeta": {
+    "@hackbg/ganesha": { "optional": true, "description": "For CLI" }
+  },
+  "dependencies": {
+
+    "@fadroma/agent":   "workspace:*",
+    "@fadroma/connect": "workspace:2.1.5",
+    "@fadroma/ops":     "workspace:*",
+
+    "@hackbg/4mat": "workspace:^1",
+    "@hackbg/cmds": "workspace:^1.1.4",
+    "@hackbg/cmds": "workspace:^1.1.4",
+    "@hackbg/conf": "workspace:^1",
+    "@hackbg/dock": "workspace:1.2",
+    "@hackbg/file": "workspace:^1",
+    "@hackbg/logs": "workspace:^1",
+    "@hackbg/many": "workspace:^1",
+    "@hackbg/oops": "workspace:^1.0.1",
+    "@hackbg/port": "workspace:^1",
+
+    "case":       "^1.6.3",
+    "dotenv":     "^16.0.1",
+    "js-yaml":    "^4.1.0",
+    "prompts":    "^2.4.2",
+    "simple-git": "^3.7.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml":  "^4.0.5",
+    "@types/prompts":  "^2.4.2",
+
+    "@hackbg/ensuite": "^1.1"
+  }
+}

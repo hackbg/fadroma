@@ -151,7 +151,7 @@ features:
     info: Easily create a TypeScript client library for your dApp.
     links:
       - icon: typescript
-        text: "@fadroma/core"
+        text: "@fadroma/agent"
         href: /packages/core/Core.spec.ts.md
         bold: true
       - icon: typescript

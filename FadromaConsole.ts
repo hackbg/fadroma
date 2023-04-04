@@ -1,4 +1,4 @@
-import { DeployConsole } from '@fadroma/deploy'
+import { DeployConsole } from '@fadroma/ops'
 
 export default class Console extends DeployConsole {
   constructor (name = 'Fadroma') {

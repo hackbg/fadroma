@@ -1,6 +1,6 @@
-import { ClientError, bold } from '@fadroma/core'
+import { Error, bold } from '@fadroma/agent'
 
-export default class ScrtError extends ClientError {
+export default class ScrtError extends Error {
   static NoAddress = this.define('NoAddress',
     () => 'No address provided')
   static NoWalletOrMnemonic = this.define('NoWalletOrMnemonic',

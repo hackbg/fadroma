@@ -1,5 +1,4 @@
-import { BuilderConfig } from '@fadroma/build'
-import { DeployConfig } from '@fadroma/deploy'
+import { BuilderConfig, DeployConfig } from '@fadroma/ops'
 
 /** Configuration for the Fadroma environment. */
 export default class Config extends DeployConfig {

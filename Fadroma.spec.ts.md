@@ -69,7 +69,7 @@ $ fadroma tx NAME MESSAGE
 ## Scripting Fadroma
 
 For more complex operations, you can define custom commands, which you implement in TypeScript
-using the Fadroma TypeScript API. **See [@fadroma/core](packages/core/Core.spec.ts.md)** to get
+using the Fadroma TypeScript API. **See [@fadroma/agent](agent/Core.spec.ts.md)** to get
 started with scripting Fadroma.
 
 To run a Fadroma script:

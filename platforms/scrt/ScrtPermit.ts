@@ -1,4 +1,4 @@
-import type { IFee, ChainId, Address } from '@fadroma/core'
+import type { IFee, ChainId, Address } from '@fadroma/agent'
 
 /** Data used for creating a signature as per the SNIP-24 spec:
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc

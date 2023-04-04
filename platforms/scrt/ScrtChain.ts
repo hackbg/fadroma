@@ -6,10 +6,10 @@ import type { ScrtAgentOpts } from './ScrtAgent'
 
 import type * as SecretJS from 'secretjs'
 
-import { Chain, Fee } from '@fadroma/core'
+import { Chain, Fee } from '@fadroma/agent'
 import type {
   Address, AgentClass, AgentFees, ChainClass, ChainId, ChainOpts, Client, Message, Uint128
-} from '@fadroma/core'
+} from '@fadroma/agent'
 
 import { bip39, bip39EN } from '@hackbg/4mat'
 

@@ -4,7 +4,7 @@ Fadroma's support for Secret Network is achieved in this package,
 by implementing the Fadroma Agent API (`Chain`, `Agent`, `Bundle`),
 as well as SN-specific features (`ViewingKeyClient`).
 
-Note that this package should be kept isomorphic (see `@fadroma/core`).
+Note that this package should be kept isomorphic (see `@fadroma/agent`).
 Platform-specific logic and artifacts for Secret Network also exists
 in `@fadroma/devnet`.
 
