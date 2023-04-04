@@ -9,8 +9,9 @@ $ npx fadroma project create
 ```typescript
 import { Project } from '@fadroma/ops'
 
-const project = new Project('my-project', './examples/project', {
-  name: 'test',
+const project = new Project({
+  name: 'my-project',
+  root: './examples/project',
   contracts: {
     contract1: {},
   }
@@ -46,3 +47,8 @@ assert(contract2 instanceof Template)
 
 * **Deploy receipts**: records of one or more deployed contract instances.
 * **Upload receipts**: records of a single uploaded contract binary.
+
+```typescript
+import assert from 'node:assert'
+import { Template } from '@fadroma/agent'
+```

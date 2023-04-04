@@ -12,13 +12,13 @@ $ fadroma reupload CONTRACT # always reupload
 ## Upload API
 
 ```typescript
-import { uploader } from '@fadroma/ops'
+import { getUploader } from '@fadroma/ops'
 
-await uploader({ /* options */ }).upload('contract')
+await getUploader({ /* options */ }).upload('contract')
 
-await uploader({ /* options */ }).uploadMany(['contract', 'contract'])
+await getUploader({ /* options */ }).uploadMany(['contract', 'contract'])
 
-await uploader({ /* options */ }).uploadMany({ c1: 'contract', c2: 'contract' })
+await getUploader({ /* options */ }).uploadMany({ c1: 'contract', c2: 'contract' })
 ```
 
 ### Upload state

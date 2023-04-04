@@ -21,7 +21,7 @@ export default class UploadConfig extends ConnectConfig {
   /** Variant of uploader to use */
   uploader: string = this.getString(
     'FADROMA_UPLOADER',
-    () => 'FSUploader')
+    () => 'FS')
 
   getUploader <U extends Uploader> (
     $U: UploaderClass<U> = Uploader.variants[this.uploader] as UploaderClass<U>

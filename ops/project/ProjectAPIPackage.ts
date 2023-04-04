@@ -31,7 +31,6 @@ export default class APIPackage {
       name: `@${name}/api`,
       version: "0.0.0",
       devDependencies: {
-        "@fadroma/agent": "^2",
         "@fadroma/scrt": "^8",
         "@fadroma/tokens": "^7",
       }

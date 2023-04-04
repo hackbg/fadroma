@@ -21,8 +21,7 @@ export default class FadromaCommands extends CommandContext {
       if (name) {
         const project = getProject()
         const builder = getBuilder()
-        const buildable = project.contracts[name]
-        return builder.build(buildable)
+        return builder.build(project.getContract(name) as any)
       }
     })
 

@@ -32,14 +32,14 @@ through the Fadroma Client API.
 * **NOTE:** Mocknets are currently not persistent.
 
 ```typescript
-import * as Mocknet from '@fadroma/agent'
-let chain = new Mocknet.CW1()
+import { Mocknet_CW1 } from '@fadroma/agent'
+let chain = new Mocknet_CW1()
 let agent = await chain.getAgent()
 
-import { Chain, Agent } from '@fadroma/agent'
+import { Chain, Agent, MocknetAgent } from '@fadroma/agent'
 ok(chain instanceof Chain)
 ok(agent instanceof Agent)
-ok(agent instanceof Mocknet.Agent)
+ok(agent instanceof MocknetAgent)
 ```
 
 When creating a mocknet, the block height starts at 0.

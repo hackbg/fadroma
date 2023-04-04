@@ -2,8 +2,5 @@
 
 pub(crate) use fadroma::prelude::*;
 
-#[cfg(feature = "name")]
-pub mod name;
-
-#[cfg(feature = "contracts")]
-pub mod contracts;
+#[cfg(feature = "contract1")]
+pub mod contract1;

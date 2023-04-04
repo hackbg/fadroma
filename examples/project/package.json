@@ -13,10 +13,7 @@
   },
   "fadroma": {
     "contracts": {
-      "name": "test",
-      "contracts": {
-        "contract1": {}
-      }
+      "contract1": {}
     }
   }
 }
