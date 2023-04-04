@@ -1300,7 +1300,7 @@ pub(crate) mod default_impl {
                 QueryWithPermit::AllowancesReceived { spender, page, page_size } => {
                     if !permit.has_permission(&QueryPermission::Allowance) {
                         return Err(StdError::generic_err(format!(
-                            "No permission to query given allowances, got permissions {:?}",
+                            "No permission to query received allowances, got permissions {:?}",
                             permit.params.permissions
                         )));
                     }
