@@ -220,20 +220,12 @@ export abstract class Chain {
   }
 
   /** Get a new instance of the appropriate Agent subclass. */
-  async getAgent (
-    options?: Partial<AgentOpts>,
-    $A: AgentClass<Agent> = Chain.Agent as unknown as AgentClass<Agent>
-  ): Promise<Agent> {
-    $A ??= this.Agent as AgentClass<Agent>
-    options ??= {}
-    if (this.node) await this.node.respawn()
-    if (!options.mnemonic && options.name) {
-      if (!this.node) throw new Error.NameOutsideDevnet()
-      options = { ...options, ...await this.node.getGenesisAccount(options.name) }
-    }
-    options!.chain = this
-    const agent = new $A(options)
-    return agent
+  getAgent (options?: Partial<AgentOpts>): Agent
+  getAgent ($A: AgentClass<Agent>, options?: Partial<AgentOpts>): InstanceType<typeof $A>
+  getAgent (...args: any) {
+    const $A = (typeof args[0] === 'function') ? args[0] : this.Agent
+    const options = (typeof args[0] === 'function') ? args[1] : args[0]
+    return new $A(Object.assign(options||{}, { chain: this }))
   }
 
 }

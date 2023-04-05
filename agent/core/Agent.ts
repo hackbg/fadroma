@@ -24,36 +24,58 @@ export interface AgentOpts {
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
 
-  /** Logger. */
-  log = new Console('Fadroma.Agent')
-
-  /** The chain on which this agent operates. */
-  chain?:   Chain
-
-  /** The address from which transactions are signed and sent. */
-  address?: Address
-
-  /** The friendly name of the agent. */
-  name?:    string
-
-  /** Default fee maximums for send, upload, init, and execute. */
-  fees?:    AgentFees
-
-  /** The Bundle subclass to use. */
-  Bundle:   BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
-
   constructor (options: Partial<AgentOpts> = {}) {
     this.chain = options.chain ?? this.chain
     this.name = options.name  ?? this.name
     this.fees = options.fees  ?? this.fees
     this.address = options.address  ?? this.address
     Object.defineProperties(this, {
-      'chain':   { enumerable: false, writable: true },
-      'address': { enumerable: false, writable: true },
-      'log':     { enumerable: false, writable: true },
-      'Bundle':  { enumerable: false, writable: true }
+      'chain':    { enumerable: false, writable: true },
+      'mnemonic': { enumerable: false, writable: true },
+      'address':  { enumerable: false, writable: true },
+      'log':      { enumerable: false, writable: true },
+      'Bundle':   { enumerable: false, writable: true }
     })
   }
+
+  /** Complete the asynchronous initialization of this Agent. */
+  get asyncInit (): Promise<this> {
+    const init = new Promise<this>(async (resolve, reject)=>{
+      try {
+        if (this.chain?.node) await this.chain?.node.respawn()
+        if (!this.mnemonic && this.name) {
+          if (!this.chain?.node) throw new Error.NameOutsideDevnet()
+          Object.assign(this, await this.chain?.node.getGenesisAccount(this.name))
+        }
+        resolve(this)
+      } catch (e) {
+        reject(e)
+      }
+    })
+    Object.defineProperty(this, 'asyncInit', { get () { return init } })
+    return init
+  }
+
+  /** Logger. */
+  log = new Console('Fadroma.Agent')
+
+  /** The chain on which this agent operates. */
+  chain?:    Chain
+
+  /** The address from which transactions are signed and sent. */
+  address?:  Address
+
+  /** The wallet's mnemonic. */
+  mnemonic?: string
+
+  /** The friendly name of the agent. */
+  name?:     string
+
+  /** Default fee maximums for send, upload, init, and execute. */
+  fees?:     AgentFees
+
+  /** The Bundle subclass to use. */
+  Bundle:    BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
 
   get [Symbol.toStringTag]() {
     return `${this.chain?.id??'-'}: ${this.address}`

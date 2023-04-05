@@ -11,8 +11,6 @@ import type {
   Address, AgentClass, AgentFees, ChainClass, ChainId, ChainOpts, Client, Message, Uint128
 } from '@fadroma/agent'
 
-import { bip39, bip39EN } from '@hackbg/4mat'
-
 export interface ScrtOpts extends ChainOpts {
   /** You can set this to a compatible version of the SecretJS module
     * in order to use it instead of the one bundled with this package.
@@ -150,72 +148,18 @@ export default class Scrt extends Chain {
     return await new (this.SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
   }
 
-  /** Create a `ScrtAgent` on this `chain`.
-    * You can optionally pass a compatible subclass as a second argument. */
-  async getAgent (
-    options: Partial<ScrtAgentOpts> = {},
-    _Agent:  AgentClass<ScrtAgent> = this.Agent
-  ): Promise<ScrtAgent> {
-    if (options.keyPair) this.log.warnIgnoringKeyPair()
-    // Support creating agent for other Chain instance; TODO remove?
-    const chain: Scrt = (options.chain ?? this) as Scrt
-    // Use selected secretjs implementation
-    const _SecretJS = chain.SecretJS
-    // Unwrap base options
-    let { name, address, mnemonic, wallet, fees } = options
-    // Create wallet from mnemonic if a wallet is not passed
-    if (!wallet) {
-      if (name && chain.isDevnet && chain.node) {
-        await chain.node.respawn()
-        mnemonic = (await chain.node.getGenesisAccount(name)).mnemonic
-      }
-      if (!mnemonic) {
-        mnemonic = bip39.generateMnemonic(bip39EN)
-        this.log.warnGeneratedMnemonic(mnemonic)
-      }
-      console.log({chain})
-      wallet = new _SecretJS.Wallet(mnemonic)
-    } else if (mnemonic) {
-      this.log.warnIgnoringMnemonic()
-    }
-    // Construct the API client
-    let url = chain.url
-    if (url.endsWith('/')) url = url.slice(0, url.length - 1)
-    const api = await this.getApi({
-      chainId:         chain.id,
-      url:             url,
-      wallet,
-      walletAddress:   wallet.address || address,
-      encryptionUtils: options.encryptionUtils
+  async fetchLimits (): Promise<{ gas: number }> {
+    const { param } = await (await this.api).query.params.params({
+      subspace: "baseapp",
+      key: "BlockParams"
     })
-    // If fees are not specified, get default fees from API
-    if (!fees) {
-      fees = Scrt.defaultFees
-      try {
-        const { param } = await api.query.params.params({ subspace: "baseapp", key: "BlockParams" })
-        let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
-        this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
-        if (max_gas < 0) {
-          max_gas = 10000000
-          this.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
-        }
-        fees = {
-          upload: Scrt.gas(max_gas),
-          init:   Scrt.gas(max_gas),
-          exec:   Scrt.gas(max_gas),
-          send:   Scrt.gas(max_gas),
-        }
-      } catch (e) {
-        this.log.warn(e)
-        this.log.warnCouldNotFetchBlockLimit(Object.values(fees))
-      }
+    let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
+    this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
+    if (max_gas < 0) {
+      max_gas = 10000000
+      this.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
     }
-    // Construct final options object
-    options = { ...options, name, address, mnemonic, api, wallet, fees }
-    // Don't pass this down to the agent options because the API should already have it
-    delete options.encryptionUtils
-    // Construct agent
-    return await super.getAgent(options, _Agent) as ScrtAgent
+    return { gas: max_gas }
   }
 
 }

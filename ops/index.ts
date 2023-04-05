@@ -18,6 +18,7 @@
 
 export * from './devnet/index'
 import { DevnetConfig } from './devnet/index'
+/** @returns Devnet configured as per environment and options. */
 export function getDevnet (options: Partial<DevnetConfig> = {}) {
   return new DevnetConfig(options).getDevnet()
 }
@@ -25,10 +26,9 @@ export function getDevnet (options: Partial<DevnetConfig> = {}) {
 export * from './project/index'
 import { Project } from './project/index'
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
-
-/** @returns the config of the current project, or the project at the specified path */
+/** @returns Project with config from "fadroma" key in package.json */
 export function getProject (
-  path: string|OpaqueDirectory = process.cwd()
+  path: string|OpaqueDirectory = process.env.FADROMA_PROJECT || process.cwd()
 ): Project {
   const packageJSON = $(path).as(OpaqueDirectory).at('package.json').as(JSONFile).load()
   const { fadroma } = packageJSON as { fadroma: any }

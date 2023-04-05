@@ -174,8 +174,7 @@ import { Scrt } from '@fadroma/agent-scrt-grpc'
 
 async function main () {
   const chain    = new Scrt()
-  const keyPair  = "???"
-  const agent    = await chain.getAgent({ keyPair })
+  const agent    = chain.getAgent()
   const address  = "secret1..."
   const contract = agent.getClient(MyContract, address)
   const result   = await myContract.tx4(await myContract.q4("123"))
@@ -207,9 +206,9 @@ Agent objects correspond to identities operating in a specific environment, i.e.
 
 Agents inherit from the base `Agent` class exported by `@fadroma/agent`.
 
-Calling `chain.getAgent({ keyPair })` returns an instance of `ScrtRPCAgent`.
-This is the **agent class** that uses `secretjs@beta` to talk to Secret Network API via gRPC
-and sign transactions with the `keyPair`.
+Calling `chain.getAgent()` returns an instance of `ScrtRPCAgent`.
+This is the **agent class** that uses `secretjs@beta` to talk to Secret Network API
+via signed transactions.
 
 Of course, you can have multiple authenticated agents with different addresses and keys,
 and interact with the chain as different identities from the same script.

@@ -12,7 +12,7 @@ import type {
   Name, AnyContract
 } from '@fadroma/agent'
 
-import { base64 } from '@hackbg/4mat'
+import { base64, bip39, bip39EN } from '@hackbg/4mat'
 
 export type TxResponse = SecretJS.TxResponse
 
@@ -36,10 +36,6 @@ export interface ScrtAgentOpts extends AgentOpts {
 /** Represents a connection to the Secret Network authenticated as a specific address. */
 export default class ScrtAgent extends Agent {
 
-  static Bundle: BundleClass<ScrtBundle>
-
-  fees = Scrt.defaultFees
-
   constructor (options: Partial<ScrtAgentOpts> = {}) {
     super(options)
     this.fees = options.fees ?? this.fees
@@ -60,7 +56,69 @@ export default class ScrtAgent extends Agent {
     this.simulate = options.simulate ?? this.simulate
   }
 
+  get asyncInit (): Promise<this> {
+    const init = new Promise<this>(async (resolve, reject)=>{
+      try {
+        // Use selected secretjs implementation
+        const _SecretJS = this.chain.SecretJS
+        // Unwrap base options
+        let { name, address, mnemonic, wallet, fees, encryptionUtils } = this
+        // Construct wallet from mnemonic if a wallet is not passed
+        if (!wallet) {
+          // Provide mnemonic from devnet
+          if (name && this.chain.isDevnet && this.chain.node) {
+            await this.chain.node.respawn()
+            mnemonic = (await this.chain.node.getGenesisAccount(name)).mnemonic!
+          }
+          // Generate fresh mnemonic
+          if (!mnemonic) {
+            mnemonic = bip39.generateMnemonic(bip39EN)
+            this.log.warnGeneratedMnemonic(mnemonic)
+          }
+          wallet = new _SecretJS.Wallet(mnemonic)
+        } else if (mnemonic) {
+          this.log.warnIgnoringMnemonic()
+        }
+        // Construct the API client
+        let url = this.chain.url
+        if (url.endsWith('/')) url = url.slice(0, url.length - 1)
+        const api = await this.chain?.getApi({
+          chainId:         this.chain.id,
+          url:             url,
+          wallet,
+          walletAddress:   wallet.address || address,
+          encryptionUtils
+        })
+        // If fees are not specified, get default fees from API.
+        if (!fees) {
+          fees = Scrt.defaultFees
+          try {
+            const max = Scrt.gas((await this.chain.fetchLimits()).gas)
+            fees = { upload: max, init: max, exec: max, send: max }
+          } catch (e) {
+            this.log.warn(e)
+            this.log.warnCouldNotFetchBlockLimit(Object.values(fees))
+          }
+        }
+        // Done.
+        resolve(this)
+      } catch (e) {
+        reject(e)
+      }
+    })
+    Object.defineProperty(this, 'asyncInit', { get () { return init } })
+    return init
+  }
+
+  declare chain: Scrt
+
+  encryptionUtils?: SecretJS.EncryptionUtils
+
+  fees = Scrt.defaultFees
+
   log = new Console('ScrtGrpcAgent')
+
+  static Bundle: BundleClass<ScrtBundle>
 
   Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
 

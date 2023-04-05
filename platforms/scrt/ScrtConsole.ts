@@ -5,15 +5,16 @@ export default class ScrtConsole extends Console {
 
   label = '@fadroma/scrt'
 
-  warnIgnoringKeyPair = () =>
-    this.warn('ScrtAgent: Ignoring keyPair (only supported by ScrtAminoAgent)')
   warnIgnoringMnemonic = () =>
     this.warn('ScrtAgent: Created from wallet, ignoring mnemonic')
+
   warnNoMemos = () =>
     this.warn("ScrtAgent: Transaction memos are not supported in SecretJS RPC API")
+
   warnCouldNotFetchBlockLimit = (fees: Fee[]) =>
     this.warn("Scrt: Could not fetch block gas limit, defaulting to:",
       fees.map(fee=>fee.gas).join('/'))
+
   warnGeneratedMnemonic = (mnemonic: string) =>
     this.warn("ScrtAgent: No mnemonic passed, generated this one:", mnemonic)
 
@@ -23,12 +24,14 @@ export default class ScrtConsole extends Console {
     this.log(JSON.stringify(msgs, null, 2))
     this.br()
   }
+
   bundleMessagesEncrypted = (msgs: any, N: number) => {
     this.info(`\nEncrypted messages in bundle`, `#${N}:`)
     this.br()
     this.log(JSON.stringify(msgs, null, 2))
     this.br()
   }
+
   bundleSigningCommand = (
     name:            string,
     multisig:        Address,
@@ -49,6 +52,7 @@ export default class ScrtConsole extends Console {
     this.log(txdata)
     this.br()
   }
+
   submittingBundleFailed ({ message }: Error) {
     this.br()
     this.error('Submitting bundle failed:')

@@ -89,8 +89,8 @@ export default class ConnectConfig extends Config {
     return getChain(this) as C // create Chain object
   }
 
-  async getAgent <A extends Agent> (chain?: Chain): Promise<A> {
-    chain ??= await this.getChain()
+  getAgent <A extends Agent> (chain?: Chain): A {
+    chain ??= this.getChain()
     // Create the Agent instance as identified by the configuration.
     let agentOpts: AgentOpts = { chain }
     if (chain.isDevnet) {
@@ -100,7 +100,7 @@ export default class ConnectConfig extends Config {
       // Otherwise it's created from mnemonic
       agentOpts.mnemonic = this.mnemonic
     }
-    return await chain.getAgent(agentOpts) as A
+    return chain.getAgent(agentOpts) as A
   }
 
   /** Create a `Connector` containing instances of `Chain` and `Agent`
@@ -108,8 +108,8 @@ export default class ConnectConfig extends Config {
   async getConnector <C extends Connector> ($C?: ConnectorClass<C>): Promise<C> {
     $C ??= Connector as ConnectorClass<C>
     // Create chain and agent
-    const chain = await this.getChain()
-    const agent = await this.getAgent(chain)
+    const chain = this.getChain()
+    const agent = this.getAgent(chain)
     if (agent.chain !== chain) throw new Error('Bug: agent.chain propagated incorrectly')
     // Create the Connector holding both and exposing them to commands.
     return new $C({ chain, agent, config: this }) as C

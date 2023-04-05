@@ -39,10 +39,6 @@ export default abstract class Mocknet extends Chain {
   /** Simulation of Compute module. */
   abstract backend: MocknetBackend
 
-  async getAgent <A> (options: AgentOpts): Promise<A> {
-    return new MocknetAgent({ ...options, chain: this }) as unknown as A
-  }
-
   async query <T, U> (contract: Partial<Client>, msg: T): Promise<U> {
     return this.backend.query(contract, msg as Message)
   }
