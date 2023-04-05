@@ -1382,18 +1382,47 @@ fn test_handle_increase_allowance() {
             expiration: None
         }
     );
+
+    let allowances = bob.allowances(deps.as_ref(), 0, 10).unwrap();
+    assert_eq!(allowances.0.len(), 1);
+    assert_eq!(allowances.1, 1);
+
+    let allowance = &allowances.0[0];
+    assert_eq!(allowance.allowance, Uint128::new(4000));
+    assert_eq!(allowance.expiration, None);
+    assert_eq!(allowance.spender, Addr::unchecked("alice"));
+
+    let allowances = bob.received_allowances(deps.as_ref(), 0, 10).unwrap();
+    assert!(allowances.0.is_empty());
+    assert_eq!(allowances.1, 0);
+
+
+    let allowances = alice.allowances(deps.as_ref(), 0, 10).unwrap();
+    assert!(allowances.0.is_empty());
+    assert_eq!(allowances.1, 0);
+
+    let allowances = alice.received_allowances(deps.as_ref(), 0, 10).unwrap();
+    assert_eq!(allowances.0.len(), 1);
+    assert_eq!(allowances.1, 1);
+
+    let allowance = &allowances.0[0];
+    assert_eq!(allowance.allowance, Uint128::new(4000));
+    assert_eq!(allowance.expiration, None);
+    assert_eq!(allowance.owner, Addr::unchecked("bob"));
 }
 
 #[test]
 fn test_query_all_allowances() {
-    let num_owners = 3;
-    let num_spenders = 20;
+    let num_owners = 3u64;
+    let num_spenders = 20u64;
     let vk = "key".to_string();
+    let amount = Uint128::new(50);
+    let expiration: Option<u64> = None;
 
     let initial_balances: Vec<InitialBalance> = (0..num_owners).into_iter().map(|i| {
         InitialBalance {
             address: format!("owner{}", i),
-            amount: Uint128::new(5000),
+            amount: Uint128::new(5000)
         }
     }).collect();
 
@@ -1430,9 +1459,9 @@ fn test_query_all_allowances() {
         for j in 0..num_spenders {
             let handle_msg = ExecuteMsg::IncreaseAllowance {
                 spender: format!("spender{}", j),
-                amount: Uint128::new(50),
-                padding: None,
-                expiration: None,
+                amount,
+                expiration,
+                padding: None
             };
             let info = mock_info(format!("owner{}", i).as_str(), &[]);
 
@@ -1464,6 +1493,72 @@ fn test_query_all_allowances() {
         }
     }
 
+    for i in 0..num_owners {
+        let owner_addr = Addr::unchecked(format!("owner{}", i));
+
+        let owner = deps.api.addr_canonicalize(&owner_addr.as_ref()).unwrap();
+        let owner = Account::of(owner);
+
+        let (given, count) = owner.allowances(
+            deps.as_ref(),
+            0,
+            num_spenders as u32
+        ).unwrap();
+
+        assert_eq!(count, num_spenders);
+        assert_eq!(given.len(), num_spenders as usize);
+
+        for (i, item) in given.into_iter().enumerate(){
+            let spender = Addr::unchecked(format!("spender{}", i));
+
+            assert_eq!(item.spender, spender);
+            assert_eq!(item.allowance, amount);
+            assert_eq!(item.expiration, expiration);
+        }
+
+        let (given, count) = owner.received_allowances(
+            deps.as_ref(),
+            0,
+            (num_owners + num_spenders) as u32
+        ).unwrap();
+
+        assert_eq!(count, 0);
+        assert!(given.is_empty());
+    }
+
+    for j in 0..num_spenders {
+        let spender_addr = Addr::unchecked(format!("spender{}", j));
+
+        let spender = deps.api.addr_canonicalize(spender_addr.as_str()).unwrap();
+        let spender = Account::of(spender);
+
+        let (received, count) = spender.received_allowances(
+            deps.as_ref(),
+            0,
+            num_owners as u32
+        ).unwrap();
+        
+        assert_eq!(count, num_owners);
+        assert_eq!(received.len(), num_owners as usize);
+
+        for (i, item) in received.into_iter().enumerate(){
+            let owner = Addr::unchecked(format!("owner{}", i));
+
+            assert_eq!(item.owner, owner);
+            assert_eq!(item.allowance, amount);
+            assert_eq!(item.expiration, expiration);
+        }
+
+        let (given, count) = spender.allowances(
+            deps.as_ref(),
+            0,
+            (num_owners + num_spenders) as u32
+        ).unwrap();
+
+        assert_eq!(count, 0);
+        assert!(given.is_empty());
+    }
+
     let query_msg = QueryMsg::AllowancesGiven {
         owner: "owner0".to_string(),
         key: vk.clone(),
@@ -1477,9 +1572,14 @@ fn test_query_all_allowances() {
             assert_eq!(owner, "owner0".to_string());
             assert_eq!(allowances.len(), 5);
             assert_eq!(allowances[0].spender, "spender0");
-            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
-            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
             assert_eq!(count, num_spenders);
+            
+            assert_eq!(allowances[1].spender, "spender1");
+            assert_eq!(allowances[2].spender, "spender2");
+            assert_eq!(allowances[3].spender, "spender3");
+            assert_eq!(allowances[4].spender, "spender4");
         },
         _ => panic!("Unexpected QueryAnswer"),
     };
@@ -1497,9 +1597,14 @@ fn test_query_all_allowances() {
             assert_eq!(owner, "owner1".to_string());
             assert_eq!(allowances.len(), 5);
             assert_eq!(allowances[0].spender, "spender5");
-            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
-            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
             assert_eq!(count, num_spenders);
+
+            assert_eq!(allowances[1].spender, "spender6");
+            assert_eq!(allowances[2].spender, "spender7");
+            assert_eq!(allowances[3].spender, "spender8");
+            assert_eq!(allowances[4].spender, "spender9");
         },
         _ => panic!("Unexpected QueryAnswer"),
     };
@@ -1568,8 +1673,8 @@ fn test_query_all_allowances() {
             assert_eq!(spender, "spender0".to_string());
             assert_eq!(allowances.len(), 3);
             assert_eq!(allowances[0].owner, "owner0");
-            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
-            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
             assert_eq!(count, num_owners);
         },
         _ => panic!("Unexpected QueryAnswer"),
@@ -1588,8 +1693,8 @@ fn test_query_all_allowances() {
             assert_eq!(spender, "spender1".to_string());
             assert_eq!(allowances.len(), 1);
             assert_eq!(allowances[0].owner, "owner1");
-            assert_eq!(allowances[0].allowance, Uint128::from(50_u128));
-            assert_eq!(allowances[0].expiration, None);
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
             assert_eq!(count, num_owners);
         },
         _ => panic!("Unexpected QueryAnswer"),
