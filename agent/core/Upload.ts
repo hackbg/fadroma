@@ -81,7 +81,9 @@ export abstract class Uploader {
     * Populated by @fadroma/ops */
   static variants: Record<string, UploaderClass<Uploader>> = {}
  
-  constructor (public agent?: Agent|null) {}
+  constructor (
+    public agent?: Agent|null
+  ) {}
 
   /** Unique identifier of this uploader implementation. */
   abstract id: string

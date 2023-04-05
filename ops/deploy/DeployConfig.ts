@@ -1,5 +1,5 @@
 import Deployer from './Deployer'
-import FSUploader from './FSUploader'
+import { FSUploader } from '../upload/index'
 
 import { ConnectConfig } from '@fadroma/connect'
 import { Deployment, DeployStore } from '@fadroma/agent'

@@ -224,7 +224,7 @@ export abstract class Chain {
     options?: Partial<AgentOpts>,
     $A: AgentClass<Agent> = Chain.Agent as unknown as AgentClass<Agent>
   ): Promise<Agent> {
-    $A  ??= this.Agent as AgentClass<Agent>
+    $A ??= this.Agent as AgentClass<Agent>
     options ??= {}
     if (this.node) await this.node.respawn()
     if (!options.mnemonic && options.name) {
