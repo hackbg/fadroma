@@ -7,8 +7,6 @@ import {
   timestamp, CommandContext
 } from '../util/index'
 import { assertAgent } from './Agent'
-import { buildMany } from './Build'
-import { uploadMany } from './Upload'
 import { writeLabel } from './Labels'
 import Template from './Template'
 import { Contract, ContractGroup } from './Contract'
@@ -208,12 +206,14 @@ export class Deployment {
 
   /** Compile multiple contracts. */
   buildContracts (contracts: (string|AnyContract)[]) {
-    return buildMany(contracts as unknown as Buildable[], this)
+    if (!this.builder) throw new Error.NoBuilder()
+    return this.builder.buildMany(contracts as unknown as Buildable[])
   }
 
   /** Upload multiple contracts. */
   uploadContracts (contracts: AnyContract[]) {
-    return uploadMany(contracts as unknown as Uploadable[], this)
+    if (!this.uploader) throw new Error.NoBuilder()
+    return this.uploader.uploadMany(contracts as unknown as Uploadable[])
   }
 
   /** Specify a contract template.

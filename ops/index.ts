@@ -37,18 +37,34 @@ export function getProject (
 
 export * from './build/index'
 import { BuilderConfig } from './build/index'
-import type { Builder } from '@fadroma/agent'
+import type { Builder, Buildable, Built } from '@fadroma/agent'
 /** @returns Builder configured as per environment and options */
 export function getBuilder (options: Partial<BuilderConfig> = {}): Builder {
   return new BuilderConfig(options).getBuilder()
 }
+/** Compile a single contract with default settings. */
+export async function build (source: Buildable): Promise<Built> {
+  return getBuilder().build(source)
+}
+/** Compile multiple single contracts with default settings. */
+export async function buildMany (sources: Buildable[]): Promise<Built[]> {
+  return getBuilder().buildMany(sources)
+}
 
 export * from './upload/index'
 import { UploadConfig } from './upload/index'
-import type { Uploader } from '@fadroma/agent'
+import type { Uploader, Uploadable, Uploaded } from '@fadroma/agent'
 /** @returns Uploader configured as per environment and options */
 export function getUploader (options: Partial<UploadConfig> = {}): Uploader {
   return new UploadConfig(options).getUploader()
+}
+/** Upload a single contract with default settings. */
+export function upload (artifact: Uploadable): Promise<Uploaded> {
+  return getUploader().upload(artifact)
+}
+/** Upload multiple contracts with default settings. */
+export function uploadMany (artifacts: Uploadable[]): Promise<Uploaded[]> {
+  return getUploader().uploadMany(artifacts)
 }
 
 export * from './deploy/index'

@@ -5,68 +5,7 @@ import type {
 
 import { Error, Console, defineTask, pluralize } from '../util/index'
 import { Client } from './Client'
-import { build } from './Build'
 import { fetchCodeHash, getSourceSpecifier } from './Code'
-
-/** Standalone upload function. */
-export async function upload (
-  source:   Maybe<Buildable> & Uploadable & Maybe<Uploaded>,
-  uploader: Maybe<Uploader>   = source.uploader,
-  agent:    Maybe<Agent>|null = uploader?.agent
-): Promise<Uploaded> {
-
-  // If the object already contains chain ID and code ID, that means it's uploaded
-  if (source.chainId && source.codeId) {
-    // If it has no code hash, fetch from chain by code id
-    // so that we can validate against it alter
-    source.codeHash ??= await fetchCodeHash(source, agent)
-    return source as Uploaded
-  }
-
-  // If the chain ID or code hash is missing though, it means we need to upload:
-  return defineTask(`upload ${getSourceSpecifier(source)}`, doUpload, source)
-
-  async function doUpload (): Promise<Uploaded> {
-
-    // We're gonna need an uploader
-    uploader ??= assertUploader(source)
-
-    // And if we still can't determine the chain ID, bail
-    const chainId = undefined
-      ?? uploader.chain?.id
-      ?? uploader.agent?.chain?.id
-      ?? (source as any)?.agent?.chain?.id
-
-    if (!chainId) throw new Error.NoChainId()
-
-    // If we have chain ID and code ID, try to get code hash
-    if (source.codeId) source.codeHash = await fetchCodeHash(source, agent)
-
-    // Replace with built and return uploaded
-    if (!source.artifact) await build(source)
-
-    return uploader.upload(source)
-  }
-
-}
-
-/** Standalone multi-upload function. */
-export async function uploadMany (
-  contracts: Uploadable[],
-  context:   Partial<Deployment>,
-): Promise<Uploaded[]> {
-  return defineTask(`upload ${contracts.length} contracts`, async () => {
-    if (!context.uploader) throw new Error.NoUploader()
-    if (contracts.length === 0) return Promise.resolve([])
-    const count = pluralize(contracts, 'contract', 'contracts')
-    const name  = `upload ${count}:`
-    return defineTask(name, async function uploadManyContracts () {
-      if (!context.uploader) throw new Error.NoUploader()
-      const result = await context.uploader.uploadMany(contracts)
-      return result
-    }, context)
-  }, context)
-}
 
 /** A constructor for an Uploader subclass. */
 export interface UploaderClass<U extends Uploader> {

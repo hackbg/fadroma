@@ -26,7 +26,7 @@ export default class UploadConfig extends ConnectConfig {
   getUploader <U extends Uploader> (
     $U: UploaderClass<U> = Uploader.variants[this.uploader] as UploaderClass<U>
   ): U {
-    return new $U()
+    return new $U(this.getAgent())
   }
 
 }

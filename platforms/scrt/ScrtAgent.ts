@@ -129,19 +129,21 @@ export default class ScrtAgent extends Agent {
   simulate: boolean = false
 
   get account () {
-    return this.api.query.auth.account({ address: assertAddress(this) })
+    return this.asyncInit.then(()=>this.api.query.auth.account({ address: assertAddress(this) }))
   }
 
   get balance () {
-    return this.getBalance(this.defaultDenom, assertAddress(this))
+    return this.asyncInit.then(()=>this.getBalance(this.defaultDenom, assertAddress(this)))
   }
 
   async getBalance (denom = this.defaultDenom, address: Address): Promise<string> {
+    await this.asyncInit
     const response = await this.api.query.bank.balance({ address, denom })
     return response.balance!.amount!
   }
 
   async send (to: Address, amounts: ICoin[], opts?: any) {
+    await this.asyncInit
     const from_address = assertAddress(this)
     const to_address = to
     const amount = amounts
@@ -154,16 +156,19 @@ export default class ScrtAgent extends Agent {
   }
 
   async getLabel (contract_address: string): Promise<string> {
+    await this.asyncInit
     const response = await this.api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.label!
   }
 
   async getCodeId (contract_address: string): Promise<string> {
+    await this.asyncInit
     const response = await this.api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.code_id!
   }
 
   async getHash (arg: string|number): Promise<string> {
+    await this.asyncInit
     if (typeof arg === 'number' || !isNaN(Number(arg))) {
       return (await this.api.query.compute.codeHashByCodeId({
         code_id: String(arg)
@@ -176,6 +181,7 @@ export default class ScrtAgent extends Agent {
   }
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
+    await this.asyncInit
     if (!this.address) throw new Error("No address")
     const failed = ()=>{
       throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
@@ -187,6 +193,7 @@ export default class ScrtAgent extends Agent {
 
   async encrypt (codeHash: CodeHash, msg: Message) {
     if (!codeHash) throw new Error.NoCodeHash()
+    await this.asyncInit
     const { encryptionUtils } = await this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return base64.encode(encrypted)
@@ -195,6 +202,7 @@ export default class ScrtAgent extends Agent {
   /** Query a Client.
     * @returns the result of the query */
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
+    await this.asyncInit
     return await this.api.query.compute.queryContract({
       contract_address: instance.address!,
       code_hash:        instance.codeHash,
@@ -204,6 +212,7 @@ export default class ScrtAgent extends Agent {
 
   /** Upload a WASM binary. */
   async upload (data: Uint8Array): Promise<Uploaded> {
+    await this.asyncInit
 
     type Log = { type: string, key: string }
 
@@ -245,6 +254,7 @@ export default class ScrtAgent extends Agent {
     instance: Contract<C>,
     init_funds: ICoin[] = []
   ) {
+    await this.asyncInit
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
@@ -306,6 +316,7 @@ export default class ScrtAgent extends Agent {
   async execute (
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
   ): Promise<TxResponse> {
+    await this.asyncInit
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts

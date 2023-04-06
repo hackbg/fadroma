@@ -11,8 +11,7 @@ import { codeHashOf } from './Code'
 import { assertAddress } from './Tx'
 import { Client } from './Client'
 import { writeLabel } from './Labels'
-import { assertBuilder, buildMany } from './Build'
-import { upload, uploadMany } from './Upload'
+import { assertBuilder } from './Build'
 import Template, { toUploadReceipt } from './Template'
 
 /** Parameters involved in instantiating a contract */
@@ -94,71 +93,32 @@ function getClientTo <C extends Client> (contract: Contract<C>): C {
   * Can build and upload, and instantiate itself. */
 export class Contract<C extends Client> extends Template<C> {
   log: Console
-  /** The deployment that this contract belongs to. */
-  context?:    Deployment     = undefined
-  /** URL pointing to Git repository containing the source code. */
-  repository?: string|URL     = undefined
-  /** Branch/tag pointing to the source commit. */
-  revision?:   string         = undefined
-  /** Whether there were any uncommitted changes at build time. */
-  dirty?:      boolean        = undefined
-  /** Path to local Cargo workspace. */
-  workspace?:  string         = undefined
-  /** Name of crate in workspace. */
-  crate?:      string         = undefined
-  /** List of crate features to enable during build. */
-  features?:   string[]       = undefined
-  /** Build procedure implementation. */
-  builder?:    Builder        = undefined
-  /** Builder implementation that produces a Contract from the Source. */
-  builderId?:  string         = undefined
-  /** URL to the compiled code. */
-  artifact?:   string|URL     = undefined
-  /** Code hash uniquely identifying the compiled code. */
-  codeHash?:   CodeHash       = undefined
-  /** ID of chain on which this contract is uploaded. */
-  chainId?:    ChainId        = undefined
-  /** Object containing upload logic. */
-  uploaderId?: string         = undefined
-  /** Upload procedure implementation. */
-  uploader?:   Uploader       = undefined
-  /** Address of agent that performed the upload. */
-  uploadBy?:   Address        = undefined
-  /** TXID of transaction that performed the upload. */
-  uploadTx?:   TxHash         = undefined
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:     CodeId         = undefined
-  /** The Agent instance that will be used to upload and instantiate the contract. */
-  agent?:      Agent          = undefined
-  /** The Client subclass that exposes the contract's methods.
-    * @default the base Client class. */
-  client?:     ClientClass<C> = Client as unknown as ClientClass<C>
   /** Address of agent that performed the init tx. */
-  initBy?:     Address        = undefined
+  initBy?:  Address        = undefined
   /** Address of agent that performed the init tx. */
-  initMsg?:    Into<Message>  = undefined
+  initMsg?: Into<Message>  = undefined
   /** TXID of transaction that performed the init. */
-  initTx?:     TxHash         = undefined
+  initTx?:  TxHash         = undefined
   /** Address of this contract instance. Unique per chain. */
-  address?:    Address        = undefined
+  address?: Address        = undefined
   /** Full label of the instance. Unique for a given Chain. */
-  label?:      Label          = undefined
+  label?:   Label          = undefined
   /** Prefix of the instance label.
     * Identifies which Deployment the instance belongs to, if any.
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
-  prefix?:     Name           = undefined
+  prefix?:  Name           = undefined
   /** Proper name of the instance. Unique within the deployment.
     * If the instance is not part of a Deployment, this is equal to the label.
     * If the instance is part of a Deployment, this is used as storage key.
     * You are encouraged to store application-specific versioning info in this field. */
-  name?:       Name
+  name?:    Name
   /** Deduplication suffix.
     * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
     * This field has sometimes been used to redeploy an new instance
     * within the same Deployment, taking the place of the old one.
     * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
     *       is "the real one" (see https://stackoverflow.com/a/54427214. */
-  suffix?:     Name           = undefined
+  suffix?:  Name           = undefined
 
   constructor (options: Partial<Contract<C>> = {}) {
     super({})
@@ -198,65 +158,6 @@ export class Contract<C extends Client> extends Template<C> {
       })
     }
 
-  }
-
-  /** Provide parameters for an existing instance.
-    * @returns mutated self */
-  define (options: Partial<Template<C>> = {}): this {
-    return override(this, options as object)
-  }
-
-  /** Define a task (lazily-evaluated async one-shot field).
-    * @returns A lazily-evaluated Promise. */
-  task <T extends this, U> (name: string, cb: (this: T)=>PromiseLike<U>): Task<T, U> {
-    return defineTask(name, cb, this as T)
-  }
-
-  get compiled (): Task<this, this & Built> {
-    const building = this.build()
-    Object.defineProperty(this, 'compiled', { get () { return building } })
-    return building
-  }
-
-  /** Compile the source using the selected builder.
-    * @returns this */
-  build (builder?: Builder): Task<this, this & Built> {
-    type Self = typeof this
-    const name = `compile ${this.crate ?? 'contract'}`
-    return this.task(name, async function buildContract (this: Self): Promise<Self & Built> {
-      if (!this.artifact) {
-        if (!this.crate) throw new Error.NoCrate()
-        builder ??= assertBuilder(this)
-        const result = await builder!.build(this as Buildable)
-        this.define(result)
-      }
-      return this as Self & Built
-    })
-
-  }
-
-  /** One-shot deployment task. */
-  get uploaded (): Task<this, this & Uploaded> {
-    const uploading = this.upload()
-    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
-    return uploading
-  }
-
-  /** Upload compiled source code to the selected chain.
-    * @returns task performing the upload */
-  upload (uploader?: Uploader): Task<this, this & Uploaded> {
-    type Self = typeof this
-    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
-    return this.task(name, async function uploadContract (this: Self): Promise<Self & Uploaded> {
-      if (!this.codeId) {
-        await this.compiled
-        const result = await upload(
-          this as Maybe<Buildable> & Uploadable & Maybe<Uploaded>, uploader, uploader?.agent
-        )
-        this.define(result)
-      }
-      return this as Self & Uploaded
-    })
   }
 
   /** One-shot deployment task. */
@@ -323,13 +224,6 @@ export class Contract<C extends Client> extends Template<C> {
     return true
   }
 
-  get asInfo (): ContractInfo {
-    return {
-      id:        this.codeId!,
-      code_hash: this.codeHash!
-    }
-  }
-
   get asLink (): ContractLink {
     return {
       address:   this.address!,
@@ -356,8 +250,10 @@ export class ContractGroup<A extends unknown[]> {
   /** Deploy an instance of this contract group. */
   async deploy (...args: A) {
     const contracts = this.getContracts.apply(this.context, args)
-    await buildMany(Object.values(contracts) as unknown as Buildable[], this.context)
-    await uploadMany(Object.values(contracts) as unknown as Uploadable[], this.context)
+    if (!this.context.builder) throw new Error.NoBuilder()
+    await this.context.builder.buildMany(Object.values(contracts) as unknown as Buildable[])
+    if (!this.context.uploader) throw new Error.NoUploader()
+    await this.context.uploader.uploadMany(Object.values(contracts) as unknown as Uploadable[])
     return await mapAsync(contracts, (contract: AnyContract)=>contract.deployed)
   }
 

@@ -106,7 +106,6 @@ If you don't pass a mnemonic, a random mnemonic and address will be generated.
 ```typescript
 import { Agent } from '@fadroma/agent'
 let agent: Agent = await chain.getAgent({ address: 'testing1agent0' })
-console.log(agent)
 
 assert.ok(agent instanceof Agent, 'Agent returned')
 assert.equal(agent.chain, chain,  'Agent#chain assigned')
@@ -586,30 +585,12 @@ Implemented by `@fadroma/build`.
 * **RawBuilder**: runs the build in the current environment
 * **ContainerBuilder**: runs the build in a container for enhanced reproducibility
 
-```typescript
-import { build, buildMany } from '@fadroma/agent'
-
-await build({ builder: new Builder() })
-await buildMany([{}, {}], { builder: new Builder() })
-```
-
 ### Uploader
 
 Implemented by `@fadroma/upload`.
 
 * **FSUploader**: Support for uploading from Node FS.
 * TODO: **FetchUploader**: Support for uploading from any URL incl. file:///
-
-```typescript
-import { upload, uploadMany } from '@fadroma/agent'
-
-chain = new Chain('test')
-const uploader = { upload () {}, uploadMany () {}, chain, agent: await chain.getAgent() }
-
-await upload({ builder: new Builder(), uploader })
-await upload({ builder: new Builder(), uploader, chainId: 'test', codeId: 'test' })
-await uploadMany([{}, {}], { builder: new Builder(), uploader })
-```
 
 ### DeployStore
 

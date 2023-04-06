@@ -11,10 +11,18 @@ $ fadroma reupload CONTRACT # always reupload
 
 ## Upload API
 
+Uploading with default configuration (from environment):
+
+```typescript
+import { upload } from '@fadroma/ops'
+await upload({ artifact: 'fixtures/null.wasm' })
+```
+
+Passing custom options to the uploader:
+
 ```typescript
 import { getUploader } from '@fadroma/ops'
-
-await getUploader({ /* options */ }).upload({ artifact: 'contract' })
+await getUploader({ /* options */ }).upload({ artifact: 'fixtures/null.wasm' })
 ```
 
 ### Upload state

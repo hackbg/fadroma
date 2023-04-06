@@ -46,10 +46,10 @@ import type { ChainRegistry } from '@fadroma/agent'
 /** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
 Object.assign(Chain.variants as ChainRegistry, {
   // Support for Mocknet
-  async Mocknet_CW0 (config: unknown): Promise<Mocknet_CW0> {
+  Mocknet_CW0 (config: unknown): Mocknet_CW0 {
     return new Mocknet_CW0()
   },
-  async Mocknet_CW1 (config: unknown): Promise<Mocknet_CW1> {
+  Mocknet_CW1 (config: unknown): Mocknet_CW1 {
     return new Mocknet_CW1()
   },
   // Support for Secret Network

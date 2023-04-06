@@ -7,7 +7,6 @@ import {
 } from '../util/index'
 import { Client } from './Client'
 import { assertBuilder } from './Build'
-import { upload } from './Upload'
 import { Contract } from './Contract'
 
 /** Parameters involved in building a contract. */
@@ -159,23 +158,18 @@ export default class Template<C extends Client> {
 
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
-  upload (uploader?: Uploader): Task<this, this & Uploaded> {
+  upload (uploader: Uploader|undefined = this.uploader): Task<this, this & Uploaded> {
+    if (!uploader) throw new Error.NoUploader()
     type Self = typeof this
     const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
     return this.task(name, async function uploadContract (this: Self): Promise<Self & Uploaded> {
       if (!this.codeId) {
         await this.compiled
-        const result = await upload(
-          this as Maybe<Buildable> & Uploadable & Maybe<Uploaded>, uploader, uploader?.agent
-        )
+        const result = await uploader.upload(this as Uploadable)
         this.define(result as Partial<Self>)
       }
       return this as Self & Uploaded
     })
-  }
-
-  get asInfo (): ContractInfo {
-    return { id: this.codeId!, code_hash: this.codeHash! }
   }
 
   /** @returns a Contract representing a specific instance of this Template. */
@@ -204,6 +198,14 @@ export default class Template<C extends Client> {
       })
     })
   }
+
+  get asInfo (): ContractInfo {
+    return {
+      id:        this.codeId!,
+      code_hash: this.codeHash!
+    }
+  }
+
 }
 
 /** @returns the data for saving a build receipt. */

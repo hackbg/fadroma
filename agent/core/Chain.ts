@@ -15,7 +15,7 @@ export enum ChainMode {
 export type ChainId = string
 
 /** A collection of functions that return Chain instances. */
-export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
+export type ChainRegistry = Record<string, (config: any)=>Chain>
 
 /** Options for connecting to a chain. */
 export interface ChainOpts {
