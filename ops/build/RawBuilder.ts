@@ -17,7 +17,7 @@ export default class RawBuilder extends LocalBuilder {
 
   readonly id = 'Raw'
 
-  log = new BuildConsole('Fadroma.RawBuilder')
+  log = new BuildConsole('@fadroma/build: Raw')
 
   runtime = process.argv[0]
 

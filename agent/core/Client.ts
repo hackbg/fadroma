@@ -39,7 +39,7 @@ export class Client {
   meta: Contract<any>
 
   /** Logger. */
-  log = new Console('Fadroma.Client')
+  log = new Console('@fadroma/agent: Client')
 
   /** Default fee for all contract transactions. */
   fee?: IFee = undefined

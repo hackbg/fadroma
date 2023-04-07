@@ -64,7 +64,7 @@ export class DotGit extends Path {
 
   }
 
-  log = new BuildConsole('Fadroma.DotGit')
+  log = new BuildConsole('@fadroma/build: Git')
 
   readonly present:
     boolean

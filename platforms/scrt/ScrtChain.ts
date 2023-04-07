@@ -46,7 +46,7 @@ export default class Scrt extends Chain {
   static Config = Config
 
   /** The default Agent class for Secret Network. */
-  static Agent: AgentClass<ScrtAgent> // set below
+  static Agent: AgentClass<ScrtAgent> // set in index
 
   static isSecretNetwork: boolean = true
 

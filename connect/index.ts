@@ -58,10 +58,10 @@ Object.assign(Chain.variants as ChainRegistry, {
   ScrtDevnet:  defineDevnet(Scrt.Chain, 'scrt_1.7'),
 })
 
-export default async function connect (
+export default function connect (
   config: Partial<ConnectConfig> = new ConnectConfig()
-): Promise<Connector> {
-  return await new ConnectConfig(config).getConnector()
+): Connector {
+  return new ConnectConfig(config).getConnector()
 }
 
 import { ChainMode } from '@fadroma/agent'

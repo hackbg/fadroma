@@ -15,7 +15,7 @@ export interface BundleClass<B extends Bundle> extends Class<B, ConstructorParam
 export abstract class Bundle extends Agent {
 
   /** Logger. */
-  log = new Console('Fadroma.Bundle')
+  log = new Console('@fadroma/agent: Bundle')
 
   /** Nested bundles are flattened, this counts the depth. */
   depth  = 0

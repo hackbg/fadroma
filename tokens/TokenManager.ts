@@ -77,7 +77,7 @@ export default class TokenManager extends CommandContext {
   }
 
   /* Logger. */
-  log = new Console('Fadroma Token Manager')
+  log = new Console('@fadroma/tokens: Manager')
 
   /** Collection of known tokens in descriptor format, keyed by symbol. */
   tokens: Record<TokenSymbol, TokenContract> = {}

@@ -29,10 +29,6 @@ export default class ConnectConfig extends Config {
   /** Secret Network configuration. */
   scrt: ScrtConfig
 
-  /** Name of chain to use. */
-  chainSelector?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
-    ()=>'Mocknet_CW1')
-
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   devnetAgentName: string
     = this.getString('FADROMA_AGENT',   ()=>
@@ -42,6 +38,10 @@ export default class ConnectConfig extends Config {
   mnemonic?: string
     = this.getString('FADROMA_MNEMONIC',    ()=>
       this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
+
+  /** Name of chain to use. */
+  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
+    ()=>'Mocknet_CW1')
 
   /** Get a chain ID corresponding to the value of `this.chain`.
     * (Used by subclasses to include chain ID in paths.) */
@@ -53,7 +53,7 @@ export default class ConnectConfig extends Config {
       ScrtTestnet:  ScrtConfig.defaultTestnetChainId,
       ScrtMainnet:  ScrtConfig.defaultMainnetChainId,
     }
-    return chainIds[this.chainSelector as keyof typeof chainIds] || null
+    return chainIds[this.chain as keyof typeof chainIds] || null
   }
 
   /** Get a chain mode corresponding to the value of `this.chain`.
@@ -66,25 +66,25 @@ export default class ConnectConfig extends Config {
       ScrtTestnet: ChainMode.Testnet,
       ScrtMainnet: ChainMode.Mainnet,
     }
-    if (!this.chainSelector) throw new Error.NoChainSelected(chainModes)
-    const result = chainModes[this.chainSelector as keyof typeof chainModes]
-    if (!result) throw new Error.UnknownChainSelected(this.chainSelector, chainModes)
+    if (!this.chain) throw new Error.NoChainSelected(chainModes)
+    const result = chainModes[this.chain as keyof typeof chainModes]
+    if (!result) throw new Error.UnknownChainSelected(this.chain, chainModes)
     return result
   }
 
   // Create the Chain instance specified by the configuration.
   getChain <C extends Chain> (
-    getChain: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chainSelector
+    getChain: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chain
   ): C {
     if (!getChain) {
-      getChain = this.chainSelector
+      getChain = this.chain
       if (!getChain) throw new Error.NoChain()
     }
     if (typeof getChain === 'string') { // allow name to be passed
       getChain = Chain.variants[getChain]
     }
     if (!getChain) { // if still unspecified, throw
-      throw new Error.UnknownChainSelected(this.chainSelector!, Chain.variants)
+      throw new Error.UnknownChainSelected(this.chain!, Chain.variants)
     }
     return getChain(this) as C // create Chain object
   }
@@ -105,7 +105,7 @@ export default class ConnectConfig extends Config {
 
   /** Create a `Connector` containing instances of `Chain` and `Agent`
     * as specified by the configuration and return a `Connector with them. */
-  async getConnector <C extends Connector> ($C?: ConnectorClass<C>): Promise<C> {
+  getConnector <C extends Connector> ($C?: ConnectorClass<C>): C {
     $C ??= Connector as ConnectorClass<C>
     // Create chain and agent
     const chain = this.getChain()
@@ -118,7 +118,7 @@ export default class ConnectConfig extends Config {
   /** List all known chains. */
   listChains () {
     this.log.supportedChains()
-    this.log.selectedChain(this.chainSelector as string)
+    this.log.selectedChain(this.chain as string)
   }
 
 }

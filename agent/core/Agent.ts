@@ -39,7 +39,7 @@ export abstract class Agent {
   }
 
   /** Complete the asynchronous initialization of this Agent. */
-  get asyncInit (): Promise<this> {
+  get ready (): Promise<this> {
     const init = new Promise<this>(async (resolve, reject)=>{
       try {
         if (this.chain?.node) await this.chain?.node.respawn()
@@ -52,12 +52,12 @@ export abstract class Agent {
         reject(e)
       }
     })
-    Object.defineProperty(this, 'asyncInit', { get () { return init } })
+    Object.defineProperty(this, 'ready', { get () { return init } })
     return init
   }
 
   /** Logger. */
-  log = new Console('Fadroma.Agent')
+  log = new Console('@fadroma/agent: Agent')
 
   /** The chain on which this agent operates. */
   chain?:    Chain
@@ -130,19 +130,19 @@ export abstract class Agent {
 
   /** Send native tokens to 1 recipient. */
   send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
-    this.log.warn('Agent#send: not implemented')
+    this.log.warn('Agent#send: stub')
     return Promise.resolve()
   }
 
   /** Send native tokens to multiple recipients. */
   sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
-    this.log.warn('Agent#sendMany: not implemented')
+    this.log.warn('Agent#sendMany: stub')
     return Promise.resolve()
   }
 
   /** Upload code, generating a new code id/hash pair. */
   upload (blob: Uint8Array): Promise<Uploaded> {
-    this.log.warn('Agent#upload: not implemented')
+    this.log.warn('Agent#upload: stub')
     return Promise.resolve({
       chainId:  this.chain!.id,
       codeId:   '0',
@@ -169,7 +169,7 @@ export abstract class Agent {
     *   AnyContract with no `address` populated yet.
     *   This will be populated after executing the bundle. */
   instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated> {
-    this.log.warn('Agent#instantiate: not implemented')
+    this.log.warn('Agent#instantiate: stub')
     return Promise.resolve({
       chainId:  this.chain!.id,
       address:  '',
@@ -232,7 +232,7 @@ export abstract class Agent {
   execute (
     contract: Partial<Client>, msg: Message, opts?: ExecOpts
   ): Promise<void|unknown> {
-    this.log.warn('Agent#execute: not implemented')
+    this.log.warn('Agent#execute: stub')
     return Promise.resolve({})
   }
 

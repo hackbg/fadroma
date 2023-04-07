@@ -117,7 +117,7 @@ export abstract class Chain {
   isSecretNetwork = false
 
   /** Logger. */
-  log = new Console('Fadroma.Chain')
+  log = new Console('@fadroma/agent: Chain')
 
   /** The Agent subclass to use for interacting with this chain. */
   Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
@@ -223,9 +223,10 @@ export abstract class Chain {
   getAgent (options?: Partial<AgentOpts>): Agent
   getAgent ($A: AgentClass<Agent>, options?: Partial<AgentOpts>): InstanceType<typeof $A>
   getAgent (...args: any) {
-    const $A = (typeof args[0] === 'function') ? args[0] : this.Agent
+    const $A      = (typeof args[0] === 'function') ? args[0] : this.Agent
     const options = (typeof args[0] === 'function') ? args[1] : args[0]
-    return new $A(Object.assign(options||{}, { chain: this }))
+    const agent   = new $A(Object.assign(options||{}, { chain: this }))
+    return agent
   }
 
 }

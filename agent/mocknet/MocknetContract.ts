@@ -31,7 +31,7 @@ export type CW = '0.x' | '1.x'
 
 export default abstract class MocknetContract<I extends ContractImports, E extends ContractExports> {
 
-  log = new Console('Fadroma Mocknet')
+  log = new Console('@fadroma/agent: Mocknet')
 
   instance?: WebAssembly.Instance<E>
 

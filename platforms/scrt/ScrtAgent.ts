@@ -26,129 +26,132 @@ export interface ScrtAgentOpts extends AgentOpts {
   wallet:          SecretJS.Wallet
   /** Whether to simulate each execution first to get a more accurate gas estimate. */
   simulate:        boolean
-  /** Set this to override the instance of the Enigma encryption utilities,
-    * e.g. the one provided by Keplr. Since this is provided by Keplr on a
-    * per-identity basis, this override is specific to each individual
-    * ScrtGrpcAgent instance. */
+  /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
   encryptionUtils: SecretJS.EncryptionUtils
 }
 
-/** Represents a connection to the Secret Network authenticated as a specific address. */
+/** Represents a connection to the Secret Network,
+  * authenticated as a specific address. */
 export default class ScrtAgent extends Agent {
 
   constructor (options: Partial<ScrtAgentOpts> = {}) {
     super(options)
     this.fees = options.fees ?? this.fees
-    // Required: SecretJS.SecretNetworkClient instance
-    if (!options.api) throw new Error.NoApi()
     this.api = options.api
-    // Required: SecretJS.Wallet instance
-    if (!options.wallet) throw new Error.NoWallet()
-    this.wallet  = options.wallet
+    this.wallet = options.wallet
     this.address = this.wallet?.address
-    // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
-    // Redundant if agent is constructed with ScrtGrpc#getAgent
-    // (which applies the override that the time of SecretNetworkClient construction)
-    if (options.encryptionUtils) {
-      Object.assign(this.api, { encryptionUtils: options.encryptionUtils })
-    }
-    // Optional: enable simulation to establish gas amounts
+    this.encryptionUtils = options.encryptionUtils
     this.simulate = options.simulate ?? this.simulate
   }
 
-  get asyncInit (): Promise<this> {
-    const init = new Promise<this>(async (resolve, reject)=>{
+  get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
+    const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (resolve, reject)=>{
       try {
-        // Use selected secretjs implementation
         const _SecretJS = this.chain.SecretJS
-        // Unwrap base options
-        let { name, address, mnemonic, wallet, fees, encryptionUtils } = this
-        // Construct wallet from mnemonic if a wallet is not passed
-        if (!wallet) {
-          // Provide mnemonic from devnet
-          if (name && this.chain.isDevnet && this.chain.node) {
+        let wallet = this.wallet
+        if (!wallet || wallet instanceof _SecretJS.ReadonlySigner) {
+          // If this is a named devnet agent
+          if (this.name && this.chain.isDevnet && this.chain.node) {
+            // Provide mnemonic from devnet genesis accounts
             await this.chain.node.respawn()
-            mnemonic = (await this.chain.node.getGenesisAccount(name)).mnemonic!
+            this.mnemonic = (await this.chain.node.getGenesisAccount(this.name)).mnemonic!
           }
-          // Generate fresh mnemonic
-          if (!mnemonic) {
-            mnemonic = bip39.generateMnemonic(bip39EN)
-            this.log.warnGeneratedMnemonic(mnemonic)
+          // If there is still no mnemonic
+          if (!this.mnemonic) {
+            // Generate fresh mnemonic
+            this.mnemonic = bip39.generateMnemonic(bip39EN)
+            this.log.warnGeneratedMnemonic(this.mnemonic)
           }
-          wallet = new _SecretJS.Wallet(mnemonic)
-        } else if (mnemonic) {
+          wallet = new _SecretJS.Wallet(this.mnemonic)
+        } else if (this.mnemonic) {
           this.log.warnIgnoringMnemonic()
         }
         // Construct the API client
-        let url = this.chain.url
-        if (url.endsWith('/')) url = url.slice(0, url.length - 1)
-        const api = await this.chain?.getApi({
-          chainId:         this.chain.id,
-          url:             url,
-          wallet,
-          walletAddress:   wallet.address || address,
-          encryptionUtils
-        })
+        const url = removeTrailingSlash(this.chain.url)
+        const chainId = this.chain.id
+        const walletAddress = wallet?.address || this.address
+        const { encryptionUtils } = this
+        const apiOptions = { chainId, url, wallet, walletAddress, encryptionUtils }
+        this.api = await this.chain?.getApi(apiOptions)
+        // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
+        if (encryptionUtils) Object.assign(this.api, { encryptionUtils })
         // If fees are not specified, get default fees from API.
-        if (!fees) {
-          fees = Scrt.defaultFees
+        if (!this.fees) {
+          this.fees = Scrt.defaultFees
           try {
             const max = Scrt.gas((await this.chain.fetchLimits()).gas)
-            fees = { upload: max, init: max, exec: max, send: max }
+            this.fees = { upload: max, init: max, exec: max, send: max }
           } catch (e) {
             this.log.warn(e)
-            this.log.warnCouldNotFetchBlockLimit(Object.values(fees))
+            this.log.warnCouldNotFetchBlockLimit(Object.values(this.fees))
           }
         }
+        // Override address and set name if missing.
+        this.address = wallet.address
+        this.name ??= this.address
         // Done.
-        resolve(this)
+        resolve(this as this & { api: SecretJS.SecretNetworkClient })
       } catch (e) {
         reject(e)
       }
     })
-    Object.defineProperty(this, 'asyncInit', { get () { return init } })
+    Object.defineProperty(this, 'ready', { get () { return init } })
     return init
   }
 
   declare chain: Scrt
 
-  encryptionUtils?: SecretJS.EncryptionUtils
-
-  fees = Scrt.defaultFees
-
   log = new Console('ScrtGrpcAgent')
-
-  static Bundle: BundleClass<ScrtBundle>
 
   Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
 
-  wallet: SecretJS.Wallet
+  get api (): SecretJS.SecretNetworkClient|undefined {
+    return undefined
+  }
+  set api (value: SecretJS.SecretNetworkClient|undefined) {
+    setApi(this, value)
+  }
 
-  api: SecretJS.SecretNetworkClient
+  get wallet (): SecretJS.Wallet|undefined {
+    return (this.api as any)?.wallet
+  }
+  set wallet (value: SecretJS.Wallet|undefined) {
+    setWallet(this, value)
+  }
 
+  get encryptionUtils (): SecretJS.EncryptionUtils|undefined {
+    return (this.api as any)?.encryptionUtils
+  }
+  set encryptionUtils (value: SecretJS.EncryptionUtils|undefined) {
+    setEncryptionUtils(this, value)
+  }
+
+  /** Whether transactions should be simulated instead of executed. */
   simulate: boolean = false
 
+  fees = Scrt.defaultFees
+
   get account () {
-    return this.asyncInit.then(()=>this.api.query.auth.account({ address: assertAddress(this) }))
+    return this.ready.then(()=>this.api!.query.auth.account({ address: assertAddress(this) }))
   }
 
   get balance () {
-    return this.asyncInit.then(()=>this.getBalance(this.defaultDenom, assertAddress(this)))
+    return this.ready.then(()=>this.getBalance(this.defaultDenom, assertAddress(this)))
   }
 
   async getBalance (denom = this.defaultDenom, address: Address): Promise<string> {
-    await this.asyncInit
-    const response = await this.api.query.bank.balance({ address, denom })
+    const { api } = await this.ready
+    const response = await api.query.bank.balance({ address, denom })
     return response.balance!.amount!
   }
 
   async send (to: Address, amounts: ICoin[], opts?: any) {
-    await this.asyncInit
+    const { api } = await this.ready
     const from_address = assertAddress(this)
     const to_address = to
     const amount = amounts
     const msg = { from_address, to_address, amount }
-    return this.api.tx.bank.send(msg, { gasLimit: opts?.gas?.gas })
+    return api.tx.bank.send(msg, { gasLimit: opts?.gas?.gas })
   }
 
   async sendMany (outputs: never, opts: never) {
@@ -156,44 +159,44 @@ export default class ScrtAgent extends Agent {
   }
 
   async getLabel (contract_address: string): Promise<string> {
-    await this.asyncInit
-    const response = await this.api.query.compute.contractInfo({ contract_address })
+    const { api } = await this.ready
+    const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.label!
   }
 
   async getCodeId (contract_address: string): Promise<string> {
-    await this.asyncInit
-    const response = await this.api.query.compute.contractInfo({ contract_address })
+    const { api } = await this.ready
+    const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.code_id!
   }
 
   async getHash (arg: string|number): Promise<string> {
-    await this.asyncInit
+    const { api } = await this.ready
     if (typeof arg === 'number' || !isNaN(Number(arg))) {
-      return (await this.api.query.compute.codeHashByCodeId({
+      return (await api.query.compute.codeHashByCodeId({
         code_id: String(arg)
       })).code_hash!
     } else {
-      return (await this.api.query.compute.codeHashByContractAddress({
+      return (await api.query.compute.codeHashByContractAddress({
         contract_address: arg
       })).code_hash!
     }
   }
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
-    await this.asyncInit
+    const { api } = await this.ready
     if (!this.address) throw new Error("No address")
     const failed = ()=>{
       throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
     }
-    const result = await this.api.query.auth.account({ address: this.address }) ?? failed()
+    const result = await api.query.auth.account({ address: this.address }) ?? failed()
     const { account_number, sequence } = result.account as any
     return { accountNumber: Number(account_number), sequence: Number(sequence) }
   }
 
   async encrypt (codeHash: CodeHash, msg: Message) {
     if (!codeHash) throw new Error.NoCodeHash()
-    await this.asyncInit
+    const { api } = await this.ready
     const { encryptionUtils } = await this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return base64.encode(encrypted)
@@ -202,8 +205,8 @@ export default class ScrtAgent extends Agent {
   /** Query a Client.
     * @returns the result of the query */
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
-    await this.asyncInit
-    return await this.api.query.compute.queryContract({
+    const { api } = await this.ready
+    return await api.query.compute.queryContract({
       contract_address: instance.address!,
       code_hash:        instance.codeHash,
       query: query as Record<string, unknown>
@@ -212,34 +215,20 @@ export default class ScrtAgent extends Agent {
 
   /** Upload a WASM binary. */
   async upload (data: Uint8Array): Promise<Uploaded> {
-    await this.asyncInit
-
+    const { api } = await this.ready
     type Log = { type: string, key: string }
-
     if (!this.address) throw new Error("No address")
-
-    const result = await this.api.tx.compute.storeCode({
-      sender: this.address,
-      wasm_byte_code: data,
-      source: "",
-      builder: ""
-    }, {
-      gasLimit: Number(this.fees.upload?.amount[0].amount) || undefined
-    })
-
+    const request  = { sender: this.address, wasm_byte_code: data, source: "", builder: "" }
+    const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
+    const result   = await api.tx.compute.storeCode(request, { gasLimit })
     if (result.code !== 0) {
       this.log.warn(`Upload failed with result`, result)
       throw Object.assign(new Error.UploadFailed(), { result })
     }
-
     const codeId = result.arrayLog
       ?.find((log: Log) => log.type === "message" && log.key === "code_id")
       ?.value
-
-    if (!codeId) {
-      throw Object.assign(new Error.UploadFailed(), { noCodeId: true })
-    }
-
+    if (!codeId) { throw Object.assign(new Error.UploadFailed(), { noCodeId: true }) }
     return {
       chainId:  assertChain(this).id,
       codeId,
@@ -247,14 +236,13 @@ export default class ScrtAgent extends Agent {
       uploadBy: this.address,
       uploadTx: result.transactionHash
     }
-
   }
 
   async instantiate <C extends Client> (
     instance: Contract<C>,
     init_funds: ICoin[] = []
   ) {
-    await this.asyncInit
+    const { api } = await this.ready
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
@@ -264,7 +252,7 @@ export default class ScrtAgent extends Agent {
     if (chainId && chainId !== assertChain(this).id) {
       throw new Error.WrongChain()
     }
-    const result = await this.api.tx.compute.instantiateContract({
+    const result = await api.tx.compute.instantiateContract({
       sender: this.address,
       code_id,
       code_hash: codeHash!,
@@ -316,7 +304,7 @@ export default class ScrtAgent extends Agent {
   async execute (
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
   ): Promise<TxResponse> {
-    await this.asyncInit
+    const { api } = await this.ready
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
@@ -335,7 +323,7 @@ export default class ScrtAgent extends Agent {
       this.log.info('Simulating transaction...')
       let simResult
       try {
-        simResult = await this.api.tx.compute.executeContract.simulate(tx, txOpts)
+        simResult = await api.tx.compute.executeContract.simulate(tx, txOpts)
       } catch (e) {
         this.log.error(e)
         this.log.warn('TX simulation failed:', tx, 'from', this)
@@ -349,7 +337,7 @@ export default class ScrtAgent extends Agent {
         txOpts.gasLimit = gas
       }
     }
-    const result = await this.api.tx.compute.executeContract(tx, txOpts)
+    const result = await api.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
     if (result.code !== 0) {
       const error = `ScrtAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
@@ -381,6 +369,8 @@ export default class ScrtAgent extends Agent {
 
   decryptAndThrow (result: TxResponse) {}
 
+  static Bundle: BundleClass<ScrtBundle> // populated in index
+
 }
 
 /** Used to decode Uint8Array-represented UTF8 strings in TX responses. */
@@ -395,5 +385,49 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
     return decoder.decode(data)
   } catch (e) {
     return nonUtf8
+  }
+}
+
+function removeTrailingSlash (url: string) {
+  while (url.endsWith('/')) { url = url.slice(0, url.length - 1) }
+  return url
+}
+
+function setApi (agent: ScrtAgent, value: SecretJS.SecretNetworkClient|undefined) {
+  Object.defineProperty(agent, 'api', {
+    get () { return value },
+    set (value: SecretJS.SecretNetworkClient|undefined) { setApi(agent, value) },
+    enumerable: true,
+    configurable: true
+  })
+  if (value && agent.wallet) {
+    Object.assign(value, { wallet: agent.wallet })
+  }
+  if (value && agent.encryptionUtils) {
+    Object.assign(value, { encryptionUtils: agent.encryptionUtils })
+  }
+}
+
+function setWallet (agent: ScrtAgent, value: SecretJS.Wallet|undefined) {
+  Object.defineProperty(agent, 'wallet', {
+    get () { return value },
+    set (value: SecretJS.Wallet|undefined) { setWallet(agent, value) },
+    enumerable: true,
+    configurable: true
+  })
+  if (agent.api) {
+    Object.assign(agent.api, { wallet: value })
+  }
+}
+
+function setEncryptionUtils (agent: ScrtAgent, value: SecretJS.EncryptionUtils|undefined) {
+  Object.defineProperty(agent, 'encryptionUtils', {
+    get () { return value },
+    set (value: SecretJS.EncryptionUtils|undefined) { setEncryptionUtils(agent, value) },
+    enumerable: true,
+    configurable: true
+  })
+  if (agent.api) {
+    Object.assign(agent.api, { encryptionUtils: value })
   }
 }

@@ -122,7 +122,8 @@ export default class ScrtBundle extends Bundle {
     const gas   = msgs.length * (limit || 0)
     try {
       const agent = this.agent as unknown as ScrtAgent
-      const txResult = await agent.api.tx.broadcast(msgs, { gasLimit: gas })
+      await agent.ready
+      const txResult = await agent.api!.tx.broadcast(msgs, { gasLimit: gas })
       if (txResult.code !== 0) {
         const error = `(in bundle): gRPC error ${txResult.code}: ${txResult.rawLog}`
         throw Object.assign(new Error(error), txResult)
@@ -158,8 +159,8 @@ export default class ScrtBundle extends Bundle {
   }
 
   async simulate () {
-    const { api } = this.agent as ScrtAgent
-    return await api.tx.simulate(await this.conformedMsgs)
+    const { api } = await this.agent.ready
+    return await api!.tx.simulate(await this.conformedMsgs)
   }
 
   /** Format the messages for API v1 like secretjs and encrypt them. */

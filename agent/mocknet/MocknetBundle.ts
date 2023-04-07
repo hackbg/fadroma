@@ -6,7 +6,7 @@ export default class MocknetBundle extends Bundle {
 
   declare agent: MocknetAgent
 
-  log = new Console('Fadroma Mocknet')
+  log = new Console('@fadroma/agent: Mocknet')
 
   async submit (memo = "") {
     this.log.info('Submitting mocknet bundle...')

@@ -16,29 +16,18 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import Error     from './ScrtError'
-import Console   from './ScrtConsole'
-import Config    from './ScrtConfig'
-
-import Chain     from './ScrtChain'
-import Agent     from './ScrtAgent'
-import Bundle    from './ScrtBundle'
-
-import VKClient  from './ScrtVK'
-
+import Error from './ScrtError'
+import Console from './ScrtConsole'
+import Config from './ScrtConfig'
+import Chain from './ScrtChain'
+import Agent from './ScrtAgent'
+import Bundle from './ScrtBundle'
 import * as SecretJS from 'secretjs'
-Chain.SecretJS = SecretJS
+import VKClient from './ScrtVK'
 
-export {
-  Chain,
-  Agent,
-  Bundle,
-  Config,
-  Error,
-  Console,
-  VKClient,
-  SecretJS,
-}
+Object.assign(Chain, { SecretJS, Agent: Object.assign(Agent, { Bundle }) })
+
+export { Chain, Agent, Bundle, Config, Error, Console, VKClient, SecretJS, }
 
 export * from './ScrtError'
 export * from './ScrtConsole'

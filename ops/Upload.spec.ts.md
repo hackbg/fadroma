@@ -47,10 +47,6 @@ When trying to upload a binary file, the `Uploader` checks if a corresponding re
 if it does, it returns the existing code ID instead of uploading the same file twice.
 
 ```typescript
-config = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' })
-uploader = await config.getUploader()
-ok(uploader instanceof Uploader)
-
 await withTmpDir(async path=>{
   uploader = new FSUploader(agent, new JSONDirectory(path))
   ok(uploader.agent === agent)
@@ -73,3 +69,7 @@ await withTmpDir(async path=>{
 ### Upload events
 
 ### Upload errors
+
+```typescript
+import { ok } from 'node:assert'
+```
