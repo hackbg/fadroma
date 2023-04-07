@@ -381,13 +381,17 @@ impl<'storage, T: FadromaDeserialize> Iterator for Iter<'storage, T> {
         Some(result)
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = (self.end - self.current) as usize;
-        (len, Some(self.end as usize))
+        let len = self.len() as usize;
+
+        (len, Some(len))
     }
 
+    #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         self.current = self.current.saturating_add(n as u64);
+
         self.next()
     }
 }
