@@ -2,9 +2,7 @@ use std::{mem, marker::PhantomData};
 
 use crate::{
     bin_serde::{FadromaSerialize, FadromaDeserialize},
-    cosmwasm_std::{
-        Storage, StdResult, StdError
-    }
+    cosmwasm_std::{Storage, StdResult, StdError}
 };
 use super::Key;
 
@@ -19,11 +17,12 @@ pub struct IterableStorage<T: FadromaSerialize + FadromaDeserialize, K: Key> {
 
 impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
     const KEY_INDEX: &'static [u8] = b"index";
+    const ERR_MSG: &str = "IterableStorage: index out of bounds.";
 
     /// Creates an instance for the given namespace.
     /// The following namespaces are reserved by `IterableStorage`:
     ///  * `ns` + "index"
-    ///  * `ns` + N - where N is a number
+    ///  * `ns` + n - where n is a number
     #[inline]
     pub fn new(ns: K) -> Self {
         Self {
@@ -146,6 +145,42 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
         super::load(storage, self.key(index))
     }
 
+    /// Overwrites the value at the given index.
+    /// Returns and error if the index is out of bounds.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use fadroma::storage::{iterable::IterableStorage, CompositeKey};
+    /// use fadroma::cosmwasm_std::testing::mock_dependencies;
+    /// 
+    /// let mut deps = mock_dependencies();
+    /// let s = deps.as_mut().storage;
+    /// 
+    /// let key = CompositeKey::new(&[b"numbers"]);
+    /// let mut storage = IterableStorage::<u8, _>::new(key);
+    /// storage.push(s, &1).unwrap();
+    /// 
+    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(1));
+    ///
+    /// storage.set_at(s, 0, &2).unwrap();
+    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(2));
+    /// ```
+    pub fn set_at(
+        &mut self,
+        storage: &mut dyn Storage,
+        index: u64,
+        item: &T
+    ) -> StdResult<()> {
+        let len = self.len(storage)?;
+
+        if len == 0 || index > len - 1 {
+            return Err(StdError::generic_err(Self::ERR_MSG));
+        }
+
+        super::save(storage, self.key(index), item)
+    }
+
     /// Returns the value returned by the provided `update` closure or [`None`] if nothing is stored at the given `index`.
     ///
     /// # Examples
@@ -233,18 +268,16 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
     /// assert_eq!(err, StdError::generic_err("IterableStorage: index out of bounds."));
     /// ```
     pub fn swap_remove(&mut self, storage: &mut dyn Storage, index: u64) -> StdResult<Option<T>> {
-        const ERR_MSG: &str = "IterableStorage: index out of bounds.";
-
         let len = self.len(storage)?;
 
         if len == 0 {
-            return Err(StdError::generic_err(ERR_MSG));
+            return Err(StdError::generic_err(Self::ERR_MSG));
         }
         
         let tail = len - 1;
 
         if index > tail {
-            return Err(StdError::generic_err(ERR_MSG));
+            return Err(StdError::generic_err(Self::ERR_MSG));
         } else if tail == index {
             self.pop(storage)?;
 
@@ -408,8 +441,10 @@ impl<'storage, T: FadromaDeserialize> DoubleEndedIterator for Iter<'storage, T> 
         Some(result)
     }
 
+    #[inline]
     fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
         self.end = self.end.saturating_sub(n as u64);
+
         self.next_back()
     }
 }
@@ -475,6 +510,13 @@ mod tests {
 
         let item = storage.get_at(&deps.storage, 3).unwrap();
         assert_eq!(item.unwrap(), 4);
+
+        storage.set_at(&mut deps.storage, 3, &5).unwrap();
+        let item = storage.get_at(&deps.storage, 3).unwrap();
+        assert_eq!(item.unwrap(), 5);
+
+        storage.set_at(&mut deps.storage, 4, &5).unwrap_err();
+        storage.set_at(&mut deps.storage, 5, &5).unwrap_err();
     }
 
     #[test]
