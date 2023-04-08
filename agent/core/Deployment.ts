@@ -34,7 +34,7 @@ export class Deployment {
     this.uploader  ??= options.uploader
     this.workspace ??= options.workspace
     this.revision  ??= options.revision
-    this.state     ??= {}
+    this.store     ??= options.store
 
     // Hide non-essential properties
     hideProperties(this, ...[
@@ -123,6 +123,10 @@ export class Deployment {
   }
 
   config?: { build?: { project?: any } } & any // FIXME
+
+  deploy () {
+    return Promise.all(Object.values(this.state))
+  }
 
   /** Specify a contract.
     * @returns a callable instance of `Contract` bearing the specified parameters.

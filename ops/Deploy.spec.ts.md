@@ -10,9 +10,12 @@ $ fadroma redeploy
 
 ## Deploy API
 
+### Defining a deployment
+
+To define your deployment, extend the `Deployment` class:
+
 ```typescript
 import { Deployment } from '@fadroma/agent'
-import { getDeployment } from '@fadroma/ops'
 
 export class MyDeployment extends Deployment {
   foo = this.contract({
@@ -21,15 +24,37 @@ export class MyDeployment extends Deployment {
   bar = this.contract({
     name: 'bar'
   })
-  deploy = () => Promise.all([
-    this.foo.deployed,
-    this.bar.deployed
-  ])
 }
+```
 
-let deployment = getDeployment(MyDeployment, { /* options */ })
+### Deploying
+
+To prepare a deployment for deploying, use `getDeployment`.
+This will provide a populated instance of your deployment class.
+
+```typescript
+import { getDeployment } from '@fadroma/ops'
+let deployment = getDeployment(MyDeployment, /* ...constructor args */)
+```
+
+Then, call its `deploy` method:
+
+```typescript
 await deployment.deploy()
-process.exit(123)
+```
+
+The default `Deployment#deploy` method simply instantiates all
+contracts defined using the `Deployment#contract` method. To
+implement a custom deploy order, you can override `deploy`,
+for example:
+
+```typescript
+await getDeployment(class MyDeployment2 extends MyDeployment {
+  async deploy () {
+    await this.foo.deployed
+    await this.bar.deployed
+  }
+})
 ```
 
 ### Deploy configuration

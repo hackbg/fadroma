@@ -60,8 +60,7 @@ export default class DeployConfig extends ConnectConfig {
       uploader: store.defaults.uploader = agent!.getUploader(FSUploader),
       store
     }, args[0]??{})
-    console.log({$D})
-    return new $D()
+    return new $D(...args)
   }
 
 }
