@@ -44,7 +44,6 @@ export default class Console extends CommandsConsole {
   }
 
   deployment (deployment: Deployment, name = deployment?.name) {
-    this.br()
     if (deployment) {
       const { state = {}, name } = deployment
       let contracts: string|number = Object.values(state).length
@@ -52,7 +51,6 @@ export default class Console extends CommandsConsole {
       const len = Math.max(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
       const count = Object.values(state).length
       if (count > 0) {
-        this.br()
         this.info(`${bold(String(count))} contracts in deployment ${bold(name)}:`)
         for (const name of Object.keys(state).sort()) {
           this.receipt(name, state[name], len)
@@ -63,7 +61,6 @@ export default class Console extends CommandsConsole {
     } else {
       this.info('There is no selected deployment.')
     }
-    this.br()
   }
 
   receipt (name: string, receipt?: any, len?: number) {
@@ -81,7 +78,6 @@ export default class Console extends CommandsConsole {
     if (this.indent + len + 64 < this.width - 4) {
       codeId = bold(codeId)
       crate  = bold(crate)
-      this.br()
       this.info(name)
       this.info(`at ${address} : ${codeHash}`)
       this.info(`is ${crate} from ${repository} as ${codeId}`)
@@ -129,33 +125,27 @@ export default class Console extends CommandsConsole {
     this.info('Deployed:', id, 'in', deployment)
     this.info('Address: ', address)
     this.info('Code hash', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
-    this.br()
   }
 
   deployFailed (e: Error, template: Instantiable, name: Label, msg: Message) {
-    this.br()
     this.error(`Deploy of ${bold(name)} failed:`)
     this.error(`${e?.message}`)
     this.deployFailedContract(template)
     this.error(`Init message: `)
     this.error(`  ${JSON.stringify(msg)}`)
-    this.br()
   }
 
   deployManyFailed (template: Instantiable, contracts: any[] = [], e: Error) {
-    this.br()
     this.error(`Deploy of multiple contracts failed:`)
     this.error(bold(e?.message))
     this.error()
     this.deployFailedContract(template)
     for (const [name, init] of contracts) {
-      this.br()
       this.error(`${bold(name)}: `)
       for (const key in init as object) {
         this.error(`  ${bold((key+':').padEnd(18))}`, init[key as keyof typeof init])
       }
     }
-    this.br()
   }
 
   deployFailedContract (template?: Instantiable) {
@@ -163,6 +153,11 @@ export default class Console extends CommandsConsole {
     this.error(`Code hash:`, bold(template.codeHash||''))
     this.error(`Chain ID: `, bold(template.chainId ||''))
     this.error(`Code ID:  `, bold(template.codeId  ||''))
+  }
+
+  saving (name: string, state: object) {
+    //this.log.log('Saving:  ', bold(name))
+    //this.log.log(Object.keys(state).join(', '))
   }
 
   chainStatus ({ chain, deployments }: {

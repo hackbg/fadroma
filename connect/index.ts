@@ -25,9 +25,6 @@ export { default as ConnectError } from './ConnectError'
 export * from './ConnectConfig'
 export { default as ConnectConfig } from './ConnectConfig'
 
-export * from './Connector'
-export { default as Connector } from './Connector'
-
 export * from './ConnectCommands'
 export { default as ConnectCommands } from './ConnectCommands'
 
@@ -38,7 +35,6 @@ import { Mocknet, Mocknet_CW0, Mocknet_CW1 } from '@fadroma/agent'
 export { Mocknet, Mocknet_CW0, Mocknet_CW1 } from '@fadroma/agent'
 
 import ConnectConfig from './ConnectConfig'
-import type Connector from './Connector'
 
 import { Chain } from '@fadroma/agent'
 import type { ChainRegistry } from '@fadroma/agent'
@@ -58,10 +54,11 @@ Object.assign(Chain.variants as ChainRegistry, {
   ScrtDevnet:  defineDevnet(Scrt.Chain, 'scrt_1.7'),
 })
 
-export default function connect (
+import type { Agent } from '@fadroma/agent'
+export default function connect <A extends Agent> (
   config: Partial<ConnectConfig> = new ConnectConfig()
-): Connector {
-  return new ConnectConfig(config).getConnector()
+): A {
+  return new ConnectConfig(config).getAgent()
 }
 
 import { ChainMode } from '@fadroma/agent'

@@ -10,6 +10,7 @@ import { assertAgent } from './Agent'
 import { writeLabel } from './Labels'
 import Template from './Template'
 import { Contract, ContractGroup } from './Contract'
+import { DeployStore } from './DeployStore'
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -79,6 +80,8 @@ export class Deployment {
   /** Upload implementation. Contracts can't be uploaded if this is missing --
     * except by using `agent.upload` directly, which does not cache or log uploads. */
   uploader?:   Uploader
+
+  store?:      DeployStore
 
   get [Symbol.toStringTag]() {
     return `${this.name??'-'}`
@@ -289,9 +292,13 @@ export class Deployment {
     //return this.commands(name, info, inst as any) // TODO
   }
 
-  /** Implemented by Deployer subclass in @fadroma/ops
-    * to allow saving deployment data to the DeployStore. */
-  save () { /*nop*/ }
+  /** Save current deployment state to deploy store. */
+  async save (store: DeployStore|undefined = this.store) {
+    if (this.chain && !this.chain.isMocknet) {
+      this.log.saving(this.name, this.state)
+      store!.set(this.name, this.state)
+    }
+  }
 
 }
 

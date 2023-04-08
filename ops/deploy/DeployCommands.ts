@@ -1,23 +1,20 @@
+import DeployConfig from './DeployConfig'
 import Error from './DeployError'
 import Console, { bold } from './DeployConsole'
-import Config from './DeployConfig'
-import type { Deployment, DeployStore as Store } from '@fadroma/agent'
+import type { Deployment, DeployStore } from '@fadroma/agent'
 
-import $, { JSONFile, Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
+import $, { JSONFile } from '@hackbg/file'
 
-export default class Deployer<D extends Deployment> extends CommandContext {
+export default class DeployCommands extends CommandContext {
 
   constructor (
-    public deployment: D,
-    public config:     Config = new Config(),
-    public store:      Store = config.getDeployStore(),
-    public name:       string = '',
+    public config: DeployConfig = new DeployConfig(),
+    public store:  DeployStore  = config.getDeployStore(),
   ) {
-    super('')
-    deployment.chain ??= config.getChain()
-    if (deployment.chain) {
-      const chain = deployment.chain.id
+    super()
+    const { chain } = config
+    if (chain) {
       this.addCommand('list',   `list all deployments on ${chain}`,          this.list.bind(this))
       this.addCommand('create', `create a new empty deployment in ${chain}`, this.create.bind(this))
       this.addCommand('select', `activate another deployment on ${chain}`,   this.select.bind(this))
@@ -30,7 +27,7 @@ export default class Deployer<D extends Deployment> extends CommandContext {
 
   list () {
     this.log.deploymentList(
-      this.deployment.chain?.id??'(unspecified)',
+      this.config.chain??'(unspecified)',
       this.store
     )
   }
@@ -84,26 +81,6 @@ export default class Deployer<D extends Deployment> extends CommandContext {
     file.save(state)
 
     this.log.info('Wrote', Object.keys(state).length, 'contracts to', bold(file.shortPath))
-
-    this.log.br()
   }
-
-  /** Path to root of project directory. */
-  get project (): Path|undefined {
-    if (typeof this.config.project !== 'string') {
-      return undefined
-    }
-    return $(this.config.project)
-  }
-
-  /** Save current deployment state to deploy store. */
-  async save () {
-    if (this.deployment.chain && !this.deployment.chain.isMocknet) {
-      this.log.saving(this.name, this.deployment.state)
-      this.store.set(this.name, this.deployment.state)
-    }
-  }
-
-  async deploy (deployment: D) {}
 
 }

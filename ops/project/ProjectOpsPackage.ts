@@ -40,9 +40,9 @@ export default class OpsPackage {
     const Name = Case.pascal(name)
     this.index.save([
       `import ${Name} from '@${name}/api'`,
-      `import { Deployer } from '@fadroma/ops'`,
+      `import { DeployCommands } from '@fadroma/ops'`,
       ``,
-      `export default class ${Name}Commands extends Deployer {`,
+      `export default class ${Name}Commands extends DeployCommands {`,
       ``,
       `  deploy () {}`,
       ``,

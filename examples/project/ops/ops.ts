@@ -1,7 +1,7 @@
 import MyProject from '@my-project/api'
-import { Deployer } from '@fadroma/ops'
+import { DeployCommands } from '@fadroma/ops'
 
-export default class MyProjectCommands extends Deployer {
+export default class MyProjectCommands extends DeployCommands {
 
   deploy () {}
 

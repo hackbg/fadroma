@@ -1,7 +1,5 @@
 import Error from './ConnectError'
 import Console from './ConnectConsole'
-import Connector from './Connector'
-import type { ConnectorClass } from './Connector'
 
 import type { ChainRegistry, ChainId, Agent, AgentOpts } from '@fadroma/agent'
 import { ChainMode, Chain } from '@fadroma/agent'
@@ -10,9 +8,7 @@ import { Config as ScrtConfig } from '@fadroma/scrt'
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'
 
-/** Connection configuration and Connector factory.
-  * Factory pattern and consequent inversion of control
-  * here imposed by the lack of `await new` */
+/** Connection configuration. Factory for `Chain` and `Agent` objects. */
 export default class ConnectConfig extends Config {
 
   constructor (
@@ -101,18 +97,6 @@ export default class ConnectConfig extends Config {
       agentOpts.mnemonic = this.mnemonic
     }
     return chain.getAgent(agentOpts) as A
-  }
-
-  /** Create a `Connector` containing instances of `Chain` and `Agent`
-    * as specified by the configuration and return a `Connector with them. */
-  getConnector <C extends Connector> ($C?: ConnectorClass<C>): C {
-    $C ??= Connector as ConnectorClass<C>
-    // Create chain and agent
-    const chain = this.getChain()
-    const agent = this.getAgent(chain)
-    if (agent.chain !== chain) throw new Error('Bug: agent.chain propagated incorrectly')
-    // Create the Connector holding both and exposing them to commands.
-    return new $C({ chain, agent, config: this }) as C
   }
 
   /** List all known chains. */

@@ -7,9 +7,6 @@ export * from './DeployError'
 export { default as DeployConfig } from './DeployConfig'
 export * from './DeployConfig'
 
-export { default as Deployer } from './Deployer'
-export * from './Deployer'
-
 import { DeployStore } from '@fadroma/agent'
 import YAML from 'js-yaml'
 import YAML1 from './DeployStore_YAML_v1'

@@ -12,15 +12,24 @@ $ fadroma redeploy
 
 ```typescript
 import { Deployment } from '@fadroma/agent'
-import { getDeployer } from '@fadroma/ops'
+import { getDeployment } from '@fadroma/ops'
 
 export class MyDeployment extends Deployment {
-  foo = this.contract({ /* ... */ })
+  foo = this.contract({
+    name: 'foo'
+  })
+  bar = this.contract({
+    name: 'bar'
+  })
+  deploy = () => Promise.all([
+    this.foo.deployed,
+    this.bar.deployed
+  ])
 }
 
-const deployer = await getDeployer({ /* options */ })
-
-await deployer.deploy(new MyDeployment(/* args */))
+let deployment = getDeployment(MyDeployment, { /* options */ })
+await deployment.deploy()
+process.exit(123)
 ```
 
 ### Deploy configuration
@@ -41,13 +50,12 @@ and defines the following entities:
 import { DeployConfig } from '@fadroma/ops'
 const config = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' })
 
-import { Deployer } from '@fadroma/ops'
-ok(await config.getDeployer() instanceof Deployer)
+ok(await config.getDeployment() instanceof Deployer)
 
 import { Client, Deployment } from '@fadroma/agent'
 import { connect } from '@fadroma/connect'
 import * as Dokeres from '@hackbg/dock'
-import { BuildContext, getBuilder, DeployConfig, Deployer } from '@fadroma/ops'
+import { BuildContext, getBuilder, DeployConfig } from '@fadroma/ops'
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/file'
 import { ExampleDeployment } from './deploy.example'
@@ -153,24 +161,17 @@ await inTmpDeployment(async deployment=>{
 })*/
 ```
 
-### Deployer
+### DeployCommands
 
-* `Deployer`: a subclass of `Deployment` which stores deploy receipts
-  in a specific `DeployStore` and can load data from them into itself.
-
-The `Deployer` class extends `Deployment` (from `@fadroma/agent`)
-by way of `Connector` (from `@fadroma/connect`), adding handling for
-**deploy receipts**, which are records of all the contracts of a `Deployment`:
   * Saving the current `state` of the `Deployment` to the active `DeployStore`
     in the form of a **deploy receipt**.
   * Replacing the current state of a `Deployment` with that from a deploy receipt.
   * Listing and creating deploy receipts; marking one of them as "active".
 
 ```typescript
-import { Deployer } from '@fadroma/ops'
 import { Path } from '@hackbg/file'
-let context: Deployer = await config.getDeployer()
-ok(context         instanceof Deployer)
+let context: Deployment = await config.getDeployment()
+ok(context         instanceof Deployment)
 ok(context.config  instanceof DeployConfig)
 ok(context.store   instanceof DeployStore)
 ok(context.project instanceof Path)
@@ -265,8 +266,10 @@ log.deployStoreDoesNotExist()
 ## Deploying contracts
 
 >“Tell me, as you promised!” implored the Master of space-time,
->hot tears thundering to the earth like mighty comets, “What is the shape of the universe?”
->“It is somewhat wheel-shaped,” said Aesma, which was a completely wrong answer.
+>hot tears thundering to the earth like mighty comets,
+>“What is the shape of the universe?”
+>“It is somewhat wheel-shaped,” said Aesma,
+>which was a completely wrong answer.
 >*-Abbadon*
 
 Cosmos contracts can be seen as essentially equivalent to **persistent objects**:
@@ -282,7 +285,8 @@ Fadroma provides the `Contract` object for that purpose:
 
 ```typescript
 import { Contract } from '@fadroma/agent'
-const nullContract = new Contract()
+const nullContract = deployment.contract()
+assert(nullContract instanceof Contract)
 ```
 
 This gives you an instance of the `Contract` class, representing a specific instance of a
@@ -306,7 +310,7 @@ import { Chain } from '@fadroma/agent'
 let index = 0
 const chain = new Chain('test')
 const agent = Object.assign(await chain.getAgent(), {
-  async instantiate () { return { address: `(address #${++index})` } },
+  async instantiate () { return { address: `(address #${ ++index })` } },
   async execute     () { return {} },
   async query       () { return {} }
 })
@@ -318,12 +322,19 @@ Now let's define a contract, assuming an existing [code ID](./core-code.spec.ts.
 (that is, a contract that is already built and uploaded):
 
 ```typescript
-const aContract = new Contract({
-  name:    'contract1',
+const aContract = deployment.contract({
+  name: 'contract1',
   initMsg: { parameter: 'value' },
-  codeId:  1,
-  agent
+  codeId: 1,
 })
+
+assert(aContract instanceof Contract)
+
+const bContract = deployment
+  .template({ codeId: 1 })
+  .instance({ name: 'contract1', initMsg: { parameter: 'value' } })
+
+assert(bContract instanceof Contract)
 ```
 
 To deploy the contract uploaded as code ID 1, just call `aContract`, passing two things:
@@ -392,7 +403,7 @@ Enter the `Deployment` object, which keeps track of the contracts that you deplo
 
 ```typescript
 import { Deployment } from '@fadroma/agent'
-const deployment = new Deployment({
+deployment = new Deployment({
   name: 'testing'
   agent,
 })

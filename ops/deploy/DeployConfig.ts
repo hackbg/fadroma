@@ -1,4 +1,3 @@
-import Deployer from './Deployer'
 import { FSUploader } from '../upload/index'
 
 import { ConnectConfig } from '@fadroma/connect'
@@ -7,7 +6,7 @@ import type { DeploymentClass, DeploymentFormat, DeployStoreClass } from '@fadro
 
 import $ from '@hackbg/file'
 
-/** Deployment system configuration and Deployer factory. */
+/** Deployment system configuration and factory for populated Deployments. */
 export default class DeployConfig extends ConnectConfig {
 
   /** Project root. Defaults to current working directory. */
@@ -46,12 +45,13 @@ export default class DeployConfig extends ConnectConfig {
 
   /** Create a new populated Deployer, with the specified DeployStore.
     * @returns Deployer */
-  async getDeployer <D extends Deployment> (
+  getDeployment <D extends Deployment> (
     $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
     ...args: ConstructorParameters<typeof $D>
-  ): Promise<Deployer<D>> {
-    const { chain, agent } = await this.getConnector()
+  ): D {
+    const chain = this.getChain()
     if (!chain) throw new Error('Missing chain')
+    const agent = this.getAgent()
     const store = this.getDeployStore()
     args[0] = Object.assign({
       config:   this,
@@ -60,11 +60,8 @@ export default class DeployConfig extends ConnectConfig {
       uploader: store.defaults.uploader = agent!.getUploader(FSUploader),
       store
     }, args[0]??{})
-    return new Deployer(
-      new $D(...args),
-      this,
-      store,
-    )
+    console.log({$D})
+    return new $D()
   }
 
 }

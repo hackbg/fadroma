@@ -5,7 +5,7 @@ import type { Deployment, DeployStore } from '@fadroma/agent'
 
 export default class DeployConsole extends ConnectConsole {
 
-  constructor (public label = 'Fadroma Deploy') {
+  constructor (public label = '@fadroma/ops') {
     super(label)
   }
 
@@ -56,17 +56,10 @@ export default class DeployConsole extends ConnectConsole {
     } else {
       this.info(`No deployments on chain ${bold(chainId)}`)
     }
-    this.br()
   }
 
   deployStoreDoesNotExist (path: string) {
     this.warn(`Deployment store "${path}" does not exist.`)
-  }
-
-  saving (name: string, state: object) {
-    //this.log.log('Saving:  ', bold(name))
-    //this.log.log(Object.keys(state).join(', '))
-    //this.log.br()
   }
 
   creatingDeployment (name: string) {

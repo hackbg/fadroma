@@ -17,13 +17,19 @@ $ fadroma chain list
 ```typescript
 import connect from '@fadroma/connect'
 
-const platforms = ['secretjs', 'secretcli']
-const modes     = ['mainnet', 'testnet', 'devnet', 'mocknet']
-const mnemonic  = '...'
-
-for (const platform of platforms) {
-  for (const mode of modes) {
-    const { chain, agent } = connect({ platform, mode, mnemonic })
+for (const platform of ['secretjs', 'secretcli']) {
+  for (const mode of ['mainnet', 'testnet', 'devnet', 'mocknet']) {
+    const { chain, agent } = connect({ platform, mode, mnemonic: '...' })
   }
 }
+```
+
+This package is responsible for selecting and dispatching to the
+appropriate implementation; the implementations themselves reside
+in the corresponding packages: `@fadroma/scrt`, etc.
+
+```typescript
+import '../platforms/scrt/Scrt.spec.ts.md'
+import '../platforms/cw/CW.spec.ts.md'
+import '../platforms/evm/EVM.spec.ts.md'
 ```

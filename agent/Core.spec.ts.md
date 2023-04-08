@@ -93,6 +93,8 @@ chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mocknet })
 assert(chain.devMode)
 assert(chain.isMocknet)
 assert(!chain.isMainnet)
+
+import './Mocknet.spec.ts.md'
 ```
 
 ### Agent: authenticating
@@ -790,10 +792,6 @@ For more legible output.
 import { getMaxLength } from '@fadroma/agent'
 assert.equal(getMaxLength(['a', 'ab', 'abcd', 'abc', 'b']), 4)
 ```
-
----
-
-Made with ^%$# @ [**Hack.bg**](https://foss.hack.bg).
 
 ```typescript
 import assert from 'node:assert'

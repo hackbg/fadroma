@@ -68,15 +68,13 @@ export function uploadMany (artifacts: Uploadable[]): Promise<Uploaded[]> {
 }
 
 export * from './deploy/index'
-import type { Deployer } from './deploy/index'
 import { DeployConfig } from './deploy/index'
 import type { DeploymentClass } from '@fadroma/agent'
 import { Deployment } from '@fadroma/agent'
-/** @returns Deployer configured as per environment and options */
-export function getDeployer <D extends Deployment> (
-  options: Partial<DeployConfig> = {},
+/** @returns Deployment configured as per environment and options */
+export function getDeployment <D extends Deployment> (
   $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
   ...args: ConstructorParameters<typeof $D>
-): Promise<Deployer<D>> {
-  return new DeployConfig(options).getDeployer($D, ...args)
+): D {
+  return new DeployConfig().getDeployment($D, ...args)
 }

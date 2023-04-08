@@ -1,4 +1,3 @@
-import type Connector from './Connector'
 import ConnectConfig from './ConnectConfig'
 
 import { CommandContext } from '@hackbg/cmds'
