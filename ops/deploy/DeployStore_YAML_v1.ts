@@ -2,7 +2,7 @@ import DeployConsole from './DeployConsole'
 import DeployError from './DeployError'
 
 import {
-  Agent, Contract, AnyContract, Client, Deployment, DeployStore, toInstanceReceipt
+  Agent, AnyContract, Contract, Client, Deployment, DeploymentState, DeployStore, toInstanceReceipt
 } from '@fadroma/agent'
 
 import { timestamp, bold } from '@hackbg/logs'
@@ -39,7 +39,7 @@ export default class YAMLDeployments_v1 extends DeployStore {
   KEY = '.active'
 
   /** Create a deployment with a specific name. */
-  async create (name: string = timestamp()): Promise<Deployment> {
+  async create (name: string = timestamp()): Promise<DeploymentState> {
     this.log.creatingDeployment(name)
 
     const path = this.root.at(`${name}.yml`)
@@ -47,11 +47,11 @@ export default class YAMLDeployments_v1 extends DeployStore {
     this.log.locationOfDeployment(path.shortPath)
 
     path.makeParent().as(YAMLFile).save(undefined)
-    return this.get(name)!
+    return this.load(name)!
   }
 
   /** Make the specified deployment be the active deployment. */
-  async select (name: string = this.KEY): Promise<Deployment> {
+  async select (name: string = this.KEY): Promise<DeploymentState> {
     let selected = this.root.at(`${name}.yml`)
     if (selected.exists()) {
       const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
@@ -59,33 +59,20 @@ export default class YAMLDeployments_v1 extends DeployStore {
       name = basename(name, '.yml')
       active.relLink(`${name}.yml`)
       this.log.activatingDeployment(selected.real.name)
-      return this.get(name)!
+      return this.load(name)!
     }
 
     if (name === this.KEY) {
-      const d = await this.create()
-      const name = d.name
-      return this.select(name)
+      const deployment = new Deployment()
+      const d = await this.create(deployment.name)
+      return this.select(deployment.name)
     }
 
     throw new DeployError.DeploymentDoesNotExist(name)
   }
 
   get active () {
-    return this.get(this.KEY)
-  }
-
-  /** Get the contents of the named deployment, or null if it doesn't exist. */
-  get (name: string): Deployment|null {
-    let file = this.root.at(`${name}.yml`)
-    if (!file.exists()) return null
-    name = basename(file.real.name, '.yml')
-    const deployment = new Deployment({ ...this.defaults, name })
-    for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
-      if (!receipt.name) continue
-      deployment.state[receipt.name] = new Contract(receipt)
-    }
-    return deployment
+    return this.load(this.KEY)
   }
 
   /** List the deployments in the deployments directory. */
@@ -99,7 +86,20 @@ export default class YAMLDeployments_v1 extends DeployStore {
     }
   }
 
-  set (name: string, state: Record<string, AnyContract> = {}) {
+  /** Get the contents of the named deployment, or null if it doesn't exist. */
+  load (name: string): DeploymentState|null {
+    let file = this.root.at(`${name}.yml`)
+    if (!file.exists()) return null
+    name = basename(file.real.name, '.yml')
+    const state: DeploymentState = {}
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
+      if (!receipt.name) continue
+      state[receipt.name] = receipt
+    }
+    return state
+  }
+
+  save (name: string, state: DeploymentState = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML

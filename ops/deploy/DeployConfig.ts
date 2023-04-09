@@ -43,7 +43,8 @@ export default class DeployConfig extends ConnectConfig {
     return new $S(this.deployState)
   }
 
-  /** Create a new populated Deployer, with the specified DeployStore.
+  /** Create a new Deployment.
+    * If a deploy store is specified, populate it with stored data (if present).
     * @returns Deployer */
   getDeployment <D extends Deployment> (
     $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
@@ -52,15 +53,11 @@ export default class DeployConfig extends ConnectConfig {
     const chain = this.getChain()
     if (!chain) throw new Error('Missing chain')
     const agent = this.getAgent()
-    const store = this.getDeployStore()
-    args[0] = Object.assign({
-      config:   this,
-      chain:    store.defaults.chain    = chain!,
-      agent:    store.defaults.agent    = agent!,
-      uploader: store.defaults.uploader = agent!.getUploader(FSUploader),
-      store
-    }, args[0]??{})
-    return new $D(...args)
+    const uploader = agent.getUploader(FSUploader)
+    const defaults = { config: this, chain, agent, uploader }
+    args[0] = Object.assign(defaults, args[0]??{})
+    const deployment = this.getDeployStore().getDeployment($D, ...args)
+    return deployment
   }
 
 }

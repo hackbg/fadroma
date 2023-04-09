@@ -1,7 +1,7 @@
 import DeployConfig from './DeployConfig'
 import Error from './DeployError'
 import Console, { bold } from './DeployConsole'
-import type { Deployment, DeployStore } from '@fadroma/agent'
+import type { Deployment, DeploymentState, DeployStore } from '@fadroma/agent'
 
 import { CommandContext } from '@hackbg/cmds'
 import $, { JSONFile } from '@hackbg/file'
@@ -37,7 +37,7 @@ export default class DeployCommands extends CommandContext {
     return await this.select(name)
   }
 
-  async select (name?: string): Promise<Deployment|null> {
+  async select (name?: string): Promise<DeploymentState|null> {
     const list = this.store.list()
     if (list.length < 1) throw new Error('No deployments in this store')
     let deployment
@@ -52,9 +52,9 @@ export default class DeployCommands extends CommandContext {
   }
 
   status (name?: string) {
-    const deployment = name ? this.store.get(name) : this.store.active
+    const deployment = name ? this.store.save(name) : this.store.active
     if (deployment) {
-      this.log.deployment(deployment)
+      this.log.deployment(deployment as any)
     } else {
       throw new Error.NoDeployment()
     }

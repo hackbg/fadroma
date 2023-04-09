@@ -1,7 +1,7 @@
 import DeployConsole from './DeployConsole'
 
 import { timestamp } from '@hackbg/logs'
-import type { AnyContract } from '@fadroma/agent'
+import type { AnyContract, DeploymentState } from '@fadroma/agent'
 import { Contract, Deployment, DeployStore } from '@fadroma/agent'
 import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/file'
 
@@ -20,15 +20,11 @@ export default class YAMLDeployments_v2 extends DeployStore {
 
   store: YAMLDirectory<unknown>
 
-  async create (name: string = timestamp()): Promise<Deployment> {
+  async create (name: string = timestamp()): Promise<DeploymentState> {
     throw new Error('Not implemented')
   }
 
-  async select (name: string): Promise<Deployment> {
-    throw new Error('Not implemented')
-  }
-
-  get (name: string): Deployment|null {
+  async select (name: string): Promise<DeploymentState> {
     throw new Error('Not implemented')
   }
 
@@ -36,11 +32,15 @@ export default class YAMLDeployments_v2 extends DeployStore {
     throw new Error('Not implemented')
   }
 
-  get active (): Deployment|null {
+  load (name: string): DeploymentState|null {
     throw new Error('Not implemented')
   }
 
-  set (name: string, state: Record<string, AnyContract> = {}) {
+  save (name: string, state: DeploymentState = {}) {
+    throw new Error('Not implemented')
+  }
+
+  get active (): DeploymentState|null {
     throw new Error('Not implemented')
   }
 

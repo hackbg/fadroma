@@ -44,7 +44,7 @@ export default class DeployConsole extends ConnectConsole {
       }
       for (let name of list) {
         if (name === (deployments as any).KEY) continue
-        const deployment = deployments.get(name)!
+        const deployment = deployments.load(name)!
         const count = Object.keys(deployment.state).length
         let info = `${bold(name.padEnd(maxLength))}`
         info = `${info} (${deployment.size} contracts)`

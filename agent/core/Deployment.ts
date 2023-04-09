@@ -59,6 +59,9 @@ export class Deployment {
   /** Mapping of contract names to contract instances. */
   state:       Record<string, AnyContract>
 
+  /** Default state store to which updates to this deployment's state will be saved. */
+  store?:      DeployStore
+
   /** Default Git ref from which contracts will be built if needed. */
   repository?: string = undefined
 
@@ -80,8 +83,6 @@ export class Deployment {
   /** Upload implementation. Contracts can't be uploaded if this is missing --
     * except by using `agent.upload` directly, which does not cache or log uploads. */
   uploader?:   Uploader
-
-  store?:      DeployStore
 
   get [Symbol.toStringTag]() {
     return `${this.name??'-'}`
@@ -124,8 +125,9 @@ export class Deployment {
 
   config?: { build?: { project?: any } } & any // FIXME
 
-  deploy () {
-    return Promise.all(Object.values(this.state))
+  async deploy () {
+    await Promise.all(Object.values(this.state))
+    return this
   }
 
   /** Specify a contract.
@@ -300,7 +302,7 @@ export class Deployment {
   async save (store: DeployStore|undefined = this.store) {
     if (this.chain && !this.chain.isMocknet) {
       this.log.saving(this.name, this.state)
-      store!.set(this.name, this.state)
+      store!.save(this.name, this.state)
     }
   }
 
