@@ -241,7 +241,7 @@ impl Account {
         let key = (self, spender);
         let result = match Self::ALLOWANCES_INDICES.load(storage, key)? {
             Some(index) =>
-                allowances.update_at(
+                allowances.update(
                     storage,
                     index,
                     |mut entry| {
@@ -284,7 +284,7 @@ impl Account {
             Some(index) => {
                 let allowances = self.allowances_storage();
 
-                Ok(allowances.get_at(storage, index)?.unwrap().allowance)
+                Ok(allowances.get(storage, index)?.unwrap().allowance)
             },
             None => Ok(Allowance::default())
         }
@@ -360,7 +360,7 @@ impl Account {
             
             let allowances = account.allowances_storage();
             let allowance = allowances
-                .get_at(deps.storage, item.index)?
+                .get(deps.storage, item.index)?
                 .unwrap()
                 .allowance;
 
