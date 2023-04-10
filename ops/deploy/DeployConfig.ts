@@ -54,9 +54,10 @@ export default class DeployConfig extends ConnectConfig {
     const chain = this.getChain()
     if (!chain) throw new Error('Missing chain')
     const agent = this.getAgent()
-    const builder  = getBuilder()
+    const builder = getBuilder()
     const uploader = agent.getUploader(FSUploader)
-    const defaults = { config: this, chain, agent, builder, uploader }
+    const workspace = process.cwd()
+    const defaults = { config: this, chain, agent, builder, uploader, workspace }
     args[0] = Object.assign(defaults, args[0]??{})
     const deployment = this.getDeployStore().getDeployment($D, ...args)
     return deployment

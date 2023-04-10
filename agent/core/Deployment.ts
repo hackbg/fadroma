@@ -33,7 +33,7 @@ export class Deployment {
     this.chain     ??= options.chain ?? options.agent?.chain
     this.builder   ??= options.builder
     this.uploader  ??= options.uploader ?? new FetchUploader(this.agent)
-    this.workspace ??= options.workspace
+    this.workspace ??= options.workspace ?? this.config?.build?.project
     this.revision  ??= options.revision
     this.store     ??= options.store
 
@@ -148,7 +148,7 @@ export class Deployment {
     * @returns a Contract object belonging to this Deployment. */
   defineContract <C extends Client> (opts: Partial<Contract<C>> = {}): Contract<C> {
     return new Contract({
-      workspace: this.config?.build?.project,
+      workspace: this.workspace,
       revision:  this.revision ?? 'HEAD',
       agent:     this.agent,
       builder:   this.builder,
@@ -233,7 +233,7 @@ export class Deployment {
     opts: Partial<Template<C>> = {}
   ): Template<C> {
     return new Template({
-      workspace: this.config?.build?.project,
+      workspace: this.workspace,
       revision:  this.revision ?? 'HEAD',
       agent:     this.agent,
       builder:   this.builder,
