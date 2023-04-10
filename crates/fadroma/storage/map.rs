@@ -14,6 +14,11 @@ use super::{
 
 const KEY_NS: StaticKey = StaticKey(b"key");
 
+/// A key-value storage type that can iterate over all values stored
+/// while allowing to arbitrarily insert, get and remove them.
+/// If you *don't* need the ability remove values use [`InsertOnlyMap`] instead
+/// as it has no overhead. [`Map`] internally stores the key of the item together
+/// with the value in order to enable the remove operation.
 pub struct Map<
     K: Key,
     V: FadromaSerialize + FadromaDeserialize,
@@ -23,6 +28,10 @@ pub struct Map<
     value_data: PhantomData<V>
 }
 
+/// A key-value storage type that can iterate over all values stored
+/// while allowing to arbitrarily insert get and remove them. This type
+/// is more efficient than [`Map`] but it does not allow removing
+/// values. If you need to be able to remove values use [`Map`] instead.
 pub struct InsertOnlyMap<
     K: Key,
     V: FadromaSerialize + FadromaDeserialize,
@@ -69,6 +78,7 @@ impl<
         }
     }
 
+    /// Returns an iterator over all of the values stored by the map.
     #[inline]
     pub fn values<'storage>(
         &self,
@@ -110,6 +120,8 @@ impl<
         self.insert(deps.storage, key, &item)
     }
 
+    /// Inserts a new value into the map. Returns `true` if a value
+    /// was previously stored under the given key.
     #[inline]
     pub fn insert(
         &mut self,
@@ -168,6 +180,7 @@ impl<
         }
     }
 
+    /// Returns an iterator over all of the values stored by the map.
     #[inline]
     pub fn values<'storage>(
         &self,
@@ -176,6 +189,8 @@ impl<
         self.iterable.iter(storage)
     }
 
+    /// Inserts a new value into the map. Returns `true` if a value
+    /// was previously stored under the given key.
     #[inline]
     pub fn insert(
         &mut self,
