@@ -80,11 +80,11 @@ macro_rules! entrypoint {
     ($($fadroma:ident)::+, $($init:ident)::+, $($handle:ident)::+, $($query:ident)::+ $(,)?) => {
         #[cfg(target_arch = "wasm32")]
         mod wasm {
-            use $($fadroma)::+::{scrt::cosmwasm_std::{
+            use $($fadroma)::+::cosmwasm_std::{
                 do_instantiate,
                 do_execute,
                 do_query
-            }};
+            };
             #[no_mangle] extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
                 do_instantiate(&super::$($init)::+, env_ptr, info_ptr, msg_ptr)
             }

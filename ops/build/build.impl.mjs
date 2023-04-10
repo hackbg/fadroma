@@ -168,7 +168,7 @@ function phase1 ({
     console.log(`\nBuilding ${crate} from ${ref} in ${cwd()}`)
     let phase2Command = `${interpreter} ${script} phase2 ${ref} ${crate}`
     if (process.getuid() != uid) {
-      phase2Command = `su ${user} -c "${phase2Command}"`
+      phase2Command = `sh -c "${phase2Command}"`
     }
     run(phase2Command)
   }

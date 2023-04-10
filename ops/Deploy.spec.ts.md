@@ -18,8 +18,8 @@ To define your deployment, extend the `Deployment` class:
 import { Deployment } from '@fadroma/agent'
 
 export class MyDeployment extends Deployment {
-  foo = this.contract({ name: 'foo', crate: 'crate-foo', initMsg: {} })
-  bar = this.contract({ name: 'bar', crate: 'crate-bar', initMsg: {} })
+  foo = this.contract({ name: 'foo', crate: 'fadroma-example-kv', initMsg: {} })
+  bar = this.contract({ name: 'bar', crate: 'fadroma-example-kv', initMsg: {} })
 }
 ```
 

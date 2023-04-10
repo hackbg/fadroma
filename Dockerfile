@@ -27,3 +27,7 @@ RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${
   && rm docker-${DOCKERVERSION}.tgz
 
 ENV LLVM_PROFILE_FILE="%p-%m.profraw"
+
+RUN git config --global --add safe.directory "*"
+RUN git config --global http.postBuffer 524288000
+RUN git config --global http.lowSpeedTime 600
