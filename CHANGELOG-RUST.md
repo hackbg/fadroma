@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+ - `Map` and `InsertOnlyMap` storage types ([#163](https://github.com/hackbg/fadroma/pull/163))
+ - `set` method to `IterableStorage` ([#163](https://github.com/hackbg/fadroma/pull/163))
+ - Convenience methods to `IterableStorage` to match the features of `SingleItem` and `ItemSpace` ([#163](https://github.com/hackbg/fadroma/pull/163))
+ - `Addr` now implements `Segment` ([#163](https://github.com/hackbg/fadroma/pull/163))
+ - `Namespace` types not also implement `Key` ([#163](https://github.com/hackbg/fadroma/pull/163))
+
+### Changed
+
+ - BREAKING ⚠️: Removed `_at` suffix from `IterableStorage` ([#163](https://github.com/hackbg/fadroma/pull/163))
+
 ## [0.8.0] - 2023-03-30
 
 ### Added
