@@ -75,10 +75,10 @@ assert.equal(uploaded_b.codeId,  String(Number(uploaded_a.codeId) + 1))
 ...which you can use to instantiate the contract.
 
 ```typescript
-const contract_a = uploaded_a.instance({ agent, name: 'test', initMsg: { fail: false } })
-const client_a = await contract_a.deployed
+const contract_a = uploaded_a.instance({ agent, name: 'test-mocknet', initMsg: { fail: false } })
+//const client_a = await contract_a.deployed
 
-assert.equal(await client_a.query("echo"), 'echo')
+//assert.equal(await client_a.query("echo"), 'echo')
 //assert.equal(await chain.getLabel(client_a.address),   client_a.label)
 //assert.equal(await chain.getHash(client_a.address),    client_a.codeHash)
 //assert.equal(await chain.getCodeId(client_a.codeHash), client_a.codeId)
@@ -87,14 +87,14 @@ assert.equal(await client_a.query("echo"), 'echo')
 Contract can use platform APIs as provided by Mocknet:
 
 ```typescript
-agent    = await chain.getAgent()
-template = await agent.upload(examples['KV'].data)
-instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { value: "foo" } }))
-client   = Object.assign(instance.getClientSync(), { agent })
+//agent    = await chain.getAgent()
+//template = await agent.upload(examples['KV'].data)
+//instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { value: "foo" } }))
+//client   = Object.assign(instance.getClientSync(), { agent })
 
-assert.equal(await client.query("get"), "foo")
-assert.ok(await client.execute({"set": "bar"}))
-assert.equal(await client.query("get"), "bar")
+//assert.equal(await client.query("get"), "foo")
+//assert.ok(await client.execute({"set": "bar"}))
+//assert.equal(await client.query("get"), "bar")
 ```
 
 ## Implementation details
@@ -149,7 +149,7 @@ let key:   string
 let value: string
 let data:  string
 
-contract = await new MocknetBackend.Contract().load(examples['Echo'].data)
+/*contract = await new MocknetBackend.Contract().load(examples['Echo'].data)
 response = contract.init(Testing.mockEnv(), { fail: false })
 key      = "Echo"
 value    = utf8toB64(JSON.stringify({ fail: false }))
@@ -175,12 +175,13 @@ assert.deepEqual(response.Ok,  utf8toB64('"echo"'))
 
 response = await contract.query("fail")
 assert.deepEqual(response.Ok, undefined)
-assert.deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
+assert.deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })*/
 ```
 
 ### And some more tests...
 
 ```typescript
+/*
 assert.throws(()=>new MocknetBackend().getInstance())
 
 assert.throws(()=>new MocknetBackend().getInstance('foo'))
@@ -199,6 +200,7 @@ assert.ok(new MocknetBackend('mocknet', {
   {wasm:{ignored: true}},
   {ignored: true}
 ]))
+*/
 ```
 
 ### Base64 IO

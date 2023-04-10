@@ -234,6 +234,9 @@ export class Deployment {
     return new Template({
       workspace: this.config?.build?.project,
       revision:  this.revision ?? 'HEAD',
+      agent:     this.agent,
+      builder:   this.builder,
+      uploader:  this.uploader,
       ...opts,
       context:   this
     })
@@ -291,19 +294,35 @@ export class Deployment {
   ) {
     const context = this
     return Object.defineProperties(inst, {
-      name:  { enumerable: true, get () { return context.name } },
-      state: { get () { return context.state } },
-      save:  { get () { return context.save.bind(context) } }
+      name:  {
+        enumerable: true, get () { return context.name }
+      },
+      state: {
+        get () { return context.state }
+      },
+      save:  {
+        get () { return context.save.bind(context) }
+      }
     })
     //return this.commands(name, info, inst as any) // TODO
   }
 
   /** Save current deployment state to deploy store. */
   async save (store: DeployStore|undefined = this.store) {
-    if (this.chain && !this.chain.isMocknet) {
-      this.log.saving(this.name, this.state)
-      store!.save(this.name, this.state)
+    if (!store) {
+      this.log.warnSaveNoStore(this.name)
+      return
     }
+    if (!this.chain) {
+      this.log.warnSaveNoChain(this.name)
+      return
+    }
+    if (this.chain.isMocknet) {
+      this.log.warnNotSavingMocknet(this.name)
+      return
+    }
+    this.log.saving(this.name, this.state)
+    store.save(this.name, this.state)
   }
 
 }

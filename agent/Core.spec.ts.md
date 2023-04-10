@@ -319,23 +319,23 @@ deployment = new Deployment({
   builder: new Builder()
 })
 
+assert.ok(deployment.devMode, 'deployment is in dev mode')
+assert.equal(deployment.size, 1)
+
 template = await deployment.template({
   codeId: 2,
   client: MyClient,
   crate: 'fadroma-example-kv'
 })
 
+assert.ok(template.info)
+assert.ok(await template.compiled)
+assert.ok(await template.uploaded)
+
 instance = await template.instance({
   name: 'custom-client-contract',
   initMsg: {}
 })
-
-assert.ok(deployment.devMode, 'deployment is in dev mode')
-assert.equal(deployment.size, 1)
-
-assert.ok(template.info)
-assert.ok(await template.compiled)
-assert.ok(await template.uploaded)
 
 assert.ok(instance instanceof MyClient)
 assert.ok(await instance.myMethod())

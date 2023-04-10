@@ -205,6 +205,18 @@ export default class Console extends CommandsConsole {
     this.warn(`Code hash mismatch for ${address}: expected ${expected}, fetched ${fetched}`)
   }
 
+  warnSaveNoStore (name: string) {
+    this.warn(`Not saving deployment ${name}: store not set`)
+  }
+
+  warnSaveNoChain (name: string) {
+    this.warn(`Not saving deployment ${name}: chain not set`)
+  }
+
+  warnNotSavingMocknet (name: string) {
+    this.warn(`Not saving deployment ${name}: mocknet is not stateful yet`)
+  }
+
   confirmCodeHash (address: string, codeHash: string) {
     this.info(`Confirmed code hash of ${address}: ${codeHash}`)
   }
