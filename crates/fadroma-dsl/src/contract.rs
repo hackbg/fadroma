@@ -113,10 +113,11 @@ impl<'a> Contract<'a> {
 
     fn generate(self, sink: &mut ErrorSink) -> Generated {
         let mut init: Option<Method> = None;
-        let mut contract_err_ty: Option<GenericArgument> = None;
-        let mut execute_guard: Option<Method> = None;
         let mut execute: Vec<Method> = vec![];
         let mut query: Vec<Method> = vec![];
+        let mut reply: Option<Method> = None;
+        let mut execute_guard: Option<Method> = None;
+        let mut contract_err_ty: Option<GenericArgument> = None;
 
         if let Some(contract_impl) = self.contract_impl {
             for method in item_impl_methods(sink, &contract_impl) {
@@ -135,11 +136,10 @@ impl<'a> Contract<'a> {
                     None => contract_err_ty = Some(method.return_ty().error.clone())
                 }
 
-                match method.ty() {
-                    MsgAttr::Init { .. } if init.is_some() => sink.push_spanned(
-                        &contract_impl.self_ty,
-                        format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
-                    ),
+                let ty = method.ty();
+                match ty {
+                    MsgAttr::Init { .. } if init.is_some() =>
+                        sink.duplicate_annotation(&contract_impl.self_ty, ty),
                     MsgAttr::Init { entry } => {
                         if entry.is_some() {
                             init = Some(method);
@@ -156,12 +156,16 @@ impl<'a> Contract<'a> {
                     }
                     MsgAttr::Execute => execute.push(method),
                     MsgAttr::Query => query.push(method),
+                    MsgAttr::Reply => {
+                        if reply.is_some() {
+                            sink.duplicate_annotation(&contract_impl.self_ty, ty);
+                        } else {
+                            reply = Some(method);
+                        }
+                    }
                     MsgAttr::ExecuteGuard => {
                         if execute_guard.is_some() {
-                            sink.push_spanned(
-                                &contract_impl.self_ty,
-                                format!("Only one method can be annotated as #[{}].", MsgAttr::EXECUTE_GUARD)
-                            );
+                            sink.duplicate_annotation(&contract_impl.self_ty, ty);
                         } else {
                             execute_guard = Some(method);
                         }
@@ -174,11 +178,10 @@ impl<'a> Contract<'a> {
             let mut has_init = false;
 
             for method in item_impl_methods(sink, interface) {
+                let ty = method.ty();
                 match method.ty() {
-                    MsgAttr::Init { .. } if has_init => sink.push_spanned(
-                        interface,
-                        format!("Only one method can be annotated as #[{}].", MsgAttr::INIT)
-                    ),
+                    MsgAttr::Init { .. } if has_init =>
+                        sink.duplicate_annotation(interface, ty),
                     MsgAttr::Init { entry } if entry.is_some() && init.is_some() =>
                         sink.push_spanned(
                             method.sig(),
@@ -192,12 +195,9 @@ impl<'a> Contract<'a> {
                     }
                     MsgAttr::Execute => execute.push(method),
                     MsgAttr::Query => query.push(method),
-                    MsgAttr::ExecuteGuard => sink.push_spanned(
+                    unsupported => sink.unsupported_interface_attr(
                         &method.sig().ident,
-                        format!(
-                            "Interfaces cannot have the #[{}] attribute.",
-                            MsgAttr::EXECUTE_GUARD
-                        )
+                        unsupported
                     )
                 }
             }
@@ -222,7 +222,7 @@ impl<'a> Contract<'a> {
                     init.ty(),
                     MsgAttr::Init { entry } if matches!(entry, Some(Entry::Wasm))
                 ) {
-                    Some(generate::wasm_entry())
+                    Some(generate::wasm_entry(&reply))
                 } else {
                     None
                 }
@@ -244,13 +244,11 @@ impl<'a> Contract<'a> {
             })
         } else {
             if let Some(guard) = execute_guard {
-                sink.push_spanned(
-                    guard.sig(),
-                    format!(
-                        "#[{}] attribute has no effect when no entry point is defined. Either remove it or set an entry point for the contract.",
-                        MsgAttr::EXECUTE_GUARD
-                    )
-                );
+                sink.attr_no_effect(guard.sig(), guard.ty());
+            }
+
+            if let Some(reply) = reply {
+                sink.attr_no_effect(reply.sig(), reply.ty());
             }
 
             None

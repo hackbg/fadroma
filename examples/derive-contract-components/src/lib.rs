@@ -84,7 +84,7 @@ pub mod contract {
     }
 
     #[auto_impl(auth::DefaultImpl)]
-    impl auth::VkAuth for Contract {
+    impl VkAuth for Contract {
         #[execute]
         fn create_viewing_key(entropy: String, padding: Option<String>) -> Result<Response, Self::Error> { }
     

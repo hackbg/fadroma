@@ -1,6 +1,6 @@
 //! Emergency pause and termination of contracts. You **MUST** implement
-//! [admin] in your contract if you want to use this module. This is
-//! enforced when using Fadroma DSL.
+//! [admin] in your contract if you want to use this module. This is enforced when using Fadroma DSL.
+//! See the [examples](https://github.com/hackbg/fadroma/tree/master/examples) on how to implement it.
 
 use std::fmt;
 
@@ -85,7 +85,7 @@ impl Killswitch for DefaultImpl {
     }
 }
 
-/// Returns `false` if the current contract status level is other than [`ContractStatusLevel::Operational`].
+/// Returns `false` if the current contract status level is other than [`ContractStatus::Operational`].
 #[inline]
 pub fn is_operational(deps: Deps) -> StdResult<bool> {
     match assert_is_operational(deps) {
@@ -95,7 +95,7 @@ pub fn is_operational(deps: Deps) -> StdResult<bool> {
     }
 }
 
-/// Fail if the current contract status level is other than [`ContractStatusLevel::Operational`].
+/// Fail if the current contract status level is other than [`ContractStatus::Operational`].
 #[inline]
 pub fn assert_is_operational(deps: Deps) -> StdResult<()> {
     let status = STORE.load_or_default(deps.storage)?;
@@ -109,7 +109,7 @@ pub fn assert_is_operational(deps: Deps) -> StdResult<()> {
     Ok(())
 }
 
-/// Fail if trying to return from [`ContractStatusLevel::Migrating`] status.
+/// Fail if trying to return from [`ContractStatus::Migrating`] status.
 #[inline]
 pub fn assert_can_set_status(deps: Deps, new: &ContractStatus<Addr>) -> StdResult<()> {
     let current = STORE.load_or_default(deps.storage)?;

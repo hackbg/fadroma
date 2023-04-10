@@ -2,151 +2,268 @@ use std::mem;
 
 use crate::{
     self as fadroma,
-    prelude::*
+    schemars::JsonSchema,
+    dsl::*,
+    scrt::{
+        vk::{auth::VkAuth, ViewingKey},
+        permit::Permit,
+        ResponseExt
+    },
+    admin::Admin,
+    cosmwasm_std::{
+        self, StdResult, Api, Response, Uint128,
+        Binary, Addr, CanonicalAddr, Coin, to_binary
+    },
+    bin_serde::{FadromaSerialize, FadromaDeserialize},
+    core::{Humanize, Canonize, Callback}
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum ExecuteMsg {
-    // Native coin interactions
-    Redeem {
+/// Interface trait that defines all methods of the SNIP-20 standard.
+/// See [`fadroma::scrt::snip20::contract`] for the default implementation.
+#[interface]
+pub trait Snip20: VkAuth + Admin {
+    type Error: std::fmt::Display;
+
+    #[init]
+    fn new(
+        name: String,
+        admin: Option<String>,
+        symbol: String,
+        decimals: u8,
+        initial_balances: Option<Vec<InitialBalance>>,
+        prng_seed: Binary,
+        config: Option<TokenConfig>,
+        callback: Option<Callback<String>>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn deposit(
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn redeem(
         amount: Uint128,
         denom: Option<String>,
-        padding: Option<String>,
-    },
-    Deposit {
-        padding: Option<String>,
-    },
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
 
-    // Base ERC-20 stuff
-    Transfer {
+    #[execute]
+    fn transfer(
         recipient: String,
         amount: Uint128,
         memo: Option<String>,
-        padding: Option<String>,
-    },
-    Send {
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn send(
         recipient: String,
         recipient_code_hash: Option<String>,
         amount: Uint128,
-        msg: Option<Binary>,
         memo: Option<String>,
-        padding: Option<String>,
-    },
-    BatchTransfer {
-        actions: Vec<TransferAction>,
-        padding: Option<String>,
-    },
-    BatchSend {
-        actions: Vec<SendAction>,
-        padding: Option<String>,
-    },
-    Burn {
+        msg: Option<Binary>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn burn(
         amount: Uint128,
         memo: Option<String>,
-        padding: Option<String>,
-    },
-    RegisterReceive {
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn register_receive(
         code_hash: String,
-        padding: Option<String>,
-    },
-    CreateViewingKey {
-        entropy: String,
-        padding: Option<String>,
-    },
-    SetViewingKey {
-        key: String,
-        padding: Option<String>,
-    },
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
 
-    // Allowance
-    IncreaseAllowance {
+    #[execute]
+    fn increase_allowance(
         spender: String,
         amount: Uint128,
         expiration: Option<u64>,
-        padding: Option<String>,
-    },
-    DecreaseAllowance {
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn decrease_allowance(
         spender: String,
         amount: Uint128,
         expiration: Option<u64>,
-        padding: Option<String>,
-    },
-    TransferFrom {
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn transfer_from(
         owner: String,
         recipient: String,
         amount: Uint128,
         memo: Option<String>,
-        padding: Option<String>,
-    },
-    SendFrom {
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn send_from(
         owner: String,
         recipient: String,
         recipient_code_hash: Option<String>,
         amount: Uint128,
-        msg: Option<Binary>,
         memo: Option<String>,
-        padding: Option<String>,
-    },
-    BatchTransferFrom {
-        actions: Vec<TransferFromAction>,
-        padding: Option<String>,
-    },
-    BatchSendFrom {
-        actions: Vec<SendFromAction>,
-        padding: Option<String>,
-    },
-    BurnFrom {
+        msg: Option<Binary>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn burn_from(
         owner: String,
         amount: Uint128,
         memo: Option<String>,
-        padding: Option<String>,
-    },
-    BatchBurnFrom {
-        actions: Vec<BurnFromAction>,
-        padding: Option<String>,
-    },
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
 
-    // Mint
-    Mint {
+    #[execute]
+    fn mint(
         recipient: String,
         amount: Uint128,
         memo: Option<String>,
-        padding: Option<String>,
-    },
-    BatchMint {
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn add_minters(
+        minters: Vec<String>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn remove_minters(
+        minters: Vec<String>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn set_minters(
+        minters: Vec<String>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn batch_transfer(
+        actions: Vec<TransferAction>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn batch_send(
+        actions: Vec<SendAction>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn batch_transfer_from(
+        actions: Vec<TransferFromAction>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn batch_send_from(
+        actions: Vec<SendFromAction>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn batch_burn_from(
+        actions: Vec<BurnFromAction>,
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn batch_mint(
         actions: Vec<MintAction>,
-        padding: Option<String>,
-    },
-    AddMinters {
-        minters: Vec<String>,
-        padding: Option<String>,
-    },
-    RemoveMinters {
-        minters: Vec<String>,
-        padding: Option<String>,
-    },
-    SetMinters {
-        minters: Vec<String>,
-        padding: Option<String>,
-    },
+        padding: Option<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
 
-    // Admin
-    ChangeAdmin {
-        address: String,
-        padding: Option<String>,
-    },
-    SetContractStatus {
-        level: ContractStatusLevel,
-        padding: Option<String>,
-    },
-
-    // Permit
-    RevokePermit {
+    #[execute]
+    fn revoke_permit(
         permit_name: String,
         padding: Option<String>
-    }
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[query]
+    fn exchange_rate() -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn token_info() -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn minters() -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn allowance(
+        owner: String,
+        spender: String,
+        key: String
+    ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn balance(
+        address: String,
+        key: String
+    ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn transfer_history(
+        address: String,
+        key: String,
+        page: Option<u32>,
+        page_size: u32
+    ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn transaction_history(
+        address: String,
+        key: String,
+        page: Option<u32>,
+        page_size: u32
+    ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn with_permit(
+        permit: Permit<QueryPermission>,
+        query: QueryWithPermit
+    ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct InitialBalance {
+    pub address: String,
+    pub amount: Uint128,
+}
+
+/// This type represents optional configuration values which can be overridden.
+/// All values are optional and have defaults which are more private by default,
+/// but can be overridden if necessary.
+#[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct TokenConfig {
+    /// Indicates whether the total supply is public or should be kept secret.
+    /// default: False
+    pub public_total_supply: bool,
+    /// Indicates whether deposit functionality should be enabled
+    /// default: False
+    pub enable_deposit: bool,
+    /// Indicates whether redeem functionality should be enabled
+    /// default: False
+    pub enable_redeem: bool,
+    /// Indicates whether mint functionality should be enabled
+    /// default: False
+    pub enable_mint: bool,
+    /// Indicates whether burn functionality should be enabled
+    /// default: False
+    pub enable_burn: bool
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
@@ -179,7 +296,6 @@ pub enum ExecuteAnswer {
     RegisterReceive {
         status: ResponseStatus,
     },
-    #[cfg(feature = "snip20-impl")]
     CreateViewingKey {
         key: ViewingKey,
     },
@@ -238,7 +354,7 @@ pub enum ExecuteAnswer {
     ChangeAdmin {
         status: ResponseStatus,
     },
-    SetContractStatus {
+    SetStatus {
         status: ResponseStatus,
     },
 
@@ -250,45 +366,10 @@ pub enum ExecuteAnswer {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum QueryMsg {
-    TokenInfo {},
-    ContractStatus {},
-    ExchangeRate {},
+pub enum QueryWithPermit {
     Allowance {
         owner: String,
         spender: String,
-        key: String,
-    },
-    Balance {
-        address: String,
-        key: String,
-    },
-    TransferHistory {
-        address: String,
-        key: String,
-        page: Option<u32>,
-        page_size: u32,
-    },
-    TransactionHistory {
-        address: String,
-        key: String,
-        page: Option<u32>,
-        page_size: u32,
-    },
-    Minters {},
-    #[cfg(feature = "snip20-impl")]
-    WithPermit {
-        permit: Permit<QueryPermission>,
-        query: QueryWithPermit
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum QueryWithPermit {
-    Allowance {
-        owner: Addr,
-        spender: Addr,
     },
     Balance {},
     TransferHistory {
@@ -324,9 +405,6 @@ pub enum QueryPermission {
 #[serde(rename_all = "snake_case")]
 pub enum QueryAnswer {
     TokenInfo(TokenInfo),
-    ContractStatus {
-        status: ContractStatusLevel,
-    },
     ExchangeRate {
         rate: Uint128,
         denom: String,
@@ -375,14 +453,6 @@ pub struct CreateViewingKeyResponse {
 pub enum ResponseStatus {
     Success,
     Failure
-}
-
-#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, JsonSchema, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum ContractStatusLevel {
-    NormalRun,
-    StopAllButRedeems,
-    StopAll
 }
 
 // Transfer history
@@ -636,5 +706,49 @@ impl Humanize for TxActionCanon {
         };
 
         Ok(result)
+    }
+}
+
+impl TokenConfig {
+    #[inline]
+    pub fn public_total_supply(mut self) -> Self {
+        self.public_total_supply = true;
+
+        self
+    }
+
+    #[inline]
+    pub fn enable_deposit(mut self) -> Self {
+        self.enable_deposit = true;
+
+        self
+    }
+
+    #[inline]
+    pub fn enable_redeem(mut self) -> Self {
+        self.enable_redeem = true;
+
+        self
+    }
+
+    #[inline]
+    pub fn enable_mint(mut self) -> Self {
+        self.enable_mint = true;
+
+        self
+    }
+
+    #[inline]
+    pub fn enable_burn(mut self) -> Self {
+        self.enable_burn = true;
+
+        self
+    }
+}
+
+impl ExecuteAnswer {
+    #[inline]
+    pub fn with_resp(&self, response: Response) -> StdResult<Response> {
+        Ok(response.set_data(to_binary(self)?).pad())
     }
 }

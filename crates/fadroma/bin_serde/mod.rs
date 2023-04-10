@@ -214,7 +214,17 @@ impl Display for Error {
 #[cfg(test)]
 pub(crate) mod testing {
     use std::fmt::Debug;
-    use proptest::{prelude::TestCaseError, prop_assert_eq};
+    use proptest::{
+        prelude::*, prop_assert_eq, collection::vec,
+        array::uniform32, option, num
+    };
+    use crate::{
+        self as fadroma,
+        cosmwasm_std::{
+            Addr, CanonicalAddr, Binary, Uint256,
+            Decimal256, Coin, coin
+        }
+    };
     use super::*;
 
     pub fn serde<T>(item: &T)
@@ -269,5 +279,63 @@ pub(crate) mod testing {
         prop_assert_eq!(&result, item);
 
         Ok(())
+    }
+
+    #[derive(FadromaSerialize, FadromaDeserialize, PartialEq, Debug)]
+    struct TestStruct {
+        string: String,
+        enums: Vec<TestEnum>,
+        option: Option<CanonicalAddr>,
+        decimals: Vec<Decimal256>
+    }
+
+    #[derive(FadromaSerialize, FadromaDeserialize, PartialEq, Debug)]
+    enum TestEnum {
+        A(String),
+        B {
+            coins: Vec<Coin>,
+            addr: Addr,
+            num: u64
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn proptest_serde_complex_types(
+            string in "\\PC*",
+            enums in vec(enum_strategy(), 0..=16),
+            addr in option::of(vec(num::u8::ANY, 0..=64)),
+            decimals in vec(decimal256_stratey(), 0..=32)
+        ) {
+            let strukt = TestStruct {
+                string,
+                enums,
+                option: addr.map(|bytes| CanonicalAddr(Binary(bytes))),
+                decimals
+            };
+
+            proptest_serde(&strukt)?;
+        }
+    }
+
+    fn coin_strategy() -> impl Strategy<Value = Coin> {
+        (any::<u128>(), "\\PC*").prop_map(|x| coin(x.0, x.1))
+    }
+
+    fn decimal256_stratey() -> impl Strategy<Value = Decimal256> {
+        uniform32(0..u8::MAX).prop_map(|x| Decimal256::new(Uint256::from_be_bytes(x)))
+    }
+
+    fn enum_strategy() -> impl Strategy<Value = TestEnum> {
+        prop_oneof![
+            "\\PC*".prop_map(|string| TestEnum::A(string)),
+            (vec(coin_strategy(), 0..=32), "\\PC*", any::<u64>()).prop_map(|x|
+                TestEnum::B {
+                    coins: x.0,
+                    addr: Addr::unchecked(x.1),
+                    num: x.2
+                }
+            )
+        ]
     }
 }

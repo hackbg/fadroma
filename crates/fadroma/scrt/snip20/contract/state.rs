@@ -2,8 +2,8 @@ use std::ops::Deref;
 
 use crate::{
     self as fadroma,
-    scrt::snip20::client::msg::ContractStatusLevel,
     storage::Segment,
+    scrt::snip20::client::TokenConfig,
     prelude::{
         BlockInfo, CanonicalAddr, StdResult, Storage, Uint128,
         ViewingKey, ViewingKeyHashed, SingleItem, ItemSpace,
@@ -17,11 +17,11 @@ use serde::{Deserialize, Serialize};
 crate::namespace!(pub ConstantsNs, b"N3QP0mNoPG");
 pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
 
+crate::namespace!(pub PrngSeedNs, b"Lwr3sTJZmk");
+pub const PRNG_SEED: SingleItem<[u8; 32], PrngSeedNs> = SingleItem::new();
+
 crate::namespace!(pub TotalSupplyNs, b"bx98UUOWYa");
 pub const TOTAL_SUPPLY: TotalSupplyStore = TotalSupplyStore(SingleItem::new());
-
-crate::namespace!(pub ContractStatusNs, b"EhYS9rzai1");
-pub const STATUS: SingleItem<ContractStatusLevel, ContractStatusNs> = SingleItem::new();
 
 crate::namespace!(pub MintersNs, b"wpitCjS7wB");
 pub const MINTERS: MintersStore = MintersStore(SingleItem::new());
@@ -32,23 +32,25 @@ pub struct MintersStore(pub SingleItem<Vec<CanonicalAddr>, MintersNs>);
 #[doc(hidden)]
 pub struct TotalSupplyStore(pub SingleItem<Uint128, TotalSupplyNs>);
 
-// Config
 #[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Constants {
     pub name: String,
     pub symbol: String,
     pub decimals: u8,
-    pub prng_seed: Vec<u8>,
-    // privacy configuration
-    pub total_supply_is_public: bool,
-    // is deposit enabled
-    pub deposit_is_enabled: bool,
-    // is redeem enabled
-    pub redeem_is_enabled: bool,
-    // is mint enabled
-    pub mint_is_enabled: bool,
-    // is burn enabled
-    pub burn_is_enabled: bool
+    pub token_settings: TokenSettings
+}
+
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Copy, JsonSchema, PartialEq, Default, Debug)]
+pub struct TokenSettings(u8);
+
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum TokenPermission {
+    PublicTotalSupply = 1 << 0,
+    Deposit = 1 << 1,
+    Redeem = 1 << 2,
+    Mint = 1 << 3,
+    Burn = 1 << 4
 }
 
 crate::namespace!(BalancesNs, b"DyCKbmlEL8");
@@ -271,5 +273,86 @@ impl From<CanonicalAddr> for Account {
 impl From<Account> for CanonicalAddr {
     fn from(account: Account) -> Self {
         account.addr
+    }
+}
+
+impl TokenSettings {
+    #[inline(always)]
+    pub fn is_set(&self, setting: TokenPermission) -> bool {
+        let setting = setting as u8;
+
+        self.0 & setting == setting
+    }
+
+    #[inline(always)]
+    fn set(&mut self, setting: TokenPermission) {
+        self.0 |= setting as u8;
+    }
+}
+
+impl From<TokenConfig> for TokenSettings {
+    fn from(config: TokenConfig) -> Self {
+        let mut s = TokenSettings::default();
+
+        if config.public_total_supply {
+            s.set(TokenPermission::PublicTotalSupply);
+        }
+
+        if config.enable_deposit {
+            s.set(TokenPermission::Deposit);
+        }
+
+        if config.enable_redeem {
+            s.set(TokenPermission::Redeem);
+        }
+
+        if config.enable_mint {
+            s.set(TokenPermission::Mint);
+        }
+
+        if config.enable_burn {
+            s.set(TokenPermission::Burn);
+        }
+
+        s
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TokenSettings, TokenPermission};
+
+    #[test]
+    fn token_settings() {
+        fn test(s: TokenSettings, e: [bool; 5]) {
+            assert_eq!(s.is_set(TokenPermission::PublicTotalSupply), e[0]);
+            assert_eq!(s.is_set(TokenPermission::Deposit), e[1]);
+            assert_eq!(s.is_set(TokenPermission::Redeem), e[2]);
+            assert_eq!(s.is_set(TokenPermission::Mint), e[3]);
+            assert_eq!(s.is_set(TokenPermission::Burn), e[4]);
+        }
+
+        let mut s = TokenSettings::default();
+        test(s, [false, false, false, false, false]);
+
+        s.set(TokenPermission::PublicTotalSupply);
+        s.set(TokenPermission::Redeem);
+
+        test(s, [true, false, true, false, false]);
+
+        s.set(TokenPermission::Deposit);
+        test(s, [true, true, true, false, false]);
+
+        s.set(TokenPermission::Mint);
+        test(s, [true, true, true, true, false]);
+
+        s.set(TokenPermission::Burn);
+        test(s, [true, true, true, true, true]);
+
+        let mut s = TokenSettings::default();
+
+        s.set(TokenPermission::Deposit);
+        s.set(TokenPermission::Mint);
+        test(s, [false, true, false, true, false]);
     }
 }

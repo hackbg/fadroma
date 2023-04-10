@@ -1,7 +1,7 @@
 [package]
 name = "fadroma"
-version = "0.7.0"
-edition = "2018"
+version = "0.8.0"
+edition = "2021"
 license = "AGPL-3.0"
 keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
 description = "Tools and frequently used functionality for developing CosmWasm smart contracts"
@@ -57,7 +57,7 @@ crypto = [
   "rand_core", "rand_chacha", "sha2"
 ]
 
-snip20-impl = [
+snip20 = [
   # Features
   "scrt", "permit", "vk"
 ]
@@ -68,14 +68,13 @@ staking = ["secret-cosmwasm-std/staking"]
 
 [dependencies]
 # Supported platforms
-secret-cosmwasm-std = { version = "1.0.0", default-features = false, optional = true }
+secret-cosmwasm-std = { package = "cosmwasm-std", git = "https://github.com/scrtlabs/cosmwasm", tag = "v1.1.9-secret", default-features = false, optional = true }
 
 # Procedural macro crates
-fadroma-dsl = { version = "0.5.0", path = "../fadroma-dsl" }
-fadroma-derive-canonize = { version = "0.3.0", path = "../fadroma-derive-canonize" }
-fadroma-derive-serde = { version = "0.1.0", path = "../fadroma-derive-serde" }
-fadroma-proc-auth = { version = "0.1.0", path = "../fadroma-proc-auth" }
-fadroma-proc-message = { version = "0.1.0", path = "../fadroma-proc-message" }
+fadroma-dsl = { version = "0.8.0", path = "../fadroma-dsl" }
+fadroma-derive-canonize = { version = "0.3.5", path = "../fadroma-derive-canonize" }
+fadroma-derive-serde = { version = "0.3.0", path = "../fadroma-derive-serde" }
+fadroma-proc-auth = { version = "0.1.1", path = "../fadroma-proc-auth" }
 
 # Dependencies
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
@@ -94,7 +93,7 @@ time = { optional = true, version = "0.3.17" }
 
 # Enable iterator for testing (not supported in production)
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]
-secret-cosmwasm-std = { version = "1.0.0", default-features = false, features = ["iterator"], optional = true }
+secret-cosmwasm-std = { package = "cosmwasm-std", git = "https://github.com/scrtlabs/cosmwasm", tag = "v1.1.9-secret", default-features = false, features = ["iterator"], optional = true }
 
 [dev-dependencies]
 criterion = "0.4.0"

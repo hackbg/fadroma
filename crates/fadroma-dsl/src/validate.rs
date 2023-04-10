@@ -1,6 +1,7 @@
 use syn::{
     Signature, ReturnType, Type, PathSegment,
-    PathArguments, GenericArgument, Generics
+    PathArguments, GenericArgument, Generics,
+    FnArg
 };
 use quote::quote;
 
@@ -57,6 +58,28 @@ pub fn result_type<'a>(
 #[inline]
 pub fn has_generics(generics: &Generics) -> bool {
     !generics.params.is_empty() || generics.where_clause.is_some()
+}
+
+pub fn has_single_arg(
+    sink: &mut ErrorSink,
+    sig: &Signature,
+    test: impl FnOnce(&Type) -> bool
+) -> bool {
+    if let Some(arg) = sig.inputs.first() {
+        match arg {
+            FnArg::Typed(pat_type) => {
+                return test(&pat_type.ty) && sig.inputs.len() == 1;
+            }
+            FnArg::Receiver(_) => {
+                sink.push_spanned(
+                    &arg,
+                    "Method definition cannot contain \"self\".",
+                );
+            }
+        }
+    }
+
+    false
 }
 
 fn validate_return_type<'a, 'b>(

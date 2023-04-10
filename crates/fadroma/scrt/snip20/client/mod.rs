@@ -1,18 +1,19 @@
-//! Command SNIP-20 tokens from a contract.
+//! SNIP-20 token interface definitions from a contract.
+
+mod interface;
+pub use interface::*;
 
 use crate::{
     core::ContractLink,
     cosmwasm_std::{
-        Addr, Binary, CosmosMsg, WasmMsg, QuerierWrapper,
-        StdResult, Uint128, Coin, StdError, to_binary
+        Addr, Binary, CosmosMsg, QuerierWrapper,
+        StdResult, Uint128, Coin, StdError
     },
-    scrt::{BLOCK_SIZE, space_pad},
+    scrt::{vk, BLOCK_SIZE, to_cosmos_msg},
 };
 
-pub mod msg;
-
-use msg::{ExecuteMsg, QueryMsg, QueryAnswer, TokenInfo, TransferAction};
-
+/// SNIP-20 token wrapper to easily call methods
+/// on contracts that implement the standard.
 #[derive(Clone, Debug)]
 pub struct ISnip20 {
     pub link: ContractLink<Addr>,
@@ -182,10 +183,11 @@ impl ISnip20 {
     }
 
     #[inline]
+    #[cfg(feature = "vk")]
     pub fn set_viewing_key(mut self, key: impl Into<String>) -> StdResult<CosmosMsg> {
         let padding = self.padding.take();
 
-        self.cosmos_msg(&ExecuteMsg::SetViewingKey {
+        self.cosmos_msg(&vk::auth::ExecuteMsg::SetViewingKey {
             key: key.into(),
             padding
         })
@@ -242,16 +244,13 @@ impl ISnip20 {
         }
     }
 
-    fn cosmos_msg(self, msg: &ExecuteMsg) -> StdResult<CosmosMsg> {
-        let mut msg = to_binary(msg)?;
-        space_pad(&mut msg.0, self.block_size);
-
-        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.link.address.into_string(),
-            code_hash: self.link.code_hash,
-            msg,
-            funds: self.funds
-        }))
+    #[inline]
+    fn cosmos_msg(self, msg: &impl serde::Serialize) -> StdResult<CosmosMsg> {
+        to_cosmos_msg(
+            self.link.address.into_string(),
+            self.link.code_hash,
+            msg
+        )
     }
 }
 

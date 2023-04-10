@@ -7,6 +7,7 @@ use proc_macro2::Span;
 use crate::{
     attr::{MsgAttr, ERROR_TYPE},
     method::fn_args_to_idents,
+    interface,
     err::{ErrorSink, CompileErrors}
 };
 
@@ -44,13 +45,11 @@ impl AutoImpl {
             }
 
             match MsgAttr::parse(&mut sink, &method.attrs) {
-                Some(MsgAttr::ExecuteGuard) => sink.push_spanned(
-                    &method.sig.ident,
-                    format!(
-                        "Interfaces cannot have the #[{}] attribute.",
-                        MsgAttr::EXECUTE_GUARD
-                    )
-                ),
+                Some(attr) if !interface::is_valid_attr(attr) =>
+                    sink.unsupported_interface_attr(
+                        &method.sig.ident,
+                        attr
+                    ),
                 Some(attr) =>{
                     let fn_name = &method.sig.ident;
                     let args = fn_args_to_idents(&mut sink, &method.sig.inputs);
@@ -60,18 +59,12 @@ impl AutoImpl {
                             parse_quote!(<#impl_path as #trait_>::#fn_name(deps, env, info, #args)),
                         MsgAttr::Query =>
                             parse_quote!(<#impl_path as #trait_>::#fn_name(deps, env, #args)),
-                        MsgAttr::ExecuteGuard => unreachable!()
+                        _ => unreachable!("{} should not be supported in interfaces.", attr.as_str())
                     };
 
                     method.block.stmts.push(Stmt::Expr(stmt));
                 },
-                None => sink.push_spanned(
-                    &method.sig.ident,
-                    format!(
-                        "Expecting exactly one attribute of: {:?}",
-                        [MsgAttr::INIT, MsgAttr::EXECUTE, MsgAttr::QUERY]
-                    )
-                )
+                None => sink.expected_interface_attrs(&method.sig.ident)
             }
         }
 

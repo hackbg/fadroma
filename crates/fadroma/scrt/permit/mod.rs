@@ -37,8 +37,8 @@ pub use testing::*;
 /// // This constructor is available in test code only, not with cfg(target_arch = "wasm32")!
 /// let permit = Permit::new("from", params);
 /// 
-/// assert!(permit.check_permission(&MyPermissions::A));
-/// assert!(!permit.check_permission(&MyPermissions::B));
+/// assert!(permit.has_permission(&MyPermissions::A));
+/// assert!(!permit.has_permission(&MyPermissions::B));
 /// ```
 pub trait Permission: Serialize + JsonSchema + Clone + PartialEq {}
 
@@ -79,7 +79,7 @@ impl<P: Permission> Permit<P> {
     ) -> StdResult<String> {
         if !expected_permissions
             .iter()
-            .all(|x| self.check_permission(x))
+            .all(|x| self.has_permission(x))
         {
             return Err(StdError::generic_err(format!(
                 "Expected permission(s): {}, got: {}",
@@ -122,14 +122,14 @@ impl<P: Permission> Permit<P> {
     /// Check if the permit contains the given permission.
     /// This is already being called by [`Permit::validate`].
     #[inline]
-    pub fn check_permission(&self, permission: &P) -> bool {
+    pub fn has_permission(&self, permission: &P) -> bool {
         self.params.permissions.contains(permission)
     }
 
     /// Check if the given contract address is allowed to use this permit.
     /// This is already being called by [`Permit::validate`].
     #[inline]
-    pub fn check_contract(&self, contract: &str) -> bool {
+    pub fn is_for_contract(&self, contract: &str) -> bool {
         self.params
             .allowed_tokens
             .iter()
@@ -139,7 +139,7 @@ impl<P: Permission> Permit<P> {
     }
 
     #[inline]
-    fn check_contract_err(&self, current_contract_addr: &str) -> String {
+    fn wrong_contract_err(&self, current_contract_addr: &str) -> String {
         format!(
             "Permit doesn't apply to contract {}, allowed contracts: {}",
             current_contract_addr,

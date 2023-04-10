@@ -1,5 +1,5 @@
-//! Customizable functionality for implementing
-//! viewing keys in your smart contract.
+//! Customizable functionality for implementing viewing keys in your smart contract.
+//! See the [examples](https://github.com/hackbg/fadroma/tree/master/examples) on how to implement it.
 
 use serde::{Deserialize, Serialize};
 

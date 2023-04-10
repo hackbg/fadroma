@@ -1,34 +1,22 @@
 //! Customizable implementation of a SNIP-20 token.
-//! *Feature flag: `snip20-impl`*
-//! 
-//! If you simply need a vanilla SNIP-20 token you only need to
-//! look at the [`instantiate`], [`execute`] and [`query`] functions.
-//! Call those from the respective entry points of your contract and
-//! pass [`DefaultImpl`] as the last parameter.
-//! 
-//! All other functions and modules are exposed for convenience so that you 
-//! don't need to copy code from here in order to make some changes to a method.
-//! 
-//! The the only methods which you might want to customize are
-//! [`Snip20::symbol_validation`] and [`Snip20::name_range`] which specify
-//! what characters can the token symbol be consisted of and between how
-//! many characters long can the token name be.
-//! 
 
-pub mod msg;
 pub mod receiver;
 pub mod state;
 pub mod transaction_history;
+pub(crate) mod snip20;
+mod symbol_validation;
 
-mod snip20;
-pub use snip20::*;
+pub use snip20::{
+    instantiate,
+    default_impl::{
+        Contract as DefaultImpl,
+        Error, ExecuteMsg, QueryMsg, execute, query,
+        transfer_impl, transfer_from_impl, perform_transfer,
+        send_impl, send_from_impl, add_receiver_api_callback,
+        use_allowance, mint_impl
+    }
+};
+pub use symbol_validation::*;
 
 #[cfg(test)]
 mod tests;
-
-/// The vanilla implementation of the SNIP-20 standard.
-/// Pass this to the [`instantiate`], [`execute`] and [`query`]
-/// entry points if you don't need to make any modifications.
-pub struct DefaultImpl;
-
-impl Snip20 for DefaultImpl { }

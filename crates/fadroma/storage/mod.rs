@@ -1,6 +1,7 @@
 //! Utilities for interacting with the native key-value storage.
 
 pub mod iterable;
+pub mod map;
 
 mod single_item;
 mod item_space;
@@ -14,7 +15,7 @@ use crate::{
     bin_serde::{FadromaSerialize, FadromaDeserialize, FadromaSerializeExt, Deserializer},
     cosmwasm_std::{
         Storage, StdResult, StdError, CanonicalAddr,
-        Uint64, Uint128, Uint256, Uint512
+        Addr, Uint64, Uint128, Uint256, Uint512
     }
 };
 
@@ -151,10 +152,7 @@ pub fn save<T: FadromaSerialize> (
     key: impl AsRef<[u8]>,
     value: &T
 ) -> StdResult<()> {
-    let bytes = value.serialize().map_err(|e|
-        StdError::serialize_err(any::type_name::<T>(), e)
-    )?;
-
+    let bytes = serialize(value)?;
     storage.set(key.as_ref(), &bytes);
 
     Ok(())
@@ -177,15 +175,28 @@ pub fn load<T: FadromaDeserialize> (
 ) -> StdResult<Option<T>> {
     match storage.get(key.as_ref()) {
         Some(data) => {
-            let mut de = Deserializer::from(&data);
-            let item = de.deserialize::<T>().map_err(|e|
-                StdError::parse_err(any::type_name::<T>(), e)
-            )?;
+            let item = deserialize::<T>(&data)?;
 
             Ok(Some(item))
         },
         None => Ok(None)
     }
+}
+
+#[inline(always)]
+pub(crate) fn serialize<T: FadromaSerialize>(value: &T) -> StdResult<Vec<u8>> {
+    value.serialize().map_err(|e|
+        StdError::serialize_err(any::type_name::<T>(), e)
+    )
+}
+
+#[inline(always)]
+pub(crate) fn deserialize<T: FadromaDeserialize>(bytes: &[u8]) -> StdResult<T> {
+    let mut de = Deserializer::from(&bytes);
+
+    de.deserialize::<T>().map_err(|e|
+        StdError::parse_err(any::type_name::<T>(), e)
+    )
 }
 
 impl<'a> Key for CompositeKey<'a> {
@@ -320,15 +331,27 @@ impl_typed_key!(TypedKey2<'a, T1, T2> [1]);
 impl_typed_key!(TypedKey3<'a, T1, T2, T3> [1, 2]);
 impl_typed_key!(TypedKey4<'a, T1, T2, T3, T4> [1, 2, 3]);
 
-impl<T: Namespace> Segment for T {
+impl<T: Namespace> Key for T {
     #[inline]
     fn size(&self) -> usize {
-        T::NAMESPACE.len()
+        Self::NAMESPACE.len()
+    }
+
+    #[inline]
+    fn write_segments(&self, buf: &mut Vec<u8>) {
+        buf.extend_from_slice(Self::NAMESPACE);
+    }
+}
+
+impl<T: Key> Segment for T {
+    #[inline]
+    fn size(&self) -> usize {
+        <Self as Key>::size(self)
     }
 
     #[inline]
     fn write_segment(&self, buf: &mut Vec<u8>) {
-        buf.extend_from_slice(T::NAMESPACE);
+        self.write_segments(buf);
     }
 }
 
@@ -345,6 +368,18 @@ impl Segment for &str {
 }
 
 impl Segment for String {
+    #[inline]
+    fn size(&self) -> usize {
+        self.as_bytes().len()
+    }
+
+    #[inline]
+    fn write_segment(&self, buf: &mut Vec<u8>) {
+        buf.extend_from_slice(self.as_bytes());
+    }
+}
+
+impl Segment for Addr {
     #[inline]
     fn size(&self) -> usize {
         self.as_bytes().len()

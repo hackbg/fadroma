@@ -83,7 +83,7 @@ mod tests {
         let amount = 3_000_000_000u32;
 
         let result = convert(amount, rate, 9, 9).unwrap();
-        assert_eq!(result, 1_999_999_998u128.into());
+        assert_eq!(result, Uint256::from_u128(1_999_999_998));
 
         // Should work the same even if input_token has less decimals (ex. 6)
         // Here amount has 3 zeroes less because input_token now has 6 decimals, so
@@ -93,7 +93,7 @@ mod tests {
         let amount = 3_000_000u32;
 
         let result = convert(amount, rate, 6, 9).unwrap();
-        assert_eq!(result, 1_999_999_998u32.into());
+        assert_eq!(result, Uint256::from_u128(1_999_999_998));
 
         // And the other way around - when swap_token has 6 decimals.
         // Here the rate and result have 3 less digits - to account for the less decimals
@@ -102,18 +102,18 @@ mod tests {
         let amount = 3_000_000_000u32;
 
         let result = convert(amount, rate, 9, 6).unwrap();
-        assert_eq!(result, 1_999_998u32.into());
+        assert_eq!(result, Uint256::from_u128(1_999_998));
 
         let rate = 150000000u32;
         let amount = 5 * one_token(18);
 
         let result = convert(amount, rate, 18, 8).unwrap();
-        assert_eq!(result, 7_5_000_000_0u32.into());
+        assert_eq!(result, Uint256::from_u128(7_5_000_000_0));
 
         let rate = 15 * one_token(17); // 1.5
         let amount = 5 * one_token(8);
 
         let result = convert(amount, rate, 8, 18).unwrap();
-        assert_eq!(result, (75 * one_token(17)).into()); // 7.5
+        assert_eq!(result, Uint256::from_u128(75 * one_token(17))); // 7.5
     }
 }

@@ -39,9 +39,9 @@ impl<P: Permission> Permit<P> {
         current_contract_addr: &str,
         hrp: Option<&str>,
     ) -> StdResult<String> {
-        if !self.check_contract(current_contract_addr) {
+        if !self.is_for_contract(current_contract_addr) {
             return Err(StdError::generic_err(
-                self.check_contract_err(current_contract_addr),
+                self.wrong_contract_err(current_contract_addr)
             ));
         }
 

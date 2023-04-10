@@ -218,6 +218,7 @@ mod tests {
         let mut ser = Serializer::with_capacity(1);
         FadromaSerialize::to_bytes(slice, &mut ser).unwrap();
         assert_eq!(ser.buf.len(), 1);
+        assert_eq!(ser.buf[0], 0);
 
         let deserialized = Deserializer::from(&ser.finish())
             .deserialize::<Vec<u8>>()
