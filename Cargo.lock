@@ -589,6 +589,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "fadroma-example-kv"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
 name = "fadroma-proc-auth"
 version = "0.1.1"
 dependencies = [
