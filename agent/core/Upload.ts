@@ -3,9 +3,15 @@ import type {
   Maybe, Overridable, Hashed, CodeHash, CodeId
 } from '../index'
 
-import { Error, Console, defineTask, pluralize } from '../util/index'
+import {
+  Error, Console, bold, defineTask, pluralize, hideProperties
+} from '../util/index'
+import { assertAgent } from './Agent'
 import { Client } from './Client'
 import { fetchCodeHash, getSourceSpecifier } from './Code'
+
+import { sha256, base16 } from '@hackbg/4mat'
+import { override } from '@hackbg/over'
 
 /** A constructor for an Uploader subclass. */
 export interface UploaderClass<U extends Uploader> {
@@ -79,12 +85,50 @@ export class FetchUploader extends Uploader {
 
   get id () { return 'Fetch' }
 
+  log = new Console('@fadroma/agent: FetchUploader' )
+
+  constructor (
+    /** Agent that will sign the upload transactions(s). */
+    public agent?: Agent|null,
+  ) {
+    super(agent)
+    this.log.warn('FetchUploader caching not implemented: reuploading')
+    hideProperties(this, 'log')
+  }
+
+  protected async fetch (path: string|URL): Promise<Uint8Array> {
+    const file = await fetch(new URL(path, 'file:'))
+    return new Uint8Array(await file.arrayBuffer())
+  }
+
   async upload (contract: Uploadable): Promise<Uploaded> {
-    throw new Error('FetchUploader#upload: not implemented')
+    if (!global.fetch) throw new Error.NoFetch()
+    if (!contract.artifact) throw new Error('No artifact to upload')
+    if (!this.agent) throw new Error('No upload agent')
+    this.log.log('Uploading', contract.artifact)
+    const data   = await this.fetch(contract.artifact)
+    const result = await this.agent.upload(data)
+    this.checkCodeHash(contract, result)
+    const { codeId, codeHash, uploadTx } = result
+    Object.assign(contract, { codeId, codeHash, uploadTx })
+    return { ...contract, codeId, codeHash, uploadTx }
   }
 
   async uploadMany (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
-    throw new Error('FetchUploader#uploadMany: not implemented')
+    const agent = assertAgent(this)
+    const outputs: Array<Uploaded> = []
+    for (const i in inputs) {
+      const input = inputs[i]
+      if (!input.artifact) throw new Error.NoArtifact()
+      const data = await this.fetch(input.artifact)
+      input.codeHash ??= base16.encode(sha256(data))
+      this.log.log('Uploading', String(input.artifact), `(${data.length} bytes uncompressed)`)
+      const result = await agent.upload(data)
+      const output = override(input, result) as unknown as Uploaded
+      this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
+      outputs[i] = output
+    }
+    return outputs
   }
 
 }

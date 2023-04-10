@@ -14,9 +14,9 @@ export default class FSUploader extends Uploader {
 
   get id () { return 'FS' }
 
-  log = new Console()
+  log = new Console('@fadroma/ops: FSUploader' )
 
-  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '-' }
+  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(no cache)' }
 
   cache?: UploadStore
 
@@ -70,7 +70,6 @@ export default class FSUploader extends Uploader {
       // If they still don't match after the reupload, there's a problem.
       input = self.ensureLocalCodeHash(input)
       // If there's no local upload receipt, time to reupload.
-      const blobName     = $(input.artifact!).name
       if (self.cache) {
         const receiptPath  = self.cache.getUploadReceiptPath(input)
         const relativePath = $(receiptPath).shortPath

@@ -79,6 +79,8 @@ export default class FadromaError extends Error {
       : "Missing deployment")
   static NoDeployStore = this.define("NoDeployStore",
     () => `Can't save - no deployment store is provided.`)
+  static NoFetch = this.define('NoFetch',
+    () => 'Global fetch is unavailable')
 
   static NoName = this.define("NoName",
     () => "No name.")

@@ -6,6 +6,8 @@ import Error from './Error'
 import { CommandsConsole } from '@hackbg/cmds'
 import { bold, colors } from '@hackbg/logs'
 
+export { bold, colors } from '@hackbg/logs'
+
 export default class Console extends CommandsConsole {
 
   constructor (label: string = 'Fadroma') {

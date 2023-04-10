@@ -8,7 +8,10 @@ export * from '@hackbg/hide'
 export * from '@hackbg/many'
 
 export { default as Error } from './Error'
+export * from './Error'
+
 export { default as Console } from './Console'
+export * from './Console'
 
 export * from './Fields'
 export * from './Math'

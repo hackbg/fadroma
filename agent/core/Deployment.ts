@@ -11,6 +11,7 @@ import { writeLabel } from './Labels'
 import Template from './Template'
 import { Contract, ContractGroup } from './Contract'
 import { DeployStore } from './DeployStore'
+import { FetchUploader } from './Upload'
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -31,7 +32,7 @@ export class Deployment {
     this.agent     ??= options.agent
     this.chain     ??= options.chain ?? options.agent?.chain
     this.builder   ??= options.builder
-    this.uploader  ??= options.uploader
+    this.uploader  ??= options.uploader ?? new FetchUploader(this.agent)
     this.workspace ??= options.workspace
     this.revision  ??= options.revision
     this.store     ??= options.store
