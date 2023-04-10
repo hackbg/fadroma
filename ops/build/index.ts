@@ -31,5 +31,25 @@ import { Builder } from '@fadroma/agent'
 import LocalBuilder     from './LocalBuilder'
 import RawBuilder       from './RawBuilder'
 import ContainerBuilder from './ContainerBuilder'
+
 Object.assign(Builder.variants, { 'container': ContainerBuilder, 'raw': RawBuilder })
+
 export { Builder }
+
+import BuilderConfig from './BuilderConfig'
+import type { Buildable, Built } from '@fadroma/agent'
+
+/** @returns Builder configured as per environment and options */
+export function getBuilder (options: Partial<BuilderConfig> = {}): Builder {
+  return new BuilderConfig(options).getBuilder()
+}
+
+/** Compile a single contract with default settings. */
+export async function build (source: Buildable): Promise<Built> {
+  return getBuilder().build(source)
+}
+
+/** Compile multiple single contracts with default settings. */
+export async function buildMany (sources: Buildable[]): Promise<Built[]> {
+  return getBuilder().buildMany(sources)
+}

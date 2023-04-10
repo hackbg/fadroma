@@ -106,6 +106,7 @@ export default class ContainerBuilder extends LocalBuilder {
     // For each repository/revision pair, build the contracts from it.
     for (const path of workspaces) {
       for (const revision of revisions) {
+        this.log.log('Building from', path, '@', revision)
         // Which directory to mount into the build container? By default,
         // this is the root of the workspace. But if the workspace is not
         // at the root of the Git repo (e.g. when using Git submodules),

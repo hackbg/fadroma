@@ -1,4 +1,5 @@
 import { FSUploader } from '../upload/index'
+import { getBuilder } from '../build/index'
 
 import { ConnectConfig } from '@fadroma/connect'
 import { Deployment, DeployStore } from '@fadroma/agent'
@@ -53,8 +54,9 @@ export default class DeployConfig extends ConnectConfig {
     const chain = this.getChain()
     if (!chain) throw new Error('Missing chain')
     const agent = this.getAgent()
+    const builder  = getBuilder()
     const uploader = agent.getUploader(FSUploader)
-    const defaults = { config: this, chain, agent, uploader }
+    const defaults = { config: this, chain, agent, builder, uploader }
     args[0] = Object.assign(defaults, args[0]??{})
     const deployment = this.getDeployStore().getDeployment($D, ...args)
     return deployment
