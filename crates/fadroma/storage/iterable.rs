@@ -2,9 +2,10 @@ use std::{mem, marker::PhantomData};
 
 use crate::{
     bin_serde::{FadromaSerialize, FadromaDeserialize},
-    cosmwasm_std::{Storage, StdResult, StdError}
+    cosmwasm_std::{Storage, Deps, DepsMut, StdResult, StdError},
+    core::{Canonize, Humanize}
 };
-use super::Key;
+use super::{Key, not_found_error};
 
 /// Stores items in a way that allows for iterating over them
 /// in a sequential order just like a Vec. It's also possible to
@@ -137,12 +138,46 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
     /// 
     /// storage.push(s, &1).unwrap();
     /// 
-    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(1));
-    /// assert_eq!(storage.get_at(s, 1).unwrap(), None);
+    /// assert_eq!(storage.get(s, 0).unwrap(), Some(1));
+    /// assert_eq!(storage.get(s, 1).unwrap(), None);
     /// ```
     #[inline]
-    pub fn get_at(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<T>> {
+    pub fn get(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<T>> {
         super::load(storage, self.key(index))
+    }
+
+    #[inline]
+    pub fn get_or_error(
+        &self,
+        storage: &dyn Storage,
+        index: u64
+    ) -> StdResult<T> {
+        let result = self.get(storage, index)?;
+
+        result.ok_or_else(|| not_found_error::<T>())
+    }
+
+    #[inline]
+    pub fn canonize_and_push<Input: Canonize<Output = T>>(
+        &mut self,
+        deps: DepsMut,
+        item: Input
+    ) -> StdResult<u64> {
+        let item = item.canonize(deps.api)?;
+
+        self.push(deps.storage, &item)
+    }
+
+    #[inline]
+    pub fn canonize_and_set<Input: Canonize<Output = T>>(
+        &mut self,
+        deps: DepsMut,
+        index: u64,
+        item: Input
+    ) -> StdResult<()> {
+        let item = item.canonize(deps.api)?;
+
+        self.set(deps.storage, index, &item)
     }
 
     /// Overwrites the value at the given index.
@@ -161,12 +196,12 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
     /// let mut storage = IterableStorage::<u8, _>::new(key);
     /// storage.push(s, &1).unwrap();
     /// 
-    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(1));
+    /// assert_eq!(storage.get(s, 0).unwrap(), Some(1));
     ///
-    /// storage.set_at(s, 0, &2).unwrap();
-    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(2));
+    /// storage.set(s, 0, &2).unwrap();
+    /// assert_eq!(storage.get(s, 0).unwrap(), Some(2));
     /// ```
-    pub fn set_at(
+    pub fn set(
         &mut self,
         storage: &mut dyn Storage,
         index: u64,
@@ -202,14 +237,14 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
     ///     Ok(x)
     /// };
     /// 
-    /// let updated_val = storage.update_at(s, 0, add_one).unwrap();
+    /// let updated_val = storage.update(s, 0, add_one).unwrap();
     /// assert_eq!(updated_val, Some(2));
-    /// assert_eq!(storage.get_at(s, 0).unwrap(), Some(2));
+    /// assert_eq!(storage.get(s, 0).unwrap(), Some(2));
     /// 
-    /// let updated_val = storage.update_at(s, 1, add_one).unwrap();
+    /// let updated_val = storage.update(s, 1, add_one).unwrap();
     /// assert_eq!(updated_val, None);
     /// ```
-    pub fn update_at<F>(
+    pub fn update<F>(
         &self,
         storage: &mut dyn Storage,
         index: u64,
@@ -217,7 +252,7 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
     ) -> StdResult<Option<T>>
         where F: FnOnce(T) -> StdResult<T>
     {
-        let item = self.get_at(storage, index)?;
+        let item = self.get(storage, index)?;
 
         match item {
             Some(item) => {
@@ -284,7 +319,7 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
             return Ok(None);
         }
 
-        let last_item = self.get_at(storage, tail)?.unwrap();
+        let last_item = self.get(storage, tail)?.unwrap();
         super::save(storage, self.key(index), &last_item)?;
 
         self.pop(storage)?;
@@ -358,6 +393,70 @@ impl<T: FadromaSerialize + FadromaDeserialize, K: Key> IterableStorage<T, K> {
         key.extend_from_slice(Self::KEY_INDEX);
         
         key
+    }
+}
+
+impl<
+    T: FadromaSerialize + FadromaDeserialize + Humanize,
+    K: Key
+> IterableStorage<T, K> {
+    #[inline]
+    pub fn get_humanize(
+        &self,
+        deps: Deps,
+        index: u64
+    ) -> StdResult<Option<<T as Humanize>::Output>> {
+        let result: Option<T> = self.get(deps.storage, index)?;
+
+        match result {
+            Some(item) => Ok(Some(item.humanize(deps.api)?)),
+            None => Ok(None)
+        }
+    }
+
+    #[inline]
+    pub fn get_humanize_or_error(
+        &self,
+        deps: Deps,
+        index: u64
+    ) -> StdResult<<T as Humanize>::Output> {
+        let result = self.get_humanize(deps, index)?;
+
+        result.ok_or_else(|| not_found_error::<T>())
+    }
+}
+
+impl<
+    T: FadromaSerialize + FadromaDeserialize + Humanize,
+    K: Key
+> IterableStorage<T, K>
+    where <T as Humanize>::Output: Default
+{
+    #[inline]
+    pub fn get_humanize_or_default(
+        &self,
+        deps: Deps,
+        index: u64
+    ) -> StdResult<<T as Humanize>::Output> {
+        let result = self.get_humanize(deps, index)?;
+
+        Ok(result.unwrap_or_default())
+    }
+}
+
+impl<
+    T: FadromaSerialize + FadromaDeserialize + Default,
+    K: Key
+> IterableStorage<T, K> {
+    #[inline]
+    pub fn get_or_default(
+        &self,
+        storage: &dyn Storage,
+        index: u64
+    ) -> StdResult<T> {
+        let result: Option<T> = self.get(storage, index)?;
+
+        Ok(result.unwrap_or_default())
     }
 }
 
@@ -488,13 +587,13 @@ mod tests {
         assert_eq!(storage.len.unwrap(), 4);
         assert_eq!(storage.len(&deps.storage).unwrap(), 4);
 
-        let item = storage.get_at(&deps.storage, 0).unwrap();
+        let item = storage.get(&deps.storage, 0).unwrap();
         assert_eq!(item.unwrap(), 0);
 
-        let item = storage.get_at(&deps.storage, 3).unwrap();
+        let item = storage.get(&deps.storage, 3).unwrap();
         assert_eq!(item.unwrap(), 3);
 
-        let item = storage.get_at(&deps.storage, 4).unwrap();
+        let item = storage.get(&deps.storage, 4).unwrap();
         assert!(item.is_none());
 
         let update = |mut x| {
@@ -502,21 +601,21 @@ mod tests {
             Ok(x)
         };
 
-        let result = storage.update_at(&mut deps.storage, 4, update).unwrap();
+        let result = storage.update(&mut deps.storage, 4, update).unwrap();
         assert_eq!(result, None);
 
-        let result = storage.update_at(&mut deps.storage, 3, update).unwrap();
+        let result = storage.update(&mut deps.storage, 3, update).unwrap();
         assert_eq!(result.unwrap(), 4);
 
-        let item = storage.get_at(&deps.storage, 3).unwrap();
+        let item = storage.get(&deps.storage, 3).unwrap();
         assert_eq!(item.unwrap(), 4);
 
-        storage.set_at(&mut deps.storage, 3, &5).unwrap();
-        let item = storage.get_at(&deps.storage, 3).unwrap();
+        storage.set(&mut deps.storage, 3, &5).unwrap();
+        let item = storage.get(&deps.storage, 3).unwrap();
         assert_eq!(item.unwrap(), 5);
 
-        storage.set_at(&mut deps.storage, 4, &5).unwrap_err();
-        storage.set_at(&mut deps.storage, 5, &5).unwrap_err();
+        storage.set(&mut deps.storage, 4, &5).unwrap_err();
+        storage.set(&mut deps.storage, 5, &5).unwrap_err();
     }
 
     #[test]
@@ -572,28 +671,28 @@ mod tests {
         let returned_item = storage.swap_remove(&mut deps.storage, 0).unwrap();
         let len = storage.len(&deps.storage).unwrap();
         assert_eq!(len, 5);
-        let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+        let item = storage.get(&deps.storage, 0).unwrap().unwrap();
         assert_eq!(item, 6);
         assert_eq!(item, returned_item.unwrap());
-        let item = storage.get_at(&deps.storage, len - 1).unwrap().unwrap();
+        let item = storage.get(&deps.storage, len - 1).unwrap().unwrap();
         assert_eq!(item, 5);
 
         let returned_item = storage.swap_remove(&mut deps.storage, 1).unwrap();
         let len = storage.len(&deps.storage).unwrap();
         assert_eq!(len, 4);
-        let item = storage.get_at(&deps.storage, 1).unwrap().unwrap();
+        let item = storage.get(&deps.storage, 1).unwrap().unwrap();
         assert_eq!(item, 5);
         assert_eq!(item, returned_item.unwrap());
-        let item = storage.get_at(&deps.storage, len - 1).unwrap().unwrap();
+        let item = storage.get(&deps.storage, len - 1).unwrap().unwrap();
         assert_eq!(item, 4);
 
         let returned_item = storage.swap_remove(&mut deps.storage, 3).unwrap();
         let len = storage.len(&deps.storage).unwrap();
         assert_eq!(len, 3);
-        let item = storage.get_at(&deps.storage, 2).unwrap().unwrap();
+        let item = storage.get(&deps.storage, 2).unwrap().unwrap();
         assert_eq!(item, 3);
         assert!(returned_item.is_none());
-        let item = storage.get_at(&deps.storage, len - 2).unwrap().unwrap();
+        let item = storage.get(&deps.storage, len - 2).unwrap().unwrap();
         assert_eq!(item, 5);
 
         let err = storage.swap_remove(&mut deps.storage, 3).unwrap_err();
@@ -602,20 +701,20 @@ mod tests {
 
         let returned_item = storage.swap_remove(&mut deps.storage, 1).unwrap();
         assert_eq!(storage.len(&deps.storage).unwrap(), 2);
-        let item = storage.get_at(&deps.storage, 1).unwrap().unwrap();
+        let item = storage.get(&deps.storage, 1).unwrap().unwrap();
         assert_eq!(item, 3);
         assert_eq!(item, returned_item.unwrap());
-        let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+        let item = storage.get(&deps.storage, 0).unwrap().unwrap();
         assert_eq!(item, 6);
 
         let returned_item = storage.swap_remove(&mut deps.storage, 0).unwrap();
-        let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+        let item = storage.get(&deps.storage, 0).unwrap().unwrap();
         assert_eq!(storage.len(&deps.storage).unwrap(), 1);
         assert_eq!(item, 3);
         assert_eq!(item, returned_item.unwrap());
 
         let returned_item = storage.swap_remove(&mut deps.storage, 0).unwrap();
-        let item = storage.get_at(&deps.storage, 0).unwrap();
+        let item = storage.get(&deps.storage, 0).unwrap();
         assert!(item.is_none());
         assert!(returned_item.is_none());
         assert_eq!(storage.len(&deps.storage).unwrap(), 0);
@@ -635,7 +734,7 @@ mod tests {
             let len = storage.len(&deps.storage).unwrap();
             
             if len != 0 {
-                let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+                let item = storage.get(&deps.storage, 0).unwrap().unwrap();
                 assert_eq!(item, returned_item.unwrap());
                 assert_eq!(item, i);
             }
@@ -658,7 +757,7 @@ mod tests {
             
             if len != 0 {
                 let index: u64 = (i - 1).into();
-                let item = storage.get_at(&deps.storage, index).unwrap().unwrap();
+                let item = storage.get(&deps.storage, index).unwrap().unwrap();
                 assert_eq!(item as u64, index);
             }
         }

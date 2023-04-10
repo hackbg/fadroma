@@ -191,7 +191,7 @@ impl<
         let key = self.map_key(key);
         
         match self.load_index(storage, &key)? {
-            Some(index) => self.iterable.get_at(storage, index),
+            Some(index) => self.iterable.get(storage, index),
             None => Ok(None)
         }
     }
@@ -223,7 +223,7 @@ impl<
     ) -> StdResult<bool> {
         let exists = match self.load_index(storage, key)? {
             Some(index) => {
-                self.iterable.set_at(storage, index, value)?;
+                self.iterable.set(storage, index, value)?;
 
                 true
             }
