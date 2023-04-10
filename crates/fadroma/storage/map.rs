@@ -3,12 +3,13 @@ use std::marker::PhantomData;
 use crate::{
     self as fadroma,
     bin_serde::{FadromaSerialize, FadromaDeserialize},
-    cosmwasm_std::{Storage, Binary, StdResult}
+    cosmwasm_std::{Storage, Deps, DepsMut, Binary, StdResult},
+    core::{Canonize, Humanize}
 };
 use super::{
     Namespace, Key, StaticKey,
     iterable::{IterableStorage, Iter},
-    serialize, deserialize
+    serialize, deserialize, not_found_error
 };
 
 const KEY_NS: StaticKey = StaticKey(b"key");
@@ -80,7 +81,7 @@ impl<
     }
 
     #[inline]
-    pub fn get(&self, storage: &mut dyn Storage, key: impl Into<K>) -> StdResult<Option<V>> {
+    pub fn get(&self, storage: &dyn Storage, key: impl Into<K>) -> StdResult<Option<V>> {
         let Ok(Some(entry)) = self.inner.get(storage, key) else {
             return Ok(None);
         };
@@ -88,6 +89,25 @@ impl<
         let item = deserialize(&entry.item.0)?;
 
         Ok(Some(item))
+    }
+
+    #[inline]
+    pub fn get_or_error(&self, storage: &dyn Storage, key: impl Into<K>) -> StdResult<V> {
+        let result = self.get(storage, key)?;
+
+        result.ok_or_else(|| not_found_error::<V>())
+    }
+
+    #[inline]
+    pub fn canonize_and_insert<Input: Canonize<Output = V>>(
+        &mut self,
+        deps: DepsMut,
+        key: impl Into<K>,
+        item: Input
+    ) -> StdResult<bool> {
+        let item = item.canonize(deps.api)?;
+
+        self.insert(deps.storage, key, &item)
     }
 
     #[inline]
@@ -167,7 +187,7 @@ impl<
     }
 
     #[inline]
-    pub fn get(&self, storage: &mut dyn Storage, key: impl Into<K>) -> StdResult<Option<V>> {
+    pub fn get(&self, storage: &dyn Storage, key: impl Into<K>) -> StdResult<Option<V>> {
         let key = self.map_key(key);
         
         match self.load_index(storage, &key)? {
@@ -176,13 +196,32 @@ impl<
         }
     }
 
+    #[inline]
+    pub fn get_or_error(&self, storage: &dyn Storage, key: impl Into<K>) -> StdResult<V> {
+        let result = self.get(storage, key)?;
+
+        result.ok_or_else(|| not_found_error::<V>())
+    }
+
+    #[inline]
+    pub fn canonize_and_insert<Input: Canonize<Output = V>>(
+        &mut self,
+        deps: DepsMut,
+        key: impl Into<K>,
+        item: Input
+    ) -> StdResult<bool> {
+        let item = item.canonize(deps.api)?;
+
+        self.insert(deps.storage, key, &item)
+    }
+
     fn insert_impl(
         &mut self,
         storage: &mut dyn Storage,
         key: &[u8],
         value: &V
     ) -> StdResult<bool> {
-        let is_new = match self.load_index(storage, key)? {
+        let exists = match self.load_index(storage, key)? {
             Some(index) => {
                 self.iterable.set_at(storage, index, value)?;
 
@@ -196,7 +235,7 @@ impl<
             }
         };
 
-        Ok(is_new)
+        Ok(exists)
     }
 
     #[inline]
@@ -229,6 +268,80 @@ impl<
         map_key
     }
 }
+
+macro_rules! impl_get_extensions {
+    ($map:ident) => {
+        impl<
+            K: Key,
+            V: FadromaSerialize + FadromaDeserialize + Humanize,
+            N: Namespace
+        > $map<K, V, N> {
+            #[inline]
+            pub fn get_humanize(
+                &self,
+                deps: Deps,
+                key: impl Into<K>
+            ) -> StdResult<Option<<V as Humanize>::Output>> {
+                let result: Option<V> = self.get(deps.storage, key)?;
+
+                match result {
+                    Some(item) => Ok(Some(item.humanize(deps.api)?)),
+                    None => Ok(None)
+                }
+            }
+
+            #[inline]
+            pub fn get_humanize_or_error(
+                &self,
+                deps: Deps,
+                key: impl Into<K>
+            ) -> StdResult<<V as Humanize>::Output> {
+                let result = self.get_humanize(deps, key)?;
+
+                result.ok_or_else(|| not_found_error::<V>())
+            }
+        }
+
+        impl<
+            K: Key,
+            V: FadromaSerialize + FadromaDeserialize + Humanize,
+            N: Namespace
+        > $map<K, V, N>
+            where <V as Humanize>::Output: Default
+        {
+            #[inline]
+            pub fn get_humanize_or_default(
+                &self,
+                deps: Deps,
+                key: impl Into<K>
+            ) -> StdResult<<V as Humanize>::Output> {
+                let result = self.get_humanize(deps, key)?;
+
+                Ok(result.unwrap_or_default())
+            }
+        }
+
+        impl<
+            K: Key,
+            V: FadromaSerialize + FadromaDeserialize + Default,
+            N: Namespace
+        > $map<K, V, N> {
+            #[inline]
+            pub fn get_or_default(
+                &self,
+                storage: &dyn Storage,
+                key: impl Into<K>,
+            ) -> StdResult<V> {
+                let result: Option<V> = self.get(storage, key)?;
+
+                Ok(result.unwrap_or_default())
+            }
+        }
+    }
+}
+
+impl_get_extensions!(Map);
+impl_get_extensions!(InsertOnlyMap);
 
 impl<'storage, T: FadromaDeserialize> MapValueIter<'storage, T> {
     #[inline]
@@ -425,5 +538,8 @@ mod tests {
 
         let key = "four".to_string();
         assert_eq!(map.remove(storage, &key), Ok(false));
+
+        let iter_next = map.values(storage).unwrap().next();
+        assert!(iter_next.is_none());
     }
 }
