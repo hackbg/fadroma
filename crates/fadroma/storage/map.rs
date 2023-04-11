@@ -135,6 +135,7 @@ impl<
         };
 
         self.inner.insert_impl(storage, &item.key.0, &item)
+            .map(|x| x.is_none())
     }
 
     #[inline]
@@ -189,15 +190,42 @@ impl<
         self.iterable.iter(storage)
     }
 
-    /// Inserts a new value into the map. Returns `true` if a value
-    /// was previously stored under the given key.
+    /// Inserts the given value into the map. Returns the index at which
+    /// the value was stored. If the value *was updated* instead, it will return `None`.
+    /// The index can be used to call [`InsertOnlyMap::get_by_index`] as an optimization
+    /// to avoid loading it internally using a key which is what [`InsertOnlyMap::get`] does.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::InsertOnlyMap, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdError,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// 
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = InsertOnlyMap::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// let index = map.insert(storage, &key, &1).unwrap();
+    /// 
+    /// // We inserted a new value, so the index is returned.
+    /// assert_eq!(index, Some(0));
+    /// 
+    /// let index = map.insert(storage, &key, &2).unwrap();
+    /// 
+    /// // We are updating an existing value, so no index is returned.
+    /// assert_eq!(index, None);
     #[inline]
     pub fn insert(
         &mut self,
         storage: &mut dyn Storage,
         key: impl Into<K>,
         value: &V
-    ) -> StdResult<bool> {
+    ) -> StdResult<Option<u64>> {
         self.insert_impl(storage, &self.map_key(key), value)
     }
 
@@ -211,6 +239,41 @@ impl<
         }
     }
 
+    /// Gets the value using the index at which the value was stored.
+    /// Internally the key maps to the index which itself maps to the value.
+    /// So if you have the index, you can skip loading the key and try getting
+    /// the value directly. The index is returned by the [`InsertOnlyMap::insert`] method.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::InsertOnlyMap, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdError,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// 
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = InsertOnlyMap::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// let index = map.insert(storage, &key, &1).unwrap();
+    /// assert_eq!(index, Some(0));
+    /// 
+    /// let value = map.get_by_index(storage, index.unwrap()).unwrap();
+    /// assert_eq!(value, Some(1));
+    /// 
+    /// // Try to get a non-existent index.
+    /// let value = map.get_by_index(storage, 1).unwrap();
+    /// assert_eq!(value, None);
+    /// ```
+    #[inline]
+    pub fn get_by_index(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<V>> {
+        self.iterable.get(storage, index)
+    }
+
     #[inline]
     pub fn get_or_error(&self, storage: &dyn Storage, key: impl Into<K>) -> StdResult<V> {
         let result = self.get(storage, key)?;
@@ -218,13 +281,17 @@ impl<
         result.ok_or_else(|| not_found_error::<V>())
     }
 
+    /// Canonizes the given value and inserts it into the map. Returns the index at which
+    /// the value was stored. If the value *was updated* instead, it will return `None`.
+    /// The index can be used to call [`InsertOnlyMap::get_by_index`] as an optimization
+    /// to avoid loading it internally using a key which is what [`InsertOnlyMap::get`] does.
     #[inline]
     pub fn canonize_and_insert<Input: Canonize<Output = V>>(
         &mut self,
         deps: DepsMut,
         key: impl Into<K>,
         item: Input
-    ) -> StdResult<bool> {
+    ) -> StdResult<Option<u64>> {
         let item = item.canonize(deps.api)?;
 
         self.insert(deps.storage, key, &item)
@@ -235,22 +302,22 @@ impl<
         storage: &mut dyn Storage,
         key: &[u8],
         value: &V
-    ) -> StdResult<bool> {
-        let exists = match self.load_index(storage, key)? {
+    ) -> StdResult<Option<u64>> {
+        let index = match self.load_index(storage, key)? {
             Some(index) => {
                 self.iterable.set(storage, index, value)?;
 
-                true
+                None
             }
             None => {
                 let index = self.iterable.push(storage, value)?;
                 self.save_index(storage, key, index)?;
 
-                false
+                Some(index)
             }
         };
 
-        Ok(exists)
+        Ok(index)
     }
 
     #[inline]
@@ -435,8 +502,8 @@ mod tests {
                 .collect::<Vec<String>>();
     
             for (i, key) in keys.iter().enumerate() {
-                let i = i as u8 + 1;
-                assert!(!map.insert(storage, key, &i).unwrap());
+                let num = i as u8 + 1;
+                map.insert(storage, key, &num).unwrap();
             }
     
             let mut iter = map.values(storage).unwrap();
@@ -488,10 +555,10 @@ mod tests {
 
         for (i, key) in keys.iter().enumerate() {
             let num = i as u8 + 1;
-            assert!(!map.insert(storage, key, &num).unwrap());
+            assert_eq!(map.insert(storage, key, &num).unwrap(), Some(i as u64));
 
             let raw_key = map.map_key(&keys[i]);
-            assert!(map.insert_impl(storage, &raw_key, &num).unwrap());
+            assert_eq!(map.insert_impl(storage, &raw_key, &num).unwrap(), None);
 
             assert_eq!(
                 raw_key,
@@ -500,10 +567,15 @@ mod tests {
 
             let value = map.get(storage, key).unwrap();
             assert_eq!(value, Some(num));
+
+            let value = map.get_by_index(storage, i as u64).unwrap();
+            assert_eq!(value, Some(num));
         }
 
         let key = "four".to_string();
         assert_eq!(map.get(storage, &key).unwrap(), None);
+
+        assert_eq!(map.get_by_index(storage, key.len() as u64).unwrap(), None);
     }
 
     #[test]
@@ -519,6 +591,7 @@ mod tests {
         for (i, key) in keys.iter().enumerate() {
             let num = i as u8 + 1;
             assert!(!map.insert(storage, key, &num).unwrap());
+            assert!(map.insert(storage, key, &num).unwrap());
 
             let value = map.get(storage, key).unwrap();
             assert_eq!(value, Some(num));
