@@ -101,6 +101,41 @@ impl<
         Ok(Some(item))
     }
 
+    pub fn get_or_insert(
+        &mut self,
+        storage: &mut dyn Storage,
+        key: impl Into<K>,
+        value: V
+    ) -> StdResult<(Option<u64>, V)> {
+        let key = key.into();
+        if let Some(result) = self.get_impl(storage, &key)? {
+            return Ok((None, result));
+        }
+
+        let item = self.encode_item(&key, &value)?;
+        let index = self.inner.push_item(storage, &item.key.0, &item)?;
+
+        Ok((Some(index), value))
+    }
+
+    pub fn get_or_insert_with(
+        &mut self,
+        storage: &mut dyn Storage,
+        key: impl Into<K>,
+        func: impl FnOnce() -> V
+    ) -> StdResult<(Option<u64>, V)> {
+        let key = key.into();
+        if let Some(result) = self.get_impl(storage, &key)? {
+            return Ok((None, result));
+        }
+
+        let value = func();
+        let item = self.encode_item(&key, &value)?;
+        let index = self.inner.push_item(storage, &item.key.0, &item)?;
+
+        Ok((Some(index), value))
+    }
+
     #[inline]
     pub fn get_or_error(&self, storage: &dyn Storage, key: impl Into<K>) -> StdResult<V> {
         let result = self.get(storage, key)?;
@@ -129,10 +164,7 @@ impl<
         key: impl Into<K>,
         value: &V
     ) -> StdResult<bool> {
-        let item = ItemEntry {
-            key: Binary(self.inner.map_key(key)),
-            item: Binary(serialize(value)?)
-        };
+        let item = self.encode_item(&key.into(), value)?;
 
         self.inner.insert_impl(storage, &item.key.0, &item)
             .map(|x| x.is_none())
@@ -144,7 +176,7 @@ impl<
         storage: &mut dyn Storage,
         key: impl Into<K>
     ) -> StdResult<bool> {
-        let key = self.inner.map_key(key);
+        let key = self.inner.map_key(&key.into());
         let exists = match self.inner.load_index(storage, &key)? {
             Some(index) => {
                 storage.remove(&key);
@@ -159,6 +191,25 @@ impl<
         };
 
         Ok(exists)
+    }
+
+    #[inline]
+    fn get_impl(&self, storage: &dyn Storage, key: &K) -> StdResult<Option<V>> {
+        let Ok(Some(entry)) = self.inner.get_impl(storage, key) else {
+            return Ok(None);
+        };
+
+        let item = deserialize(&entry.item.0)?;
+
+        Ok(Some(item))
+    }
+
+    #[inline]
+    fn encode_item(&self, key: &K, value: &V) -> StdResult<ItemEntry> {
+        Ok(ItemEntry {
+            key: Binary(self.inner.map_key(key)),
+            item: Binary(serialize(value)?)
+        })
     }
 }
 
@@ -226,17 +277,49 @@ impl<
         key: impl Into<K>,
         value: &V
     ) -> StdResult<Option<u64>> {
-        self.insert_impl(storage, &self.map_key(key), value)
+        let key = self.map_key(&key.into());
+
+        self.insert_impl(storage, &key, value)
     }
 
     #[inline]
     pub fn get(&self, storage: &dyn Storage, key: impl Into<K>) -> StdResult<Option<V>> {
-        let key = self.map_key(key);
-        
-        match self.load_index(storage, &key)? {
-            Some(index) => self.iterable.get(storage, index),
-            None => Ok(None)
+        self.get_impl(storage, &key.into())
+    }
+
+    pub fn get_or_insert(
+        &mut self,
+        storage: &mut dyn Storage,
+        key: impl Into<K>,
+        value: V
+    ) -> StdResult<(Option<u64>, V)> {
+        let key = key.into();
+        if let Some(result) = self.get_impl(storage, &key)? {
+            return Ok((None, result));
         }
+
+        let key = self.map_key(&key);
+        let index = self.push_item(storage, &key, &value)?;
+
+        Ok((Some(index), value))
+    }
+
+    pub fn get_or_insert_with(
+        &mut self,
+        storage: &mut dyn Storage,
+        key: impl Into<K>,
+        func: impl FnOnce() -> V
+    ) -> StdResult<(Option<u64>, V)> {
+        let key = key.into();
+        if let Some(result) = self.get_impl(storage, &key)? {
+            return Ok((None, result));
+        }
+
+        let value = func();
+        let key = self.map_key(&key);
+        let index = self.push_item(storage, &key, &value)?;
+
+        Ok((Some(index), value))
     }
 
     /// Gets the value using the index at which the value was stored.
@@ -297,6 +380,16 @@ impl<
         self.insert(deps.storage, key, &item)
     }
 
+    #[inline]
+    fn get_impl(&self, storage: &dyn Storage, key: &K) -> StdResult<Option<V>> {
+        let key = self.map_key(key);
+        
+        match self.load_index(storage, &key)? {
+            Some(index) => self.iterable.get(storage, index),
+            None => Ok(None)
+        }
+    }
+
     fn insert_impl(
         &mut self,
         storage: &mut dyn Storage,
@@ -310,12 +403,24 @@ impl<
                 None
             }
             None => {
-                let index = self.iterable.push(storage, value)?;
-                self.save_index(storage, key, index)?;
+                let index = self.push_item(storage, key, value)?;
 
                 Some(index)
             }
         };
+
+        Ok(index)
+    }
+
+    #[inline]
+    fn push_item(
+        &mut self,
+        storage: &mut dyn Storage,
+        key: &[u8],
+        value: &V
+    ) -> StdResult<u64> {
+        let index = self.iterable.push(storage, value)?;
+        self.save_index(storage, key, index)?;
 
         Ok(index)
     }
@@ -335,9 +440,7 @@ impl<
         super::save(storage, key, &index)
     }
 
-    fn map_key(&self, key: impl Into<K>) -> Vec<u8> {
-        let key = key.into();
-
+    fn map_key(&self, key: &K) -> Vec<u8> {
         let mut map_key = Vec::with_capacity(
             N::NAMESPACE.len() +
             KEY_NS.size() +
@@ -417,6 +520,15 @@ macro_rules! impl_get_extensions {
                 let result: Option<V> = self.get(storage, key)?;
 
                 Ok(result.unwrap_or_default())
+            }
+
+            #[inline]
+            pub fn get_or_insert_default(
+                &mut self,
+                storage: &mut dyn Storage,
+                key: impl Into<K>
+            ) -> StdResult<(Option<u64>, V)> {
+                self.get_or_insert_with(storage, key, || V::default())
             }
         }
     }
@@ -533,6 +645,51 @@ mod tests {
         };
     }
 
+    macro_rules! test_get_or {
+        ($map:ident) => {
+            let storage = &mut mock_dependencies().storage as &mut dyn Storage;
+            let mut map = $map::<TypedKey<String>, u8, TestNs>::new();
+    
+            let keys = ["one", "two", "three", "four"]
+                .into_iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>();
+    
+            let take = 2;
+            for (i, key) in keys.iter().enumerate().take(take) {
+                let num = i as u8;
+                let (index, value) = map.get_or_insert(storage, key, num).unwrap();
+    
+                assert_eq!(index, Some(i as u64));
+                assert_eq!(value, num);
+    
+                let (index, value) = map.get_or_insert(storage, key, num + 1).unwrap();
+                assert_eq!(index, None);
+                assert_eq!(value, num);
+            }
+    
+            for (i, key) in keys.iter().skip(2).enumerate() {
+                let num = i as u8;
+                let (index, value) = map.get_or_insert_with(storage, key, || num).unwrap();
+    
+                assert_eq!(index, Some((i + take) as u64));
+                assert_eq!(value, num);
+    
+                let (index, value) = map.get_or_insert_with(storage, key, || num + 1).unwrap();
+                assert_eq!(index, None);
+                assert_eq!(value, num);
+            }
+    
+            let (index, value) = map.get_or_insert_default(storage, &keys[1]).unwrap();
+            assert_eq!(index, None);
+            assert_eq!(value, 1);
+    
+            let (index, value) = map.get_or_insert_default(storage, &"five".to_string()).unwrap();
+            assert_eq!(index.unwrap(), keys.len() as u64);
+            assert_eq!(value, 0);
+        };
+    }
+
     #[test]
     fn insert_only_map_values_iter() {
         test_iter!(InsertOnlyMap);
@@ -541,6 +698,16 @@ mod tests {
     #[test]
     fn map_values_iter() {
         test_iter!(Map);
+    }
+
+    #[test]
+    fn insert_only_map_get_or() {
+        test_get_or!(InsertOnlyMap);
+    }
+
+    #[test]
+    fn map_get_or() {
+        test_get_or!(Map);
     }
 
     #[test]
@@ -557,7 +724,7 @@ mod tests {
             let num = i as u8 + 1;
             assert_eq!(map.insert(storage, key, &num).unwrap(), Some(i as u64));
 
-            let raw_key = map.map_key(&keys[i]);
+            let raw_key = map.map_key(&TypedKey(&keys[i]));
             assert_eq!(map.insert_impl(storage, &raw_key, &num).unwrap(), None);
 
             assert_eq!(
