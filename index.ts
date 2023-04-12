@@ -18,7 +18,6 @@
 
 **/
 
-export { default as Fadroma } from './Fadroma'
 export { default as Console } from './FadromaConsole'
 export { default as Config } from './FadromaConfig'
 export { default as Commands } from './FadromaCommands'

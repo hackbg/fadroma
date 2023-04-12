@@ -1,11 +1,11 @@
-import Fadroma from './Fadroma'
+import { Deployment } from '@fadroma/agent'
 import { getBuilder, getProject, projectWizard } from '@fadroma/ops'
 import { CommandContext } from '@hackbg/cmds'
 
 export default class FadromaCommands extends CommandContext {
-  constructor (
-    readonly fadroma: Fadroma = new Fadroma()
-  ) {
+
+  constructor (readonly deployment?: Deployment) {
+
     super()
 
     this.addCommand('run', 'execute a script',
@@ -42,4 +42,5 @@ export default class FadromaCommands extends CommandContext {
         //.addCommands('deployment', 'manage contracts', new DeploymentCommands())
         //.addCommands('token', 'manage token contracts', new TokensCommands())
   }
+
 }
