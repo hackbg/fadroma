@@ -16,7 +16,7 @@ const KEY_NS: StaticKey = StaticKey(b"key");
 
 /// A key-value storage type that can iterate over all values stored
 /// while allowing to arbitrarily insert, get and remove them.
-/// If you *don't* need the ability remove values use [`InsertOnlyMap`] instead
+/// If you *don't* need the ability to remove values use [`InsertOnlyMap`] instead
 /// as it has no overhead. [`Map`] internally stores the key of the item together
 /// with the value in order to enable the remove operation.
 pub struct Map<
@@ -42,6 +42,7 @@ pub struct InsertOnlyMap<
     ns_data: PhantomData<N>
 }
 
+/// Iterator over the values of [`Map`].
 pub struct MapValueIter<'storage, T: FadromaDeserialize> {
     inner: Iter<'storage, ItemEntry>,
     data: PhantomData<T>
@@ -101,39 +102,103 @@ impl<
         Ok(Some(item))
     }
 
+    /// Returns a tuple where the first member indicates whether the given value was inserted.
+    /// The second member is the value itself, either loaded from storage or the `value` parameter.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::Map, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdResult,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// # fn main() -> StdResult<()> {
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = Map::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// let (is_new, value) = map.get_or_insert(storage, &key, 5)?;
+    /// 
+    /// // Value wasn't previously present in the map.
+    /// assert_eq!(is_new, true);
+    /// assert_eq!(value, 5);
+    /// 
+    /// let (is_new, value) = map.get_or_insert(storage, &key, 10)?;
+    /// 
+    /// // Value is now present and so the 10 is not inserted.
+    /// assert_eq!(is_new, false);
+    /// assert_eq!(value, 5);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_or_insert(
         &mut self,
         storage: &mut dyn Storage,
         key: impl Into<K>,
         value: V
-    ) -> StdResult<(Option<u64>, V)> {
+    ) -> StdResult<(bool, V)> {
         let key = key.into();
         if let Some(result) = self.get_impl(storage, &key)? {
-            return Ok((None, result));
+            return Ok((false, result));
         }
 
         let item = self.encode_item(&key, &value)?;
-        let index = self.inner.push_item(storage, &item.key.0, &item)?;
+        self.inner.push_item(storage, &item.key.0, &item)?;
 
-        Ok((Some(index), value))
+        Ok((true, value))
     }
 
+    /// Returns a tuple where the first member indicates whether the given value was inserted.
+    /// The second member is the value itself, either loaded from storage or computed from the provided closure.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::Map, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdResult,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// # fn main() -> StdResult<()> {
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = Map::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// let (is_new, value) = map.get_or_insert_with(storage, &key, || 5)?;
+    /// 
+    /// // Value wasn't previously present in the map.
+    /// assert_eq!(is_new, true);
+    /// assert_eq!(value, 5);
+    /// 
+    /// let (is_new, value) = map.get_or_insert_with(storage, &key, || 10)?;
+    /// 
+    /// // Value is now present and so the 10 is not inserted.
+    /// assert_eq!(is_new, false);
+    /// assert_eq!(value, 5);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_or_insert_with(
         &mut self,
         storage: &mut dyn Storage,
         key: impl Into<K>,
         func: impl FnOnce() -> V
-    ) -> StdResult<(Option<u64>, V)> {
+    ) -> StdResult<(bool, V)> {
         let key = key.into();
         if let Some(result) = self.get_impl(storage, &key)? {
-            return Ok((None, result));
+            return Ok((false, result));
         }
 
         let value = func();
         let item = self.encode_item(&key, &value)?;
-        let index = self.inner.push_item(storage, &item.key.0, &item)?;
+        self.inner.push_item(storage, &item.key.0, &item)?;
 
-        Ok((Some(index), value))
+        Ok((true, value))
     }
 
     #[inline]
@@ -215,6 +280,55 @@ impl<
 
 impl<
     K: Key,
+    V: FadromaSerialize + FadromaDeserialize + Default,
+    N: Namespace
+> Map<K, V, N> {
+    /// Returns a tuple where the first member indicates whether the given value was inserted.
+    /// The second member is the value itself, either loaded from storage or the default value for the type.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::Map, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdResult,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// # fn main() -> StdResult<()> {
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = Map::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// 
+    /// let value = map.get(storage, &key)?;
+    /// // No value stored at this key.
+    /// assert!(value.is_none());
+    /// 
+    /// let (is_new, value) = map.get_or_insert_default(storage, &key)?;
+    /// 
+    /// // We've now inserted the default value for u8 which is 0.
+    /// assert_eq!(is_new, true);
+    /// assert_eq!(value, 0);
+    /// 
+    /// let value = map.get(storage, &key)?;
+    /// assert_eq!(value, Some(0));
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    pub fn get_or_insert_default(
+        &mut self,
+        storage: &mut dyn Storage,
+        key: impl Into<K>
+    ) -> StdResult<(bool, V)> {
+        self.get_or_insert_with(storage, key, || V::default())
+    }
+}
+
+impl<
+    K: Key,
     V: FadromaSerialize + FadromaDeserialize,
     N: Namespace
 > InsertOnlyMap<K, V, N> {
@@ -251,25 +365,28 @@ impl<
     /// ```
     /// # use fadroma::storage::{map::InsertOnlyMap, TypedKey};
     /// # use fadroma::cosmwasm_std::{
-    /// #     StdError,
+    /// #     StdResult,
     /// #     testing::mock_dependencies
     /// # };
-    /// 
+    /// # fn main() -> StdResult<()> {
     /// # let mut deps = mock_dependencies();
     /// # let storage = deps.as_mut().storage;
     /// fadroma::namespace!(NumbersNs, b"numbers");
     /// let mut map = InsertOnlyMap::<TypedKey<String>, u8, NumbersNs>::new();
     /// 
     /// let key = "one".to_string();
-    /// let index = map.insert(storage, &key, &1).unwrap();
+    /// let index = map.insert(storage, &key, &1)?;
     /// 
     /// // We inserted a new value, so the index is returned.
     /// assert_eq!(index, Some(0));
     /// 
-    /// let index = map.insert(storage, &key, &2).unwrap();
+    /// let index = map.insert(storage, &key, &2)?;
     /// 
     /// // We are updating an existing value, so no index is returned.
     /// assert_eq!(index, None);
+    /// # Ok(())
+    /// # }
+    /// ```
     #[inline]
     pub fn insert(
         &mut self,
@@ -287,6 +404,38 @@ impl<
         self.get_impl(storage, &key.into())
     }
 
+    /// Returns a tuple where the first member is the index of the value if it was inserted.
+    /// The second member is the value itself, either loaded from storage or the `value` parameter.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::InsertOnlyMap, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdResult,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// # fn main() -> StdResult<()> {
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = InsertOnlyMap::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// let (index, value) = map.get_or_insert(storage, &key, 5)?;
+    /// 
+    /// // Value wasn't previously present in the map.
+    /// assert_eq!(index, Some(0));
+    /// assert_eq!(value, 5);
+    /// 
+    /// let (index, value) = map.get_or_insert(storage, &key, 10)?;
+    /// 
+    /// // Value is now present and so the 10 is not inserted.
+    /// assert_eq!(index, None);
+    /// assert_eq!(value, 5);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_or_insert(
         &mut self,
         storage: &mut dyn Storage,
@@ -304,6 +453,38 @@ impl<
         Ok((Some(index), value))
     }
 
+    /// Returns a tuple where the first member is the index of the value if it was inserted.
+    /// The second member is the value itself, either loaded from storage or computed from the provided closure.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::InsertOnlyMap, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdResult,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// # fn main() -> StdResult<()> {
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = InsertOnlyMap::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// let (index, value) = map.get_or_insert_with(storage, &key, || 5)?;
+    /// 
+    /// // Value wasn't previously present in the map.
+    /// assert_eq!(index, Some(0));
+    /// assert_eq!(value, 5);
+    /// 
+    /// let (index, value) = map.get_or_insert_with(storage, &key, || 10)?;
+    /// 
+    /// // Value is now present and so the 10 is not inserted.
+    /// assert_eq!(index, None);
+    /// assert_eq!(value, 5);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn get_or_insert_with(
         &mut self,
         storage: &mut dyn Storage,
@@ -325,32 +506,34 @@ impl<
     /// Gets the value using the index at which the value was stored.
     /// Internally the key maps to the index which itself maps to the value.
     /// So if you have the index, you can skip loading the key and try getting
-    /// the value directly. The index is returned by the [`InsertOnlyMap::insert`] method.
+    /// the value directly. The index is returned by all methods that can insert values.
     /// 
     /// # Examples
     /// 
     /// ```
     /// # use fadroma::storage::{map::InsertOnlyMap, TypedKey};
     /// # use fadroma::cosmwasm_std::{
-    /// #     StdError,
+    /// #     StdResult,
     /// #     testing::mock_dependencies
     /// # };
-    /// 
+    /// # fn main() -> StdResult<()> {
     /// # let mut deps = mock_dependencies();
     /// # let storage = deps.as_mut().storage;
     /// fadroma::namespace!(NumbersNs, b"numbers");
     /// let mut map = InsertOnlyMap::<TypedKey<String>, u8, NumbersNs>::new();
     /// 
     /// let key = "one".to_string();
-    /// let index = map.insert(storage, &key, &1).unwrap();
+    /// let index = map.insert(storage, &key, &1)?;
     /// assert_eq!(index, Some(0));
     /// 
-    /// let value = map.get_by_index(storage, index.unwrap()).unwrap();
+    /// let value = map.get_by_index(storage, index.unwrap())?;
     /// assert_eq!(value, Some(1));
     /// 
     /// // Try to get a non-existent index.
-    /// let value = map.get_by_index(storage, 1).unwrap();
+    /// let value = map.get_by_index(storage, 1)?;
     /// assert_eq!(value, None);
+    /// # Ok(())
+    /// # }
     /// ```
     #[inline]
     pub fn get_by_index(&self, storage: &dyn Storage, index: u64) -> StdResult<Option<V>> {
@@ -390,6 +573,7 @@ impl<
         }
     }
 
+    #[inline]
     fn insert_impl(
         &mut self,
         storage: &mut dyn Storage,
@@ -451,6 +635,55 @@ impl<
         key.write_segments(&mut map_key);
 
         map_key
+    }
+}
+
+impl<
+    K: Key,
+    V: FadromaSerialize + FadromaDeserialize + Default,
+    N: Namespace
+> InsertOnlyMap<K, V, N> {
+    /// Returns a tuple where the first member is the index of the value if it was inserted.
+    /// The second member is the value itself, either loaded from storage or the default value for the type.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// # use fadroma::storage::{map::InsertOnlyMap, TypedKey};
+    /// # use fadroma::cosmwasm_std::{
+    /// #     StdResult,
+    /// #     testing::mock_dependencies
+    /// # };
+    /// # fn main() -> StdResult<()> {
+    /// # let mut deps = mock_dependencies();
+    /// # let storage = deps.as_mut().storage;
+    /// fadroma::namespace!(NumbersNs, b"numbers");
+    /// let mut map = InsertOnlyMap::<TypedKey<String>, u8, NumbersNs>::new();
+    /// 
+    /// let key = "one".to_string();
+    /// 
+    /// let value = map.get(storage, &key)?;
+    /// // No value stored at this key.
+    /// assert!(value.is_none());
+    /// 
+    /// let (index, value) = map.get_or_insert_default(storage, &key)?;
+    /// 
+    /// // We've now inserted the default value for u8 which is 0.
+    /// assert_eq!(index, Some(0));
+    /// assert_eq!(value, 0);
+    /// 
+    /// let value = map.get(storage, &key)?;
+    /// assert_eq!(value, Some(0));
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[inline]
+    pub fn get_or_insert_default(
+        &mut self,
+        storage: &mut dyn Storage,
+        key: impl Into<K>
+    ) -> StdResult<(Option<u64>, V)> {
+        self.get_or_insert_with(storage, key, || V::default())
     }
 }
 
@@ -520,15 +753,6 @@ macro_rules! impl_get_extensions {
                 let result: Option<V> = self.get(storage, key)?;
 
                 Ok(result.unwrap_or_default())
-            }
-
-            #[inline]
-            pub fn get_or_insert_default(
-                &mut self,
-                storage: &mut dyn Storage,
-                key: impl Into<K>
-            ) -> StdResult<(Option<u64>, V)> {
-                self.get_or_insert_with(storage, key, || V::default())
             }
         }
     }
@@ -645,51 +869,6 @@ mod tests {
         };
     }
 
-    macro_rules! test_get_or {
-        ($map:ident) => {
-            let storage = &mut mock_dependencies().storage as &mut dyn Storage;
-            let mut map = $map::<TypedKey<String>, u8, TestNs>::new();
-    
-            let keys = ["one", "two", "three", "four"]
-                .into_iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>();
-    
-            let take = 2;
-            for (i, key) in keys.iter().enumerate().take(take) {
-                let num = i as u8;
-                let (index, value) = map.get_or_insert(storage, key, num).unwrap();
-    
-                assert_eq!(index, Some(i as u64));
-                assert_eq!(value, num);
-    
-                let (index, value) = map.get_or_insert(storage, key, num + 1).unwrap();
-                assert_eq!(index, None);
-                assert_eq!(value, num);
-            }
-    
-            for (i, key) in keys.iter().skip(2).enumerate() {
-                let num = i as u8;
-                let (index, value) = map.get_or_insert_with(storage, key, || num).unwrap();
-    
-                assert_eq!(index, Some((i + take) as u64));
-                assert_eq!(value, num);
-    
-                let (index, value) = map.get_or_insert_with(storage, key, || num + 1).unwrap();
-                assert_eq!(index, None);
-                assert_eq!(value, num);
-            }
-    
-            let (index, value) = map.get_or_insert_default(storage, &keys[1]).unwrap();
-            assert_eq!(index, None);
-            assert_eq!(value, 1);
-    
-            let (index, value) = map.get_or_insert_default(storage, &"five".to_string()).unwrap();
-            assert_eq!(index.unwrap(), keys.len() as u64);
-            assert_eq!(value, 0);
-        };
-    }
-
     #[test]
     fn insert_only_map_values_iter() {
         test_iter!(InsertOnlyMap);
@@ -702,12 +881,90 @@ mod tests {
 
     #[test]
     fn insert_only_map_get_or() {
-        test_get_or!(InsertOnlyMap);
+        let storage = &mut mock_dependencies().storage as &mut dyn Storage;
+        let mut map = InsertOnlyMap::<TypedKey<String>, u8, TestNs>::new();
+
+        let keys = ["one", "two", "three", "four"]
+            .into_iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+
+        let take = 2;
+        for (i, key) in keys.iter().enumerate().take(take) {
+            let num = i as u8;
+            let (index, value) = map.get_or_insert(storage, key, num).unwrap();
+
+            assert_eq!(index, Some(i as u64));
+            assert_eq!(value, num);
+
+            let (index, value) = map.get_or_insert(storage, key, num + 1).unwrap();
+            assert_eq!(index, None);
+            assert_eq!(value, num);
+        }
+
+        for (i, key) in keys.iter().skip(2).enumerate() {
+            let num = i as u8;
+            let (index, value) = map.get_or_insert_with(storage, key, || num).unwrap();
+
+            assert_eq!(index, Some((i + take) as u64));
+            assert_eq!(value, num);
+
+            let (index, value) = map.get_or_insert_with(storage, key, || num + 1).unwrap();
+            assert_eq!(index, None);
+            assert_eq!(value, num);
+        }
+
+        let (index, value) = map.get_or_insert_default(storage, &keys[1]).unwrap();
+        assert_eq!(index, None);
+        assert_eq!(value, 1);
+
+        let (index, value) = map.get_or_insert_default(storage, &"five".to_string()).unwrap();
+        assert_eq!(index.unwrap(), keys.len() as u64);
+        assert_eq!(value, 0);
     }
 
     #[test]
     fn map_get_or() {
-        test_get_or!(Map);
+        let storage = &mut mock_dependencies().storage as &mut dyn Storage;
+        let mut map = Map::<TypedKey<String>, u8, TestNs>::new();
+
+        let keys = ["one", "two", "three", "four"]
+            .into_iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+
+        let take = 2;
+        for (i, key) in keys.iter().enumerate().take(take) {
+            let num = i as u8;
+            let (is_new, value) = map.get_or_insert(storage, key, num).unwrap();
+
+            assert_eq!(is_new, true);
+            assert_eq!(value, num);
+
+            let (is_new, value) = map.get_or_insert(storage, key, num + 1).unwrap();
+            assert_eq!(is_new, false);
+            assert_eq!(value, num);
+        }
+
+        for (i, key) in keys.iter().skip(2).enumerate() {
+            let num = i as u8;
+            let (is_new, value) = map.get_or_insert_with(storage, key, || num).unwrap();
+
+            assert_eq!(is_new, true);
+            assert_eq!(value, num);
+
+            let (is_new, value) = map.get_or_insert_with(storage, key, || num + 1).unwrap();
+            assert_eq!(is_new, false);
+            assert_eq!(value, num);
+        }
+
+        let (is_new, value) = map.get_or_insert_default(storage, &keys[1]).unwrap();
+        assert_eq!(is_new, false);
+        assert_eq!(value, 1);
+
+        let (is_new, value) = map.get_or_insert_default(storage, &"five".to_string()).unwrap();
+        assert_eq!(is_new, true);
+        assert_eq!(value, 0);
     }
 
     #[test]
