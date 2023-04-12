@@ -29,7 +29,7 @@ pub struct Map<
 }
 
 /// A key-value storage type that can iterate over all values stored
-/// while allowing to arbitrarily insert get and remove them. This type
+/// while allowing to arbitrarily insert and get them. This type
 /// is more efficient than [`Map`] but it does not allow removing
 /// values. If you need to be able to remove values use [`Map`] instead.
 pub struct InsertOnlyMap<
