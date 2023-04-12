@@ -27,6 +27,12 @@ export class MyDeployment extends Deployment {
     initMsg: {}
   })
 
+  bar = this.contract({
+    name: 'bar',
+    crate: 'fadroma-example-kv',
+    initMsg: {}
+  })
+
 }
 ```
 
@@ -79,6 +85,7 @@ deploy it, and all of its dependencies (as specified by the `initMsg` method)".
 const foo1 = await deployment.foo.deployed
 const bar1 = await deployment.bar.deployed
 
+import { Client } from '@fadroma/agent'
 assert(foo1 instanceof Client)
 assert(bar1 instanceof Client)
 ```
@@ -115,8 +122,8 @@ class MyDeployment2 extends MyDeployment {
 
 const deployment2 = await getDeployment(MyDeployment2).deploy()
 
-assert(deployment2.foo.expect() instanceof Contract)
-assert(deployment2.bar.expect() instanceof Contract)
+assert(deployment2.foo.expect() instanceof Client)
+assert(deployment2.bar.expect() instanceof Client)
 ```
 
 #### Deploying multiple instances of contracts
@@ -142,6 +149,8 @@ class MyDeployment3 extends MyDeployment {
 }
 
 const deployment3 = await getDeployment(MyDeployment3).deploy()
+
+import { Contract, Template } from '@fadroma/agent'
 
 assert(deployment3.baz              instanceof Template)
 
@@ -176,3 +185,7 @@ assert(bar2 instanceof Client)
 
 If the address of the request contract is not available,
 this will throw an error.
+
+```typescript
+import assert from 'node:assert'
+```

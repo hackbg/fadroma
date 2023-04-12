@@ -33,3 +33,9 @@ mod contract {
         }
     }
 }
+
+fadroma::entrypoint! {
+    init:    instantiate,
+    execute: execute,
+    query:   query
+}
