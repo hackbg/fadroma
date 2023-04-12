@@ -100,7 +100,13 @@
   },
   "fadroma": {
     "contracts": {
-      "kv": "./examples/kv"
+      "example-admin":      "./examples/admin",
+      "example-derive":     "./examples/derive-contract-components",
+      "example-ensemble":   "./examples/ensemble",
+      "example-external":   "./examples/external",
+      "example-interface":  "./examples/derive-contract-interface",
+      "example-killswitch": "./examples/killswitch",
+      "example-kv":         "./examples/kv"
     }
   }
 }

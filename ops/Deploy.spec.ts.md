@@ -8,22 +8,41 @@ $ fadroma deploy path-to-script.ts
 $ fadroma redeploy
 ```
 
-## Deploy API
+## Deploy API basics
 
-### Defining a deployment
+### Defining a `Deployment`
 
-To define your deployment, extend the `Deployment` class:
+The `Deployment` class represents a set of interrelated contracts.
+To define your deployment, extend the `Deployment` class, and specify
+what contracts to deploy:
 
 ```typescript
 import { Deployment } from '@fadroma/agent'
 
 export class MyDeployment extends Deployment {
-  foo = this.contract({ name: 'foo', crate: 'fadroma-example-kv', initMsg: {} })
-  bar = this.contract({ name: 'bar', crate: 'fadroma-example-kv', initMsg: {} })
+
+  foo = this.contract({
+    name: 'foo',
+    crate: 'fadroma-example-kv',
+    initMsg: {}
+  })
+
 }
 ```
 
-### Deploying a contract
+#### Contract labels
+
+Since contract labels are required to be unique, Fadroma generates them
+from the deployment name and the contract name. The deployment name
+defaults to the current timestamp. The contract name you must specify explicitly.
+
+#### Lazy initMsg
+
+The `initMsg` property can be a function returning the actual message.
+This is evaluated during instantiation, and can be used to generate init messages on the fly,
+such as when passing the address of one contract to another.
+
+### Deploying
 
 To prepare a deployment for deploying, use `getDeployment`.
 This will provide a populated instance of your deployment class.
@@ -50,9 +69,9 @@ that points to it, so you can call the contract's methods.
 
 There are two ways of doing this, awaiting and expecting.
 
-#### Awaiting deployment
+#### Deploying individual contracts
 
-By `await`ing a `Contract`'s `deployed`, property, you say:
+By `await`ing a `Contract`'s `deployed` property, you say:
 "give me a handle to this contract; if it's not deployed,
 deploy it, and all of its dependencies (as specified by the `initMsg` method)".
 
@@ -64,21 +83,11 @@ assert(foo1 instanceof Client)
 assert(bar1 instanceof Client)
 ```
 
-#### Expecting deployment to have been completed
+Since this does not call the deployment's `deploy` method,
+it *only* deploys the requested contract and its dependencies
+but not any other contracts defined in the deployment.
 
-Using the `expect` method, you state: "I expect that
-at the current point in time, this contract is deployed;
-now, give me a handle to it".
-
-If the contract is not deployed, this will throw an error.
-
-```typescript
-const foo2 = deployment.foo.expect()
-const bar2 = deployment.bar.expect()
-
-assert(foo2 instanceof Client)
-assert(bar2 instanceof Client)
-```
+#### Custom deploy and operations methods
 
 The default `Deployment#deploy` method simply instantiates all
 contracts defined using the `Deployment#contract` method. To
@@ -88,19 +97,29 @@ Let's build on top of the first example and implement
 a custom `deploy` method:
 
 ```typescript
-const deployment2 = await getDeployment(class MyDeployment2 extends MyDeployment {
+class MyDeployment2 extends MyDeployment {
+
   async deploy () {
     await this.foo.deployed
     await this.bar.deployed
     return this
   }
-}).deploy()
+
+  async update (previous: Deployment) {
+    /** Here you may implement a function that performs an upgrade,
+      * in the form of deploying new versions of contracts,
+      * and reusing others from the previous deployment. */
+  }
+
+}
+
+const deployment2 = await getDeployment(MyDeployment2).deploy()
 
 assert(deployment2.foo.expect() instanceof Contract)
 assert(deployment2.bar.expect() instanceof Contract)
 ```
 
-### Deploying multiple instances of a contract
+#### Deploying multiple instances of contracts
 
 The `Deployment#template` method allows you to add a `Template`
 in the `Deployment`. A `Template` can be built and uploaded,
@@ -108,7 +127,7 @@ and then create multiple `Contract` instances that use to the same code,
 via the `Template#instance` method.
 
 ```typescript
-const deployment3 = await getDeployment(class MyDeployment3 extends MyDeployment {
+class MyDeployment3 extends MyDeployment {
 
   baz = this.template({ crate: 'foo' })
 
@@ -120,7 +139,9 @@ const deployment3 = await getDeployment(class MyDeployment3 extends MyDeployment
     { name: 'baz4' }
   ])
 
-}).deploy()
+}
+
+const deployment3 = await getDeployment(MyDeployment3).deploy()
 
 assert(deployment3.baz              instanceof Template)
 
@@ -132,4 +153,26 @@ assert(deployment3.bazN[0]          instanceof Contract)
 assert(deployment3.bazN[0].expect() instanceof Client)
 ```
 
-## Implementing custom operations commands
+### Connecting
+
+Having been deployed once, contracts may be used continously.
+The `Deployment`'s `connect` method loads stored data about
+the contracts in the deployment, populating the contained
+`Contract` instances.
+
+#### Expecting contracts to be present
+
+Using the `expect` method, you state: "I expect that
+at the current point in time, this contract is deployed;
+now, give me a handle to it".
+
+```typescript
+const foo2 = deployment.foo.expect()
+const bar2 = deployment.bar.expect()
+
+assert(foo2 instanceof Client)
+assert(bar2 instanceof Client)
+```
+
+If the address of the request contract is not available,
+this will throw an error.

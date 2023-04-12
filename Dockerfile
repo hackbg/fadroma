@@ -13,7 +13,7 @@ RUN rustup default 1.67 && \
 
 # Install Node and PNPM
 RUN apt update && \
-  apt install -y nodejs npm binaryen git curl wget clang cmake wabt jq && \
+  apt install -y nodejs npm binaryen git curl wget clang cmake wabt jq tree && \
   ls -al /var/cache/apt/archives && \
   apt-get clean
 RUN npm i -g n && n i 18

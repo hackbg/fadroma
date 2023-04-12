@@ -1,6 +1,7 @@
 use fadroma::{
     admin::{self, Admin},
     cosmwasm_std::{
+        self,
         Deps, DepsMut, Env, MessageInfo, StdResult,
         Response, Binary, to_binary, entry_point
     },
