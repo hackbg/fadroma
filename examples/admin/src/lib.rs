@@ -1,16 +1,22 @@
 use fadroma::{
     admin::{self, Admin},
     cosmwasm_std::{
-        self,
         Deps, DepsMut, Env, MessageInfo, StdResult,
-        Response, Binary, to_binary, entry_point
+        Response, Binary, to_binary,
     },
     dsl::*,
-    schemars::{self, JsonSchema}
+    schemars::{self, JsonSchema},
+    entrypoint,
 };
 use counter::interface::Counter;
 
 use serde::{Serialize, Deserialize};
+
+entrypoint! {
+    init: instantiate,
+    execute: execute,
+    query: query
+}
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct InstantiateMsg {
@@ -32,7 +38,6 @@ pub enum QueryMsg {
     Admin(admin::QueryMsg)
 }
 
-#[entry_point]
 pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
@@ -44,7 +49,6 @@ pub fn instantiate(
     counter_admin::Contract::new(deps, env, info, msg.counter.initial_value)
 }
 
-#[entry_point]
 pub fn execute(
     deps: DepsMut,
     env: Env,
@@ -74,7 +78,6 @@ pub fn execute(
     }
 }
 
-#[entry_point]
 pub fn query(
     deps: Deps,
     env: Env,

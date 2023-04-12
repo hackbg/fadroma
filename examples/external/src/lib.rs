@@ -1,19 +1,21 @@
-fadroma::contract! {
-    #[init(entry)]
-    pub fn new () -> Result<Response, StdError> {
-        Ok(Response::default())
-    }
-
-    #[execute]
-    pub fn execute_nothing () -> Result<Response, StdError> {
-        Ok(Response::default())
-    }
-
-    #[query]
-    pub fn query_nothing () -> Result<(), StdError> {
-        Ok(())
-    }
-}
+/// 
+/// fadroma::contract! {
+///     #[init(entry)]
+///     pub fn new () -> Result<Response, StdError> {
+///         Ok(Response::default())
+///     }
+/// 
+///     #[execute]
+///     pub fn execute_nothing () -> Result<Response, StdError> {
+///         Ok(Response::default())
+///     }
+/// 
+///     #[query]
+///     pub fn query_nothing () -> Result<(), StdError> {
+///         Ok(())
+///     }
+/// }
+///
 
 use cosmwasm_std::*;
 
