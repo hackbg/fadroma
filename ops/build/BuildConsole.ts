@@ -1,14 +1,13 @@
-import { HEAD } from '@fadroma/agent'
+import { HEAD, Console } from '@fadroma/agent'
 import type { Template, Built } from '@fadroma/agent'
 
-import { CommandsConsole } from '@hackbg/cmds'
 import $ from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { colors, bold } from '@hackbg/logs'
 
-export default class BuildConsole extends CommandsConsole {
+export default class BuildConsole extends Console {
 
-  label = '@fadroma/ops'
+  label = 'Build'
 
   buildingFromCargoToml (file: Path|string) {
     this.log('Building from', bold($(file).shortPath))

@@ -1,5 +1,5 @@
-import { ConnectConsole } from '@fadroma/connect'
+import { Console } from '@fadroma/agent'
 
-export default class UploadConsole extends ConnectConsole {
-  label = '@fadroma/ops'
+export default class UploadConsole extends Console {
+  label = 'Upload'
 }

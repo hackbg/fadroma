@@ -122,10 +122,10 @@ export class Contract<C extends Client> extends Template<C> {
 
   constructor (options: Partial<Contract<C>> = {}) {
     super({})
-    this.log = new Console(new.target.name)
     const self = this
     if (options.name) setName(options.name)
     if (this.context) setPrefix(this.context.name)
+    this.log = new Console(`Contract: ${this.name ?? new.target.name}`)
     this.agent      = this.context?.agent      ?? this.agent
     this.builder    = this.context?.builder    ?? this.builder
     this.uploader   = this.context?.uploader   ?? this.uploader
@@ -204,7 +204,7 @@ export class Contract<C extends Client> extends Template<C> {
     * @throws tf the contract has no known address. */
   expect (): C {
     if (!this.address) {
-      if (this.name) {
+      if (!this.name) {
         throw new Error(`Expected unnamed contract to be already deployed.`)
       } else {
         throw new Error(`Expected contract to be already deployed: ${this.name}`)

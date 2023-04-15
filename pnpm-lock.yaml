@@ -582,7 +582,6 @@ importers:
     specifiers:
       '@fadroma/agent': workspace:*
       '@fadroma/connect': workspace:2.1.5
-      '@fadroma/ops': workspace:*
       '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1.1.4
       '@hackbg/conf': workspace:^1
@@ -603,7 +602,6 @@ importers:
     dependencies:
       '@fadroma/agent': link:../agent
       '@fadroma/connect': link:../connect
-      '@fadroma/ops': 'link:'
       '@hackbg/4mat': link:../ensuite/toolbox/4mat
       '@hackbg/cmds': link:../ensuite/toolbox/cmds
       '@hackbg/conf': link:../ensuite/toolbox/conf

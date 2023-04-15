@@ -173,11 +173,10 @@ export default class Template<C extends Client> {
   }
 
   /** @returns a Contract representing a specific instance of this Template. */
-  instance (overrides?: Partial<Contract<C>>): Contract<C> {
-    const options: Partial<Contract<C>> = {
-      ...this as unknown as Partial<Contract<C>>,
-      ...overrides
-    }
+  instance (options?: Partial<Contract<C>>): Contract<C> {
+    // Use values from Template as defaults for Contract
+    options = { ...this as unknown as Partial<Contract<C>>, ...options }
+    // Create the Contract
     const instance: Contract<C> = this.context
       ? this.context.contract(options)
       : new Contract(options)
@@ -190,11 +189,12 @@ export default class Template<C extends Client> {
     type Self = typeof this
     const size = Object.keys(contracts).length
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
+    const tasks = map(contracts, contract=>this.instance(contract))
     return this.task(name, async function deployManyContracts (
       this: Self
     ): Promise<Many<Task<Contract<C>, C>>> {
-      return map(contracts, (options: Partial<Contract<C>>): Task<Contract<C>, C> => {
-        return this.instance(options).deployed
+      return map(tasks, (task: Partial<Contract<C>>): Task<Contract<C>, C> => {
+        return task.deployed!
       })
     })
   }

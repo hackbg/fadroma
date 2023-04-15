@@ -22,10 +22,8 @@
 
     "@fadroma/agent":   "workspace:*",
     "@fadroma/connect": "workspace:2.1.5",
-    "@fadroma/ops":     "workspace:*",
 
     "@hackbg/4mat": "workspace:^1",
-    "@hackbg/cmds": "workspace:^1.1.4",
     "@hackbg/cmds": "workspace:^1.1.4",
     "@hackbg/conf": "workspace:^1",
     "@hackbg/dock": "workspace:1.2",

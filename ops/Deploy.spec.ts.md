@@ -136,14 +136,14 @@ via the `Template#instance` method.
 ```typescript
 class MyDeployment3 extends MyDeployment {
 
-  baz = this.template({ crate: 'foo' })
+  baz = this.template({ crate: 'fadroma-example-kv' })
 
-  baz1 = this.baz.instance({ name: 'baz1' })
+  baz1 = this.baz.instance({ name: 'baz1', initMsg: {} })
 
   bazN = this.baz.instances([
-    { name: 'baz2' },
-    { name: 'baz3' },
-    { name: 'baz4' }
+    { name: 'baz2', initMsg: {} },
+    { name: 'baz3', initMsg: {} },
+    { name: 'baz4', initMsg: {} }
   ])
 
 }
@@ -152,14 +152,19 @@ const deployment3 = await getDeployment(MyDeployment3).deploy()
 
 import { Contract, Template } from '@fadroma/agent'
 
-assert(deployment3.baz              instanceof Template)
+assert(deployment3.foo.expect() instanceof Client)
+assert(deployment3.bar.expect() instanceof Client)
 
-assert(deployment3.baz1             instanceof Contract)
-assert(deployment3.baz1.expect()    instanceof Client)
+assert(deployment3.baz instanceof Template)
 
-assert(deployment3.bazN             instanceof Array)
-assert(deployment3.bazN[0]          instanceof Contract)
-assert(deployment3.bazN[0].expect() instanceof Client)
+assert(deployment3.baz1 instanceof Contract)
+assert(deployment3.baz1.expect() instanceof Client)
+
+// FIXME: phat awaits
+assert((await deployment3.bazN) instanceof Array)
+assert((await (await deployment3.bazN)[0]) instanceof Client)
+assert((await (await deployment3.bazN)[1]) instanceof Client)
+assert((await (await deployment3.bazN)[2]) instanceof Client)
 ```
 
 ### Connecting

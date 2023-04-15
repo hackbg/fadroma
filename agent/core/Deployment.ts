@@ -27,7 +27,7 @@ export class Deployment {
     const name = options.name ?? timestamp()
     //super(name)
     this.name = name
-    this.log.label = this.name ?? this.log.label
+    this.log.label = `Deployment: ${this.name ?? this.log.label}`
     this.state     ??= options.state ?? {}
     this.agent     ??= options.agent
     this.chain     ??= options.chain ?? options.agent?.chain
@@ -127,7 +127,9 @@ export class Deployment {
   config?: { build?: { project?: any } } & any // FIXME
 
   async deploy () {
-    await Promise.all(Object.values(this.state))
+    this.log.info('Deploying')
+    // FIXME PERF: bundle concurrent inits into a single transaction
+    await Promise.all(Object.values(this.state).map(contract=>contract.deployed))
     return this
   }
 
