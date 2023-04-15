@@ -21,8 +21,8 @@
     "test:agent": "time ensuite agent/Core.spec.ts.md",
     "test:ops":   "time ensuite ops/Ops.spec.ts.md",
 
-    "cov":   "time ensuite-cov -r text -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
-    "lcov":  "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- Fadroma.spec.ts.md",
+    "cov":   "time ensuite-cov -r text -n agent -n connect -n ops -n platforms -- Fadroma.spec.ts.md",
+    "lcov":  "time ensuite-cov -r lcov -n agent -n connect -n ops -n platforms -- Fadroma.spec.ts.md",
     "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:test:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 
