@@ -47,11 +47,11 @@ A `Template` is an undeployed contract. You can upload
 it once, and instantiate any number of `Contract`s from it.
 
 ```typescript
-const contract_0 = await builder.build('contract_0')
+const contract_0 = await builder.build('fadroma-example-kv')
 
 const [contract_1, contract_2] = await builder.buildMany([
-  'contract_1',
-  'contract_2'
+  'fadroma-example-admin',
+  'fadroma-example-killswitch'
 ])
 
 import { Template } from '@fadroma/agent'
