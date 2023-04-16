@@ -1,5 +1,5 @@
 import type { Contract, AnyContract, Agent, Client, Address, Name } from '../index'
-import { Error, Console, validated } from '../util/index'
+import { Error, Console, validated } from '../util'
 import { assertAddress } from './Tx'
 
 /** A contract name with optional prefix and suffix, implementing namespacing

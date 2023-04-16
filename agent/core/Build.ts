@@ -1,5 +1,5 @@
 import type { Deployment, Class, CodeHash, Buildable, Built, Task } from '../index'
-import { Error, Console, defineTask, pluralize } from '../util/index'
+import { Error, Console, pluralize } from '../util'
 import { CommandContext } from '@hackbg/cmds'
 
 /** The default Git ref when not specified. */

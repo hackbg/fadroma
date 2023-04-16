@@ -16,7 +16,7 @@
   "exclude": [
     "**/*.spec.ts",
     "**/*.dist.*",
-    "dist/**/*",
+    "**/dist/**/*",
     "ensuite",
     "fadroma.cli.cjs",
     "fixtures",

@@ -3,9 +3,9 @@ import type {
   Uploader, Buildable, Uploadable, Class, Many, Name, Named, IntoRecord, Task 
 } from '../index'
 import {
-  Error, Console, mapAsync, hideProperties, defineDefault, into, intoRecord, defineTask, call,
+  Error, Console, mapAsync, hideProperties, defineDefault, into, intoRecord, call,
   timestamp, CommandContext
-} from '../util/index'
+} from '../util'
 import { assertAgent } from './Agent'
 import { writeLabel } from './Labels'
 import Template from './Template'

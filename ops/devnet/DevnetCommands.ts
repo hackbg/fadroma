@@ -2,6 +2,7 @@ import Console from './DevnetConsole'
 
 import type { Chain } from '@fadroma/agent'
 import { CommandContext } from '@hackbg/cmds'
+import { bold } from '@hackbg/logs'
 
 const log = new Console('@fadroma/devnet')
 
@@ -12,7 +13,15 @@ export default class DevnetCommands extends CommandContext {
   }
 
   status = this.command('status', 'print the status of the current devnet', () => {
-    log.chainStatus(this)
+    const { chain } = this
+    if (!chain) {
+      this.log.info('│ No active chain.')
+    } else {
+      this.log.info('│ Chain type: ', bold(chain.constructor.name))
+      this.log.info('│ Chain mode: ', bold(chain.mode))
+      this.log.info('│ Chain ID:   ', bold(chain.id))
+      this.log.info('│ Chain URL:  ', bold(chain.url.toString()))
+    }
     return this
   })
 

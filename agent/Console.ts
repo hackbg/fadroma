@@ -1,7 +1,7 @@
 import type { 
   Address, Chain, Client, CodeHash, CodeId, Contract, Deployment, Instantiable,
-  Label, Maybe, Message, Name,
-} from '../index'
+  Label, Message, Name,
+} from './index'
 import Error from './Error'
 import { CommandsConsole } from '@hackbg/cmds'
 import { bold, colors } from '@hackbg/logs'
@@ -104,10 +104,10 @@ export default class Console extends CommandsConsole {
   beforeDeploy <C extends Client> (
     template: Contract<C>,
     label:    Label,
-    codeId:   CodeId        = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
-    codeHash: CodeHash      = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)'),
-    crate:    Maybe<string> = template?.crate,
-    revision: Maybe<string> = template?.revision ?? 'HEAD'
+    codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
+    codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)'),
+    crate:    string|undefined = template?.crate,
+    revision: string|undefined = template?.revision ?? 'HEAD'
   ) {
     label = label ? bold(label) : colors.red('(missing label!)')
     let info = `${bold(label)} from code id ${bold(codeId)}`
@@ -160,19 +160,6 @@ export default class Console extends CommandsConsole {
   saving (name: string, state: object) {
     //this.log.log('Saving:  ', bold(name))
     //this.log.log(Object.keys(state).join(', '))
-  }
-
-  chainStatus ({ chain, deployments }: {
-    chain?: Chain, deployments?: { active?: { name: string }, list (): string[] }
-  } = {}) {
-    if (!chain) return this.info('│ No active chain.')
-    this.info('│ Chain type: ', bold(chain.constructor.name))
-    this.info('│ Chain mode: ', bold(chain.mode))
-    this.info('│ Chain ID:   ', bold(chain.id))
-    this.info('│ Chain URL:  ', bold(chain.url.toString()))
-    this.info('│ Deployments:', bold(String(deployments?.list().length)))
-    if (!deployments?.active) return this.info('│ No active deployment.')
-    this.info('│ Deployment: ', bold(String(deployments?.active?.name)))
   }
 
   warnUrlOverride (a: any, b: any) {

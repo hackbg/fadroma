@@ -8,9 +8,9 @@ import {
 import type ContractImports from './MocknetImports'
 import type ContractExports from './MocknetExports'
 
-import * as Fadroma from '@fadroma/agent'
-import type { Address, CodeHash, CodeId, Message } from '@fadroma/agent'
-import { bold } from '@fadroma/agent'
+import * as Fadroma from '../core/index'
+import type { Address, CodeHash, CodeId, Message } from '../core/index'
+import { bold } from '../core/index'
 
 import { randomBech32 } from '@hackbg/4mat'
 

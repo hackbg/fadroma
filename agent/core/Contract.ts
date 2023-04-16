@@ -1,12 +1,12 @@
 import type {
-  Label, CodeId, CodeHash, Hashed, Address, Message, TxHash, Into, Name, Named, Many, Class,
+  Label, CodeId, CodeHash, Hashed, Address, Message, TxHash, Into, Named, Many, Class,
   ClientClass, Builder, Uploader, Buildable, Built, Uploadable, Uploaded, ContractInfo, ChainId,
   Agent, Deployment
 } from '../index'
 import {
-  Error, Console, hideProperties, Task, defineTask, override, Maybe, into, map, mapAsync,
+  Name, Error, Console, hideProperties, Task, override, into, map, mapAsync,
   defineDefault
-} from '../util/index'
+} from '../util'
 import { codeHashOf } from './Code'
 import { assertAddress } from './Tx'
 import { Client } from './Client'

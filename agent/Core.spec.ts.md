@@ -159,11 +159,15 @@ await agent.send('recipient-address', [{denom:'token', amount: '1000'}])
 #### Uploading code
 
 ```typescript
-import { readFileSync } from 'node:fs'
+import { nullWasm } from '../fixtures/Fixtures.ts.md'
 
-// Uploading a single piece of code:
+// Uploading from a Buffer
+await agent.upload(nullWasm)
+
+// Uploading from a filename
 //await agent.upload('example.wasm')
-await agent.upload(readFileSync('fixtures/null.wasm'))
+
+// Uploading an Uploadable object
 //await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' })
 
 // Uploading multiple pieces of code:
@@ -699,20 +703,6 @@ log.object({foo:'bar',baz(){},quux:[],xyzzy:undefined,fubar:{}})
 
 log.deployment()
 log.deployment({ state: { foo: {}, bar: {} } })
-
-log.chainStatus({})
-log.chainStatus({
-  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
-})
-log.chainStatus({
-  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
-  deployments: { list () { return [] } }
-})
-log.chainStatus({
-  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
-  deployments: { list () { return [] }, active: { name: 4 } }
-})
-
 log.receipt()
 log.foundDeployedContract()
 log.beforeDeploy()
@@ -720,7 +710,6 @@ log.afterDeploy()
 log.deployFailed()
 log.deployManyFailed()
 log.deployFailedContract()
-log.chainStatus()
 log.confirmCodeHash()
 log.waitingForNextBlock()
 
@@ -801,8 +790,10 @@ assert.deepEqual(
 For more legible output.
 
 ```typescript
-import { getMaxLength } from '@fadroma/agent'
 assert.equal(getMaxLength(['a', 'ab', 'abcd', 'abc', 'b']), 4)
+function getMaxLength (strings: string[]): number {
+  return Math.max(...strings.map(string=>string.length))
+}
 ```
 
 ```typescript

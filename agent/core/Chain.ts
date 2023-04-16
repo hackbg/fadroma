@@ -1,4 +1,4 @@
-import { Error, Console } from '../util/index'
+import { Error, Console } from '../util'
 import type {
   Address, Message, AgentOpts, AgentClass, Agent, Class, Client, CodeId, CodeHash
 } from '../index'

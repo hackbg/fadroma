@@ -1,11 +1,11 @@
 import type {
   Address, TxHash, ChainId, Agent, ClientClass, Deployment, Buildable, Uploadable, Uploaded,
-  Maybe, Overridable, Hashed, CodeHash, CodeId
+  Hashed, CodeHash, CodeId
 } from '../index'
 
 import {
-  Error, Console, bold, defineTask, pluralize, hideProperties
-} from '../util/index'
+  Error, Console, bold, pluralize, hideProperties
+} from '../util'
 import { assertAgent } from './Agent'
 import { Client } from './Client'
 import { fetchCodeHash, getSourceSpecifier } from './Code'

@@ -13,5 +13,7 @@ export * from './Error'
 export { default as Console } from './Console'
 export * from './Console'
 
-export * from './Fields'
-export * from './Math'
+/** A class constructor. */
+export interface Class<T, U extends unknown[]> {
+  new (...args: U): T
+}

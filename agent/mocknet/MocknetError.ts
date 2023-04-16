@@ -1,4 +1,4 @@
-import { Console, Error } from '@fadroma/agent'
+import { Error } from '../util'
 
 export default class MocknetError extends Error {
 

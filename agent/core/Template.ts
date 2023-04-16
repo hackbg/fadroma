@@ -1,10 +1,10 @@
 import type {
-  Many, Maybe, CodeId, CodeHash, Hashed, Address, TxHash, ChainId,
+  Many, CodeId, CodeHash, Hashed, Address, TxHash, ChainId,
   Agent, ClientClass, Builder, Uploader, Deployment
 } from '../index'
 import {
-  Error, Console, defineTask, override, defineDefault, map, Task, hideProperties
-} from '../util/index'
+  Error, Console, override, defineDefault, map, Task, hideProperties
+} from '../util'
 import { Client } from './Client'
 import { assertBuilder } from './Build'
 import { Contract } from './Contract'
@@ -246,4 +246,16 @@ export type IntoInfo = Hashed & {
 export interface ContractInfo {
   readonly id:        CodeId
   readonly code_hash: CodeHash
+}
+
+export function defineTask <T, U> (
+  name:     string,
+  cb:       (this: T)=>U|PromiseLike<U>,
+  context?: T & { log?: Console }
+): Task<T, U> {
+  const task = new Task(name, cb, context as unknown as T)
+  const [_, head, ...body] = (task.stack ?? '').split('\n')
+  task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+  task.log   = (context?.log ?? task.log) as any
+  return task as Task<T, U>
 }

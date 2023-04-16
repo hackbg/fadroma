@@ -4,7 +4,7 @@ import type MocknetBundle from './MocknetBundle'
 import { ADDRESS_PREFIX } from './MocknetData'
 import type MocknetBackend from './MocknetBackend'
 
-import { Agent, Contract, assertChain, into } from '@fadroma/agent'
+import { Agent, Contract, assertChain, into } from '../core/index'
 import type {
   Address,
   AgentOpts,
@@ -14,7 +14,7 @@ import type {
   ExecOpts,
   Message,
   Uploaded,
-} from '@fadroma/agent'
+} from '../core/index'
 
 import { randomBech32 } from '@hackbg/4mat'
 

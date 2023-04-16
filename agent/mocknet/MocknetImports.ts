@@ -7,7 +7,7 @@ import {
 import type { Ptr, ErrCode } from './MocknetData'
 import type MocknetContract from './MocknetContract'
 
-import { bold } from '@fadroma/agent'
+import { bold } from '../core/index'
 
 import { bech32 } from '@hackbg/4mat'
 import { brailleDump } from '@hackbg/dump'

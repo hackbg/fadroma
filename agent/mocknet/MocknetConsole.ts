@@ -1,4 +1,4 @@
-import { Console } from '@fadroma/agent'
+import { Console } from '../util'
 
 export default class MocknetConsole extends Console {
 

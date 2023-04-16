@@ -5,10 +5,12 @@
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
+
 import { Console, bold } from '@hackbg/logs'
 import $ from '@hackbg/file'
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
 ```
 
 ```typescript
@@ -16,4 +18,6 @@ export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = x => resolve(here, x)
 export const log       = new Console('Fadroma Testing')
+
+export const nullWasm = readFileSync(fixture('null.wasm'))
 ```

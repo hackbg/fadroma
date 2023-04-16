@@ -1,9 +1,9 @@
 import { CommandsConsole } from '@hackbg/cmds'
 import { bold, colors } from '@hackbg/logs'
 import type {
-  Address, Message, Label, Name, Maybe, CodeId, CodeHash, Chain, Deployment,
+  Address, Message, Label, Name, CodeId, CodeHash, Chain, Deployment,
   Contract, Instantiable, Instantiated, Client
-} from '../index'
+} from './index'
 import { Error } from '@hackbg/oops'
 
 /** Error kinds. */

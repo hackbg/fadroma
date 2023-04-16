@@ -12,6 +12,7 @@ export * from './Chain'
 export * from './Agent'
 export * from './Bundle'
 
+export * from './Math'
 export * from './Tx'
 export * from './Fee'
 export * from './Code'

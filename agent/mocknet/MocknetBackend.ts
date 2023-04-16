@@ -4,8 +4,8 @@ import { parseResult, b64toUtf8, codeHashForBlob } from './MocknetData'
 
 import type MocknetContract from './MocknetContract'
 
-import { into, Contract } from '@fadroma/agent'
-import type { Address, Client, CodeId, CodeHash, Label, Message, AnyContract } from '@fadroma/agent'
+import { into, Contract } from '../core/index'
+import type { Address, Client, CodeId, CodeHash, Label, Message, AnyContract } from '../core/index'
 
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/4mat'
 import { bold } from '@hackbg/logs'

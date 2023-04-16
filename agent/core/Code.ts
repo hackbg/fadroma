@@ -1,7 +1,7 @@
 import type {
   Agent, Address, Buildable, Built, Uploaded, Instantiated, AnyContract
 } from '../index'
-import { Error, Console, validated } from '../util/index'
+import { Error, Console, validated } from '../util'
 import { assertAddress } from './Tx'
 
 /** @returns a string in the format `crate[@ref][+flag][+flag]...` */

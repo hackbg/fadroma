@@ -1,4 +1,4 @@
-import { Error, Console } from '../util/index'
+import { Error, Console } from '../util'
 import type { IFee, ICoin } from '../index'
 
 /** A transaction message that can be sent to a contract. */

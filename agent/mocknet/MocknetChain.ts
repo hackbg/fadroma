@@ -4,7 +4,7 @@ import type MocknetBackend from './MocknetBackend'
 import type Mocknet_CW0 from './Mocknet_CW0'
 import type Mocknet_CW1 from './Mocknet_CW1'
 
-import { Chain, ChainMode } from '@fadroma/agent'
+import { Chain, ChainMode } from '../core/index'
 import type {
   Address,
   AgentClass,
@@ -13,7 +13,7 @@ import type {
   CodeHash,
   Message,
   Uint128
-} from '@fadroma/agent'
+} from '../index'
 
 /** Chain instance containing a local MocknetBackend. */
 export default abstract class Mocknet extends Chain {

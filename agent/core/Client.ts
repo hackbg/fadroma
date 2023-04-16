@@ -1,14 +1,17 @@
 import type {
-  Agent, Class, Maybe, Address, Message, ExecOpts, CodeHash, IFee, ContractLink, Chain
+  Agent, Class, Address, Message, ExecOpts, CodeHash, IFee, ContractLink, Chain
 } from '../index'
-import { Error, Console, validated, hideProperties } from '../util/index'
+import { Error, Console, validated, hideProperties } from '../util'
 import { assertAgent } from './Agent'
 import { assertAddress } from './Tx'
 import { Contract } from './Contract'
 
 /** A constructor for a Client subclass. */
 export interface ClientClass<C extends Client> extends Class<C, [
-  Maybe<Agent>, Maybe<Address>, Maybe<CodeHash>, Maybe<Contract<C>>
+  Agent      |undefined,
+  Address    |undefined,
+  CodeHash   |undefined,
+  Contract<C>|undefined
 ]>{}
 
 /** Client: interface to the API of a particular contract instance.

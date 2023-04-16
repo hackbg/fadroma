@@ -27,7 +27,7 @@ export const mnemonics = [
 ```typescript
 import $, { BinaryFile } from '@hackbg/file'
 import { readFileSync } from 'fs'
-import { fixture } from '../fixtures/Fixtures.spec.ts.md'
+import { fixture } from '../fixtures/Fixtures.ts.md'
 export const examples = {}
 example('Empty', 'empty.wasm',                     'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
 example('KV',    'fadroma-example-kv@HEAD.wasm',   '16dea8b55237085f24af980bbd408f1d6893384996e90e0ce2c6fc3432692a0d')

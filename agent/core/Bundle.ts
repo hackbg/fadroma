@@ -1,7 +1,7 @@
 import type {
   Class, Name, CodeHash, Address, Message, ExecOpts, ICoin, Client, Contract, AnyContract, Many
 } from '../index'
-import { Error, Console, into } from '../util/index'
+import { Error, Console, into } from '../util'
 import { Agent } from './Agent'
 
 /** A constructor for a Bundle subclass. */

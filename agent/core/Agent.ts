@@ -3,7 +3,7 @@ import type {
   CodeHash, Client, ClientClass, Uploaded, Instantiated, AnyContract, Contract, Uploader,
   UploaderClass, Name, Many
 } from '../index'
-import { Error, Console } from '../util/index'
+import { Error, Console } from '../util'
 import { assertChain } from './Chain'
 
 /** A constructor for an Agent subclass. */

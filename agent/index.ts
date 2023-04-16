@@ -1,3 +1,3 @@
-export * from './util/index'
+export * from './util'
 export * from './core/index'
 export * from './mocknet/index'

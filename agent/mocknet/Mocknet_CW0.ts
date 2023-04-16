@@ -18,7 +18,7 @@ import type { Ptr, ErrCode } from './MocknetData'
 import type ContractExports from './MocknetExports'
 import type ContractImports from './MocknetImports'
 
-import type { Address, ChainId, Client, CodeHash, Message } from '@fadroma/agent'
+import type { Address, ChainId, Client, CodeHash, Message } from '../core/index'
 
 import { bech32 } from '@hackbg/4mat'
 import { bold } from '@hackbg/logs'

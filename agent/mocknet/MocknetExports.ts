@@ -1,7 +1,7 @@
 import MocknetError from './MocknetError'
 import type { Ptr, IOExports } from './MocknetData'
 
-import type { Address, CodeHash, ChainId } from '@fadroma/agent'
+import type { Address, CodeHash, ChainId } from '../core/index'
 
 export default interface ContractExports extends IOExports {
   query (msg: Ptr): Ptr
