@@ -38,10 +38,6 @@ Projects created by Fadroma are polyglot Rust/TypeScript repositories.
   top-level package (for dev-only dependencies), and two subpackages,
   `api` (client API) and `ops` (deployment and migration scripts).
 
-```typescript
-import './packages/project/Project.spec.ts.md'
-```
-
 ### Create a Fadroma project through NPX
 
 If you have Node.js set up, you can use the `npx` command to create a new Fadroma project:
@@ -141,10 +137,6 @@ $ npm exec fadroma build CONTRACT
 The build commands are implemented by the
 [**`@fadroma/ops`**](./packages/build/Build.spec.ts.md) package.
 
-```typescript
-import './packages/build/Build.spec.ts.md'
-```
-
 ### Testing with Ensemble
 
 [**Fadroma Ensemble**](https://fadroma.tech/rs/fadroma/ensemble/index.html)
@@ -175,18 +167,10 @@ The deployment commands are implemented by the
 By default, Fadroma deploys to a **devnet**: a local instance of
 a blockchain, running in a Docker or Podman container.
 
-```typescript
-import './packages/devnet/Devnet.spec.ts.md'
-```
-
 ### Agent API
 
 [**Fadroma Core**](https://fadroma.tech/js/modules/_fadroma_client.html) is a library for
 interfacing with smart contracts from JavaScript or TypeScript.
-
-```typescript
-import './packages/core/Core.spec.ts.md'
-```
 
 #### Connecting
 
@@ -206,24 +190,37 @@ Planned. See [issue #148](https://github.com/hackbg/fadroma/issues/148).
 
 Under consideration.
 
-```typescript
-import './packages/connect/Connect.spec.ts.md'
-import './platforms/scrt/Scrt.spec.ts.md'
-import './platforms/cw/CW.spec.ts.md'
-import './platforms/evm/EVM.spec.ts.md'
-```
-
 ### Deployment API
-
-```typescript
-import './packages/deploy/Deploy.spec.ts.md'
-```
 
 ### Testing with Mocknet
 
 [**Fadroma Mocknet**](https://fadroma.tech/js/classes/_fadroma_ops.Mocknet.html) is
 a simulated environment for fast full-stack testing of your production builds.
 
+## Scripting Fadroma
+
+For more complex operations, you can define custom commands, which you implement in TypeScript
+using the Fadroma TypeScript API. **See [@fadroma/agent](agent/Core.spec.ts.md)** to get
+started with scripting Fadroma.
+
+To run a Fadroma script:
+
+```sh
+$ fadroma run script.ts
+```
+
+To get started with writing Fadroma scripts,
+proceed to the [***Fadroma Core API Specification***](./packages/core/Core.spec.ts.md).
+
+---
+
 ```typescript
-import './packages/mocknet/Mocknet.spec.ts.md'
+import './agent/Core.spec.ts.md'
+
+import './connect/Connect.spec.ts.md'
+import './platforms/scrt/Scrt.spec.ts.md'
+import './platforms/cw/CW.spec.ts.md'
+import './platforms/evm/EVM.spec.ts.md'
+
+import './ops/Ops.spec.ts.md'
 ```
