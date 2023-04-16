@@ -1,41 +1,22 @@
-use fadroma::{prelude::*, dsl::*};
+use fadroma::storage::{ItemSpace, TypedKey};
 
-pub use contract::*;
+fadroma::namespace!(StateNs, b"state");
 
-#[contract]
-mod contract {
-    use super::*;
+const STATE: ItemSpace::<String, StateNs, TypedKey<String>> = ItemSpace::new();
 
-    fadroma::namespace!(StateNs, b"state");
-    const STATE: ItemSpace::<String, StateNs, TypedKey<String>> = ItemSpace::new();
-
-    impl Contract {
-        #[init(entry)]
-        pub fn new() -> Result<Response, StdError> {
-            Ok(Response::default())
-        }
-
-        #[query]
-        pub fn get(key: String) -> Result<Option<String>, StdError> {
-            STATE.load(deps.storage, &key)
-        }
-
-        #[execute]
-        pub fn set(key: String, value: String) -> Result<Response, StdError> {
-            STATE.save(deps.storage, &key, &value)?;
-            Ok(Response::default())
-        }
-
-        #[execute]
-        pub fn del(key: String) -> Result<Response, StdError> {
-            STATE.remove(deps.storage, &key);
-            Ok(Response::default())
-        }
+fadroma::contract! {
+    #[init(entry)] pub fn new() -> Result<Response, StdError> {
+        Ok(Response::default())
     }
-}
-
-fadroma::entrypoint! {
-    init:    instantiate,
-    execute: execute,
-    query:   query
+    #[query] pub fn get (key: String) -> Result<Option<String>, StdError> {
+        STATE.load(deps.storage, &key)
+    }
+    #[execute] pub fn set (key: String, value: String) -> Result<Response, StdError> {
+        STATE.save(deps.storage, &key, &value)?;
+        Ok(Response::default())
+    }
+    #[execute] pub fn del (key: String) -> Result<Response, StdError> {
+        STATE.remove(deps.storage, &key);
+        Ok(Response::default())
+    }
 }
