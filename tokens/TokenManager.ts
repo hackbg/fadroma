@@ -157,6 +157,7 @@ export default class TokenManager extends CommandContext {
   defineMany (inputs: Record<TokenSymbol, Partial<TokenOptions>>):
     Task<TokenTemplate, Many<Task<Contract<Snip20>, Snip20>>>
   {
+    throw new Error('Not implemented')
 
     const outputs: Record<TokenSymbol, TokenContract> = {}
 
@@ -164,7 +165,7 @@ export default class TokenManager extends CommandContext {
       outputs[symbol] = this.define(symbol, options)
     }
 
-    return this.template.instances(outputs)
+    //return this.template.instances(outputs)
 
     /*
     // Find out which tokens to deploy and which already exist

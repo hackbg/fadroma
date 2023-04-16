@@ -4,6 +4,7 @@ export * from './Project'
 
 import { Project } from './Project'
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
+
 /** @returns Project with config from "fadroma" key in package.json */
 export function getProject (
   path: string|OpaqueDirectory = process.env.FADROMA_PROJECT || process.cwd()

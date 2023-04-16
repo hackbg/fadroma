@@ -126,50 +126,47 @@ export default class Template<C extends Client> {
     return name
   }
 
-  get compiled (): Task<this, this & Built> {
-    const building = this.build()
-    Object.defineProperty(this, 'compiled', { get () { return building } })
-    return building
+  get compiled (): Promise<this & Built> {
+    return this.build()
   }
 
   /** Compile the source using the selected builder.
     * @returns this */
-  build (builder?: Builder): Task<this, this & Built> {
-    type Self = typeof this
+  build (builder: Builder|undefined = this.builder): Promise<this & Built> {
     const name = `compile ${this.crate ?? 'contract'}`
-    return this.task(name, async function buildContract (this: Self): Promise<Self & Built> {
+    const building = new Promise<this & Built>(async (resolve, reject)=>{
       if (!this.artifact) {
         if (!this.crate) throw new Error.NoCrate()
         builder ??= assertBuilder(this)
         const result = await builder!.build(this as Buildable)
-        this.define(result as Partial<Self>)
+        this.define(result as Partial<this>)
       }
-      return this as Self & Built
+      return this
     })
-
+    Object.defineProperty(this, 'compiled', { get () { return building } })
+    return building
   }
 
   /** One-shot deployment task. */
-  get uploaded (): Task<this, this & Uploaded> {
-    const uploading = this.upload()
-    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
-    return uploading
+  get uploaded (): Promise<this & Uploaded> {
+    return this.upload()
   }
 
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
-  upload (uploader: Uploader|undefined = this.uploader): Task<this, this & Uploaded> {
-    if (!uploader) throw new Error.NoUploader()
-    type Self = typeof this
+  upload (uploader: Uploader|undefined = this.uploader): Promise<this & Uploaded> {
     const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
-    return this.task(name, async function uploadContract (this: Self): Promise<Self & Uploaded> {
+    const uploading = new Promise<this & Uploaded>(async (resolve, reject)=>{
       if (!this.codeId) {
         await this.compiled
+        if (!uploader) throw new Error.NoUploader()
         const result = await uploader.upload(this as Uploadable)
-        this.define(result as Partial<Self>)
+        this.define(result as Partial<this>)
       }
-      return this as Self & Uploaded
+      return resolve(this as this & Uploaded)
     })
+    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
+    return uploading
   }
 
   /** @returns a Contract representing a specific instance of this Template. */
@@ -185,17 +182,15 @@ export default class Template<C extends Client> {
 
   /** Get a collection of multiple clients to instances of this contract.
     * @returns task for deploying multiple contracts, resolving to their clients */
-  instances (contracts: Many<Partial<Contract<C>>>): Task<this, Many<Task<Contract<C>, C>>> {
+  instances (contracts: Many<Partial<Contract<C>>>): Task<this, Many<Promise<C>>> {
     type Self = typeof this
     const size = Object.keys(contracts).length
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
     const tasks = map(contracts, contract=>this.instance(contract))
     return this.task(name, async function deployManyContracts (
       this: Self
-    ): Promise<Many<Task<Contract<C>, C>>> {
-      return map(tasks, (task: Partial<Contract<C>>): Task<Contract<C>, C> => {
-        return task.deployed!
-      })
+    ): Promise<Many<Promise<C>>> {
+      return map(tasks, (task: Partial<Contract<C>>): Promise<C> => task.deployed!)
     })
   }
 

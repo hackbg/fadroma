@@ -72,7 +72,7 @@ assert.equal(uploaded_b.codeId, String(Number(uploaded_a.codeId) + 1))
 
 ```typescript
 const contract_a = uploaded_a.instance({ agent, name: 'test-mocknet', initMsg: { fail: false } })
-//const client_a = await contract_a.deployed
+const client_a = await contract_a.deployed
 
 //assert.equal(await client_a.query("echo"), 'echo')
 //assert.equal(await chain.getLabel(client_a.address),   client_a.label)

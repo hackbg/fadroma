@@ -45,43 +45,6 @@ export interface Contract<C extends Client> {
   (): Task<Contract<C>, C>
 }
 
-/** Calling a Contract instance invokes this function.
-  *
-  * - If the contract's address is already populated,
-  *   it returns the corresponding Client instance.
-  *
-  * - If the contract's address is not already available,
-  *   it looks up the contract in the deployment receipt by name.
-  *
-  * - If the contract's name is not in the receipt, it
-  *   returns a task that will deploy the contract when `await`ed. */
-function ensureContract <C extends Client> (this: Contract<C>): Task<Contract<C>, C> {
-
-  if (this.address) {
-
-    // If the address is available, this contract already exists
-    return new Task(`Found ${this.name}`, ()=>{
-      return getClientTo(this)
-    }, this)
-
-  } else if (this.name && this.context && this.context.hasContract(this.name)) {
-
-    // If the address is not available, but the name is in the receipt,
-    // populate self with the data from the receipt, and return the client
-    return new Task(`Found ${this.name}`, ()=>{
-      const data = this.context!.getContract(this.name!)
-      Object.assign(this, data)
-      return getClientTo(this)
-    }, this)
-
-  } else {
-
-    // Otherwise, deploy the contract
-    return this.deployed
-
-  }
-}
-
 function getClientTo <C extends Client> (contract: Contract<C>): C {
   const $C = (contract.client ?? Client)
   //@ts-ignore
@@ -160,19 +123,19 @@ export class Contract<C extends Client> extends Template<C> {
 
   }
 
-  /** One-shot deployment task. */
-  get deployed (): Task<this, C> {
-    const deploying = this.deploy()
-    Object.defineProperty(this, 'deployed', { get () { return deploying } })
-    return deploying
+  /** One-shot deployment task. After the first call, `deploy` redefines it
+    * to return the self-same deploying promise. Call `deploy` again to reset. */
+  get deployed (): Promise<C> {
+    return this.deploy()
   }
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
-  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
-    type Self = typeof this
+  deploy (initMsg: Into<Message>|undefined = this.initMsg): Promise<C> {
     const name = `deploy ${this.name ?? 'contract'}`
-    return this.task(name, async function deployContract (this: Self): Promise<C> {
+    const deploying = new Promise<C>(async (resolve, reject)=>{
+      // If address is missing, deploy contract
+      // FIXME also check in deploy store
       if (!this.address) {
         if (!this.name) throw new Error.CantInit_NoName()
         if (!this.agent) throw new Error.CantInit_NoAgent(this.name)
@@ -187,7 +150,7 @@ export class Contract<C extends Client> extends Template<C> {
         if (!this.codeId) throw new Error.CantInit_NoCodeId(this.name)
         this.log?.beforeDeploy(this, this.label!)
         // Perform the instantiation transaction
-        const instance = await this.agent!.instantiate(this as Self)
+        const instance = await this.agent!.instantiate(this)
         // Populate self with result of instantiation (address)
         override(this as Contract<C>, instance)
         this.log?.afterDeploy(this as Partial<Contract<C>>)
@@ -197,7 +160,8 @@ export class Contract<C extends Client> extends Template<C> {
       // Create and return the Client instance used to interact with the contract
       return getClientTo(this)
     })
-
+    Object.defineProperty(this, 'deployed', { get () { return deploying } })
+    return deploying
   }
 
   /** @returns an instance of this contract's client
