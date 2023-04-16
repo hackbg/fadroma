@@ -1,1 +1,5 @@
-{"extends": "../../tsconfig.json", "include": ["connect.ts"]}
+{
+  "extends": "../tsconfig.json",
+  "include": ["*.ts"],
+  "compilerOptions": { "module": "esnext" }
+}

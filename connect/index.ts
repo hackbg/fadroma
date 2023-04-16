@@ -67,6 +67,7 @@ export function defineDevnet (
   version: unknown
 ) {
   return async <T> (config: T) => {
+    //@ts-ignore
     const { DevnetConfig } = await import('@fadroma/ops')
     const mode = ChainMode.Devnet
     const conf = new DevnetConfig()
