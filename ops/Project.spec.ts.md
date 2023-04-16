@@ -23,13 +23,16 @@ $ npx fadroma project contract del
 ### Creating a project
 
 ```typescript
-import { Project } from '@fadroma/ops'
+import { fixture } from '../fixtures/Fixtures.ts.md'
+const root = fixture('project') // replace with path to your project
 
+import { Project } from '@fadroma/ops'
 const project = new Project({
+  root,
   name: 'my-project',
-  root: './examples/project',
   contracts: {
     contract1: {},
+    contract2: {},
   }
 }).create()
 ```
@@ -43,11 +46,11 @@ $ npx fadroma contract del
 ```
 
 ```typescript
-const contract1 = project.addContract('contract')
+const contract1 = project.getContract('contract1')
 assert(contract1 instanceof Template)
 
-const contract2 = project.getContract('contract')
-assert(contract2 instanceof Template)
+const contract3 = project.addContract('contract3')
+assert(contract3 instanceof Template)
 ```
 
 ## Project state

@@ -32,7 +32,7 @@ export default class OpsPackage {
       version: "0.0.0",
       private: true,
       devDependencies: {
-        "@fadroma/ops": "^2",
+        "@fadroma/ops": "^3",
         [`@${name}/api`]: "workspace:*",
       }
     })

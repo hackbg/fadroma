@@ -1,0 +1,13 @@
+packages:
+  - 'agent'
+  - 'ops'
+  - 'connect'
+  - 'tokens'
+  - 'platforms/**'
+
+  - 'ensuite'
+  - 'ensuite/**'
+  - 'ensuite/ganesha/vsc'
+  - 'ensuite/ganesha/rollup'
+
+  - '!examples/project'

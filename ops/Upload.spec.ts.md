@@ -11,21 +11,24 @@ $ fadroma reupload CONTRACT # always reupload
 
 ## Upload API
 
-Uploading with default configuration (from environment):
+Uploading with default configuration (from environment variables):
 
 ```typescript
+import { fixture } from '../fixtures/Fixtures.ts.md'
+const artifact = fixture('null.wasm') // replace with path to your binary
+
 import { upload } from '@fadroma/ops'
-await upload({ artifact: 'fixtures/null.wasm' })
+await upload({ artifact })
 ```
 
 Passing custom options to the uploader:
 
 ```typescript
 import { getUploader } from '@fadroma/ops'
-await getUploader({ /* options */ }).upload({ artifact: 'fixtures/null.wasm' })
+await getUploader({ /* options */ }).upload({ artifact })
 ```
 
-### Upload state
+### Upload caching
 
 Contracts start out as source code, which `@fadroma/ops` compiles to binary artifacts
 (WASM files). The `Uploader` class takes care of uploading them and producing a JSON file
@@ -39,7 +42,6 @@ import { examples } from '../examples/Examples.spec.ts.md'
 let config:   DeployConfig
 let uploader: Uploader
 let agent:    Agent = { chain: { id: 'testing' }, upload: async x => x }
-let artifact: URL = examples['KV'].url
 let template: Template = new Template({ artifact })
 ```
 
@@ -49,10 +51,10 @@ if it does, it returns the existing code ID instead of uploading the same file t
 ```typescript
 await withTmpDir(async path=>{
   uploader = new FSUploader(agent, new JSONDirectory(path))
-  ok(uploader.agent === agent)
-  ok(await uploader.upload(template))
-  ok(await uploader.upload(template))
-  ok(await uploader.uploadMany([template]))
+  assert.ok(uploader.agent === agent)
+  assert.ok(await uploader.upload(template))
+  assert.ok(await uploader.upload(template))
+  assert.ok(await uploader.uploadMany([template]))
 })
 ```
 
@@ -68,8 +70,16 @@ await withTmpDir(async path=>{
 
 ### Upload events
 
+```typescript
+```
+
 ### Upload errors
 
 ```typescript
-import { ok } from 'node:assert'
+```
+
+---
+
+```typescript
+import assert from 'node:assert'
 ```

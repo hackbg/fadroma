@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "devDependencies": {
-    "@fadroma/ops": "^2",
+    "@fadroma/ops": "^3",
     "@my-project/api": "workspace:*"
   }
 }
