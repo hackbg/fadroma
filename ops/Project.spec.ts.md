@@ -1,10 +1,26 @@
 # Fadroma Project Scope
 
-## Creating a project
+## Project CLI
 
 ```shell
 $ npx fadroma project create
+$ npx fadroma project contract add
+$ npx fadroma project contract list
+$ npx fadroma project contract del
 ```
+
+### Project configuration
+
+|Env var|Default path|Description|
+|-|-|-|
+|`FADROMA_CONFIG`     |`@/fadroma.json`          |Global project configuration|
+|`FADROMA_ARTIFACTS`  |`@/artifacts.sha256`      |Checksums of compiled contracts by version|
+|`FADROMA_UPLOADS`    |`@/state/uploads.csv`     |Receipts of uploaded contracts|
+|`FADROMA_DEPLOYMENTS`|`@/state/deployments.csv` |Receipts of instantiated (deployed) contracts|
+
+## Project API
+
+### Creating a project
 
 ```typescript
 import { Project } from '@fadroma/ops'
@@ -18,7 +34,7 @@ const project = new Project({
 }).create()
 ```
 
-## Adding contracts to the project scope
+### Adding contracts to the project scope
 
 ```shell
 $ npx fadroma contract list
@@ -36,17 +52,17 @@ assert(contract2 instanceof Template)
 
 ## Project state
 
-|Env var              |Default path              |Description                               |
-|---------------------|--------------------------|------------------------------------------|
-|`FADROMA_CONFIG`     |`@/fadroma.json`          |Checksums of compiled contracts by version|
-|`FADROMA_ARTIFACTS`  |`@/artifacts.sha256`      |Checksums of compiled contracts by version|
-|`FADROMA_UPLOADS`    |`@/state/uploads.csv`     |Checksums of compiled contracts by version|
-|`FADROMA_DEPLOYMENTS`|`@/state/deployments.csv` |Checksums of compiled contracts by version|
-
 ### Build artifacts
 
-* **Deploy receipts**: records of one or more deployed contract instances.
-* **Upload receipts**: records of a single uploaded contract binary.
+Checksums of compiled contracts by version.
+
+### Upload receipts
+
+Records of a single uploaded contract binary.
+
+### Deploy receipts
+
+Records of one or more deployed contract instances.
 
 ```typescript
 import assert from 'node:assert'

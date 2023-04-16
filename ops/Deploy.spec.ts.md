@@ -1,4 +1,4 @@
-# Fadroma Deploy Specification
+# Deploying contracts
 
 ## Deploy CLI
 
