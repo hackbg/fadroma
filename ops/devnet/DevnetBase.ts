@@ -2,7 +2,8 @@ import Error from './DevnetError'
 import Console from './DevnetConsole'
 import type { DevnetPortMode } from './DevnetConfig'
 
-import type { AgentOpts, Chain, ChainId, DevnetHandle } from '@fadroma/agent'
+import { Chain } from '@fadroma/agent'
+import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
 
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
@@ -38,7 +39,6 @@ export default abstract class Devnet extends CommandContext implements DevnetHan
 
     // Define storage
     this.stateRoot = $(stateRoot || $('receipts', this.chainId).path).as(OpaqueDirectory)
-    this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
 
     // Define CLI commands
     this.addCommand('reset',  'kill and erase the devnet', () => {})
@@ -74,15 +74,17 @@ export default abstract class Devnet extends CommandContext implements DevnetHan
   /** This directory is created to remember the state of the devnet setup. */
   stateRoot: OpaqueDirectory
 
+  /** This file contains the id of the current devnet container.
+    * TODO store multiple containers */
+  get nodeState (): JSONFile<DevnetState> {
+    return this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
+  }
+
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
   genesisAccounts: Array<string> = [
     'ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY'
   ]
-
-  /** This file contains the id of the current devnet container.
-    * TODO store multiple containers */
-  nodeState: JSONFile<DevnetState>
 
   /** Save the info needed to respawn the node */
   save (extraData = {}) {
@@ -136,6 +138,12 @@ export default abstract class Devnet extends CommandContext implements DevnetHan
 
   /** Erase the state of the node. */
   abstract erase (): Promise<void>
+
+  getChain <C extends Chain> (
+    $C: ChainClass<C> = Chain as unknown as ChainClass<C>
+  ): C {
+    return new $C(this.chainId, { mode: Chain.Mode.Devnet, node: this })
+  }
 
 }
 
