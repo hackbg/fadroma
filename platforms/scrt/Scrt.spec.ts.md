@@ -32,31 +32,46 @@ const testnet = Scrt.Chain.Testnet()
 //const mocknet = Scrt.Mocknet()
 ```
 
-## Authenticating
+This will give you a `Scrt` instance (subclass of `Chain`):
 
-Then, to authenticate:
+```typescript
+import { Chain } from '@fadroma/agent'
+for (const chain of [mainnet, testnet]) {
+  assert.ok(chain instanceof Chain && chain instanceof Scrt)
+}
+```
 
-* With a fresh wallet (randomly generated mnemonic)
+## Authentication
+
+To interact with Secret Network, you need to authenticate as an `Agent`:
+
+### Authenticating with a fresh wallet
+
+This gives you a randomly generated mnemonic.
 
 ```typescript
 const agent0 = await mainnet.getAgent().ready
+
 assert.ok(agent0 instanceof Scrt.Agent)
 assert.ok(agent0.chain instanceof Scrt.Chain)
 assert.ok(agent0.mnemonic)
 assert.ok(agent0.address)
 ```
 
-* With a mnemonic:
+The `mnemonic` property of `Agent` will be hidden to prevent leakage.
+
+### Authenticating with a known mnemonic
 
 ```typescript
 const agent1 = await mainnet.getAgent({ mnemonic: '...' }).ready
+
 ok(agent1 instanceof Scrt.Agent)
 ok(agent1.chain instanceof Scrt.Chain)
 ok(agent1.mnemonic)
 ok(agent1.address)
 ```
 
-* With Keplr:
+### Authenticating in the browser with Keplr
 
 ```typescript
 // TODO (these are not implemented yet)
@@ -69,7 +84,7 @@ ok(agent1.address)
 // ok(agent2.address)
 ```
 
-* With secretcli:
+### Authenticating in a script with secretcli
 
 ```typescript
 // TODO (these are not implemented yet)
@@ -82,15 +97,31 @@ ok(agent1.address)
 // ok(agent3.address)
 ```
 
-## Viewing keys
+## Authorization
 
-Since viewing keys are a Secret Network-specific feature, they are also implemented here:
+### Using viewing keys
+
+Fadroma provides the `VKClient` class for embedding into your own `Client` classes
+for contracts that use SNIP20-compatible the viewing keys.
 
 ```typescript
 const client = new Scrt.VKClient()
 ```
 
-## Internals
+```typescript
+import { Client } from '@fadroma/agent'
+class MyClient extends Client {
+  vk = new Scrt.VKClient()
+}
+```
+
+### Using query permits
+
+```typescript
+// TODO add docs
+```
+
+## Implementation details
 
 ### Transaction bundling
 
@@ -100,6 +131,8 @@ A Secret Network-specific implementation of message bundling is included:
 const bundle = agent0.bundle()
 ok(bundle instanceof Scrt.Bundle)
 ```
+
+---
 
 ```typescript
 import { ok } from 'node:assert'
