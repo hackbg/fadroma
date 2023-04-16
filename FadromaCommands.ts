@@ -1,6 +1,11 @@
-import { Deployment } from '@fadroma/agent'
-import { getBuilder, getProject, projectWizard } from '@fadroma/ops'
 import { CommandContext } from '@hackbg/cmds'
+import { Deployment } from '@fadroma/agent'
+import {
+  getBuilder,
+  getProject,
+  projectWizard,
+  DevnetCommands,
+} from '@fadroma/ops'
 
 export default class FadromaCommands extends CommandContext {
 
@@ -10,9 +15,6 @@ export default class FadromaCommands extends CommandContext {
 
     this.addCommand('run', 'execute a script',
       () => { throw new Error('not implemented') })
-
-    this.addCommand('create', 'create a new project',
-      projectWizard)
 
     this.addCommand('define', 'define a contract in the current project',
       () => { throw new Error('not implemented') })
@@ -43,4 +45,20 @@ export default class FadromaCommands extends CommandContext {
         //.addCommands('token', 'manage token contracts', new TokensCommands())
   }
 
+  devnet = this.commands(
+    'devnet',
+    'manage local development containers',
+    new DevnetCommands()
+  )
+
+  project = this.commands(
+    'project',
+    'manage projects',
+    new ProjectCommands()
+  )
+
+}
+
+export class ProjectCommands extends CommandContext {
+  create = this.command('create', 'create a new project', projectWizard)
 }

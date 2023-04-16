@@ -36,6 +36,7 @@ export default class RemoteDevnet extends Devnet implements DevnetHandle {
   ) {
 
     const log = new Console('@fadroma/devnet: remote (init)')
+    log.warn('incomplete')
 
     // If passed a chain id, use it; this makes a passed prefix irrelevant.
     if (chainId && prefix) {

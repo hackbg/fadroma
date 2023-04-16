@@ -38,8 +38,9 @@ function start ({
     + ` --rpc.laddr ${rpcAddr}`
     + ` --grpc.address ${grpcAddr}`
     + ` --grpc-web.address ${grpcWebAddr}`
-  if (process.env.Verbose) console.info(`$`, command)
+  console.info(`$`, command)
   execSync(command, { shell: '/bin/bash', stdio: 'inherit' })
+  console.info('Server exited.')
 }
 
 function genesis ({

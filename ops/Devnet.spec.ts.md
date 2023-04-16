@@ -27,6 +27,7 @@ import { getDevnet } from '@fadroma/ops'
 
 const node = await getDevnet({ /* options */ })
 await node.spawn()
+await node.kill()
 await node.respawn()
 await node.kill()
 await node.export()
@@ -137,7 +138,7 @@ await withTmpDir(async stateRoot => {
       readyPhrase,
       portMode: 'lcp' // or 'grpcWeb'
     })
-    devnet.waitSeconds = 0.1
+    devnet.postLaunchWait = 0.1
     devnet.waitPort = async () => {}
 
     equal(await devnet.spawn(), devnet)

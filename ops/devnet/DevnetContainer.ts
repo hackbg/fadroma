@@ -32,6 +32,9 @@ export interface DockerDevnetOpts extends DevnetOpts {
   readyPhrase?: string
 }
 
+/** Regexp for non-printable characters. */
+const RE_GARBAGE = /[\x00-\x1F]/
+
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
 export default class DevnetContainer extends Devnet implements DevnetHandle {
@@ -56,13 +59,27 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     'scrt_1.8': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
   }
 
+  static readyMessage: Record<DevnetPlatform, string> = {
+    'scrt_1.2': 'indexed block',
+    'scrt_1.3': 'indexed block',
+    'scrt_1.4': 'indexed block',
+    'scrt_1.5': 'indexed block',
+    'scrt_1.6': 'indexed block',
+    'scrt_1.7': 'indexed block',
+    'scrt_1.8': 'Done verifying block height',
+  }
+
   static initScriptMount = 'devnet.init.mjs'
 
-  static getOrCreate (kind: DevnetPlatform, dock: Dock.Engine) {
-    const portMode = devnetPortModes[kind]
-    const dockerfile = this.dockerfiles[kind]
-    const imageTag = this.dockerTags[kind]
-    const readyPhrase = 'indexed block'
+  static getOrCreate (
+    version: DevnetPlatform,
+    dock:    Dock.Engine
+  ) {
+    const portMode    = devnetPortModes[version]
+    const dockerfile  = this.dockerfiles[version]
+    const imageTag    = this.dockerTags[version]
+    const readyPhrase = this.readyMessage[version]
+    //if (mountInitScript)
     //const initScript = $(devnetPackage, this.initScriptMount).path
     const image = dock.image(imageTag, dockerfile, [this.initScriptMount])
     return new DevnetContainer({ portMode, image, readyPhrase })
@@ -70,7 +87,6 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
 
   /** Filter logs when waiting for the ready phrase. */
   static logFilter (data: string) {
-    const RE_GARBAGE = /[\x00-\x1F]/
     return (
       data.length > 0                            &&
       !data.startsWith('TRACE ')                 &&
@@ -112,12 +128,16 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     * from the container, the devnet is ready to accept requests. */
   readyPhrase: string
 
+  /** Throw if container is not ready in this many seconds. */
+  launchTimeout: number = 10
+
   /** Overridable for testing. */
   //@ts-ignore
   protected waitPort = waitPort
 
-  /** Overridable for testing. */
-  protected waitSeconds = 7
+  /** Seconds to wait after first block.
+    * Overridable for testing. */
+  protected postLaunchWait = 7
 
   /** Handle to Docker API if configured. */
   get dock (): Dock.Engine|null {
@@ -143,13 +163,10 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
   async spawn () {
     // if no port is specified, use a random port
     this.host = process.env.FADROMA_DEVNET_HOST ?? this.host
-
     // if no port is specified, use a random port
     this.port ??= (await freePort()) as number
-
     // tell the user that we have begun
     this.log.info(`Spawning new node to listen on`, bold(this.url))
-
     // create the state dirs and files
     const stateDirs = [ this.stateRoot, this.nodeState ]
     for (const item of stateDirs) {
@@ -159,35 +176,21 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
         this.log.warn(`Failed to create ${item.path}: ${e.message}`)
       }
     }
-
     // run the container
     this.container = await this.image.run(
       `${this.chainId}-${this.port}`,               // container name
       this.spawnOptions,                            // container options
       this.initScript ? [this.initScriptMount] : [] // command and arguments
     )
-
     // address the container by ip if possible to support docker-in-docker scenarios
     // FIXME: this currently uses an env var; move it to DevnetConfig
     //this.host = await this.container.ip ?? 'localhost'
-
     // update the record
     this.save()
-
-    // wait for logs to confirm that the genesis is done
-    await this.container.waitLog(
-      this.readyPhrase,
-      false,
-      this.waitSeconds,
-      DevnetContainer.logFilter
-    )
-
-    // wait for port to be open
-    await this.waitPort({
-      host: this.host,
-      port: Number(this.port)
-    })
-
+    // Wait for everything to be ready
+    await this.container.waitLog(this.readyPhrase, DevnetContainer.logFilter, false)
+    await Dock.Docker.waitSeconds(this.postLaunchWait)
+    await this.waitPort({ host: this.host, port: Number(this.port) })
     return this
   }
 
