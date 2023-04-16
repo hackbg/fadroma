@@ -3,12 +3,21 @@ import { getBuilder } from '../build/index'
 
 import { ConnectConfig } from '@fadroma/connect'
 import { Deployment, DeployStore } from '@fadroma/agent'
+import type { Environment } from '@hackbg/conf'
 import type { DeploymentClass, DeploymentFormat, DeployStoreClass } from '@fadroma/agent'
 
 import $ from '@hackbg/file'
 
 /** Deployment system configuration and factory for populated Deployments. */
 export default class DeployConfig extends ConnectConfig {
+
+  constructor (
+    options: Partial<DeployConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
 
   /** Project root. Defaults to current working directory. */
   project: string = this.getString(

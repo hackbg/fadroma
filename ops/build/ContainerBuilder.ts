@@ -86,7 +86,8 @@ export default class ContainerBuilder extends LocalBuilder {
       // Contracts passed as strins are converted to object here
       if (typeof contracts[id] === 'string') contracts[id] = {
         workspace: this.config.project,
-        crate: contracts[id] as string,
+        revision:  'HEAD',
+        crate:     contracts[id] as string,
       }
       const contract = contracts[id] as Buildable & Partial<Built>
       // Collect maximum length to align console output

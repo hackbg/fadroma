@@ -1,7 +1,16 @@
 import { Config } from '@hackbg/conf'
+import type { Environment } from '@hackbg/conf'
 
 /** Environment settings for Secret Network. */
 export default class ScrtConfig extends Config {
+
+  constructor (
+    options: Partial<ScrtConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
 
   static defaultMainnetChainId: string = 'secret-4'
 

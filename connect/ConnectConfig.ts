@@ -15,7 +15,8 @@ export default class ConnectConfig extends Config {
     options: Partial<ConnectConfig> = {},
     environment?: Environment
   ) {
-    super(options, environment)
+    super(environment)
+    this.override(options)
     Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
     this.scrt = new ScrtConfig(options?.scrt, environment)
   }

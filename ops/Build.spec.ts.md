@@ -34,13 +34,35 @@ $ fadroma rebuild CONTRACT  # always rebuilds
 ### Getting a builder
 
 ```typescript
-import { getBuilder, Builder } from '@fadroma/ops'
+import { getBuilder } from '@fadroma/ops'
 const builder = getBuilder(/* { ...options... } */)
 
+import { Builder } from '@fadroma/ops'
 assert(builder instanceof Builder)
 ```
 
-### Building
+By default, you get a `ContainerBuilder`,
+which runs the build procedure in a container
+provided by either Docker or Podman (as selected
+by the `FADROMA_BUILD_PODMAN` environment variable).
+
+```typescript
+import { ContainerBuilder } from '@fadroma/ops'
+assert.ok(builder instanceof ContainerBuilder)
+```
+
+If you want to execute the build procedure in your
+current environment, you can switch to `RawBuilder`
+by passing `buildRaw: true` or setting `FADROMA_BUILD_RAW`.
+
+```typescript
+const rawBuilder = getBuilder({ buildRaw: true })
+
+import { RawBuilder } from '@fadroma/ops'
+assert.ok(rawBuilder instanceof RawBuilder)
+```
+
+### Building a contract from the project
 
 Building asynchronously returns `Template` instances.
 A `Template` is an undeployed contract. You can upload
@@ -54,22 +76,30 @@ const [contract_1, contract_2] = await builder.buildMany([
   'fadroma-example-killswitch'
 ])
 
-import { Template } from '@fadroma/agent'
-assert(contract_0 instanceof Template)
-assert(contract_1 instanceof Template)
-assert(contract_2 instanceof Template)
+for (const contract of [contract_0, contract_1, contract_2]) {
+
+  // Build result will contain code hash and path to binary
+  assert(typeof contract.codeHash === 'string')
+  assert(contract.artifact instanceof URL)
+
+  // As well as info about the source used
+  for (const key of [ 'workspace', 'crate', 'revision' ]) {
+    assert.ok(typeof contract[key] === 'string')
+  }
+
+}
 ```
 
 ### Specifying sources
 
-Represents the source code of a contract.
-  * Compiling a source populates the `artifact` property.
-  * Uploading a source creates a `Template`.
-
 ```typescript
 import { Contract } from '@fadroma/agent'
-let source: Contract = new Contract()
-assert.ok(await source.define({ builder: { build: async x => x } }).compiled)
+const contract: Contract = new Contract({ builder, crate: 'fadroma-example-kv' })
+await contract.compiled
+
+import { Template } from '@fadroma/agent'
+const template = new Template({ builder, crate: 'fadroma-example-kv' })
+await template.compiled
 ```
 
 The `Contract` class has the following properties for specifying the source.
@@ -93,28 +123,6 @@ The outputs of builds are called **artifact**s, and are represented by two prope
     to the **template.codeHash** and **instance.codeHash** properties of uploaded and
     instantiated contracts.
 
-```typescript
-import { Contract } from '@fadroma/agent'
-
-const contract = new Contract({
-  repository: 'REPO',
-  revision: 'REF',
-  workspace: 'WORKSPACE'
-  crate: 'CRATE'
-})
-
-equal(contract.repository, 'REPO')
-equal(contract.revision,   'REF')
-equal(contract.workspace,  'WORKSPACE')
-equal(contract.crate,      'CRATE')
-```
-
-```typescript
-import assert from 'node:assert'
-import * as Fadroma from '@fadroma/agent'
-import $ from '@hackbg/file'
-```
-
 ### Building past commits of contracts
 
 * `DotGit`, a helper for finding the contents of Git history
@@ -130,7 +138,7 @@ as specifier by `contract.revision`.
 import { Contract } from '@fadroma/agent'
 import { getGitDir, DotGit } from '@fadroma/ops'
 
-throws(()=>getGitDir(new Contract()))
+assert.throws(()=>getGitDir(new Contract()))
 
 const contractWithSource = new Contract({
   repository: 'REPO',
@@ -139,7 +147,7 @@ const contractWithSource = new Contract({
   crate:      'CRATE'
 })
 
-ok(getGitDir(contractWithSource) instanceof DotGit)
+assert.ok(getGitDir(contractWithSource) instanceof DotGit)
 ```
 
 ### Build caching
@@ -165,11 +173,9 @@ implement the compilation procedure for contracts.
 `ContainerBuilder` is the default builder when the `FADROMA_BUILD_RAW` option is not set.
 
 ```typescript
-import { ContainerBuilder } from '@fadroma/ops'
 
 const containerBuilder = getBuilder({ buildRaw: false })
 
-ok(containerBuilder instanceof ContainerBuilder)
 ```
 
 `ContainerBuilder` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
@@ -179,102 +185,20 @@ also support Podman.
 ```typescript
 import * as Dokeres from '@hackbg/dock'
 
-ok(containerBuilder.docker instanceof Dokeres.Engine)
+assert.ok(containerBuilder.docker instanceof Dokeres.Engine)
 ```
 
 Use `FADROMA_DOCKER` to specify a non-default Docker socker path
 
 ```typescript
-ok(new BuilderConfig({ buildRaw: false, dockerSocket: 'test' }).getBuilder().docker
+import { BuilderConfig } from '@fadroma/ops'
+assert.ok(new BuilderConfig({ buildRaw: false, dockerSocket: 'test' }).getBuilder().docker
   instanceof Dokeres.Engine)
 ```
 
 `ContainerBuilder` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
 in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
 being output to the `FADROMA_ARTIFACTS` directory.
-
-```typescript
-```
-
-If it's not possible to pull the `FADROMA_BUILD_IMAGE`,
-it is built from the `FADROMA_BUILD_DOCKERFILE`.
-
-```typescript
-config  = new BuilderConfig()
-builder = config.getBuilder()
-equal(builder.image.name, config.dockerImage)
-equal(builder.dockerfile, config.dockerfile)
-```
-
-Let's mock out the build image and the stateful methods to simplify the test:
-
-```typescript
-// Mocks:
-builder.image        = new Dokeres.Engine().image('test/build:image')
-builder.image.ensure = async () => true
-builder.image.run    = async () => ({ wait: () => Promise.resolve({StatusCode: 0}) })
-builder.hashPath     = () => 'code hash ok'
-builder.prebuilt     = () => false
-builder.fetch        = () => Promise.resolve()
-```
-
-Now, let's build a contract:
-
-```typescript
-import { resolve } from 'path'
-import { fileURLToPath } from 'url'
-const workspace = '/tmp/fadroma-test'
-const crate     = 'crate'
-let { artifact, codeHash } = await builder.build({ workspace, crate })
-equal(fileURLToPath(artifact), builder.outputDir.at(`${crate}@HEAD.wasm`).path)
-equal(codeHash, 'code hash ok')
-```
-
-Building multiple contracts:
-
-```typescript
-ok(await builder.buildMany([
-  { workspace, crate: 'crate1' }
-  { workspace, crate: 'crate2', revision: 'HEAD' }
-  { workspace, crate: 'crate3', revision: 'asdf' }
-]))
-```
-
-#### RawBuilder
-
-Where Docker is unavailable (e.g. in a CI that is already running in containers),
-you can use **RawBuilder** to just run builds in the host environment.
-
-  * It is enabled by setting `FADROMA_BUILD_RAW=1` in the environment,
-    or by setting `buildRaw` to `true` in the `BuildConfig`.
-
-```typescript
-import { RawBuilder } from '@fadroma/ops'
-
-const rawBuilder = getBuilder({ buildRaw: true })
-
-ok(rawBuilder instanceof RawBuilder)
-```
-
-It still uses the same build script as ContainerBuilder, but instead of a container
-it just runs the build script as a subprocess.
-
-When using the RawBuilder, you're responsible for providing a working Rust toolchain
-in its runtime environment, build reproducibility is dependent on the consistency of
-that environment.
-
-```typescript
-import { mockBuilder } from './build/mocks'
-mockBuilder(rawBuilder)
-ok(await rawBuilder.build({ workspace, crate }))
-ok(await rawBuilder.buildMany([
-  { workspace, crate: 'crate1' }
-  { workspace, crate: 'crate2', revision: 'HEAD' }
-  { workspace, crate: 'crate3', revision: 'asdf' }
-]))
-```
-
-  * `RawBuilder`, which runs it using the local Rust toolchain.
 
 ## Build events
 
@@ -298,3 +222,13 @@ log.buildingMany([
 ```
 
 ## Build errors
+
+```
+```
+
+---
+
+```typescript
+import assert from 'node:assert'
+import { fileURLToPath } from 'url'
+```

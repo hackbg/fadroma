@@ -1,7 +1,18 @@
 import { Uploader, UploaderClass } from '@fadroma/agent'
 import { ConnectConfig } from '@fadroma/connect'
+
 import $ from '@hackbg/file'
+import type { Environment } from '@hackbg/conf'
+
 export default class UploadConfig extends ConnectConfig {
+
+  constructor (
+    options: Partial<UploadConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
 
   /** Project root. Defaults to current working directory. */
   project: string = this.getString(

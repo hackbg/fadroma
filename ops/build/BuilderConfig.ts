@@ -14,7 +14,8 @@ export default class BuilderConfig extends Config {
     options: Partial<BuilderConfig> = {},
     environment?: Environment
   ) {
-    super(options, environment)
+    super(environment)
+    this.override(options)
   }
 
   /** Builder to use */
@@ -36,7 +37,7 @@ export default class BuilderConfig extends Config {
   outputDir: string = this.getString('FADROMA_ARTIFACTS', ()=>$(this.project).in('artifacts').path)
 
   /** Script that runs inside the build container, e.g. build.impl.mjs */
-  script: string  = this.getString('FADROMA_BUILD_SCRIPT',
+  script: string = this.getString('FADROMA_BUILD_SCRIPT',
     ()=>$(buildPackage).at('build.impl.mjs').path)
 
   /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
@@ -67,7 +68,8 @@ export default class BuilderConfig extends Config {
   /** Get a configured builder. */
   getBuilder <B extends Builder> ($B?: BuilderClass<B>): B {
     $B ??= Builder.variants[this.buildRaw?'Raw':'Container'] as unknown as BuilderClass<B>
-    return new $B(this) as B
+    const builder = new $B(this) as B
+    return builder
   }
 
 }

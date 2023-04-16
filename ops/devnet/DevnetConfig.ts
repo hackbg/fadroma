@@ -3,10 +3,20 @@ import { ChainMode } from '@fadroma/agent'
 import type { Chain } from '@fadroma/agent'
 
 import { Config } from '@hackbg/conf'
+import type { Environment } from '@hackbg/conf'
 import { Engine, Docker, Podman } from '@hackbg/dock'
 
 /** Gets devnet settings from environment. */
 export default class DevnetConfig extends Config {
+
+  constructor (
+    options: Partial<DevnetConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
+
 
   /** Which kind of devnet to launch */
   platform: DevnetPlatform = this.getString(

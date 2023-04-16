@@ -540,6 +540,19 @@ await myDeployment2.deploy()*/
 
 ### Defining individual contracts in a Deployment
 
+#### Contract properties
+
+```typescript
+import { Contract } from '@fadroma/agent'
+
+new Contract({
+  repository: 'REPO',
+  revision: 'REF',
+  workspace: 'WORKSPACE'
+  crate: 'CRATE'
+})
+```
+
 #### Contract label prefixes and suffixes
 
 The label of a contract has to be unique per chain.
