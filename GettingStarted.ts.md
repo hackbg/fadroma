@@ -59,47 +59,6 @@ Afterwards, you can add new contracts to your project with:
 $ npm exec fadroma contract add [NAME...]
 ```
 
-### Nix support
-
-Nix is a functional package manager. Fadroma can optionally
-use Nix to provide you with a stable development environment.
-
-#### Standalone Nix shell
-
-If you have Nix, you can enter a Fadroma shell with:
-
-```sh
-$ nix-shell https://fadroma.tech/nix
-```
-
-Nix will download tools like Node, Rust, Fadroma, etc.,
-and will drop you in a shell where these tools are available
-on the system path. In this shell, you can able to invoke
-the Fadroma CLI with just `fadroma` instead of `npm exec fadroma` or similar.
-
-#### Create a Fadroma project through Nix
-
-If you use Nix, you can create a project with:
-
-```sh
-$ nix-shell https://fadroma.tech/nix -c fadroma project create
-```
-
-#### Project-specific Nix shell
-
-Projects are created with a `shell.nix`, which you can enter with:
-
-```sh
-$ cd /my/project
-$ nix-shell
-```
-
-Or, from any other directory:
-
-```sh
-$ nix-shell /my/project
-```
-
 ## Writing contracts
 
 A contract is your basic unit of domain logic.
@@ -137,12 +96,7 @@ $ npm exec fadroma build CONTRACT
 The build commands are implemented by the
 [**`@fadroma/ops`**](./packages/build/Build.spec.ts.md) package.
 
-### Testing with Ensemble
-
-[**Fadroma Ensemble**](https://fadroma.tech/rs/fadroma/ensemble/index.html)
-is a library for for integration testing of multiple contracts.
-
-## Deploying and scripting
+## Deploying contracts
 
 ### Deploy CLI
 
@@ -167,30 +121,12 @@ The deployment commands are implemented by the
 By default, Fadroma deploys to a **devnet**: a local instance of
 a blockchain, running in a Docker or Podman container.
 
-### Agent API
+## Testing contracts
 
-[**Fadroma Core**](https://fadroma.tech/js/modules/_fadroma_client.html) is a library for
-interfacing with smart contracts from JavaScript or TypeScript.
+### Testing with Ensemble
 
-#### Connecting
-
-The [**Fadroma Connect**](./packages/connect/Connect.spec.ts.md) library
-serves as an index of all supported connection targets.
-
-##### Secret Network
-
-The [**`@fadroma/scrt`**](./platforms/scrt/Scrt.spec.ts.md)
-package implements support for Secret Network.
-
-##### Other Cosmos-like chains
-
-Planned. See [issue #148](https://github.com/hackbg/fadroma/issues/148).
-
-##### EVM-based chains
-
-Under consideration.
-
-### Deployment API
+[**Fadroma Ensemble**](https://fadroma.tech/rs/fadroma/ensemble/index.html)
+is a library for for integration testing of multiple contracts.
 
 ### Testing with Mocknet
 
@@ -211,6 +147,72 @@ $ fadroma run script.ts
 
 To get started with writing Fadroma scripts,
 proceed to the [***Fadroma Core API Specification***](./packages/core/Core.spec.ts.md).
+
+### Agent API
+
+[**Fadroma Core**](https://fadroma.tech/js/modules/_fadroma_client.html) is a library for
+interfacing with smart contracts from JavaScript or TypeScript.
+
+### Deployment API
+
+### Connecting
+
+The [**Fadroma Connect**](./packages/connect/Connect.spec.ts.md) library
+serves as an index of all supported connection targets.
+
+#### Secret Network
+
+The [**`@fadroma/scrt`**](./platforms/scrt/Scrt.spec.ts.md)
+package implements support for Secret Network.
+
+#### Other Cosmos-like chains
+
+Planned. See [issue #148](https://github.com/hackbg/fadroma/issues/148).
+
+#### EVM-based chains
+
+Under consideration.
+
+## Nix environment support
+
+Nix is a functional package manager. Fadroma can optionally
+use Nix to provide you with a stable development environment.
+
+### Standalone Nix shell
+
+If you have Nix, you can enter a Fadroma shell with:
+
+```sh
+$ nix-shell https://fadroma.tech/nix
+```
+
+Nix will download tools like Node, Rust, Fadroma, etc.,
+and will drop you in a shell where these tools are available
+on the system path. In this shell, you can able to invoke
+the Fadroma CLI with just `fadroma` instead of `npm exec fadroma` or similar.
+
+### Create a Fadroma project through Nix
+
+If you use Nix, you can create a project with:
+
+```sh
+$ nix-shell https://fadroma.tech/nix -c fadroma project create
+```
+
+### Project-specific Nix shell
+
+Projects are created with a `shell.nix`, which you can enter with:
+
+```sh
+$ cd /my/project
+$ nix-shell
+```
+
+Or, from any other directory:
+
+```sh
+$ nix-shell /my/project/shell.nix
+```
 
 ---
 
