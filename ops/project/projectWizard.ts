@@ -18,7 +18,7 @@ export async function projectWizard () {
   run(root.path, 'cargo doc --all-features')
   run(root.path, 'git add .')
   run(root.path, 'git status')
-  run(root.path, 'git commit -m "Created by @fadroma/project 1.0.0 (https://fadroma.tech)"')
+  run(root.path, 'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"')
   console.br()
   console.log("Project initialized.")
   console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
@@ -30,11 +30,13 @@ export function run (cwd: string, cmd: string) {
 }
 
 export async function askProjectName (): Promise<string> {
-  return (await prompts.prompt({
+  let value
+  while ((value = (await prompts.prompt({
     type: 'text',
     name: 'value',
     message: 'Enter a project name (a-z, 0-9, dash/underscore)'
-  })).value
+  })).value.trim()) === '') {}
+  return value
 }
 
 export async function askSubdirectory (name: string): Promise<Path> {
