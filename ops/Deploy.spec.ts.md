@@ -94,7 +94,7 @@ Since this does not call the deployment's `deploy` method,
 it *only* deploys the requested contract and its dependencies
 but not any other contracts defined in the deployment.
 
-#### Custom deploy and operations methods
+#### Custom deploy commands
 
 The default `Deployment#deploy` method simply instantiates all
 contracts defined using the `Deployment#contract` method. To

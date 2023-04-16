@@ -37,7 +37,7 @@ This will give you a `Scrt` instance (subclass of `Chain`):
 ```typescript
 import { Chain } from '@fadroma/agent'
 for (const chain of [mainnet, testnet]) {
-  assert.ok(chain instanceof Chain && chain instanceof Scrt)
+  assert.ok(chain instanceof Chain && chain instanceof Scrt.Chain)
 }
 ```
 

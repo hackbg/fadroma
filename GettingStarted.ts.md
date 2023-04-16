@@ -139,19 +139,29 @@ For more complex operations, you can define custom commands, which you implement
 using the Fadroma TypeScript API. **See [@fadroma/agent](agent/Core.spec.ts.md)** to get
 started with scripting Fadroma.
 
-To run a Fadroma script:
+To run a Fadroma script in your project:
+
+```sh
+$ fadroma run script.js
+```
+
+### TypeScript
+
+Fadroma will use [Ganesha](https://github.com/hackbg/ganesha) to compile
+deployment scripts on each run. You can use TypeScript seamlessly in your
+deploy procedures.
 
 ```sh
 $ fadroma run script.ts
 ```
 
-To get started with writing Fadroma scripts,
-proceed to the [***Fadroma Core API Specification***](./packages/core/Core.spec.ts.md).
-
 ### Agent API
 
 [**Fadroma Core**](https://fadroma.tech/js/modules/_fadroma_client.html) is a library for
 interfacing with smart contracts from JavaScript or TypeScript.
+
+To get started with writing Fadroma scripts,
+proceed to the [***Fadroma Core API Specification***](./packages/core/Core.spec.ts.md).
 
 ### Deployment API
 

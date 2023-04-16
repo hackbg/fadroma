@@ -1,20 +1,16 @@
 # Mocknet: the blockchain that isn't.
 
-If **mainnet** refers to the main instance of a blockchain where all the real activity happens;
-a **testnet** is another instance which does not attempt to store value, and is used for testing;
-and a **devnet** (or **localnet**) is a local testnet with a single node -- then, what is a
-**mocknet**?
+Testing the production builds of smart contracts can be slow and awkward.
+Testnets are permanent and public; devnets can be temporary, but transactions
+are still throttled by the block rate.
 
-Unlike EVM-based chains, which use Ethereum's custom, domain-specific virtual machine, the
-smart contract runtime used by CosmWasm-based platforms is based on the industry-standard
-WebAssembly platform. This means you can **run real smart contracts without a real blockchain** --
-as long as something provides the required APIs for querying state, propagating transactions,
-storing data, et cetera.
+Mocknet is an intermediate environment that emulates the APIs that a
+CosmWasm contract expects to see when running in production,
+on top of the JavaScript engine's built-in WebAssembly runtime.
 
-Thus, the **Fadroma Mocknet** is a pure Node.js mock implementation of the API and environment
-that Cosmos contracts expect. Because it does not contain any kind of distributed consensus
-mechanism, it allows the business logic of your smart contracts to be tested much faster
-than with a real devnet.
+This way, you can run your real smart contracts without a real blockchain,
+and quickly test their user-facing functionality and interoperation
+in a customizable environment.
 
 ## Table of contents
 
@@ -66,10 +62,10 @@ Uploading WASM blob will return the expected monotonously incrementing code ID..
 
 ```typescript
 import { pathToFileURL } from 'url'
-import { examples } from '../examples/Examples.spec.ts.md'
+import { examples } from '../fixtures/Fixtures.ts.md'
 const uploaded_a = await agent.upload(examples['Echo'].data.load())
 const uploaded_b = await agent.upload(examples['KV'].data.load())
-assert.equal(uploaded_b.codeId,  String(Number(uploaded_a.codeId) + 1))
+assert.equal(uploaded_b.codeId, String(Number(uploaded_a.codeId) + 1))
 ```
 
 ...which you can use to instantiate the contract.
