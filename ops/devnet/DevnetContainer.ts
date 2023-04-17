@@ -1,7 +1,6 @@
-import Error from './DevnetError'
-import Console from './DevnetConsole'
-import Devnet from './DevnetBase'
-import { devnetPortModes, DevnetPlatform } from './DevnetConfig'
+import Error from '../Error'
+import Console from '../Console'
+import Devnet, { devnetPortModes, DevnetPlatform } from './DevnetBase'
 import type { DevnetOpts, DevnetState } from './DevnetBase'
 
 import type { AgentOpts, DevnetHandle } from '@fadroma/agent'
@@ -110,7 +109,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     this.readyPhrase ??= options.readyPhrase!
   }
 
-  log = new Console('@fadroma/devnet: docker')
+  log = new Console.Devnet('@fadroma/devnet: docker')
 
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
@@ -147,7 +146,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
   /** Gets the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<AgentOpts> {
     if (process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
-      if (!this.container) throw new Error.ContainerNotSet()
+      if (!this.container) throw new Error.Devnet.ContainerNotSet()
       const [identity] = await this.container.exec('cat', `/receipts/${this.chainId}/identities/${name}.json`)
       return JSON.parse(identity)
     } else {
@@ -208,7 +207,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     switch (this.portMode) {
       case 'lcp':     env.lcpPort     = String(this.port);      break
       case 'grpcWeb': env.grpcWebAddr = `0.0.0.0:${this.port}`; break
-      default: throw new Error(`DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
+      default: throw new Error.Devnet(`DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
     }
 
     // Container options
@@ -255,7 +254,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     if (data?.containerId) {
       this.container = await this.dock!.container(data.containerId)
     } else {
-      throw new Error('@fadroma/ops/Devnet: missing container id in devnet state')
+      throw new Error.Devnet('@fadroma/ops/Devnet: missing container id in devnet state')
     }
     return data
   }
@@ -390,7 +389,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
   }
 
   async export (repository?: string, tag?: string) {
-    if (!this.container) throw new Error("Can't export: no container")
+    if (!this.container) throw new Error.Devnet("Can't export: no container")
     return this.container.export(repository, tag)
   }
 

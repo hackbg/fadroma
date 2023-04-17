@@ -80,6 +80,11 @@ export default abstract class MocknetContract<I extends ContractImports, E exten
     const msg = args[args.length - 1]
     this.log.log(bold(this.address), `init: ${JSON.stringify(msg)}`)
     try {
+      const init = this.initMethod
+      if (!init) {
+        this.log.error('WASM exports of contract:', ...Object.keys(this.instance?.exports??{}))
+        throw new Error('Missing init entrypoint in contract.')
+      }
       return this.readUtf8(this.initMethod(...this.initPtrs(...args)))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on init:`, e.message)

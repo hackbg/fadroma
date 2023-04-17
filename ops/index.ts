@@ -18,10 +18,23 @@
 
 export * from './devnet/index'
 
-export * from './project/index'
+export * from './Project'
+export { default as Project } from './Project'
 
 export * from './build/index'
 
 export * from './upload/index'
 
 export * from './deploy/index'
+
+export { default as FadromaCommands } from './Commands'
+export * from './Commands'
+
+export { default as FadromaConsole } from './Console'
+export * from './Console'
+
+export { default as FadromaConfig } from './Config'
+export * from './Config'
+
+export { default as FadromaError } from './Error'
+export * from './Error'

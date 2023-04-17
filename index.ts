@@ -18,18 +18,15 @@
 
 **/
 
-export { default as Console } from './FadromaConsole'
-export { default as Config } from './FadromaConfig'
-export { default as Commands } from './FadromaCommands'
-
 export * as Logs from '@hackbg/logs'
 export * as Cmds from '@hackbg/cmds'
 export * as Conf from '@hackbg/conf'
 export * as File from '@hackbg/file'
 export * as Format from '@hackbg/4mat'
+
 export * from '@fadroma/agent'
-export { override } from '@fadroma/agent'
-export type { Decimal } from '@fadroma/agent'
+export * from '@fadroma/connect'
 export * from '@fadroma/ops'
-export * as Connect from '@fadroma/connect'
-export * as Tokens from '@fadroma/tokens'
+export * from '@fadroma/tokens'
+
+export type { Decimal } from '@fadroma/agent'

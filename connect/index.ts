@@ -68,9 +68,9 @@ export function defineDevnet (
 ) {
   return async <T> (config: T) => {
     //@ts-ignore
-    const { DevnetConfig } = await import('@fadroma/ops')
+    const { Config } = await import('@fadroma/ops')
     const mode = ChainMode.Devnet
-    const conf = new DevnetConfig()
+    const conf = new Config()
     const node = await conf.getDevnet(version as Parameters<typeof conf.getDevnet>[0])
     const id   = node.chainId
     const url  = node.url.toString()

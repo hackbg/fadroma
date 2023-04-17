@@ -1,5 +1,5 @@
-import DeployConsole from './DeployConsole'
-import DeployError from './DeployError'
+import { DeployConsole } from '../Console'
+import { DeployError } from '../Error'
 
 import {
   Agent, AnyContract, Contract, Client, Deployment, DeploymentState, DeployStore, toInstanceReceipt

@@ -30,9 +30,9 @@ import { Project } from '@fadroma/ops'
 const project = new Project({
   root,
   name: 'my-project',
-  contracts: {
-    contract1: {},
-    contract2: {},
+  templates: {
+    foo: {},
+    bar: {},
   }
 }).create()
 ```
@@ -46,11 +46,11 @@ $ npx fadroma contract del
 ```
 
 ```typescript
-const contract1 = project.getContract('contract1')
-assert(contract1 instanceof Template)
+const foo = project.getTemplate('foo')
+assert(foo instanceof Template)
 
-const contract3 = project.addContract('contract3')
-assert(contract3 instanceof Template)
+const baz = project.setTemplate('baz')
+assert(baz instanceof Template)
 ```
 
 ## Project state

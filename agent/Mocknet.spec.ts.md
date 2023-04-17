@@ -63,7 +63,7 @@ Uploading WASM blob will return the expected monotonously incrementing code ID..
 ```typescript
 import { pathToFileURL } from 'url'
 import { examples } from '../fixtures/Fixtures.ts.md'
-const uploaded_a = await agent.upload(examples['Echo'].data.load())
+const uploaded_a = await agent.upload(examples['KV'].data.load())
 const uploaded_b = await agent.upload(examples['KV'].data.load())
 assert.equal(uploaded_b.codeId, String(Number(uploaded_a.codeId) + 1))
 ```
@@ -74,10 +74,11 @@ assert.equal(uploaded_b.codeId, String(Number(uploaded_a.codeId) + 1))
 const contract_a = uploaded_a.instance({ agent, name: 'test-mocknet', initMsg: { fail: false } })
 const client_a = await contract_a.deployed
 
-//assert.equal(await client_a.query("echo"), 'echo')
-//assert.equal(await chain.getLabel(client_a.address),   client_a.label)
-//assert.equal(await chain.getHash(client_a.address),    client_a.codeHash)
-//assert.equal(await chain.getCodeId(client_a.codeHash), client_a.codeId)
+assert.equal(await client_a.query({get: {key: "foo"}}), [])
+assert.equal(await chain.getLabel(client_a.address),   client_a.label)
+assert.equal(await chain.getHash(client_a.address),    client_a.codeHash)
+assert.equal(await chain.getCodeId(client_a.codeHash), client_a.codeId)
+process.exit(123)
 ```
 
 Contract can use platform APIs as provided by Mocknet:

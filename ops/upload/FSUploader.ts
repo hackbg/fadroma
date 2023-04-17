@@ -4,7 +4,7 @@ import $, { Path, BinaryFile } from '@hackbg/file'
 import { Uploader, assertAgent, override, toUploadReceipt, Error } from '@fadroma/agent'
 import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
 
-import Console from './UploadConsole'
+import Console from '../Console'
 import UploadStore, { UploadReceipt } from './UploadStore'
 
 /** Uploads contracts from the local filesystem, with optional caching:
@@ -14,7 +14,7 @@ export default class FSUploader extends Uploader {
 
   get id () { return 'FS' }
 
-  log = new Console('@fadroma/ops: FSUploader' )
+  log = new Console.Upload('@fadroma/ops: FSUploader' )
 
   get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(no cache)' }
 

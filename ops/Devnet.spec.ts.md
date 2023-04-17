@@ -69,13 +69,7 @@ assert(alice instanceof Agent)
 
 ### Resetting the devnet
 
-```typescript
-import { resetDevnet } from '@fadroma/ops'
-await resetDevnet({ chain: { isDevnet: false } })
-await resetDevnet({ chain: { isDevnet: true, node: false } })
-await resetDevnet({ chain: null })
-await resetDevnet()
-```
+---
 
 ```typescript
 import assert from 'node:assert'

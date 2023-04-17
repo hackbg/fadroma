@@ -1,6 +1,5 @@
-import Error from './DevnetError'
-import Console from './DevnetConsole'
-import type { DevnetPortMode } from './DevnetConfig'
+import Error from '../Error'
+import { DevnetConsole as Console } from '../Console'
 
 import { Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
@@ -24,7 +23,7 @@ export default abstract class Devnet extends CommandContext implements DevnetHan
   }: Partial<DevnetOpts> = {}) {
     super('devnet')
     this.chainId = chainId ?? this.chainId
-    if (!this.chainId) throw new Error.NoChainId()
+    if (!this.chainId) throw new Error.Devnet.NoChainId()
 
     // FIXME: Is the auto-destroy working?
     this.ephemeral = ephemeral ?? this.ephemeral
@@ -176,4 +175,28 @@ export interface DevnetState {
   host?:        string
   /** The port on which the devnet will be listening. */
   port:         number|string
+}
+
+/** Supported connection types. */
+export type DevnetPortMode = 'lcp'|'grpcWeb'
+
+/** Supported devnet variants. */
+export type DevnetPlatform =
+  |'scrt_1.2'
+  |'scrt_1.3'
+  |'scrt_1.4'
+  |'scrt_1.5'
+  |'scrt_1.6'
+  |'scrt_1.7'
+  |'scrt_1.8'
+
+/** Default connection type to expose on each devnet variant. */
+export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
+  'scrt_1.2': 'lcp',
+  'scrt_1.3': 'grpcWeb',
+  'scrt_1.4': 'grpcWeb',
+  'scrt_1.5': 'lcp',
+  'scrt_1.6': 'lcp',
+  'scrt_1.7': 'lcp',
+  'scrt_1.8': 'lcp'
 }

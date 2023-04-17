@@ -1,4 +1,4 @@
-import DeployConsole from './DeployConsole'
+import { DeployConsole } from '../Console'
 
 import { timestamp } from '@hackbg/logs'
 import type { AnyContract, DeploymentState } from '@fadroma/agent'

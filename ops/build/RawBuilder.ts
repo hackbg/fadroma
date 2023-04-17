@@ -1,5 +1,5 @@
+import { BuildConsole } from '../Console'
 import LocalBuilder, { artifactName, sanitize } from './LocalBuilder'
-import BuildConsole from './BuildConsole'
 import getGitDir from './getGitDir'
 
 import { Builder, Contract, HEAD } from '@fadroma/agent'

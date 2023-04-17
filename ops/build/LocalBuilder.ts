@@ -1,4 +1,5 @@
-import BuildConsole from './BuildConsole'
+import Console from '../Console'
+import type { BuilderConfig } from '../Config'
 
 import { Builder, HEAD } from '@fadroma/agent'
 import type { Class, Built } from '@fadroma/agent'
@@ -9,7 +10,10 @@ import { bold } from '@hackbg/logs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFileSync } from 'node:fs'
-import BuilderConfig from './BuilderConfig'
+
+/** Path to this package. Used to find the build script, dockerfile, etc. */
+//@ts-ignore
+export const buildPackage = dirname(fileURLToPath(import.meta.url))
 
 /** Can perform builds.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
@@ -17,7 +21,7 @@ export default abstract class LocalBuilder extends Builder {
 
   constructor (options: Partial<BuilderConfig>) {
     super('local builder', 'local builder')
-    this.config = new BuilderConfig(options)
+    this.workspace = options.project   ?? this.workspace
     this.noFetch   = options.noFetch   ?? this.noFetch
     this.toolchain = options.toolchain ?? this.toolchain
     this.verbose   = options.verbose   ?? this.verbose
@@ -26,11 +30,11 @@ export default abstract class LocalBuilder extends Builder {
     if (options.script) this.script = options.script
   }
   /** Logger. */
-  log = new BuildConsole('Local Builder')
-  /** Settings. */
-  config:     BuilderConfig
+  log = new Console('Local Builder')
   /** The build script. */
   script?:    string
+  /** The project workspace. */
+  workspace?: string
   /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
   noFetch:    boolean     = false
   /** Name of directory where build artifacts are collected. */
@@ -45,12 +49,6 @@ export default abstract class LocalBuilder extends Builder {
   caching:    boolean     = true
   /** Default Git reference from which to build sources. */
   revision:   string = HEAD
-
-  printUsage () {
-    this.log.usage()
-    this.exit(6)
-    return true
-  }
 
   readonly id: string = 'local'
 

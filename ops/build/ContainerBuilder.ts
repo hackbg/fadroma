@@ -1,7 +1,7 @@
-import LocalBuilder, { artifactName, sanitize } from './LocalBuilder'
-import { buildPackage } from './BuilderConfig'
-import BuildConsole from './BuildConsole'
-import type BuilderConfig from './BuilderConfig'
+import { BuildConsole } from '../Console'
+import type { BuilderConfig } from '../Config'
+import Error from '../Error'
+import LocalBuilder, { artifactName, sanitize, buildPackage } from './LocalBuilder'
 import getGitDir from './getGitDir'
 
 import { Builder, Contract, HEAD } from '@fadroma/agent'
@@ -85,7 +85,7 @@ export default class ContainerBuilder extends LocalBuilder {
     for (let id in contracts) {
       // Contracts passed as strins are converted to object here
       if (typeof contracts[id] === 'string') contracts[id] = {
-        workspace: this.config.project,
+        workspace: this.workspace,
         revision:  'HEAD',
         crate:     contracts[id] as string,
       }
@@ -219,16 +219,16 @@ export default class ContainerBuilder extends LocalBuilder {
     }
 
     // Define the mounts and environment variables of the build container
-    if (!this.script) throw new Error('Build script not set.')
+    if (!this.script) throw new Error.Build('Build script not set.')
     const buildScript   = $(`/`, $(this.script).name).path
     const safeRef       = sanitize(revision)
     const knownHosts    = $(homedir()).in('.ssh').at('known_hosts')
     const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
       // The script that will run in the container
-      [this.script]:                buildScript,
+      [this.script]:  buildScript,
       // Root directory of repository, containing real .git directory
-      [$(root).path]:              `/src`,
+      [$(root).path]: `/src`,
       // For non-interactively fetching submodules over SSH, we need to propagate known_hosts
       ...(knownHosts.isFile()    ? { [knownHosts.path]:     '/root/.ssh/known_hosts'   } : {}),
       ...(etcKnownHosts.isFile() ? { [etcKnownHosts.path] : '/etc/ssh/ssh_known_hosts' } : {}),

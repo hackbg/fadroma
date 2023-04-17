@@ -1,19 +1,19 @@
 import type { TOMLFile } from '@hackbg/file'
 
+import Config from '../Config'
+import type { BuilderConfig } from '../Config'
+
+import LocalBuilder from './LocalBuilder'
+import RawBuilder from './RawBuilder'
+import ContainerBuilder from './ContainerBuilder'
+
+import { Builder } from '@fadroma/agent'
+import type { Buildable, Built } from '@fadroma/agent'
+
+Object.assign(Builder.variants, { 'container': ContainerBuilder, 'raw': RawBuilder })
+
 /** The parts of Cargo.toml which the builder needs to be aware of. */
 export type CargoTOML = TOMLFile<{ package: { name: string } }>
-
-export * from './BuildConsole'
-export { default as BuildConsole } from './BuildConsole'
-
-export * from './BuildError'
-export { default as BuildError } from './BuildError'
-
-export * from './BuilderConfig'
-export { default as BuilderConfig } from './BuilderConfig'
-
-export * from './BuildCommands'
-export { default as BuildCommands } from './BuildCommands'
 
 export * from './LocalBuilder'
 export { default as LocalBuilder } from './LocalBuilder'
@@ -27,21 +27,12 @@ export { default as ContainerBuilder } from './ContainerBuilder'
 export * from './getGitDir'
 export { default as getGitDir } from './getGitDir'
 
-import { Builder } from '@fadroma/agent'
-import LocalBuilder     from './LocalBuilder'
-import RawBuilder       from './RawBuilder'
-import ContainerBuilder from './ContainerBuilder'
-
-Object.assign(Builder.variants, { 'container': ContainerBuilder, 'raw': RawBuilder })
-
 export { Builder }
 
-import BuilderConfig from './BuilderConfig'
-import type { Buildable, Built } from '@fadroma/agent'
 
 /** @returns Builder configured as per environment and options */
 export function getBuilder (options: Partial<BuilderConfig> = {}): Builder {
-  return new BuilderConfig(options).getBuilder()
+  return new Config({ build: options }).getBuilder()
 }
 
 /** Compile a single contract with default settings. */

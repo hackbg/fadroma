@@ -1,4 +1,4 @@
-import BuildConsole from './BuildConsole'
+import { BuildConsole } from '../Console'
 
 import $, { Path, TextFile } from '@hackbg/file'
 import { bold } from '@hackbg/logs'

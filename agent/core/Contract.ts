@@ -158,7 +158,7 @@ export class Contract<C extends Client> extends Template<C> {
         if (this.context) this.context.addContract(this.name!, this)
       }
       // Create and return the Client instance used to interact with the contract
-      return getClientTo(this)
+      return resolve(getClientTo(this))
     })
     Object.defineProperty(this, 'deployed', { get () { return deploying } })
     return deploying

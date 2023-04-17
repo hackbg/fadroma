@@ -41,6 +41,8 @@ export default class TokenManager extends CommandContext {
 
     super('tokens', 'token manager')
 
+    this.log.warn('TokenManager: unstable')
+
     for (const hide of [
       'log', 'name', 'description', 'timestamp',
       'commandTree', 'currentCommand',

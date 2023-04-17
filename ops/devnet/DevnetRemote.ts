@@ -1,8 +1,7 @@
-import Error from './DevnetError'
-import Console from './DevnetConsole'
-import Devnet from './DevnetBase'
+import Error from '../Error'
+import { DevnetConsole as Console } from '../Console'
+import Devnet, { devnetPortModes, DevnetPlatform } from './DevnetBase'
 import type { DevnetOpts } from './DevnetBase'
-import { devnetPortModes, DevnetPlatform } from './DevnetConfig'
 
 import type { AgentOpts, DevnetHandle } from '@fadroma/agent'
 
@@ -36,7 +35,7 @@ export default class RemoteDevnet extends Devnet implements DevnetHandle {
   ) {
 
     const log = new Console('@fadroma/devnet: remote (init)')
-    log.warn('incomplete')
+    log.warn('RemoteDevnet: unstable')
 
     // If passed a chain id, use it; this makes a passed prefix irrelevant.
     if (chainId && prefix) {
@@ -135,17 +134,17 @@ export default class RemoteDevnet extends Devnet implements DevnetHandle {
   async getGenesisAccount (name: string): Promise<AgentOpts> {
     const identity = await this.manager.get('/identity', { name })
     if (identity.error) {
-      throw new Error(`RemoteDevnet#getGenesisAccount: failed to get ${name}: ${identity.error}`)
+      throw new Error.Devnet(`RemoteDevnet#getGenesisAccount: failed to get ${name}: ${identity.error}`)
     }
     return identity
   }
 
   async erase () {
-    throw new Error('RemoteDevnet#erase: not implemented')
+    throw new Error.Devnet('RemoteDevnet#erase: not implemented')
   }
 
   async kill () {
-    throw new Error('RemoteDevnet#kill: not implemented')
+    throw new Error.Devnet('RemoteDevnet#kill: not implemented')
   }
 
 }
