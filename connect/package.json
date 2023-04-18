@@ -1,10 +1,9 @@
 {
   "name":    "@fadroma/connect",
-  "version": "3.0.0-rc.0",
+  "version": "3.0.0-rc.1",
   "type":    "module",
   "main":    "./connect.ts",
-  "files":   [ "*.ts", "*.cli.cjs" ],
-  "bin": { "fadroma-connect": "connect.cli.cjs" },
+  "files":   [ "*.ts" ],
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
     "ts:check":    "tsc --noEmit",
@@ -17,11 +16,9 @@
     "@hackbg/conf":   "workspace:^1"
   },
   "peerDependencies": {
-    "@hackbg/ganesha": "^2.2.5",
     "@fadroma/ops": "3.0.0-rc.0"
   },
   "peerDependenciesMeta": {
-    "@hackbg/ganesha": { "optional": true, "description": "For fadroma-connect command." },
     "@fadroma/ops": { "optional": true, "description": "For devnet support." }
   }
 }
