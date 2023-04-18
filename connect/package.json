@@ -18,7 +18,7 @@
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5",
-    "@fadroma/ops": "workspace:*"
+    "@fadroma/ops": "3.0.0-rc.0"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-connect command." },
