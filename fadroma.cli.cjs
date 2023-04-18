@@ -3,7 +3,7 @@
 process.argv = [
   process.argv[0],
   require.resolve('@hackbg/cmds/cmds-ts.cli.cjs'),
-  require('path').resolve(__dirname, 'index.ts'),
+  require('path').resolve(__dirname),
   ...process.argv.slice(2)
 ]
 

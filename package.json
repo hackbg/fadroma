@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.54",
+  "version": "1.0.0-beta.55",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "index.ts",
@@ -57,7 +57,7 @@
     "@hackbg/dock":         "workspace:^1.2",
     "@hackbg/file":         "workspace:^1",
     "@hackbg/port":         "workspace:^1",
-    "@hackbg/cmds":         "workspace:^1.2.1",
+    "@hackbg/cmds":         "workspace:^1.2.2",
     "@types/dockerode":     "^3.3.14",
     "@types/node":          "latest",
     "@types/prettyjson":    "^0.0.30",
