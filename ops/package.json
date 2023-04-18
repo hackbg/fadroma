@@ -7,9 +7,9 @@
   "description": "Devops tooling for smart contract platforms.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite ../spec/Ops.spec.ts.md",
-    "cov":   "ensuite-cov -r text -- ../spec/Ops.spec.ts.md",
-    "lcov":  "ensuite-cov -r lcov -- ../spec/Ops.spec.ts.md",
+    "test":  "cd .. && ensuite spec/Ops.spec.ts.md",
+    "cov":   "cd .. && ensuite-cov -r text -- spec/Ops.spec.ts.md",
+    "lcov":  "cd .. && ensuite-cov -r lcov -- spec/Ops.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {

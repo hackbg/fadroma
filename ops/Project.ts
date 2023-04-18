@@ -114,7 +114,7 @@ export default class Project {
     value: string|Template<any>|(Buildable & Partial<Built>)
   ): Template<any> {
     return this.templates[name] =
-      (typeof value === 'string') ? new Template({ workspace: '.', crate: value }) :
+      (typeof value === 'string') ? new Template({ workspace: this.root.path, crate: value }) :
       (value instanceof Template) ? value : new Template(value)
   }
 
