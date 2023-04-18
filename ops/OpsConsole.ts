@@ -112,7 +112,7 @@ export class BuildConsole extends BaseConsole {
     for (const source of sources) this.buildingOne(source)
   }
   prebuilt (prebuilt: Built) {
-    this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
+    this.log('Found:', bold(colors.green($(prebuilt.artifact!).shortPath)))
   }
   usage () {
     this.info(`

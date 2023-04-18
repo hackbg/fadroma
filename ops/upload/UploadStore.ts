@@ -17,7 +17,7 @@ export default class UploadStore extends JSONDirectory<UploadReceipt> {
     const receiptFile = this.at(name)
     if (receiptFile.exists()) {
       const receipt = receiptFile.as(UploadReceipt)
-      this.log.log(`${colors.green('Found:')}`, bold(colors.green(receiptFile.shortPath)))
+      this.log.log(`Found:`, bold(colors.green(receiptFile.shortPath)))
       const {
         chainId = _chainId,
         codeId,

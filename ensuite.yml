@@ -152,7 +152,7 @@ features:
     links:
       - icon: typescript
         text: "@fadroma/agent"
-        href: /packages/core/Core.spec.ts.md
+        href: /packages/core/Agent.spec.ts.md
         bold: true
       - icon: typescript
         text: Example client

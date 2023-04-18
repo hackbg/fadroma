@@ -93,8 +93,6 @@ chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mocknet })
 assert(chain.devMode)
 assert(chain.isMocknet)
 assert(!chain.isMainnet)
-
-import './Mocknet.spec.ts.md'
 ```
 
 ### Agent: authenticating
@@ -309,6 +307,9 @@ class MyClient extends Client {
   myMethod () { return this.execute({ my_method: {} }) }
   myQuery () { return this.query({ my_query: {} }) }
 }
+```
+
+```typescript
 
 import { Builder } from '@fadroma/agent'
 
@@ -328,7 +329,7 @@ template = await deployment.template({
 
 assert.ok(template.info)
 
-instance = await template.instance({
+instance = template.instance({
   name: 'custom-client-contract',
   initMsg: {}
 })

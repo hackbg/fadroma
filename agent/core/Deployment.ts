@@ -287,9 +287,7 @@ export class Deployment {
   /** Specify a contract template.
     * @returns a callable instance of `Template` bearing the specified parameters.
     * Calling it will build and upload the template. */
-  template <C extends Client> (
-    opts: Partial<Template<C>> = {}
-  ): Template<C> {
+  template <C extends Client> (opts: Partial<Template<C>> = {}): Template<C> {
     return new Template({
       workspace: this.workspace,
       revision:  this.revision ?? 'HEAD',
@@ -409,47 +407,48 @@ export interface Subsystem<D extends Deployment, E extends Deployment> extends C
   * Can produce deployable Contract instances. */
 export class Template<C extends Client> {
   log = new Console(this.constructor.name)
-  /** The deployment that this template belongs to. */
-  context?:    Deployment     = undefined
-  /** URL pointing to Git repository containing the source code. */
-  repository?: string|URL     = undefined
-  /** Branch/tag pointing to the source commit. */
-  revision?:   string         = undefined
-  /** Whether there were any uncommitted changes at build time. */
-  dirty?:      boolean        = undefined
-  /** Path to local Cargo workspace. */
-  workspace?:  string         = undefined
-  /** Name of crate in workspace. */
-  crate?:      string         = undefined
-  /** List of crate features to enable during build. */
-  features?:   string[]       = undefined
-  /** Build procedure implementation. */
-  builder?:    Builder        = undefined
-  /** Builder implementation that produces a Contract from the Source. */
-  builderId?:  string         = undefined
-  /** URL to the compiled code. */
-  artifact?:   string|URL     = undefined
-  /** Code hash uniquely identifying the compiled code. */
-  codeHash?:   CodeHash       = undefined
-  /** ID of chain on which this contract is uploaded. */
-  chainId?:    ChainId        = undefined
-  /** Object containing upload logic. */
-  uploaderId?: string         = undefined
-  /** Upload procedure implementation. */
-  uploader?:   Uploader       = undefined
-  /** Address of agent that performed the upload. */
-  uploadBy?:   Address        = undefined
-  /** TXID of transaction that performed the upload. */
-  uploadTx?:   TxHash         = undefined
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:     CodeId         = undefined
-  /** The Agent instance that will be used to upload and instantiate the contract. */
-  agent?:      Agent          = undefined
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
   client?:     ClientClass<C> = undefined
+  /** The deployment that this template belongs to. */
+  context?:    Deployment = undefined
+  /** URL pointing to Git repository containing the source code. */
+  repository?: string|URL = undefined
+  /** Branch/tag pointing to the source commit. */
+  revision?:   string     = undefined
+  /** Whether there were any uncommitted changes at build time. */
+  dirty?:      boolean    = undefined
+  /** Path to local Cargo workspace. */
+  workspace?:  string     = undefined
+  /** Name of crate in workspace. */
+  crate?:      string     = undefined
+  /** List of crate features to enable during build. */
+  features?:   string[]   = undefined
+  /** Build procedure implementation. */
+  builder?:    Builder    = undefined
+  /** Builder implementation that produces a Contract from the Source. */
+  builderId?:  string     = undefined
+  /** URL to the compiled code. */
+  artifact?:   string|URL = undefined
+  /** Code hash uniquely identifying the compiled code. */
+  codeHash?:   CodeHash   = undefined
+  /** ID of chain on which this contract is uploaded. */
+  chainId?:    ChainId    = undefined
+  /** Object containing upload logic. */
+  uploaderId?: string     = undefined
+  /** Upload procedure implementation. */
+  uploader?:   Uploader   = undefined
+  /** Address of agent that performed the upload. */
+  uploadBy?:   Address    = undefined
+  /** TXID of transaction that performed the upload. */
+  uploadTx?:   TxHash     = undefined
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:     CodeId     = undefined
+  /** The Agent instance that will be used to upload and instantiate the contract. */
+  agent?:      Agent      = undefined
 
   constructor (options: Partial<Template<C>> = {}) {
+    // FIXME: just write it out ... >_>
     this.define(options)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
@@ -465,6 +464,7 @@ export class Template<C extends Client> {
   /** Provide parameters for an existing instance.
     * @returns mutated self */
   define (options: Partial<Template<C>> = {}): this {
+    // FIXME: just write it out ... >_>
     return override(this, options as object)
   }
 
@@ -494,7 +494,7 @@ export class Template<C extends Client> {
         const result = await builder!.build(this as Buildable)
         this.define(result as Partial<this>)
       }
-      return this
+      return resolve(this as this & Built)
     })
     Object.defineProperty(this, 'compiled', { get () { return building } })
     return building

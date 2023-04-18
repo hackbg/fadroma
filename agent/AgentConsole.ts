@@ -77,7 +77,7 @@ export default class Console extends BaseConsole {
       repository = colors.gray('(unspecified source)')
     } = receipt
     name = bold(name)
-    if (this.indent + len + 64 < this.width - 4) {
+    if (len + 64 < this.width - 4) {
       codeId = bold(codeId)
       crate  = bold(crate)
       this.info(name)
@@ -94,7 +94,7 @@ export default class Console extends BaseConsole {
 
   foundDeployedContract (address: Address, name: Name) {
     this.log(
-      colors.green('Found:   '),
+      'Found:',
       bold(colors.green(address)),
       'is',
       bold(colors.green(name)),
@@ -112,7 +112,7 @@ export default class Console extends BaseConsole {
     label = label ? bold(label) : colors.red('(missing label!)')
     let info = `${bold(label)} from code id ${bold(codeId)}`
     if (crate) info += ` (${bold(crate)} @ ${bold(revision)})`
-    this.log(`Init:     ${info}`)
+    this.log(`init ${info}`)
   }
 
   afterDeploy <C extends Client> (contract: Partial<Contract<C>>) {
@@ -124,9 +124,9 @@ export default class Console extends BaseConsole {
       ? bold(green(contract.prefix))
       : bold(red('(no deployment)'))
     const address = bold(colors.green(contract?.address!))
-    this.info('Deployed:', id, 'in', deployment)
-    this.info('Address: ', address)
-    this.info('Code hash', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
+    this.info('addr', address)
+    this.info('hash', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
+    this.info('added to', deployment)
   }
 
   deployFailed (e: Error, template: Instantiable, name: Label, msg: Message) {

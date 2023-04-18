@@ -136,7 +136,7 @@ a simulated environment for fast full-stack testing of your production builds.
 ## Scripting Fadroma
 
 For more complex operations, you can define custom commands, which you implement in TypeScript
-using the Fadroma TypeScript API. **See [@fadroma/agent](./spec/Core.spec.ts.md)** to get
+using the Fadroma TypeScript API. **See [@fadroma/agent](./spec/Agent.spec.ts.md)** to get
 started with scripting Fadroma.
 
 To run a Fadroma script in your project:
@@ -161,7 +161,7 @@ $ fadroma run script.ts
 interfacing with smart contracts from JavaScript or TypeScript.
 
 To get started with writing Fadroma scripts,
-proceed to the [***Fadroma Core API Specification***](./spec/Core.spec.ts.md).
+proceed to the [***Fadroma Core API Specification***](./spec/Agent.spec.ts.md).
 
 ### Deployment API
 
@@ -227,7 +227,8 @@ $ nix-shell /my/project/shell.nix
 ---
 
 ```typescript
-import './spec/Core.spec.ts.md'
+import './spec/Agent.spec.ts.md'
+import './spec/Mocknet.spec.ts.md'
 import './spec/Connect.spec.ts.md'
 import './spec/Scrt.spec.ts.md'
 import './spec/Ops.spec.ts.md'
