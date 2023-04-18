@@ -41,7 +41,7 @@ The first thing any NPM package needs is a `package.json`.
   "type": "module",
   "main": "MyContract.js",
   "dependencies": {
-    "@fadroma/agent": "^6.1"
+    "@fadroma/agent": "^1"
   }
 }
 ```
@@ -112,7 +112,7 @@ environment support and the least amount of hurdles during development.
     "default": "./dist/esm/MyContract.js"
   },
   "dependencies": {
-    "@fadroma/agent": "^3"
+    "@fadroma/agent": "^1"
   },
   "devDependencies": {
     "typescript": "^5"

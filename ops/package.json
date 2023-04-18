@@ -19,8 +19,8 @@
     "@hackbg/ganesha": { "optional": true, "description": "For CLI" }
   },
   "dependencies": {
-    "@fadroma/connect": "workspace:2.1.5",
-    "@hackbg/dock": "workspace:1.2",
+    "@fadroma/connect": "workspace:3.0.0-rc.0",
+    "@hackbg/dock": "workspace:^1.2",
     "@hackbg/file": "workspace:^1",
     "@hackbg/port": "workspace:^1",
     "@hackbg/cmds": "workspace:^1.1.4",
