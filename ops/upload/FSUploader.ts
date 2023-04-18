@@ -1,11 +1,15 @@
-import { base16, sha256 } from '@hackbg/4mat'
-import { colors, bold } from '@hackbg/logs'
-import $, { Path, BinaryFile } from '@hackbg/file'
-import { Uploader, assertAgent, override, toUploadReceipt, Error } from '@fadroma/agent'
-import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
+import { Console } from '../util'
 
-import Console from '../Console'
 import UploadStore, { UploadReceipt } from './UploadStore'
+
+import {
+  Uploader, assertAgent, override, toUploadReceipt, Error, colors, bold,  base16, sha256
+} from '@fadroma/agent'
+import type { 
+  Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract
+} from '@fadroma/agent'
+
+import $, { Path, BinaryFile } from '@hackbg/file'
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,

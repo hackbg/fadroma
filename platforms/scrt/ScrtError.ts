@@ -18,4 +18,3 @@ export default class ScrtError extends Error {
   static NoCodeHash = this.define('NoCodeHash',
     () => 'Missing code hash')
 }
-

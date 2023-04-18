@@ -26,7 +26,7 @@ Fadroma is available as a suite of Cargo crates and NPM packages.
 ## Project structure
 
 The default structure of a project is implemented by the
-[**`@fadroma/project`**](./packages/project/Project.spec.ts.md) package.
+[**`@fadroma/project`**](./spec/Project.spec.ts.md) package.
 Projects created by Fadroma are polyglot Rust/TypeScript repositories.
 
 * The Rust side can be structured either as a Cargo workspace
@@ -94,7 +94,7 @@ $ npm exec fadroma build CONTRACT
 ```
 
 The build commands are implemented by the
-[**`@fadroma/ops`**](./packages/build/Build.spec.ts.md) package.
+[**`@fadroma/ops`**](./spec/Build.spec.ts.md) package.
 
 ## Deploying contracts
 
@@ -114,7 +114,7 @@ $ npm exec fadroma tx LABEL MSG
 ```
 
 The deployment commands are implemented by the
-[**`@fadroma/ops`**](./packages/build/Build.spec.ts.md) package.
+[**`@fadroma/ops`**](./spec/Build.spec.ts.md) package.
 
 ### Devnets
 
@@ -136,7 +136,7 @@ a simulated environment for fast full-stack testing of your production builds.
 ## Scripting Fadroma
 
 For more complex operations, you can define custom commands, which you implement in TypeScript
-using the Fadroma TypeScript API. **See [@fadroma/agent](agent/Core.spec.ts.md)** to get
+using the Fadroma TypeScript API. **See [@fadroma/agent](./spec/Core.spec.ts.md)** to get
 started with scripting Fadroma.
 
 To run a Fadroma script in your project:
@@ -161,18 +161,18 @@ $ fadroma run script.ts
 interfacing with smart contracts from JavaScript or TypeScript.
 
 To get started with writing Fadroma scripts,
-proceed to the [***Fadroma Core API Specification***](./packages/core/Core.spec.ts.md).
+proceed to the [***Fadroma Core API Specification***](./spec/Core.spec.ts.md).
 
 ### Deployment API
 
 ### Connecting
 
-The [**Fadroma Connect**](./packages/connect/Connect.spec.ts.md) library
+The [**Fadroma Connect**](./spec/Connect.spec.ts.md) library
 serves as an index of all supported connection targets.
 
 #### Secret Network
 
-The [**`@fadroma/scrt`**](./platforms/scrt/Scrt.spec.ts.md)
+The [**`@fadroma/scrt`**](./spec/Scrt.spec.ts.md)
 package implements support for Secret Network.
 
 #### Other Cosmos-like chains
@@ -227,12 +227,8 @@ $ nix-shell /my/project/shell.nix
 ---
 
 ```typescript
-import './agent/Core.spec.ts.md'
-
-import './connect/Connect.spec.ts.md'
-import './platforms/scrt/Scrt.spec.ts.md'
-import './platforms/cw/CW.spec.ts.md'
-import './platforms/evm/EVM.spec.ts.md'
-
-import './ops/Ops.spec.ts.md'
+import './spec/Core.spec.ts.md'
+import './spec/Connect.spec.ts.md'
+import './spec/Scrt.spec.ts.md'
+import './spec/Ops.spec.ts.md'
 ```

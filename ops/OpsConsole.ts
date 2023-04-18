@@ -1,16 +1,14 @@
 import { Console as BaseConsole, colors, bold, HEAD } from '@fadroma/agent'
 import type { Template, Built } from '@fadroma/agent'
+import type { Deployment, DeployStore } from '@fadroma/agent'
+
 import $ from '@hackbg/file'
 import type { Path } from '@hackbg/file'
-import type { Deployment, DeployStore } from '@fadroma/agent'
+import { CommandsConsoleMixin } from '@hackbg/cmds'
 
 export { bold, colors }
 
-export class UploadConsole extends BaseConsole {
-  label = 'Upload'
-}
-
-export class DevnetConsole extends BaseConsole {
+export class DevnetConsole extends CommandsConsoleMixin(BaseConsole) {
   loadingState = (chainId1: string, chainId2: string) =>
     this.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`)
   loadingFailed = (path: string) =>
@@ -26,9 +24,9 @@ export class DevnetConsole extends BaseConsole {
   }
 }
 
-export class DeployConsole extends BaseConsole {
+export class DeployConsole extends CommandsConsoleMixin(BaseConsole) {
   constructor (public label = '@fadroma/ops') {
-    super(label)
+    super()
   }
   warnNoDeployment () {
     return this.warn(
@@ -128,6 +126,10 @@ export class BuildConsole extends BaseConsole {
     const crates = cratesToBuild.map(x=>bold(x)).join(', ')
     this.log(`Started building from ${bold(root)} @ ${bold(revision)}:`, crates)
   }
+}
+
+export class UploadConsole extends BaseConsole {
+  label = 'Upload'
 }
 
 export default class Console extends BaseConsole {

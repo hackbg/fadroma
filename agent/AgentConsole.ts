@@ -2,13 +2,13 @@ import type {
   Address, Chain, Client, CodeHash, CodeId, Contract, Deployment, Instantiable,
   Label, Message, Name,
 } from './index'
-import Error from './Error'
-import { CommandsConsole } from '@hackbg/cmds'
-import { bold, colors } from '@hackbg/logs'
+import Error from './AgentError'
 
-export { bold, colors } from '@hackbg/logs'
+import { Console as BaseConsole, bold, colors } from '@hackbg/logs'
 
-export default class Console extends CommandsConsole {
+export * from '@hackbg/logs'
+
+export default class Console extends BaseConsole {
 
   constructor (label: string = 'Fadroma') {
     super(label)

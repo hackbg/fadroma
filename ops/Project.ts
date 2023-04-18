@@ -5,7 +5,7 @@ import type { Builder, Buildable, Uploadable, Built } from '@fadroma/agent'
 import { Template } from '@fadroma/agent'
 
 import $, { Path, OpaqueDirectory, OpaqueFile, JSONFile, TOMLFile, TextFile } from '@hackbg/file'
-import { Console, bold, colors } from '@hackbg/logs'
+import Console, { bold, colors } from './OpsConsole'
 
 import Case from 'case'
 import prompts from 'prompts'
@@ -41,6 +41,8 @@ export default class Project {
     return new Project(fadroma)
   }
 
+  log: Console
+
   /** Name of the project. */
   name:           string
   /** Root directory of the project. */
@@ -72,10 +74,13 @@ export default class Project {
     // Handle options
     const root = $(options?.root || process.cwd()).as(OpaqueDirectory)
     const name = options?.name || root.name
+    this.log = new Console(`Project: ${name}`)
     const templates = options?.templates || {}
     this.name = name
     this.root = root
     // Hydrate project templates
+    this.templates = {}
+    this.crates = {}
     for (const [key, val] of Object.entries(options?.templates || {})) {
       const template = this.setTemplate(key, val)
       if (template.crate) this.crates[key] = new ContractCrate(this, template.crate)
@@ -92,23 +97,25 @@ export default class Project {
   }
 
   /** NPM packages in workspace. */
-  packages:  Record<string, NPMPackage>
+  packages: Record<string, NPMPackage>
 
   /** Crates in workspace. */
-  crates:    Record<string, ContractCrate> = {}
+  crates: Record<string, ContractCrate>
 
   /** Contract definitions. */
-  templates: Record<string, Template<any>> = {}
+  templates: Record<string, Template<any>>
 
   getTemplate (name: string): (Template<any> & Buildable)|undefined {
     return this.templates[name] as Template<any> & Buildable
   }
 
-  setTemplate (name: string, options: Template<any>|(Buildable & Partial<Built>)): Template<any> {
-    const template: Template<any> = (options instanceof Template) ? options : new Template(options)
-    return this.templates[name] = template
-    console.log({template})
-    return template
+  setTemplate (
+    name:  string,
+    value: string|Template<any>|(Buildable & Partial<Built>)
+  ): Template<any> {
+    return this.templates[name] =
+      (typeof value === 'string') ? new Template({ workspace: '.', crate: value }) :
+      (value instanceof Template) ? value : new Template(value)
   }
 
   build (names: string[], builder = getBuilder()) {
@@ -117,6 +124,7 @@ export default class Project {
   }
 
   buildAll (builder = getBuilder()) {
+    this.log.info('Building all contracts:', Object.keys(this.templates).join(', '))
     return this.build(Object.keys(this.templates), builder)
   }
 
@@ -269,32 +277,36 @@ export class APIPackage extends NPMPackage {
     super.create({
       name: `@${this.project.name}/${this.name}`,
       version: "0.0.0",
-      dependencies: { "@fadroma/scrt": "^8", },
+      dependencies: {
+        "@fadroma/agent": "^1",
+        "@fadroma/scrt":  "^8",
+      },
       main: `${this.name}.ts`
     })
 
-    const Name = Case.pascal(this.project.name)
+    const imports = `import { Client, Deployment } from '@fadroma/agent'`
+
     const contracts = Object.keys(this.project.crates)
-    const Contracts = contracts.map(Case.pascal)
-    this.index.save([
-      `import { Client, Deployment } from '@fadroma/agent'`,
-      '',
-      `export default class ${Name} extends Deployment {`,
+
+    const deploymentClass = [
+      `export default class ${Case.pascal(this.project.name)} extends Deployment {`,
       ...contracts.map(contract => [
         `  ${contract} = this.contract(`,
         `{ name: "${contract}", crate: "${contract}", client: ${Case.pascal(contract)} })`
       ].join('')),
       '}',
-      '',
-      ...Contracts.map(Contract => [
-        `export class ${Contract} extends Client {`,
-        `  // myTx1    = (arg1, arg2) => this.execute({myTx1:{arg1, arg2}})`,
-        `  // myTx2    = (arg1, arg2) => this.execute({myTx2:{arg1, arg2}})`,
-        `  // myQuery1 = (arg1, arg2) => this.query({myQuery1:{arg1, arg2}})`,
-        `  // myQuery2 = (arg1, arg2) => this.query({myQuery2:{arg1, arg2}})`,
-        `}\n`
-      ].join('\n'))
+    ].join('\n')
+
+    const clientClasses = contracts.map(Case.pascal).map(Contract => [
+      `export class ${Contract} extends Client {`,
+      `  // myTx1    = (arg1, arg2) => this.execute({myTx1:{arg1, arg2}})`,
+      `  // myTx2    = (arg1, arg2) => this.execute({myTx2:{arg1, arg2}})`,
+      `  // myQuery1 = (arg1, arg2) => this.query({myQuery1:{arg1, arg2}})`,
+      `  // myQuery2 = (arg1, arg2) => this.query({myQuery2:{arg1, arg2}})`,
+      `}\n`
     ].join('\n'))
+
+    this.index.save([ imports, deploymentClass, ...clientClasses ].join('\n\n'))
   }
 }
 
@@ -307,17 +319,17 @@ export class OpsPackage extends NPMPackage {
       main: `${this.name}.ts`
     })
 
-    const Name = Case.pascal(this.project.name)
-    this.index.save([
-      `import ${Name} from '@${this.project.name}/api'`,
+    const imports = [
+      `import ${Case.pascal(this.project.name)} from '@${this.project.name}/api'`,
       `import { FadromaCommands } from '@fadroma/ops'`,
-      ``,
-      `export default class ${Name}Commands extends FadromaCommands {`,
-      ``,
-      `  deploy () {}`,
-      ``,
+    ].join('\n')
+
+    const commandsClass = [
+      `export default class ${Case.pascal(this.project.name)}Commands extends FadromaCommands {`,
       `}`
-    ].join('\n'))
+    ].join('\n')
+
+    this.index.save([imports, commandsClass].join('\n\n'))
   }
 }
 

@@ -1,3 +1,7 @@
+FIXME: compare client implementation with actual snip20 spec
+
+---
+
 # Using Fadroma with blockchain tokens
 
 Tokens are one core primitive of smart contract-based systems.
@@ -286,3 +290,4 @@ const manager2 = new TokenManager({
 ```typescript
 import { ok, equal, deepEqual, throws } from 'assert'
 ```
+

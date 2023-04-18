@@ -7,14 +7,12 @@ importers:
       '@fadroma/agent': workspace:*
       '@fadroma/connect': workspace:*
       '@fadroma/ops': workspace:*
-      '@fadroma/tokens': workspace:*
-      '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1.1.4
-      '@hackbg/conf': workspace:^1
+      '@hackbg/dock': workspace:1.2
       '@hackbg/ensuite': ^1.3.0
       '@hackbg/file': workspace:^1
       '@hackbg/ganesha': ^2.3.0
-      '@hackbg/logs': workspace:^1
+      '@hackbg/port': workspace:^1
       '@hackbg/spec': ^1
       '@hackbg/ubik': ^1.3.5
       '@types/dockerode': ^3.3.14
@@ -35,15 +33,13 @@ importers:
       '@fadroma/agent': link:agent
       '@fadroma/connect': link:connect
       '@fadroma/ops': link:ops
-      '@fadroma/tokens': link:tokens
-      '@hackbg/4mat': link:ensuite/toolbox/4mat
-      '@hackbg/cmds': link:ensuite/toolbox/cmds
-      '@hackbg/conf': link:ensuite/toolbox/conf
-      '@hackbg/file': link:ensuite/toolbox/file
-      '@hackbg/logs': link:ensuite/toolbox/logs
     devDependencies:
+      '@hackbg/cmds': link:ensuite/toolbox/cmds
+      '@hackbg/dock': link:ensuite/toolbox/dock
       '@hackbg/ensuite': link:ensuite
+      '@hackbg/file': link:ensuite/toolbox/file
       '@hackbg/ganesha': 2.3.0
+      '@hackbg/port': link:ensuite/toolbox/port
       '@hackbg/spec': link:ensuite/toolbox/spec
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
@@ -64,21 +60,16 @@ importers:
   agent:
     specifiers:
       '@hackbg/4mat': workspace:^1
-      '@hackbg/allo': ^1
-      '@hackbg/cmds': ^1.1.4
       '@hackbg/dump': workspace:^1
       '@hackbg/ensuite': ^1.1
       '@hackbg/hide': ^1
       '@hackbg/into': ^1.0.1
-      '@hackbg/logs': ^1.1.1
+      '@hackbg/logs': workspace:^1.1.1
       '@hackbg/many': ^1
       '@hackbg/oops': workspace:^1.0.1
       '@hackbg/over': ^1.0.1
-      '@hackbg/task': ^1
     dependencies:
       '@hackbg/4mat': link:../ensuite/toolbox/4mat
-      '@hackbg/allo': link:../ensuite/toolbox/allo
-      '@hackbg/cmds': link:../ensuite/toolbox/cmds
       '@hackbg/dump': link:../ensuite/toolbox/dump
       '@hackbg/hide': link:../ensuite/toolbox/hide
       '@hackbg/into': link:../ensuite/toolbox/into
@@ -86,7 +77,6 @@ importers:
       '@hackbg/many': link:../ensuite/toolbox/many
       '@hackbg/oops': link:../ensuite/toolbox/oops
       '@hackbg/over': link:../ensuite/toolbox/over
-      '@hackbg/task': link:../ensuite/toolbox/task
     devDependencies:
       '@hackbg/ensuite': link:../ensuite
 
@@ -94,12 +84,10 @@ importers:
     specifiers:
       '@fadroma/agent': workspace:*
       '@fadroma/scrt': workspace:8.0.4
-      '@hackbg/cmds': ^1.1.4
-      '@hackbg/conf': ^1
+      '@hackbg/conf': workspace:^1
     dependencies:
       '@fadroma/agent': link:../agent
       '@fadroma/scrt': link:../platforms/scrt
-      '@hackbg/cmds': link:../ensuite/toolbox/cmds
       '@hackbg/conf': link:../ensuite/toolbox/conf
 
   ensuite:
@@ -554,17 +542,11 @@ importers:
 
   ops:
     specifiers:
-      '@fadroma/agent': workspace:*
       '@fadroma/connect': workspace:2.1.5
-      '@hackbg/4mat': workspace:^1
       '@hackbg/cmds': workspace:^1.1.4
-      '@hackbg/conf': workspace:^1
       '@hackbg/dock': workspace:1.2
       '@hackbg/ensuite': ^1.1
       '@hackbg/file': workspace:^1
-      '@hackbg/logs': workspace:^1
-      '@hackbg/many': workspace:^1
-      '@hackbg/oops': workspace:^1.0.1
       '@hackbg/port': workspace:^1
       '@types/js-yaml': ^4.0.5
       '@types/prompts': ^2.4.2
@@ -574,16 +556,10 @@ importers:
       prompts: ^2.4.2
       simple-git: ^3.7.1
     dependencies:
-      '@fadroma/agent': link:../agent
       '@fadroma/connect': link:../connect
-      '@hackbg/4mat': link:../ensuite/toolbox/4mat
       '@hackbg/cmds': link:../ensuite/toolbox/cmds
-      '@hackbg/conf': link:../ensuite/toolbox/conf
       '@hackbg/dock': link:../ensuite/toolbox/dock
       '@hackbg/file': link:../ensuite/toolbox/file
-      '@hackbg/logs': link:../ensuite/toolbox/logs
-      '@hackbg/many': link:../ensuite/toolbox/many
-      '@hackbg/oops': link:../ensuite/toolbox/oops
       '@hackbg/port': link:../ensuite/toolbox/port
       case: 1.6.3
       dotenv: 16.0.1
@@ -597,43 +573,18 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@hackbg/4mat': ^1
       '@hackbg/conf': ^1
       '@hackbg/ensuite': ^1.0.2
-      '@hackbg/into': ^1
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
       secretjs: 1.7.1-beta.3
     dependencies:
-      '@hackbg/4mat': link:../../ensuite/toolbox/4mat
       '@hackbg/conf': link:../../ensuite/toolbox/conf
-      '@hackbg/into': link:../../ensuite/toolbox/into
       '@ungap/structured-clone': 1.0.1
       secretjs: 1.7.1-beta.3
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
       '@types/ungap__structured-clone': 0.3.0
-
-  tokens:
-    specifiers:
-      '@fadroma/agent': workspace:*
-      '@fadroma/scrt': workspace:^8.0.3
-      '@hackbg/4mat': workspace:^1
-      '@hackbg/ensuite': ^1.1
-      '@hackbg/logs': workspace:^1.1.1
-      '@hackbg/many': workspace:^1
-      '@hackbg/oops': workspace:^1.0.1
-      '@hackbg/task': workspace:^1
-    dependencies:
-      '@fadroma/agent': link:../agent
-      '@fadroma/scrt': link:../platforms/scrt
-      '@hackbg/4mat': link:../ensuite/toolbox/4mat
-      '@hackbg/logs': link:../ensuite/toolbox/logs
-      '@hackbg/many': link:../ensuite/toolbox/many
-      '@hackbg/oops': link:../ensuite/toolbox/oops
-      '@hackbg/task': link:../ensuite/toolbox/task
-    devDependencies:
-      '@hackbg/ensuite': link:../ensuite
 
 packages:
 

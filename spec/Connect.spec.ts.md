@@ -27,9 +27,3 @@ for (const platform of ['secretjs', 'secretcli']) {
 This package is responsible for selecting and dispatching to the
 appropriate implementation; the implementations themselves reside
 in the corresponding packages: `@fadroma/scrt`, etc.
-
-```typescript
-import '../platforms/scrt/Scrt.spec.ts.md'
-import '../platforms/cw/CW.spec.ts.md'
-import '../platforms/evm/EVM.spec.ts.md'
-```

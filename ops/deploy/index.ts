@@ -1,4 +1,4 @@
-import Config from '../Config'
+import { Config } from '../util'
 
 import { Deployment, DeployStore } from '@fadroma/agent'
 import type { DeploymentClass } from '@fadroma/agent'

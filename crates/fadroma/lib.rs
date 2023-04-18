@@ -184,8 +184,7 @@ macro_rules! contract {
         fadroma::entrypoint! {
             init: instantiate,
             execute: execute,
-            query: query,
-            reply: reply
+            query: query
         }
     }
 }

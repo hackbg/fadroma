@@ -1,20 +1,23 @@
-import { Contract } from '@fadroma/agent'
+import { Console } from '../util'
+
+import { Contract, colors, bold } from '@fadroma/agent'
 import type { CodeId, CodeHash, ChainId, Uploadable, Uploaded } from '@fadroma/agent'
 
 import $, { JSONFile, JSONDirectory } from '@hackbg/file'
-import { colors, bold } from '@hackbg/logs'
 
 /** Directory collecting upload receipts.
   * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
   * and are kept so that we don't reupload the same contracts. */
 export default class UploadStore extends JSONDirectory<UploadReceipt> {
 
+  log = new Console('Upload')
+
   tryGet (contract: Uploadable, _chainId?: ChainId): Uploaded|undefined {
     const name = this.getUploadReceiptName(contract)
     const receiptFile = this.at(name)
     if (receiptFile.exists()) {
       const receipt = receiptFile.as(UploadReceipt)
-      this.log.log(`${colors.green('Found:')}   `, bold(colors.green(receiptFile.shortPath)))
+      this.log.log(`${colors.green('Found:')}`, bold(colors.green(receiptFile.shortPath)))
       const {
         chainId = _chainId,
         codeId,

@@ -1,11 +1,10 @@
-import { DeployConsole } from '../Console'
-import { DeployError } from '../Error'
+import { DeployConsole, DeployError } from '../util'
 
 import {
-  Agent, AnyContract, Contract, Client, Deployment, DeploymentState, DeployStore, toInstanceReceipt
+  Agent, AnyContract, Contract, Client, Deployment, DeploymentState, DeployStore,
+  toInstanceReceipt, timestamp, bold
 } from '@fadroma/agent'
 
-import { timestamp, bold } from '@hackbg/logs'
 import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
 } from '@hackbg/file'

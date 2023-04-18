@@ -35,4 +35,5 @@ fadroma::contract! {
         META.save(deps.storage, &key, &env.block.time.nanos())?;
         Ok(Response::default())
     }
+
 }

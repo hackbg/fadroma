@@ -4,8 +4,8 @@ export * from './UploadStore'
 export { default as FSUploader } from './FSUploader'
 export * from './FSUploader'
 
-import Config from '../Config'
-import type { UploadConfig } from '../Config'
+import { Config } from '../util'
+import type { UploadConfig } from '../util'
 import type { Uploader, Uploadable, Uploaded } from '@fadroma/agent'
 
 /** @returns Uploader configured as per environment and options */

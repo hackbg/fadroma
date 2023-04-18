@@ -7,9 +7,9 @@
   "description": "Devops tooling for smart contract platforms.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ensuite Ops.spec.ts.md",
-    "cov":   "ensuite-cov -r text -- Ops.spec.ts.md",
-    "lcov":  "ensuite-cov -r lcov -- Ops.spec.ts.md",
+    "test":  "ensuite ../spec/Ops.spec.ts.md",
+    "cov":   "ensuite-cov -r text -- ../spec/Ops.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- ../spec/Ops.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {
@@ -19,20 +19,11 @@
     "@hackbg/ganesha": { "optional": true, "description": "For CLI" }
   },
   "dependencies": {
-
-    "@fadroma/agent":   "workspace:*",
     "@fadroma/connect": "workspace:2.1.5",
-
-    "@hackbg/4mat": "workspace:^1",
-    "@hackbg/cmds": "workspace:^1.1.4",
-    "@hackbg/conf": "workspace:^1",
     "@hackbg/dock": "workspace:1.2",
     "@hackbg/file": "workspace:^1",
-    "@hackbg/logs": "workspace:^1",
-    "@hackbg/many": "workspace:^1",
-    "@hackbg/oops": "workspace:^1.0.1",
     "@hackbg/port": "workspace:^1",
-
+    "@hackbg/cmds": "workspace:^1.1.4",
     "case":       "^1.6.3",
     "dotenv":     "^16.0.1",
     "js-yaml":    "^4.1.0",

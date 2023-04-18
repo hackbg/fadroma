@@ -7,8 +7,8 @@ export { default as DevnetContainer } from './DevnetContainer'
 export * from './DevnetRemote'
 export { default as DevnetRemote } from './DevnetRemote'
 
-import Config from '../Config'
-import type { DevnetConfig } from '../Config'
+import { Config } from '../util'
+import type { DevnetConfig } from '../util'
 
 /** @returns Devnet configured as per environment and options. */
 export function getDevnet (options: Partial<DevnetConfig> = {}) {

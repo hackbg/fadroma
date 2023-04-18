@@ -1,17 +1,81 @@
 import type { 
-  AnyContract, Instantiable, Instantiated, Chain, Agent, Client, ClientClass, Builder,
-  Uploader, Buildable, Uploadable, Class, Many, Name, Named, IntoRecord, Task 
+  Chain, Agent, ClientClass, Builder, Uploader, Buildable, Uploadable, Class, Many, Name, Named,
+  IntoRecord, CodeId, CodeHash, Hashed, Address, TxHash, ChainId, Message, Into, Built, Uploaded,
+  Label, ContractLink
 } from '../index'
 import {
   Error, Console, mapAsync, hideProperties, defineDefault, into, intoRecord, call,
-  timestamp, CommandContext
+  timestamp, override, map,
 } from '../util'
+
 import { assertAgent } from './Agent'
-import { writeLabel } from './Labels'
-import Template from './Template'
-import { Contract, ContractGroup } from './Contract'
-import { DeployStore } from './DeployStore'
 import { FetchUploader } from './Upload'
+import { Client, assertAddress, codeHashOf, writeLabel } from './Client'
+import { assertBuilder } from './Build'
+
+export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
+
+export type DeploymentState = Record<string, Partial<AnyContract>>
+
+/** Constructor for the different varieties of DeployStore. */
+export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
+  /** Defaults when hydrating Deployment instances from the store. */
+  unknown,
+  (Partial<Deployment>|undefined)?,
+]> {}
+
+/** Mapping from deployment format ids to deployment store constructors. */
+export type DeployStores = Partial<Record<DeploymentFormat, DeployStoreClass<DeployStore>>>
+
+/** A deploy store collects receipts corresponding to individual instances of Deployment,
+  * and can create Deployment objects with the data from the receipts. */
+export abstract class DeployStore {
+  /** Populated in deploy.ts with the constructor for each subclass. */
+  static variants: DeployStores = {}
+  /** Get the names of all stored deployments. */
+  abstract list (): string[]
+  /** Get a deployment by name, or null if such doesn't exist. */
+  abstract load (name: string): DeploymentState|null
+  /** Update a deployment's data. */
+  abstract save (name: string, state?: DeploymentState): void
+  /** Create a new deployment. */
+  abstract create (name?: string): Promise<DeploymentState>
+  /** Activate a new deployment, or throw if such doesn't exist. */
+  abstract select (name: string): Promise<DeploymentState>
+  /** Get the active deployment, or null if there isn't one. */
+  abstract get active (): DeploymentState|null
+
+  defaults: Partial<Deployment> = {}
+
+  /** Create a new Deployment, and populate with stored data.
+    * @returns Deployer */
+  getDeployment <D extends Deployment> (
+    $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
+    ...args: ConstructorParameters<typeof $D>
+  ): D {
+    // If a name of a deployment is provided, try to load
+    // stored data about this deployment from this store.
+    // Otherwise, start with a blank slate.
+    const { name } = args[0] ??= {}
+    const state = (name && this.load(name)) || {}
+    // Create a deployment of the specified class.
+    // If this is a subclass of Deployment that defines
+    // contracts (using this.contract), the `state`
+    // property will be populated.
+    const deployment = new $D(...args)
+    // Update properties of each named contract defined in
+    // the deployment with those from the loaded data.
+    // If such a named contract is missing, define it.
+    for (const name of Object.keys(state)) {
+      if (deployment.state[name]) {
+        Object.assign(deployment.state[name], state[name])
+      } else {
+        deployment.contract(state[name])
+      }
+    }
+    return deployment
+  }
+}
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -39,16 +103,8 @@ export class Deployment {
 
     // Hide non-essential properties
     hideProperties(this, ...[
-      'args',
-      'before',
-      'commandTree',
-      'currentCommand',
-      'description',
-      'log',
-      'name',
-      'state',
-      'task',
-      'timestamp',
+      'args', 'before', 'commandTree', 'currentCommand', 'description',
+      'log', 'name', 'state', 'task', 'timestamp',
     ])
   }
 
@@ -340,17 +396,446 @@ export class VersionedDeployment<V> extends Deployment {
   }
 }
 
-/** A Subsystem is any class which extends Deployment (thus being able to manage Contracts),
-  * and whose constructor takes a Deployer as first argument, as well as any number of
-  * other arguments. This interface can be used to connect the main project class to individual
-  * deployer classes for different parts of the project, enabling them to operate in the same
-  * context (chain, agent, builder, uploader, etc). */
+/** A Subsystem is any class which extends Deployment (thus being able to manage Contracts)
+  * and takes a parent Deployment as first constructor argument (thus being an sub-Deployment).
+  * Attached subsystems share the context of the parent Deployment. */
 export interface Subsystem<D extends Deployment, E extends Deployment> extends Class<D, [
-  E, ...unknown[]
+  E,           // parent deployment
+  ...unknown[] // other arguments
 ]> {}
 
-type MatchPredicate =
-  (meta: Partial<AnyContract>) => boolean|undefined
+/** Callable object: contract template.
+  * Can build and upload, but not instantiate.
+  * Can produce deployable Contract instances. */
+export class Template<C extends Client> {
+  log = new Console(this.constructor.name)
+  /** The deployment that this template belongs to. */
+  context?:    Deployment     = undefined
+  /** URL pointing to Git repository containing the source code. */
+  repository?: string|URL     = undefined
+  /** Branch/tag pointing to the source commit. */
+  revision?:   string         = undefined
+  /** Whether there were any uncommitted changes at build time. */
+  dirty?:      boolean        = undefined
+  /** Path to local Cargo workspace. */
+  workspace?:  string         = undefined
+  /** Name of crate in workspace. */
+  crate?:      string         = undefined
+  /** List of crate features to enable during build. */
+  features?:   string[]       = undefined
+  /** Build procedure implementation. */
+  builder?:    Builder        = undefined
+  /** Builder implementation that produces a Contract from the Source. */
+  builderId?:  string         = undefined
+  /** URL to the compiled code. */
+  artifact?:   string|URL     = undefined
+  /** Code hash uniquely identifying the compiled code. */
+  codeHash?:   CodeHash       = undefined
+  /** ID of chain on which this contract is uploaded. */
+  chainId?:    ChainId        = undefined
+  /** Object containing upload logic. */
+  uploaderId?: string         = undefined
+  /** Upload procedure implementation. */
+  uploader?:   Uploader       = undefined
+  /** Address of agent that performed the upload. */
+  uploadBy?:   Address        = undefined
+  /** TXID of transaction that performed the upload. */
+  uploadTx?:   TxHash         = undefined
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:     CodeId         = undefined
+  /** The Agent instance that will be used to upload and instantiate the contract. */
+  agent?:      Agent          = undefined
+  /** The Client subclass that exposes the contract's methods.
+    * @default the base Client class. */
+  client?:     ClientClass<C> = undefined
 
-type DefineContracts<D extends Deployment> =
-  (contracts: Many<AnyContract>) => Task<D, Many<Client>>
+  constructor (options: Partial<Template<C>> = {}) {
+    this.define(options)
+    if (this.context) {
+      defineDefault(this, this.context, 'agent')
+      defineDefault(this, this.context, 'builder')
+      defineDefault(this, this.context, 'uploader')
+      defineDefault(this, this.context, 'repository')
+      defineDefault(this, this.context, 'revision')
+      defineDefault(this, this.context, 'workspace')
+    }
+    hideProperties(this, 'log')
+  }
+
+  /** Provide parameters for an existing instance.
+    * @returns mutated self */
+  define (options: Partial<Template<C>> = {}): this {
+    return override(this, options as object)
+  }
+
+  get info (): string {
+    let name = 'Template'
+    if (this.crate || this.revision || this.codeId) {
+      name += ': '
+      if (this.crate)    name += `crate ${this.crate}`
+      if (this.revision) name += `@ ${this.revision}`
+      if (this.codeId)   name += `(code id ${this.codeId})`
+    }
+    return name
+  }
+
+  get compiled (): Promise<this & Built> {
+    return this.build()
+  }
+
+  /** Compile the source using the selected builder.
+    * @returns this */
+  build (builder: Builder|undefined = this.builder): Promise<this & Built> {
+    const name = `compile ${this.crate ?? 'contract'}`
+    const building = new Promise<this & Built>(async (resolve, reject)=>{
+      if (!this.artifact) {
+        if (!this.crate) throw new Error.NoCrate()
+        builder ??= assertBuilder(this)
+        const result = await builder!.build(this as Buildable)
+        this.define(result as Partial<this>)
+      }
+      return this
+    })
+    Object.defineProperty(this, 'compiled', { get () { return building } })
+    return building
+  }
+
+  /** One-shot deployment task. */
+  get uploaded (): Promise<this & Uploaded> {
+    return this.upload()
+  }
+
+  /** Upload compiled source code to the selected chain.
+    * @returns task performing the upload */
+  upload (uploader: Uploader|undefined = this.uploader): Promise<this & Uploaded> {
+    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
+    const uploading = new Promise<this & Uploaded>(async (resolve, reject)=>{
+      if (!this.codeId) {
+        await this.compiled
+        if (!uploader) throw new Error.NoUploader()
+        const result = await uploader.upload(this as Uploadable)
+        this.define(result as Partial<this>)
+      }
+      return resolve(this as this & Uploaded)
+    })
+    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
+    return uploading
+  }
+
+  /** @returns a Contract representing a specific instance of this Template. */
+  instance (options?: Partial<Contract<C>>): Contract<C> {
+    // Use values from Template as defaults for Contract
+    options = { ...this as unknown as Partial<Contract<C>>, ...options }
+    // Create the Contract
+    const instance: Contract<C> = this.context
+      ? this.context.contract(options)
+      : new Contract(options)
+    return instance
+  }
+
+  /** Get a collection of multiple clients to instances of this contract.
+    * @returns task for deploying multiple contracts, resolving to their clients */
+  instances (contracts: Many<Partial<Contract<C>>>): Task<this, Many<Promise<C>>> {
+    type Self = typeof this
+    const size = Object.keys(contracts).length
+    const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
+    const tasks = map(contracts, contract=>this.instance(contract))
+    //return this.task(name, async function deployManyContracts (
+      //this: Self
+    //): Promise<Many<Promise<C>>> {
+      //return map(tasks, (task: Partial<Contract<C>>): Promise<C> => task.deployed!)
+    //})
+  }
+
+  get asInfo (): ContractInfo {
+    return {
+      id:        this.codeId!,
+      code_hash: this.codeHash!
+    }
+  }
+
+}
+
+type Task<T, U> = void // FIXME
+
+/** @returns the data for saving a build receipt. */
+export function toBuildReceipt (s: Partial<Built>) {
+  return {
+    repository: s.repository,
+    revision:   s.revision,
+    dirty:      s.dirty,
+    workspace:  s.workspace,
+    crate:      s.crate,
+    features:   s.features?.join(', '),
+    builder:    undefined,
+    builderId:  s.builder?.id,
+    artifact:   s.artifact?.toString(),
+    codeHash:   s.codeHash
+  }
+}
+
+/** @returns the data for saving an upload receipt. */
+export function toUploadReceipt (t: Partial<Uploaded>) {
+  return {
+    ...toBuildReceipt(t),
+    chainId:    t.chainId,
+    uploaderId: t.uploader?.id,
+    uploader:   undefined,
+    uploadBy:   t.uploadBy,
+    uploadTx:   t.uploadTx,
+    codeId:     t.codeId
+  }
+}
+
+/** Objects that have an address and code id. */
+export type IntoInfo = Hashed & {
+  address: Address
+}
+
+/** Reference to an instantiated smart contract, to be used by contracts. */
+export interface ContractInfo {
+  readonly id:        CodeId
+  readonly code_hash: CodeHash
+}
+
+/** Parameters involved in instantiating a contract */
+export interface Instantiable {
+  chainId:   ChainId
+  codeId:    CodeId
+  codeHash?: CodeHash
+  label?:    Label
+  prefix?:   Name
+  name?:     Name
+  suffix?:   Name
+  initMsg:   Message
+}
+
+/** Result of instantiating a contract */
+export interface Instantiated {
+  chainId:  ChainId
+  address:  Address
+  codeHash: CodeHash
+  label:    Label
+  prefix?:  Name
+  name?:    Name
+  suffix?:  Name
+  initBy?:  Address
+  initTx?:  TxHash
+}
+
+export type AnyContract = Contract<Client>
+
+function getClientTo <C extends Client> (contract: Contract<C>): C {
+  const $C = (contract.client ?? Client)
+  //@ts-ignore
+  const client = new $C(contract.agent, contract.address, contract.codeHash, contract as Contract<C>)
+  return client as unknown as C
+}
+
+/** Callable object: contract.
+  * Can build and upload, and instantiate itself. */
+export class Contract<C extends Client> extends Template<C> {
+  log: Console
+  /** Address of agent that performed the init tx. */
+  initBy?:  Address        = undefined
+  /** Address of agent that performed the init tx. */
+  initMsg?: Into<Message>  = undefined
+  /** TXID of transaction that performed the init. */
+  initTx?:  TxHash         = undefined
+  /** Address of this contract instance. Unique per chain. */
+  address?: Address        = undefined
+  /** Full label of the instance. Unique for a given Chain. */
+  label?:   Label          = undefined
+  /** Prefix of the instance label.
+    * Identifies which Deployment the instance belongs to, if any.
+    * Prepended to contract label with a `/`: `PREFIX/NAME...` */
+  prefix?:  Name           = undefined
+  /** Proper name of the instance. Unique within the deployment.
+    * If the instance is not part of a Deployment, this is equal to the label.
+    * If the instance is part of a Deployment, this is used as storage key.
+    * You are encouraged to store application-specific versioning info in this field. */
+  name?:    Name
+  /** Deduplication suffix.
+    * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
+    * This field has sometimes been used to redeploy an new instance
+    * within the same Deployment, taking the place of the old one.
+    * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
+    *       is "the real one" (see https://stackoverflow.com/a/54427214. */
+  suffix?:  Name           = undefined
+
+  constructor (options: Partial<Contract<C>> = {}) {
+    super({})
+    const self = this
+    if (options.name) setName(options.name)
+    if (this.context) setPrefix(this.context.name)
+    this.log = new Console(`Contract: ${this.name ?? new.target.name}`)
+    this.agent      = this.context?.agent      ?? this.agent
+    this.builder    = this.context?.builder    ?? this.builder
+    this.uploader   = this.context?.uploader   ?? this.uploader
+    this.repository = this.context?.repository ?? this.repository
+    this.revision   = this.context?.revision   ?? this.revision
+    this.workspace  = this.context?.workspace  ?? this.workspace
+    override(this, options)
+    hideProperties(this, 'log')
+
+    function setName (value: Name) {
+      Object.defineProperty(self, 'name', {
+        enumerable: true,
+        configurable: true,
+        get () { return value },
+        set (v: string) { setName(v) }
+      })
+    }
+
+    function setPrefix (value: Name) {
+      Object.defineProperty(self, 'prefix', {
+        enumerable: true,
+        configurable: true,
+        get () { return self.context?.name },
+        set (v: string) {
+          if (v !== self.context?.name) {
+            self.log!.warn(`BUG: Overriding prefix from "${self.context?.name}" to "${v}"`)
+          }
+          setPrefix(v)
+        }
+      })
+    }
+
+  }
+
+  /** One-shot deployment task. After the first call, `deploy` redefines it
+    * to return the self-same deploying promise. Call `deploy` again to reset. */
+  get deployed (): Promise<C> {
+    return this.deploy()
+  }
+
+  /** Deploy the contract, or retrieve it if it's already deployed.
+    * @returns promise of instance of `this.client`  */
+  deploy (initMsg: Into<Message>|undefined = this.initMsg): Promise<C> {
+    const name = `deploy ${this.name ?? 'contract'}`
+    const deploying = new Promise<C>(async (resolve, reject)=>{
+      // If address is missing, deploy contract
+      // FIXME also check in deploy store
+      if (!this.address) {
+        if (!this.name) throw new Error.CantInit_NoName()
+        if (!this.agent) throw new Error.CantInit_NoAgent(this.name)
+        if (!this.initMsg) throw new Error.CantInit_NoMessage(this.name)
+        // Construct the full unique label of the contract
+        this.label = writeLabel(this)
+        if (!this.label) throw new Error.CantInit_NoLabel(this.name)
+        // Resolve the provided init message
+        this.initMsg ??= await into(initMsg) as Message
+        // Make sure the code is compiled and uploaded
+        await this.uploaded
+        if (!this.codeId) throw new Error.CantInit_NoCodeId(this.name)
+        this.log?.beforeDeploy(this, this.label!)
+        // Perform the instantiation transaction
+        const instance = await this.agent!.instantiate(this)
+        // Populate self with result of instantiation (address)
+        override(this as Contract<C>, instance)
+        this.log?.afterDeploy(this as Partial<Contract<C>>)
+        // Add self to deployment (FIXME necessary?)
+        if (this.context) this.context.addContract(this.name!, this)
+      }
+      // Create and return the Client instance used to interact with the contract
+      return resolve(getClientTo(this))
+    })
+    Object.defineProperty(this, 'deployed', { get () { return deploying } })
+    return deploying
+  }
+
+  /** @returns an instance of this contract's client
+    * @throws tf the contract has no known address. */
+  expect (): C {
+    if (!this.address) {
+      if (!this.name) {
+        throw new Error(`Expected unnamed contract to be already deployed.`)
+      } else {
+        throw new Error(`Expected contract to be already deployed: ${this.name}`)
+      }
+    } else {
+      return getClientTo(this)
+    }
+  }
+
+  /** @returns true if the specified properties match the properties of this contract. */
+  matches (predicate: Partial<Contract<C>>): boolean {
+    for (const key in predicate) {
+      if (this[key as keyof typeof predicate] !== predicate[key as keyof typeof predicate]) {
+        return true
+      }
+    }
+    return true
+  }
+
+  get asLink (): ContractLink {
+    return {
+      address:   this.address!,
+      code_hash: this.codeHash!
+    }
+  }
+
+}
+
+/** Callable object: contract group.
+  * Can build and upload, and instantiate multiple contracts. */
+export class ContractGroup<A extends unknown[]> {
+
+  constructor (
+    public readonly context:      Deployment,
+    public readonly getContracts: (...args: A)=>Many<AnyContract>
+  ) {
+  }
+
+  /** Deploy an instance of this contract group. */
+  async deploy (...args: A) {
+    const contracts = this.getContracts.apply(this.context, args)
+    if (!this.context.builder) throw new Error.NoBuilder()
+    await this.context.builder.buildMany(Object.values(contracts) as unknown as Buildable[])
+    if (!this.context.uploader) throw new Error.NoUploader()
+    await this.context.uploader.uploadMany(Object.values(contracts) as unknown as Uploadable[])
+    return await mapAsync(contracts, (contract: AnyContract)=>contract.deployed)
+  }
+
+  /** Prepare multiple instances of this contract group for deployment. */
+  many (instances: Many<A>) {
+    const self = this
+    /** Define a contract group corresponding to each member of `instances` */
+    const groups = mapAsync(
+      instances,
+      defineContractGroup as unknown as (x:A[0])=>ContractGroup<A>
+    )
+    /** Deploy the specified contract groups. */
+    return async function deployContractGroups (...args: A) {
+      return await mapAsync(
+        /** Reify the specified contract groups */
+        await groups,
+        /** Deploy each contract group. */
+        function deployContractGroup (group: ContractGroup<A>) {
+          return group.deploy(...args)
+        }
+      )
+    }
+    /** Defines a new contract group. */
+    function defineContractGroup (...args: A) {
+      return new ContractGroup(self.context, ()=>self.getContracts(...args))
+    }
+  }
+}
+
+/** @returns the data for a deploy receipt */
+export function toInstanceReceipt (
+  c: Buildable & Built & Uploadable & Uploaded & Instantiable & Instantiated
+) {
+  return {
+    ...toUploadReceipt(c),
+    initBy:  c.initBy,
+    initMsg: c.initMsg,
+    initTx:  c.initTx,
+    address: c.address,
+    label:   c.label,
+    prefix:  c.prefix,
+    name:    c.name,
+    suffix:  c.suffix
+  }
+}

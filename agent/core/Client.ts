@@ -1,10 +1,10 @@
 import type {
-  Agent, Class, Address, Message, ExecOpts, CodeHash, IFee, ContractLink, Chain
+  Agent, Class, Chain, Buildable, Built, Uploaded, Instantiated, AnyContract, Name
 } from '../index'
 import { Error, Console, validated, hideProperties } from '../util'
+
 import { assertAgent } from './Agent'
-import { assertAddress } from './Tx'
-import { Contract } from './Contract'
+import { Contract } from './Deployment'
 
 /** A constructor for a Client subclass. */
 export interface ClientClass<C extends Client> extends Class<C, [
@@ -126,4 +126,249 @@ export class Client {
     return await assertAgent(this).execute(this, msg, opt)
   }
 
+}
+
+/** @returns a string in the format `crate[@ref][+flag][+flag]...` */
+export function getSourceSpecifier (meta: Buildable): string {
+  const { crate, revision, features } = meta
+  let result = crate ?? ''
+  if (revision !== 'HEAD') result = `${result}@${revision}`
+  if (features && features.length > 0) result = `${result}+${features.join('+')}`
+  return result
+}
+
+/** A code hash, uniquely identifying a particular smart contract implementation. */
+export type CodeHash = string
+
+/** @returns the code hash of the thing
+  * @throws  LinkNoCodeHash if missing. */
+export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): CodeHash {
+  if (!codeHash) throw new Error.LinkNoCodeHash()
+  return codeHash
+}
+
+/** Fetch the code hash by id and by address, and compare them.
+  * @returns the passed contract object but with codeHash set
+  * @throws if unable to establish the code hash */
+export async function fetchCodeHash (
+  meta:   Partial<Built> & Partial<Uploaded> & Partial<Instantiated>,
+  agent?: Agent|null|undefined, expected?: CodeHash,
+): Promise<CodeHash> {
+  if (!agent) throw new Error.NoAgent()
+  if (!meta.address && !meta.codeId && !meta.codeHash) {
+    throw new Error('Unable to fetch code hash: no address or code id.')
+  }
+  const codeHashByAddress = meta.address
+    ? validated('codeHashByAddress', await agent.getHash(meta.address), expected)
+    : undefined
+  const codeHashByCodeId  = meta.codeId
+    ? validated('codeHashByCodeId',  await agent.getHash(meta.codeId),  expected)
+    : undefined
+  if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
+    throw new Error('Validation failed: different code hashes fetched by address and by code id.')
+  }
+  if (!codeHashByAddress && !codeHashByCodeId) {
+    throw new Error('Code hash unavailable.')
+  }
+  return codeHashByAddress! ?? codeHashByCodeId!
+}
+
+/** Objects that have a code hash in either capitalization. */
+export type Hashed =
+  | { code_hash: CodeHash }
+  | { codeHash: CodeHash }
+
+/** Allow code hash to be passed with either cap convention; warn if missing or invalid. */
+export function codeHashOf (hashed: Hashed): CodeHash {
+  let { code_hash, codeHash } = hashed as any
+  if (typeof code_hash === 'string') code_hash = code_hash.toLowerCase()
+  if (typeof codeHash  === 'string') codeHash  = codeHash.toLowerCase()
+  if (code_hash && codeHash && code_hash !== codeHash) throw new Error.DifferentHashes()
+  const result = code_hash ?? codeHash
+  if (!result) throw new Error.NoCodeHash()
+  return result
+}
+
+/** A code ID, identifying uploaded code on a chain. */
+export type CodeId = string
+
+/** Retrieves the code ID corresponding to this contract's address/code hash.
+  * @returns `this` but with `codeId` populated. */
+export async function fetchCodeId <C extends AnyContract> (
+  meta: C, agent: Agent, expected?: CodeId,
+): Promise<CodeId> {
+  return validated('codeId',
+    String(await agent.getCodeId(assertAddress(meta))),
+    (expected===undefined) ? undefined : String(expected)
+  )
+}
+
+/** A transaction message that can be sent to a contract. */
+export type Message = string|Record<string, unknown>
+
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash = string
+
+/** Options for a compute transaction. */
+export interface ExecOpts {
+  /** The maximum fee. */
+  fee?:  IFee
+  /** A list of native tokens to send alongside the transaction. */
+  send?: ICoin[]
+  /** A transaction memo. */
+  memo?: string
+  /** Allow extra options. */
+  [k: string]: unknown
+}
+
+/** An address on a chain. */
+export type Address = string
+
+/** @returns the address of a thing
+  * @throws  LinkNoAddress if missing. */
+export function assertAddress ({ address }: { address?: Address|null } = {}): Address {
+  if (!address) throw new Error.LinkNoAddress()
+  return address
+}
+
+/** A gas fee, payable in native tokens. */
+export interface IFee { amount: readonly ICoin[], gas: Uint128 }
+
+/** Represents some amount of native token. */
+export interface ICoin { amount: Uint128, denom: string }
+
+/** A constructable gas fee in native tokens. */
+export class Fee implements IFee {
+  readonly amount: readonly ICoin[]
+  constructor (amount: Uint128|number, denom: string, readonly gas: string = String(amount)) {
+    this.amount = [{ amount: String(amount), denom }]
+  }
+}
+
+/** Represents some amount of native token. */
+export class Coin implements ICoin {
+  readonly amount: string
+  constructor (amount: number|string, readonly denom: string) {
+    this.amount = String(amount)
+  }
+}
+
+/** Default fees for the main operations that an Agent can perform. */
+export interface AgentFees {
+  send?:   IFee
+  upload?: IFee
+  init?:   IFee
+  exec?:   IFee
+}
+
+/** A contract name with optional prefix and suffix, implementing namespacing
+  * for append-only platforms where labels have to be globally unique. */
+export interface StructuredLabel {
+  label?:  Label
+  name?:   Name
+  prefix?: Name
+  suffix?: Name
+}
+
+/** A contract's full unique on-chain label. */
+export type Label = string
+
+export class StructuredLabel {
+
+  constructor (
+    public prefix?: string,
+    public name?:   string,
+    public suffix?: string,
+  ) {}
+
+  toString () {
+    let name = this.name
+    if (this.prefix) name = `${this.prefix}/${name}`
+    if (this.suffix) name = `${name}+${this.suffix}`
+    return name
+  }
+
+  static parse (label: string): StructuredLabel {
+    const { prefix, name, suffix } = parseLabel(label)
+    return new StructuredLabel(prefix, name, suffix)
+  }
+
+  static async fetch (address: Address, agent: Agent, expected?: Label): Promise<StructuredLabel> {
+    return StructuredLabel.parse(await agent.getLabel(address))
+  }
+
+}
+
+/** Fetch the label from the chain. */
+export async function fetchLabel <C extends AnyContract> (
+  contract: C, agent: Agent, expected?: Label
+): Promise<Label> {
+  const label = await agent.getLabel(assertAddress(contract))
+  if (!!expected) validated('label', label, expected)
+  Object.assign(contract, { label })
+  try {
+    const { name, prefix, suffix } = parseLabel(label)
+    Object.assign(contract, { name, prefix, suffix })
+  } catch (e) {}
+  return label
+}
+
+/** RegExp for parsing labels of the format `prefix/name+suffix` */
+export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
+
+/** Parse a label into prefix, name, and suffix. */
+export function parseLabel (label: Label): StructuredLabel {
+  const matches = label.match(RE_LABEL)
+  if (!matches || !matches.groups) throw new Error.InvalidLabel(label)
+  const { name, prefix, suffix } = matches.groups
+  if (!name) throw new Error.InvalidLabel(label)
+  return { label, name, prefix, suffix }
+}
+
+/** Construct a label from prefix, name, and suffix. */
+export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
+  if (!name) throw new Error.NoName()
+  let label = name
+  if (prefix) label = `${prefix}/${label}`
+  if (suffix) label = `${label}+${suffix}`
+  return label
+}
+/** A 128-bit integer. */
+export type Uint128    = string
+
+/** A 256-bit integer. */
+export type Uint256    = string
+
+/** A 128-bit decimal fraction. */
+export type Decimal    = string
+
+/** A 256-bit decimal fraction. */
+export type Decimal256 = string
+
+/** A moment in time. */
+export type Moment   = number
+
+/** A period of time. */
+export type Duration = number
+
+export function addZeros (n: number|Uint128, z: number): Uint128 {
+  return `${n}${[...Array(z)].map(() => '0').join('')}`
+}
+
+/** Convert Fadroma.Instance to address/hash struct (ContractLink) */
+export const linkStruct = (instance: IntoLink): ContractLink => ({
+  address:   assertAddress(instance),
+  code_hash: codeHashOf(instance)
+})
+
+/** Objects that have an address and code hash.
+  * Pass to linkTuple or linkStruct to get either format of link. */
+export type IntoLink = Hashed & {
+  address: Address
+}
+
+/** Reference to an uploaded smart contract, to be used by contracts. */
+export interface ContractLink {
+  readonly address:   Address
+  readonly code_hash: CodeHash
 }

@@ -1,7 +1,7 @@
-import { Error, Console } from '../util'
 import type {
   Address, Message, AgentOpts, AgentClass, Agent, Class, Client, CodeId, CodeHash
 } from '../index'
+import { Error, Console } from '../util'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {

@@ -3,8 +3,6 @@ import type { DevnetPlatform } from './devnet/index'
 import { FSUploader } from './upload/index'
 import { getBuilder, buildPackage } from './build/index'
 
-import { ConnectConfig } from '@fadroma/connect'
-
 import {
   Builder, Deployment, DeployStore, ChainMode, Uploader
 } from '@fadroma/agent'
@@ -12,9 +10,11 @@ import type {
   BuilderClass, Chain, ChainId, UploaderClass, DeploymentClass, DeploymentFormat, DeployStoreClass
 } from '@fadroma/agent'
 
+import { Config as BaseConfig, ConnectConfig } from '@fadroma/connect'
+import type { Environment } from '@fadroma/connect'
+
 import $ from '@hackbg/file'
-import { Config as BaseConfig } from '@hackbg/conf'
-import type { Environment } from '@hackbg/conf'
+
 import { Engine, Docker, Podman } from '@hackbg/dock'
 
 import { dirname } from 'node:path'
@@ -64,7 +64,7 @@ export default class Config extends ConnectConfig {
     return new $U(this.getAgent())
   }
 
-  /** Deploy options */
+  /** Deploy options. */
   deploy: DeployConfig
 
   /** @returns an instance of the selected deploy store implementation. */
@@ -94,6 +94,7 @@ export default class Config extends ConnectConfig {
     return deployment
   }
 
+  /** Devnet options. */
   devnet: DevnetConfig
 
   getDevnet (platform: DevnetPlatform = this.devnet.platform ?? 'scrt_1.8') {
@@ -129,7 +130,8 @@ export class BuilderConfig extends BaseConfig {
   caching: boolean = !this.getFlag('FADROMA_REBUILD', ()=>false)
 
   /** Name of output directory. */
-  outputDir: string = this.getString('FADROMA_ARTIFACTS', ()=>$(this.project).in('artifacts').path)
+  outputDir: string = this.getString('FADROMA_ARTIFACTS',
+    ()=>$(this.project).in('artifacts').path)
 
   /** Script that runs inside the build container, e.g. build.impl.mjs */
   script: string = this.getString('FADROMA_BUILD_SCRIPT',

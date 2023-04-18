@@ -17,24 +17,21 @@
 **/
 
 export * from './devnet/index'
+export * from './build/index'
+export * from './upload/index'
+export * from './deploy/index'
 
 export * from './Project'
 export { default as Project } from './Project'
 
-export * from './build/index'
+export { default as FadromaError } from './OpsError'
+export * from './OpsError'
 
-export * from './upload/index'
+export { default as FadromaConsole } from './OpsConsole'
+export * from './OpsConsole'
 
-export * from './deploy/index'
+export { default as FadromaConfig } from './OpsConfig'
+export * from './OpsConfig'
 
-export { default as FadromaCommands } from './Commands'
-export * from './Commands'
-
-export { default as FadromaConsole } from './Console'
-export * from './Console'
-
-export { default as FadromaConfig } from './Config'
-export * from './Config'
-
-export { default as FadromaError } from './Error'
-export * from './Error'
+export { default as FadromaCommands } from './OpsCommands'
+export * from './OpsCommands'

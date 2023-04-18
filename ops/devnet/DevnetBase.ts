@@ -1,5 +1,4 @@
-import Error from '../Error'
-import { DevnetConsole as Console } from '../Console'
+import { Error, DevnetConsole as Console } from '../util'
 
 import { Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'

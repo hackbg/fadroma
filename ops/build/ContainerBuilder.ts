@@ -1,14 +1,13 @@
-import { BuildConsole } from '../Console'
-import type { BuilderConfig } from '../Config'
-import Error from '../Error'
+import { BuildConsole, Error } from '../util'
+import type { BuilderConfig } from '../util'
+
 import LocalBuilder, { artifactName, sanitize, buildPackage } from './LocalBuilder'
 import getGitDir from './getGitDir'
 
-import { Builder, Contract, HEAD } from '@fadroma/agent'
+import { Builder, Contract, HEAD, bold } from '@fadroma/agent'
 import type { BuilderClass, Buildable, Built } from '@fadroma/agent'
 
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
-import { bold } from '@hackbg/logs'
 import $, { Path, OpaqueDirectory } from '@hackbg/file'
 
 import { default as simpleGit } from 'simple-git'

@@ -3,16 +3,16 @@ import Console from './ScrtConsole'
 import Scrt from './ScrtChain'
 import type ScrtBundle from './ScrtBundle'
 
-import type * as SecretJS from 'secretjs'
-
-import { Agent, Contract, assertAddress, assertChain, into } from '@fadroma/agent'
+import {
+  Agent, Contract, assertAddress, assertChain, into, base64, bip39, bip39EN
+} from '@fadroma/agent'
 import type {
   Address, AgentClass, AgentOpts, Built, Uploaded,
   BundleClass, Client, CodeHash, ExecOpts, ICoin, Label, Message,
   Name, AnyContract
 } from '@fadroma/agent'
 
-import { base64, bip39, bip39EN } from '@hackbg/4mat'
+import type * as SecretJS from 'secretjs'
 
 export type TxResponse = SecretJS.TxResponse
 
@@ -60,7 +60,7 @@ export default class ScrtAgent extends Agent {
           if (!this.mnemonic) {
             // Generate fresh mnemonic
             this.mnemonic = bip39.generateMnemonic(bip39EN)
-            this.log.warnGeneratedMnemonic(this.mnemonic)
+            this.log.warnGeneratedMnemonic(this.mnemonic!)
           }
           wallet = new _SecretJS.Wallet(this.mnemonic)
         } else if (this.mnemonic) {

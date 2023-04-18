@@ -1,11 +1,10 @@
-import Console from '../Console'
-import type { BuilderConfig } from '../Config'
+import { Console } from '../util'
+import type { BuilderConfig } from '../util'
 
-import { Builder, HEAD } from '@fadroma/agent'
+import { Builder, HEAD, bold } from '@fadroma/agent'
 import type { Class, Built } from '@fadroma/agent'
 
 import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/file'
-import { bold } from '@hackbg/logs'
 
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -20,7 +19,7 @@ export const buildPackage = dirname(fileURLToPath(import.meta.url))
 export default abstract class LocalBuilder extends Builder {
 
   constructor (options: Partial<BuilderConfig>) {
-    super('local builder', 'local builder')
+    super()
     this.workspace = options.project   ?? this.workspace
     this.noFetch   = options.noFetch   ?? this.noFetch
     this.toolchain = options.toolchain ?? this.toolchain

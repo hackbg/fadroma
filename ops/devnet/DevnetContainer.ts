@@ -1,13 +1,12 @@
-import Error from '../Error'
-import Console from '../Console'
+import { Error, Console } from '../util'
 import Devnet, { devnetPortModes, DevnetPlatform } from './DevnetBase'
 import type { DevnetOpts, DevnetState } from './DevnetBase'
 
+import { bold } from '@fadroma/agent'
 import type { AgentOpts, DevnetHandle } from '@fadroma/agent'
 
 import * as Dock from '@hackbg/dock'
 import $, { JSONFile, JSONDirectory } from '@hackbg/file'
-import { bold } from '@hackbg/logs'
 import { freePort, waitPort } from '@hackbg/port'
 
 import { dirname } from 'node:path'

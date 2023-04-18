@@ -1,13 +1,11 @@
-import Error from '../Error'
-import { DevnetConsole as Console } from '../Console'
+import { Error, DevnetConsole as Console } from '../util'
 import Devnet, { devnetPortModes, DevnetPlatform } from './DevnetBase'
 import type { DevnetOpts } from './DevnetBase'
 
 import type { AgentOpts, DevnetHandle } from '@fadroma/agent'
+import { bold, randomHex } from '@fadroma/agent'
 
-import { bold } from '@hackbg/logs'
 import { freePort, Endpoint } from '@hackbg/port'
-import { randomHex } from '@hackbg/4mat'
 import $ from '@hackbg/file'
 
 /** Parameters for the HTTP API-managed implementation of Devnet. */

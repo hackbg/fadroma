@@ -1,5 +1,4 @@
-import { Client } from '@fadroma/agent'
-import { randomBytes } from '@hackbg/4mat'
+import { Client, randomBytes } from '@fadroma/agent'
 
 export type ViewingKey = string
 

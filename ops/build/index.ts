@@ -1,7 +1,7 @@
 import type { TOMLFile } from '@hackbg/file'
 
-import Config from '../Config'
-import type { BuilderConfig } from '../Config'
+import { Config } from '../util'
+import type { BuilderConfig } from '../util'
 
 import LocalBuilder from './LocalBuilder'
 import RawBuilder from './RawBuilder'
@@ -28,7 +28,6 @@ export * from './getGitDir'
 export { default as getGitDir } from './getGitDir'
 
 export { Builder }
-
 
 /** @returns Builder configured as per environment and options */
 export function getBuilder (options: Partial<BuilderConfig> = {}): Builder {

@@ -1,17 +1,33 @@
 import type {
-  Address, TxHash, ChainId, Agent, ClientClass, Deployment, Buildable, Uploadable, Uploaded,
+  Address, TxHash, ChainId, Agent, ClientClass, Deployment, Buildable, Built,
   Hashed, CodeHash, CodeId
 } from '../index'
-
 import {
   Error, Console, bold, pluralize, hideProperties
 } from '../util'
+
 import { assertAgent } from './Agent'
-import { Client } from './Client'
-import { fetchCodeHash, getSourceSpecifier } from './Code'
+import { Client, fetchCodeHash, getSourceSpecifier } from './Client'
 
 import { sha256, base16 } from '@hackbg/4mat'
 import { override } from '@hackbg/over'
+
+/** Parameters involved in uploading a contract */
+export interface Uploadable extends Partial<Built> {
+  artifact:  string|URL
+  chainId:   ChainId,
+  codeHash?: CodeHash
+}
+
+/** Result of uploading a contract */
+export interface Uploaded extends Partial<Uploadable> {
+  chainId:   ChainId
+  codeId:    CodeId
+  codeHash:  CodeHash
+  uploader?: Uploader
+  uploadBy?: Address
+  uploadTx?: TxHash
+}
 
 /** A constructor for an Uploader subclass. */
 export interface UploaderClass<U extends Uploader> {

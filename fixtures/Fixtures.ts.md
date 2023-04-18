@@ -9,7 +9,7 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFileSync } from 'node:fs'
 
-import { Console, bold } from '@hackbg/logs'
+import { Console, bold } from '@fadroma/agent'
 import $ from '@hackbg/file'
 ```
 

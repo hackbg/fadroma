@@ -1,8 +1,9 @@
-import { BuildConsole } from '../Console'
+import { BuildConsole } from '../util'
+
+import { bold } from '@fadroma/agent'
+import type { Contract } from '@fadroma/agent'
 
 import $, { Path, TextFile } from '@hackbg/file'
-import { bold } from '@hackbg/logs'
-import type { Contract } from '@fadroma/agent'
 
 import { fileURLToPath } from 'node:url'
 

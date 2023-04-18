@@ -1,8 +1,8 @@
-import { DeployConsole } from '../Console'
+import { DeployConsole } from '../util'
 
-import { timestamp } from '@hackbg/logs'
 import type { AnyContract, DeploymentState } from '@fadroma/agent'
-import { Contract, Deployment, DeployStore } from '@fadroma/agent'
+import { Contract, Deployment, DeployStore, timestamp } from '@fadroma/agent'
+
 import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/file'
 
 /** Output of the alternate Rust-based deployer. */

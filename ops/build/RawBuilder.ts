@@ -1,12 +1,11 @@
-import { BuildConsole } from '../Console'
+import { BuildConsole } from '../util'
 import LocalBuilder, { artifactName, sanitize } from './LocalBuilder'
 import getGitDir from './getGitDir'
 
-import { Builder, Contract, HEAD } from '@fadroma/agent'
+import { Builder, Contract, HEAD, bold } from '@fadroma/agent'
 import type { BuilderClass, Buildable, Built } from '@fadroma/agent'
 
 import $ from '@hackbg/file'
-import { bold } from '@hackbg/logs'
 
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'

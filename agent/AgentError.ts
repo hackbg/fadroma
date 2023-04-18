@@ -1,4 +1,3 @@
-import { CommandsConsole } from '@hackbg/cmds'
 import { bold, colors } from '@hackbg/logs'
 import type {
   Address, Message, Label, Name, CodeId, CodeHash, Chain, Deployment,

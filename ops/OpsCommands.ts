@@ -1,15 +1,15 @@
-import Error from './Error'
-import Console, { bold } from './Console'
-import Config, { BuilderConfig } from './Config'
+import Error from './OpsError'
+import Console, { bold } from './OpsConsole'
+import Config, { BuilderConfig } from './OpsConfig'
+import Project, { projectWizard } from './Project'
 
-import { CommandContext } from '@hackbg/cmds'
-import $, { JSONFile } from '@hackbg/file'
+import { getBuilder } from './build/index'
 
 import type { Chain, ChainId, DeploymentState, DeployStore } from '@fadroma/agent'
 import { Deployment } from '@fadroma/agent'
 
-import { getBuilder } from './build/index'
-import Project, { projectWizard } from './Project'
+import $, { JSONFile } from '@hackbg/file'
+import { CommandContext } from '@hackbg/cmds'
 
 export default class FadromaCommands extends CommandContext {
 

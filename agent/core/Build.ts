@@ -1,6 +1,26 @@
-import type { Deployment, Class, CodeHash, Buildable, Built, Task } from '../index'
+import type {
+  Deployment, Class, CodeHash
+} from '../index'
 import { Error, Console, pluralize } from '../util'
-import { CommandContext } from '@hackbg/cmds'
+
+/** Parameters involved in building a contract. */
+export interface Buildable {
+  crate:       string
+  features?:   string[]
+  workspace?:  string
+  repository?: string|URL
+  revision?:   string
+  dirty?:      boolean
+  builder?:    Builder
+}
+
+/** Result of building a contract. */
+export interface Built extends Partial<Buildable> {
+  artifact:   string|URL
+  codeHash?:  CodeHash
+  builder?:   Builder
+  builderId?: string
+}
 
 /** The default Git ref when not specified. */
 export const HEAD = 'HEAD'
@@ -10,7 +30,9 @@ export const HEAD = 'HEAD'
 export type BuilderClass<B extends Builder> = Class<Builder, any>
 
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
-export abstract class Builder extends CommandContext {
+export abstract class Builder {
+  log = new Console(this.constructor.name)
+
   /** Populated by @fadroma/ops */
   static variants: Record<string, BuilderClass<Builder>> = {}
   /** Unique identifier of this builder implementation. */
