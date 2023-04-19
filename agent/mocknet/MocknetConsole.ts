@@ -6,6 +6,7 @@ export default class MocknetConsole extends Console {
     if (process.env.FADROMA_MOCKNET_DEBUG) {
       super.log(...args)
     }
+    return this
   }
 
   trace (...args: any[]) {
@@ -13,12 +14,14 @@ export default class MocknetConsole extends Console {
     if (process.env.FADROMA_MOCKNET_DEBUG) {
       super.log(...args)
     }
+    return this
   }
 
   debug (...args: any[]) {
     if (process.env.FADROMA_MOCKNET_DEBUG) {
       this.log(...args)
     }
+    return this
   }
 
 }

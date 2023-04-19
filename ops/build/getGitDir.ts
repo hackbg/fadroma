@@ -1,13 +1,14 @@
 import { BuildConsole } from '../util'
 
 import { bold } from '@fadroma/agent'
-import type { Contract } from '@fadroma/agent'
+import type { Template } from '@fadroma/agent'
 
 import $, { Path, TextFile } from '@hackbg/file'
 
 import { fileURLToPath } from 'node:url'
 
-export default function getGitDir ({ workspace }: Partial<Contract<any>> = {}): DotGit {
+export default function getGitDir (template: Partial<Template<any>> = {}): DotGit {
+  const { workspace } = template || {}
   if (!workspace) throw new Error("No workspace specified; can't find gitDir")
   return new DotGit(workspace)
 }

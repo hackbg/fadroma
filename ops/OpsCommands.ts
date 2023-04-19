@@ -145,6 +145,12 @@ export class DevnetCommands extends CommandContext {
 
   constructor (public chain?: Chain) {
     super('Fadroma Devnet')
+
+    //// Define CLI commands
+    //this.addCommand('reset',  'kill and erase the devnet', () => {})
+    //this.addCommand('stop',   'gracefully pause the devnet', () => {})
+    //this.addCommand('kill',   'terminate the devnet immediately', () => {})
+    //this.addCommand('export', 'stop the devnet and save it as a new Docker image', () => {})
   }
 
   status = this.command('status', 'print the status of the current devnet', () => {

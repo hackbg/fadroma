@@ -4,23 +4,15 @@ import { Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
 
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/file'
-import { CommandContext } from '@hackbg/cmds'
 
 /** An ephemeral private instance of a network. */
-export default abstract class Devnet extends CommandContext implements DevnetHandle {
+export default abstract class Devnet implements DevnetHandle {
 
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
-  constructor ({
-    chainId,
-    identities,
-    stateRoot,
-    host,
-    port,
-    portMode,
-    ephemeral
-  }: Partial<DevnetOpts> = {}) {
-    super('devnet')
+  constructor (options?: Partial<DevnetOpts>) {
+    let { chainId, identities, stateRoot, host, port, portMode, ephemeral } = options || {}
+
     this.chainId = chainId ?? this.chainId
     if (!this.chainId) throw new Error.Devnet.NoChainId()
 
@@ -37,12 +29,6 @@ export default abstract class Devnet extends CommandContext implements DevnetHan
 
     // Define storage
     this.stateRoot = $(stateRoot || $('receipts', this.chainId).path).as(OpaqueDirectory)
-
-    // Define CLI commands
-    this.addCommand('reset',  'kill and erase the devnet', () => {})
-    this.addCommand('stop',   'gracefully pause the devnet', () => {})
-    this.addCommand('kill',   'terminate the devnet immediately', () => {})
-    this.addCommand('export', 'stop the devnet and save it as a new Docker image', () => {})
   }
 
   /** Logger. */
