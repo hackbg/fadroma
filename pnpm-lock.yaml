@@ -546,7 +546,7 @@ importers:
 
   ops:
     specifiers:
-      '@fadroma/connect': workspace:3.0.0-rc.5
+      '@fadroma/connect': workspace:3.0.0-rc.6
       '@hackbg/cmds': workspace:^1.2.2
       '@hackbg/dock': workspace:^1.2
       '@hackbg/ensuite': ^1.1
