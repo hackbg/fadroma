@@ -83,7 +83,7 @@ importers:
   connect:
     specifiers:
       '@fadroma/agent': workspace:1.0.0-rc.3
-      '@fadroma/scrt': workspace:9.0.0-rc.1
+      '@fadroma/scrt': workspace:9.0.0-rc.2
       '@hackbg/conf': workspace:^1
     dependencies:
       '@fadroma/agent': link:../agent
@@ -471,7 +471,7 @@ importers:
 
   ops:
     specifiers:
-      '@fadroma/connect': workspace:3.0.0-rc.8
+      '@fadroma/connect': workspace:3.0.0-rc.9
       '@hackbg/cmds': workspace:^1.2.2
       '@hackbg/dock': workspace:^1.2
       '@hackbg/ensuite': ^1.1
