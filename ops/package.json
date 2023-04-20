@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/ops",
-  "version": "3.0.0-rc.8",
+  "version": "3.0.0-rc.9",
   "type": "module",
   "main": "./index.ts",
   "files": [ "*.ts", "**/*.ts" ],
@@ -19,8 +19,8 @@
     "@hackbg/ganesha": { "optional": true, "description": "For CLI" }
   },
   "dependencies": {
-    "@fadroma/connect": "workspace:3.0.0-rc.9",
-    "@hackbg/dock": "workspace:^1.2",
+    "@fadroma/connect": "workspace:3.0.0-rc.10",
+    "@hackbg/dock": "workspace:^1.3",
     "@hackbg/file": "workspace:^1",
     "@hackbg/port": "workspace:^1",
     "@hackbg/cmds": "workspace:^1.2.2",
