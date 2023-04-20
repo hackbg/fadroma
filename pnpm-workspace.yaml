@@ -6,8 +6,12 @@ packages:
   - 'platforms/**'
 
   - 'ensuite'
-  - 'ensuite/**'
-  - 'ensuite/ganesha/vsc'
-  - 'ensuite/ganesha/rollup'
+  - 'ensuite/toolbox'
+  - 'ensuite/toolbox/*'
+  - 'ensuite/ganesha'
+  - 'ensuite/ganesha/*'
+  - '!ensuite/ganesha/vsc'
+  - '!ensuite/ganesha/rollup'
+  - '!ensuite/ganesha/test'
 
   - '!examples/project'
