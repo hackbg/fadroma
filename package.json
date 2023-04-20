@@ -1,13 +1,13 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.59",
+  "version": "1.0.0-beta.60",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "index.ts",
   "browser": "index.browser.ts",
   "description": "CosmWasm dApp framework.",
   "bin": { "fadroma": "fadroma.cli.cjs" },
-  "files": [ "*.ts" ],
+  "files": [ "*.ts", "!agent", "!connect", "!ops", "!platforms" ],
   "scripts": {
 
     "start": "cmds-ts ./FadromaCommands.ts",
