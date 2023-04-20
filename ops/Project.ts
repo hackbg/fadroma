@@ -4,73 +4,57 @@ import { getUploader } from './upload/index'
 import type { Builder, Buildable, Uploadable, Built } from '@fadroma/agent'
 import { Template } from '@fadroma/agent'
 
-import $, { Path, OpaqueDirectory, OpaqueFile, JSONFile, TOMLFile, TextFile } from '@hackbg/file'
-import Console, { bold, colors } from './OpsConsole'
-
 import Case from 'case'
 import prompts from 'prompts'
 
 import { execSync } from 'node:child_process'
+import $, { Path, OpaqueDirectory, OpaqueFile, JSONFile, TOMLFile, TextFile } from '@hackbg/file'
+import Console, { bold, colors } from './OpsConsole'
 
-export type ProjectContract = {
-  /** Source crate/workspace. Defaults to root crate of project. */
-  source?: string,
-  /** -p flag that selects the contract to compile, if the source is a workspace. */
-  package?: string,
-  /** One or more -f flags that select the contract to compile, if the source is a multi-contract crate. */
-  features?: string[]
-}
+const console = new Console('@fadroma/project')
 
 export default class Project {
 
-  static create (
-    name: string,
-    root: string|Path = $(process.cwd()).in(name),
-    templates: Record<string, Template<any>|(Buildable & Partial<Built>)> = {}
-  ) {
-    if (typeof root === 'string') root = $(root)
-    return new this({ name, root: root.as(OpaqueDirectory), templates }).create()
-  }
-
   /** @returns the config of the current project, or the project at the specified path */
-  static load (
-    path: string|OpaqueDirectory = process.cwd()
-  ): Project {
-    const packageJSON = $(path).as(OpaqueDirectory).at('package.json').as(JSONFile).load()
-    const { fadroma } = packageJSON as { fadroma: any }
-    return new Project(fadroma)
-  }
-
   log: Console
 
   /** Name of the project. */
-  name:           string
-  /** Root directory of the project. */
-  root:           OpaqueDirectory
-  /** Root of documentation. */
-  readme:         TextFile
-  /** List of files to be ignored by Git. */
-  gitignore:      TextFile
-  /** List of environment variables to set. */
-  envfile:        TextFile
-  /** Nix dependency manifest. */
-  shellNix:       TextFile
-  /** A custom Dockerfile for building the project. */
-  dockerfile:     TextFile|null = null
-  /** A GitHub Actions CI workflow. */
-  githubWorkflow: TextFile|null = null
-  /** A Drone CI workflow. */
-  droneWorkflow:  TextFile|null = null
-  /** Root package manifest. */
-  packageJson:    JSONFile<any>
-  /** Empty file that enables PNPM workspaces. */
-  pnpmWorkspace:  TextFile
+  name: string
 
-  constructor (options?: {
-    name?: string,
-    root?: string|OpaqueDirectory,
+  /** Root directory of the project. */
+  root: OpaqueDirectory
+
+  /** Contract definitions. */
+  templates: Record<string, Template<any>>
+
+  /** Contract crates in project. */
+  crates: Record<string, ContractCrate>
+
+  /** NPM packages in workspace. */
+  packages:  Record<string, NPMPackage>
+
+  /** Project state directory. Contains history of builds, uploads, and deploys */
+  state: ProjectState
+
+  /** Various files comprising the project infrastructure. */
+  get files () {
+    return {
+      readme:         this.root.at('README.md').as(TextFile),
+      gitignore:      this.root.at('.gitignore').as(TextFile),
+      envfile:        this.root.at('.env').as(TextFile),
+      shellNix:       this.root.at('shell.nix').as(TextFile),
+      packageJson:    this.root.at('package.json').as(JSONFile),
+      cargoToml:      this.root.at('Cargo.toml').as(TOMLFile),
+      pnpmWorkspace:  this.root.at('pnpm-workspace.yaml').as(TextFile),
+      dockerfile:     null,
+      githubWorkflow: null,
+      droneWorkflow:  null
+    }
+  }
+
+  constructor (options?: Partial<Project & {
     templates: Record<string, Template<any>|(Buildable & Partial<Built>)>
-  }) {
+  }>) {
     // Handle options
     const root = $(options?.root || process.cwd()).as(OpaqueDirectory)
     const name = options?.name || root.name
@@ -85,33 +69,23 @@ export default class Project {
       const template = this.setTemplate(key, val)
       if (template.crate) this.crates[key] = new ContractCrate(this, template.crate)
     }
-    // Define project files and subdirectories
-    this.gitignore     = root.at('.gitignore').as(TextFile)
-    this.envfile       = root.at('.env').as(TextFile)
-    this.readme        = root.at('README.md').as(TextFile)
-    this.shellNix      = root.at('shell.nix').as(TextFile)
-    this.packageJson   = root.at('package.json').as(JSONFile)
-    this.pnpmWorkspace = root.at('pnpm-workspace.yaml').as(TextFile)
-    this.packages = { api: new APIPackage(this, 'api'), ops: new OpsPackage(this, 'ops') }
-    this.state    = new ProjectState(this)
+    this.packages = {
+      api: new APIPackage(this, 'api'),
+      ops: new OpsPackage(this, 'ops')
+    }
+    this.state = new ProjectState(this)
   }
 
-  /** NPM packages in workspace. */
-  packages: Record<string, NPMPackage>
-
-  /** Crates in workspace. */
-  crates: Record<string, ContractCrate>
-
-  /** Contract definitions. */
-  templates: Record<string, Template<any>>
+  run (...cmds: string[]) {
+    return cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
+  }
 
   getTemplate (name: string): (Template<any> & Buildable)|undefined {
     return this.templates[name] as Template<any> & Buildable
   }
 
   setTemplate (
-    name:  string,
-    value: string|Template<any>|(Buildable & Partial<Built>)
+    name: string, value: string|Template<any>|(Buildable & Partial<Built>)
   ): Template<any> {
     return this.templates[name] =
       (typeof value === 'string') ? new Template({ workspace: this.root.path, crate: value }) :
@@ -138,9 +112,6 @@ export default class Project {
     return this.upload(Object.keys(this.templates))
   }
 
-  /** Project state directory. Contains history of builds, uploads, and deploys */
-  state: ProjectState
-
   getBuildState () {
     return this.state.artifacts.load()
   }
@@ -162,20 +133,18 @@ export default class Project {
 
     this.root.make()
 
-    this.readme.save([
-      `# ${name}\n`,
-      `Made with [Fadroma](https://fadroma.tech)`
-    ].join('\n'))
+    this.files.readme.save([
+      `# ${name}\n---\n`,
+      `Made with [Fadroma](https://fadroma.tech)',
+      'provided courtesy of [Hack.bg](https://hack.bg)',
+      'under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
+    ].join(''))
 
-    this.gitignore.save([
-      '.env',
-      'node_modules',
-      'target'
-    ].join('\n'))
+    this.files.gitignore.save([ '.env', 'node_modules', 'target' ].join('\n'))
 
-    this.envfile.save('')
+    this.files.envfile.save('# FADROMA_MNEMONIC=your testnet mnemonic')
 
-    this.shellNix.save([
+    this.files.shellNix.save([
       `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
       `  inherit name;`,
       `  nativeBuildInputs = with pkgs; [ git nodejs nodePackages_latest.pnpm rustup ];`,
@@ -186,7 +155,17 @@ export default class Project {
       `}`,
     ].join('\n'))
 
-    this.packageJson.save({
+    this.files.cargoToml.as(TextFile).save([
+      `[workspace]`,
+      `resolver = "2"`,
+      `members = [`,
+      Object.values(this.crates).map(crate=>`  "${crate.name}"`).sort().join(',\n'),
+      `]`
+    ].join('\n'))
+
+    Object.values(this.crates).forEach(crate=>crate.create())
+
+    this.files.packageJson.save({
       name: `@${name}/workspace`,
       version: "0.0.0",
       private: true,
@@ -204,36 +183,136 @@ export default class Project {
         templates: templates
       }
     })
-
-    this.pnpmWorkspace.save('')
-
-    this.state.create()
-
+    this.files.pnpmWorkspace.save('')
     Object.values(this.packages).forEach(pkg=>pkg.create())
 
-    Object.values(this.crates).forEach(crate=>crate.create())
-
+    this.state.create()
     return this
+  }
+
+  static load (path: string|OpaqueDirectory = process.cwd()): Project|null {
+    const configFile = $(path, 'fadroma.json').as(JSONFile)
+    if (configFile.exists()) {
+      return new Project(configFile.load() as Partial<Project>)
+    } else {
+      return null
+    }
+  }
+
+  static async create (options: Partial<{
+    name: string,
+    root: string|OpaqueDirectory,
+    templates: Awaited<ReturnType<typeof Project.askTemplates>>
+  }>): Promise<Project> {
+    options = { ...options }
+    const name = options.name ??= await this.askName()
+    const root = options.root = $(options.root ?? await this.askRoot(name)).as(OpaqueDirectory)
+    const templates = options.templates ??= await this.askTemplates(options.name)
+    const project = new Project({ name, root, templates: templates as any })
+    await project.create()
+    project.run(
+      'git init',
+      'pnpm i',
+      //'cargo doc --all-features',
+      'git add .',
+      'git status',
+      'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"'
+    )
+    console.log("Project initialized.")
+    console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
+    return project
+  }
+
+  static async askName (): Promise<string> {
+    let value
+    while ((value = (await prompts.prompt({
+      type: 'text', name: 'value',
+      message: 'Enter a project name (a-z, 0-9, dash/underscore)'
+    })).value??''.trim()) === '') {}
+    return value
+  }
+
+  static async askRoot (name: string): Promise<Path> {
+    const cwd = $(process.cwd())
+    return (await prompts.prompt({
+      type: 'select', name: 'value',
+      message: `Create project ${name} in current directory or subdirectory?`,
+      choices: [
+        { title: `Subdirectory (${cwd.name}/${name})`, value: cwd.in(name) },
+        { title: `Current directory (${cwd.name})`,    value: cwd },
+      ]
+    })).value
+  }
+
+  static askTemplates (name: string):
+    Promise<Record<string, Template<any>|(Buildable & Partial<Built>)>>
+  {
+    return askUntilDone({}, (state) => askSelect([
+      `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
+      `  ${Object.keys(state).join(',\n  ')}\n`
+    ].join(''), [
+      { title: `Add contract template to the project`, value: defineContract },
+      { title: `Remove contract template`, value: undefineContract },
+      { title: `Rename contract template`, value: renameContract },
+      { title: `(done)`, value: null },
+    ]))
+    async function defineContract (state: Record<string, any>) {
+      const crate = await askText([
+        'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):',
+      ].join('\n'))
+      state[crate] = { crate }
+    }
+    async function undefineContract (state: Record<string, any>) {
+      const name = await askSelect(`Select contract to remove from project scope:`, [
+        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+        { title: `(done)`, value: null },
+      ])
+      delete state[name]
+    }
+    async function renameContract (state: Record<string, any>) {
+      const contract = await askSelect(`Select contract to rename:`, [
+        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+        { title: `(done)`, value: null },
+      ])
+      const name = await askText(`Enter a new name for ${contract} (a-z, 0-9, dash/underscore):`)
+      state[name] = state[contract]
+      delete state[contract]
+    }
   }
 
 }
 
-export class ProjectState {
-  /** Crate manifest. */
-  dir: OpaqueDirectory
-  /** File containing build artifact checksums. */
-  artifacts: TextFile
-  /** Directory containing upload receipts. */
-  uploads: OpaqueDirectory
-  /** Directory containing deployment receipts. */
-  receipts: OpaqueDirectory
+function askText <T> (message: string) {
+  return prompts.prompt({ type: 'text', name: 'value', message })
+    .then((x: { value: T })=>x.value)
+}
 
-  constructor (readonly project: Project) {
-    this.dir = project.root.in('state').as(OpaqueDirectory)
-    this.artifacts = this.dir.at('artifacts.sha256').as(TextFile)
-    this.uploads   = this.dir.in('uploads').as(OpaqueDirectory)
-    this.receipts  = this.dir.in('receipts').as(OpaqueDirectory)
+function askSelect <T> (message: string, choices: any[]) {
+  return prompts.prompt({ type: 'select', name: 'value', message, choices })
+    .then((x: { value: T })=>x?.value)
+}
+
+async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<Function|null>|Function|null) {
+  let action = null
+  while (typeof (action = await Promise.resolve(selector(state))) === 'function') {
+    await Promise.resolve(action(state))
   }
+  return state
+}
+
+export class ProjectState {
+
+  constructor (
+    readonly project: Project,
+    /** Root of project state. */
+    readonly dir: OpaqueDirectory = project.root.in('state').as(OpaqueDirectory),
+    /** File containing build artifact checksums. */
+    readonly artifacts: TextFile = dir.at('artifacts.sha256').as(TextFile),
+    /** Directory containing upload receipts. */
+    readonly uploads: OpaqueDirectory = dir.in('uploads').as(OpaqueDirectory),
+    /** Directory containing deployment receipts. */
+    readonly receipts: OpaqueDirectory = dir.in('receipts').as(OpaqueDirectory),
+  ) {}
 
   create () {
     let artifacts = ``
@@ -247,24 +326,20 @@ export class ProjectState {
 }
 
 export class NPMPackage {
-  /** Directory containing api library. */
-  dir:         OpaqueDirectory
-  /** API package manifest. */
-  packageJson: JSONFile<any>
-  /** Main module */
-  index:       TextFile
-  /** Test specification. */
-  spec:        TextFile
 
   constructor (
     readonly project: Project,
-    readonly name:    string,
-  ) {
-    this.dir = project.root.in(name).as(OpaqueDirectory)
-    this.packageJson = this.dir.at('package.json').as(JSONFile)
-    this.index       = this.dir.at(`${name}.ts`).as(TextFile)
-    this.spec        = this.dir.at(`${name}.spec.ts`).as(TextFile)
-  }
+    /** Name of package. */
+    readonly name: string,
+    /** Directory of package. */
+    readonly dir: OpaqueDirectory = project.root.in(name).as(OpaqueDirectory),
+    /** Package manifest. */
+    readonly packageJson: JSONFile<any> = dir.at('package.json').as(JSONFile),
+    /** Main module */
+    readonly index: TextFile = dir.at(`${name}.ts`).as(TextFile),
+    /** Test specification. */
+    readonly spec: TextFile = dir.at(`${name}.spec.ts`).as(TextFile)
+  ) {}
 
   create (packageJson: object = {}) {
     this.dir.make()
@@ -278,15 +353,15 @@ export class APIPackage extends NPMPackage {
       name: `@${this.project.name}/${this.name}`,
       version: "0.0.0",
       dependencies: {
-        "@fadroma/agent": "^1",
-        "@fadroma/scrt":  "^8",
+        "@fadroma/agent": "latest",
+        "@fadroma/scrt":  "latest",
       },
       main: `${this.name}.ts`
     })
 
     const imports = `import { Client, Deployment } from '@fadroma/agent'`
 
-    const contracts = Object.keys(this.project.crates)
+    const contracts = Object.keys(this.project.templates)
 
     const deploymentClass = [
       `export default class ${Case.pascal(this.project.name)} extends Deployment {`,
@@ -314,9 +389,12 @@ export class OpsPackage extends NPMPackage {
   create () {
     super.create({
       name: `@${this.project.name}/${this.name}`,
+      main: `${this.name}.ts`,
       private: true,
-      devDependencies: { "@fadroma/ops": "^3", [`@${this.project.name}/api`]: "workspace:*" },
-      main: `${this.name}.ts`
+      devDependencies: {
+        "@fadroma/ops": "latest",
+        [`@${this.project.name}/api`]: "link:../api"
+      },
     })
 
     const imports = [
@@ -334,40 +412,38 @@ export class OpsPackage extends NPMPackage {
 }
 
 export class ContractCrate {
-  dir:       OpaqueDirectory
-  /** Crate manifest. */
-  cargoToml: TextFile
-  /** Directory containing crate sources. */
-  src:       OpaqueDirectory
-  /** Root module of Rust crate. */
-  libRs:     TextFile
 
   constructor (
     readonly project: Project,
-    readonly name:    string,
-    readonly fadromaFeatures: string[] = [ 'scrt' ]
-  ) {
-    this.dir       = project.root.in(name).as(OpaqueDirectory)
-    this.cargoToml = this.dir.at('Cargo.toml').as(TextFile)
-    this.src       = this.dir.in('src').as(OpaqueDirectory)
-    this.libRs     = this.src.at('lib.rs').as(TextFile)
-  }
+    /** Name of crate */
+    readonly name: string,
+    /** Features of the 'fadroma' dependency to enable. */
+    readonly fadromaFeatures: string[] = [ 'scrt' ],
+    /** Root directory of crate. */
+    readonly dir: OpaqueDirectory = project.root.in(name).as(OpaqueDirectory),
+    /** Crate manifest. */
+    readonly cargoToml: TextFile = dir.at('Cargo.toml').as(TextFile),
+    /** Directory containing crate sources. */
+    readonly src: OpaqueDirectory = dir.in('src').as(OpaqueDirectory),
+    /** Root module of Rust crate. */
+    readonly libRs: TextFile = src.at('lib.rs').as(TextFile)
+  ) {}
 
   create () {
+    console.log('Creating crate:', this.name)
     this.cargoToml.save([
       `[package]`,
-      `name = "${this.project.name}"`,
+      `name = "${this.name}"`,
       `version = "0.0.0"`,
       `edition = "2021"`,
       `authors = []`,
-      `license = "AGPL-3.0"`,
       `keywords = ["fadroma"]`,
       `description = ""`,
       `readme = "README.md"`,
       ``,
       `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
       `[dependencies]`,
-      `fadroma = { version = "0.9.0", features = ${JSON.stringify(this.fadromaFeatures)} }`
+      `fadroma = { version = "0.7.0", features = ${JSON.stringify(this.fadromaFeatures)} }`
     ].join('\n'))
     this.src.make()
     this.libRs.save([
@@ -399,123 +475,6 @@ export class ContractCrate {
 }
 
 const { text, select } = prompts.prompts
-
-const console = new Console('@fadroma/project')
-
-export async function projectWizard () {
-  const name = await askProjectName()
-  const root = await askSubdirectory(name)
-  const contracts = await askContracts(name)
-  Project.create(name, root, contracts)
-  console.log("Initializing project:")
-  run(root.path, 'git init')
-  run(root.path, 'pnpm i')
-  run(root.path, 'cargo doc --all-features')
-  run(root.path, 'git add .')
-  run(root.path, 'git status')
-  run(root.path, 'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"')
-  console.br()
-  console.log("Project initialized.")
-  console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
-}
-
-export function run (cwd: string, cmd: string) {
-  console.log(`$ ${cmd}`)
-  execSync(cmd, { cwd, stdio: 'inherit' })
-}
-
-export async function askProjectName (): Promise<string> {
-  let value
-  while ((value = (await prompts.prompt({
-    type: 'text',
-    name: 'value',
-    message: 'Enter a project name (a-z, 0-9, dash/underscore)'
-  })).value.trim()) === '') {}
-  return value
-}
-
-export async function askSubdirectory (name: string): Promise<Path> {
-  const cwd = $(process.cwd())
-  return (await prompts.prompt({
-    type: 'select',
-    name: 'value',
-    message: `Create project ${name} in current directory or subdirectory?`,
-    choices: [
-      { title: `Subdirectory (${cwd.name}/${name})`, value: cwd.in(name) },
-      { title: `Current directory (${cwd.name})`, value: cwd },
-    ]
-  })).value
-}
-
-export async function askContracts (name: string): Promise<{}> {
-  let contracts = {}
-  let action = await askContractAction(name, contracts)
-  while (typeof action === 'function') {
-    await Promise.resolve(action(contracts))
-    action = await askContractAction(name, contracts)
-  }
-  return contracts
-}
-
-export async function askContractAction (
-  name: string,
-  contracts: Record<string, any>
-): Promise<Function|null> {
-  const length = Object.keys(contracts).length
-  const names  = Object.keys(contracts).join(', ')
-  return (await prompts.prompt({
-    type: 'select',
-    name: 'value',
-    message: `Project ${name} contains ${length} contract(s): ${names}`,
-    choices: [
-      { title: `Add contract`,    value: defineContract },
-      { title: `Remove contract`, value: undefineContract },
-      { title: `Rename contract`, value: renameContract },
-      { title: `(done)`,          value: null },
-    ]
-  })).value
-}
-
-export async function defineContract (contracts: Record<string, any>) {
-  const name = (await prompts.prompt({
-    type: 'text',
-    name: 'value',
-    message: 'Enter a name for the new contract (a-z, 0-9, dash/underscore):'
-  })).value
-  contracts[name] = {}
-}
-
-export async function undefineContract (contracts: Record<string, any>) {
-  const name = (await prompts.prompt({
-    type: 'select',
-    name: 'value',
-    message: `Select contract to remove from project scope:`,
-    choices: [
-      ...Object.keys(contracts).map(contract=>({ title: contract, value: contract })),
-      { title: `(done)`, value: null },
-    ]
-  })).value
-  delete contracts[name]
-}
-
-export async function renameContract (contracts: Record<string, any>) {
-  const contract = (await prompts.prompt({
-    type: 'select',
-    name: 'value',
-    message: `Select contract to rename:`,
-    choices: [
-      ...Object.keys(contracts).map(contract=>({ title: contract, value: contract })),
-      { title: `(done)`, value: null },
-    ]
-  })).value
-  const name = (await prompts.prompt({
-    type: 'text',
-    name: 'value',
-    message: `Enter a new name for ${contract} (a-z, 0-9, dash/underscore):`
-  })).value
-  contracts[name] = contracts[contract]
-  delete contracts[contract]
-}
 
 export function askDonation () {
 }

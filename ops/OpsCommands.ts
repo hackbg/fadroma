@@ -1,7 +1,7 @@
 import Error from './OpsError'
 import Console, { bold } from './OpsConsole'
-import Config, { BuilderConfig } from './OpsConfig'
-import Project, { projectWizard } from './Project'
+import Config from './OpsConfig'
+import Project from './Project'
 
 import { getBuilder } from './build/index'
 
@@ -14,7 +14,7 @@ import { CommandContext } from '@hackbg/cmds'
 export default class FadromaCommands extends CommandContext {
 
   constructor (
-    readonly project:    Project|undefined    = Project.load(),
+    readonly project:    Project|null         = Project.load(),
     readonly deployment: Deployment|undefined = project?.getCurrentDeployment(),
   ) {
     super()
@@ -28,9 +28,9 @@ export default class FadromaCommands extends CommandContext {
       .addCommands('project', 'manage projects', projectCommands)
     if (this.project) {
       const templateCommands =
-        new TemplateCommands(project) as unknown as CommandContext
+        new TemplateCommands(this.project) as unknown as CommandContext
       const deploymentCommands =
-        new DeploymentCommands(project, deployment) as unknown as CommandContext
+        new DeploymentCommands(this.project, deployment) as unknown as CommandContext
       this
         .addCommands('template', 'manage contract templates in current project', templateCommands)
         .addCommand('build', 'build the project or specific contracts from it', this.build)
@@ -38,7 +38,7 @@ export default class FadromaCommands extends CommandContext {
         .addCommands('deployment', 'manage deployments of current project', deploymentCommands)
       if (this.deployment) {
         const commands =
-          new ContractCommands(project, deployment) as unknown as CommandContext
+          new ContractCommands(this.project, deployment) as unknown as CommandContext
         this.addCommands('contracts', 'manage contracts in current deployment', commands)
       }
     }
@@ -179,26 +179,23 @@ export class DevnetCommands extends CommandContext {
 }
 
 export class ProjectCommands extends CommandContext {
-  constructor (readonly project: Project) { super() }
-  create = this.command('create', 'create a new project', projectWizard)
+  constructor (readonly project: Project|null) { super() }
+  create = this.command('create', 'create a new project', (name?: string) => Project.create({ name }))
 }
 
 export class TemplateCommands extends CommandContext {
   constructor (readonly project: Project) { super() }
-
   add = this.command('add', 'add a new contract template to the project',
     () => { throw new Error('not implemented') })
-
   list = this.command('list', 'list contract templates defined in this project',
     () => { throw new Error('not implemented') })
-
   del = this.command('del', 'delete a contract template from this project',
     () => { throw new Error('not implemented') })
 }
 
 export class DeploymentCommands extends CommandContext {
   constructor (
-    readonly project:    Project|undefined    = Project.load(),
+    readonly project:    Project|null         = Project.load(),
     readonly deployment: Deployment|undefined = project?.getCurrentDeployment(),
   ) {
     super()
@@ -207,7 +204,7 @@ export class DeploymentCommands extends CommandContext {
 
 export class ContractCommands extends CommandContext {
   constructor (
-    readonly project:    Project|undefined    = Project.load(),
+    readonly project:    Project|null         = Project.load(),
     readonly deployment: Deployment|undefined = project?.getCurrentDeployment(),
   ) {
     super()
