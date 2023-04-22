@@ -213,10 +213,11 @@ export default class Project {
     project.run(
       'git init',
       'pnpm i',
-      //'cargo doc --all-features',
+      'cargo doc --all-features',
       'git add .',
       'git status',
-      'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"'
+      'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
+      "git log",
     )
     console.log("Project initialized.")
     console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
@@ -225,23 +226,16 @@ export default class Project {
 
   static async askName (): Promise<string> {
     let value
-    while ((value = (await prompts.prompt({
-      type: 'text', name: 'value',
-      message: 'Enter a project name (a-z, 0-9, dash/underscore)'
-    })).value??''.trim()) === '') {}
+    while ((value = (await askText('Enter a project name (a-z, 0-9, dash/underscore)')??'').trim()) === '') {}
     return value
   }
 
-  static async askRoot (name: string): Promise<Path> {
+  static askRoot (name: string): Promise<Path> {
     const cwd = $(process.cwd())
-    return (await prompts.prompt({
-      type: 'select', name: 'value',
-      message: `Create project ${name} in current directory or subdirectory?`,
-      choices: [
-        { title: `Subdirectory (${cwd.name}/${name})`, value: cwd.in(name) },
-        { title: `Current directory (${cwd.name})`,    value: cwd },
-      ]
-    })).value
+    return askSelect(`Create project ${name} in current directory or subdirectory?`, [
+      { title: `Subdirectory (${cwd.name}/${name})`, value: cwd.in(name) },
+      { title: `Current directory (${cwd.name})`,    value: cwd },
+    ])
   }
 
   static askTemplates (name: string):
@@ -443,7 +437,8 @@ export class ContractCrate {
       ``,
       `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
       `[dependencies]`,
-      `fadroma = { version = "0.7.0", features = ${JSON.stringify(this.fadromaFeatures)} }`
+      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "feat/podman-nix", features = ${JSON.stringify(this.fadromaFeatures)} }`,
+      `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
     ].join('\n'))
     this.src.make()
     this.libRs.save([
