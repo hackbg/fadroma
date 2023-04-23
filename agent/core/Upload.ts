@@ -88,15 +88,6 @@ export abstract class Uploader {
 
 }
 
-/** @returns the uploader of the thing
-  * @throws  NoUploader if missing or NoUploaderAgent if the uploader has no agent. */
-export function assertUploader ({ uploader }: { uploader?: Uploader }): Uploader {
-  if (!uploader) throw new Error.NoUploader()
-  //if (typeof uploader === 'string') throw new Error.ProvideUploader(uploader)
-  if (!uploader.agent) throw new Error.NoUploaderAgent()
-  return uploader
-}
-
 export class FetchUploader extends Uploader {
 
   get id () { return 'Fetch' }

@@ -14,8 +14,8 @@ import { CommandContext } from '@hackbg/cmds'
 export default class FadromaCommands extends CommandContext {
 
   constructor (
-    readonly project:    Project|null         = Project.load(),
-    readonly deployment: Deployment|undefined = project?.getCurrentDeployment(),
+    readonly project:    Project|null = Project.load(),
+    readonly deployment: Deployment|undefined  = project?.getCurrentDeployment(),
   ) {
     super()
     const devnetCommands =
@@ -24,6 +24,7 @@ export default class FadromaCommands extends CommandContext {
       new ProjectCommands(project) as unknown as CommandContext
     this
       .addCommand('run', 'execute a script', this.runScript)
+      .addCommand('status', 'show state of project', this.status)
       .addCommands('devnet', 'manage local development containers', devnetCommands)
       .addCommands('project', 'manage projects', projectCommands)
     if (this.project) {
@@ -35,6 +36,7 @@ export default class FadromaCommands extends CommandContext {
         .addCommands('template', 'manage contract templates in current project', templateCommands)
         .addCommand('build', 'build the project or specific contracts from it', this.build)
         .addCommand('upload', 'upload the project or specific contracts from it', this.upload)
+        .addCommand('deploy', 'deploy this project', this.deploy)
         .addCommands('deployment', 'manage deployments of current project', deploymentCommands)
       if (this.deployment) {
         const commands =
@@ -44,8 +46,21 @@ export default class FadromaCommands extends CommandContext {
     }
   }
 
-  runScript = (script: string, ...args: string[]) => {
-    throw new Error('not implemented')
+  runScript = (script: string, ...args: string[]) =>
+    import(script).then(script=>{
+      if (typeof script.default === 'function')
+        return script.default(...args)
+      if (typeof script[args[0]] === 'function')
+        return script[args[0]](...args.slice(1))
+    })
+
+  status = () => {
+    if (this.project) {
+      this.log.info(this.project)
+    }
+    if (this.deployment) {
+      this.log.info(this.deployment)
+    }
   }
 
   build = (...contracts: string[]) => {
@@ -66,6 +81,9 @@ export default class FadromaCommands extends CommandContext {
     }
   }
 
+  deploy = (...args: string[]) => {
+    return this.deployment!.deploy()
+  }
 
 }
 
