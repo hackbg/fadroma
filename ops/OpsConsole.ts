@@ -105,7 +105,7 @@ export class BuildConsole extends BaseConsole {
     )
   }
   buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) {
-    this.log('Building ', bold(crate), ...
+    this.log('Building', bold(crate), ...
       (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
   }
   buildingMany (sources: Template<any>[]) {

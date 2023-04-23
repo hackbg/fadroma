@@ -43,7 +43,7 @@ export default class Project {
       gitignore:      this.root.at('.gitignore').as(TextFile),
       envfile:        this.root.at('.env').as(TextFile),
       shellNix:       this.root.at('shell.nix').as(TextFile),
-      packageJson:    this.root.at('package.json').as(JSONFile),
+      fadromaJson:    this.root.at('fadroma.json').as(JSONFile),
       cargoToml:      this.root.at('Cargo.toml').as(TOMLFile),
       pnpmWorkspace:  this.root.at('pnpm-workspace.yaml').as(TextFile),
       dockerfile:     null,
@@ -71,7 +71,7 @@ export default class Project {
     }
     this.packages = {
       api: new APIPackage(this, 'api'),
-      ops: new OpsPackage(this, 'ops')
+      ops: new OpsPackage(this, 'ops', this.root)
     }
     this.state = new ProjectState(this)
   }
@@ -87,9 +87,10 @@ export default class Project {
   setTemplate (
     name: string, value: string|Template<any>|(Buildable & Partial<Built>)
   ): Template<any> {
+    const defaults = { workspace: this.root.path, revision: 'HEAD' }
     return this.templates[name] =
-      (typeof value === 'string') ? new Template({ workspace: this.root.path, crate: value }) :
-      (value instanceof Template) ? value : new Template(value)
+      (typeof value === 'string') ? new Template({ ...defaults, crate: value }) :
+      (value instanceof Template) ? value : new Template({ ...defaults, ...value })
   }
 
   build (names: string[], builder = getBuilder()) {
@@ -130,20 +131,15 @@ export default class Project {
 
   create () {
     const { name, templates } = this
-
     this.root.make()
-
     this.files.readme.save([
       `# ${name}\n---\n`,
       `Made with [Fadroma](https://fadroma.tech)',
       'provided courtesy of [Hack.bg](https://hack.bg)',
       'under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
     ].join(''))
-
     this.files.gitignore.save([ '.env', 'node_modules', 'target' ].join('\n'))
-
     this.files.envfile.save('# FADROMA_MNEMONIC=your testnet mnemonic')
-
     this.files.shellNix.save([
       `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
       `  inherit name;`,
@@ -154,7 +150,6 @@ export default class Project {
       `  '';`,
       `}`,
     ].join('\n'))
-
     this.files.cargoToml.as(TextFile).save([
       `[workspace]`,
       `resolver = "2"`,
@@ -162,30 +157,10 @@ export default class Project {
       Object.values(this.crates).map(crate=>`  "${crate.name}"`).sort().join(',\n'),
       `]`
     ].join('\n'))
-
     Object.values(this.crates).forEach(crate=>crate.create())
-
-    this.files.packageJson.save({
-      name: `@${name}/workspace`,
-      version: "0.0.0",
-      private: true,
-      scripts: {
-        "build":   "fadroma build",
-        "mocknet": "FADROMA_OPS=./ops FADROMA_CHAIN=Mocknet_CW1 fadroma ./ops",
-        "devnet":  "FADROMA_OPS=./ops FADROMA_CHAIN=ScrtDevnet fadroma ./ops",
-        "testnet": "FADROMA_OPS=./ops FADROMA_CHAIN=ScrtTestnet fadroma ./ops",
-        "mainnet": "FADROMA_OPS=./ops FADROMA_CHAIN=ScrtMainnet fadroma ./ops",
-      },
-      devDependencies: {
-        "@hackbg/fadroma": "latest",
-      },
-      fadroma: {
-        templates: templates
-      }
-    })
+    this.files.fadromaJson.save({ templates: templates })
     this.files.pnpmWorkspace.save('')
     Object.values(this.packages).forEach(pkg=>pkg.create())
-
     this.state.create()
     return this
   }
@@ -388,8 +363,18 @@ export class OpsPackage extends NPMPackage {
       type: "module",
       private: true,
       devDependencies: {
-        "@fadroma/ops": "latest",
-        [`@${this.project.name}/api`]: "link:../api"
+        "@hackbg/fadroma": "latest",
+        "@hackbg/ganesha": "latest",
+        [`@${this.project.name}/api`]: "link:../api",
+      },
+      scripts: {
+        "build":   "fadroma build",
+        "upload":  "fadroma upload",
+        "status":  "fadroma status",
+        "mocknet": `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=Mocknet_CW1 fadroma`,
+        "devnet":  `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
+        "testnet": `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
+        "mainnet": `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
       },
     })
 
