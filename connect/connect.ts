@@ -22,10 +22,7 @@ import {
   Mocknet, Mocknet_CW0, Mocknet_CW1,
   bold
 } from '@fadroma/agent'
-import type {
-  Agent, AgentOpts,
-  ChainRegistry
-} from '@fadroma/agent'
+import type { Agent, AgentOpts, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
 
 import { Config } from '@hackbg/conf'
@@ -43,7 +40,6 @@ Object.assign(Chain.variants as ChainRegistry, {
   // Support for Secret Network
   ScrtMainnet: Scrt.Chain.Mainnet,
   ScrtTestnet: Scrt.Chain.Testnet,
-  ScrtDevnet:  defineDevnet(Scrt.Chain, 'scrt_1.7'),
 })
 
 export * from '@hackbg/conf'
@@ -52,22 +48,6 @@ export default function connect <A extends Agent> (
   config: Partial<ConnectConfig> = new ConnectConfig()
 ): A {
   return new ConnectConfig(config).getAgent()
-}
-
-export function defineDevnet (
-  Chain: { new(...args:any[]): Chain },
-  version: unknown
-) {
-  return async <T> (config: T) => {
-    //@ts-ignore
-    const { Config } = await import('@fadroma/ops')
-    const mode = ChainMode.Devnet
-    const conf = new Config()
-    const node = await conf.getDevnet(version as Parameters<typeof conf.getDevnet>[0])
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new Chain(id, { url, mode, node })
-  }
 }
 
 export {
@@ -115,9 +95,9 @@ export class ConnectConfig extends Config {
     const chainIds = {
       Mocknet_CW0: 'mocknet-cw0',
       Mocknet_CW1: 'mocknet-cw1',
-      ScrtDevnet:   'fadroma-devnet',
-      ScrtTestnet:  Scrt.Config.defaultTestnetChainId,
-      ScrtMainnet:  Scrt.Config.defaultMainnetChainId,
+      ScrtDevnet:  'fadroma-devnet',
+      ScrtTestnet: Scrt.Config.defaultTestnetChainId,
+      ScrtMainnet: Scrt.Config.defaultMainnetChainId,
     }
     return chainIds[this.chain as keyof typeof chainIds] || null
   }

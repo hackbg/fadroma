@@ -41,8 +41,8 @@
     "simple-git": "^3.7.1"
   },
   "devDependencies": {
-    "@types/js-yaml":  "^4.0.5",
-    "@types/prompts":  "^2.4.2",
+    "@types/js-yaml": "^4.0.5",
+    "@types/prompts": "^2.4.2",
 
     "@hackbg/ensuite": "^1.1"
   }

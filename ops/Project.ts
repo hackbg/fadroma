@@ -93,24 +93,31 @@ export default class Project {
       (value instanceof Template) ? value : new Template({ ...defaults, ...value })
   }
 
-  build (names: string[], builder = getBuilder()) {
-    const templates = names.map(name=>this.getTemplate(name)).filter(Boolean)
-    return builder.buildMany(templates as (Template<any> & Buildable)[])
+  async build (names: string[], builder = getBuilder()) {
+    const sources = names.map(name=>this.getTemplate(name)).filter(Boolean)
+    const built = await builder.buildMany(sources as (Template<any> & Buildable)[])
+    return built
   }
 
-  buildAll (builder = getBuilder()) {
+  async buildAll (builder = getBuilder()) {
     this.log.info('Building all contracts:', Object.keys(this.templates).join(', '))
-    return this.build(Object.keys(this.templates), builder)
+    const built = await this.build(Object.keys(this.templates), builder)
+    return built
   }
 
-  async upload (names: string[], uploader = getUploader(), builder?: Builder) {
-    const templates = names.map(name=>this.getTemplate(name)).filter(Boolean)
-    if (builder) await builder.buildMany(templates as (Template<any> & Buildable)[])
-    return uploader.uploadMany(templates as (Template<any> & Uploadable)[])
+  async upload (names: string[], uploader = getUploader(), builder = getBuilder()) {
+    const sources = names.map(name=>this.getTemplate(name)).filter(Boolean)
+    if (builder) {
+      const built = await builder.buildMany(sources as (Template<any> & Buildable)[])
+      return await uploader.uploadMany(built as (Template<any> & Uploadable)[])
+    } else {
+      return await uploader.uploadMany(sources as (Template<any> & Uploadable)[])
+    }
   }
 
-  uploadAll (uploader = getUploader(), builder?: Builder) {
-    return this.upload(Object.keys(this.templates))
+  async uploadAll (uploader = getUploader(), builder = getBuilder()) {
+    const uploaded = this.upload(Object.keys(this.templates))
+    return uploaded
   }
 
   getBuildState () {
@@ -369,7 +376,6 @@ export class OpsPackage extends NPMPackage {
       },
       scripts: {
         "build":   "fadroma build",
-        "upload":  "fadroma upload",
         "status":  "fadroma status",
         "mocknet": `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=Mocknet_CW1 fadroma`,
         "devnet":  `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=ScrtDevnet fadroma`,

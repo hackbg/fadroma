@@ -6,7 +6,7 @@ import type { ScrtAgentOpts } from './ScrtAgent'
 
 import type * as SecretJS from 'secretjs'
 
-import { Chain, Fee } from '@fadroma/agent'
+import { Chain, Fee, Mocknet_CW1 } from '@fadroma/agent'
 import type {
   Address, AgentClass, AgentFees, ChainClass, ChainId, ChainOpts, Client, Message, Uint128
 } from '@fadroma/agent'
@@ -24,7 +24,7 @@ export interface ScrtOpts extends ChainOpts {
 export default class Scrt extends Chain {
 
   /** Connect to the Secret Network Mainnet. */
-  static Mainnet (config?: Config) {
+  static Mainnet (config?: Config): Chain {
     return new Scrt(config?.mainnetChainId ?? Scrt.Config.defaultMainnetChainId, {
       mode: Chain.Mode.Mainnet,
       url:  config?.mainnetUrl || Scrt.Config.defaultMainnetUrl,
@@ -32,11 +32,19 @@ export default class Scrt extends Chain {
   }
 
   /** Connect to the Secret Network Testnet. */
-  static Testnet (config?: Config) {
+  static Testnet (config?: Config): Chain {
     return new Scrt(config?.testnetChainId ?? Scrt.Config.defaultTestnetChainId, {
       mode: Chain.Mode.Testnet,
       url:  config?.testnetUrl || Scrt.Config.defaultTestnetUrl,
     })
+  }
+
+  static Devnet (config?: Config): Chain {
+    throw new Error('Devnets require @fadroma/connect')
+  }
+
+  static Mocknet (config?: Config): Chain {
+    return new Mocknet_CW1()
   }
 
   /** The default SecretJS module. */

@@ -35,3 +35,11 @@ export * from './OpsConfig'
 
 export { default as FadromaCommands } from './OpsCommands'
 export * from './OpsCommands'
+
+import type { ChainRegistry } from '@fadroma/agent'
+import { Chain, ChainMode } from '@fadroma/agent'
+import { Scrt } from '@fadroma/connect'
+import { defineDevnet } from './devnet/index'
+Object.assign(Chain.variants as ChainRegistry, {
+  ScrtDevnet: Scrt.Chain.Devnet  = defineDevnet(Scrt.Chain, 'scrt_1.8'),
+})
