@@ -171,10 +171,10 @@ export default class Project {
       private: true,
       scripts: {
         "build":   "fadroma build",
-        "mocknet": "FADROMA_CHAIN=Mocknet_CW1 fadroma ./ops",
-        "devnet":  "FADROMA_CHAIN=ScrtDevnet fadroma ./ops",
-        "testnet": "FADROMA_CHAIN=ScrtTestnet fadroma ./ops",
-        "mainnet": "FADROMA_CHAIN=ScrtMainnet fadroma ./ops",
+        "mocknet": "FADROMA_OPS=./ops FADROMA_CHAIN=Mocknet_CW1 fadroma ./ops",
+        "devnet":  "FADROMA_OPS=./ops FADROMA_CHAIN=ScrtDevnet fadroma ./ops",
+        "testnet": "FADROMA_OPS=./ops FADROMA_CHAIN=ScrtTestnet fadroma ./ops",
+        "mainnet": "FADROMA_OPS=./ops FADROMA_CHAIN=ScrtMainnet fadroma ./ops",
       },
       devDependencies: {
         "@hackbg/fadroma": "latest",
@@ -345,12 +345,13 @@ export class APIPackage extends NPMPackage {
   create () {
     super.create({
       name: `@${this.project.name}/${this.name}`,
+      main: `${this.name}.ts`,
+      type: "module",
       version: "0.0.0",
       dependencies: {
         "@fadroma/agent": "latest",
         "@fadroma/scrt":  "latest",
       },
-      main: `${this.name}.ts`
     })
 
     const imports = `import { Client, Deployment } from '@fadroma/agent'`
@@ -384,6 +385,7 @@ export class OpsPackage extends NPMPackage {
     super.create({
       name: `@${this.project.name}/${this.name}`,
       main: `${this.name}.ts`,
+      type: "module",
       private: true,
       devDependencies: {
         "@fadroma/ops": "latest",

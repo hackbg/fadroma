@@ -47,6 +47,7 @@ export default class FadromaCommands extends CommandContext {
   }
 
   runScript = (script: string, ...args: string[]) =>
+    //@ts-ignore
     import(script).then(script=>{
       if (typeof script.default === 'function')
         return script.default(...args)
