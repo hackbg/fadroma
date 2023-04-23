@@ -18,6 +18,7 @@ export default class FadromaCommands extends CommandContext {
     readonly deployment: Deployment|undefined  = project?.getCurrentDeployment(),
   ) {
     super()
+    this.log.label = `Fadroma`
     const devnetCommands =
       new DevnetCommands() as unknown as CommandContext
     const projectCommands =
@@ -57,10 +58,19 @@ export default class FadromaCommands extends CommandContext {
 
   status = () => {
     if (this.project) {
-      this.log.info(this.project)
+      this.log.info('Project name:             ', bold(this.project.name))
+      this.log.info('Project root:             ', bold(this.project.root.path))
+      this.log.info('Templates in project:     ', bold(Object.keys(this.project.templates).join(', ')))
+      this.log.info('Build checksums stored at:', bold(this.project.state.artifacts.shortPath))
+      this.log.info('Upload receipts stored at:', bold(this.project.state.uploads.shortPath))
+      this.log.info('Deploy receipts stored at:', bold(this.project.state.receipts.shortPath))
+    } else {
+      this.log.info('No active project.')
     }
     if (this.deployment) {
       this.log.info(this.deployment)
+    } else {
+      this.log.info('No active deployment.')
     }
   }
 

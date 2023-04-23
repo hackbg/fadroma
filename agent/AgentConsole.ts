@@ -93,12 +93,7 @@ export default class Console extends BaseConsole {
   }
 
   foundDeployedContract (address: Address, name: Name) {
-    this.log(
-      'Found:',
-      bold(colors.green(address)),
-      'is',
-      bold(colors.green(name)),
-    )
+    this.sub(name).log('Found at', bold(address))
   }
 
   beforeDeploy <C extends Client> (

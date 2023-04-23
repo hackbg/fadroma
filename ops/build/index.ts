@@ -5,12 +5,12 @@ import type { BuilderConfig } from '../util'
 
 import LocalBuilder from './LocalBuilder'
 import RawBuilder from './RawBuilder'
-import ContainerBuilder from './ContainerBuilder'
+import BuildContainer from './BuildContainer'
 
 import { Builder } from '@fadroma/agent'
 import type { Buildable, Built } from '@fadroma/agent'
 
-Object.assign(Builder.variants, { 'container': ContainerBuilder, 'raw': RawBuilder })
+Object.assign(Builder.variants, { 'container': BuildContainer, 'raw': RawBuilder })
 
 /** The parts of Cargo.toml which the builder needs to be aware of. */
 export type CargoTOML = TOMLFile<{ package: { name: string } }>
@@ -21,8 +21,8 @@ export { default as LocalBuilder } from './LocalBuilder'
 export * from './RawBuilder'
 export { default as RawBuilder } from './RawBuilder'
 
-export * from './ContainerBuilder'
-export { default as ContainerBuilder } from './ContainerBuilder'
+export * from './BuildContainer'
+export { default as BuildContainer } from './BuildContainer'
 
 export * from './getGitDir'
 export { default as getGitDir } from './getGitDir'

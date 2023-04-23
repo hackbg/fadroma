@@ -41,19 +41,19 @@ import { Builder } from '@fadroma/ops'
 assert(builder instanceof Builder)
 ```
 
-#### ContainerBuilder
+#### BuildContainer
 
-By default, you get a `ContainerBuilder`,
+By default, you get a `BuildContainer`,
 which runs the build procedure in a container
 provided by either Docker or Podman (as selected
 by the `FADROMA_BUILD_PODMAN` environment variable).
 
 ```typescript
-import { ContainerBuilder } from '@fadroma/ops'
-assert.ok(builder instanceof ContainerBuilder)
+import { BuildContainer } from '@fadroma/ops'
+assert.ok(builder instanceof BuildContainer)
 ```
 
-`ContainerBuilder` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
+`BuildContainer` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
 operate the container engine.
 
 ```typescript
@@ -67,7 +67,7 @@ Use `FADROMA_DOCKER` or the `dockerSocket` option to specify a non-default Docke
 getBuilder({ dockerSocket: 'test' })
 ```
 
-The `ContainerBuilder` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
+The `BuildContainer` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
 in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
 being output to the `FADROMA_ARTIFACTS` directory.
 

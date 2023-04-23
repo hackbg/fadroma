@@ -84,6 +84,6 @@ function genesis ({
   run(`secretd init-bootstrap`)
   run(`secretd validate-genesis`)
 
-  console.info('\nReticulating splines...')
+  console.info('\nSprinkling holy water...')
   console.info()
 }

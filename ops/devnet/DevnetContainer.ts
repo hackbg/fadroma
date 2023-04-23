@@ -108,7 +108,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     this.readyPhrase ??= options.readyPhrase!
   }
 
-  log = new Console.Devnet('@fadroma/devnet: docker')
+  log = new Console.Devnet('@fadroma/ops: DevnetContainer')
 
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image

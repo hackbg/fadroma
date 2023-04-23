@@ -15,12 +15,12 @@ import { default as simpleGit } from 'simple-git'
 import { homedir } from 'node:os'
 
 /** This builder launches a one-off build container using Dockerode. */
-export default class ContainerBuilder extends LocalBuilder {
+export default class BuildContainer extends LocalBuilder {
 
   readonly id = 'Container'
 
   /** Logger */
-  log = new BuildConsole('Builder: Container')
+  log = new BuildConsole('@fadroma/ops: BuildContainer')
 
   /** Used to launch build container. */
   docker: Engine
@@ -372,7 +372,7 @@ export default class ContainerBuilder extends LocalBuilder {
 
 }
 
-Builder.variants['Container'] = ContainerBuilder as unknown as BuilderClass<Builder>
+Builder.variants['Container'] = BuildContainer as unknown as BuilderClass<Builder>
 
 export const distinct = <T> (x: T[]): T[] =>
   [...new Set(x) as any]

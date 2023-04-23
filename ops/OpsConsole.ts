@@ -9,6 +9,9 @@ import { CommandsConsoleMixin } from '@hackbg/cmds'
 export { bold, colors }
 
 export class DevnetConsole extends CommandsConsoleMixin(BaseConsole) {
+  constructor (public label = '@fadroma/ops: Devnet') {
+    super()
+  }
   loadingState = (chainId1: string, chainId2: string) =>
     this.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`)
   loadingFailed = (path: string) =>
@@ -25,7 +28,7 @@ export class DevnetConsole extends CommandsConsoleMixin(BaseConsole) {
 }
 
 export class DeployConsole extends CommandsConsoleMixin(BaseConsole) {
-  constructor (public label = '@fadroma/ops') {
+  constructor (public label = '@fadroma/ops: Deploy') {
     super()
   }
   warnNoDeployment () {
@@ -90,7 +93,9 @@ export class DeployConsole extends CommandsConsoleMixin(BaseConsole) {
 }
 
 export class BuildConsole extends BaseConsole {
-  label = 'Build'
+  constructor (public label = '@fadroma/ops: Build') {
+    super()
+  }
   buildingFromCargoToml (file: Path|string) {
     this.log('Building from', bold($(file).shortPath))
   }
@@ -111,8 +116,8 @@ export class BuildConsole extends BaseConsole {
   buildingMany (sources: Template<any>[]) {
     for (const source of sources) this.buildingOne(source)
   }
-  prebuilt (prebuilt: Built) {
-    this.log('Found:', bold(colors.green($(prebuilt.artifact!).shortPath)))
+  prebuilt (prebuilt: Built & { name?: string }) {
+    this.log(`${prebuilt.name??prebuilt.crate}: found at ${bold($(prebuilt.artifact!).shortPath)}`)
   }
   usage () {
     this.info(`
@@ -129,7 +134,9 @@ export class BuildConsole extends BaseConsole {
 }
 
 export class UploadConsole extends BaseConsole {
-  label = 'Upload'
+  constructor (public label = '@fadroma/ops: Upload') {
+    super()
+  }
 }
 
 export default class Console extends BaseConsole {
@@ -137,4 +144,7 @@ export default class Console extends BaseConsole {
   static Upload = UploadConsole
   static Deploy = DeployConsole
   static Devnet = DevnetConsole
+  constructor (public label = '@fadroma/ops') {
+    super()
+  }
 }

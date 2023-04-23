@@ -602,7 +602,7 @@ assert.ok(toInstanceReceipt(instance))
 Implemented by `@fadroma/build`.
 
 * **RawBuilder**: runs the build in the current environment
-* **ContainerBuilder**: runs the build in a container for enhanced reproducibility
+* **BuildContainer**: runs the build in a container for enhanced reproducibility
 
 ### Uploader
 
