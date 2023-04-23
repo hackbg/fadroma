@@ -1,9 +1,19 @@
 {
   "name": "@fadroma/ops",
-  "version": "3.0.0-rc.14",
+  "version": "3.0.0-rc.15",
   "type": "module",
   "main": "./index.ts",
-  "files": [ "*.ts", "**/*.ts" ],
+  "files": [
+    "*.ts",
+    "**/*.ts",
+    "tsconfig.json",
+    "build/build.Dockerfile",
+    "build/build.impl.mjs",
+    "build/build.server.mjs",
+    "devnet/devnet.init.mjs",
+    "devnet/devnet.server.mjs",
+    "devnet/*.Dockerfile"
+  ],
   "description": "Devops tooling for smart contract platforms.",
   "scripts": {
     "check": "tsc --noEmit",
@@ -19,7 +29,7 @@
     "@hackbg/ganesha": { "optional": true, "description": "For CLI" }
   },
   "dependencies": {
-    "@fadroma/connect": "workspace:3.0.0-rc.15",
+    "@fadroma/connect": "workspace:3.0.0-rc.16",
     "@hackbg/dock": "workspace:^1.3",
     "@hackbg/file": "workspace:^1",
     "@hackbg/port": "workspace:^1",

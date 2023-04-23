@@ -188,14 +188,14 @@ export default class Project {
     project.run(
       'git init',
       'pnpm i',
-      'cargo doc --all-features',
+      //'cargo doc --all-features',
       'git add .',
       'git status',
       'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
       "git log",
     )
     console.log("Project initialized.")
-    console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
+    //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
     return project
   }
 
