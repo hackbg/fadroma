@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/agent",
-  "version": "1.0.0-rc.5",
+  "version": "1.0.0-rc.6",
   "type":    "module",
   "main":    "index.ts",
   "files": [ "*.ts", "**/*.ts" ],
@@ -8,8 +8,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "ensuite ../spec/Agent.spec.ts.md",
-    "cov":   "ensuite-cov -r text -- ../spec/Agent.spec.ts.md",
-    "lcov":  "ensuite-cov -r lcov -- ../spec/Agent.spec.ts.md",
+    "cov":   "ensuite-cov -r text -r lcov -- ../spec/Agent.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {

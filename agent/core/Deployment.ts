@@ -183,9 +183,15 @@ export class Deployment {
   config?: { build?: { project?: any } } & any // FIXME
 
   async deploy () {
-    this.log.info('Deploying')
+    const log = new Console(`Deploying: ${this.name}`)
+    const contracts = Object.values(this.state)
+    if (contracts.length > 0) {
+      await Promise.all(contracts.map(contract=>contract.deployed))
+      log.log('Deployed', contracts.length, 'contracts')
+    } else {
+      log.warn('No contracts defined in deployment')
+    }
     // FIXME PERF: bundle concurrent inits into a single transaction
-    await Promise.all(Object.values(this.state).map(contract=>contract.deployed))
     return this
   }
 

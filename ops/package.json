@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/ops",
-  "version": "3.0.0-rc.15",
+  "version": "3.0.0-rc.16",
   "type": "module",
   "main": "./index.ts",
   "files": [
@@ -18,8 +18,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "cd .. && ensuite spec/Ops.spec.ts.md",
-    "cov":   "cd .. && ensuite-cov -r text -- spec/Ops.spec.ts.md",
-    "lcov":  "cd .. && ensuite-cov -r lcov -- spec/Ops.spec.ts.md",
+    "cov":   "cd .. && ensuite-cov -r text -r lcov -- spec/Ops.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "peerDependencies": {
@@ -29,7 +28,7 @@
     "@hackbg/ganesha": { "optional": true, "description": "For CLI" }
   },
   "dependencies": {
-    "@fadroma/connect": "workspace:3.0.0-rc.16",
+    "@fadroma/connect": "workspace:3.0.0-rc.17",
     "@hackbg/dock": "workspace:^1.3",
     "@hackbg/file": "workspace:^1",
     "@hackbg/port": "workspace:^1",

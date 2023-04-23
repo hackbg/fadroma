@@ -26,7 +26,7 @@ $ npx fadroma project contract del
 import { fixture } from '../fixtures/Fixtures.ts.md'
 const root = fixture('project') // replace with path to your project
 
-import { Project } from '@fadroma/ops'
+import Project from '@fadroma/ops'
 const project = new Project({
   root,
   name: 'my-project',

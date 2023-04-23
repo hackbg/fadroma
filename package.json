@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.68",
+  "version": "1.0.0-beta.69",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "index.ts",
@@ -14,16 +14,18 @@
 
     "prepare": "husky install",
 
-    "ubik":  "pnpm i && pnpm clean && pnpm check && pnpm test && ubik",
+    "ubik":     "pnpm i && pnpm clean && pnpm check && pnpm test && ubik",
+    "ubik:all": "pnpm i && pnpm clean && pnpm check && pnpm test && ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet && cd ../platforms/scrt && ubik wet",
+    "ubik:ops": "pnpm i && pnpm clean && pnpm check && pnpm test && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet",
+
     "check": "time tsc --noEmit",
 
     "test":       "time ensuite GettingStarted.ts.md",
     "test:agent": "time ensuite agent/Agent.spec.ts.md",
     "test:ops":   "time ensuite ops/Ops.spec.ts.md",
 
-    "cov":   "time ensuite-cov -r text -n agent -n connect -n ops -n platforms -- GettingStarted.ts.md",
-    "lcov":  "time ensuite-cov -r lcov -n agent -n connect -n ops -n platforms -- GettingStarted.ts.md",
-    "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:test:cov && pnpm ubik dry && ls -al",
+    "cov":   "time ensuite-cov -r text -r lcov -n agent -n connect -n ops -n platforms -- GettingStarted.ts.md",
+    "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 
     "build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",

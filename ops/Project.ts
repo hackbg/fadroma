@@ -34,6 +34,8 @@ export default class Project extends CommandContext {
   builder: Builder
   /** Default uploader. */
   uploader: Uploader
+  /** Default deployment class. */
+  Deployment = Deployment
 
   constructor (options?: Partial<Project & {
     templates: Record<string, Template<any>|(Buildable & Partial<Built>)>
@@ -45,12 +47,13 @@ export default class Project extends CommandContext {
     const name = options?.name || root.name
     this.name = name
     this.root = root
-    this.log.label = this.exists() ? `Fadroma: ${name}` : `Fadroma`
+    this.log.label = this.exists() ? `Project: ${name}` : `Fadroma ${version}`
     this.log.info(`This is @fadroma/ops ${version}.`)
     if (this.exists()) this.log.info(`Active project:`, bold(this.name), 'at', bold(this.root.path))
     if (this.exists()) this.log.info(`Selected chain:`, bold(this.config.chainId))
     this.builder = getBuilder({ outputDir: this.dirs.dist.path })
-    this.uploader = getUploader()
+    const uploadState = this.config.chainId ? this.dirs.state.in(this.config.chainId).path : null
+    this.uploader = getUploader({ uploadState })
     // Populate templates
     this.templates = {}
     const templates = options?.templates || (this.exists()
@@ -282,15 +285,15 @@ export default class Project extends CommandContext {
   }
   getUploadState = (chainId: ChainId|null = this.config.chainId) =>
     chainId ? this.dirs.state.in(chainId).in('upload').as(OpaqueDirectory).list() : {}
-  deploy = (...args: string[]) => {
-    return this.getDeployment()?.deploy()
+  deploy = async (...args: string[]) => {
+    return await this.getDeployment()?.deploy()
   }
   getDeployState = (chainId: ChainId|null = this.config.chainId) =>
     chainId ? this.dirs.state.in(chainId).in('deploy').as(OpaqueDirectory).list() : {}
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
   getDeployment (name?: string): Deployment|null {
-    return null
+    return this.config.getDeployment(this.Deployment)
   }
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
     const configFile = $(path, 'fadroma.json').as(JSONFile)
@@ -532,42 +535,33 @@ export class RootPackage extends NPMPackage {
     })
     const imports = [
       `import ${Case.pascal(this.project.name)} from '@${this.project.name}/client'`,
-      `import { FadromaCommands } from '@fadroma/ops'`,
+      `import Project from '@hackbg/fadroma'`,
     ].join('\n')
     const commandsClass = [
-      `export default class ${Case.pascal(this.project.name)}Commands extends FadromaCommands {`,
-      ``,
-      `  // Override to customize the build command:`,
-      `  //`,
+      `export default class ${Case.pascal(this.project.name)}Project extends Project {`, ``,
+      `  Deployment = ${Case.pascal(this.project.name)}`, ``,
+      `  // Override to customize the build command:`, `  //`,
       `  // build = async (...contracts: string[]) => { `,
       `  //   await super.build(...contracts)`,
-      `  // }`,
-      ``,
-      `  // Override to customize the upload command:`,
-      `  //`,
+      `  // }`, ``,
+      `  // Override to customize the upload command:`, `  //`,
       `  // upload = async (...contracts: string[]) => {`,
       `  //   await super.upload(...contracts)`,
-      `  // }`,
-      ``,
+      `  // }`, ``,
       `  // Override to customize the deploy command:`,
       `  //`,
       `  // deploy = async (...args: string[]) => {`,
       `  //   await super.deploy(...args)`,
-      `  // }`,
-      ``,
-      `  // Override to customize the status command:`,
-      `  //`,
+      `  // }`, ``,
+      `  // Override to customize the status command:`, `  //`,
       `  // status = async (...args: string[]) => {`,
       `  //   await super.status()`,
-      `  // }`,
-      ``,
-      `  // Define custom commands using \`this.command\`:`,
-      `  //`,
+      `  // }`, ``,
+      `  // Define custom commands using \`this.command\`:`, `  //`,
       `  // custom = this.command('custom', 'run a custom procedure', async () => {`,
       `  //   // ...`,
       `  // })`,
-      ``,
-      `}`
+      ``, `}`
     ].join('\n')
     this.index.save([imports, commandsClass].join('\n\n'))
   }
@@ -606,8 +600,8 @@ export function checkSystemDependency (dependency: string, command: string) {
   }
 }
 
+//@ts-ignore
 export const { version } = $(import.meta.url, '../package.json').as(JSONFile).load() as any
-
 
 export class TemplateCommands extends CommandContext {
   constructor (readonly project: Project) { super() }
