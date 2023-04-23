@@ -63,7 +63,10 @@ export default class FSUploader extends Uploader {
     //       this will only work if they add up to less than the max API request size
     //       (which is defined who knows where) */
     const self = this
-    if (!self.cache) return this.uploadManySansCache(inputs)
+    if (!self.cache) {
+      this.log.warn('Upload cache disabled. Reuploading.')
+      return this.uploadManySansCache(inputs)
+    }
     const toUpload: Uploadable[] = []
     const outputs:  Uploaded[]   = []
     inputs.forEach(function collectInput (input: Uploadable, index: number) {
@@ -138,6 +141,7 @@ export default class FSUploader extends Uploader {
       this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
       outputs[i] = output
       log('code id:', bold(`${result.codeId}`))
+      await agent.nextBlock
     }
     return outputs
   }

@@ -281,7 +281,9 @@ export default class Project extends CommandContext {
     const templates = this.builder
       ? await this.builder.buildMany(sources)
       : sources
-    return await this.uploader.uploadMany(templates as (Template<any> & Buildable & Built & Uploadable)[])
+    return await this.uploader.uploadMany(
+      templates as (Template<any> & Buildable & Built & Uploadable)[]
+    )
   }
   getUploadState = (chainId: ChainId|null = this.config.chainId) =>
     chainId ? this.dirs.state.in(chainId).in('upload').as(OpaqueDirectory).list() : {}
@@ -317,11 +319,11 @@ export default class Project extends CommandContext {
     project.runShellCommands(
       'git init',
       'pnpm i',
-      //'cargo doc --all-features',
       'git add .',
       'git status',
       'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
       "git log",
+      'cargo update',
     )
     console.log("Project created at", project.root.shortPath)
     //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
@@ -495,17 +497,33 @@ export class ClientPackage extends NPMPackage {
       [
         `export default class ${Case.pascal(this.project.name)} extends Deployment {`,
         ...names.map(name => [
-          `  ${name} = this.name(`,
-          `{ name: "${name}", crate: "${name}", client: ${Case.pascal(name)} })`
-        ].join('')),
+          `  ${name} = this.contract({`,
+          `    name: "${name}",`,
+          `    crate: "${name}",`,
+          `    client: ${Case.pascal(name)},`,
+          `    initMsg: async () => ({})`,
+          `  })`
+        ].join('\n')),
+        '',
+        `  // Add contract with::`,
+        `  //   contract = this.contract({...})`, `  //`,
+        `  // Add contract from fadroma.json with:`,
+        `  //   contract = this.template('name').instance({...})`,
+        '',
         '}',
       ].join('\n'),
       ...names.map(Case.pascal).map(Contract => [
         `export class ${Contract} extends Client {`,
-        `  // myTx1    = (arg1, arg2) => this.execute({myTx1:{arg1, arg2}})`,
-        `  // myTx2    = (arg1, arg2) => this.execute({myTx2:{arg1, arg2}})`,
-        `  // myQuery1 = (arg1, arg2) => this.query({myQuery1:{arg1, arg2}})`,
-        `  // myQuery2 = (arg1, arg2) => this.query({myQuery2:{arg1, arg2}})`,
+        `  // Implement methods calling the contract here:`, `  //`,
+        `  // async myTx (arg1, arg2) {`,
+        `  //   return await this.execute({ my_tx: { arg1, arg2 }})`,
+        `  // }`,
+        `  // async myQuery (arg1, arg2) {`,
+        `  //   return await this.query({ my_query: { arg1, arg2 } })`,
+        `  // }`, `  //`,
+        `  // or like this:`, `  //`,
+        `  // myTx = (arg1, arg2) => this.execute({my_tx:{arg1, arg2}})`,
+        `  // myQuery = (arg1, arg2) => this.query({my_query:{arg1, arg2}})`, `  //`,
         `}\n`
       ].join('\n'))
     ].join('\n\n'))

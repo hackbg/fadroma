@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.69",
+  "version": "1.0.0-beta.70",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "index.ts",
@@ -15,8 +15,8 @@
     "prepare": "husky install",
 
     "ubik":     "pnpm i && pnpm clean && pnpm check && pnpm test && ubik",
-    "ubik:all": "pnpm i && pnpm clean && pnpm check && pnpm test && ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet && cd ../platforms/scrt && ubik wet",
-    "ubik:ops": "pnpm i && pnpm clean && pnpm check && pnpm test && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet",
+    "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet && cd ../platforms/scrt && ubik wet'",
+    "ubik:ops": "time sh -c 'pnpm ubik wet && cd connect && ubik wet && cd ../ops && ubik wet'",
 
     "check": "time tsc --noEmit",
 
