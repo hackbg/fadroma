@@ -20,8 +20,6 @@
 
 export * from '@fadroma/connect'
 export * from '@fadroma/ops'
-
+export { Config, Console, Error } from '@fadroma/ops'
+export { default as default } from '@fadroma/ops'
 export type { Decimal } from '@fadroma/agent'
-
-import { FadromaCommands } from '@fadroma/ops'
-export default FadromaCommands

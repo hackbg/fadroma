@@ -59,6 +59,44 @@ export {
 
 /** Connection configuration. Factory for `Chain` and `Agent` objects. */
 export class ConnectConfig extends Config {
+  /** Secret Network configuration. */
+  scrt: Scrt.Config
+  /** Mnemonic to use for authentication. Hidden by default. */
+  mnemonic?: string
+    = this.getString('FADROMA_MNEMONIC',    ()=>
+      this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  devnetAgentName: string
+    = this.getString('FADROMA_AGENT',   ()=>
+      this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
+  /** Name of chain to use. */
+  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
+    ()=>'Mocknet_CW1')
+  /** Override chain id. */
+  chainId: ChainId|null = this.getString('FADROMA_CHAIN_ID', ()=>{
+    const chainIds = {
+      Mocknet_CW0: 'mocknet-cw0',
+      Mocknet_CW1: 'mocknet-cw1',
+      ScrtDevnet:  'fadroma-devnet',
+      ScrtTestnet: Scrt.Config.defaultTestnetChainId,
+      ScrtMainnet: Scrt.Config.defaultMainnetChainId,
+    }
+    return chainIds[this.chain as keyof typeof chainIds] || null
+  })
+  /** Override chain mode. */
+  chainMode: ChainMode = this.getString('FADROMA_CHAIN_MODE', () => {
+    const chainModes = {
+      Mocknet_CW0: ChainMode.Mocknet,
+      Mocknet_CW1: ChainMode.Mocknet,
+      ScrtDevnet:  ChainMode.Devnet,
+      ScrtTestnet: ChainMode.Testnet,
+      ScrtMainnet: ChainMode.Mainnet,
+    }
+    if (!this.chain) throw new ConnectError.NoChainSelected(chainModes)
+    const result = chainModes[this.chain as keyof typeof chainModes]
+    if (!result) throw new ConnectError.UnknownChainSelected(this.chain, chainModes)
+    return result
+  }) as ChainMode
 
   constructor (
     options: Partial<ConnectConfig> = {},
@@ -71,52 +109,6 @@ export class ConnectConfig extends Config {
   }
 
   log = new ConnectConsole('@fadroma/connect')
-
-  /** Secret Network configuration. */
-  scrt: Scrt.Config
-
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  devnetAgentName: string
-    = this.getString('FADROMA_AGENT',   ()=>
-      this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
-
-  /** Mnemonic to use for authentication. Hidden by default. */
-  mnemonic?: string
-    = this.getString('FADROMA_MNEMONIC',    ()=>
-      this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
-
-  /** Name of chain to use. */
-  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
-    ()=>'Mocknet_CW1')
-
-  /** Get a chain ID corresponding to the value of `this.chain`.
-    * (Used by subclasses to include chain ID in paths.) */
-  get chainId (): ChainId|null {
-    const chainIds = {
-      Mocknet_CW0: 'mocknet-cw0',
-      Mocknet_CW1: 'mocknet-cw1',
-      ScrtDevnet:  'fadroma-devnet',
-      ScrtTestnet: Scrt.Config.defaultTestnetChainId,
-      ScrtMainnet: Scrt.Config.defaultMainnetChainId,
-    }
-    return chainIds[this.chain as keyof typeof chainIds] || null
-  }
-
-  /** Get a chain mode corresponding to the value of `this.chain`.
-    * (Used by settings to dispatch on chain mode.) */
-  get chainMode (): ChainMode {
-    const chainModes = {
-      Mocknet_CW0: ChainMode.Mocknet,
-      Mocknet_CW1: ChainMode.Mocknet,
-      ScrtDevnet:  ChainMode.Devnet,
-      ScrtTestnet: ChainMode.Testnet,
-      ScrtMainnet: ChainMode.Mainnet,
-    }
-    if (!this.chain) throw new ConnectError.NoChainSelected(chainModes)
-    const result = chainModes[this.chain as keyof typeof chainModes]
-    if (!result) throw new ConnectError.UnknownChainSelected(this.chain, chainModes)
-    return result
-  }
 
   // Create the Chain instance specified by the configuration.
   getChain <C extends Chain> (

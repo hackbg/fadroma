@@ -16,25 +16,14 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+export * from './util'
 export * from './devnet/index'
 export * from './build/index'
 export * from './upload/index'
 export * from './deploy/index'
 
 export * from './Project'
-export { default as Project } from './Project'
-
-export { default as FadromaError } from './OpsError'
-export * from './OpsError'
-
-export { default as FadromaConsole } from './OpsConsole'
-export * from './OpsConsole'
-
-export { default as FadromaConfig } from './OpsConfig'
-export * from './OpsConfig'
-
-export { default as FadromaCommands } from './OpsCommands'
-export * from './OpsCommands'
+export { default as default } from './Project'
 
 import type { ChainRegistry } from '@fadroma/agent'
 import { Chain, ChainMode } from '@fadroma/agent'

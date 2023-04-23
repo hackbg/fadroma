@@ -101,11 +101,11 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    this.log.debug('Using a containerized devnet')
     this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
+    this.log.debug(options.image?.name, `on`, options.image?.engine?.constructor.name)
   }
 
   log = new Console.Devnet('@fadroma/ops: DevnetContainer')

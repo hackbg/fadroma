@@ -130,11 +130,14 @@ export default class FSUploader extends Uploader {
       const path = $(input.artifact!)
       const data = path.as(BinaryFile).load()
       input.codeHash ??= base16.encode(sha256(data))
-      this.log.log('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+      const log = new Console(`Uploading: ${bold(path.shortPath)}`)
+      log(`hash ${input.codeHash}`)
+      log(`size (uncompressed): ${data.length} bytes`)
       const result = await agent.upload(data)
       const output = override(input, result) as unknown as Uploaded
       this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
       outputs[i] = output
+      log('code id:', bold(`${result.codeId}`))
     }
     return outputs
   }
