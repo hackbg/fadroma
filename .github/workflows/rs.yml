@@ -14,7 +14,7 @@ jobs:
           target:    wasm32-unknown-unknown
           override:  true
       - name: Try building for WASM
-        run: cargo build --all-features
+        run: cargo build --all-features --target wasm32-unknown-unknown
   #rs-coverage:
     #name: cargo tarpaulin
     #runs-on: ubuntu-latest
