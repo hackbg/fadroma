@@ -41,19 +41,19 @@ jobs:
       - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }})" >> $GITHUB_ENV
       - uses: docker/build-push-action@v4
         with:
-          context: ./packages/devnet
-          file:    packages/devnet/scrt_1_7.Dockerfile
+          context: ./ops/devnet
+          file:    ops/devnet/scrt_1_7.Dockerfile
           tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.7:${{ env.IMAGE_TAG }}
           push:    true
       - uses: docker/build-push-action@v4
         with:
-          context: ./packages/devnet
-          file:    packages/devnet/scrt_1_6.Dockerfile
+          context: ./ops/devnet
+          file:    ops/devnet/scrt_1_6.Dockerfile
           tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.6:${{ env.IMAGE_TAG }}
           push:    true
       - uses: docker/build-push-action@v4
         with:
-          context: ./packages/devnet
-          file:    packages/devnet/scrt_1_5.Dockerfile
+          context: ./ops/devnet
+          file:    ops/devnet/scrt_1_5.Dockerfile
           tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.5:${{ env.IMAGE_TAG }}
           push:    true
