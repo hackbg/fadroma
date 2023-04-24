@@ -1,37 +1,23 @@
 {
-  "compilerOptions": {
-    "target":                       "esnext",
-    "module":                       "esnext",
-    "moduleResolution":             "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop":              true,
-    "allowJs":                      true,
-    "resolveJsonModule":            true,
-    "downlevelIteration":           true,
-    "lib":                          ["ES2020", "DOM"],
-    "strict":                       true,
-    "useUnknownInCatchVariables":   false,
-    "plugins": [ { "transform": "@magic-works/commonjs-import.meta" } ]
-  },
+  "extends": "./tsconfig.base.json",
   "exclude": [
-    "**/*.spec.ts",
     "**/*.dist.*",
+    "**/*.spec.ts",
     "**/dist/**/*",
+    "agent",
+    "connect",
+    "coverage",
     "ensuite",
+    "examples",
     "fadroma.cli.cjs",
     "fixtures",
     "homepage",
-    "packages/schema",
-    "examples/project",
-    "shim",
-    "typedoc-theme.tsx",
-    "types",
-    "toolbox",
-    "agent",
     "ops",
-    "connect",
+    "packages/schema",
     "platforms",
-    "examples",
-    "coverage"
+    "shim",
+    "toolbox",
+    "typedoc-theme.tsx",
+    "types"
   ]
 }

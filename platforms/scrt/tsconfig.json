@@ -1,4 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
-  "include": [ "scrt.ts", "scrt-config.ts", "scrt-events.ts" ]
+  "extends": "../../tsconfig.base.json",
+  "include": [ "*.ts", "**/*.ts" ]
 }
