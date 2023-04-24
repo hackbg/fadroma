@@ -42,6 +42,7 @@ export default class ScrtAgent extends Agent {
     this.address = this.wallet?.address
     this.encryptionUtils = options.encryptionUtils
     this.simulate = options.simulate ?? this.simulate
+    this.log.label = `${this.address} on Secret Network ${this.chain.id}`
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {

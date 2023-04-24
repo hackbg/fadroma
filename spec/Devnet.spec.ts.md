@@ -25,7 +25,11 @@ $ npx fadroma devnet clear
 ```typescript
 import { getDevnet } from '@fadroma/ops'
 
+// unleash the kraken:
 const devnet = await getDevnet({ /* options */ })
+
+// but be ready to kill it if you unleash it:
+process.on('exit', () => devnet.erase())
 
 await devnet.spawn()
 await devnet.save()

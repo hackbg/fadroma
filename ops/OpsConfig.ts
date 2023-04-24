@@ -169,7 +169,9 @@ export class DevnetConfig extends BaseConfig {
   platform: DevnetPlatform = this.getString('FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8') as DevnetPlatform
   /** Chain id for devnet .*/
   chainId: string = this.getString('FADROMA_DEVNET_CHAIN_ID', ()=>"fadroma-devnet")
-  /** Whether to remove the devnet after the command ends. */
+  /** Whether the devnet should remain running after the command ends. */
+  persistent: boolean = this.getFlag('FADROMA_DEVNET_PERSISTENT', ()=>true)
+  /** Whether the devnet should be erased after the command ends. */
   ephemeral: boolean = this.getFlag('FADROMA_DEVNET_EPHEMERAL', ()=>false)
   /** Host for devnet. */
   host: string|null = this.getString('FADROMA_DEVNET_HOST', ()=>null)

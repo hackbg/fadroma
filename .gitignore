@@ -3,7 +3,9 @@
 .pnpm-debug.log
 .vscode
 .yarn
-artifacts
+wasm
+!wasm/*.sha256
+state
 coverage
 node_modules
 package-lock.json

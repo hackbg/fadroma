@@ -21,6 +21,6 @@
     "check": "tsc --noEmit",
     "ubik":  "npm run check && npm run test && ubik",
     "test":  "cd ../.. && ensuite spec/Scrt.spec.ts.md",
-    "cov":   "cd ../.. && ensuite-cov spec/Scrt.spec.ts.md"
+    "cov":   "cd ../.. && ensuite-cov -r text -r lcov spec/Scrt.spec.ts.md"
   }
 }

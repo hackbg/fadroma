@@ -9,7 +9,7 @@
     "check": "tsc --noEmit",
     "test":  "ensuite ../spec/Agent.spec.ts.md",
     "cov":   "ensuite-cov -r text -r lcov -- ../spec/Agent.spec.ts.md",
-    "ubik":  "npm run check && npm test && ubik"
+    "ubik":  "npm run check && npm run cov && ubik"
   },
   "dependencies": {
     "@hackbg/4mat": "workspace:^1",

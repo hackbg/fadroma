@@ -22,7 +22,7 @@
 
     "prepare": "husky install",
 
-    "ubik":     "pnpm i && pnpm clean && pnpm check && pnpm test && ubik",
+    "ubik":     "pnpm i && pnpm clean && pnpm check && pnpm cov && ubik",
     "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet && cd ../platforms/scrt && ubik wet'",
     "ubik:ops": "time sh -c 'pnpm ubik wet && cd connect && ubik wet && cd ../ops && ubik wet'",
 
@@ -101,7 +101,7 @@
     }
   },
   "lint-staged": {
-    "*.ts": "pnpm check && git add pnpm-lock.yaml && pnpm test"
+    "*.ts": "pnpm check && git add pnpm-lock.yaml && pnpm cov"
   },
   "fadroma": {
     "templates": {

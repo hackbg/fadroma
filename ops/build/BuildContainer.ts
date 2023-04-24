@@ -171,7 +171,7 @@ export default class BuildContainer extends LocalBuilder {
     //if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
-      this.log.prebuilt(prebuilt)
+      new BuildConsole(`BuildContainer: ${crate}`).prebuilt(prebuilt)
       contract.artifact = prebuilt.artifact
       contract.codeHash = prebuilt.codeHash
       return true

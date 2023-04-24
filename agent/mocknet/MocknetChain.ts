@@ -25,6 +25,7 @@ export default abstract class Mocknet extends Chain {
 
   constructor (id = 'fadroma-mocknet', options = {}) {
     super(id, { ...options, mode: ChainMode.Mocknet })
+    this.log.label = 'Mocknet'
   }
 
   get isMocknet () { return true }
@@ -61,8 +62,15 @@ export default abstract class Mocknet extends Chain {
     return this.balances[address] || '0'
   }
 
+  _height = 0
+
   get height () {
-    return Promise.resolve(0)
+    return Promise.resolve(this._height)
+  }
+
+  get nextBlock () {
+    this._height++
+    return Promise.resolve(this._height)
   }
 
 }

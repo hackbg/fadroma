@@ -157,18 +157,32 @@ export abstract class Chain {
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
     return this.height.then(async startingHeight=>{
+
+      startingHeight = Number(startingHeight)
+
+      if (isNaN(startingHeight)) {
+        this.log.warn('Current block height undetermined. Not waiting for next block')
+        return Promise.resolve(NaN)
+      }
+
       this.log.waitingForNextBlock(startingHeight)
+
       return new Promise(async (resolve, reject)=>{
         try {
           while (true) {
             await new Promise(ok=>setTimeout(ok, 100))
+            this.log.info('Still waiting for block height to increment beyond', startingHeight)
             const height = await this.height
-            if (height > startingHeight) return resolve(height)
+            if (height > startingHeight) {
+              this.log.info('Block height incremented to', height, 'continuing')
+              return resolve(height)
+            }
           }
         } catch (e) {
           reject(e)
         }
       })
+
     })
   }
 

@@ -32,6 +32,7 @@ export default class MocknetAgent extends Agent {
   constructor (options: AgentOpts & { chain: Mocknet }) {
     super(options)
     this.chain = options.chain
+    this.log.label = `${this.address} on Mocknet`
   }
 
   get defaultDenom (): string {
