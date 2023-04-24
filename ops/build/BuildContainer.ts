@@ -48,7 +48,7 @@ export default class BuildContainer extends LocalBuilder {
     } else if (opts.dockerImage) {
       this.image = this.docker.image(opts.dockerImage)
     } else {
-      this.image = this.docker.image('ghcr.io/hackbg/fadroma:unstable')
+      this.image = this.docker.image('ghcr.io/hackbg/fadroma:master')
     }
     // Set up Docker image
     this.dockerfile ??= opts.dockerfile!
@@ -187,7 +187,6 @@ export default class BuildContainer extends LocalBuilder {
     gitSubdir: string = '',
     outputDir: string = this.outputDir.path
   ): Promise<(Built|null)[]> {
-
     // Default to building from working tree.
     revision ??= HEAD
 
@@ -219,9 +218,9 @@ export default class BuildContainer extends LocalBuilder {
 
     // Define the mounts and environment variables of the build container
     if (!this.script) throw new Error.Build('Build script not set.')
-    const buildScript   = $(`/`, $(this.script).name).path
-    const safeRef       = sanitize(revision)
-    const knownHosts    = $(homedir()).in('.ssh').at('known_hosts')
+    const buildScript = $(`/`, $(this.script).name).path
+    const safeRef = sanitize(revision)
+    const knownHosts = $(homedir()).in('.ssh').at('known_hosts')
     const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
       // The script that will run in the container

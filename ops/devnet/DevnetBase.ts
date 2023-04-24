@@ -28,7 +28,7 @@ export default abstract class Devnet implements DevnetHandle {
     this.genesisAccounts = identities ?? this.genesisAccounts
 
     // Define storage
-    this.stateRoot = $(stateRoot || $('receipts', this.chainId).path).as(OpaqueDirectory)
+    this.stateRoot = $(stateRoot || $('state', this.chainId).path).as(OpaqueDirectory)
   }
 
   /** Logger. */
@@ -61,7 +61,7 @@ export default abstract class Devnet implements DevnetHandle {
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
   get nodeState (): JSONFile<DevnetState> {
-    return this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
+    return this.stateRoot.at('devnet.json').as(JSONFile) as JSONFile<DevnetState>
   }
 
   /** List of genesis accounts that will be given an initial balance

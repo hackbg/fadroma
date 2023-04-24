@@ -24,8 +24,8 @@ jobs:
             - recursive: true
               args: [--frozen-lockfile, --strict-peer-dependencies]
 
-      - name: Generate homepage
-        run: pnpm docs:homepage
+      - name: Render homepage and documentation
+        run: pnpm docs:render
 
       - name: Generate TS reference
         run: NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedoc

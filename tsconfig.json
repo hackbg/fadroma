@@ -26,6 +26,12 @@
     "shim",
     "typedoc-theme.tsx",
     "types",
-    "toolbox"
+    "toolbox",
+    "agent",
+    "ops",
+    "connect",
+    "platforms",
+    "examples",
+    "coverage"
   ]
 }

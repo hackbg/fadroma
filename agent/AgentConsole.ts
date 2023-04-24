@@ -190,15 +190,15 @@ export default class Console extends BaseConsole {
   }
 
   warnSaveNoStore (name: string) {
-    this.warn(`Not saving deployment ${name}: store not set`)
+    this.warn(`Not saving: store not set`)
   }
 
   warnSaveNoChain (name: string) {
-    this.warn(`Not saving deployment ${name}: chain not set`)
+    this.warn(`Not saving: chain not set`)
   }
 
   warnNotSavingMocknet (name: string) {
-    this.warn(`Not saving deployment ${name}: mocknet is not stateful yet`)
+    this.warn(`Not saving: mocknet is not stateful (yet)`)
   }
 
   confirmCodeHash (address: string, codeHash: string) {

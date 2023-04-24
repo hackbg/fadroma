@@ -6,7 +6,7 @@ const { argv, umask, chdir, cwd, exit } = process
 const slashes = new RegExp("/", "g")
 const dashes = new RegExp("-", "g")
 const verbose = Boolean(env('_VERBOSE', false))
-const phases = { phase1, phase2 }
+const phases = { phase1 }
 const phase = argv[2]
 const main = phases[phase]
 main()
@@ -15,6 +15,7 @@ main()
   * checking out an old commit if specified. Then, call phase 2 with
   * the name of each crate sequentially. */
 function phase1 (options = {}) {
+
   let {
     tmpBuild    = env('_TMP_BUILD',  '/tmp/fadroma-build'),
     tmpTarget   = env('_TMP_TARGET', '/tmp/target'),
@@ -27,21 +28,50 @@ function phase1 (options = {}) {
     uid         = env('_BUILD_UID',  1000),
     gid         = env('_BUILD_GID',  1000),
     noFetch     = env('_NO_FETCH',   false),
-    docker      = env.RUNNING_IN_DOCKER || false, // are we running in a container?
-    interpreter = argv[0],       // e.g. /usr/bin/node
-    script      = argv[1],       // this file
-    ref         = argv[3],       // "HEAD" | <git ref>
+    outputDir   = env('_OUTPUT', '/output'),
+    docker      = env('RUNNING_IN_DOCKER', false), // are we running in a container?
+    interpreter = argv[0], // e.g. /usr/bin/node
+    script      = argv[1], // this file
+    ref         = argv[3], // "HEAD" | <git ref>
     crates      = argv.slice(4), // all crates to build
     user        = 'fadroma-builder',
     buildRoot   = resolve(tmpBuild, sanitize(ref)),
     gitDir      = resolve(gitRoot, gitSubdir),
+    toolchain   = env('_TOOLCHAIN'),
+    platform    = 'wasm32-unknown-unknown',
+    locked      = '',
   } = options
-  log('Build phase 1: Preparing source repository for', ref)
-  phase1_prepareContext()
-  phase1_prepareSource()
-  phase1_buildCrates()
 
-  function phase1_prepareContext () {
+  log('Build phase 1: Preparing source repository for', ref)
+  setupToolchain()
+  reportContext()
+  prepareContext()
+  prepareSource()
+  buildCrates()
+
+  function setupToolchain () {
+    if (toolchain) {
+      run(`rustup default ${toolchain}`)
+      run(`rustup target add ${platform}`)
+    }
+    run(`rustup show active-toolchain`)
+  }
+
+  function reportContext () {
+    // Print versions of used tools
+    run(`cargo --version`)
+    run(`rustc --version`)
+    run(`wasm-opt --version`)
+    run(`sha256sum --version | head -n1`)
+    // In verbose mode, also "look around".
+    if (verbose) {
+      run(`pwd`)
+      run(`ls -al`)
+      run(`ls -al /tmp/target`)
+    }
+  }
+
+  function prepareContext () {
     // The local registry is stored in a Docker volume mounted at /usr/local.
     // This makes sure it is accessible to non-root users.
     umask(0o000)
@@ -52,18 +82,18 @@ function phase1 (options = {}) {
     umask(0o022)
   }
 
-  function phase1_prepareSource () {
+  function prepareSource () {
     // Copy the source into the build dir
     run(`git --version`)
     if (ref === 'HEAD') {
       log(`Building from working tree.`)
       chdir(subdir)
     } else {
-      phase1_prepareHistory
+      prepareHistory
     }
   }
 
-  function phase1_prepareHistory () {
+  function prepareHistory () {
     log(`Building from checkout of ${ref}`)
     // This works by using ".git" (or ".git/modules/something") as a remote
     // and cloning from it. Since we may need to modify that directory,
@@ -123,107 +153,59 @@ function phase1 (options = {}) {
     chdir(subdir)
   }
 
-  function phase1_buildCrates () {
-    // Run phase 2 for each requested crate.
-    // If not running as build user, switch to build user for each run of phase2.
-    log(`\nBuilding in:`, call('pwd'))
-    log(`Build phase 2 will run for these crates: ${crates}`)
-    for (const crate of crates) {
-      log(`\nBuilding ${crate} from ${ref} in ${cwd()}`)
-      let phase2Command = `${interpreter} ${script} phase2 ${ref} ${crate}`
-      if (process.getuid() != uid) {
-        phase2Command = `sh -c "${phase2Command}"`
-      }
-      run(phase2Command)
+  function buildCrates () {
+    if (crates.length < 1) {
+      log('No crates to build.')
+      return
     }
-  }
-
-}
-
-/** As a non-root user, execute a release build, then optimize it with Binaryen. */
-function phase2 (options = {}) {
-  let {
-    toolchain  = env('_TOOLCHAIN'),
-    targetDir  = env('_TMP_TARGET', '/tmp/target'),
-    ref        = argv[3], // "HEAD" | <git ref>
-    crate      = argv[4], // one crate to build
-    platform   = 'wasm32-unknown-unknown',
-    locked     = '',
-    output     = `${fumigate(crate)}.wasm`,
-    releaseDir = resolve(targetDir, platform, 'release'),
-    compiled   = resolve(releaseDir, output),
-    outputDir  = env('_OUTPUT', '/output'),
-    optimized  = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`),
-    checksum   =  `${optimized}.sha256`,
-  } = options
-  log(`\nBuild phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
-  phase2_setupToolchain()
-  phase2_reportContext()
-  phase2_buildCrate()
-  phase2_optimizeBinary()
-  phase2_saveChecksum()
-  return optimized
-
-  function phase2_setupToolchain () {
-    if (toolchain) {
-      run(`rustup default ${toolchain}`)
-      run(`rustup target add ${platform}`)
-    }
-    run(`rustup show active-toolchain`)
-  }
-
-  function phase2_reportContext () {
-    // Print versions of used tools
-    run(`cargo --version`)
-    run(`rustc --version`)
-    run(`wasm-opt --version`)
-    run(`sha256sum --version | head -n1`)
-    // In verbose mode, also "look around".
-    if (verbose) {
-      run(`pwd`)
-      run(`ls -al`)
-      run(`ls -al /tmp/target`)
-    }
-  }
-
-  function phase2_buildCrate () {
-    // Compile crate for production
-    run(`cargo build -p ${crate} --release --target ${platform} ${locked} ${verbose?'--verbose':''}`, {
-      CARGO_TARGET_DIR: targetDir,
+    log(`Building in:`, call('pwd'))
+    log(`Building these crates: ${crates}`)
+    run([
+      `cargo build ${`-p ` + crates.join(' -p ')}`,
+      `--release --target ${platform}`,
+      `${locked} ${verbose?'--verbose':''}`
+    ].join(' '), {
+      CARGO_TARGET_DIR: tmpTarget,
       PLATFORM:         platform,
     })
-    run(`tree ${targetDir}`)
-  }
-
-  function phase2_optimizeBinary () {
-    // Output optimized build to artifacts directory
-    if (verbose) run(`ls -al ${releaseDir}`)
-    //run(`cp ${compiled} ${optimized}.unoptimized`)
-    //run(`chmod -x ${optimized}.unoptimized`)
-    if (verbose) {
-      log(`WASM section headers of ${compiled}:`)
-      run(`wasm-objdump -h ${compiled}`)
+    if (verbose) run(`tree ${tmpTarget}`)
+    for (const crate of crates) {
+      const output     = `${fumigate(crate)}.wasm`
+      const releaseDir = resolve(tmpTarget, platform, 'release')
+      const compiled   = resolve(releaseDir, output)
+      const optimized  = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`)
+      const checksum   = `${optimized}.sha256`
+      // Output optimized build to artifacts directory
+      if (verbose) run(`ls -al ${releaseDir}`)
+      //run(`cp ${compiled} ${optimized}.unoptimized`)
+      //run(`chmod -x ${optimized}.unoptimized`)
+      if (verbose) {
+        log(`WASM section headers of ${compiled}:`)
+        run(`wasm-objdump -h ${compiled}`)
+      }
+      log(`Optimizing ${compiled} into ${optimized}...`)
+      run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
+      if (verbose) {
+        log(`* WASM section headers of ${optimized}:`)
+        run(`wasm-objdump -h ${optimized}`)
+      }
+      log(`Optimization complete`)
+      // Output checksum to artifacts directory
+      log(`Saving checksum for ${optimized} into ${checksum}...`)
+      run(`sha256sum -b ${optimized} > ${checksum}`)
+      log(`Checksum calculated:`, checksum)
+      run(`chown ${uid} ${optimized}`)
+      run(`chown ${uid} ${checksum}`)
+      run(`chgrp ${gid} ${optimized}`)
+      run(`chgrp ${gid} ${checksum}`)
+      log(`Permissions set to: ${uid}:${gid}`)
     }
-    log(`Optimizing ${compiled} into ${optimized}...`)
-    run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
-    if (verbose) {
-      log(`* WASM section headers of ${optimized}:`)
-      run(`wasm-objdump -h ${optimized}`)
-    }
-    log(`Optimization complete`)
-  }
-
-  function phase2_saveChecksum () {
-    // Output checksum to artifacts directory
-    log(`Saving checksum for ${optimized} into ${checksum}...`)
-    run(`sha256sum -b ${optimized} > ${checksum}`)
-    log(`Checksum calculated:`, checksum)
   }
 
 }
 
 function log (...args) {
-  return console.log(...args)
+  return console.log("#", ...args)
 }
 
 function env (key, def) {
@@ -234,14 +216,14 @@ function env (key, def) {
 }
 
 function run (command, env2 = {}) {
-  log('$', command)
+  if (verbose) console.log('$', command)
   execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
 }
 
 function call (command) {
-  log('$', command)
+  console.log('$', command)
   const result = String(execSync(command)).trim()
-  log(result)
+  console.log('>', result)
   return result
 }
 
@@ -249,7 +231,7 @@ function time (command) {
   const t0 = + new Date()
   run(command)
   const t1 = + new Date()
-  log(`(took ${t1-t0}ms)`)
+  console.log(`dT=${t1-t0}ms`)
 }
 
 function sanitize (x) {

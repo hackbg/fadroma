@@ -105,7 +105,7 @@ export class BuilderConfig extends BaseConfig {
   caching: boolean = !this.getFlag('FADROMA_REBUILD', ()=>false)
   /** Name of output directory. */
   outputDir: string = this.getString('FADROMA_ARTIFACTS', ()=>
-    $(this.project).in('artifacts').path)
+    $(this.project).in('wasm').path)
   /** Script that runs inside the build container, e.g. build.impl.mjs */
   script: string = this.getString('FADROMA_BUILD_SCRIPT', ()=>
     $(buildPackage).at('build.impl.mjs').path)
@@ -123,7 +123,7 @@ export class BuilderConfig extends BaseConfig {
     ()=>'/var/run/docker.sock')
   /** Docker image to use for dockerized builds. */
   dockerImage: string = this.getString('FADROMA_BUILD_IMAGE',
-    ()=>'ghcr.io/hackbg/fadroma:unstable')
+    ()=>'ghcr.io/hackbg/fadroma:master')
   /** Dockerfile to build the build image if not downloadable. */
   dockerfile: string = this.getString('FADROMA_BUILD_DOCKERFILE',
     ()=>$(buildPackage).at('build.Dockerfile').path)
@@ -144,7 +144,7 @@ export class DeployConfig extends BaseConfig {
   multisig: boolean = this.getFlag('FADROMA_MULTISIG', () => false)
   /** Directory to store the receipts for the deployed contracts. */
   deployState: string | null = this.getString('FADROMA_DEPLOY_STATE', () =>
-    this.chainId ? $(this.project).in('receipts').in(this.chainId).in('deployments').path : null)
+    this.chainId ? $(this.project).in('state').in(this.chainId).in('deploy').path : null)
   /** Which implementation of the receipt store to use. */
   deploymentFormat = this.getString('FADROMA_DEPLOY_STORE', () => 'YAML1') as DeploymentFormat
   /** The deploy receipt store implementation selected by `deploymentFormat`. */
@@ -192,7 +192,7 @@ export class UploadConfig extends BaseConfig {
   reupload: boolean = this.getFlag('FADROMA_REUPLOAD', () => false)
   /** Directory to store the receipts for the deployed contracts. */
   uploadState: string|null = this.getString('FADROMA_UPLOAD_STATE', () =>
-    this.chainId ? $(this.project).in('receipts').in(this.chainId).in('uploads').path : null)
+    this.chainId ? $(this.project).in('state').in(this.chainId).in('upload').path : null)
   /** Variant of uploader to use */
   uploader: string = this.getString('FADROMA_UPLOADER', () => 'FS')
 

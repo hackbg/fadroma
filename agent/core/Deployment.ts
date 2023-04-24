@@ -44,9 +44,8 @@ export abstract class DeployStore {
   abstract select (name: string): Promise<DeploymentState>
   /** Get the active deployment, or null if there isn't one. */
   abstract get active (): DeploymentState|null
-
+  /** Default values for Deployments created from this store. */
   defaults: Partial<Deployment> = {}
-
   /** Create a new Deployment, and populate with stored data.
     * @returns Deployer */
   getDeployment <D extends Deployment> (
@@ -63,6 +62,7 @@ export abstract class DeployStore {
     // contracts (using this.contract), the `state`
     // property will be populated.
     const deployment = new $D(...args)
+    deployment.store ??= this
     // Update properties of each named contract defined in
     // the deployment with those from the loaded data.
     // If such a named contract is missing, define it.
@@ -87,6 +87,30 @@ export interface DeploymentClass<D extends Deployment> extends Class<
   * - Extend this class in deployer script to define how the contracts are deployed. */
 export class Deployment {
 
+  log = new Console(this.constructor.name)
+
+  /** Name of deployment. Used as label prefix of deployed contracts. */
+  name:        string
+  /** Mapping of contract names to contract instances. */
+  state:       Record<string, AnyContract>
+  /** Default state store to which updates to this deployment's state will be saved. */
+  store?:      DeployStore
+  /** Default Git ref from which contracts will be built if needed. */
+  repository?: string = undefined
+  /** Default Cargo workspace from which contracts will be built if needed. */
+  workspace?:  string = undefined
+  /** Default Git ref from which contracts will be built if needed. */
+  revision?:   string = 'HEAD'
+  /** Build implementation. Contracts can't be built from source if this is missing. */
+  builder?:    Builder
+  /** Agent to use when deploying contracts. */
+  agent?:      Agent
+  /** Chain on which operations are executed. */
+  chain?:      Chain
+  /** Upload implementation. Contracts can't be uploaded if this is missing --
+    * except by using `agent.upload` directly, which does not cache or log uploads. */
+  uploader?:   Uploader
+
   constructor (options: Partial<Deployment> = {}) {
     const name = options.name ?? timestamp()
     //super(name)
@@ -107,39 +131,6 @@ export class Deployment {
       'log', 'name', 'state', 'task', 'timestamp',
     ])
   }
-
-  log = new Console(this.constructor.name)
-
-  /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:        string
-
-  /** Mapping of contract names to contract instances. */
-  state:       Record<string, AnyContract>
-
-  /** Default state store to which updates to this deployment's state will be saved. */
-  store?:      DeployStore
-
-  /** Default Git ref from which contracts will be built if needed. */
-  repository?: string = undefined
-
-  /** Default Cargo workspace from which contracts will be built if needed. */
-  workspace?:  string = undefined
-
-  /** Default Git ref from which contracts will be built if needed. */
-  revision?:   string = 'HEAD'
-
-  /** Build implementation. Contracts can't be built from source if this is missing. */
-  builder?:    Builder
-
-  /** Agent to use when deploying contracts. */
-  agent?:      Agent
-
-  /** Chain on which operations are executed. */
-  chain?:      Chain
-
-  /** Upload implementation. Contracts can't be uploaded if this is missing --
-    * except by using `agent.upload` directly, which does not cache or log uploads. */
-  uploader?:   Uploader
 
   get [Symbol.toStringTag]() {
     return `${this.name??'-'}`
@@ -186,6 +177,10 @@ export class Deployment {
     const log = new Console(`Deploying: ${this.name}`)
     const contracts = Object.values(this.state)
     if (contracts.length > 0) {
+      log.log('Making sure all contracts are compiled')
+      if (this.builder) await this.builder.buildMany(contracts as Buildable[])
+      log.log('Making sure all contracts are uploaded')
+      if (this.uploader) await this.uploader.uploadMany(contracts as Uploadable[])
       await Promise.all(contracts.map(contract=>contract.deployed))
       log.log('Deployed', contracts.length, 'contracts')
     } else {
@@ -325,6 +320,7 @@ export class Deployment {
     $D: Subsystem<D, any>,
     ...args: unknown[]
   ): D {
+    this.log.warn('Deployment#subsystem: unstable')
     const inst: D = new $D(this, ...args)
     return this.attach(inst, name, info)
   }
@@ -335,6 +331,7 @@ export class Deployment {
     $D:      Class<D, [this, Config]>,
     configs: Record<Version, Config>
   ): Record<Version, D> {
+    this.log.warn('Deployment#versioned: unstable')
     const versions: Partial<Record<Version, D>> = {}
     // Instantiate a deployment for each version
     for (let [version, config] of Object.entries(configs) as [Version, Config][]) {
@@ -355,17 +352,12 @@ export class Deployment {
     name: string = inst.constructor.name,
     info: string = `(undocumented)`,
   ) {
+    this.log.warn('Deployment#attach: unstable')
     const context = this
     return Object.defineProperties(inst, {
-      name:  {
-        enumerable: true, get () { return context.name }
-      },
-      state: {
-        get () { return context.state }
-      },
-      save:  {
-        get () { return context.save.bind(context) }
-      }
+      name:  { enumerable: true, get () { return context.name } },
+      state: { get () { return context.state } },
+      save:  { get () { return context.save.bind(context) } }
     })
     //return this.commands(name, info, inst as any) // TODO
   }
@@ -454,7 +446,6 @@ export class Template<C extends Client> {
   agent?:      Agent      = undefined
 
   constructor (options: Partial<Template<C>> = {}) {
-    // FIXME: just write it out ... >_>
     this.define(options)
     if (this.context) {
       defineDefault(this, this.context, 'agent')
@@ -470,7 +461,6 @@ export class Template<C extends Client> {
   /** Provide parameters for an existing instance.
     * @returns mutated self */
   define (options: Partial<Template<C>> = {}): this {
-    // FIXME: just write it out ... >_>
     return override(this, options as object)
   }
 
@@ -539,18 +529,13 @@ export class Template<C extends Client> {
     return instance
   }
 
-  /** Get a collection of multiple clients to instances of this contract.
+  /** Get a collection of multiple contracts from this template.
     * @returns task for deploying multiple contracts, resolving to their clients */
-  instances (contracts: Many<Partial<Contract<C>>>): Task<this, Many<Promise<C>>> {
+  instances (contracts: Many<Partial<Contract<C>>>): Many<Contract<C>> {
     type Self = typeof this
     const size = Object.keys(contracts).length
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
-    const tasks = map(contracts, contract=>this.instance(contract))
-    //return this.task(name, async function deployManyContracts (
-      //this: Self
-    //): Promise<Many<Promise<C>>> {
-      //return map(tasks, (task: Partial<Contract<C>>): Promise<C> => task.deployed!)
-    //})
+    return map(contracts, contract=>this.instance(contract))
   }
 
   get asInfo (): ContractInfo {
@@ -563,35 +548,6 @@ export class Template<C extends Client> {
 }
 
 type Task<T, U> = void // FIXME
-
-/** @returns the data for saving a build receipt. */
-export function toBuildReceipt (s: Partial<Built>) {
-  return {
-    repository: s.repository,
-    revision:   s.revision,
-    dirty:      s.dirty,
-    workspace:  s.workspace,
-    crate:      s.crate,
-    features:   s.features?.join(', '),
-    builder:    undefined,
-    builderId:  s.builder?.id,
-    artifact:   s.artifact?.toString(),
-    codeHash:   s.codeHash
-  }
-}
-
-/** @returns the data for saving an upload receipt. */
-export function toUploadReceipt (t: Partial<Uploaded>) {
-  return {
-    ...toBuildReceipt(t),
-    chainId:    t.chainId,
-    uploaderId: t.uploader?.id,
-    uploader:   undefined,
-    uploadBy:   t.uploadBy,
-    uploadTx:   t.uploadTx,
-    codeId:     t.codeId
-  }
-}
 
 /** Objects that have an address and code id. */
 export type IntoInfo = Hashed & {
@@ -826,6 +782,35 @@ export class ContractGroup<A extends unknown[]> {
     function defineContractGroup (...args: A) {
       return new ContractGroup(self.context, ()=>self.getContracts(...args))
     }
+  }
+}
+
+/** @returns the data for saving a build receipt. */
+export function toBuildReceipt (s: Partial<Built>) {
+  return {
+    repository: s.repository,
+    revision:   s.revision,
+    dirty:      s.dirty,
+    workspace:  s.workspace,
+    crate:      s.crate,
+    features:   s.features?.join(', '),
+    builder:    undefined,
+    builderId:  s.builder?.id,
+    artifact:   s.artifact?.toString(),
+    codeHash:   s.codeHash
+  }
+}
+
+/** @returns the data for saving an upload receipt. */
+export function toUploadReceipt (t: Partial<Uploaded>) {
+  return {
+    ...toBuildReceipt(t),
+    chainId:    t.chainId,
+    uploaderId: t.uploader?.id,
+    uploader:   undefined,
+    uploadBy:   t.uploadBy,
+    uploadTx:   t.uploadTx,
+    codeId:     t.codeId
   }
 }
 

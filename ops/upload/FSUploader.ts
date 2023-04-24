@@ -44,11 +44,14 @@ export default class FSUploader extends Uploader {
     if (cached) return cached
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
-    this.log.log('Uploading', bold($(contract.artifact).shortPath))
     const data = $(contract.artifact).as(BinaryFile).load()
+    const log = new Console(`Uploading: ${bold($(contract.artifact).shortPath)}`)
+    log(`hash ${contract.codeHash}`)
+    log(`size (uncompressed): ${data.length} bytes`)
     const result = await this.agent.upload(data)
     this.checkCodeHash(contract, result)
     const { codeId, codeHash, uploadTx } = result
+    log(`done, code id`, codeId)
     Object.assign(contract, { codeId, codeHash, uploadTx })
     if (receipt && !this.agent?.chain?.isMocknet) {
       // don't save receipts for mocknet because it's not stateful yet
@@ -133,7 +136,7 @@ export default class FSUploader extends Uploader {
       const path = $(input.artifact!)
       const data = path.as(BinaryFile).load()
       input.codeHash ??= base16.encode(sha256(data))
-      const log = new Console(`Uploading: ${bold(path.shortPath)}`)
+      const log = new Console(`Uploading (no cache): ${bold(path.shortPath)}`)
       log(`hash ${input.codeHash}`)
       log(`size (uncompressed): ${data.length} bytes`)
       const result = await agent.upload(data)

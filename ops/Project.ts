@@ -1,23 +1,18 @@
 import { getBuilder } from './build/index'
 import { getUploader } from './upload/index'
-
-import type { Builder, Buildable, Built, Uploader, Uploadable, Uploaded } from '@fadroma/agent'
-import { Template } from '@fadroma/agent'
-
-import Case from 'case'
-import prompts from 'prompts'
-
-import { execSync } from 'node:child_process'
+import type {
+  Builder, Buildable, Built, Uploader, Uploadable, Uploaded,
+  Chain, ChainId, DeploymentState, DeployStore
+} from '@fadroma/agent'
+import { Template, Deployment } from '@fadroma/agent'
 import $, { Path, OpaqueDirectory, OpaqueFile, JSONFile, TOMLFile, TextFile } from '@hackbg/file'
-
+import { CommandContext } from '@hackbg/cmds'
 import Console, { bold, colors } from './OpsConsole'
 import Error from './OpsError'
 import Config from './OpsConfig'
-
-import type { Chain, ChainId, DeploymentState, DeployStore } from '@fadroma/agent'
-import { Deployment } from '@fadroma/agent'
-
-import { CommandContext } from '@hackbg/cmds'
+import Case from 'case'
+import prompts from 'prompts'
+import { execSync } from 'node:child_process'
 
 const console = new Console('@fadroma/project')
 
@@ -51,7 +46,7 @@ export default class Project extends CommandContext {
     this.log.info(`This is @fadroma/ops ${version}.`)
     if (this.exists()) this.log.info(`Active project:`, bold(this.name), 'at', bold(this.root.path))
     if (this.exists()) this.log.info(`Selected chain:`, bold(this.config.chainId))
-    this.builder = getBuilder({ outputDir: this.dirs.dist.path })
+    this.builder = getBuilder({ outputDir: this.dirs.wasm.path })
     const uploadState = this.config.chainId ? this.dirs.state.in(this.config.chainId).path : null
     this.uploader = getUploader({ uploadState })
     // Populate templates
@@ -105,7 +100,7 @@ export default class Project extends CommandContext {
   setTemplate = (
     name: string, value: string|Template<any>|(Buildable & Partial<Built>)
   ): Template<any> => {
-    const defaults = { workspace: this.root.shortPath, revision: 'HEAD' }
+    const defaults = { workspace: ".", revision: 'HEAD' }
     return this.templates[name] =
       (typeof value === 'string') ? new Template({ ...defaults, crate: value }) :
       (value instanceof Template) ? value : new Template({ ...defaults, ...value })
@@ -126,8 +121,8 @@ export default class Project extends CommandContext {
       this.log.info('Project name:           ', bold(this.name))
       this.log.info('Project root:           ', bold(this.root.path))
       this.log.info('Templates in project:   ', bold(Object.keys(this.templates).join(', ')))
-      this.log.info('Optimized contracts at: ', bold(this.dirs.dist.shortPath))
-      this.log.info('Contract checksums at:  ', bold(this.dirs.dist.shortPath))
+      this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
+      this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
       this.log.info('Chain-specific state at:', bold(this.dirs.state.shortPath))
       if (this.dirs.state.exists()) {
         const states = this.dirs.state.list()
@@ -160,7 +155,7 @@ export default class Project extends CommandContext {
       'under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
     ].join(''))
     this.files.gitignore.save([
-      '.env', 'node_modules', 'target', 'state/fadroma-devnet*', 'dist', '!dist/*.sha256'
+      '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
     ].join('\n'))
     this.files.envfile.save('# FADROMA_MNEMONIC=your testnet mnemonic')
     this.files.shellNix.save([
@@ -175,7 +170,7 @@ export default class Project extends CommandContext {
     ].join('\n'))
     this.files.cargoToml.as(TextFile).save([
       `[workspace]`, `resolver = "2"`, `members = [`,
-      Object.values(this.crates).map(crate=>`  "contracts/${crate.name}"`).sort().join(',\n'),
+      Object.values(this.crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
       `]`
     ].join('\n'))
     this.files.fadromaJson.save({ templates: templates })
@@ -192,14 +187,14 @@ export default class Project extends CommandContext {
   /** @returns stateless handles for the subdirectories of the project. */
   get dirs () {
     return {
-      contracts: this.root.in('contracts').as(OpaqueDirectory),
-      dist:      this.root.in('dist').as(OpaqueDirectory),
+      src: this.root.in('src').as(OpaqueDirectory),
+      wasm:      this.root.in('wasm').as(OpaqueDirectory),
       state:     this.root.in('state').as(OpaqueDirectory)
     }
   }
   /** @returns stateless handles for various config files that are part of the project. */
   get files () {
-    const { contracts, dist, state } = this.dirs
+    const { src, wasm, state } = this.dirs
     return {
       cargoToml:      this.root.at('Cargo.toml').as(TOMLFile),
       dockerfile:     null,
@@ -216,8 +211,8 @@ export default class Project extends CommandContext {
   /** @returns stateless handles for NPM packages that are part of the project. */
   get packages () {
     return {
-      workspace: new RootPackage(this, 'ops', this.root),
-      client:    new ClientPackage(this, 'client'),
+      workspace: new WorkspaceRootPackage(this, 'ops', this.root),
+      api:       new ApiClientPackage(this, 'api'),
     }
   }
   /** @returns stateless handles for the contract crates
@@ -254,8 +249,8 @@ export default class Project extends CommandContext {
     return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
   }
   getBuildState = () => [
-    ...this.dirs.dist.list()?.filter(x=>x.endsWith('.wasm'))        ?? [],
-    ...this.dirs.dist.list()?.filter(x=>x.endsWith('.wasm.sha256')) ?? [],
+    ...this.dirs.wasm.list()?.filter(x=>x.endsWith('.wasm'))        ?? [],
+    ...this.dirs.wasm.list()?.filter(x=>x.endsWith('.wasm.sha256')) ?? [],
   ]
   /** Uploads one or more named templates, or all templates if no arguments are passed.
     * Builds templates with missing artifacts if sources are available. */
@@ -288,13 +283,21 @@ export default class Project extends CommandContext {
   getUploadState = (chainId: ChainId|null = this.config.chainId) =>
     chainId ? this.dirs.state.in(chainId).in('upload').as(OpaqueDirectory).list() : {}
   deploy = async (...args: string[]) => {
-    return await this.getDeployment()?.deploy()
+    const deployment = await this.getDeployment()
+    if (deployment) {
+      this.log(`Active deployment: ${deployment.name} (${deployment.constructor?.name})`)
+      await deployment.deploy()
+    } else {
+      this
+    }
+    return deployment?.deploy()
   }
   getDeployState = (chainId: ChainId|null = this.config.chainId) =>
     chainId ? this.dirs.state.in(chainId).in('deploy').as(OpaqueDirectory).list() : {}
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
   getDeployment (name?: string): Deployment|null {
+    const store = this.config.getDeployStore()
     return this.config.getDeployment(this.Deployment)
   }
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
@@ -405,7 +408,7 @@ export class ContractCrate {
     /** Features of the 'fadroma' dependency to enable. */
     readonly fadromaFeatures: string[] = [ 'scrt' ],
     /** Root directory of crate. */
-    readonly dir: OpaqueDirectory = project.dirs.contracts.in(name).as(OpaqueDirectory),
+    readonly dir: OpaqueDirectory = project.dirs.src.in(name).as(OpaqueDirectory),
     /** Crate manifest. */
     readonly cargoToml: TextFile = dir.at('Cargo.toml').as(TextFile),
     /** Directory containing crate sources. */
@@ -479,7 +482,7 @@ export class NPMPackage {
   }
 }
 
-export class ClientPackage extends NPMPackage {
+export class ApiClientPackage extends NPMPackage {
   create () {
     super.create({
       name: `@${this.project.name}/${this.name}`,
@@ -530,7 +533,7 @@ export class ClientPackage extends NPMPackage {
   }
 }
 
-export class RootPackage extends NPMPackage {
+export class WorkspaceRootPackage extends NPMPackage {
   create () {
     super.create({
       name: `@${this.project.name}/${this.name}`,
@@ -540,7 +543,7 @@ export class RootPackage extends NPMPackage {
       devDependencies: {
         "@hackbg/fadroma": "latest",
         "@hackbg/ganesha": "latest",
-        [`@${this.project.name}/client`]: "link:./client",
+        [`@${this.project.name}/api`]: "link:./api",
       },
       scripts: {
         "build":   "fadroma build",
@@ -552,7 +555,7 @@ export class RootPackage extends NPMPackage {
       },
     })
     const imports = [
-      `import ${Case.pascal(this.project.name)} from '@${this.project.name}/client'`,
+      `import ${Case.pascal(this.project.name)} from '@${this.project.name}/api'`,
       `import Project from '@hackbg/fadroma'`,
     ].join('\n')
     const commandsClass = [

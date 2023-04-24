@@ -34,7 +34,7 @@ export default class RawBuilder extends LocalBuilder {
     const env = {
       _BUILD_GID: process.getgid ? process.getgid() : undefined,
       _BUILD_UID: process.getuid ? process.getuid() : undefined,
-      _OUTPUT:    $(workspace).in('artifacts').path,
+      _OUTPUT:    $(workspace).in('dist').path,
       _REGISTRY:  '',
       _TOOLCHAIN: this.toolchain,
     }

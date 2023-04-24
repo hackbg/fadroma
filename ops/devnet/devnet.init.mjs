@@ -66,6 +66,7 @@ function genesis ({
     const address  = run(`secretd keys show -a "${name}"`)
     const identity = `${stateDir}/identities/${name}.json`
     writeFileSync(identity, JSON.stringify({ address, mnemonic }))
+    chmodSync(identity, 0o666) // don't try this at home
     run(`chmod a+rw ${identity}`)
   }
 
