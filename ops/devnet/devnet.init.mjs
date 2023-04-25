@@ -1,5 +1,5 @@
 import { spawn, exec, execSync } from 'child_process'
-import { existsSync, writeFileSync } from 'fs'
+import { existsSync, writeFileSync, chmodSync } from 'fs'
 
 const run = command => {
   if (process.env.Verbose) console.info('$', command)
