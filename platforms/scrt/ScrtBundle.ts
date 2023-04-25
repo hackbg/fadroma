@@ -39,7 +39,7 @@ export default class ScrtBundle extends Bundle {
 
   /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
     * unsigned transaction bundle; don't execute it, but save it in
-    * `receipts/$CHAIN_ID/transactions` and output a signing command for it to the console. */
+    * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
   async save (name?: string) {
     // Number of bundle, just for identification in console
     const N = ++ScrtBundle.bundleCounter

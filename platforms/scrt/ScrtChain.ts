@@ -70,7 +70,7 @@ export default class Scrt extends Chain {
     mode: Chain.Mode.Mainnet
   }) {
     super(options)
-    this.log.label = `Secret Network ${this.id}`
+    this.log.label = `@fadroma/scrt: ${this.id}`
     // Optional: Allow a different API-compatible version of SecretJS to be passed
     this.SecretJS = options.SecretJS ?? this.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })

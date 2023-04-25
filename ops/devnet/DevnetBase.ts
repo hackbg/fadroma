@@ -67,7 +67,11 @@ export default abstract class Devnet implements DevnetHandle {
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
   genesisAccounts: Array<string> = [
-    'ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY'
+    'Admin',
+    'Alice',
+    'Bob',
+    'Charlie',
+    'Mallory'
   ]
 
   /** Save the info needed to respawn the node */
@@ -132,7 +136,7 @@ export default abstract class Devnet implements DevnetHandle {
 }
 
 /** A Devnet is created from a given chain ID with given pre-configured identities,
-  * and its state is stored in a given directory (e.g. `receipts/fadroma-devnet`). */
+  * and its state is stored in a given directory (e.g. `state/fadroma-devnet`). */
 export interface DevnetOpts {
   /** Internal name that will be given to chain. */
   chainId?:    string

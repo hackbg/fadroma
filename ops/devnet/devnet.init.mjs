@@ -45,26 +45,26 @@ function start ({
 
 function genesis ({
   chainId         = process.env.ChainId || 'fadroma-devnet',
-  stateDir        = `/receipts/${chainId}`,
-  genesisAccounts = (process.env.GenesisAccounts || 'ADMIN ALICE BOB CHARLIE MALLORY').split(' '),
+  stateDir        = `/state/${chainId}`,
+  genesisAccounts = (process.env.GenesisAccounts || 'Admin Alice Bob Charlie Mallory').split(' '),
   amount          = "1000000000000000000uscrt"
 } = {}) {
   console.info('\nEnsuring a clean slate...')
   run(`rm -rf ~/.secretd ~/.secretcli /opt/secret/.sgx-secrets`)
 
   console.info('\nEstablishing initial config...')
-  run(`mkdir -p ${stateDir} ${stateDir}/identities`)
+  run(`mkdir -p ${stateDir} ${stateDir}/wallet`)
   run(`secretd config chain-id "${chainId}"`)
   run(`secretd config keyring-backend test`)
   run(`secretd init fadroma-devnet --chain-id "${chainId}"`)
   run(`cp ~/node_key.json ~/.secretd/config/node_key.json`)
   run(`perl -i -pe 's/"stake"/ "uscrt"/g' ~/.secretd/config/genesis.json`)
 
-  console.info('\nCreating genesis accounts...')
+  console.info('\nCreating genesis accounts', genesisAccounts)
   for (const name of genesisAccounts) {
     const mnemonic = run(`secretd keys add "${name}" 2>&1 | tail -n1`)
     const address  = run(`secretd keys show -a "${name}"`)
-    const identity = `${stateDir}/identities/${name}.json`
+    const identity = `${stateDir}/wallet/${name}.json`
     writeFileSync(identity, JSON.stringify({ address, mnemonic }))
     chmodSync(identity, 0o666) // don't try this at home
     run(`chmod a+rw ${identity}`)

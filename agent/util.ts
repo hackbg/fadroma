@@ -16,3 +16,12 @@ export * from '@hackbg/4mat'
 export interface Class<T, U extends unknown[]> {
   new (...args: U): T
 }
+
+export function prop <T> (host: object, property: string, value: T) {
+  Object.defineProperty(host, property, {
+    get () { return value },
+    set (value) { return prop(host, property, value) },
+    enumerable: true,
+    configurable: true,
+  })
+}

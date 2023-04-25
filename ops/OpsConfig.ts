@@ -58,7 +58,8 @@ export default class Config extends ConnectConfig {
   getUploader <U extends Uploader> (
     $U: UploaderClass<U> = Uploader.variants[this.upload.uploader] as UploaderClass<U>
   ): U {
-    return new $U(this.getAgent())
+    const agent = this.getAgent()
+    return new $U(agent)
   }
   /** @returns an instance of the selected deploy store implementation. */
   getDeployStore <S extends DeployStore> (
@@ -74,14 +75,14 @@ export default class Config extends ConnectConfig {
     $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
     ...args: ConstructorParameters<typeof $D>
   ): D {
-    const chain = this.getChain()
+    args = [...args]
+    const chain = args[0]?.chain || this.getChain()
     if (!chain) throw new Error('Missing chain')
-    const agent = this.getAgent()
-    const builder = getBuilder()
-    const uploader = agent.getUploader(FSUploader)
-    const workspace = process.cwd()
-    const defaults = { config: this, chain, agent, builder, uploader, workspace }
-    args[0] = Object.assign(defaults, args[0]??{})
+    const agent = args[0]?.agent || this.getAgent()
+    const builder = args[0]?.builder || getBuilder()
+    const uploader = args[0]?.uploader || agent.getUploader(FSUploader)
+    const workspace = args[0]?.workspace || process.cwd()
+    args[0] = { config: this, chain, agent, builder, uploader, workspace, ...args }
     const deployment = this.getDeployStore().getDeployment($D, ...args)
     return deployment
   }

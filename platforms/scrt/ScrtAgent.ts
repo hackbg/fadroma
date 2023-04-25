@@ -4,7 +4,7 @@ import Scrt from './ScrtChain'
 import type ScrtBundle from './ScrtBundle'
 
 import {
-  Agent, Contract, assertAddress, assertChain, into, base64, bip39, bip39EN
+  Agent, Contract, assertAddress, assertChain, into, base64, bip39, bip39EN, bold
 } from '@fadroma/agent'
 import type {
   Address, AgentClass, AgentOpts, Built, Uploaded,
@@ -33,16 +33,27 @@ export interface ScrtAgentOpts extends AgentOpts {
 /** Represents a connection to the Secret Network,
   * authenticated as a specific address. */
 export default class ScrtAgent extends Agent {
+  log = new Console('ScrtAgent')
+  /** Downcast chain property to Scrt only. */
+  declare chain: Scrt
+  /** Bundle class used by this agent. */
+  Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
+  /** Whether transactions should be simulated instead of executed. */
+  simulate: boolean = false
+  /** Default fees for this agent. */
+  fees = Scrt.defaultFees
 
   constructor (options: Partial<ScrtAgentOpts> = {}) {
     super(options)
-    this.fees = options.fees ?? this.fees
-    this.api = options.api
-    this.wallet = options.wallet
-    this.address = this.wallet?.address
+    this.fees            = options.fees ?? this.fees
+    this.api             = options.api
+    this.wallet          = options.wallet
+    this.address         = this.wallet?.address
+    this.mnemonic        = options.mnemonic ?? this.mnemonic
     this.encryptionUtils = options.encryptionUtils
-    this.simulate = options.simulate ?? this.simulate
-    this.log.label = `${this.address} on Secret Network ${this.chain.id}`
+    this.simulate        = options.simulate ?? this.simulate
+    this.log.label =
+      `@fadroma/scrt: ${this.chain.id??'(no chain id)'}://${this.address??'(no address)'}`
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
@@ -90,6 +101,8 @@ export default class ScrtAgent extends Agent {
         // Override address and set name if missing.
         this.address = wallet.address
         this.name ??= this.address
+        this.log.label = `@fadroma/scrt: ${this.chain.id??'(no chain id)'}://${this.address??'(no address)'}`
+        this.log.log('Agent authenticated.')
         // Done.
         resolve(this as this & { api: SecretJS.SecretNetworkClient })
       } catch (e) {
@@ -99,12 +112,6 @@ export default class ScrtAgent extends Agent {
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
   }
-
-  declare chain: Scrt
-
-  log = new Console('ScrtGrpcAgent')
-
-  Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
 
   get api (): SecretJS.SecretNetworkClient|undefined {
     return undefined
@@ -126,11 +133,6 @@ export default class ScrtAgent extends Agent {
   set encryptionUtils (value: SecretJS.EncryptionUtils|undefined) {
     setEncryptionUtils(this, value)
   }
-
-  /** Whether transactions should be simulated instead of executed. */
-  simulate: boolean = false
-
-  fees = Scrt.defaultFees
 
   get account () {
     return this.ready.then(()=>this.api!.query.auth.account({ address: assertAddress(this) }))
@@ -218,18 +220,31 @@ export default class ScrtAgent extends Agent {
   async upload (data: Uint8Array): Promise<Uploaded> {
     const { api } = await this.ready
     type Log = { type: string, key: string }
-    if (!this.address) throw new Error("No address")
+    if (!this.address) throw new Error.NoAddress()
     const request  = { sender: this.address, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
-    const result   = await api.tx.compute.storeCode(request, { gasLimit })
-    if (result.code !== 0) {
-      this.log.warn(`Upload failed with result`, result)
-      throw Object.assign(new Error.UploadFailed(), { result })
+    const result   = await api.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
+    const { code, message, details = [], rawLog } = result
+    if (code !== 0) {
+      this.log.error(`Upload failed with code ${bold(code)}:`, bold(message ?? rawLog ?? ''), ...details)
+      if (message === `account ${this.address} not found`) {
+        this.log.info(`If this is a new account, send it some ${this.defaultDenom} first.`)
+        if (this.chain.isMainnet) {
+          this.log.info(`Mainnet fee grant faucet:`, bold(`https://faucet.secretsaturn.net/`))
+        }
+        if (this.chain.isTestnet) {
+          this.log.info(`Testnet faucet:`, bold(`https://faucet.starshell.net/`))
+        }
+      }
+      throw Object.assign(new Error.UploadFailed(), result)
     }
     const codeId = result.arrayLog
       ?.find((log: Log) => log.type === "message" && log.key === "code_id")
       ?.value
-    if (!codeId) { throw Object.assign(new Error.UploadFailed(), { noCodeId: true }) }
+    if (!codeId) {
+      this.log.error(`Code id not found in result.`)
+      throw Object.assign(new Error.UploadFailed(), { noCodeId: true })
+    }
     return {
       chainId:  assertChain(this).id,
       codeId,

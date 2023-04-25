@@ -173,7 +173,7 @@ export default class Project extends CommandContext {
   /** Print the current status of Fadroma, the active devnet, project, and deployment.
     * @returns this */
   status = () => {
-    const chain = this.config.getChain()
+    const chain = this.uploader?.agent?.chain ?? this.config.getChain()
     if (!chain) {
       this.log.info('No chain selected.')
     } else {
@@ -421,7 +421,7 @@ export default class Project extends CommandContext {
   deploy = async (...args: string[]) => {
     const deployment = await this.getDeployment()
     if (deployment) {
-      this.log(`Active deployment: ${deployment.name} (${deployment.constructor?.name})`)
+      this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
       await deployment.deploy()
     } else {
       this
@@ -434,7 +434,13 @@ export default class Project extends CommandContext {
     * @returns Deployment|null */
   getDeployment = (name?: string): Deployment|null => {
     const store = this.config.getDeployStore()
-    return this.config.getDeployment(this.Deployment)
+    return this.config.getDeployment(this.Deployment, {
+      agent:     this.uploader.agent ??= this.config.getAgent(),
+      chain:     this.uploader.agent.chain,
+      builder:   this.builder,
+      uploader:  this.uploader,
+      workspace: this.root.path
+    })
   }
   listDeployments = () =>
     this.log.deploy.deploymentList(
@@ -475,7 +481,7 @@ export default class Project extends CommandContext {
     this.log.info('Wrote', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
   resetDevnet = async () => {
-    const chain = this.config.getChain()
+    const chain = this.uploader?.agent?.chain ?? this.config.getChain()
     if (!chain) {
       this.log.info('No active chain.')
     } else if (!chain.isDevnet || !chain.devnet) {

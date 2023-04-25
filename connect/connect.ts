@@ -64,12 +64,10 @@ export class ConnectConfig extends Config {
   scrt: Scrt.Config
   /** Mnemonic to use for authentication. Hidden by default. */
   mnemonic?: string
-    = this.getString('FADROMA_MNEMONIC',    ()=>
-      this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
+    = this.getString('FADROMA_MNEMONIC', ()=>undefined)
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  devnetAgentName: string
-    = this.getString('FADROMA_AGENT',   ()=>
-      this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
+  agentName: string
+    = this.getString('FADROMA_AGENT', ()=>'Admin')
   /** Name of chain to use. */
   chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
     ()=>'Mocknet_CW1')
@@ -111,7 +109,7 @@ export class ConnectConfig extends Config {
 
   log = new ConnectConsole('@fadroma/connect')
 
-  // Create the Chain instance specified by the configuration.
+  /** Create the Chain instance specified by the configuration. */
   getChain <C extends Chain> (
     getChain: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chain
   ): C {
@@ -128,18 +126,12 @@ export class ConnectConfig extends Config {
     return getChain({ config: this }) as C // create Chain object
   }
 
-  getAgent <A extends Agent> (chain?: Chain): A {
-    chain ??= this.getChain()
-    // Create the Agent instance as identified by the configuration.
-    let agentOpts: AgentOpts = { chain }
-    if (chain.isDevnet) {
-      // On devnet, agent can be created from genesis account
-      agentOpts.name = this.devnetAgentName
-    } else {
-      // Otherwise it's created from mnemonic
-      agentOpts.mnemonic = this.mnemonic
-    }
-    return chain.getAgent(agentOpts) as A
+  /** Create the Agent instance identified by the configuration. */
+  getAgent <A extends Agent> (options: Partial<AgentOpts> = {}): A {
+    options.chain ??= this.getChain()
+    options.name = this.agentName
+    options.mnemonic = this.mnemonic
+    return options.chain.getAgent(options) as A
   }
 
   /** List all known chains. */

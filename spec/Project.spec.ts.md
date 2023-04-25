@@ -63,13 +63,15 @@ Checksums of compiled contracts by version.
 
 Records of a single uploaded contract binary.
 
+Stored in `state/$CHAIN_ID/upload/$CODE_ID.yml`.
+
 ### Deploy receipts
 
 Records of one or more deployed contract instances.
 
 The **deployment receipt system** keeps track of the addresses, code ids, code hashes, and other
 info about the smart contracts that you deployed, in the form of files under
-`receipts/$CHAIN_ID/$DEPLOYMENT.yml`.
+`state/$CHAIN_ID/deploy/$DEPLOYMENT.yml`.
 
 Besides `context.contract.get()` and `.getOrDeploy()`, you can access it directly via:
 * `context.deployment: Deployment`: handle to currently selected deployment.

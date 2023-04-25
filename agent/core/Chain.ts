@@ -3,7 +3,7 @@ import type {
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId
 } from '../index'
 
-import { Error, Console, into } from '../util'
+import { Error, Console, into, prop, hideProperties as hide } from '../util'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -135,10 +135,10 @@ export abstract class Chain {
         try {
           while (true) {
             await new Promise(ok=>setTimeout(ok, 250))
-            this.log.info('Still waiting for block height to increment beyond', startingHeight)
+            this.log.log('Still waiting for block height to increment beyond', startingHeight)
             const height = await this.height
             if (height > startingHeight) {
-              this.log.info('Block height incremented to', height, 'continuing')
+              this.log.info(`Block height incremented to ${height}, continuing`)
               return resolve(height)
             }
           }
@@ -192,9 +192,10 @@ export abstract class Chain {
   getAgent (options?: Partial<AgentOpts>): Agent
   getAgent ($A: AgentClass<Agent>, options?: Partial<AgentOpts>): InstanceType<typeof $A>
   getAgent (...args: any) {
-    const $A      = (typeof args[0] === 'function') ? args[0] : this.Agent
-    const options = (typeof args[0] === 'function') ? args[1] : args[0]
-    const agent   = new $A(Object.assign(options||{}, { chain: this }))
+    const $A = (typeof args[0] === 'function') ? args[0] : this.Agent
+    let options = (typeof args[0] === 'function') ? args[1] : args[0]
+    options = { ...options||{}, chain: this }
+    const agent = new $A(options)
     return agent
   }
 }
@@ -241,21 +242,16 @@ export abstract class Agent {
   static Bundle: BundleClass<Bundle> // populated below
 
   constructor (options: Partial<AgentOpts> = {}) {
-    this.chain = options.chain ?? this.chain
-    this.name = options.name  ?? this.name
-    this.fees = options.fees  ?? this.fees
+    this.chain   = options.chain ?? this.chain
+    this.name    = options.name  ?? this.name
+    this.fees    = options.fees  ?? this.fees
     this.address = options.address  ?? this.address
-    Object.defineProperties(this, {
-      'chain':    { enumerable: false, writable: true },
-      'mnemonic': { enumerable: false, writable: true },
-      'address':  { enumerable: false, writable: true },
-      'log':      { enumerable: false, writable: true },
-      'Bundle':   { enumerable: false, writable: true }
-    })
+    hide(this, 'chain', 'address', 'log', 'Bundle')
+    prop(this, 'mnemonic', options.mnemonic)
   }
 
   get [Symbol.toStringTag]() {
-    return `${this.chain?.id??'-'}: ${this.address}`
+    return `${this.address} @ ${this.chain?.id}${this.mnemonic ? ' (*)' : ''}`
   }
   /** Complete the asynchronous initialization of this Agent. */
   get ready (): Promise<this> {

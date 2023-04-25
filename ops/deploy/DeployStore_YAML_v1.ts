@@ -12,7 +12,7 @@ import $, {
 import { basename } from 'node:path'
 import { loadAll, dump } from 'js-yaml'
 
-/** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
+/** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */

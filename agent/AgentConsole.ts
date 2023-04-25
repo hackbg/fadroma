@@ -206,7 +206,7 @@ export default class Console extends BaseConsole {
   }
 
   waitingForNextBlock (height: number) {
-    this.info(`Waiting for block height to increment beyond ${height}...`)
+    this.log(`Waiting for block height to increment beyond ${height}...`)
   }
 
   warnEmptyBundle () {

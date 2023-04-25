@@ -1,27 +1,17 @@
-import { Console } from '../util'
-
+import { Console, hideProperties as hide } from '../util'
 import UploadStore, { UploadReceipt } from './UploadStore'
-
 import {
   Uploader, assertAgent, override, toUploadReceipt, Error, colors, bold,  base16, sha256
 } from '@fadroma/agent'
-import type { 
-  Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract
-} from '@fadroma/agent'
-
+import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
 import $, { Path, BinaryFile } from '@hackbg/file'
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
 export default class FSUploader extends Uploader {
-
-  get id () { return 'FS' }
-
   log = new Console('@fadroma/ops: FSUploader' )
-
-  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(no cache)' }
-
+  /** The uploader checks here whether a contract might be already uploaded. */
   cache?: UploadStore
 
   constructor (
@@ -32,10 +22,12 @@ export default class FSUploader extends Uploader {
   ) {
     super(agent)
     if (cache) this.cache = $(cache).as(UploadStore)
-    for (const hide of [
-      'log',
-    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
+    hide(this, 'log')
   }
+
+  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(no cache)' }
+
+  get id () { return 'FS' }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (contract: Uploadable): Promise<Uploaded> {
@@ -59,7 +51,6 @@ export default class FSUploader extends Uploader {
     }
     return { ...contract, codeId, codeHash, uploadTx }
   }
-
   /** Upload multiple contracts from the filesystem. */
   async uploadMany (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
     // TODO: Optionally bundle the upload messages in one transaction -
@@ -125,7 +116,6 @@ export default class FSUploader extends Uploader {
     }
     return outputs
   }
-
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
   async uploadManySansCache (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
     const agent = assertAgent(this)
@@ -148,7 +138,6 @@ export default class FSUploader extends Uploader {
     }
     return outputs
   }
-
   /** Make sure that the optional `codeHash` property of an `Uploadable` is populated, by
     * computing the code hash of the locally available artifact that he `Uploadable` specifies.
     * This is used to validate the code hash of the local file against the one returned by the
@@ -167,12 +156,10 @@ export default class FSUploader extends Uploader {
     }
     return input as Uploadable & { codeHash: CodeHash }
   }
-
   /** Compute the SHA256 of a local file. */
   private hashPath (path: string|Path) {
     return $(path).as(BinaryFile).sha256
   }
-
 }
 
 Uploader.variants['FS'] = FSUploader

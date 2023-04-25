@@ -27,8 +27,8 @@ export default class Console extends CommandsConsoleMixin(BaseConsole) {
     many: (sources: Template<any>[]) => {
       for (const source of sources) self.build.one(source)
     },
-    found: (prebuilt: Built & { name?: string }) => {
-      self.log(`${prebuilt.name??prebuilt.crate}: found at ${bold($(prebuilt.artifact!).shortPath)}`)
+    found: ({ artifact }: Built) => {
+      self.log(`found at ${bold($(artifact!).shortPath)}`)
     },
     container: (root: string|Path, revision: string, cratesToBuild: string[]) => {
       root = $(root).shortPath
@@ -45,13 +45,13 @@ export default class Console extends CommandsConsoleMixin(BaseConsole) {
     loadingFailed: (path: string) =>
       self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
     loadingRejected: (path: string) =>
-      self.info(`${path} does not exist.`),
-    isNowRunning: (devnet: { port: any, container: { id: string }|null }) => {
+      self.log(`${path} does not exist.`),
+    isNowRunning: (devnet: { chainId: string, port: any, container: { id: string }|null }) => {
       const port = String(devnet.port)
       const id = devnet.container!.id.slice(0,8)
       self.info(`Devnet is running on port ${bold(port)} from container ${bold(id)}.`)
       self.info('Use self command to reset it:')
-      self.info(`  docker kill ${id} && sudo rm -rf receipts/fadroma-devnet`)
+      self.info(`  docker kill ${id} && sudo rm -rf state/${devnet.chainId??'fadroma-devnet'}`)
     }
 
   }))(this)

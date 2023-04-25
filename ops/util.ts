@@ -6,3 +6,5 @@ export * from './OpsConsole'
 
 export { default as Config } from './OpsConfig'
 export * from './OpsConfig'
+
+export { hideProperties } from '@fadroma/agent'

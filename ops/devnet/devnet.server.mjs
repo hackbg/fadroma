@@ -85,7 +85,7 @@ function onRequest ({ method, url }, res) {
     if (query.has('name')) {
       code = 200
       const name = query.get('name')
-      const path = `/receipts/${chainId}/identities/${name}.json`
+      const path = `/state/${chainId}/wallet/${name}.json`
       try {
         data = JSON.parse(readFileSync(path, 'utf8'))
       } catch (e) {

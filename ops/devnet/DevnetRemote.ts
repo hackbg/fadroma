@@ -48,12 +48,12 @@ export default class RemoteDevnet extends Devnet implements DevnetHandle {
     // If no chain id passed, try to reuse the last created devnet;
     // if there isn't one, create a new one and symlink it as active.
     if (!chainId) {
-      const active = $(projectRoot, 'receipts', `${prefix}-active`)
+      const active = $(projectRoot, 'state', `${prefix}-active`)
       if (active.exists()) {
         log.info('Reusing existing managed devnet with chain id', bold(active.real.name))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
-        const devnet = $(projectRoot).in('receipts').in(chainId)
+        const devnet = $(projectRoot).in('state').in(chainId)
         devnet.make()
         active.pointTo(devnet.path)
         log.info('Creating new managed devnet with chain id', bold(chainId))
@@ -66,7 +66,7 @@ export default class RemoteDevnet extends Devnet implements DevnetHandle {
 
   constructor (options: any) {
     super(options)
-    this.log.info('Constructing', bold('remotely managed'), 'devnet')
+    this.log.warn('RemoteDevnet: unstable')
     this.manager = new Endpoint(options.managerURL)
     this.host    = this.manager.url.hostname
   }

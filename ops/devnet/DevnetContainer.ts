@@ -101,11 +101,11 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
+    this.identities  ??= this.stateRoot.in('wallet').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
-    this.log.trace(options.image?.name, `on`, options.image?.engine?.constructor.name)
+    this.log.log(options.image?.name, `on`, options.image?.engine?.constructor.name)
   }
 
   log = new Console('@fadroma/ops: DevnetContainer')
@@ -146,7 +146,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
   async getGenesisAccount (name: string): Promise<AgentOpts> {
     if (process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
       if (!this.container) throw new Error.Devnet.ContainerNotSet()
-      const [identity] = await this.container.exec('cat', `/receipts/${this.chainId}/identities/${name}.json`)
+      const [identity] = await this.container.exec('cat', `/state/${this.chainId}/wallet/${name}.json`)
       return JSON.parse(identity)
     } else {
       return this.identities.at(`${name}.json`).as(JSONFile).load() as AgentOpts
@@ -240,7 +240,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     // - leaves root-owned files in project dir)
     if (!process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
       options.extra.HostConfig.Binds.push(
-        `${this.stateRoot.path}:/receipts/${this.chainId}:rw`
+        `${this.stateRoot.path}:/state/${this.chainId}:rw`
       )
     }
 
@@ -331,18 +331,18 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     if (this.container) {
       const { id } = this.container
       await this.container.kill()
-      this.log.info(`Stopped container`, bold(id))
+      this.log.log(`Stopped container`, bold(id))
       return
     }
 
-    this.log.info(`Checking if there's an old node that needs to be stopped...`)
+    this.log.log(`Checking if there's an old node that needs to be stopped...`)
 
     try {
       const { containerId } = await this.load()
       await this.container!.kill()
-      this.log.info(`Stopped container ${bold(containerId!)}.`)
+      this.log.log(`Stopped container ${bold(containerId!)}.`)
     } catch (_e) {
-      this.log.info("Didn't stop any container.")
+      this.log.log("Didn't stop any container.")
     }
 
   }
