@@ -1,4 +1,4 @@
-import { DeployConsole, DeployError } from '../util'
+import { Console, DeployError } from '../util'
 
 import {
   Agent, AnyContract, Contract, Client, Deployment, DeploymentState, DeployStore,
@@ -17,6 +17,11 @@ import { loadAll, dump } from 'js-yaml'
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
 export default class YAMLDeployments_v1 extends DeployStore {
+  log = new Console('DeployStore (YAML1)')
+  /** Root directory of deploy store. */
+  root: YAMLDirectory<unknown>
+  /** Name of symlink pointing to active deployment, without extension. */
+  KEY = '.active'
 
   constructor (
     storePath: string|Path|YAMLDirectory<unknown>,
@@ -30,25 +35,21 @@ export default class YAMLDeployments_v1 extends DeployStore {
     })
   }
 
-  root: YAMLDirectory<unknown>
+  get [Symbol.toStringTag]() { return `${this.root?.shortPath??'-'}` }
 
-  log = new DeployConsole('@fadroma/ops: yaml 1')
-
-  /** Name of symlink pointing to active deployment, without extension. */
-  KEY = '.active'
-
+  /** Load the deployment activeted by symlink */
+  get active () {
+    return this.load(this.KEY)
+  }
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<DeploymentState> {
-    this.log.creatingDeployment(name)
-
+    this.log.deploy.creating(name)
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.locationOfDeployment(path.shortPath)
-
+    this.log.deploy.location(path.shortPath)
     path.makeParent().as(YAMLFile).save(undefined)
     return this.load(name)!
   }
-
   /** Make the specified deployment be the active deployment. */
   async select (name: string = this.KEY): Promise<DeploymentState> {
     let selected = this.root.at(`${name}.yml`)
@@ -57,34 +58,26 @@ export default class YAMLDeployments_v1 extends DeployStore {
       if (name === this.KEY) name = active.real.name
       name = basename(name, '.yml')
       active.relLink(`${name}.yml`)
-      this.log.activatingDeployment(selected.real.name)
+      this.log.deploy.activating(selected.real.name)
       return this.load(name)!
     }
-
     if (name === this.KEY) {
       const deployment = new Deployment()
       const d = await this.create(deployment.name)
       return this.select(deployment.name)
     }
-
     throw new DeployError.DeploymentDoesNotExist(name)
   }
-
-  get active () {
-    return this.load(this.KEY)
-  }
-
   /** List the deployments in the deployments directory. */
   list (): string[] {
     if (this.root.exists()) {
       const list = this.root.as(OpaqueDirectory).list() ?? []
       return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
     } else {
-      this.log.deployStoreDoesNotExist(this.root.shortPath)
+      this.log.deploy.storeDoesNotExist(this.root.shortPath)
       return []
     }
   }
-
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   load (name: string): DeploymentState|null {
     let file = this.root.at(`${name}.yml`)
@@ -97,7 +90,7 @@ export default class YAMLDeployments_v1 extends DeployStore {
     }
     return state
   }
-
+  /** Save a deployment's state to this store. */
   save (name: string, state: DeploymentState = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
@@ -125,7 +118,5 @@ export default class YAMLDeployments_v1 extends DeployStore {
     file.as(TextFile).save(output)
     return this
   }
-
-  get [Symbol.toStringTag]() { return `${this.root?.shortPath??'-'}` }
 
 }

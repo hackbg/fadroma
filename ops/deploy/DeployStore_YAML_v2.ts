@@ -1,4 +1,4 @@
-import { DeployConsole } from '../util'
+import { Console } from '../util'
 
 import type { AnyContract, DeploymentState } from '@fadroma/agent'
 import { Contract, Deployment, DeployStore, timestamp } from '@fadroma/agent'
@@ -16,7 +16,7 @@ export default class YAMLDeployments_v2 extends DeployStore {
     this.store = $(storePath).as(YAMLDirectory)
   }
 
-  log = new DeployConsole('@fadroma/ops: yaml 2')
+  log = new Console('@fadroma/ops: yaml 2')
 
   store: YAMLDirectory<unknown>
 

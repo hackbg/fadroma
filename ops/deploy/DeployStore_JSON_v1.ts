@@ -1,4 +1,4 @@
-import { DeployConsole } from '../util'
+import { Console } from '../util'
 
 import type { AnyContract, DeploymentState } from '@fadroma/agent'
 import { Contract, Deployment, DeployStore, timestamp } from '@fadroma/agent'
@@ -18,7 +18,7 @@ export default class JSONDeployments_v1 extends DeployStore {
 
   store: JSONDirectory<unknown>
 
-  log = new DeployConsole('@fadroma/ops: json 1')
+  log = new Console('@fadroma/ops: json 1')
 
   async create (name: string = timestamp()): Promise<DeploymentState> {
     throw new Error('Not implemented')
