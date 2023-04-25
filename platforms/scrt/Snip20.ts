@@ -57,12 +57,12 @@ export function createPermitMsg <Q> (
 
 export default class Snip20 extends Client implements CustomToken {
 
-  /** Create a SNIP20 token client from a Token descriptor. */
-  static fromDescriptor (agent: Agent, descriptor: CustomToken): Snip20 {
-    const { custom_token } = descriptor
-    const { contract_addr: address, token_code_hash: codeHash } = custom_token
-    return new Snip20(agent, address, codeHash)
-  }
+  /** Create a SNIP20 token client from a CustomToken descriptor. */
+  static fromDescriptor = (agent: Agent, descriptor: CustomToken): Snip20 => new Snip20({
+    agent,
+    address:  descriptor?.custom_token?.contract_addr,
+    codeHash: descriptor?.custom_token?.token_code_hash
+  })
 
   /** Create a SNIP20 init message. */
   static init = (
@@ -117,8 +117,8 @@ export default class Snip20 extends Client implements CustomToken {
 
   totalSupply: Uint128 | null = null
 
-  async populate (): Promise<this> {
-    await super.populate()
+  async fetchMetadata (): Promise<this> {
+    await this.fetchCodeHash()
     const { name, symbol, decimals, total_supply } = await this.getTokenInfo()
     this.tokenName   = name
     this.symbol      = symbol
@@ -260,7 +260,8 @@ export default class Snip20 extends Client implements CustomToken {
 
   /** Get a client to the Viewing Key API. */
   get vk (): VKClient {
-    return new VKClient(this.agent, this.address, this.codeHash)
+    const { agent, address, codeHash } = this
+    return new VKClient({ agent, address, codeHash })
   }
 
 }
