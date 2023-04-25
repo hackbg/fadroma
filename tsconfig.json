@@ -16,6 +16,7 @@
     "packages/schema",
     "platforms",
     "shim",
+    "target",
     "toolbox",
     "typedoc-theme.tsx",
     "types"
