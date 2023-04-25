@@ -13,7 +13,7 @@ RUN rustup default 1.67 && \
 
 # Install Node and PNPM
 RUN apt update && \
-  apt install -y nodejs npm binaryen git curl wget clang cmake wabt jq && \
+  apt install -y nodejs npm binaryen git curl wget clang cmake wabt jq tree && \
   ls -al /var/cache/apt/archives && \
   apt-get clean
 RUN npm i -g n && n i 18
@@ -27,3 +27,7 @@ RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${
   && rm docker-${DOCKERVERSION}.tgz
 
 ENV LLVM_PROFILE_FILE="%p-%m.profraw"
+
+RUN git config --global --add safe.directory "*"
+RUN git config --global http.postBuffer 524288000
+RUN git config --global http.lowSpeedTime 600

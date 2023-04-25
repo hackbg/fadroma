@@ -16,26 +16,24 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+import Error from './ScrtError'
+import Console from './ScrtConsole'
+import Config from './ScrtConfig'
+import Chain from './ScrtChain'
+import Agent from './ScrtAgent'
+import Bundle from './ScrtBundle'
 import * as SecretJS from 'secretjs'
-import { ScrtConfig } from './scrt-config'
-import { Scrt       } from './scrt-chain'
-import { ScrtAgent  } from './scrt-agent'
-import { ScrtBundle } from './scrt-bundle'
+import VKClient from './ScrtVK'
 
-Object.assign(Scrt, {
-  SecretJS: SecretJS,
-  Config: ScrtConfig,
-  Agent: Object.assign(ScrtAgent, {
-    Bundle: ScrtBundle
-  })
-})
+Object.assign(Chain, { SecretJS, Agent: Object.assign(Agent, { Bundle }) })
 
-export { SecretJS }
-export * from '@fadroma/core'
-export * from './scrt-events'
-export * from './scrt-config'
-export * from './scrt-chain'
-export * from './scrt-agent'
-export * from './scrt-bundle'
-export * from './scrt-vk'
-export * from './scrt-permit'
+export { Chain, Agent, Bundle, Config, Error, Console, VKClient, SecretJS, }
+
+export * from './ScrtError'
+export * from './ScrtConsole'
+export * from './ScrtConfig'
+export * from './ScrtChain'
+export * from './ScrtAgent'
+export * from './ScrtBundle'
+export * from './ScrtPermit'
+export * from './ScrtVK'

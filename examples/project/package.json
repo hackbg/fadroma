@@ -1,0 +1,19 @@
+{
+  "name": "@my-project/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "fadroma build",
+    "devnet": "FADROMA_CHAIN=ScrtDevnet fadroma ./ops",
+    "testnet": "FADROMA_CHAIN=ScrtTestnet fadroma ./ops",
+    "mainnet": "FADROMA_CHAIN=ScrtMainnet fadroma ./ops"
+  },
+  "devDependencies": {
+    "@hackbg/fadroma": "latest"
+  },
+  "fadroma": {
+    "contracts": {
+      "contract1": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+[package]
+name = "my-project"
+version = "0.0.0"
+edition = "2021"
+authors = []
+license = "AGPL-3.0"
+keywords = ["fadroma"]
+description = ""
+readme = "README.md"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+contract1 = []
+
+[dependencies]
+fadroma = { version = "0.7.0", features = ["scrt"] }

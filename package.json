@@ -1,85 +1,76 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.48",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/hackbg/fadroma"
-  },
+  "version": "1.0.0-beta.76",
+  "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
-  "main": "fadroma.ts",
-  "browser": "fadroma.browser.ts",
+  "main": "index.ts",
+  "browser": "index.browser.ts",
   "description": "CosmWasm dApp framework.",
-  "bin": {
-    "fadroma":         "fadroma.cli.cjs",
-    "fadroma-build":   "packages/build/build.cli.cjs",
-    "fadroma-connect": "packages/connect/connect.cli.cjs",
-    "fadroma-deploy":  "packages/deploy/deploy.cli.cjs",
-    "fadroma-devnet":  "packages/devnet/devnet.cli.cjs"
-  },
+  "bin": { "fadroma": "fadroma.cli.cjs" },
   "files": [
-    "fadroma.ts",
-    "packages/build/build.cli.cjs",
-    "packages/deploy/deploy.cli.cjs"
+    "*.ts",
+    "Fadroma.svg",
+    "!agent/*",
+    "!connect/*",
+    "!ops/*",
+    "!platforms/*",
+    "!examples/*",
+    "!coverage/*",
+    "!target/*"
   ],
   "scripts": {
+
+    "start": "cmds-ts ./FadromaCommands.ts",
+
     "prepare": "husky install",
 
-    "ubik": "pnpm i && pnpm clean && pnpm check && ubik",
+    "ubik":     "pnpm i && pnpm clean && pnpm check && pnpm cov && ubik",
+    "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet && cd ../platforms/scrt && ubik wet'",
+    "ubik:ops": "time sh -c 'pnpm ubik wet && cd connect && ubik wet && cd ../ops && ubik wet'",
+
+    "check": "time tsc --noEmit",
+
+    "test":       "time ensuite GettingStarted.ts.md",
+    "test:agent": "time ensuite agent/Agent.spec.ts.md",
+    "test:ops":   "time ensuite ops/Ops.spec.ts.md",
+
+    "cov":   "time ensuite-cov -r text -r lcov -n agent -n connect -n ops -n platforms -- GettingStarted.ts.md",
+    "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
+    "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 
     "build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
 
-    "ci":            "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:test:cov && pnpm ubik dry && ls -al",
-    "clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
-    "check":         "time tsc --noEmit",
-    "test":          "time ensuite SPEC.ts.md",
-    "test:cov":      "time ensuite-cov -r text -n packages -n platforms -n toolbox -- SPEC.ts.md",
-    "test:lcov":     "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- SPEC.ts.md",
-    "test:build":    "./packages/build/build.ts",
-    "test:build:kv": "./packages/build/build.ts examples/kv",
-
-    "docs:homepage": "node homepage/render.js",
+    "docs:dev":      "ensuite-dev",
+    "docs:render":   "time ensuite-render",
     "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints platforms/* --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve"
+
   },
   "dependencies": {
-
-    "@fadroma/build":   "workspace:2.0.6",
-    "@fadroma/connect": "workspace:2.1.5",
-    "@fadroma/core":    "workspace:2.0.4",
-    "@fadroma/deploy":  "workspace:2.0.5",
-    "@fadroma/devnet":  "workspace:1.1.5",
-    "@fadroma/mocknet": "workspace:2.0.1",
-    "@fadroma/scrt":    "workspace:8.0.4",
-    "@fadroma/tokens":  "workspace:7.1.1",
-
-    "@hackbg/4mat": "workspace:^1",
-    "@hackbg/file": "workspace:^1",
-    "@hackbg/cmds": "workspace:^1.1.4",
-    "@hackbg/conf": "workspace:^1",
-    "@hackbg/logs": "workspace:^1"
-
+    "@fadroma/agent":   "workspace:*",
+    "@fadroma/ops":     "workspace:*",
+    "@fadroma/connect": "workspace:*"
   },
   "peerDependencies": {
-    "dotenv":              "^16.0.1",
-    "@hackbg/ganesha":     "^2.3.0"
+    "dotenv":          "^16.0.1",
+    "@hackbg/ganesha": "^2.3.0"
   },
   "peerDependenciesMeta": {
-    "dotenv":              { "optional": true },
-    "@hackbg/ganesha":     { "optional": true },
-    "@fadroma/build":      { "optional": true },
-    "@fadroma/deploy":     { "optional": true },
-    "@fadroma/devnet":     { "optional": true },
-    "@fadroma/scrt":       { "optional": true },
-    "@fadroma/scrt-amino": { "optional": true }
+    "dotenv":          { "optional": true },
+    "@hackbg/ganesha": { "optional": true }
   },
   "devDependencies": {
-    "@hackbg/ensuite":      "^1.0.2",
+    "@hackbg/ganesha":      "^2.3.0",
+    "@hackbg/ensuite":      "^1.3.0",
     "@hackbg/spec":         "^1",
     "@hackbg/ubik":         "^1.3.5",
+    "@hackbg/dock":         "workspace:^1.3",
+    "@hackbg/file":         "workspace:^1",
+    "@hackbg/port":         "workspace:^1",
+    "@hackbg/cmds":         "workspace:^1.3",
     "@types/dockerode":     "^3.3.14",
-    "@types/js-yaml":       "^4.0.5",
     "@types/node":          "latest",
     "@types/prettyjson":    "^0.0.30",
     "@types/secure-random": "^1.1.0",
@@ -88,10 +79,8 @@
     "cross-fetch":          "^3.1.5",
     "express":              "^4.18.1",
     "freeport-async":       "^2.0.0",
-    "js-yaml":              "^4.1.0",
-    "pug":                  "^3.0.2",
 
-    "typescript":  "^4.9",
+    "typescript":  "^5",
     "typedoc":     "^0.23.25",
     "vitepress":   "1.0.0-alpha.10",
     "husky":       "^8.0.3",
@@ -114,6 +103,17 @@
     }
   },
   "lint-staged": {
-    "*.ts": "pnpm check"
+    "*.ts": "pnpm check && git add pnpm-lock.yaml && pnpm cov"
+  },
+  "fadroma": {
+    "templates": {
+      "example-admin":      "fadroma-example-admin",
+      "example-derive":     "fadroma-example-derive-contract-components",
+      "example-ensemble":   "fadroma-example-ensemble",
+      "example-external":   "fadroma-example-external",
+      "example-interface":  "fadroma-example-derive-contract-interface",
+      "example-killswitch": "fadroma-example-killswitch",
+      "example-kv":         "fadroma-example-kv"
+    }
   }
 }

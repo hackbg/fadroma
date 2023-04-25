@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 fadroma = { path = "../../crates/fadroma", features = ["scrt", "ensemble"] }
 counter = { package = "fadroma-example-derive-contract-interface", path = "../derive-contract-interface" }

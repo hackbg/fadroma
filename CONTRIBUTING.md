@@ -13,11 +13,10 @@ via issue, email, or any other method with the owners of this repository before 
 
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
-# Code of Conduct
+## Code of Conduct
 Before contributing please read our [Code of Conduct](CODE_OF_CONDUCT.md) which
 all contributors are expected to adhere to.
 
----
 ## Filing Issues
 
 ### How Do I Submit A Bug Report?
@@ -56,8 +55,46 @@ items. In addition, use the following review explanations:
     - Code must live in a reasonable location.
 - If you are only making "surface level" reviews, submit any notes as `Comments` without adding a review.
 
----
-## Publishing packages
+## Contributing code code
+
+### Prerequisites
+
+You'll need:
+
+* **Your preferred code editor.** We use NeoVim and VSCode.
+* **Linux or macOS.** WSL might also work but we haven't really tested that much.
+  (Whoever runs Fadroma on Plan 9 ascends.)
+* **Git**, for keeping track of your changes.
+* **Node.js, versions >= 16.12, and the [PNPM](https://pnpm.io) package manager**,
+* At least one of the following:
+  * **A Rust toolchain**, stable or nightly.
+  * **Docker, configured to run without `sudo`.** Fadroma uses Docker to encapsulate builds
+    (providing Rust 1.59 in the default build container) and to launch devnets (providing a
+    local development environment).
+
+### Submodule setup
+
+Fadroma uses Git submodules in its development workflow,
+and can itself be included as a submodule in your project:
+
+To add Fadroma as Git submodule:
+
+```sh
+git submodule add -b refactor/x git@github.com:hackbg/fadroma.git
+git submodule update --init --recursive
+git commit -m "tabula rasa"
+```
+
+(Replacing `hackbg/fadroma` with the name of your fork)
+
+> Read more about [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
+
+### Running tests
+
+If you clone the Fadroma repo, you can use `pnpm test` to run the TS tests,
+and `pnpm test:cov` or `pnpm test:lcov` to generate a test coverage report. Happy hacking!
+
+### Publishing packages
 
 The TypeScript packages have been configured to use `@hackbg/ubik` for publishing.
 Packages published using Ubik contain TS, ESM and CJS code side by side.

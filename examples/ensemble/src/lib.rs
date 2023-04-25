@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use fadroma::{prelude::*, ensemble::*};
 use serde::{Deserialize, Serialize};
 

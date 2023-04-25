@@ -1,2 +1,0 @@
-{"extends": "../../tsconfig.json", "include": ["mocknet.ts"]}
-
