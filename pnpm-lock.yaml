@@ -508,11 +508,11 @@ importers:
       '@hackbg/ensuite': ^1.0.2
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
-      secretjs: 1.7.1-beta.3
+      secretjs: 1.8.1
     dependencies:
       '@hackbg/conf': link:../../ensuite/toolbox/conf
       '@ungap/structured-clone': 1.0.1
-      secretjs: 1.7.1-beta.3
+      secretjs: 1.8.1
     devDependencies:
       '@hackbg/ensuite': link:../../ensuite
       '@types/ungap__structured-clone': 0.3.0
@@ -3518,8 +3518,8 @@ packages:
   /safer-buffer/2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
-  /secretjs/1.7.1-beta.3:
-    resolution: {integrity: sha512-gJNpWmh5XEReNyeUBp75Osg+kyHVtImk3+d33bIIQ4gFzuzEaT8sD7bP5Ie9um2+F2PqFvKe1IRRjvadm3o14w==}
+  /secretjs/1.8.1:
+    resolution: {integrity: sha512-Yx+iPE5EkOPpP1cwHhVso+8A+3v34qGVWLi5uHps8nJFPa60n3h/QI0NAnn4OmXcQ24s287mYUdVzLZiAemq1w==}
     dependencies:
       '@cosmjs/encoding': 0.27.1
       '@cosmjs/math': 0.27.1

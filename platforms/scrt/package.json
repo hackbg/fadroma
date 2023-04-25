@@ -8,7 +8,7 @@
   "dependencies": {
     "@hackbg/conf": "^2",
     "@ungap/structured-clone": "^1.0.1",
-    "secretjs": "1.7.1-beta.3"
+    "secretjs": "1.8.1"
   },
   "peerDependencies": {
     "@fadroma/agent": "workspace:1.0.0-rc.10"
