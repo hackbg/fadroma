@@ -23,8 +23,8 @@ export default abstract class Mocknet extends Chain {
   /** Agent instance calling its Chain's Mocknet backend. */
   static Agent: AgentClass<MocknetAgent> // populated below
 
-  constructor (id = 'fadroma-mocknet', options = {}) {
-    super(id, { ...options, mode: ChainMode.Mocknet })
+  constructor (options: Partial<Mocknet> = {}) {
+    super({ id: 'mocknet', ...options, mode: ChainMode.Mocknet })
     this.log.label = 'Mocknet'
   }
 

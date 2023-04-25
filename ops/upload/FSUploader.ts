@@ -18,7 +18,7 @@ export default class FSUploader extends Uploader {
 
   get id () { return 'FS' }
 
-  log = new Console.Upload('@fadroma/ops: FSUploader' )
+  log = new Console('@fadroma/ops: FSUploader' )
 
   get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(no cache)' }
 

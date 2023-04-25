@@ -1,4 +1,4 @@
-import { Error, DevnetConsole as Console } from '../util'
+import { Error, Console } from '../util'
 
 import { Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
@@ -86,17 +86,17 @@ export default abstract class Devnet implements DevnetHandle {
         const data = this.nodeState.load()
         const { chainId, port } = data
         if (this.chainId !== chainId) {
-          this.log.loadingState(chainId, this.chainId)
+          this.log.devnet.loadingState(chainId, this.chainId)
         }
         this.port = port as number
         return data
       } catch (e) {
-        this.log.loadingFailed(path)
+        this.log.devnet.loadingFailed(path)
         this.stateRoot.delete()
         throw e
       }
     } else {
-      this.log.loadingRejected(path)
+      this.log.devnet.loadingRejected(path)
       return null
     }
   }
@@ -126,7 +126,7 @@ export default abstract class Devnet implements DevnetHandle {
   getChain <C extends Chain> (
     $C: ChainClass<C> = Chain as unknown as ChainClass<C>
   ): C {
-    return new $C(this.chainId, { mode: Chain.Mode.Devnet, node: this })
+    return new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
   }
 
 }

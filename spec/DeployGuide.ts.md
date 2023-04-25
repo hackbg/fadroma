@@ -170,9 +170,7 @@ log.deployManyFailed({}, [['name', 'init']], new Error())
 
 log.deployFailedContract()
 
-log.warnNoDeployment()
 log.warnNoAgent()
-log.warnNoDeployAgent()
 
 log.deployStoreDoesNotExist()
 ```

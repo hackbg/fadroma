@@ -105,10 +105,10 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
-    this.log.debug(options.image?.name, `on`, options.image?.engine?.constructor.name)
+    this.log.trace(options.image?.name, `on`, options.image?.engine?.constructor.name)
   }
 
-  log = new Console.Devnet('@fadroma/ops: DevnetContainer')
+  log = new Console('@fadroma/ops: DevnetContainer')
 
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
@@ -313,7 +313,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
           this.container!.kill()
         } else {
           this.log.br()
-          this.log.devnetIsRunning(this)
+          this.log.devnet.isNowRunning(this)
         }
       })
       this.exitHandlerSet = true

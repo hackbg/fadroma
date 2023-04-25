@@ -1,4 +1,4 @@
-import { BuildConsole } from '../util'
+import { Console } from '../util'
 
 import { bold } from '@fadroma/agent'
 import type { Template } from '@fadroma/agent'
@@ -18,21 +18,23 @@ export default function getGitDir (template: Partial<Template<any>> = {}): DotGi
   * - If the contracts workspace repository is a submodule,
   *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
 export class DotGit extends Path {
+  log = new Console('@fadroma/ops: DotGit')
+  /** Whether a .git is present */
+  readonly present:     boolean
+  /** Whether the workspace's repository is a submodule and
+    * its .git is a pointer to the parent's .git/modules */
+  readonly isSubmodule: boolean = false
 
   /* Matches "/.git" or "/.git/" */
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 
   constructor (base: string|URL, ...fragments: string[]) {
-
     if (base instanceof URL) base = fileURLToPath(base)
-
     super(base, ...fragments, '.git')
-
     if (!this.exists()) {
       // If .git does not exist, it is not possible to build past commits
       this.log.warn(bold(this.shortPath), 'does not exist')
       this.present = false
-
     } else if (this.isFile()) {
       // If .git is a file, the workspace is contained in a submodule
       const gitPointer = this.as(TextFile).load().trim()
@@ -52,34 +54,20 @@ export class DotGit extends Path {
         this.log.info(bold(this.shortPath), 'is an unknown file.')
         this.present = false
       }
-
     } else if (this.isDirectory()) {
       // If .git is a directory, this workspace is not in a submodule
       // and it is easy to build past commits
       this.present = true
-
     } else {
       // Otherwise, who knows?
       this.log.warn(bold(this.shortPath), `is not a file or directory`)
       this.present = false
     }
-
   }
-
-  log = new BuildConsole('@fadroma/build: Git')
-
-  readonly present:
-    boolean
-
-  readonly isSubmodule: boolean =
-    false
-
   get rootRepo (): Path {
     return $(this.path.split(DotGit.rootRepoRE)[0])
   }
-
   get submoduleDir (): string {
     return this.path.split(DotGit.rootRepoRE)[1]
   }
-
 }

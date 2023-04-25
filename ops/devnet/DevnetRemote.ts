@@ -1,4 +1,4 @@
-import { Error, DevnetConsole as Console } from '../util'
+import { Error, Console } from '../util'
 import Devnet, { devnetPortModes, DevnetPlatform } from './DevnetBase'
 import type { DevnetOpts } from './DevnetBase'
 

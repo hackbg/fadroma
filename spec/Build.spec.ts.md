@@ -206,15 +206,13 @@ implement the compilation procedure for contracts.
 ### Build events
 
 ```typescript
-import { BuildConsole } from '@fadroma/ops'
+import { Console } from '@fadroma/ops'
 import { Contract } from '@fadroma/agent'
-const log = new BuildConsole({ info: () => {} })
-log.buildingFromCargoToml('foo')
-log.buildingFromBuildScript('foo')
-log.buildingFromWorkspace('foo')
-log.buildingOne(new Contract({ crate: 'bar' }))
-log.buildingOne(new Contract({ crate: 'bar', revision: 'commit' }))
-log.buildingMany([new Contract({ crate: 'bar' }), new Contract({ crate: 'bar', revision: 'commit' })])
+const log = new Console({ info: () => {} })
+log.build.workspace('foo')
+log.build.one(new Contract({ crate: 'bar' }))
+log.build.one(new Contract({ crate: 'bar', revision: 'commit' }))
+log.build.many([new Contract({ crate: 'bar' }), new Contract({ crate: 'bar', revision: 'commit' })])
 ```
 
 ---

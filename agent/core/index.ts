@@ -1,10 +1,8 @@
-import { Chain } from './Chain'
-import { Agent, Bundle } from './Agent'
+import { Chain, Agent, Bundle } from './Chain'
 
 Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })
 
 export * from './Chain'
-export * from './Agent'
 export * from './Client'
 export * from './Deployment'
 export * from './Build'

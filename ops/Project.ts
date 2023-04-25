@@ -14,9 +14,13 @@ import Case from 'case'
 import prompts from 'prompts'
 import { execSync } from 'node:child_process'
 
-const console = new Console('@fadroma/project')
+//@ts-ignore
+export const { version } = $(import.meta.url, '../package.json').as(JSONFile).load() as any
+
+const console = new Console(`@fadroma/ops ${version}`)
 
 export default class Project extends CommandContext {
+  log = new Console(`Fadroma ${version}`) as any
   /** Fadroma settings. */
   config: Config
   /** Name of the project. */
@@ -32,11 +36,23 @@ export default class Project extends CommandContext {
   /** Default deployment class. */
   Deployment = Deployment
 
+  static wizard = () => new ProjectWizard().createProject()
+
+  static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
+    const configFile = $(path, 'fadroma.json').as(JSONFile)
+    if (configFile.exists()) {
+      return new Project(configFile.load() as Partial<Project>)
+    } else {
+      return null
+    }
+  }
+
   constructor (options?: Partial<Project & {
     templates: Record<string, Template<any>|(Buildable & Partial<Built>)>
   }>) {
     super()
-    // Define config, name and root directory
+
+    // Configure
     this.config = options?.config ?? new Config()
     const root = $(options?.root || process.cwd()).as(OpaqueDirectory)
     const name = options?.name || root.name
@@ -49,33 +65,79 @@ export default class Project extends CommandContext {
     this.builder = getBuilder({ outputDir: this.dirs.wasm.path })
     const uploadState = this.config.chainId ? this.dirs.state.in(this.config.chainId).path : null
     this.uploader = getUploader({ uploadState })
+
     // Populate templates
     this.templates = {}
     const templates = options?.templates || (this.exists()
       ? ((this.files.fadromaJson.load()||{}) as any).templates||{}
       : {}) as Record<string, Template<any>|(Buildable & Partial<Built>)>
     for (const [key, val] of Object.entries(templates)) this.setTemplate(key, val)
+
     // Define commands:
-    this.command('run', 'execute a script', this.runScript)
-    this.command('status', 'show state of project', this.status)
-    this.commands('devnet', 'manage local development containers',
-      new DevnetCommands() as unknown as CommandContext)
-    if (this.files.fadromaJson.exists()) {
-      this.commands('template', 'manage contract templates in current project',
-        new TemplateCommands(this) as unknown as CommandContext)
-      this.command('build', 'build the project or specific contracts from it', this.build)
-      this.command('upload', 'upload the project or specific contracts from it', this.upload)
-      this.command('deploy', 'deploy this project', this.deploy)
-      const deployment = this.getDeployment()
-      if (deployment) {
-        this.commands('deployment', 'manage deployments of current project',
-          {} as CommandContext)
-        this.commands('contracts', 'manage contracts in current deployment',
-          {} as CommandContext)
-      }
-    } else {
-      this.command('create', 'create a new project', Project.wizard)
+    this.command('run',    'execute a script',
+                 this.runScript)
+    this.command('status', 'show the status of the system',
+                 this.status)
+    this.command('create', 'create a new project',
+                 Project.wizard)
+    this.command('add',    'add a new contract to the project',
+                 this.addTemplate)
+    this.command('build',  'build the project or specific contracts from it',
+                 this.build)
+    this.command('upload', 'upload the project or specific contracts from it',
+                 this.upload)
+    this.command('deploy', 'deploy this project',
+                 this.deploy)
+    this.command('select', `activate another deployment on ${this.config.chainId}`,
+                 this.selectDeployment)
+    this.command('export', `export current deployment to ${name}.json`,
+                 this.exportDeployment)
+    this.command('reset',  'stop and erase running devnet',
+                 this.resetDevnet)
+    const deployment = this.getDeployment()
+    if (deployment) {
+      this.commands('deployment', 'manage deployments of current project',
+        {} as CommandContext)
+      this.commands('contracts', 'manage contracts in current deployment',
+        {} as CommandContext)
     }
+
+  }
+
+  /** @returns stateless handles for the subdirectories of the project. */
+  get dirs () {
+    return {
+      src:   this.root.in('src').as(OpaqueDirectory),
+      wasm:  this.root.in('wasm').as(OpaqueDirectory),
+      state: this.root.in('state').as(OpaqueDirectory)
+    }
+  }
+  /** @returns stateless handles for various config files that are part of the project. */
+  get files () {
+    const { src, wasm, state } = this.dirs
+    return {
+      cargoToml:      this.root.at('Cargo.toml').as(TOMLFile),
+      dockerfile:     null,
+      droneWorkflow:  null,
+      envfile:        this.root.at('.env').as(TextFile),
+      fadromaJson:    this.root.at('fadroma.json').as(JSONFile),
+      githubWorkflow: null,
+      gitignore:      this.root.at('.gitignore').as(TextFile),
+      packageJson:    this.root.at('package.json').as(JSONFile),
+      apiIndex:       this.root.at('api.ts').as(TextFile),
+      opsIndex:       this.root.at('ops.ts').as(TextFile),
+      readme:         this.root.at('README.md').as(TextFile),
+      shellNix:       this.root.at('shell.nix').as(TextFile),
+    }
+  }
+  /** @returns stateless handles for the contract crates
+    * corresponding to templates in fadroma.json */
+  get crates () {
+    const crates: Record<string, ContractCrate> = {}
+    for (const [name, template] of Object.entries(this.templates)) {
+      if (template.crate) crates[name] = new ContractCrate(this, template.crate)
+    }
+    return crates
   }
 
   runShellCommands = (...cmds: string[]) =>
@@ -94,6 +156,9 @@ export default class Project extends CommandContext {
         this.log.info(`${$(script).shortPath} does not have a default export.`)
       }
     })
+  }
+  addTemplate = () => {
+    throw new Error('unimplemented')
   }
   getTemplate = (name: string): (Template<any> & Buildable)|undefined =>
     this.templates[name] as Template<any> & Buildable
@@ -146,84 +211,155 @@ export default class Project extends CommandContext {
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {
-    const { name, templates } = this
-    this.root.make()
-    this.files.readme.save([
+    const { name, templates, root, dirs, files, crates } = this
+
+    root.make()
+
+    Object.values(this.dirs).forEach(dir=>dir.make())
+
+    const {
+      readme, fadromaJson, packageJson, apiIndex, opsIndex, gitignore, envfile, shellNix, cargoToml
+    } = files
+
+    readme.save([
       `# ${name}\n---\n`,
-      `Made with [Fadroma](https://fadroma.tech)',
-      'provided courtesy of [Hack.bg](https://hack.bg)',
-      'under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
+      `Powered by [Fadroma](https://fadroma.tech) `,
+      `by [Hack.bg](https://hack.bg) `,
+      `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
     ].join(''))
-    this.files.gitignore.save([
+
+    fadromaJson.save({ templates })
+
+    packageJson.save({
+      name: `${name}`,
+      main: `api.ts`,
+      type: "module",
+      version: "0.1.0",
+      dependencies: {
+        "@fadroma/agent": "latest",
+        "@fadroma/scrt":  "latest",
+      },
+      devDependencies: {
+        "@hackbg/fadroma": "latest",
+        "@hackbg/ganesha": "latest",
+      },
+      scripts: {
+        "build":   "fadroma build",
+        "status":  "fadroma status",
+        "mocknet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=Mocknet_CW1 fadroma`,
+        "devnet":  `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
+        "testnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
+        "mainnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
+      },
+    })
+
+    apiIndex.save([
+      `import { Client, Deployment } from '@fadroma/agent'`,
+      [
+        `export default class ${Case.pascal(name)} extends Deployment {`,
+        ...Object.keys(templates).map(name => [
+          `  ${name} = this.contract({`,
+          `    name: "${name}",`,
+          `    crate: "${name}",`,
+          `    client: ${Case.pascal(name)},`,
+          `    initMsg: async () => ({})`,
+          `  })`
+        ].join('\n')),
+        '',
+        `  // Add contract with::`,
+        `  //   contract = this.contract({...})`, `  //`,
+        `  // Add contract from fadroma.json with:`,
+        `  //   contract = this.template('name').instance({...})`,
+        '',
+        '}',
+      ].join('\n'),
+      ...Object.keys(templates).map(Case.pascal).map(Contract => [
+        `export class ${Contract} extends Client {`,
+        `  // Implement methods calling the contract here:`, `  //`,
+        `  // async myTx (arg1, arg2) {`,
+        `  //   return await this.execute({ my_tx: { arg1, arg2 }})`,
+        `  // }`,
+        `  // async myQuery (arg1, arg2) {`,
+        `  //   return await this.query({ my_query: { arg1, arg2 } })`,
+        `  // }`, `  //`,
+        `  // or like this:`, `  //`,
+        `  // myTx = (arg1, arg2) => this.execute({my_tx:{arg1, arg2}})`,
+        `  // myQuery = (arg1, arg2) => this.query({my_query:{arg1, arg2}})`, `  //`,
+        `}\n`
+      ].join('\n'))
+    ].join('\n\n'))
+
+    opsIndex.save([
+      [
+        `import ${Case.pascal(name)} from './api'`,
+        `import Project from '@hackbg/fadroma'`,
+      ].join('\n'),
+      [
+        `export default class ${Case.pascal(name)}Project extends Project {`, ``,
+        `  Deployment = ${Case.pascal(name)}`, ``,
+        `  // Override to customize the build command:`, `  //`,
+        `  // build = async (...contracts: string[]) => { `,
+        `  //   await super.build(...contracts)`,
+        `  // }`, ``,
+        `  // Override to customize the upload command:`, `  //`,
+        `  // upload = async (...contracts: string[]) => {`,
+        `  //   await super.upload(...contracts)`,
+        `  // }`, ``,
+        `  // Override to customize the deploy command:`,
+        `  //`,
+        `  // deploy = async (...args: string[]) => {`,
+        `  //   await super.deploy(...args)`,
+        `  // }`, ``,
+        `  // Override to customize the status command:`, `  //`,
+        `  // status = async (...args: string[]) => {`,
+        `  //   await super.status()`,
+        `  // }`, ``,
+        `  // Define custom commands using \`this.command\`:`, `  //`,
+        `  // custom = this.command('custom', 'run a custom procedure', async () => {`,
+        `  //   // ...`,
+        `  // })`,
+        ``, `}`
+      ].join('\n')
+    ].join('\n\n'))
+
+    gitignore.save([
       '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
     ].join('\n'))
-    this.files.envfile.save('# FADROMA_MNEMONIC=your testnet mnemonic')
-    this.files.shellNix.save([
+
+    envfile.save([
+      '# FADROMA_MNEMONIC=your testnet mnemonic'
+    ].join('\n'))
+
+    shellNix.save([
       `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
       `  inherit name;`,
-      `  nativeBuildInputs = with pkgs; [ git nodejs nodePackages_latest.pnpm rustup ];`,
+      `  nativeBuildInputs = with pkgs; [`,
+      `    git nodejs nodePackages_latest.pnpm rustup`,
+      `    binaryen wabt wasm-pack wasm-bindgen-cli`,
+      `  ];`,
       `  shellHook = ''`,
       `    export PS1="$PS1[\${name}] "`,
       `    export PATH="$PATH:$HOME/.cargo/bin:\${./.}/node_modules/.bin"`,
       `  '';`,
       `}`,
     ].join('\n'))
-    this.files.cargoToml.as(TextFile).save([
+
+    cargoToml.as(TextFile).save([
       `[workspace]`, `resolver = "2"`, `members = [`,
       Object.values(this.crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
       `]`
     ].join('\n'))
-    this.files.fadromaJson.save({ templates: templates })
-    this.files.pnpmWorkspace.save('')
-    Object.values(this.packages).forEach(pkg=>pkg.create())
-    Object.values(this.crates).forEach(crate=>crate.create())
-    Object.values(this.dirs).forEach(dir=>dir.make())
-    //let artifacts = ``
-    //const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
-    //const contracts = Object.keys(this.templates)
-    //this.files.checksums.save(contracts.map(contract=>`${sha256}  ${contract}@HEAD.wasm`).join('\n'))
+
+    const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
+    Object.values(crates).forEach(crate=>{
+      crate.create()
+      const name = `${crate.name}@HEAD.wasm`
+      this.dirs.wasm.at(`${name}.sha256`).as(TextFile).save(`${sha256}  *${name}`)
+    })
+    this.log("created at", this.root.shortPath)
     return this
   }
-  /** @returns stateless handles for the subdirectories of the project. */
-  get dirs () {
-    return {
-      src: this.root.in('src').as(OpaqueDirectory),
-      wasm:      this.root.in('wasm').as(OpaqueDirectory),
-      state:     this.root.in('state').as(OpaqueDirectory)
-    }
-  }
-  /** @returns stateless handles for various config files that are part of the project. */
-  get files () {
-    const { src, wasm, state } = this.dirs
-    return {
-      cargoToml:      this.root.at('Cargo.toml').as(TOMLFile),
-      dockerfile:     null,
-      droneWorkflow:  null,
-      envfile:        this.root.at('.env').as(TextFile),
-      fadromaJson:    this.root.at('fadroma.json').as(JSONFile),
-      githubWorkflow: null,
-      gitignore:      this.root.at('.gitignore').as(TextFile),
-      pnpmWorkspace:  this.root.at('pnpm-workspace.yaml').as(TextFile),
-      readme:         this.root.at('README.md').as(TextFile),
-      shellNix:       this.root.at('shell.nix').as(TextFile),
-    }
-  }
-  /** @returns stateless handles for NPM packages that are part of the project. */
-  get packages () {
-    return {
-      workspace: new WorkspaceRootPackage(this, 'ops', this.root),
-      api:       new ApiClientPackage(this, 'api'),
-    }
-  }
-  /** @returns stateless handles for the contract crates
-    * corresponding to templates in fadroma.json */
-  get crates () {
-    const crates: Record<string, ContractCrate> = {}
-    for (const [name, template] of Object.entries(this.templates)) {
-      if (template.crate) crates[name] = new ContractCrate(this, template.crate)
-    }
-    return crates
-  }
+
   /** @returns Boolean whether the project (as defined by fadroma.json in root) exists */
   exists = () =>
     this.files.fadromaJson.exists()
@@ -296,108 +432,59 @@ export default class Project extends CommandContext {
     chainId ? this.dirs.state.in(chainId).in('deploy').as(OpaqueDirectory).list() : {}
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
-  getDeployment (name?: string): Deployment|null {
+  getDeployment = (name?: string): Deployment|null => {
     const store = this.config.getDeployStore()
     return this.config.getDeployment(this.Deployment)
   }
-  static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
-    const configFile = $(path, 'fadroma.json').as(JSONFile)
-    if (configFile.exists()) {
-      return new Project(configFile.load() as Partial<Project>)
-    } else {
-      return null
-    }
-  }
-  static wizard = async (options: Partial<{
-    name: string,
-    root: string|OpaqueDirectory,
-    templates: Awaited<ReturnType<typeof Project.askTemplates>>
-  }>): Promise<Project> => {
-    options = { ...options }
-    const name = options.name ??= await this.askName()
-    const root = options.root = $(options.root ?? await this.askRoot(name)).as(OpaqueDirectory)
-    const templates = options.templates ??= await this.askTemplates(options.name)
-    const project = new Project({ name, root, templates: templates as any })
-    await project.create()
-    project.runShellCommands(
-      'git init',
-      'pnpm i',
-      'git add .',
-      'git status',
-      'git commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
-      "git log",
-      'cargo update',
+  listDeployments = () =>
+    this.log.deploy.deploymentList(
+      this.config.chainId??'(unspecified)',
+      this.config.getDeployStore()
     )
-    console.log("Project created at", project.root.shortPath)
-    //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
-    return project
-  }
-  static async askName (): Promise<string> {
-    let value
-    while ((value = (await askText('Enter a project name (a-z, 0-9, dash/underscore)')??'').trim()) === '') {}
-    return value
-  }
-  static askRoot (name: string): Promise<Path> {
-    const cwd = $(process.cwd())
-    return askSelect(`Create project ${name} in current directory or subdirectory?`, [
-      { title: `Subdirectory (${cwd.name}/${name})`, value: cwd.in(name) },
-      { title: `Current directory (${cwd.name})`,    value: cwd },
-    ])
-  }
-  static askTemplates (name: string):
-    Promise<Record<string, Template<any>|(Buildable & Partial<Built>)>>
-  {
-    return askUntilDone({}, (state) => askSelect([
-      `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
-      `  ${Object.keys(state).join(',\n  ')}\n`
-    ].join(''), [
-      { title: `Add contract template to the project`, value: defineContract },
-      { title: `Remove contract template`, value: undefineContract },
-      { title: `Rename contract template`, value: renameContract },
-      { title: `(done)`, value: null },
-    ]))
-    async function defineContract (state: Record<string, any>) {
-      const crate = await askText([
-        'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):',
-      ].join('\n'))
-      state[crate] = { crate }
+  createDeployment = (name: string) =>
+    this.config.getDeployStore().create(name).then(()=>this.selectDeployment(name))
+  selectDeployment = async (name?: string): Promise<DeploymentState|null> => {
+    const store = this.config.getDeployStore()
+    const list = store.list()
+    if (list.length < 1) throw new Error('No deployments in this store')
+    let deployment
+    if (name) {
+      deployment = await store.select(name)
+    } else if (store.active) {
+      deployment = store.active
+    } else {
+      throw new Error('No active deployment in this store and no name passed')
     }
-    async function undefineContract (state: Record<string, any>) {
-      const name = await askSelect(`Select contract to remove from project scope:`, [
-        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
-        { title: `(done)`, value: null },
-      ])
-      delete state[name]
+    return deployment || null
+  }
+  exportDeployment = async (path?: string) => {
+    const store = this.config.getDeployStore()
+    const deployment = store.active
+    if (!deployment) throw new Error.Deploy.NoDeployment()
+    const state: Record<string, any> = JSON.parse(JSON.stringify(deployment.state))
+    for (const [name, contract] of Object.entries(state)) {
+      delete contract.workspace
+      delete contract.artifact
+      delete contract.log
+      delete contract.initMsg
+      delete contract.builderId
+      delete contract.uploaderId
     }
-    async function renameContract (state: Record<string, any>) {
-      const contract = await askSelect(`Select contract to rename:`, [
-        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
-        { title: `(done)`, value: null },
-      ])
-      const name = await askText(`Enter a new name for ${contract} (a-z, 0-9, dash/underscore):`)
-      state[name] = state[contract]
-      delete state[contract]
+    const file = $(path??'').at(`${deployment.name}.json`).as(JSONFile)
+    file.save(state)
+    this.log.info('Wrote', Object.keys(state).length, 'contracts to', bold(file.shortPath))
+  }
+  resetDevnet = async () => {
+    const chain = this.config.getChain()
+    if (!chain) {
+      this.log.info('No active chain.')
+    } else if (!chain.isDevnet || !chain.devnet) {
+      this.log.error('This command is only valid for devnets.')
+    } else {
+      await chain.devnet.terminate()
     }
   }
-  // TODO: ask/autodetect: build (docker/podman/raw), devnet (docker/podman)
-}
 
-export function askText <T> (message: string) {
-  return prompts.prompt({ type: 'text', name: 'value', message })
-    .then((x: { value: T })=>x.value)
-}
-
-export function askSelect <T> (message: string, choices: any[]) {
-  return prompts.prompt({ type: 'select', name: 'value', message, choices })
-    .then((x: { value: T })=>x?.value)
-}
-
-export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<Function|null>|Function|null) {
-  let action = null
-  while (typeof (action = await Promise.resolve(selector(state))) === 'function') {
-    await Promise.resolve(action(state))
-  }
-  return state
 }
 
 export class ContractCrate {
@@ -462,260 +549,178 @@ export class ContractCrate {
   }
 }
 
-export class NPMPackage {
-  constructor (
-    readonly project: Project,
-    /** Name of package. */
-    readonly name: string,
-    /** Directory of package. */
-    readonly dir: OpaqueDirectory = project.root.in(name).as(OpaqueDirectory),
-    /** Package manifest. */
-    readonly packageJson: JSONFile<any> = dir.at('package.json').as(JSONFile),
-    /** Main module */
-    readonly index: TextFile = dir.at(`${name}.ts`).as(TextFile),
-    /** Test specification. */
-    readonly spec: TextFile = dir.at(`${name}.spec.ts`).as(TextFile)
-  ) {}
-  create (packageJson: object = {}) {
-    this.dir.make()
-    this.packageJson.save(packageJson)
+export class ProjectWizard {
+  async createProject (): Promise<Project> {
+    let { git, pnpm, yarn, npm, cargo, docker, podman } = envDependencies()
+    const name = await this.askName()
+    const root = $(await this.askRoot(name)).as(OpaqueDirectory)
+    const templates = await this.askTemplates(name)
+    // TODO: ask/autodetect: build (docker/podman/raw), devnet (docker/podman)
+    const project = new Project({ name, root, templates: templates as any })
+    await project.create()
+    let changed = false
+    let nonfatal = false
+    if (git) {
+      try {
+        project.runShellCommands(
+          'git --no-pager init',
+          'git --no-pager add .',
+          'git --no-pager status',
+          'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
+          "git --no-pager log",
+        )
+      } catch (e) {
+        console.warn('Non-fatal: Failed to create Git repo.')
+        nonfatal = true
+        git = null
+      }
+    } else {
+      console.warn('Git not found. Not creating repo.')
+    }
+    if (pnpm || yarn || npm) {
+      try {
+        if (pnpm) {
+          project.runShellCommands('pnpm i')
+        } else if (yarn) {
+          project.runShellCommands('yarn')
+        } else {
+          project.runShellCommands('npm i')
+        }
+        changed = true
+      } catch (e) {
+        console.warn('Non-fatal: NPM install failed:', e)
+        nonfatal = true
+      }
+    } else {
+      console.warn('NPM/Yarn/PNPM not found. Not creating lockfile.')
+    }
+    if (cargo) {
+      try {
+        project.runShellCommands('cargo update')
+        changed = true
+      } catch (e) {
+        console.warn('Non-fatal: Cargo update failed:', e)
+        nonfatal = true
+      }
+    } else {
+      console.warn('Cargo not found. Not creating lockfile.')
+    }
+    if (changed && git) {
+      try {
+        project.runShellCommands(
+          'git --no-pager add .',
+          'git --no-pager status,',
+          'git --no-pager commit -m "Updated lockfiles."',
+        )
+      } catch (e) {
+        console.warn('Non-fatal: Git status failed:', e)
+        nonfatal = true
+      }
+    }
+    if (nonfatal) {
+      console.warn('One or more convenience operations failed.')
+      console.warn('You can retry them manually later.')
+    }
+    console.log("Done!")
+    console.info()
+    console.info(`To build your code:`)
+    console.info(`  $ npm run build`)
+    console.info()
+    console.info(`To spin up a local deployment:`)
+    console.info(`  $ npm run devnet deploy`)
+    console.info()
+    //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
+    return project
   }
-}
-
-export class ApiClientPackage extends NPMPackage {
-  create () {
-    super.create({
-      name: `@${this.project.name}/${this.name}`,
-      main: `${this.name}.ts`,
-      type: "module",
-      version: "0.0.0",
-      dependencies: {
-        "@fadroma/agent": "latest",
-        "@fadroma/scrt":  "latest",
-      },
-    })
-    const names = Object.keys(this.project.templates)
-    this.index.save([
-      `import { Client, Deployment } from '@fadroma/agent'`,
-      [
-        `export default class ${Case.pascal(this.project.name)} extends Deployment {`,
-        ...names.map(name => [
-          `  ${name} = this.contract({`,
-          `    name: "${name}",`,
-          `    crate: "${name}",`,
-          `    client: ${Case.pascal(name)},`,
-          `    initMsg: async () => ({})`,
-          `  })`
-        ].join('\n')),
-        '',
-        `  // Add contract with::`,
-        `  //   contract = this.contract({...})`, `  //`,
-        `  // Add contract from fadroma.json with:`,
-        `  //   contract = this.template('name').instance({...})`,
-        '',
-        '}',
-      ].join('\n'),
-      ...names.map(Case.pascal).map(Contract => [
-        `export class ${Contract} extends Client {`,
-        `  // Implement methods calling the contract here:`, `  //`,
-        `  // async myTx (arg1, arg2) {`,
-        `  //   return await this.execute({ my_tx: { arg1, arg2 }})`,
-        `  // }`,
-        `  // async myQuery (arg1, arg2) {`,
-        `  //   return await this.query({ my_query: { arg1, arg2 } })`,
-        `  // }`, `  //`,
-        `  // or like this:`, `  //`,
-        `  // myTx = (arg1, arg2) => this.execute({my_tx:{arg1, arg2}})`,
-        `  // myQuery = (arg1, arg2) => this.query({my_query:{arg1, arg2}})`, `  //`,
-        `}\n`
+  async askName (): Promise<string> {
+    let value
+    while ((value = (await askText('Enter a project name (a-z, 0-9, dash/underscore)')??'').trim()) === '') {}
+    return value
+  }
+  askRoot (name: string): Promise<Path> {
+    const cwd = $(process.cwd())
+    return askSelect(`Create project ${name} in current directory or subdirectory?`, [
+      { title: `Subdirectory (${cwd.name}/${name})`, value: cwd.in(name) },
+      { title: `Current directory (${cwd.name})`,    value: cwd },
+    ])
+  }
+  askTemplates (name: string):
+    Promise<Record<string, Template<any>|(Buildable & Partial<Built>)>>
+  {
+    return askUntilDone({}, (state) => askSelect([
+      `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
+      `  ${Object.keys(state).join(',\n  ')}\n`
+    ].join(''), [
+      { title: `Add contract template to the project`, value: defineContract },
+      { title: `Remove contract template`, value: undefineContract },
+      { title: `Rename contract template`, value: renameContract },
+      { title: `(done)`, value: null },
+    ]))
+    async function defineContract (state: Record<string, any>) {
+      const crate = await askText([
+        'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):',
       ].join('\n'))
-    ].join('\n\n'))
+      state[crate] = { crate }
+    }
+    async function undefineContract (state: Record<string, any>) {
+      const name = await askSelect(`Select contract to remove from project scope:`, [
+        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+        { title: `(done)`, value: null },
+      ])
+      delete state[name]
+    }
+    async function renameContract (state: Record<string, any>) {
+      const contract = await askSelect(`Select contract to rename:`, [
+        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+        { title: `(done)`, value: null },
+      ])
+      const name = await askText(`Enter a new name for ${contract} (a-z, 0-9, dash/underscore):`)
+      state[name] = state[contract]
+      delete state[contract]
+    }
   }
 }
 
-export class WorkspaceRootPackage extends NPMPackage {
-  create () {
-    super.create({
-      name: `@${this.project.name}/${this.name}`,
-      main: `${this.name}.ts`,
-      type: "module",
-      private: true,
-      devDependencies: {
-        "@hackbg/fadroma": "latest",
-        "@hackbg/ganesha": "latest",
-        [`@${this.project.name}/api`]: "link:./api",
-      },
-      scripts: {
-        "build":   "fadroma build",
-        "status":  "fadroma status",
-        "mocknet": `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=Mocknet_CW1 fadroma`,
-        "devnet":  `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
-        "testnet": `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
-        "mainnet": `FADROMA_OPS=./${this.name}.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
-      },
-    })
-    const imports = [
-      `import ${Case.pascal(this.project.name)} from '@${this.project.name}/api'`,
-      `import Project from '@hackbg/fadroma'`,
-    ].join('\n')
-    const commandsClass = [
-      `export default class ${Case.pascal(this.project.name)}Project extends Project {`, ``,
-      `  Deployment = ${Case.pascal(this.project.name)}`, ``,
-      `  // Override to customize the build command:`, `  //`,
-      `  // build = async (...contracts: string[]) => { `,
-      `  //   await super.build(...contracts)`,
-      `  // }`, ``,
-      `  // Override to customize the upload command:`, `  //`,
-      `  // upload = async (...contracts: string[]) => {`,
-      `  //   await super.upload(...contracts)`,
-      `  // }`, ``,
-      `  // Override to customize the deploy command:`,
-      `  //`,
-      `  // deploy = async (...args: string[]) => {`,
-      `  //   await super.deploy(...args)`,
-      `  // }`, ``,
-      `  // Override to customize the status command:`, `  //`,
-      `  // status = async (...args: string[]) => {`,
-      `  //   await super.status()`,
-      `  // }`, ``,
-      `  // Define custom commands using \`this.command\`:`, `  //`,
-      `  // custom = this.command('custom', 'run a custom procedure', async () => {`,
-      `  //   // ...`,
-      `  // })`,
-      ``, `}`
-    ].join('\n')
-    this.index.save([imports, commandsClass].join('\n\n'))
+export function askText <T> (message: string) {
+  return prompts.prompt({ type: 'text', name: 'value', message })
+    .then((x: { value: T })=>x.value)
+}
+
+export function askSelect <T> (message: string, choices: any[]) {
+  return prompts.prompt({ type: 'select', name: 'value', message, choices })
+    .then((x: { value: T })=>x?.value)
+}
+
+export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<Function|null>|Function|null) {
+  let action = null
+  while (typeof (action = await Promise.resolve(selector(state))) === 'function') {
+    await Promise.resolve(action(state))
   }
+  return state
 }
 
-
-const { text, select } = prompts.prompts
-
-export function askDonation () {
-}
-
-export function isGitRepo () {
-}
-
-export function checkSystemDependencies () {
+export const envDependencies = () => ({
   //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
-  checkSystemDependency('Git:    ', 'git --version')
-  checkSystemDependency('Node:   ', 'node --version')
-  checkSystemDependency('NPM:    ', 'npm --version')
-  checkSystemDependency('Yarn:   ', 'yarn --version')
-  checkSystemDependency('PNPM:   ', 'pnpm --version')
-  checkSystemDependency('Cargo:  ', 'cargo --version')
-  checkSystemDependency('Docker: ', 'docker --version')
-  checkSystemDependency('Nix:    ', 'nix --version')
-}
+  git:    checkEnvDependency('Git:    ', 'git --no-pager --version'),
+  node:   checkEnvDependency('Node:   ', 'node --version'),
+  npm:    checkEnvDependency('NPM:    ', 'npm --version'),
+  yarn:   checkEnvDependency('Yarn:   ', 'yarn --version'),
+  pnpm:   checkEnvDependency('PNPM:   ', 'pnpm --version'),
+  cargo:  checkEnvDependency('Cargo:  ', 'cargo --version'),
+  rust:   checkEnvDependency('Rust:   ', 'rustc --version'),
+  docker: checkEnvDependency('Docker: ', 'docker --version'),
+  podman: checkEnvDependency('Podman: ', 'podman --version'),
+  nix:    checkEnvDependency('Nix:    ', 'nix --version'),
+})
 
-export function checkSystemDependency (dependency: string, command: string) {
+export const checkEnvDependency = (dependency: string, command: string): string|null => {
   let version = null
   try {
     const version = execSync(command)
-    console.log(' ', bold(dependency), String(version).trim())
+    console.log(bold(dependency), String(version).trim())
   } catch (e) {
-    console.log(' ', bold(dependency), colors.yellow('(not found)'))
+    console.log(bold(dependency), colors.yellow('(not found)'))
   } finally {
     return version
-  }
-}
-
-//@ts-ignore
-export const { version } = $(import.meta.url, '../package.json').as(JSONFile).load() as any
-
-export class TemplateCommands extends CommandContext {
-  constructor (readonly project: Project) { super() }
-  add = this.command('add', 'add a new contract template to the project',
-    () => { throw new Error('not implemented') })
-  list = this.command('list', 'list contract templates defined in this project',
-    () => { throw new Error('not implemented') })
-  del = this.command('del', 'delete a contract template from this project',
-    () => { throw new Error('not implemented') })
-}
-
-export class DevnetCommands extends CommandContext {
-
-  constructor (public chain?: Chain) {
-    super('Fadroma Devnet')
-    //// Define CLI commands
-    //this.command('reset',  'kill and erase the devnet', () => {})
-    //this.command('stop',   'gracefully pause the devnet', () => {})
-    //this.command('kill',   'terminate the devnet immediately', () => {})
-    //this.command('export', 'stop the devnet and save it as a new Docker image', () => {})
-  }
-
-  status = this.command('status', 'print the status of the current devnet', () => {
-    const { chain } = this
-    return this
-  })
-
-  reset = this.command('reset', 'erase the current devnet', async (chain = this.chain) => {
-    if (!chain) {
-      this.log.info('No active chain.')
-    } else if (!chain.isDevnet || !chain.node) {
-      this.log.error('This command is only valid for devnets.')
-    } else {
-      await chain.node.terminate()
-    }
-  })
-
-}
-
-export class DeploymentCommands extends CommandContext {
-  constructor (
-    readonly chainId?: ChainId,
-    readonly store: DeployStore = new Config().getDeployStore(),
-  ) {
-    super()
-    if (chainId) {
-      this.command('list',   `list all deployments on ${chainId}`,          this.list)
-      this.command('create', `create a new empty deployment in ${chainId}`, this.create)
-      this.command('select', `activate another deployment on ${chainId}`,   this.select)
-      this.command('status', `show status of active deployment`,            this.status)
-      this.command('export', `export current deployment to ${name}.json`,   this.export)
-    }
-  }
-  log = new Console.Deploy(`@fadroma/ops`)
-  list = () => this.log.deploymentList(this.chainId??'(unspecified)', this.store)
-  create = async (name: string) => this.store.create(name).then(()=>this.select(name))
-  select = async (name?: string): Promise<DeploymentState|null> => {
-    const list = this.store.list()
-    if (list.length < 1) throw new Error('No deployments in this store')
-    let deployment
-    if (name) {
-      deployment = await this.store.select(name)
-    } else if (this.store.active) {
-      deployment = this.store.active
-    } else {
-      throw new Error('No active deployment in this store and no name passed')
-    }
-    return deployment || null
-  }
-  status = (name?: string) => {
-    const deployment = name ? this.store.save(name) : this.store.active
-    if (deployment) {
-      this.log.deployment(deployment as any)
-    } else {
-      throw new Error.Deploy.NoDeployment()
-    }
-  }
-  export = async (path?: string) => {
-    const deployment = this.store.active
-    if (!deployment) throw new Error.Deploy.NoDeployment()
-    const state: Record<string, any> = JSON.parse(JSON.stringify(deployment.state))
-    for (const [name, contract] of Object.entries(state)) {
-      delete contract.workspace
-      delete contract.artifact
-      delete contract.log
-      delete contract.initMsg
-      delete contract.builderId
-      delete contract.uploaderId
-    }
-    const file = $(path??'')
-      .at(`${deployment.name}.json`)
-      .as(JSONFile<typeof state>)
-    file.save(state)
-    this.log.info('Wrote', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
 }

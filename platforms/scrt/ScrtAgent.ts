@@ -52,10 +52,10 @@ export default class ScrtAgent extends Agent {
         let wallet = this.wallet
         if (!wallet || wallet instanceof _SecretJS.ReadonlySigner) {
           // If this is a named devnet agent
-          if (this.name && this.chain.isDevnet && this.chain.node) {
+          if (this.name && this.chain.isDevnet && this.chain.devnet) {
             // Provide mnemonic from devnet genesis accounts
-            await this.chain.node.respawn()
-            this.mnemonic = (await this.chain.node.getGenesisAccount(this.name)).mnemonic!
+            await this.chain.devnet.respawn()
+            this.mnemonic = (await this.chain.devnet.getGenesisAccount(this.name)).mnemonic!
           }
           // If there is still no mnemonic
           if (!this.mnemonic) {

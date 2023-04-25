@@ -18,15 +18,17 @@ export function getDevnet (options: Partial<DevnetConfig> = {}) {
 }
 
 export function defineDevnet (
-  Chain: { new(...args:any[]): Chain },
+  Chain: { devnet: (...args:any[])=>Chain },
   version: unknown
 ) {
-  return <T> (config: T) => {
-    const mode = ChainMode.Devnet
-    const conf = new Config()
-    const node = conf.getDevnet(version as Parameters<typeof conf.getDevnet>[0])
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new Chain(id, { url, mode, node })
+  return <T> (options: T) => {
+    const config = new Config()
+    const devnet = config.getDevnet(version as Parameters<typeof config.getDevnet>[0])
+    return Chain.devnet({
+      id: devnet.chainId,
+      url: devnet.url.toString(),
+      mode: ChainMode.Devnet,
+      devnet,
+    })
   }
 }

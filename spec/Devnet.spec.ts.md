@@ -32,29 +32,41 @@ const devnet = await getDevnet({ /* options */ })
 process.on('exit', () => devnet.erase())
 
 await devnet.spawn()
-await devnet.save()
 await devnet.kill()
-await devnet.load()
 await devnet.respawn()
 await devnet.kill()
-await devnet.export()
 await devnet.erase()
 
 import { Devnet } from '@fadroma/ops'
 assert(devnet instanceof Devnet)
 
-import { JSONFile, OpaqueDirectory } from '@hackbg/file'
-assert.ok(devnet.nodeState instanceof JSONFile)
-assert.ok(devnet.stateRoot instanceof OpaqueDirectory)
+import { Chain } from '@fadroma/agent'
+assert(devnet.getChain() instanceof Chain)
+assert.equal(devnet.getChain().mode, Chain.Mode.Devnet)
 ```
 
 ### Connecting to a devnet
 
 ```typescript
-const chain = devnet.getChain()
 
-import { Chain } from '@fadroma/agent'
-assert(chain instanceof Chain)
+// specifying devnet port:
+assert.equal(
+  new Devnet({ port: '1234' }).url.toString(),
+  'http://localhost:1234/'
+)
+```
+
+### Devnet state
+
+Devnet is stateful. It's represented in the project by e.g. `state/fadroma-devnet/devnet.json`.
+
+```typescript
+import { JSONFile, OpaqueDirectory } from '@hackbg/file'
+assert.ok(devnet.nodeState instanceof JSONFile)
+assert.ok(devnet.stateRoot instanceof OpaqueDirectory)
+
+assert.ok(devnet.save())
+assert.ok(await devnet.load())
 ```
 
 ### Using genesis accounts
@@ -63,29 +75,47 @@ On devnet, Fadroma creates named genesis accounts for you,
 which you can use by passing `name` to `getAgent`:
 
 ```typescript
-const alice = await chain.getAgent({ name: 'Alice' })
+// specifying genesis accounts:
+assert.deepEqual(
+  new Devnet({ identities: [ 'Alice', 'Bob' ] }).genesisAccounts,
+  [ 'Alice', 'Bob' ]
+)
+
+const alice = await devnet.getChain().getAgent({ name: 'Alice' })
 
 import { Agent } from '@fadroma/agent'
 assert(alice instanceof Agent)
+
 ```
 
-### Exporting a devnet with deployed contracts
+### Exporting a devnet snapshot
+
+The `fadroma export` command exports a list of contracts in the current deployment.
+
+When the active chain is a devnet, `fadroma export` also saves the current state of the
+Docker container as a new Docker image. This image contains a snapshot of all the deployed
+contracts and other activity on the devnet prior to the export.
+
+```typescript
+await devnet.export()
+```
+
+An exported devnet deployment is a great way to provide a standardized development build
+of your project. You can use one to test the frontend<->contracts stack in a separate step
+of your integration pipeline.
 
 ### Resetting the devnet
+
+The `fadroma reset` command kills and erases the devnet.
+
+```typescript
+import Project from '@fadroma/ops'
+const project = new Project()
+project.resetDevnet()
+```
 
 ---
 
 ```typescript
 import assert from 'node:assert'
-```
-
-```typescript
-assert.equal(new Devnet({ port: '1234' }).url.toString(), 'http://localhost:1234/')
-assert.ok(new Devnet().save())
-assert.ok(await new Devnet().load())
-assert.deepEqual(new Devnet({ identities: [ 'ALICE', 'BOB' ] }).genesisAccounts, [ 'ALICE', 'BOB' ])
-import { DevnetCommands } from '@fadroma/ops'
-const commands = new DevnetCommands()
-commands.status()
-commands.reset()
 ```

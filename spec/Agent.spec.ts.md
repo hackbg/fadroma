@@ -57,7 +57,7 @@ the chain and start over (i.e. when using a devnet or mocknet).
 * **Mainnet** is the production chain where value is stored.
 
 ```typescript
-chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mainnet })
+chain = Chain.mainnet({ id: 'id', url: 'example.com' })
 
 assert(!chain.devMode)
 assert(chain.isMainnet)
@@ -66,7 +66,7 @@ assert(chain.isMainnet)
 * **Testnet** is a persistent remote chain used for testing.
 
 ```typescript
-chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Testnet })
+chain = Chain.testnet({ id: 'id', url: 'example.com' })
 
 assert(!chain.devMode)
 assert(chain.isTestnet)
@@ -77,7 +77,7 @@ assert(!chain.isMainnet)
   a local environment.
 
 ```typescript
-chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Devnet })
+chain = Chain.devnet({ id: 'id', url: 'example.com' })
 
 assert(chain.devMode)
 assert(chain.isDevnet)
@@ -88,7 +88,7 @@ assert(!chain.isMainnet)
   in the local JS WASM runtime.
 
 ```typescript
-chain = new Chain('id', { url: 'example.com', mode: Chain.Mode.Mocknet })
+chain = Chain.mocknet({ id: 'id' url: 'example.com' })
 
 assert(chain.devMode)
 assert(chain.isMocknet)
@@ -269,11 +269,13 @@ appropriate `Client` subclass from the authorized `Agent`.
 
 ```typescript
 import { Client } from '@fadroma/agent'
-let client: Client = new Client(agent, 'some-address', 'some-code-hash')
+let address = 'some-addr'
+let codeHash = 'some-hash'
+let client: Client = new Client({ agent, address, codeHash })
 
 assert.equal(client.agent,    agent)
-assert.equal(client.address,  'some-address')
-assert.equal(client.codeHash, 'some-code-hash')
+assert.equal(client.address,  address)
+assert.equal(client.codeHash, codeHash)
 
 client.fees = { 'method': 100 }
 
@@ -283,7 +285,7 @@ assert.equal(client.getFee({'method':{'parameter':'value'}}), 100)
 
 let agent2 = Symbol()
 assert.equal(
-  client.as(agent2).agent,
+  client.withAgent(agent2).agent,
   agent2
 )
 
@@ -314,7 +316,7 @@ class MyClient extends Client {
 import { Builder } from '@fadroma/agent'
 
 deployment = new Deployment({
-  agent: new Agent({ chain: new Chain('test', { mode: Chain.Mode.Devnet }) }),
+  agent: new Agent({ chain: new Chain({ id: 'test', mode: Chain.Mode.Devnet }) }),
   builder: new Builder()
 })
 
@@ -383,7 +385,7 @@ assert.rejects(fetchLabel(instance, agent, 'unexpected'))
 
 ```typescript
 import { Chain, Agent, Bundle } from '@fadroma/agent'
-chain = new Chain('id', { url: 'example.com', mode: 'mainnet' })
+chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
 agent = await chain.getAgent()
 let bundle: Bundle
 class TestBundle extends Bundle {

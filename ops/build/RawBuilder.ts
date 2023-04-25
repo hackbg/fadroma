@@ -1,4 +1,4 @@
-import { BuildConsole } from '../util'
+import { Console } from '../util'
 import LocalBuilder, { artifactName, sanitize } from './LocalBuilder'
 import getGitDir from './getGitDir'
 
@@ -16,7 +16,7 @@ export default class RawBuilder extends LocalBuilder {
 
   readonly id = 'Raw'
 
-  log = new BuildConsole('@fadroma/build: Raw')
+  log = new Console('@fadroma/build: Raw')
 
   runtime = process.argv[0]
 

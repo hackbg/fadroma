@@ -3,104 +3,70 @@ import type {
 } from '../index'
 import { Error, Console, validated, hideProperties } from '../util'
 
-import { assertAgent } from './Agent'
+import { assertAgent } from './Chain'
 import { Contract } from './Deployment'
 
 /** A constructor for a Client subclass. */
-export interface ClientClass<C extends Client> extends Class<C, [
-  Agent      |undefined,
-  Address    |undefined,
-  CodeHash   |undefined,
-  Contract<C>|undefined
-]>{}
+export interface ClientClass<C extends Client> extends Class<C, [Partial<C>, ...any]> {}
 
 /** Client: interface to the API of a particular contract instance.
   * Has an `address` on a specific `chain`, usually also an `agent`.
   * Subclass this to add the contract's methods. */
 export class Client {
-
-  constructor (
-    /** Agent that will interact with the contract. */
-    public agent?:    Agent,
-    /** Address of the contract on the chain. */
-    public address?:  Address,
-    /** Code hash confirming the contract's integrity. */
-    public codeHash?: CodeHash,
-    /** Contract class containing deployment metadata. */
-    meta?:            Contract<any>
-  ) {
-    hideProperties(this, 'log', 'context')
-    this.meta = (meta ?? new Contract()) as Contract<this>
-    this.meta.address  ??= address
-    this.meta.codeHash ??= codeHash
-    this.meta.chainId  ??= agent?.chain?.id
-    //if (!agent)    this.log.warnNoAgent(this.constructor.name)
-    //if (!address)  this.log.warnNoAddress(this.constructor.name)
-    //if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
-  }
-
-  meta: Contract<any>
-
-  /** Logger. */
-  log = new Console('@fadroma/agent: Client')
-
+  log = new Console(this.constructor.name)
+  /** Agent that will interact with the contract. */
+  agent?:    Agent
+  /** Address of the contract on the chain. */
+  address?:  Address
+  /** Code hash confirming the contract's integrity. */
+  codeHash?: CodeHash
+  /** Contract metadata. */
+  meta:      Contract<any>
   /** Default fee for all contract transactions. */
-  fee?: IFee = undefined
-
+  fee?:      IFee = undefined
   /** Default fee for specific transactions. */
-  fees?: Record<string, IFee> = undefined
+  fees?:     Record<string, IFee> = undefined
+
+  constructor (options: Partial<Client> = {}) {
+    hideProperties(this, 'log', 'context')
+    const agent = this.agent ??= options.agent
+    const address = this.address ??= options.address
+    const codeHash = this.codeHash ??= options.codeHash
+    this.meta ??= options.meta ?? new Contract<this>({ address, codeHash, chainId: agent?.chain?.id })
+  }
 
   /** The chain on which this contract exists. */
   get chain (): Chain|undefined {
     return this.agent?.chain
   }
-
-  /** Throw if fetched metadata differs from configured. */
-  protected validate (kind: string, expected: any, actual: any) {
-    const name = this.constructor.name
-    if (expected !== actual) throw new Error.ValidationFailed(kind, name, expected, actual)
-  }
-
-  /** Fetch code hash from address. */
-  async fetchCodeHash (expected: CodeHash|undefined = this.codeHash): Promise<this> {
-    const codeHash = await assertAgent(this).getHash(assertAddress(this))
-    return Object.assign(this, { codeHash: validated('codeHash', codeHash, expected) })
-  }
-
-  /** Legacy, use fetchCodeHash instead. */
-  async populate (): Promise<this> {
-    return await this.fetchCodeHash()
-  }
-
-  /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
+  /** The contract represented in ICC format (`{address, code_hash}`) */
   get asLink (): ContractLink {
     return this.meta.asLink
   }
-
+  /** The contract template represented in factory format (`{code_id, code_hash}`) */
   get asInfo () {
     return this.meta.asInfo
   }
-
-  /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  as (agent: Agent|undefined = this.agent): this {
-    if (!agent || agent === this.agent) return this
-    const $C = this.constructor as ClientClass<typeof this>
-    return new $C(agent, this.address, this.codeHash, this.meta) as this
+  /** Fetch code hash from address.
+    * @returns Promise<this> */
+  async fetchCodeHash (expected: CodeHash|undefined = this.codeHash): Promise<this> {
+    const codeHash =
+      validated('codeHash', await assertAgent(this).getHash(assertAddress(this)), expected)
+    return Object.assign(this, { codeHash })
   }
-
-  /** Creates another Client instance pointing to the same contract. */
-  asClient <C extends Client> (client: ClientClass<C>): C {
-    return new client(this.agent, this.address, this.codeHash, this.meta) as C
-  }
-
   /** Execute a query on the specified contract as the specified Agent. */
   query <U> (msg: Message): Promise<U> {
     return assertAgent(this).query(this, msg)
   }
-
+  /** Execute a transaction on the specified contract as the specified Agent. */
+  execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
+    assertAddress(this)
+    opt.fee = opt.fee || this.getFee(msg)
+    return assertAgent(this).execute(this, msg, opt)
+  }
   /** Get the recommended fee for a specific transaction. */
   getFee (msg?: string|Record<string, unknown>): IFee|undefined {
-    const fees       = this.fees ?? {}
+    const fees = this.fees ?? {}
     const defaultFee = this.fee ?? this.agent?.fees?.exec
     if (typeof msg === 'string') {
       return fees[msg] || defaultFee
@@ -111,21 +77,29 @@ export class Client {
     }
     return this.fee || defaultFee
   }
-
   /** Use the specified fee for all transactions by this Client. */
   withFee (fee: IFee): this {
     this.fee  = fee
     this.fees = {}
     return this
   }
-
-  /** Execute a transaction on the specified contract as the specified Agent. */
-  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
-    assertAddress(this)
-    opt.fee = opt.fee || this.getFee(msg)
-    return await assertAgent(this).execute(this, msg, opt)
+  /** Use the specified fee table for all subsequent transactions by this Client. */
+  withFees (fees: Record<string, IFee>): this {
+    this.fees = fees
+    return this
+  }
+  /** @returns a copy of this Client that will execute the transactions as a different Agent. */
+  withAgent (agent: Agent|undefined = this.agent): this {
+    if (!agent || agent === this.agent) return this
+    const $C = this.constructor as ClientClass<typeof this>
+    return new $C({ ...this, agent })
   }
 
+  /** Throw if fetched metadata differs from configured. */
+  protected validate (kind: string, expected: any, actual: any) {
+    const name = this.constructor.name
+    if (expected !== actual) throw new Error.ValidationFailed(kind, name, expected, actual)
+  }
 }
 
 /** @returns a string in the format `crate[@ref][+flag][+flag]...` */

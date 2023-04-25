@@ -8,121 +8,100 @@ import type * as SecretJS from 'secretjs'
 
 import { Chain, Fee, Mocknet_CW1 } from '@fadroma/agent'
 import type {
-  Address, AgentClass, AgentFees, ChainClass, ChainId, ChainOpts, Client, Message, Uint128
+  Address, AgentClass, AgentFees, ChainClass, ChainId, Client, Message, Uint128
 } from '@fadroma/agent'
-
-export interface ScrtOpts extends ChainOpts {
-  /** You can set this to a compatible version of the SecretJS module
-    * in order to use it instead of the one bundled with this package.
-    * This setting is per-chain, i.e. all ScrtAgent instances
-    * constructed by the configured Scrt instance's getAgent method
-    * will use the non-default SecretJS module. */
-  SecretJS: typeof SecretJS
-}
 
 /** Represents a Secret Network API endpoint. */
 export default class Scrt extends Chain {
-
-  /** Connect to the Secret Network Mainnet. */
-  static Mainnet (config?: Config): Chain {
-    return new Scrt(config?.mainnetChainId ?? Scrt.Config.defaultMainnetChainId, {
-      mode: Chain.Mode.Mainnet,
-      url:  config?.mainnetUrl || Scrt.Config.defaultMainnetUrl,
-    })
-  }
-
-  /** Connect to the Secret Network Testnet. */
-  static Testnet (config?: Config): Chain {
-    return new Scrt(config?.testnetChainId ?? Scrt.Config.defaultTestnetChainId, {
-      mode: Chain.Mode.Testnet,
-      url:  config?.testnetUrl || Scrt.Config.defaultTestnetUrl,
-    })
-  }
-
-  static Devnet (config?: Config): Chain {
-    throw new Error('Devnets require @fadroma/connect')
-  }
-
-  static Mocknet (config?: Config): Chain {
-    return new Mocknet_CW1()
-  }
-
-  /** The default SecretJS module. */
-  static SecretJS: typeof SecretJS
-
-  /** The default Config class for Secret Network. */
-  static Config = Config
-
-  /** The default Agent class for Secret Network. */
-  static Agent: AgentClass<ScrtAgent> // set in index
-
-  static isSecretNetwork: boolean = true
-
-  static defaultDenom: string  = 'uscrt'
-
-  static gas (amount: Uint128|number) {
-    return new Fee(amount, this.defaultDenom)
-  }
-
+  /** Smallest unit of native token. */
+  static defaultDenom: string = 'uscrt'
+  /** @returns Fee in uscrt */
+  static gas = (amount: Uint128|number) =>
+    new Fee(amount, this.defaultDenom)
+  /** Set permissive fees by default. */
   static defaultFees: AgentFees = {
     upload: this.gas(1000000),
     init:   this.gas(1000000),
     exec:   this.gas(1000000),
     send:   this.gas(1000000),
   }
-
-  /** The SecretJS module used by this instance.
-    * Override this if you want to use another version of SecretJS. */
-  SecretJS = Scrt.SecretJS
-
-  /** The Agent class used by this instance. */
-  Agent: AgentClass<ScrtAgent> = Scrt.Agent
-
-  isSecretNetwork: boolean = true
-
-  defaultDenom: string = Scrt.defaultDenom
+  /** The default SecretJS module. */
+  static SecretJS: typeof SecretJS
+  /** The default Config class for Secret Network. */
+  static Config = Config
+  /** The default Agent class for Secret Network. */
+  static Agent: AgentClass<ScrtAgent> // set in index
+  /** Connect to the Secret Network Mainnet. */
+  static mainnet = (options: Partial<Scrt> = {}): Scrt => super.mainnet({
+    id:  Scrt.Config.defaultMainnetChainId,
+    url: Scrt.Config.defaultMainnetUrl,
+    ...options,
+  }) as Scrt
+  /** Connect to the Secret Network Testnet. */
+  static testnet = (options: Partial<Scrt> = {}): Scrt => super.testnet({
+    id:  Scrt.Config.defaultTestnetChainId,
+    url: Scrt.Config.defaultTestnetUrl,
+    ...options,
+  }) as Scrt
+  /** Connect to a Secret Network devnet. */
+  static devnet = (options: Partial<Scrt> = {}): Scrt => super.devnet({
+    ...options,
+  }) as Scrt
+  /** Create to a Secret Network mocknet. */
+  static mocknet = (options: Partial<Mocknet_CW1> = {}): Mocknet_CW1 => {
+    return new Mocknet_CW1({ ...options, id: 'scrt-mocknet-cw1' })
+  }
 
   log = new Console('Scrt')
 
-  constructor (
-    id: ChainId = Scrt.Config.defaultMainnetChainId,
-    options: Partial<ScrtOpts> = {
-      url:  Scrt.Config.defaultMainnetUrl,
-      mode: Chain.Mode.Mainnet
-    }
-  ) {
-    super(id, options)
-    this.log.label = `Secret Network ${id}`
+  /** Smallest unit of native token. */
+  defaultDenom: string = Scrt.defaultDenom
+  /** The SecretJS module used by this instance.
+    * You can set this to a compatible version of the SecretJS module
+    * in order to use it instead of the one bundled with this package.
+    * This setting is per-chain:,all ScrtAgent instances
+    * constructed by the configured Scrt instance's getAgent method
+    * will use the non-default SecretJS module. */
+  SecretJS = Scrt.SecretJS
+  /** The Agent class used by this instance. */
+  Agent: AgentClass<ScrtAgent> = Scrt.Agent
+
+  constructor (options: Partial<Scrt> = {
+    url:  Scrt.Config.defaultMainnetUrl,
+    mode: Chain.Mode.Mainnet
+  }) {
+    super(options)
+    this.log.label = `Secret Network ${this.id}`
     // Optional: Allow a different API-compatible version of SecretJS to be passed
     this.SecretJS = options.SecretJS ?? this.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
 
-  /** The Agent class that this instance's getAgent method will instantiate. */
-
   /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
   get api () {
     return this.getApi()
   }
-
+  get block () {
+    return this.api.then(api=>api.query.tendermint.getLatestBlock({}))
+  }
+  get height () {
+    return this.block.then(block=>Number(block.block?.header?.height))
+  }
   async getBalance (denom = this.defaultDenom, address: Address) {
     const api = await this.api
     const response = await api.query.bank.balance({ address, denom })
     return response.balance!.amount!
   }
-
   async getLabel (contract_address: string): Promise<string> {
     const api = await this.api
     const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.label!
   }
-
   async getCodeId (contract_address: string): Promise<string> {
     const api = await this.api
     const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.code_id!
   }
-
   async getHash (arg: string|number): Promise<string> {
     const api = await this.api
     if (typeof arg === 'number' || !isNaN(Number(arg))) {
@@ -135,19 +114,9 @@ export default class Scrt extends Chain {
       })).code_hash!
     }
   }
-
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
-
-  get block () {
-    return this.api.then(api=>api.query.tendermint.getLatestBlock({}))
-  }
-
-  get height () {
-    return this.block.then(block=>Number(block.block?.header?.height))
-  }
-
   /** @returns a fresh instance of the anonymous read-only API client. */
   async getApi (
     options: Partial<SecretJS.CreateClientOptions> = {}
@@ -156,12 +125,9 @@ export default class Scrt extends Chain {
     if (!options.url) throw new Error.NoApiUrl()
     return await new (this.SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
   }
-
   async fetchLimits (): Promise<{ gas: number }> {
-    const { param } = await (await this.api).query.params.params({
-      subspace: "baseapp",
-      key: "BlockParams"
-    })
+    const params = { subspace: "baseapp", key: "BlockParams" }
+    const { param } = await (await this.api).query.params.params(params)
     let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
     this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
     if (max_gas < 0) {
@@ -170,5 +136,4 @@ export default class Scrt extends Chain {
     }
     return { gas: max_gas }
   }
-
 }

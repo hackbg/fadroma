@@ -26,10 +26,10 @@ const config = new Scrt.Config()
 To connect to Secret Network with Fadroma, use one of the following:
 
 ```typescript
-const mainnet = Scrt.Chain.Mainnet()
-const testnet = Scrt.Chain.Testnet()
-//const devnet  = Scrt.Devnet()
-//const mocknet = Scrt.Mocknet()
+const mainnet = Scrt.Chain.mainnet()
+const testnet = Scrt.Chain.testnet()
+//const devnet  = Scrt.devnet()
+//const mocknet = Scrt.mocknet()
 ```
 
 This will give you a `Scrt` instance (subclass of `Chain`):

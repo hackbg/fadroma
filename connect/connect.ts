@@ -31,15 +31,16 @@ import type { Environment } from '@hackbg/conf'
 /** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
 Object.assign(Chain.variants as ChainRegistry, {
   // Support for Mocknet
-  Mocknet_CW0 (config: unknown): Mocknet_CW0 {
-    return new Mocknet_CW0()
-  },
-  Mocknet_CW1 (config: unknown): Mocknet_CW1 {
-    return new Mocknet_CW1()
-  },
+  Mocknet_CW0: (options: Partial<Mocknet_CW0> = {}): Mocknet_CW0 =>
+    new Mocknet_CW0({ id: 'mocknet-cw0', ...options }),
+  Mocknet_CW1: (options: Partial<Mocknet_CW1> = {}): Mocknet_CW1 =>
+    new Mocknet_CW1({ id: 'mocknet-cw1', ...options }),
   // Support for Secret Network
-  ScrtMainnet: Scrt.Chain.Mainnet,
-  ScrtTestnet: Scrt.Chain.Testnet,
+  ScrtMainnet:
+    Scrt.Chain.mainnet,
+  ScrtTestnet:
+    Scrt.Chain.testnet,
+  // Devnet is injected here by @fadroma/ops
 })
 
 export * from '@hackbg/conf'

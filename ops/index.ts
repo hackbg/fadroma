@@ -29,6 +29,16 @@ import type { ChainRegistry } from '@fadroma/agent'
 import { Chain, ChainMode } from '@fadroma/agent'
 import { Scrt } from '@fadroma/connect'
 import { defineDevnet } from './devnet/index'
+import { Config } from './util'
 Object.assign(Chain.variants as ChainRegistry, {
-  ScrtDevnet: Scrt.Chain.Devnet = defineDevnet(Scrt.Chain, 'scrt_1.8'),
+  ScrtDevnet (options: Partial<Scrt.Chain> = {}): Scrt.Chain {
+    const config = new Config()
+    const devnet = config.getDevnet('scrt_1.8')
+    return Scrt.Chain.devnet({
+      id: devnet.chainId,
+      url: devnet.url.toString(),
+      devnet,
+      ...options
+    })
+  }
 })

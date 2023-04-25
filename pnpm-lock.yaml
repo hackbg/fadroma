@@ -82,8 +82,8 @@ importers:
 
   connect:
     specifiers:
-      '@fadroma/agent': workspace:^1.0.0-rc.8
-      '@fadroma/scrt': workspace:^9.0.0-rc.8
+      '@fadroma/agent': workspace:^1.0.0-rc.9
+      '@fadroma/scrt': workspace:^9.0.0-rc.9
       '@hackbg/conf': workspace:^2
     dependencies:
       '@fadroma/agent': link:../agent
@@ -473,7 +473,7 @@ importers:
 
   ops:
     specifiers:
-      '@fadroma/connect': workspace:3.0.0-rc.20
+      '@fadroma/connect': workspace:3.0.0-rc.21
       '@hackbg/cmds': workspace:^1.3
       '@hackbg/dock': workspace:^1.3
       '@hackbg/ensuite': ^1.1
@@ -500,7 +500,7 @@ importers:
     devDependencies:
       '@hackbg/ensuite': link:../ensuite
       '@types/js-yaml': 4.0.5
-      '@types/prompts': 2.4.2
+      '@types/prompts': 2.4.4
 
   platforms/scrt:
     specifiers:
@@ -992,10 +992,6 @@ packages:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
     dev: true
 
-  /@types/node/18.15.11:
-    resolution: {integrity: sha512-E5Kwq2n4SbMzQOn6wnmBjuK9ouqlURrcZDVfbo9ftDDTFt3nk7ZKK4GMOzoYgnpQJKcxwQw+lGaBvvlMo0qN/Q==}
-    dev: true
-
   /@types/node/18.15.12:
     resolution: {integrity: sha512-Wha1UwsB3CYdqUm2PPzh/1gujGCNtWVUYF0mB00fJFoR4gTyWTDPjSm+zBF787Ahw8vSGgBja90MkgFwvB86Dg==}
     dev: true
@@ -1007,10 +1003,10 @@ packages:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
     dev: true
 
-  /@types/prompts/2.4.2:
-    resolution: {integrity: sha512-TwNx7qsjvRIUv/BCx583tqF5IINEVjCNqg9ofKHRlSoUHE62WBHrem4B1HGXcIrG511v29d1kJ9a/t2Esz7MIg==}
+  /@types/prompts/2.4.4:
+    resolution: {integrity: sha512-p5N9uoTH76lLvSAaYSZtBCdEXzpOOufsRjnhjVSrZGXikVGHX9+cc9ERtHRV4hvBKHyZb1bg4K+56Bd2TqUn4A==}
     dependencies:
-      '@types/node': 18.15.11
+      '@types/node': 18.16.0
       kleur: 3.0.3
     dev: true
 

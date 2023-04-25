@@ -6,7 +6,7 @@ import {
   Error, Console, bold, pluralize, hideProperties
 } from '../util'
 
-import { assertAgent } from './Agent'
+import { assertAgent } from './Chain'
 import { Client, fetchCodeHash, getSourceSpecifier } from './Client'
 
 import { sha256, base16 } from '@hackbg/4mat'

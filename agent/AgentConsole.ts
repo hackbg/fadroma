@@ -166,7 +166,7 @@ export default class Console extends BaseConsole {
   }
 
   warnNodeNonDevnet () {
-    this.warn(`"node" option is only applicable to devnets`)
+    this.warn(`Chain#devnet: only applicable if Chain#mode is Devnet`)
   }
 
   warnNoAgent (name: string) {

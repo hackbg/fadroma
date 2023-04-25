@@ -1,4 +1,4 @@
-import { BuildConsole, Error } from '../util'
+import { Console, Error } from '../util'
 import type { BuilderConfig } from '../util'
 
 import LocalBuilder, { artifactName, sanitize, buildPackage } from './LocalBuilder'
@@ -20,7 +20,7 @@ export default class BuildContainer extends LocalBuilder {
   readonly id = 'Container'
 
   /** Logger */
-  log = new BuildConsole('@fadroma/ops: BuildContainer')
+  log = new Console('@fadroma/ops: BuildContainer')
 
   /** Used to launch build container. */
   docker: Engine
@@ -95,7 +95,7 @@ export default class BuildContainer extends LocalBuilder {
       }
       // If the contract is already built, don't build it again
       if (!this.prebuilt(contract)) {
-        this.log.buildingOne(contract)
+        this.log.build.one(contract)
         // Set ourselves as the contract's builder
         contract.builder = this as unknown as Builder
         // Add the source repository of the contract to the list of sources to build
@@ -113,7 +113,7 @@ export default class BuildContainer extends LocalBuilder {
         // a parent directory may need to be mounted to get the full
         // Git history.
         let mounted = $(path)
-        if (this.verbose) this.log.buildingFromWorkspace(mounted, revision)
+        if (this.verbose) this.log.build.workspace(mounted, revision)
         // If we're building from history, update `mounted` to make sure
         // that the full contents of the Git repo will be mounted in the
         // build container.
@@ -171,7 +171,7 @@ export default class BuildContainer extends LocalBuilder {
     //if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
-      new BuildConsole(`BuildContainer: ${crate}`).prebuilt(prebuilt)
+      new Console(`BuildContainer: ${crate}`).build.found(prebuilt)
       contract.artifact = prebuilt.artifact
       contract.codeHash = prebuilt.codeHash
       return true
@@ -327,7 +327,7 @@ export default class BuildContainer extends LocalBuilder {
     }
 
     // Run the build container
-    this.log.runningBuildContainer(root, revision, cratesToBuild)
+    this.log.build.container(root, revision, cratesToBuild)
     const buildName = `fadroma-build-${sanitize($(root).name)}@${revision}`
     const buildContainer = await this.image.run(
       buildName,      // container name
