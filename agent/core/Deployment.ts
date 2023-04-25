@@ -164,19 +164,19 @@ export class Deployment {
   }
   /** @returns Promise<this> */
   async deploy () {
-    const log = new Console(`Deploying: ${this.name}`)
+    const log = new Console(`Deploy: ${this.name}`)
     const contracts = Object.values(this.state)
     if (contracts.length > 0) {
       log.log('Making sure all contracts are compiled')
       if (this.builder)  await this.builder.buildMany(contracts as Buildable[])
       log.log('Making sure all contracts are uploaded')
       if (this.uploader) await this.uploader.uploadMany(contracts as Uploadable[])
+      // FIXME PERF: bundle concurrent inits into a single transaction
       for (const contract of contracts) await contract.deployed
       log.log('Deployed', contracts.length, 'contracts')
     } else {
       log.warn('No contracts defined in deployment')
     }
-    // FIXME PERF: bundle concurrent inits into a single transaction
     return this
   }
   /** Specify a contract.

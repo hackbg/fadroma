@@ -237,11 +237,12 @@ export default class Project extends CommandContext {
       version: "0.1.0",
       dependencies: {
         "@fadroma/agent": "latest",
-        "@fadroma/scrt":  "latest",
+        "@fadroma/scrt": "latest",
       },
       devDependencies: {
         "@hackbg/fadroma": "latest",
         "@hackbg/ganesha": "latest",
+        "dotenv": "^16.0.3",
       },
       scripts: {
         "build":   "fadroma build",
@@ -426,7 +427,6 @@ export default class Project extends CommandContext {
     } else {
       this
     }
-    return deployment?.deploy()
   }
   getDeployState = (chainId: ChainId|null = this.config.chainId) =>
     chainId ? this.dirs.state.in(chainId).in('deploy').as(OpaqueDirectory).list() : {}
