@@ -43,7 +43,7 @@ export function makeImports (
       const exports = getExports()
       const key     = readUtf8(exports, keyPtr)
       const val     = contract.storage.get(key)
-      log.trace(bold(contract.address), `db_read: ${bold(key)}`, val ? brailleDump(val) : null)
+      log.debug(bold(contract.address), `db_read: ${bold(key)}`, val ? brailleDump(val) : null)
       if (contract.storage.has(key)) {
         return passBuffer(exports, val!)
       } else {
@@ -56,20 +56,20 @@ export function makeImports (
       const key     = readUtf8(exports, keyPtr)
       const val     = readBuffer(exports, valPtr)
       contract.storage.set(key, val)
-      log.trace(bold(contract.address), `db_write: ${bold(key)}`, brailleDump(val))
+      log.debug(bold(contract.address), `db_write: ${bold(key)}`, brailleDump(val))
     },
 
     db_remove (keyPtr: Ptr) {
       const exports = getExports()
       const key     = readUtf8(exports, keyPtr)
-      log.trace(bold(contract.address), `db_remove:`, bold(key))
+      log.debug(bold(contract.address), `db_remove:`, bold(key))
       contract.storage.delete(key)
     },
 
     query_chain (reqPtr: Ptr) {
       const exports  = getExports()
       const req      = readUtf8(exports, reqPtr)
-      log.trace(bold(contract.address), 'query_chain:', req)
+      log.debug(bold(contract.address), 'query_chain:', req)
       const { wasm } = JSON.parse(req)
       if (!wasm) {
         throw new Error(
