@@ -53,7 +53,6 @@ export default class Scrt extends Chain {
   }
 
   log = new Console('Scrt')
-
   /** Smallest unit of native token. */
   defaultDenom: string = Scrt.defaultDenom
   /** The SecretJS module used by this instance.

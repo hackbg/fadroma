@@ -16,19 +16,3 @@ import { Chain, ChainMode } from '@fadroma/agent'
 export function getDevnet (options: Partial<DevnetConfig> = {}) {
   return new Config({ devnet: options }).getDevnet()
 }
-
-export function defineDevnet (
-  Chain: { devnet: (...args:any[])=>Chain },
-  version: unknown
-) {
-  return <T> (options: T) => {
-    const config = new Config()
-    const devnet = config.getDevnet(version as Parameters<typeof config.getDevnet>[0])
-    return Chain.devnet({
-      id: devnet.chainId,
-      url: devnet.url.toString(),
-      mode: ChainMode.Devnet,
-      devnet,
-    })
-  }
-}

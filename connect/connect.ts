@@ -125,7 +125,7 @@ export class ConnectConfig extends Config {
     if (!getChain) { // if still unspecified, throw
       throw new ConnectError.UnknownChainSelected(this.chain!, Chain.variants)
     }
-    return getChain(this) as C // create Chain object
+    return getChain({ config: this }) as C // create Chain object
   }
 
   getAgent <A extends Agent> (chain?: Chain): A {
