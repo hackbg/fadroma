@@ -281,9 +281,12 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     try {
       id = (await this.load()).containerId!
     } catch (e) {
-      // if node state is corrupted, spawn
-      this.log.warn(e)
-      this.log.info(`Reading ${bold(shortPath)} failed`)
+      if (!(e?.statusCode == 404 && e?.json?.message.startsWith('No such container'))) {
+        this.log.warn(e)
+      } else {
+        this.log.warn('Devnet container not found, recreating')
+      }
+      this.log.info(`Reading ${bold(shortPath)} failed, starting devnet container`)
       return this.spawn()
     }
 
