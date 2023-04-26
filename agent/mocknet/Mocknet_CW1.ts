@@ -141,7 +141,7 @@ export function makeImports_CW1 (contract: MocknetContract<
       const human   = readUtf8(exports, srcPtr)
       const canon   = bech32.fromWords(bech32.decode(human).words)
       const dst     = region(exports.memory.buffer, dstPtr)
-      log.trace(bold(contract.address), `canonize:`, human, '->', `${canon}`)
+      log.debug(bold(contract.address), `canonize:`, human, '->', `${canon}`)
       writeToRegion(exports, dstPtr, canon)
       return 0
     },
@@ -151,7 +151,7 @@ export function makeImports_CW1 (contract: MocknetContract<
       const canon   = readBuffer(exports, srcPtr)
       const human   = bech32.encode(ADDRESS_PREFIX, bech32.toWords(canon))
       const dst     = region(exports.memory.buffer, dstPtr)
-      log.trace(bold(contract.address), `humanize:`, canon, '->', human)
+      log.debug(bold(contract.address), `humanize:`, canon, '->', human)
       writeToRegionUtf8(exports, dstPtr, human)
       return 0
     },
@@ -193,7 +193,7 @@ export function makeImports_CW1 (contract: MocknetContract<
 
     debug (ptr: Ptr) {
       const exports = getExports()
-      log.trace(bold(contract.address), `debug:`, readUtf8(exports, ptr))
+      log.debug(bold(contract.address), `debug:`, readUtf8(exports, ptr))
       return 0
     },
 

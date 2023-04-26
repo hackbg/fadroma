@@ -122,7 +122,7 @@ export default abstract class MocknetBackend {
         const instance = await this.instantiate(sender, new Contract({
           codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
         }))
-        this.log.trace(
+        this.log.debug(
           `Callback from ${bold(sender)}: instantiated contract`, bold(label),
           'from code id', bold(codeId), 'with hash', bold(codeHash),
           'at address', bold(instance.address!)
@@ -135,7 +135,7 @@ export default abstract class MocknetBackend {
           JSON.parse(b64toUtf8(msg)),
           send
         )
-        this.log.trace(
+        this.log.debug(
           `Callback from ${bold(sender)}: executed transaction`,
           'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
         )

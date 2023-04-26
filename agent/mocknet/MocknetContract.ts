@@ -43,7 +43,7 @@ export default abstract class MocknetContract<I extends ContractImports, E exten
     readonly codeHash?: CodeHash,
     readonly codeId?: CodeId,
   ) {
-    this.log.trace('Instantiating', bold(address))
+    this.log.debug('Instantiating', bold(address))
   }
 
   async load (code: unknown, codeId?: CodeId) {
