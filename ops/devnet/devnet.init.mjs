@@ -16,6 +16,8 @@ function start ({
   grpcAddr    = process.env.grpcAddr    || '0.0.0.0:9090',
   grpcWebAddr = process.env.grpcWebAddr || '0.0.0.0:9091',
   genesisJSON = '~/.secretd/config/genesis.json',
+  uid = process.env._UID,
+  gid = process.env._GID
 } = {}) {
   if (!existsSync(genesisJSON)) {
     console.info(`${genesisJSON} missing -> performing genesis`)
@@ -66,8 +68,8 @@ function genesis ({
     const address  = run(`secretd keys show -a "${name}"`)
     const identity = `${stateDir}/wallet/${name}.json`
     writeFileSync(identity, JSON.stringify({ address, mnemonic }))
-    chmodSync(identity, 0o666) // don't try this at home
-    run(`chmod a+rw ${identity}`)
+    if (uid) run(`chown ${uid} ${identity}`)
+    if (gid) run(`chgrp ${gid} ${identity}`)
   }
 
   console.info('\nAdding genesis accounts...')

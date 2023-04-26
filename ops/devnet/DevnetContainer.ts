@@ -200,6 +200,8 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
       Verbose:         process.env.FADROMA_DEVNET_VERBOSE ? 'yes' : '',
       ChainID:         this.chainId,
       GenesisAccounts: this.genesisAccounts.join(' '),
+      _UID: String(process.env.FADROMA_DEVNET_UID??(process.getuid?process.getuid():1000)),
+      _GID: String(process.env.FADROMA_DEVNET_GID??(process.getgid?process.getgid():1000)),
     }
 
     // Which kind of API to expose at the default container port

@@ -22,7 +22,7 @@
     "ubik":  "npm run check && npm run cov && ubik"
   },
   "peerDependencies": {
-    "@hackbg/ganesha": "^2.2.5"
+    "@hackbg/ganesha": "^4"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": { "optional": true, "description": "For CLI" }

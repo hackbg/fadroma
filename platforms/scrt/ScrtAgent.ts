@@ -223,6 +223,7 @@ export default class ScrtAgent extends Agent {
     if (!this.address) throw new Error.NoAddress()
     const request  = { sender: this.address, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
+    console.log({gasLimit})
     const result   = await api.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
     const { code, message, details = [], rawLog } = result
     if (code !== 0) {

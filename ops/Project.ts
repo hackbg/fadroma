@@ -244,6 +244,7 @@ export default class Project extends CommandContext {
         "@hackbg/fadroma": "latest",
         "@hackbg/ganesha": "latest",
         "dotenv": "^16.0.3",
+        "typescript": "^5",
       },
       scripts: {
         "build":   "fadroma build",
@@ -652,9 +653,12 @@ export class ProjectWizard {
   }
   askRoot (name: string): Promise<Path> {
     const cwd = $(process.cwd())
+    const exists = cwd.in(name).exists()
+    const inSub = `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
+    const inCwd = `Current directory (${cwd.name})`
     return askSelect(`Create project ${name} in current directory or subdirectory?`, [
-      { title: `Subdirectory (${cwd.name}/${name})`, value: cwd.in(name) },
-      { title: `Current directory (${cwd.name})`,    value: cwd },
+      { title: inSub, value: cwd.in(name) },
+      { title: inCwd, value: cwd },
     ])
   }
   askTemplates (name: string):
@@ -673,7 +677,9 @@ export class ProjectWizard {
       const crate = await askText([
         'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):',
       ].join('\n'))
-      state[crate] = { crate }
+      if (crate) {
+        state[crate] = { crate }
+      }
     }
     async function undefineContract (state: Record<string, any>) {
       const name = await askSelect(`Select contract to remove from project scope:`, [
@@ -688,37 +694,46 @@ export class ProjectWizard {
         { title: `(done)`, value: null },
       ])
       const name = await askText(`Enter a new name for ${contract} (a-z, 0-9, dash/underscore):`)
-      state[name] = state[contract]
-      delete state[contract]
+      if (name) {
+        state[name] = state[contract]
+        delete state[contract]
+      }
     }
   }
   askBuilder (context: ReturnType<typeof tools>): 'podman'|'raw'|any {
-    const isDarwin = platform() === 'darwin'
-    return askSelect(`Use build isolation?`, [
-      {
-        title: `No, use local toolchain (${context.cargo||'not installed'})`,
-        value: 'raw'
-      },
-      {
-        title: `Yes, use Podman (${context.podman||'not installed'})`,
-        value: 'podman'
-      },
-      {
-        title: `Yes, use Docker (${context.docker||'not installed'})`,
-        value: 'docker'
-      }
-    ])
+    const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = context
+    const buildRaw    = { value: 'raw',    title: `No, build with local toolchain (${cargo})` }
+    const buildDocker = { value: 'docker', title: `Yes, build in a Docker container (${docker})` }
+    const buildPodman = { value: 'podman', title: `Yes, build in a Podman container (${podman})` }
+    const hasPodman = context.podman && (context.podman !== 'not installed')
+    const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
+    const isLinux = platform() === 'linux'
+    const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
+    return askSelect(`Use build isolation?`, choices)
   }
 }
 
-export function askText <T> (message: string) {
-  return prompts.prompt({ type: 'text', name: 'value', message })
-    .then((x: { value: T })=>x.value)
+export async function askText <T> (
+  message: string,
+  valid = (x: string) => clean(x).length > 0,
+  clean = (x: string) => x.trim()
+) {
+  while (true) {
+    const input = await prompts.prompt({ type: 'text', name: 'value', message })
+    if ('value' in input) {
+      if (valid(input.value)) return clean(input.value)
+    } else {
+      console.error('Input cancelled.')
+      process.exit(1)
+    }
+  }
 }
 
-export function askSelect <T> (message: string, choices: any[]) {
-  return prompts.prompt({ type: 'select', name: 'value', message, choices })
-    .then((x: { value: T })=>x?.value)
+export async function askSelect <T> (message: string, choices: any[]) {
+  const input = await prompts.prompt({ type: 'select', name: 'value', message, choices })
+  if ('value' in input) return input.value
+  console.error('Input cancelled.')
+  process.exit(1)
 }
 
 export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<Function|null>|Function|null) {
@@ -736,6 +751,7 @@ export const tools = () => ({
   npm:    tool('NPM:    ', 'npm --version'),
   yarn:   tool('Yarn:   ', 'yarn --version'),
   pnpm:   tool('PNPM:   ', 'pnpm --version'),
+  tsc:    tool('TSC:    ', 'tsc --version'),
   cargo:  tool('Cargo:  ', 'cargo --version'),
   rust:   tool('Rust:   ', 'rustc --version'),
   docker: tool('Docker: ', 'docker --version'),
