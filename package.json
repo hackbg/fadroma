@@ -69,7 +69,7 @@
     "@hackbg/dock":         "workspace:^1.3",
     "@hackbg/file":         "workspace:^1",
     "@hackbg/port":         "workspace:^1",
-    "@hackbg/cmds":         "workspace:^1.3",
+    "@hackbg/cmds":         "workspace:^1.3.1",
     "@types/dockerode":     "^3.3.14",
     "@types/node":          "latest",
     "@types/prettyjson":    "^0.0.30",
