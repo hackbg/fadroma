@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/agent",
-  "version": "1.0.0-rc.11",
+  "version": "1.0.0-rc.12",
   "type":    "module",
   "main":    "index.ts",
   "files": [ "*.ts", "**/*.ts" ],
@@ -16,7 +16,7 @@
     "@hackbg/dump": "workspace:^1.0.1",
     "@hackbg/hide": "^1",
     "@hackbg/into": "^1.0.1",
-    "@hackbg/logs": "workspace:^2",
+    "@hackbg/logs": "workspace:^2.0.1",
     "@hackbg/many": "^1",
     "@hackbg/oops": "workspace:^1.0.1",
     "@hackbg/over": "^1.0.1"
