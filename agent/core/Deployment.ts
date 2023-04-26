@@ -512,7 +512,7 @@ export class Template<C extends Client> {
   }
   get asInfo (): ContractInfo {
     return {
-      id:        this.codeId!,
+      id:        Number(this.codeId!) as any,
       code_hash: this.codeHash!
     }
   }

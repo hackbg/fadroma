@@ -140,6 +140,10 @@ export default class Project extends CommandContext {
     }
     return crates
   }
+  /** @returns the active deployment */
+  get deployment () {
+    return this.getDeployment()
+  }
 
   runShellCommands = (...cmds: string[]) =>
     cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
