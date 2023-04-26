@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "9.0.0-rc.12",
+  "version": "9.0.0-rc.13",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
@@ -11,7 +11,7 @@
     "secretjs": "1.8.1"
   },
   "peerDependencies": {
-    "@fadroma/agent": "workspace:1.0.0-rc.12"
+    "@fadroma/agent": "workspace:1.0.0-rc.13"
   },
   "devDependencies": {
     "@types/ungap__structured-clone": "^0.3.0",

@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "3.0.0-rc.24",
+  "version": "3.0.0-rc.25",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts" ],
@@ -11,12 +11,12 @@
     "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "dependencies": {
-    "@fadroma/agent": "workspace:^1.0.0-rc.12",
-    "@fadroma/scrt":  "workspace:^9.0.0-rc.12",
+    "@fadroma/agent": "workspace:^1.0.0-rc.13",
+    "@fadroma/scrt":  "workspace:^9.0.0-rc.13",
     "@hackbg/conf":   "workspace:^2"
   },
   "peerDependencies": {
-    "@fadroma/ops": "3.0.0-rc.23"
+    "@fadroma/ops": "3.0.0-rc.24"
   },
   "peerDependenciesMeta": {
     "@fadroma/ops": { "optional": true, "description": "For devnet support." }
