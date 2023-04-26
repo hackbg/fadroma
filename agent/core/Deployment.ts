@@ -665,14 +665,16 @@ export class Contract<C extends Client> extends Template<C> {
   }
   /** @returns an instance of this contract's client
     * @throws tf the contract has no known address. */
-  expect (): C {
+  expect (message?: string): C {
     if (this.address) return new (this.client ?? Client)({
       agent:    this.agent,
       address:  this.address,
       codeHash: this.codeHash,
       meta:     this as any
     } as any) as unknown as C
-    if (this.name) {
+    if (message) {
+      throw new Error(message)
+    } else if (this.name) {
       throw new Error(`Expected contract to be already deployed: ${this.name}`)
     } else {
       throw new Error(`Expected unnamed contract to be already deployed.`)
