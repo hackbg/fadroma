@@ -426,7 +426,7 @@ export default class Project extends CommandContext {
   }
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
-  getDeployment = (name?: string): Deployment|null => {
+  getDeployment = (name?: string): InstanceType<typeof this.Deployment>|null => {
     return this.config.getDeployment(this.Deployment, {
       agent:     this.uploader.agent ??= this.config.getAgent(),
       chain:     this.uploader.agent.chain,
