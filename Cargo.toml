@@ -10,7 +10,7 @@ members = [
   "examples/derive-contract-components",
   "examples/derive-contract-interface",
   "examples/ensemble",
-  "examples/external",
+  #"examples/external",
   "examples/killswitch",
   "examples/kv",
 ]
