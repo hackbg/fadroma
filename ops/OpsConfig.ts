@@ -91,7 +91,8 @@ export default class Config extends ConnectConfig {
     if (!platform) throw new Error('Devnet platform not specified')
     const Engine = this.devnet.podman ? Podman.Engine : Docker.Engine
     const containerEngine = new Engine()
-    return DevnetContainer.getOrCreate(platform, containerEngine)
+    const port = this.devnet.port ? Number(this.devnet.port) : undefined
+    return DevnetContainer.getOrCreate(platform, containerEngine, port)
   }
 }
 

@@ -7,7 +7,7 @@ import type { AgentOpts, DevnetHandle } from '@fadroma/agent'
 
 import * as Dock from '@hackbg/dock'
 import $, { JSONFile, JSONDirectory } from '@hackbg/file'
-import { freePort, waitPort } from '@hackbg/port'
+import { freePort, waitPort, isPortTaken } from '@hackbg/port'
 
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -71,7 +71,8 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
 
   static getOrCreate (
     version: DevnetPlatform,
-    dock:    Dock.Engine
+    dock:    Dock.Engine,
+    port?:   number
   ) {
     const portMode    = devnetPortModes[version]
     const dockerfile  = this.dockerfiles[version]
@@ -80,7 +81,7 @@ export default class DevnetContainer extends Devnet implements DevnetHandle {
     //if (mountInitScript)
     //const initScript = $(devnetPackage, this.initScriptMount).path
     const image = dock.image(imageTag, dockerfile, [this.initScriptMount])
-    return new DevnetContainer({ portMode, image, readyPhrase })
+    return new DevnetContainer({ port, portMode, image, readyPhrase })
   }
 
   /** Filter logs when waiting for the ready phrase. */
