@@ -273,8 +273,8 @@ export default class BuildContainer extends LocalBuilder {
       // Variables used by the build script are prefixed with underscore;
       // variables used by the tools that the build script uses are left as is
       _BUILD_USER: process.env.FADROMA_BUILD_USER ?? 'fadroma-builder',
-      _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getgid ? process.getgid() : undefined),
-      _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getuid ? process.getuid() : undefined),
+      _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getuid ? process.getuid() : undefined),
+      _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getgid ? process.getgid() : undefined),
       _GIT_REMOTE: process.env.FADROMA_PREFERRED_REMOTE ?? 'origin',
       _GIT_SUBDIR: gitSubdir,
       _SUBDIR:     subdir,
