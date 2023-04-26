@@ -76,14 +76,17 @@ export default class Config extends ConnectConfig {
     ...args: ConstructorParameters<typeof $D>
   ): D {
     args = [...args]
-    const chain = args[0]?.chain || this.getChain()
+    args[0] = {...args[0] ?? {}}
+    const chain     = args[0].chain     ||= this.getChain()
     if (!chain) throw new Error('Missing chain')
-    const agent = args[0]?.agent || this.getAgent()
-    const builder = args[0]?.builder || getBuilder()
-    const uploader = args[0]?.uploader || agent.getUploader(FSUploader)
-    const workspace = args[0]?.workspace || process.cwd()
-    args[0] = { config: this, chain, agent, builder, uploader, workspace, ...args }
-    const deployment = this.getDeployStore().getDeployment($D, ...args)
+    const agent     = args[0].agent     ||= this.getAgent()
+    const builder   = args[0].builder   ||= getBuilder()
+    const uploader  = args[0].uploader  ||= agent.getUploader(FSUploader)
+    const workspace = args[0].workspace ||= process.cwd()
+    const store     = args[0].store     ||= this.getDeployStore()
+    if (args[0]) args[0].config ||= this
+    //args[0] = { config: this, chain, agent, builder, uploader, workspace, ...args }
+    const deployment = store.getDeployment($D, ...args)
     return deployment
   }
   /** @returns DevnetContainer */

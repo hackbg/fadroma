@@ -51,10 +51,10 @@
   "dependencies": {
     "@fadroma/agent":   "workspace:*",
     "@fadroma/ops":     "workspace:*",
-    "@fadroma/connect": "workspace:*"
+    "@fadroma/connect": "workspace:*",
+    "dotenv": "^16.0.1"
   },
   "peerDependencies": {
-    "dotenv":          "^16.0.1",
     "@hackbg/ganesha": "^4"
   },
   "peerDependenciesMeta": {

@@ -247,7 +247,6 @@ export default class Project extends CommandContext {
       devDependencies: {
         "@hackbg/fadroma": "latest",
         "@hackbg/ganesha": "latest",
-        "dotenv": "^16.0.3",
         "typescript": "^5",
       },
       scripts: {
@@ -445,7 +444,8 @@ export default class Project extends CommandContext {
       chain:     this.uploader.agent.chain,
       builder:   this.builder,
       uploader:  this.uploader,
-      workspace: this.root.path
+      workspace: this.root.path,
+      store
     })
   }
   listDeployments = () =>
