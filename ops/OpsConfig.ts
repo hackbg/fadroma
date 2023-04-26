@@ -118,7 +118,7 @@ export class BuilderConfig extends BaseConfig {
   buildRaw: boolean = this.getFlag('FADROMA_BUILD_RAW', ()=>false)
   /** Whether to use Podman instead of Docker to run the build container. */
   podman: boolean = this.getFlag('FADROMA_BUILD_PODMAN', () =>
-    this.getFlag('FADROMA_PODMAN', ()=>false))
+    this.getFlag('FADROMA_BUILD_PODMAN', ()=>false))
   /** Path to Docker API endpoint. */
   dockerSocket: string = this.getString('FADROMA_DOCKER',
     ()=>'/var/run/docker.sock')

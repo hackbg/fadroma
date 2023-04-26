@@ -13,6 +13,7 @@ import Config from './OpsConfig'
 import Case from 'case'
 import prompts from 'prompts'
 import { execSync } from 'node:child_process'
+import { platform } from 'node:os'
 
 //@ts-ignore
 export const { version } = $(import.meta.url, '../package.json').as(JSONFile).load() as any
@@ -557,13 +558,19 @@ export class ContractCrate {
 
 export class ProjectWizard {
   async createProject (): Promise<Project> {
-    let { git, pnpm, yarn, npm, cargo, docker, podman } = envDependencies()
+    const context = tools()
+    let { git, pnpm, yarn, npm, cargo, docker, podman } = context
     const name = await this.askName()
     const root = $(await this.askRoot(name)).as(OpaqueDirectory)
     const templates = await this.askTemplates(name)
     // TODO: ask/autodetect: build (docker/podman/raw), devnet (docker/podman)
     const project = new Project({ name, root, templates: templates as any })
     await project.create()
+    switch (await this.askBuilder(context)) {
+      case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
+      case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
+      default:
+    }
     let changed = false
     let nonfatal = false
     if (git) {
@@ -615,7 +622,7 @@ export class ProjectWizard {
       try {
         project.runShellCommands(
           'git --no-pager add .',
-          'git --no-pager status,',
+          'git --no-pager status',
           'git --no-pager commit -m "Updated lockfiles."',
         )
       } catch (e) {
@@ -685,6 +692,23 @@ export class ProjectWizard {
       delete state[contract]
     }
   }
+  askBuilder (context: ReturnType<typeof tools>): 'podman'|'raw'|any {
+    const isDarwin = platform() === 'darwin'
+    return askSelect(`Use build isolation?`, [
+      {
+        title: `No, use local toolchain (${context.cargo||'not installed'})`,
+        value: 'raw'
+      },
+      {
+        title: `Yes, use Podman (${context.podman||'not installed'})`,
+        value: 'podman'
+      },
+      {
+        title: `Yes, use Docker (${context.docker||'not installed'})`,
+        value: 'docker'
+      }
+    ])
+  }
 }
 
 export function askText <T> (message: string) {
@@ -705,27 +729,27 @@ export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<
   return state
 }
 
-export const envDependencies = () => ({
+export const tools = () => ({
   //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
-  git:    checkEnvDependency('Git:    ', 'git --no-pager --version'),
-  node:   checkEnvDependency('Node:   ', 'node --version'),
-  npm:    checkEnvDependency('NPM:    ', 'npm --version'),
-  yarn:   checkEnvDependency('Yarn:   ', 'yarn --version'),
-  pnpm:   checkEnvDependency('PNPM:   ', 'pnpm --version'),
-  cargo:  checkEnvDependency('Cargo:  ', 'cargo --version'),
-  rust:   checkEnvDependency('Rust:   ', 'rustc --version'),
-  docker: checkEnvDependency('Docker: ', 'docker --version'),
-  podman: checkEnvDependency('Podman: ', 'podman --version'),
-  nix:    checkEnvDependency('Nix:    ', 'nix --version'),
+  git:    tool('Git:    ', 'git --no-pager --version'),
+  node:   tool('Node:   ', 'node --version'),
+  npm:    tool('NPM:    ', 'npm --version'),
+  yarn:   tool('Yarn:   ', 'yarn --version'),
+  pnpm:   tool('PNPM:   ', 'pnpm --version'),
+  cargo:  tool('Cargo:  ', 'cargo --version'),
+  rust:   tool('Rust:   ', 'rustc --version'),
+  docker: tool('Docker: ', 'docker --version'),
+  podman: tool('Podman: ', 'podman --version'),
+  nix:    tool('Nix:    ', 'nix --version'),
 })
 
-export const checkEnvDependency = (dependency: string, command: string): string|null => {
+export const tool = (dependency: string, command: string): string|null => {
   let version = null
   try {
-    const version = execSync(command)
-    console.log(bold(dependency), String(version).trim())
+    version = String(execSync(command)).trim()
+    console.log(bold(dependency), version)
   } catch (e) {
-    console.log(bold(dependency), colors.yellow('(not found)'))
+    console.warn(bold(dependency), colors.yellow('(not found)'))
   } finally {
     return version
   }
