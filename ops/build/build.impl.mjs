@@ -11,6 +11,31 @@ const phase = argv[2]
 const main = phases[phase]
 main()
 
+function tool (command) {
+  let version = null
+  try {
+    version = String(execSync(command)).trim()
+    console.log('*', version)
+  } catch (e) {
+    console.log(`!`, `not found: ${command}`)
+  } finally {
+    return version
+  }
+}
+
+function tools () {
+  log('Checking tools')
+  return {
+    git:         tool(`git --version`),
+    rustup:      tool(`rustup --version`),
+    cargo:       tool(`cargo --version`),
+    rustc:       tool(`rustc --version`),
+    wasmOpt:     tool(`wasm-opt --version`),
+    wasmObjdump: tool(`wasm-objdump --version`),
+    sha256Sum:   tool(`sha256sum --version | head -n1`),
+  }
+}
+
 /** As the initial user, set up the container and the source workspace,
   * checking out an old commit if specified. Then, call phase 2 with
   * the name of each crate sequentially. */
@@ -25,11 +50,11 @@ function phase1 (options = {}) {
     gitRoot     = env('_GIT_ROOT',   `/src/.git`),
     gitSubdir   = env('_GIT_SUBDIR', ''),
     gitRemote   = env('_GIT_REMOTE', 'origin'),
-    uid         = env('_BUILD_UID',  1000),
-    gid         = env('_BUILD_GID',  1000),
     noFetch     = env('_NO_FETCH',   false),
     outputDir   = env('_OUTPUT', '/output'),
     docker      = env('RUNNING_IN_DOCKER', false), // are we running in a container?
+    uid         = env('_BUILD_UID',  process.getuid()),
+    gid         = env('_BUILD_GID',  process.getgid()),
     interpreter = argv[0], // e.g. /usr/bin/node
     script      = argv[1], // this file
     ref         = argv[3], // "HEAD" | <git ref>
@@ -43,32 +68,26 @@ function phase1 (options = {}) {
   } = options
 
   log('Build phase 1: Preparing source repository for', ref)
+  const context = tools()
+  if (verbose) lookAround()
   setupToolchain()
-  reportContext()
   prepareContext()
   prepareSource()
   buildCrates()
 
+  function lookAround () {
+    run(`pwd`)
+    run(`ls -al`)
+    run(`ls -al /tmp/target`)
+  }
+
   function setupToolchain () {
     if (toolchain) {
+      if (!context.rustup) throw new Error("please install rustup")
       run(`rustup default ${toolchain}`)
       run(`rustup target add ${platform}`)
     }
-    run(`rustup show active-toolchain`)
-  }
-
-  function reportContext () {
-    // Print versions of used tools
-    run(`cargo --version`)
-    run(`rustc --version`)
-    run(`wasm-opt --version`)
-    run(`sha256sum --version | head -n1`)
-    // In verbose mode, also "look around".
-    if (verbose) {
-      run(`pwd`)
-      run(`ls -al`)
-      run(`ls -al /tmp/target`)
-    }
+    if (context.rustup) run(`rustup show active-toolchain`)
   }
 
   function prepareContext () {
@@ -84,7 +103,6 @@ function phase1 (options = {}) {
 
   function prepareSource () {
     // Copy the source into the build dir
-    run(`git --version`)
     if (ref === 'HEAD') {
       log(`Building from working tree.`)
       chdir(subdir)
@@ -94,8 +112,9 @@ function phase1 (options = {}) {
   }
 
   function prepareHistory () {
+    if (!context.git) throw new Error("please install git")
     log(`Building from checkout of ${ref}`)
-    // This works by using ".git" (or ".git/modules/something") as a remote
+    // This works by using ".git" (or "../???/.git/modules/something") as a remote
     // and cloning from it. Since we may need to modify that directory,
     // we'll make a copy. This may be slow if ".git" is huge
     // (but at least it's not the entire working tree with node_modules etc)
@@ -103,8 +122,8 @@ function phase1 (options = {}) {
     gitRoot = tmpGit
     gitDir  = resolve(gitRoot, gitSubdir)
     // Helper functions to run with ".git" in a non-default location.
-    const gitRun  = command => run(`GIT_DIR=${gitDir} git ${command}`)
-    const gitCall = command => call(`GIT_DIR=${gitDir} git ${command}`)
+    const gitRun  = command => run(`GIT_DIR=${gitDir} git --no-pager ${command}`)
+    const gitCall = command => call(`GIT_DIR=${gitDir} git --no-pager ${command}`)
     // Make this a bare checkout by removing the path to the working tree from the config.
     // We can't use "config --local --unset core.worktree" - since the working tree path
     // does not exist, git command invocations fail with "no such file or directory".
@@ -126,10 +145,10 @@ function phase1 (options = {}) {
         exit(1)
       } else {
         try {
-          console.warn(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
+          warn(`${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
           gitRun(`fetch origin --recurse-submodules ${ref}`)
         } catch (e) {
-          console.warn(`${ref}: failed to fetch: ${e.message}`)
+          warn(`${ref}: failed to fetch: ${e.message}`)
         }
         const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
         const remoteRef = shown.split(' ')[0]
@@ -140,16 +159,16 @@ function phase1 (options = {}) {
       }
     }
     // Clone from the temporary local remote into the temporary working tree
-    run(`git clone --recursive -b ${ref} ${gitDir} ${buildRoot}`)
+    git(`clone --recursive -b ${ref} ${gitDir} ${buildRoot}`)
     chdir(buildRoot)
     // Report which commit we're building and what it looks like
-    run(`git log -1`)
+    git(`log -1`)
     if (verbose) run('pwd')
     if (verbose) run('ls -al')
     log()
     // Clone submodules
     log(`Populating Git submodules...`)
-    run(`git submodule update --init --recursive`)
+    git(`submodule update --init --recursive`)
     chdir(subdir)
   }
 
@@ -180,16 +199,30 @@ function phase1 (options = {}) {
       //run(`cp ${compiled} ${optimized}.unoptimized`)
       //run(`chmod -x ${optimized}.unoptimized`)
       if (verbose) {
-        log(`WASM section headers of ${compiled}:`)
-        run(`wasm-objdump -h ${compiled}`)
+        if (context.wasmObjdump) {
+          log(`WASM section headers of ${compiled}:`)
+          run(`wasm-objdump -h ${compiled}`)
+        } else {
+          warn('please install wabt')
+        }
       }
-      log(`Optimizing ${compiled} into ${optimized}...`)
-      run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
-      if (verbose) {
-        log(`* WASM section headers of ${optimized}:`)
-        run(`wasm-objdump -h ${optimized}`)
+      if (context.wasmOpt) {
+        log(`Optimizing ${compiled} into ${optimized}...`)
+        run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
+        if (verbose) {
+          if (context.wasmObjdump) {
+            log(`WASM section headers of ${optimized}:`)
+            run(`wasm-objdump -h ${optimized}`)
+          } else {
+            warn('please install wabt')
+          }
+        }
+        log(`Optimization complete`)
+      } else {
+        warn('please install wasm-opt')
+        log(`Copying ${compiled} to ${optimized}...`)
+        run(`cp ${compiled} ${optimized}`)
       }
-      log(`Optimization complete`)
       // Output checksum to artifacts directory
       log(`Saving checksum for ${optimized} into ${checksum}...`)
       run(`sha256sum -b ${optimized} > ${checksum}`)
@@ -208,6 +241,10 @@ function log (...args) {
   return console.log("#", ...args)
 }
 
+function warn (...args) {
+  return console.warn("!", ...args)
+}
+
 function env (key, def) {
   let val = (key in process.env) ? process.env[key] : def
   if (val === '0')     val = 0
@@ -217,7 +254,11 @@ function env (key, def) {
 
 function run (command, env2 = {}) {
   if (verbose) console.log('$', command)
-  execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
+  return execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
+}
+
+function git (command, ...args) {
+  return run(`git --no-paged ${command}`, ...args)
 }
 
 function call (command) {

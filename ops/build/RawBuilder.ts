@@ -16,7 +16,7 @@ export default class RawBuilder extends LocalBuilder {
 
   readonly id = 'Raw'
 
-  log = new Console('@fadroma/build: Raw')
+  log = new Console('Build:')
 
   runtime = process.argv[0]
 
@@ -34,7 +34,7 @@ export default class RawBuilder extends LocalBuilder {
     const env = {
       _BUILD_GID: process.getgid ? process.getgid() : undefined,
       _BUILD_UID: process.getuid ? process.getuid() : undefined,
-      _OUTPUT:    $(workspace).in('dist').path,
+      _OUTPUT:    $(workspace).in('wasm').path,
       _REGISTRY:  '',
       _TOOLCHAIN: this.toolchain,
     }
@@ -89,7 +89,7 @@ export default class RawBuilder extends LocalBuilder {
 
     // Create an artifact for the build result
     const location = $(env._OUTPUT, artifactName(crate, sanitize(revision)))
-    this.log.info('Build ok:', bold(location.shortPath))
+    this.log.sub(source.crate).log('Build ok:', bold(location.shortPath))
     return Object.assign(source, {
       artifact: pathToFileURL(location.path),
       codeHash: this.hashPath(location.path)
