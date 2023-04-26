@@ -76,7 +76,7 @@ export default class Config extends ConnectConfig {
     ...args: ConstructorParameters<typeof $D>
   ): D {
     args = [...args]
-    args[0] = {...args[0] ?? {}}
+    args[0] = {...args[0] ?? {} }
     const chain     = args[0].chain     ||= this.getChain()
     if (!chain) throw new Error('Missing chain')
     const agent     = args[0].agent     ||= this.getAgent()
@@ -84,6 +84,7 @@ export default class Config extends ConnectConfig {
     const uploader  = args[0].uploader  ||= agent.getUploader(FSUploader)
     const workspace = args[0].workspace ||= process.cwd()
     const store     = args[0].store     ||= this.getDeployStore()
+    const name      = args[0].name      ||= store.activeName || undefined
     if (args[0]) args[0].config ||= this
     //args[0] = { config: this, chain, agent, builder, uploader, workspace, ...args }
     const deployment = store.getDeployment($D, ...args)

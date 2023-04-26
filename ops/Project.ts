@@ -4,7 +4,7 @@ import type {
   Builder, Buildable, Built, Uploader, Uploadable, Uploaded,
   Chain, ChainId, DeploymentState, DeployStore
 } from '@fadroma/agent'
-import { Template, Deployment } from '@fadroma/agent'
+import { Template, Deployment, timestamp } from '@fadroma/agent'
 import $, { Path, OpaqueDirectory, OpaqueFile, JSONFile, TOMLFile, TextFile } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 import Console, { bold, colors } from './OpsConsole'
@@ -95,14 +95,6 @@ export default class Project extends CommandContext {
                  this.exportDeployment)
     this.command('reset',  'stop and erase running devnet',
                  this.resetDevnet)
-    const deployment = this.getDeployment()
-    if (deployment) {
-      this.commands('deployment', 'manage deployments of current project',
-        {} as CommandContext)
-      this.commands('contracts', 'manage contracts in current deployment',
-        {} as CommandContext)
-    }
-
   }
 
   /** @returns stateless handles for the subdirectories of the project. */
@@ -144,6 +136,10 @@ export default class Project extends CommandContext {
   get deployment () {
     return this.getDeployment()
   }
+  /** @returns an up-to-date DeployStore */
+  get deployStore () {
+    return this.config.getDeployStore()
+  }
 
   runShellCommands = (...cmds: string[]) =>
     cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
@@ -179,6 +175,7 @@ export default class Project extends CommandContext {
     * @returns this */
   status = () => {
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
+    this.log.info()
     if (!chain) {
       this.log.info('No chain selected.')
     } else {
@@ -186,27 +183,27 @@ export default class Project extends CommandContext {
       this.log.info('Chain mode:             ', bold(chain.mode))
       this.log.info('Chain ID:               ', bold(chain.id))
       this.log.info('Chain URL:              ', bold(chain.url.toString()))
+      this.log.info()
     }
-    if (this.files.fadromaJson.exists()) {
-      this.log.info('Project name:           ', bold(this.name))
-      this.log.info('Project root:           ', bold(this.root.path))
-      this.log.info('Templates in project:   ', bold(Object.keys(this.templates).join(', ')))
-      this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
-      this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
-      this.log.info('Chain-specific state at:', bold(this.dirs.state.shortPath))
-      if (this.dirs.state.exists()) {
-        const states = this.dirs.state.list()
-        if (states && states.length > 0) {
-          this.log.info('Has state for chains:     ', bold(this.dirs.state.list()?.join(', ')))
-        } else {
-          this.log.info('No transactions recorded.')
-        }
-        const deployment = this.getDeployment()
-        if (deployment) {
-          this.log.info(deployment)
-        } else {
-          this.log.info('No active deployment.')
-        }
+    this.log.info('Project name:           ', bold(this.name))
+    this.log.info('Project root:           ', bold(this.root.path))
+    this.log.info('Templates in project:   ', bold(Object.keys(this.templates).join(', ')))
+    this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
+    this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
+    this.log.info('Chain-specific state at:', bold(this.dirs.state.shortPath))
+    if (this.dirs.state.exists()) {
+      const states = this.dirs.state.list()
+      if (states && states.length > 0) {
+        this.log.info('Contains state for:     ', bold(this.dirs.state.list()?.join(', ')))
+      } else {
+        this.log.info('No transactions recorded.')
+      }
+      const deployment = this.deployment
+      if (deployment) {
+        this.log.info()
+        this.log.deployment(deployment)
+      } else {
+        this.log.info('No active deployment.')
       }
     } else {
       this.log.info('No active project.')
@@ -390,10 +387,6 @@ export default class Project extends CommandContext {
     }
     return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
   }
-  getBuildState = () => [
-    ...this.dirs.wasm.list()?.filter(x=>x.endsWith('.wasm'))        ?? [],
-    ...this.dirs.wasm.list()?.filter(x=>x.endsWith('.wasm.sha256')) ?? [],
-  ]
   /** Uploads one or more named templates, or all templates if no arguments are passed.
     * Builds templates with missing artifacts if sources are available. */
   upload = async (...names: string[]): Promise<Uploaded[]> => {
@@ -422,30 +415,25 @@ export default class Project extends CommandContext {
       templates as (Template<any> & Buildable & Built & Uploadable)[]
     )
   }
-  getUploadState = (chainId: ChainId|null = this.config.chainId) =>
-    chainId ? this.dirs.state.in(chainId).in('upload').as(OpaqueDirectory).list() : {}
   deploy = async (...args: string[]) => {
-    const deployment = await this.getDeployment()
-    if (deployment) {
-      this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
-      await deployment.deploy()
-    } else {
-      this
-    }
+    const deployment = this.deployment
+    if (!deployment) throw new Error.NoDeployment()
+    this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
+    await deployment.deploy()
+    await this.log.deployment(deployment)
+    await this.selectDeployment(deployment.name)
+    return this
   }
-  getDeployState = (chainId: ChainId|null = this.config.chainId) =>
-    chainId ? this.dirs.state.in(chainId).in('deploy').as(OpaqueDirectory).list() : {}
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
   getDeployment = (name?: string): Deployment|null => {
-    const store = this.config.getDeployStore()
     return this.config.getDeployment(this.Deployment, {
       agent:     this.uploader.agent ??= this.config.getAgent(),
       chain:     this.uploader.agent.chain,
       builder:   this.builder,
       uploader:  this.uploader,
       workspace: this.root.path,
-      store
+      store:     this.deployStore
     })
   }
   listDeployments = () =>
@@ -456,12 +444,19 @@ export default class Project extends CommandContext {
   createDeployment = (name: string) =>
     this.config.getDeployStore().create(name).then(()=>this.selectDeployment(name))
   selectDeployment = async (name?: string): Promise<DeploymentState|null> => {
-    const store = this.config.getDeployStore()
+    const store = this.deployStore
     const list = store.list()
     if (list.length < 1) throw new Error('No deployments in this store')
     let deployment
     if (name) {
       deployment = await store.select(name)
+    } else if (process.stdout.isTTY) {
+      name = await ProjectWizard.selectDeploymentFromStore(store)
+      if (name) {
+        return await store.select(name)
+      } else {
+        return null
+      }
     } else if (store.active) {
       deployment = store.active
     } else {
@@ -470,21 +465,33 @@ export default class Project extends CommandContext {
     return deployment || null
   }
   exportDeployment = async (path?: string) => {
-    const store = this.config.getDeployStore()
-    const deployment = store.active
+    const store = this.deployStore
+    const name  = this.deployStore.activeName
+    if (!name) throw new Error.Deploy.NoDeployment()
+    const state = store.load(name)
+    if (!state) throw new Error.Deploy.NoDeployment()
+    const deployment = this.deployment
     if (!deployment) throw new Error.Deploy.NoDeployment()
-    const state: Record<string, any> = JSON.parse(JSON.stringify(deployment.state))
-    for (const [name, contract] of Object.entries(state)) {
-      delete contract.workspace
-      delete contract.artifact
-      delete contract.log
-      delete contract.initMsg
-      delete contract.builderId
-      delete contract.uploaderId
+    const jsonFile = `${name}_@_${timestamp()}.json`
+    this.log.log(`Exporting deployment`, deployment.name, 'to', jsonFile)
+    this.log.deployment(deployment)
+    for (const [name, contract] of Object.entries(deployment.state)) {
+      state[name] = {
+        ...contract,
+        context:  undefined,
+        builder:  undefined,
+        uploader: undefined,
+        agent:    undefined
+      }
     }
-    const file = $(path??'').at(`${deployment.name}.json`).as(JSONFile)
+    const file = $(path??(deployment?.store as any)?.root?.path??'')
+      .at(jsonFile)
+      .as(JSONFile)
     file.save(state)
-    this.log.info('Wrote', Object.keys(state).length, 'contracts to', bold(file.shortPath))
+    this.log.info(
+      'Wrote', Object.keys(state).length,
+      'contracts to', bold(file.shortPath)
+    )
   }
   resetDevnet = async () => {
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
@@ -571,7 +578,7 @@ export class ProjectWizard {
     // TODO: ask/autodetect: build (docker/podman/raw), devnet (docker/podman)
     const project = new Project({ name, root, templates: templates as any })
     await project.create()
-    switch (await this.askBuilder(context)) {
+    switch (await this.selectBuilder(context)) {
       case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
       case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
       default:
@@ -704,7 +711,8 @@ export class ProjectWizard {
       }
     }
   }
-  askBuilder (context: ReturnType<typeof tools>): 'podman'|'raw'|any {
+
+  selectBuilder (context: ReturnType<typeof tools>): 'podman'|'raw'|any {
     const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = context
     const buildRaw    = { value: 'raw',    title: `No, build with local toolchain (${cargo})` }
     const buildDocker = { value: 'docker', title: `Yes, build in a Docker container (${docker})` }
@@ -715,6 +723,19 @@ export class ProjectWizard {
     const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
     return askSelect(`Use build isolation?`, choices)
   }
+
+  static selectDeploymentFromStore = async (store: DeployStore & {
+    root?: Path
+  }): Promise<string|undefined> => {
+    const label = store.root
+      ? `Select a deployment from ${store.root.shortPath}:`
+      : `Select a deployment:`
+    return await askSelect(label, [
+      ...store.list().map(title=>({ title, value: title })),
+      { title: '(cancel)', value: undefined }
+    ])
+  }
+
 }
 
 export async function askText <T> (

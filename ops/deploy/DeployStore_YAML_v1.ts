@@ -41,6 +41,11 @@ export default class YAMLDeployments_v1 extends DeployStore {
   get active () {
     return this.load(this.KEY)
   }
+  get activeName (): string|null {
+    let file = this.root.at(`${this.KEY}.yml`)
+    if (!file.exists()) return null
+    return basename(file.real.name, '.yml')
+  }
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<DeploymentState> {
     this.log.deploy.creating(name)
@@ -80,8 +85,12 @@ export default class YAMLDeployments_v1 extends DeployStore {
   }
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   load (name: string): DeploymentState|null {
-    let file = this.root.at(`${name}.yml`)
-    if (!file.exists()) return null
+    const file = this.root.at(`${name}.yml`)
+    this.log.log('Loading deployment', name, 'from', file.shortPath)
+    if (!file.exists()) {
+      this.log.error(`${file.shortPath} does not exist.`)
+      return null
+    }
     name = basename(file.real.name, '.yml')
     const state: DeploymentState = {}
     for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {

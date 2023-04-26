@@ -20,6 +20,10 @@ export default class YAMLDeployments_v2 extends DeployStore {
 
   store: YAMLDirectory<unknown>
 
+  get activeName (): string {
+    throw new Error('Not implemented')
+  }
+
   async create (name: string = timestamp()): Promise<DeploymentState> {
     throw new Error('Not implemented')
   }

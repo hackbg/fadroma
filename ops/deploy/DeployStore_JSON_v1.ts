@@ -20,6 +20,10 @@ export default class JSONDeployments_v1 extends DeployStore {
 
   log = new Console('@fadroma/ops: json 1')
 
+  get activeName (): string {
+    throw new Error('Not implemented')
+  }
+
   async create (name: string = timestamp()): Promise<DeploymentState> {
     throw new Error('Not implemented')
   }

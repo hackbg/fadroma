@@ -53,7 +53,7 @@ export default class Console extends BaseConsole {
       const len = Math.max(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
       const count = Object.values(state).length
       if (count > 0) {
-        this.info(`${bold(String(count))} contracts in deployment ${bold(name)}:`)
+        this.info(`${bold(String(count))} contract(s) in deployment ${bold(name)}:`)
         for (const name of Object.keys(state).sort()) {
           this.receipt(name, state[name], len)
         }
@@ -77,19 +77,17 @@ export default class Console extends BaseConsole {
       repository = colors.gray('(unspecified source)')
     } = receipt
     name = bold(name)
-    if (len + 64 < this.width - 4) {
-      codeId = bold(codeId)
-      crate  = bold(crate)
-      this.info(name)
-      this.info(`at ${address} : ${codeHash}`)
-      this.info(`is ${crate} from ${repository} as ${codeId}`)
-    } else {
-      this.info()
-      this.info(name)
-      this.info(address)
-      this.info(codeHash)
-      this.info(codeId)
-    }
+    address = bold(address)
+    codeHash = bold(codeHash)
+    codeId = bold(codeId)
+    crate = bold(crate)
+    this.info()
+    this.info(`- name: ${name}`)
+    this.info(`  addr: ${address}`)
+    this.info(`  hash: ${codeHash}`)
+    this.info(`  code: ${codeId}`)
+    this.info(`  repo: ${repository}`)
+    this.info(`  crate: ${crate}`)
   }
 
   foundDeployedContract (address: Address, name: Name) {
@@ -153,7 +151,7 @@ export default class Console extends BaseConsole {
   }
 
   saving (name: string, state: object) {
-    //this.log.log('Saving:  ', bold(name))
+    this.log('Saving deployment', bold(name))
     //this.log.log(Object.keys(state).join(', '))
   }
 

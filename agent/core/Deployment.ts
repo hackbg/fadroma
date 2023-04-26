@@ -44,6 +44,8 @@ export abstract class DeployStore {
   abstract select (name: string): Promise<DeploymentState>
   /** Get the active deployment, or null if there isn't one. */
   abstract get active (): DeploymentState|null
+  /** Get name of the active deployment, or null if there isn't one. */
+  abstract get activeName (): string|null
   /** Default values for Deployments created from this store. */
   defaults: Partial<Deployment> = {}
   /** Create a new Deployment, and populate with stored data.
@@ -174,6 +176,7 @@ export class Deployment {
       // FIXME PERF: bundle concurrent inits into a single transaction
       for (const contract of contracts) await contract.deployed
       log.log('Deployed', contracts.length, 'contracts')
+      this.save()
     } else {
       log.warn('No contracts defined in deployment')
     }
@@ -244,7 +247,6 @@ export class Deployment {
     * @returns the passed Contract */
   addContract <C extends Client> (id: Name, contract: Contract<C>) {
     this.state[id] = contract as unknown as AnyContract
-    this.save()
     return contract
   }
   /** Throw if a contract with the specified name is not found in this deployment.
