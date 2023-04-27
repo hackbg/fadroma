@@ -44,9 +44,6 @@ jobs:
       - name: Generate TS reference
         run: NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedoc
 
-      #- name: Generate VitePress guide
-        #run:  VITEPRESS_BASE="/${{ github.ref_name }}/" pnpm docs:vp:build
-
       - name: Generate TypeScript coverage
         run: pnpm test:lcov || true
 
@@ -57,6 +54,8 @@ jobs:
           mv target/doc dist/docs/rs
           mv docs dist/docs/api/ts
           mv coverage/lcov-report dist/docs/cov/ts
+          mv .docs/* dist/docs
+          cp -r assets/* dist/docs
           tar -cvf dist/docs/nix shell.nix
 
       - name: Publish docs
@@ -71,17 +70,9 @@ jobs:
           echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/refs/heads/gh-pages
           mkdir -p ../page
           mv dist/docs/* ../page
-          cp .gitmodules .. || true
-          cp homepage/index.html ..
-          cp homepage/style.css ..
           git checkout gh-pages
           git clean -fdx
-          touch .nojekyll
-          echo "fadroma.tech" > CNAME
-          rm -rf "${{ github.ref_name }}"
-          mv ../page "${{ github.ref_name }}"
-          mv ../.gitmodules . || true
-          mv ../index.html .
+          mv ../page/* .
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
           git add .

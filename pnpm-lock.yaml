@@ -109,6 +109,7 @@ importers:
       js-yaml: ^4.1.0
       markdown-it: ^13.0.1
       markdown-it-anchor: ^8.6.7
+      markdown-it-highlightjs: ^4.0.1
       markdown-it-table-of-contents: ^0.6.0
       pug: ^3.0.2
       typescript: ^5.0.4
@@ -127,6 +128,7 @@ importers:
       js-yaml: 4.1.0
       markdown-it: 13.0.1
       markdown-it-anchor: 8.6.7_ea7kj7wzjkld5jo2noyjqxi764
+      markdown-it-highlightjs: 4.0.1
       markdown-it-table-of-contents: 0.6.0
       pug: 3.0.2
       typescript: 5.0.4
@@ -2837,6 +2839,12 @@ packages:
     dependencies:
       '@types/markdown-it': 12.2.3
       markdown-it: 13.0.1
+    dev: false
+
+  /markdown-it-highlightjs/4.0.1:
+    resolution: {integrity: sha512-EPXwFEN6P5nqR3G4KjT20r20xbGYKMMA/360hhSYFmeoGXTE6hsLtJAiB/8ID8slVH4CWHHEL7GX0YenyIstVQ==}
+    dependencies:
+      highlight.js: 11.7.0
     dev: false
 
   /markdown-it-table-of-contents/0.6.0:
