@@ -1,10 +1,34 @@
-# Icons as inline svg paths, see https://icomoon.io/#docs/inline-svg
+routes:
+  - path: /index.html
+    page: index.pug
+  - path: /agent
+    page: spec/Agent.spec.ts.md
+  - path: /build
+    page: spec/Build.spec.ts.md
+  - path: /connect
+    page: spec/Connect.spec.ts.md
+  - path: /deploy
+    page: spec/Deploy.spec.ts.md
+  - path: /devnet
+    page: spec/Devnet.spec.ts.md
+  - path: /mocknet
+    page: spec/Mocknet.spec.ts.md
+  - path: /ops
+    page: spec/Ops.spec.ts.md
+  - path: /project
+    page: spec/Project.spec.ts.md
+  - path: /scrt
+    page: spec/Scrt.spec.ts.md
+  - path: /snip20
+    page: spec/Snip20.spec.ts.md
+  - path: /upload
+    page: spec/Upload.spec.ts.md
 
 styles:
   - assets/fonts.css
   - assets/style.css
 
-icons:
+icons: # Icons as inline svg paths, see https://icomoon.io/#docs/inline-svg
 
   - id: book
     title: Documentation

@@ -27,3 +27,4 @@ WORKSPACE
 empty.wasm.json
 dist
 index.html
+.docs
