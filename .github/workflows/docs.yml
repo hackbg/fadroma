@@ -73,8 +73,8 @@ jobs:
           cp .gitmodules .. || true
           git checkout gh-pages
           git clean -fdx
-          mv ../page/* .
-          mv ../.gitmodules . || true
+          cp -rv ../page/* .
+          #mv ../.gitmodules . || true
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
           git add .
