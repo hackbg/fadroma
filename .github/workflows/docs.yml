@@ -44,16 +44,16 @@ jobs:
       - name: Generate TS reference
         run: NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedoc
 
-      - name: Generate TypeScript coverage
-        run: pnpm test:lcov || true
+      #- name: Generate TypeScript coverage
+      #  run: pnpm test:lcov || true
 
       - name: Collect docs
         run: |
           mkdir -p dist/docs dist/docs/api dist/docs/cov
           #mv .vitepress/dist/* dist/docs
           mv target/doc dist/docs/rs
-          mv docs dist/docs/api/ts
-          mv coverage/lcov-report dist/docs/cov/ts
+          mv docs dist/docs/ts
+          #mv coverage/lcov-report dist/docs/cov/ts
           mv .docs/* dist/docs
           cp -r assets/* dist/docs
           tar -cvf dist/docs/nix shell.nix
