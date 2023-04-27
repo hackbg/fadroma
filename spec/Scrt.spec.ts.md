@@ -1,12 +1,13 @@
-# Fadroma: Secret Network support
+# Operating on Secret Network with `@fadroma/scrt`
 
 Fadroma's support for Secret Network is achieved in this package,
-by implementing the Fadroma Agent API (`Chain`, `Agent`, `Bundle`),
-as well as SN-specific features (`ViewingKeyClient`).
+by implementing the core Fadroma Agent API (`Chain`, `Agent`, `Bundle`),
+as well as SN-specific amenities on top of it (such as a `Snip20` token client
+and a `ViewingKeyClient`).
 
-Note that this package should be kept isomorphic (see `@fadroma/agent`).
-Platform-specific logic and artifacts for Secret Network also exists
-in `@fadroma/devnet`.
+* Like `@fadroma/agent`, this package aims to be *isomorphic*:
+  one of its design goals is to be usable in Node and browsers without modification.
+* `@fadroma/ops` automatically has this package through `@fadroma/connect`
 
 ```typescript
 import { Scrt } from '@fadroma/connect'
