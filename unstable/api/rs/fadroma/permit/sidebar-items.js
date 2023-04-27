@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":[["Coin",""],["Fee",""],["Permit",""],["PermitContent",""],["PermitMsg",""],["PermitParams",""],["PermitSignature",""],["PubKey",""],["SignedPermit",""]],"trait":[["Permission",""]]};

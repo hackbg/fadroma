@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":[["Ripemd160","Structure representing the state of a Ripemd160 computation"]],"trait":[["Digest","The `Digest` trait specifies an interface common for digest functions."]]};

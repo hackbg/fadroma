@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":[["SharedSecret","A tag used for recovering the public key from a compact signature"]]};

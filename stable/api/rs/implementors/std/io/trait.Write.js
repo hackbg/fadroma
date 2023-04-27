@@ -1,4 +1,0 @@
-(function() {var implementors = {
-"base64":[["impl&lt;'a, W:&nbsp;<a class=\"trait\" href=\"https://doc.rust-lang.org/1.65.0/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.65.0/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"base64/write/struct.EncoderWriter.html\" title=\"struct base64::write::EncoderWriter\">EncoderWriter</a>&lt;'a, W&gt;"]],
-"ripemd160":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.65.0/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"ripemd160/struct.Ripemd160.html\" title=\"struct ripemd160::Ripemd160\">Ripemd160</a>"]]
-};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":[["Response",""]],"struct":[["BankResponse",""],["Block",""],["ContractEnsemble",""],["EnsembleQuerier",""],["ExecuteResponse",""],["InstantiateResponse",""],["Iter",""],["MockEnv",""],["RewardsResponse","Rewards response"],["StakingResponse",""],["ValidatorRewards",""]],"trait":[["ContractHarness",""]],"type":[["MockDeps",""]]};
