@@ -13,6 +13,7 @@ jobs:
           run_install: |
             - recursive: true
       - run: |
+          mkdir -p wasm
           rustup target add wasm32-unknown-unknown
           FADROMA_BUILD_RAW=1 pnpm ci
 
