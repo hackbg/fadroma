@@ -83,15 +83,15 @@ features:
       - icon: console
         text: Creating a project
         bold: true
-        href: /guide#create-a-project
+        href: /guide.html#create-a-project
       - icon: console
         text: Defining contracts
         bold: true
-        href: /guide#defining-contracts
+        href: /guide.html#defining-contracts
       - icon: console
         text: Building and deploying
         bold: true
-        href: /guide#building-and-deploying
+        href: /guide.html#building-and-deploying
       - icon: todo
         text: "WIP: Dev server with GUI"
         info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
@@ -134,7 +134,7 @@ features:
         bold: true
       - icon: typescript
         text: "@fadroma/scrt"
-        href: /scrt
+        href: /scrt.html
         bold: true
       - icon: todo
         text: "WIP: @fadroma/cw"
@@ -166,11 +166,11 @@ features:
     links:
       - icon: console
         text: $ fadroma build
-        href: /build#BuildCLI
+        href: /build.html#BuildCLI
         bold: true
       - icon: typescript
         text: "@fadroma/build"
-        href: /build#BuildAPI
+        href: /build.html#BuildAPI
         bold: true
 
   - name: Client API
@@ -178,7 +178,7 @@ features:
     links:
       - icon: typescript
         text: "@fadroma/agent"
-        href: /agent
+        href: /agent.html
         bold: true
       - icon: typescript
         text: Example client
@@ -192,11 +192,11 @@ features:
     links:
       - icon: typescript
         text: Writing a script
-        href: /deploy#WritingDeployScripts
+        href: /deploy.html#WritingDeployScripts
         bold: true
       - icon: console
         text: Running scripts
-        href: /deploy#RunningDeployScripts
+        href: /deploy.html#RunningDeployScripts
         bold: true
       - icon: typescript
         text: Example script
@@ -253,7 +253,7 @@ features:
         bold: true
       - icon: typescript
         text: Call SNIP20 token from TS
-        href: /scrt#SNIP20Client
+        href: /scrt.html#SNIP20Client
         bold: true
       - icon: todo
         text: "WIP: SNIP721 Client class"
@@ -277,7 +277,7 @@ features:
         bold: true
       - icon: typescript
         text: Viewing key client
-        href: ./scrt/
+        href: ./scrt.html
         bold: true
       - icon: rust
         text: Query permits
@@ -286,7 +286,7 @@ features:
         bold: true
       - icon: typescript
         text: Query permit client
-        href: ./scrt/
+        href: ./scrt.html
         bold: true
 
   - name: Local devnets
@@ -295,11 +295,11 @@ features:
     links:
       - icon: console
         text: $ fadroma devnet
-        href: devnet#cli
+        href: devnet.html#cli
         bold: true
       - icon: typescript
         text: "@fadroma/devnet"
-        href: devnet#api
+        href: devnet.html#api
         bold: true
       - icon: todo
         text: "WIP: Export devnet"
