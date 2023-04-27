@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   width="1920"
-   height="1080"
-   viewBox="0 0 1920 1080"
+   width="1024"
+   height="1024"
+   viewBox="0 0 1024 1024"
    version="1.1"
    id="svg47"
-   sodipodi:docname="logo.svg"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   sodipodi:docname="logo_1024.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -21,15 +21,17 @@
      inkscape:pagecheckerboard="0"
      showgrid="false"
      width="1920px"
-     inkscape:zoom="0.21694886"
-     inkscape:cx="1339.0253"
-     inkscape:cy="-719.06348"
-     inkscape:window-width="1440"
-     inkscape:window-height="2523"
-     inkscape:window-x="262"
+     inkscape:zoom="0.34847651"
+     inkscape:cx="335.74716"
+     inkscape:cy="500.75111"
+     inkscape:window-width="2560"
+     inkscape:window-height="1440"
+     inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg47" />
+     inkscape:current-layer="svg47"
+     inkscape:showpageshadow="2"
+     inkscape:deskcolor="#d1d1d1" />
   <defs
      id="defs5">
     <clipPath
@@ -43,7 +45,7 @@
      data-name="Group 198"
      clip-path="url(#a)"
      id="g45"
-     transform="translate(417.9285)">
+     transform="translate(-30.0715,-28.000132)">
     <path
        data-name="Path 1037 - Outline"
        d="m 984.98,1044 h -13.3 l -18.161,-39.082 h -68 L 867.355,1044 h -13.3 l 60.873,-130.439 h 9.181 z m -93.739,-51.139 h 56.554 L 919.519,932.137 Z M 849.166,1044 H 837.109 V 931.668 l -56.572,56.422 -56.4,-56.4 V 1044 H 712.074 V 913.561 h 10.939 l 57.529,57.686 57.689,-57.686 h 10.935 z m -220.089,0 a 65.035,65.035 0 0 1 -65.22,-65.219 65.035,65.035 0 0 1 65.217,-65.22 65.386,65.386 0 0 1 25.464,5.1 65.131,65.131 0 0 1 39.917,60.117 65.131,65.131 0 0 1 -39.917,60.117 65.386,65.386 0 0 1 -25.464,5.105 z m 0,-118.544 a 53.039,53.039 0 0 0 -53.325,53.325 53.406,53.406 0 1 0 106.812,0 53.177,53.177 0 0 0 -53.49,-53.325 z M 549.945,1044 h -13.9 L 507.338,994.211 H 479.587 V 1044 H 467.692 V 913.561 h 45.435 a 40.118,40.118 0 0 1 28.536,11.872 40.117,40.117 0 0 1 11.872,28.536 39.858,39.858 0 0 1 -11.68,28.262 40.392,40.392 0 0 1 -21.041,11.243 z m -70.358,-61.68 h 33.523 a 28.429,28.429 0 0 0 19.894,-8.343 28.059,28.059 0 0 0 8.312,-20.008 28.586,28.586 0 0 0 -28.206,-28.513 H 479.587 Z M 385.502,1044 H 335.526 V 913.561 h 50.159 a 65.427,65.427 0 0 1 65.036,65.219 65.319,65.319 0 0 1 -39.838,60.09 64.767,64.767 0 0 1 -25.382,5.13 z m -37.919,-12.057 h 37.591 a 53.163,53.163 0 1 0 0,-106.325 H 347.583 Z M 327.716,1044 h -13.3 l -18.161,-39.082 h -68 L 210.091,1044 h -13.3 l 60.873,-130.439 h 9.181 z m -93.742,-51.139 h 56.554 L 262.254,932.137 Z M 128.657,1044 H 116.762 V 913.561 h 84.546 v 12.057 h -72.651 v 45.675 h 67.623 v 12.056 h -67.623 z"
