@@ -1,0 +1,557 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: ws: wss: 'unsafe-inline';">
+</head>
+<body>
+<style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: url('assets/fonts/inter-v8-latin-regular.eot'); /* IE9 Compat Modes */
+  src: local(''),
+       url('assets/fonts/inter-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/inter-v8-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/inter-v8-latin-regular.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/inter-v8-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/inter-v8-latin-regular.svg#Inter') format('svg'); /* Legacy iOS */
+}
+
+/* inter-600 - latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  src: url('assets/fonts/inter-v8-latin-600.eot'); /* IE9 Compat Modes */
+  src: local(''),
+       url('assets/fonts/inter-v8-latin-600.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/inter-v8-latin-600.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/inter-v8-latin-600.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/inter-v8-latin-600.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/inter-v8-latin-600.svg#Inter') format('svg'); /* Legacy iOS */
+}
+
+
+</style>
+<style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
+
+body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
+body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
+
+body > header {
+  text-align: center;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2rem 2rem 1rem;
+}
+body > header { display: flex; flex-flow: row nowrap; justify-content: space-around; align-items: center; }
+body > header .logo, .logo img { display: block; margin: 0; flex-shrink: 1; }
+body > header .logo img { max-width: 16rem; max-height: 16rem; }
+body > header .badges { margin-bottom: 1rem; }
+body > header a.badge { display: inline-block; padding: 0.25rem 0.5rem; }
+
+section { padding: 1em; }
+
+footer { padding: 1em; }
+
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+a, a:focus, a:visited, a:active, a:hover { color: rgb(101, 179, 76) }
+
+h1, h2, h3, h4 { font-weight: 600 }
+h1 { font-size: 3em;     line-height: 3rem;   margin-bottom: 2rem;                     }
+h2 { font-size: 1.75em;  line-height: 2rem;   margin-bottom: 1rem;   margin-top: 0;    }
+h3 { font-size: 1.5rem;  line-height: 2rem;   margin-bottom: 1rem;                     }
+h4 { font-size: 1.25em;  line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem; }
+h5 { font-size: 1.125em; line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem; }
+
+button, .button {
+  display: inline-block;
+  background: rgb(101, 179, 76);
+  color: white;
+  padding: 0 1em;
+  margin: 1em 0;
+  text-shadow: -1px -1px 0 black;
+  box-shadow: 1px 1px 0 black;
+}
+a.button:focus, a.button:visited, a.button:active, a.button:hover {
+  color: white;
+}
+
+table { width: 50%; width: 50vw; margin: 0 auto 5em; }
+th, td { text-align: left; vertical-align: top; }
+th { padding-right: 5em }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  flex-flow: row wrap;
+  justify-content: center;
+  max-width: 80rem;
+  margin: 0 auto 3rem;
+}
+
+@media (max-width: 80rem) {
+  .grid {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+  .grid .feature {
+    display: flex;
+    flex-flow: row nowrap;
+  }
+  .grid .feature .links {
+    flex-shrink: 0;
+    width: 33%;
+    margin: 0 0 0 2rem;
+  }
+  .table-of-contents {
+    width: 1rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .grid .feature .links {
+    width: 50%;
+  }
+}
+
+.big-left { grid-column-start: 1; grid-column-end: 3; }
+.big-center { grid-column-start: 2; grid-column-end: 4; }
+.big-right { grid-column-start: 3; grid-column-end: 5; }
+.big-all { grid-column-start: 1; grid-column-end: 5; }
+
+.feature {
+  padding: 1rem;
+  margin: 1rem 0.5rem 0;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-top-color: rgba(255,255,255,0.5);
+  border-left-color: rgba(255,255,255,0.5);
+  border-radius: 3px;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-flow: column nowrap;
+  background: #fff;
+}
+
+.feature .docs {
+  font-weight: bold;
+}
+
+#features .feature {
+  min-height: 10rem;
+}
+
+.left {
+  text-align: left;
+}
+.center {
+  text-align: center;
+}
+
+.feature .description {
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+
+code.inline,
+code.block {
+  background:  #0c5749;
+  color:       white;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+code.inline {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0 0.5rem;
+}
+
+code.block {
+  display: block;
+  padding:     1rem;
+  margin:        1rem auto;
+  border-radius: 0.5rem;
+  max-width:     40rem;
+  line-height:   1rem;
+}
+
+.feature-logo {
+  margin-bottom: 0.5rem;
+  height:        5rem;
+  width:         12rem;
+  align-self:    center;
+}
+
+.tag {
+  font-size: 0.8rem;
+  background: #f5faf3;
+  border: 1px solid #437733;
+  color: #437733;
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 0 0;
+  align-self: flex-start;
+  border-radius: 3px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.spacer {
+  flex-grow:  1;
+  min-height: 0.5rem;
+}
+
+pre, code {
+  font-family: monospace;
+}
+
+p {
+  line-height: 1.5rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+svg.icon {
+  width: 2rem;
+  height: 2rem;
+}
+a > svg.icon {
+  fill: rgb(101, 179, 76);
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1rem;
+  vertical-align: baseline;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+.feature a.docs {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+  font-weight: normal;
+  text-decoration: none;
+  padding: 0.5rem 0;
+  cursor: default;
+  color: #888;
+}
+.feature a.docs[href] {
+  text-decoration: underline;
+  color: rgb(67, 119, 51);
+  cursor: pointer;
+}
+
+@keyframes hourglass {
+  50%  { transform: rotateZ(0);      }
+	100% { transform: rotateZ(180deg); }
+}
+
+svg.icon-todo {
+  animation-name: hourglass;
+  animation-duration: 3s;
+  animation-delay: 1s;
+  animation-iteration-count: infinite;
+}
+
+.links {
+  display: flex;
+  flex-flow: column nowrap;
+}
+.links > a {
+  margin-right: 1rem;
+  transition:
+    padding-left 0.33s,
+    margin-right 0.33s;
+}
+.links > a[href]:hover {
+  padding-left: 0.5rem;
+  margin-right: 0.5rem;
+}
+.feature pre {
+  background: #eee;
+  padding: 0.5rem;
+  border-radius: 0.1rem;
+  font-size: 0.875rem;
+  font-weight: normal;
+  margin-top: 1rem;
+  color: #555;
+}
+
+/*.feature .links .icon { fill: #F46623 }*/
+
+.feature.invert { background: rgb(67, 119, 51); color: white; }
+.feature.invert * { color: white; fill: white; }
+.feature.invert a.docs { color: white; }
+.feature.invert a.docs[href] { text-decoration: underline; }
+
+.feature.foss { background: #2e0056; color: white; }
+.feature.foss * { color: white; fill:  white; }
+.feature.foss a.docs { color: white; }
+
+.icon-todo { fill: #aaa !important; }
+
+#quick-start {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.ensuite-md-rendered {
+  background: white;
+  display: block;
+  max-width: 54rem;
+  margin: 0 auto 0 38%;
+  padding: 3rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
+}
+.ensuite-md-rendered .table-of-contents {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 38%;
+  background: rgb(67, 119, 51);
+  color: white;
+  padding: 2rem 0 2rem 1rem;
+  border-right: 1px solid #888;
+  display: flex;
+  justify-content: flex-end;
+}
+.ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
+.ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+
+ul { margin-left: 1em; }
+
+p > code { font-weight: bold; color: #345 }
+pre > code {
+  display: block;
+  border: 1px solid #888;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(255,255,255,0.5);
+  box-shadow: 2px 2px 2px #888;
+  overflow-x: auto;
+  margin: 1rem -1rem;
+}
+pre > code.language-sh {
+  background: #123;
+  border-radius: 0;
+  color: #fe0;
+}
+pre > code.language-typescript {
+  background: #ffe;
+  border-radius: 0.15rem;
+}
+
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; color: white; text-decoration: underline 1px dotted black; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { color: black; text-decoration: underline 1px solid rgba(0,0,0,0.75); background: #fff }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+</style>
+<content class="ensuite-md-rendered">
+<p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#mock-of-mocknet-environment">Mock of mocknet environment</a></li><li><a href="#and-some-more-tests...">And some more tests...</a></li><li><a href="#base64-io">Base64 IO</a></li></ul></li></ul></div></p>
+<h1>Mocknet: the blockchain that isn't.</h1>
+<p>Testing the production builds of smart contracts can be slow and awkward.
+Testnets are permanent and public; devnets can be temporary, but transactions
+are still throttled by the block rate.</p>
+<p>Mocknet is an intermediate environment that emulates the APIs that a
+CosmWasm contract expects to see when running in production,
+on top of the JavaScript engine's built-in WebAssembly runtime.</p>
+<p>This way, you can run your real smart contracts without a real blockchain,
+and quickly test their user-facing functionality and interoperation
+in a customizable environment.</p>
+<h2>Table of contents</h2>
+<ul>
+<li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li>
+<li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li>
+<li><a href="#implementation-details">Implementation details</a></li>
+</ul>
+<h2>Getting started with mocknet</h2>
+<p>You can interact with a mocknet from TypeScript, the same way you interact with any other chain -
+through the Fadroma Client API.</p>
+<ul>
+<li>More specifically, <code>Mocknet</code> is an implementation of the <code>Chain</code>
+abstract class which represents connection info for chains.</li>
+<li><strong>NOTE:</strong> Mocknets are currently not persistent.</li>
+</ul>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Mocknet</span>_CW1 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">let</span> chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Mocknet</span>_CW1()
+<span class="hljs-keyword">let</span> agent = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
+
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">MocknetAgent</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-title function_">ok</span>(chain <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Chain</span>)
+<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>)
+<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">MocknetAgent</span>)
+</code></pre>
+<p>When creating a mocknet, the block height starts at 0.
+You can increment it manually to represent the passing of block time.</p>
+<p>Native token balances also start at 0. You can give native tokens to agents by
+setting the <code>Mocknet#balances</code> property:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> chain.<span class="hljs-property">height</span>, <span class="hljs-number">0</span>)
+
+chain.<span class="hljs-property">balances</span>[agent.<span class="hljs-property">address</span>] = <span class="hljs-number">1000</span>
+assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getBalance</span>(agent.<span class="hljs-property">address</span>), <span class="hljs-number">1000</span>)
+
+assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">defaultDenom</span>, chain.<span class="hljs-property">defaultDenom</span>)
+assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> agent.<span class="hljs-property">account</span>)
+assert.<span class="hljs-title function_">ok</span>(!<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>())
+assert.<span class="hljs-title function_">ok</span>(!<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">sendMany</span>())
+</code></pre>
+<h2>Testing contracts on mocknet</h2>
+<p>Uploading WASM blob will return the expected monotonously incrementing code ID...</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { pathToFileURL } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;url&#x27;</span>
+<span class="hljs-keyword">import</span> { examples } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
+<span class="hljs-keyword">const</span> uploaded_a = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+<span class="hljs-keyword">const</span> uploaded_b = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+assert.<span class="hljs-title function_">equal</span>(uploaded_b.<span class="hljs-property">codeId</span>, <span class="hljs-title class_">String</span>(<span class="hljs-title class_">Number</span>(uploaded_a.<span class="hljs-property">codeId</span>) + <span class="hljs-number">1</span>))
+</code></pre>
+<p>...which you can use to instantiate the contract.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> contract_a = uploaded_a.<span class="hljs-title function_">instance</span>({ agent, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;test-mocknet&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">fail</span>: <span class="hljs-literal">false</span> } })
+<span class="hljs-keyword">const</span> client_a = <span class="hljs-keyword">await</span> contract_a.<span class="hljs-property">deployed</span>
+
+assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-keyword">await</span> client_a.<span class="hljs-title function_">query</span>({<span class="hljs-attr">get</span>: {<span class="hljs-attr">key</span>: <span class="hljs-string">&quot;foo&quot;</span>}}), [<span class="hljs-literal">null</span>, <span class="hljs-literal">null</span>])
+<span class="hljs-comment">//assert.equal(await chain.getLabel(client_a.address),   client_a.label)</span>
+<span class="hljs-comment">//assert.equal(await chain.getHash(client_a.address),    client_a.codeHash)</span>
+<span class="hljs-comment">//assert.equal(await chain.getCodeId(client_a.codeHash), client_a.codeId)</span>
+</code></pre>
+<p>Contract can use platform APIs as provided by Mocknet:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">//agent    = await chain.getAgent()</span>
+<span class="hljs-comment">//template = await agent.upload(examples[&#x27;KV&#x27;].data)</span>
+<span class="hljs-comment">//instance = await agent.instantiate(new ContractInstance(template).define({ label: &#x27;test&#x27;, initMsg: { value: &quot;foo&quot; } }))</span>
+<span class="hljs-comment">//client   = Object.assign(instance.getClientSync(), { agent })</span>
+
+<span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;foo&quot;)</span>
+<span class="hljs-comment">//assert.ok(await client.execute({&quot;set&quot;: &quot;bar&quot;}))</span>
+<span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;bar&quot;)</span>
+</code></pre>
+<h2>Implementation details</h2>
+<p>The rest of this executable specification is dedicated to testing and documenting the workings
+of the mocknet as implemented by Fadroma.</p>
+<h3>Mock of mocknet environment</h3>
+<p>When testing your own contracts with Fadroma Mocknet, you are responsible
+for providing the value of the <code>env</code> struct seen by the contracts.
+Since here we test the mocknet itself, we use this pre-defined value:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { randomBech32 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">mockEnv</span> () {
+  <span class="hljs-keyword">const</span> height   = <span class="hljs-number">0</span>
+  <span class="hljs-keyword">const</span> time     = <span class="hljs-number">0</span>
+  <span class="hljs-keyword">const</span> chain_id = <span class="hljs-string">&quot;mock&quot;</span>
+  <span class="hljs-keyword">const</span> sender   = <span class="hljs-title function_">randomBech32</span>(<span class="hljs-string">&#x27;mocked&#x27;</span>)
+  <span class="hljs-keyword">const</span> address  = <span class="hljs-title function_">randomBech32</span>(<span class="hljs-string">&#x27;mocked&#x27;</span>)
+  <span class="hljs-keyword">return</span> {
+    <span class="hljs-attr">block</span>:    { height, time, chain_id }
+    <span class="hljs-attr">message</span>:  { <span class="hljs-attr">sender</span>: sender, <span class="hljs-attr">sent_funds</span>: [] },
+    <span class="hljs-attr">contract</span>: { address },
+    <span class="hljs-attr">contract_key</span>: <span class="hljs-string">&quot;&quot;</span>,
+    <span class="hljs-attr">contract_code_hash</span>: <span class="hljs-string">&quot;&quot;</span>
+  }
+}
+</code></pre>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">MocknetBackend</span>, <span class="hljs-title class_">MocknetContract</span>, b64toUtf8, utf8toB64 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">backend</span>:  <span class="hljs-title class_">MocknetBackend</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">contract</span>: <span class="hljs-title class_">MocknetContract</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">response</span>: { <span class="hljs-title class_">Ok</span>: <span class="hljs-built_in">any</span>, <span class="hljs-title class_">Err</span>: <span class="hljs-built_in">any</span> }
+</code></pre>
+<ul>
+<li>The <strong><code>MocknetContract</code></strong> class wraps WASM contract blobs and takes care of the CosmWasm
+calling convention.
+<ul>
+<li>Normally, it isn't used directly - <code>Mocknet</code>/<code>Mocknet.Agent</code> call
+<code>MocknetBackend</code> which calls this.</li>
+</ul>
+</li>
+<li>Every method has a slightly different shape: Assuming <strong>Handle</strong> is the &quot;standard&quot;:
+<ul>
+<li><strong>Init</strong> is like Handle but has only 1 variant and response has no <code>data</code> attribute.</li>
+<li><strong>Query</strong> is like Handle but returns raw base64 and ignores <code>env</code>.</li>
+<li>Every method returns the same thing - a JSON string of the form <code>{ &quot;Ok&quot;: ... } | { &quot;Err&quot;: ... }</code>
+<ul>
+<li>This corresponds to the <strong>StdResult</strong> struct returned from the contract</li>
+<li>This result is returned to the contract's containing <code>MocknetBackend</code> as-is.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">let</span> <span class="hljs-attr">key</span>:   <span class="hljs-built_in">string</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">value</span>: <span class="hljs-built_in">string</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">data</span>:  <span class="hljs-built_in">string</span>
+
+<span class="hljs-comment">/*contract = await new MocknetBackend.Contract().load(examples[&#x27;Echo&#x27;].data)
+response = contract.init(Testing.mockEnv(), { fail: false })
+key      = &quot;Echo&quot;
+value    = utf8toB64(JSON.stringify({ fail: false }))
+assert.deepEqual(response.Err, undefined)
+assert.deepEqual(response.Ok,  { messages: [], log: [{ encrypted: true, key, value }] })
+
+response = contract.init(Testing.mockEnv(), { fail: true }))
+assert.deepEqual(response.Ok,  undefined)
+assert.deepEqual(response.Err, { generic_err: { msg: &#x27;caller requested the init to fail&#x27; } })
+
+response = contract.handle(Testing.mockEnv(), &quot;echo&quot;)
+data     = utf8toB64(JSON.stringify(&quot;echo&quot;))
+assert.deepEqual(response.Err, undefined)
+assert.deepEqual(response.Ok,  { messages: [], log: [], data })
+
+response = contract.handle(Testing.mockEnv(), &quot;fail&quot;)
+assert.deepEqual(response.Ok,  undefined)
+assert.deepEqual(response.Err, { generic_err:  { msg: &#x27;this transaction always fails&#x27; } })
+
+response = await contract.query(&quot;echo&quot;)
+assert.deepEqual(response.Err, undefined)
+assert.deepEqual(response.Ok,  utf8toB64(&#x27;&quot;echo&quot;&#x27;))
+
+response = await contract.query(&quot;fail&quot;)
+assert.deepEqual(response.Ok, undefined)
+assert.deepEqual(response.Err, { generic_err: { msg: &#x27;this query always fails&#x27; } })*/</span>
+</code></pre>
+<h3>And some more tests...</h3>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">/*
+assert.throws(()=&gt;new MocknetBackend().getInstance())
+
+assert.throws(()=&gt;new MocknetBackend().getInstance(&#x27;foo&#x27;))
+
+assert.throws(()=&gt;new MocknetBackend().makeEnv())
+
+assert.rejects(new MocknetBackend().passCallbacks())
+
+assert.ok(new MocknetBackend(&#x27;mocknet&#x27;, {
+  123: examples[&#x27;Echo&#x27;].data
+}, {
+  &#x27;someaddr&#x27;: await new MocknetBackend.Contract().load(examples[&#x27;Echo&#x27;].data)
+}).passCallbacks(&#x27;sender&#x27;, [
+  {wasm:{instantiate:{msg:utf8toB64(&#x27;{&quot;fail&quot;:false}&#x27;), code_id: 123}}},
+  {wasm:{execute:    {msg:utf8toB64(&#x27;&quot;echo&quot;&#x27;), contract_addr: &#x27;someaddr&#x27;}}},
+  {wasm:{ignored: true}},
+  {ignored: true}
+]))
+*/</span>
+</code></pre>
+<h3>Base64 IO</h3>
+<ul>
+<li><strong>Base64 I/O:</strong> Fields that are of type <code>Binary</code> (query responses and the <code>data</code> field of handle
+responses) are returned by the contract as Base64-encoded strings
+<ul>
+<li>If <code>to_binary</code> is used to produce the <code>Binary</code>, it's also JSON encoded through Serde.</li>
+<li>These functions are used by the mocknet code to encode/decode the base64.</li>
+</ul>
+</li>
+</ul>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { b64toUtf8, utf8toB64 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./MocknetData&#x27;</span>
+
+assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">b64toUtf8</span>(<span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>), <span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>)
+assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">utf8toB64</span>(<span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>), <span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>)
+</code></pre>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;assert&#x27;</span>
+<span class="hljs-keyword">import</span> { ok, equal } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;assert&#x27;</span>
+</code></pre>
+
+</content>
+</body>
+</html>

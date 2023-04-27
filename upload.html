@@ -1,0 +1,415 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: ws: wss: 'unsafe-inline';">
+</head>
+<body>
+<style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: url('assets/fonts/inter-v8-latin-regular.eot'); /* IE9 Compat Modes */
+  src: local(''),
+       url('assets/fonts/inter-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/inter-v8-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/inter-v8-latin-regular.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/inter-v8-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/inter-v8-latin-regular.svg#Inter') format('svg'); /* Legacy iOS */
+}
+
+/* inter-600 - latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  src: url('assets/fonts/inter-v8-latin-600.eot'); /* IE9 Compat Modes */
+  src: local(''),
+       url('assets/fonts/inter-v8-latin-600.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/inter-v8-latin-600.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/inter-v8-latin-600.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/inter-v8-latin-600.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/inter-v8-latin-600.svg#Inter') format('svg'); /* Legacy iOS */
+}
+
+
+</style>
+<style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
+
+body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
+body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
+
+body > header {
+  text-align: center;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2rem 2rem 1rem;
+}
+body > header { display: flex; flex-flow: row nowrap; justify-content: space-around; align-items: center; }
+body > header .logo, .logo img { display: block; margin: 0; flex-shrink: 1; }
+body > header .logo img { max-width: 16rem; max-height: 16rem; }
+body > header .badges { margin-bottom: 1rem; }
+body > header a.badge { display: inline-block; padding: 0.25rem 0.5rem; }
+
+section { padding: 1em; }
+
+footer { padding: 1em; }
+
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+a, a:focus, a:visited, a:active, a:hover { color: rgb(101, 179, 76) }
+
+h1, h2, h3, h4 { font-weight: 600 }
+h1 { font-size: 3em;     line-height: 3rem;   margin-bottom: 2rem;                     }
+h2 { font-size: 1.75em;  line-height: 2rem;   margin-bottom: 1rem;   margin-top: 0;    }
+h3 { font-size: 1.5rem;  line-height: 2rem;   margin-bottom: 1rem;                     }
+h4 { font-size: 1.25em;  line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem; }
+h5 { font-size: 1.125em; line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem; }
+
+button, .button {
+  display: inline-block;
+  background: rgb(101, 179, 76);
+  color: white;
+  padding: 0 1em;
+  margin: 1em 0;
+  text-shadow: -1px -1px 0 black;
+  box-shadow: 1px 1px 0 black;
+}
+a.button:focus, a.button:visited, a.button:active, a.button:hover {
+  color: white;
+}
+
+table { width: 50%; width: 50vw; margin: 0 auto 5em; }
+th, td { text-align: left; vertical-align: top; }
+th { padding-right: 5em }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  flex-flow: row wrap;
+  justify-content: center;
+  max-width: 80rem;
+  margin: 0 auto 3rem;
+}
+
+@media (max-width: 80rem) {
+  .grid {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+  .grid .feature {
+    display: flex;
+    flex-flow: row nowrap;
+  }
+  .grid .feature .links {
+    flex-shrink: 0;
+    width: 33%;
+    margin: 0 0 0 2rem;
+  }
+  .table-of-contents {
+    width: 1rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .grid .feature .links {
+    width: 50%;
+  }
+}
+
+.big-left { grid-column-start: 1; grid-column-end: 3; }
+.big-center { grid-column-start: 2; grid-column-end: 4; }
+.big-right { grid-column-start: 3; grid-column-end: 5; }
+.big-all { grid-column-start: 1; grid-column-end: 5; }
+
+.feature {
+  padding: 1rem;
+  margin: 1rem 0.5rem 0;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-top-color: rgba(255,255,255,0.5);
+  border-left-color: rgba(255,255,255,0.5);
+  border-radius: 3px;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-flow: column nowrap;
+  background: #fff;
+}
+
+.feature .docs {
+  font-weight: bold;
+}
+
+#features .feature {
+  min-height: 10rem;
+}
+
+.left {
+  text-align: left;
+}
+.center {
+  text-align: center;
+}
+
+.feature .description {
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+
+code.inline,
+code.block {
+  background:  #0c5749;
+  color:       white;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+code.inline {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0 0.5rem;
+}
+
+code.block {
+  display: block;
+  padding:     1rem;
+  margin:        1rem auto;
+  border-radius: 0.5rem;
+  max-width:     40rem;
+  line-height:   1rem;
+}
+
+.feature-logo {
+  margin-bottom: 0.5rem;
+  height:        5rem;
+  width:         12rem;
+  align-self:    center;
+}
+
+.tag {
+  font-size: 0.8rem;
+  background: #f5faf3;
+  border: 1px solid #437733;
+  color: #437733;
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 0 0;
+  align-self: flex-start;
+  border-radius: 3px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.spacer {
+  flex-grow:  1;
+  min-height: 0.5rem;
+}
+
+pre, code {
+  font-family: monospace;
+}
+
+p {
+  line-height: 1.5rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+svg.icon {
+  width: 2rem;
+  height: 2rem;
+}
+a > svg.icon {
+  fill: rgb(101, 179, 76);
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1rem;
+  vertical-align: baseline;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+.feature a.docs {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+  font-weight: normal;
+  text-decoration: none;
+  padding: 0.5rem 0;
+  cursor: default;
+  color: #888;
+}
+.feature a.docs[href] {
+  text-decoration: underline;
+  color: rgb(67, 119, 51);
+  cursor: pointer;
+}
+
+@keyframes hourglass {
+  50%  { transform: rotateZ(0);      }
+	100% { transform: rotateZ(180deg); }
+}
+
+svg.icon-todo {
+  animation-name: hourglass;
+  animation-duration: 3s;
+  animation-delay: 1s;
+  animation-iteration-count: infinite;
+}
+
+.links {
+  display: flex;
+  flex-flow: column nowrap;
+}
+.links > a {
+  margin-right: 1rem;
+  transition:
+    padding-left 0.33s,
+    margin-right 0.33s;
+}
+.links > a[href]:hover {
+  padding-left: 0.5rem;
+  margin-right: 0.5rem;
+}
+.feature pre {
+  background: #eee;
+  padding: 0.5rem;
+  border-radius: 0.1rem;
+  font-size: 0.875rem;
+  font-weight: normal;
+  margin-top: 1rem;
+  color: #555;
+}
+
+/*.feature .links .icon { fill: #F46623 }*/
+
+.feature.invert { background: rgb(67, 119, 51); color: white; }
+.feature.invert * { color: white; fill: white; }
+.feature.invert a.docs { color: white; }
+.feature.invert a.docs[href] { text-decoration: underline; }
+
+.feature.foss { background: #2e0056; color: white; }
+.feature.foss * { color: white; fill:  white; }
+.feature.foss a.docs { color: white; }
+
+.icon-todo { fill: #aaa !important; }
+
+#quick-start {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.ensuite-md-rendered {
+  background: white;
+  display: block;
+  max-width: 54rem;
+  margin: 0 auto 0 38%;
+  padding: 3rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
+}
+.ensuite-md-rendered .table-of-contents {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 38%;
+  background: rgb(67, 119, 51);
+  color: white;
+  padding: 2rem 0 2rem 1rem;
+  border-right: 1px solid #888;
+  display: flex;
+  justify-content: flex-end;
+}
+.ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
+.ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+
+ul { margin-left: 1em; }
+
+p > code { font-weight: bold; color: #345 }
+pre > code {
+  display: block;
+  border: 1px solid #888;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(255,255,255,0.5);
+  box-shadow: 2px 2px 2px #888;
+  overflow-x: auto;
+  margin: 1rem -1rem;
+}
+pre > code.language-sh {
+  background: #123;
+  border-radius: 0;
+  color: #fe0;
+}
+pre > code.language-typescript {
+  background: #ffe;
+  border-radius: 0.15rem;
+}
+
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; color: white; text-decoration: underline 1px dotted black; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { color: black; text-decoration: underline 1px solid rgba(0,0,0,0.75); background: #fff }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+</style>
+<content class="ensuite-md-rendered">
+<p><div class="table-of-contents"><ul><li><a href="#upload-cli">Upload CLI</a></li><li><a href="#upload-api">Upload API</a><ul><li><a href="#upload-caching">Upload caching</a></li><li><a href="#uploader-variants">Uploader variants</a><ul><li><a href="#fsuploader">FSUploader</a></li><li><a href="#fetchuploader">FetchUploader</a></li></ul></li><li><a href="#upload-events">Upload events</a></li><li><a href="#upload-errors">Upload errors</a></li></ul></li></ul></div></p>
+<h1>Fadroma Upload</h1>
+<p>This package implements <strong>uploading WASM files to get code ids</strong>.</p>
+<h2>Upload CLI</h2>
+<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma upload CONTRACT   <span class="hljs-comment"># nil if same contract is already uploaded</span></span>
+<span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma reupload CONTRACT <span class="hljs-comment"># always reupload</span></span>
+</code></pre>
+<h2>Upload API</h2>
+<p>Uploading with default configuration (from environment variables):</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fixture } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
+<span class="hljs-keyword">const</span> artifact = <span class="hljs-title function_">fixture</span>(<span class="hljs-string">&#x27;null.wasm&#x27;</span>) <span class="hljs-comment">// replace with path to your binary</span>
+
+<span class="hljs-keyword">import</span> { upload } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
+<span class="hljs-keyword">await</span> <span class="hljs-title function_">upload</span>({ artifact })
+</code></pre>
+<p>Passing custom options to the uploader:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getUploader } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
+<span class="hljs-keyword">await</span> <span class="hljs-title function_">getUploader</span>({ <span class="hljs-comment">/* options */</span> }).<span class="hljs-title function_">upload</span>({ artifact })
+</code></pre>
+<h3>Upload caching</h3>
+<p>Contracts start out as source code, which <code>@fadroma/ops</code> compiles to binary artifacts
+(WASM files). The <code>Uploader</code> class takes care of uploading them and producing a JSON file
+containing upload metadata, which we call an <strong>upload receipt</strong>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">JSON</span>Directory, withTmpDir } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/file&#x27;</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">DeployConfig</span>, <span class="hljs-title class_">FSUploader</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">Uploader</span>, <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">import</span> { examples } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">config</span>:   <span class="hljs-title class_">DeployConfig</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">uploader</span>: <span class="hljs-title class_">Uploader</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">agent</span>:    <span class="hljs-title class_">Agent</span> = { <span class="hljs-attr">chain</span>: { <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;testing&#x27;</span> }, <span class="hljs-attr">upload</span>: <span class="hljs-keyword">async</span> x =&gt; x }
+<span class="hljs-keyword">let</span> <span class="hljs-attr">template</span>: <span class="hljs-title class_">Template</span> = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Template</span>({ artifact })
+</code></pre>
+<p>When trying to upload a binary file, the <code>Uploader</code> checks if a corresponding receipt exists;
+if it does, it returns the existing code ID instead of uploading the same file twice.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> <span class="hljs-title function_">withTmpDir</span>(<span class="hljs-keyword">async</span> path=&gt;{
+  uploader = <span class="hljs-keyword">new</span> <span class="hljs-title class_">FSUploader</span>(agent, <span class="hljs-keyword">new</span> <span class="hljs-title class_">JSON</span>Directory(path))
+  assert.<span class="hljs-title function_">ok</span>(uploader.<span class="hljs-property">agent</span> === agent)
+  assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">upload</span>(template))
+  assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">upload</span>(template))
+  assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">uploadMany</span>([template]))
+})
+</code></pre>
+<h3>Uploader variants</h3>
+<h4>FSUploader</h4>
+<p><code>FSUploader</code> uploads WASM to the chain from local files.</p>
+<h4>FetchUploader</h4>
+<p><code>FetchUploader</code>, uploads WASM to the chain from remote URLs.</p>
+<h3>Upload events</h3>
+<pre><code class="hljs language-typescript"></code></pre>
+<h3>Upload errors</h3>
+<pre><code class="hljs language-typescript"></code></pre>
+<hr>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+</code></pre>
+
+</content>
+</body>
+</html>

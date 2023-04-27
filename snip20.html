@@ -1,0 +1,602 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: ws: wss: 'unsafe-inline';">
+</head>
+<body>
+<style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: url('assets/fonts/inter-v8-latin-regular.eot'); /* IE9 Compat Modes */
+  src: local(''),
+       url('assets/fonts/inter-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/inter-v8-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/inter-v8-latin-regular.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/inter-v8-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/inter-v8-latin-regular.svg#Inter') format('svg'); /* Legacy iOS */
+}
+
+/* inter-600 - latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  src: url('assets/fonts/inter-v8-latin-600.eot'); /* IE9 Compat Modes */
+  src: local(''),
+       url('assets/fonts/inter-v8-latin-600.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/inter-v8-latin-600.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/inter-v8-latin-600.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/inter-v8-latin-600.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/inter-v8-latin-600.svg#Inter') format('svg'); /* Legacy iOS */
+}
+
+
+</style>
+<style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
+
+body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
+body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
+
+body > header {
+  text-align: center;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2rem 2rem 1rem;
+}
+body > header { display: flex; flex-flow: row nowrap; justify-content: space-around; align-items: center; }
+body > header .logo, .logo img { display: block; margin: 0; flex-shrink: 1; }
+body > header .logo img { max-width: 16rem; max-height: 16rem; }
+body > header .badges { margin-bottom: 1rem; }
+body > header a.badge { display: inline-block; padding: 0.25rem 0.5rem; }
+
+section { padding: 1em; }
+
+footer { padding: 1em; }
+
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+a, a:focus, a:visited, a:active, a:hover { color: rgb(101, 179, 76) }
+
+h1, h2, h3, h4 { font-weight: 600 }
+h1 { font-size: 3em;     line-height: 3rem;   margin-bottom: 2rem;                     }
+h2 { font-size: 1.75em;  line-height: 2rem;   margin-bottom: 1rem;   margin-top: 0;    }
+h3 { font-size: 1.5rem;  line-height: 2rem;   margin-bottom: 1rem;                     }
+h4 { font-size: 1.25em;  line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem; }
+h5 { font-size: 1.125em; line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 2rem; }
+
+button, .button {
+  display: inline-block;
+  background: rgb(101, 179, 76);
+  color: white;
+  padding: 0 1em;
+  margin: 1em 0;
+  text-shadow: -1px -1px 0 black;
+  box-shadow: 1px 1px 0 black;
+}
+a.button:focus, a.button:visited, a.button:active, a.button:hover {
+  color: white;
+}
+
+table { width: 50%; width: 50vw; margin: 0 auto 5em; }
+th, td { text-align: left; vertical-align: top; }
+th { padding-right: 5em }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  flex-flow: row wrap;
+  justify-content: center;
+  max-width: 80rem;
+  margin: 0 auto 3rem;
+}
+
+@media (max-width: 80rem) {
+  .grid {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+  .grid .feature {
+    display: flex;
+    flex-flow: row nowrap;
+  }
+  .grid .feature .links {
+    flex-shrink: 0;
+    width: 33%;
+    margin: 0 0 0 2rem;
+  }
+  .table-of-contents {
+    width: 1rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .grid .feature .links {
+    width: 50%;
+  }
+}
+
+.big-left { grid-column-start: 1; grid-column-end: 3; }
+.big-center { grid-column-start: 2; grid-column-end: 4; }
+.big-right { grid-column-start: 3; grid-column-end: 5; }
+.big-all { grid-column-start: 1; grid-column-end: 5; }
+
+.feature {
+  padding: 1rem;
+  margin: 1rem 0.5rem 0;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-top-color: rgba(255,255,255,0.5);
+  border-left-color: rgba(255,255,255,0.5);
+  border-radius: 3px;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-flow: column nowrap;
+  background: #fff;
+}
+
+.feature .docs {
+  font-weight: bold;
+}
+
+#features .feature {
+  min-height: 10rem;
+}
+
+.left {
+  text-align: left;
+}
+.center {
+  text-align: center;
+}
+
+.feature .description {
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+
+code.inline,
+code.block {
+  background:  #0c5749;
+  color:       white;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+code.inline {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0 0.5rem;
+}
+
+code.block {
+  display: block;
+  padding:     1rem;
+  margin:        1rem auto;
+  border-radius: 0.5rem;
+  max-width:     40rem;
+  line-height:   1rem;
+}
+
+.feature-logo {
+  margin-bottom: 0.5rem;
+  height:        5rem;
+  width:         12rem;
+  align-self:    center;
+}
+
+.tag {
+  font-size: 0.8rem;
+  background: #f5faf3;
+  border: 1px solid #437733;
+  color: #437733;
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  margin: 0.5rem 0 0;
+  align-self: flex-start;
+  border-radius: 3px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.spacer {
+  flex-grow:  1;
+  min-height: 0.5rem;
+}
+
+pre, code {
+  font-family: monospace;
+}
+
+p {
+  line-height: 1.5rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+svg.icon {
+  width: 2rem;
+  height: 2rem;
+}
+a > svg.icon {
+  fill: rgb(101, 179, 76);
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1rem;
+  vertical-align: baseline;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+.feature a.docs {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+  font-weight: normal;
+  text-decoration: none;
+  padding: 0.5rem 0;
+  cursor: default;
+  color: #888;
+}
+.feature a.docs[href] {
+  text-decoration: underline;
+  color: rgb(67, 119, 51);
+  cursor: pointer;
+}
+
+@keyframes hourglass {
+  50%  { transform: rotateZ(0);      }
+	100% { transform: rotateZ(180deg); }
+}
+
+svg.icon-todo {
+  animation-name: hourglass;
+  animation-duration: 3s;
+  animation-delay: 1s;
+  animation-iteration-count: infinite;
+}
+
+.links {
+  display: flex;
+  flex-flow: column nowrap;
+}
+.links > a {
+  margin-right: 1rem;
+  transition:
+    padding-left 0.33s,
+    margin-right 0.33s;
+}
+.links > a[href]:hover {
+  padding-left: 0.5rem;
+  margin-right: 0.5rem;
+}
+.feature pre {
+  background: #eee;
+  padding: 0.5rem;
+  border-radius: 0.1rem;
+  font-size: 0.875rem;
+  font-weight: normal;
+  margin-top: 1rem;
+  color: #555;
+}
+
+/*.feature .links .icon { fill: #F46623 }*/
+
+.feature.invert { background: rgb(67, 119, 51); color: white; }
+.feature.invert * { color: white; fill: white; }
+.feature.invert a.docs { color: white; }
+.feature.invert a.docs[href] { text-decoration: underline; }
+
+.feature.foss { background: #2e0056; color: white; }
+.feature.foss * { color: white; fill:  white; }
+.feature.foss a.docs { color: white; }
+
+.icon-todo { fill: #aaa !important; }
+
+#quick-start {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.ensuite-md-rendered {
+  background: white;
+  display: block;
+  max-width: 54rem;
+  margin: 0 auto 0 38%;
+  padding: 3rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
+}
+.ensuite-md-rendered .table-of-contents {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 38%;
+  background: rgb(67, 119, 51);
+  color: white;
+  padding: 2rem 0 2rem 1rem;
+  border-right: 1px solid #888;
+  display: flex;
+  justify-content: flex-end;
+}
+.ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
+.ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+
+ul { margin-left: 1em; }
+
+p > code { font-weight: bold; color: #345 }
+pre > code {
+  display: block;
+  border: 1px solid #888;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(255,255,255,0.5);
+  box-shadow: 2px 2px 2px #888;
+  overflow-x: auto;
+  margin: 1rem -1rem;
+}
+pre > code.language-sh {
+  background: #123;
+  border-radius: 0;
+  color: #fe0;
+}
+pre > code.language-typescript {
+  background: #ffe;
+  border-radius: 0.15rem;
+}
+
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; color: white; text-decoration: underline 1px dotted black; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { color: black; text-decoration: underline 1px solid rgba(0,0,0,0.75); background: #fff }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+</style>
+<content class="ensuite-md-rendered">
+<p><div class="table-of-contents"><ul><li><a href="#token-descriptors">Token descriptors</a><ul><li><a href="#token-amount-descriptors">Token amount descriptors</a></li><li><a href="#token-pair-descriptors">Token pair descriptors</a></li></ul></li><li><a href="#token-contract-client">Token contract client</a><ul><li><a href="#populating-token-metadata">Populating token metadata</a></li><li><a href="#querying-balance-and-sending-amounts">Querying balance and sending amounts</a></li><li><a href="#deploying-tokens">Deploying tokens</a></li><li><a href="#query-permits">Query permits</a></li></ul></li><li><a href="#token-manager">Token manager</a></li></ul></div></p>
+<p>FIXME: compare client implementation with actual snip20 spec</p>
+<hr>
+<h1>Using Fadroma with blockchain tokens</h1>
+<p>Tokens are one core primitive of smart contract-based systems.
+Fadroma provides several APIs for interfacing with tokens.</p>
+<h2>Token descriptors</h2>
+<p>In the CosmWasm ecosystem, there's a distinction between <strong>native</strong> and <strong>custom</strong> tokens.</p>
+<ul>
+<li>A <strong>native token</strong> is implemented by the chain's <code>bank</code> module.
+Usually, you can pay gas fees with it.</li>
+<li>A <strong>custom token</strong> is implemented by a smart contract on the chain's <code>compute</code> module,
+and can do more things than the native token. The core specification for custom tokens on
+Secret Network is called <a href="https://docs.scrt.network/secret-network-documentation/development/snips/snip-20-spec-private-fungible-tokens">SNIP-20</a>.</li>
+</ul>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-keyword">type</span> {
+
+  <span class="hljs-title class_">Token</span>,             <span class="hljs-comment">// NativeToken|CustomToken</span>
+  <span class="hljs-title class_">NativeToken</span>        <span class="hljs-comment">// { native_token: { denom } }</span>
+  <span class="hljs-title class_">CustomToken</span>        <span class="hljs-comment">// { custom_token: { contract_addr, token_code_hash? } }</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+</code></pre>
+<p><code>@fadroma/tokens</code> represents references to tokens as plain serializable objects.
+These are useful when you want to pass info about a token from TypeScript to a contract
+(where parsing is stricter). You can create them like this:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  <span class="hljs-title class_">TokenKind</span>,         <span class="hljs-comment">// Enumeration with two members, Custom and Native.</span>
+  nativeToken,       <span class="hljs-comment">// Create a token descriptor specifying a native token</span>
+  customToken,       <span class="hljs-comment">// Create a token descriptor specifying a custom token</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-attr">native</span>: <span class="hljs-title class_">Token</span> = <span class="hljs-title function_">nativeToken</span>(<span class="hljs-string">&#x27;scrt&#x27;</span>)         <span class="hljs-comment">// Native token: SCRT</span>
+<span class="hljs-keyword">const</span> <span class="hljs-attr">custom</span>: <span class="hljs-title class_">Token</span> = <span class="hljs-title function_">customToken</span>(<span class="hljs-string">&#x27;addr&#x27;</span>, <span class="hljs-string">&#x27;hash&#x27;</span>) <span class="hljs-comment">// SNIP-20 custom token: SecretSCRT (SSCRT)</span>
+</code></pre>
+<p>And validate them like this:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  isTokenDescriptor, <span class="hljs-comment">// isNativeToken|isCustomToken</span>
+  isNativeToken,     <span class="hljs-comment">// True iff native token</span>
+  isCustomToken,     <span class="hljs-comment">// True iff custom token</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">isTokenDescriptor</span>(native))
+<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">isTokenDescriptor</span>(custom))
+
+<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">isNativeToken</span>(native) &amp;&amp; !<span class="hljs-title function_">isCustomToken</span>(native))
+<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">isCustomToken</span>(custom) &amp;&amp; !<span class="hljs-title function_">isNativeToken</span>(custom))
+</code></pre>
+<p>And read their properties like this:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  getTokenKind,      <span class="hljs-comment">// Return the kind of the token.</span>
+  getTokenId,        <span class="hljs-comment">// Return either the native token&#x27;s name or the custom token&#x27;s address</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">getTokenKind</span>(native), <span class="hljs-title class_">TokenKind</span>.<span class="hljs-property">Native</span>)
+<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">getTokenKind</span>(custom), <span class="hljs-title class_">TokenKind</span>.<span class="hljs-property">Custom</span>)
+
+<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">getTokenId</span>(native), <span class="hljs-string">&#x27;native&#x27;</span>)
+<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">getTokenId</span>(custom), <span class="hljs-string">&#x27;addr&#x27;</span>)
+<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">getTokenId</span>(<span class="hljs-title function_">customToken</span>()))
+</code></pre>
+<h3>Token amount descriptors</h3>
+<p>To specify an integer amount of a token, use <code>TokenAmount</code>.</p>
+<ul>
+<li><strong>NOTE:</strong> Token amounts are always integers to avoid errors with precision,
+so you need to add the appropriate amount of decimals.</li>
+</ul>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  <span class="hljs-title class_">TokenAmount</span>, <span class="hljs-comment">// An object representing an integer amount of a native or custom token</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-keyword">const</span> native100 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenAmount</span>(native, <span class="hljs-string">&#x27;100&#x27;</span>) <span class="hljs-comment">// 100 uSCRT</span>
+<span class="hljs-keyword">const</span> custom100 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenAmount</span>(custom, <span class="hljs-string">&#x27;100&#x27;</span>) <span class="hljs-comment">// 100 uSSCRT</span>
+<span class="hljs-title function_">deepEqual</span>(native100.<span class="hljs-property">asNativeBalance</span>, [{<span class="hljs-attr">denom</span>: <span class="hljs-string">&quot;scrt&quot;</span>, <span class="hljs-attr">amount</span>: <span class="hljs-string">&quot;100&quot;</span>}])
+<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span>custom100.<span class="hljs-property">asNativeBalance</span>)
+</code></pre>
+<h3>Token pair descriptors</h3>
+<p>To describe a pair of tokens that can be exchanged against each other,
+you can use <code>TokenPair</code>.</p>
+<p>Token pairs have the <code>reverse</code> property which returns a
+new token pair with the places of the tow tokens swapped.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  <span class="hljs-title class_">TokenPair</span>,      <span class="hljs-comment">// A pair of tokens</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-title function_">deepEqual</span>(
+  <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(native, custom).<span class="hljs-property">reverse</span>,
+  <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(custom, native)
+)
+</code></pre>
+<p>Respectively, <code>TokenPairAmount</code> establishes
+an equivalence in value, e.g. <code>100 TOKENA = 200 TOKENB</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  <span class="hljs-title class_">TokenPairAmount</span> <span class="hljs-comment">// A pair of tokens with specified amounts</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-title function_">deepEqual</span>(
+  <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPairAmount</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(native, custom), <span class="hljs-string">&quot;100&quot;</span>, <span class="hljs-string">&quot;200&quot;</span>).<span class="hljs-property">reverse</span>,
+  <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPairAmount</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(custom, native), <span class="hljs-string">&quot;200&quot;</span>, <span class="hljs-string">&quot;100&quot;</span>)
+)
+
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPairAmount</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(native, custom), <span class="hljs-string">&quot;100&quot;</span>, <span class="hljs-string">&quot;200&quot;</span>).<span class="hljs-property">asNativeBalance</span>
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPairAmount</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(custom, native), <span class="hljs-string">&quot;100&quot;</span>, <span class="hljs-string">&quot;200&quot;</span>).<span class="hljs-property">asNativeBalance</span>
+
+<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPairAmount</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(native, native), <span class="hljs-string">&quot;100&quot;</span>, <span class="hljs-string">&quot;200&quot;</span>).<span class="hljs-property">asNativeBalance</span>)
+</code></pre>
+<h2>Token contract client</h2>
+<p>To interact with a SNIP-20 token from TypeScript, you can use the <code>Snip20</code> client class.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  <span class="hljs-title class_">Snip20</span> <span class="hljs-comment">// The Client class for SNIP-20 tokens</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> some <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./mocks&#x27;</span>
+<span class="hljs-comment">// Let&#x27;s mock out the info returned from the backend</span>
+
+<span class="hljs-comment">// Create a client to a token contract</span>
+<span class="hljs-keyword">const</span> yourToken = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Snip20</span>(some.<span class="hljs-property">agent</span>, some.<span class="hljs-property">address</span>, some.<span class="hljs-property">codeHash</span>)
+
+<span class="hljs-comment">// A Snip20 instance can be converted into a descriptor,</span>
+<span class="hljs-comment">// in order to pass info about that contract to some other contract or JSON API.</span>
+<span class="hljs-title function_">deepEqual</span>(yourToken.<span class="hljs-property">asDescriptor</span>, {
+  <span class="hljs-attr">custom_token</span>: {
+    <span class="hljs-attr">contract_addr</span>:   some.<span class="hljs-property">address</span>,
+    <span class="hljs-attr">token_code_hash</span>: some.<span class="hljs-property">codeHash</span>
+  }
+})
+
+<span class="hljs-comment">// And the converse: creating Snip20 clients</span>
+<span class="hljs-comment">// from descriptors received over the wire:</span>
+<span class="hljs-title function_">ok</span>(
+  <span class="hljs-title class_">Snip20</span>.<span class="hljs-title function_">fromDescriptor</span>(<span class="hljs-literal">null</span>, yourToken.<span class="hljs-property">asDescriptor</span>) <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Snip20</span>
+)
+
+<span class="hljs-title function_">deepEqual</span>(
+  <span class="hljs-title class_">Snip20</span>.<span class="hljs-title function_">fromDescriptor</span>(<span class="hljs-literal">null</span>, yourToken.<span class="hljs-property">asDescriptor</span>).<span class="hljs-property">asDescriptor</span>,
+  descriptor
+)
+</code></pre>
+<h3>Populating token metadata</h3>
+<p>A token's address uniquely identifies it (for the given chain, of course).
+However, to interact with a token on the chain, as a minimum you also need
+its code hash; and <code>Snip20</code> client instances also keep track of other token metadata,
+such as decimals.</p>
+<p>Those metadata fields start out as empty, and you can fetch their values
+by calling <code>Snip20#populate</code>:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> yourToken.<span class="hljs-title function_">populate</span>()
+<span class="hljs-title function_">equal</span>(yourToken.<span class="hljs-property">codeHash</span>,    <span class="hljs-string">&#x27;fetchedCodeHash&#x27;</span>)
+<span class="hljs-title function_">equal</span>(yourToken.<span class="hljs-property">tokenName</span>,   name)
+<span class="hljs-title function_">equal</span>(yourToken.<span class="hljs-property">symbol</span>,      <span class="hljs-built_in">symbol</span>)
+<span class="hljs-title function_">equal</span>(yourToken.<span class="hljs-property">decimals</span>,    decimals)
+<span class="hljs-title function_">equal</span>(yourToken.<span class="hljs-property">totalSupply</span>, total_supply)
+</code></pre>
+<h3>Querying balance and sending amounts</h3>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> amount = <span class="hljs-title class_">Symbol</span>()
+yourToken.<span class="hljs-property">agent</span>.<span class="hljs-property">query</span> = <span class="hljs-keyword">async</span> () =&gt; ({ <span class="hljs-attr">balance</span>: { amount } })
+yourToken.<span class="hljs-property">agent</span>.<span class="hljs-property">execute</span> = <span class="hljs-keyword">async</span> (x, y) =&gt; y
+
+<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> yourToken.<span class="hljs-title function_">getBalance</span>(<span class="hljs-string">&#x27;address&#x27;</span>, <span class="hljs-string">&#x27;vk&#x27;</span>), amount)
+
+<span class="hljs-title function_">deepEqual</span>(
+  <span class="hljs-keyword">await</span> yourToken.<span class="hljs-title function_">send</span>(<span class="hljs-string">&#x27;amount&#x27;</span>, <span class="hljs-string">&#x27;recipient&#x27;</span>, { <span class="hljs-attr">callback</span>:<span class="hljs-string">&#x27;test&#x27;</span> }),
+  { <span class="hljs-attr">send</span>: { <span class="hljs-attr">amount</span>: <span class="hljs-string">&#x27;amount&#x27;</span>, <span class="hljs-attr">recipient</span>: <span class="hljs-string">&#x27;recipient&#x27;</span>, <span class="hljs-attr">msg</span>: <span class="hljs-string">&#x27;eyJjYWxsYmFjayI6InRlc3QifQ==&#x27;</span> } }
+)
+</code></pre>
+<h3>Deploying tokens</h3>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// This generates an init message for the standard SNIP-20 implementation</span>
+<span class="hljs-title function_">ok</span>(<span class="hljs-title class_">Snip20</span>.<span class="hljs-title function_">init</span>())
+
+<span class="hljs-comment">// TODO show instantiate</span>
+</code></pre>
+<h3>Query permits</h3>
+<p>Fadroma supports generating <a href="https://docs.scrt.network/secret-network-documentation/development/snips/snip-24-query-permits-for-snip-20-tokens">SNIP-24</a>
+query permits.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
+
+  createPermitMsg <span class="hljs-comment">// Create a permit message</span>
+
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+assert.<span class="hljs-title function_">deepEqual</span>(
+  <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(<span class="hljs-title function_">createPermitMsg</span>(<span class="hljs-string">&#x27;q&#x27;</span>, <span class="hljs-string">&#x27;p&#x27;</span>)),
+  <span class="hljs-string">&#x27;{&quot;with_permit&quot;:{&quot;query&quot;:&quot;q&quot;,&quot;permit&quot;:&quot;p&quot;}}&#x27;</span>
+)
+</code></pre>
+<h2>Token manager</h2>
+<p>The Token Manager is an object that serves as a registry
+of token contracts in a deployment. It keeps track of tokens,
+and allows you to specify the cases where a contract in your project
+depends on a custom token.</p>
+<p>When working on devnet, Fadroma can deploy mocks of third-party tokens.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">TokenManager</span>, <span class="hljs-title class_">TokenPair</span>, <span class="hljs-title class_">TokenError</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/tokens&#x27;</span>
+
+<span class="hljs-keyword">const</span> <span class="hljs-attr">context</span>: <span class="hljs-title class_">Deployment</span> = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Deployment</span>({
+  <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;test&#x27;</span>,
+  <span class="hljs-attr">state</span>: {}
+  <span class="hljs-attr">agent</span>: {
+    <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;agent-address&#x27;</span>,
+    <span class="hljs-attr">getHash</span>: <span class="hljs-keyword">async</span> () =&gt; <span class="hljs-string">&#x27;Hash&#x27;</span>
+  },
+})
+
+<span class="hljs-keyword">const</span> manager = <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenManager</span>(context)
+
+assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span>manager.<span class="hljs-title function_">get</span>())
+assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span>manager.<span class="hljs-title function_">get</span>(<span class="hljs-string">&#x27;UNKNOWN&#x27;</span>))
+
+<span class="hljs-keyword">const</span> token = { <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;a1&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;c2&#x27;</span> }
+assert.<span class="hljs-title function_">ok</span>(manager.<span class="hljs-title function_">add</span>(<span class="hljs-string">&#x27;KNOWN&#x27;</span>, token))
+assert.<span class="hljs-title function_">ok</span>(manager.<span class="hljs-title function_">has</span>(<span class="hljs-string">&#x27;KNOWN&#x27;</span>))
+assert.<span class="hljs-title function_">equal</span>(manager.<span class="hljs-title function_">get</span>(<span class="hljs-string">&#x27;KNOWN&#x27;</span>).<span class="hljs-property">address</span>,  token.<span class="hljs-property">address</span>)
+assert.<span class="hljs-title function_">equal</span>(manager.<span class="hljs-title function_">get</span>(<span class="hljs-string">&#x27;KNOWN&#x27;</span>).<span class="hljs-property">codeHash</span>, token.<span class="hljs-property">codeHash</span>)
+
+assert.<span class="hljs-title function_">ok</span>(manager.<span class="hljs-title function_">define</span>(<span class="hljs-string">&#x27;DEPLOY&#x27;</span>, { <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;a2&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;c2&#x27;</span> }))
+assert.<span class="hljs-title function_">ok</span>(manager.<span class="hljs-title function_">pair</span>(<span class="hljs-string">&#x27;DEPLOY-KNOWN&#x27;</span>) <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">TokenPair</span>)
+
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenError</span>()
+
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">ContractSlot</span>, <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">const</span> manager2 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenManager</span>({
+  <span class="hljs-attr">template</span>: <span class="hljs-function">(<span class="hljs-params">options</span>) =&gt;</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ContractSlot</span>(options)
+}, <span class="hljs-keyword">new</span> <span class="hljs-title class_">Template</span>({
+  <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;snip20&#x27;</span>
+}))
+</code></pre>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { ok, equal, deepEqual, throws } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;assert&#x27;</span>
+</code></pre>
+
+</content>
+</body>
+</html>
