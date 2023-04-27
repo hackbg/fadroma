@@ -24,6 +24,28 @@ for (const platform of ['secretjs', 'secretcli']) {
 }
 ```
 
-This package is responsible for selecting and dispatching to the
-appropriate implementation; the implementations themselves reside
-in the corresponding packages: `@fadroma/scrt`, etc.
+## Configuration
+
+```typescript
+import { ConnectConfig } from '@fadroma/connect'
+const config = new ConnectConfig()
+config.getChain()
+config.getChain(null)
+assert.throws(()=>config.getChain('NoSuchChain'))
+config.getAgent()
+config.listChains()
+```
+
+## Errors
+
+```typescript
+import { ConnectError } from '@fadroma/connect'
+new ConnectError.NoChainSelected()
+new ConnectError.UnknownChainSelected()
+```
+
+---
+
+```typescript
+import assert from 'node:assert'
+```

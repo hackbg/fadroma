@@ -26,13 +26,11 @@ export default class ScrtBundle extends Bundle {
 
   static bundleCounter: number = 0
 
-  log = new Console('ScrtAgent')
-
   /** The agent which will sign and/or broadcast the bundle. */
   declare agent: ScrtAgent
 
-  constructor (agent: ScrtAgent) {
-    super(agent)
+  constructor (agent: ScrtAgent, callback?: (bundle: ScrtBundle)=>unknown) {
+    super(agent, callback as (bundle: Bundle)=>unknown)
     // Optional: override SecretJS implementation
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
@@ -41,6 +39,7 @@ export default class ScrtBundle extends Bundle {
     * unsigned transaction bundle; don't execute it, but save it in
     * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
   async save (name?: string) {
+    await super.save(name)
     // Number of bundle, just for identification in console
     const N = ++ScrtBundle.bundleCounter
     name ??= name || `TX.${N}.${+new Date()}`
@@ -53,15 +52,15 @@ export default class ScrtBundle extends Bundle {
       // Encrypt init message
       if (init) return this.encryptInit(init)
       // Encrypt exec/handle message
-      if (exec) return this.encryptInit(init)
+      if (exec) return this.encryptExec(exec)
       // Anything in the messages array that does not have init or exec key is ignored
     }))
     // Print the body of the bundle
     this.log.bundleMessagesEncrypted(messages, N)
     // Compose the plaintext
-    const unsigned = this.composeUnsignedTx(messages)
+    const unsigned = this.composeUnsignedTx(messages, name)
     // Output signing instructions to the console
-    this.log.bundleSigningCommand(
+    new Console(this.log.label).bundleSigningCommand(
       String(Math.floor(+ new Date()/1000)),
       this.agent.address!, assertChain(this.agent).id,
       accountNumber, sequence, unsigned
@@ -96,7 +95,7 @@ export default class ScrtBundle extends Bundle {
     }
   }
 
-  private composeUnsignedTx (encryptedMessages: any[]): any {
+  private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
     const fee = Scrt.gas(10000000)
     const gas = fee.gas
     const payer = ""
@@ -104,8 +103,8 @@ export default class ScrtBundle extends Bundle {
     const auth_info = { signer_infos: [], fee: { ...fee, gas, payer, granter }, }
     const signatures: any[] = []
     const body = {
+      memo,
       messages:                       encryptedMessages,
-      memo:                           name,
       timeout_height:                 "0",
       extension_options:              [],
       non_critical_extension_options: []
@@ -114,16 +113,17 @@ export default class ScrtBundle extends Bundle {
   }
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
+    await super.submit(memo)
     const SecretJS = (this.agent?.chain as Scrt).SecretJS
     const chainId = assertChain(this).id
     const results: ScrtBundleResult[] = []
-    const msgs  = await this.conformedMsgs
+    const msgs  = this.conformedMsgs
     const limit = Number(Scrt.defaultFees.exec?.amount[0].amount) || undefined
     const gas   = msgs.length * (limit || 0)
     try {
       const agent = this.agent as unknown as ScrtAgent
       await agent.ready
-      const txResult = await agent.api!.tx.broadcast(msgs, { gasLimit: gas })
+      const txResult = await agent.api!.tx.broadcast(msgs as any, { gasLimit: gas })
       if (txResult.code !== 0) {
         const error = `(in bundle): gRPC error ${txResult.code}: ${txResult.rawLog}`
         throw Object.assign(new Error(error), txResult)
@@ -152,7 +152,8 @@ export default class ScrtBundle extends Bundle {
         results[Number(i)] = result as ScrtBundleResult
       }
     } catch (err) {
-      this.log.submittingBundleFailed(err as Error)
+      new Console(this.log.label)
+        .submittingBundleFailed(err as Error)
       throw err
     }
     return results
@@ -160,13 +161,14 @@ export default class ScrtBundle extends Bundle {
 
   async simulate () {
     const { api } = await this.agent.ready
-    return await api!.tx.simulate(await this.conformedMsgs)
+    const msgs = this.conformedMsgs
+    return await api!.tx.simulate(msgs as any)
   }
 
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
-    return Promise.all(this.assertMessages().map(async ({init, exec})=>{
-      const SecretJS = (this.agent.chain as Scrt).SecretJS
+    const SecretJS = (this.agent.chain as Scrt).SecretJS
+    const msgs = this.assertMessages().map(({init, exec}={})=>{
       if (init) return new SecretJS.MsgInstantiateContract({
         sender:          init.sender,
         code_id:         init.codeId,
@@ -182,8 +184,8 @@ export default class ScrtBundle extends Bundle {
         msg:              exec.msg,
         sent_funds:       exec.funds,
       })
-      throw 'unreachable'
-    }))
+    })
+    return msgs
   }
 
 }

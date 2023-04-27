@@ -53,10 +53,11 @@ export default class ScrtAgent extends Agent {
     this.encryptionUtils = options.encryptionUtils
     this.simulate        = options.simulate ?? this.simulate
     this.log.label =
-      `@fadroma/scrt: ${this.chain.id??'(no chain id)'}://${this.address??'(no address)'}`
+      `@fadroma/scrt: ${this.chain?.id??'(no chain id)'}://${this.address??'(no address)'}`
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
+    if (!this.chain) throw new Error.NoChain()
     const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (resolve, reject)=>{
       try {
         const _SecretJS = this.chain.SecretJS
@@ -79,12 +80,12 @@ export default class ScrtAgent extends Agent {
           this.log.warnIgnoringMnemonic()
         }
         // Construct the API client
-        const url = removeTrailingSlash(this.chain.url)
+        const url = this.chain.url && removeTrailingSlash(this.chain.url)
         const chainId = this.chain.id
         const walletAddress = wallet?.address || this.address
         const { encryptionUtils } = this
         const apiOptions = { chainId, url, wallet, walletAddress, encryptionUtils }
-        this.api = await this.chain?.getApi(apiOptions)
+        this.api = await this.chain.getApi(apiOptions)
         // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
         if (encryptionUtils) Object.assign(this.api, { encryptionUtils })
         // If fees are not specified, get default fees from API.

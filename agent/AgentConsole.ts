@@ -54,8 +54,10 @@ export default class Console extends BaseConsole {
       const count = Object.values(state).length
       if (count > 0) {
         this.info(`${bold(String(count))} contract(s) in deployment ${bold(name)}:`)
+        this.br()
         for (const name of Object.keys(state).sort()) {
           this.receipt(name, state[name], len)
+          this.br()
         }
       } else {
         this.info(`No contracts in deployment ${bold(name)}.`)
@@ -81,13 +83,12 @@ export default class Console extends BaseConsole {
     codeHash = bold(codeHash)
     codeId = bold(codeId)
     crate = bold(crate)
-    this.info()
-    this.info(`- name: ${name}`)
-    this.info(`  addr: ${address}`)
-    this.info(`  hash: ${codeHash}`)
-    this.info(`  code: ${codeId}`)
-    this.info(`  repo: ${repository}`)
-    this.info(`  crate: ${crate}`)
+    this.info(`name: ${name}`)
+    this.info(`addr: ${address}`)
+    this.info(`hash: ${codeHash}`)
+    this.info(`code: ${codeId}`)
+    this.info(`repo: ${repository}`)
+    this.info(`crate: ${crate}`)
   }
 
   foundDeployedContract (address: Address, name: Name) {
@@ -105,7 +106,7 @@ export default class Console extends BaseConsole {
     label = label ? bold(label) : colors.red('(missing label!)')
     let info = `${bold(label)} from code id ${bold(codeId)}`
     if (crate) info += ` (${bold(crate)} @ ${bold(revision)})`
-    this.log(`init ${info}`)
+    this.log(`init: ${info}`)
   }
 
   afterDeploy <C extends Client> (contract: Partial<Contract<C>>) {
@@ -117,9 +118,10 @@ export default class Console extends BaseConsole {
       ? bold(green(contract.prefix))
       : bold(red('(no deployment)'))
     const address = bold(colors.green(contract?.address!))
-    this.info('addr', address)
-    this.info('hash', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
+    this.info('addr:', address)
+    this.info('hash:', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.info('added to', deployment)
+    this.br()
   }
 
   deployFailed (e: Error, template: Instantiable, name: Label, msg: Message) {
@@ -209,6 +211,16 @@ export default class Console extends BaseConsole {
 
   warnEmptyBundle () {
     this.warn('Tried to submit bundle with no messages')
+  }
+
+  bundleMessages = (msgs: any, N: number) => {
+    this.info(`Messages in bundle`, `#${N}:`)
+    for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
+  }
+
+  bundleMessagesEncrypted = (msgs: any, N: number) => {
+    this.info(`Encrypted messages in bundle`, `#${N}:`)
+    for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
   }
 
 }

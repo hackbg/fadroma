@@ -1,15 +1,93 @@
-import { Console, hideProperties as hide } from '../util'
-import UploadStore, { UploadReceipt } from './UploadStore'
-import {
-  Uploader, assertAgent, override, toUploadReceipt, Error, colors, bold,  base16, sha256
-} from '@fadroma/agent'
-import type { Agent, CodeHash, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
-import $, { Path, BinaryFile } from '@hackbg/file'
+import { Config } from './util'
+import type { UploadConfig } from './util'
+import { Console, colors, bold, Error, hideProperties as hide } from './util'
+import { Contract, Uploader, assertAgent, override, toUploadReceipt, base16, sha256 } from '@fadroma/agent'
+import type { Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
+import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
+
+/** @returns Uploader configured as per environment and options */
+export function getUploader (options: Partial<UploadConfig> = {}): Uploader {
+  return new Config({ upload: options }).getUploader()
+}
+
+/** Upload a single contract with default settings. */
+export function upload (artifact: Uploadable): Promise<Uploaded> {
+  return getUploader().upload(artifact)
+}
+
+/** Upload multiple contracts with default settings. */
+export function uploadMany (artifacts: Uploadable[]): Promise<Uploaded[]> {
+  return getUploader().uploadMany(artifacts)
+}
+
+/** Directory collecting upload receipts.
+  * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
+  * and are kept so that we don't reupload the same contracts. */
+export class UploadStore extends JSONDirectory<UploadReceipt> {
+  log = new Console('Upload')
+  tryGet (contract: Uploadable, _chainId?: ChainId): Uploaded|undefined {
+    const name = this.getUploadReceiptName(contract)
+    const receiptFile = this.at(name)
+    if (receiptFile.exists()) {
+      const receipt = receiptFile.as(UploadReceipt)
+      this.log.sub(name).log(`Already uploaded, see`, bold(receiptFile.shortPath))
+      const {
+        chainId = _chainId,
+        codeId,
+        codeHash,
+        uploadTx,
+      } = receipt.toContract()
+      const props = { chainId, codeId, codeHash, uploadTx }
+      return Object.assign(contract, props) as Uploaded & {
+        artifact: URL,
+        codeHash: CodeHash,
+        codeId:   CodeId
+      }
+    }
+  }
+  /** Generate the filename for an upload receipt. */
+  getUploadReceiptName ({ artifact }: Uploadable): string {
+    return `${$(artifact!).name}.json`
+  }
+  /** Generate the full path for an upload receipt. */
+  getUploadReceiptPath (contract: Uploadable): string {
+    const receiptName = `${this.getUploadReceiptName(contract)}`
+    const receiptPath = this.resolve(receiptName)
+    return receiptPath
+  }
+}
+
+/** Class that convert itself to a Contract, from which contracts can be instantiated. */
+export class UploadReceipt extends JSONFile<UploadReceiptData> {
+
+  /** Create a Contract object with the data from the receipt. */
+  toContract (defaultChainId?: string) {
+    let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
+    chainId ??= defaultChainId
+    codeId  = String(codeId)
+    return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
+  }
+
+}
+
+export interface UploadReceiptData {
+  artifact?:          any
+  chainId?:           string
+  codeHash:           string
+  codeId:             number|string
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               any[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+  uploadTx?:          string
+}
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
-export default class FSUploader extends Uploader {
+export class FSUploader extends Uploader {
   log = new Console('@fadroma/ops: FSUploader' )
   /** The uploader checks here whether a contract might be already uploaded. */
   cache?: UploadStore
@@ -25,7 +103,7 @@ export default class FSUploader extends Uploader {
     hide(this, 'log')
   }
 
-  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(no cache)' }
+  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(*)' }
 
   get id () { return 'FS' }
 
@@ -124,16 +202,21 @@ export default class FSUploader extends Uploader {
       const input = inputs[i]
       if (!input.artifact) throw new Error.NoArtifact()
       const path = $(input.artifact!)
+      const log = new Console(path.shortPath)
       const data = path.as(BinaryFile).load()
-      input.codeHash ??= base16.encode(sha256(data))
-      const log = new Console(`Upload (no cache): ${bold(path.shortPath)}`)
-      log(`hash ${input.codeHash}`)
       log(`size (uncompressed): ${data.length} bytes`)
+
+      input.codeHash ??= base16.encode(sha256(data))
+      log(`hash ${input.codeHash}`)
+
       const result = await agent.upload(data)
       const output = override(input, result) as unknown as Uploaded
       this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
       outputs[i] = output
-      log('code id:', bold(`${result.codeId}`))
+
+      log('uploaded to code id', bold(`${result.codeId}`))
+      log.br()
+
       await agent.nextBlock
     }
     return outputs

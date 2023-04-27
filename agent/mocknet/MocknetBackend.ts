@@ -12,7 +12,7 @@ import { bold } from '@hackbg/logs'
 
 export default abstract class MocknetBackend {
 
-  log = new Console('@fadroma/agent: Mocknet')
+  log = new Console('Mocknet')
 
   codeId = 0
 

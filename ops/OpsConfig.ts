@@ -1,7 +1,7 @@
-import { DevnetContainer } from './devnet/index'
-import type { DevnetPlatform } from './devnet/index'
-import { FSUploader } from './upload/index'
-import { getBuilder, buildPackage } from './build/index'
+import { DevnetContainer } from './devnet'
+import type { DevnetPlatform } from './devnet'
+import { FSUploader } from './upload'
+import { getBuilder, buildPackage } from './build'
 
 import {
   Builder, Deployment, DeployStore, ChainMode, Uploader
@@ -22,8 +22,10 @@ import { fileURLToPath } from 'node:url'
 export default class Config extends ConnectConfig {
   /** Project root. Defaults to current working directory. */
   project: string = this.getString('FADROMA_PROJECT', ()=>this.environment.cwd)
+  /** License token. */
+  license: string = this.getString('FADROMA_LICENSE', ()=>'unlicensed')
   /** Build options. */
-  build: BuilderConfig
+  build:  BuilderConfig
   /** Upload options. */
   upload: UploadConfig
   /** Deploy options. */

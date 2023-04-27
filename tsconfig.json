@@ -4,6 +4,8 @@
     "**/*.dist.*",
     "**/*.spec.ts",
     "**/dist/**/*",
+    "*.test.*",
+    "**/*.test.*",
     "agent",
     "connect",
     "coverage",

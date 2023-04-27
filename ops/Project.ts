@@ -1,17 +1,30 @@
-import { getBuilder } from './build/index'
-import { getUploader } from './upload/index'
+import { getBuilder } from './build'
+import { getUploader } from './upload'
+
 import type {
-  Builder, Buildable, Built, Uploader, Uploadable, Uploaded,
-  Chain, ChainId, DeploymentState, DeployStore
+  Builder, Buildable, Built, Uploader, Chain,
+  CodeId, CodeHash, ChainId, Uploadable, Uploaded,
+  DeploymentClass,
 } from '@fadroma/agent'
-import { Template, Deployment, timestamp } from '@fadroma/agent'
-import $, { Path, OpaqueDirectory, OpaqueFile, JSONFile, TOMLFile, TextFile } from '@hackbg/file'
+import {
+  Deployment, DeployStore,
+  Agent, AnyContract, Contract, Client, DeploymentState, Template,
+  toInstanceReceipt, timestamp, bold
+} from '@fadroma/agent'
+
+import { Config, Console, colors, Error, DeployError } from './util'
+
 import { CommandContext } from '@hackbg/cmds'
-import Console, { bold, colors } from './OpsConsole'
-import Error from './OpsError'
-import Config from './OpsConfig'
+import $, {
+  Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory,
+  OpaqueFile, TOMLFile, JSONFile, JSONDirectory
+} from '@hackbg/file'
+
+import YAML, { loadAll, dump } from 'js-yaml'
 import Case from 'case'
 import prompts from 'prompts'
+
+import { basename } from 'node:path'
 import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
 
@@ -23,17 +36,17 @@ const console = new Console(`@fadroma/ops ${version}`)
 export default class Project extends CommandContext {
   log = new Console(`Fadroma ${version}`) as any
   /** Fadroma settings. */
-  config: Config
+  config:    Config
   /** Name of the project. */
-  name: string
+  name:      string
   /** Root directory of the project. */
-  root: OpaqueDirectory
+  root:      OpaqueDirectory
   /** Contract definitions. */
   templates: Record<string, Template<any>>
   /** Default builder. */
-  builder: Builder
+  builder:   Builder
   /** Default uploader. */
-  uploader: Uploader
+  uploader:  Uploader
   /** Default deployment class. */
   Deployment = Deployment
 
@@ -59,7 +72,7 @@ export default class Project extends CommandContext {
     const name = options?.name || root.name
     this.name = name
     this.root = root
-    this.log.label = this.exists() ? `Project: ${name}` : `Fadroma ${version}`
+    this.log.label = this.exists() ? name : `@fadroma/ops ${version}`
     this.log.info(`This is @fadroma/ops ${version}.`)
     if (this.exists()) this.log.info(`Active project:`, bold(this.name), 'at', bold(this.root.path))
     if (this.exists()) this.log.info(`Selected chain:`, bold(this.config.chainId))
@@ -74,26 +87,25 @@ export default class Project extends CommandContext {
       : {}) as Record<string, Template<any>|(Buildable & Partial<Built>)>
     for (const [key, val] of Object.entries(templates)) this.setTemplate(key, val)
 
-    // Define commands:
-    this.command('run',    'execute a script',
+    this.command('run',      'execute a script',
                  this.runScript)
-    this.command('status', 'show the status of the system',
+    this.command('status',   'show the status of the system',
                  this.status)
-    this.command('create', 'create a new project',
+    this.command('create',   'create a new project',
                  Project.wizard)
-    this.command('add',    'add a new contract to the project',
+    this.command('add',      'add a new contract to the project',
                  this.addTemplate)
-    this.command('build',  'build the project or specific contracts from it',
+    this.command('build',    'build the project or specific contracts from it',
                  this.build)
-    this.command('upload', 'upload the project or specific contracts from it',
+    this.command('upload',   'upload the project or specific contracts from it',
                  this.upload)
-    this.command('deploy', 'deploy this project',
+    this.command('deploy',   'deploy this project',
                  this.deploy)
-    this.command('select', `activate another deployment on ${this.config.chainId}`,
+    this.command('select',   `activate another deployment on ${this.config.chainId}`,
                  this.selectDeployment)
-    this.command('export', `export current deployment to ${name}.json`,
+    this.command('export',   `export current deployment to ${name}.json`,
                  this.exportDeployment)
-    this.command('reset',  'stop and erase running devnet',
+    this.command('reset',    'stop and erase running devnet',
                  this.resetDevnet)
   }
 
@@ -174,17 +186,18 @@ export default class Project extends CommandContext {
   /** Print the current status of Fadroma, the active devnet, project, and deployment.
     * @returns this */
   status = () => {
+    tools()
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
-    this.log.info()
-    if (!chain) {
-      this.log.info('No chain selected.')
-    } else {
-      this.log.info('Chain type:             ', bold(chain.constructor.name))
-      this.log.info('Chain mode:             ', bold(chain.mode))
-      this.log.info('Chain ID:               ', bold(chain.id))
-      this.log.info('Chain URL:              ', bold(chain.url.toString()))
-      this.log.info()
+    const agent = this.uploader?.agent ?? chain?.getAgent()
+    this.log.br()
+    this.log.info('Chain type:    ', bold(chain.constructor.name))
+    this.log.info('Chain mode:    ', bold(chain.mode))
+    this.log.info('Chain ID:      ', bold(chain.id))
+    if (!chain.isMocknet) {
+      this.log.info('Chain URL:     ', bold(chain.url.toString()))
     }
+    this.log.info('Agent address: ', bold(agent.address))
+    this.log.br()
     this.log.info('Project name:           ', bold(this.name))
     this.log.info('Project root:           ', bold(this.root.path))
     this.log.info('Templates in project:   ', bold(Object.keys(this.templates).join(', ')))
@@ -200,7 +213,7 @@ export default class Project extends CommandContext {
       }
       const deployment = this.deployment
       if (deployment) {
-        this.log.info()
+        this.log.br()
         this.log.deployment(deployment)
       } else {
         this.log.info('No active deployment.')
@@ -421,7 +434,7 @@ export default class Project extends CommandContext {
     this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
     await deployment.deploy()
     await this.log.deployment(deployment)
-    await this.selectDeployment(deployment.name)
+    if (!deployment.chain!.isMocknet) await this.selectDeployment(deployment.name)
     return this
   }
   /** Get the active deployment or a named deployment.
@@ -568,6 +581,9 @@ export class ContractCrate {
   }
 }
 
+/** Interactive project creation CLI.
+  * TODO: single crate option
+  * TODO: `shared` crate option */
 export class ProjectWizard {
   async createProject (): Promise<Project> {
     const context = tools()
@@ -711,7 +727,6 @@ export class ProjectWizard {
       }
     }
   }
-
   selectBuilder (context: ReturnType<typeof tools>): 'podman'|'raw'|any {
     const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = context
     const buildRaw    = { value: 'raw',    title: `No, build with local toolchain (${cargo})` }
@@ -723,7 +738,6 @@ export class ProjectWizard {
     const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
     return askSelect(`Use build isolation?`, choices)
   }
-
   static selectDeploymentFromStore = async (store: DeployStore & {
     root?: Path
   }): Promise<string|undefined> => {
@@ -769,29 +783,163 @@ export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<
   return state
 }
 
-export const tools = () => ({
-  //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
-  git:    tool('Git:    ', 'git --no-pager --version'),
-  node:   tool('Node:   ', 'node --version'),
-  npm:    tool('NPM:    ', 'npm --version'),
-  yarn:   tool('Yarn:   ', 'yarn --version'),
-  pnpm:   tool('PNPM:   ', 'pnpm --version'),
-  tsc:    tool('TSC:    ', 'tsc --version'),
-  cargo:  tool('Cargo:  ', 'cargo --version'),
-  rust:   tool('Rust:   ', 'rustc --version'),
-  docker: tool('Docker: ', 'docker --version'),
-  podman: tool('Podman: ', 'podman --version'),
-  nix:    tool('Nix:    ', 'nix --version'),
-})
+export const tools = () => {
+  console.br()
+  return {
+    //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
+    git:       tool('Git:      ', 'git --no-pager --version'),
+    node:      tool('Node:     ', 'node --version'),
+    npm:       tool('NPM:      ', 'npm --version'),
+    yarn:      tool('Yarn:     ', 'yarn --version'),
+    pnpm:      tool('PNPM:     ', 'pnpm --version'),
+    tsc:       tool('TSC:      ', 'tsc --version'),
+    cargo:     tool('Cargo:    ', 'cargo --version'),
+    rust:      tool('Rust:     ', 'rustc --version'),
+    docker:    tool('Docker:   ', 'docker --version'),
+    podman:    tool('Podman:   ', 'podman --version'),
+    nix:       tool('Nix:      ', 'nix --version'),
+    secretcli: tool('secretcli:', 'secretcli version')
+  }
+}
 
-export const tool = (dependency: string, command: string): string|null => {
+/** Check if an external binary is on the PATH. */
+export const tool = (
+  dependency: string|null,
+  command:    string
+): string|null => {
   let version = null
   try {
     version = String(execSync(command)).trim()
-    console.log(bold(dependency), version)
+    if (dependency) console.info(bold(dependency), version)
   } catch (e) {
-    console.warn(bold(dependency), colors.yellow('(not found)'))
+    if (dependency) console.warn(bold(dependency), colors.yellow('(not found)'))
   } finally {
     return version
   }
 }
+
+export {
+  DeployStore,
+  YAML,
+  YAMLDeployStore_v1 as YAML1
+}
+
+/** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
+  * Each deployment is represented by 1 multi-document YAML file, where every
+  * document is delimited by the `\n---\n` separator and represents a deployed
+  * smart contract. */
+export class YAMLDeployStore_v1 extends DeployStore {
+  log = new Console('DeployStore (YAML1)')
+  /** Root directory of deploy store. */
+  root: YAMLDirectory<unknown>
+  /** Name of symlink pointing to active deployment, without extension. */
+  KEY = '.active'
+
+  constructor (
+    storePath: string|Path|YAMLDirectory<unknown>,
+    public defaults: Partial<Deployment> = {},
+  ) {
+    super()
+    const root = this.root = $(storePath).as(YAMLDirectory)
+    Object.defineProperty(this, 'root', {
+      enumerable: true,
+      get () { return root }
+    })
+  }
+
+  get [Symbol.toStringTag]() { return `${this.root?.shortPath??'-'}` }
+
+  /** Load the deployment activeted by symlink */
+  get active () {
+    return this.load(this.KEY)
+  }
+  get activeName (): string|null {
+    let file = this.root.at(`${this.KEY}.yml`)
+    if (!file.exists()) return null
+    return basename(file.real.name, '.yml')
+  }
+  /** Create a deployment with a specific name. */
+  async create (name: string = timestamp()): Promise<DeploymentState> {
+    this.log.deploy.creating(name)
+    const path = this.root.at(`${name}.yml`)
+    if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
+    this.log.deploy.location(path.shortPath)
+    path.makeParent().as(YAMLFile).save(undefined)
+    return this.load(name)!
+  }
+  /** Make the specified deployment be the active deployment. */
+  async select (name: string = this.KEY): Promise<DeploymentState> {
+    let selected = this.root.at(`${name}.yml`)
+    if (selected.exists()) {
+      const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
+      if (name === this.KEY) name = active.real.name
+      name = basename(name, '.yml')
+      active.relLink(`${name}.yml`)
+      this.log.deploy.activating(selected.real.name)
+      return this.load(name)!
+    }
+    if (name === this.KEY) {
+      const deployment = new Deployment()
+      const d = await this.create(deployment.name)
+      return this.select(deployment.name)
+    }
+    throw new DeployError.DeploymentDoesNotExist(name)
+  }
+  /** List the deployments in the deployments directory. */
+  list (): string[] {
+    if (this.root.exists()) {
+      const list = this.root.as(OpaqueDirectory).list() ?? []
+      return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
+    } else {
+      this.log.deploy.storeDoesNotExist(this.root.shortPath)
+      return []
+    }
+  }
+  /** Get the contents of the named deployment, or null if it doesn't exist. */
+  load (name: string): DeploymentState|null {
+    const file = this.root.at(`${name}.yml`)
+    this.log.log('Loading deployment', name, 'from', file.shortPath)
+    if (!file.exists()) {
+      this.log.error(`${file.shortPath} does not exist.`)
+      return null
+    }
+    name = basename(file.real.name, '.yml')
+    const state: DeploymentState = {}
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
+      if (!receipt.name) continue
+      state[receipt.name] = receipt
+    }
+    return state
+  }
+  /** Save a deployment's state to this store. */
+  save (name: string, state: DeploymentState = {}) {
+    this.root.make()
+    const file = this.root.at(`${name}.yml`)
+    // Serialize data to multi-document YAML
+    let output = ''
+    for (let [name, data] of Object.entries(state)) {
+      output += '---\n'
+      name ??= data.name!
+      if (!name) throw new Error('Deployment: no name')
+      const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
+      data = JSON.parse(JSON.stringify({
+        name,
+        label:    receipt.label,
+        address:  receipt.address,
+        codeHash: receipt.codeHash,
+        codeId:   receipt.label,
+        crate:    receipt.crate,
+        revision: receipt.revision,
+        ...receipt,
+        deployment: undefined
+      }))
+      const daDump = dump(data, { noRefs: true })
+      output += alignYAML(daDump)
+    }
+    file.as(TextFile).save(output)
+    return this
+  }
+
+}
+
+Object.assign(DeployStore.variants, { YAML1: YAMLDeployStore_v1 })

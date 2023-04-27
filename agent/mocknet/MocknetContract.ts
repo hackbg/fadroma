@@ -30,21 +30,18 @@ declare namespace WebAssembly {
 export type CW = '0.x' | '1.x'
 
 export default abstract class MocknetContract<I extends ContractImports, E extends ContractExports> {
-
-  log = new Console('@fadroma/agent: Mocknet')
-
+  log = new Console('Mocknet')
+  /** The instance of the contract code. */
   instance?: WebAssembly.Instance<E>
-
+  /** The contract's basic key-value storage. */
   storage = new Map<string, Buffer>()
 
   constructor (
-    readonly backend: MocknetBackend|null = null,
-    readonly address: Address = randomBech32(ADDRESS_PREFIX),
+    readonly backend:   MocknetBackend|null = null,
+    readonly address:   Address = randomBech32(ADDRESS_PREFIX),
     readonly codeHash?: CodeHash,
-    readonly codeId?: CodeId,
-  ) {
-    this.log.debug('Instantiating', bold(address))
-  }
+    readonly codeId?:   CodeId,
+  ) {}
 
   async load (code: unknown, codeId?: CodeId) {
     return Object.assign(this, {
@@ -78,7 +75,6 @@ export default abstract class MocknetContract<I extends ContractImports, E exten
 
   init (...args: unknown[]) {
     const msg = args[args.length - 1]
-    this.log.log(bold(this.address), `init: ${JSON.stringify(msg)}`)
     try {
       const init = this.initMethod
       if (!init) {

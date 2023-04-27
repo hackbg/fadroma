@@ -154,12 +154,6 @@ export class ConnectConsole extends Console {
     }
   }
 
-  noName (chains: Record<string, unknown>) {
-    this.error('Pass a known chain name or set FADROMA_CHAIN env var.')
-    this.supportedChains(chains)
-    return 1
-  }
-
   selectedChain (chain?: string) {
     this.br()
     if (chain) {

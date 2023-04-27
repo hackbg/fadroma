@@ -186,9 +186,9 @@ actual content of the code. Uploading the same code multiple times will give
 you different code IDs, but the same code hash.
 
 ```typescript
-import { fetchCodeHash, assertCodeHash, codeHashOf } from '@fadroma/agent'
+import {  assertCodeHash, codeHashOf } from '@fadroma/agent'
 
-assert.ok(assertCodeHash({ codeHash: 'hash' }))
+assert.ok(assertCodeHash({ codeHash: 'code-hash-stub' }))
 assert.throws(()=>assertCodeHash({}))
 
 assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
@@ -233,10 +233,10 @@ Broadcasting multiple execute calls as a single transaction message
 (transaction bundling):
 
 ```typescript
-const results = await agent.bundle().wrap(async bundle=>{
+const results = await agent.bundle(async bundle=>{
   await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
   await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
-})
+}).run()
 ```
 
 #### Bundle: bundling transactions
@@ -388,15 +388,11 @@ import { Chain, Agent, Bundle } from '@fadroma/agent'
 chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
 agent = await chain.getAgent()
 let bundle: Bundle
-class TestBundle extends Bundle {
-  async submit () { return 'submitted' }
-  async save   () { return 'saved' }
-}
 ```
 
 ```typescript
 import { Client } from '@fadroma/agent'
-bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
+bundle = new Bundle(agent)
 
 assert(bundle.getClient(Client, '') instanceof Client, 'Bundle#getClient')
 assert.equal(await bundle.execute({}), bundle)
@@ -404,7 +400,7 @@ assert.equal(bundle.id, 1)
 //assert(await bundle.instantiateMany({}, []))
 //assert(await bundle.instantiateMany({}, [['label', 'init']]))
 //assert(await bundle.instantiate({}, 'label', 'init'))
-assert.equal(await bundle.checkHash(), 'hash')
+assert.equal(await bundle.checkHash(), 'code-hash-stub')
 
 assert.rejects(()=>bundle.query())
 assert.rejects(()=>bundle.upload())
@@ -419,49 +415,6 @@ assert.throws(()=>bundle.balance)
 
 To create and submit a bundle in a single expression,
 you can use `bundle.wrap(async (bundle) => { ... })`:
-
-```typescript
-assert.equal(await new TestBundle(agent).wrap(async bundle=>{
-  assert(bundle instanceof TestBundle)
-}), 'submitted')
-
-assert.equal(await new TestBundle(agent).wrap(async bundle=>{
-  assert(bundle instanceof TestBundle)
-}, undefined, true), 'saved')
-```
-
-```typescript
-bundle = new TestBundle(agent)
-assert.deepEqual(bundle.msgs, [])
-assert.equal(bundle.id, 0)
-assert.throws(()=>bundle.assertMessages())
-
-bundle.add({})
-assert.deepEqual(bundle.msgs, [{}])
-assert.equal(bundle.id, 1)
-assert.ok(bundle.assertMessages())
-```
-
-```typescript
-bundle = new TestBundle(agent)
-assert.equal(await bundle.run(""),       "submitted")
-assert.equal(await bundle.run("", true), "saved")
-assert.equal(bundle.depth, 0)
-
-bundle = bundle.bundle()
-assert.equal(bundle.depth, 1)
-assert.equal(await bundle.run(), null)
-```
-
-```typescript
-agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
-bundle = agent.bundle()
-assert(bundle instanceof Bundle)
-
-agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
-//await agent.instantiateMany(new Contract(), [])
-//await agent.instantiateMany(new Contract(), [], 'prefix')
-```
 
 ## Deployment API
 

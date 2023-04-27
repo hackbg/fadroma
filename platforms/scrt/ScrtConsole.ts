@@ -15,19 +15,10 @@ export default class ScrtConsole extends Console {
     this.warn("Could not fetch block gas limit, defaulting to:",
       fees.map(fee=>fee.gas).join('/'))
 
-  warnGeneratedMnemonic = (mnemonic: string) => {
+  warnGeneratedMnemonic = (mnemonic: string, address?: string) => {
     this.warn("No mnemonic passed, generated this one:", bold(mnemonic))
+    if (address) this.warn("The corresponding address is:", bold(address))
     this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
-  }
-
-  bundleMessages = (msgs: any, N: number) => {
-    this.info(`\nMessages in bundle`, `#${N}:`)
-    this.log(JSON.stringify(msgs, null, 2))
-  }
-
-  bundleMessagesEncrypted = (msgs: any, N: number) => {
-    this.info(`\nEncrypted messages in bundle`, `#${N}:`)
-    this.log(JSON.stringify(msgs, null, 2))
   }
 
   bundleSigningCommand = (
@@ -41,6 +32,7 @@ export default class ScrtConsole extends Console {
     const output = `${name}.signed.json`
     const txdata = shellescape([JSON.stringify(finalUnsignedTx)])
 
+    this.log('Multisig bundle ready.\n')
     this.log(`Run the following command to sign the bundle:\n`)
     this.log(`  secretcli tx sign /dev/stdin --output-document=${output} \\
 --offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${multisig} \\
@@ -48,7 +40,7 @@ export default class ScrtConsole extends Console {
 <<< ${txdata}\n`)
 
     this.log(`Bundle contents as JSON:\n`)
-    this.log(' ', txdata)
+    this.log(' ', txdata, '\n')
   }
 
   submittingBundleFailed ({ message }: Error) {

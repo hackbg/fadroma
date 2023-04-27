@@ -591,7 +591,7 @@ export class Contract<C extends Client> extends Template<C> {
     const self = this
     if (options.name) setName(options.name)
     if (this.context) setPrefix(this.context.name)
-    this.log = new Console(`Contract: ${this.name ?? new.target.name}`)
+    this.log = new Console(`${this.name ?? new.target.name}`)
     this.agent      = this.context?.agent      ?? this.agent
     this.builder    = this.context?.builder    ?? this.builder
     this.uploader   = this.context?.uploader   ?? this.uploader

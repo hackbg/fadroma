@@ -26,10 +26,10 @@ const config = new Scrt.Config()
 To connect to Secret Network with Fadroma, use one of the following:
 
 ```typescript
-const mainnet = Scrt.Chain.mainnet()
-const testnet = Scrt.Chain.testnet()
-//const devnet  = Scrt.devnet()
-//const mocknet = Scrt.mocknet()
+const mainnet = Scrt.Chain.mainnet({ url: 'test' })
+const testnet = Scrt.Chain.testnet({ url: 'test' })
+const devnet  = Scrt.Chain.devnet({ id: 'test-scrt-devnet', url: 'test' })
+const mocknet = Scrt.Chain.mocknet({ url: 'test' })
 ```
 
 This will give you a `Scrt` instance (subclass of `Chain`):
@@ -74,10 +74,8 @@ ok(agent1.address)
 ### Authenticating in the browser with Keplr
 
 ```typescript
-// TODO (these are not implemented yet)
-//
+// TODO:
 // const agent2 = await mainnet.fromKeplr().ready
-//
 // ok(agent2 instanceof Scrt.Agent)
 // ok(agent2.chain instanceof Scrt.Chain)
 // ok(agent2.mnemonic)
@@ -87,14 +85,45 @@ ok(agent1.address)
 ### Authenticating in a script with secretcli
 
 ```typescript
-// TODO (these are not implemented yet)
-//
+// TODO:
 // const agent3 = await mainnet.fromSecretCli()
-//
 // ok(agent3 instanceof Scrt.Agent)
 // ok(agent3.chain instanceof Scrt.Chain)
 // ok(agent3.mnemonic)
 // ok(agent3.address)
+```
+
+## Querying data from Secret Network
+
+The `SecretJS` module used by a `ScrtChain` is available on the `SecretJS` property.
+
+```typescript
+for (const chain of [mainnet, testnet, devnet, mocknet]) {
+  await chain.api
+
+  // FIXME: need mock
+  //await chain.block
+  //await chain.height
+
+  // FIXME: rejects with "#<Object>" ?!
+  // await chain.getBalance('scrt', 'address')
+  // await chain.getLabel()
+  // await chain.getCodeId()
+  // await chain.getHash()
+  // await chain.fetchLimits()
+
+  // FIXME: Queries should be possible without an Agent.
+  assert.rejects(()=>chain.query())
+}
+```
+
+The `api`, `wallet`, and `encryptionUtils` properties of `ScrtAgent`
+expose the `SecretNetworkClient`, `Wallet`, and `EncryptionUtils` (`EnigmaUtils`)
+instances.
+
+```typescript
+await agent1.ready
+ok(agent1.api)
 ```
 
 ## Authorization
@@ -136,4 +165,5 @@ ok(bundle instanceof Scrt.Bundle)
 
 ```typescript
 import { ok } from 'node:assert'
+import './Scrt.test.ts'
 ```
