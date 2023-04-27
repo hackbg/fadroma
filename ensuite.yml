@@ -1,6 +1,8 @@
 routes:
   - path: /index.html
     page: index.pug
+  - path: /guide
+    page: guide
   - path: /agent
     page: spec/Agent.spec.ts.md
   - path: /build
@@ -81,15 +83,15 @@ features:
       - icon: console
         text: Creating a project
         bold: true
-        href: /GettingStarted.md#create-a-project
+        href: /guide#create-a-project
       - icon: console
         text: Defining contracts
         bold: true
-        href: /GettingStarted.md#defining-contracts
+        href: /guide#defining-contracts
       - icon: console
         text: Building and deploying
         bold: true
-        href: /GettingStarted.md#building-and-deploying
+        href: /guide#building-and-deploying
       - icon: todo
         text: "WIP: Dev server with GUI"
         info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
@@ -132,7 +134,7 @@ features:
         bold: true
       - icon: typescript
         text: "@fadroma/scrt"
-        href: /platforms/scrt/Scrt.spec.ts.md
+        href: /scrt
         bold: true
       - icon: todo
         text: "WIP: @fadroma/cw"
@@ -164,11 +166,11 @@ features:
     links:
       - icon: console
         text: $ fadroma build
-        href: /packages/build/Build.spec.ts.md#BuildCLI
+        href: /build#BuildCLI
         bold: true
       - icon: typescript
         text: "@fadroma/build"
-        href: /packages/build/Build.spec.ts.md#BuildAPI
+        href: /build#BuildAPI
         bold: true
 
   - name: Client API
@@ -176,7 +178,7 @@ features:
     links:
       - icon: typescript
         text: "@fadroma/agent"
-        href: /packages/core/Agent.spec.ts.md
+        href: /agent
         bold: true
       - icon: typescript
         text: Example client
@@ -190,11 +192,11 @@ features:
     links:
       - icon: typescript
         text: Writing a script
-        href: /packages/deploy/Deploy.spec.ts.md#WritingDeployScripts
+        href: /deploy#WritingDeployScripts
         bold: true
       - icon: console
         text: Running scripts
-        href: /packages/deploy/Deploy.spec.ts.md#RunningDeployScripts
+        href: /deploy#RunningDeployScripts
         bold: true
       - icon: typescript
         text: Example script
@@ -251,14 +253,10 @@ features:
         bold: true
       - icon: typescript
         text: Call SNIP20 token from TS
-        href: /packages/tokens/Tokens.spec.ts.md#SNIP20Client
+        href: /scrt#SNIP20Client
         bold: true
       - icon: todo
         text: "WIP: SNIP721 Client class"
-      - icon: typescript
-        text: TokenManager
-        href: /packages/tokens/Tokens.spec.ts.md#TokenManager
-        bold: true
 
   - name: Authorization
     info: Fadroma implements several common access control patterns and primitives.
@@ -297,11 +295,11 @@ features:
     links:
       - icon: console
         text: $ fadroma devnet
-        href: /packages/devnet/Devnet.spec.ts.md#DevnetCLI
+        href: devnet#cli
         bold: true
       - icon: typescript
         text: "@fadroma/devnet"
-        href: /packages/devnet/Devnet.spec.ts.md#DevnetAPI
+        href: devnet#api
         bold: true
       - icon: todo
         text: "WIP: Export devnet"
@@ -320,7 +318,7 @@ features:
         href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
       - icon: typescript
         text: "@fadroma/mocknet"
-        href: /packages/mocknet/Mocknet.spec.ts.md
+        href: mocknet
         bold: true
       - icon: todo
         text: "TODO: Property-based testing"
