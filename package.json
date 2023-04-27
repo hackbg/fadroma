@@ -9,7 +9,7 @@
   "bin": { "fadroma": "fadroma.cli.cjs" },
   "files": [
     "*.ts",
-    "Fadroma.svg",
+    "logo.svg",
     "!agent/*",
     "!connect/*",
     "!ops/*",
