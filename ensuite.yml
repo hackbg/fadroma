@@ -1,29 +1,29 @@
 routes:
   - path: /index.html
     page: index.pug
-  - path: /guide
+  - path: /guide.html
     page: guide
-  - path: /agent
+  - path: /agent.html
     page: spec/Agent.spec.ts.md
-  - path: /build
+  - path: /build.html
     page: spec/Build.spec.ts.md
-  - path: /connect
+  - path: /connect.html
     page: spec/Connect.spec.ts.md
-  - path: /deploy
+  - path: /deploy.html
     page: spec/Deploy.spec.ts.md
-  - path: /devnet
+  - path: /devnet.html
     page: spec/Devnet.spec.ts.md
-  - path: /mocknet
+  - path: /mocknet.html
     page: spec/Mocknet.spec.ts.md
-  - path: /ops
+  - path: /ops.html
     page: spec/Ops.spec.ts.md
-  - path: /project
+  - path: /project.html
     page: spec/Project.spec.ts.md
-  - path: /scrt
+  - path: /scrt.html
     page: spec/Scrt.spec.ts.md
-  - path: /snip20
+  - path: /snip20.html
     page: spec/Snip20.spec.ts.md
-  - path: /upload
+  - path: /upload.html
     page: spec/Upload.spec.ts.md
 
 styles:
