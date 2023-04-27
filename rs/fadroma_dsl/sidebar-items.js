@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":["auto_impl","contract","execute","execute_guard","init","interface","query","reply"]};

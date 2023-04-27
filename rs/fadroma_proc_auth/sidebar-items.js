@@ -1,1 +1,1 @@
-initSidebarItems({"attr":[["require_admin",""]]});
+window.SIDEBAR_ITEMS = {"attr":["require_admin"]};

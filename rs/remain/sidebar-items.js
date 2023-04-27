@@ -1,1 +1,1 @@
-initSidebarItems({"attr":[["check",""],["sorted",""]]});
+window.SIDEBAR_ITEMS = {"attr":["check","sorted"]};
