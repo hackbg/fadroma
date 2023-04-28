@@ -5,7 +5,7 @@
 Distributed application framework developed at [**Hack.bg**](https://hack.bg).
 
 |component|version|
-|---|---|---|
+|-|-|
 |`fadroma` crate docs|[![Documentation](https://img.shields.io/docsrs/fadroma/latest?color=%2365b34c&label=Rust%20API%20docs)](https://docs.rs/fadroma)|
 |`fadroma` crate|[![Latest version](https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&label=fadroma%20crate)](https://crates.io/crates/fadroma)|
 |`fadroma-dsl` crate|[![Latest version](https://img.shields.io/crates/v/fadroma-dsl.svg?color=%2365b34c&label=fadroma-dsl%20crate)](https://crates.io/crates/fadroma-dsl)|
