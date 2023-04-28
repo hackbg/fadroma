@@ -61,7 +61,7 @@ fn test_contracts() {
         .instantiate(
             oracle.id,
             &{},
-            MockEnv::new("Admin", "oracle")
+            MockEnv::new("admin", "oracle")
         )
         .unwrap()
         .instance;
@@ -70,7 +70,7 @@ fn test_contracts() {
         .instantiate(
             test_contract.id,
             &counter::InstantiateMsg { initial_value: 10 },
-            MockEnv::new("Admin", "test")
+            MockEnv::new("admin", "test")
         )
         .unwrap()
         .instance;
@@ -98,7 +98,7 @@ fn test_contracts() {
 
     ensemble.execute(
         &counter::ExecuteMsg::Add { value: 55 },
-        MockEnv::new("Admin", test_contract.address.clone()),
+        MockEnv::new("admin", test_contract.address.clone()),
     ).unwrap();
 
     let value: u64 = ensemble.query(

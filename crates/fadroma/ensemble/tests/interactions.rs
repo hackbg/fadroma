@@ -5,7 +5,8 @@ use crate::{
     self as fadroma,
     ensemble::{
         ContractEnsemble, ContractHarness,
-        MockEnv, EnsembleResult, EnsembleError
+        MockEnv, EnsembleResult, EnsembleError,
+        ResponseVariants
     }
 };
 use crate::prelude::*;
@@ -70,7 +71,7 @@ impl ContractHarness for Counter {
                 msg: to_binary(&MultiplierInit {
                     fail: msg.fail_multiplier,
                 })?,
-                label: "multiplier".into(),
+                label: "A".repeat(MockEnv::MAX_ADDRESS_LEN + 1)
             },
             0
         );
@@ -256,28 +257,31 @@ fn init(
     let admin = "admin";
     ensemble.add_funds(admin, vec![coin(SEND_AMOUNT, SEND_DENOM)]);
 
-    let counter = ensemble
+    let msg = ensemble
         .instantiate(
             counter.id,
             &CounterInit {
                 info: multiplier.clone(),
                 fail: fail_counter,
-                fail_multiplier,
+                fail_multiplier
             },
             MockEnv::new(
                 admin,
                 "counter"
             )
-            .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
-        )?
-        .instance;
+            .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)])
+        )?;
+
+    let ResponseVariants::Instantiate(multiplier_init) = msg.iter().next().unwrap() else {
+        panic!("Expecting ResponseVariants::Instantiate");
+    };
+
+    let multiplier = multiplier_init.instance.clone();
+    assert_eq!(multiplier.address.as_ref(), "a".repeat(MockEnv::MAX_ADDRESS_LEN));
 
     Ok(InitResult {
-        counter,
-        multiplier: ContractLink {
-            address: Addr::unchecked("multiplier"),
-            code_hash: multiplier.code_hash,
-        },
+        counter: msg.instance,
+        multiplier
     })
 }
 
