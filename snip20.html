@@ -358,10 +358,10 @@ pre > code.language-typescript {
 <p><div class="table-of-contents"><ul><li><a href="#token-descriptors">Token descriptors</a><ul><li><a href="#token-amount-descriptors">Token amount descriptors</a></li><li><a href="#token-pair-descriptors">Token pair descriptors</a></li></ul></li><li><a href="#token-contract-client">Token contract client</a><ul><li><a href="#populating-token-metadata">Populating token metadata</a></li><li><a href="#querying-balance-and-sending-amounts">Querying balance and sending amounts</a></li><li><a href="#deploying-tokens">Deploying tokens</a></li><li><a href="#query-permits">Query permits</a></li></ul></li><li><a href="#token-manager">Token manager</a></li></ul></div></p>
 <p>FIXME: compare client implementation with actual snip20 spec</p>
 <hr>
-<h1>Using Fadroma with blockchain tokens</h1>
+<h1 id="using-fadroma-with-blockchain-tokens" tabindex="-1">Using Fadroma with blockchain tokens</h1>
 <p>Tokens are one core primitive of smart contract-based systems.
 Fadroma provides several APIs for interfacing with tokens.</p>
-<h2>Token descriptors</h2>
+<h2 id="token-descriptors" tabindex="-1">Token descriptors</h2>
 <p>In the CosmWasm ecosystem, there's a distinction between <strong>native</strong> and <strong>custom</strong> tokens.</p>
 <ul>
 <li>A <strong>native token</strong> is implemented by the chain's <code>bank</code> module.
@@ -422,7 +422,7 @@ These are useful when you want to pass info about a token from TypeScript to a c
 <span class="hljs-title function_">equal</span>(<span class="hljs-title function_">getTokenId</span>(custom), <span class="hljs-string">&#x27;addr&#x27;</span>)
 <span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">getTokenId</span>(<span class="hljs-title function_">customToken</span>()))
 </code></pre>
-<h3>Token amount descriptors</h3>
+<h3 id="token-amount-descriptors" tabindex="-1">Token amount descriptors</h3>
 <p>To specify an integer amount of a token, use <code>TokenAmount</code>.</p>
 <ul>
 <li><strong>NOTE:</strong> Token amounts are always integers to avoid errors with precision,
@@ -439,7 +439,7 @@ so you need to add the appropriate amount of decimals.</li>
 <span class="hljs-title function_">deepEqual</span>(native100.<span class="hljs-property">asNativeBalance</span>, [{<span class="hljs-attr">denom</span>: <span class="hljs-string">&quot;scrt&quot;</span>, <span class="hljs-attr">amount</span>: <span class="hljs-string">&quot;100&quot;</span>}])
 <span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span>custom100.<span class="hljs-property">asNativeBalance</span>)
 </code></pre>
-<h3>Token pair descriptors</h3>
+<h3 id="token-pair-descriptors" tabindex="-1">Token pair descriptors</h3>
 <p>To describe a pair of tokens that can be exchanged against each other,
 you can use <code>TokenPair</code>.</p>
 <p>Token pairs have the <code>reverse</code> property which returns a
@@ -473,7 +473,7 @@ an equivalence in value, e.g. <code>100 TOKENA = 200 TOKENB</code>.</p>
 
 <span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPairAmount</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">TokenPair</span>(native, native), <span class="hljs-string">&quot;100&quot;</span>, <span class="hljs-string">&quot;200&quot;</span>).<span class="hljs-property">asNativeBalance</span>)
 </code></pre>
-<h2>Token contract client</h2>
+<h2 id="token-contract-client" tabindex="-1">Token contract client</h2>
 <p>To interact with a SNIP-20 token from TypeScript, you can use the <code>Snip20</code> client class.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
 
@@ -507,7 +507,7 @@ an equivalence in value, e.g. <code>100 TOKENA = 200 TOKENB</code>.</p>
   descriptor
 )
 </code></pre>
-<h3>Populating token metadata</h3>
+<h3 id="populating-token-metadata" tabindex="-1">Populating token metadata</h3>
 <p>A token's address uniquely identifies it (for the given chain, of course).
 However, to interact with a token on the chain, as a minimum you also need
 its code hash; and <code>Snip20</code> client instances also keep track of other token metadata,
@@ -521,7 +521,7 @@ by calling <code>Snip20#populate</code>:</p>
 <span class="hljs-title function_">equal</span>(yourToken.<span class="hljs-property">decimals</span>,    decimals)
 <span class="hljs-title function_">equal</span>(yourToken.<span class="hljs-property">totalSupply</span>, total_supply)
 </code></pre>
-<h3>Querying balance and sending amounts</h3>
+<h3 id="querying-balance-and-sending-amounts" tabindex="-1">Querying balance and sending amounts</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> amount = <span class="hljs-title class_">Symbol</span>()
 yourToken.<span class="hljs-property">agent</span>.<span class="hljs-property">query</span> = <span class="hljs-keyword">async</span> () =&gt; ({ <span class="hljs-attr">balance</span>: { amount } })
 yourToken.<span class="hljs-property">agent</span>.<span class="hljs-property">execute</span> = <span class="hljs-keyword">async</span> (x, y) =&gt; y
@@ -533,13 +533,13 @@ yourToken.<span class="hljs-property">agent</span>.<span class="hljs-property">e
   { <span class="hljs-attr">send</span>: { <span class="hljs-attr">amount</span>: <span class="hljs-string">&#x27;amount&#x27;</span>, <span class="hljs-attr">recipient</span>: <span class="hljs-string">&#x27;recipient&#x27;</span>, <span class="hljs-attr">msg</span>: <span class="hljs-string">&#x27;eyJjYWxsYmFjayI6InRlc3QifQ==&#x27;</span> } }
 )
 </code></pre>
-<h3>Deploying tokens</h3>
+<h3 id="deploying-tokens" tabindex="-1">Deploying tokens</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// This generates an init message for the standard SNIP-20 implementation</span>
 <span class="hljs-title function_">ok</span>(<span class="hljs-title class_">Snip20</span>.<span class="hljs-title function_">init</span>())
 
 <span class="hljs-comment">// TODO show instantiate</span>
 </code></pre>
-<h3>Query permits</h3>
+<h3 id="query-permits" tabindex="-1">Query permits</h3>
 <p>Fadroma supports generating <a href="https://docs.scrt.network/secret-network-documentation/development/snips/snip-24-query-permits-for-snip-20-tokens">SNIP-24</a>
 query permits.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
@@ -553,7 +553,7 @@ assert.<span class="hljs-title function_">deepEqual</span>(
   <span class="hljs-string">&#x27;{&quot;with_permit&quot;:{&quot;query&quot;:&quot;q&quot;,&quot;permit&quot;:&quot;p&quot;}}&#x27;</span>
 )
 </code></pre>
-<h2>Token manager</h2>
+<h2 id="token-manager" tabindex="-1">Token manager</h2>
 <p>The Token Manager is an object that serves as a registry
 of token contracts in a deployment. It keeps track of tokens,
 and allows you to specify the cases where a contract in your project

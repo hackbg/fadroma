@@ -356,14 +356,14 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#project-cli">Project CLI</a><ul><li><a href="#project-configuration">Project configuration</a></li></ul></li><li><a href="#project-api">Project API</a><ul><li><a href="#creating-a-project">Creating a project</a></li><li><a href="#adding-contracts-to-the-project-scope">Adding contracts to the project scope</a></li></ul></li><li><a href="#project-state">Project state</a><ul><li><a href="#build-artifacts">Build artifacts</a></li><li><a href="#upload-receipts">Upload receipts</a></li><li><a href="#deploy-receipts">Deploy receipts</a></li></ul></li></ul></div></p>
-<h1>Fadroma Project Scope</h1>
-<h2>Project CLI</h2>
+<h1 id="fadroma-project-scope" tabindex="-1">Fadroma Project Scope</h1>
+<h2 id="project-cli" tabindex="-1">Project CLI</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project create</span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project contract add</span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project contract list</span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project contract del</span>
 </code></pre>
-<h3>Project configuration</h3>
+<h3 id="project-configuration" tabindex="-1">Project configuration</h3>
 <table>
 <thead>
 <tr>
@@ -395,8 +395,8 @@ pre > code.language-typescript {
 </tr>
 </tbody>
 </table>
-<h2>Project API</h2>
-<h3>Creating a project</h3>
+<h2 id="project-api" tabindex="-1">Project API</h2>
+<h3 id="creating-a-project" tabindex="-1">Creating a project</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fixture } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
 <span class="hljs-keyword">const</span> root = <span class="hljs-title function_">fixture</span>(<span class="hljs-string">&#x27;project&#x27;</span>) <span class="hljs-comment">// replace with path to your project</span>
 
@@ -410,7 +410,7 @@ pre > code.language-typescript {
   }
 }).<span class="hljs-title function_">create</span>()
 </code></pre>
-<h3>Adding contracts to the project scope</h3>
+<h3 id="adding-contracts-to-the-project-scope" tabindex="-1">Adding contracts to the project scope</h3>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma contract list</span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma contract add</span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma contract del</span>
@@ -421,13 +421,13 @@ pre > code.language-typescript {
 <span class="hljs-keyword">const</span> baz = project.<span class="hljs-title function_">setTemplate</span>(<span class="hljs-string">&#x27;baz&#x27;</span>)
 <span class="hljs-title function_">assert</span>(baz <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
 </code></pre>
-<h2>Project state</h2>
-<h3>Build artifacts</h3>
+<h2 id="project-state" tabindex="-1">Project state</h2>
+<h3 id="build-artifacts" tabindex="-1">Build artifacts</h3>
 <p>Checksums of compiled contracts by version.</p>
-<h3>Upload receipts</h3>
+<h3 id="upload-receipts" tabindex="-1">Upload receipts</h3>
 <p>Records of a single uploaded contract binary.</p>
 <p>Stored in <code>state/$CHAIN_ID/upload/$CODE_ID.yml</code>.</p>
-<h3>Deploy receipts</h3>
+<h3 id="deploy-receipts" tabindex="-1">Deploy receipts</h3>
 <p>Records of one or more deployed contract instances.</p>
 <p>The <strong>deployment receipt system</strong> keeps track of the addresses, code ids, code hashes, and other
 info about the smart contracts that you deployed, in the form of files under

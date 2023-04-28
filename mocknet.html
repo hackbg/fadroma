@@ -356,7 +356,7 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#mock-of-mocknet-environment">Mock of mocknet environment</a></li><li><a href="#and-some-more-tests...">And some more tests...</a></li><li><a href="#base64-io">Base64 IO</a></li></ul></li></ul></div></p>
-<h1>Mocknet: the blockchain that isn't.</h1>
+<h1 id="mocknet%3A-the-blockchain-that-isn't." tabindex="-1">Mocknet: the blockchain that isn't.</h1>
 <p>Testing the production builds of smart contracts can be slow and awkward.
 Testnets are permanent and public; devnets can be temporary, but transactions
 are still throttled by the block rate.</p>
@@ -366,13 +366,13 @@ on top of the JavaScript engine's built-in WebAssembly runtime.</p>
 <p>This way, you can run your real smart contracts without a real blockchain,
 and quickly test their user-facing functionality and interoperation
 in a customizable environment.</p>
-<h2>Table of contents</h2>
+<h2 id="table-of-contents" tabindex="-1">Table of contents</h2>
 <ul>
 <li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li>
 <li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li>
 <li><a href="#implementation-details">Implementation details</a></li>
 </ul>
-<h2>Getting started with mocknet</h2>
+<h2 id="getting-started-with-mocknet" tabindex="-1">Getting started with mocknet</h2>
 <p>You can interact with a mocknet from TypeScript, the same way you interact with any other chain -
 through the Fadroma Client API.</p>
 <ul>
@@ -403,7 +403,7 @@ assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">a
 assert.<span class="hljs-title function_">ok</span>(!<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>())
 assert.<span class="hljs-title function_">ok</span>(!<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">sendMany</span>())
 </code></pre>
-<h2>Testing contracts on mocknet</h2>
+<h2 id="testing-contracts-on-mocknet" tabindex="-1">Testing contracts on mocknet</h2>
 <p>Uploading WASM blob will return the expected monotonously incrementing code ID...</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { pathToFileURL } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;url&#x27;</span>
 <span class="hljs-keyword">import</span> { examples } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
@@ -430,10 +430,10 @@ assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-key
 <span class="hljs-comment">//assert.ok(await client.execute({&quot;set&quot;: &quot;bar&quot;}))</span>
 <span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;bar&quot;)</span>
 </code></pre>
-<h2>Implementation details</h2>
+<h2 id="implementation-details" tabindex="-1">Implementation details</h2>
 <p>The rest of this executable specification is dedicated to testing and documenting the workings
 of the mocknet as implemented by Fadroma.</p>
-<h3>Mock of mocknet environment</h3>
+<h3 id="mock-of-mocknet-environment" tabindex="-1">Mock of mocknet environment</h3>
 <p>When testing your own contracts with Fadroma Mocknet, you are responsible
 for providing the value of the <code>env</code> struct seen by the contracts.
 Since here we test the mocknet itself, we use this pre-defined value:</p>
@@ -511,7 +511,7 @@ response = await contract.query(&quot;fail&quot;)
 assert.deepEqual(response.Ok, undefined)
 assert.deepEqual(response.Err, { generic_err: { msg: &#x27;this query always fails&#x27; } })*/</span>
 </code></pre>
-<h3>And some more tests...</h3>
+<h3 id="and-some-more-tests..." tabindex="-1">And some more tests...</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">/*
 assert.throws(()=&gt;new MocknetBackend().getInstance())
 
@@ -533,7 +533,7 @@ assert.ok(new MocknetBackend(&#x27;mocknet&#x27;, {
 ]))
 */</span>
 </code></pre>
-<h3>Base64 IO</h3>
+<h3 id="base64-io" tabindex="-1">Base64 IO</h3>
 <ul>
 <li><strong>Base64 I/O:</strong> Fields that are of type <code>Binary</code> (query responses and the <code>data</code> field of handle
 responses) are returned by the contract as Base64-encoded strings

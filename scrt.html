@@ -356,7 +356,7 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#configuring">Configuring</a></li><li><a href="#connecting">Connecting</a></li><li><a href="#authentication">Authentication</a><ul><li><a href="#authenticating-with-a-fresh-wallet">Authenticating with a fresh wallet</a></li><li><a href="#authenticating-with-a-known-mnemonic">Authenticating with a known mnemonic</a></li><li><a href="#authenticating-in-the-browser-with-keplr">Authenticating in the browser with Keplr</a></li><li><a href="#authenticating-in-a-script-with-secretcli">Authenticating in a script with secretcli</a></li></ul></li><li><a href="#querying-data-from-secret-network">Querying data from Secret Network</a></li><li><a href="#authorization">Authorization</a><ul><li><a href="#using-viewing-keys">Using viewing keys</a></li><li><a href="#using-query-permits">Using query permits</a></li></ul></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#transaction-bundling">Transaction bundling</a></li></ul></li></ul></div></p>
-<h1>Operating on Secret Network with <code>@fadroma/scrt</code></h1>
+<h1 id="operating-on-secret-network-with-%40fadroma%2Fscrt" tabindex="-1">Operating on Secret Network with <code>@fadroma/scrt</code></h1>
 <p>Fadroma's support for Secret Network is achieved in this package,
 by implementing the core Fadroma Agent API (<code>Chain</code>, <code>Agent</code>, <code>Bundle</code>),
 as well as SN-specific amenities on top of it (such as a <code>Snip20</code> token client
@@ -369,11 +369,11 @@ one of its design goals is to be usable in Node and browsers without modificatio
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Scrt</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
 <span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 </code></pre>
-<h2>Configuring</h2>
+<h2 id="configuring" tabindex="-1">Configuring</h2>
 <p>Several options are exposed as environment variables.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> config = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">Config</span>()
 </code></pre>
-<h2>Connecting</h2>
+<h2 id="connecting" tabindex="-1">Connecting</h2>
 <p>To connect to Secret Network with Fadroma, use one of the following:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> mainnet = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mainnet</span>({ <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
 <span class="hljs-keyword">const</span> testnet = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">testnet</span>({ <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
@@ -386,9 +386,9 @@ one of its design goals is to be usable in Node and browsers without modificatio
   assert.<span class="hljs-title function_">ok</span>(chain <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Chain</span> &amp;&amp; chain <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>)
 }
 </code></pre>
-<h2>Authentication</h2>
+<h2 id="authentication" tabindex="-1">Authentication</h2>
 <p>To interact with Secret Network, you need to authenticate as an <code>Agent</code>:</p>
-<h3>Authenticating with a fresh wallet</h3>
+<h3 id="authenticating-with-a-fresh-wallet" tabindex="-1">Authenticating with a fresh wallet</h3>
 <p>This gives you a randomly generated mnemonic.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent0 = <span class="hljs-keyword">await</span> mainnet.<span class="hljs-title function_">getAgent</span>().<span class="hljs-property">ready</span>
 
@@ -398,7 +398,7 @@ assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-pro
 assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-property">address</span>)
 </code></pre>
 <p>The <code>mnemonic</code> property of <code>Agent</code> will be hidden to prevent leakage.</p>
-<h3>Authenticating with a known mnemonic</h3>
+<h3 id="authenticating-with-a-known-mnemonic" tabindex="-1">Authenticating with a known mnemonic</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> mainnet.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">mnemonic</span>: <span class="hljs-string">&#x27;...&#x27;</span> }).<span class="hljs-property">ready</span>
 
 <span class="hljs-title function_">ok</span>(agent1 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Agent</span>)
@@ -406,7 +406,7 @@ assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-pro
 <span class="hljs-title function_">ok</span>(agent1.<span class="hljs-property">mnemonic</span>)
 <span class="hljs-title function_">ok</span>(agent1.<span class="hljs-property">address</span>)
 </code></pre>
-<h3>Authenticating in the browser with Keplr</h3>
+<h3 id="authenticating-in-the-browser-with-keplr" tabindex="-1">Authenticating in the browser with Keplr</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// <span class="hljs-doctag">TODO:</span></span>
 <span class="hljs-comment">// const agent2 = await mainnet.fromKeplr().ready</span>
 <span class="hljs-comment">// ok(agent2 instanceof Scrt.Agent)</span>
@@ -414,7 +414,7 @@ assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-pro
 <span class="hljs-comment">// ok(agent2.mnemonic)</span>
 <span class="hljs-comment">// ok(agent2.address)</span>
 </code></pre>
-<h3>Authenticating in a script with secretcli</h3>
+<h3 id="authenticating-in-a-script-with-secretcli" tabindex="-1">Authenticating in a script with secretcli</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// <span class="hljs-doctag">TODO:</span></span>
 <span class="hljs-comment">// const agent3 = await mainnet.fromSecretCli()</span>
 <span class="hljs-comment">// ok(agent3 instanceof Scrt.Agent)</span>
@@ -422,7 +422,7 @@ assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-pro
 <span class="hljs-comment">// ok(agent3.mnemonic)</span>
 <span class="hljs-comment">// ok(agent3.address)</span>
 </code></pre>
-<h2>Querying data from Secret Network</h2>
+<h2 id="querying-data-from-secret-network" tabindex="-1">Querying data from Secret Network</h2>
 <p>The <code>SecretJS</code> module used by a <code>ScrtChain</code> is available on the <code>SecretJS</code> property.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> chain <span class="hljs-keyword">of</span> [mainnet, testnet, devnet, mocknet]) {
   <span class="hljs-keyword">await</span> chain.<span class="hljs-property">api</span>
@@ -448,8 +448,8 @@ instances.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent1.<span class="hljs-property">ready</span>
 <span class="hljs-title function_">ok</span>(agent1.<span class="hljs-property">api</span>)
 </code></pre>
-<h2>Authorization</h2>
-<h3>Using viewing keys</h3>
+<h2 id="authorization" tabindex="-1">Authorization</h2>
+<h3 id="using-viewing-keys" tabindex="-1">Using viewing keys</h3>
 <p>Fadroma provides the <code>VKClient</code> class for embedding into your own <code>Client</code> classes
 for contracts that use SNIP20-compatible the viewing keys.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> client = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">VKClient</span>()
@@ -459,11 +459,11 @@ for contracts that use SNIP20-compatible the viewing keys.</p>
   vk = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">VKClient</span>()
 }
 </code></pre>
-<h3>Using query permits</h3>
+<h3 id="using-query-permits" tabindex="-1">Using query permits</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO add docs</span>
 </code></pre>
-<h2>Implementation details</h2>
-<h3>Transaction bundling</h3>
+<h2 id="implementation-details" tabindex="-1">Implementation details</h2>
+<h3 id="transaction-bundling" tabindex="-1">Transaction bundling</h3>
 <p>A Secret Network-specific implementation of message bundling is included:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> bundle = agent0.<span class="hljs-title function_">bundle</span>()
 <span class="hljs-title function_">ok</span>(bundle <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Bundle</span>)

@@ -356,7 +356,7 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#devnet-cli">Devnet CLI</a></li><li><a href="#devnet-api">Devnet API</a><ul><li><a href="#connecting-to-a-devnet">Connecting to a devnet</a></li><li><a href="#devnet-state">Devnet state</a></li><li><a href="#using-genesis-accounts">Using genesis accounts</a></li><li><a href="#exporting-a-devnet-snapshot">Exporting a devnet snapshot</a></li><li><a href="#resetting-the-devnet">Resetting the devnet</a></li></ul></li></ul></div></p>
-<h1>Devnets: local development backends</h1>
+<h1 id="devnets%3A-local-development-backends" tabindex="-1">Devnets: local development backends</h1>
 <p>The <strong>devnet</strong> (a.k.a. localnet) is a local instance of the selected chain.
 Devnets are persistent, and can be started and stopped; info about contracts
 deployed to a devnet is stored in your project's state.</p>
@@ -365,13 +365,13 @@ There's currently a single concrete devnet implementation, based on <code>@hackb
 which uses Docker or Podman for running a devnet container.</p>
 <p>Fadroma contains container images based on <code>localsecret</code>,
 for versions of Secret Network 1.2 to 1.7.</p>
-<h2>Devnet CLI</h2>
+<h2 id="devnet-cli" tabindex="-1">Devnet CLI</h2>
 <pre><code class="hljs language-sh">$ npx fadroma devnet start
 $ npx fadroma devnet stop
 $ npx fadroma devnet <span class="hljs-built_in">export</span>
 $ npx fadroma devnet clear
 </code></pre>
-<h2>Devnet API</h2>
+<h2 id="devnet-api" tabindex="-1">Devnet API</h2>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getDevnet } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 
 <span class="hljs-comment">// unleash the kraken:</span>
@@ -393,7 +393,7 @@ process.<span class="hljs-title function_">on</span>(<span class="hljs-string">&
 <span class="hljs-title function_">assert</span>(devnet.<span class="hljs-title function_">getChain</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Chain</span>)
 assert.<span class="hljs-title function_">equal</span>(devnet.<span class="hljs-title function_">getChain</span>().<span class="hljs-property">mode</span>, <span class="hljs-title class_">Chain</span>.<span class="hljs-property">Mode</span>.<span class="hljs-property">Devnet</span>)
 </code></pre>
-<h3>Connecting to a devnet</h3>
+<h3 id="connecting-to-a-devnet" tabindex="-1">Connecting to a devnet</h3>
 <pre><code class="hljs language-typescript">
 <span class="hljs-comment">// specifying devnet port:</span>
 assert.<span class="hljs-title function_">equal</span>(
@@ -401,7 +401,7 @@ assert.<span class="hljs-title function_">equal</span>(
   <span class="hljs-string">&#x27;http://localhost:1234/&#x27;</span>
 )
 </code></pre>
-<h3>Devnet state</h3>
+<h3 id="devnet-state" tabindex="-1">Devnet state</h3>
 <p>Devnet is stateful. It's represented in the project by e.g. <code>state/fadroma-devnet/devnet.json</code>.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">JSON</span>File, <span class="hljs-title class_">OpaqueDirectory</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/file&#x27;</span>
 assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">nodeState</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">JSON</span>File)
@@ -410,7 +410,7 @@ assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-pro
 assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-title function_">save</span>())
 assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">load</span>())
 </code></pre>
-<h3>Using genesis accounts</h3>
+<h3 id="using-genesis-accounts" tabindex="-1">Using genesis accounts</h3>
 <p>On devnet, Fadroma creates named genesis accounts for you,
 which you can use by passing <code>name</code> to <code>getAgent</code>:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// specifying genesis accounts:</span>
@@ -425,7 +425,7 @@ assert.<span class="hljs-title function_">deepEqual</span>(
 <span class="hljs-title function_">assert</span>(alice <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>)
 
 </code></pre>
-<h3>Exporting a devnet snapshot</h3>
+<h3 id="exporting-a-devnet-snapshot" tabindex="-1">Exporting a devnet snapshot</h3>
 <p>The <code>fadroma export</code> command exports a list of contracts in the current deployment.</p>
 <p>When the active chain is a devnet, <code>fadroma export</code> also saves the current state of the
 Docker container as a new Docker image. This image contains a snapshot of all the deployed
@@ -435,7 +435,7 @@ contracts and other activity on the devnet prior to the export.</p>
 <p>An exported devnet deployment is a great way to provide a standardized development build
 of your project. You can use one to test the frontend&lt;-&gt;contracts stack in a separate step
 of your integration pipeline.</p>
-<h3>Resetting the devnet</h3>
+<h3 id="resetting-the-devnet" tabindex="-1">Resetting the devnet</h3>
 <p>The <code>fadroma reset</code> command kills and erases the devnet.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-title class_">Project</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 <span class="hljs-keyword">const</span> project = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Project</span>()

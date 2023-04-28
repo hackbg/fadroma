@@ -356,10 +356,10 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#build-cli">Build CLI</a><ul><li><a href="#builder-configuration">Builder configuration</a></li></ul></li><li><a href="#build-api">Build API</a><ul><li><a href="#getting-a-builder">Getting a builder</a><ul><li><a href="#buildcontainer">BuildContainer</a></li><li><a href="#buildraw">BuildRaw</a></li></ul></li><li><a href="#building-a-contract">Building a contract</a><ul><li><a href="#building-a-named-contract-from-the-project">Building a named contract from the project</a></li><li><a href="#specifying-a-contract-to-build">Specifying a contract to build</a></li></ul></li><li><a href="#building-past-commits-of-contracts">Building past commits of contracts</a></li><li><a href="#build-caching">Build caching</a></li></ul></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#the-build-procedure">The build procedure</a></li><li><a href="#builders">Builders</a></li><li><a href="#build-events">Build events</a></li></ul></li></ul></div></p>
-<h1>Building contracts from source</h1>
+<h1 id="building-contracts-from-source" tabindex="-1">Building contracts from source</h1>
 <p>This package implements <strong>reproducible compilation</strong> of contracts.
 What to compile is specified using the primitives defined in <a href="../client/README.md">Fadroma Core</a>.</p>
-<h2>Build CLI</h2>
+<h2 id="build-cli" tabindex="-1">Build CLI</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma build CONTRACT    <span class="hljs-comment"># nop if already built</span></span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma rebuild CONTRACT  <span class="hljs-comment"># always rebuilds</span></span>
 </code></pre>
@@ -367,7 +367,7 @@ What to compile is specified using the primitives defined in <a href="../client/
 <li><strong><code>CONTRACT</code></strong>: one of the contracts defined in the <a href="../project/Project.spec.ts">project</a>,
 <em>or</em> a path to a crate assumed to contain a single contract.</li>
 </ul>
-<h3>Builder configuration</h3>
+<h3 id="builder-configuration" tabindex="-1">Builder configuration</h3>
 <table>
 <thead>
 <tr>
@@ -434,15 +434,15 @@ What to compile is specified using the primitives defined in <a href="../client/
 </tr>
 </tbody>
 </table>
-<h2>Build API</h2>
-<h3>Getting a builder</h3>
+<h2 id="build-api" tabindex="-1">Build API</h2>
+<h3 id="getting-a-builder" tabindex="-1">Getting a builder</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getBuilder } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 <span class="hljs-keyword">const</span> builder = <span class="hljs-title function_">getBuilder</span>(<span class="hljs-comment">/* { ...options... } */</span>)
 
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Builder</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 <span class="hljs-title function_">assert</span>(builder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Builder</span>)
 </code></pre>
-<h4>BuildContainer</h4>
+<h4 id="buildcontainer" tabindex="-1">BuildContainer</h4>
 <p>By default, you get a <code>BuildContainer</code>,
 which runs the build procedure in a container
 provided by either Docker or Podman (as selected
@@ -461,7 +461,7 @@ assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title func
 <p>The <code>BuildContainer</code> runs the build procedure defined by the <code>FADROMA_BUILD_SCRIPT</code>
 in a container based on the <code>FADROMA_BUILD_IMAGE</code>, resulting in optimized WASM build artifacts
 being output to the <code>FADROMA_ARTIFACTS</code> directory.</p>
-<h4>BuildRaw</h4>
+<h4 id="buildraw" tabindex="-1">BuildRaw</h4>
 <p>If you want to execute the build procedure in your
 current environment, you can switch to <code>BuildRaw</code>
 by passing <code>buildRaw: true</code> or setting <code>FADROMA_BUILD_RAW</code>.</p>
@@ -470,9 +470,9 @@ by passing <code>buildRaw: true</code> or setting <code>FADROMA_BUILD_RAW</code>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">BuildRaw</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 assert.<span class="hljs-title function_">ok</span>(rawBuilder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">BuildRaw</span>)
 </code></pre>
-<h3>Building a contract</h3>
+<h3 id="building-a-contract" tabindex="-1">Building a contract</h3>
 <p>Now that we've obtained a <code>Builder</code>, let's compile a contract from source into a WASM binary.</p>
-<h4>Building a named contract from the project</h4>
+<h4 id="building-a-named-contract-from-the-project" tabindex="-1">Building a named contract from the project</h4>
 <p>Building asynchronously returns <code>Template</code> instances.
 A <code>Template</code> is an undeployed contract. You can upload
 it once, and instantiate any number of <code>Contract</code>s from it.</p>
@@ -502,7 +502,7 @@ it once, and instantiate any number of <code>Contract</code>s from it.</p>
 
 }
 </code></pre>
-<h4>Specifying a contract to build</h4>
+<h4 id="specifying-a-contract-to-build" tabindex="-1">Specifying a contract to build</h4>
 <p>The <code>Template</code> and <code>Contract</code> classes have the following properties for specifying the source:</p>
 <table>
 <thead>
@@ -565,7 +565,7 @@ it once, and instantiate any number of <code>Contract</code>s from it.</p>
 <span class="hljs-keyword">const</span> template = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Template</span>({ builder, <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
 <span class="hljs-keyword">await</span> template.<span class="hljs-property">compiled</span>
 </code></pre>
-<h3>Building past commits of contracts</h3>
+<h3 id="building-past-commits-of-contracts" tabindex="-1">Building past commits of contracts</h3>
 <ul>
 <li><code>DotGit</code>, a helper for finding the contents of Git history
 where Git submodules are involved. This works in tandem with
@@ -592,19 +592,19 @@ assert.<span class="hljs-title function_">throws</span>(<span class="hljs-functi
 
 assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">getGitDir</span>(contractWithSource) <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">DotGit</span>)
 </code></pre>
-<h3>Build caching</h3>
+<h3 id="build-caching" tabindex="-1">Build caching</h3>
 <p>When build caching is enabled, each build call first checks in <code>FADROMA_ARTIFACTS</code>
 for a corresponding pre-existing build and reuses it if present.</p>
 <p>Setting <code>FADROMA_REBUILD</code> disables build caching.</p>
-<h2>Implementation details</h2>
-<h3>The build procedure</h3>
+<h2 id="implementation-details" tabindex="-1">Implementation details</h2>
+<h3 id="the-build-procedure" tabindex="-1">The build procedure</h3>
 <p>The ultimate build procedure, i.e. actual calls to <code>cargo</code> and such,
 is implemented in the standalone script <code>FADROMA_BUILD_SCRIPT</code> (default: <code>build.impl.mjs</code>),
 which is launched by the builders.</p>
-<h3>Builders</h3>
+<h3 id="builders" tabindex="-1">Builders</h3>
 <p>The subclasses of the abstract base class <code>Builder</code> in Fadroma Core
 implement the compilation procedure for contracts.</p>
-<h3>Build events</h3>
+<h3 id="build-events" tabindex="-1">Build events</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Console</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-keyword">const</span> log = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Console</span>({ <span class="hljs-attr">info</span>: <span class="hljs-function">() =&gt;</span> {} })

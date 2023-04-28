@@ -356,11 +356,11 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#design-considerations">Design considerations</a></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-a-fadroma-project-through-npx">Create a Fadroma project through NPX</a></li><li><a href="#add-more-contracts">Add more contracts</a></li></ul></li><li><a href="#writing-contracts">Writing contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#build-cli">Build CLI</a></li></ul></li><li><a href="#deploying-contracts">Deploying contracts</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#devnets">Devnets</a></li></ul></li><li><a href="#testing-contracts">Testing contracts</a><ul><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#scripting-fadroma">Scripting Fadroma</a><ul><li><a href="#typescript">TypeScript</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deployment-api">Deployment API</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmos-like-chains">Other Cosmos-like chains</a></li><li><a href="#evm-based-chains">EVM-based chains</a></li></ul></li></ul></li><li><a href="#nix-environment-support">Nix environment support</a><ul><li><a href="#standalone-nix-shell">Standalone Nix shell</a></li><li><a href="#create-a-fadroma-project-through-nix">Create a Fadroma project through Nix</a></li><li><a href="#project-specific-nix-shell">Project-specific Nix shell</a></li></ul></li></ul></div></p>
-<h1>Getting started</h1>
+<h1 id="getting-started" tabindex="-1">Getting started</h1>
 <p><strong>Fadroma</strong> is an application framework targeting the CosmWasm Compute module.
 Fadroma includes <strong>Rust</strong> libraries for writing smart contracts and a
 <strong>TypeScript</strong> system for building, deploying, and interacting with them.</p>
-<h2>Design considerations</h2>
+<h2 id="design-considerations" tabindex="-1">Design considerations</h2>
 <p>On the most abstract level, Fadroma treats the blockchain as a <strong>seamless compute substrate</strong>,
 and contracts basically as <strong>persistent objects</strong>.</p>
 <ul>
@@ -375,7 +375,7 @@ where platform details are abstracted away.</p>
 <p>Furthermore, the <strong>transaction-based architecture</strong> prevents the system from
 spontaneously entering inconsistent states. This makes CosmWasm smart contracts
 a very interesting proposition for running standalone business logic.</p>
-<h2>Project structure</h2>
+<h2 id="project-structure" tabindex="-1">Project structure</h2>
 <p>The default structure of a project is implemented by the
 <a href="./spec/Project.spec.ts.md"><strong><code>Project</code></strong> class</a>.
 Projects created by Fadroma are polyglot Rust/TypeScript repositories.</p>
@@ -391,30 +391,30 @@ and also contains an <code>ops.ts</code> module (where your project, and any cus
 extensions to the workflow, are defined).</p>
 </li>
 </ul>
-<h3>Create a Fadroma project through NPX</h3>
+<h3 id="create-a-fadroma-project-through-npx" tabindex="-1">Create a Fadroma project through NPX</h3>
 <p>If you have Node.js set up, you can use the <code>npx</code> command to create a new Fadroma project:</p>
 <pre><code class="hljs language-sh">$ npx @hackbg/fadroma@latest create
 </code></pre>
 <p>This will download the latest version of the <code>@hackbg/fadroma</code> package,
 and run the <code>fadroma create</code> command from it, which will create a new project.</p>
-<h3>Add more contracts</h3>
+<h3 id="add-more-contracts" tabindex="-1">Add more contracts</h3>
 <p>When creating a project, you will be able to create contracts.</p>
 <p>Afterwards, you can add new contracts to your project with:</p>
 <pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma contract add [NAME...]
 </code></pre>
-<h2>Writing contracts</h2>
+<h2 id="writing-contracts" tabindex="-1">Writing contracts</h2>
 <p>A contract is your basic unit of domain logic.
 They are very much like persistent objects
 that communicate with each other, and
 respond to the outside world,
 via message passing.</p>
-<h3>Macro DSL</h3>
+<h3 id="macro-dsl" tabindex="-1">Macro DSL</h3>
 <p><a href="https://docs.rs/fadroma-dsl/latest/fadroma-dsl"><strong>Fadroma DSL</strong></a>
 is a family of procedural macros for clean, boilerplate-free implementation
 of smart contract internals,</p>
-<h3>Libraries</h3>
+<h3 id="libraries" tabindex="-1">Libraries</h3>
 <p><a href="https://docs.rs/fadroma/latest/fadroma"><strong>Fadroma</strong></a> libraries.</p>
-<h3>Build CLI</h3>
+<h3 id="build-cli" tabindex="-1">Build CLI</h3>
 <p>Having written a contract, you need to compile it and instantiate it on a chain.</p>
 <p>To build the entire project:</p>
 <pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma build
@@ -424,8 +424,8 @@ of smart contract internals,</p>
 </code></pre>
 <p>The build commands are implemented by the
 <a href="./spec/Build.spec.ts.md"><strong><code>@fadroma/ops</code></strong></a> package.</p>
-<h2>Deploying contracts</h2>
-<h3>Deploy CLI</h3>
+<h2 id="deploying-contracts" tabindex="-1">Deploying contracts</h2>
+<h3 id="deploy-cli" tabindex="-1">Deploy CLI</h3>
 <p>To instantiate a contract:</p>
 <pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma init CONTRACT LABEL INITMSG
 </code></pre>
@@ -435,49 +435,49 @@ $ npm <span class="hljs-built_in">exec</span> fadroma tx LABEL MSG
 </code></pre>
 <p>The deployment commands are implemented by the
 <a href="./spec/Build.spec.ts.md"><strong><code>@fadroma/ops</code></strong></a> package.</p>
-<h3>Devnets</h3>
+<h3 id="devnets" tabindex="-1">Devnets</h3>
 <p>By default, Fadroma deploys to a <strong>devnet</strong>: a local instance of
 a blockchain, running in a Docker or Podman container.</p>
-<h2>Testing contracts</h2>
-<h3>Testing with Ensemble</h3>
+<h2 id="testing-contracts" tabindex="-1">Testing contracts</h2>
+<h3 id="testing-with-ensemble" tabindex="-1">Testing with Ensemble</h3>
 <p><a href="https://fadroma.tech/rs/fadroma/ensemble/index.html"><strong>Fadroma Ensemble</strong></a>
 is a library for for integration testing of multiple contracts.</p>
-<h3>Testing with Mocknet</h3>
+<h3 id="testing-with-mocknet" tabindex="-1">Testing with Mocknet</h3>
 <p><a href="https://fadroma.tech/js/classes/_fadroma_ops.Mocknet.html"><strong>Fadroma Mocknet</strong></a> is
 a simulated environment for fast full-stack testing of your production builds.</p>
-<h2>Scripting Fadroma</h2>
+<h2 id="scripting-fadroma" tabindex="-1">Scripting Fadroma</h2>
 <p>For more complex operations, you can define custom commands, which you implement in TypeScript
 using the Fadroma TypeScript API. <strong>See <a href="./spec/Agent.spec.ts.md">@fadroma/agent</a></strong> to get
 started with scripting Fadroma.</p>
 <p>To run a Fadroma script in your project:</p>
 <pre><code class="hljs language-sh">$ fadroma run script.js
 </code></pre>
-<h3>TypeScript</h3>
+<h3 id="typescript" tabindex="-1">TypeScript</h3>
 <p>Fadroma will use <a href="https://github.com/hackbg/ganesha">Ganesha</a> to compile
 deployment scripts on each run. You can use TypeScript seamlessly in your
 deploy procedures.</p>
 <pre><code class="hljs language-sh">$ fadroma run script.ts
 </code></pre>
-<h3>Agent API</h3>
+<h3 id="agent-api" tabindex="-1">Agent API</h3>
 <p><a href="https://fadroma.tech/js/modules/_fadroma_client.html"><strong>Fadroma Core</strong></a> is a library for
 interfacing with smart contracts from JavaScript or TypeScript.</p>
 <p>To get started with writing Fadroma scripts,
 proceed to the <a href="./spec/Agent.spec.ts.md"><em><strong>Fadroma Core API Specification</strong></em></a>.</p>
-<h3>Deployment API</h3>
-<h3>Connecting</h3>
+<h3 id="deployment-api" tabindex="-1">Deployment API</h3>
+<h3 id="connecting" tabindex="-1">Connecting</h3>
 <p>The <a href="./spec/Connect.spec.ts.md"><strong>Fadroma Connect</strong></a> library
 serves as an index of all supported connection targets.</p>
-<h4>Secret Network</h4>
+<h4 id="secret-network" tabindex="-1">Secret Network</h4>
 <p>The <a href="./spec/Scrt.spec.ts.md"><strong><code>@fadroma/scrt</code></strong></a>
 package implements support for Secret Network.</p>
-<h4>Other Cosmos-like chains</h4>
+<h4 id="other-cosmos-like-chains" tabindex="-1">Other Cosmos-like chains</h4>
 <p>Planned. See <a href="https://github.com/hackbg/fadroma/issues/148">issue #148</a>.</p>
-<h4>EVM-based chains</h4>
+<h4 id="evm-based-chains" tabindex="-1">EVM-based chains</h4>
 <p>Under consideration.</p>
-<h2>Nix environment support</h2>
+<h2 id="nix-environment-support" tabindex="-1">Nix environment support</h2>
 <p>Nix is a functional package manager. Fadroma can optionally
 use Nix to provide you with a stable development environment.</p>
-<h3>Standalone Nix shell</h3>
+<h3 id="standalone-nix-shell" tabindex="-1">Standalone Nix shell</h3>
 <p>If you have Nix, you can enter a Fadroma shell with:</p>
 <pre><code class="hljs language-sh">$ nix-shell https://fadroma.tech/nix
 </code></pre>
@@ -485,11 +485,11 @@ use Nix to provide you with a stable development environment.</p>
 and will drop you in a shell where these tools are available
 on the system path. In this shell, you can able to invoke
 the Fadroma CLI with just <code>fadroma</code> instead of <code>npm exec fadroma</code> or similar.</p>
-<h3>Create a Fadroma project through Nix</h3>
+<h3 id="create-a-fadroma-project-through-nix" tabindex="-1">Create a Fadroma project through Nix</h3>
 <p>If you use Nix, you can create a project with:</p>
 <pre><code class="hljs language-sh">$ nix-shell https://fadroma.tech/nix -c fadroma project create
 </code></pre>
-<h3>Project-specific Nix shell</h3>
+<h3 id="project-specific-nix-shell" tabindex="-1">Project-specific Nix shell</h3>
 <p>Projects are created with a <code>shell.nix</code>, which you can enter with:</p>
 <pre><code class="hljs language-sh">$ <span class="hljs-built_in">cd</span> /my/project
 $ nix-shell

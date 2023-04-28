@@ -356,13 +356,13 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#upload-cli">Upload CLI</a></li><li><a href="#upload-api">Upload API</a><ul><li><a href="#upload-caching">Upload caching</a></li><li><a href="#uploader-variants">Uploader variants</a><ul><li><a href="#fsuploader">FSUploader</a></li><li><a href="#fetchuploader">FetchUploader</a></li></ul></li><li><a href="#upload-events">Upload events</a></li><li><a href="#upload-errors">Upload errors</a></li></ul></li></ul></div></p>
-<h1>Fadroma Upload</h1>
+<h1 id="fadroma-upload" tabindex="-1">Fadroma Upload</h1>
 <p>This package implements <strong>uploading WASM files to get code ids</strong>.</p>
-<h2>Upload CLI</h2>
+<h2 id="upload-cli" tabindex="-1">Upload CLI</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma upload CONTRACT   <span class="hljs-comment"># nil if same contract is already uploaded</span></span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma reupload CONTRACT <span class="hljs-comment"># always reupload</span></span>
 </code></pre>
-<h2>Upload API</h2>
+<h2 id="upload-api" tabindex="-1">Upload API</h2>
 <p>Uploading with default configuration (from environment variables):</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fixture } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
 <span class="hljs-keyword">const</span> artifact = <span class="hljs-title function_">fixture</span>(<span class="hljs-string">&#x27;null.wasm&#x27;</span>) <span class="hljs-comment">// replace with path to your binary</span>
@@ -374,7 +374,7 @@ pre > code.language-typescript {
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getUploader } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 <span class="hljs-keyword">await</span> <span class="hljs-title function_">getUploader</span>({ <span class="hljs-comment">/* options */</span> }).<span class="hljs-title function_">upload</span>({ artifact })
 </code></pre>
-<h3>Upload caching</h3>
+<h3 id="upload-caching" tabindex="-1">Upload caching</h3>
 <p>Contracts start out as source code, which <code>@fadroma/ops</code> compiles to binary artifacts
 (WASM files). The <code>Uploader</code> class takes care of uploading them and producing a JSON file
 containing upload metadata, which we call an <strong>upload receipt</strong>.</p>
@@ -397,14 +397,14 @@ if it does, it returns the existing code ID instead of uploading the same file t
   assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">uploadMany</span>([template]))
 })
 </code></pre>
-<h3>Uploader variants</h3>
-<h4>FSUploader</h4>
+<h3 id="uploader-variants" tabindex="-1">Uploader variants</h3>
+<h4 id="fsuploader" tabindex="-1">FSUploader</h4>
 <p><code>FSUploader</code> uploads WASM to the chain from local files.</p>
-<h4>FetchUploader</h4>
+<h4 id="fetchuploader" tabindex="-1">FetchUploader</h4>
 <p><code>FetchUploader</code>, uploads WASM to the chain from remote URLs.</p>
-<h3>Upload events</h3>
+<h3 id="upload-events" tabindex="-1">Upload events</h3>
 <pre><code class="hljs language-typescript"></code></pre>
-<h3>Upload errors</h3>
+<h3 id="upload-errors" tabindex="-1">Upload errors</h3>
 <pre><code class="hljs language-typescript"></code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>

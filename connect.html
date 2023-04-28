@@ -356,15 +356,15 @@ pre > code.language-typescript {
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#connect-cli">Connect CLI</a><ul><li><a href="#connection-configuration">Connection configuration</a></li></ul></li><li><a href="#connect-api">Connect API</a></li><li><a href="#configuration">Configuration</a></li><li><a href="#errors">Errors</a></li></ul></div></p>
-<h1>Fadroma Connect Registry</h1>
+<h1 id="fadroma-connect-registry" tabindex="-1">Fadroma Connect Registry</h1>
 <p>This package acts as a hub for the available Fadroma Agent API implementations.
 In practical terms, it allows you to connect to every chain (or other backend)
 that Fadroma supports.</p>
-<h2>Connect CLI</h2>
+<h2 id="connect-cli" tabindex="-1">Connect CLI</h2>
 <pre><code class="hljs language-sh">$ fadroma chain list
 </code></pre>
-<h3>Connection configuration</h3>
-<h2>Connect API</h2>
+<h3 id="connection-configuration" tabindex="-1">Connection configuration</h3>
+<h2 id="connect-api" tabindex="-1">Connect API</h2>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> connect <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
 
 <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> platform <span class="hljs-keyword">of</span> [<span class="hljs-string">&#x27;secretjs&#x27;</span>, <span class="hljs-string">&#x27;secretcli&#x27;</span>]) {
@@ -373,7 +373,7 @@ that Fadroma supports.</p>
   }
 }
 </code></pre>
-<h2>Configuration</h2>
+<h2 id="configuration" tabindex="-1">Configuration</h2>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">ConnectConfig</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
 <span class="hljs-keyword">const</span> config = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConnectConfig</span>()
 config.<span class="hljs-title function_">getChain</span>()
@@ -382,7 +382,7 @@ assert.<span class="hljs-title function_">throws</span>(<span class="hljs-functi
 config.<span class="hljs-title function_">getAgent</span>()
 config.<span class="hljs-title function_">listChains</span>()
 </code></pre>
-<h2>Errors</h2>
+<h2 id="errors" tabindex="-1">Errors</h2>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">ConnectError</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
 <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConnectError</span>.<span class="hljs-title class_">NoChainSelected</span>()
 <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConnectError</span>.<span class="hljs-title class_">UnknownChainSelected</span>()
