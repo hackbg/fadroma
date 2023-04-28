@@ -50,7 +50,7 @@ When creating a project, you will be able to create contracts.
 Afterwards, you can add new contracts to your project with:
 
 ```sh
-$ npm exec fadroma contract add [NAME...]
+$ npm exec fadroma add [NAME...]
 ```
 
 ## Writing contracts
