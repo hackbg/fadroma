@@ -42,7 +42,7 @@
 
     "docs:dev":      "ensuite-dev",
     "docs:render":   "time ganesha-node ensuite/ensuite-render.cli.mjs",
-    "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints platforms/* --entryPoints .",
+    "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints agent --entryPoints connect --entryPoints ops --entryPoints platforms/* --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve"
