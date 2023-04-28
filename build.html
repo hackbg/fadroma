@@ -453,7 +453,7 @@ assert.<span class="hljs-title function_">ok</span>(builder <span class="hljs-ke
 <p><code>BuildContainer</code> uses <a href="https://www.npmjs.com/package/@hackbg/dock"><code>@hackbg/dock</code></a> to
 operate the container engine.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Dokeres</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/dock&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(builder.<span class="hljs-property">docker</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Dokeres</span>.<span class="hljs-property">Engine</span>)
+assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">false</span> }).<span class="hljs-property">docker</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Dokeres</span>.<span class="hljs-property">Engine</span>)
 </code></pre>
 <p>Use <code>FADROMA_DOCKER</code> or the <code>dockerSocket</code> option to specify a non-default Docker socket path.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">dockerSocket</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
