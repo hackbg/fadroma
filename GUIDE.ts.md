@@ -43,11 +43,11 @@ Projects created by Fadroma are polyglot Rust/TypeScript repositories.
 If you have Node.js set up, you can use the `npx` command to create a new Fadroma project:
 
 ```sh
-$ npx @hackbg/fadroma@latest fadroma project create
+$ npx @hackbg/fadroma@latest create
 ```
 
-This will install the latest version of the `@hackbg/fadroma` package,
-and run the `fadroma project create` command, which will create a new project.
+This will download the latest version of the `@hackbg/fadroma` package,
+and run the `fadroma create` command from it, which will create a new project.
 
 ### Add more contracts
 
