@@ -380,14 +380,14 @@ through the Fadroma Client API.</p>
 abstract class which represents connection info for chains.</li>
 <li><strong>NOTE:</strong> Mocknets are currently not persistent.</li>
 </ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Mocknet</span>_CW1 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">let</span> chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Mocknet</span>_CW1()
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Mocknet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">let</span> chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-title class_">CW1</span>()
 <span class="hljs-keyword">let</span> agent = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
 
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">MocknetAgent</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">Mocknet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-title function_">ok</span>(chain <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Chain</span>)
 <span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>)
-<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">MocknetAgent</span>)
+<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Agent</span>)
 </code></pre>
 <p>When creating a mocknet, the block height starts at 0.
 You can increment it manually to represent the passing of block time.</p>
@@ -453,9 +453,9 @@ Since here we test the mocknet itself, we use this pre-defined value:</p>
   }
 }
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">MocknetBackend</span>, <span class="hljs-title class_">MocknetContract</span>, b64toUtf8, utf8toB64 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">backend</span>:  <span class="hljs-title class_">MocknetBackend</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">contract</span>: <span class="hljs-title class_">MocknetContract</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Mocknet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">backend</span>:  <span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">contract</span>: <span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Contract</span>
 <span class="hljs-keyword">let</span> <span class="hljs-attr">response</span>: { <span class="hljs-title class_">Ok</span>: <span class="hljs-built_in">any</span>, <span class="hljs-title class_">Err</span>: <span class="hljs-built_in">any</span> }
 </code></pre>
 <ul>
@@ -543,10 +543,8 @@ responses) are returned by the contract as Base64-encoded strings
 </ul>
 </li>
 </ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { b64toUtf8, utf8toB64 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./MocknetData&#x27;</span>
-
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">b64toUtf8</span>(<span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>), <span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">utf8toB64</span>(<span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>), <span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>)
+<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>.<span class="hljs-title function_">b64toUtf8</span>(<span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>), <span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>)
+assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>.<span class="hljs-title function_">utf8toB64</span>(<span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>), <span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>)
 </code></pre>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;assert&#x27;</span>
 <span class="hljs-keyword">import</span> { ok, equal } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;assert&#x27;</span>
