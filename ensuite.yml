@@ -15,8 +15,6 @@ routes:
     page: spec/Devnet.spec.ts.md
   - path: /mocknet.html
     page: spec/Mocknet.spec.ts.md
-  - path: /ops.html
-    page: spec/Ops.spec.ts.md
   - path: /project.html
     page: spec/Project.spec.ts.md
   - path: /scrt.html
