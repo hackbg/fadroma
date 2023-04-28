@@ -355,7 +355,7 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#build-cli">Build CLI</a><ul><li><a href="#builder-configuration">Builder configuration</a></li></ul></li><li><a href="#build-api">Build API</a><ul><li><a href="#getting-a-builder">Getting a builder</a><ul><li><a href="#buildcontainer">BuildContainer</a></li><li><a href="#rawbuilder">RawBuilder</a></li></ul></li><li><a href="#building-a-contract">Building a contract</a><ul><li><a href="#building-a-named-contract-from-the-project">Building a named contract from the project</a></li><li><a href="#specifying-a-contract-to-build">Specifying a contract to build</a></li></ul></li><li><a href="#building-past-commits-of-contracts">Building past commits of contracts</a></li><li><a href="#build-caching">Build caching</a></li></ul></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#the-build-procedure">The build procedure</a></li><li><a href="#builders">Builders</a></li><li><a href="#build-events">Build events</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#build-cli">Build CLI</a><ul><li><a href="#builder-configuration">Builder configuration</a></li></ul></li><li><a href="#build-api">Build API</a><ul><li><a href="#getting-a-builder">Getting a builder</a><ul><li><a href="#buildcontainer">BuildContainer</a></li><li><a href="#buildraw">BuildRaw</a></li></ul></li><li><a href="#building-a-contract">Building a contract</a><ul><li><a href="#building-a-named-contract-from-the-project">Building a named contract from the project</a></li><li><a href="#specifying-a-contract-to-build">Specifying a contract to build</a></li></ul></li><li><a href="#building-past-commits-of-contracts">Building past commits of contracts</a></li><li><a href="#build-caching">Build caching</a></li></ul></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#the-build-procedure">The build procedure</a></li><li><a href="#builders">Builders</a></li><li><a href="#build-events">Build events</a></li></ul></li></ul></div></p>
 <h1>Building contracts from source</h1>
 <p>This package implements <strong>reproducible compilation</strong> of contracts.
 What to compile is specified using the primitives defined in <a href="../client/README.md">Fadroma Core</a>.</p>
@@ -461,14 +461,14 @@ assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title func
 <p>The <code>BuildContainer</code> runs the build procedure defined by the <code>FADROMA_BUILD_SCRIPT</code>
 in a container based on the <code>FADROMA_BUILD_IMAGE</code>, resulting in optimized WASM build artifacts
 being output to the <code>FADROMA_ARTIFACTS</code> directory.</p>
-<h4>RawBuilder</h4>
+<h4>BuildRaw</h4>
 <p>If you want to execute the build procedure in your
-current environment, you can switch to <code>RawBuilder</code>
+current environment, you can switch to <code>BuildRaw</code>
 by passing <code>buildRaw: true</code> or setting <code>FADROMA_BUILD_RAW</code>.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> rawBuilder = <span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">buildRaw</span>: <span class="hljs-literal">true</span> })
 
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">RawBuilder</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(rawBuilder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">RawBuilder</span>)
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">BuildRaw</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
+assert.<span class="hljs-title function_">ok</span>(rawBuilder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">BuildRaw</span>)
 </code></pre>
 <h3>Building a contract</h3>
 <p>Now that we've obtained a <code>Builder</code>, let's compile a contract from source into a WASM binary.</p>
