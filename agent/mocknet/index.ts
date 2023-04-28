@@ -1,31 +1,10 @@
-import Mocknet from './MocknetChain'
-export { default as Mocknet } from './MocknetChain'
 export * from './MocknetChain'
+export * as Backend from './MocknetBackend'
+export { default as Console } from './MocknetConsole'
+export { default as Error } from './MocknetError'
 
-import MocknetAgent from './MocknetAgent'
-export { default as MocknetAgent } from './MocknetAgent'
-export * from './MocknetAgent'
-
-import MocknetBundle from './MocknetBundle'
-export { default as MocknetBundle } from './MocknetBundle'
-export * from './MocknetBundle'
-
-export { default as MocknetContract } from './MocknetContract'
-
-export { default as MocknetBackend } from './MocknetBackend'
-
-export * from './MocknetData'
-
-import { MocknetBackend_CW0, MocknetContract_CW0 } from './Mocknet_CW0'
-import { MocknetBackend_CW1, MocknetContract_CW1 } from './Mocknet_CW1'
-
-Object.assign(Mocknet, { Agent: Object.assign(MocknetAgent, { Bundle: MocknetBundle }) })
-Object.assign(MocknetBackend_CW0, { Contract: MocknetContract_CW0 })
-Object.assign(MocknetBackend_CW1, { Contract: MocknetContract_CW1 })
-
-export { default as Mocknet_CW0 } from './Mocknet_CW0'
-export { default as Mocknet_CW1 } from './Mocknet_CW1'
-
-export { ADDRESS_PREFIX as MOCKNET_ADDRESS_PREFIX } from './MocknetData'
-
-export default Mocknet
+import * as Mocknet from './MocknetChain'
+import { MocknetBackend_CW0, MocknetBackend_CW1 } from './MocknetBackend'
+class Mocknet_CW0 extends Mocknet.Chain { backend = new MocknetBackend_CW0(this.id) }
+class Mocknet_CW1 extends Mocknet.Chain { backend = new MocknetBackend_CW1(this.id) }
+export { Mocknet_CW0 as CW0, Mocknet_CW1 as CW1 }

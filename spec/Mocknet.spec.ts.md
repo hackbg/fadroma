@@ -28,14 +28,14 @@ through the Fadroma Client API.
 * **NOTE:** Mocknets are currently not persistent.
 
 ```typescript
-import { Mocknet_CW1 } from '@fadroma/agent'
-let chain = new Mocknet_CW1()
+import { Mocknet } from '@fadroma/agent'
+let chain = new Mocknet.CW1()
 let agent = await chain.getAgent()
 
-import { Chain, Agent, MocknetAgent } from '@fadroma/agent'
+import { Chain, Agent, Mocknet } from '@fadroma/agent'
 ok(chain instanceof Chain)
 ok(agent instanceof Agent)
-ok(agent instanceof MocknetAgent)
+ok(agent instanceof Mocknet.Agent)
 ```
 
 When creating a mocknet, the block height starts at 0.
@@ -123,9 +123,9 @@ export function mockEnv () {
 ```
 
 ```typescript
-import { MocknetBackend, MocknetContract, b64toUtf8, utf8toB64 } from '@fadroma/agent'
-let backend:  MocknetBackend
-let contract: MocknetContract
+import { Mocknet } from '@fadroma/agent'
+let backend:  Mocknet.Backend
+let contract: Mocknet.Contract
 let response: { Ok: any, Err: any }
 ```
 
@@ -207,10 +207,8 @@ assert.ok(new MocknetBackend('mocknet', {
   * These functions are used by the mocknet code to encode/decode the base64.
 
 ```typescript
-import { b64toUtf8, utf8toB64 } from './MocknetData'
-
-assert.equal(b64toUtf8('IkVjaG8i'), '"Echo"')
-assert.equal(utf8toB64('"Echo"'), 'IkVjaG8i')
+assert.equal(Mocknet.Backend.b64toUtf8('IkVjaG8i'), '"Echo"')
+assert.equal(Mocknet.Backend.utf8toB64('"Echo"'), 'IkVjaG8i')
 ```
 
 ```typescript

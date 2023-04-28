@@ -19,21 +19,23 @@
 import Error from './ScrtError'
 import Console from './ScrtConsole'
 import Config from './ScrtConfig'
-import Chain from './ScrtChain'
-import Agent from './ScrtAgent'
-import Bundle from './ScrtBundle'
 import * as SecretJS from 'secretjs'
 import VKClient from './ScrtVK'
 
+import { Chain, Agent, Bundle } from './ScrtChain'
 Object.assign(Chain, { SecretJS, Agent: Object.assign(Agent, { Bundle }) })
 
-export { Chain, Agent, Bundle, Config, Error, Console, VKClient, SecretJS, }
+export {
+  Config,
+  Error,
+  Console,
+  VKClient,
+  SecretJS,
+}
 
 export * from './ScrtError'
 export * from './ScrtConsole'
 export * from './ScrtConfig'
 export * from './ScrtChain'
-export * from './ScrtAgent'
-export * from './ScrtBundle'
 export * from './ScrtPermit'
 export * from './ScrtVK'

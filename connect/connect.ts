@@ -16,12 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import {
-  Console, Error,
-  Chain, ChainMode, ChainId,
-  Mocknet, Mocknet_CW0, Mocknet_CW1,
-  bold
-} from '@fadroma/agent'
+import { Console, Error, Chain, ChainMode, ChainId, Mocknet, bold } from '@fadroma/agent'
 import type { Agent, AgentOpts, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
 
@@ -31,10 +26,10 @@ import type { Environment } from '@hackbg/conf'
 /** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
 Object.assign(Chain.variants as ChainRegistry, {
   // Support for Mocknet
-  Mocknet_CW0: (options: Partial<Mocknet_CW0> = {}): Mocknet_CW0 =>
-    new Mocknet_CW0({ id: 'mocknet-cw0', ...options }),
-  Mocknet_CW1: (options: Partial<Mocknet_CW1> = {}): Mocknet_CW1 =>
-    new Mocknet_CW1({ id: 'mocknet-cw1', ...options }),
+  Mocknet_CW0: (options: Partial<Mocknet.CW0> = {}): Mocknet.CW0 =>
+    new Mocknet.CW0({ id: 'mocknet-cw0', ...options }),
+  Mocknet_CW1: (options: Partial<Mocknet.CW1> = {}): Mocknet.CW1 =>
+    new Mocknet.CW1({ id: 'mocknet-cw1', ...options }),
   // Support for Secret Network
   ScrtMainnet:
     Scrt.Chain.mainnet,
@@ -45,17 +40,14 @@ Object.assign(Chain.variants as ChainRegistry, {
 
 export * from '@hackbg/conf'
 
+export * from '@fadroma/agent'
+
+export { Scrt, Mocknet }
+
 export default function connect <A extends Agent> (
   config: Partial<ConnectConfig> = new ConnectConfig()
 ): A {
   return new ConnectConfig(config).getAgent()
-}
-
-export {
-  Scrt,
-  Mocknet,
-  Mocknet_CW0,
-  Mocknet_CW1
 }
 
 /** Connection configuration. Factory for `Chain` and `Agent` objects. */
@@ -143,7 +135,6 @@ export class ConnectConfig extends Config {
 }
 
 export class ConnectConsole extends Console {
-
   label = 'Fadroma Connect'
 
   supportedChains (supportedChains: Record<string, unknown> = Chain.variants) {
@@ -153,7 +144,6 @@ export class ConnectConsole extends Console {
       this.info(`  ${bold(chain)}`)
     }
   }
-
   selectedChain (chain?: string) {
     this.br()
     if (chain) {
@@ -164,26 +154,19 @@ export class ConnectConsole extends Console {
     }
     this.br()
   }
-
 }
 
 export class ConnectError extends Error {
-
   static SelectChainHint =
     `Try setting the FADROMA_CHAIN env var to one of the supported values.`
-
   static UnknownChainSelected = this.define('UnknownChainSelected',
     (name: string, chains?: Record<string, unknown>)=>{
       //chains && log.supportedChains(chains)
       return `Unknown chain "${name}". ${ConnectError.SelectChainHint}`
     })
-
   static NoChainSelected = this.define('NoChainSelected',
     (chains?: Record<string, unknown>)=>{
       //chains && log.supportedChains(chains)
       return `No chain selected. ${ConnectError.SelectChainHint}`
     })
-
 }
-
-export * from '@fadroma/agent'
