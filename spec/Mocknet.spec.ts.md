@@ -212,6 +212,6 @@ assert.equal(Mocknet.Backend.utf8toB64('"Echo"'), 'IkVjaG8i')
 ```
 
 ```typescript
-import assert from 'assert'
-import { ok, equal } from 'assert'
+import assert, { ok, equal } from 'node:assert'
+import './Mocknet.test.ts'
 ```

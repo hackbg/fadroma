@@ -281,15 +281,6 @@ export class Deployment {
       context:   this
     })
   }
-  /** Specify a group of heterogeneous contracts.
-    * @returns a callable instance of `ContractGroup` containing the specified contracts.
-    * Calling it will deploy the contained contracts. */
-  group <A extends unknown[]> (
-    /** Function that returns the contracts belonging to an instance of the group. */
-    getContracts: (...args: A)=>Many<AnyContract>
-  ): ContractGroup<A> {
-    return new ContractGroup(this, getContracts)
-  }
   /** Create an instance of `new ctor(this, ...args)` and attach it
     * to the command tree under `name`, with usage description `info`.
     * See the documentation of `interface Subsystem` for more info.
@@ -696,52 +687,6 @@ export class Contract<C extends Client> extends Template<C> {
     return {
       address:   this.address!,
       code_hash: this.codeHash!
-    }
-  }
-}
-
-/** Callable object: contract group.
-  * Can build and upload, and instantiate multiple contracts. */
-export class ContractGroup<A extends unknown[]> {
-
-  constructor (
-    public readonly context:      Deployment,
-    public readonly getContracts: (...args: A)=>Many<AnyContract>
-  ) {
-  }
-
-  /** Deploy an instance of this contract group. */
-  async deploy (...args: A) {
-    const contracts = this.getContracts.apply(this.context, args)
-    if (!this.context.builder) throw new Error.NoBuilder()
-    await this.context.builder.buildMany(Object.values(contracts) as unknown as Buildable[])
-    if (!this.context.uploader) throw new Error.NoUploader()
-    await this.context.uploader.uploadMany(Object.values(contracts) as unknown as Uploadable[])
-    return await mapAsync(contracts, (contract: AnyContract)=>contract.deployed)
-  }
-
-  /** Prepare multiple instances of this contract group for deployment. */
-  many (instances: Many<A>) {
-    const self = this
-    /** Define a contract group corresponding to each member of `instances` */
-    const groups = mapAsync(
-      instances,
-      defineContractGroup as unknown as (x:A[0])=>ContractGroup<A>
-    )
-    /** Deploy the specified contract groups. */
-    return async function deployContractGroups (...args: A) {
-      return await mapAsync(
-        /** Reify the specified contract groups */
-        await groups,
-        /** Deploy each contract group. */
-        function deployContractGroup (group: ContractGroup<A>) {
-          return group.deploy(...args)
-        }
-      )
-    }
-    /** Defines a new contract group. */
-    function defineContractGroup (...args: A) {
-      return new ContractGroup(self.context, ()=>self.getContracts(...args))
     }
   }
 }

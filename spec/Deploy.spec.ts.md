@@ -193,4 +193,5 @@ this will throw an error.
 
 ```typescript
 import assert from 'node:assert'
+import './Deploy.test.ts'
 ```
