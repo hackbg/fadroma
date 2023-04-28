@@ -318,7 +318,7 @@ features:
         href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
       - icon: typescript
         text: "@fadroma/mocknet"
-        href: mocknet
+        href: mocknet.html
         bold: true
       - icon: todo
         text: "TODO: Property-based testing"
