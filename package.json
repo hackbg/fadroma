@@ -30,11 +30,11 @@
 
     "check": "time tsc --noEmit",
 
-    "test":       "time ensuite GettingStarted.ts.md",
+    "test":       "time ensuite GUIDE.ts.md",
     "test:agent": "time ensuite agent/Agent.spec.ts.md",
     "test:ops":   "time ensuite ops/Ops.spec.ts.md",
 
-    "cov":   "time ensuite-cov -r text -r lcov -n agent -n connect -n ops -n platforms -- GettingStarted.ts.md",
+    "cov":   "time ensuite-cov -r text -r lcov -n agent -n connect -n ops -n platforms -- GUIDE.ts.md",
     "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 

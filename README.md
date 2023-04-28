@@ -2,7 +2,9 @@
 
 [![Fadroma](./banner.svg)](https://fadroma.tech)
 
-Distributed application framework developed at [Hack.bg](https://hack.bg).
+Distributed application framework developed at [**Hack.bg**](https://hack.bg).
+See [**https://fadroma.tech**](https://fadroma.tech) for overview or try the
+[**getting started guide**](./GUIDE.ts.md).
 
 [![Latest version](https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge&label=fadroma%20crate)](https://crates.io/crates/fadroma)
 [![Latest version](https://img.shields.io/crates/v/fadroma-dsl.svg?color=%2365b34c&style=for-the-badge&label=fadroma-dsl%20crate)](https://crates.io/crates/fadroma-dsl)
@@ -14,7 +16,5 @@ Distributed application framework developed at [Hack.bg](https://hack.bg).
 
 [![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)
 [![](https://img.shields.io/npm/v/@fadroma/connect?color=%2365b34c&label=%40fadroma%2Fconnect&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)
-
-**See [https://fadroma.tech](https://fadroma.tech) for overview.**
 
 </div>
