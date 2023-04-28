@@ -361,34 +361,34 @@ pre > code.language-typescript {
 Fadroma includes <strong>Rust</strong> libraries for writing smart contracts and a
 <strong>TypeScript</strong> system for building, deploying, and interacting with them.</p>
 <h2>Design considerations</h2>
-<p>Fadroma treats the blockchain as a <strong>seamless compute substrate</strong>,
-and treating the contracts as similar to <strong>persistent objects</strong> -
-somewhat similar to Alan Kay's original concept of
-&quot;object-oriented programming&quot;.</p>
+<p>On the most abstract level, Fadroma treats the blockchain as a <strong>seamless compute substrate</strong>,
+and contracts basically as <strong>persistent objects</strong>.</p>
+<ul>
+<li>
 <p>Unlike <strong>microservices</strong>, smart contracts exist in a post-POSIX environment,
-where platform details are abstracted away; unlike <strong>cloud functions</strong>,
-smart contracts are individually stateful. Furthermore, the
-<strong>transaction-based architecture</strong> prevents the system from
-spontaneously entering inconsistent states.</p>
-<p>This model necessitates a systematic approach to orchestrating the deployment and operation
-of the software, to ensure its interoperation with the existing Web ecosystem
-and development workflows. This is ground that Fadroma sets out to cover.</p>
-<p>Fadroma is available as a suite of Cargo crates and NPM packages.</p>
+where platform details are abstracted away.</p>
+</li>
+<li>
+<p>Unlike <strong>cloud functions</strong>, smart contracts are individually stateful.</p>
+</li>
+</ul>
+<p>Furthermore, the <strong>transaction-based architecture</strong> prevents the system from
+spontaneously entering inconsistent states. This makes CosmWasm smart contracts
+a very interesting proposition for running standalone business logic.</p>
 <h2>Project structure</h2>
 <p>The default structure of a project is implemented by the
-<a href="./spec/Project.spec.ts.md"><strong><code>@fadroma/project</code></strong></a> package.
+<a href="./spec/Project.spec.ts.md"><strong><code>Project</code></strong> class</a>.
 Projects created by Fadroma are polyglot Rust/TypeScript repositories.</p>
 <ul>
 <li>
-<p>The Rust side can be structured either as a Cargo workspace
-(implementing each contract as a separate crate) or as a
-single Cargo crate (exposing different contracts from the
-same crate, based on compile-time feature flags).</p>
+<p>The Rust side is structured as a Cargo workspace,
+where each contract corresponds to a crate.</p>
 </li>
 <li>
-<p>The TypeScript side is structured as a PNPM workspace, with a private
-top-level package (for dev-only dependencies), and two subpackages,
-<code>api</code> (client API) and <code>ops</code> (deployment and migration scripts).</p>
+<p>The TypeScript side is structured as single NPM package,
+which exports an <code>api.ts</code> module (the client library for your project),
+and also contains an <code>ops.ts</code> module (where your project, and any custom
+extensions to the workflow, are defined).</p>
 </li>
 </ul>
 <h3>Create a Fadroma project through NPX</h3>
