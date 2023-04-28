@@ -37,7 +37,7 @@ importers:
       '@fadroma/ops': link:ops
       dotenv: 16.0.1
     devDependencies:
-      '@fadroma/scrt': link:platforms/scrt
+      '@fadroma/scrt': link:connect/scrt
       '@hackbg/cmds': link:ensuite/toolbox/cmds
       '@hackbg/dock': link:ensuite/toolbox/dock
       '@hackbg/ensuite': link:ensuite
@@ -47,7 +47,7 @@ importers:
       '@hackbg/spec': link:ensuite/toolbox/spec
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
-      '@types/node': 18.16.1
+      '@types/node': 18.16.2
       '@types/prettyjson': 0.0.30
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
@@ -91,8 +91,23 @@ importers:
       '@hackbg/conf': workspace:^2
     dependencies:
       '@fadroma/agent': link:../agent
-      '@fadroma/scrt': link:../platforms/scrt
+      '@fadroma/scrt': link:scrt
       '@hackbg/conf': link:../ensuite/toolbox/conf
+
+  connect/scrt:
+    specifiers:
+      '@hackbg/conf': ^2
+      '@hackbg/ensuite': ^1.0.2
+      '@types/ungap__structured-clone': ^0.3.0
+      '@ungap/structured-clone': ^1.0.1
+      secretjs: 1.8.1
+    dependencies:
+      '@hackbg/conf': link:../../ensuite/toolbox/conf
+      '@ungap/structured-clone': 1.0.1
+      secretjs: 1.8.1
+    devDependencies:
+      '@hackbg/ensuite': link:../../ensuite
+      '@types/ungap__structured-clone': 0.3.0
 
   ensuite:
     specifiers:
@@ -258,7 +273,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.16.1
+      '@types/node': 18.16.2
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -511,21 +526,6 @@ importers:
       '@hackbg/ensuite': link:../ensuite
       '@types/js-yaml': 4.0.5
       '@types/prompts': 2.4.4
-
-  platforms/scrt:
-    specifiers:
-      '@hackbg/conf': ^2
-      '@hackbg/ensuite': ^1.0.2
-      '@types/ungap__structured-clone': ^0.3.0
-      '@ungap/structured-clone': ^1.0.1
-      secretjs: 1.8.1
-    dependencies:
-      '@hackbg/conf': link:../../ensuite/toolbox/conf
-      '@ungap/structured-clone': 1.0.1
-      secretjs: 1.8.1
-    devDependencies:
-      '@hackbg/ensuite': link:../../ensuite
-      '@types/ungap__structured-clone': 0.3.0
 
 packages:
 
@@ -950,7 +950,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 18.16.1
+      '@types/node': 18.16.2
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -969,7 +969,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 18.16.1
+      '@types/node': 18.16.2
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1027,8 +1027,8 @@ packages:
     resolution: {integrity: sha512-BsAaKhB+7X+H4GnSjGhJG9Qi8Tw+inU9nJDwmD5CgOmBLEI6ArdhikpLX7DjbjDRDTbqZzU2LSQNZg8WGPiSZQ==}
     dev: true
 
-  /@types/node/18.16.1:
-    resolution: {integrity: sha512-DZxSZWXxFfOlx7k7Rv4LAyiMroaxa3Ly/7OOzZO8cBNho0YzAi4qlbrx8W27JGqG57IgR/6J7r+nOJWw6kcvZA==}
+  /@types/node/18.16.2:
+    resolution: {integrity: sha512-GQW/JL/5Fz/0I8RpeBG9lKp0+aNcXEaVL71c0D2Q0QHDTFvlYKT7an0onCUXj85anv7b4/WesqdfchLc0jtsCg==}
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -1051,12 +1051,12 @@ packages:
   /@types/secure-random/1.1.0:
     resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
     dependencies:
-      '@types/node': 18.16.1
+      '@types/node': 18.16.2
 
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 18.16.1
+      '@types/node': 18.16.2
     dev: true
 
   /@types/tmp/0.2.3:
@@ -3264,7 +3264,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.16.1
+      '@types/node': 18.16.2
       long: 4.0.0
     dev: false
 

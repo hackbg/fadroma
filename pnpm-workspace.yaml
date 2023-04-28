@@ -2,8 +2,7 @@ packages:
   - 'agent'
   - 'ops'
   - 'connect'
-  - 'tokens'
-  - 'platforms/**'
+  - 'connect/*'
 
   - 'ensuite'
   - 'ensuite/toolbox'

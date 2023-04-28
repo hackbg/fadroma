@@ -31,7 +31,7 @@ Its core primitives are the **`Chain`** and **`Agent`** abstract classes.
 An `Agent` corresponds to your identity (wallet) on a given chain,
 and lets you operate in terms of transactions (sending tokens, calling contracts, etc.)
 
-* [**`@fadroma/scrt`**](../../platforms/scrt/Scrt.spec.ts.md) provides
+* [**`@fadroma/scrt`**](./Scrt.spec.ts.md) provides
   **`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
   of Fadroma Agent API for Secret Network.
 

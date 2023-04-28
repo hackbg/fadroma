@@ -13,7 +13,6 @@
     "!agent/*",
     "!connect/*",
     "!ops/*",
-    "!platforms/*",
     "!examples/*",
     "!coverage/*",
     "!target/*"
@@ -25,7 +24,7 @@
     "prepare": "husky install",
 
     "ubik":     "pnpm i && pnpm clean && pnpm check && pnpm cov && ubik",
-    "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd ../ops && ubik wet && cd ../platforms/scrt && ubik wet'",
+    "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd scrt && ubik wet && cd ../../ops && ubik wet'",
     "ubik:ops": "time sh -c 'pnpm ubik wet && cd connect && ubik wet && cd ../ops && ubik wet'",
 
     "check": "time tsc --noEmit",
@@ -34,7 +33,7 @@
     "test:agent": "time ensuite agent/Agent.spec.ts.md",
     "test:ops":   "time ensuite ops/Ops.spec.ts.md",
 
-    "cov":   "time ensuite-cov -r text -r lcov -n agent -n connect -n ops -n platforms -- GUIDE.ts.md",
+    "cov":   "time ensuite-cov -r text -r lcov -n agent -n connect -n ops -- GUIDE.ts.md",
     "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 
@@ -42,7 +41,7 @@
 
     "docs:dev":      "ensuite-dev",
     "docs:render":   "time ganesha-node ensuite/ensuite-render.cli.mjs",
-    "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints agent --entryPoints connect --entryPoints ops --entryPoints platforms/* --entryPoints .",
+    "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints agent --entryPoints connect/* --entryPoints connect --entryPoints ops --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve"
