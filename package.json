@@ -105,16 +105,5 @@
   },
   "lint-staged": {
     "*.ts": "pnpm check && git add pnpm-lock.yaml && pnpm cov"
-  },
-  "fadroma": {
-    "templates": {
-      "example-admin":      "fadroma-example-admin",
-      "example-derive":     "fadroma-example-derive-contract-components",
-      "example-ensemble":   "fadroma-example-ensemble",
-      "example-external":   "fadroma-example-external",
-      "example-interface":  "fadroma-example-derive-contract-interface",
-      "example-killswitch": "fadroma-example-killswitch",
-      "example-kv":         "fadroma-example-kv"
-    }
   }
 }

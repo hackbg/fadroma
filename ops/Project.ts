@@ -190,6 +190,20 @@ export default class Project extends CommandContext {
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
     const agent = this.uploader?.agent ?? chain?.getAgent()
     this.log.br()
+    this.log.info('Project name:           ', bold(this.name))
+    this.log.info('Project root:           ', bold(this.root.path))
+    this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
+    this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
+    const templates = Object.entries(this.templates??{})
+    if (templates.length > 0) {
+      this.log.info('Templates in project:')
+      for (const [name, {repository,revision,workspace,crate,features}] of templates) {
+        this.log.info('-', name)//, repository, revision, workspace, crate, features)
+      }
+    } else {
+      this.log.info('Templates in project:   (none)')
+    }
+    this.log.br()
     this.log.info('Chain type:    ', bold(chain.constructor.name))
     this.log.info('Chain mode:    ', bold(chain.mode))
     this.log.info('Chain ID:      ', bold(chain.id))
@@ -198,16 +212,11 @@ export default class Project extends CommandContext {
     }
     this.log.info('Agent address: ', bold(agent.address))
     this.log.br()
-    this.log.info('Project name:           ', bold(this.name))
-    this.log.info('Project root:           ', bold(this.root.path))
-    this.log.info('Templates in project:   ', bold(Object.keys(this.templates).join(', ')))
-    this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
-    this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
-    this.log.info('Chain-specific state at:', bold(this.dirs.state.shortPath))
     if (this.dirs.state.exists()) {
+      this.log.info('Chain-specific state at:', bold(this.dirs.state.shortPath))
       const states = this.dirs.state.list()
       if (states && states.length > 0) {
-        this.log.info('Contains state for:     ', bold(this.dirs.state.list()?.join(', ')))
+        this.log.info('Recorded state for:     ', bold(this.dirs.state.list()?.join(', ')))
       } else {
         this.log.info('No transactions recorded.')
       }
@@ -221,6 +230,7 @@ export default class Project extends CommandContext {
     } else {
       this.log.info('No active project.')
     }
+    this.log.br()
     return this
   }
   /** Write the files representing the described project to the root directory.
