@@ -558,7 +558,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
 }
 
 /** Parameters for the HTTP API-managed implementation of Devnet. */
-export type RemoteDevnetOpts = DevnetOpts & {
+export type DevnetRemoteOpts = DevnetOpts & {
   /** Base URL of the API that controls the managed node. */
   managerURL: string
 }
@@ -566,7 +566,7 @@ export type RemoteDevnetOpts = DevnetOpts & {
 /** When running in docker-compose, Fadroma needs to request
   * from the devnet container to spawn a chain node with the
   * given chain id and identities via a HTTP API. */
-export class RemoteDevnet extends Devnet implements DevnetHandle {
+export class DevnetRemote extends Devnet implements DevnetHandle {
 
   log = new Console('@fadroma/devnet: remote')
 
@@ -585,10 +585,10 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
     portMode:    string = devnetPortModes[kind]
   ) {
     const log = new Console('@fadroma/devnet: remote (init)')
-    log.warn('RemoteDevnet: unstable')
+    log.warn('DevnetRemote: unstable')
     // If passed a chain id, use it; this makes a passed prefix irrelevant.
     if (chainId && prefix) {
-      log.warn('Passed both chainId and prefix to RemoteDevnet.getOrCreate: ignoring prefix')
+      log.warn('Passed both chainId and prefix to DevnetRemote.getOrCreate: ignoring prefix')
     }
     // Establish default prefix. Chain subclasses should define this.
     if (!prefix) {
@@ -608,12 +608,12 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
         log.info('Creating new managed devnet with chain id', bold(chainId))
       }
     }
-    return new RemoteDevnet({ managerURL, chainId, portMode })
+    return new DevnetRemote({ managerURL, chainId, portMode })
   }
 
   constructor (options: any) {
     super(options)
-    this.log.warn('RemoteDevnet: unstable')
+    this.log.warn('DevnetRemote: unstable')
     this.manager = new Endpoint(options.managerURL)
     this.host    = this.manager.url.hostname
   }
@@ -671,14 +671,14 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
   async getGenesisAccount (name: string): Promise<AgentOpts> {
     const identity = await this.manager.get('/identity', { name })
     if (identity.error) {
-      throw new Error.Devnet(`RemoteDevnet#getGenesisAccount: failed to get ${name}: ${identity.error}`)
+      throw new Error.Devnet(`DevnetRemote#getGenesisAccount: failed to get ${name}: ${identity.error}`)
     }
     return identity
   }
   async erase () {
-    throw new Error.Devnet('RemoteDevnet#erase: not implemented')
+    throw new Error.Devnet('DevnetRemote#erase: not implemented')
   }
   async kill () {
-    throw new Error.Devnet('RemoteDevnet#kill: not implemented')
+    throw new Error.Devnet('DevnetRemote#kill: not implemented')
   }
 }
