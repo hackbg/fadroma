@@ -43,7 +43,7 @@ export const buildPackage = dirname(fileURLToPath(import.meta.url))
 
 /** Can perform builds.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
-export abstract class LocalBuilder extends Builder {
+export abstract class BuildLocal extends Builder {
   readonly id: string = 'local'
   /** Logger. */
   log = new Console('Local Builder')
@@ -106,7 +106,7 @@ export const sanitize = (ref: string) =>
   ref.replace(/\//g, '_')
 
 /** This builder launches a one-off build container using Dockerode. */
-export class BuildContainer extends LocalBuilder {
+export class BuildContainer extends BuildLocal {
   readonly id = 'Container'
   /** Logger */
   log = new Console('@fadroma/ops: BuildContainer')
@@ -462,7 +462,7 @@ export const distinct = <T> (x: T[]): T[] =>
 
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
-export class RawBuilder extends LocalBuilder {
+export class BuildRaw extends BuildLocal {
 
   readonly id = 'Raw'
 
@@ -634,6 +634,6 @@ export class DotGit extends Path {
 Object.assign(Builder.variants, {
   'container': BuildContainer,
   'Container': BuildContainer,
-  'raw': RawBuilder,
-  'Raw': RawBuilder
+  'raw': BuildRaw,
+  'Raw': BuildRaw
 })

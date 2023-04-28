@@ -71,17 +71,17 @@ The `BuildContainer` runs the build procedure defined by the `FADROMA_BUILD_SCRI
 in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
 being output to the `FADROMA_ARTIFACTS` directory.
 
-#### RawBuilder
+#### BuildRaw
 
 If you want to execute the build procedure in your
-current environment, you can switch to `RawBuilder`
+current environment, you can switch to `BuildRaw`
 by passing `buildRaw: true` or setting `FADROMA_BUILD_RAW`.
 
 ```typescript
 const rawBuilder = getBuilder({ buildRaw: true })
 
-import { RawBuilder } from '@fadroma/ops'
-assert.ok(rawBuilder instanceof RawBuilder)
+import { BuildRaw } from '@fadroma/ops'
+assert.ok(rawBuilder instanceof BuildRaw)
 ```
 
 ### Building a contract
