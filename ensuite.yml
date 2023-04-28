@@ -108,7 +108,7 @@ features:
   - name: Licensing
     info: |
       Fadroma is [**free software**](https://foss.hack.bg), 
-      available to the public under the [AGPLv3](href="https://www.gnu.org/licenses/agpl-3.0.txt") 
+      available to the public under the [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.txt) 
       license. This license protects user freedoms and encourages responsibility towards
       the digital commons. If this license doesn't work for your business case, email
       us at *\[hello at hack dot bg\]* to arrange for custom licensing options.
@@ -116,7 +116,7 @@ features:
       - text: View license
         href: https://www.gnu.org/licenses/agpl-3.0.txt
       - text: Maintainers
-        href: /MAINTAINERS.md
+        href: https://github.com/hackbg/fadroma/blob/master/MAINTAINERS.md
       - text: Hack.bg FOSS Initiative
         href: https://foss.hack.bg
       - text: Custom licensing and exemptions
@@ -318,7 +318,7 @@ features:
         href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
       - icon: typescript
         text: "@fadroma/mocknet"
-        href: mocknet
+        href: mocknet.html
         bold: true
       - icon: todo
         text: "TODO: Property-based testing"
