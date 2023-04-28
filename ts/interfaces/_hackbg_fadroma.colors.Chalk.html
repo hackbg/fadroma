@@ -31,10 +31,10 @@
 
 <h3>Remarks</h3><p>Template literals are unsupported for nested calls (see <a href="https://github.com/chalk/chalk/issues/341">issue #341</a>)</p>
 
-<h3>Example</h3><pre><code><span class="hl-0">import</span><span class="hl-1"> </span><span class="hl-2">chalk</span><span class="hl-1"> = </span><span class="hl-0">require</span><span class="hl-1">(</span><span class="hl-3">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-7">log</span><span class="hl-1">(</span><span class="hl-7">chalk</span><span class="hl-3">`</span><br/><span class="hl-3">CPU: {red </span><span class="hl-5">${</span><span class="hl-2">cpu</span><span class="hl-10">.</span><span class="hl-2">totalPercent</span><span class="hl-5">}</span><span class="hl-3">%}</span><br/><span class="hl-3">RAM: {green </span><span class="hl-5">${</span><span class="hl-2">ram</span><span class="hl-10">.</span><span class="hl-2">used</span><span class="hl-10"> </span><span class="hl-1">/</span><span class="hl-10"> </span><span class="hl-2">ram</span><span class="hl-10">.</span><span class="hl-2">total</span><span class="hl-10"> </span><span class="hl-1">*</span><span class="hl-10"> </span><span class="hl-9">100</span><span class="hl-5">}</span><span class="hl-3">%}</span><br/><span class="hl-3">DISK: {rgb(255,131,0) </span><span class="hl-5">${</span><span class="hl-2">disk</span><span class="hl-10">.</span><span class="hl-2">used</span><span class="hl-10"> </span><span class="hl-1">/</span><span class="hl-10"> </span><span class="hl-2">disk</span><span class="hl-10">.</span><span class="hl-2">total</span><span class="hl-10"> </span><span class="hl-1">*</span><span class="hl-10"> </span><span class="hl-9">100</span><span class="hl-5">}</span><span class="hl-3">%}</span><br/><span class="hl-3">`</span><span class="hl-1">);</span>
+<h3>Example</h3><pre><code><span class="hl-8">import</span><span class="hl-1"> </span><span class="hl-5">chalk</span><span class="hl-1"> = </span><span class="hl-8">require</span><span class="hl-1">(</span><span class="hl-7">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-3">log</span><span class="hl-1">(</span><span class="hl-3">chalk</span><span class="hl-7">`</span><br/><span class="hl-7">CPU: {red </span><span class="hl-0">${</span><span class="hl-5">cpu</span><span class="hl-9">.</span><span class="hl-5">totalPercent</span><span class="hl-0">}</span><span class="hl-7">%}</span><br/><span class="hl-7">RAM: {green </span><span class="hl-0">${</span><span class="hl-5">ram</span><span class="hl-9">.</span><span class="hl-5">used</span><span class="hl-9"> </span><span class="hl-1">/</span><span class="hl-9"> </span><span class="hl-5">ram</span><span class="hl-9">.</span><span class="hl-5">total</span><span class="hl-9"> </span><span class="hl-1">*</span><span class="hl-9"> </span><span class="hl-4">100</span><span class="hl-0">}</span><span class="hl-7">%}</span><br/><span class="hl-7">DISK: {rgb(255,131,0) </span><span class="hl-0">${</span><span class="hl-5">disk</span><span class="hl-9">.</span><span class="hl-5">used</span><span class="hl-9"> </span><span class="hl-1">/</span><span class="hl-9"> </span><span class="hl-5">disk</span><span class="hl-9">.</span><span class="hl-5">total</span><span class="hl-9"> </span><span class="hl-1">*</span><span class="hl-9"> </span><span class="hl-4">100</span><span class="hl-0">}</span><span class="hl-7">%}</span><br/><span class="hl-7">`</span><span class="hl-1">);</span>
 </code></pre>
 
-<h3>Example</h3><pre><code><span class="hl-0">import</span><span class="hl-1"> </span><span class="hl-2">chalk</span><span class="hl-1"> = </span><span class="hl-0">require</span><span class="hl-1">(</span><span class="hl-3">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-7">log</span><span class="hl-1">(</span><span class="hl-2">chalk</span><span class="hl-3">.</span><span class="hl-2">red</span><span class="hl-3">.</span><span class="hl-7">bgBlack</span><span class="hl-3">`2 + 3 = {bold </span><span class="hl-5">${</span><span class="hl-9">2</span><span class="hl-10"> </span><span class="hl-1">+</span><span class="hl-10"> </span><span class="hl-9">3</span><span class="hl-5">}</span><span class="hl-3">}`</span><span class="hl-1">)</span>
+<h3>Example</h3><pre><code><span class="hl-8">import</span><span class="hl-1"> </span><span class="hl-5">chalk</span><span class="hl-1"> = </span><span class="hl-8">require</span><span class="hl-1">(</span><span class="hl-7">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-3">log</span><span class="hl-1">(</span><span class="hl-5">chalk</span><span class="hl-7">.</span><span class="hl-5">red</span><span class="hl-7">.</span><span class="hl-3">bgBlack</span><span class="hl-7">`2 + 3 = {bold </span><span class="hl-0">${</span><span class="hl-4">2</span><span class="hl-9"> </span><span class="hl-1">+</span><span class="hl-9"> </span><span class="hl-4">3</span><span class="hl-0">}</span><span class="hl-7">}`</span><span class="hl-1">)</span>
 </code></pre>
 </div>
 <div class="tsd-parameters">
@@ -473,7 +473,7 @@ Use the foreground code, not the background code (for example, not 41, nor 101).
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Use HEX value to set background color.</p>
 
-<h3>Example</h3><pre><code><span class="hl-0">import</span><span class="hl-1"> </span><span class="hl-2">chalk</span><span class="hl-1"> = </span><span class="hl-0">require</span><span class="hl-1">(</span><span class="hl-3">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-2">chalk</span><span class="hl-1">.</span><span class="hl-7">bgHex</span><span class="hl-1">(</span><span class="hl-3">&#39;#DEADED&#39;</span><span class="hl-1">);</span>
+<h3>Example</h3><pre><code><span class="hl-8">import</span><span class="hl-1"> </span><span class="hl-5">chalk</span><span class="hl-1"> = </span><span class="hl-8">require</span><span class="hl-1">(</span><span class="hl-7">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-5">chalk</span><span class="hl-1">.</span><span class="hl-3">bgHex</span><span class="hl-1">(</span><span class="hl-7">&#39;#DEADED&#39;</span><span class="hl-1">);</span>
 </code></pre>
 </div>
 <div class="tsd-parameters">
@@ -550,7 +550,7 @@ Use the foreground code, not the background code (for example, not 41, nor 101).
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Use keyword color value to set background color.</p>
 
-<h3>Example</h3><pre><code><span class="hl-0">import</span><span class="hl-1"> </span><span class="hl-2">chalk</span><span class="hl-1"> = </span><span class="hl-0">require</span><span class="hl-1">(</span><span class="hl-3">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-2">chalk</span><span class="hl-1">.</span><span class="hl-7">bgKeyword</span><span class="hl-1">(</span><span class="hl-3">&#39;orange&#39;</span><span class="hl-1">);</span>
+<h3>Example</h3><pre><code><span class="hl-8">import</span><span class="hl-1"> </span><span class="hl-5">chalk</span><span class="hl-1"> = </span><span class="hl-8">require</span><span class="hl-1">(</span><span class="hl-7">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-5">chalk</span><span class="hl-1">.</span><span class="hl-3">bgKeyword</span><span class="hl-1">(</span><span class="hl-7">&#39;orange&#39;</span><span class="hl-1">);</span>
 </code></pre>
 </div>
 <div class="tsd-parameters">
@@ -589,7 +589,7 @@ Use the foreground code, not the background code (for example, not 41, nor 101).
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Use HEX value to set text color.</p>
 
-<h3>Example</h3><pre><code><span class="hl-0">import</span><span class="hl-1"> </span><span class="hl-2">chalk</span><span class="hl-1"> = </span><span class="hl-0">require</span><span class="hl-1">(</span><span class="hl-3">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-2">chalk</span><span class="hl-1">.</span><span class="hl-7">hex</span><span class="hl-1">(</span><span class="hl-3">&#39;#DEADED&#39;</span><span class="hl-1">);</span>
+<h3>Example</h3><pre><code><span class="hl-8">import</span><span class="hl-1"> </span><span class="hl-5">chalk</span><span class="hl-1"> = </span><span class="hl-8">require</span><span class="hl-1">(</span><span class="hl-7">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-5">chalk</span><span class="hl-1">.</span><span class="hl-3">hex</span><span class="hl-1">(</span><span class="hl-7">&#39;#DEADED&#39;</span><span class="hl-1">);</span>
 </code></pre>
 </div>
 <div class="tsd-parameters">
@@ -666,7 +666,7 @@ Use the foreground code, not the background code (for example, not 41, nor 101).
 <li class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Use keyword color value to set text color.</p>
 
-<h3>Example</h3><pre><code><span class="hl-0">import</span><span class="hl-1"> </span><span class="hl-2">chalk</span><span class="hl-1"> = </span><span class="hl-0">require</span><span class="hl-1">(</span><span class="hl-3">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-2">chalk</span><span class="hl-1">.</span><span class="hl-7">keyword</span><span class="hl-1">(</span><span class="hl-3">&#39;orange&#39;</span><span class="hl-1">);</span>
+<h3>Example</h3><pre><code><span class="hl-8">import</span><span class="hl-1"> </span><span class="hl-5">chalk</span><span class="hl-1"> = </span><span class="hl-8">require</span><span class="hl-1">(</span><span class="hl-7">&#39;chalk&#39;</span><span class="hl-1">);</span><br/><br/><span class="hl-5">chalk</span><span class="hl-1">.</span><span class="hl-3">keyword</span><span class="hl-1">(</span><span class="hl-7">&#39;orange&#39;</span><span class="hl-1">);</span>
 </code></pre>
 </div>
 <div class="tsd-parameters">
@@ -719,6 +719,23 @@ Use the foreground code, not the background code (for example, not 41, nor 101).
 <ul>
 <li class="current"><a href="../modules.html">@hackbg/fadroma</a>
 <ul>
+<li class="tsd-kind-module"><a href="../modules/_fadroma_agent.html">@fadroma/agent</a>
+<ul>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_agent.bip32.html">bip32</a></li>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_agent.bip39.html">bip39</a></li>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_agent.colors.html">colors</a></li></ul></li>
+<li class="tsd-kind-module"><a href="../modules/_fadroma_connect.html">@fadroma/connect</a>
+<ul>
+<li class="tsd-kind-namespace tsd-parent-kind-module"><a href="../modules/_fadroma_connect.Scrt.html">Scrt</a>
+<ul>
+<li class="tsd-kind-namespace tsd-parent-kind-namespace tsd-is-external"><a href="../modules/_fadroma_connect.Scrt.SecretJS.html">SecretJS</a></li></ul></li>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_connect.bip32.html">bip32</a></li>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_connect.bip39.html">bip39</a></li>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_connect.colors.html">colors</a></li></ul></li>
+<li class="tsd-kind-module"><a href="../modules/_fadroma_ops.html">@fadroma/ops</a>
+<ul>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_ops.YAML.html">YAML</a></li>
+<li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_ops.colors.html">colors</a></li></ul></li>
 <li class="tsd-kind-module"><a href="../modules/_fadroma_scrt.html">@fadroma/scrt</a>
 <ul>
 <li class="tsd-kind-namespace tsd-parent-kind-module tsd-is-external"><a href="../modules/_fadroma_scrt.SecretJS.html">SecretJS</a></li></ul></li>
