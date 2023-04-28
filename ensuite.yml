@@ -2,7 +2,7 @@ routes:
   - path: /index.html
     page: index.pug
   - path: /guide.html
-    page: guide
+    page: GettingStarted.md
   - path: /agent.html
     page: spec/Agent.spec.ts.md
   - path: /build.html
