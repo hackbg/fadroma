@@ -58,7 +58,7 @@ operate the container engine.
 
 ```typescript
 import * as Dokeres from '@hackbg/dock'
-assert.ok(builder.docker instanceof Dokeres.Engine)
+assert.ok(getBuilder({ raw: false }).docker instanceof Dokeres.Engine)
 ```
 
 Use `FADROMA_DOCKER` or the `dockerSocket` option to specify a non-default Docker socket path.
