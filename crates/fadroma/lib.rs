@@ -167,24 +167,3 @@ macro_rules! entrypoint {
         }
     };
 }
-
-#[macro_export]
-macro_rules! contract {
-    ($( $body:item )+) => {
-        pub use contract::*;
-        use fadroma::dsl::*;
-        #[fadroma::dsl::contract]
-        mod contract {
-            use super::*;
-            pub use fadroma::{prelude::*, dsl::*};
-            impl Contract {
-                $($body)+
-            }
-        }
-        fadroma::entrypoint! {
-            init: instantiate,
-            execute: execute,
-            query: query
-        }
-    }
-}
