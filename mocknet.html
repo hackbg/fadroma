@@ -546,8 +546,8 @@ responses) are returned by the contract as Base64-encoded strings
 <pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>.<span class="hljs-title function_">b64toUtf8</span>(<span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>), <span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>)
 assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>.<span class="hljs-title function_">utf8toB64</span>(<span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>), <span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>)
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;assert&#x27;</span>
-<span class="hljs-keyword">import</span> { ok, equal } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;assert&#x27;</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert, { ok, equal } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Mocknet.test.ts&#x27;</span>
 </code></pre>
 
 </content>
