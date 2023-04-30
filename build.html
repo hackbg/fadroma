@@ -357,7 +357,20 @@ pre > code.language-typescript {
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#build-cli">Build CLI</a><ul><li><a href="#builder-configuration">Builder configuration</a></li></ul></li><li><a href="#build-api">Build API</a><ul><li><a href="#getting-a-builder">Getting a builder</a><ul><li><a href="#buildcontainer">BuildContainer</a></li><li><a href="#buildraw">BuildRaw</a></li></ul></li><li><a href="#building-a-contract">Building a contract</a><ul><li><a href="#building-a-named-contract-from-the-project">Building a named contract from the project</a></li><li><a href="#specifying-a-contract-to-build">Specifying a contract to build</a></li></ul></li><li><a href="#building-past-commits-of-contracts">Building past commits of contracts</a></li><li><a href="#build-caching">Build caching</a></li></ul></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#the-build-procedure">The build procedure</a></li><li><a href="#builders">Builders</a></li><li><a href="#build-events">Build events</a></li></ul></li></ul></div></p>
 <h1 id="building-contracts-from-source" tabindex="-1">Building contracts from source</h1>
-<p>This package implements <strong>reproducible compilation</strong> of contracts.
+<p>When deploying, Fadroma automatically builds the <code>Contract</code>s specified in the deployment,
+using a procedure based on <a href="https://hub.docker.com/r/enigmampc/secret-contract-optimizer">secret-contract-optimizer</a>.</p>
+<p>This either with your local Rust/WASM toolchain,
+or in a pre-defined <a href="https://github.com/hackbg/fadroma/pkgs/container/fadroma">build container</a>.
+The latter option requires Docker (which you also need for the devnet).</p>
+<p>By default, optimized builds are output to the <code>wasm</code> subdirectory of your project.
+Checksums of build artifacts are emitted as <code>wasm/*.wasm.sha256</code>: these checksums
+should be equal to the code hashes returned by the chain.</p>
+<p>We advise you to keep these
+<strong>build receipts</strong> in version control. This gives you a quick way to keep track of the
+correspondence between changes to source and resulting changes to code hashes.</p>
+<p>Furthermore, when creating a <code>Project</code>, you'll be asked to define one or more <code>Template</code>s
+corresponding to the contract crates of your project. You can</p>
+<p>Fadroma implements <strong>reproducible compilation</strong> of contracts.
 What to compile is specified using the primitives defined in <a href="../client/README.md">Fadroma Core</a>.</p>
 <h2 id="build-cli" tabindex="-1">Build CLI</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma build CONTRACT    <span class="hljs-comment"># nop if already built</span></span>
