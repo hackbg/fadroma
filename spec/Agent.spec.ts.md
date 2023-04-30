@@ -1,27 +1,6 @@
-# Fadroma Agent API
+# Fadroma Guide: Agent API
 
-The `@fadroma/agent` package defines the core operational model
-and type vocabulary of the Fadroma dApp framework.
-
-All other NPM packages in the Fadroma ecosystem
-build upon this one, and either:
-
-* Provide platform-specific implementations of these abstractions
-  (such as an Agent that is specifically for the Secret Network,
-  or a Builder that executes builds specifically in a Docker container), or
-
-* Build atop the abstract object model to deliver new features with
-  the appropriate degree of cross-platform support.
-
-The `@fadroma/agent` package itself is written in a platform-independent way
-(basic [isomorphic JavaScript](https://en.wikipedia.org/wiki/Isomorphic_JavaScript)).
-and should contain no Node-specifics or other engine-specific features.
-
-## In this package
-
-### Chain API
-
-The **Chain API** is a simple imperative transaction-level API for
+The **Agent API** is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.
 
 Its core primitives are the **`Chain`** and **`Agent`** abstract classes.
@@ -41,15 +20,6 @@ These classes are used for describing systems consisting of multiple smart contr
 such as when deploying them from source. By defining such a system as one or more
 subclasses of `Deployment`, Fadroma enables declarative, idempotent, and reproducible
 smart contract deployments.
-
-* **Explore the [deployment guide](./spec/DeployingContracts.ts.md)**
-* One commonly used type of contract is a **custom token**. Fadroma Ops provides
-  a deployment API for [managing native and custom tokens](./spec/Tokens.ts.md).
-* The procedures for compiling contracts from source and uploading them to the chain,
-  and for caching the results of those operations so you don't have to do them repeatedly,
-  are implemented in the [`Builder` and `Uploader` classes](./spec/BuildingAndUploading.ts.md).
-
-Concrete implementations of those are provided in `@fadroma/ops`.
 
 ### Mocknet
 
@@ -435,240 +405,15 @@ assert.rejects(fetchLabel(instance, agent, 'unexpected'))
   Calling it returns a new instance of the Client, which talks to the same contract
   but executes all transactions with the specified custom fee.
 
-## Deployment: defining contract relations
-
-```typescript
-import { Deployment } from '@fadroma/agent'
-
-/*class MyDeployment extends Deployment {
-
-  myContract1: PromiseLike<Contract<MyClient>> = this.contract({
-    name: 'my-contract-1',
-    client: MyClient,
-    crate: 'test'
-  })
-
-  myContract2: PromiseLike<Contract<MyClient>> = this.contract({
-    name: 'my-contract-2',
-    client: MyClient
-    crate: 'test'
-  })
-
-  myTemplate: PromiseLike<Template<Contract<MyClient>>> = this.template({
-    client: MyClient
-    crate: 'test'
-  })
-
-  myInstances1 = this.myTemplate.instances({
-    myContract3: {}
-    myContract4: {}
-  })
-
-  myInstances2 = this.myTemplate.instances([
-    ['my-contract-5', {}],
-    ['my-contract-6', {}],
-  ])
-
-  async deploy () {
-    const [
-      myContract1,
-      myContract2,
-      { myContract3, myContract4 },
-      [ myContract5, myContract6 ]
-    ] = await Promise.all([
-      this.myContract1,
-      this.myContract2,
-      this.myInstances1,
-      this.myInstances2
-    ])
-    return {
-      myContract1,
-      myContract2,
-      myContract3,
-      myContract4,
-      myContract5,
-      myContract6,
-    }
-  }
-
-}
-
-const myDeployment1 = new MyDeployment({ name: 'my-deployment-1' })
-await myDeployment1.deploy()
-
-const myDeployment2 = new MyDeployment({ name: 'my-deployment-2' })
-await myDeployment2.deploy()*/
-```
-
-### Template: build and upload
-
-### Contract: full contract lifecycle
-
-```typescript
-import { Contract } from '@fadroma/agent'
-
-new Contract({
-  repository: 'REPO',
-  revision: 'REF',
-  workspace: 'WORKSPACE'
-  crate: 'CRATE'
-})
-```
-
-### Contract label prefixes and suffixes
-
-The label of a contract has to be unique per chain.
-Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
-
-### Contract lifecycle
-
-The `Metadata` class is the base class of the
-`ContractSource`->`Template`->`Contract` inheritance chain.
-
-Represents a contract that is instantiated from a `codeId`.
-  * Can have an `address`.
-  * You can get a `Client` from a `Contract` using
-    the `getClient` family of methods.
-
-```typescript
-import { Contract, toInstanceReceipt } from '@fadroma/agent'
-instance = new Contract()
-assert.ok(toInstanceReceipt(instance))
-//assert.ok(await instance.define({ agent }).found)
-//assert.ok(await instance.define({ agent }).deployed)
-```
-
-### Storing deployment state
-
-### Exporting deployments
-
-### Connecting to an exported deployment
-
-### Versioned deployments
-
-## Builder
-
-Implemented by `@fadroma/build`.
-
-* **BuildRaw**: runs the build in the current environment
-* **BuildContainer**: runs the build in a container for enhanced reproducibility
-
-## Uploader
-
-Implemented by `@fadroma/upload`.
-
-* **FSUploader**: Support for uploading from Node FS.
-* TODO: **FetchUploader**: Support for uploading from any URL incl. file:///
-
 ## Errors
 
 The `Error` class, based on `@hackbg/oops`, defines
 custom error subclasses for various error conditions.
 
-```typescript
-// Make sure each error subclass can be created with no arguments:
-import { Error } from '@fadroma/agent'
-for (const subtype of [
-  'Unimplemented',
-
-  'UploadFailed',
-
-  'InitFailed',
-
-  'CantInit_NoName',
-  'CantInit_NoAgent',
-  'CantInit_NoCodeId',
-  'CantInit_NoLabel',
-  'CantInit_NoMessage',
-
-  'BalanceNoAddress',
-  'DeployManyFailed',
-  'DifferentHashes',
-
-  'EmptyBundle',
-
-  'ExpectedAddress',
-  'ExpectedAgent',
-
-  'InvalidLabel',
-  'InvalidMessage',
-
-  'LinkNoAddress',
-  'LinkNoCodeHash',
-  'LinkNoTarget',
-
-  'NameOutsideDevnet',
-
-  'NoAgent',
-  'NoArtifact',
-  'NoArtifactURL',
-  'NoBuilder',
-  'NoBuilderNamed',
-  'NoBundleAgent',
-  'NoChain',
-  'NoChainId',
-  'NoCodeHash',
-  'NoContext',
-  'NoCrate',
-  'NoCreator',
-  'NoDeployment',
-  'NoName',
-  'NoPredicate',
-  'NoSource',
-  'NoTemplate',
-  'NoUploader',
-  'NoUploaderAgent',
-  'NoUploaderNamed',
-  'NoVersion',
-
-  'NotFound',
-  'NotInBundle',
-
-  'ProvideBuilder',
-  'ProvideUploader',
-
-  'Unpopulated',
-  'ValidationFailed'
-]) {
-  assert(new Error[subtype]() instanceof Error, `error ${subtype}`)
-}
-```
-
 ## Events
 
 The `Console` class, based on `@hackbg/logs`, collects all logging output in one place.
 In the future, this will enable semantic logging and/or GUI notifications.
-
-```typescript
-// Make sure each log message can be created with no arguments:
-import { Console } from '@fadroma/agent'
-const log = new Console()
-
-log.object()
-log.object({foo:'bar',baz(){},quux:[],xyzzy:undefined,fubar:{}})
-
-log.deployment()
-log.deployment({ state: { foo: {}, bar: {} } })
-log.receipt()
-log.foundDeployedContract()
-log.beforeDeploy()
-log.afterDeploy()
-log.deployFailed()
-log.deployManyFailed()
-log.deployFailedContract()
-log.confirmCodeHash()
-log.waitingForNextBlock()
-
-log.warnUrlOverride()
-log.warnIdOverride()
-log.warnNodeNonDevnet()
-log.warnNoAgent()
-log.warnNoAddress()
-log.warnNoCodeHash()
-log.warnNoCodeHashProvided()
-log.warnCodeHashMismatch()
-log.warnEmptyBundle()
-```
 
 ## Utilities
 

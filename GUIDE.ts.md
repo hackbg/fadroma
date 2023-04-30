@@ -1,6 +1,6 @@
 # Getting started
 
-**Fadroma** is an application framework targeting the CosmWasm Compute module.
+**Fadroma** is an application framework for the CosmWasm Compute module.
 Fadroma includes **Rust** libraries for writing smart contracts and a
 **TypeScript** system for building, deploying, and interacting with them.
 
@@ -128,6 +128,24 @@ is a library for for integration testing of multiple contracts.
 a simulated environment for fast full-stack testing of your production builds.
 
 ## Scripting Fadroma
+
+### Adding commands
+
+The **Commands#command(name, info, ...steps)** method declares commands.
+
+  * **name** is the string used to invoke the command from the shell
+  * **info** is a short help description
+  * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
+
+**Steps** are run sequentially. The first argument to each step is a `context: Deployer`.
+If a step returns an `Object`, the object's entries are added to the `context` for subsequent
+steps.
+
+* The `commands.command(...)` method returns `commands`, so it supports chaining.
+* Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
+* Fadroma uses [`@hackbg/cmds`](https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts)
+  to parse commands. This is a simple and loose command parser which does not support flags.
+  Arguments to a command are available in `context.args` so you can define your own flags.
 
 For more complex operations, you can define custom commands, which you implement in TypeScript
 using the Fadroma TypeScript API. **See [@fadroma/agent](./spec/Agent.spec.ts.md)** to get

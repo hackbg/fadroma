@@ -1,34 +1,6 @@
-# Deploying contracts
+# Fadroma Guide: Deploy API
 
-## Deploy CLI
-
-```sh
-$ fadroma deploy
-$ fadroma deploy path-to-script.ts
-$ fadroma redeploy
-```
-
-### Adding commands
-
-The **Commands#command(name, info, ...steps)** method declares commands.
-
-  * **name** is the string used to invoke the command from the shell
-  * **info** is a short help description
-  * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
-
-**Steps** are run sequentially. The first argument to each step is a `context: Deployer`.
-If a step returns an `Object`, the object's entries are added to the `context` for subsequent
-steps.
-
-* The `commands.command(...)` method returns `commands`, so it supports chaining.
-* Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
-* Fadroma uses [`@hackbg/cmds`](https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts)
-  to parse commands. This is a simple and loose command parser which does not support flags.
-  Arguments to a command are available in `context.args` so you can define your own flags.
-
-## Deploy API basics
-
-### Defining a `Deployment`
+## Defining a `Deployment`
 
 The `Deployment` class represents a set of interrelated contracts.
 To define your deployment, extend the `Deployment` class, and specify
@@ -215,3 +187,112 @@ this will throw an error.
 import assert from 'node:assert'
 import './Deploy.test.ts'
 ```
+
+## Deployment: defining contract relations
+
+```typescript
+import { Deployment } from '@fadroma/agent'
+
+/*class MyDeployment extends Deployment {
+
+  myContract1: PromiseLike<Contract<MyClient>> = this.contract({
+    name: 'my-contract-1',
+    client: MyClient,
+    crate: 'test'
+  })
+
+  myContract2: PromiseLike<Contract<MyClient>> = this.contract({
+    name: 'my-contract-2',
+    client: MyClient
+    crate: 'test'
+  })
+
+  myTemplate: PromiseLike<Template<Contract<MyClient>>> = this.template({
+    client: MyClient
+    crate: 'test'
+  })
+
+  myInstances1 = this.myTemplate.instances({
+    myContract3: {}
+    myContract4: {}
+  })
+
+  myInstances2 = this.myTemplate.instances([
+    ['my-contract-5', {}],
+    ['my-contract-6', {}],
+  ])
+
+  async deploy () {
+    const [
+      myContract1,
+      myContract2,
+      { myContract3, myContract4 },
+      [ myContract5, myContract6 ]
+    ] = await Promise.all([
+      this.myContract1,
+      this.myContract2,
+      this.myInstances1,
+      this.myInstances2
+    ])
+    return {
+      myContract1,
+      myContract2,
+      myContract3,
+      myContract4,
+      myContract5,
+      myContract6,
+    }
+  }
+
+}
+
+const myDeployment1 = new MyDeployment({ name: 'my-deployment-1' })
+await myDeployment1.deploy()
+
+const myDeployment2 = new MyDeployment({ name: 'my-deployment-2' })
+await myDeployment2.deploy()*/
+```
+
+### Storing deployment state
+
+### Exporting deployments
+
+### Connecting to an exported deployment
+
+### Versioned deployments
+
+## Template: build and upload
+
+## Contract: full contract lifecycle
+
+```typescript
+import { Contract } from '@fadroma/agent'
+
+new Contract({
+  repository: 'REPO',
+  revision: 'REF',
+  workspace: 'WORKSPACE'
+  crate: 'CRATE'
+})
+```
+
+### Contract label prefixes and suffixes
+
+The label of a contract has to be unique per chain.
+Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
+
+### Contract lifecycle
+
+## Builder
+
+Implemented by `@fadroma/build`.
+
+* **BuildRaw**: runs the build in the current environment
+* **BuildContainer**: runs the build in a container for enhanced reproducibility
+
+## Uploader
+
+Implemented by `@fadroma/upload`.
+
+* **FSUploader**: Support for uploading from Node FS.
+* TODO: **FetchUploader**: Support for uploading from any URL incl. file:///
