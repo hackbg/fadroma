@@ -16,26 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import Error from './ScrtError'
-import Console from './ScrtConsole'
-import Config from './ScrtConfig'
-import * as SecretJS from 'secretjs'
-import VKClient from './ScrtVK'
-
-import { Chain, Agent, Bundle } from './ScrtChain'
-Object.assign(Chain, { SecretJS, Agent: Object.assign(Agent, { Bundle }) })
-
-export {
-  Config,
-  Error,
-  Console,
-  VKClient,
-  SecretJS,
-}
-
-export * from './ScrtError'
-export * from './ScrtConsole'
-export * from './ScrtConfig'
-export * from './ScrtChain'
-export * from './ScrtPermit'
-export * from './ScrtVK'
+export * from './scrt-base'
+export * from './scrt-chain'
+export * from './scrt-auth'
+export * from './scrt-token'

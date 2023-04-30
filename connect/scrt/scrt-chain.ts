@@ -1,18 +1,13 @@
 import * as SecretJS from 'secretjs'
-
-import Config from './ScrtConfig'
-import Error from './ScrtError'
-import Console from './ScrtConsole'
-
+import { Config, Error, Console } from './scrt-base'
 import {
   Agent, Contract, assertAddress, into, base64, bip39, bip39EN, bold,
   Chain, Fee, Mocknet, Bundle, assertChain
 } from '@fadroma/agent'
 import type {
-  AgentClass, AgentOpts, Built, Uploaded,
-  AgentFees, ChainClass, Uint128,
-  BundleClass, Client, ExecOpts, ICoin, Message,
-  Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label
+  AgentClass, AgentOpts, Built, Uploaded, AgentFees, ChainClass, Uint128, BundleClass, Client,
+  ExecOpts, ICoin, Message, Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label,
+  Instantiated
 } from '@fadroma/agent'
 
 /** Represents a Secret Network API endpoint. */
@@ -387,25 +382,27 @@ class ScrtAgent extends Agent {
     init_funds: ICoin[] = []
   ) {
     const { api } = await this.ready
-    if (!this.address) throw new Error("No address")
+    if (!this.address) throw new Error("Agent has no address")
+    if (instance.address) {
+      this.log.warn("Instance already has address, not instantiating.")
+      return instance as Instantiated
+    }
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
     if (isNaN(code_id)) throw new Error.CantInit_NoCodeId()
     if (!label) throw new Error.CantInit_NoLabel()
     if (!initMsg) throw new Error.CantInit_NoMessage()
-    if (chainId && chainId !== assertChain(this).id) {
-      throw new Error.WrongChain()
-    }
-    const result = await api.tx.compute.instantiateContract({
-      sender: this.address,
+    if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
+    const parameters = {
+      sender:    this.address,
       code_id,
       code_hash: codeHash!,
-      init_msg: await into(initMsg),
+      init_msg:  await into(initMsg),
       label,
       init_funds
-    }, {
-      gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
-    })
+    }
+    const gasLimit = Number(this.fees.init?.amount[0].amount) || undefined
+    const result = await api.tx.compute.instantiateContract(parameters, { gasLimit })
     if (result.code !== 0) {
       this.log.error('Init failed:', { initMsg, result })
       throw Object.assign(new Error.InitFailed(code_id), { result })
@@ -483,35 +480,31 @@ class ScrtAgent extends Agent {
     }
     const result = await api.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
-    if (result.code !== 0) {
-      const error = `ScrtAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
-      // make the original result available on request
-      const original = structuredClone(result)
-      Object.defineProperty(result, "original", {
-        enumerable: false,
-        get () { return original }
-      })
-      // decode the values in the result
-      const txBytes = tryDecode(result.tx as Uint8Array)
-      Object.assign(result, { txBytes })
-      for (const i in result.tx.signatures) {
-        //@ts-ignore
-        result.tx.signatures[i] = tryDecode(result.tx.signatures[i])
-      }
-      for (const event of result.events) {
-        for (const attr of event?.attributes ?? []) {
-          //@ts-ignore
-          try { attr.key   = tryDecode(attr.key)   } catch (e) {}
-          //@ts-ignore
-          try { attr.value = tryDecode(attr.value) } catch (e) {}
-        }
-      }
-      throw Object.assign(new Error(error), result)
-    }
+    if (result.code !== 0) throw this.decryptError(result)
     return result as TxResponse
   }
 
-  decryptAndThrow (result: TxResponse) {}
+  decryptError (result: TxResponse) {
+    const error = `ScrtAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
+    // make the original result available on request
+    const original = structuredClone(result)
+    Object.defineProperty(result, "original", { enumerable: false, get () { return original } })
+    // decode the values in the result
+    const txBytes = tryDecode(result.tx as Uint8Array)
+    Object.assign(result, { txBytes })
+    for (const i in result.tx.signatures) {
+      Object.assign(result.tx.signatures, { [i]: tryDecode(result.tx.signatures[i as any]) })
+    }
+    for (const event of result.events) {
+      for (const attr of event?.attributes ?? []) {
+        //@ts-ignore
+        try { attr.key   = tryDecode(attr.key)   } catch (e) {}
+        //@ts-ignore
+        try { attr.value = tryDecode(attr.value) } catch (e) {}
+      }
+    }
+    return Object.assign(new Error(error), result)
+  }
 
   static Bundle: BundleClass<ScrtBundle> // populated in index
 
@@ -521,7 +514,7 @@ class ScrtAgent extends Agent {
 const decoder = new TextDecoder('utf-8', { fatal: true })
 
 /** Marks a response field as non-UTF8 to prevent large binary arrays filling the console. */
-export const nonUtf8 = Symbol('<binary data, see result.original for the raw Uint8Array>')
+export const nonUtf8 = Symbol('(binary data, see result.original for the raw Uint8Array)')
 
 /** Decode binary response data or mark it as non-UTF8 */
 const tryDecode = (data: Uint8Array): string|Symbol => {
@@ -759,6 +752,8 @@ class ScrtBundle extends Bundle {
   }
 
 }
+
+Object.assign(ScrtChain, { SecretJS, ScrtAgent: Object.assign(Agent, { ScrtBundle }) })
 
 export {
   ScrtChain as Chain,
