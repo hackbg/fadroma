@@ -1,27 +1,5 @@
 :::info
 
-## How to define commands
-
-The **Commands#command(name, info, ...steps)** method declares commands.
-
-  * **name** is the string used to invoke the command from the shell
-  * **info** is a short help description
-  * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
-
-**Steps** are run sequentially. The first argument to each step is a `context: Deployer`.
-If a step returns an `Object`, the object's entries are added to the `context` for subsequent
-steps.
-
-:::info
-### Commands
-
-* The `commands.command(...)` method returns `commands`, so it supports chaining.
-* Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
-* Fadroma uses [`@hackbg/cmds`](https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts)
-  to parse commands. This is a simple and loose command parser which does not support flags.
-  Arguments to a command are available in `context.args` so you can define your own flags.
-:::
-
 ## Templates and factories
 
 Sometimes you want to upload a contract to the chain, but not instantiate it. For example,

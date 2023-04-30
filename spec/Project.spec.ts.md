@@ -1,4 +1,4 @@
-# Fadroma Project Scope
+# Fadroma: creating and managing projects
 
 ## Project CLI
 

@@ -1,16 +1,7 @@
-# Fadroma Core API Specification
+# Fadroma Agent API
 
-## Introduction
-
-This document outlines the programmatic vocabulary of the Fadroma dApp framework.
-
-### Contributing
-
-The `@fadroma/agent` package is written in a platform-independent way
-(isomorphic JavaScript). Contributors should refrain from depending on
-engine-specific features (be it browser, Node, or other)
-
-### Related packages
+The `@fadroma/agent` package defines the core operational model
+and type vocabulary of the Fadroma dApp framework.
 
 All other NPM packages in the Fadroma ecosystem
 build upon this one, and either:
@@ -22,9 +13,15 @@ build upon this one, and either:
 * Build atop the abstract object model to deliver new features with
   the appropriate degree of cross-platform support.
 
-## Agent API
+The `@fadroma/agent` package itself is written in a platform-independent way
+(basic [isomorphic JavaScript](https://en.wikipedia.org/wiki/Isomorphic_JavaScript)).
+and should contain no Node-specifics or other engine-specific features.
 
-The **Agent API** is a simple imperative transaction-level API for
+## In this package
+
+### Chain API
+
+The **Chain API** is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.
 
 Its core primitives are the **`Chain`** and **`Agent`** abstract classes.
@@ -33,9 +30,37 @@ and lets you operate in terms of transactions (sending tokens, calling contracts
 
 * [**`@fadroma/scrt`**](./Scrt.spec.ts.md) provides
   **`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
-  of Fadroma Agent API for Secret Network.
+  of Fadroma Chain API for Secret Network.
 
-### Chain: connecting
+### Deploy API
+
+The **Ops API** revolves around the `Deployment` class, and associated
+implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
+
+These classes are used for describing systems consisting of multiple smart contracts,
+such as when deploying them from source. By defining such a system as one or more
+subclasses of `Deployment`, Fadroma enables declarative, idempotent, and reproducible
+smart contract deployments.
+
+* **Explore the [deployment guide](./spec/DeployingContracts.ts.md)**
+* One commonly used type of contract is a **custom token**. Fadroma Ops provides
+  a deployment API for [managing native and custom tokens](./spec/Tokens.ts.md).
+* The procedures for compiling contracts from source and uploading them to the chain,
+  and for caching the results of those operations so you don't have to do them repeatedly,
+  are implemented in the [`Builder` and `Uploader` classes](./spec/BuildingAndUploading.ts.md).
+
+Concrete implementations of those are provided in `@fadroma/ops`.
+
+### Mocknet
+
+This is a lightweight mock of a CosmWasm-capable platform,
+structured as an implementation of the Fadroma Chain API.
+Mocknet executes smart contracts in a simulated environment
+based on JavaScript's native WebAssembly runtime.
+
+See [**Mocknet**](./mocknet.html).
+
+## Chain: connecting
 
 The `Chain` object identifies what chain to connect to -
 such as the Secret Network mainnet or testnet.
@@ -47,7 +72,7 @@ import { Chain } from '@fadroma/agent'
 let chain: Chain
 ```
 
-#### Chain modes
+### Chain modes
 
 Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`.
 
@@ -95,7 +120,7 @@ assert(chain.isMocknet)
 assert(!chain.isMainnet)
 ```
 
-### Agent: authenticating
+## Agent: authenticating
 
 To transact on a [chain](./Chains.ts.md), you need to authenticate
 with your identity (account, wallet). To do that, you obtain an
@@ -112,7 +137,7 @@ assert.equal(agent.chain, chain,  'Agent#chain assigned')
 assert.equal(agent.address, 'testing1agent0',  'Agent#address assigned')
 ```
 
-#### Block height and waiting
+### Block height
 
 Having obtained an `Agent`, you are ready to begin performing operations.
 The simplest thing to do is waiting until the block height increments.
@@ -127,16 +152,7 @@ const height = await agent.height // Get the current block height
 //assert.equal(await agent.height, height + 1)
 ```
 
-#### Gas fees
-
-Transacting creates load on the network, which incurs costs on node operators.
-Compensations for transactions are represented by the gas metric.
-
-```typescript
-import { Fee } from '@fadroma/agent'
-```
-
-#### Native token transactions
+### Native token transactions
 
 You're not on the chain to wait around, though.
 The simplest operation you can conduct is transact with native tokens:
@@ -154,7 +170,16 @@ await agent.send('recipient-address', '1000')
 await agent.send('recipient-address', [{denom:'token', amount: '1000'}])
 ```
 
-#### Uploading code
+### Gas fees
+
+Transacting creates load on the network, which incurs costs on node operators.
+Compensations for transactions are represented by the gas metric.
+
+```typescript
+import { Fee } from '@fadroma/agent'
+```
+
+### Uploading code
 
 ```typescript
 import { nullWasm } from '../fixtures/Fixtures.ts.md'
@@ -176,8 +201,6 @@ await agent.upload(nullWasm)
 ])*/
 ```
 
-#### Code ids and code hashes
-
 The code ID is a unique identifier for compiled code uploaded to a chain.
 
 The code hash also uniquely identifies for the code that underpins a contract.
@@ -196,7 +219,7 @@ assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
 assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
 ```
 
-#### Instantiating contracts
+### Instantiating contracts
 
 * Instantiating a single contract:
 
@@ -213,14 +236,14 @@ await agent.instantiateMany([
 })
 ```
 
-#### Querying contracts
+### Querying contract state
 
 ```typescript
 const response =
   await agent.query({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
 ```
 
-#### Executing contract transactions
+### Executing transactions
 
 Executing a single transaction:
 
@@ -239,7 +262,7 @@ const results = await agent.bundle(async bundle=>{
 }).run()
 ```
 
-#### Bundle: bundling transactions
+## Bundle: batching transactions
 
 To submit multiple messages as a single transaction, you can
 use Bundles.
@@ -257,7 +280,40 @@ A `Bundle` is designed to serve as a stand-in for its corresponding
     must be done either before or after the bundle.
   * Trying to query state from a `Bundle` agent will fail.
 
-### Client: talking to contracts
+```typescript
+import { Chain, Agent, Bundle } from '@fadroma/agent'
+chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
+agent = await chain.getAgent()
+let bundle: Bundle
+```
+
+```typescript
+import { Client } from '@fadroma/agent'
+bundle = new Bundle(agent)
+
+assert(bundle.getClient(Client, '') instanceof Client, 'Bundle#getClient')
+assert.equal(await bundle.execute({}), bundle)
+assert.equal(bundle.id, 1)
+//assert(await bundle.instantiateMany({}, []))
+//assert(await bundle.instantiateMany({}, [['label', 'init']]))
+//assert(await bundle.instantiate({}, 'label', 'init'))
+assert.equal(await bundle.checkHash(), 'code-hash-stub')
+
+assert.rejects(()=>bundle.query())
+assert.rejects(()=>bundle.upload())
+assert.rejects(()=>bundle.uploadMany())
+assert.rejects(()=>bundle.sendMany())
+assert.rejects(()=>bundle.send())
+assert.rejects(()=>bundle.getBalance())
+assert.throws(()=>bundle.height)
+assert.throws(()=>bundle.nextBlock)
+assert.throws(()=>bundle.balance)
+```
+
+To create and submit a bundle in a single expression,
+you can use `bundle.wrap(async (bundle) => { ... })`:
+
+## Client: talking to contracts
 
 Represents an interface to an existing contract.
   * The default `Client` class allows passing messages to the contract instance.
@@ -348,7 +404,7 @@ By publishing a library of `Client` subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn
 integrate it into their systems.
 
-#### Fetching metadata
+### Fetching metadata
 
 ```typescript
 import {
@@ -371,9 +427,7 @@ assert.rejects(fetchCodeId(instance, agent, 'unexpected'))
 assert.rejects(fetchLabel(instance, agent, 'unexpected'))
 ```
 
-#### Extending Client
-
-#### Per-contract fee defaults
+### Per-contract fee defaults
 
 * `client.fee` is the default fee for all transactions
 * `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
@@ -381,59 +435,7 @@ assert.rejects(fetchLabel(instance, agent, 'unexpected'))
   Calling it returns a new instance of the Client, which talks to the same contract
   but executes all transactions with the specified custom fee.
 
-### Bundle: Transaction bundling
-
-```typescript
-import { Chain, Agent, Bundle } from '@fadroma/agent'
-chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
-agent = await chain.getAgent()
-let bundle: Bundle
-```
-
-```typescript
-import { Client } from '@fadroma/agent'
-bundle = new Bundle(agent)
-
-assert(bundle.getClient(Client, '') instanceof Client, 'Bundle#getClient')
-assert.equal(await bundle.execute({}), bundle)
-assert.equal(bundle.id, 1)
-//assert(await bundle.instantiateMany({}, []))
-//assert(await bundle.instantiateMany({}, [['label', 'init']]))
-//assert(await bundle.instantiate({}, 'label', 'init'))
-assert.equal(await bundle.checkHash(), 'code-hash-stub')
-
-assert.rejects(()=>bundle.query())
-assert.rejects(()=>bundle.upload())
-assert.rejects(()=>bundle.uploadMany())
-assert.rejects(()=>bundle.sendMany())
-assert.rejects(()=>bundle.send())
-assert.rejects(()=>bundle.getBalance())
-assert.throws(()=>bundle.height)
-assert.throws(()=>bundle.nextBlock)
-assert.throws(()=>bundle.balance)
-```
-
-To create and submit a bundle in a single expression,
-you can use `bundle.wrap(async (bundle) => { ... })`:
-
-## Deployment API
-
-The **Ops API** revolves around the `Deployment` class, and associated
-implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
-
-These classes are used for describing systems consisting of multiple smart contracts,
-such as when deploying them from source. By defining such a system as one or more
-subclasses of `Deployment`, Fadroma enables declarative, idempotent, and reproducible
-smart contract deployments.
-
-* **Explore the [deployment guide](./spec/DeployingContracts.ts.md)**
-* One commonly used type of contract is a **custom token**. Fadroma Ops provides
-  a deployment API for [managing native and custom tokens](./spec/Tokens.ts.md).
-* The procedures for compiling contracts from source and uploading them to the chain,
-  and for caching the results of those operations so you don't have to do them repeatedly,
-  are implemented in the [`Builder` and `Uploader` classes](./spec/BuildingAndUploading.ts.md).
-
-Concrete implementations of those are provided in `@fadroma/ops`.
+## Deployment: defining contract relations
 
 ```typescript
 import { Deployment } from '@fadroma/agent'
@@ -498,9 +500,9 @@ const myDeployment2 = new MyDeployment({ name: 'my-deployment-2' })
 await myDeployment2.deploy()*/
 ```
 
-### Defining individual contracts in a Deployment
+### Template: build and upload
 
-#### Contract properties
+### Contract: full contract lifecycle
 
 ```typescript
 import { Contract } from '@fadroma/agent'
@@ -513,17 +515,15 @@ new Contract({
 })
 ```
 
-#### Contract label prefixes and suffixes
+### Contract label prefixes and suffixes
 
 The label of a contract has to be unique per chain.
 Fadroma introduces prefixes and suffixes to be able to navigate that constraint.
 
-#### Contract lifecycle
+### Contract lifecycle
 
 The `Metadata` class is the base class of the
 `ContractSource`->`Template`->`Contract` inheritance chain.
-
-#### Contract
 
 Represents a contract that is instantiated from a `codeId`.
   * Can have an `address`.
@@ -538,37 +538,27 @@ assert.ok(toInstanceReceipt(instance))
 //assert.ok(await instance.define({ agent }).deployed)
 ```
 
-### Defining groups of contracts in a Deployment
-
-#### Template
-
 ### Storing deployment state
 
-#### Exporting deployments
+### Exporting deployments
 
-#### Connecting to an exported deployment
+### Connecting to an exported deployment
 
 ### Versioned deployments
 
-## Internal Plugins API
-
-### Builder
+## Builder
 
 Implemented by `@fadroma/build`.
 
 * **BuildRaw**: runs the build in the current environment
 * **BuildContainer**: runs the build in a container for enhanced reproducibility
 
-### Uploader
+## Uploader
 
 Implemented by `@fadroma/upload`.
 
 * **FSUploader**: Support for uploading from Node FS.
 * TODO: **FetchUploader**: Support for uploading from any URL incl. file:///
-
-### DeployStore
-
-### DevnetHandle
 
 ## Errors
 

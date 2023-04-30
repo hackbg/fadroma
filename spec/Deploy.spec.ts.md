@@ -8,6 +8,24 @@ $ fadroma deploy path-to-script.ts
 $ fadroma redeploy
 ```
 
+### Adding commands
+
+The **Commands#command(name, info, ...steps)** method declares commands.
+
+  * **name** is the string used to invoke the command from the shell
+  * **info** is a short help description
+  * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
+
+**Steps** are run sequentially. The first argument to each step is a `context: Deployer`.
+If a step returns an `Object`, the object's entries are added to the `context` for subsequent
+steps.
+
+* The `commands.command(...)` method returns `commands`, so it supports chaining.
+* Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
+* Fadroma uses [`@hackbg/cmds`](https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts)
+  to parse commands. This is a simple and loose command parser which does not support flags.
+  Arguments to a command are available in `context.args` so you can define your own flags.
+
 ## Deploy API basics
 
 ### Defining a `Deployment`
@@ -166,6 +184,8 @@ assert(deployment3.baz1.expect() instanceof Client)
 //assert((await (await deployment3.bazN)[1]) instanceof Client)
 //assert((await (await deployment3.bazN)[2]) instanceof Client)
 ```
+
+### Exporting the deployment
 
 ### Connecting
 

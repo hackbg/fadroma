@@ -1,35 +1,3 @@
-
-# Writing smart contract frontends with Fadroma Client
-
-Client classes let you invoke the methods of deployed smart contracts
-from JavaScript or TypeScript applications, such as your dApp's frontend.
-
-## Where to write client classes
-
-### Option A: Polyglot packages
-
-It might be tempting to add `package.json` and `MyContract.ts` in your contract's
-crate directory, resulting in a "hybrid" or "polyglot" module:
-
-* Cargo would see a `Cargo.toml` and consume the directory as a Rust crate
-* Node would see a `package.json` and consumes it as a JavaScript package
-
-This is suitable if your project repository consists of multiple smart contracts that aren't
-necessarily going to be used together, e.g. a company-wide monorepo or a public repository of
-contracts that can be mixed and matched.
-
-If going with that option, make sure to set up `.npmignore` and the `exclude` setting in
-`Cargo.toml`, so that you don't publish JS files to Cargo or Rust files to NPM.
-
-### Option B: Client library
-
-However, if your repository corresponds to a single dApp project, consisting of
-multiple contracts that will generally be used together, it might be wiser to have a single
-API client package containing all client classes for your whole smart contract system.
-
-Either way, the setup is the same; if going with Option A, you'll need to do it
-once per contract, and if going with Option B, you'll only do it once.
-
 ## Writing a client in JavaScript
 
 The first thing any NPM package needs is a `package.json`.
