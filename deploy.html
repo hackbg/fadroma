@@ -355,13 +355,30 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#deploy-api-basics">Deploy API basics</a><ul><li><a href="#defining-a-deployment">Defining a Deployment</a><ul><li><a href="#contract-labels">Contract labels</a></li><li><a href="#lazy-initmsg">Lazy initMsg</a></li></ul></li><li><a href="#deploying">Deploying</a><ul><li><a href="#deploying-individual-contracts">Deploying individual contracts</a></li><li><a href="#custom-deploy-commands">Custom deploy commands</a></li><li><a href="#deploying-multiple-instances-of-contracts">Deploying multiple instances of contracts</a></li></ul></li><li><a href="#connecting">Connecting</a><ul><li><a href="#expecting-contracts-to-be-present">Expecting contracts to be present</a></li></ul></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#deploy-cli">Deploy CLI</a><ul><li><a href="#adding-commands">Adding commands</a></li></ul></li><li><a href="#deploy-api-basics">Deploy API basics</a><ul><li><a href="#defining-a-deployment">Defining a Deployment</a><ul><li><a href="#contract-labels">Contract labels</a></li><li><a href="#lazy-initmsg">Lazy initMsg</a></li></ul></li><li><a href="#deploying">Deploying</a><ul><li><a href="#deploying-individual-contracts">Deploying individual contracts</a></li><li><a href="#custom-deploy-commands">Custom deploy commands</a></li><li><a href="#deploying-multiple-instances-of-contracts">Deploying multiple instances of contracts</a></li></ul></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#expecting-contracts-to-be-present">Expecting contracts to be present</a></li></ul></li></ul></li></ul></div></p>
 <h1 id="deploying-contracts" tabindex="-1">Deploying contracts</h1>
 <h2 id="deploy-cli" tabindex="-1">Deploy CLI</h2>
 <pre><code class="hljs language-sh">$ fadroma deploy
 $ fadroma deploy path-to-script.ts
 $ fadroma redeploy
 </code></pre>
+<h3 id="adding-commands" tabindex="-1">Adding commands</h3>
+<p>The <strong>Commands#command(name, info, ...steps)</strong> method declares commands.</p>
+<ul>
+<li><strong>name</strong> is the string used to invoke the command from the shell</li>
+<li><strong>info</strong> is a short help description</li>
+<li><strong>...steps</strong> is one or more synchronous or asynchronous functions that constitute the command.</li>
+</ul>
+<p><strong>Steps</strong> are run sequentially. The first argument to each step is a <code>context: Deployer</code>.
+If a step returns an <code>Object</code>, the object's entries are added to the <code>context</code> for subsequent
+steps.</p>
+<ul>
+<li>The <code>commands.command(...)</code> method returns <code>commands</code>, so it supports chaining.</li>
+<li>Don't forget to <code>export default commands</code>, otherwise Fadroma will not be able to find the commands.</li>
+<li>Fadroma uses <a href="https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts"><code>@hackbg/cmds</code></a>
+to parse commands. This is a simple and loose command parser which does not support flags.
+Arguments to a command are available in <code>context.args</code> so you can define your own flags.</li>
+</ul>
 <h2 id="deploy-api-basics" tabindex="-1">Deploy API basics</h2>
 <h3 id="defining-a-deployment" tabindex="-1">Defining a <code>Deployment</code></h3>
 <p>The <code>Deployment</code> class represents a set of interrelated contracts.
@@ -489,6 +506,7 @@ via the <code>Template#instance</code> method.</p>
 <span class="hljs-comment">//assert((await (await deployment3.bazN)[1]) instanceof Client)</span>
 <span class="hljs-comment">//assert((await (await deployment3.bazN)[2]) instanceof Client)</span>
 </code></pre>
+<h3 id="exporting-the-deployment" tabindex="-1">Exporting the deployment</h3>
 <h3 id="connecting" tabindex="-1">Connecting</h3>
 <p>Having been deployed once, contracts may be used continously.
 The <code>Deployment</code>'s <code>connect</code> method loads stored data about
