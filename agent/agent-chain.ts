@@ -1,9 +1,8 @@
 import type {
   Class, Address, Message, ExecOpts, AgentFees, ICoin, IFee, CodeHash, Client, ClientClass,
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId
-} from '../index'
-
-import { Error, Console, into, prop, hideProperties as hide } from '../util'
+} from './agent'
+import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -639,3 +638,5 @@ export abstract class Bundle implements Agent {
 
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
+
+Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })

@@ -2,7 +2,7 @@
   "name":    "@fadroma/agent",
   "version": "1.0.0-rc.16",
   "type":    "module",
-  "main":    "index.ts",
+  "main":    "agent.ts",
   "files": [ "*.ts", "**/*.ts" ],
   "description": "Isomorphic base layer for implementing dAPI clients. See @fadroma/scrt for Secret Network support.",
   "scripts": {

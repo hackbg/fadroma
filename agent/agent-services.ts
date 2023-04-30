@@ -1,60 +1,122 @@
 import type {
-  Address, TxHash, ChainId, Agent, ClientClass, Deployment, Buildable, Built,
-  Hashed, CodeHash, CodeId
-} from '../index'
-import {
-  Error, Console, bold, pluralize, hideProperties
-} from '../util'
-
-import { assertAgent } from './Chain'
-import { Client, fetchCodeHash, getSourceSpecifier } from './Client'
+  Address, TxHash, ChainId, Agent, ClientClass, Hashed, CodeId, Deployment, Class, CodeHash
+} from './agent'
+import { Error, Console, pluralize, bold, hideProperties } from './agent-base'
+import { Client, fetchCodeHash, getSourceSpecifier } from './agent-client'
+import { assertAgent } from './agent-chain'
 
 import { sha256, base16 } from '@hackbg/4mat'
 import { override } from '@hackbg/over'
 
+/** Parameters involved in building a contract. */
+export interface Buildable {
+  /** Name of crate. */
+  crate:       string
+  /** Crate features that need to be enabled. */
+  features?:   string[]
+  /** Path to workspace to which the crate belongs. */
+  workspace?:  string
+  /** Path or URL to source repository for crate/workspace. */
+  repository?: string|URL
+  /** Commit in source repository which is built. */
+  revision?:   string
+  /** Whether this build contains uncommitted code. */
+  dirty?:      boolean
+  /** Builder class to use for build. */
+  builder?:    Builder
+}
+
+/** Result of building a contract. */
+export interface Built extends Partial<Buildable> {
+  /** Path or URL to binary. */
+  artifact:   string|URL
+  /** SHA256 checksum of binary. */
+  codeHash?:  CodeHash
+  /** Builder class that produced binary. */
+  builder?:   Builder
+  /** ID of builder that produced binary. */
+  builderId?: string
+}
+
+/** The default Git ref when not specified. */
+export const HEAD = 'HEAD'
+
+/** Builders can be specified as ids, class names, or objects. */
+/** A constructor for a Builder subclass. */
+export type BuilderClass<B extends Builder> = Class<Builder, any>
+
+/** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
+export abstract class Builder {
+  log = new Console(this.constructor.name)
+
+  /** Populated by @fadroma/ops */
+  static variants: Record<string, BuilderClass<Builder>> = {}
+  /** Unique identifier of this builder implementation. */
+  abstract id: string
+  /** Up to the implementation.
+    * `@fadroma/ops` implements dockerized and non-dockerized
+    * variants on top of the `build.impl.mjs` script. */
+  async build (source: Buildable, ...args: any[]): Promise<Built> {
+    this.log.warn('Builder#build: stub')
+    return { artifact: 'unimplemented' }
+  }
+  /** Default implementation of buildMany is parallel.
+    * Builder implementations override this, though. */
+  buildMany (sources: Buildable[], ...args: unknown[]): Promise<Built[]> {
+    return Promise.all(sources.map(source=>this.build(source, ...args)))
+  }
+}
+
+/** Throw appropriate error if not buildable. */
+export function assertBuilder ({ builder }: { builder?: Builder }): Builder {
+  //if (!this.crate) throw new Error.NoCrate()
+  if (!builder) throw new Error.NoBuilder()
+  //if (typeof builder === 'string') throw new Error.ProvideBuilder(builder)
+  return builder
+}
+
 /** Parameters involved in uploading a contract */
 export interface Uploadable extends Partial<Built> {
+  /** Path or URL to binary. */
   artifact:  string|URL
-  chainId:   ChainId,
+  /** SHA256 checksum of binary. */
   codeHash?: CodeHash
+  /** Chain to upload to. */
+  chainId:   ChainId,
 }
 
 /** Result of uploading a contract */
 export interface Uploaded extends Partial<Uploadable> {
+  /** Chain to which the contract was uploaded. */
   chainId:   ChainId
+  /** Code ID assigned by the chain. */
   codeId:    CodeId
+  /** SHA256 checksum of binary, confirmed by the chain. */
   codeHash:  CodeHash
+  /** Uploader class used for the upload. */
   uploader?: Uploader
+  /** Address of uploader account. */
   uploadBy?: Address
+  /** ID of upload transaction. */
   uploadTx?: TxHash
 }
 
-/** A constructor for an Uploader subclass. */
-export interface UploaderClass<U extends Uploader> {
-  new (agent?: Agent|null): U
-}
+/** A constructor for a subclass of Uploader. */
+export interface UploaderClass<U extends Uploader> { new (agent?: Agent|null): U }
 
 /** Uploader: uploads a `Contract`'s `artifact` to a specific `Chain`,
   * binding the `Contract` to a particular `chainId` and `codeId`. */
 export abstract class Uploader {
-
   /** Global registry of Uploader implementations.
     * Populated by @fadroma/ops */
   static variants: Record<string, UploaderClass<Uploader>> = {}
+
+  /** Unique identifier of this uploader implementation. */
+  abstract id: string
  
   constructor (
     public agent?: Agent|null
   ) {}
-
-  /** Unique identifier of this uploader implementation. */
-  abstract id: string
-
-  /** Upload a contract.
-    * @returns the contract with populated codeId and codeHash */
-  abstract upload (source: Uploadable): Promise<Uploaded>
-
-  /** Upload multiple contracts. */
-  abstract uploadMany (sources: Uploadable[]): Promise<Uploaded[]>
 
   /** Chain to which this uploader uploads contracts. */
   get chain () { return this.agent?.chain }
@@ -73,7 +135,6 @@ export abstract class Uploader {
       )
     }
   }
-
   /** Panic if the code hash returned by the upload
     * doesn't match the one specified in the Contract. */
   protected checkLocalCodeHash (input: Uploadable & { codeHash: CodeHash }, output: Uploaded) {
@@ -85,13 +146,15 @@ export abstract class Uploader {
       `.trim().split('\n').map(x=>x.trim()).join(' '))
     }
   }
+  /** Upload a contract.
+    * @returns the contract with populated codeId and codeHash */
+  abstract upload (source: Uploadable): Promise<Uploaded>
+  /** Upload multiple contracts. */
+  abstract uploadMany (sources: Uploadable[]): Promise<Uploaded[]>
 
 }
 
 export class FetchUploader extends Uploader {
-
-  get id () { return 'Fetch' }
-
   log = new Console('@fadroma/agent: FetchUploader' )
 
   constructor (
@@ -102,6 +165,8 @@ export class FetchUploader extends Uploader {
     this.log.warn('FetchUploader caching not implemented: reuploading')
     hideProperties(this, 'log')
   }
+
+  get id () { return 'Fetch' }
 
   protected async fetch (path: string|URL): Promise<Uint8Array> {
     const file = await fetch(new URL(path, 'file:'))

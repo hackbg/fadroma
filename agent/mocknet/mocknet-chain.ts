@@ -1,21 +1,19 @@
 import {
   Chain, ChainMode, Agent, Bundle, Contract, assertChain, into
-} from '../core/index'
+} from '../agent'
 import type {
   AgentClass, CodeHash, Uint128,
   Address, AgentOpts, AnyContract, BundleClass, Client, ExecOpts, Message, Uploaded,
-} from '../core/index'
+} from '../agent'
 
-import Error from './MocknetError'
-import Console from './MocknetConsole'
-import { MOCKNET_ADDRESS_PREFIX } from './MocknetBackend'
-import type MocknetBackend from './MocknetBackend'
+import { Error, Console } from './mocknet-base'
+import { MOCKNET_ADDRESS_PREFIX, MocknetBackend_CW0, MocknetBackend_CW1 } from './mocknet-impl'
+import type { MocknetBackend } from './mocknet-impl'
 
 import { randomBech32 } from '@hackbg/4mat'
 
 /** Chain instance containing a local MocknetBackend. */
 export abstract class Mocknet extends Chain {
-
   Agent: AgentClass<MocknetAgent> = Mocknet.Agent
 
   _height = 0
@@ -63,6 +61,14 @@ export abstract class Mocknet extends Chain {
   async getBalance (address: Address) {
     return this.balances[address] || '0'
   }
+}
+
+class Mocknet_CW0 extends Mocknet {
+  backend = new MocknetBackend_CW0(this.id)
+}
+
+class Mocknet_CW1 extends Mocknet {
+  backend = new MocknetBackend_CW1(this.id)
 }
 
 class MocknetAgent extends Agent {
@@ -160,6 +166,8 @@ Object.assign(Mocknet, { Agent: Object.assign(MocknetAgent, { Bundle: MocknetBun
 
 export {
   Mocknet       as Chain,
+  Mocknet_CW0   as CW0,
+  Mocknet_CW1   as CW1,
   MocknetAgent  as Agent,
   MocknetBundle as Bundle
 }

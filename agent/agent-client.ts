@@ -1,10 +1,9 @@
 import type {
   Agent, Class, Chain, Buildable, Built, Uploaded, Instantiated, AnyContract, Name
-} from '../index'
-import { Error, Console, validated, hideProperties } from '../util'
-
-import { assertAgent } from './Chain'
-import { Contract } from './Deployment'
+} from './agent'
+import { Error, Console, validated, hideProperties } from './agent-base'
+import { assertAgent } from './agent-chain'
+import { Contract } from './agent-deployment'
 
 /** A constructor for a Client subclass. */
 export interface ClientClass<C extends Client> extends Class<C, [Partial<C>, ...any]> {}
@@ -346,3 +345,4 @@ export interface ContractLink {
   readonly address:   Address
   readonly code_hash: CodeHash
 }
+

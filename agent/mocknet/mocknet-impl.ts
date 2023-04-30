@@ -1,17 +1,14 @@
 import type {
   Address, CodeHash, ChainId, CodeId, Message, Client, Label, AnyContract
-} from '../core/index'
-import { into, Contract, bold } from '../core/index'
-
-import Error from './MocknetError'
-import Console from './MocknetConsole'
-
+} from '../agent'
+import { into, Contract, bold } from '../agent'
+import { Error, Console } from './mocknet-base'
 import { randomBech32, sha256, base16, bech32 } from '@hackbg/4mat'
 import { brailleDump } from '@hackbg/dump'
 
 export type CW = '0.x' | '1.x'
 
-export default abstract class MocknetBackend {
+export abstract class MocknetBackend {
 
   log = new Console('Mocknet')
 

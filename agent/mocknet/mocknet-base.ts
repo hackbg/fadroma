@@ -1,6 +1,10 @@
-import { Error } from '../util'
+import { Error, Console } from '../agent-base'
 
-export default class MocknetError extends Error {
+class MocknetConsole extends Console {
+  label = 'Mocknet'
+}
+
+class MocknetError extends Error {
   static ContextNoAddress = this.define('ContextNoAddress',
     () => "MocknetBackend#context: Can't create contract environment without address")
   static NoInstance = this.define('NoInstance',
@@ -11,4 +15,9 @@ export default class MocknetError extends Error {
     () => `MocknetAgent#chain is not set`)
   static NoBackend = this.define('NoInstance',
     () => `Mocknet#backend is not set`)
+}
+
+export {
+  MocknetConsole as Console,
+  MocknetError   as Error
 }

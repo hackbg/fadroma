@@ -2,16 +2,14 @@ import type {
   Chain, Agent, ClientClass, Builder, Uploader, Buildable, Uploadable, Class, Many, Name, Named,
   IntoRecord, CodeId, CodeHash, Hashed, Address, TxHash, ChainId, Message, Into, Built, Uploaded,
   Label, ContractLink
-} from '../index'
+} from './agent'
 import {
   Error, Console, mapAsync, hideProperties, defineDefault, into, intoRecord, call,
   timestamp, override, map,
-} from '../util'
-
-import { assertAgent } from './Chain'
-import { FetchUploader } from './Upload'
-import { Client, assertAddress, codeHashOf, writeLabel } from './Client'
-import { assertBuilder } from './Build'
+} from './agent-base'
+import { assertAgent } from './agent-chain'
+import { FetchUploader, assertBuilder } from './agent-services'
+import { Client, assertAddress, codeHashOf, writeLabel } from './agent-client'
 
 export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
 
@@ -736,3 +734,4 @@ export function toInstanceReceipt (
     suffix:  c.suffix
   }
 }
+
