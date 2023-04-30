@@ -228,6 +228,85 @@ export default abstract class MocknetBackend {
   }
 }
 
+export abstract class MocknetContract<I extends ContractImports, E extends ContractExports> {
+  log = new Console('Mocknet')
+  /** The instance of the contract code. */
+  instance?: WebAssembly.Instance<E>
+  /** The contract's basic key-value storage. */
+  storage = new Map<string, Buffer>()
+
+  constructor (
+    readonly backend:   MocknetBackend|null = null,
+    readonly address:   Address = randomBech32(MOCKNET_ADDRESS_PREFIX),
+    readonly codeHash?: CodeHash,
+    readonly codeId?:   CodeId,
+  ) {}
+
+  async load (code: unknown, codeId?: CodeId) {
+    return Object.assign(this, {
+      codeId:   this.codeId,
+      instance: (await WebAssembly.instantiate(code, this.makeImports())).instance,
+      codeHash: codeHashForBlob(code as Buffer)
+    })
+  }
+  pass (data: any): Ptr {
+    return pass(this.instance!.exports, data)
+  }
+  readUtf8 (ptr: Ptr) {
+    return JSON.parse(readUtf8(this.instance!.exports, ptr))
+  }
+  init (...args: unknown[]) {
+    const msg = args[args.length - 1]
+    try {
+      const init = this.initMethod
+      if (!init) {
+        this.log.error('WASM exports of contract:', ...Object.keys(this.instance?.exports??{}))
+        throw new Error('Missing init entrypoint in contract.')
+      }
+      return this.readUtf8(this.initMethod(...this.initPtrs(...args)))
+    } catch (e: any) {
+      this.log.error(bold(this.address), `crashed on init:`, e.message)
+      this.log.error(bold('Args:'), ...args)
+      throw e
+    }
+  }
+  execute (...args: unknown[]) {
+    const msg = args[args.length - 1]
+    this.log.log(bold(this.address), `handle: ${JSON.stringify(msg)}`)
+    try {
+      return this.readUtf8(this.execMethod(...this.execPtrs(...args)))
+    } catch (e: any) {
+      this.log.error(bold(this.address), `crashed on handle:`, e.message)
+      this.log.error(bold('Args:'), ...args)
+      throw e
+    }
+  }
+  query (...args: unknown[]) {
+    const msg = args[args.length - 1]
+    this.log.log(bold(this.address), `query: ${JSON.stringify(msg)}`)
+    try {
+      return this.readUtf8(this.queryMethod(...this.queryPtrs(...args)))
+    } catch (e: any) {
+      this.log.error(bold(this.address), `crashed on query:`, e.message)
+      throw e
+    }
+  }
+
+  abstract get initMethod (): Function
+
+  abstract get execMethod (): Function
+
+  abstract get queryMethod (): Function
+
+  abstract makeImports (): I
+
+  abstract initPtrs (...args: unknown[]): unknown[]
+
+  abstract execPtrs (...args: unknown[]): unknown[]
+
+  abstract queryPtrs (...args: unknown[]): unknown[]
+
+}
 export interface ContractImports {
   memory: WebAssembly.Memory
   env: {
@@ -237,7 +316,6 @@ export interface ContractImports {
     query_chain (req: Ptr): Ptr
   }
 }
-
 export interface ContractExports extends IOExports {
   query (msg: Ptr): Ptr
 }
@@ -301,6 +379,43 @@ export class MocknetBackend_CW0 extends MocknetBackend {
     }
     return { memory, env: { ...env, ...cw0Methods } }
   }
+}
+/** Host for a WASM contract in a CW0 environment. */
+export class MocknetContract_CW0 extends MocknetContract<ContractImports_CW0, ContractExports_CW0> {
+  get initMethod () {
+    return this.instance!.exports.init
+  }
+  get execMethod () {
+    return this.instance!.exports.handle
+  }
+  get queryMethod () {
+    return this.instance!.exports.query
+  }
+  initPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
+    return [this.pass(env), this.pass(msg)]
+  }
+  execPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
+    return [this.pass(env), this.pass(msg)]
+  }
+  queryPtrs (msg: Message): [Ptr] {
+    return [this.pass(msg)]
+  }
+  makeImports (): ContractImports_CW0 {
+    return MocknetBackend_CW0.makeImports(this)
+  }
+}
+Object.assign(MocknetBackend_CW0, { Contract: MocknetContract_CW0 })
+/** The API that a CW0.10 contract expects. */
+export interface ContractImports_CW0 extends ContractImports {
+  env: ContractImports['env'] & {
+    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
+    humanize_address     (src: Ptr, dst: Ptr): ErrCode
+  }
+}
+/** A CW0.10 contract's raw API methods. */
+export interface ContractExports_CW0 extends ContractExports {
+  init   (env: Ptr, msg: Ptr): Ptr
+  handle (env: Ptr, msg: Ptr): Ptr
 }
 
 export class MocknetBackend_CW1 extends MocknetBackend {
@@ -397,147 +512,6 @@ export class MocknetBackend_CW1 extends MocknetBackend {
     return { memory, env: { ...env, ...cw1Methods } }
   }
 }
-
-export abstract class MocknetContract<I extends ContractImports, E extends ContractExports> {
-  log = new Console('Mocknet')
-  /** The instance of the contract code. */
-  instance?: WebAssembly.Instance<E>
-  /** The contract's basic key-value storage. */
-  storage = new Map<string, Buffer>()
-
-  constructor (
-    readonly backend:   MocknetBackend|null = null,
-    readonly address:   Address = randomBech32(MOCKNET_ADDRESS_PREFIX),
-    readonly codeHash?: CodeHash,
-    readonly codeId?:   CodeId,
-  ) {}
-
-  async load (code: unknown, codeId?: CodeId) {
-    return Object.assign(this, {
-      codeId:   this.codeId,
-      instance: (await WebAssembly.instantiate(code, this.makeImports())).instance,
-      codeHash: codeHashForBlob(code as Buffer)
-    })
-  }
-  pass (data: any): Ptr {
-    return pass(this.instance!.exports, data)
-  }
-  readUtf8 (ptr: Ptr) {
-    return JSON.parse(readUtf8(this.instance!.exports, ptr))
-  }
-  init (...args: unknown[]) {
-    const msg = args[args.length - 1]
-    try {
-      const init = this.initMethod
-      if (!init) {
-        this.log.error('WASM exports of contract:', ...Object.keys(this.instance?.exports??{}))
-        throw new Error('Missing init entrypoint in contract.')
-      }
-      return this.readUtf8(this.initMethod(...this.initPtrs(...args)))
-    } catch (e: any) {
-      this.log.error(bold(this.address), `crashed on init:`, e.message)
-      this.log.error(bold('Args:'), ...args)
-      throw e
-    }
-  }
-  execute (...args: unknown[]) {
-    const msg = args[args.length - 1]
-    this.log.log(bold(this.address), `handle: ${JSON.stringify(msg)}`)
-    try {
-      return this.readUtf8(this.execMethod(...this.execPtrs(...args)))
-    } catch (e: any) {
-      this.log.error(bold(this.address), `crashed on handle:`, e.message)
-      this.log.error(bold('Args:'), ...args)
-      throw e
-    }
-  }
-  query (...args: unknown[]) {
-    const msg = args[args.length - 1]
-    this.log.log(bold(this.address), `query: ${JSON.stringify(msg)}`)
-    try {
-      return this.readUtf8(this.queryMethod(...this.queryPtrs(...args)))
-    } catch (e: any) {
-      this.log.error(bold(this.address), `crashed on query:`, e.message)
-      throw e
-    }
-  }
-
-  abstract get initMethod (): Function
-
-  abstract get execMethod (): Function
-
-  abstract get queryMethod (): Function
-
-  abstract makeImports (): I
-
-  abstract initPtrs (...args: unknown[]): unknown[]
-
-  abstract execPtrs (...args: unknown[]): unknown[]
-
-  abstract queryPtrs (...args: unknown[]): unknown[]
-
-}
-
-/** The API that a CW0.10 contract expects. */
-export interface ContractImports_CW0 extends ContractImports {
-  env: ContractImports['env'] & {
-    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
-    humanize_address     (src: Ptr, dst: Ptr): ErrCode
-  }
-}
-
-/** A CW0.10 contract's raw API methods. */
-export interface ContractExports_CW0 extends ContractExports {
-  init   (env: Ptr, msg: Ptr): Ptr
-  handle (env: Ptr, msg: Ptr): Ptr
-}
-/** Host for a WASM contract in a CW0 environment. */
-export class MocknetContract_CW0 extends MocknetContract<ContractImports_CW0, ContractExports_CW0> {
-  get initMethod () {
-    return this.instance!.exports.init
-  }
-  get execMethod () {
-    return this.instance!.exports.handle
-  }
-  get queryMethod () {
-    return this.instance!.exports.query
-  }
-  initPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-  execPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-  queryPtrs (msg: Message): [Ptr] {
-    return [this.pass(msg)]
-  }
-  makeImports (): ContractImports_CW0 {
-    return MocknetBackend_CW0.makeImports(this)
-  }
-}
-Object.assign(MocknetBackend_CW0, { Contract: MocknetContract_CW0 })
-
-/** The API that a CW1.0 contract expects. */
-export interface ContractImports_CW1 extends ContractImports {
-  env: ContractImports['env'] & {
-    addr_canonicalize        (src:  Ptr, dst: Ptr): ErrCode
-    addr_humanize            (src:  Ptr, dst: Ptr): ErrCode
-    addr_validate            (addr: Ptr):           ErrCode
-    debug                    (key:  Ptr):           Ptr
-    ed25519_batch_verify     (x:    Ptr):           Ptr
-    ed25519_sign             (x:    Ptr, y:   Ptr): Ptr
-    ed25519_verify           (x:    Ptr, y:   Ptr): Ptr
-    secp256k1_recover_pubkey (x:    Ptr):           Ptr
-    secp256k1_sign           (x:    Ptr, y:   Ptr): Ptr
-    secp256k1_verify         (x:    Ptr, y:   Ptr): Ptr
-  }
-}
-/** A CW1.0 contract's raw API methods. */
-export interface ContractExports_CW1 extends ContractExports {
-  instantiate      (env: Ptr, info: Ptr, msg: Ptr): Ptr
-  execute          (env: Ptr, info: Ptr, msg: Ptr): Ptr
-  requires_staking ():                              Ptr
-}
 /** Host for a WASM contract in a CW1 environment. */
 export class MocknetContract_CW1 extends MocknetContract<ContractImports_CW1, ContractExports_CW1> {
   get initMethod () {
@@ -564,6 +538,27 @@ export class MocknetContract_CW1 extends MocknetContract<ContractImports_CW1, Co
   }
 }
 Object.assign(MocknetBackend_CW1, { Contract: MocknetContract_CW1 })
+/** The API that a CW1.0 contract expects. */
+export interface ContractImports_CW1 extends ContractImports {
+  env: ContractImports['env'] & {
+    addr_canonicalize        (src:  Ptr, dst: Ptr): ErrCode
+    addr_humanize            (src:  Ptr, dst: Ptr): ErrCode
+    addr_validate            (addr: Ptr):           ErrCode
+    debug                    (key:  Ptr):           Ptr
+    ed25519_batch_verify     (x:    Ptr):           Ptr
+    ed25519_sign             (x:    Ptr, y:   Ptr): Ptr
+    ed25519_verify           (x:    Ptr, y:   Ptr): Ptr
+    secp256k1_recover_pubkey (x:    Ptr):           Ptr
+    secp256k1_sign           (x:    Ptr, y:   Ptr): Ptr
+    secp256k1_verify         (x:    Ptr, y:   Ptr): Ptr
+  }
+}
+/** A CW1.0 contract's raw API methods. */
+export interface ContractExports_CW1 extends ContractExports {
+  instantiate      (env: Ptr, info: Ptr, msg: Ptr): Ptr
+  execute          (env: Ptr, info: Ptr, msg: Ptr): Ptr
+  requires_staking ():                              Ptr
+}
 
 declare namespace WebAssembly {
   class Memory {
@@ -603,11 +598,11 @@ declare class TextDecoder { decode (data: any): string }
 const encoder = new TextEncoder()
 declare class TextEncoder { encode (data: string): any }
 
-export function parseResult (
+export const parseResult = (
   response: { Ok: any, Err: any },
   action:   'instantiate'|'execute'|'query'|'query_chain',
   address?: Address
-) {
+): typeof Ok|typeof Err => {
   const { Ok, Err } = response
   if (Err !== undefined) {
     const errData = JSON.stringify(Err)
@@ -620,7 +615,7 @@ export function parseResult (
   throw new Error(`Mocknet ${action}: contract ${address} returned non-Result type`)
 }
 /** Read region properties from pointer to region. */
-export function region (buffer: any, ptr: Ptr): Region {
+export const region = (buffer: any, ptr: Ptr): Region => {
   const u32a = new Uint32Array(buffer)
   const addr = u32a[ptr/4+0] // Region.offset
   const size = u32a[ptr/4+1] // Region.capacity
@@ -628,7 +623,7 @@ export function region (buffer: any, ptr: Ptr): Region {
   return [addr, size, used, u32a]
 }
 /** Read contents of region referenced by region pointer into a string. */
-export function readUtf8 (exports: IOExports, ptr: Ptr): string {
+export const readUtf8 = (exports: IOExports, ptr: Ptr): string => {
   const { buffer } = exports.memory
   const [addr, size, used] = region(buffer, ptr)
   const u8a  = new Uint8Array(buffer)
@@ -638,7 +633,7 @@ export function readUtf8 (exports: IOExports, ptr: Ptr): string {
   return data
 }
 /** Read contents of region referenced by region pointer into a string. */
-export function readBuffer (exports: IOExports, ptr: Ptr): Buffer {
+export const readBuffer = (exports: IOExports, ptr: Ptr): Buffer => {
   const { buffer } = exports.memory
   const [addr, size, used] = region(buffer, ptr)
   const u8a  = new Uint8Array(buffer)
@@ -649,14 +644,14 @@ export function readBuffer (exports: IOExports, ptr: Ptr): Buffer {
   return output
 }
 /** Serialize a datum into a JSON string and pass it into the contract. */
-export function pass <T> (exports: IOExports, data: T): Ptr {
+export const pass = <T> (exports: IOExports, data: T): Ptr => {
   if (typeof data === 'undefined') throw new Error('Tried to pass undefined value into contract')
   const buffer = utf8toBuffer(JSON.stringify(data))
   return passBuffer(exports, buffer)
 }
 /** Allocate region, write data to it, and return the pointer.
   * See: https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
-export function passBuffer (exports: IOExports, buf: Buffer): Ptr {
+export const passBuffer = (exports: IOExports, buf: Buffer): Ptr => {
   const ptr = exports.allocate(buf.length)
   const { buffer } = exports.memory // must be after allocation - see [1]
   const [ addr, _, __, u32a ] = region(buffer, ptr)
@@ -665,15 +660,15 @@ export function passBuffer (exports: IOExports, buf: Buffer): Ptr {
   return ptr
 }
 /** Write data to memory address. */
-export function write (buffer: any, addr: number, data: ArrayLike<number>): void {
+export const write = (buffer: any, addr: number, data: ArrayLike<number>): void =>
   new Uint8Array(buffer).set(data, addr)
-}
 /** Write UTF8-encoded data to memory address. */
-export function writeUtf8 (buffer: any, addr: number, data: string): void {
+export const writeUtf8 = (buffer: any, addr: number, data: string): void =>
   new Uint8Array(buffer).set(encoder.encode(data), addr)
-}
 /** Write data to address of region referenced by pointer. */
-export function writeToRegion (exports: IOExports, ptr: Ptr, data: ArrayLike<number>): void {
+export const writeToRegion = (
+  { memory: { buffer } }: IOExports, ptr: Ptr, data: ArrayLike<number>
+): void => {
   const [addr, size, _, u32a] = region(exports.memory.buffer, ptr)
   if (data.length > size) { // if data length > Region.capacity
     throw new Error(`Mocknet: tried to write ${data.length} bytes to region of ${size} bytes`)
@@ -683,31 +678,18 @@ export function writeToRegion (exports: IOExports, ptr: Ptr, data: ArrayLike<num
   write(exports.memory.buffer, addr, data)
 }
 /** Write UTF8-encoded data to address of region referenced by pointer. */
-export function writeToRegionUtf8 (exports: IOExports, ptr: Ptr, data: string): void {
+export const writeToRegionUtf8 = (exports: IOExports, ptr: Ptr, data: string): void =>
   writeToRegion(exports, ptr, encoder.encode(data))
-}
 /** Deallocate memory. Fails silently if no deallocate callback is exposed by the blob. */
-export function drop (exports: IOExports, ptr: Ptr): void {
-  if (exports.deallocate) {
-    exports.deallocate(ptr)
-  } else {
-    //log.warn("Can't deallocate", ptr)
-  }
-}
-/** Convert base64 to string */
-export function b64toUtf8 (str: string) {
-  return Buffer.from(str, 'base64').toString('utf8')
-}
-/** Convert string to base64 */
-export function utf8toB64 (str: string) {
-  return Buffer.from(str, 'utf8').toString('base64')
-}
-export function utf8toBuffer (str: string) {
-  return Buffer.from(str, 'utf8')
-}
-export function bufferToUtf8 (buf: Buffer) {
-  return buf.toString('utf8')
-}
+export const drop = ({ deallocate }: IOExports, ptr: Ptr): void => deallocate && deallocate(ptr)
+/** Convert base64 string to utf8 string */
+export const b64toUtf8 = (str: string) => Buffer.from(str, 'base64').toString('utf8')
+/** Convert utf8 string to base64 string */
+export const utf8toB64 = (str: string) => Buffer.from(str, 'utf8').toString('base64')
+/** Convert utf8 string to buffer. */
+export const utf8toBuffer = (str: string) => Buffer.from(str, 'utf8')
+/** Convert buffer to utf8 string. */
+export const bufferToUtf8 = (buf: Buffer) => buf.toString('utf8')
 
 //type CW<V extends '0'|'1'> = {
   //'0':{},
