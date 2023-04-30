@@ -355,32 +355,9 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#deploy-cli">Deploy CLI</a><ul><li><a href="#adding-commands">Adding commands</a></li></ul></li><li><a href="#deploy-api-basics">Deploy API basics</a><ul><li><a href="#defining-a-deployment">Defining a Deployment</a><ul><li><a href="#contract-labels">Contract labels</a></li><li><a href="#lazy-initmsg">Lazy initMsg</a></li></ul></li><li><a href="#deploying">Deploying</a><ul><li><a href="#deploying-individual-contracts">Deploying individual contracts</a></li><li><a href="#custom-deploy-commands">Custom deploy commands</a></li><li><a href="#deploying-multiple-instances-of-contracts">Deploying multiple instances of contracts</a></li></ul></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#expecting-contracts-to-be-present">Expecting contracts to be present</a></li></ul></li></ul></li></ul></div></p>
-<h1 id="deploying-contracts" tabindex="-1">Deploying contracts</h1>
-<h2 id="deploy-cli" tabindex="-1">Deploy CLI</h2>
-<pre><code class="hljs language-sh">$ fadroma deploy
-$ fadroma deploy path-to-script.ts
-$ fadroma redeploy
-</code></pre>
-<h3 id="adding-commands" tabindex="-1">Adding commands</h3>
-<p>The <strong>Commands#command(name, info, ...steps)</strong> method declares commands.</p>
-<ul>
-<li><strong>name</strong> is the string used to invoke the command from the shell</li>
-<li><strong>info</strong> is a short help description</li>
-<li><strong>...steps</strong> is one or more synchronous or asynchronous functions that constitute the command.</li>
-</ul>
-<p><strong>Steps</strong> are run sequentially. The first argument to each step is a <code>context: Deployer</code>.
-If a step returns an <code>Object</code>, the object's entries are added to the <code>context</code> for subsequent
-steps.</p>
-<ul>
-<li>The <code>commands.command(...)</code> method returns <code>commands</code>, so it supports chaining.</li>
-<li>Don't forget to <code>export default commands</code>, otherwise Fadroma will not be able to find the commands.</li>
-<li>Fadroma uses <a href="https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts"><code>@hackbg/cmds</code></a>
-to parse commands. This is a simple and loose command parser which does not support flags.
-Arguments to a command are available in <code>context.args</code> so you can define your own flags.</li>
-</ul>
-<h2 id="deploy-api-basics" tabindex="-1">Deploy API basics</h2>
-<h3 id="defining-a-deployment" tabindex="-1">Defining a <code>Deployment</code></h3>
+<p><div class="table-of-contents"><ul><li><a href="#defining-a-deployment">Defining a Deployment</a><ul><li><ul><li><a href="#contract-labels">Contract labels</a></li><li><a href="#lazy-initmsg">Lazy initMsg</a></li></ul></li><li><a href="#deploying">Deploying</a><ul><li><a href="#deploying-individual-contracts">Deploying individual contracts</a></li><li><a href="#custom-deploy-commands">Custom deploy commands</a></li><li><a href="#deploying-multiple-instances-of-contracts">Deploying multiple instances of contracts</a></li></ul></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#expecting-contracts-to-be-present">Expecting contracts to be present</a></li></ul></li></ul></li><li><a href="#deployment%3A-defining-contract-relations">Deployment: defining contract relations</a><ul><li><a href="#storing-deployment-state">Storing deployment state</a></li><li><a href="#exporting-deployments">Exporting deployments</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#versioned-deployments">Versioned deployments</a></li></ul></li><li><a href="#template%3A-build-and-upload">Template: build and upload</a></li><li><a href="#contract%3A-full-contract-lifecycle">Contract: full contract lifecycle</a><ul><li><a href="#contract-label-prefixes-and-suffixes">Contract label prefixes and suffixes</a></li><li><a href="#contract-lifecycle">Contract lifecycle</a></li></ul></li><li><a href="#builder">Builder</a></li><li><a href="#uploader">Uploader</a></li></ul></div></p>
+<h1 id="fadroma-guide%3A-deploy-api" tabindex="-1">Fadroma Guide: Deploy API</h1>
+<h2 id="defining-a-deployment" tabindex="-1">Defining a <code>Deployment</code></h2>
 <p>The <code>Deployment</code> class represents a set of interrelated contracts.
 To define your deployment, extend the <code>Deployment</code> class, and specify
 what contracts to deploy:</p>
@@ -527,6 +504,99 @@ this will throw an error.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Deploy.test.ts&#x27;</span>
 </code></pre>
+<h2 id="deployment%3A-defining-contract-relations" tabindex="-1">Deployment: defining contract relations</h2>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-comment">/*class MyDeployment extends Deployment {
+
+  myContract1: PromiseLike&lt;Contract&lt;MyClient&gt;&gt; = this.contract({
+    name: &#x27;my-contract-1&#x27;,
+    client: MyClient,
+    crate: &#x27;test&#x27;
+  })
+
+  myContract2: PromiseLike&lt;Contract&lt;MyClient&gt;&gt; = this.contract({
+    name: &#x27;my-contract-2&#x27;,
+    client: MyClient
+    crate: &#x27;test&#x27;
+  })
+
+  myTemplate: PromiseLike&lt;Template&lt;Contract&lt;MyClient&gt;&gt;&gt; = this.template({
+    client: MyClient
+    crate: &#x27;test&#x27;
+  })
+
+  myInstances1 = this.myTemplate.instances({
+    myContract3: {}
+    myContract4: {}
+  })
+
+  myInstances2 = this.myTemplate.instances([
+    [&#x27;my-contract-5&#x27;, {}],
+    [&#x27;my-contract-6&#x27;, {}],
+  ])
+
+  async deploy () {
+    const [
+      myContract1,
+      myContract2,
+      { myContract3, myContract4 },
+      [ myContract5, myContract6 ]
+    ] = await Promise.all([
+      this.myContract1,
+      this.myContract2,
+      this.myInstances1,
+      this.myInstances2
+    ])
+    return {
+      myContract1,
+      myContract2,
+      myContract3,
+      myContract4,
+      myContract5,
+      myContract6,
+    }
+  }
+
+}
+
+const myDeployment1 = new MyDeployment({ name: &#x27;my-deployment-1&#x27; })
+await myDeployment1.deploy()
+
+const myDeployment2 = new MyDeployment({ name: &#x27;my-deployment-2&#x27; })
+await myDeployment2.deploy()*/</span>
+</code></pre>
+<h3 id="storing-deployment-state" tabindex="-1">Storing deployment state</h3>
+<h3 id="exporting-deployments" tabindex="-1">Exporting deployments</h3>
+<h3 id="connecting-to-an-exported-deployment" tabindex="-1">Connecting to an exported deployment</h3>
+<h3 id="versioned-deployments" tabindex="-1">Versioned deployments</h3>
+<h2 id="template%3A-build-and-upload" tabindex="-1">Template: build and upload</h2>
+<h2 id="contract%3A-full-contract-lifecycle" tabindex="-1">Contract: full contract lifecycle</h2>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>({
+  <span class="hljs-attr">repository</span>: <span class="hljs-string">&#x27;REPO&#x27;</span>,
+  <span class="hljs-attr">revision</span>: <span class="hljs-string">&#x27;REF&#x27;</span>,
+  <span class="hljs-attr">workspace</span>: <span class="hljs-string">&#x27;WORKSPACE&#x27;</span>
+  <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;CRATE&#x27;</span>
+})
+</code></pre>
+<h3 id="contract-label-prefixes-and-suffixes" tabindex="-1">Contract label prefixes and suffixes</h3>
+<p>The label of a contract has to be unique per chain.
+Fadroma introduces prefixes and suffixes to be able to navigate that constraint.</p>
+<h3 id="contract-lifecycle" tabindex="-1">Contract lifecycle</h3>
+<h2 id="builder" tabindex="-1">Builder</h2>
+<p>Implemented by <code>@fadroma/build</code>.</p>
+<ul>
+<li><strong>BuildRaw</strong>: runs the build in the current environment</li>
+<li><strong>BuildContainer</strong>: runs the build in a container for enhanced reproducibility</li>
+</ul>
+<h2 id="uploader" tabindex="-1">Uploader</h2>
+<p>Implemented by <code>@fadroma/upload</code>.</p>
+<ul>
+<li><strong>FSUploader</strong>: Support for uploading from Node FS.</li>
+<li>TODO: <strong>FetchUploader</strong>: Support for uploading from any URL incl. file:///</li>
+</ul>
 
 </content>
 </body>

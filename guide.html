@@ -355,9 +355,9 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#design-considerations">Design considerations</a></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-a-fadroma-project-through-npx">Create a Fadroma project through NPX</a></li><li><a href="#add-more-contracts">Add more contracts</a></li></ul></li><li><a href="#writing-contracts">Writing contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#build-cli">Build CLI</a></li></ul></li><li><a href="#deploying-contracts">Deploying contracts</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#devnets">Devnets</a></li></ul></li><li><a href="#testing-contracts">Testing contracts</a><ul><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#scripting-fadroma">Scripting Fadroma</a><ul><li><a href="#typescript">TypeScript</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deployment-api">Deployment API</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmos-like-chains">Other Cosmos-like chains</a></li><li><a href="#evm-based-chains">EVM-based chains</a></li></ul></li></ul></li><li><a href="#nix-environment-support">Nix environment support</a><ul><li><a href="#standalone-nix-shell">Standalone Nix shell</a></li><li><a href="#create-a-fadroma-project-through-nix">Create a Fadroma project through Nix</a></li><li><a href="#project-specific-nix-shell">Project-specific Nix shell</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#design-considerations">Design considerations</a></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-a-fadroma-project-through-npx">Create a Fadroma project through NPX</a></li><li><a href="#add-more-contracts">Add more contracts</a></li></ul></li><li><a href="#writing-contracts">Writing contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#build-cli">Build CLI</a></li></ul></li><li><a href="#deploying-contracts">Deploying contracts</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#devnets">Devnets</a></li></ul></li><li><a href="#testing-contracts">Testing contracts</a><ul><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#scripting-fadroma">Scripting Fadroma</a><ul><li><a href="#adding-commands">Adding commands</a></li><li><a href="#typescript">TypeScript</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deployment-api">Deployment API</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmos-like-chains">Other Cosmos-like chains</a></li><li><a href="#evm-based-chains">EVM-based chains</a></li></ul></li></ul></li><li><a href="#nix-environment-support">Nix environment support</a><ul><li><a href="#standalone-nix-shell">Standalone Nix shell</a></li><li><a href="#create-a-fadroma-project-through-nix">Create a Fadroma project through Nix</a></li><li><a href="#project-specific-nix-shell">Project-specific Nix shell</a></li></ul></li></ul></div></p>
 <h1 id="getting-started" tabindex="-1">Getting started</h1>
-<p><strong>Fadroma</strong> is an application framework targeting the CosmWasm Compute module.
+<p><strong>Fadroma</strong> is an application framework for the CosmWasm Compute module.
 Fadroma includes <strong>Rust</strong> libraries for writing smart contracts and a
 <strong>TypeScript</strong> system for building, deploying, and interacting with them.</p>
 <h2 id="design-considerations" tabindex="-1">Design considerations</h2>
@@ -446,6 +446,23 @@ is a library for for integration testing of multiple contracts.</p>
 <p><a href="https://fadroma.tech/js/classes/_fadroma_ops.Mocknet.html"><strong>Fadroma Mocknet</strong></a> is
 a simulated environment for fast full-stack testing of your production builds.</p>
 <h2 id="scripting-fadroma" tabindex="-1">Scripting Fadroma</h2>
+<h3 id="adding-commands" tabindex="-1">Adding commands</h3>
+<p>The <strong>Commands#command(name, info, ...steps)</strong> method declares commands.</p>
+<ul>
+<li><strong>name</strong> is the string used to invoke the command from the shell</li>
+<li><strong>info</strong> is a short help description</li>
+<li><strong>...steps</strong> is one or more synchronous or asynchronous functions that constitute the command.</li>
+</ul>
+<p><strong>Steps</strong> are run sequentially. The first argument to each step is a <code>context: Deployer</code>.
+If a step returns an <code>Object</code>, the object's entries are added to the <code>context</code> for subsequent
+steps.</p>
+<ul>
+<li>The <code>commands.command(...)</code> method returns <code>commands</code>, so it supports chaining.</li>
+<li>Don't forget to <code>export default commands</code>, otherwise Fadroma will not be able to find the commands.</li>
+<li>Fadroma uses <a href="https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts"><code>@hackbg/cmds</code></a>
+to parse commands. This is a simple and loose command parser which does not support flags.
+Arguments to a command are available in <code>context.args</code> so you can define your own flags.</li>
+</ul>
 <p>For more complex operations, you can define custom commands, which you implement in TypeScript
 using the Fadroma TypeScript API. <strong>See <a href="./spec/Agent.spec.ts.md">@fadroma/agent</a></strong> to get
 started with scripting Fadroma.</p>

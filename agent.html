@@ -355,29 +355,9 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#in-this-package">In this package</a><ul><li><a href="#chain-api">Chain API</a></li><li><a href="#deploy-api">Deploy API</a></li><li><a href="#mocknet">Mocknet</a></li></ul></li><li><a href="#chain%3A-connecting">Chain: connecting</a><ul><li><a href="#chain-modes">Chain modes</a></li></ul></li><li><a href="#agent%3A-authenticating">Agent: authenticating</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#gas-fees">Gas fees</a></li><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li></ul></li><li><a href="#bundle%3A-batching-transactions">Bundle: batching transactions</a></li><li><a href="#client%3A-talking-to-contracts">Client: talking to contracts</a><ul><li><a href="#fetching-metadata">Fetching metadata</a></li><li><a href="#per-contract-fee-defaults">Per-contract fee defaults</a></li></ul></li><li><a href="#deployment%3A-defining-contract-relations">Deployment: defining contract relations</a><ul><li><a href="#template%3A-build-and-upload">Template: build and upload</a></li><li><a href="#contract%3A-full-contract-lifecycle">Contract: full contract lifecycle</a></li><li><a href="#contract-label-prefixes-and-suffixes">Contract label prefixes and suffixes</a></li><li><a href="#contract-lifecycle">Contract lifecycle</a></li><li><a href="#storing-deployment-state">Storing deployment state</a></li><li><a href="#exporting-deployments">Exporting deployments</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#versioned-deployments">Versioned deployments</a></li></ul></li><li><a href="#builder">Builder</a></li><li><a href="#uploader">Uploader</a></li><li><a href="#errors">Errors</a></li><li><a href="#events">Events</a></li><li><a href="#utilities">Utilities</a><ul><li><a href="#lazy-evaluation">Lazy evaluation</a></li><li><a href="#generic-collections">Generic collections</a></li><li><a href="#validation-against-expected-value">Validation against expected value</a></li><li><a href="#overrides-and-fallbacks">Overrides and fallbacks</a></li><li><a href="#tabular-alignment">Tabular alignment</a></li></ul></li></ul></div></p>
-<h1 id="fadroma-agent-api" tabindex="-1">Fadroma Agent API</h1>
-<p>The <code>@fadroma/agent</code> package defines the core operational model
-and type vocabulary of the Fadroma dApp framework.</p>
-<p>All other NPM packages in the Fadroma ecosystem
-build upon this one, and either:</p>
-<ul>
-<li>
-<p>Provide platform-specific implementations of these abstractions
-(such as an Agent that is specifically for the Secret Network,
-or a Builder that executes builds specifically in a Docker container), or</p>
-</li>
-<li>
-<p>Build atop the abstract object model to deliver new features with
-the appropriate degree of cross-platform support.</p>
-</li>
-</ul>
-<p>The <code>@fadroma/agent</code> package itself is written in a platform-independent way
-(basic <a href="https://en.wikipedia.org/wiki/Isomorphic_JavaScript">isomorphic JavaScript</a>).
-and should contain no Node-specifics or other engine-specific features.</p>
-<h2 id="in-this-package" tabindex="-1">In this package</h2>
-<h3 id="chain-api" tabindex="-1">Chain API</h3>
-<p>The <strong>Chain API</strong> is a simple imperative transaction-level API for
+<p><div class="table-of-contents"><ul><li><ul><li><a href="#deploy-api">Deploy API</a></li><li><a href="#mocknet">Mocknet</a></li></ul></li><li><a href="#chain%3A-connecting">Chain: connecting</a><ul><li><a href="#chain-modes">Chain modes</a></li></ul></li><li><a href="#agent%3A-authenticating">Agent: authenticating</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#gas-fees">Gas fees</a></li><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li></ul></li><li><a href="#bundle%3A-batching-transactions">Bundle: batching transactions</a></li><li><a href="#client%3A-talking-to-contracts">Client: talking to contracts</a><ul><li><a href="#fetching-metadata">Fetching metadata</a></li><li><a href="#per-contract-fee-defaults">Per-contract fee defaults</a></li></ul></li><li><a href="#errors">Errors</a></li><li><a href="#events">Events</a></li><li><a href="#utilities">Utilities</a><ul><li><a href="#lazy-evaluation">Lazy evaluation</a></li><li><a href="#generic-collections">Generic collections</a></li><li><a href="#validation-against-expected-value">Validation against expected value</a></li><li><a href="#overrides-and-fallbacks">Overrides and fallbacks</a></li><li><a href="#tabular-alignment">Tabular alignment</a></li></ul></li></ul></div></p>
+<h1 id="fadroma-guide%3A-agent-api" tabindex="-1">Fadroma Guide: Agent API</h1>
+<p>The <strong>Agent API</strong> is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.</p>
 <p>Its core primitives are the <strong><code>Chain</code></strong> and <strong><code>Agent</code></strong> abstract classes.
 An <code>Agent</code> corresponds to your identity (wallet) on a given chain,
@@ -394,15 +374,6 @@ implementations of <code>Client</code>, <code>Builder</code>, <code>Uploader</co
 such as when deploying them from source. By defining such a system as one or more
 subclasses of <code>Deployment</code>, Fadroma enables declarative, idempotent, and reproducible
 smart contract deployments.</p>
-<ul>
-<li><strong>Explore the <a href="./spec/DeployingContracts.ts.md">deployment guide</a></strong></li>
-<li>One commonly used type of contract is a <strong>custom token</strong>. Fadroma Ops provides
-a deployment API for <a href="./spec/Tokens.ts.md">managing native and custom tokens</a>.</li>
-<li>The procedures for compiling contracts from source and uploading them to the chain,
-and for caching the results of those operations so you don't have to do them repeatedly,
-are implemented in the <a href="./spec/BuildingAndUploading.ts.md"><code>Builder</code> and <code>Uploader</code> classes</a>.</li>
-</ul>
-<p>Concrete implementations of those are provided in <code>@fadroma/ops</code>.</p>
 <h3 id="mocknet" tabindex="-1">Mocknet</h3>
 <p>This is a lightweight mock of a CosmWasm-capable platform,
 structured as an implementation of the Fadroma Chain API.
@@ -720,215 +691,12 @@ assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title
 Calling it returns a new instance of the Client, which talks to the same contract
 but executes all transactions with the specified custom fee.</li>
 </ul>
-<h2 id="deployment%3A-defining-contract-relations" tabindex="-1">Deployment: defining contract relations</h2>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-<span class="hljs-comment">/*class MyDeployment extends Deployment {
-
-  myContract1: PromiseLike&lt;Contract&lt;MyClient&gt;&gt; = this.contract({
-    name: &#x27;my-contract-1&#x27;,
-    client: MyClient,
-    crate: &#x27;test&#x27;
-  })
-
-  myContract2: PromiseLike&lt;Contract&lt;MyClient&gt;&gt; = this.contract({
-    name: &#x27;my-contract-2&#x27;,
-    client: MyClient
-    crate: &#x27;test&#x27;
-  })
-
-  myTemplate: PromiseLike&lt;Template&lt;Contract&lt;MyClient&gt;&gt;&gt; = this.template({
-    client: MyClient
-    crate: &#x27;test&#x27;
-  })
-
-  myInstances1 = this.myTemplate.instances({
-    myContract3: {}
-    myContract4: {}
-  })
-
-  myInstances2 = this.myTemplate.instances([
-    [&#x27;my-contract-5&#x27;, {}],
-    [&#x27;my-contract-6&#x27;, {}],
-  ])
-
-  async deploy () {
-    const [
-      myContract1,
-      myContract2,
-      { myContract3, myContract4 },
-      [ myContract5, myContract6 ]
-    ] = await Promise.all([
-      this.myContract1,
-      this.myContract2,
-      this.myInstances1,
-      this.myInstances2
-    ])
-    return {
-      myContract1,
-      myContract2,
-      myContract3,
-      myContract4,
-      myContract5,
-      myContract6,
-    }
-  }
-
-}
-
-const myDeployment1 = new MyDeployment({ name: &#x27;my-deployment-1&#x27; })
-await myDeployment1.deploy()
-
-const myDeployment2 = new MyDeployment({ name: &#x27;my-deployment-2&#x27; })
-await myDeployment2.deploy()*/</span>
-</code></pre>
-<h3 id="template%3A-build-and-upload" tabindex="-1">Template: build and upload</h3>
-<h3 id="contract%3A-full-contract-lifecycle" tabindex="-1">Contract: full contract lifecycle</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-<span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>({
-  <span class="hljs-attr">repository</span>: <span class="hljs-string">&#x27;REPO&#x27;</span>,
-  <span class="hljs-attr">revision</span>: <span class="hljs-string">&#x27;REF&#x27;</span>,
-  <span class="hljs-attr">workspace</span>: <span class="hljs-string">&#x27;WORKSPACE&#x27;</span>
-  <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;CRATE&#x27;</span>
-})
-</code></pre>
-<h3 id="contract-label-prefixes-and-suffixes" tabindex="-1">Contract label prefixes and suffixes</h3>
-<p>The label of a contract has to be unique per chain.
-Fadroma introduces prefixes and suffixes to be able to navigate that constraint.</p>
-<h3 id="contract-lifecycle" tabindex="-1">Contract lifecycle</h3>
-<p>The <code>Metadata</code> class is the base class of the
-<code>ContractSource</code>-&gt;<code>Template</code>-&gt;<code>Contract</code> inheritance chain.</p>
-<p>Represents a contract that is instantiated from a <code>codeId</code>.</p>
-<ul>
-<li>Can have an <code>address</code>.</li>
-<li>You can get a <code>Client</code> from a <code>Contract</code> using
-the <code>getClient</code> family of methods.</li>
-</ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span>, toInstanceReceipt } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-instance = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>()
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">toInstanceReceipt</span>(instance))
-<span class="hljs-comment">//assert.ok(await instance.define({ agent }).found)</span>
-<span class="hljs-comment">//assert.ok(await instance.define({ agent }).deployed)</span>
-</code></pre>
-<h3 id="storing-deployment-state" tabindex="-1">Storing deployment state</h3>
-<h3 id="exporting-deployments" tabindex="-1">Exporting deployments</h3>
-<h3 id="connecting-to-an-exported-deployment" tabindex="-1">Connecting to an exported deployment</h3>
-<h3 id="versioned-deployments" tabindex="-1">Versioned deployments</h3>
-<h2 id="builder" tabindex="-1">Builder</h2>
-<p>Implemented by <code>@fadroma/build</code>.</p>
-<ul>
-<li><strong>BuildRaw</strong>: runs the build in the current environment</li>
-<li><strong>BuildContainer</strong>: runs the build in a container for enhanced reproducibility</li>
-</ul>
-<h2 id="uploader" tabindex="-1">Uploader</h2>
-<p>Implemented by <code>@fadroma/upload</code>.</p>
-<ul>
-<li><strong>FSUploader</strong>: Support for uploading from Node FS.</li>
-<li>TODO: <strong>FetchUploader</strong>: Support for uploading from any URL incl. file:///</li>
-</ul>
 <h2 id="errors" tabindex="-1">Errors</h2>
 <p>The <code>Error</code> class, based on <code>@hackbg/oops</code>, defines
 custom error subclasses for various error conditions.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// Make sure each error subclass can be created with no arguments:</span>
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Error</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> subtype <span class="hljs-keyword">of</span> [
-  <span class="hljs-string">&#x27;Unimplemented&#x27;</span>,
-
-  <span class="hljs-string">&#x27;UploadFailed&#x27;</span>,
-
-  <span class="hljs-string">&#x27;InitFailed&#x27;</span>,
-
-  <span class="hljs-string">&#x27;CantInit_NoName&#x27;</span>,
-  <span class="hljs-string">&#x27;CantInit_NoAgent&#x27;</span>,
-  <span class="hljs-string">&#x27;CantInit_NoCodeId&#x27;</span>,
-  <span class="hljs-string">&#x27;CantInit_NoLabel&#x27;</span>,
-  <span class="hljs-string">&#x27;CantInit_NoMessage&#x27;</span>,
-
-  <span class="hljs-string">&#x27;BalanceNoAddress&#x27;</span>,
-  <span class="hljs-string">&#x27;DeployManyFailed&#x27;</span>,
-  <span class="hljs-string">&#x27;DifferentHashes&#x27;</span>,
-
-  <span class="hljs-string">&#x27;EmptyBundle&#x27;</span>,
-
-  <span class="hljs-string">&#x27;ExpectedAddress&#x27;</span>,
-  <span class="hljs-string">&#x27;ExpectedAgent&#x27;</span>,
-
-  <span class="hljs-string">&#x27;InvalidLabel&#x27;</span>,
-  <span class="hljs-string">&#x27;InvalidMessage&#x27;</span>,
-
-  <span class="hljs-string">&#x27;LinkNoAddress&#x27;</span>,
-  <span class="hljs-string">&#x27;LinkNoCodeHash&#x27;</span>,
-  <span class="hljs-string">&#x27;LinkNoTarget&#x27;</span>,
-
-  <span class="hljs-string">&#x27;NameOutsideDevnet&#x27;</span>,
-
-  <span class="hljs-string">&#x27;NoAgent&#x27;</span>,
-  <span class="hljs-string">&#x27;NoArtifact&#x27;</span>,
-  <span class="hljs-string">&#x27;NoArtifactURL&#x27;</span>,
-  <span class="hljs-string">&#x27;NoBuilder&#x27;</span>,
-  <span class="hljs-string">&#x27;NoBuilderNamed&#x27;</span>,
-  <span class="hljs-string">&#x27;NoBundleAgent&#x27;</span>,
-  <span class="hljs-string">&#x27;NoChain&#x27;</span>,
-  <span class="hljs-string">&#x27;NoChainId&#x27;</span>,
-  <span class="hljs-string">&#x27;NoCodeHash&#x27;</span>,
-  <span class="hljs-string">&#x27;NoContext&#x27;</span>,
-  <span class="hljs-string">&#x27;NoCrate&#x27;</span>,
-  <span class="hljs-string">&#x27;NoCreator&#x27;</span>,
-  <span class="hljs-string">&#x27;NoDeployment&#x27;</span>,
-  <span class="hljs-string">&#x27;NoName&#x27;</span>,
-  <span class="hljs-string">&#x27;NoPredicate&#x27;</span>,
-  <span class="hljs-string">&#x27;NoSource&#x27;</span>,
-  <span class="hljs-string">&#x27;NoTemplate&#x27;</span>,
-  <span class="hljs-string">&#x27;NoUploader&#x27;</span>,
-  <span class="hljs-string">&#x27;NoUploaderAgent&#x27;</span>,
-  <span class="hljs-string">&#x27;NoUploaderNamed&#x27;</span>,
-  <span class="hljs-string">&#x27;NoVersion&#x27;</span>,
-
-  <span class="hljs-string">&#x27;NotFound&#x27;</span>,
-  <span class="hljs-string">&#x27;NotInBundle&#x27;</span>,
-
-  <span class="hljs-string">&#x27;ProvideBuilder&#x27;</span>,
-  <span class="hljs-string">&#x27;ProvideUploader&#x27;</span>,
-
-  <span class="hljs-string">&#x27;Unpopulated&#x27;</span>,
-  <span class="hljs-string">&#x27;ValidationFailed&#x27;</span>
-]) {
-  <span class="hljs-title function_">assert</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>[subtype]() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Error</span>, <span class="hljs-string">`error <span class="hljs-subst">${subtype}</span>`</span>)
-}
-</code></pre>
 <h2 id="events" tabindex="-1">Events</h2>
 <p>The <code>Console</code> class, based on <code>@hackbg/logs</code>, collects all logging output in one place.
 In the future, this will enable semantic logging and/or GUI notifications.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// Make sure each log message can be created with no arguments:</span>
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Console</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">const</span> log = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Console</span>()
-
-log.<span class="hljs-title function_">object</span>()
-log.<span class="hljs-title function_">object</span>({<span class="hljs-attr">foo</span>:<span class="hljs-string">&#x27;bar&#x27;</span>,<span class="hljs-title function_">baz</span>(<span class="hljs-params"></span>){},<span class="hljs-attr">quux</span>:[],<span class="hljs-attr">xyzzy</span>:<span class="hljs-literal">undefined</span>,<span class="hljs-attr">fubar</span>:{}})
-
-log.<span class="hljs-title function_">deployment</span>()
-log.<span class="hljs-title function_">deployment</span>({ <span class="hljs-attr">state</span>: { <span class="hljs-attr">foo</span>: {}, <span class="hljs-attr">bar</span>: {} } })
-log.<span class="hljs-title function_">receipt</span>()
-log.<span class="hljs-title function_">foundDeployedContract</span>()
-log.<span class="hljs-title function_">beforeDeploy</span>()
-log.<span class="hljs-title function_">afterDeploy</span>()
-log.<span class="hljs-title function_">deployFailed</span>()
-log.<span class="hljs-title function_">deployManyFailed</span>()
-log.<span class="hljs-title function_">deployFailedContract</span>()
-log.<span class="hljs-title function_">confirmCodeHash</span>()
-log.<span class="hljs-title function_">waitingForNextBlock</span>()
-
-log.<span class="hljs-title function_">warnUrlOverride</span>()
-log.<span class="hljs-title function_">warnIdOverride</span>()
-log.<span class="hljs-title function_">warnNodeNonDevnet</span>()
-log.<span class="hljs-title function_">warnNoAgent</span>()
-log.<span class="hljs-title function_">warnNoAddress</span>()
-log.<span class="hljs-title function_">warnNoCodeHash</span>()
-log.<span class="hljs-title function_">warnNoCodeHashProvided</span>()
-log.<span class="hljs-title function_">warnCodeHashMismatch</span>()
-log.<span class="hljs-title function_">warnEmptyBundle</span>()
-</code></pre>
 <h2 id="utilities" tabindex="-1">Utilities</h2>
 <h3 id="lazy-evaluation" tabindex="-1">Lazy evaluation</h3>
 <h3 id="generic-collections" tabindex="-1">Generic collections</h3>

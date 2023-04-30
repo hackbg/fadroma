@@ -355,7 +355,7 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#mock-of-mocknet-environment">Mock of mocknet environment</a></li><li><a href="#and-some-more-tests...">And some more tests...</a></li><li><a href="#base64-io">Base64 IO</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li><li><a href="#implementation-details">Implementation details</a></li></ul></div></p>
 <h1 id="mocknet%3A-the-blockchain-that-isn't." tabindex="-1">Mocknet: the blockchain that isn't.</h1>
 <p>Testing the production builds of smart contracts can be slow and awkward.
 Testnets are permanent and public; devnets can be temporary, but transactions
@@ -433,122 +433,8 @@ assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-key
 <h2 id="implementation-details" tabindex="-1">Implementation details</h2>
 <p>The rest of this executable specification is dedicated to testing and documenting the workings
 of the mocknet as implemented by Fadroma.</p>
-<h3 id="mock-of-mocknet-environment" tabindex="-1">Mock of mocknet environment</h3>
-<p>When testing your own contracts with Fadroma Mocknet, you are responsible
-for providing the value of the <code>env</code> struct seen by the contracts.
-Since here we test the mocknet itself, we use this pre-defined value:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { randomBech32 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">mockEnv</span> () {
-  <span class="hljs-keyword">const</span> height   = <span class="hljs-number">0</span>
-  <span class="hljs-keyword">const</span> time     = <span class="hljs-number">0</span>
-  <span class="hljs-keyword">const</span> chain_id = <span class="hljs-string">&quot;mock&quot;</span>
-  <span class="hljs-keyword">const</span> sender   = <span class="hljs-title function_">randomBech32</span>(<span class="hljs-string">&#x27;mocked&#x27;</span>)
-  <span class="hljs-keyword">const</span> address  = <span class="hljs-title function_">randomBech32</span>(<span class="hljs-string">&#x27;mocked&#x27;</span>)
-  <span class="hljs-keyword">return</span> {
-    <span class="hljs-attr">block</span>:    { height, time, chain_id }
-    <span class="hljs-attr">message</span>:  { <span class="hljs-attr">sender</span>: sender, <span class="hljs-attr">sent_funds</span>: [] },
-    <span class="hljs-attr">contract</span>: { address },
-    <span class="hljs-attr">contract_key</span>: <span class="hljs-string">&quot;&quot;</span>,
-    <span class="hljs-attr">contract_code_hash</span>: <span class="hljs-string">&quot;&quot;</span>
-  }
-}
-</code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Mocknet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">backend</span>:  <span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">contract</span>: <span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Contract</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">response</span>: { <span class="hljs-title class_">Ok</span>: <span class="hljs-built_in">any</span>, <span class="hljs-title class_">Err</span>: <span class="hljs-built_in">any</span> }
-</code></pre>
-<ul>
-<li>The <strong><code>MocknetContract</code></strong> class wraps WASM contract blobs and takes care of the CosmWasm
-calling convention.
-<ul>
-<li>Normally, it isn't used directly - <code>Mocknet</code>/<code>Mocknet.Agent</code> call
-<code>MocknetBackend</code> which calls this.</li>
-</ul>
-</li>
-<li>Every method has a slightly different shape: Assuming <strong>Handle</strong> is the &quot;standard&quot;:
-<ul>
-<li><strong>Init</strong> is like Handle but has only 1 variant and response has no <code>data</code> attribute.</li>
-<li><strong>Query</strong> is like Handle but returns raw base64 and ignores <code>env</code>.</li>
-<li>Every method returns the same thing - a JSON string of the form <code>{ &quot;Ok&quot;: ... } | { &quot;Err&quot;: ... }</code>
-<ul>
-<li>This corresponds to the <strong>StdResult</strong> struct returned from the contract</li>
-<li>This result is returned to the contract's containing <code>MocknetBackend</code> as-is.</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">let</span> <span class="hljs-attr">key</span>:   <span class="hljs-built_in">string</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">value</span>: <span class="hljs-built_in">string</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">data</span>:  <span class="hljs-built_in">string</span>
-
-<span class="hljs-comment">/*contract = await new MocknetBackend.Contract().load(examples[&#x27;Echo&#x27;].data)
-response = contract.init(Testing.mockEnv(), { fail: false })
-key      = &quot;Echo&quot;
-value    = utf8toB64(JSON.stringify({ fail: false }))
-assert.deepEqual(response.Err, undefined)
-assert.deepEqual(response.Ok,  { messages: [], log: [{ encrypted: true, key, value }] })
-
-response = contract.init(Testing.mockEnv(), { fail: true }))
-assert.deepEqual(response.Ok,  undefined)
-assert.deepEqual(response.Err, { generic_err: { msg: &#x27;caller requested the init to fail&#x27; } })
-
-response = contract.handle(Testing.mockEnv(), &quot;echo&quot;)
-data     = utf8toB64(JSON.stringify(&quot;echo&quot;))
-assert.deepEqual(response.Err, undefined)
-assert.deepEqual(response.Ok,  { messages: [], log: [], data })
-
-response = contract.handle(Testing.mockEnv(), &quot;fail&quot;)
-assert.deepEqual(response.Ok,  undefined)
-assert.deepEqual(response.Err, { generic_err:  { msg: &#x27;this transaction always fails&#x27; } })
-
-response = await contract.query(&quot;echo&quot;)
-assert.deepEqual(response.Err, undefined)
-assert.deepEqual(response.Ok,  utf8toB64(&#x27;&quot;echo&quot;&#x27;))
-
-response = await contract.query(&quot;fail&quot;)
-assert.deepEqual(response.Ok, undefined)
-assert.deepEqual(response.Err, { generic_err: { msg: &#x27;this query always fails&#x27; } })*/</span>
-</code></pre>
-<h3 id="and-some-more-tests..." tabindex="-1">And some more tests...</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">/*
-assert.throws(()=&gt;new MocknetBackend().getInstance())
-
-assert.throws(()=&gt;new MocknetBackend().getInstance(&#x27;foo&#x27;))
-
-assert.throws(()=&gt;new MocknetBackend().makeEnv())
-
-assert.rejects(new MocknetBackend().passCallbacks())
-
-assert.ok(new MocknetBackend(&#x27;mocknet&#x27;, {
-  123: examples[&#x27;Echo&#x27;].data
-}, {
-  &#x27;someaddr&#x27;: await new MocknetBackend.Contract().load(examples[&#x27;Echo&#x27;].data)
-}).passCallbacks(&#x27;sender&#x27;, [
-  {wasm:{instantiate:{msg:utf8toB64(&#x27;{&quot;fail&quot;:false}&#x27;), code_id: 123}}},
-  {wasm:{execute:    {msg:utf8toB64(&#x27;&quot;echo&quot;&#x27;), contract_addr: &#x27;someaddr&#x27;}}},
-  {wasm:{ignored: true}},
-  {ignored: true}
-]))
-*/</span>
-</code></pre>
-<h3 id="base64-io" tabindex="-1">Base64 IO</h3>
-<ul>
-<li><strong>Base64 I/O:</strong> Fields that are of type <code>Binary</code> (query responses and the <code>data</code> field of handle
-responses) are returned by the contract as Base64-encoded strings
-<ul>
-<li>If <code>to_binary</code> is used to produce the <code>Binary</code>, it's also JSON encoded through Serde.</li>
-<li>These functions are used by the mocknet code to encode/decode the base64.</li>
-</ul>
-</li>
-</ul>
-<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>.<span class="hljs-title function_">b64toUtf8</span>(<span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>), <span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Backend</span>.<span class="hljs-title function_">utf8toB64</span>(<span class="hljs-string">&#x27;&quot;Echo&quot;&#x27;</span>), <span class="hljs-string">&#x27;IkVjaG8i&#x27;</span>)
-</code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert, { ok, equal } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
-<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Mocknet.test.ts&#x27;</span>
-</code></pre>
+<p>The <strong><code>MocknetContract</code></strong> class wraps WASM contract blobs and takes care of the CosmWasm
+calling convention.</p>
 
 </content>
 </body>
