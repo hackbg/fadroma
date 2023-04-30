@@ -1,6 +1,24 @@
 # Building contracts from source
 
-This package implements **reproducible compilation** of contracts.
+When deploying, Fadroma automatically builds the `Contract`s specified in the deployment,
+using a procedure based on [secret-contract-optimizer](https://hub.docker.com/r/enigmampc/secret-contract-optimizer).
+
+This either with your local Rust/WASM toolchain,
+or in a pre-defined [build container](https://github.com/hackbg/fadroma/pkgs/container/fadroma).
+The latter option requires Docker (which you also need for the devnet).
+
+By default, optimized builds are output to the `wasm` subdirectory of your project.
+Checksums of build artifacts are emitted as `wasm/*.wasm.sha256`: these checksums
+should be equal to the code hashes returned by the chain.
+
+We advise you to keep these
+**build receipts** in version control. This gives you a quick way to keep track of the
+correspondence between changes to source and resulting changes to code hashes.
+
+Furthermore, when creating a `Project`, you'll be asked to define one or more `Template`s
+corresponding to the contract crates of your project. You can
+
+Fadroma implements **reproducible compilation** of contracts.
 What to compile is specified using the primitives defined in [Fadroma Core](../client/README.md).
 
 ## Build CLI

@@ -40,7 +40,7 @@
     "build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
 
     "docs:dev":      "ensuite-dev",
-    "docs:render":   "time ganesha-node ensuite/ensuite-render.cli.mjs",
+    "docs:render":   "time ensuite/ensuite-render.cli.mjs",
     "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints agent --entryPoints connect/* --entryPoints connect --entryPoints ops --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
@@ -62,8 +62,8 @@
   },
   "devDependencies": {
     "@fadroma/scrt":   "workspace:*",
-    "@hackbg/ganesha": "^2.3.0",
-    "@hackbg/ensuite": "^1.3.0",
+    "@hackbg/ganesha": "workspace:*",
+    "@hackbg/ensuite": "workspace:*",
     "@hackbg/spec":    "^1",
     "@hackbg/ubik":    "^1.3.5",
     "@hackbg/dock":    "workspace:^1.3",

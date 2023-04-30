@@ -3,6 +3,8 @@ routes:
     page: index.pug
   - path: /guide.html
     page: GUIDE.ts.md
+  - path: /dsl.html
+    page: crates/fadroma-dsl/README.md
   - path: /agent.html
     page: spec/Agent.spec.ts.md
   - path: /build.html
@@ -79,21 +81,17 @@ features:
     big: left
     links:
       - icon: console
-        text: Creating a project
+        text: Defining a project
         bold: true
         href: /guide.html#create-a-project
       - icon: console
-        text: Defining contracts
+        text: Writing contracts
         bold: true
-        href: /guide.html#defining-contracts
+        href: /dsl.html
       - icon: console
         text: Building and deploying
         bold: true
         href: /guide.html#building-and-deploying
-      - icon: todo
-        text: "WIP: Dev server with GUI"
-        info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
-        href: https://github.com/hackbg/fadroma/issues/90
       - icon: rust
         text: Fadroma on Crates.io
         bold: true
@@ -102,6 +100,10 @@ features:
         text: Fadroma on NPM
         bold: true
         href: https://www.npmjs.com/package/@hackbg/fadroma
+      - icon: todo
+        text: "WIP: Dev server with GUI"
+        info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
+        href: https://github.com/hackbg/fadroma/issues/90
 
   - name: Licensing
     info: |
@@ -138,24 +140,22 @@ features:
         text: "WIP: @fadroma/cw"
         href: https://github.com/hackbg/fadroma/issues/148
 
-  - name: Write contracts
+  - name: Fadroma DSL
     info: |
       Use attribute macros to abstract away the boilerplate.
       Compose smart contracts out of encapsulated components.
     links:
       - icon: rust
-        text: fadroma-proc-derive
-        href: https://docs.rs/fadroma-proc-derive/latest/fadroma_proc_derive/
+        text: Fadroma DSL on Crates.io
+        href: https://docs.rs/fadroma-dsl/latest/fadroma_dsl/
         bold: true
       - icon: rust
-        text: Example contract
-        href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-components
+        text: Fadroma DSL Docs
+        href: ./dsl.html
+        bold: true
       - icon: rust
-        text: Example contract with interface
-        href: https://github.com/hackbg/fadroma/tree/master/examples/derive-contract-interface
-      - icon: todo
-        text: "WIP: fadroma-dsl"
-        href: https://github.com/hackbg/fadroma/issues/136
+        text: Example contracts in different configurations
+        href: https://github.com/hackbg/fadroma/tree/master/examples/
 
   - name: Build reproducibly
     info: |
@@ -171,8 +171,10 @@ features:
         href: /build.html#BuildAPI
         bold: true
 
-  - name: Client API
-    info: Easily create a TypeScript client library for your dApp.
+  - name: Export a rich API
+    info: |
+      Extend the `@fadroma/agent` library to define the structure of your project,
+      export a client library for third-party integrations, and add support for new chains.
     links:
       - icon: typescript
         text: "@fadroma/agent"
@@ -181,9 +183,6 @@ features:
       - icon: typescript
         text: Example client
         href: https://github.com/hackbg/fadroma/tree/master/examples/project/api/api.ts
-      - icon: todo
-        text: "TODO: Schema-based clients and validation"
-        info: Generate client classes and microfrontends from the JSON schema exported by contracts.
 
   - name: Deploy and operate
     info: Manage hundreds of heterogeneous contracts using a declarative API.
@@ -199,8 +198,6 @@ features:
       - icon: typescript
         text: Example script
         href: https://github.com/hackbg/fadroma/tree/master/examples/project/ops/ops.ts
-      - icon: todo
-        text: "TODO: Contract migrations"
 
   - name: Efficient storage
     info: |
