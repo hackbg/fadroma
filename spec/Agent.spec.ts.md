@@ -407,25 +407,28 @@ transactions as a different identity.
 ```typescript
 const agent1 = await chain.getAgent(/*...*/)
 const agent2 = await chain.getAgent(/*...*/)
+
 const client = agent1.getClient(MyContract, "...")
-client.tx1() // signed by agent1
-client.asAgent(agent2).tx1() // signed by agent2
+
+// signed by agent1:
+client.tx1()
+
+// signed by agent2
+client.asAgent(agent2).tx1()
 ```
 
+### Defining query and transaction methods
+
+The main things that you need to know for implementing a client class
+are the `query` and `execute` methods:
+
+* You pass them the message as a JS object.
+* They serialize it to JSON and pass it to the contract.
+* Then, they return a `Promise` of the value returned by the contract.
+* If the returned value is an error, the promise will reject (i.e. if you're
+  `await`ing the promise chain, an `Error` will be thrown).
+
 ### Per-transaction fees
-
-* `client.fee` is the default fee for all transactions
-* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
-* `client.withFee(fee: IFee)` allows the caller to override the default fees.
-  Calling it returns a new instance of the Client, which talks to the same contract
-  but executes all transactions with the specified custom fee.
-
-The result of deploying a contract is a `Client` instance -
-an object containing the info needed to talk to the contract.
-
-When executing a transaction, a gas limit is specified so that invoking a transaction cannot
-consume too much gas. However, each smart contract transaction method performs different
-computations, and therefore needs a different amount of gas.
 
 You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
 property of your client class:
@@ -453,26 +456,11 @@ export class MyContract extends Client {
 }
 ```
 
-You can also specify one fee for all transactions. This will replace the
-default `exec` fee configured in the agent.
-
-You can override these defaults by using the `withFee(fee: IFee)` method:
+You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
+This method works by returning a copy of `client` with fees overridden by the provided value.
 
 ```typescript
-const fee    = new Fee('100000', 'uscrt')
+const fee = new Fee('100000', 'uscrt')
+
 const result = await client.withFee(fee).tx1()
 ```
-
-This method works by returning a new instance of `MyContract` that has
-the fee overridden.
-
-### Defining query and transaction methods
-
-The main things that you need to know for implementing a client class
-are the `query` and `execute` methods:
-
-* You pass them the message as a JS object.
-* They serialize it to JSON and pass it to the contract.
-* Then, they return a `Promise` of the value returned by the contract.
-* If the returned value is an error, the promise will reject (i.e. if you're
-  `await`ing the promise chain, an `Error` will be thrown).
