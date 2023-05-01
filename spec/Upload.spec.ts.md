@@ -11,6 +11,11 @@ $ fadroma reupload CONTRACT # always reupload
 
 ## Upload API
 
+## Uploader
+
+* **FetchUploader**: Support for uploading from any URL incl. `file:///`
+* **FSUploader**: Support for uploading files from local FS with `node:fs`.
+
 Uploading with default configuration (from environment variables):
 
 ```typescript

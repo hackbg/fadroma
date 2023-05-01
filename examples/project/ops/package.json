@@ -1,9 +1,0 @@
-{
-  "name": "@my-project/ops",
-  "version": "0.0.0",
-  "private": true,
-  "devDependencies": {
-    "@fadroma/ops": "^3",
-    "@my-project/api": "workspace:*"
-  }
-}

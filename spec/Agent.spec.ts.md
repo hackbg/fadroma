@@ -11,26 +11,7 @@ and lets you operate in terms of transactions (sending tokens, calling contracts
   **`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
   of Fadroma Chain API for Secret Network.
 
-### Deploy API
-
-The **Ops API** revolves around the `Deployment` class, and associated
-implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
-
-These classes are used for describing systems consisting of multiple smart contracts,
-such as when deploying them from source. By defining such a system as one or more
-subclasses of `Deployment`, Fadroma enables declarative, idempotent, and reproducible
-smart contract deployments.
-
-### Mocknet
-
-This is a lightweight mock of a CosmWasm-capable platform,
-structured as an implementation of the Fadroma Chain API.
-Mocknet executes smart contracts in a simulated environment
-based on JavaScript's native WebAssembly runtime.
-
-See [**Mocknet**](./mocknet.html).
-
-## Chain: connecting
+## Chain
 
 The `Chain` object identifies what chain to connect to -
 such as the Secret Network mainnet or testnet.
@@ -90,11 +71,11 @@ assert(chain.isMocknet)
 assert(!chain.isMainnet)
 ```
 
-## Agent: authenticating
+## Agent
 
 To transact on a [chain](./Chains.ts.md), you need to authenticate
 with your identity (account, wallet). To do that, you obtain an
-`Agent` from the `Chain` using `Chain#getAgent({ mnemonic })`.
+`Agent` from the `Chain` using `chain.getAgent({...})`.
 
 If you don't pass a mnemonic, a random mnemonic and address will be generated.
 
@@ -102,9 +83,9 @@ If you don't pass a mnemonic, a random mnemonic and address will be generated.
 import { Agent } from '@fadroma/agent'
 let agent: Agent = await chain.getAgent({ address: 'testing1agent0' })
 
-assert.ok(agent instanceof Agent, 'Agent returned')
-assert.equal(agent.chain, chain,  'Agent#chain assigned')
-assert.equal(agent.address, 'testing1agent0',  'Agent#address assigned')
+assert.ok(agent instanceof Agent, 'an Agent was returned')
+assert.equal(agent.chain, chain,  'agent.chain assigned')
+assert.equal(agent.address, 'testing1agent0',  'agent.address assigned')
 ```
 
 ### Block height
@@ -140,7 +121,7 @@ await agent.send('recipient-address', '1000')
 await agent.send('recipient-address', [{denom:'token', amount: '1000'}])
 ```
 
-### Gas fees
+### Default gas fees
 
 Transacting creates load on the network, which incurs costs on node operators.
 Compensations for transactions are represented by the gas metric.
@@ -232,10 +213,11 @@ const results = await agent.bundle(async bundle=>{
 }).run()
 ```
 
-## Bundle: batching transactions
+### Batching transactions
 
 To submit multiple messages as a single transaction, you can
-use Bundles.
+use the `Bundle` class through `Agent#bundle`.
+
   * A `Bundle` is a special kind of `Agent` that
     does not broadcast messages immediately.
   * Instead, messages are collected inside the bundle until
@@ -283,7 +265,7 @@ assert.throws(()=>bundle.balance)
 To create and submit a bundle in a single expression,
 you can use `bundle.wrap(async (bundle) => { ... })`:
 
-## Client: talking to contracts
+## Client
 
 Represents an interface to an existing contract.
   * The default `Client` class allows passing messages to the contract instance.
@@ -374,14 +356,20 @@ By publishing a library of `Client` subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn
 integrate it into their systems.
 
-### Fetching metadata
+### Metadata
+
+The original `Contract` object from which the contract
+was deployed can be found on the optional `meta` property of the `Client`.
 
 ```typescript
-import {
-  fetchCodeHash,
-  fetchCodeId,
-  fetchLabel
-} from '@fadroma/agent'
+assert.ok(aClient.meta instanceof Contract)
+assert.equal(aClient.meta.deployedBy, agent.address)
+```
+
+Fetching metadata:
+
+```typescript
+import { fetchCodeHash, fetchCodeId, fetchLabel } from '@fadroma/agent'
 
 instance.address = 'someaddress' // FIXME
 assert.ok(instance.codeHash = await fetchCodeHash(instance, agent))
@@ -397,7 +385,34 @@ assert.rejects(fetchCodeId(instance, agent, 'unexpected'))
 assert.rejects(fetchLabel(instance, agent, 'unexpected'))
 ```
 
-### Per-contract fee defaults
+### Client agent
+
+By default, the `Client`'s `agent` property is equal to the `agent`
+which deployed the contract. This property determines the address from
+which subsequent transactions with that `Client` will be sent.
+
+In case you want to deploy the contract as one identity, then interact
+with it from another one as part of the same procedure, you can set `agent`
+to another instance of `Agent`:
+
+```typescript
+assert.equal(aClient.agent, agent)
+aClient.agent = await chain.getAgent()
+```
+
+Similarly to `withFee`, the `as` method returns a new instance of your
+client class, bound to a different `agent`, thus allowing you to execute
+transactions as a different identity.
+
+```typescript
+const agent1 = await chain.getAgent(/*...*/)
+const agent2 = await chain.getAgent(/*...*/)
+const client = agent1.getClient(MyContract, "...")
+client.tx1() // signed by agent1
+client.asAgent(agent2).tx1() // signed by agent2
+```
+
+### Per-transaction fees
 
 * `client.fee` is the default fee for all transactions
 * `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
@@ -405,88 +420,51 @@ assert.rejects(fetchLabel(instance, agent, 'unexpected'))
   Calling it returns a new instance of the Client, which talks to the same contract
   but executes all transactions with the specified custom fee.
 
-## Errors
+The result of deploying a contract is a `Client` instance -
+an object containing the info needed to talk to the contract.
 
-The `Error` class, based on `@hackbg/oops`, defines
-custom error subclasses for various error conditions.
+When executing a transaction, a gas limit is specified so that invoking a transaction cannot
+consume too much gas. However, each smart contract transaction method performs different
+computations, and therefore needs a different amount of gas.
 
-## Events
-
-The `Console` class, based on `@hackbg/logs`, collects all logging output in one place.
-In the future, this will enable semantic logging and/or GUI notifications.
-
-## Utilities
-
-### Lazy evaluation
-
-### Generic collections
+You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
+property of your client class:
 
 ```typescript
-import { into, intoArray, intoRecord } from '@fadroma/agent'
-
-assert.equal(await into(1), 1)
-assert.equal(await into(Promise.resolve(1)), 1)
-assert.equal(await into(()=>1), 1)
-assert.equal(await into(async ()=>1), 1)
-
-assert.deepEqual(
-  await intoArray([1, ()=>1, Promise.resolve(1), async () => 1]),
-  [1, 1, 1, 1]
-)
-
-assert.deepEqual(await intoRecord({
-  ready:   1,
-  getter:  () => 2,
-  promise: Promise.resolve(3),
-  asyncFn: async () => 4
-}), {
-  ready:   1,
-  getter:  2,
-  promise: 3,
-  asyncFn: 4
-})
-```
-
-### Validation against expected value
-
-Case-insensitive.
-
-```typescript
-import { validated } from '@fadroma/agent'
-assert.ok(validated('test', 1))
-assert.ok(validated('test', 1, 1))
-assert.ok(validated('test', 'a', 'A'))
-assert.throws(()=>validated('test', 1, 2))
-assert.throws(()=>validated('test', 'a', 'b'))
-```
-
-### Overrides and fallbacks
-
-Only work on existing properties.
-
-```typescript
-import { override, fallback } from '@fadroma/agent'
-assert.deepEqual(
-  override({ a: 1, b: 2 }, { b: 3, c: 4 }),
-  { a: 1, b: 3 }
-)
-assert.deepEqual(
-  fallback({ a: 1, b: undefined }, { a: undefined, b: 3, c: 4 }),
-  { a: 1, b: 3 }
-)
-```
-
-### Tabular alignment
-
-For more legible output.
-
-```typescript
-assert.equal(getMaxLength(['a', 'ab', 'abcd', 'abc', 'b']), 4)
-function getMaxLength (strings: string[]): number {
-  return Math.max(...strings.map(string=>string.length))
+import { Client, Fee } from '@fadroma/agent'
+export class MyContract extends Client {
+  fees = {
+    tx1: new Fee('10000', 'uscrt'),
+    tx2: new Fee('20000', 'uscrt'),
+    tx3: new Fee('30000', 'uscrt'),
+    tx4: new Fee('40000', 'uscrt'),
+  }
+  async tx1 ()  { return await this.execute("tx1") }
+  async tx2 (n) { return await this.execute({tx2: n}) }
+  async tx3 ()  { return await this.execute({tx3: {}}) }
+  async tx4 (n) { return await this.execute({tx4: {my_value: n}}) }
 }
 ```
 
+You can also specify one fee for all transactions. This will replace the
+default `exec` fee configured in the agent.
+
+You can override these defaults by using the `withFee(fee: IFee)` method:
+
 ```typescript
-import assert from 'node:assert'
+const result = await client.withFee(new Fee('100000', 'uscrt')).tx1()
 ```
+
+This method works by returning a new instance of `MyContract` that has
+the fee overridden.
+
+### Defining query and transaction methods
+
+The main things that you need to know for implementing a client class
+are the `query` and `execute` methods:
+
+* You pass them the message as a JS object.
+* They serialize it to JSON and pass it to the contract.
+* Then, they return a `Promise` of the value returned by the contract.
+* If the returned value is an error, the promise will reject (i.e. if you're
+  `await`ing the promise chain, an `Error` will be thrown).

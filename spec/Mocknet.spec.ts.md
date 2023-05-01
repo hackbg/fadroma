@@ -1,12 +1,14 @@
-# Mocknet: the blockchain that isn't.
+# Fadroma Guide: Mocknet
 
 Testing the production builds of smart contracts can be slow and awkward.
 Testnets are permanent and public; devnets can be temporary, but transactions
 are still throttled by the block rate.
 
-Mocknet is an intermediate environment that emulates the APIs that a
-CosmWasm contract expects to see when running in production,
-on top of the JavaScript engine's built-in WebAssembly runtime.
+Mocknet is a lightweight functioning mock of a CosmWasm-capable
+platform, structured as an implementation of the Fadroma Chain API.
+It emulates the APIs that a CosmWasm contract expects to see when
+running in production, on top of the JavaScript engine's built-in
+WebAssembly runtime.
 
 This way, you can run your real smart contracts without a real blockchain,
 and quickly test their user-facing functionality and interoperation

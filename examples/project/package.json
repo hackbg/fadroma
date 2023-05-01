@@ -1,5 +1,5 @@
 {
-  "name": "@my-project/workspace",
+  "name": "@example/project",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -10,10 +10,5 @@
   },
   "devDependencies": {
     "@hackbg/fadroma": "latest"
-  },
-  "fadroma": {
-    "contracts": {
-      "contract1": {}
-    }
   }
 }

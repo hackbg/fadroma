@@ -49,6 +49,9 @@ $ fadroma rebuild CONTRACT  # always rebuilds
 
 ## Build API
 
+* **BuildRaw**: runs the build in the current environment
+* **BuildContainer**: runs the build in a container for enhanced reproducibility
+
 ### Getting a builder
 
 ```typescript
