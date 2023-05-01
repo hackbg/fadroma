@@ -22,7 +22,16 @@ Several options are exposed as environment variables.
 const config = new Scrt.Config()
 ```
 
-## Connecting
+|ScrtConfig property|Env var|Description|
+|-|-|-|
+|agentName     |FADROMA_SCRT_AGENT_NAME      |agent name|
+|agentMnemonic |FADROMA_SCRT_AGENT_MNEMONIC  |agent mnemonic for scrt only|
+|mainnetChainId|FADROMA_SCRT_MAINNET_CHAIN_ID|chain id for mainnet|
+|testnetChainId|FADROMA_SCRT_TESTNET_CHAIN_ID|chain id for mainnet|
+|mainnetUrl    |FADROMA_SCRT_MAINNET_URL     |mainnet URL|
+|testnetUrl    |FADROMA_SCRT_TESTNET_URL     |testnet URL|
+
+## Connecting and authenticating
 
 To connect to Secret Network with Fadroma, use one of the following:
 
@@ -42,11 +51,9 @@ for (const chain of [mainnet, testnet]) {
 }
 ```
 
-## Authentication
-
 To interact with Secret Network, you need to authenticate as an `Agent`:
 
-### Authenticating with a fresh wallet
+### Fresh wallet
 
 This gives you a randomly generated mnemonic.
 
@@ -61,7 +68,7 @@ assert.ok(agent0.address)
 
 The `mnemonic` property of `Agent` will be hidden to prevent leakage.
 
-### Authenticating with a known mnemonic
+### By mnemonic
 
 ```typescript
 const agent1 = await mainnet.getAgent({ mnemonic: '...' }).ready
@@ -72,7 +79,7 @@ ok(agent1.mnemonic)
 ok(agent1.address)
 ```
 
-### Authenticating in the browser with Keplr
+### Keplr
 
 ```typescript
 // TODO:
@@ -83,7 +90,7 @@ ok(agent1.address)
 // ok(agent2.address)
 ```
 
-### Authenticating in a script with secretcli
+### secretcli
 
 ```typescript
 // TODO:
@@ -127,9 +134,7 @@ await agent1.ready
 ok(agent1.api)
 ```
 
-## Authorization
-
-### Using viewing keys
+## Viewing keys
 
 Fadroma provides the `VKClient` class for embedding into your own `Client` classes
 for contracts that use SNIP20-compatible the viewing keys.
@@ -145,21 +150,10 @@ class MyClient extends Client {
 }
 ```
 
-### Using query permits
+## Query permits
 
 ```typescript
 // TODO add docs
-```
-
-## Implementation details
-
-### Transaction bundling
-
-A Secret Network-specific implementation of message bundling is included:
-
-```typescript
-const bundle = agent0.bundle()
-ok(bundle instanceof Scrt.Bundle)
 ```
 
 ---

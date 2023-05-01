@@ -73,3 +73,7 @@ assert.ok(
   await someBundle().submit('test'),
   'submitting a bundle',
 )
+assert(
+  someBundle() instanceof Scrt.Bundle,
+  'ScrtBundle is returned'
+)

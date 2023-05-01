@@ -24,8 +24,6 @@ class ScrtConfig extends Config {
 
   agentName:      string|null
     = this.getString('FADROMA_SCRT_AGENT_NAME',       ()=>null)
-  agentAddress:   string|null
-    = this.getString('FADROMA_SCRT_AGENT_ADDRESS',    ()=>null)
   agentMnemonic:  string|null
     = this.getString('FADROMA_SCRT_AGENT_MNEMONIC',   ()=>null)
   mainnetChainId: string
