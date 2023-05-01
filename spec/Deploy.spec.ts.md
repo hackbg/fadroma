@@ -144,7 +144,7 @@ Since this does not call the deployment's `deploy` method,
 it *only* deploys the requested contract and its dependencies
 but not any other contracts defined in the deployment.
 
-### Adding custom deployment and migrations
+### Adding custom migrations
 
 The default `Deployment#deploy` method simply instantiates all
 contracts defined using the `Deployment#contract` method. To
@@ -156,16 +156,16 @@ a custom `deploy` method:
 ```typescript
 class MyDeployment2 extends MyDeployment {
 
-  async deploy () {
+  async deploy (deployOnlyFoo?: boolean) {
+    /** You can override the deploy method to deploy with custom logic. */
     await this.foo.deployed
-    await this.bar.deployed
+    if (!deployOnlyFoo) await this.bar.deployed
     return this
   }
 
   async update (previous: Deployment) {
-    /** Here you may implement a function that performs an upgrade,
-      * in the form of deploying new versions of contracts,
-      * and reusing others from the previous deployment. */
+    /** Here you may implement an upgrade method that fetches
+      * the state of existing contracts, and deploys new ones. */
   }
 
 }
@@ -176,16 +176,22 @@ assert(deployment2.foo.expect() instanceof Client)
 assert(deployment2.bar.expect() instanceof Client)
 ```
 
+### How state is stored
+
+See the `DeployStore` implementation.
+
 ### Exporting the deployment
 
-### Connecting
+This feature is a work-in-progress.
+
+### Connecting to an exported deployment
 
 Having been deployed once, contracts may be used continously.
 The `Deployment`'s `connect` method loads stored data about
 the contracts in the deployment, populating the contained
 `Contract` instances.
 
-### Expecting contracts to be present
+### Expecting contracts to be deployed
 
 Using the `expect` method, you state: "I expect that
 at the current point in time, this contract is deployed;
@@ -206,16 +212,6 @@ this will throw an error.
 import assert from 'node:assert'
 import './Deploy.test.ts'
 ```
-
-## Deployment: defining contract relations
-
-### Storing deployment state
-
-### Exporting deployments
-
-### Connecting to an exported deployment
-
-### Versioned deployments
 
 ## Template
 

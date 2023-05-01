@@ -147,3 +147,36 @@ function inTmpDeployment (cb) {
 }
 import { Client } from '@fadroma/agent'
 ```
+
+```typescript
+
+import { Builder } from '@fadroma/agent'
+
+deployment = new Deployment({
+  agent: new Agent({ chain: new Chain({ id: 'test', mode: Chain.Mode.Devnet }) }),
+  builder: new Builder()
+})
+
+assert.ok(deployment.devMode, 'deployment is in dev mode')
+assert.equal(deployment.size, 0)
+
+template = await deployment.template({
+  codeId: 2,
+  client: MyClient,
+  crate: 'fadroma-example-kv'
+})
+
+assert.ok(template.info)
+
+instance = template.instance({
+  name: 'custom-client-contract',
+  initMsg: {}
+})
+
+assert.equal(deployment.size, 1)
+assert.ok(await template.compiled)
+assert.ok(await template.uploaded)
+//assert.ok(instance instanceof MyClient) // FIXME
+//assert.ok(await instance.myMethod())
+//assert.ok(await instance.myQuery())
+```
