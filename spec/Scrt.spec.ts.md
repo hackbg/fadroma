@@ -1,4 +1,4 @@
-# Operating on Secret Network with `@fadroma/scrt`
+# Fadroma Guide: Secret Network
 
 Fadroma's support for Secret Network is achieved in this package,
 by implementing the core Fadroma Agent API (`Chain`, `Agent`, `Bundle`),
