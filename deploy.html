@@ -386,67 +386,6 @@ what contracts to deploy:</p>
 
 }
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-<span class="hljs-comment">/*class MyDeployment extends Deployment {
-
-  myContract1: PromiseLike&lt;Contract&lt;MyClient&gt;&gt; = this.contract({
-    name: &#x27;my-contract-1&#x27;,
-    client: MyClient,
-    crate: &#x27;test&#x27;
-  })
-
-  myContract2: PromiseLike&lt;Contract&lt;MyClient&gt;&gt; = this.contract({
-    name: &#x27;my-contract-2&#x27;,
-    client: MyClient
-    crate: &#x27;test&#x27;
-  })
-
-  myTemplate: PromiseLike&lt;Template&lt;Contract&lt;MyClient&gt;&gt;&gt; = this.template({
-    client: MyClient
-    crate: &#x27;test&#x27;
-  })
-
-  myInstances1 = this.myTemplate.instances({
-    myContract3: {}
-    myContract4: {}
-  })
-
-  myInstances2 = this.myTemplate.instances([
-    [&#x27;my-contract-5&#x27;, {}],
-    [&#x27;my-contract-6&#x27;, {}],
-  ])
-
-  async deploy () {
-    const [
-      myContract1,
-      myContract2,
-      { myContract3, myContract4 },
-      [ myContract5, myContract6 ]
-    ] = await Promise.all([
-      this.myContract1,
-      this.myContract2,
-      this.myInstances1,
-      this.myInstances2
-    ])
-    return {
-      myContract1,
-      myContract2,
-      myContract3,
-      myContract4,
-      myContract5,
-      myContract6,
-    }
-  }
-
-}
-
-const myDeployment1 = new MyDeployment({ name: &#x27;my-deployment-1&#x27; })
-await myDeployment1.deploy()
-
-const myDeployment2 = new MyDeployment({ name: &#x27;my-deployment-2&#x27; })
-await myDeployment2.deploy()*/</span>
-</code></pre>
 <h3 id="deploying-everything" tabindex="-1">Deploying everything</h3>
 <p>To prepare a deployment for deploying, use <code>getDeployment</code>.
 This will provide a populated instance of your deployment class.</p>
