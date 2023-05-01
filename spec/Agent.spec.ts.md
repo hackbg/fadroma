@@ -26,11 +26,10 @@ let chain: Chain
 ### Chain modes
 
 Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`.
+To connect to a chain in a specific mode, you can use the corresponding static
+method on the `Chain`
 
-The `Chain#devMode` flag is true if you are able to restart
-the chain and start over (i.e. when using a devnet or mocknet).
-
-* **Mainnet** is the production chain where value is stored.
+**Mainnet** is the production chain where value is stored.
 
 ```typescript
 chain = Chain.mainnet({ id: 'id', url: 'example.com' })
@@ -39,7 +38,7 @@ assert(!chain.devMode)
 assert(chain.isMainnet)
 ```
 
-* **Testnet** is a persistent remote chain used for testing.
+**Testnet** is a persistent remote chain used for testing.
 
 ```typescript
 chain = Chain.testnet({ id: 'id', url: 'example.com' })
@@ -49,8 +48,8 @@ assert(chain.isTestnet)
 assert(!chain.isMainnet)
 ```
 
-* [**Devnet**](../devnet/Devnet.spec.ts.md) uses a real chain node, booted up temporarily in
-  a local environment.
+[**Devnet**](../devnet/Devnet.spec.ts.md) uses a real chain node, booted up temporarily in
+a local environment.
 
 ```typescript
 chain = Chain.devnet({ id: 'id', url: 'example.com' })
@@ -60,8 +59,8 @@ assert(chain.isDevnet)
 assert(!chain.isMainnet)
 ```
 
-* [**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of executing contract code
-  in the local JS WASM runtime.
+[**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of executing contract code
+in the local JS WASM runtime.
 
 ```typescript
 chain = Chain.mocknet({ id: 'id' url: 'example.com' })
@@ -70,6 +69,11 @@ assert(chain.devMode)
 assert(chain.isMocknet)
 assert(!chain.isMainnet)
 ```
+
+### Dev mode
+
+The `chain.devMode` flag is true if you are able to restart
+the chain and start over (i.e. when using a devnet or mocknet).
 
 ## Agent
 

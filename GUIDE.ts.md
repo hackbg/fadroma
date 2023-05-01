@@ -32,7 +32,7 @@ Projects created by Fadroma are polyglot Rust/TypeScript repositories.
   and also contains an `ops.ts` module (where your project, and any custom
   extensions to the workflow, are defined).
 
-### Create a Fadroma project through NPX
+### Create project through NPX
 
 If you have Node.js set up, you can use the `npx` command to create a new Fadroma project:
 
@@ -213,7 +213,7 @@ and will drop you in a shell where these tools are available
 on the system path. In this shell, you can able to invoke
 the Fadroma CLI with just `fadroma` instead of `npm exec fadroma` or similar.
 
-### Create a Fadroma project through Nix
+### Create project through Nix
 
 If you use Nix, you can create a project with:
 
