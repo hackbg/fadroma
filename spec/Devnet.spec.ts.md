@@ -1,4 +1,4 @@
-# Devnets: local development backends
+# Fadroma Guide: Devnet
 
 The **devnet** (a.k.a. localnet) is a local instance of the selected chain.
 Devnets are persistent, and can be started and stopped; info about contracts
