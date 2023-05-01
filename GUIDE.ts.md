@@ -1,4 +1,4 @@
-# Getting started
+# Fadroma Guide: Getting started
 
 **Fadroma** is an application framework for the CosmWasm Compute module.
 Fadroma includes **Rust** libraries for writing smart contracts and a
