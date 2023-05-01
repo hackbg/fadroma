@@ -355,7 +355,7 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#chain">Chain</a><ul><li><a href="#chain-modes">Chain modes</a></li></ul></li><li><a href="#agent">Agent</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#default-gas-fees">Default gas fees</a></li><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li><li><a href="#batching-transactions">Batching transactions</a></li></ul></li><li><a href="#client">Client</a><ul><li><a href="#metadata">Metadata</a></li><li><a href="#client-agent">Client agent</a></li><li><a href="#defining-query-and-transaction-methods">Defining query and transaction methods</a></li><li><a href="#per-transaction-fees">Per-transaction fees</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#chain">Chain</a><ul><li><a href="#chain-modes">Chain modes</a></li><li><a href="#dev-mode">Dev mode</a></li></ul></li><li><a href="#agent">Agent</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#default-gas-fees">Default gas fees</a></li><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li><li><a href="#batching-transactions">Batching transactions</a></li></ul></li><li><a href="#client">Client</a><ul><li><a href="#metadata">Metadata</a></li><li><a href="#client-agent">Client agent</a></li><li><a href="#defining-query-and-transaction-methods">Defining query and transaction methods</a></li><li><a href="#per-transaction-fees">Per-transaction fees</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-guide%3A-agent-api" tabindex="-1">Fadroma Guide: Agent API</h1>
 <p>The <strong>Agent API</strong> is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.</p>
@@ -375,46 +375,41 @@ such as the Secret Network mainnet or testnet.</p>
 <span class="hljs-keyword">let</span> <span class="hljs-attr">chain</span>: <span class="hljs-title class_">Chain</span>
 </code></pre>
 <h3 id="chain-modes" tabindex="-1">Chain modes</h3>
-<p>Chains can be in several <code>mode</code>s, enumerated by <code>ChainMode</code> a.k.a. <code>Chain.Mode</code>.</p>
-<p>The <code>Chain#devMode</code> flag is true if you are able to restart
-the chain and start over (i.e. when using a devnet or mocknet).</p>
-<ul>
-<li><strong>Mainnet</strong> is the production chain where value is stored.</li>
-</ul>
+<p>Chains can be in several <code>mode</code>s, enumerated by <code>ChainMode</code> a.k.a. <code>Chain.Mode</code>.
+To connect to a chain in a specific mode, you can use the corresponding static
+method on the <code>Chain</code></p>
+<p><strong>Mainnet</strong> is the production chain where value is stored.</p>
 <pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">mainnet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
 
 <span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">devMode</span>)
 <span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isMainnet</span>)
 </code></pre>
-<ul>
-<li><strong>Testnet</strong> is a persistent remote chain used for testing.</li>
-</ul>
+<p><strong>Testnet</strong> is a persistent remote chain used for testing.</p>
 <pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">testnet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
 
 <span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">devMode</span>)
 <span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isTestnet</span>)
 <span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">isMainnet</span>)
 </code></pre>
-<ul>
-<li><a href="../devnet/Devnet.spec.ts.md"><strong>Devnet</strong></a> uses a real chain node, booted up temporarily in
-a local environment.</li>
-</ul>
+<p><a href="../devnet/Devnet.spec.ts.md"><strong>Devnet</strong></a> uses a real chain node, booted up temporarily in
+a local environment.</p>
 <pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">devnet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
 
 <span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">devMode</span>)
 <span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isDevnet</span>)
 <span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">isMainnet</span>)
 </code></pre>
-<ul>
-<li><a href="../mocknet/Mocknet.spec.ts.md"><strong>Mocknet</strong></a> is a fast, nodeless way of executing contract code
-in the local JS WASM runtime.</li>
-</ul>
+<p><a href="../mocknet/Mocknet.spec.ts.md"><strong>Mocknet</strong></a> is a fast, nodeless way of executing contract code
+in the local JS WASM runtime.</p>
 <pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">mocknet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span> <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
 
 <span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">devMode</span>)
 <span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isMocknet</span>)
 <span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">isMainnet</span>)
 </code></pre>
+<h3 id="dev-mode" tabindex="-1">Dev mode</h3>
+<p>The <code>chain.devMode</code> flag is true if you are able to restart
+the chain and start over (i.e. when using a devnet or mocknet).</p>
 <h2 id="agent" tabindex="-1">Agent</h2>
 <p>To transact on a <a href="./Chains.ts.md">chain</a>, you need to authenticate
 with your identity (account, wallet). To do that, you obtain an

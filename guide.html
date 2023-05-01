@@ -355,7 +355,7 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#design-considerations">Design considerations</a></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-a-fadroma-project-through-npx">Create a Fadroma project through NPX</a></li><li><a href="#add-more-contracts">Add more contracts</a></li></ul></li><li><a href="#writing-contracts">Writing contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#build-cli">Build CLI</a></li></ul></li><li><a href="#deploying-contracts">Deploying contracts</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#devnets">Devnets</a></li></ul></li><li><a href="#testing-contracts">Testing contracts</a><ul><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#scripting-fadroma">Scripting Fadroma</a><ul><li><a href="#adding-commands">Adding commands</a></li><li><a href="#typescript">TypeScript</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deployment-api">Deployment API</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmos-like-chains">Other Cosmos-like chains</a></li><li><a href="#evm-based-chains">EVM-based chains</a></li></ul></li></ul></li><li><a href="#nix-environment-support">Nix environment support</a><ul><li><a href="#standalone-nix-shell">Standalone Nix shell</a></li><li><a href="#create-a-fadroma-project-through-nix">Create a Fadroma project through Nix</a></li><li><a href="#project-specific-nix-shell">Project-specific Nix shell</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#design-considerations">Design considerations</a></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-project-through-npx">Create project through NPX</a></li><li><a href="#add-more-contracts">Add more contracts</a></li></ul></li><li><a href="#writing-contracts">Writing contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#build-cli">Build CLI</a></li></ul></li><li><a href="#deploying-contracts">Deploying contracts</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#devnets">Devnets</a></li></ul></li><li><a href="#testing-contracts">Testing contracts</a><ul><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#scripting-fadroma">Scripting Fadroma</a><ul><li><a href="#adding-commands">Adding commands</a></li><li><a href="#typescript">TypeScript</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deployment-api">Deployment API</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmos-like-chains">Other Cosmos-like chains</a></li><li><a href="#evm-based-chains">EVM-based chains</a></li></ul></li></ul></li><li><a href="#nix-environment-support">Nix environment support</a><ul><li><a href="#standalone-nix-shell">Standalone Nix shell</a></li><li><a href="#create-project-through-nix">Create project through Nix</a></li><li><a href="#project-specific-nix-shell">Project-specific Nix shell</a></li></ul></li></ul></div></p>
 <h1 id="getting-started" tabindex="-1">Getting started</h1>
 <p><strong>Fadroma</strong> is an application framework for the CosmWasm Compute module.
 Fadroma includes <strong>Rust</strong> libraries for writing smart contracts and a
@@ -391,7 +391,7 @@ and also contains an <code>ops.ts</code> module (where your project, and any cus
 extensions to the workflow, are defined).</p>
 </li>
 </ul>
-<h3 id="create-a-fadroma-project-through-npx" tabindex="-1">Create a Fadroma project through NPX</h3>
+<h3 id="create-project-through-npx" tabindex="-1">Create project through NPX</h3>
 <p>If you have Node.js set up, you can use the <code>npx</code> command to create a new Fadroma project:</p>
 <pre><code class="hljs language-sh">$ npx @hackbg/fadroma@latest create
 </code></pre>
@@ -502,7 +502,7 @@ use Nix to provide you with a stable development environment.</p>
 and will drop you in a shell where these tools are available
 on the system path. In this shell, you can able to invoke
 the Fadroma CLI with just <code>fadroma</code> instead of <code>npm exec fadroma</code> or similar.</p>
-<h3 id="create-a-fadroma-project-through-nix" tabindex="-1">Create a Fadroma project through Nix</h3>
+<h3 id="create-project-through-nix" tabindex="-1">Create project through Nix</h3>
 <p>If you use Nix, you can create a project with:</p>
 <pre><code class="hljs language-sh">$ nix-shell https://fadroma.tech/nix -c fadroma project create
 </code></pre>
