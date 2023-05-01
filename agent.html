@@ -606,46 +606,13 @@ assert.<span class="hljs-title function_">equal</span>(
 </code></pre>
 <p>Once you know what methods your contract will support,
 you'll want to extend <code>Client</code> and implement them there:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">let</span> <span class="hljs-attr">deployment</span>: <span class="hljs-title class_">Deployment</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">template</span>:   <span class="hljs-title class_">Template</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">instance</span>:   <span class="hljs-title class_">Instance</span>
-
-<span class="hljs-keyword">class</span> <span class="hljs-title class_">MyClient</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyClient</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
   address = <span class="hljs-string">&#x27;unspecified&#x27;</span>
-  myMethod () { <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: {} }) }
-  myQuery () { <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">my_query</span>: {} }) }
+  myMethod = <span class="hljs-function">(<span class="hljs-params">param</span>) =&gt;</span>
+    <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: { param } })
+  myQuery = <span class="hljs-function">(<span class="hljs-params">param</span>) =&gt;</span>
+    <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">my_query</span>: { param } }) }
 }
-</code></pre>
-<pre><code class="hljs language-typescript">
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Builder</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-deployment = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Deployment</span>({
-  <span class="hljs-attr">agent</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Agent</span>({ <span class="hljs-attr">chain</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Chain</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;test&#x27;</span>, <span class="hljs-attr">mode</span>: <span class="hljs-title class_">Chain</span>.<span class="hljs-property">Mode</span>.<span class="hljs-property">Devnet</span> }) }),
-  <span class="hljs-attr">builder</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Builder</span>()
-})
-
-assert.<span class="hljs-title function_">ok</span>(deployment.<span class="hljs-property">devMode</span>, <span class="hljs-string">&#x27;deployment is in dev mode&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(deployment.<span class="hljs-property">size</span>, <span class="hljs-number">0</span>)
-
-template = <span class="hljs-keyword">await</span> deployment.<span class="hljs-title function_">template</span>({
-  <span class="hljs-attr">codeId</span>: <span class="hljs-number">2</span>,
-  <span class="hljs-attr">client</span>: <span class="hljs-title class_">MyClient</span>,
-  <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>
-})
-
-assert.<span class="hljs-title function_">ok</span>(template.<span class="hljs-property">info</span>)
-
-instance = template.<span class="hljs-title function_">instance</span>({
-  <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;custom-client-contract&#x27;</span>,
-  <span class="hljs-attr">initMsg</span>: {}
-})
-
-assert.<span class="hljs-title function_">equal</span>(deployment.<span class="hljs-property">size</span>, <span class="hljs-number">1</span>)
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> template.<span class="hljs-property">compiled</span>)
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> template.<span class="hljs-property">uploaded</span>)
-<span class="hljs-comment">//assert.ok(instance instanceof MyClient) // FIXME</span>
-<span class="hljs-comment">//assert.ok(await instance.myMethod())</span>
-<span class="hljs-comment">//assert.ok(await instance.myQuery())</span>
 </code></pre>
 <p>By publishing a library of <code>Client</code> subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn

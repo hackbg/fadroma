@@ -355,7 +355,7 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#deploying-individual-contracts-and-their-dependencies">Deploying individual contracts and their dependencies</a></li><li><a href="#adding-custom-deployment-and-migrations">Adding custom deployment and migrations</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting">Connecting</a></li><li><a href="#expecting-contracts-to-be-present">Expecting contracts to be present</a></li></ul></li><li><a href="#deployment%3A-defining-contract-relations">Deployment: defining contract relations</a><ul><li><a href="#storing-deployment-state">Storing deployment state</a></li><li><a href="#exporting-deployments">Exporting deployments</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#versioned-deployments">Versioned deployments</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building">Building</a></li><li><a href="#uploading">Uploading</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming">Naming</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying">Deploying</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#deploying-individual-contracts-and-their-dependencies">Deploying individual contracts and their dependencies</a></li><li><a href="#adding-custom-migrations">Adding custom migrations</a></li><li><a href="#how-state-is-stored">How state is stored</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building">Building</a></li><li><a href="#uploading">Uploading</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming">Naming</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying">Deploying</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-guide%3A-deploy-api" tabindex="-1">Fadroma Guide: Deploy API</h1>
 <p>The <strong>Deploy API</strong> revolves around the <code>Deployment</code> class, and associated
 implementations of <code>Client</code>, <code>Builder</code>, <code>Uploader</code>, and <code>DeployStore</code>.</p>
@@ -479,7 +479,7 @@ deploy it, and all of its dependencies (as specified by the <code>initMsg</code>
 <p>Since this does not call the deployment's <code>deploy</code> method,
 it <em>only</em> deploys the requested contract and its dependencies
 but not any other contracts defined in the deployment.</p>
-<h3 id="adding-custom-deployment-and-migrations" tabindex="-1">Adding custom deployment and migrations</h3>
+<h3 id="adding-custom-migrations" tabindex="-1">Adding custom migrations</h3>
 <p>The default <code>Deployment#deploy</code> method simply instantiates all
 contracts defined using the <code>Deployment#contract</code> method. To
 implement a custom deploy order, you can override <code>deploy</code>.</p>
@@ -487,16 +487,16 @@ implement a custom deploy order, you can override <code>deploy</code>.</p>
 a custom <code>deploy</code> method:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyDeployment2</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">MyDeployment</span> {
 
-  <span class="hljs-keyword">async</span> deploy () {
+  <span class="hljs-keyword">async</span> deploy (deployOnlyFoo?: <span class="hljs-built_in">boolean</span>) {
+    <span class="hljs-comment">/** You can override the deploy method to deploy with custom logic. */</span>
     <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">foo</span>.<span class="hljs-property">deployed</span>
-    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">bar</span>.<span class="hljs-property">deployed</span>
+    <span class="hljs-keyword">if</span> (!deployOnlyFoo) <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">bar</span>.<span class="hljs-property">deployed</span>
     <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>
   }
 
   <span class="hljs-keyword">async</span> update (<span class="hljs-attr">previous</span>: <span class="hljs-title class_">Deployment</span>) {
-    <span class="hljs-comment">/** Here you may implement a function that performs an upgrade,
-      * in the form of deploying new versions of contracts,
-      * and reusing others from the previous deployment. */</span>
+    <span class="hljs-comment">/** Here you may implement an upgrade method that fetches
+      * the state of existing contracts, and deploys new ones. */</span>
   }
 
 }
@@ -506,13 +506,16 @@ a custom <code>deploy</code> method:</p>
 <span class="hljs-title function_">assert</span>(deployment2.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
 <span class="hljs-title function_">assert</span>(deployment2.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
 </code></pre>
+<h3 id="how-state-is-stored" tabindex="-1">How state is stored</h3>
+<p>See the <code>DeployStore</code> implementation.</p>
 <h3 id="exporting-the-deployment" tabindex="-1">Exporting the deployment</h3>
-<h3 id="connecting" tabindex="-1">Connecting</h3>
+<p>This feature is a work-in-progress.</p>
+<h3 id="connecting-to-an-exported-deployment" tabindex="-1">Connecting to an exported deployment</h3>
 <p>Having been deployed once, contracts may be used continously.
 The <code>Deployment</code>'s <code>connect</code> method loads stored data about
 the contracts in the deployment, populating the contained
 <code>Contract</code> instances.</p>
-<h3 id="expecting-contracts-to-be-present" tabindex="-1">Expecting contracts to be present</h3>
+<h3 id="expecting-contracts-to-be-deployed" tabindex="-1">Expecting contracts to be deployed</h3>
 <p>Using the <code>expect</code> method, you state: &quot;I expect that
 at the current point in time, this contract is deployed;
 now, give me a handle to it&quot;.</p>
@@ -527,11 +530,6 @@ this will throw an error.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Deploy.test.ts&#x27;</span>
 </code></pre>
-<h2 id="deployment%3A-defining-contract-relations" tabindex="-1">Deployment: defining contract relations</h2>
-<h3 id="storing-deployment-state" tabindex="-1">Storing deployment state</h3>
-<h3 id="exporting-deployments" tabindex="-1">Exporting deployments</h3>
-<h3 id="connecting-to-an-exported-deployment" tabindex="-1">Connecting to an exported deployment</h3>
-<h3 id="versioned-deployments" tabindex="-1">Versioned deployments</h3>
 <h2 id="template" tabindex="-1">Template</h2>
 <h3 id="deploying-multiple-contracts-from-a-template" tabindex="-1">Deploying multiple contracts from a template</h3>
 <p>The <code>Deployment#template</code> method allows you to add a <code>Template</code>
