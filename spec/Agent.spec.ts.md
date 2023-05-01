@@ -432,17 +432,24 @@ property of your client class:
 
 ```typescript
 import { Client, Fee } from '@fadroma/agent'
+
 export class MyContract extends Client {
+
+  tx1 = () => this.execute("tx1")
+
+  tx2 = (n) => this.execute({tx2: n})
+
+  tx3 = () => this.execute({tx3: {}})
+
+  tx4 = (n) => this.execute({tx4: {my_value: n}})
+
   fees = {
     tx1: new Fee('10000', 'uscrt'),
     tx2: new Fee('20000', 'uscrt'),
     tx3: new Fee('30000', 'uscrt'),
     tx4: new Fee('40000', 'uscrt'),
   }
-  async tx1 ()  { return await this.execute("tx1") }
-  async tx2 (n) { return await this.execute({tx2: n}) }
-  async tx3 ()  { return await this.execute({tx3: {}}) }
-  async tx4 (n) { return await this.execute({tx4: {my_value: n}}) }
+
 }
 ```
 
@@ -452,7 +459,8 @@ default `exec` fee configured in the agent.
 You can override these defaults by using the `withFee(fee: IFee)` method:
 
 ```typescript
-const result = await client.withFee(new Fee('100000', 'uscrt')).tx1()
+const fee    = new Fee('100000', 'uscrt')
+const result = await client.withFee(fee).tx1()
 ```
 
 This method works by returning a new instance of `MyContract` that has
