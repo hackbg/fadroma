@@ -374,6 +374,16 @@ such as the Secret Network mainnet or testnet.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-keyword">let</span> <span class="hljs-attr">chain</span>: <span class="hljs-title class_">Chain</span>
 </code></pre>
+<p><strong>Note:</strong> <code>Chain</code> in <code>@fadroma/agent</code> is a stub class. If you want to connect
+to Secret Network, you need the <code>ScrtChain</code> implementation from <code>@fadroma/scrt</code>,
+which is available using either:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Scrt</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma`
+chain = Scrt.Chain.mainnet()
+</span></code></pre>
+<p>or</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Scrt</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/scrt&#x27;</span>
+chain = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mainnet</span>()
+</code></pre>
 <h3 id="chain-modes" tabindex="-1">Chain modes</h3>
 <p>Chains can be in several <code>mode</code>s, enumerated by <code>ChainMode</code> a.k.a. <code>Chain.Mode</code>.
 To connect to a chain in a specific mode, you can use the corresponding static
