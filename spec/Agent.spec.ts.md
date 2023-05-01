@@ -23,6 +23,22 @@ import { Chain } from '@fadroma/agent'
 let chain: Chain
 ```
 
+**Note:** `Chain` in `@fadroma/agent` is a stub class. If you want to connect
+to Secret Network, you need the `ScrtChain` implementation from `@fadroma/scrt`,
+which is available using either:
+
+```typescript
+import { Scrt } from '@hackbg/fadroma`
+chain = Scrt.Chain.mainnet()
+```
+
+or
+
+```typescript
+import * as Scrt from '@fadroma/scrt'
+chain = Scrt.Chain.mainnet()
+```
+
 ### Chain modes
 
 Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`.
