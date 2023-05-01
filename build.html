@@ -448,6 +448,10 @@ What to compile is specified using the primitives defined in <a href="../client/
 </tbody>
 </table>
 <h2 id="build-api" tabindex="-1">Build API</h2>
+<ul>
+<li><strong>BuildRaw</strong>: runs the build in the current environment</li>
+<li><strong>BuildContainer</strong>: runs the build in a container for enhanced reproducibility</li>
+</ul>
 <h3 id="getting-a-builder" tabindex="-1">Getting a builder</h3>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getBuilder } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
 <span class="hljs-keyword">const</span> builder = <span class="hljs-title function_">getBuilder</span>(<span class="hljs-comment">/* { ...options... } */</span>)

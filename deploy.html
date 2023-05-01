@@ -355,11 +355,18 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#defining-a-deployment">Defining a Deployment</a><ul><li><ul><li><a href="#contract-labels">Contract labels</a></li><li><a href="#lazy-initmsg">Lazy initMsg</a></li></ul></li><li><a href="#deploying">Deploying</a><ul><li><a href="#deploying-individual-contracts">Deploying individual contracts</a></li><li><a href="#custom-deploy-commands">Custom deploy commands</a></li><li><a href="#deploying-multiple-instances-of-contracts">Deploying multiple instances of contracts</a></li></ul></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#expecting-contracts-to-be-present">Expecting contracts to be present</a></li></ul></li></ul></li><li><a href="#deployment%3A-defining-contract-relations">Deployment: defining contract relations</a><ul><li><a href="#storing-deployment-state">Storing deployment state</a></li><li><a href="#exporting-deployments">Exporting deployments</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#versioned-deployments">Versioned deployments</a></li></ul></li><li><a href="#template%3A-build-and-upload">Template: build and upload</a></li><li><a href="#contract%3A-full-contract-lifecycle">Contract: full contract lifecycle</a><ul><li><a href="#contract-label-prefixes-and-suffixes">Contract label prefixes and suffixes</a></li><li><a href="#contract-lifecycle">Contract lifecycle</a></li></ul></li><li><a href="#builder">Builder</a></li><li><a href="#uploader">Uploader</a></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#deploying-individual-contracts-and-their-dependencies">Deploying individual contracts and their dependencies</a></li><li><a href="#adding-custom-deployment-and-migrations">Adding custom deployment and migrations</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting">Connecting</a></li><li><a href="#expecting-contracts-to-be-present">Expecting contracts to be present</a></li></ul></li><li><a href="#deployment%3A-defining-contract-relations">Deployment: defining contract relations</a><ul><li><a href="#storing-deployment-state">Storing deployment state</a></li><li><a href="#exporting-deployments">Exporting deployments</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#versioned-deployments">Versioned deployments</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building">Building</a></li><li><a href="#uploading">Uploading</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming">Naming</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying">Deploying</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-guide%3A-deploy-api" tabindex="-1">Fadroma Guide: Deploy API</h1>
-<h2 id="defining-a-deployment" tabindex="-1">Defining a <code>Deployment</code></h2>
+<p>The <strong>Deploy API</strong> revolves around the <code>Deployment</code> class, and associated
+implementations of <code>Client</code>, <code>Builder</code>, <code>Uploader</code>, and <code>DeployStore</code>.</p>
+<p>These classes are used for describing systems consisting of multiple smart contracts,
+such as when deploying them from source. By defining such a system as one or more
+subclasses of <code>Deployment</code>, Fadroma enables declarative, idempotent, and reproducible
+smart contract deployments.</p>
+<h2 id="deployment" tabindex="-1">Deployment</h2>
 <p>The <code>Deployment</code> class represents a set of interrelated contracts.
-To define your deployment, extend the <code>Deployment</code> class, and specify
+To define your deployment, extend the <code>Deployment</code> class, and use the
+<code>this.template({...})</code> and <code>this.contract({...})</code> methods to specify
 what contracts to deploy:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
@@ -379,132 +386,6 @@ what contracts to deploy:</p>
 
 }
 </code></pre>
-<h4 id="contract-labels" tabindex="-1">Contract labels</h4>
-<p>Since contract labels are required to be unique, Fadroma generates them
-from the deployment name and the contract name. The deployment name
-defaults to the current timestamp. The contract name you must specify explicitly.</p>
-<h4 id="lazy-initmsg" tabindex="-1">Lazy initMsg</h4>
-<p>The <code>initMsg</code> property can be a function returning the actual message.
-This is evaluated during instantiation, and can be used to generate init messages on the fly,
-such as when passing the address of one contract to another.</p>
-<h3 id="deploying" tabindex="-1">Deploying</h3>
-<p>To prepare a deployment for deploying, use <code>getDeployment</code>.
-This will provide a populated instance of your deployment class.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getDeployment } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
-<span class="hljs-keyword">let</span> deployment = <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">MyDeployment</span>, <span class="hljs-comment">/* ...constructor args */</span>)
-</code></pre>
-<p>Then, call its <code>deploy</code> method:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-title function_">deploy</span>()
-</code></pre>
-<p>For each contract defined in the deployment, this will do the following:</p>
-<ul>
-<li>If it's not compiled yet, this will <strong>build</strong> it.</li>
-<li>If it's not uploaded yet, it will <strong>upload</strong> it.</li>
-<li>If it's not instantiated yet, it will <strong>instantiate</strong> it.</li>
-</ul>
-<p>Having deployed a contract, you want to obtain a <code>Client</code> instance
-that points to it, so you can call the contract's methods.</p>
-<p>There are two ways of doing this, awaiting and expecting.</p>
-<h4 id="deploying-individual-contracts" tabindex="-1">Deploying individual contracts</h4>
-<p>By <code>await</code>ing a <code>Contract</code>'s <code>deployed</code> property, you say:
-&quot;give me a handle to this contract; if it's not deployed,
-deploy it, and all of its dependencies (as specified by the <code>initMsg</code> method)&quot;.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> foo1 = <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">foo</span>.<span class="hljs-property">deployed</span>
-<span class="hljs-keyword">const</span> bar1 = <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">bar</span>.<span class="hljs-property">deployed</span>
-
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-title function_">assert</span>(foo1 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-<span class="hljs-title function_">assert</span>(bar1 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-</code></pre>
-<p>Since this does not call the deployment's <code>deploy</code> method,
-it <em>only</em> deploys the requested contract and its dependencies
-but not any other contracts defined in the deployment.</p>
-<h4 id="custom-deploy-commands" tabindex="-1">Custom deploy commands</h4>
-<p>The default <code>Deployment#deploy</code> method simply instantiates all
-contracts defined using the <code>Deployment#contract</code> method. To
-implement a custom deploy order, you can override <code>deploy</code>.</p>
-<p>Let's build on top of the first example and implement
-a custom <code>deploy</code> method:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyDeployment2</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">MyDeployment</span> {
-
-  <span class="hljs-keyword">async</span> deploy () {
-    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">foo</span>.<span class="hljs-property">deployed</span>
-    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">bar</span>.<span class="hljs-property">deployed</span>
-    <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>
-  }
-
-  <span class="hljs-keyword">async</span> update (<span class="hljs-attr">previous</span>: <span class="hljs-title class_">Deployment</span>) {
-    <span class="hljs-comment">/** Here you may implement a function that performs an upgrade,
-      * in the form of deploying new versions of contracts,
-      * and reusing others from the previous deployment. */</span>
-  }
-
-}
-
-<span class="hljs-keyword">const</span> deployment2 = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">MyDeployment2</span>).<span class="hljs-title function_">deploy</span>()
-
-<span class="hljs-title function_">assert</span>(deployment2.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-<span class="hljs-title function_">assert</span>(deployment2.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-</code></pre>
-<h4 id="deploying-multiple-instances-of-contracts" tabindex="-1">Deploying multiple instances of contracts</h4>
-<p>The <code>Deployment#template</code> method allows you to add a <code>Template</code>
-in the <code>Deployment</code>. A <code>Template</code> can be built and uploaded,
-and then create multiple <code>Contract</code> instances that use to the same code,
-via the <code>Template#instance</code> method.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyDeployment3</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">MyDeployment</span> {
-
-  baz = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
-
-  baz1 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">baz</span>.<span class="hljs-title function_">instance</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
-
-  bazN = <span class="hljs-variable language_">this</span>.<span class="hljs-property">baz</span>.<span class="hljs-title function_">instances</span>([
-    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
-    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz3&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
-    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz4&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} }
-  ])
-
-}
-
-<span class="hljs-keyword">const</span> deployment3 = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">MyDeployment3</span>).<span class="hljs-title function_">deploy</span>()
-
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
-
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz1</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-
-<span class="hljs-comment">// <span class="hljs-doctag">FIXME:</span> phat awaits</span>
-<span class="hljs-comment">//assert((await deployment3.bazN) instanceof Array)</span>
-<span class="hljs-comment">//assert((await (await deployment3.bazN)[0]) instanceof Client)</span>
-<span class="hljs-comment">//assert((await (await deployment3.bazN)[1]) instanceof Client)</span>
-<span class="hljs-comment">//assert((await (await deployment3.bazN)[2]) instanceof Client)</span>
-</code></pre>
-<h3 id="exporting-the-deployment" tabindex="-1">Exporting the deployment</h3>
-<h3 id="connecting" tabindex="-1">Connecting</h3>
-<p>Having been deployed once, contracts may be used continously.
-The <code>Deployment</code>'s <code>connect</code> method loads stored data about
-the contracts in the deployment, populating the contained
-<code>Contract</code> instances.</p>
-<h4 id="expecting-contracts-to-be-present" tabindex="-1">Expecting contracts to be present</h4>
-<p>Using the <code>expect</code> method, you state: &quot;I expect that
-at the current point in time, this contract is deployed;
-now, give me a handle to it&quot;.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> foo2 = deployment.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>()
-<span class="hljs-keyword">const</span> bar2 = deployment.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>()
-
-<span class="hljs-title function_">assert</span>(foo2 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-<span class="hljs-title function_">assert</span>(bar2 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-</code></pre>
-<p>If the address of the request contract is not available,
-this will throw an error.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
-<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Deploy.test.ts&#x27;</span>
-</code></pre>
-<h2 id="deployment%3A-defining-contract-relations" tabindex="-1">Deployment: defining contract relations</h2>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
 <span class="hljs-comment">/*class MyDeployment extends Deployment {
@@ -566,12 +447,156 @@ await myDeployment1.deploy()
 const myDeployment2 = new MyDeployment({ name: &#x27;my-deployment-2&#x27; })
 await myDeployment2.deploy()*/</span>
 </code></pre>
+<h3 id="deploying-everything" tabindex="-1">Deploying everything</h3>
+<p>To prepare a deployment for deploying, use <code>getDeployment</code>.
+This will provide a populated instance of your deployment class.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getDeployment } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/ops&#x27;</span>
+<span class="hljs-keyword">let</span> deployment = <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">MyDeployment</span>, <span class="hljs-comment">/* ...constructor args */</span>)
+</code></pre>
+<p>Then, call its <code>deploy</code> method:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-title function_">deploy</span>()
+</code></pre>
+<p>For each contract defined in the deployment, this will do the following:</p>
+<ul>
+<li>If it's not compiled yet, this will <strong>build</strong> it.</li>
+<li>If it's not uploaded yet, it will <strong>upload</strong> it.</li>
+<li>If it's not instantiated yet, it will <strong>instantiate</strong> it.</li>
+</ul>
+<p>Having deployed a contract, you want to obtain a <code>Client</code> instance
+that points to it, so you can call the contract's methods.</p>
+<p>There are two ways of doing this, awaiting and expecting.</p>
+<h3 id="deploying-individual-contracts-and-their-dependencies" tabindex="-1">Deploying individual contracts and their dependencies</h3>
+<p>By <code>await</code>ing a <code>Contract</code>'s <code>deployed</code> property, you say:
+&quot;give me a handle to this contract; if it's not deployed,
+deploy it, and all of its dependencies (as specified by the <code>initMsg</code> method)&quot;.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> foo1 = <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">foo</span>.<span class="hljs-property">deployed</span>
+<span class="hljs-keyword">const</span> bar1 = <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">bar</span>.<span class="hljs-property">deployed</span>
+
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-title function_">assert</span>(foo1 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+<span class="hljs-title function_">assert</span>(bar1 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+</code></pre>
+<p>Since this does not call the deployment's <code>deploy</code> method,
+it <em>only</em> deploys the requested contract and its dependencies
+but not any other contracts defined in the deployment.</p>
+<h3 id="adding-custom-deployment-and-migrations" tabindex="-1">Adding custom deployment and migrations</h3>
+<p>The default <code>Deployment#deploy</code> method simply instantiates all
+contracts defined using the <code>Deployment#contract</code> method. To
+implement a custom deploy order, you can override <code>deploy</code>.</p>
+<p>Let's build on top of the first example and implement
+a custom <code>deploy</code> method:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyDeployment2</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">MyDeployment</span> {
+
+  <span class="hljs-keyword">async</span> deploy () {
+    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">foo</span>.<span class="hljs-property">deployed</span>
+    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">bar</span>.<span class="hljs-property">deployed</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>
+  }
+
+  <span class="hljs-keyword">async</span> update (<span class="hljs-attr">previous</span>: <span class="hljs-title class_">Deployment</span>) {
+    <span class="hljs-comment">/** Here you may implement a function that performs an upgrade,
+      * in the form of deploying new versions of contracts,
+      * and reusing others from the previous deployment. */</span>
+  }
+
+}
+
+<span class="hljs-keyword">const</span> deployment2 = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">MyDeployment2</span>).<span class="hljs-title function_">deploy</span>()
+
+<span class="hljs-title function_">assert</span>(deployment2.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+<span class="hljs-title function_">assert</span>(deployment2.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+</code></pre>
+<h3 id="exporting-the-deployment" tabindex="-1">Exporting the deployment</h3>
+<h3 id="connecting" tabindex="-1">Connecting</h3>
+<p>Having been deployed once, contracts may be used continously.
+The <code>Deployment</code>'s <code>connect</code> method loads stored data about
+the contracts in the deployment, populating the contained
+<code>Contract</code> instances.</p>
+<h3 id="expecting-contracts-to-be-present" tabindex="-1">Expecting contracts to be present</h3>
+<p>Using the <code>expect</code> method, you state: &quot;I expect that
+at the current point in time, this contract is deployed;
+now, give me a handle to it&quot;.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> foo2 = deployment.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>()
+<span class="hljs-keyword">const</span> bar2 = deployment.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>()
+
+<span class="hljs-title function_">assert</span>(foo2 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+<span class="hljs-title function_">assert</span>(bar2 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+</code></pre>
+<p>If the address of the request contract is not available,
+this will throw an error.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Deploy.test.ts&#x27;</span>
+</code></pre>
+<h2 id="deployment%3A-defining-contract-relations" tabindex="-1">Deployment: defining contract relations</h2>
 <h3 id="storing-deployment-state" tabindex="-1">Storing deployment state</h3>
 <h3 id="exporting-deployments" tabindex="-1">Exporting deployments</h3>
 <h3 id="connecting-to-an-exported-deployment" tabindex="-1">Connecting to an exported deployment</h3>
 <h3 id="versioned-deployments" tabindex="-1">Versioned deployments</h3>
-<h2 id="template%3A-build-and-upload" tabindex="-1">Template: build and upload</h2>
-<h2 id="contract%3A-full-contract-lifecycle" tabindex="-1">Contract: full contract lifecycle</h2>
+<h2 id="template" tabindex="-1">Template</h2>
+<h3 id="deploying-multiple-contracts-from-a-template" tabindex="-1">Deploying multiple contracts from a template</h3>
+<p>The <code>Deployment#template</code> method allows you to add a <code>Template</code>
+in the <code>Deployment</code>. A <code>Template</code> can be built and uploaded,
+and then create multiple <code>Contract</code> instances that use to the same code,
+via the <code>Template#instance</code> method.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyDeployment3</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">MyDeployment</span> {
+
+  baz = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
+
+  baz1 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">baz</span>.<span class="hljs-title function_">instance</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+
+  bazN = <span class="hljs-variable language_">this</span>.<span class="hljs-property">baz</span>.<span class="hljs-title function_">instances</span>([
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz3&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz4&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} }
+  ])
+
+}
+
+<span class="hljs-keyword">const</span> deployment3 = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">MyDeployment3</span>).<span class="hljs-title function_">deploy</span>()
+
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+
+<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
+
+<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz1</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
+<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+</code></pre>
+<p>To deploy multiple contract instances from the same code,
+you can use templates.</p>
+<p>You can pass either an array or an object to <code>template.instances</code>:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> [ templateInsanceThree, templateClientFour ] = <span class="hljs-keyword">await</span> template.<span class="hljs-title function_">instances</span>([
+  { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name3&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value3&#x27;</span> } },
+  { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name4&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value4&#x27;</span> } },
+])
+<span class="hljs-keyword">const</span> { templateClientFoo, templateClientBar } = <span class="hljs-keyword">await</span> template.<span class="hljs-title function_">instances</span>({
+  <span class="hljs-attr">templateClientFoo</span>: { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name5&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value5&#x27;</span> } },
+  <span class="hljs-attr">templateClientFoo</span>: { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name6&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value6&#x27;</span> } },
+})
+</code></pre>
+<h3 id="building" tabindex="-1">Building</h3>
+<pre><code class="hljs language-typescript"><span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">builder</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Builder</span>) <span class="hljs-comment">// required to build</span>
+<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-property">built</span> <span class="hljs-comment">// with defaults</span>
+<span class="hljs-comment">// -or-</span>
+<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-title function_">build</span>() <span class="hljs-comment">// always builds</span>
+</code></pre>
+<h3 id="uploading" tabindex="-1">Uploading</h3>
+<pre><code class="hljs language-typescript"><span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">uploader</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Uploader</span>) <span class="hljs-comment">// required to upload</span>
+<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-property">uploaded</span> <span class="hljs-comment">// with defaults</span>
+<span class="hljs-comment">// -or-</span>
+<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-title function_">upload</span>() <span class="hljs-comment">// always builds</span>
+</code></pre>
+<p>If the contract binary is not found, uploading will try to build it first.</p>
+<h2 id="contract" tabindex="-1">Contract</h2>
+<h3 id="naming" tabindex="-1">Naming</h3>
+<p>The chain requires labels to be unique.
+Labels generated by Fadroma are of the format <code>[DeploymentName]/[ContractName]</code>.</p>
+<h3 id="lazy-init" tabindex="-1">Lazy init</h3>
+<p>The <code>initMsg</code> property of <code>Contract</code> can be a function returning the actual message.
+This function is only called during instantiation, and can be used to generate init
+messages on the fly, such as when passing the address of one contract to another.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
 <span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>({
@@ -581,22 +606,10 @@ await myDeployment2.deploy()*/</span>
   <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;CRATE&#x27;</span>
 })
 </code></pre>
-<h3 id="contract-label-prefixes-and-suffixes" tabindex="-1">Contract label prefixes and suffixes</h3>
-<p>The label of a contract has to be unique per chain.
-Fadroma introduces prefixes and suffixes to be able to navigate that constraint.</p>
-<h3 id="contract-lifecycle" tabindex="-1">Contract lifecycle</h3>
-<h2 id="builder" tabindex="-1">Builder</h2>
-<p>Implemented by <code>@fadroma/build</code>.</p>
-<ul>
-<li><strong>BuildRaw</strong>: runs the build in the current environment</li>
-<li><strong>BuildContainer</strong>: runs the build in a container for enhanced reproducibility</li>
-</ul>
-<h2 id="uploader" tabindex="-1">Uploader</h2>
-<p>Implemented by <code>@fadroma/upload</code>.</p>
-<ul>
-<li><strong>FSUploader</strong>: Support for uploading from Node FS.</li>
-<li>TODO: <strong>FetchUploader</strong>: Support for uploading from any URL incl. file:///</li>
-</ul>
+<h3 id="deploying" tabindex="-1">Deploying</h3>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-title function_">deploy</span>() <span class="hljs-comment">// fails if already deployed</span>
+<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-property">deployed</span> <span class="hljs-comment">// one shot with default config</span>
+</code></pre>
 
 </content>
 </body>

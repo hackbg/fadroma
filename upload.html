@@ -355,7 +355,7 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#upload-cli">Upload CLI</a></li><li><a href="#upload-api">Upload API</a><ul><li><a href="#upload-caching">Upload caching</a></li><li><a href="#uploader-variants">Uploader variants</a><ul><li><a href="#fsuploader">FSUploader</a></li><li><a href="#fetchuploader">FetchUploader</a></li></ul></li><li><a href="#upload-events">Upload events</a></li><li><a href="#upload-errors">Upload errors</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#upload-cli">Upload CLI</a></li><li><a href="#upload-api">Upload API</a></li><li><a href="#uploader">Uploader</a><ul><li><a href="#upload-caching">Upload caching</a></li><li><a href="#uploader-variants">Uploader variants</a><ul><li><a href="#fsuploader">FSUploader</a></li><li><a href="#fetchuploader">FetchUploader</a></li></ul></li><li><a href="#upload-events">Upload events</a></li><li><a href="#upload-errors">Upload errors</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-upload" tabindex="-1">Fadroma Upload</h1>
 <p>This package implements <strong>uploading WASM files to get code ids</strong>.</p>
 <h2 id="upload-cli" tabindex="-1">Upload CLI</h2>
@@ -363,6 +363,11 @@ pre > code.language-typescript {
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma reupload CONTRACT <span class="hljs-comment"># always reupload</span></span>
 </code></pre>
 <h2 id="upload-api" tabindex="-1">Upload API</h2>
+<h2 id="uploader" tabindex="-1">Uploader</h2>
+<ul>
+<li><strong>FetchUploader</strong>: Support for uploading from any URL incl. <code>file:///</code></li>
+<li><strong>FSUploader</strong>: Support for uploading files from local FS with <code>node:fs</code>.</li>
+</ul>
 <p>Uploading with default configuration (from environment variables):</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fixture } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
 <span class="hljs-keyword">const</span> artifact = <span class="hljs-title function_">fixture</span>(<span class="hljs-string">&#x27;null.wasm&#x27;</span>) <span class="hljs-comment">// replace with path to your binary</span>

@@ -355,7 +355,7 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><ul><li><a href="#deploy-api">Deploy API</a></li><li><a href="#mocknet">Mocknet</a></li></ul></li><li><a href="#chain%3A-connecting">Chain: connecting</a><ul><li><a href="#chain-modes">Chain modes</a></li></ul></li><li><a href="#agent%3A-authenticating">Agent: authenticating</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#gas-fees">Gas fees</a></li><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li></ul></li><li><a href="#bundle%3A-batching-transactions">Bundle: batching transactions</a></li><li><a href="#client%3A-talking-to-contracts">Client: talking to contracts</a><ul><li><a href="#fetching-metadata">Fetching metadata</a></li><li><a href="#per-contract-fee-defaults">Per-contract fee defaults</a></li></ul></li><li><a href="#errors">Errors</a></li><li><a href="#events">Events</a></li><li><a href="#utilities">Utilities</a><ul><li><a href="#lazy-evaluation">Lazy evaluation</a></li><li><a href="#generic-collections">Generic collections</a></li><li><a href="#validation-against-expected-value">Validation against expected value</a></li><li><a href="#overrides-and-fallbacks">Overrides and fallbacks</a></li><li><a href="#tabular-alignment">Tabular alignment</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#chain">Chain</a><ul><li><a href="#chain-modes">Chain modes</a></li></ul></li><li><a href="#agent">Agent</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#default-gas-fees">Default gas fees</a></li><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li><li><a href="#batching-transactions">Batching transactions</a></li></ul></li><li><a href="#client">Client</a><ul><li><a href="#metadata">Metadata</a></li><li><a href="#client-agent">Client agent</a></li><li><a href="#defining-query-and-transaction-methods">Defining query and transaction methods</a></li><li><a href="#per-transaction-fees">Per-transaction fees</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-guide%3A-agent-api" tabindex="-1">Fadroma Guide: Agent API</h1>
 <p>The <strong>Agent API</strong> is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.</p>
@@ -367,20 +367,7 @@ and lets you operate in terms of transactions (sending tokens, calling contracts
 <strong><code>ScrtChain</code></strong> and <strong><code>ScrtAgent</code></strong>, the concrete implementations
 of Fadroma Chain API for Secret Network.</li>
 </ul>
-<h3 id="deploy-api" tabindex="-1">Deploy API</h3>
-<p>The <strong>Ops API</strong> revolves around the <code>Deployment</code> class, and associated
-implementations of <code>Client</code>, <code>Builder</code>, <code>Uploader</code>, and <code>DeployStore</code>.</p>
-<p>These classes are used for describing systems consisting of multiple smart contracts,
-such as when deploying them from source. By defining such a system as one or more
-subclasses of <code>Deployment</code>, Fadroma enables declarative, idempotent, and reproducible
-smart contract deployments.</p>
-<h3 id="mocknet" tabindex="-1">Mocknet</h3>
-<p>This is a lightweight mock of a CosmWasm-capable platform,
-structured as an implementation of the Fadroma Chain API.
-Mocknet executes smart contracts in a simulated environment
-based on JavaScript's native WebAssembly runtime.</p>
-<p>See <a href="./mocknet.html"><strong>Mocknet</strong></a>.</p>
-<h2 id="chain%3A-connecting" tabindex="-1">Chain: connecting</h2>
+<h2 id="chain" tabindex="-1">Chain</h2>
 <p>The <code>Chain</code> object identifies what chain to connect to -
 such as the Secret Network mainnet or testnet.</p>
 <p>Since the workflow is request-based, no persistent connection is maintained.</p>
@@ -428,17 +415,17 @@ in the local JS WASM runtime.</li>
 <span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isMocknet</span>)
 <span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">isMainnet</span>)
 </code></pre>
-<h2 id="agent%3A-authenticating" tabindex="-1">Agent: authenticating</h2>
+<h2 id="agent" tabindex="-1">Agent</h2>
 <p>To transact on a <a href="./Chains.ts.md">chain</a>, you need to authenticate
 with your identity (account, wallet). To do that, you obtain an
-<code>Agent</code> from the <code>Chain</code> using <code>Chain#getAgent({ mnemonic })</code>.</p>
+<code>Agent</code> from the <code>Chain</code> using <code>chain.getAgent({...})</code>.</p>
 <p>If you don't pass a mnemonic, a random mnemonic and address will be generated.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Agent</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-keyword">let</span> <span class="hljs-attr">agent</span>: <span class="hljs-title class_">Agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;testing1agent0&#x27;</span> })
 
-assert.<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>, <span class="hljs-string">&#x27;Agent returned&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">chain</span>, chain,  <span class="hljs-string">&#x27;Agent#chain assigned&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">address</span>, <span class="hljs-string">&#x27;testing1agent0&#x27;</span>,  <span class="hljs-string">&#x27;Agent#address assigned&#x27;</span>)
+assert.<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>, <span class="hljs-string">&#x27;an Agent was returned&#x27;</span>)
+assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">chain</span>, chain,  <span class="hljs-string">&#x27;agent.chain assigned&#x27;</span>)
+assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">address</span>, <span class="hljs-string">&#x27;testing1agent0&#x27;</span>,  <span class="hljs-string">&#x27;agent.address assigned&#x27;</span>)
 </code></pre>
 <h3 id="block-height" tabindex="-1">Block height</h3>
 <p>Having obtained an <code>Agent</code>, you are ready to begin performing operations.
@@ -466,7 +453,7 @@ The simplest operation you can conduct is transact with native tokens:</p>
 <span class="hljs-comment">// Sending a non-default native token:</span>
 <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>(<span class="hljs-string">&#x27;recipient-address&#x27;</span>, [{<span class="hljs-attr">denom</span>:<span class="hljs-string">&#x27;token&#x27;</span>, <span class="hljs-attr">amount</span>: <span class="hljs-string">&#x27;1000&#x27;</span>}])
 </code></pre>
-<h3 id="gas-fees" tabindex="-1">Gas fees</h3>
+<h3 id="default-gas-fees" tabindex="-1">Default gas fees</h3>
 <p>Transacting creates load on the network, which incurs costs on node operators.
 Compensations for transactions are represented by the gas metric.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Fee</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
@@ -534,9 +521,9 @@ assert.<span class="hljs-title function_">throws</span>(<span class="hljs-functi
   <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;address&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;codeHash&#x27;</span> }, { <span class="hljs-attr">method</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> } })
 }).<span class="hljs-title function_">run</span>()
 </code></pre>
-<h2 id="bundle%3A-batching-transactions" tabindex="-1">Bundle: batching transactions</h2>
+<h3 id="batching-transactions" tabindex="-1">Batching transactions</h3>
 <p>To submit multiple messages as a single transaction, you can
-use Bundles.</p>
+use the <code>Bundle</code> class through <code>Agent#bundle</code>.</p>
 <ul>
 <li>A <code>Bundle</code> is a special kind of <code>Agent</code> that
 does not broadcast messages immediately.</li>
@@ -581,7 +568,7 @@ assert.<span class="hljs-title function_">throws</span>(<span class="hljs-functi
 </code></pre>
 <p>To create and submit a bundle in a single expression,
 you can use <code>bundle.wrap(async (bundle) =&gt; { ... })</code>:</p>
-<h2 id="client%3A-talking-to-contracts" tabindex="-1">Client: talking to contracts</h2>
+<h2 id="client" tabindex="-1">Client</h2>
 <p>Represents an interface to an existing contract.</p>
 <ul>
 <li>The default <code>Client</code> class allows passing messages to the contract instance.</li>
@@ -663,12 +650,14 @@ assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">a
 <p>By publishing a library of <code>Client</code> subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn
 integrate it into their systems.</p>
-<h3 id="fetching-metadata" tabindex="-1">Fetching metadata</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {
-  fetchCodeHash,
-  fetchCodeId,
-  fetchLabel
-} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<h3 id="metadata" tabindex="-1">Metadata</h3>
+<p>The original <code>Contract</code> object from which the contract
+was deployed can be found on the optional <code>meta</code> property of the <code>Client</code>.</p>
+<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">ok</span>(aClient.<span class="hljs-property">meta</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
+assert.<span class="hljs-title function_">equal</span>(aClient.<span class="hljs-property">meta</span>.<span class="hljs-property">deployedBy</span>, agent.<span class="hljs-property">address</span>)
+</code></pre>
+<p>Fetching metadata:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fetchCodeHash, fetchCodeId, fetchLabel } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
 instance.<span class="hljs-property">address</span> = <span class="hljs-string">&#x27;someaddress&#x27;</span> <span class="hljs-comment">// FIXME</span>
 assert.<span class="hljs-title function_">ok</span>(instance.<span class="hljs-property">codeHash</span> = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeHash</span>(instance, agent))
@@ -683,76 +672,69 @@ assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title
 assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchCodeId</span>(instance, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
 assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchLabel</span>(instance, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
 </code></pre>
-<h3 id="per-contract-fee-defaults" tabindex="-1">Per-contract fee defaults</h3>
+<h3 id="client-agent" tabindex="-1">Client agent</h3>
+<p>By default, the <code>Client</code>'s <code>agent</code> property is equal to the <code>agent</code>
+which deployed the contract. This property determines the address from
+which subsequent transactions with that <code>Client</code> will be sent.</p>
+<p>In case you want to deploy the contract as one identity, then interact
+with it from another one as part of the same procedure, you can set <code>agent</code>
+to another instance of <code>Agent</code>:</p>
+<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(aClient.<span class="hljs-property">agent</span>, agent)
+aClient.<span class="hljs-property">agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
+</code></pre>
+<p>Similarly to <code>withFee</code>, the <code>as</code> method returns a new instance of your
+client class, bound to a different <code>agent</code>, thus allowing you to execute
+transactions as a different identity.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
+<span class="hljs-keyword">const</span> agent2 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
+
+<span class="hljs-keyword">const</span> client = agent1.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">MyContract</span>, <span class="hljs-string">&quot;...&quot;</span>)
+
+<span class="hljs-comment">// signed by agent1:</span>
+client.<span class="hljs-title function_">tx1</span>()
+
+<span class="hljs-comment">// signed by agent2</span>
+client.<span class="hljs-title function_">asAgent</span>(agent2).<span class="hljs-title function_">tx1</span>()
+</code></pre>
+<h3 id="defining-query-and-transaction-methods" tabindex="-1">Defining query and transaction methods</h3>
+<p>The main things that you need to know for implementing a client class
+are the <code>query</code> and <code>execute</code> methods:</p>
 <ul>
-<li><code>client.fee</code> is the default fee for all transactions</li>
-<li><code>client.fees: Record&lt;string, IFee&gt;</code> is a map of default fees for specific transactions</li>
-<li><code>client.withFee(fee: IFee)</code> allows the caller to override the default fees.
-Calling it returns a new instance of the Client, which talks to the same contract
-but executes all transactions with the specified custom fee.</li>
+<li>You pass them the message as a JS object.</li>
+<li>They serialize it to JSON and pass it to the contract.</li>
+<li>Then, they return a <code>Promise</code> of the value returned by the contract.</li>
+<li>If the returned value is an error, the promise will reject (i.e. if you're
+<code>await</code>ing the promise chain, an <code>Error</code> will be thrown).</li>
 </ul>
-<h2 id="errors" tabindex="-1">Errors</h2>
-<p>The <code>Error</code> class, based on <code>@hackbg/oops</code>, defines
-custom error subclasses for various error conditions.</p>
-<h2 id="events" tabindex="-1">Events</h2>
-<p>The <code>Console</code> class, based on <code>@hackbg/logs</code>, collects all logging output in one place.
-In the future, this will enable semantic logging and/or GUI notifications.</p>
-<h2 id="utilities" tabindex="-1">Utilities</h2>
-<h3 id="lazy-evaluation" tabindex="-1">Lazy evaluation</h3>
-<h3 id="generic-collections" tabindex="-1">Generic collections</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { into, intoArray, intoRecord } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<h3 id="per-transaction-fees" tabindex="-1">Per-transaction fees</h3>
+<p>You can specify default gas limits for each method by defining the <code>fees: Record&lt;string, IFee&gt;</code>
+property of your client class:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span>, <span class="hljs-title class_">Fee</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> <span class="hljs-title function_">into</span>(<span class="hljs-number">1</span>), <span class="hljs-number">1</span>)
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> <span class="hljs-title function_">into</span>(<span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>(<span class="hljs-number">1</span>)), <span class="hljs-number">1</span>)
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> <span class="hljs-title function_">into</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-number">1</span>), <span class="hljs-number">1</span>)
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> <span class="hljs-title function_">into</span>(<span class="hljs-keyword">async</span> ()=&gt;<span class="hljs-number">1</span>), <span class="hljs-number">1</span>)
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">MyContract</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
 
-assert.<span class="hljs-title function_">deepEqual</span>(
-  <span class="hljs-keyword">await</span> <span class="hljs-title function_">intoArray</span>([<span class="hljs-number">1</span>, <span class="hljs-function">()=&gt;</span><span class="hljs-number">1</span>, <span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>(<span class="hljs-number">1</span>), <span class="hljs-keyword">async</span> () =&gt; <span class="hljs-number">1</span>]),
-  [<span class="hljs-number">1</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>]
-)
+  tx1 = <span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>(<span class="hljs-string">&quot;tx1&quot;</span>)
 
-assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-keyword">await</span> <span class="hljs-title function_">intoRecord</span>({
-  <span class="hljs-attr">ready</span>:   <span class="hljs-number">1</span>,
-  <span class="hljs-attr">getter</span>:  <span class="hljs-function">() =&gt;</span> <span class="hljs-number">2</span>,
-  <span class="hljs-attr">promise</span>: <span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>(<span class="hljs-number">3</span>),
-  <span class="hljs-attr">asyncFn</span>: <span class="hljs-keyword">async</span> () =&gt; <span class="hljs-number">4</span>
-}), {
-  <span class="hljs-attr">ready</span>:   <span class="hljs-number">1</span>,
-  <span class="hljs-attr">getter</span>:  <span class="hljs-number">2</span>,
-  <span class="hljs-attr">promise</span>: <span class="hljs-number">3</span>,
-  <span class="hljs-attr">asyncFn</span>: <span class="hljs-number">4</span>
-})
-</code></pre>
-<h3 id="validation-against-expected-value" tabindex="-1">Validation against expected value</h3>
-<p>Case-insensitive.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { validated } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">validated</span>(<span class="hljs-string">&#x27;test&#x27;</span>, <span class="hljs-number">1</span>))
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">validated</span>(<span class="hljs-string">&#x27;test&#x27;</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>))
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">validated</span>(<span class="hljs-string">&#x27;test&#x27;</span>, <span class="hljs-string">&#x27;a&#x27;</span>, <span class="hljs-string">&#x27;A&#x27;</span>))
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">validated</span>(<span class="hljs-string">&#x27;test&#x27;</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>))
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">validated</span>(<span class="hljs-string">&#x27;test&#x27;</span>, <span class="hljs-string">&#x27;a&#x27;</span>, <span class="hljs-string">&#x27;b&#x27;</span>))
-</code></pre>
-<h3 id="overrides-and-fallbacks" tabindex="-1">Overrides and fallbacks</h3>
-<p>Only work on existing properties.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-keyword">override</span>, fallback } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-assert.<span class="hljs-title function_">deepEqual</span>(
-  <span class="hljs-title function_">override</span>({ <span class="hljs-attr">a</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">b</span>: <span class="hljs-number">2</span> }, { <span class="hljs-attr">b</span>: <span class="hljs-number">3</span>, <span class="hljs-attr">c</span>: <span class="hljs-number">4</span> }),
-  { <span class="hljs-attr">a</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">b</span>: <span class="hljs-number">3</span> }
-)
-assert.<span class="hljs-title function_">deepEqual</span>(
-  <span class="hljs-title function_">fallback</span>({ <span class="hljs-attr">a</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">b</span>: <span class="hljs-literal">undefined</span> }, { <span class="hljs-attr">a</span>: <span class="hljs-literal">undefined</span>, <span class="hljs-attr">b</span>: <span class="hljs-number">3</span>, <span class="hljs-attr">c</span>: <span class="hljs-number">4</span> }),
-  { <span class="hljs-attr">a</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">b</span>: <span class="hljs-number">3</span> }
-)
-</code></pre>
-<h3 id="tabular-alignment" tabindex="-1">Tabular alignment</h3>
-<p>For more legible output.</p>
-<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">getMaxLength</span>([<span class="hljs-string">&#x27;a&#x27;</span>, <span class="hljs-string">&#x27;ab&#x27;</span>, <span class="hljs-string">&#x27;abcd&#x27;</span>, <span class="hljs-string">&#x27;abc&#x27;</span>, <span class="hljs-string">&#x27;b&#x27;</span>]), <span class="hljs-number">4</span>)
-<span class="hljs-keyword">function</span> <span class="hljs-title function_">getMaxLength</span> (<span class="hljs-attr">strings</span>: <span class="hljs-built_in">string</span>[]): <span class="hljs-built_in">number</span> {
-  <span class="hljs-keyword">return</span> <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">max</span>(...strings.<span class="hljs-title function_">map</span>(<span class="hljs-function"><span class="hljs-params">string</span>=&gt;</span><span class="hljs-built_in">string</span>.<span class="hljs-property">length</span>))
+  tx2 = <span class="hljs-function">(<span class="hljs-params">n</span>) =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({<span class="hljs-attr">tx2</span>: n})
+
+  tx3 = <span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({<span class="hljs-attr">tx3</span>: {}})
+
+  tx4 = <span class="hljs-function">(<span class="hljs-params">n</span>) =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({<span class="hljs-attr">tx4</span>: {<span class="hljs-attr">my_value</span>: n}})
+
+  fees = {
+    <span class="hljs-attr">tx1</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;10000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>),
+    <span class="hljs-attr">tx2</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;20000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>),
+    <span class="hljs-attr">tx3</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;30000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>),
+    <span class="hljs-attr">tx4</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;40000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>),
+  }
+
 }
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+<p>You can also specify one fee for all transactions, using <code>client.withFee({ gas, amount: [...] })</code>.
+This method works by returning a copy of <code>client</code> with fees overridden by the provided value.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> fee = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;100000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>)
+
+<span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> client.<span class="hljs-title function_">withFee</span>(fee).<span class="hljs-title function_">tx1</span>()
 </code></pre>
 
 </content>
