@@ -292,20 +292,20 @@ svg.icon-todo {
   background: white;
   display: block;
   max-width: 54rem;
-  margin: 0 auto 0 38%;
+  margin: 3rem auto 0 38%;
   padding: 3rem;
   box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
 }
 .ensuite-md-rendered .table-of-contents {
   position: fixed;
-  top: 0;
+  top: 3rem;
   left: 0;
   bottom: 0;
   width: 38%;
   background: #476d3b;
-  background: hsl(106 30% 33% / 1);
+  background: hsl(106 25% 25% / 1);
   color: white;
-  padding: 2rem 0 2rem 1rem;
+  padding: 1rem 0 2rem 1rem;
   border-right: 1px solid #888;
   display: flex;
   justify-content: flex-end;
@@ -337,11 +337,35 @@ pre > code.language-typescript {
 }
 
 .table-of-contents { overflow: auto }
-.table-of-contents a { display: block; color: white; text-decoration: underline 1px dotted black; padding: 0.25rem 1.5rem 0.25rem }
-.table-of-contents a:hover { color: black; text-decoration: underline 1px solid rgba(0,0,0,0.75); background: #fff }
+.table-of-contents a { display: block; color: white; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { text-decoration: underline 2px solid white }
 .table-of-contents li { margin: 0 0 }
 .table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+
+.ensuite-md-header {
+  z-index: 100;
+  display: block;
+  text-align: left;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rem;
+  font-size: 1.5rem;
+  line-height: 3rem;
+  margin: 0;
+  padding: 0 1rem;
+  font-weight: bold;
+  background: hsl(106 30% 33% / 1);
+  color: white;
+  width: 100%;
+  max-width: 100%;
+  font-weight: normal
+}
+.ensuite-md-header a {
+  color: white;
+}
 </style>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#devnet-cli">Devnet CLI</a></li><li><a href="#devnet-api">Devnet API</a><ul><li><a href="#connecting-to-a-devnet">Connecting to a devnet</a></li><li><a href="#devnet-state">Devnet state</a></li><li><a href="#using-genesis-accounts">Using genesis accounts</a></li><li><a href="#exporting-a-devnet-snapshot">Exporting a devnet snapshot</a></li><li><a href="#resetting-the-devnet">Resetting the devnet</a></li></ul></li></ul></div></p>
