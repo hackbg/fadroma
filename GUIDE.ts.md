@@ -4,19 +4,38 @@
 Fadroma includes **Rust** libraries for writing smart contracts and a
 **TypeScript** system for building, deploying, and interacting with them.
 
-## Design considerations
+Our operational model treats the blockchain as a **seamless compute substrate**,
+and contracts as akin to **persistent objects**.
 
-On the most abstract level, Fadroma treats the blockchain as a **seamless compute substrate**,
-and contracts basically as **persistent objects**.
-
-* Unlike **microservices**, smart contracts exist in a post-POSIX environment,
-  where platform details are abstracted away.
+* Unlike **microservices**, smart contracts exist in a "post-POSIX"
+  environment, where platform details are abstracted away.
 
 * Unlike **cloud functions**, smart contracts are individually stateful.
 
-Furthermore, the **transaction-based architecture** prevents the system from
-spontaneously entering inconsistent states. This makes CosmWasm smart contracts
-a very interesting proposition for running standalone business logic.
+* Furthermore, the **distributed transaction-based architecture** guards
+  the system's state freom spontaneous inconsistencies.
+
+The above properties make CosmWasm smart contracts a very interesting proposition
+for running standalone business logic with a programmable privacy/transparency axis.
+
+## Supported platforms
+
+[The **`@fadroma/connect`** package](./spec/Connect.spec.ts.md) library
+serves as an index of all supported connection targets.
+
+### Secret Network
+
+[The **`@fadroma/scrt`** package](./spec/Scrt.spec.ts.md)
+package implements support for Secret Network.
+
+### Other Cosmos-like chains
+
+Planned. See [issue #148](https://github.com/hackbg/fadroma/issues/148).
+
+### EVM-based chains
+
+Under consideration.
+
 
 ## Project structure
 
@@ -32,7 +51,7 @@ Projects created by Fadroma are polyglot Rust/TypeScript repositories.
   and also contains an `ops.ts` module (where your project, and any custom
   extensions to the workflow, are defined).
 
-### Create project through NPX
+### Create project with NPX
 
 If you have Node.js set up, you can use the `npx` command to create a new Fadroma project:
 
@@ -41,19 +60,46 @@ $ npx @hackbg/fadroma@latest create
 ```
 
 This will download the latest version of the `@hackbg/fadroma` package,
-and run the `fadroma create` command from it, which will create a new project.
+and run the `fadroma create` command from it, which will create a new project
+using an interactive console-based wizard.
 
-### Add more contracts
+When creating a project, you will be able to define an initial set of contracts.
 
-When creating a project, you will be able to create contracts.
+### Nix support
 
-Afterwards, you can add new contracts to your project with:
+Nix is a functional package manager. Fadroma can optionally
+use Nix to provide you with a stable development environment.
+
+If you use Nix, you can create a project with:
 
 ```sh
-$ npm exec fadroma add [NAME...]
+$ nix-shell https://fadroma.tech/nix -c fadroma create
 ```
 
-## Writing contracts
+A temporary Fadroma shell can be entered with with:
+
+```sh
+$ nix-shell https://fadroma.tech/nix
+```
+
+The project wizard creates Fadroma projects with a default `shell.nix`.
+From the project's root directory, you can enter the project's Nix shell
+with just:
+
+```sh
+$ nix-shell
+```
+
+Or, from any other directory:
+
+```sh
+$ nix-shell /my/project/shell.nix
+```
+
+Nix will download tools like Node, Rust, Fadroma, etc., and will start a
+new shell session in an environment where these tools are available globally.
+
+## Writing smart contracts
 
 A contract is your basic unit of domain logic.
 They are very much like persistent objects
@@ -63,15 +109,16 @@ via message passing.
 
 ### Macro DSL
 
-[**Fadroma DSL**](https://docs.rs/fadroma-dsl/latest/fadroma-dsl)
-is a family of procedural macros for clean, boilerplate-free implementation
+[The **`fadroma-dsl`** crate](https://docs.rs/fadroma-dsl/latest/fadroma-dsl)
+implements a family of procedural macros for clean, boilerplate-free implementation
 of smart contract internals,
 
 ### Libraries
 
-[**Fadroma**](https://docs.rs/fadroma/latest/fadroma) libraries.
+[The **`fadroma`** crate](https://docs.rs/fadroma/latest/fadroma) contains
+a set of libraries for writing smart contracts.
 
-### Build CLI
+### Building
 
 Having written a contract, you need to compile it and instantiate it on a chain.
 
@@ -84,157 +131,90 @@ $ npm exec fadroma build
 To build specific contracts:
 
 ```sh
-$ npm exec fadroma build CONTRACT
+$ npm exec fadroma build CONTRACT [CONTRACT...]
 ```
 
-The build commands are implemented by the
-[**`@hackbg/fadroma`**](./spec/Build.spec.ts.md) package.
+In the above invocation, `CONTRACT` corresponds to a key of `templates` in
+the project's `fadroma.json`.
 
-## Deploying contracts
-
-### Deploy CLI
-
-To instantiate a contract:
-
-```sh
-$ npm exec fadroma init CONTRACT LABEL INITMSG
-```
-
-To query or transact:
-
-```sh
-$ npm exec fadroma q LABEL MSG
-$ npm exec fadroma tx LABEL MSG
-```
-
-The deployment commands are implemented by the
-[**`@hackbg/fadroma`**](./spec/Deploy.spec.ts.md) package.
-
-### Devnets
-
-By default, Fadroma deploys to a **devnet**: a local instance of
-a blockchain, running in a Docker or Podman container.
-
-## Testing contracts
+[The **Fadroma Build Guide**](./spec/Build.spec.ts.md) contains more info on configuring builds.
 
 ### Testing with Ensemble
 
 [**Fadroma Ensemble**](https://fadroma.tech/rs/fadroma/ensemble/index.html)
 is a library for for integration testing of multiple contracts.
 
-### Testing with Mocknet
+## Deploying and scripting
 
-[**Fadroma Mocknet**](https://fadroma.tech/js/classes/_fadroma_ops.Mocknet.html) is
-a simulated environment for fast full-stack testing of your production builds.
+### Deploy CLI
 
-## Scripting Fadroma
+The `fadroma deploy` command deploys the current project:
 
-### Adding commands
+```sh
+$ npm exec fadroma deploy
+```
 
-The **Commands#command(name, info, ...steps)** method declares commands.
+Note: the above will fail if the `FADROMA_CHAIN` variable
+is not set.
 
-  * **name** is the string used to invoke the command from the shell
-  * **info** is a short help description
-  * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
+For convenience, the project creation tool registers aliases
+in the `scripts` field of the project's `package.json` with
+corresponding values of `FADROMA_CHAIN`, so that you can deploy with:
 
-**Steps** are run sequentially. The first argument to each step is a `context: Deployer`.
-If a step returns an `Object`, the object's entries are added to the `context` for subsequent
-steps.
+```sh
+$ npm run mainnet deploy
+$ npm run testnet deploy
+$ npm run devnet deploy
+$ npm run mocknet deploy
+```
 
-* The `commands.command(...)` method returns `commands`, so it supports chaining.
-* Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
-* Fadroma uses [`@hackbg/cmds`](https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts)
-  to parse commands. This is a simple and loose command parser which does not support flags.
-  Arguments to a command are available in `context.args` so you can define your own flags.
+### Running scripts
 
-For more complex operations, you can define custom commands, which you implement in TypeScript
-using the Fadroma TypeScript API. **See [@fadroma/agent](./spec/Agent.spec.ts.md)** to get
-started with scripting Fadroma.
-
-To run a Fadroma script in your project:
+[The **`@hackbg/ganesha`** package](https://github.com/hackbg/ganesha)
+enables Fadroma CLI to compile TypeScript on demand. You can use TypeScript
+seamlessly in your deploy procedures:
 
 ```sh
 $ fadroma run script.js
-```
-
-### TypeScript
-
-Fadroma will use [Ganesha](https://github.com/hackbg/ganesha) to compile
-deployment scripts on each run. You can use TypeScript seamlessly in your
-deploy procedures.
-
-```sh
 $ fadroma run script.ts
 ```
 
+### Adding commands
+
+[The **`@hackbg/cmds`** package](https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts)
+allows Fadroma CLI to parse commands. This is a simple and loose command parser which
+descends a tree of command definitions, and maps to a regular JS function call.
+
+The default project contains examples for extending project commands (such as `deploy`),
+as well as defining new ones.
+
 ### Agent API
 
-[**Fadroma Core**](https://fadroma.tech/js/modules/_fadroma_client.html) is a library for
-interfacing with smart contracts from JavaScript or TypeScript.
+[The **@fadroma/agent** package](/ts/modules/_fadroma_agent.html) is our core library
+for interfacing with blockchains and smart contracts from JavaScript or TypeScript.
 
-To get started with writing Fadroma scripts,
-proceed to the [***Fadroma Core API Specification***](./spec/Agent.spec.ts.md).
+[The **Fadroma Agent Guide**](./spec/Agent.spec.ts.md) describes it in more detail.
 
-### Deployment API
+### Deploy API
 
-### Connecting
+The `Deployment` class, as extended in the default project's `api.ts`,
+is the backbone of the Fadroma Deploy API.
 
-The [**Fadroma Connect**](./spec/Connect.spec.ts.md) library
-serves as an index of all supported connection targets.
+[The **Fadroma Deploy Guide**](./spec/Deploy.spec.ts.md) describes that part of the functionality.
 
-#### Secret Network
+### Testing with Devnet
 
-The [**`@fadroma/scrt`**](./spec/Scrt.spec.ts.md)
-package implements support for Secret Network.
+By default, Fadroma deploys to a **devnet**: a local instance of
+a blockchain, running in a Docker or Podman container.
 
-#### Other Cosmos-like chains
+[The **Fadroma Devnet Guide**](./spec/Devnet.spec.ts.md) has more info
+on the subject of devnets.
 
-Planned. See [issue #148](https://github.com/hackbg/fadroma/issues/148).
+### Testing with Mocknet
 
-#### EVM-based chains
-
-Under consideration.
-
-## Nix environment support
-
-Nix is a functional package manager. Fadroma can optionally
-use Nix to provide you with a stable development environment.
-
-### Standalone Nix shell
-
-If you have Nix, you can enter a Fadroma shell with:
-
-```sh
-$ nix-shell https://fadroma.tech/nix
-```
-
-Nix will download tools like Node, Rust, Fadroma, etc.,
-and will drop you in a shell where these tools are available
-on the system path. In this shell, you can able to invoke
-the Fadroma CLI with just `fadroma` instead of `npm exec fadroma` or similar.
-
-### Create project through Nix
-
-If you use Nix, you can create a project with:
-
-```sh
-$ nix-shell https://fadroma.tech/nix -c fadroma project create
-```
-
-### Project-specific Nix shell
-
-Projects are created with a `shell.nix`, which you can enter with:
-
-```sh
-$ cd /my/project
-$ nix-shell
-```
-
-Or, from any other directory:
-
-```sh
-$ nix-shell /my/project/shell.nix
-```
+[The **Fadroma Mocknet** guide](./spec/Mocknet.spec.ts.md) describes
+our simulated environment for fast full-stack testing of production WASM builds.
+Mocknet is built into `@fadroma/agent`.
 
 ---
 

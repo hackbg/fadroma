@@ -73,7 +73,7 @@ jobs:
           cp .gitmodules .. || true
           git checkout gh-pages
           git clean -fdx
-          rm -rf stable unstable
+          rm -rf stable unstable js
           cp -rv ../page/* .
           #mv ../.gitmodules . || true
           git config --global user.email "hello@hack.bg"

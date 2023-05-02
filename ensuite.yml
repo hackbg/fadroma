@@ -81,9 +81,9 @@ features:
     big: left
     links:
       - icon: console
-        text: Defining a project
+        text: Getting started
         bold: true
-        href: /guide.html#create-a-project
+        href: /guide.html
       - icon: console
         text: Writing contracts
         bold: true
@@ -91,7 +91,7 @@ features:
       - icon: console
         text: Building and deploying
         bold: true
-        href: /guide.html#building-and-deploying
+        href: /guide.html#build-cli
       - icon: rust
         text: Fadroma on Crates.io
         bold: true
