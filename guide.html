@@ -156,27 +156,16 @@ th { padding-right: 5em }
   font-size: 0.875rem;
 }
 
-code.inline,
-code.block {
-  background:  #0c5749;
-  color:       white;
-  font-family: monospace;
-  font-weight: bold;
-}
-
-code.inline {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  margin: 0 0.5rem;
-}
-
+code { font-size: 0.9375rem; }
+code.inline, code.block { background: #0c5749; color: white; font-family: monospace; font-weight: bold; }
+code.inline { display: inline-block; padding: 0.5rem 1rem; margin: 0 0.5rem; }
 code.block {
   display: block;
-  padding:     1rem;
-  margin:        1rem auto;
+  padding: 1rem;
+  margin: 1rem auto;
   border-radius: 0.5rem;
-  max-width:     40rem;
-  line-height:   1rem;
+  max-width: 40rem;
+  line-height: 1rem;
 }
 
 .feature-logo {
@@ -313,7 +302,8 @@ svg.icon-todo {
   left: 0;
   bottom: 0;
   width: 38%;
-  background: rgb(67, 119, 51);
+  background: #476d3b;
+  background: hsl(106 30% 33% / 1);
   color: white;
   padding: 2rem 0 2rem 1rem;
   border-right: 1px solid #888;
@@ -323,7 +313,7 @@ svg.icon-todo {
 .ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
 .ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
 
-ul { margin-left: 1em; }
+ul { margin-left: 0; margin-bottom: 1em; }
 
 p > code { font-weight: bold; color: #345 }
 pre > code {
@@ -354,26 +344,38 @@ pre > code.language-typescript {
 .table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#design-considerations">Design considerations</a></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-project-through-npx">Create project through NPX</a></li><li><a href="#add-more-contracts">Add more contracts</a></li></ul></li><li><a href="#writing-contracts">Writing contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#build-cli">Build CLI</a></li></ul></li><li><a href="#deploying-contracts">Deploying contracts</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#devnets">Devnets</a></li></ul></li><li><a href="#testing-contracts">Testing contracts</a><ul><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#scripting-fadroma">Scripting Fadroma</a><ul><li><a href="#adding-commands">Adding commands</a></li><li><a href="#typescript">TypeScript</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deployment-api">Deployment API</a></li><li><a href="#connecting">Connecting</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmos-like-chains">Other Cosmos-like chains</a></li><li><a href="#evm-based-chains">EVM-based chains</a></li></ul></li></ul></li><li><a href="#nix-environment-support">Nix environment support</a><ul><li><a href="#standalone-nix-shell">Standalone Nix shell</a></li><li><a href="#create-project-through-nix">Create project through Nix</a></li><li><a href="#project-specific-nix-shell">Project-specific Nix shell</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#supported-platforms">Supported platforms</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmos-like-chains">Other Cosmos-like chains</a></li><li><a href="#evm-based-chains">EVM-based chains</a></li></ul></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-project-with-npx">Create project with NPX</a></li><li><a href="#nix-support">Nix support</a></li></ul></li><li><a href="#writing-smart-contracts">Writing smart contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#building">Building</a></li><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li></ul></li><li><a href="#deploying-and-scripting">Deploying and scripting</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#running-scripts">Running scripts</a></li><li><a href="#adding-commands">Adding commands</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deploy-api">Deploy API</a></li><li><a href="#testing-with-devnet">Testing with Devnet</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-guide%3A-getting-started" tabindex="-1">Fadroma Guide: Getting started</h1>
 <p><strong>Fadroma</strong> is an application framework for the CosmWasm Compute module.
 Fadroma includes <strong>Rust</strong> libraries for writing smart contracts and a
 <strong>TypeScript</strong> system for building, deploying, and interacting with them.</p>
-<h2 id="design-considerations" tabindex="-1">Design considerations</h2>
-<p>On the most abstract level, Fadroma treats the blockchain as a <strong>seamless compute substrate</strong>,
-and contracts basically as <strong>persistent objects</strong>.</p>
+<p>Our operational model treats the blockchain as a <strong>seamless compute substrate</strong>,
+and contracts as akin to <strong>persistent objects</strong>.</p>
 <ul>
 <li>
-<p>Unlike <strong>microservices</strong>, smart contracts exist in a post-POSIX environment,
-where platform details are abstracted away.</p>
+<p>Unlike <strong>microservices</strong>, smart contracts exist in a &quot;post-POSIX&quot;
+environment, where platform details are abstracted away.</p>
 </li>
 <li>
 <p>Unlike <strong>cloud functions</strong>, smart contracts are individually stateful.</p>
 </li>
+<li>
+<p>Furthermore, the <strong>distributed transaction-based architecture</strong> guards
+the system's state freom spontaneous inconsistencies.</p>
+</li>
 </ul>
-<p>Furthermore, the <strong>transaction-based architecture</strong> prevents the system from
-spontaneously entering inconsistent states. This makes CosmWasm smart contracts
-a very interesting proposition for running standalone business logic.</p>
+<p>The above properties make CosmWasm smart contracts a very interesting proposition
+for running standalone business logic with a programmable privacy/transparency axis.</p>
+<h2 id="supported-platforms" tabindex="-1">Supported platforms</h2>
+<p><a href="./spec/Connect.spec.ts.md">The <strong><code>@fadroma/connect</code></strong> package</a> library
+serves as an index of all supported connection targets.</p>
+<h3 id="secret-network" tabindex="-1">Secret Network</h3>
+<p><a href="./spec/Scrt.spec.ts.md">The <strong><code>@fadroma/scrt</code></strong> package</a>
+package implements support for Secret Network.</p>
+<h3 id="other-cosmos-like-chains" tabindex="-1">Other Cosmos-like chains</h3>
+<p>Planned. See <a href="https://github.com/hackbg/fadroma/issues/148">issue #148</a>.</p>
+<h3 id="evm-based-chains" tabindex="-1">EVM-based chains</h3>
+<p>Under consideration.</p>
 <h2 id="project-structure" tabindex="-1">Project structure</h2>
 <p>The default structure of a project is implemented by the
 <a href="./spec/Project.spec.ts.md"><strong><code>Project</code></strong> class</a>.
@@ -390,129 +392,105 @@ and also contains an <code>ops.ts</code> module (where your project, and any cus
 extensions to the workflow, are defined).</p>
 </li>
 </ul>
-<h3 id="create-project-through-npx" tabindex="-1">Create project through NPX</h3>
+<h3 id="create-project-with-npx" tabindex="-1">Create project with NPX</h3>
 <p>If you have Node.js set up, you can use the <code>npx</code> command to create a new Fadroma project:</p>
 <pre><code class="hljs language-sh">$ npx @hackbg/fadroma@latest create
 </code></pre>
 <p>This will download the latest version of the <code>@hackbg/fadroma</code> package,
-and run the <code>fadroma create</code> command from it, which will create a new project.</p>
-<h3 id="add-more-contracts" tabindex="-1">Add more contracts</h3>
-<p>When creating a project, you will be able to create contracts.</p>
-<p>Afterwards, you can add new contracts to your project with:</p>
-<pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma add [NAME...]
+and run the <code>fadroma create</code> command from it, which will create a new project
+using an interactive console-based wizard.</p>
+<p>When creating a project, you will be able to define an initial set of contracts.</p>
+<h3 id="nix-support" tabindex="-1">Nix support</h3>
+<p>Nix is a functional package manager. Fadroma can optionally
+use Nix to provide you with a stable development environment.</p>
+<p>If you use Nix, you can create a project with:</p>
+<pre><code class="hljs language-sh">$ nix-shell https://fadroma.tech/nix -c fadroma create
 </code></pre>
-<h2 id="writing-contracts" tabindex="-1">Writing contracts</h2>
+<p>A temporary Fadroma shell can be entered with with:</p>
+<pre><code class="hljs language-sh">$ nix-shell https://fadroma.tech/nix
+</code></pre>
+<p>The project wizard creates Fadroma projects with a default <code>shell.nix</code>.
+From the project's root directory, you can enter the project's Nix shell
+with just:</p>
+<pre><code class="hljs language-sh">$ nix-shell
+</code></pre>
+<p>Or, from any other directory:</p>
+<pre><code class="hljs language-sh">$ nix-shell /my/project/shell.nix
+</code></pre>
+<p>Nix will download tools like Node, Rust, Fadroma, etc., and will start a
+new shell session in an environment where these tools are available globally.</p>
+<h2 id="writing-smart-contracts" tabindex="-1">Writing smart contracts</h2>
 <p>A contract is your basic unit of domain logic.
 They are very much like persistent objects
 that communicate with each other, and
 respond to the outside world,
 via message passing.</p>
 <h3 id="macro-dsl" tabindex="-1">Macro DSL</h3>
-<p><a href="https://docs.rs/fadroma-dsl/latest/fadroma-dsl"><strong>Fadroma DSL</strong></a>
-is a family of procedural macros for clean, boilerplate-free implementation
+<p><a href="https://docs.rs/fadroma-dsl/latest/fadroma-dsl">The <strong><code>fadroma-dsl</code></strong> crate</a>
+implements a family of procedural macros for clean, boilerplate-free implementation
 of smart contract internals,</p>
 <h3 id="libraries" tabindex="-1">Libraries</h3>
-<p><a href="https://docs.rs/fadroma/latest/fadroma"><strong>Fadroma</strong></a> libraries.</p>
-<h3 id="build-cli" tabindex="-1">Build CLI</h3>
+<p><a href="https://docs.rs/fadroma/latest/fadroma">The <strong><code>fadroma</code></strong> crate</a> contains
+a set of libraries for writing smart contracts.</p>
+<h3 id="building" tabindex="-1">Building</h3>
 <p>Having written a contract, you need to compile it and instantiate it on a chain.</p>
 <p>To build the entire project:</p>
 <pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma build
 </code></pre>
 <p>To build specific contracts:</p>
-<pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma build CONTRACT
+<pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma build CONTRACT [CONTRACT...]
 </code></pre>
-<p>The build commands are implemented by the
-<a href="./spec/Build.spec.ts.md"><strong><code>@hackbg/fadroma</code></strong></a> package.</p>
-<h2 id="deploying-contracts" tabindex="-1">Deploying contracts</h2>
-<h3 id="deploy-cli" tabindex="-1">Deploy CLI</h3>
-<p>To instantiate a contract:</p>
-<pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma init CONTRACT LABEL INITMSG
-</code></pre>
-<p>To query or transact:</p>
-<pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma q LABEL MSG
-$ npm <span class="hljs-built_in">exec</span> fadroma tx LABEL MSG
-</code></pre>
-<p>The deployment commands are implemented by the
-<a href="./spec/Deploy.spec.ts.md"><strong><code>@hackbg/fadroma</code></strong></a> package.</p>
-<h3 id="devnets" tabindex="-1">Devnets</h3>
-<p>By default, Fadroma deploys to a <strong>devnet</strong>: a local instance of
-a blockchain, running in a Docker or Podman container.</p>
-<h2 id="testing-contracts" tabindex="-1">Testing contracts</h2>
+<p>In the above invocation, <code>CONTRACT</code> corresponds to a key of <code>templates</code> in
+the project's <code>fadroma.json</code>.</p>
+<p><a href="./spec/Build.spec.ts.md">The <strong>Fadroma Build Guide</strong></a> contains more info on configuring builds.</p>
 <h3 id="testing-with-ensemble" tabindex="-1">Testing with Ensemble</h3>
 <p><a href="https://fadroma.tech/rs/fadroma/ensemble/index.html"><strong>Fadroma Ensemble</strong></a>
 is a library for for integration testing of multiple contracts.</p>
-<h3 id="testing-with-mocknet" tabindex="-1">Testing with Mocknet</h3>
-<p><a href="https://fadroma.tech/js/classes/_fadroma_ops.Mocknet.html"><strong>Fadroma Mocknet</strong></a> is
-a simulated environment for fast full-stack testing of your production builds.</p>
-<h2 id="scripting-fadroma" tabindex="-1">Scripting Fadroma</h2>
-<h3 id="adding-commands" tabindex="-1">Adding commands</h3>
-<p>The <strong>Commands#command(name, info, ...steps)</strong> method declares commands.</p>
-<ul>
-<li><strong>name</strong> is the string used to invoke the command from the shell</li>
-<li><strong>info</strong> is a short help description</li>
-<li><strong>...steps</strong> is one or more synchronous or asynchronous functions that constitute the command.</li>
-</ul>
-<p><strong>Steps</strong> are run sequentially. The first argument to each step is a <code>context: Deployer</code>.
-If a step returns an <code>Object</code>, the object's entries are added to the <code>context</code> for subsequent
-steps.</p>
-<ul>
-<li>The <code>commands.command(...)</code> method returns <code>commands</code>, so it supports chaining.</li>
-<li>Don't forget to <code>export default commands</code>, otherwise Fadroma will not be able to find the commands.</li>
-<li>Fadroma uses <a href="https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts"><code>@hackbg/cmds</code></a>
-to parse commands. This is a simple and loose command parser which does not support flags.
-Arguments to a command are available in <code>context.args</code> so you can define your own flags.</li>
-</ul>
-<p>For more complex operations, you can define custom commands, which you implement in TypeScript
-using the Fadroma TypeScript API. <strong>See <a href="./spec/Agent.spec.ts.md">@fadroma/agent</a></strong> to get
-started with scripting Fadroma.</p>
-<p>To run a Fadroma script in your project:</p>
+<h2 id="deploying-and-scripting" tabindex="-1">Deploying and scripting</h2>
+<h3 id="deploy-cli" tabindex="-1">Deploy CLI</h3>
+<p>The <code>fadroma deploy</code> command deploys the current project:</p>
+<pre><code class="hljs language-sh">$ npm <span class="hljs-built_in">exec</span> fadroma deploy
+</code></pre>
+<p>Note: the above will fail if the <code>FADROMA_CHAIN</code> variable
+is not set.</p>
+<p>For convenience, the project creation tool registers aliases
+in the <code>scripts</code> field of the project's <code>package.json</code> with
+corresponding values of <code>FADROMA_CHAIN</code>, so that you can deploy with:</p>
+<pre><code class="hljs language-sh">$ npm run mainnet deploy
+$ npm run testnet deploy
+$ npm run devnet deploy
+$ npm run mocknet deploy
+</code></pre>
+<h3 id="running-scripts" tabindex="-1">Running scripts</h3>
+<p><a href="https://github.com/hackbg/ganesha">The <strong><code>@hackbg/ganesha</code></strong> package</a>
+enables Fadroma CLI to compile TypeScript on demand. You can use TypeScript
+seamlessly in your deploy procedures:</p>
 <pre><code class="hljs language-sh">$ fadroma run script.js
+$ fadroma run script.ts
 </code></pre>
-<h3 id="typescript" tabindex="-1">TypeScript</h3>
-<p>Fadroma will use <a href="https://github.com/hackbg/ganesha">Ganesha</a> to compile
-deployment scripts on each run. You can use TypeScript seamlessly in your
-deploy procedures.</p>
-<pre><code class="hljs language-sh">$ fadroma run script.ts
-</code></pre>
+<h3 id="adding-commands" tabindex="-1">Adding commands</h3>
+<p><a href="https://github.com/hackbg/toolbox/blob/main/cmds/cmds.ts">The <strong><code>@hackbg/cmds</code></strong> package</a>
+allows Fadroma CLI to parse commands. This is a simple and loose command parser which
+descends a tree of command definitions, and maps to a regular JS function call.</p>
+<p>The default project contains examples for extending project commands (such as <code>deploy</code>),
+as well as defining new ones.</p>
 <h3 id="agent-api" tabindex="-1">Agent API</h3>
-<p><a href="https://fadroma.tech/js/modules/_fadroma_client.html"><strong>Fadroma Core</strong></a> is a library for
-interfacing with smart contracts from JavaScript or TypeScript.</p>
-<p>To get started with writing Fadroma scripts,
-proceed to the <a href="./spec/Agent.spec.ts.md"><em><strong>Fadroma Core API Specification</strong></em></a>.</p>
-<h3 id="deployment-api" tabindex="-1">Deployment API</h3>
-<h3 id="connecting" tabindex="-1">Connecting</h3>
-<p>The <a href="./spec/Connect.spec.ts.md"><strong>Fadroma Connect</strong></a> library
-serves as an index of all supported connection targets.</p>
-<h4 id="secret-network" tabindex="-1">Secret Network</h4>
-<p>The <a href="./spec/Scrt.spec.ts.md"><strong><code>@fadroma/scrt</code></strong></a>
-package implements support for Secret Network.</p>
-<h4 id="other-cosmos-like-chains" tabindex="-1">Other Cosmos-like chains</h4>
-<p>Planned. See <a href="https://github.com/hackbg/fadroma/issues/148">issue #148</a>.</p>
-<h4 id="evm-based-chains" tabindex="-1">EVM-based chains</h4>
-<p>Under consideration.</p>
-<h2 id="nix-environment-support" tabindex="-1">Nix environment support</h2>
-<p>Nix is a functional package manager. Fadroma can optionally
-use Nix to provide you with a stable development environment.</p>
-<h3 id="standalone-nix-shell" tabindex="-1">Standalone Nix shell</h3>
-<p>If you have Nix, you can enter a Fadroma shell with:</p>
-<pre><code class="hljs language-sh">$ nix-shell https://fadroma.tech/nix
-</code></pre>
-<p>Nix will download tools like Node, Rust, Fadroma, etc.,
-and will drop you in a shell where these tools are available
-on the system path. In this shell, you can able to invoke
-the Fadroma CLI with just <code>fadroma</code> instead of <code>npm exec fadroma</code> or similar.</p>
-<h3 id="create-project-through-nix" tabindex="-1">Create project through Nix</h3>
-<p>If you use Nix, you can create a project with:</p>
-<pre><code class="hljs language-sh">$ nix-shell https://fadroma.tech/nix -c fadroma project create
-</code></pre>
-<h3 id="project-specific-nix-shell" tabindex="-1">Project-specific Nix shell</h3>
-<p>Projects are created with a <code>shell.nix</code>, which you can enter with:</p>
-<pre><code class="hljs language-sh">$ <span class="hljs-built_in">cd</span> /my/project
-$ nix-shell
-</code></pre>
-<p>Or, from any other directory:</p>
-<pre><code class="hljs language-sh">$ nix-shell /my/project/shell.nix
-</code></pre>
+<p><a href="/ts/modules/_fadroma_agent.html">The <strong>@fadroma/agent</strong> package</a> is our core library
+for interfacing with blockchains and smart contracts from JavaScript or TypeScript.</p>
+<p><a href="./spec/Agent.spec.ts.md">The <strong>Fadroma Agent Guide</strong></a> describes it in more detail.</p>
+<h3 id="deploy-api" tabindex="-1">Deploy API</h3>
+<p>The <code>Deployment</code> class, as extended in the default project's <code>api.ts</code>,
+is the backbone of the Fadroma Deploy API.</p>
+<p><a href="./spec/Deploy.spec.ts.md">The <strong>Fadroma Deploy Guide</strong></a> describes that part of the functionality.</p>
+<h3 id="testing-with-devnet" tabindex="-1">Testing with Devnet</h3>
+<p>By default, Fadroma deploys to a <strong>devnet</strong>: a local instance of
+a blockchain, running in a Docker or Podman container.</p>
+<p><a href="./spec/Devnet.spec.ts.md">The <strong>Fadroma Devnet Guide</strong></a> has more info
+on the subject of devnets.</p>
+<h3 id="testing-with-mocknet" tabindex="-1">Testing with Mocknet</h3>
+<p><a href="./spec/Mocknet.spec.ts.md">The <strong>Fadroma Mocknet</strong> guide</a> describes
+our simulated environment for fast full-stack testing of production WASM builds.
+Mocknet is built into <code>@fadroma/agent</code>.</p>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./spec/Agent.spec.ts.md&#x27;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./spec/Mocknet.spec.ts.md&#x27;</span>
