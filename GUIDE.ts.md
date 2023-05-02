@@ -20,12 +20,12 @@ for running standalone business logic with a programmable privacy/transparency a
 
 ## Supported platforms
 
-[The **`@fadroma/connect`** package](./spec/Connect.spec.ts.md) library
+[The **`@fadroma/connect`** package](./connect.html) library
 serves as an index of all supported connection targets.
 
 ### Secret Network
 
-[The **`@fadroma/scrt`** package](./spec/Scrt.spec.ts.md)
+[The **`@fadroma/scrt`** package](./scrt.html)
 package implements support for Secret Network.
 
 ### Other Cosmos-like chains
@@ -40,7 +40,7 @@ Under consideration.
 ## Project structure
 
 The default structure of a project is implemented by the
-[**`Project`** class](./spec/Project.spec.ts.md).
+[**`Project`** class](project.html).
 Projects created by Fadroma are polyglot Rust/TypeScript repositories.
 
 * The Rust side is structured as a Cargo workspace,
@@ -137,11 +137,11 @@ $ npm exec fadroma build CONTRACT [CONTRACT...]
 In the above invocation, `CONTRACT` corresponds to a key of `templates` in
 the project's `fadroma.json`.
 
-[The **Fadroma Build Guide**](./spec/Build.spec.ts.md) contains more info on configuring builds.
+[The **Fadroma Build Guide**](build.html) contains more info on configuring builds.
 
 ### Testing with Ensemble
 
-[**Fadroma Ensemble**](https://fadroma.tech/rs/fadroma/ensemble/index.html)
+[**Fadroma Ensemble**](https://docs.rs/fadroma/latest/fadroma/ensemble/index.html)
 is a library for for integration testing of multiple contracts.
 
 ## Deploying and scripting
@@ -193,26 +193,26 @@ as well as defining new ones.
 [The **@fadroma/agent** package](/ts/modules/_fadroma_agent.html) is our core library
 for interfacing with blockchains and smart contracts from JavaScript or TypeScript.
 
-[The **Fadroma Agent Guide**](./spec/Agent.spec.ts.md) describes it in more detail.
+[The **Fadroma Agent Guide**](agent.html) describes it in more detail.
 
 ### Deploy API
 
 The `Deployment` class, as extended in the default project's `api.ts`,
 is the backbone of the Fadroma Deploy API.
 
-[The **Fadroma Deploy Guide**](./spec/Deploy.spec.ts.md) describes that part of the functionality.
+[The **Fadroma Deploy Guide**](deploy.html) describes that part of the functionality.
 
 ### Testing with Devnet
 
 By default, Fadroma deploys to a **devnet**: a local instance of
 a blockchain, running in a Docker or Podman container.
 
-[The **Fadroma Devnet Guide**](./spec/Devnet.spec.ts.md) has more info
+[The **Fadroma Devnet Guide**](devnet.html) has more info
 on the subject of devnets.
 
 ### Testing with Mocknet
 
-[The **Fadroma Mocknet** guide](./spec/Mocknet.spec.ts.md) describes
+[The **Fadroma Mocknet** guide](mocknet.html) describes
 our simulated environment for fast full-stack testing of production WASM builds.
 Mocknet is built into `@fadroma/agent`.
 
