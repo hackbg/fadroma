@@ -1,15 +1,6 @@
-# Fadroma: creating and managing projects
+# Project API
 
-## Project CLI
-
-```shell
-$ npx fadroma project create
-$ npx fadroma project contract add
-$ npx fadroma project contract list
-$ npx fadroma project contract del
-```
-
-### Project configuration
+## Configuration
 
 |Env var|Default path|Description|
 |-|-|-|
@@ -18,9 +9,11 @@ $ npx fadroma project contract del
 |`FADROMA_UPLOADS`    |`@/state/uploads.csv`     |Receipts of uploaded contracts|
 |`FADROMA_DEPLOYMENTS`|`@/state/deployments.csv` |Receipts of instantiated (deployed) contracts|
 
-## Project API
+## Creating a project
 
-### Creating a project
+```shell
+$ npx @hackbg/fadroma@latest create
+```
 
 ```typescript
 import { fixture } from '../fixtures/Fixtures.ts.md'
@@ -37,12 +30,10 @@ const project = new Project({
 }).create()
 ```
 
-### Adding contracts to the project scope
+## Defining new contracts
 
 ```shell
-$ npx fadroma contract list
-$ npx fadroma contract add
-$ npx fadroma contract del
+$ npm exec fadroma add
 ```
 
 ```typescript
@@ -53,7 +44,7 @@ const baz = project.setTemplate('baz')
 assert(baz instanceof Template)
 ```
 
-## Project state
+## State
 
 ### Build artifacts
 

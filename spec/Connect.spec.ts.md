@@ -1,4 +1,4 @@
-# Fadroma Connect Registry
+# Connecting
 
 This package acts as a hub for the available Fadroma Agent API implementations.
 In practical terms, it allows you to connect to every chain (or other backend)

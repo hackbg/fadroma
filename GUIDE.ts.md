@@ -1,4 +1,4 @@
-# Fadroma Guide: Getting started
+# Getting started
 
 **Fadroma** is an application framework for the CosmWasm Compute module.
 Fadroma includes **Rust** libraries for writing smart contracts and a
@@ -114,7 +114,7 @@ via message passing.
 
 ### Macro DSL
 
-[The **`fadroma-dsl`** crate](https://docs.rs/fadroma-dsl/latest/fadroma-dsl)
+[The **`fadroma-dsl`** crate](https://docs.rs/fadroma-dsl/latest/fadroma_dsl)
 implements a family of procedural macros for clean, boilerplate-free implementation
 of smart contract internals,
 
