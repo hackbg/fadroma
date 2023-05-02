@@ -167,7 +167,7 @@ export class Deployment {
     const log = new Console(`Deploy: ${this.name}`)
     const contracts = Object.values(this.state)
     if (contracts.length > 0) {
-      log.log('Making sure all contracts are compiled')
+      log.log('Making sure all contracts are built')
       if (this.builder)  await this.builder.buildMany(contracts as Buildable[])
       log.log('Making sure all contracts are uploaded')
       if (this.uploader) await this.uploader.uploadMany(contracts as Uploadable[])
@@ -444,7 +444,7 @@ export class Template<C extends Client> {
     }
     return name
   }
-  get compiled (): Promise<this & Built> {
+  get built (): Promise<this & Built> {
     return this.build()
   }
   /** Compile the source using the selected builder.
@@ -460,7 +460,7 @@ export class Template<C extends Client> {
       }
       return resolve(this as this & Built)
     })
-    Object.defineProperty(this, 'compiled', { get () { return building } })
+    Object.defineProperty(this, 'built', { get () { return building } })
     return building
   }
   /** One-shot deployment task. */
@@ -473,7 +473,7 @@ export class Template<C extends Client> {
     const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
     const uploading = new Promise<this & Uploaded>(async (resolve, reject)=>{
       if (!this.codeId) {
-        await this.compiled
+        await this.built
         if (!uploader) throw new Error.NoUploader()
         const result = await uploader.upload(this as Uploadable)
         this.define(result as Partial<this>)
