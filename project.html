@@ -345,7 +345,9 @@ pre > code.language-typescript {
 
 .ensuite-md-header {
   z-index: 100;
-  display: block;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
   text-align: left;
   position: fixed;
   top: 0;
@@ -363,20 +365,23 @@ pre > code.language-typescript {
   max-width: 100%;
   font-weight: normal
 }
+.ensuite-md-separator {
+  flex-grow: 1;
+}
 .ensuite-md-header a {
   color: white;
 }
+.ensuite-md-header .ensuite-md-title {
+}
+.ensuite-md-header .ensuite-md-link {
+  font-size: 1rem;
+  margin-left: 1rem;
+}
 </style>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#project-cli">Project CLI</a><ul><li><a href="#project-configuration">Project configuration</a></li></ul></li><li><a href="#project-api">Project API</a><ul><li><a href="#creating-a-project">Creating a project</a></li><li><a href="#adding-contracts-to-the-project-scope">Adding contracts to the project scope</a></li></ul></li><li><a href="#project-state">Project state</a><ul><li><a href="#build-artifacts">Build artifacts</a></li><li><a href="#upload-receipts">Upload receipts</a></li><li><a href="#deploy-receipts">Deploy receipts</a></li></ul></li></ul></div></p>
-<h1 id="fadroma%3A-creating-and-managing-projects" tabindex="-1">Fadroma: creating and managing projects</h1>
-<h2 id="project-cli" tabindex="-1">Project CLI</h2>
-<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project create</span>
-<span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project contract add</span>
-<span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project contract list</span>
-<span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma project contract del</span>
-</code></pre>
-<h3 id="project-configuration" tabindex="-1">Project configuration</h3>
+<p><div class="table-of-contents"><ul><li><a href="#configuration">Configuration</a></li><li><a href="#creating-a-project">Creating a project</a></li><li><a href="#defining-new-contracts">Defining new contracts</a></li><li><a href="#state">State</a><ul><li><a href="#build-artifacts">Build artifacts</a></li><li><a href="#upload-receipts">Upload receipts</a></li><li><a href="#deploy-receipts">Deploy receipts</a></li></ul></li></ul></div></p>
+<h1 id="project-api" tabindex="-1">Project API</h1>
+<h2 id="configuration" tabindex="-1">Configuration</h2>
 <table>
 <thead>
 <tr>
@@ -408,8 +413,9 @@ pre > code.language-typescript {
 </tr>
 </tbody>
 </table>
-<h2 id="project-api" tabindex="-1">Project API</h2>
-<h3 id="creating-a-project" tabindex="-1">Creating a project</h3>
+<h2 id="creating-a-project" tabindex="-1">Creating a project</h2>
+<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npx @hackbg/fadroma@latest create</span>
+</code></pre>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fixture } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
 <span class="hljs-keyword">const</span> root = <span class="hljs-title function_">fixture</span>(<span class="hljs-string">&#x27;project&#x27;</span>) <span class="hljs-comment">// replace with path to your project</span>
 
@@ -423,10 +429,8 @@ pre > code.language-typescript {
   }
 }).<span class="hljs-title function_">create</span>()
 </code></pre>
-<h3 id="adding-contracts-to-the-project-scope" tabindex="-1">Adding contracts to the project scope</h3>
-<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma contract list</span>
-<span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma contract add</span>
-<span class="hljs-meta prompt_">$ </span><span class="language-bash">npx fadroma contract del</span>
+<h2 id="defining-new-contracts" tabindex="-1">Defining new contracts</h2>
+<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma add</span>
 </code></pre>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> foo = project.<span class="hljs-title function_">getTemplate</span>(<span class="hljs-string">&#x27;foo&#x27;</span>)
 <span class="hljs-title function_">assert</span>(foo <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
@@ -434,7 +438,7 @@ pre > code.language-typescript {
 <span class="hljs-keyword">const</span> baz = project.<span class="hljs-title function_">setTemplate</span>(<span class="hljs-string">&#x27;baz&#x27;</span>)
 <span class="hljs-title function_">assert</span>(baz <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
 </code></pre>
-<h2 id="project-state" tabindex="-1">Project state</h2>
+<h2 id="state" tabindex="-1">State</h2>
 <h3 id="build-artifacts" tabindex="-1">Build artifacts</h3>
 <p>Checksums of compiled contracts by version.</p>
 <h3 id="upload-receipts" tabindex="-1">Upload receipts</h3>

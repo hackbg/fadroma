@@ -345,7 +345,9 @@ pre > code.language-typescript {
 
 .ensuite-md-header {
   z-index: 100;
-  display: block;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
   text-align: left;
   position: fixed;
   top: 0;
@@ -363,8 +365,17 @@ pre > code.language-typescript {
   max-width: 100%;
   font-weight: normal
 }
+.ensuite-md-separator {
+  flex-grow: 1;
+}
 .ensuite-md-header a {
   color: white;
+}
+.ensuite-md-header .ensuite-md-title {
+}
+.ensuite-md-header .ensuite-md-link {
+  font-size: 1rem;
+  margin-left: 1rem;
 }
 </style>
 <content class="ensuite-md-rendered">
