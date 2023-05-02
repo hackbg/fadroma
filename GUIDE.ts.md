@@ -88,7 +88,7 @@ $ npm exec fadroma build CONTRACT
 ```
 
 The build commands are implemented by the
-[**`@fadroma/ops`**](./spec/Build.spec.ts.md) package.
+[**`@hackbg/fadroma`**](./spec/Build.spec.ts.md) package.
 
 ## Deploying contracts
 
@@ -108,7 +108,7 @@ $ npm exec fadroma tx LABEL MSG
 ```
 
 The deployment commands are implemented by the
-[**`@fadroma/ops`**](./spec/Build.spec.ts.md) package.
+[**`@hackbg/fadroma`**](./spec/Deploy.spec.ts.md) package.
 
 ### Devnets
 

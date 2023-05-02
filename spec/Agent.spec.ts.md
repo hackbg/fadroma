@@ -28,7 +28,7 @@ to Secret Network, you need the `ScrtChain` implementation from `@fadroma/scrt`,
 which is available using either:
 
 ```typescript
-import { Scrt } from '@hackbg/fadroma`
+import { Scrt } from '@hackbg/fadroma'
 chain = Scrt.Chain.mainnet()
 ```
 
@@ -305,16 +305,6 @@ assert.equal(client.codeHash, codeHash)
 
 client.fees = { 'method': 100 }
 
-assert.equal(client.getFee('method'), 100)
-
-assert.equal(client.getFee({'method':{'parameter':'value'}}), 100)
-
-let agent2 = Symbol()
-assert.equal(
-  client.withAgent(agent2).agent,
-  agent2
-)
-
 client.agent = { execute: async () => 'ok' }
 assert.equal(
   await client.execute({'method':{'parameter':'value'}}),
@@ -360,6 +350,9 @@ property of your client class:
 ```typescript
 const fee1 = new Fee('100000', 'uscrt')
 client.fees['my_method'] = fee1
+
+assert.equal(client.getFee('my_method'), 100000)
+assert.equal(client.getFee({'my_method':{'parameter':'value'}}), 100000)
 ```
 
 You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
@@ -367,7 +360,7 @@ This method works by returning a copy of `client` with fees overridden by the pr
 
 ```typescript
 const fee2 = new Fee('100000', 'uscrt')
-const result = await client.withFee(fee2).tx1()
+await client.withFee(fee2).tx1()
 ```
 
 ### Metadata
@@ -422,7 +415,7 @@ transactions as a different identity.
 const agent1 = await chain.getAgent(/*...*/)
 const agent2 = await chain.getAgent(/*...*/)
 
-const client = agent1.getClient(MyContract, "...")
+client = agent1.getClient(MyContract, "...")
 
 // signed by agent1:
 client.tx1()

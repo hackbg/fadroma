@@ -1,5 +1,5 @@
-import { Error, Console, Config } from './ops-base'
-import type { DevnetConfig } from './ops-base'
+import { Error, Console, Config } from '../util'
+import type { DevnetConfig } from '../util'
 
 import { bold, randomHex, ChainMode, Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
@@ -270,7 +270,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     )
   }
 
-  log = new Console('@fadroma/ops: DevnetContainer')
+  log = new Console('DevnetContainer')
 
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
@@ -421,7 +421,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     if (data?.containerId) {
       this.container = await this.dock!.container(data.containerId)
     } else {
-      throw new Error.Devnet('@fadroma/ops/Devnet: missing container id in devnet state')
+      throw new Error.Devnet('missing container id in devnet state')
     }
     return data
   }

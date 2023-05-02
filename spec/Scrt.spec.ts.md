@@ -7,7 +7,7 @@ and a `ViewingKeyClient`).
 
 * Like `@fadroma/agent`, this package aims to be *isomorphic*:
   one of its design goals is to be usable in Node and browsers without modification.
-* `@fadroma/ops` automatically has this package through `@fadroma/connect`
+* `@hackbg/fadroma` automatically has this package through `@fadroma/connect`
 
 ```typescript
 import { Scrt } from '@fadroma/connect'

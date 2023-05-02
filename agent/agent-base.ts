@@ -69,9 +69,9 @@ export class FadromaError extends Error {
   static NoBuilder = this.define('NoBuilder',
     () => `No builder specified.`)
   static NoBuilderNamed = this.define('NoBuilderNamed',
-    (id: string) => `No builder with id "${id}". Make sure @fadroma/ops is imported`)
+    (id: string) => `No builder with id "${id}". Make sure @hackbg/fadroma is imported`)
   static NoUploaderNamed = this.define('NoUploaderNamed',
-    (id: string) => `No uploader with id "${id}". Make sure @fadroma/ops is imported`)
+    (id: string) => `No uploader with id "${id}". Make sure @hackbg/fadroma is imported`)
   static NoAddress = this.define('NoAddress',
     () => 'No address provided')
   static NoChain = this.define('NoChain',

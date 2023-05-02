@@ -1,5 +1,5 @@
-import { Config, Console, bold, colors, Error } from './ops-base'
-import type { BuilderConfig } from './ops-base'
+import { Config, Console, bold, colors, Error } from './util'
+import type { BuilderConfig } from './util'
 
 import type { Class } from '@fadroma/agent'
 import { Builder, Contract, HEAD } from '@fadroma/agent'
@@ -109,7 +109,7 @@ export const sanitize = (ref: string) =>
 export class BuildContainer extends BuildLocal {
   readonly id = 'Container'
   /** Logger */
-  log = new Console('@fadroma/ops: BuildContainer')
+  log = new Console('@hackbg/fadroma: BuildContainer')
   /** Used to launch build container. */
   docker: Engine
   /** Tag of the docker image for the build container. */
@@ -426,7 +426,7 @@ export class BuildContainer extends BuildLocal {
 
     // Throw error if launching the container failed
     if (error) {
-      throw new Error(`[@fadroma/ops] Docker error: ${error}`)
+      throw new Error(`[@hackbg/fadroma] Docker error: ${error}`)
     }
 
     // Throw error if the build failed
@@ -441,7 +441,7 @@ export class BuildContainer extends BuildLocal {
     const crateList = crates.join(' ')
     this.log.log(logs)
     this.log.error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
-    throw new Error(`[@fadroma/ops] Build of crates: "${crateList}" exited with status ${code}`)
+    throw new Error(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
   }
 
   protected locationToContract (location: any) {
@@ -577,7 +577,7 @@ export function getGitDir (template: Partial<Template<any>> = {}): DotGit {
   * - If the contracts workspace repository is a submodule,
   *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
 export class DotGit extends Path {
-  log = new Console('@fadroma/ops: DotGit')
+  log = new Console('@hackbg/fadroma: DotGit')
   /** Whether a .git is present */
   readonly present:     boolean
   /** Whether the workspace's repository is a submodule and

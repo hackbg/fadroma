@@ -48,13 +48,12 @@ export type BuilderClass<B extends Builder> = Class<Builder, any>
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder {
   log = new Console(this.constructor.name)
-
-  /** Populated by @fadroma/ops */
+  /** Global registry of builder variants. Populated downstream. */
   static variants: Record<string, BuilderClass<Builder>> = {}
   /** Unique identifier of this builder implementation. */
   abstract id: string
   /** Up to the implementation.
-    * `@fadroma/ops` implements dockerized and non-dockerized
+    * `@hackbg/fadroma` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
   async build (source: Buildable, ...args: any[]): Promise<Built> {
     this.log.warn('Builder#build: stub')
@@ -107,8 +106,7 @@ export interface UploaderClass<U extends Uploader> { new (agent?: Agent|null): U
 /** Uploader: uploads a `Contract`'s `artifact` to a specific `Chain`,
   * binding the `Contract` to a particular `chainId` and `codeId`. */
 export abstract class Uploader {
-  /** Global registry of Uploader implementations.
-    * Populated by @fadroma/ops */
+  /** Global registry of Uploader implementations. Populated downstream. */
   static variants: Record<string, UploaderClass<Uploader>> = {}
 
   /** Unique identifier of this uploader implementation. */

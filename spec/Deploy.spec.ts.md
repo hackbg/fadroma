@@ -41,7 +41,7 @@ To prepare a deployment for deploying, use `getDeployment`.
 This will provide a populated instance of your deployment class.
 
 ```typescript
-import { getDeployment } from '@fadroma/ops'
+import { getDeployment } from '@hackbg/fadroma'
 let deployment = getDeployment(MyDeployment, /* ...constructor args */)
 ```
 

@@ -6,7 +6,6 @@ importers:
     specifiers:
       '@fadroma/agent': workspace:*
       '@fadroma/connect': workspace:*
-      '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@hackbg/cmds': workspace:^2
       '@hackbg/dock': workspace:^1.3
@@ -17,38 +16,48 @@ importers:
       '@hackbg/spec': ^1
       '@hackbg/ubik': ^1.3.5
       '@types/dockerode': ^3.3.14
+      '@types/js-yaml': ^4.0.5
       '@types/node': latest
       '@types/prettyjson': ^0.0.30
+      '@types/prompts': ^2.4.2
       '@types/secure-random': ^1.1.0
       body-parser: ^1.20.0
+      case: ^1.6.3
       concurrently: 7.2.2
       cross-fetch: ^3.1.5
       dotenv: ^16.0.1
       express: ^4.18.1
       freeport-async: ^2.0.0
       husky: ^8.0.3
+      js-yaml: ^4.1.0
       lint-staged: ^13.1.2
+      prompts: ^2.4.2
+      simple-git: ^3.7.1
       typedoc: ^0.23.25
       typescript: ^5
-      vitepress: 1.0.0-alpha.10
     dependencies:
       '@fadroma/agent': link:agent
       '@fadroma/connect': link:connect
-      '@fadroma/ops': link:ops
-      dotenv: 16.0.1
-    devDependencies:
-      '@fadroma/scrt': link:connect/scrt
       '@hackbg/cmds': link:ensuite/toolbox/cmds
       '@hackbg/dock': link:ensuite/toolbox/dock
-      '@hackbg/ensuite': link:ensuite
       '@hackbg/file': link:ensuite/toolbox/file
-      '@hackbg/ganesha': link:ensuite/ganesha
       '@hackbg/port': link:ensuite/toolbox/port
+      case: 1.6.3
+      dotenv: 16.0.1
+      js-yaml: 4.1.0
+      prompts: 2.4.2
+      simple-git: 3.10.0
+    devDependencies:
+      '@fadroma/scrt': link:connect/scrt
+      '@hackbg/ensuite': link:ensuite
+      '@hackbg/ganesha': link:ensuite/ganesha
       '@hackbg/spec': link:ensuite/toolbox/spec
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
+      '@types/js-yaml': 4.0.5
       '@types/node': 18.16.3
       '@types/prettyjson': 0.0.30
+      '@types/prompts': 2.4.4
       '@types/secure-random': 1.1.0
       body-parser: 1.20.0
       concurrently: 7.2.2
@@ -59,7 +68,6 @@ importers:
       lint-staged: 13.1.2
       typedoc: 0.23.25_typescript@5.0.2
       typescript: 5.0.2
-      vitepress: 1.0.0-alpha.10
 
   agent:
     specifiers:
@@ -495,37 +503,6 @@ importers:
       node-fetch: 2.6.7
       recast: 0.22.0
       rimraf: 3.0.2
-
-  ops:
-    specifiers:
-      '@fadroma/connect': workspace:3.0.0-rc.29
-      '@hackbg/cmds': workspace:^2
-      '@hackbg/dock': workspace:^1.3
-      '@hackbg/ensuite': ^1.1
-      '@hackbg/file': workspace:^1
-      '@hackbg/port': workspace:^1
-      '@types/js-yaml': ^4.0.5
-      '@types/prompts': ^2.4.2
-      case: ^1.6.3
-      dotenv: ^16.0.1
-      js-yaml: ^4.1.0
-      prompts: ^2.4.2
-      simple-git: ^3.7.1
-    dependencies:
-      '@fadroma/connect': link:../connect
-      '@hackbg/cmds': link:../ensuite/toolbox/cmds
-      '@hackbg/dock': link:../ensuite/toolbox/dock
-      '@hackbg/file': link:../ensuite/toolbox/file
-      '@hackbg/port': link:../ensuite/toolbox/port
-      case: 1.6.3
-      dotenv: 16.0.1
-      js-yaml: 4.1.0
-      prompts: 2.4.2
-      simple-git: 3.10.0
-    devDependencies:
-      '@hackbg/ensuite': link:../ensuite
-      '@types/js-yaml': 4.0.5
-      '@types/prompts': 2.4.4
 
 packages:
 
@@ -1023,10 +1000,6 @@ packages:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
     dev: true
 
-  /@types/node/18.16.0:
-    resolution: {integrity: sha512-BsAaKhB+7X+H4GnSjGhJG9Qi8Tw+inU9nJDwmD5CgOmBLEI6ArdhikpLX7DjbjDRDTbqZzU2LSQNZg8WGPiSZQ==}
-    dev: true
-
   /@types/node/18.16.2:
     resolution: {integrity: sha512-GQW/JL/5Fz/0I8RpeBG9lKp0+aNcXEaVL71c0D2Q0QHDTFvlYKT7an0onCUXj85anv7b4/WesqdfchLc0jtsCg==}
     dev: true
@@ -1041,7 +1014,7 @@ packages:
   /@types/prompts/2.4.4:
     resolution: {integrity: sha512-p5N9uoTH76lLvSAaYSZtBCdEXzpOOufsRjnhjVSrZGXikVGHX9+cc9ERtHRV4hvBKHyZb1bg4K+56Bd2TqUn4A==}
     dependencies:
-      '@types/node': 18.16.0
+      '@types/node': 18.16.3
       kleur: 3.0.3
     dev: true
 

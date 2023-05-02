@@ -23,7 +23,7 @@ $ npx fadroma devnet clear
 ## Devnet API
 
 ```typescript
-import { getDevnet } from '@fadroma/ops'
+import { getDevnet } from '@hackbg/fadroma'
 
 // unleash the kraken:
 const devnet = await getDevnet({ /* options */ })
@@ -37,7 +37,7 @@ await devnet.respawn()
 await devnet.kill()
 await devnet.erase()
 
-import { Devnet } from '@fadroma/ops'
+import { Devnet } from '@hackbg/fadroma'
 assert(devnet instanceof Devnet)
 
 import { Chain } from '@fadroma/agent'
@@ -109,7 +109,7 @@ of your integration pipeline.
 The `fadroma reset` command kills and erases the devnet.
 
 ```typescript
-import Project from '@fadroma/ops'
+import Project from '@hackbg/fadroma'
 const project = new Project()
 project.resetDevnet()
 ```

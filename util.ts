@@ -1,5 +1,5 @@
-import { DevnetContainer } from './devnet'
-import type { DevnetPlatform } from './devnet'
+import { DevnetContainer } from './devnet/devnet'
+import type { DevnetPlatform } from './devnet/devnet'
 import { FSUploader } from './upload'
 import { getBuilder, buildPackage } from './build'
 
@@ -138,7 +138,7 @@ export class BuilderConfig extends BaseConfig {
     ()=>'ghcr.io/hackbg/fadroma:master')
   /** Dockerfile to build the build image if not downloadable. */
   dockerfile: string = this.getString('FADROMA_BUILD_DOCKERFILE',
-    ()=>$(buildPackage).at('build.Dockerfile').path)
+    ()=>$(buildPackage).at('Dockerfile').path)
 
   constructor (
     readonly project: string,
@@ -225,7 +225,7 @@ export { bold, colors }
 
 export class Console extends CommandsConsoleMixin(BaseConsole) {
 
-  constructor (public label = '@fadroma/ops') {
+  constructor (public label = '@hackbg/fadroma') {
     super()
   }
 

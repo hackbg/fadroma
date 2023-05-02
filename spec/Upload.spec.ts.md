@@ -22,26 +22,26 @@ Uploading with default configuration (from environment variables):
 import { fixture } from '../fixtures/Fixtures.ts.md'
 const artifact = fixture('null.wasm') // replace with path to your binary
 
-import { upload } from '@fadroma/ops'
+import { upload } from '@hackbg/fadroma'
 await upload({ artifact })
 ```
 
 Passing custom options to the uploader:
 
 ```typescript
-import { getUploader } from '@fadroma/ops'
+import { getUploader } from '@hackbg/fadroma'
 await getUploader({ /* options */ }).upload({ artifact })
 ```
 
 ### Upload caching
 
-Contracts start out as source code, which `@fadroma/ops` compiles to binary artifacts
+Contracts start out as source code, which `@hackbg/fadroma` compiles to binary artifacts
 (WASM files). The `Uploader` class takes care of uploading them and producing a JSON file
 containing upload metadata, which we call an **upload receipt**.
 
 ```typescript
 import { JSONDirectory, withTmpDir } from '@hackbg/file'
-import { DeployConfig, FSUploader } from '@fadroma/ops'
+import { DeployConfig, FSUploader } from '@hackbg/fadroma'
 import { Agent, Uploader, Template } from '@fadroma/agent'
 import { examples } from '../fixtures/Fixtures.ts.md'
 let config:   DeployConfig

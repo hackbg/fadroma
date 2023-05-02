@@ -1,3 +1,4 @@
+import { Config, Console, colors, Error, DeployError } from './util'
 import { getBuilder } from './build'
 import { getUploader } from './upload'
 
@@ -11,8 +12,6 @@ import {
   Agent, AnyContract, Contract, Client, DeploymentState, Template,
   toInstanceReceipt, timestamp, bold
 } from '@fadroma/agent'
-
-import { Config, Console, colors, Error, DeployError } from './ops-base'
 
 import { CommandContext } from '@hackbg/cmds'
 import $, {
@@ -31,7 +30,7 @@ import { platform } from 'node:os'
 //@ts-ignore
 export const { version } = $(import.meta.url, '../package.json').as(JSONFile).load() as any
 
-const console = new Console(`@fadroma/ops ${version}`)
+const console = new Console(`@hackbg/fadroma ${version}`)
 
 export default class Project extends CommandContext {
   log = new Console(`Fadroma ${version}`) as any
@@ -72,8 +71,7 @@ export default class Project extends CommandContext {
     const name = options?.name || root.name
     this.name = name
     this.root = root
-    this.log.label = this.exists() ? name : `@fadroma/ops ${version}`
-    this.log.info(`This is @fadroma/ops ${version}.`)
+    this.log.label = this.exists() ? name : `@hackbg/fadroma ${version}`
     if (this.exists()) this.log.info(`Active project:`, bold(this.name), 'at', bold(this.root.path))
     if (this.exists()) this.log.info(`Selected chain:`, bold(this.config.chainId))
     this.builder = getBuilder({ outputDir: this.dirs.wasm.path })

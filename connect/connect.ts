@@ -35,7 +35,7 @@ Object.assign(Chain.variants as ChainRegistry, {
     Scrt.Chain.mainnet,
   ScrtTestnet:
     Scrt.Chain.testnet,
-  // Devnet is injected here by @fadroma/ops
+  // Devnet is injected here by @hackbg/fadroma
 })
 
 export * from '@hackbg/conf'

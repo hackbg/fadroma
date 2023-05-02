@@ -55,10 +55,10 @@ $ fadroma rebuild CONTRACT  # always rebuilds
 ### Getting a builder
 
 ```typescript
-import { getBuilder } from '@fadroma/ops'
+import { getBuilder } from '@hackbg/fadroma'
 const builder = getBuilder(/* { ...options... } */)
 
-import { Builder } from '@fadroma/ops'
+import { Builder } from '@hackbg/fadroma'
 assert(builder instanceof Builder)
 ```
 
@@ -70,7 +70,7 @@ provided by either Docker or Podman (as selected
 by the `FADROMA_BUILD_PODMAN` environment variable).
 
 ```typescript
-import { BuildContainer } from '@fadroma/ops'
+import { BuildContainer } from '@hackbg/fadroma'
 assert.ok(builder instanceof BuildContainer)
 ```
 
@@ -101,7 +101,7 @@ by passing `buildRaw: true` or setting `FADROMA_BUILD_RAW`.
 ```typescript
 const rawBuilder = getBuilder({ buildRaw: true })
 
-import { BuildRaw } from '@fadroma/ops'
+import { BuildRaw } from '@hackbg/fadroma'
 assert.ok(rawBuilder instanceof BuildRaw)
 ```
 
@@ -190,7 +190,7 @@ as specifier by `contract.revision`.
 
 ```typescript
 import { Contract } from '@fadroma/agent'
-import { getGitDir, DotGit } from '@fadroma/ops'
+import { getGitDir, DotGit } from '@hackbg/fadroma'
 
 assert.throws(()=>getGitDir(new Contract()))
 
@@ -227,7 +227,7 @@ implement the compilation procedure for contracts.
 ### Build events
 
 ```typescript
-import { Console } from '@fadroma/ops'
+import { Console } from '@hackbg/fadroma'
 import { Contract } from '@fadroma/agent'
 const log = new Console({ info: () => {} })
 log.build.workspace('foo')

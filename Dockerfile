@@ -1,7 +1,7 @@
-FROM rust:1.67-slim
+FROM rust:1.69-slim
 
 # Install Rust
-RUN rustup default 1.67 && \
+RUN rustup default 1.69 && \
   rustup target add wasm32-unknown-unknown && \
   rustup toolchain list && \
   rustup target list

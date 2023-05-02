@@ -1,5 +1,5 @@
-import { Config,  Console, colors, bold, Error, hideProperties as hide } from './ops-base'
-import type { UploadConfig } from './ops-base'
+import { Config,  Console, colors, bold, Error, hideProperties as hide } from './util'
+import type { UploadConfig } from './util'
 import { Contract, Uploader, assertAgent, override, toUploadReceipt, base16, sha256 } from '@fadroma/agent'
 import type { Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
 import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
@@ -87,7 +87,7 @@ export interface UploadReceiptData {
   * if provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Uploader {
-  log = new Console('@fadroma/ops: FSUploader' )
+  log = new Console('FSUploader' )
   /** The uploader checks here whether a contract might be already uploaded. */
   cache?: UploadStore
 

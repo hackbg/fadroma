@@ -14,11 +14,5 @@
     "@fadroma/agent": "workspace:^1.0.0-rc.16",
     "@fadroma/scrt":  "workspace:^9.0.0-rc.16",
     "@hackbg/conf":   "workspace:^2"
-  },
-  "peerDependencies": {
-    "@fadroma/ops": "3.0.0-rc.28"
-  },
-  "peerDependenciesMeta": {
-    "@fadroma/ops": { "optional": true, "description": "For devnet support." }
   }
 }
