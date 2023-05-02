@@ -131,9 +131,8 @@ export class Deployment {
     ])
   }
 
-  get [Symbol.toStringTag]() {
-    return `${this.name??'-'}`
-  }
+  get [Symbol.toStringTag]() { return `${this.name??'-'}` }
+
   /** Print the status of this deployment. */
   async showStatus () {
     this.log.deployment(this)
@@ -259,7 +258,6 @@ export class Deployment {
     if (!this.builder) throw new Error.NoBuilder()
     return this.builder.buildMany(contracts as unknown as Buildable[])
   }
-
   /** Upload multiple contracts. */
   uploadContracts (contracts: AnyContract[]) {
     if (!this.uploader) throw new Error.NoBuilder()
@@ -424,17 +422,7 @@ export class Template<C extends Client> {
     hideProperties(this, 'log')
   }
 
-  /** @returns a copy of this object with a changed agent.
-    * @warning overriding constructor signature is discouraged. */
-  asAgent (agent: Agent): this {
-    return new (this.constructor as any)({ ...this, agent })
-  }
-  /** Provide parameters for an existing instance.
-    * @returns mutated self */
-  define (options: Partial<Template<C>> = {}): this {
-    return override(this, options as object)
-  }
-  get info (): string {
+  get description (): string {
     let name = 'Template'
     if (this.crate || this.revision || this.codeId) {
       name += ': '
@@ -446,6 +434,26 @@ export class Template<C extends Client> {
   }
   get built (): Promise<this & Built> {
     return this.build()
+  }
+  get uploaded (): Promise<this & Uploaded> {
+    return this.upload()
+  }
+  get asInfo (): ContractInfo {
+    return {
+      id:        Number(this.codeId!) as any,
+      code_hash: this.codeHash!
+    }
+  }
+
+  /** @returns a copy of this object with a changed agent.
+    * @warning overriding constructor signature is discouraged. */
+  asAgent (agent: Agent): this {
+    return new (this.constructor as any)({ ...this, agent })
+  }
+  /** Provide parameters for an existing instance.
+    * @returns mutated self */
+  define (options: Partial<Template<C>> = {}): this {
+    return override(this, options as object)
   }
   /** Compile the source using the selected builder.
     * @returns this */
@@ -462,10 +470,6 @@ export class Template<C extends Client> {
     })
     Object.defineProperty(this, 'built', { get () { return building } })
     return building
-  }
-  /** One-shot deployment task. */
-  get uploaded (): Promise<this & Uploaded> {
-    return this.upload()
   }
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
@@ -500,12 +504,6 @@ export class Template<C extends Client> {
     const size = Object.keys(contracts).length
     const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
     return map(contracts, contract=>this.instance(contract))
-  }
-  get asInfo (): ContractInfo {
-    return {
-      id:        Number(this.codeId!) as any,
-      code_hash: this.codeHash!
-    }
   }
 }
 
@@ -620,6 +618,14 @@ export class Contract<C extends Client> extends Template<C> {
   get deployed (): Promise<C> {
     return this.deploy()
   }
+
+  get asLink (): ContractLink {
+    return {
+      address:   this.address!,
+      code_hash: this.codeHash!
+    }
+  }
+
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Promise<C> {
@@ -679,13 +685,6 @@ export class Contract<C extends Client> extends Template<C> {
       }
     }
     return true
-  }
-
-  get asLink (): ContractLink {
-    return {
-      address:   this.address!,
-      code_hash: this.codeHash!
-    }
   }
 }
 
