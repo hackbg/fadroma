@@ -367,10 +367,10 @@ the system's state freom spontaneous inconsistencies.</p>
 <p>The above properties make CosmWasm smart contracts a very interesting proposition
 for running standalone business logic with a programmable privacy/transparency axis.</p>
 <h2 id="supported-platforms" tabindex="-1">Supported platforms</h2>
-<p><a href="./spec/Connect.spec.ts.md">The <strong><code>@fadroma/connect</code></strong> package</a> library
+<p><a href="./connect.html">The <strong><code>@fadroma/connect</code></strong> package</a> library
 serves as an index of all supported connection targets.</p>
 <h3 id="secret-network" tabindex="-1">Secret Network</h3>
-<p><a href="./spec/Scrt.spec.ts.md">The <strong><code>@fadroma/scrt</code></strong> package</a>
+<p><a href="./scrt.html">The <strong><code>@fadroma/scrt</code></strong> package</a>
 package implements support for Secret Network.</p>
 <h3 id="other-cosmos-like-chains" tabindex="-1">Other Cosmos-like chains</h3>
 <p>Planned. See <a href="https://github.com/hackbg/fadroma/issues/148">issue #148</a>.</p>
@@ -378,7 +378,7 @@ package implements support for Secret Network.</p>
 <p>Under consideration.</p>
 <h2 id="project-structure" tabindex="-1">Project structure</h2>
 <p>The default structure of a project is implemented by the
-<a href="./spec/Project.spec.ts.md"><strong><code>Project</code></strong> class</a>.
+<a href="project.html"><strong><code>Project</code></strong> class</a>.
 Projects created by Fadroma are polyglot Rust/TypeScript repositories.</p>
 <ul>
 <li>
@@ -442,9 +442,9 @@ a set of libraries for writing smart contracts.</p>
 </code></pre>
 <p>In the above invocation, <code>CONTRACT</code> corresponds to a key of <code>templates</code> in
 the project's <code>fadroma.json</code>.</p>
-<p><a href="./spec/Build.spec.ts.md">The <strong>Fadroma Build Guide</strong></a> contains more info on configuring builds.</p>
+<p><a href="build.html">The <strong>Fadroma Build Guide</strong></a> contains more info on configuring builds.</p>
 <h3 id="testing-with-ensemble" tabindex="-1">Testing with Ensemble</h3>
-<p><a href="https://fadroma.tech/rs/fadroma/ensemble/index.html"><strong>Fadroma Ensemble</strong></a>
+<p><a href="https://docs.rs/fadroma/latest/fadroma/ensemble/index.html"><strong>Fadroma Ensemble</strong></a>
 is a library for for integration testing of multiple contracts.</p>
 <h2 id="deploying-and-scripting" tabindex="-1">Deploying and scripting</h2>
 <h3 id="deploy-cli" tabindex="-1">Deploy CLI</h3>
@@ -477,18 +477,18 @@ as well as defining new ones.</p>
 <h3 id="agent-api" tabindex="-1">Agent API</h3>
 <p><a href="/ts/modules/_fadroma_agent.html">The <strong>@fadroma/agent</strong> package</a> is our core library
 for interfacing with blockchains and smart contracts from JavaScript or TypeScript.</p>
-<p><a href="./spec/Agent.spec.ts.md">The <strong>Fadroma Agent Guide</strong></a> describes it in more detail.</p>
+<p><a href="agent.html">The <strong>Fadroma Agent Guide</strong></a> describes it in more detail.</p>
 <h3 id="deploy-api" tabindex="-1">Deploy API</h3>
 <p>The <code>Deployment</code> class, as extended in the default project's <code>api.ts</code>,
 is the backbone of the Fadroma Deploy API.</p>
-<p><a href="./spec/Deploy.spec.ts.md">The <strong>Fadroma Deploy Guide</strong></a> describes that part of the functionality.</p>
+<p><a href="deploy.html">The <strong>Fadroma Deploy Guide</strong></a> describes that part of the functionality.</p>
 <h3 id="testing-with-devnet" tabindex="-1">Testing with Devnet</h3>
 <p>By default, Fadroma deploys to a <strong>devnet</strong>: a local instance of
 a blockchain, running in a Docker or Podman container.</p>
-<p><a href="./spec/Devnet.spec.ts.md">The <strong>Fadroma Devnet Guide</strong></a> has more info
+<p><a href="devnet.html">The <strong>Fadroma Devnet Guide</strong></a> has more info
 on the subject of devnets.</p>
 <h3 id="testing-with-mocknet" tabindex="-1">Testing with Mocknet</h3>
-<p><a href="./spec/Mocknet.spec.ts.md">The <strong>Fadroma Mocknet</strong> guide</a> describes
+<p><a href="mocknet.html">The <strong>Fadroma Mocknet</strong> guide</a> describes
 our simulated environment for fast full-stack testing of production WASM builds.
 Mocknet is built into <code>@fadroma/agent</code>.</p>
 <hr>
