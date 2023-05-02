@@ -152,6 +152,8 @@ import './Deploy.test.ts'
 
 ## Template
 
+The `Contract` class describes a smart contract's source, binary, and upload.
+
 ### Deploying multiple contracts from a template
 
 The `Deployment#template` method allows you to add a `Template`
@@ -225,6 +227,29 @@ If the contract binary is not found, uploading will try to build it first.
 
 ## Contract
 
+The `Contract` class describes an individual smart contract instance and uniquely identifies it
+within the `Deployment`.
+
+```typescript
+import { Contract } from '@fadroma/agent'
+
+new Contract({
+  repository: 'REPO',
+  revision:   'REF',
+  workspace:  'WORKSPACE'
+  crate:      'CRATE',
+  artifact:   'ARTIFACT',
+  chain:      { /* ... */ },
+  agent:      { /* ... */ },
+  deployment: { /* ... */ }
+  codeId:     0,
+  codeHash:   'CODEHASH'
+  client:     Client,
+  name:       'NAME',
+  initMsg:    async () => ({})
+})
+```
+
 ### Naming
 
 The chain requires labels to be unique.
@@ -236,20 +261,15 @@ The `initMsg` property of `Contract` can be a function returning the actual mess
 This function is only called during instantiation, and can be used to generate init
 messages on the fly, such as when passing the address of one contract to another.
 
-```typescript
-import { Contract } from '@fadroma/agent'
-
-new Contract({
-  repository: 'REPO',
-  revision: 'REF',
-  workspace: 'WORKSPACE'
-  crate: 'CRATE'
-})
-```
-
 ### Deploying
 
 ```typescript
-await deployment3.baz1.deploy() // fails if already deployed
-await deployment3.baz1.deployed // one shot with default config
+await deployment3.baz1.deploy()
+await deployment3.baz1.deployed
+
+await deployment3.baz1.uploaded
+await deployment3.baz1.upload()
+
+await deployment3.baz1.built
+await deployment3.baz1.build()
 ```

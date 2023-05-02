@@ -140,3 +140,24 @@ log.warnNoCodeHash()
 log.warnNoCodeHashProvided()
 log.warnCodeHashMismatch()
 log.warnEmptyBundle()
+
+/***
+## Introductory example
+
+FIXME: add to spec (fix imports)
+
+```typescript
+import { Scrt } from '@hackbg/fadroma'
+import { ExampleContract } from '@example/project'
+
+export default async function main () {
+  const chain    = new Scrt()
+  const agent    = await chain.getAgent().ready
+  const address  = "secret1..."
+  const contract = new Client({ agent, address: "secret1..." })
+  const response = await contract.myQuery()
+  const result   = await contract.myTransaction()
+  return result
+}
+```
+*///

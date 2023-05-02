@@ -13,3 +13,19 @@ new class MyDeployStore extends DeployStore {
   foo = this.contract({ name: 'foo' })
   bar = this.contract({ name: 'bar' })
 })
+
+/**
+```typescript
+import assert from 'node:assert'
+import { Deployment } from '@fadroma/agent'
+import { withTmpFile } from '@hackbg/file'
+import { mockAgent } from '../fixtures/Fixtures.ts.md'
+function inTmpDeployment (cb) {
+  return withTmpFile(f=>{
+    const d = new Deployment(f, mockAgent())
+    return cb(d)
+  })
+}
+import { Client } from '@fadroma/agent'
+```
+**/

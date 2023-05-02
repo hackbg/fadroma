@@ -97,6 +97,9 @@ To transact on a [chain](./Chains.ts.md), you need to authenticate
 with your identity (account, wallet). To do that, you obtain an
 `Agent` from the `Chain` using `chain.getAgent({...})`.
 
+Instantiating multiple authenticated agents allows the same program
+to interact with the chain from multiple distinct identities.
+
 If you don't pass a mnemonic, a random mnemonic and address will be generated.
 
 ```typescript
@@ -287,13 +290,8 @@ you can use `bundle.wrap(async (bundle) => { ... })`:
 
 ## Client
 
-Represents an interface to an existing contract.
-  * The default `Client` class allows passing messages to the contract instance.
-  * **Implement a custom subclass of `Client` to define specific messages as methods**.
-    This is the main thing to do when defining your Fadroma Client-based API.
-
-User interacts with contract by obtaining an instance of the
-appropriate `Client` subclass from the authorized `Agent`.
+Client objects are interfaces to programs deployed in a specific environment, i.e.
+**they represent smart contracts**.
 
 ```typescript
 import { Client } from '@fadroma/agent'
@@ -329,17 +327,48 @@ you'll want to extend `Client` and implement them there:
 
 ```typescript
 class MyClient extends Client {
-  address = 'unspecified'
+
   myMethod = (param) =>
     this.execute({ my_method: { param } })
+
   myQuery = (param) =>
     this.query({ my_query: { param } }) }
+
 }
 ```
 
 By publishing a library of `Client` subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn
 integrate it into their systems.
+
+### Querying and transacting
+
+```typescript
+await client.execute({ my_method: {} })
+await client.query({ my_query: {} })
+```
+
+When defining your app's API library, you can define `Client` methods
+corresponding to your contract's methods to provide a well-typed TypeScript
+client API for your contracts.
+
+### Per-transaction fees
+
+You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
+property of your client class:
+
+```typescript
+const fee1 = new Fee('100000', 'uscrt')
+client.fees['my_method'] = fee1
+```
+
+You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
+This method works by returning a copy of `client` with fees overridden by the provided value.
+
+```typescript
+const fee2 = new Fee('100000', 'uscrt')
+const result = await client.withFee(fee2).tx1()
+```
 
 ### Metadata
 
@@ -400,52 +429,4 @@ client.tx1()
 
 // signed by agent2
 client.asAgent(agent2).tx1()
-```
-
-### Defining query and transaction methods
-
-The main things that you need to know for implementing a client class
-are the `query` and `execute` methods:
-
-* You pass them the message as a JS object.
-* They serialize it to JSON and pass it to the contract.
-* Then, they return a `Promise` of the value returned by the contract.
-* If the returned value is an error, the promise will reject (i.e. if you're
-  `await`ing the promise chain, an `Error` will be thrown).
-
-### Per-transaction fees
-
-You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
-property of your client class:
-
-```typescript
-import { Client, Fee } from '@fadroma/agent'
-
-export class MyContract extends Client {
-
-  tx1 = () => this.execute("tx1")
-
-  tx2 = (n) => this.execute({tx2: n})
-
-  tx3 = () => this.execute({tx3: {}})
-
-  tx4 = (n) => this.execute({tx4: {my_value: n}})
-
-  fees = {
-    tx1: new Fee('10000', 'uscrt'),
-    tx2: new Fee('20000', 'uscrt'),
-    tx3: new Fee('30000', 'uscrt'),
-    tx4: new Fee('40000', 'uscrt'),
-  }
-
-}
-```
-
-You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
-This method works by returning a copy of `client` with fees overridden by the provided value.
-
-```typescript
-const fee = new Fee('100000', 'uscrt')
-
-const result = await client.withFee(fee).tx1()
 ```
