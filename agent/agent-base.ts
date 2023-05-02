@@ -29,7 +29,7 @@ export function prop <T> (host: object, property: string, value: T) {
 }
 
 /** Error kinds. */
-export class FadromaError extends Error {
+class FadromaError extends Error {
   /** Throw this when the control flow reaches unimplemented areas. */
   static Unimplemented = this.define('Unimplemented',
     (info?: string) => 'Not implemented' +
@@ -142,7 +142,7 @@ export class FadromaError extends Error {
     (name: string) => `${name}: specify version`)
 }
 
-export class FadromaConsole extends Console {
+class FadromaConsole extends Console {
 
   constructor (label: string = 'Fadroma') {
     super(label)

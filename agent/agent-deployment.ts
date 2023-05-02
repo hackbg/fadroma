@@ -345,19 +345,20 @@ export class Deployment {
   }
 }
 
-export class VersionedDeployment<V> extends Deployment {
+/** Experimental support for versioned deployments. */
+export class DeploymentVersion<V> extends Deployment {
   constructor (
     options: object = {},
     public version: V|undefined = (options as any)?.version
   ) {
     super(options as Partial<Deployment>)
-    this.log.warn('VersionedDeployment: unstable')
+    this.log.warn('DeploymentVersion: unstable')
     if (!this.version) throw new Error.NoVersion(this.constructor.name)
   }
 }
 
 /** A Subsystem is any class which extends Deployment (thus being able to manage Contracts)
-  * and takes a parent Deployment as first constructor argument (thus being an sub-Deployment).
+  * and takes a parent Deployment as first constructor argument (making it a sub-Deployment).
   * Attached subsystems share the context of the parent Deployment. */
 export interface Subsystem<D extends Deployment, E extends Deployment> extends Class<D, [
   E,           // parent deployment
