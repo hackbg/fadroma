@@ -16,7 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-export * from './util'
+export * from './ops-base'
 export * from './upload'
 export * from './devnet'
 export * from './build'
@@ -27,7 +27,7 @@ export { default as default } from './Project'
 import type { ChainRegistry, DeploymentClass } from '@fadroma/agent'
 import { Chain, ChainMode, Deployment } from '@fadroma/agent'
 import { Scrt } from '@fadroma/connect'
-import { Config } from './util'
+import { Config } from './ops-base'
 
 Object.assign(Chain.variants as ChainRegistry, {
 

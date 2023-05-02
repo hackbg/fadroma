@@ -1,6 +1,5 @@
-import { Config } from './util'
-import type { UploadConfig } from './util'
-import { Console, colors, bold, Error, hideProperties as hide } from './util'
+import { Config,  Console, colors, bold, Error, hideProperties as hide } from './ops-base'
+import type { UploadConfig } from './ops-base'
 import { Contract, Uploader, assertAgent, override, toUploadReceipt, base16, sha256 } from '@fadroma/agent'
 import type { Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
 import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'

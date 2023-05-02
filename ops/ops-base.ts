@@ -4,22 +4,26 @@ import { FSUploader } from './upload'
 import { getBuilder, buildPackage } from './build'
 
 import {
-  Builder, Deployment, DeployStore, ChainMode, Uploader
+  Builder, Deployment, DeployStore, ChainMode, Uploader,
+  Error as BaseError, Console as BaseConsole, colors, bold, HEAD
 } from '@fadroma/agent'
 import type {
-  BuilderClass, Chain, ChainId, UploaderClass, DeploymentClass, DeploymentFormat, DeployStoreClass
+  BuilderClass, Chain, ChainId, UploaderClass, Template, Built,
+  DeploymentClass, DeploymentFormat, DeployStoreClass,
 } from '@fadroma/agent'
 
 import { Config as BaseConfig, ConnectConfig } from '@fadroma/connect'
 import type { Environment } from '@fadroma/connect'
 
 import $ from '@hackbg/file'
+import type { Path } from '@hackbg/file'
+import { CommandsConsoleMixin } from '@hackbg/cmds'
 import { Engine, Docker, Podman } from '@hackbg/dock'
 
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export default class Config extends ConnectConfig {
+export class Config extends ConnectConfig {
   /** Project root. Defaults to current working directory. */
   project: string = this.getString('FADROMA_PROJECT', ()=>this.environment.cwd)
   /** License token. */
@@ -216,3 +220,153 @@ export class UploadConfig extends BaseConfig {
     this.override(options)
   }
 }
+
+export { bold, colors }
+
+export class Console extends CommandsConsoleMixin(BaseConsole) {
+
+  constructor (public label = '@fadroma/ops') {
+    super()
+  }
+
+  build = ((self: Console)=>({
+
+    workspace: (mounted: Path|string, ref: string = HEAD) => self.log(
+      `Building contracts from workspace:`, bold(`${$(mounted).shortPath}/`),
+      `@`, bold(ref)
+    ),
+    one: ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => {
+      self.log('Building', bold(crate), ...
+        (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
+    },
+    many: (sources: Template<any>[]) => {
+      for (const source of sources) self.build.one(source)
+    },
+    found: ({ artifact }: Built) => {
+      self.log(`found at ${bold($(artifact!).shortPath)}`)
+    },
+    container: (root: string|Path, revision: string, cratesToBuild: string[]) => {
+      root = $(root).shortPath
+      const crates = cratesToBuild.map(x=>bold(x)).join(', ')
+      self.log(`Started building from ${bold(root)} @ ${bold(revision)}:`, crates)
+    },
+
+  }))(this)
+
+  devnet = ((self: Console)=>({
+
+    loadingState: (chainId1: string, chainId2: string) =>
+      self.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`),
+    loadingFailed: (path: string) =>
+      self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
+    loadingRejected: (path: string) =>
+      self.log(`${path} does not exist.`),
+    isNowRunning: (devnet: { chainId: string, port: any, container: { id: string }|null }) => {
+      const port = String(devnet.port)
+      const id = devnet.container!.id.slice(0,8)
+      self.info(`Devnet is running on port ${bold(port)} from container ${bold(id)}.`)
+      self.info('Use self command to reset it:')
+      self.info(`  docker kill ${id} && sudo rm -rf state/${devnet.chainId??'fadroma-devnet'}`)
+    }
+
+  }))(this)
+
+  deploy = ((self: Console)=>({
+
+    storeDoesNotExist: (path: string) => {
+      self.warn(`Deployment store "${path}" does not exist.`)
+    },
+    warnOverridingStore: (x: string) => {
+      self.warn(`Overriding store for ${x}`)
+    },
+    warnNoAgent: (name?: string) => {
+      return self.warn(
+        'No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'
+      )
+    },
+    deployment: (deployment: Deployment, name = deployment.name) => {
+      name ??= $(deployment.name).shortPath
+      super.deployment(deployment, name)
+    },
+    deploymentList: (chainId: string, deployments: DeployStore) => {
+      const list = deployments.list()
+      if (list.length > 0) {
+        self.info(`Deployments on chain ${bold(chainId)}:`)
+        let maxLength = 0
+        for (let name of list) {
+          if (name === (deployments as any).KEY) continue
+          maxLength = Math.max(name.length, maxLength)
+        }
+        for (let name of list) {
+          if (name === (deployments as any).KEY) continue
+          const deployment = deployments.load(name)!
+          const count = Object.keys(deployment.state).length
+          let info = `${bold(name.padEnd(maxLength))}`
+          info = `${info} (${deployment.size} contracts)`
+          if (deployments.active && deployments.active.name === name) {
+            info = `${info} ${bold('selected')}`
+          }
+          self.info(` `, info)
+        }
+      } else {
+        self.info(`No deployments on chain ${bold(chainId)}`)
+      }
+    },
+    creating: (name: string) => {
+      self.log('Creating:', bold(name))
+    },
+    location: (path: string) => {
+      self.log('Location:', bold(path))
+    },
+    activating: (name: string) => {
+      self.log('Activate:', bold(name))
+    },
+
+  }))(this)
+
+}
+
+export class Error extends BaseError {
+  static Build:  typeof BuildError
+  static Upload: typeof UploadError
+  static Deploy: typeof DeployError
+  static Devnet: typeof DevnetError
+}
+
+export class BuildError extends Error {
+}
+
+export class UploadError extends Error {
+}
+
+export class DeployError extends Error {
+  static DeploymentAlreadyExists = this.define('DeploymentAlreadyExists',
+    (name: string)=>`Deployment "${name}" already exists`
+  )
+  static DeploymentDoesNotExist = this.define('DeploymentDoesNotExist',
+    (name: string)=>`Deployment "${name}" does not exist`
+  )
+}
+
+export class DevnetError extends Error {
+  static PortMode = this.define('PortMode',
+    ()=>"DevnetContainer#portMode must be either 'lcp' or 'grpcWeb'")
+  static NoChainId = this.define('NoChainId',
+    ()=>'Refusing to create directories for devnet with empty chain id')
+  static NoContainerId = this.define('NoContainerId',
+    ()=>'Missing container id in devnet state')
+  static ContainerNotSet = this.define('ContainerNotSet',
+    ()=>'DevnetContainer#container is not set')
+  static NoGenesisAccount = this.define('NoGenesisAccount',
+    (name: string, error: any)=>
+      `Genesis account not found: ${name} (${error})`)
+}
+
+Object.assign(Error, {
+  Build:  BuildError,
+  Upload: UploadError,
+  Deploy: DeployError,
+  Devnet: DevnetError
+})
+
+export { hideProperties } from '@fadroma/agent'

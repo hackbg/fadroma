@@ -1,5 +1,5 @@
-import { Config, Console, bold, colors, Error } from './util'
-import type { BuilderConfig } from './util'
+import { Config, Console, bold, colors, Error } from './ops-base'
+import type { BuilderConfig } from './ops-base'
 
 import type { Class } from '@fadroma/agent'
 import { Builder, Contract, HEAD } from '@fadroma/agent'

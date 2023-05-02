@@ -1,6 +1,5 @@
-import { Error, Console } from './util'
-import { Config } from './util'
-import type { DevnetConfig } from './util'
+import { Error, Console, Config } from './ops-base'
+import type { DevnetConfig } from './ops-base'
 
 import { bold, randomHex, ChainMode, Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'

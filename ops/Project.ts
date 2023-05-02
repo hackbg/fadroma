@@ -12,7 +12,7 @@ import {
   toInstanceReceipt, timestamp, bold
 } from '@fadroma/agent'
 
-import { Config, Console, colors, Error, DeployError } from './util'
+import { Config, Console, colors, Error, DeployError } from './ops-base'
 
 import { CommandContext } from '@hackbg/cmds'
 import $, {
