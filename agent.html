@@ -376,9 +376,9 @@ such as the Secret Network mainnet or testnet.</p>
 <p><strong>Note:</strong> <code>Chain</code> in <code>@fadroma/agent</code> is a stub class. If you want to connect
 to Secret Network, you need the <code>ScrtChain</code> implementation from <code>@fadroma/scrt</code>,
 which is available using either:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Scrt</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma`
-chain = Scrt.Chain.mainnet()
-</span></code></pre>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Scrt</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+chain = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mainnet</span>()
+</code></pre>
 <p>or</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Scrt</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/scrt&#x27;</span>
 chain = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mainnet</span>()
@@ -588,16 +588,6 @@ assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-
 
 client.<span class="hljs-property">fees</span> = { <span class="hljs-string">&#x27;method&#x27;</span>: <span class="hljs-number">100</span> }
 
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-title function_">getFee</span>(<span class="hljs-string">&#x27;method&#x27;</span>), <span class="hljs-number">100</span>)
-
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-title function_">getFee</span>({<span class="hljs-string">&#x27;method&#x27;</span>:{<span class="hljs-string">&#x27;parameter&#x27;</span>:<span class="hljs-string">&#x27;value&#x27;</span>}}), <span class="hljs-number">100</span>)
-
-<span class="hljs-keyword">let</span> agent2 = <span class="hljs-title class_">Symbol</span>()
-assert.<span class="hljs-title function_">equal</span>(
-  client.<span class="hljs-title function_">withAgent</span>(agent2).<span class="hljs-property">agent</span>,
-  agent2
-)
-
 client.<span class="hljs-property">agent</span> = { <span class="hljs-attr">execute</span>: <span class="hljs-keyword">async</span> () =&gt; <span class="hljs-string">&#x27;ok&#x27;</span> }
 assert.<span class="hljs-title function_">equal</span>(
   <span class="hljs-keyword">await</span> client.<span class="hljs-title function_">execute</span>({<span class="hljs-string">&#x27;method&#x27;</span>:{<span class="hljs-string">&#x27;parameter&#x27;</span>:<span class="hljs-string">&#x27;value&#x27;</span>}}),
@@ -631,11 +621,14 @@ client API for your contracts.</p>
 property of your client class:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> fee1 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;100000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>)
 client.<span class="hljs-property">fees</span>[<span class="hljs-string">&#x27;my_method&#x27;</span>] = fee1
+
+assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-title function_">getFee</span>(<span class="hljs-string">&#x27;my_method&#x27;</span>), <span class="hljs-number">100000</span>)
+assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-title function_">getFee</span>({<span class="hljs-string">&#x27;my_method&#x27;</span>:{<span class="hljs-string">&#x27;parameter&#x27;</span>:<span class="hljs-string">&#x27;value&#x27;</span>}}), <span class="hljs-number">100000</span>)
 </code></pre>
 <p>You can also specify one fee for all transactions, using <code>client.withFee({ gas, amount: [...] })</code>.
 This method works by returning a copy of <code>client</code> with fees overridden by the provided value.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> fee2 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;100000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>)
-<span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> client.<span class="hljs-title function_">withFee</span>(fee2).<span class="hljs-title function_">tx1</span>()
+<span class="hljs-keyword">await</span> client.<span class="hljs-title function_">withFee</span>(fee2).<span class="hljs-title function_">tx1</span>()
 </code></pre>
 <h3 id="metadata" tabindex="-1">Metadata</h3>
 <p>The original <code>Contract</code> object from which the contract
@@ -675,7 +668,7 @@ transactions as a different identity.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
 <span class="hljs-keyword">const</span> agent2 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
 
-<span class="hljs-keyword">const</span> client = agent1.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">MyContract</span>, <span class="hljs-string">&quot;...&quot;</span>)
+client = agent1.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">MyContract</span>, <span class="hljs-string">&quot;...&quot;</span>)
 
 <span class="hljs-comment">// signed by agent1:</span>
 client.<span class="hljs-title function_">tx1</span>()
