@@ -8,15 +8,20 @@ Our operational model treats the blockchain as a **seamless compute substrate**,
 and contracts as akin to **persistent objects**.
 
 * Unlike **microservices**, smart contracts exist in a "post-POSIX"
-  environment, where platform details are abstracted away.
+  environment, where platform details are abstracted away. Contracts
+  are Internet-native, but shed most of the Web 2.0 baggage. Therefore
+  interoperation with Web 2.0 systems can be non-trivial.
 
-* Unlike **cloud functions**, smart contracts are individually stateful.
-
-* Furthermore, the **distributed transaction-based architecture** guards
-  the system's state freom spontaneous inconsistencies.
+* Unlike **cloud functions**, smart contracts are individually stateful,
+  and exist permanently on an append-only ledger. While the
+  **distributed transaction-based architecture** guards the system's state from
+  spontaneous inconsistencies, extra care must be taken in orchestrating deployments
+  and migrations.
 
 The above properties make CosmWasm smart contracts a very interesting proposition
-for running standalone business logic with a programmable privacy/transparency axis.
+for running standalone business logic with programmable privacy/transparency properties.
+Fadroma provides the orchestration system for leveraging the full capabilities of
+smart contract-based systems over the entire development lifecycle.
 
 ## Supported platforms
 
@@ -28,11 +33,11 @@ serves as an index of all supported connection targets.
 [The **`@fadroma/scrt`** package](./scrt.html)
 package implements support for Secret Network.
 
-### Other Cosmos-like chains
+### Other CosmWasm chains
 
 Planned. See [issue #148](https://github.com/hackbg/fadroma/issues/148).
 
-### EVM-based chains
+### Non-CosmWasm chains
 
 Under consideration.
 
