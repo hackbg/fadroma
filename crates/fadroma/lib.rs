@@ -118,28 +118,28 @@ pub mod prelude {
 /// ```
 #[macro_export]
 macro_rules! entrypoint {
-    (@init $init:path) => {
+    (@init $init:ident) => {
         #[no_mangle]
         extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_instantiate(&super::$init, env_ptr, info_ptr, msg_ptr)
         }
     };
 
-    (@execute $execute:path) => {
+    (@execute $execute:ident) => {
         #[no_mangle]
         extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_execute(&super::$execute, env_ptr, info_ptr, msg_ptr)
         }
     };
 
-    (@query $query:path) => {
+    (@query $query:ident) => {
         #[no_mangle]
         extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_query(&super::$query, env_ptr, msg_ptr)
         }
     };
 
-    (@reply $reply:path) => {
+    (@reply $reply:ident) => {
         #[no_mangle]
         extern "C" fn reply(env_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_reply(&super::$reply, env_ptr, msg_ptr)
@@ -153,7 +153,7 @@ macro_rules! entrypoint {
         }
     };
 
-    (init: $init:path, execute: $execute:path, query: $query:path, reply: $reply:path) => {
+    (init: $init:ident, execute: $execute:ident, query: $query:ident, reply: $reply:ident) => {
         $crate::entrypoint! {
             @wasm_mod
             $crate::entrypoint!(@init $init);
@@ -163,7 +163,7 @@ macro_rules! entrypoint {
         }
     };
 
-    (init: $init:path, execute: $execute:path, query: $query:path) => {
+    (init: $init:ident, execute: $execute:ident, query: $query:ident) => {
         $crate::entrypoint! {
             @wasm_mod
             $crate::entrypoint!(@init $init);
