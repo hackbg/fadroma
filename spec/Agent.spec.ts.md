@@ -127,25 +127,7 @@ const height = await agent.height // Get the current block height
 //assert.equal(await agent.height, height + 1)
 ```
 
-### Native token transactions
-
-You're not on the chain to wait around, though.
-The simplest operation you can conduct is transact with native tokens:
-
-```typescript
-await agent.balance             // In the default native token
-await agent.getBalance()        // In the default native token
-await agent.getBalance('token') // In a non-default native token
-
-// Sending the default native token:
-await agent.send('recipient-address', 1000)
-await agent.send('recipient-address', '1000')
-
-// Sending a non-default native token:
-await agent.send('recipient-address', [{denom:'token', amount: '1000'}])
-```
-
-### Default gas fees
+### Gas fees
 
 Transacting creates load on the network, which incurs costs on node operators.
 Compensations for transactions are represented by the gas metric.
@@ -154,7 +136,38 @@ Compensations for transactions are represented by the gas metric.
 import { Fee } from '@fadroma/agent'
 ```
 
-### Uploading code
+### Native token transactions
+
+You're not on the chain to wait around, though.
+The simplest operation you can conduct is transact with native tokens.
+
+#### Query balance
+
+```typescript
+await agent.balance             // In the default native token
+await agent.getBalance()        // In the default native token
+await agent.getBalance('token') // In a non-default native token
+```
+
+#### Send default token
+
+```typescript
+await agent.send('recipient-address', 1000)
+await agent.send('recipient-address', '1000')
+```
+
+#### Send non-default tokens
+
+```typescript
+await agent.send('recipient-address', [
+  {denom:'token1', amount: '1000'}
+  {denom:'token2', amount: '2000'}
+])
+```
+
+### Compute transactions
+
+#### Uploading code
 
 ```typescript
 import { nullWasm } from '../fixtures/Fixtures.ts.md'
@@ -194,7 +207,7 @@ assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
 assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
 ```
 
-### Instantiating contracts
+#### Instantiating contracts
 
 * Instantiating a single contract:
 
@@ -211,14 +224,14 @@ await agent.instantiateMany([
 })
 ```
 
-### Querying contract state
+#### Querying contract state
 
 ```typescript
 const response =
   await agent.query({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
 ```
 
-### Executing transactions
+#### Executing transactions
 
 Executing a single transaction:
 
@@ -237,7 +250,7 @@ const results = await agent.bundle(async bundle=>{
 }).run()
 ```
 
-### Batching transactions
+#### Batching transactions
 
 To submit multiple messages as a single transaction, you can
 use the `Bundle` class through `Agent#bundle`.
@@ -292,45 +305,43 @@ you can use `bundle.wrap(async (bundle) => { ... })`:
 ## Client
 
 Client objects are interfaces to programs deployed in a specific environment, i.e.
-**they represent smart contracts**.
-
-```typescript
-import { Client } from '@fadroma/agent'
-let address = 'some-addr'
-let codeHash = 'some-hash'
-let client: Client = new Client({ agent, address, codeHash })
-
-assert.equal(client.agent,    agent)
-assert.equal(client.address,  address)
-assert.equal(client.codeHash, codeHash)
-
-client.fees = { 'method': 100 }
-assert.equal(
-  await client
-    .withAgent({ execute: async () => 'ok' })
-    .execute({'method':{'parameter':'value'}}),
-  'ok'
-)
-```
-
-Once you know what methods your contract will support,
-you'll want to extend `Client` and implement them there:
-
-```typescript
-class MyClient extends Client {
-
-  myMethod = (param) =>
-    this.execute({ my_method: { param } })
-
-  myQuery = (param) =>
-    this.query({ my_query: { param } }) }
-
-}
-```
+**they represent smart contracts**. Once you know what methods your contract will support,
+you'll want to extend `Client` and implement handles to them there:
 
 By publishing a library of `Client` subclasses corresponding to your contracts,
 you can provide a robust API to users of your project, so that they can in turn
 integrate it into their systems.
+
+```typescript
+import { Client } from '@fadroma/agent'
+class MyClient extends Client {
+  myMethod = (param) =>
+    this.execute({ my_method: { param } })
+  myQuery = (param) =>
+    this.query({ my_query: { param } }) }
+}
+```
+
+### Constructing
+
+To operate a smart contract through a `Client`,
+you need an `agent`, an `address`, and a `codeHash`:
+
+```typescript
+let address  = Symbol('some-addr')
+let codeHash = Symbol('some-hash')
+let client: Client = new MyClient({ agent, address, codeHash })
+
+assert.equal(client.agent,    agent)
+assert.equal(client.address,  address)
+assert.equal(client.codeHash, codeHash)
+```
+
+Alternatively you can construct through `agent.getClient`:
+
+```typescript
+client = agent.getClient(MyClient, address, codeHash)
+```
 
 ### Querying and transacting
 
@@ -338,10 +349,6 @@ integrate it into their systems.
 await client.execute({ my_method: {} })
 await client.query({ my_query: {} })
 ```
-
-When defining your app's API library, you can define `Client` methods
-corresponding to your contract's methods to provide a well-typed TypeScript
-client API for your contracts.
 
 ### Per-transaction fees
 

@@ -22,9 +22,9 @@ export class Client {
   /** Contract metadata. */
   meta:      Contract<any>
   /** Default fee for all contract transactions. */
-  fee?:      IFee = undefined
+  fee?:      IFee
   /** Default fee for specific transactions. */
-  fees?:     Record<string, IFee> = undefined
+  fees:      Record<string, IFee> = {}
 
   constructor (options: Partial<Client> = {}) {
     hideProperties(this, 'log', 'context')
