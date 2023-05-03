@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: ws: wss: 'unsafe-inline';">
+<title>Rendered by Ensuite</title>
 </head>
 <body>
 <style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
@@ -378,19 +379,28 @@ pre > code.language-typescript {
   margin-left: 1rem;
 }
 </style>
+<header class="ensuite-md-header">
+<a class="ensuite-md-title" href="/">The <strong>Fadroma</strong> Guide</a>
+<div class="ensuite-md-separator"></div>
+<a class="ensuite-md-link" href=/>Homepage</a>
+<a class="ensuite-md-link" href=/guide.html>Documentation</a>
+<a class="ensuite-md-link" href=https://github.com/hackbg/fadroma>Github</a>
+<a class="ensuite-md-link" href=https://crates.io/search?q=fadroma>Crates.io</a>
+<a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
+<a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
+</header>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#chain">Chain</a><ul><li><a href="#chain-modes">Chain modes</a></li><li><a href="#dev-mode">Dev mode</a></li></ul></li><li><a href="#agent">Agent</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#default-gas-fees">Default gas fees</a></li><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li><li><a href="#batching-transactions">Batching transactions</a></li></ul></li><li><a href="#client">Client</a><ul><li><a href="#querying-and-transacting">Querying and transacting</a></li><li><a href="#per-transaction-fees">Per-transaction fees</a></li><li><a href="#metadata">Metadata</a></li><li><a href="#client-agent">Client agent</a></li></ul></li></ul></div></p>
-<h1 id="fadroma-guide%3A-agent-api" tabindex="-1">Fadroma Guide: Agent API</h1>
+<h1 id="fadroma-agent-api" tabindex="-1">Fadroma Agent API</h1>
 <p>The <strong>Agent API</strong> is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.</p>
 <p>Its core primitives are the <strong><code>Chain</code></strong> and <strong><code>Agent</code></strong> abstract classes.
 An <code>Agent</code> corresponds to your identity (wallet) on a given chain,
 and lets you operate in terms of transactions (sending tokens, calling contracts, etc.)</p>
-<ul>
-<li><a href="./Scrt.spec.ts.md"><strong><code>@fadroma/scrt</code></strong></a> provides
+<p><strong>Note:</strong> The <code>Chain</code> and <code>Agent</code> exported from <code>@fadroma/agent</code> are stub implementations.
+<a href="./scrt.html">The <strong><code>@fadroma/scrt</code></strong> package</a> provides
 <strong><code>ScrtChain</code></strong> and <strong><code>ScrtAgent</code></strong>, the concrete implementations
-of Fadroma Chain API for Secret Network.</li>
-</ul>
+of Fadroma Chain API for Secret Network.</p>
 <h2 id="chain" tabindex="-1">Chain</h2>
 <p>The <code>Chain</code> object identifies what chain to connect to -
 such as the Secret Network mainnet or testnet.</p>
@@ -612,10 +622,10 @@ assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-
 assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">codeHash</span>, codeHash)
 
 client.<span class="hljs-property">fees</span> = { <span class="hljs-string">&#x27;method&#x27;</span>: <span class="hljs-number">100</span> }
-
-client.<span class="hljs-property">agent</span> = { <span class="hljs-attr">execute</span>: <span class="hljs-keyword">async</span> () =&gt; <span class="hljs-string">&#x27;ok&#x27;</span> }
 assert.<span class="hljs-title function_">equal</span>(
-  <span class="hljs-keyword">await</span> client.<span class="hljs-title function_">execute</span>({<span class="hljs-string">&#x27;method&#x27;</span>:{<span class="hljs-string">&#x27;parameter&#x27;</span>:<span class="hljs-string">&#x27;value&#x27;</span>}}),
+  <span class="hljs-keyword">await</span> client
+    .<span class="hljs-title function_">withAgent</span>({ <span class="hljs-attr">execute</span>: <span class="hljs-keyword">async</span> () =&gt; <span class="hljs-string">&#x27;ok&#x27;</span> })
+    .<span class="hljs-title function_">execute</span>({<span class="hljs-string">&#x27;method&#x27;</span>:{<span class="hljs-string">&#x27;parameter&#x27;</span>:<span class="hljs-string">&#x27;value&#x27;</span>}}),
   <span class="hljs-string">&#x27;ok&#x27;</span>
 )
 </code></pre>
@@ -647,35 +657,36 @@ property of your client class:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> fee1 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;100000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>)
 client.<span class="hljs-property">fees</span>[<span class="hljs-string">&#x27;my_method&#x27;</span>] = fee1
 
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-title function_">getFee</span>(<span class="hljs-string">&#x27;my_method&#x27;</span>), <span class="hljs-number">100000</span>)
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-title function_">getFee</span>({<span class="hljs-string">&#x27;my_method&#x27;</span>:{<span class="hljs-string">&#x27;parameter&#x27;</span>:<span class="hljs-string">&#x27;value&#x27;</span>}}), <span class="hljs-number">100000</span>)
+assert.<span class="hljs-title function_">deepEqual</span>(client.<span class="hljs-title function_">getFee</span>(<span class="hljs-string">&#x27;my_method&#x27;</span>), fee1)
+assert.<span class="hljs-title function_">deepEqual</span>(client.<span class="hljs-title function_">getFee</span>({<span class="hljs-string">&#x27;my_method&#x27;</span>:{<span class="hljs-string">&#x27;parameter&#x27;</span>:<span class="hljs-string">&#x27;value&#x27;</span>}}), fee1)
 </code></pre>
 <p>You can also specify one fee for all transactions, using <code>client.withFee({ gas, amount: [...] })</code>.
 This method works by returning a copy of <code>client</code> with fees overridden by the provided value.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> fee2 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;100000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>)
-<span class="hljs-keyword">await</span> client.<span class="hljs-title function_">withFee</span>(fee2).<span class="hljs-title function_">tx1</span>()
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> fee2 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;200000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>)
+
+assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-keyword">await</span> client.<span class="hljs-title function_">withFee</span>(fee2).<span class="hljs-title function_">getFee</span>(<span class="hljs-string">&#x27;my_method&#x27;</span>), fee2)
 </code></pre>
 <h3 id="metadata" tabindex="-1">Metadata</h3>
 <p>The original <code>Contract</code> object from which the contract
 was deployed can be found on the optional <code>meta</code> property of the <code>Client</code>.</p>
-<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">ok</span>(aClient.<span class="hljs-property">meta</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
-assert.<span class="hljs-title function_">equal</span>(aClient.<span class="hljs-property">meta</span>.<span class="hljs-property">deployedBy</span>, agent.<span class="hljs-property">address</span>)
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+assert.<span class="hljs-title function_">ok</span>(client.<span class="hljs-property">meta</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
 </code></pre>
 <p>Fetching metadata:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fetchCodeHash, fetchCodeId, fetchLabel } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
-instance.<span class="hljs-property">address</span> = <span class="hljs-string">&#x27;someaddress&#x27;</span> <span class="hljs-comment">// FIXME</span>
-assert.<span class="hljs-title function_">ok</span>(instance.<span class="hljs-property">codeHash</span> = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeHash</span>(instance, agent))
-<span class="hljs-comment">//assert.ok(instance.codeId   = await fetchCodeId(instance, agent))</span>
-assert.<span class="hljs-title function_">ok</span>(instance.<span class="hljs-property">label</span>    = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchLabel</span>(instance, agent))
+client.<span class="hljs-property">address</span> = <span class="hljs-string">&#x27;someaddress&#x27;</span> <span class="hljs-comment">// FIXME</span>
+assert.<span class="hljs-title function_">ok</span>(client.<span class="hljs-property">codeHash</span> = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeHash</span>(client, agent))
+<span class="hljs-comment">//assert.ok(client.codeId   = await fetchCodeId(client, agent))</span>
+assert.<span class="hljs-title function_">ok</span>(client.<span class="hljs-property">label</span>    = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchLabel</span>(client, agent))
 
-assert.<span class="hljs-title function_">equal</span>(instance.<span class="hljs-property">codeHash</span>, <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeHash</span>(instance, agent, instance.<span class="hljs-property">codeHash</span>))
-<span class="hljs-comment">//assert.equal(instance.codeId,   await fetchCodeId(instance, agent, instance.codeId))</span>
-assert.<span class="hljs-title function_">equal</span>(instance.<span class="hljs-property">label</span>,    <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchLabel</span>(instance, agent, instance.<span class="hljs-property">label</span>))
+assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">codeHash</span>, <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeHash</span>(client, agent, client.<span class="hljs-property">codeHash</span>))
+<span class="hljs-comment">//assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))</span>
+assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">label</span>,    <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchLabel</span>(client, agent, client.<span class="hljs-property">label</span>))
 
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchCodeHash</span>(instance, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchCodeId</span>(instance, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchLabel</span>(instance, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
+assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchCodeHash</span>(client, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
+assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchCodeId</span>(client, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
+assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchLabel</span>(client, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
 </code></pre>
 <h3 id="client-agent" tabindex="-1">Client agent</h3>
 <p>By default, the <code>Client</code>'s <code>agent</code> property is equal to the <code>agent</code>
@@ -684,8 +695,9 @@ which subsequent transactions with that <code>Client</code> will be sent.</p>
 <p>In case you want to deploy the contract as one identity, then interact
 with it from another one as part of the same procedure, you can set <code>agent</code>
 to another instance of <code>Agent</code>:</p>
-<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(aClient.<span class="hljs-property">agent</span>, agent)
-aClient.<span class="hljs-property">agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
+<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">agent</span>, agent)
+client.<span class="hljs-property">agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
+assert.<span class="hljs-title function_">notEqual</span>(client.<span class="hljs-property">agent</span>, agent)
 </code></pre>
 <p>Similarly to <code>withFee</code>, the <code>as</code> method returns a new instance of your
 client class, bound to a different <code>agent</code>, thus allowing you to execute
@@ -693,13 +705,16 @@ transactions as a different identity.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
 <span class="hljs-keyword">const</span> agent2 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
 
-client = agent1.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">MyContract</span>, <span class="hljs-string">&quot;...&quot;</span>)
+client = agent1.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">Client</span>, <span class="hljs-string">&quot;...&quot;</span>)
 
-<span class="hljs-comment">// signed by agent1:</span>
-client.<span class="hljs-title function_">tx1</span>()
+<span class="hljs-comment">// executed by agent1:</span>
+client.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: {} })
 
-<span class="hljs-comment">// signed by agent2</span>
-client.<span class="hljs-title function_">asAgent</span>(agent2).<span class="hljs-title function_">tx1</span>()
+<span class="hljs-comment">// executed by agent2</span>
+client.<span class="hljs-title function_">withAgent</span>(agent2).<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: {} })
+</code></pre>
+<hr>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 </code></pre>
 
 </content>

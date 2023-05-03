@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: ws: wss: 'unsafe-inline';">
+<title>Rendered by Ensuite</title>
 </head>
 <body>
 <style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
@@ -378,6 +379,16 @@ pre > code.language-typescript {
   margin-left: 1rem;
 }
 </style>
+<header class="ensuite-md-header">
+<a class="ensuite-md-title" href="/">The <strong>Fadroma</strong> Guide</a>
+<div class="ensuite-md-separator"></div>
+<a class="ensuite-md-link" href=/>Homepage</a>
+<a class="ensuite-md-link" href=/guide.html>Documentation</a>
+<a class="ensuite-md-link" href=https://github.com/hackbg/fadroma>Github</a>
+<a class="ensuite-md-link" href=https://crates.io/search?q=fadroma>Crates.io</a>
+<a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
+<a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
+</header>
 <content class="ensuite-md-rendered">
 <p><div class="table-of-contents"><ul><li><a href="#configuring">Configuring</a></li><li><a href="#connecting-and-authenticating">Connecting and authenticating</a><ul><li><a href="#fresh-wallet">Fresh wallet</a></li><li><a href="#by-mnemonic">By mnemonic</a></li><li><a href="#keplr">Keplr</a></li><li><a href="#secretcli">secretcli</a></li></ul></li><li><a href="#querying-data-from-secret-network">Querying data from Secret Network</a></li><li><a href="#viewing-keys">Viewing keys</a></li><li><a href="#query-permits">Query permits</a></li></ul></div></p>
 <h1 id="secret-network" tabindex="-1">Secret Network</h1>
@@ -455,7 +466,6 @@ one of its design goals is to be usable in Node and browsers without modificatio
 <h3 id="fresh-wallet" tabindex="-1">Fresh wallet</h3>
 <p>This gives you a randomly generated mnemonic.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent0 = <span class="hljs-keyword">await</span> mainnet.<span class="hljs-title function_">getAgent</span>().<span class="hljs-property">ready</span>
-
 assert.<span class="hljs-title function_">ok</span>(agent0 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Agent</span>)
 assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-property">chain</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>)
 assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-property">mnemonic</span>)
@@ -513,13 +523,13 @@ instances.</p>
 <span class="hljs-title function_">ok</span>(agent1.<span class="hljs-property">api</span>)
 </code></pre>
 <h2 id="viewing-keys" tabindex="-1">Viewing keys</h2>
-<p>Fadroma provides the <code>VKClient</code> class for embedding into your own <code>Client</code> classes
+<p>Fadroma provides the <code>ViewingKeyClient</code> class for embedding into your own <code>Client</code> classes
 for contracts that use SNIP20-compatible the viewing keys.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> client = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">VKClient</span>()
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> client = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">ViewingKeyClient</span>()
 </code></pre>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">MyClient</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
-  vk = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">VKClient</span>()
+  vk = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">ViewingKeyClient</span>()
 }
 </code></pre>
 <h2 id="query-permits" tabindex="-1">Query permits</h2>

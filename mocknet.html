@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: ws: wss: 'unsafe-inline';">
+<title>Rendered by Ensuite</title>
 </head>
 <body>
 <style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
@@ -378,8 +379,18 @@ pre > code.language-typescript {
   margin-left: 1rem;
 }
 </style>
+<header class="ensuite-md-header">
+<a class="ensuite-md-title" href="/">The <strong>Fadroma</strong> Guide</a>
+<div class="ensuite-md-separator"></div>
+<a class="ensuite-md-link" href=/>Homepage</a>
+<a class="ensuite-md-link" href=/guide.html>Documentation</a>
+<a class="ensuite-md-link" href=https://github.com/hackbg/fadroma>Github</a>
+<a class="ensuite-md-link" href=https://crates.io/search?q=fadroma>Crates.io</a>
+<a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
+<a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
+</header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li><li><a href="#implementation-details">Implementation details</a></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li></ul></div></p>
 <h1 id="fadroma-guide%3A-mocknet" tabindex="-1">Fadroma Guide: Mocknet</h1>
 <p>Testing the production builds of smart contracts can be slow and awkward.
 Testnets are permanent and public; devnets can be temporary, but transactions
@@ -411,15 +422,15 @@ abstract class which represents connection info for chains.</li>
 <span class="hljs-keyword">let</span> agent = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
 
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">Mocknet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-title function_">ok</span>(chain <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Chain</span>)
-<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>)
-<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Agent</span>)
+assert.<span class="hljs-title function_">ok</span>(chain <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Chain</span>)
+assert.<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>)
+assert.<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-property">Agent</span>)
 </code></pre>
 <p>When creating a mocknet, the block height starts at 0.
 You can increment it manually to represent the passing of block time.</p>
 <p>Native token balances also start at 0. You can give native tokens to agents by
 setting the <code>Mocknet#balances</code> property:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> chain.<span class="hljs-property">height</span>, <span class="hljs-number">0</span>)
+<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> chain.<span class="hljs-property">height</span>, <span class="hljs-number">0</span>)
 
 chain.<span class="hljs-property">balances</span>[agent.<span class="hljs-property">address</span>] = <span class="hljs-number">1000</span>
 assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getBalance</span>(agent.<span class="hljs-property">address</span>), <span class="hljs-number">1000</span>)
@@ -456,11 +467,9 @@ assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-key
 <span class="hljs-comment">//assert.ok(await client.execute({&quot;set&quot;: &quot;bar&quot;}))</span>
 <span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;bar&quot;)</span>
 </code></pre>
-<h2 id="implementation-details" tabindex="-1">Implementation details</h2>
-<p>The rest of this executable specification is dedicated to testing and documenting the workings
-of the mocknet as implemented by Fadroma.</p>
-<p>The <strong><code>MocknetContract</code></strong> class wraps WASM contract blobs and takes care of the CosmWasm
-calling convention.</p>
+<hr>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+</code></pre>
 
 </content>
 </body>

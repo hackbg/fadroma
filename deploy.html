@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' http: https: ws: wss: 'unsafe-inline';">
+<title>Rendered by Ensuite</title>
 </head>
 <body>
 <style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
@@ -378,9 +379,19 @@ pre > code.language-typescript {
   margin-left: 1rem;
 }
 </style>
+<header class="ensuite-md-header">
+<a class="ensuite-md-title" href="/">The <strong>Fadroma</strong> Guide</a>
+<div class="ensuite-md-separator"></div>
+<a class="ensuite-md-link" href=/>Homepage</a>
+<a class="ensuite-md-link" href=/guide.html>Documentation</a>
+<a class="ensuite-md-link" href=https://github.com/hackbg/fadroma>Github</a>
+<a class="ensuite-md-link" href=https://crates.io/search?q=fadroma>Crates.io</a>
+<a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
+<a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
+</header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#deploying-individual-contracts-and-their-dependencies">Deploying individual contracts and their dependencies</a></li><li><a href="#adding-custom-migrations">Adding custom migrations</a></li><li><a href="#how-state-is-stored">How state is stored</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building">Building</a></li><li><a href="#uploading">Uploading</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming">Naming</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying">Deploying</a></li></ul></li></ul></div></p>
-<h1 id="fadroma-guide%3A-deploy-api" tabindex="-1">Fadroma Guide: Deploy API</h1>
+<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#deploying-individual-contracts-and-their-dependencies">Deploying individual contracts and their dependencies</a></li><li><a href="#adding-custom-migrations">Adding custom migrations</a></li><li><a href="#how-state-is-stored">How state is stored</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#uploading">Uploading</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming">Naming</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying">Deploying</a></li></ul></li></ul></div></p>
+<h1 id="fadroma-deploy-api" tabindex="-1">Fadroma Deploy API</h1>
 <p>The <strong>Deploy API</strong> revolves around the <code>Deployment</code> class, and associated
 implementations of <code>Client</code>, <code>Builder</code>, <code>Uploader</code>, and <code>DeployStore</code>.</p>
 <p>These classes are used for describing systems consisting of multiple smart contracts,
@@ -496,59 +507,62 @@ this will throw an error.</p>
 <h2 id="template" tabindex="-1">Template</h2>
 <p>The <code>Contract</code> class describes a smart contract's source, binary, and upload.</p>
 <h3 id="deploying-multiple-contracts-from-a-template" tabindex="-1">Deploying multiple contracts from a template</h3>
-<p>The <code>Deployment#template</code> method allows you to add a <code>Template</code>
-in the <code>Deployment</code>. A <code>Template</code> can be built and uploaded,
-and then create multiple <code>Contract</code> instances that use to the same code,
-via the <code>Template#instance</code> method.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyDeployment3</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">MyDeployment</span> {
+<p>The <code>deployment.template</code> method adds a <code>Template</code> to the <code>Deployment</code>.</p>
+<p>A <code>Template</code> represents the code of a smart contract before instantiation.
+A <code>Template</code> can be <code>built</code> and <code>uploaded</code>. Multiple <code>Contract</code> instances
+can be created with the <code>template.instance</code> and <code>template.instances([...]|{...})</code> methods.</p>
+<p>You can pass either an array or an object to <code>template.instances</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">DeploymentWithTemplates</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
 
-  baz = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
+  t = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
 
-  baz1 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">baz</span>.<span class="hljs-title function_">instance</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  c1 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">t</span>.<span class="hljs-title function_">instance</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
 
-  bazN = <span class="hljs-variable language_">this</span>.<span class="hljs-property">baz</span>.<span class="hljs-title function_">instances</span>([
-    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
-    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz3&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
-    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz4&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} }
+  c2 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">t</span>.<span class="hljs-title function_">instances</span>([
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c21&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c22&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
+    { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c32&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} }
   ])
+
+  c3 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">t</span>.<span class="hljs-title function_">instances</span>({
+    <span class="hljs-attr">c31</span>: { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c31&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
+    <span class="hljs-attr">c32</span>: { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c32&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
+    <span class="hljs-attr">c33</span>: { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c33&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} }
+  })
 
 }
 
-<span class="hljs-keyword">const</span> deployment3 = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">MyDeployment3</span>).<span class="hljs-title function_">deploy</span>()
-
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">foo</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">bar</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
-
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
-
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz1</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
-<span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+deployment = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">DeploymentWithTemplates</span>).<span class="hljs-title function_">deploy</span>()
 </code></pre>
-<p>To deploy multiple contract instances from the same code,
-you can use templates.</p>
-<p>You can pass either an array or an object to <code>template.instances</code>:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> [ templateInsanceThree, templateClientFour ] = <span class="hljs-keyword">await</span> template.<span class="hljs-title function_">instances</span>([
-  { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name3&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value3&#x27;</span> } },
-  { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name4&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value4&#x27;</span> } },
-])
-<span class="hljs-keyword">const</span> { templateClientFoo, templateClientBar } = <span class="hljs-keyword">await</span> template.<span class="hljs-title function_">instances</span>({
-  <span class="hljs-attr">templateClientFoo</span>: { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name5&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value5&#x27;</span> } },
-  <span class="hljs-attr">templateClientFoo</span>: { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;name6&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">parameter</span>: <span class="hljs-string">&#x27;value6&#x27;</span> } },
-})
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span>, <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">t</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
+
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">c1</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">c1</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+
+<span class="hljs-title function_">assert</span>(<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">values</span>(deployment.<span class="hljs-property">c2</span>).<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>))
+<span class="hljs-title function_">assert</span>(<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">values</span>(deployment.<span class="hljs-property">c2</span>).<span class="hljs-title function_">map</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c.<span class="hljs-title function_">expect</span>()).<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>))
+
+<span class="hljs-title function_">assert</span>(<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">values</span>(deployment.<span class="hljs-property">c3</span>).<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>))
+<span class="hljs-title function_">assert</span>(<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">values</span>(deployment.<span class="hljs-property">c3</span>).<span class="hljs-title function_">map</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c.<span class="hljs-title function_">expect</span>()).<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>))
 </code></pre>
-<h3 id="building" tabindex="-1">Building</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">builder</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Builder</span>) <span class="hljs-comment">// required to build</span>
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-property">built</span> <span class="hljs-comment">// with defaults</span>
-<span class="hljs-comment">// -or-</span>
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-title function_">build</span>() <span class="hljs-comment">// always builds</span>
+<pre><code class="hljs">
+<span class="hljs-comment">### Building</span>
+
+```typescript
+assert(deployment.builder instanceof Builder) <span class="hljs-regexp">//</span> required to build
+await deployment.t.built <span class="hljs-regexp">//</span> with defaults
+<span class="hljs-regexp">//</span> -or-
+await deployment.t.build() <span class="hljs-regexp">//</span> always builds
 </code></pre>
 <h3 id="uploading" tabindex="-1">Uploading</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-title function_">assert</span>(deployment3.<span class="hljs-property">uploader</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Uploader</span>) <span class="hljs-comment">// required to upload</span>
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-property">uploaded</span> <span class="hljs-comment">// with defaults</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Uploader</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">uploader</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Uploader</span>) <span class="hljs-comment">// required to upload</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-property">uploaded</span> <span class="hljs-comment">// with defaults</span>
 <span class="hljs-comment">// -or-</span>
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz</span>.<span class="hljs-title function_">upload</span>() <span class="hljs-comment">// always builds</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-title function_">upload</span>() <span class="hljs-comment">// always builds</span>
 </code></pre>
 <p>If the contract binary is not found, uploading will try to build it first.</p>
 <h2 id="contract" tabindex="-1">Contract</h2>
@@ -580,14 +594,14 @@ Labels generated by Fadroma are of the format <code>[DeploymentName]/[ContractNa
 This function is only called during instantiation, and can be used to generate init
 messages on the fly, such as when passing the address of one contract to another.</p>
 <h3 id="deploying" tabindex="-1">Deploying</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-title function_">deploy</span>()
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-property">deployed</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-title function_">deploy</span>()
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">deployed</span>
 
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-property">uploaded</span>
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-title function_">upload</span>()
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">uploaded</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-title function_">upload</span>()
 
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-property">built</span>
-<span class="hljs-keyword">await</span> deployment3.<span class="hljs-property">baz1</span>.<span class="hljs-title function_">build</span>()
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">built</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-title function_">build</span>()
 </code></pre>
 
 </content>
