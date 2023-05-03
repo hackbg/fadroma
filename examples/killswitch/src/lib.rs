@@ -132,7 +132,12 @@ mod tests {
         ensemble::{ContractEnsemble, MockEnv}
     };
 
-    fadroma::impl_contract_harness!(KillswitchTest, super);
+    fadroma::contract_harness!(
+        KillswitchTest,
+        init: super::instantiate,
+        execute: super::execute,
+        query: super::query
+    );
 
     #[test]
     fn test_killswitch() {

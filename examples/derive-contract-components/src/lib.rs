@@ -105,7 +105,12 @@ mod tests {
     use super::contract::{self, InstantiateMsg, ExecuteMsg, QueryMsg};
 
     const ADMIN: &str = "admin";
-    fadroma::impl_contract_harness!(SecretNumberTest, contract);
+    fadroma::contract_harness!(
+        SecretNumberTest,
+        init: contract::instantiate,
+        execute: contract::execute,
+        query: contract::query
+    );
 
     struct TestSuite {
         ensemble: ContractEnsemble,
