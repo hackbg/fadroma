@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+ - BREAKING ⚠️: Renamed the `impl_contract_harness!` macro to `contract_harness!`. It now also uses the same
+ syntax as the `entrypoint!` macro and allows to optionally supply a reply entry point. ([#168](https://github.com/hackbg/fadroma/pull/168))
+
 ## [0.8.6] - 2023-04-28
 
 ### Changed
