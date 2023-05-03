@@ -1,0 +1,30 @@
+name: Fadroma (Project)
+
+on: [push]
+
+jobs:
+
+  project:
+    name: Create and build a project
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16, 18, 20]
+    steps:
+
+      - name: Setup Node ${{matrix.node-version}}
+        uses: actions/setup-node@v3
+        with:
+          node-version: "${{matrix.node-version}}"
+          check-latest: true
+
+      - name: Setup Rust (stable for wasm32-unknown-unknown)
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Create project through NPX
+        run: npx @hackbg/fadroma@latest create test test1 test2

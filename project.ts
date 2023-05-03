@@ -49,7 +49,7 @@ export default class Project extends CommandContext {
   /** Default deployment class. */
   Deployment = Deployment
 
-  static wizard = () => new ProjectWizard().createProject()
+  static wizard = (...args: any[]) => new ProjectWizard().createProject(...args)
 
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
     const configFile = $(path, 'fadroma.json').as(JSONFile)
@@ -593,19 +593,20 @@ export class ContractCrate {
   * TODO: single crate option
   * TODO: `shared` crate option */
 export class ProjectWizard {
-  async createProject (): Promise<Project> {
+  async createProject (...args: any[]): Promise<Project> {
     const context = tools()
     let { git, pnpm, yarn, npm, cargo, docker, podman } = context
-    const name = await this.askName()
-    const root = $(await this.askRoot(name)).as(OpaqueDirectory)
-    const templates = await this.askTemplates(name)
-    // TODO: ask/autodetect: build (docker/podman/raw), devnet (docker/podman)
+    const name = process.stdin.isTTY ? await this.askName() : args[0]
+    const root = (process.stdin.isTTY ? $(await this.askRoot(name)) : $(name)).as(OpaqueDirectory)
+    const templates = process.stdin.isTTY ? await this.askTemplates(name) : args.slice(1)
     const project = new Project({ name, root, templates: templates as any })
     await project.create()
-    switch (await this.selectBuilder(context)) {
-      case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
-      case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
-      default:
+    if (process.stdin.isTTY) {
+      switch (await this.selectBuilder(context)) {
+        case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
+        case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
+        default:
+      }
     }
     let changed = false
     let nonfatal = false
