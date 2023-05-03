@@ -71,6 +71,7 @@
     "@fadroma/scrt": "workspace:*",
     "@hackbg/ensuite": "workspace:*",
     "@hackbg/ganesha": "workspace:*",
+    "@hackbg/fadroma": "workspace:*",
     "@hackbg/spec": "^1",
     "@hackbg/ubik": "^1.3.5",
     "@types/dockerode": "^3.3.14",

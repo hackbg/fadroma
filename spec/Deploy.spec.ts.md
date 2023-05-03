@@ -1,4 +1,4 @@
-# Fadroma Guide: Deploy API
+# Fadroma Deploy API
 
 The **Deploy API** revolves around the `Deployment` class, and associated
 implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.

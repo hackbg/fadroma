@@ -1,4 +1,4 @@
-# Fadroma Guide: Agent API
+# Fadroma Agent API
 
 The **Agent API** is a simple imperative transaction-level API for
 interacting with Cosmos-like networks.
@@ -7,9 +7,10 @@ Its core primitives are the **`Chain`** and **`Agent`** abstract classes.
 An `Agent` corresponds to your identity (wallet) on a given chain,
 and lets you operate in terms of transactions (sending tokens, calling contracts, etc.)
 
-* [**`@fadroma/scrt`**](./Scrt.spec.ts.md) provides
-  **`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
-  of Fadroma Chain API for Secret Network.
+**Note:** The `Chain` and `Agent` exported from `@fadroma/agent` are stub implementations.
+[The **`@fadroma/scrt`** package](./scrt.html) provides
+**`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
+of Fadroma Chain API for Secret Network.
 
 ## Chain
 
@@ -422,4 +423,10 @@ client.tx1()
 
 // signed by agent2
 client.asAgent(agent2).tx1()
+```
+
+---
+
+```typescript
+import assert from 'node:assert'
 ```
