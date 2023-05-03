@@ -339,3 +339,17 @@ pre > code.language-typescript {
   font-size: 1rem;
   margin-left: 1rem;
 }
+
+.hljs-comment, .hljs-deletion, .hljs-meta, .hljs-quote {
+  color: green;
+}
+.hljs.language-sh .hljs-built_in {
+  color: inherit;
+}
+.hljs.language-sh .hljs-comment {
+  color: tomato;
+}
+
+hr {
+  margin: 1rem -1rem;
+}

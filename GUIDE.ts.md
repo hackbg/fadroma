@@ -223,10 +223,18 @@ Mocknet is built into `@fadroma/agent`.
 
 ---
 
+
+***Did you know?** This document is also part of our test suite.
+These imports add the rest of the guides to the test run:*
+
 ```typescript
 import './spec/Agent.spec.ts.md'
 import './spec/Mocknet.spec.ts.md'
 import './spec/Connect.spec.ts.md'
+import './spec/Devnet.spec.ts.md'
+import './spec/Project.spec.ts.md'
+import './spec/Build.spec.ts.md'
+import './spec/Upload.spec.ts.md'
+import './spec/Deploy.spec.ts.md'
 import './spec/Scrt.spec.ts.md'
-import './spec/Ops.spec.ts.md'
 ```

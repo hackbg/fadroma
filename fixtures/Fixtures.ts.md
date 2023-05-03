@@ -37,7 +37,7 @@ export const mnemonics = [
   * Compiled artifacts of those are stored under [`/fixtures`](./fixtures/README.md).
   * You can recompile them with the Fadroma Build CLI.
     See **[../examples/README.md]** for build instructions.
-* They are also used by the Fadroma Ops example project.
+* They are also used by the Fadroma example project.
 
 * **Echo contract** (build with `pnpm rs:build:example examples/echo`).
   Parrots back the data sent by the client, in order to validate
