@@ -48,7 +48,12 @@ impl ContractHarness for Oracle {
     }
 }
 
-fadroma::impl_contract_harness!(TestContract, counter);
+fadroma::contract_harness!(
+    TestContract,
+    init: counter::instantiate,
+    execute: counter::execute,
+    query: counter::query
+);
 
 #[test]
 fn test_contracts() {

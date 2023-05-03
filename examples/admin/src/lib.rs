@@ -147,7 +147,12 @@ mod tests {
         ensemble::{ContractEnsemble, MockEnv}
     };
 
-    fadroma::impl_contract_harness!(CounterWithAdminTest, super);
+    fadroma::contract_harness!(
+        CounterWithAdminTest,
+        init: super::instantiate,
+        execute: super::execute,
+        query: super::query
+    );
 
     #[test]
     fn test_admin() {

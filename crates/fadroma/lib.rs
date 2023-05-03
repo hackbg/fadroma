@@ -64,9 +64,11 @@ pub mod prelude {
     pub use crate::scrt::permit::{Permission, Permit};
 }
 
-/// Define the `mod wasm` entrypoint for production builds.
-/// Supports `instantiate`, `execute` and `query` **or**
-/// `instantiate`, `execute`, `query` and `reply`.
+/// Define the `mod wasm` entrypoint for production builds,
+/// using the provided entry point functions.
+/// 
+/// Supports `init`, `execute` and `query` **or**
+/// `init`, `execute`, `query` and `reply`.
 /// 
 /// Note that Fadroma DSL already handles this for you and
 /// as such this macro is not needed when using it.
@@ -76,8 +78,11 @@ pub mod prelude {
 /// ```
 /// # #[macro_use] extern crate fadroma;
 /// # use fadroma::cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, StdResult, Response, Binary, to_binary};
+/// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 /// # pub struct InitMsg;
+/// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 /// # pub struct ExecuteMsg;
+/// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 /// # pub struct QueryMsg;
 /// pub fn instantiate(
 ///     _deps: DepsMut,
@@ -113,42 +118,42 @@ pub mod prelude {
 /// ```
 #[macro_export]
 macro_rules! entrypoint {
-    (@init $init:ident) => {
+    (@init $init:path) => {
         #[no_mangle]
         extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_instantiate(&super::$init, env_ptr, info_ptr, msg_ptr)
         }
     };
 
-    (@execute $execute:ident) => {
+    (@execute $execute:path) => {
         #[no_mangle]
         extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_execute(&super::$execute, env_ptr, info_ptr, msg_ptr)
         }
     };
 
-    (@query $query:ident) => {
+    (@query $query:path) => {
         #[no_mangle]
         extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_query(&super::$query, env_ptr, msg_ptr)
         }
     };
 
-    (@reply $reply:ident) => {
+    (@reply $reply:path) => {
         #[no_mangle]
         extern "C" fn reply(env_ptr: u32, msg_ptr: u32) -> u32 {
             $crate::cosmwasm_std::do_reply(&super::$reply, env_ptr, msg_ptr)
         }
     };
 
-    (@wasm_mod $($contents:tt)*) =>  {
+    (@wasm_mod $($contents:tt)*) => {
         #[cfg(target_arch = "wasm32")]
         mod wasm {
             $($contents)*
         }
     };
 
-    (init: $init:ident, execute: $execute:ident, query: $query:ident, reply: $reply:ident) => {
+    (init: $init:path, execute: $execute:path, query: $query:path, reply: $reply:path) => {
         $crate::entrypoint! {
             @wasm_mod
             $crate::entrypoint!(@init $init);
@@ -158,7 +163,7 @@ macro_rules! entrypoint {
         }
     };
 
-    (init: $init:ident, execute: $execute:ident, query: $query:ident) => {
+    (init: $init:path, execute: $execute:path, query: $query:path) => {
         $crate::entrypoint! {
             @wasm_mod
             $crate::entrypoint!(@init $init);
