@@ -13,6 +13,7 @@ importers:
       '@hackbg/fadroma': workspace:*
       '@hackbg/file': workspace:^1
       '@hackbg/ganesha': workspace:*
+      '@hackbg/logs': workspace:^2.0.1
       '@hackbg/port': workspace:^1
       '@hackbg/spec': ^1
       '@hackbg/ubik': ^1.3.5
@@ -42,6 +43,7 @@ importers:
       '@hackbg/cmds': link:ensuite/toolbox/cmds
       '@hackbg/dock': link:ensuite/toolbox/dock
       '@hackbg/file': link:ensuite/toolbox/file
+      '@hackbg/logs': link:ensuite/toolbox/logs
       '@hackbg/port': link:ensuite/toolbox/port
       case: 1.6.3
       dotenv: 16.0.1
@@ -96,8 +98,8 @@ importers:
 
   connect:
     specifiers:
-      '@fadroma/agent': workspace:^1.0.0-rc.16
-      '@fadroma/scrt': workspace:^9.0.0-rc.16
+      '@fadroma/agent': workspace:^1.0.0-rc.17
+      '@fadroma/scrt': workspace:^9.0.0-rc.17
       '@hackbg/conf': workspace:^2
     dependencies:
       '@fadroma/agent': link:../agent
