@@ -1,3 +1,12 @@
+coverage:
+  exclude:
+    - coverage/**/*
+    - ensuite/**/*
+    - examples/**/*
+    - fixtures/**/*
+    - spec/**/*
+    - shim/**/*
+
 header:
   title: Fadroma
   link: /

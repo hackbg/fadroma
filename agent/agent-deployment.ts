@@ -421,6 +421,8 @@ export class Template<C extends Client> {
       defineDefault(this, this.context, 'workspace')
     }
     hideProperties(this, 'log')
+    Object.defineProperty(this, 'built', { configurable: true, get () { return this.build() } })
+    Object.defineProperty(this, 'uploaded', { configurable: true, get () { return this.upload() } })
   }
 
   get description (): string {
@@ -433,12 +435,8 @@ export class Template<C extends Client> {
     }
     return name
   }
-  get built (): Promise<this & Built> {
-    return this.build()
-  }
-  get uploaded (): Promise<this & Uploaded> {
-    return this.upload()
-  }
+  get built (): Promise<this & Built> { return this.build() }
+  get uploaded (): Promise<this & Uploaded> { return this.upload() }
   get asInfo (): ContractInfo {
     return {
       id:        Number(this.codeId!) as any,
@@ -588,6 +586,7 @@ export class Contract<C extends Client> extends Template<C> {
     this.workspace  = this.context?.workspace  ?? this.workspace
     override(this, options)
     hideProperties(this, 'log')
+    Object.defineProperty(this, 'deployed', { configurable: true, get () { return this.deploy() } })
 
     function setName (value: Name) {
       Object.defineProperty(self, 'name', {
@@ -616,9 +615,7 @@ export class Contract<C extends Client> extends Template<C> {
 
   /** One-shot deployment task. After the first call, `deploy` redefines it
     * to return the self-same deploying promise. Call `deploy` again to reset. */
-  get deployed (): Promise<C> {
-    return this.deploy()
-  }
+  get deployed (): Promise<C> { return this.deploy() }
 
   get asLink (): ContractLink {
     return {

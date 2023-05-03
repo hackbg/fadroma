@@ -34,7 +34,7 @@
     "test":       "time ensuite GUIDE.ts.md",
     "test:agent": "time ensuite agent/Agent.spec.ts.md",
 
-    "cov":   "time ensuite-cov -r text -r lcov -n agent -n connect -n . -- GUIDE.ts.md",
+    "cov":   "time ensuite-cov GUIDE.ts.md",
     "ci":    "node --version && npm --version && pnpm --version && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 

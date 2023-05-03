@@ -59,7 +59,6 @@ This gives you a randomly generated mnemonic.
 
 ```typescript
 const agent0 = await mainnet.getAgent().ready
-
 assert.ok(agent0 instanceof Scrt.Agent)
 assert.ok(agent0.chain instanceof Scrt.Chain)
 assert.ok(agent0.mnemonic)
@@ -136,17 +135,17 @@ ok(agent1.api)
 
 ## Viewing keys
 
-Fadroma provides the `VKClient` class for embedding into your own `Client` classes
+Fadroma provides the `ViewingKeyClient` class for embedding into your own `Client` classes
 for contracts that use SNIP20-compatible the viewing keys.
 
 ```typescript
-const client = new Scrt.VKClient()
+const client = new Scrt.ViewingKeyClient()
 ```
 
 ```typescript
 import { Client } from '@fadroma/agent'
 class MyClient extends Client {
-  vk = new Scrt.VKClient()
+  vk = new Scrt.ViewingKeyClient()
 }
 ```
 

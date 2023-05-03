@@ -156,71 +156,72 @@ The `Contract` class describes a smart contract's source, binary, and upload.
 
 ### Deploying multiple contracts from a template
 
-The `Deployment#template` method allows you to add a `Template`
-in the `Deployment`. A `Template` can be built and uploaded,
-and then create multiple `Contract` instances that use to the same code,
-via the `Template#instance` method.
+The `deployment.template` method adds a `Template` to the `Deployment`.
+
+A `Template` represents the code of a smart contract before instantiation.
+A `Template` can be `built` and `uploaded`. Multiple `Contract` instances
+can be created with the `template.instance` and `template.instances([...]|{...})` methods.
+
+You can pass either an array or an object to `template.instances`.
 
 ```typescript
-class MyDeployment3 extends MyDeployment {
+class DeploymentWithTemplates extends Deployment {
 
-  baz = this.template({ crate: 'fadroma-example-kv' })
+  t = this.template({ crate: 'fadroma-example-kv' })
 
-  baz1 = this.baz.instance({ name: 'baz1', initMsg: {} })
+  c1 = this.t.instance({ name: 'baz1', initMsg: {} })
 
-  bazN = this.baz.instances([
-    { name: 'baz2', initMsg: {} },
-    { name: 'baz3', initMsg: {} },
-    { name: 'baz4', initMsg: {} }
+  c2 = this.t.instances([
+    { name: 'c21', initMsg: {} },
+    { name: 'c22', initMsg: {} },
+    { name: 'c32', initMsg: {} }
   ])
+
+  c3 = this.t.instances({
+    c31: { name: 'c31', initMsg: {} },
+    c32: { name: 'c32', initMsg: {} },
+    c33: { name: 'c33', initMsg: {} }
+  })
 
 }
 
-const deployment3 = await getDeployment(MyDeployment3).deploy()
-
-import { Contract, Template } from '@fadroma/agent'
-
-assert(deployment3.foo.expect() instanceof Client)
-assert(deployment3.bar.expect() instanceof Client)
-
-assert(deployment3.baz instanceof Template)
-
-assert(deployment3.baz1 instanceof Contract)
-assert(deployment3.baz1.expect() instanceof Client)
+deployment = await getDeployment(DeploymentWithTemplates).deploy()
 ```
 
-To deploy multiple contract instances from the same code,
-you can use templates.
-
-You can pass either an array or an object to `template.instances`:
-
 ```typescript
-const [ templateInsanceThree, templateClientFour ] = await template.instances([
-  { name: 'name3', initMsg: { parameter: 'value3' } },
-  { name: 'name4', initMsg: { parameter: 'value4' } },
-])
-const { templateClientFoo, templateClientBar } = await template.instances({
-  templateClientFoo: { name: 'name5', initMsg: { parameter: 'value5' } },
-  templateClientFoo: { name: 'name6', initMsg: { parameter: 'value6' } },
-})
+import { Contract, Template } from '@fadroma/agent'
+
+assert(deployment.t instanceof Template)
+
+assert(deployment.c1 instanceof Contract)
+assert(deployment.c1.expect() instanceof Client)
+
+assert(Object.values(deployment.c2).every(c=>c instanceof Contract))
+assert(Object.values(deployment.c2).map(c=>c.expect()).every(c=>c instanceof Client))
+
+assert(Object.values(deployment.c3).every(c=>c instanceof Contract))
+assert(Object.values(deployment.c3).map(c=>c.expect()).every(c=>c instanceof Client))
+```
 ```
 
 ### Building
 
 ```typescript
-assert(deployment3.builder instanceof Builder) // required to build
-await deployment3.baz.built // with defaults
+assert(deployment.builder instanceof Builder) // required to build
+await deployment.t.built // with defaults
 // -or-
-await deployment3.baz.build() // always builds
+await deployment.t.build() // always builds
 ```
 
 ### Uploading
 
 ```typescript
-assert(deployment3.uploader instanceof Uploader) // required to upload
-await deployment3.baz.uploaded // with defaults
+import { Uploader } from '@fadroma/agent'
+
+assert(deployment.uploader instanceof Uploader) // required to upload
+await deployment.t.uploaded // with defaults
 // -or-
-await deployment3.baz.upload() // always builds
+await deployment.t.upload() // always builds
 ```
 
 If the contract binary is not found, uploading will try to build it first.
@@ -264,12 +265,12 @@ messages on the fly, such as when passing the address of one contract to another
 ### Deploying
 
 ```typescript
-await deployment3.baz1.deploy()
-await deployment3.baz1.deployed
+await deployment.c1.deploy()
+await deployment.c1.deployed
 
-await deployment3.baz1.uploaded
-await deployment3.baz1.upload()
+await deployment.c1.uploaded
+await deployment.c1.upload()
 
-await deployment3.baz1.built
-await deployment3.baz1.build()
+await deployment.c1.built
+await deployment.c1.build()
 ```

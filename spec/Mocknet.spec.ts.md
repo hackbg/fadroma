@@ -35,9 +35,9 @@ let chain = new Mocknet.CW1()
 let agent = await chain.getAgent()
 
 import { Chain, Agent, Mocknet } from '@fadroma/agent'
-ok(chain instanceof Chain)
-ok(agent instanceof Agent)
-ok(agent instanceof Mocknet.Agent)
+assert.ok(chain instanceof Chain)
+assert.ok(agent instanceof Agent)
+assert.ok(agent instanceof Mocknet.Agent)
 ```
 
 When creating a mocknet, the block height starts at 0.
@@ -47,7 +47,7 @@ Native token balances also start at 0. You can give native tokens to agents by
 setting the `Mocknet#balances` property:
 
 ```typescript
-equal(await chain.height, 0)
+assert.equal(await chain.height, 0)
 
 chain.balances[agent.address] = 1000
 assert.equal(await chain.getBalance(agent.address), 1000)
@@ -95,10 +95,8 @@ Contract can use platform APIs as provided by Mocknet:
 //assert.equal(await client.query("get"), "bar")
 ```
 
-## Implementation details
+---
 
-The rest of this executable specification is dedicated to testing and documenting the workings
-of the mocknet as implemented by Fadroma.
-
-The **`MocknetContract`** class wraps WASM contract blobs and takes care of the CosmWasm
-calling convention.
+```typescript
+import assert from 'node:assert'
+```

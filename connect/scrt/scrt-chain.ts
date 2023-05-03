@@ -753,7 +753,7 @@ class ScrtBundle extends Bundle {
 
 }
 
-Object.assign(ScrtChain, { SecretJS, ScrtAgent: Object.assign(Agent, { ScrtBundle }) })
+Object.assign(ScrtChain, { SecretJS, Agent: Object.assign(ScrtAgent, { Bundle: ScrtBundle }) })
 
 export {
   ScrtChain as Chain,

@@ -305,10 +305,10 @@ assert.equal(client.address,  address)
 assert.equal(client.codeHash, codeHash)
 
 client.fees = { 'method': 100 }
-
-client.agent = { execute: async () => 'ok' }
 assert.equal(
-  await client.execute({'method':{'parameter':'value'}}),
+  await client
+    .withAgent({ execute: async () => 'ok' })
+    .execute({'method':{'parameter':'value'}}),
   'ok'
 )
 ```
@@ -352,16 +352,17 @@ property of your client class:
 const fee1 = new Fee('100000', 'uscrt')
 client.fees['my_method'] = fee1
 
-assert.equal(client.getFee('my_method'), 100000)
-assert.equal(client.getFee({'my_method':{'parameter':'value'}}), 100000)
+assert.deepEqual(client.getFee('my_method'), fee1)
+assert.deepEqual(client.getFee({'my_method':{'parameter':'value'}}), fee1)
 ```
 
 You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
 This method works by returning a copy of `client` with fees overridden by the provided value.
 
 ```typescript
-const fee2 = new Fee('100000', 'uscrt')
-await client.withFee(fee2).tx1()
+const fee2 = new Fee('200000', 'uscrt')
+
+assert.deepEqual(await client.withFee(fee2).getFee('my_method'), fee2)
 ```
 
 ### Metadata
@@ -370,8 +371,8 @@ The original `Contract` object from which the contract
 was deployed can be found on the optional `meta` property of the `Client`.
 
 ```typescript
-assert.ok(aClient.meta instanceof Contract)
-assert.equal(aClient.meta.deployedBy, agent.address)
+import { Contract } from '@hackbg/fadroma'
+assert.ok(client.meta instanceof Contract)
 ```
 
 Fetching metadata:
@@ -379,18 +380,18 @@ Fetching metadata:
 ```typescript
 import { fetchCodeHash, fetchCodeId, fetchLabel } from '@fadroma/agent'
 
-instance.address = 'someaddress' // FIXME
-assert.ok(instance.codeHash = await fetchCodeHash(instance, agent))
-//assert.ok(instance.codeId   = await fetchCodeId(instance, agent))
-assert.ok(instance.label    = await fetchLabel(instance, agent))
+client.address = 'someaddress' // FIXME
+assert.ok(client.codeHash = await fetchCodeHash(client, agent))
+//assert.ok(client.codeId   = await fetchCodeId(client, agent))
+assert.ok(client.label    = await fetchLabel(client, agent))
 
-assert.equal(instance.codeHash, await fetchCodeHash(instance, agent, instance.codeHash))
-//assert.equal(instance.codeId,   await fetchCodeId(instance, agent, instance.codeId))
-assert.equal(instance.label,    await fetchLabel(instance, agent, instance.label))
+assert.equal(client.codeHash, await fetchCodeHash(client, agent, client.codeHash))
+//assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))
+assert.equal(client.label,    await fetchLabel(client, agent, client.label))
 
-assert.rejects(fetchCodeHash(instance, agent, 'unexpected'))
-assert.rejects(fetchCodeId(instance, agent, 'unexpected'))
-assert.rejects(fetchLabel(instance, agent, 'unexpected'))
+assert.rejects(fetchCodeHash(client, agent, 'unexpected'))
+assert.rejects(fetchCodeId(client, agent, 'unexpected'))
+assert.rejects(fetchLabel(client, agent, 'unexpected'))
 ```
 
 ### Client agent
@@ -404,8 +405,9 @@ with it from another one as part of the same procedure, you can set `agent`
 to another instance of `Agent`:
 
 ```typescript
-assert.equal(aClient.agent, agent)
-aClient.agent = await chain.getAgent()
+assert.equal(client.agent, agent)
+client.agent = await chain.getAgent()
+assert.notEqual(client.agent, agent)
 ```
 
 Similarly to `withFee`, the `as` method returns a new instance of your
@@ -416,13 +418,13 @@ transactions as a different identity.
 const agent1 = await chain.getAgent(/*...*/)
 const agent2 = await chain.getAgent(/*...*/)
 
-client = agent1.getClient(MyContract, "...")
+client = agent1.getClient(Client, "...")
 
-// signed by agent1:
-client.tx1()
+// executed by agent1:
+client.execute({ my_method: {} })
 
-// signed by agent2
-client.asAgent(agent2).tx1()
+// executed by agent2
+client.withAgent(agent2).execute({ my_method: {} })
 ```
 
 ---
