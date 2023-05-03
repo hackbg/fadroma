@@ -6,6 +6,11 @@ coverage:
     - fixtures/**/*
     - spec/**/*
     - shim/**/*
+    - typedoc-theme.tsx
+    - index.browser.ts
+    - build.impl.js
+    - devnet/devnet.init.mjs
+    - devnet/devnet.server.mjs
 
 header:
   title: Fadroma
