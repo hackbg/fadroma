@@ -595,13 +595,14 @@ export class ContractCrate {
 export class ProjectWizard {
   async createProject (...args: any[]): Promise<Project> {
     const context = tools()
-    let { git, pnpm, yarn, npm, cargo, docker, podman } = context
-    const name = process.stdin.isTTY ? await this.askName() : args[0]
-    const root = (process.stdin.isTTY ? $(await this.askRoot(name)) : $(name)).as(OpaqueDirectory)
-    const templates = process.stdin.isTTY ? await this.askTemplates(name) : args.slice(1)
+    let { ttyIn, ttyOut, git, pnpm, yarn, npm, cargo, docker, podman } = context
+    const tty = ttyIn && ttyOut
+    const name = tty ? await this.askName() : args[0]
+    const root = (tty ? $(await this.askRoot(name)) : $(name)).as(OpaqueDirectory)
+    const templates = tty ? await this.askTemplates(name) : args.slice(1)
     const project = new Project({ name, root, templates: templates as any })
     await project.create()
-    if (process.stdin.isTTY) {
+    if (tty) {
       switch (await this.selectBuilder(context)) {
         case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
         case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
@@ -795,6 +796,8 @@ export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<
 export const tools = () => {
   console.br()
   return {
+    ttyIn:  check('TTY in:   ', process.stdin.isTTY),
+    ttyOut: check('TTY out:  ', process.stdout.isTTY),
     //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
     git:       tool('Git:      ', 'git --no-pager --version'),
     node:      tool('Node:     ', 'node --version'),
@@ -809,6 +812,15 @@ export const tools = () => {
     nix:       tool('Nix:      ', 'nix --version'),
     secretcli: tool('secretcli:', 'secretcli version')
   }
+}
+
+/** Check a variable */
+export const check = <T> (
+  name: string|null,
+  value: T
+): T => {
+  if (name) console.info(bold(name), value)
+  return value
 }
 
 /** Check if an external binary is on the PATH. */
