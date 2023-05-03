@@ -37,6 +37,7 @@
 
 
 </style>
+<style name="ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#3e5915;background:#f6f5b2}.hljs-keyword,.hljs-literal,.hljs-selector-tag{color:#059}.hljs-subst{color:#3e5915}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-link,.hljs-section,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#2c009f}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#e60415}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}</style>
 <style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
 
 body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
@@ -378,6 +379,20 @@ pre > code.language-typescript {
   font-size: 1rem;
   margin-left: 1rem;
 }
+
+.hljs-comment, .hljs-deletion, .hljs-meta, .hljs-quote {
+  color: green;
+}
+.hljs.language-sh .hljs-built_in {
+  color: inherit;
+}
+.hljs.language-sh .hljs-comment {
+  color: tomato;
+}
+
+hr {
+  margin: 1rem -1rem;
+}
 </style>
 <header class="ensuite-md-header">
 <a class="ensuite-md-title" href="/">The <strong>Fadroma</strong> Guide</a>
@@ -390,7 +405,7 @@ pre > code.language-typescript {
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#deploying-individual-contracts-and-their-dependencies">Deploying individual contracts and their dependencies</a></li><li><a href="#adding-custom-migrations">Adding custom migrations</a></li><li><a href="#how-state-is-stored">How state is stored</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#uploading">Uploading</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming">Naming</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying">Deploying</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#deploying-individual-contracts-and-their-dependencies">Deploying individual contracts and their dependencies</a></li><li><a href="#adding-custom-migrations">Adding custom migrations</a></li><li><a href="#how-state-is-stored">How state is stored</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building-from-source-code">Building from source code</a></li><li><a href="#uploading-binaries">Uploading binaries</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming-and-labels">Naming and labels</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying-contract-instances">Deploying contract instances</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-deploy-api" tabindex="-1">Fadroma Deploy API</h1>
 <p>The <strong>Deploy API</strong> revolves around the <code>Deployment</code> class, and associated
 implementations of <code>Client</code>, <code>Builder</code>, <code>Uploader</code>, and <code>DeployStore</code>.</p>
@@ -516,7 +531,7 @@ can be created with the <code>template.instance</code> and <code>template.instan
 
   t = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
 
-  c1 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">t</span>.<span class="hljs-title function_">instance</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;baz1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  c1 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">t</span>.<span class="hljs-title function_">instance</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
 
   c2 = <span class="hljs-variable language_">this</span>.<span class="hljs-property">t</span>.<span class="hljs-title function_">instances</span>([
     { <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;c21&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} },
@@ -547,24 +562,38 @@ deployment = <span class="hljs-keyword">await</span> <span class="hljs-title fun
 <span class="hljs-title function_">assert</span>(<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">values</span>(deployment.<span class="hljs-property">c3</span>).<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>))
 <span class="hljs-title function_">assert</span>(<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">values</span>(deployment.<span class="hljs-property">c3</span>).<span class="hljs-title function_">map</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c.<span class="hljs-title function_">expect</span>()).<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>))
 </code></pre>
-<pre><code class="hljs">
-<span class="hljs-comment">### Building</span>
-
-```typescript
-assert(deployment.builder instanceof Builder) <span class="hljs-regexp">//</span> required to build
-await deployment.t.built <span class="hljs-regexp">//</span> with defaults
-<span class="hljs-regexp">//</span> -or-
-await deployment.t.build() <span class="hljs-regexp">//</span> always builds
+<h3 id="building-from-source-code" tabindex="-1">Building from source code</h3>
+<p>To build, the <code>builder</code> property must be set to a valid <code>Builder</code>.
+When obtaining instances from a <code>Deployment</code>, the <code>builder</code> property
+is provided automatically from <code>deployment.builder</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Builder</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">t</span>.<span class="hljs-property">builder</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Builder</span>)
+assert.<span class="hljs-title function_">equal</span>(deployment.<span class="hljs-property">t</span>.<span class="hljs-property">builder</span>, deployment.<span class="hljs-property">builder</span>)
 </code></pre>
-<h3 id="uploading" tabindex="-1">Uploading</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Uploader</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">uploader</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Uploader</span>) <span class="hljs-comment">// required to upload</span>
-<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-property">uploaded</span> <span class="hljs-comment">// with defaults</span>
+<p>You can build a <code>Template</code> (or its subclass, <code>Contract</code>) by awaiting the
+<code>built</code> property or the return value of the <code>build()</code> method.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-property">built</span>
 <span class="hljs-comment">// -or-</span>
-<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-title function_">upload</span>() <span class="hljs-comment">// always builds</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-title function_">build</span>()
 </code></pre>
-<p>If the contract binary is not found, uploading will try to build it first.</p>
+<p>See <a href="./build.html">the <strong>build guide</strong></a> for more info.</p>
+<h3 id="uploading-binaries" tabindex="-1">Uploading binaries</h3>
+<p>To upload, the <code>uploader</code> property must be set to a valid <code>Uploader</code>.
+When obtaining instances from a <code>Deployment</code>, the <code>uploader</code> property
+is provided automatically from <code>deployment.uploader</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Uploader</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">t</span>.<span class="hljs-property">uploader</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Uploader</span>)
+assert.<span class="hljs-title function_">equal</span>(deployment.<span class="hljs-property">t</span>.<span class="hljs-property">uploader</span>, deployment.<span class="hljs-property">uploader</span>)
+</code></pre>
+<p>You can upload a <code>Template</code> (or its subclass, <code>Contract</code>) by awaiting the
+<code>uploaded</code> property or the return value of the <code>upload()</code> method.</p>
+<p>If a WASM binary is not present (<code>template.artifact</code> is empty),
+but a source and a builder are present, this will also try to build the contract.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-property">uploaded</span>
+<span class="hljs-comment">// -or-</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">t</span>.<span class="hljs-title function_">upload</span>()
+</code></pre>
+<p>See <a href="./upload.html">the <strong>upload guide</strong></a> for more info.</p>
 <h2 id="contract" tabindex="-1">Contract</h2>
 <p>The <code>Contract</code> class describes an individual smart contract instance and uniquely identifies it
 within the <code>Deployment</code>.</p>
@@ -586,18 +615,31 @@ within the <code>Deployment</code>.</p>
   <span class="hljs-attr">initMsg</span>:    <span class="hljs-keyword">async</span> () =&gt; ({})
 })
 </code></pre>
-<h3 id="naming" tabindex="-1">Naming</h3>
+<h3 id="naming-and-labels" tabindex="-1">Naming and labels</h3>
 <p>The chain requires labels to be unique.
-Labels generated by Fadroma are of the format <code>[DeploymentName]/[ContractName]</code>.</p>
+Labels generated by Fadroma are of the format <code>${deployment.name}/${contract.name}</code>.</p>
 <h3 id="lazy-init" tabindex="-1">Lazy init</h3>
 <p>The <code>initMsg</code> property of <code>Contract</code> can be a function returning the actual message.
 This function is only called during instantiation, and can be used to generate init
 messages on the fly, such as when passing the address of one contract to another.</p>
-<h3 id="deploying" tabindex="-1">Deploying</h3>
+<h3 id="deploying-contract-instances" tabindex="-1">Deploying contract instances</h3>
+<p>To instantiate a <code>Contract</code>, its <code>agent</code> property must be set to a valid <code>Agent</code>.
+When obtaining instances from a <code>Deployment</code>, their <code>agent</code> property is provided
+from <code>deployment.agent</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Agent</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">agent</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>)
+assert.<span class="hljs-title function_">equal</span>(deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">agent</span>, deployment.<span class="hljs-property">agent</span>)
+</code></pre>
+<p>You can instantiate a <code>Contract</code> by awaiting the <code>deployed</code> property or the return value of the
+<code>deploy()</code> method. Since distributed ledgers are append-only, deployment is an idempotent operation,
+so the deploy will run only once and subsequent calls will return the same <code>Contract</code> with the
+same <code>address</code>.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-title function_">deploy</span>()
 <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">deployed</span>
-
-<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">uploaded</span>
+</code></pre>
+<p>If <code>contract.codeId</code> is not set but either source code or a WASM binary is present,
+this will try to upload and build the code first.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">uploaded</span>
 <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-title function_">upload</span>()
 
 <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">c1</span>.<span class="hljs-property">built</span>

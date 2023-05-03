@@ -37,6 +37,7 @@
 
 
 </style>
+<style name="ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#3e5915;background:#f6f5b2}.hljs-keyword,.hljs-literal,.hljs-selector-tag{color:#059}.hljs-subst{color:#3e5915}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-link,.hljs-section,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#2c009f}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#e60415}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}</style>
 <style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
 
 body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
@@ -377,6 +378,20 @@ pre > code.language-typescript {
 .ensuite-md-header .ensuite-md-link {
   font-size: 1rem;
   margin-left: 1rem;
+}
+
+.hljs-comment, .hljs-deletion, .hljs-meta, .hljs-quote {
+  color: green;
+}
+.hljs.language-sh .hljs-built_in {
+  color: inherit;
+}
+.hljs.language-sh .hljs-comment {
+  color: tomato;
+}
+
+hr {
+  margin: 1rem -1rem;
 }
 </style>
 <header class="ensuite-md-header">
