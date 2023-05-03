@@ -52,7 +52,7 @@
     "@fadroma/agent": "workspace:*",
     "@fadroma/connect": "workspace:*",
     "@hackbg/logs": "workspace:^2.0.1",
-    "@hackbg/cmds": "workspace:^2",
+    "@hackbg/cmds": "workspace:^3",
     "@hackbg/dock": "workspace:^1.3",
     "@hackbg/file": "workspace:^1",
     "@hackbg/port": "workspace:^1",

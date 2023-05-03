@@ -9,8 +9,8 @@ and contracts as akin to **persistent objects**.
 
 * Unlike **microservices**, smart contracts exist in a "post-POSIX"
   environment, where platform details are abstracted away. Contracts
-  are Internet-native, but shed most of the Web 2.0 baggage. Therefore
-  interoperation with Web 2.0 systems can be non-trivial.
+  are Internet-native, but shed most of the baggage characteristic for
+  Web 2.0 backends. Therefore interoperation with Web 2.0 systems can be non-trivial.
 
 * Unlike **cloud functions**, smart contracts are individually stateful,
   and exist permanently on an append-only ledger. While the

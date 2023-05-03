@@ -17,7 +17,6 @@ import type { Environment } from '@fadroma/connect'
 
 import $ from '@hackbg/file'
 import type { Path } from '@hackbg/file'
-import { CommandsConsoleMixin } from '@hackbg/cmds'
 import { Engine, Docker, Podman } from '@hackbg/dock'
 
 import { dirname } from 'node:path'
@@ -223,7 +222,7 @@ export class UploadConfig extends BaseConfig {
 
 export { bold, colors }
 
-export class Console extends CommandsConsoleMixin(BaseConsole) {
+export class Console extends BaseConsole {
 
   constructor (public label = '@hackbg/fadroma') {
     super()

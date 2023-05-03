@@ -7,7 +7,7 @@ importers:
       '@fadroma/agent': workspace:*
       '@fadroma/connect': workspace:*
       '@fadroma/scrt': workspace:*
-      '@hackbg/cmds': workspace:^2
+      '@hackbg/cmds': workspace:^3
       '@hackbg/dock': workspace:^1.3
       '@hackbg/ensuite': workspace:*
       '@hackbg/fadroma': workspace:*
@@ -124,7 +124,7 @@ importers:
   ensuite:
     specifiers:
       '@hackbg/file': workspace:^*
-      '@hackbg/ganesha': workspace:^4.1.1
+      '@hackbg/ganesha': workspace:^4.2.0
       '@hackbg/logs': workspace:^*
       '@hackbg/spec': workspace:^1
       '@hackbg/ubik': workspace:^1.3.8
@@ -166,8 +166,8 @@ importers:
 
   ensuite/ganesha:
     specifiers:
-      '@ganesha/core': workspace:^3
-      '@ganesha/node': workspace:^3.1.0
+      '@ganesha/core': workspace:^3.0.1
+      '@ganesha/node': workspace:^3.2.0
       '@ganesha/node-legacy': workspace:^4.0.2
       '@ganesha/ts': workspace:^2.0.1
       '@hackbg/spec': ^1
@@ -322,7 +322,7 @@ importers:
 
   ensuite/toolbox/cmds:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ensuite': ^1.4.4
       '@hackbg/hide': workspace:^1
       '@hackbg/logs': workspace:^2.0.1
       '@hackbg/task': workspace:^1
@@ -333,7 +333,7 @@ importers:
       '@hackbg/task': link:../task
       '@hackbg/time': link:../time
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ensuite': link:../..
 
   ensuite/toolbox/conf:
     specifiers: {}

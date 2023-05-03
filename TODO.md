@@ -1,5 +1,3 @@
-
-
 * Fadroma Web Dashboard
   * Show list of deployment and contracts in selected deployment
   * Render generated and written documentation from project and dependencies
@@ -13,11 +11,6 @@
   * Drag and drop multisig transaction signer
     * Support system keystore in the same way as `secretcli` does
       to securely sign transactions with the user's mainnet/testnet private keys
-
-```typescript
-// TODO run test suite of dashboard module here...
-```
-
 * Fadroma Test Track
   * View and publish rich test and coverage reports, allow tests to be re-ran/edited from GUI
   * Render interaction diagrams from logs of test runs to display inter-contract communication
@@ -27,7 +20,3 @@
     * separate doc comments from attribute macros in the parser?
   * Time travel: rewind/force next block
   * Spawn terminals with different secretcli configs for hammer tuning
-
-```typescript
-// TODO run test suite of dashboard module here...
-```

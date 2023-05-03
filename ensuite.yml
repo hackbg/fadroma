@@ -6,6 +6,7 @@ coverage:
     - fixtures/**/*
     - spec/**/*
     - shim/**/*
+    - dist/**/*
     - typedoc-theme.tsx
     - index.browser.ts
     - build.impl.mjs
