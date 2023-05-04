@@ -257,6 +257,7 @@ importers:
       '@hackbg/4mat': workspace:*
       '@hackbg/cmds': workspace:*
       '@hackbg/dock': workspace:*
+      '@hackbg/dump': workspace:*
       '@hackbg/file': workspace:*
       '@hackbg/logs': workspace:*
       '@hackbg/port': workspace:*
@@ -277,6 +278,7 @@ importers:
       '@hackbg/4mat': link:4mat
       '@hackbg/cmds': link:cmds
       '@hackbg/dock': link:dock
+      '@hackbg/dump': link:dump
       '@hackbg/file': link:file
       '@hackbg/logs': link:logs
       '@hackbg/port': link:port

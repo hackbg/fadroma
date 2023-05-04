@@ -69,24 +69,31 @@ import { examples } from '../fixtures/Fixtures.ts.md'
 assert.equal(chain.lastCodeId, 0)
 
 const uploaded_a = await agent.upload(examples['KV'].data.load())
+assert.equal(uploaded_a.codeId, 1)
 assert.equal(chain.lastCodeId, 1)
 
-const uploaded_b = await agent.upload(examples['KV'].data.load())
+const uploaded_b = await agent.upload(examples['Legacy'].data.load())
+assert.equal(uploaded_b.codeId, 2)
 assert.equal(chain.lastCodeId, 2)
-
-assert.equal(uploaded_b.codeId, String(Number(uploaded_a.codeId) + 1))
 ```
 
 ...which you can use to instantiate the contract.
 
 ```typescript
-const contract_a = uploaded_a.instance({ agent, name: 'test-mocknet', initMsg: { fail: false } })
+const contract_a = uploaded_a.instance({ agent, name: 'kv', initMsg: { fail: false } })
 const client_a = await contract_a.deployed
 
-assert.deepEqual(await client_a.query({get: {key: "foo"}}), [null, null])
-//assert.equal(await chain.getLabel(client_a.address),   client_a.label)
-//assert.equal(await chain.getHash(client_a.address),    client_a.codeHash)
-//assert.equal(await chain.getCodeId(client_a.codeHash), client_a.codeId)
+const contract_b = uploaded_b.instance({ agent, name: 'legacy', initMsg: { fail: false } })
+const client_b = await contract_b.deployed
+
+assert.deepEqual(
+  await client_a.query({get: {key: "foo"}}),
+  [null, null] // value returned from the contract
+)
+
+await chain.getLabel(client_a.address)
+await chain.getHash(client_a.address)
+await chain.getCodeId(client_a.codeHash)
 ```
 
 Contract can use platform APIs as provided by Mocknet:
@@ -102,7 +109,20 @@ Contract can use platform APIs as provided by Mocknet:
 //assert.equal(await client.query("get"), "bar")
 ```
 
-Mocknet can also be instantiated with pre-uploaded contracts:
+## Backwards compatibility
+
+Mocknet supports contracts compiled for CosmWasm 0.x or 1.x.
+
+```typescript
+assert.equal(chain.contracts[contract_a.address].cwVersion, '1.x')
+assert.equal(chain.contracts[contract_b.address].cwVersion, '0.x')
+```
+
+## Snapshots
+
+Currently, **Mocknet is not stateful:** it only exists for the duration of the script run.
+
+You can instantiate Mocknet with pre-uploaded contracts:
 
 ```typescript
 chain = new Mocknet.Chain({

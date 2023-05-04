@@ -335,16 +335,16 @@ export class MocknetContract<V extends CW> {
   }
 
   initPtrs = ({ env, info, msg }: any = {}): Ptr[] => {
+    if (typeof msg === 'undefined') throw new Error("Can't init contract with undefined init msg")
     switch (this.cwVersion) {
       case '0.x': return [this.pass(env), this.pass(msg)]
-      case '1.x':
-        if (typeof msg === 'undefined') throw new Error("Can't init contract with undefined init msg")
-        return [this.pass(env), this.pass(info), this.pass(msg)]
+      case '1.x': return [this.pass(env), this.pass(info), this.pass(msg)]
       default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
     }
   }
 
   execPtrs = ({ env, info, msg }: any = {}): Ptr[] => {
+    if (typeof msg === 'undefined') throw new Error("Can't execute empty transaction")
     switch (this.cwVersion) {
       case '0.x': return [this.pass(env), this.pass(msg)]
       case '1.x': return [this.pass(env), this.pass(info), this.pass(msg)]
@@ -353,6 +353,7 @@ export class MocknetContract<V extends CW> {
   }
 
   queryPtrs = ({ env, msg }: any = {}): Ptr[] => {
+    if (typeof msg === 'undefined') throw new Error("Can't perform empty query")
     switch (this.cwVersion) {
       case '0.x': return [this.pass(msg)]
       case '1.x': return [this.pass(env), this.pass(msg)]
@@ -420,13 +421,30 @@ export class MocknetContract<V extends CW> {
     }
   }
 
-  async load (code: unknown /** Buffer */): Promise<this & {
+  load = async <W extends CW> (code: unknown /** Buffer */): Promise<MocknetContract<W> & {
     runtime:  WebAssembly.Instance<CWAPI<V>['exports']>,
     codeHash: CodeHash
-  }> {
+  }> => {
     const {imports, refresh} = this.makeImports()
     const {instance: runtime} = await WebAssembly.instantiate(code, imports)
-    return Object.assign(this, { runtime, codeHash: codeHashForBlob(code as Buffer) })
+    let cwVersion: CW
+    switch (true) {
+      case !!(runtime.exports as CWAPI<'1.x'>['exports']).instantiate:
+        this.log.debug(`Loaded CosmWasm 1.x contract`)
+        cwVersion = '1.x';
+        break
+      case !!(runtime.exports as CWAPI<'0.x'>['exports']).init:
+        this.log.debug(`Loaded CosmWasm 0.x contract`)
+        cwVersion = '0.x';
+        break
+      default:
+        throw new Error('Tried to load invalid binary')
+    }
+    const codeHash = codeHashForBlob(code as Buffer)
+    return Object.assign(this, { runtime, cwVersion, codeHash }) as unknown as MocknetContract<W>&{
+      runtime:  WebAssembly.Instance<CWAPI<V>['exports']>,
+      codeHash: CodeHash
+    }
   }
 
   makeImports = (): { imports: CWAPI<V>['imports'], refresh: Function } => {
