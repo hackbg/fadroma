@@ -11,6 +11,7 @@ members = [
   "examples/derive-contract-interface",
   "examples/ensemble",
   #"examples/external",
+  #"examples/legacy",
   "examples/killswitch",
   "examples/kv",
 ]

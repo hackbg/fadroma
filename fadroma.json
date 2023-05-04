@@ -6,6 +6,7 @@
     "example-external":   "fadroma-example-external",
     "example-interface":  "fadroma-example-derive-contract-interface",
     "example-killswitch": "fadroma-example-killswitch",
-    "example-kv":         "fadroma-example-kv"
+    "example-kv":         "fadroma-example-kv",
+    "example-legacy":     "fadroma-example-legacy"
   }
 }
