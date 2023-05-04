@@ -572,7 +572,6 @@ export class ContractCrate {
     readonly libRs: TextFile = src.at('lib.rs').as(TextFile)
   ) {}
   create () {
-    console.log('Creating crate:', this.name)
     this.cargoToml.save([
       `[package]`,
       `name = "${this.name}"`,
@@ -653,7 +652,7 @@ export class ProjectWizard {
       : $(this.cwd, name)).as(OpaqueDirectory)
     const templates = this.interactive
       ? await this.askTemplates(name)
-      : args.slice(1).map(crate=>({crate}))
+      : args.slice(1).reduce((templates, crate)=>Object.assign(templates, { [crate]: crate }), {})
     const project = new Project({ name, root, templates: templates as any }).create()
     if (this.interactive) {
       switch (await this.selectBuilder()) {
