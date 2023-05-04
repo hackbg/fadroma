@@ -91,8 +91,8 @@ export class Project extends CommandContext {
                  this.status)
     this.command('create',   'create a new project',
                  Project.wizard)
-    this.command('add',      'add a new contract to the project',
-                 this.addTemplate)
+    this.command('add',      'add a new contract crate to the project',
+                 this.addCrate)
     this.command('build',    'build the project or specific contracts from it',
                  this.build)
     this.command('upload',   'upload the project or specific contracts from it',
@@ -168,7 +168,7 @@ export class Project extends CommandContext {
       }
     })
   }
-  addTemplate = () => {
+  addCrate = () => {
     throw new Error('unimplemented')
   }
   getTemplate = (name: string): (Template<any> & Buildable)|undefined =>
@@ -235,24 +235,18 @@ export class Project extends CommandContext {
     * @returns this */
   create = () => {
     const { name, templates, root, dirs, files, crates } = this
-
     root.make()
-
     Object.values(this.dirs).forEach(dir=>dir.make())
-
     const {
       readme, fadromaJson, packageJson, apiIndex, opsIndex, gitignore, envfile, shellNix, cargoToml
     } = files
-
     readme.save([
       `# ${name}\n---\n`,
       `Powered by [Fadroma](https://fadroma.tech) `,
       `by [Hack.bg](https://hack.bg) `,
       `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
     ].join(''))
-
     fadromaJson.save({ templates })
-
     packageJson.save({
       name: `${name}`,
       main: `api.ts`,
@@ -276,7 +270,6 @@ export class Project extends CommandContext {
         "mainnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
       },
     })
-
     apiIndex.save([
       `import { Client, Deployment } from '@fadroma/agent'`,
       [
@@ -312,7 +305,6 @@ export class Project extends CommandContext {
         `}\n`
       ].join('\n'))
     ].join('\n\n'))
-
     opsIndex.save([
       [
         `import ${Case.pascal(name)} from './api'`,
@@ -345,15 +337,12 @@ export class Project extends CommandContext {
         ``, `}`
       ].join('\n')
     ].join('\n\n'))
-
     gitignore.save([
       '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
     ].join('\n'))
-
     envfile.save([
       '# FADROMA_MNEMONIC=your testnet mnemonic'
     ].join('\n'))
-
     shellNix.save([
       `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
       `  inherit name;`,
@@ -367,13 +356,11 @@ export class Project extends CommandContext {
       `  '';`,
       `}`,
     ].join('\n'))
-
     cargoToml.as(TextFile).save([
       `[workspace]`, `resolver = "2"`, `members = [`,
       Object.values(this.crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
       `]`
     ].join('\n'))
-
     const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
     Object.values(crates).forEach(crate=>{
       crate.create()
@@ -592,37 +579,39 @@ export class ContractCrate {
       `authors = []`,
       `keywords = ["fadroma"]`,
       `description = ""`,
-      `readme = "README.md"`,
-      ``,
+      `readme = "README.md"`, ``,
       `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
       `[dependencies]`,
-      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "feat/podman-nix", features = ${JSON.stringify(this.fadromaFeatures)} }`,
+      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "master", features = ${JSON.stringify(this.fadromaFeatures)} }`,
       `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
     ].join('\n'))
     this.src.make()
     this.libRs.save([
       `//! Created by [Fadroma](https://fadroma.tech).`, ``,
-      `fadroma::contract! {`, '',
-      `    #[init(entry)]`,
-      `    pub fn new () -> Result<Response, StdError> {`,
-      `        Ok(Response::default())`,
+      `#[fadroma::dsl::contract] pub mod contract {`,
+      `    use fadroma::{*, dsl::*, prelude::*};`,
+      `    impl Contract {`,
+      `        #[init(entry)]`,
+      `        pub fn new () -> Result<Response, StdError> {`,
+      `            Ok(Response::default())`,
+      `        }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
       `    }`,
-      `    // #[execute]`,
-      `    // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-      `    //     Ok(Response::default())`,
-      `    // }`,
-      `    // #[execute]`,
-      `    // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-      `    //     Ok(Response::default())`,
-      `    // }`,
-      `    // #[query]`,
-      `    // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-      `    //     Ok(())`, '',
-      `    // }`,
-      `    // #[query]`,
-      `    // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-      `    //     Ok(())`, '',
-      `    // }`,
       `}`,
     ].join('\n'))
   }

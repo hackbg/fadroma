@@ -15,5 +15,5 @@ jobs:
       - run: |
           mkdir -p wasm
           rustup target add wasm32-unknown-unknown
-          FADROMA_BUILD_RAW=1 pnpm ci
+          FADROMA_BUILD_RAW=1 TEMP=${{runner.temp}} TMP=${{runner.temp}} pnpm ci
 

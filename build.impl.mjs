@@ -253,7 +253,7 @@ function env (key, def) {
 }
 
 function run (command, env2 = {}) {
-  if (verbose) console.log('$', command)
+  if (verbose) console.log('>', command)
   return execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
 }
 
@@ -262,9 +262,9 @@ function git (command, ...args) {
 }
 
 function call (command) {
-  console.log('$', command)
+  console.log('>', command)
   const result = String(execSync(command)).trim()
-  console.log('>', result)
+  console.log('<', result)
   return result
 }
 
