@@ -427,18 +427,19 @@ export class MocknetContract<V extends CW> {
   }> => {
     const {imports, refresh} = this.makeImports()
     const {instance: runtime} = await WebAssembly.instantiate(code, imports)
+    const {exports} = runtime
     let cwVersion: CW
     switch (true) {
-      case !!(runtime.exports as CWAPI<'1.x'>['exports']).instantiate:
+      case !!(exports as CWAPI<'1.x'>['exports']).instantiate:
         this.log.debug(`Loaded CosmWasm 1.x contract`)
         cwVersion = '1.x';
         break
-      case !!(runtime.exports as CWAPI<'0.x'>['exports']).init:
+      case !!(exports as CWAPI<'0.x'>['exports']).init:
         this.log.debug(`Loaded CosmWasm 0.x contract`)
         cwVersion = '0.x';
         break
       default:
-        throw new Error('Tried to load invalid binary')
+        throw Object.assign(new Error('Tried to load invalid binary'), { exports })
     }
     const codeHash = codeHashForBlob(code as Buffer)
     return Object.assign(this, { runtime, cwVersion, codeHash }) as unknown as MocknetContract<W>&{
