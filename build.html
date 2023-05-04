@@ -543,31 +543,33 @@ assert.<span class="hljs-title function_">ok</span>(rawBuilder <span class="hljs
 <p>Building asynchronously returns <code>Template</code> instances.
 A <code>Template</code> is an undeployed contract. You can upload
 it once, and instantiate any number of <code>Contract</code>s from it.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// Build a single contract</span>
-
+<p>To build a single crate from the current space through a Fadroma builder:</p>
+<pre><code class="hljs language-typescript">
 <span class="hljs-keyword">const</span> contract_0 = <span class="hljs-keyword">await</span> builder.<span class="hljs-title function_">build</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// Build multiple contracts</span>
-
-<span class="hljs-keyword">const</span> [contract_1, contract_2] = <span class="hljs-keyword">await</span> builder.<span class="hljs-title function_">buildMany</span>([
-  <span class="hljs-string">&#x27;fadroma-example-admin&#x27;</span>,
-  <span class="hljs-string">&#x27;fadroma-example-killswitch&#x27;</span>
+<p>To build multiple crates in parallel:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> [contract_1, contract_2] = <span class="hljs-keyword">await</span> builder.<span class="hljs-title function_">buildMany</span>([
+  { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-admin&#x27;</span> },
+  { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-killswitch&#x27;</span> }
 ])
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// For built contracts, the following holds true:</span>
-
-<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> contract <span class="hljs-keyword">of</span> [contract_0, contract_1, contract_2]) {
-
-  <span class="hljs-comment">// Build result will contain code hash and path to binary</span>
-  <span class="hljs-title function_">assert</span>(<span class="hljs-keyword">typeof</span> contract.<span class="hljs-property">codeHash</span> === <span class="hljs-string">&#x27;string&#x27;</span>)
+<p>For built contracts, the following holds true:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> contract <span class="hljs-keyword">of</span> [contract_0, contract_1, contract_2]) {
+</code></pre>
+<ul>
+<li>Build result will contain code hash and path to binary:</li>
+</ul>
+<pre><code class="hljs language-typescript">  <span class="hljs-title function_">assert</span>(<span class="hljs-keyword">typeof</span> contract.<span class="hljs-property">codeHash</span> === <span class="hljs-string">&#x27;string&#x27;</span>)
   <span class="hljs-title function_">assert</span>(contract.<span class="hljs-property">artifact</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-variable constant_">URL</span>)
-
-  <span class="hljs-comment">// As well as info about the source used</span>
-  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> key <span class="hljs-keyword">of</span> [ <span class="hljs-string">&#x27;workspace&#x27;</span>, <span class="hljs-string">&#x27;crate&#x27;</span>, <span class="hljs-string">&#x27;revision&#x27;</span> ]) {
+</code></pre>
+<ul>
+<li>Build result will contain info about source used:</li>
+</ul>
+<pre><code class="hljs language-typescript">  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> key <span class="hljs-keyword">of</span> [ <span class="hljs-string">&#x27;workspace&#x27;</span>, <span class="hljs-string">&#x27;crate&#x27;</span>, <span class="hljs-string">&#x27;revision&#x27;</span> ]) {
     assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">typeof</span> contract[key] === <span class="hljs-string">&#x27;string&#x27;</span>)
   }
-
-}
+</code></pre>
+<pre><code class="hljs language-typescript">}
 </code></pre>
 <h4 id="specifying-a-contract-to-build" tabindex="-1">Specifying a contract to build</h4>
 <p>The <code>Template</code> and <code>Contract</code> classes have the following properties for specifying the source:</p>
