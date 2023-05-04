@@ -11,8 +11,8 @@
     "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "dependencies": {
-    "@fadroma/agent": "workspace:^1.0.0-rc.18",
-    "@fadroma/scrt":  "workspace:^9.0.0-rc.18",
+    "@fadroma/agent": "workspace:^1.0.0-rc.19",
+    "@fadroma/scrt":  "workspace:^9.0.0-rc.19",
     "@hackbg/conf":   "workspace:^2"
   }
 }
