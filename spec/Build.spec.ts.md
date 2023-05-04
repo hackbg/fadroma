@@ -115,35 +115,44 @@ Building asynchronously returns `Template` instances.
 A `Template` is an undeployed contract. You can upload
 it once, and instantiate any number of `Contract`s from it.
 
+To build a single crate from the current space through a Fadroma builder:
+
 ```typescript
-// Build a single contract
 
 const contract_0 = await builder.build({ crate: 'fadroma-example-kv' })
 ```
 
-```typescript
-// Build multiple contracts
+To build multiple crates in parallel:
 
+```typescript
 const [contract_1, contract_2] = await builder.buildMany([
-  'fadroma-example-admin',
-  'fadroma-example-killswitch'
+  { crate: 'fadroma-example-admin' },
+  { crate: 'fadroma-example-killswitch' }
 ])
 ```
 
+For built contracts, the following holds true:
+
 ```typescript
-// For built contracts, the following holds true:
-
 for (const contract of [contract_0, contract_1, contract_2]) {
+```
 
-  // Build result will contain code hash and path to binary
+* Build result will contain code hash and path to binary:
+
+```typescript
   assert(typeof contract.codeHash === 'string')
   assert(contract.artifact instanceof URL)
+```
 
-  // As well as info about the source used
+* Build result will contain info about source used:
+
+```typescript
   for (const key of [ 'workspace', 'crate', 'revision' ]) {
     assert.ok(typeof contract[key] === 'string')
   }
+```
 
+```typescript
 }
 ```
 
