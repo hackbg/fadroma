@@ -5,8 +5,12 @@ jobs:
     name: pnpm ci
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Clone with submodules
+        uses: actions/checkout@v2
         with: { submodules: recursive }
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
+        with: { version: 7.29.1 }
       - name: Setup Node 20
         uses: actions/setup-node@v3
         with:
@@ -15,9 +19,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - run: |
-          corepack enable
           mkdir -p wasm
           rustup target add wasm32-unknown-unknown
           pnpm --version
-          pnpm i --no-frozen-lockfile
+          pnpm i --frozen-lockfile
           FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
