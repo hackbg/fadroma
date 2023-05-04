@@ -817,8 +817,8 @@ export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<
 export const tools = () => {
   console.br()
   return {
-    ttyIn:  check('TTY in:   ', process.stdin.isTTY),
-    ttyOut: check('TTY out:  ', process.stdout.isTTY),
+    ttyIn:  check('TTY in:   ', !!process.stdin.isTTY),
+    ttyOut: check('TTY out:  ', !!process.stdout.isTTY),
     //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
     git:       tool('Git:      ', 'git --no-pager --version'),
     node:      tool('Node:     ', 'node --version'),
@@ -836,19 +836,13 @@ export const tools = () => {
 }
 
 /** Check a variable */
-export const check = <T> (
-  name: string|null,
-  value: T
-): T => {
+export const check = <T> (name: string|null, value: T): T => {
   if (name) console.info(bold(name), value)
   return value
 }
 
 /** Check if an external binary is on the PATH. */
-export const tool = (
-  dependency: string|null,
-  command:    string
-): string|null => {
+export const tool = (dependency: string|null, command: string): string|null => {
   let version = null
   try {
     version = String(execSync(command)).trim()

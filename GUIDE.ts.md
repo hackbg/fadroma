@@ -195,7 +195,7 @@ as well as defining new ones.
 
 ### Agent API
 
-[The **@fadroma/agent** package](/ts/modules/_fadroma_agent.html) is our core library
+[The **`@fadroma/agent`** package](/ts/modules/_fadroma_agent.html) is our core library
 for interfacing with blockchains and smart contracts from JavaScript or TypeScript.
 
 [The **Fadroma Agent Guide**](agent.html) describes it in more detail.
