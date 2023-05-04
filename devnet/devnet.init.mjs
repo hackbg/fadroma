@@ -57,12 +57,14 @@ function genesis ({
   console.info('\nEstablishing initial config...')
   if (!existsSync(stateDir)) {
     run(`mkdir -p ${stateDir}`)
-    if (uid) run(`chown ${uid}`)
-    if (gid) run(`chgrp ${gid}`)
+    if (uid) run(`chown -R ${uid}`)
+    if (gid) run(`chgrp -R ${gid}`)
   }
-  run(`mkdir -p ${stateDir}/wallet`)
-  if (uid) run(`chown ${uid} ${stateDir}/wallet`)
-  if (gid) run(`chgrp ${gid} ${stateDir}/wallet`)
+  if (!existsSync(`${stateDir}/wallet`)) {
+    run(`mkdir -p ${stateDir}/wallet`)
+    if (uid) run(`chown -R ${uid} ${stateDir}/wallet`)
+    if (gid) run(`chgrp -R ${gid} ${stateDir}/wallet`)
+  }
   run(`secretd config chain-id "${chainId}"`)
   run(`secretd config keyring-backend test`)
   run(`secretd init fadroma-devnet --chain-id "${chainId}"`)
@@ -75,8 +77,8 @@ function genesis ({
     const address  = run(`secretd keys show -a "${name}"`)
     const identity = `${stateDir}/wallet/${name}.json`
     writeFileSync(identity, JSON.stringify({ address, mnemonic }))
-    if (uid) run(`chown ${uid} ${identity}`)
-    if (gid) run(`chgrp ${gid} ${identity}`)
+    if (uid) run(`chown -R ${uid} ${identity}`)
+    if (gid) run(`chgrp -R ${gid} ${identity}`)
   }
 
   console.info('\nAdding genesis accounts...')

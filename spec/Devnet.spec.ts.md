@@ -62,8 +62,8 @@ Devnet is stateful. It's represented in the project by e.g. `state/fadroma-devne
 
 ```typescript
 import { JSONFile, OpaqueDirectory } from '@hackbg/file'
-assert.ok(devnet.nodeState instanceof JSONFile)
-assert.ok(devnet.stateRoot instanceof OpaqueDirectory)
+assert.ok(devnet.stateFile instanceof JSONFile)
+assert.ok(devnet.stateDir instanceof OpaqueDirectory)
 
 assert.ok(devnet.save())
 assert.ok(await devnet.load())
@@ -77,7 +77,7 @@ which you can use by passing `name` to `getAgent`:
 ```typescript
 // specifying genesis accounts:
 assert.deepEqual(
-  new Devnet({ identities: [ 'Alice', 'Bob' ] }).genesisAccounts,
+  new Devnet({ genesisAccounts: [ 'Alice', 'Bob' ] }).genesisAccounts,
   [ 'Alice', 'Bob' ]
 )
 

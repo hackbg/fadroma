@@ -268,16 +268,12 @@ export class BuildContainer extends BuildLocal {
   ): Promise<(Built|null)[]> {
     // Default to building from working tree.
     revision ??= HEAD
-
     // Create output directory as user if it does not exist
     $(outputDir).as(OpaqueDirectory).make()
-
     // Output slots. Indices should correspond to those of the input to buildMany
     const templates: Array<Built|null> = crates.map(()=>null)
-
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
-
     // Collect cached templates. If any are missing from the cache mark them as buildable.
     for (const [index, crate] of crates) {
       const prebuilt = this.prebuild(outputDir, crate, revision)
@@ -289,12 +285,10 @@ export class BuildContainer extends BuildLocal {
         shouldBuild[crate] = index
       }
     }
-
     // If there are no templates to build, this means everything was cached and we're done.
     if (Object.keys(shouldBuild).length === 0) {
       return templates
     }
-
     // Define the mounts and environment variables of the build container
     if (!this.script) throw new Error.Build('Build script not set.')
     const buildScript = $(`/`, $(this.script).name).path
@@ -310,7 +304,6 @@ export class BuildContainer extends BuildLocal {
       ...(knownHosts.isFile()    ? { [knownHosts.path]:     '/root/.ssh/known_hosts'   } : {}),
       ...(etcKnownHosts.isFile() ? { [etcKnownHosts.path] : '/etc/ssh/ssh_known_hosts' } : {}),
     }
-
     // For fetching from private repos, we need to give the container access to ssh-agent
     if (process.env.SSH_AUTH_SOCK) readonly[process.env.SSH_AUTH_SOCK] = '/ssh_agent_socket'
     const writable = {
@@ -320,7 +313,6 @@ export class BuildContainer extends BuildLocal {
       //[`project_cache_${safeRef}`]: `/tmp/target`,
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
     }
-
     // Since Fadroma can be included as a Git submodule, but
     // Cargo doesn't support nested workspaces, Fadroma's
     // workpace root manifest is renamed to _Cargo.toml.
@@ -337,17 +329,14 @@ export class BuildContainer extends BuildLocal {
       delete readonly[$(root).path]
       readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
     }
-
     // Pre-populate the list of expected artifacts.
     const outputWasms: Array<string|null> = [...new Array(crates.length)].map(()=>null)
     for (const [crate, index] of Object.entries(shouldBuild)) {
       outputWasms[index] = $(outputDir, artifactName(crate, safeRef)).path
     }
-
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
     const buildCommand = [ 'node', buildScript, 'phase1', revision, ...cratesToBuild ]
-
     const buildEnv = {
       // Variables used by the build script are prefixed with underscore;
       // variables used by the tools that the build script uses are left as is
@@ -368,14 +357,12 @@ export class BuildContainer extends BuildLocal {
       SSH_AUTH_SOCK: '/ssh_agent_socket',
       TERM: process.env.TERM,
     }
-
     // Clean up the buildEnv so as not to run afoul of TS
     for (const key of Object.keys(buildEnv)) {
       if (buildEnv[key as keyof typeof buildEnv] === undefined) {
         delete buildEnv[key as keyof typeof buildEnv]
       }
     }
-
     const buildOptions = {
       remove: true,
       readonly,
@@ -387,7 +374,6 @@ export class BuildContainer extends BuildLocal {
         AttachStdin: true
       }
     }
-
     // This stream collects the output from the build container, i.e. the build logs.
     const buildLogStream = new LineTransformStream((!this.quiet)
       // In normal and verbose mode, build logs are printed to the console in real time,
@@ -404,7 +390,6 @@ export class BuildContainer extends BuildLocal {
       // In non-verbose mode, build logs are collected in a string
       buildLogStream.on('data', (data: string) => buildLogs += data)
     }
-
     // Run the build container
     this.log.build.container(root, revision, cratesToBuild)
     const buildName = `fadroma-build-${sanitize($(root).name)}@${revision}`
@@ -415,24 +400,26 @@ export class BuildContainer extends BuildLocal {
       '/usr/bin/env', // container entrypoint command
       buildLogStream  // container log stream
     )
-    process.on('beforeExit', async () => {
+    process.once('beforeExit', async () => {
       this.log.log('Killing build container', bold(buildContainer.id))
-      await buildContainer.kill()
-      this.log.log('Killed build container', bold(buildContainer.id))
+      try {
+        await buildContainer.kill()
+        this.log.log('Killed build container', bold(buildContainer.id))
+      } catch (e) {
+        if (!e.statusCode) this.log.error(e)
+        else if (e.statusCode === '404') {}
+        else this.log.warn('Failed to kill build container', e.statusCode, e.reason)
+      }
     })
     const {error, code} = await buildContainer.wait()
-
     // Throw error if launching the container failed
     if (error) {
       throw new Error(`[@hackbg/fadroma] Docker error: ${error}`)
     }
-
     // Throw error if the build failed
     if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
-
     // Return a sparse array of the resulting artifacts
     return outputWasms.map(x=>this.locationToContract(x) as Built)
-
   }
 
   protected buildFailed (crates: string[], code: string|number, logs: string) {

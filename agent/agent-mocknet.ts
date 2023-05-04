@@ -117,6 +117,7 @@ export class Mocknet extends Chain {
     const codeHash  = codeHashForBlob(wasm)
     this.log.debug('compiling', wasm.length, 'bytes')
     const module    = await WebAssembly.compile(wasm)
+    this.log.debug('compiled', wasm.length, 'bytes')
     const exports   = WebAssembly.Module.exports(module)
     const cwVersion = this.checkVersion(exports.map(x=>x.name))
     if (cwVersion === null) throw new Error.NoCWVersion(wasm, module, exports)

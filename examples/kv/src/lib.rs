@@ -1,10 +1,10 @@
-pub use contract::*;
-
 fadroma::entrypoint! {
     init:    instantiate,
     execute: execute,
     query:   query
 }
+
+pub use contract::*;
 
 #[fadroma::dsl::contract]
 pub mod contract {

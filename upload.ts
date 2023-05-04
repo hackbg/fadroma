@@ -16,7 +16,7 @@ export function upload (artifact: Uploadable): Promise<Uploaded> {
   return getUploader().upload(artifact)
 }
 /** Upload multiple contracts with default settings. */
-export function uploadMany (artifacts: Uploadable[]): Promise<Uploaded[]> {
+export function uploadMany (artifacts: Uploadable[]): Promise<(Uploaded|null)[]> {
   return getUploader().uploadMany(artifacts)
 }
 

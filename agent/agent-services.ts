@@ -119,12 +119,12 @@ export class Uploader {
     return receipt
   }
   /** Upload multiple contracts. */
-  async uploadMany (inputs: Uploadable[]): Promise<Uploaded[]> {
+  async uploadMany (inputs: Uploadable[]): Promise<(Uploaded|null)[]> {
     if (!this.agent) throw new Error('No upload agent')
-    const outputs: Array<Uploaded> = []
+    const outputs: Array<(Uploaded|null)> = []
     for (const i in inputs) {
       const input = inputs[i]
-      outputs[i] = await this.upload(input)
+      outputs[i] = input ? await this.upload(input) : null
       await this.agent.nextBlock
     }
     return outputs

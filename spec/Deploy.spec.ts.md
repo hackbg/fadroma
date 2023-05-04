@@ -18,20 +18,9 @@ what contracts to deploy:
 ```typescript
 import { Deployment } from '@fadroma/agent'
 
-export class MyDeployment extends Deployment {
-
-  foo = this.contract({
-    name: 'foo',
-    crate: 'fadroma-example-kv',
-    initMsg: {}
-  })
-
-  bar = this.contract({
-    name: 'bar',
-    crate: 'fadroma-example-kv',
-    initMsg: {}
-  })
-
+export class BasicDeployment extends Deployment {
+  kv1 = this.contract({ crate: 'fadroma-example-kv', name: 'kv1', initMsg: {} })
+  kv2 = this.contract({ crate: 'fadroma-example-kv', name: 'kv2', initMsg: {} })
 }
 ```
 
@@ -42,7 +31,7 @@ This will provide a populated instance of your deployment class.
 
 ```typescript
 import { getDeployment } from '@hackbg/fadroma'
-let deployment = getDeployment(MyDeployment, /* ...constructor args */)
+let deployment = getDeployment(BasicDeployment, /* ...constructor args */)
 ```
 
 Then, call its `deploy` method:
@@ -69,12 +58,12 @@ By `await`ing a `Contract`'s `deployed` property, you say:
 deploy it, and all of its dependencies (as specified by the `initMsg` method)".
 
 ```typescript
-const foo1 = await deployment.foo.deployed
-const bar1 = await deployment.bar.deployed
+const kv11 = await deployment.kv1.deployed
+const kv21 = await deployment.kv2.deployed
 
 import { Client } from '@fadroma/agent'
-assert(foo1 instanceof Client)
-assert(bar1 instanceof Client)
+assert(kv11 instanceof Client)
+assert(kv21 instanceof Client)
 ```
 
 Since this does not call the deployment's `deploy` method,
@@ -91,26 +80,23 @@ Let's build on top of the first example and implement
 a custom `deploy` method:
 
 ```typescript
-class MyDeployment2 extends MyDeployment {
-
+class DeploymentWithCustomMethods extends BasicDeployment {
   async deploy (deployOnlyFoo?: boolean) {
     /** You can override the deploy method to deploy with custom logic. */
-    await this.foo.deployed
-    if (!deployOnlyFoo) await this.bar.deployed
+    await this.kv1.deployed
+    if (!deployOnlyFoo) await this.kv2.deployed
     return this
   }
-
   async update (previous: Deployment) {
     /** Here you may implement an upgrade method that fetches
       * the state of existing contracts, and deploys new ones. */
   }
-
 }
 
-const deployment2 = await getDeployment(MyDeployment2).deploy()
+deployment = await getDeployment(DeploymentWithCustomMethods).deploy()
 
-assert(deployment2.foo.expect() instanceof Client)
-assert(deployment2.bar.expect() instanceof Client)
+assert(deployment.kv1.expect() instanceof Client)
+assert(deployment.kv2.expect() instanceof Client)
 ```
 
 ### How state is stored
@@ -135,11 +121,11 @@ at the current point in time, this contract is deployed;
 now, give me a handle to it".
 
 ```typescript
-const foo2 = deployment.foo.expect()
-const bar2 = deployment.bar.expect()
+const kv1 = deployment.kv1.expect()
+const kv2 = deployment.kv2.expect()
 
-assert(foo2 instanceof Client)
-assert(bar2 instanceof Client)
+assert(kv1 instanceof Client)
+assert(kv2 instanceof Client)
 ```
 
 If the address of the request contract is not available,
@@ -166,23 +152,18 @@ You can pass either an array or an object to `template.instances`.
 
 ```typescript
 class DeploymentWithTemplates extends Deployment {
-
   t = this.template({ crate: 'fadroma-example-kv' })
-
-  c1 = this.t.instance({ name: 'c1', initMsg: {} })
-
-  c2 = this.t.instances([
-    { name: 'c21', initMsg: {} },
-    { name: 'c22', initMsg: {} },
-    { name: 'c32', initMsg: {} }
+  a = this.t.instance({ name: 'a', initMsg: {} })
+  b = this.t.instances([
+    {name:'b1',initMsg:{}},
+    {name:'b2',initMsg:{}},
+    {name:'b3',initMsg:{}}
   ])
-
-  c3 = this.t.instances({
-    c31: { name: 'c31', initMsg: {} },
-    c32: { name: 'c32', initMsg: {} },
-    c33: { name: 'c33', initMsg: {} }
+  c = this.t.instances({
+    c1:{name:'c1',initMsg:{}},
+    c2:{name:'c2',initMsg:{}},
+    c3:{name:'c3',initMsg:{}}
   })
-
 }
 
 deployment = await getDeployment(DeploymentWithTemplates).deploy()
@@ -193,14 +174,13 @@ import { Contract, Template } from '@fadroma/agent'
 
 assert(deployment.t instanceof Template)
 
-assert(deployment.c1 instanceof Contract)
-assert(deployment.c1.expect() instanceof Client)
-
-assert(Object.values(deployment.c2).every(c=>c instanceof Contract))
-assert(Object.values(deployment.c2).map(c=>c.expect()).every(c=>c instanceof Client))
-
-assert(Object.values(deployment.c3).every(c=>c instanceof Contract))
-assert(Object.values(deployment.c3).map(c=>c.expect()).every(c=>c instanceof Client))
+assert([
+  deployment.a,
+  ...Object.values(deployment.b)
+  ...Object.values(deployment.c)
+].every(
+  c=>(c instanceof Contract) && (c.expect() instanceof Client)
+))
 ```
 
 ### Building from source code
@@ -296,8 +276,8 @@ from `deployment.agent`.
 
 ```typescript
 import { Agent } from '@fadroma/agent'
-assert(deployment.c1.agent instanceof Agent)
-assert.equal(deployment.c1.agent, deployment.agent)
+assert(deployment.a.agent instanceof Agent)
+assert.equal(deployment.a.agent, deployment.agent)
 ```
 
 You can instantiate a `Contract` by awaiting the `deployed` property or the return value of the
@@ -306,17 +286,17 @@ so the deploy will run only once and subsequent calls will return the same `Cont
 same `address`.
 
 ```typescript
-await deployment.c1.deploy()
-await deployment.c1.deployed
+await deployment.a.deploy()
+await deployment.a.deployed
 ```
 
 If `contract.codeId` is not set but either source code or a WASM binary is present,
 this will try to upload and build the code first.
 
 ```typescript
-await deployment.c1.uploaded
-await deployment.c1.upload()
+await deployment.a.uploaded
+await deployment.a.upload()
 
-await deployment.c1.built
-await deployment.c1.build()
+await deployment.a.built
+await deployment.a.build()
 ```

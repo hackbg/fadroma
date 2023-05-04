@@ -438,7 +438,7 @@ export class Project extends CommandContext {
   }
   /** Uploads one or more named templates, or all templates if no arguments are passed.
     * Builds templates with missing artifacts if sources are available. */
-  upload = async (...names: string[]): Promise<Uploaded[]> => {
+  upload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
     if (names.length < 1) {
       names = Object.keys(this.templates)
       if (names.length > 0) {
@@ -457,12 +457,8 @@ export class Project extends CommandContext {
       return []
     }
     // Build templates if builder is available
-    const templates = this.builder
-      ? await this.builder.buildMany(sources)
-      : sources
-    return await this.uploader.uploadMany(
-      templates as (Template<any> & Buildable & Built & Uploadable)[]
-    )
+    const templates = this.builder ? await this.builder.buildMany(sources) : sources
+    return await this.uploader.uploadMany(templates as Uploadable[])
   }
   deploy = async (...args: string[]) => {
     const deployment = this.deployment
@@ -492,8 +488,7 @@ export class Project extends CommandContext {
   listDeployments = () =>
     this.log.deploy.deploymentList(
       this.config.chainId??'(unspecified)',
-      this.config.getDeployStore()
-    )
+      this.config.getDeployStore())
   createDeployment = (name: string = timestamp()) =>
     this.config.getDeployStore().create(name)
       .then(()=>this.selectDeployment(name))
@@ -595,6 +590,11 @@ export class ContractCrate {
     this.src.make()
     this.libRs.save([
       `//! Created by [Fadroma](https://fadroma.tech).`, ``,
+      `fadroma::entrypoint! {`,
+      `    init:    instantiate,`,
+      `    execute: execute,`,
+      `    query:   query`,
+      `}`, '', `pub use contract::*;`, '',
       `#[fadroma::dsl::contract] pub mod contract {`,
       `    use fadroma::{*, dsl::*, prelude::*};`,
       `    impl Contract {`,
