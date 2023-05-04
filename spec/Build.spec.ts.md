@@ -118,7 +118,7 @@ it once, and instantiate any number of `Contract`s from it.
 ```typescript
 // Build a single contract
 
-const contract_0 = await builder.build('fadroma-example-kv')
+const contract_0 = await builder.build({ crate: 'fadroma-example-kv' })
 ```
 
 ```typescript
