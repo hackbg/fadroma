@@ -18,9 +18,11 @@ $ npx @hackbg/fadroma@latest create
 ```typescript
 import Project from '@hackbg/fadroma'
 
-const project = new Project({
-  root: tmpDir(), // replace with path to project directory
-  name: 'my-project',
+const root = tmpDir()
+
+let project: Project = new Project({
+  root: `${root}/test-project-1`,
+  name: 'test-project-1',
   templates: {
     test1: { crate: 'test1' },
     test2: { crate: 'test2' },
@@ -133,4 +135,5 @@ will let you keep track of your project's footprint on public networks.
 import assert from 'node:assert'
 import { Template } from '@fadroma/agent'
 import { tmpDir } from '../fixtures/Fixtures.ts.md'
+import './Project.test'
 ```

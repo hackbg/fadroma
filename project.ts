@@ -186,7 +186,7 @@ export class Project extends CommandContext {
   /** Print the current status of Fadroma, the active devnet, project, and deployment.
     * @returns this */
   status = () => {
-    tools()
+    toolVersions()
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
     const agent = this.uploader?.agent ?? chain?.getAgent()
     this.log.br()
@@ -395,7 +395,7 @@ export class Project extends CommandContext {
   }
 
   /** @returns this */
-  npmInstall = ({ npm, yarn, pnpm }: any = tools()) => {
+  npmInstall = ({ npm, yarn, pnpm }: any = toolVersions()) => {
     if (pnpm) {
       this.runShellCommands('pnpm i')
     } else if (yarn) {
@@ -630,17 +630,29 @@ export default Project
   * TODO: single crate option
   * TODO: `shared` crate option */
 export class ProjectWizard {
+
+  cwd: string = process.cwd()
+
+  tools: ReturnType<typeof toolVersions> = toolVersions()
+
+  interactive: boolean = !!process.stdin.isTTY && process.stdout.isTTY
+
+  constructor (options: Partial<ProjectWizard> = {}) {
+    this.cwd         = options.cwd ?? this.cwd
+    this.tools       = options.tools ?? this.tools
+    this.interactive = options.interactive ?? this.interactive
+  }
+
   async createProject (...args: any[]): Promise<Project> {
-    const context = tools()
-    let { ttyIn, ttyOut, git, pnpm, yarn, npm, cargo, docker, podman } = context
-    const tty = ttyIn && ttyOut
-    const name = tty ? await this.askName() : args[0]
-    const root = (tty ? $(await this.askRoot(name)) : $(name)).as(OpaqueDirectory)
-    const templates = tty ? await this.askTemplates(name) : args.slice(1)
+    let { git, pnpm, yarn, npm, cargo, docker, podman } = this.tools
+    const name = this.interactive ? await this.askName() : args[0]
+    const root = (this.interactive ? $(await this.askRoot(name)) : $(this.cwd, name)).as(OpaqueDirectory)
+    const templates = this.interactive ? await this.askTemplates(name) : args.slice(1)
     const project = new Project({ name, root, templates: templates as any })
     await project.create()
-    if (tty) {
-      switch (await this.selectBuilder(context)) {
+
+    if (this.interactive) {
+      switch (await this.selectBuilder()) {
         case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
         case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
         default:
@@ -661,7 +673,7 @@ export class ProjectWizard {
     }
     if (pnpm || yarn || npm) {
       try {
-        project.npmInstall(context)
+        project.npmInstall(this.tools)
         changed = true
       } catch (e) {
         console.warn('Non-fatal: NPM install failed:', e)
@@ -704,6 +716,7 @@ export class ProjectWizard {
     //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
     return project
   }
+
   async askName (): Promise<string> {
     let value
     while ((value = (await askText('Enter a project name (a-z, 0-9, dash/underscore)')??'').trim()) === '') {}
@@ -758,12 +771,12 @@ export class ProjectWizard {
       }
     }
   }
-  selectBuilder (context: ReturnType<typeof tools>): 'podman'|'raw'|any {
-    const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = context
+  selectBuilder (): 'podman'|'raw'|any {
+    const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = this.tools
     const buildRaw    = { value: 'raw',    title: `No, build with local toolchain (${cargo})` }
     const buildDocker = { value: 'docker', title: `Yes, build in a Docker container (${docker})` }
     const buildPodman = { value: 'podman', title: `Yes, build in a Podman container (${podman})` }
-    const hasPodman = context.podman && (context.podman !== 'not installed')
+    const hasPodman = podman && (podman !== 'not installed')
     const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
     const isLinux = platform() === 'linux'
     const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
@@ -814,7 +827,7 @@ export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<
   return state
 }
 
-export const tools = () => {
+export const toolVersions = () => {
   console.br()
   return {
     ttyIn:  check('TTY in:   ', !!process.stdin.isTTY),

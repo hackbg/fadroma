@@ -117,7 +117,6 @@ export abstract class Devnet implements DevnetHandle {
   async load (): Promise<DevnetState|null> {
     const path = this.stateFile.shortPath
     if (this.stateDir.exists() && this.stateFile.exists()) {
-      //log.info(bold(`Loading:  `), path)
       try {
         const data = this.stateFile.load()
         const { chainId, port } = data
@@ -386,7 +385,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
 
     // if no node state, spawn
     if (!this.stateFile.exists()) {
-      this.log.info(`No devnet found at ${bold(shortPath)}`)
+      this.log.log(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }
 
@@ -400,7 +399,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
       } else {
         this.log.warn('Devnet container not found, recreating')
       }
-      this.log.info(`Reading ${bold(shortPath)} failed, starting devnet container`)
+      this.log.log(`Reading ${bold(shortPath)} failed, starting devnet container`)
       return this.spawn()
     }
 
@@ -412,11 +411,10 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
       running = await this.container.isRunning
     } catch (e) {
       // if error when checking, RESPAWN
-      this.log.info(`✋ Failed to get container ${bold(id)}`)
-      this.log.info('Error was:', e)
-      this.log.info(`Cleaning up outdated state...`)
+      this.log.log(`Failed to get container ${bold(id)}. Error was:`, e)
+      this.log.log(`Cleaning up outdated state...`)
       await this.erase()
-      this.log.info(`Trying to launch a new node...`)
+      this.log.log(`Trying to launch a new node...`)
       return this.spawn()
     }
 
@@ -465,7 +463,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     const path = this.stateDir.shortPath
     try {
       if (this.stateDir.exists()) {
-        this.log.info(`Deleting ${path}...`)
+        this.log.log(`Deleting ${path}...`)
         this.stateDir.delete()
       }
     } catch (e: any) {
@@ -487,11 +485,11 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
           ['-rvf', '/state'],
           '/bin/rm'
         )
-        this.log.info(`Starting cleanup container...`)
+        this.log.log(`Starting cleanup container...`)
         await cleanupContainer.start()
-        this.log.info('Waiting for cleanup to finish...')
+        this.log.log('Waiting for cleanup to finish...')
         await cleanupContainer.wait()
-        this.log.info(`Deleted ${path} via cleanup container.`)
+        this.log.log(`Deleted ${path} via cleanup container.`)
       } else {
         this.log.warn(`Failed to delete ${path}: ${e.message}`)
         throw e

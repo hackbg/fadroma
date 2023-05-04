@@ -16,8 +16,6 @@ function start ({
   grpcAddr    = process.env.grpcAddr    || '0.0.0.0:9090',
   grpcWebAddr = process.env.grpcWebAddr || '0.0.0.0:9091',
   genesisJSON = '~/.secretd/config/genesis.json',
-  uid = process.env._UID,
-  gid = process.env._GID
 } = {}) {
   if (!existsSync(genesisJSON)) {
     console.info(`${genesisJSON} missing -> performing genesis`)
@@ -49,7 +47,9 @@ function genesis ({
   chainId         = process.env.ChainId || 'fadroma-devnet',
   stateDir        = `/state/${chainId}`,
   genesisAccounts = (process.env.GenesisAccounts || 'Admin Alice Bob Charlie Mallory').split(' '),
-  amount          = "1000000000000000000uscrt"
+  amount          = "1000000000000000000uscrt",
+  uid = process.env._UID,
+  gid = process.env._GID
 } = {}) {
   console.info('\nEnsuring a clean slate...')
   run(`rm -rf ~/.secretd ~/.secretcli /opt/secret/.sgx-secrets`)
