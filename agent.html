@@ -587,7 +587,7 @@ assert.<span class="hljs-title function_">rejects</span>(agent.<span class="hljs
 <p>Broadcasting multiple execute calls as a single transaction message
 (transaction bundling):</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> results = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">bundle</span>(<span class="hljs-keyword">async</span> bundle=&gt;{
-  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;2&#x27;</span> } })
+  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">del</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span> } })
   <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>(c2, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;3&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;4&#x27;</span> } })
 }).<span class="hljs-title function_">run</span>()
 </code></pre>
@@ -735,6 +735,7 @@ client.<span class="hljs-title function_">withAgent</span>(agent2).<span class="
 </code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Agent.test.ts&#x27;</span>
 </code></pre>
 
 </content>
