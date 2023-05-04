@@ -233,6 +233,147 @@ export class Project extends CommandContext {
     this.log.br()
     return this
   }
+
+  /** @returns Boolean whether the project (as defined by fadroma.json in root) exists */
+  exists = () =>
+    this.files.fadromaJson.exists()
+  /** Builds one or more named templates, or all templates if no arguments are passed. */
+  build = async (...names: string[]): Promise<Built[]> => {
+    if (names.length < 1) {
+      names = Object.keys(this.templates)
+      if (names.length > 0) {
+        this.log.log('Building all:', names.join(', '))
+        return this.build(...names)
+      }
+      this.log.warn('This would build all contracts, but no contracts are defined.')
+      return []
+    }
+    const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
+      if (!template) this.log.warn(`No such template in project: ${names[i]}`)
+      return !!template
+    })
+    if (sources.length < 1) {
+      this.log.warn('Nothing to build.')
+      return []
+    }
+    return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
+  }
+  /** Uploads one or more named templates, or all templates if no arguments are passed.
+    * Builds templates with missing artifacts if sources are available. */
+  upload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
+    if (names.length < 1) {
+      names = Object.keys(this.templates)
+      if (names.length > 0) {
+        this.log.log('Uploading all:', names.join(', '))
+        return await this.upload(...names)
+      }
+      this.log.warn('This would upload all contracts, but no contracts are defined.')
+      return []
+    }
+    const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
+      if (!template) this.log.warn(`No such template in project: ${names[i]}`)
+      return !!template
+    }) as (Template<any> & Buildable & Partial<Built>)[]
+    if (sources.length < 1) {
+      this.log.warn('Nothing to upload.')
+      return []
+    }
+    // Build templates if builder is available
+    const templates = this.builder ? await this.builder.buildMany(sources) : sources
+    return await this.uploader.uploadMany(templates as Uploadable[])
+  }
+  deploy = async (...args: string[]) => {
+    const deployment = this.deployment
+    if (!deployment) throw new Error.NoDeployment()
+    this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
+    await deployment.deploy()
+    await this.log.deployment(deployment)
+    if (!deployment.chain!.isMocknet) await this.selectDeployment(deployment.name)
+    return deployment
+  }
+  redeploy = async (...args: string[]) => {
+    await this.createDeployment()
+    return await this.deploy(...args)
+  }
+  /** Get the active deployment or a named deployment.
+    * @returns Deployment|null */
+  getDeployment = (name?: string): InstanceType<typeof this.Deployment>|null => {
+    return this.config.getDeployment(this.Deployment, {
+      agent:     this.uploader.agent ??= this.config.getAgent(),
+      chain:     this.uploader.agent.chain,
+      builder:   this.builder,
+      uploader:  this.uploader,
+      workspace: this.root.path,
+      store:     this.deployStore
+    })
+  }
+  listDeployments = () =>
+    this.log.deploy.deploymentList(
+      this.config.chainId??'(unspecified)',
+      this.config.getDeployStore())
+  createDeployment = (name: string = timestamp()) =>
+    this.config.getDeployStore().create(name)
+      .then(()=>this.selectDeployment(name))
+  selectDeployment = async (name?: string): Promise<DeploymentState|null> => {
+    const store = this.deployStore
+    const list = store.list()
+    if (list.length < 1) throw new Error('No deployments in this store')
+    let deployment
+    if (name) {
+      deployment = await store.select(name)
+    } else if (process.stdout.isTTY) {
+      name = await ProjectWizard.selectDeploymentFromStore(store)
+      if (name) {
+        return await store.select(name)
+      } else {
+        return null
+      }
+    } else if (store.active) {
+      deployment = store.active
+    } else {
+      throw new Error('No active deployment in this store and no name passed')
+    }
+    return deployment || null
+  }
+  exportDeployment = async (path?: string) => {
+    const store = this.deployStore
+    const name  = this.deployStore.activeName
+    if (!name) throw new Error.Deploy.NoDeployment()
+    const state = store.load(name)
+    if (!state) throw new Error.Deploy.NoDeployment()
+    const deployment = this.deployment
+    if (!deployment) throw new Error.Deploy.NoDeployment()
+    const jsonFile = `${name}_@_${timestamp()}.json`
+    this.log.log(`Exporting deployment`, deployment.name, 'to', jsonFile)
+    this.log.deployment(deployment)
+    for (const [name, contract] of Object.entries(deployment.state)) {
+      state[name] = {
+        ...contract,
+        context:  undefined,
+        builder:  undefined,
+        uploader: undefined,
+        agent:    undefined
+      }
+    }
+    const file = $(path??(deployment?.store as any)?.root?.path??'')
+      .at(jsonFile)
+      .as(JSONFile)
+    file.save(state)
+    this.log.info(
+      'Wrote', Object.keys(state).length,
+      'contracts to', bold(file.shortPath)
+    )
+  }
+  resetDevnet = async () => {
+    const chain = this.uploader?.agent?.chain ?? this.config.getChain()
+    if (!chain) {
+      this.log.info('No active chain.')
+    } else if (!chain.isDevnet || !chain.devnet) {
+      this.log.error('This command is only valid for devnets.')
+    } else {
+      await chain.devnet.terminate()
+    }
+  }
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {
@@ -412,147 +553,6 @@ export class Project extends CommandContext {
     return this
   }
 
-  /** @returns Boolean whether the project (as defined by fadroma.json in root) exists */
-  exists = () =>
-    this.files.fadromaJson.exists()
-  /** Builds one or more named templates, or all templates if no arguments are passed. */
-  build = async (...names: string[]): Promise<Built[]> => {
-    if (names.length < 1) {
-      names = Object.keys(this.templates)
-      if (names.length > 0) {
-        this.log.log('Building all:', names.join(', '))
-        return this.build(...names)
-      }
-      this.log.warn('This would build all contracts, but no contracts are defined.')
-      return []
-    }
-    const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
-      if (!template) this.log.warn(`No such template in project: ${names[i]}`)
-      return !!template
-    })
-    if (sources.length < 1) {
-      this.log.warn('Nothing to build.')
-      return []
-    }
-    return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
-  }
-  /** Uploads one or more named templates, or all templates if no arguments are passed.
-    * Builds templates with missing artifacts if sources are available. */
-  upload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
-    if (names.length < 1) {
-      names = Object.keys(this.templates)
-      if (names.length > 0) {
-        this.log.log('Uploading all:', names.join(', '))
-        return await this.upload(...names)
-      }
-      this.log.warn('This would upload all contracts, but no contracts are defined.')
-      return []
-    }
-    const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
-      if (!template) this.log.warn(`No such template in project: ${names[i]}`)
-      return !!template
-    }) as (Template<any> & Buildable & Partial<Built>)[]
-    if (sources.length < 1) {
-      this.log.warn('Nothing to upload.')
-      return []
-    }
-    // Build templates if builder is available
-    const templates = this.builder ? await this.builder.buildMany(sources) : sources
-    return await this.uploader.uploadMany(templates as Uploadable[])
-  }
-  deploy = async (...args: string[]) => {
-    const deployment = this.deployment
-    if (!deployment) throw new Error.NoDeployment()
-    this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
-    await deployment.deploy()
-    await this.log.deployment(deployment)
-    if (!deployment.chain!.isMocknet) await this.selectDeployment(deployment.name)
-    return deployment
-  }
-  redeploy = async (...args: string[]) => {
-    await this.createDeployment()
-    return await this.deploy(...args)
-  }
-  /** Get the active deployment or a named deployment.
-    * @returns Deployment|null */
-  getDeployment = (name?: string): InstanceType<typeof this.Deployment>|null => {
-    return this.config.getDeployment(this.Deployment, {
-      agent:     this.uploader.agent ??= this.config.getAgent(),
-      chain:     this.uploader.agent.chain,
-      builder:   this.builder,
-      uploader:  this.uploader,
-      workspace: this.root.path,
-      store:     this.deployStore
-    })
-  }
-  listDeployments = () =>
-    this.log.deploy.deploymentList(
-      this.config.chainId??'(unspecified)',
-      this.config.getDeployStore())
-  createDeployment = (name: string = timestamp()) =>
-    this.config.getDeployStore().create(name)
-      .then(()=>this.selectDeployment(name))
-  selectDeployment = async (name?: string): Promise<DeploymentState|null> => {
-    const store = this.deployStore
-    const list = store.list()
-    if (list.length < 1) throw new Error('No deployments in this store')
-    let deployment
-    if (name) {
-      deployment = await store.select(name)
-    } else if (process.stdout.isTTY) {
-      name = await ProjectWizard.selectDeploymentFromStore(store)
-      if (name) {
-        return await store.select(name)
-      } else {
-        return null
-      }
-    } else if (store.active) {
-      deployment = store.active
-    } else {
-      throw new Error('No active deployment in this store and no name passed')
-    }
-    return deployment || null
-  }
-  exportDeployment = async (path?: string) => {
-    const store = this.deployStore
-    const name  = this.deployStore.activeName
-    if (!name) throw new Error.Deploy.NoDeployment()
-    const state = store.load(name)
-    if (!state) throw new Error.Deploy.NoDeployment()
-    const deployment = this.deployment
-    if (!deployment) throw new Error.Deploy.NoDeployment()
-    const jsonFile = `${name}_@_${timestamp()}.json`
-    this.log.log(`Exporting deployment`, deployment.name, 'to', jsonFile)
-    this.log.deployment(deployment)
-    for (const [name, contract] of Object.entries(deployment.state)) {
-      state[name] = {
-        ...contract,
-        context:  undefined,
-        builder:  undefined,
-        uploader: undefined,
-        agent:    undefined
-      }
-    }
-    const file = $(path??(deployment?.store as any)?.root?.path??'')
-      .at(jsonFile)
-      .as(JSONFile)
-    file.save(state)
-    this.log.info(
-      'Wrote', Object.keys(state).length,
-      'contracts to', bold(file.shortPath)
-    )
-  }
-  resetDevnet = async () => {
-    const chain = this.uploader?.agent?.chain ?? this.config.getChain()
-    if (!chain) {
-      this.log.info('No active chain.')
-    } else if (!chain.isDevnet || !chain.devnet) {
-      this.log.error('This command is only valid for devnets.')
-    } else {
-      await chain.devnet.terminate()
-    }
-  }
-
 }
 
 export class ContractCrate {
@@ -645,12 +645,16 @@ export class ProjectWizard {
 
   async createProject (...args: any[]): Promise<Project> {
     let { git, pnpm, yarn, npm, cargo, docker, podman } = this.tools
-    const name = this.interactive ? await this.askName() : args[0]
-    const root = (this.interactive ? $(await this.askRoot(name)) : $(this.cwd, name)).as(OpaqueDirectory)
-    const templates = this.interactive ? await this.askTemplates(name) : args.slice(1)
-    const project = new Project({ name, root, templates: templates as any })
-    await project.create()
-
+    const name = this.interactive
+      ? await this.askName()
+      : args[0]
+    const root = (this.interactive
+      ? $(await this.askRoot(name))
+      : $(this.cwd, name)).as(OpaqueDirectory)
+    const templates = this.interactive
+      ? await this.askTemplates(name)
+      : args.slice(1).map(crate=>({crate}))
+    const project = new Project({ name, root, templates: templates as any }).create()
     if (this.interactive) {
       switch (await this.selectBuilder()) {
         case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
