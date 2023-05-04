@@ -462,11 +462,11 @@ assert.<span class="hljs-title function_">ok</span>(!<span class="hljs-keyword">
 
 assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">0</span>)
 
-<span class="hljs-keyword">const</span> uploaded_a = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+<span class="hljs-keyword">const</span> uploaded_a = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>(), examples[<span class="hljs-string">&#x27;KV&#x27;</span>])
 assert.<span class="hljs-title function_">equal</span>(uploaded_a.<span class="hljs-property">codeId</span>, <span class="hljs-number">1</span>)
 assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">1</span>)
 
-<span class="hljs-keyword">const</span> uploaded_b = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;Legacy&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+<span class="hljs-keyword">const</span> uploaded_b = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;Legacy&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>(), examples[<span class="hljs-string">&#x27;Legacy&#x27;</span>])
 assert.<span class="hljs-title function_">equal</span>(uploaded_b.<span class="hljs-property">codeId</span>, <span class="hljs-number">2</span>)
 assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">2</span>)
 </code></pre>
@@ -482,19 +482,15 @@ assert.<span class="hljs-title function_">deepEqual</span>(
   [<span class="hljs-literal">null</span>, <span class="hljs-literal">null</span>] <span class="hljs-comment">// value returned from the contract</span>
 )
 
+assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> client_a.<span class="hljs-title function_">execute</span>({<span class="hljs-attr">set</span>: {<span class="hljs-attr">key</span>: <span class="hljs-string">&quot;foo&quot;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&quot;bar&quot;</span>}}))
+
+<span class="hljs-keyword">const</span> [data, meta] = <span class="hljs-keyword">await</span> client_a.<span class="hljs-title function_">query</span>({<span class="hljs-attr">get</span>: {<span class="hljs-attr">key</span>: <span class="hljs-string">&quot;foo&quot;</span>} })
+assert.<span class="hljs-title function_">equal</span>(data, <span class="hljs-string">&#x27;bar&#x27;</span>)
+assert.<span class="hljs-title function_">ok</span>(meta)
+
 <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getLabel</span>(client_a.<span class="hljs-property">address</span>)
 <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getHash</span>(client_a.<span class="hljs-property">address</span>)
 <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getCodeId</span>(client_a.<span class="hljs-property">codeHash</span>)
-</code></pre>
-<p>Contract can use platform APIs as provided by Mocknet:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">//agent    = await chain.getAgent()</span>
-<span class="hljs-comment">//template = await agent.upload(examples[&#x27;KV&#x27;].data)</span>
-<span class="hljs-comment">//instance = await agent.instantiate(new ContractInstance(template).define({ label: &#x27;test&#x27;, initMsg: { value: &quot;foo&quot; } }))</span>
-<span class="hljs-comment">//client   = Object.assign(instance.getClientSync(), { agent })</span>
-
-<span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;foo&quot;)</span>
-<span class="hljs-comment">//assert.ok(await client.execute({&quot;set&quot;: &quot;bar&quot;}))</span>
-<span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;bar&quot;)</span>
 </code></pre>
 <h2 id="backwards-compatibility" tabindex="-1">Backwards compatibility</h2>
 <p>Mocknet supports contracts compiled for CosmWasm 0.x or 1.x.</p>
