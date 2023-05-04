@@ -11,7 +11,7 @@ importers:
       '@hackbg/dock': workspace:^1.3
       '@hackbg/ensuite': workspace:*
       '@hackbg/fadroma': workspace:*
-      '@hackbg/file': workspace:^1
+      '@hackbg/file': workspace:^1.2
       '@hackbg/ganesha': workspace:*
       '@hackbg/logs': workspace:^2.0.1
       '@hackbg/port': workspace:^1
