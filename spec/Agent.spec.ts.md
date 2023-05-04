@@ -218,9 +218,10 @@ assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
 
 ```typescript
 const c1 = await agent.instantiate({
-  codeId: '1',
-  label: 'unique1',
-  initMsg: { arg: 'val' }
+  codeId:   '1',
+  codeHash: 'verify!',
+  label:    'unique1',
+  initMsg:  { arg: 'val' }
 })
 ```
 

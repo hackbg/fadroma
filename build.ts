@@ -162,23 +162,16 @@ export class BuildContainer extends BuildLocal {
     // For batching together contracts from the same repo+commit
     const workspaces = new Set<string>()
     const revisions  = new Set<string>()
-    // For indentation
-    let longestCrateName = 0
     // Go over the list of contracts, filtering out the ones that are already built,
     // and collecting the source repositories and revisions. This will allow for
     // multiple crates from the same source checkout to be passed to a single build command.
     for (let id in contracts) {
       // Contracts passed as strins are converted to object here
-      if (typeof contracts[id] === 'string') contracts[id] = {
-        workspace: this.workspace,
-        revision:  'HEAD',
-        crate:     contracts[id] as string,
-      }
-      const contract = contracts[id] as Buildable & Partial<Built>
-      // Collect maximum length to align console output
-      if (contract.crate && contract.crate.length > longestCrateName) {
-        longestCrateName = contract.crate.length
-      }
+      const contract = (typeof contracts[id] === 'string') 
+        ? { crate: contracts[id] as string }
+        : contracts[id] as Buildable & Partial<Built>
+      contract.workspace ??= this.workspace
+      contract.revision  ??= 'HEAD'
       // If the contract is already built, don't build it again
       if (!this.prebuilt(contract)) {
         this.log.build.one(contract)

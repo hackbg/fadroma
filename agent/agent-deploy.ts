@@ -168,7 +168,7 @@ export class Deployment {
     const contracts = Object.values(this.state)
     if (contracts.length > 0) {
       log.log('Making sure all contracts are built')
-      if (this.builder)  await this.builder.buildMany(contracts as Buildable[])
+      if (this.builder) await this.builder.buildMany(contracts as Buildable[])
       log.log('Making sure all contracts are uploaded')
       if (this.uploader) await this.uploader.uploadMany(contracts as Uploadable[])
       // FIXME PERF: bundle concurrent inits into a single transaction

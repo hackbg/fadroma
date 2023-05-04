@@ -109,7 +109,7 @@ export class Uploader {
     const log = new Console(`Upload: ${bold(artifact)}`)
     log(`hash ${contract.codeHash}`)
     log(`size (uncompressed): ${data.length} bytes`)
-    const result = await this.agent.upload(data)
+    const result = await this.agent.upload(data, contract)
     this.checkCodeHash(contract, result)
     const { codeId, codeHash, uploadTx } = result
     log(`done, code id`, codeId)

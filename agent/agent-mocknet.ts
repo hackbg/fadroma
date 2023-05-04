@@ -111,7 +111,7 @@ export class Mocknet extends Chain {
     return this.balances[address] || '0'
   }
   async upload (wasm: Uint8Array, meta?: any) {
-    if (meta) this.log.debug('uploading', wasm.length, 'bytes:', meta)
+    //if (meta) this.log.trace('uploading', wasm.length, 'bytes:', meta)
     const chainId   = this.id
     const codeId    = String(++this.lastCodeId)
     const codeHash  = codeHashForBlob(wasm)
@@ -247,7 +247,6 @@ class MocknetAgent extends Agent {
 
   /** Upload a binary to the mocknet. */
   async upload (wasm: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
-    this.log.trace({wasm, meta})
     return new Contract(await this.chain.upload(wasm, meta)) as unknown as Uploaded
   }
   /** Instantiate a contract on the mocknet. */
@@ -348,7 +347,6 @@ export class MocknetContract<V extends CW> {
   }
 
   get initMethod (): Function {
-    console.log(this)
     switch (this.cwVersion) {
       case '0.x': return (this.runtime!.exports as CWAPI<'0.x'>['exports']).init
       case '1.x': return (this.runtime!.exports as CWAPI<'1.x'>['exports']).instantiate
