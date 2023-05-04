@@ -278,55 +278,6 @@ export class Deployment {
       context:   this
     })
   }
-  /** Create an instance of `new ctor(this, ...args)` and attach it
-    * to the command tree under `name`, with usage description `info`.
-    * See the documentation of `interface Subsystem` for more info.
-    * @returns an instance of `ctor` */
-  subsystem <D extends Deployment>(
-    name: string,
-    info: string,
-    $D: Subsystem<D, any>,
-    ...args: unknown[]
-  ): D {
-    this.log.warn('Deployment#subsystem: unstable')
-    const inst: D = new $D(this, ...args)
-    return this.attach(inst, name, info)
-  }
-  /** Create and attach a subsystem of class $D for each pair of version and configuration.
-    * @returns Record<Version, T> */
-  versioned <D extends Deployment, Version extends string, Config extends { version: Version }> (
-    $D:      Class<D, [this, Config]>,
-    configs: Record<Version, Config>
-  ): Record<Version, D> {
-    this.log.warn('Deployment#versioned: unstable')
-    const versions: Partial<Record<Version, D>> = {}
-    // Instantiate a deployment for each version
-    for (let [version, config] of Object.entries(configs) as [Version, Config][]) {
-      // Copy the passed config
-      config = { ...config }
-      // Set the version if missing
-      config.version ??= version
-      // Create an instance of $D with this config
-      versions[version] = new $D(this, config)
-    }
-    return versions as Record<Version, D>
-  }
-  /** Attach another deployment to this one.
-    * @returns the attached deployment */
-  attach <X extends Deployment> (
-    inst: X,
-    name: string = inst.constructor.name,
-    info: string = `(undocumented)`,
-  ) {
-    this.log.warn('Deployment#attach: unstable')
-    const context = this
-    return Object.defineProperties(inst, {
-      name:  { enumerable: true, get () { return context.name } },
-      state: { get () { return context.state } },
-      save:  { get () { return context.save.bind(context) } }
-    })
-    //return this.commands(name, info, inst as any) // TODO
-  }
   /** Save current deployment state to deploy store. */
   async save (store: DeployStore|undefined = this.store) {
     if (!store) {
@@ -343,18 +294,6 @@ export class Deployment {
     }
     this.log.saving(this.name, this.state)
     store.save(this.name, this.state)
-  }
-}
-
-/** Experimental support for versioned deployments. */
-export class DeploymentVersion<V> extends Deployment {
-  constructor (
-    options: object = {},
-    public version: V|undefined = (options as any)?.version
-  ) {
-    super(options as Partial<Deployment>)
-    this.log.warn('DeploymentVersion: unstable')
-    if (!this.version) throw new Error.NoVersion(this.constructor.name)
   }
 }
 

@@ -40,15 +40,10 @@ export abstract class Builder {
   /** Up to the implementation.
     * `@hackbg/fadroma` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  async build (source: Buildable, ...args: any[]): Promise<Built> {
-    this.log.warn('Builder#build: stub')
-    return { artifact: 'unimplemented' }
-  }
+  abstract build (source: Buildable, ...args: any[]): Promise<Built>
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
-  buildMany (sources: Buildable[], ...args: unknown[]): Promise<Built[]> {
-    return Promise.all(sources.map(source=>this.build(source, ...args)))
-  }
+  abstract buildMany (sources: Buildable[], ...args: unknown[]): Promise<Built[]>
 }
 
 /** Result of building a contract. */

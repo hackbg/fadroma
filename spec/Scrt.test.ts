@@ -1,5 +1,6 @@
 import assert from 'node:assert'
 import * as Scrt from '@fadroma/scrt'
+import { ChainId, Address } from '@fadroma/agent'
 
 assert.equal(
 
@@ -77,3 +78,34 @@ assert(
   someBundle() instanceof Scrt.Bundle,
   'ScrtBundle is returned'
 )
+
+Scrt.PermitSigner.createSignDoc('chain-id', {foo:'bar'})
+
+new Scrt.PermitSignerKeplr('chain-id', 'address', { signAmino })
+  .sign({ permit_name: 'permit_name', allowed_tokens: [], permissions: [] })
+
+async function signAmino (
+  chain_id: ChainId,
+  address:  Address,
+  signDoc:  Scrt.SignDoc,
+  options: { preferNoSetFee: boolean, preferNoSetMemo: boolean }
+) {
+  return {
+    signature: {
+      pub_key: 'pub_key',
+      signature: 'signature'
+    },
+    params: {
+      permit_name:    'permit_name',
+      allowed_tokens: [],
+      chain_id:       'chain-id',
+      permissions:    []
+    }
+  }
+}
+
+new Scrt.Console()
+  .warnIgnoringMnemonic()
+  .warnNoMemos()
+  .warnCouldNotFetchBlockLimit([])
+  .submittingBundleFailed([])
