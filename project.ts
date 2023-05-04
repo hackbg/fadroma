@@ -91,14 +91,16 @@ export class Project extends CommandContext {
                  this.status)
     this.command('create',   'create a new project',
                  Project.wizard)
-    this.command('add',      'add a new contract to the project',
-                 this.addTemplate)
+    this.command('add',      'add a new contract crate to the project',
+                 this.addCrate)
     this.command('build',    'build the project or specific contracts from it',
                  this.build)
     this.command('upload',   'upload the project or specific contracts from it',
                  this.upload)
-    this.command('deploy',   'deploy this project',
+    this.command('deploy',   'deploy this project or continue an interrupted deployment',
                  this.deploy)
+    this.command('redeploy', 'deploy this project from scratch',
+                 this.redeploy)
     this.command('select',   `activate another deployment on ${this.config.chainId}`,
                  this.selectDeployment)
     this.command('export',   `export current deployment to ${name}.json`,
@@ -168,7 +170,7 @@ export class Project extends CommandContext {
       }
     })
   }
-  addTemplate = () => {
+  addCrate = () => {
     throw new Error('unimplemented')
   }
   getTemplate = (name: string): (Template<any> & Buildable)|undefined =>
@@ -235,24 +237,18 @@ export class Project extends CommandContext {
     * @returns this */
   create = () => {
     const { name, templates, root, dirs, files, crates } = this
-
     root.make()
-
     Object.values(this.dirs).forEach(dir=>dir.make())
-
     const {
       readme, fadromaJson, packageJson, apiIndex, opsIndex, gitignore, envfile, shellNix, cargoToml
     } = files
-
     readme.save([
       `# ${name}\n---\n`,
       `Powered by [Fadroma](https://fadroma.tech) `,
       `by [Hack.bg](https://hack.bg) `,
       `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
     ].join(''))
-
     fadromaJson.save({ templates })
-
     packageJson.save({
       name: `${name}`,
       main: `api.ts`,
@@ -276,7 +272,6 @@ export class Project extends CommandContext {
         "mainnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
       },
     })
-
     apiIndex.save([
       `import { Client, Deployment } from '@fadroma/agent'`,
       [
@@ -312,11 +307,10 @@ export class Project extends CommandContext {
         `}\n`
       ].join('\n'))
     ].join('\n\n'))
-
     opsIndex.save([
       [
         `import ${Case.pascal(name)} from './api'`,
-        `import { Project } from '@hackbg/fadroma'`,
+        `import Project from '@hackbg/fadroma'`,
       ].join('\n'),
       [
         `export default class ${Case.pascal(name)}Project extends Project {`, ``,
@@ -345,15 +339,12 @@ export class Project extends CommandContext {
         ``, `}`
       ].join('\n')
     ].join('\n\n'))
-
     gitignore.save([
       '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
     ].join('\n'))
-
     envfile.save([
       '# FADROMA_MNEMONIC=your testnet mnemonic'
     ].join('\n'))
-
     shellNix.save([
       `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
       `  inherit name;`,
@@ -367,13 +358,11 @@ export class Project extends CommandContext {
       `  '';`,
       `}`,
     ].join('\n'))
-
     cargoToml.as(TextFile).save([
       `[workspace]`, `resolver = "2"`, `members = [`,
       Object.values(this.crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
       `]`
     ].join('\n'))
-
     const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
     Object.values(crates).forEach(crate=>{
       crate.create()
@@ -482,7 +471,11 @@ export class Project extends CommandContext {
     await deployment.deploy()
     await this.log.deployment(deployment)
     if (!deployment.chain!.isMocknet) await this.selectDeployment(deployment.name)
-    return this
+    return deployment
+  }
+  redeploy = async (...args: string[]) => {
+    await this.createDeployment()
+    return await this.deploy(...args)
   }
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
@@ -501,8 +494,9 @@ export class Project extends CommandContext {
       this.config.chainId??'(unspecified)',
       this.config.getDeployStore()
     )
-  createDeployment = (name: string) =>
-    this.config.getDeployStore().create(name).then(()=>this.selectDeployment(name))
+  createDeployment = (name: string = timestamp()) =>
+    this.config.getDeployStore().create(name)
+      .then(()=>this.selectDeployment(name))
   selectDeployment = async (name?: string): Promise<DeploymentState|null> => {
     const store = this.deployStore
     const list = store.list()
@@ -592,41 +586,45 @@ export class ContractCrate {
       `authors = []`,
       `keywords = ["fadroma"]`,
       `description = ""`,
-      `readme = "README.md"`,
-      ``,
+      `readme = "README.md"`, ``,
       `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
       `[dependencies]`,
-      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "feat/podman-nix", features = ${JSON.stringify(this.fadromaFeatures)} }`,
+      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "master", features = ${JSON.stringify(this.fadromaFeatures)} }`,
       `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
     ].join('\n'))
     this.src.make()
     this.libRs.save([
       `//! Created by [Fadroma](https://fadroma.tech).`, ``,
-      `fadroma::contract! {`, '',
-      `    #[init(entry)]`,
-      `    pub fn new () -> Result<Response, StdError> {`,
-      `        Ok(Response::default())`,
+      `#[fadroma::dsl::contract] pub mod contract {`,
+      `    use fadroma::{*, dsl::*, prelude::*};`,
+      `    impl Contract {`,
+      `        #[init(entry)]`,
+      `        pub fn new () -> Result<Response, StdError> {`,
+      `            Ok(Response::default())`,
+      `        }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
       `    }`,
-      `    // #[execute]`,
-      `    // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-      `    //     Ok(Response::default())`,
-      `    // }`,
-      `    // #[execute]`,
-      `    // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-      `    //     Ok(Response::default())`,
-      `    // }`,
-      `    // #[query]`,
-      `    // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-      `    //     Ok(())`, '',
-      `    // }`,
-      `    // #[query]`,
-      `    // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-      `    //     Ok(())`, '',
-      `    // }`,
       `}`,
     ].join('\n'))
   }
 }
+
+export default Project
 
 /** Interactive project creation CLI.
   * TODO: single crate option
@@ -819,8 +817,8 @@ export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<
 export const tools = () => {
   console.br()
   return {
-    ttyIn:  check('TTY in:   ', process.stdin.isTTY),
-    ttyOut: check('TTY out:  ', process.stdout.isTTY),
+    ttyIn:  check('TTY in:   ', !!process.stdin.isTTY),
+    ttyOut: check('TTY out:  ', !!process.stdout.isTTY),
     //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
     git:       tool('Git:      ', 'git --no-pager --version'),
     node:      tool('Node:     ', 'node --version'),
@@ -838,19 +836,13 @@ export const tools = () => {
 }
 
 /** Check a variable */
-export const check = <T> (
-  name: string|null,
-  value: T
-): T => {
+export const check = <T> (name: string|null, value: T): T => {
   if (name) console.info(bold(name), value)
   return value
 }
 
 /** Check if an external binary is on the PATH. */
-export const tool = (
-  dependency: string|null,
-  command:    string
-): string|null => {
+export const tool = (dependency: string|null, command: string): string|null => {
   let version = null
   try {
     version = String(execSync(command)).trim()

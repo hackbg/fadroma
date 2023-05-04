@@ -16,7 +16,7 @@ $ npx @hackbg/fadroma@latest create
 ```
 
 ```typescript
-import { Project } from '@hackbg/fadroma'
+import Project from '@hackbg/fadroma'
 
 const project = new Project({
   root: tmpDir(), // replace with path to project directory
@@ -51,6 +51,14 @@ assert(test3 instanceof Template)
 $ npm exec fadroma build CONTRACT [...CONTRACT]
 ```
 
+Building all templates in the project:
+
+```typescript
+await project.build()
+```
+
+Building some templates from the project:
+
 ```typescript
 await project.build('test1')
 ```
@@ -64,35 +72,60 @@ directory, `wasm/`.
 $ npm exec fadroma upload CONTRACT [...CONTRACT]
 ```
 
+Uploading all templates in the project:
+
+```typescript
+await project.upload()
+```
+
+Uploading some templates from the project:
+
 ```typescript
 await project.upload('test2')
 ```
 
-Receipts for uploaded contracts are stored in `state/$CHAIN_ID/upload`.
+If contract binaries are not present, the upload command will try to build them first.
+Every successful upload logs the transaction as a file called an **upload receipt** under
+`state/$CHAIN_ID/upload.`. This contains info about the upload transaction.
 
-## Deploy state
+The `UploadStore` loads a collection of upload receipts and tells the `Uploader` if a
+binary has already been uploaded, so it can prevent duplicate uploads.
 
-The **deployment receipt system** keeps track of the addresses, code ids, code hashes, and other
-info about the smart contracts that you deployed, in the form of files under
-`state/$CHAIN_ID/deploy/$DEPLOYMENT.yml`.
+## Deploying
 
-Besides `context.contract.get()` and `.getOrDeploy()`, you can access it directly via:
-* `context.deployment: Deployment`: handle to currently selected deployment.
-* `context.deployments: Deployments`: deployment directory for current project and chain,
-  listing other deployments.
+```shell
+$ npm exec fadroma deploy [...ARGS]
+```
 
-The deployments system prefixes all contract labels with the name of the deployment.
-This is because labels are expected to be both meaningful and globally unique.
+Deploying the project:
 
-* So if you `name` your contracts `ALICE` and `BOB`, and your deployment is called `20220706`,
-  the on-chain labels of the contracts will be `20220706/ALICE` and `20220706/BOB`.
+```typescript
+await project.deploy(/* any deploy arguments, if you've overridden the deploy procedure */)
+```
 
-* The timestamp here corresponds to the moment the deployment was created, and not the moment
-  when a particular contract was deployed. You can get the latter by looking at `initTx` in the
-  deployment receipt, and querying that transaction in the transaction explorer.
+Commencing a deployment creates a corresponding file under `state/$CHAIN_ID/deploy`, called
+a **deploy receipt**. As contracts are deployed as part of this deployment, their details
+will be appended to this file so that they can be found later.
 
-* We recommend that you keep receipts of your primary mainnet and testnet deployments in your
-  VCS system, in order to keep track of your project's footprint on public networks.
+When a deploy receipt is created, that deployment is made active. This is so you can easily
+find and interact with the contract you just deployed. The default deploy procedure is
+dependency-based, so if the deployment fails, re-running `deploy` should try to resume
+where you left off. Running `deploy` on a completed deployment will do nothing.
+
+To start over, use the `redeploy` command:
+
+```shell
+$ npm exec fadroma redeploy [...ARGS]
+```
+
+```typescript
+await project.redeploy(/* ... */)
+```
+
+This will create and activate a new deployment, and deploy everything anew.
+
+Keeping receipts of your primary mainnet/testnet deployments in your version control system
+will let you keep track of your project's footprint on public networks.
 
 ---
 

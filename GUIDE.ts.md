@@ -195,7 +195,7 @@ as well as defining new ones.
 
 ### Agent API
 
-[The **@fadroma/agent** package](/ts/modules/_fadroma_agent.html) is our core library
+[The **`@fadroma/agent`** package](/ts/modules/_fadroma_agent.html) is our core library
 for interfacing with blockchains and smart contracts from JavaScript or TypeScript.
 
 [The **Fadroma Agent Guide**](agent.html) describes it in more detail.
@@ -220,6 +220,10 @@ on the subject of devnets.
 [The **Fadroma Mocknet** guide](mocknet.html) describes
 our simulated environment for fast full-stack testing of production WASM builds.
 Mocknet is built into `@fadroma/agent`.
+
+## More resources
+
+* [HackSecret Fadroma Workshop Repo](https://github.com/hackbg/fadroma-workshop)
 
 ---
 
