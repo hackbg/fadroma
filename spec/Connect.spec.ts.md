@@ -39,9 +39,10 @@ config.listChains()
 ## Errors
 
 ```typescript
-import { ConnectError } from '@fadroma/connect'
+import { ConnectError, ConnectConsole } from '@fadroma/connect'
 new ConnectError.NoChainSelected()
 new ConnectError.UnknownChainSelected()
+new ConnectConsole().selectedChain()
 ```
 
 ---

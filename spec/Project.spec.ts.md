@@ -24,10 +24,12 @@ const project = new Project({
   root,
   name: 'my-project',
   templates: {
-    foo: {},
-    bar: {},
+    test1: { crate: 'test1' },
+    test2: { crate: 'text2' },
   }
-}).create()
+})
+  .create()
+  .status()
 ```
 
 ## Defining new contracts
@@ -37,10 +39,10 @@ $ npm exec fadroma add
 ```
 
 ```typescript
-const foo = project.getTemplate('foo')
+const foo = project.getTemplate('test1')
 assert(foo instanceof Template)
 
-const baz = project.setTemplate('baz')
+const baz = project.setTemplate('test2')
 assert(baz instanceof Template)
 ```
 
