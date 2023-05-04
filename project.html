@@ -405,7 +405,7 @@ hr {
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#configuration">Configuration</a></li><li><a href="#creating-a-project">Creating a project</a></li><li><a href="#defining-new-contracts">Defining new contracts</a></li><li><a href="#state">State</a><ul><li><a href="#build-artifacts">Build artifacts</a></li><li><a href="#upload-receipts">Upload receipts</a></li><li><a href="#deploy-receipts">Deploy receipts</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#configuration">Configuration</a></li><li><a href="#creating-a-project">Creating a project</a></li><li><a href="#defining-new-contracts">Defining new contracts</a></li><li><a href="#building">Building</a></li><li><a href="#uploading">Uploading</a></li><li><a href="#deploy-state">Deploy state</a></li></ul></div></p>
 <h1 id="project-api" tabindex="-1">Project API</h1>
 <h2 id="configuration" tabindex="-1">Configuration</h2>
 <table>
@@ -442,38 +442,43 @@ hr {
 <h2 id="creating-a-project" tabindex="-1">Creating a project</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npx @hackbg/fadroma@latest create</span>
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fixture } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
-<span class="hljs-keyword">const</span> root = <span class="hljs-title function_">fixture</span>(<span class="hljs-string">&#x27;project&#x27;</span>) <span class="hljs-comment">// replace with path to your project</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-title class_">Project</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 
-<span class="hljs-keyword">import</span> <span class="hljs-title class_">Project</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 <span class="hljs-keyword">const</span> project = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Project</span>({
-  root,
+  <span class="hljs-attr">root</span>: <span class="hljs-title function_">tmpDir</span>(), <span class="hljs-comment">// replace with path to project directory</span>
   <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;my-project&#x27;</span>,
   <span class="hljs-attr">templates</span>: {
     <span class="hljs-attr">test1</span>: { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;test1&#x27;</span> },
-    <span class="hljs-attr">test2</span>: { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;text2&#x27;</span> },
+    <span class="hljs-attr">test2</span>: { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;test2&#x27;</span> },
   }
 })
   .<span class="hljs-title function_">create</span>()
   .<span class="hljs-title function_">status</span>()
+  .<span class="hljs-title function_">cargoUpdate</span>()
 </code></pre>
 <h2 id="defining-new-contracts" tabindex="-1">Defining new contracts</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma add</span>
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> foo = project.<span class="hljs-title function_">getTemplate</span>(<span class="hljs-string">&#x27;test1&#x27;</span>)
-<span class="hljs-title function_">assert</span>(foo <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> test1 = project.<span class="hljs-title function_">getTemplate</span>(<span class="hljs-string">&#x27;test1&#x27;</span>)
+<span class="hljs-title function_">assert</span>(test1 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
 
-<span class="hljs-keyword">const</span> baz = project.<span class="hljs-title function_">setTemplate</span>(<span class="hljs-string">&#x27;test2&#x27;</span>)
-<span class="hljs-title function_">assert</span>(baz <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
+<span class="hljs-keyword">const</span> test3 = project.<span class="hljs-title function_">setTemplate</span>(<span class="hljs-string">&#x27;test3&#x27;</span>, { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;test2&#x27;</span> })
+<span class="hljs-title function_">assert</span>(test3 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Template</span>)
 </code></pre>
-<h2 id="state" tabindex="-1">State</h2>
-<h3 id="build-artifacts" tabindex="-1">Build artifacts</h3>
-<p>Checksums of compiled contracts by version.</p>
-<h3 id="upload-receipts" tabindex="-1">Upload receipts</h3>
-<p>Records of a single uploaded contract binary.</p>
-<p>Stored in <code>state/$CHAIN_ID/upload/$CODE_ID.yml</code>.</p>
-<h3 id="deploy-receipts" tabindex="-1">Deploy receipts</h3>
-<p>Records of one or more deployed contract instances.</p>
+<h2 id="building" tabindex="-1">Building</h2>
+<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma build CONTRACT [...CONTRACT]</span>
+</code></pre>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">build</span>(<span class="hljs-string">&#x27;test1&#x27;</span>)
+</code></pre>
+<p>Checksums of compiled contracts by version are stored in the build state
+directory, <code>wasm/</code>.</p>
+<h2 id="uploading" tabindex="-1">Uploading</h2>
+<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma upload CONTRACT [...CONTRACT]</span>
+</code></pre>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">upload</span>(<span class="hljs-string">&#x27;test2&#x27;</span>)
+</code></pre>
+<p>Receipts for uploaded contracts are stored in <code>state/$CHAIN_ID/upload</code>.</p>
+<h2 id="deploy-state" tabindex="-1">Deploy state</h2>
 <p>The <strong>deployment receipt system</strong> keeps track of the addresses, code ids, code hashes, and other
 info about the smart contracts that you deployed, in the form of files under
 <code>state/$CHAIN_ID/deploy/$DEPLOYMENT.yml</code>.</p>
@@ -500,8 +505,10 @@ deployment receipt, and querying that transaction in the transaction explorer.</
 VCS system, in order to keep track of your project's footprint on public networks.</p>
 </li>
 </ul>
+<hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-keyword">import</span> { tmpDir } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
 </code></pre>
 
 </content>

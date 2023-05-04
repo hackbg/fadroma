@@ -405,7 +405,7 @@ hr {
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#table-of-contents">Table of contents</a></li><li><a href="#getting-started-with-mocknet">Getting started with mocknet</a></li><li><a href="#testing-contracts-on-mocknet">Testing contracts on mocknet</a></li><li><a href="#backwards-compatibility">Backwards compatibility</a></li><li><a href="#snapshots">Snapshots</a></li></ul></div></p>
 <h1 id="fadroma-guide%3A-mocknet" tabindex="-1">Fadroma Guide: Mocknet</h1>
 <p>Testing the production builds of smart contracts can be slow and awkward.
 Testnets are permanent and public; devnets can be temporary, but transactions
@@ -463,21 +463,28 @@ assert.<span class="hljs-title function_">ok</span>(!<span class="hljs-keyword">
 assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">0</span>)
 
 <span class="hljs-keyword">const</span> uploaded_a = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+assert.<span class="hljs-title function_">equal</span>(uploaded_a.<span class="hljs-property">codeId</span>, <span class="hljs-number">1</span>)
 assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">1</span>)
 
-<span class="hljs-keyword">const</span> uploaded_b = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+<span class="hljs-keyword">const</span> uploaded_b = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;Legacy&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+assert.<span class="hljs-title function_">equal</span>(uploaded_b.<span class="hljs-property">codeId</span>, <span class="hljs-number">2</span>)
 assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">2</span>)
-
-assert.<span class="hljs-title function_">equal</span>(uploaded_b.<span class="hljs-property">codeId</span>, <span class="hljs-title class_">String</span>(<span class="hljs-title class_">Number</span>(uploaded_a.<span class="hljs-property">codeId</span>) + <span class="hljs-number">1</span>))
 </code></pre>
 <p>...which you can use to instantiate the contract.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> contract_a = uploaded_a.<span class="hljs-title function_">instance</span>({ agent, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;test-mocknet&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">fail</span>: <span class="hljs-literal">false</span> } })
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> contract_a = uploaded_a.<span class="hljs-title function_">instance</span>({ agent, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">fail</span>: <span class="hljs-literal">false</span> } })
 <span class="hljs-keyword">const</span> client_a = <span class="hljs-keyword">await</span> contract_a.<span class="hljs-property">deployed</span>
 
-assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-keyword">await</span> client_a.<span class="hljs-title function_">query</span>({<span class="hljs-attr">get</span>: {<span class="hljs-attr">key</span>: <span class="hljs-string">&quot;foo&quot;</span>}}), [<span class="hljs-literal">null</span>, <span class="hljs-literal">null</span>])
-<span class="hljs-comment">//assert.equal(await chain.getLabel(client_a.address),   client_a.label)</span>
-<span class="hljs-comment">//assert.equal(await chain.getHash(client_a.address),    client_a.codeHash)</span>
-<span class="hljs-comment">//assert.equal(await chain.getCodeId(client_a.codeHash), client_a.codeId)</span>
+<span class="hljs-keyword">const</span> contract_b = uploaded_b.<span class="hljs-title function_">instance</span>({ agent, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;legacy&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">fail</span>: <span class="hljs-literal">false</span> } })
+<span class="hljs-keyword">const</span> client_b = <span class="hljs-keyword">await</span> contract_b.<span class="hljs-property">deployed</span>
+
+assert.<span class="hljs-title function_">deepEqual</span>(
+  <span class="hljs-keyword">await</span> client_a.<span class="hljs-title function_">query</span>({<span class="hljs-attr">get</span>: {<span class="hljs-attr">key</span>: <span class="hljs-string">&quot;foo&quot;</span>}}),
+  [<span class="hljs-literal">null</span>, <span class="hljs-literal">null</span>] <span class="hljs-comment">// value returned from the contract</span>
+)
+
+<span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getLabel</span>(client_a.<span class="hljs-property">address</span>)
+<span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getHash</span>(client_a.<span class="hljs-property">address</span>)
+<span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getCodeId</span>(client_a.<span class="hljs-property">codeHash</span>)
 </code></pre>
 <p>Contract can use platform APIs as provided by Mocknet:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">//agent    = await chain.getAgent()</span>
@@ -489,7 +496,14 @@ assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-key
 <span class="hljs-comment">//assert.ok(await client.execute({&quot;set&quot;: &quot;bar&quot;}))</span>
 <span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;bar&quot;)</span>
 </code></pre>
-<p>Mocknet can also be instantiated with pre-uploaded contracts:</p>
+<h2 id="backwards-compatibility" tabindex="-1">Backwards compatibility</h2>
+<p>Mocknet supports contracts compiled for CosmWasm 0.x or 1.x.</p>
+<pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">contracts</span>[contract_a.<span class="hljs-property">address</span>].<span class="hljs-property">cwVersion</span>, <span class="hljs-string">&#x27;1.x&#x27;</span>)
+assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">contracts</span>[contract_b.<span class="hljs-property">address</span>].<span class="hljs-property">cwVersion</span>, <span class="hljs-string">&#x27;0.x&#x27;</span>)
+</code></pre>
+<h2 id="snapshots" tabindex="-1">Snapshots</h2>
+<p>Currently, <strong>Mocknet is not stateful:</strong> it only exists for the duration of the script run.</p>
+<p>You can instantiate Mocknet with pre-uploaded contracts:</p>
 <pre><code class="hljs language-typescript">chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-title class_">Chain</span>({
   <span class="hljs-attr">uploads</span>: {
     <span class="hljs-number">1</span>:   <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>(),
