@@ -98,8 +98,8 @@ importers:
 
   connect:
     specifiers:
-      '@fadroma/agent': workspace:^1.0.0-rc.17
-      '@fadroma/scrt': workspace:^9.0.0-rc.17
+      '@fadroma/agent': workspace:^1.0.0-rc.18
+      '@fadroma/scrt': workspace:^9.0.0-rc.18
       '@hackbg/conf': workspace:^2
     dependencies:
       '@fadroma/agent': link:../agent
@@ -935,7 +935,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 18.16.2
+      '@types/node': 18.16.3
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -954,7 +954,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 18.16.2
+      '@types/node': 18.16.3
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1008,10 +1008,6 @@ packages:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
     dev: true
 
-  /@types/node/18.16.2:
-    resolution: {integrity: sha512-GQW/JL/5Fz/0I8RpeBG9lKp0+aNcXEaVL71c0D2Q0QHDTFvlYKT7an0onCUXj85anv7b4/WesqdfchLc0jtsCg==}
-    dev: true
-
   /@types/node/18.16.3:
     resolution: {integrity: sha512-OPs5WnnT1xkCBiuQrZA4+YAV4HEJejmHneyraIaxsbev5yCEr6KMwINNFP9wQeFIw8FWcoTqF3vQsa5CDaI+8Q==}
 
@@ -1041,7 +1037,7 @@ packages:
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 18.16.2
+      '@types/node': 18.16.3
     dev: true
 
   /@types/tmp/0.2.3:
