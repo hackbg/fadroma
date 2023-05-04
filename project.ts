@@ -270,7 +270,7 @@ export default class Project extends CommandContext {
       scripts: {
         "build":   "fadroma build",
         "status":  "fadroma status",
-        "mocknet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=Mocknet_CW1 fadroma`,
+        "mocknet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
         "devnet":  `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
         "testnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
         "mainnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,

@@ -56,12 +56,11 @@ export class ConnectConfig extends Config {
     = this.getString('FADROMA_AGENT', ()=>'Admin')
   /** Name of chain to use. */
   chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
-    ()=>'Mocknet_CW1')
+    ()=>'Mocknet')
   /** Override chain id. */
   chainId: ChainId|null = this.getString('FADROMA_CHAIN_ID', ()=>{
     const chainIds = {
-      Mocknet_CW0: 'mocknet-cw0',
-      Mocknet_CW1: 'mocknet-cw1',
+      Mocknet:     'mocknet',
       ScrtDevnet:  'fadroma-devnet',
       ScrtTestnet: Scrt.Config.defaultTestnetChainId,
       ScrtMainnet: Scrt.Config.defaultMainnetChainId,
@@ -71,8 +70,7 @@ export class ConnectConfig extends Config {
   /** Override chain mode. */
   chainMode: ChainMode = this.getString('FADROMA_CHAIN_MODE', () => {
     const chainModes = {
-      Mocknet_CW0: ChainMode.Mocknet,
-      Mocknet_CW1: ChainMode.Mocknet,
+      Mocknet:     ChainMode.Mocknet,
       ScrtDevnet:  ChainMode.Devnet,
       ScrtTestnet: ChainMode.Testnet,
       ScrtMainnet: ChainMode.Mainnet,

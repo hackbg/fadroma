@@ -3,7 +3,7 @@ import type {
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId
 } from './agent'
 import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
-import * as Mocknet from './mocknet/mocknet'
+import type * as Mocknet from './mocknet/mocknet'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -66,13 +66,14 @@ export abstract class Chain {
     return new (this as any)({ ...options, mode: Chain.Mode.Devnet })
   }
   /** Create a mocknet instance of this chain. */
-  static mocknet (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain {
-    return new Mocknet.Chain({ id: 'mocknet', ...options })
+  static mocknet (options?: Partial<Mocknet.Chain>): Mocknet.Chain {
+    // this method is replaced in the root of the package
+    throw new Error('stub. try with `new Mocknet()`')
   }
   /** Async functions that return Chain instances in different modes.
     * Values for `FADROMA_CHAIN` environment variable. Populated by @fadroma/connect. */
   static variants: ChainRegistry = {
-    Mocknet: Chain.mocknet
+    Mocknet: (...args) => Chain.mocknet(...args)
   }
 
   constructor (options: Partial<Chain> = {}) {

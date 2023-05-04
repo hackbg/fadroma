@@ -31,7 +31,7 @@ through the Fadroma Client API.
 
 ```typescript
 import { Mocknet } from '@fadroma/agent'
-let chain = new Mocknet.CW1()
+let chain = new Mocknet.Chain()
 let agent = await chain.getAgent()
 
 import { Chain, Agent, Mocknet } from '@fadroma/agent'
