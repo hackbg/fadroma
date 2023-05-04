@@ -254,7 +254,7 @@ Broadcasting multiple execute calls as a single transaction message
 
 ```typescript
 const results = await agent.bundle(async bundle=>{
-  await bundle.execute(c1, { set: { key: '1', value: '2' } })
+  await bundle.execute(c1, { del: { key: '1' } })
   await bundle.execute(c2, { set: { key: '3', value: '4' } })
 }).run()
 ```
@@ -447,4 +447,5 @@ client.withAgent(agent2).execute({ my_method: {} })
 
 ```typescript
 import assert from 'node:assert'
+import './Agent.test.ts'
 ```

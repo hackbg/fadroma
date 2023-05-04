@@ -26,11 +26,7 @@ class MocknetError extends BaseError {
     () => `Mocknet#backend is not set`)
 }
 
-export const
-  Console = MocknetConsole,
-  Error = MocknetError
-
-export { bold, colors }
+export const Console = MocknetConsole, Error = MocknetError
 
 /** Chain instance containing a local mocknet. */
 export class Mocknet extends Chain {
@@ -416,7 +412,8 @@ export class MocknetContract<V extends CW> {
     this.log.log(bold(this.address), `query: ${JSON.stringify(msg)}`)
     try {
       const result = this.readUtf8(this.queryMethod(...this.queryPtrs({ env, msg })))
-      return parseResult(result, 'query', this.address)
+      const parsed = JSON.parse(b64toUtf8(parseResult(result, 'query', this.address)))
+      return parsed
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on query:`, e.message)
       throw e
