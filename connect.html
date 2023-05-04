@@ -433,9 +433,10 @@ config.<span class="hljs-title function_">getAgent</span>()
 config.<span class="hljs-title function_">listChains</span>()
 </code></pre>
 <h2 id="errors" tabindex="-1">Errors</h2>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">ConnectError</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">ConnectError</span>, <span class="hljs-title class_">ConnectConsole</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
 <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConnectError</span>.<span class="hljs-title class_">NoChainSelected</span>()
 <span class="hljs-keyword">new</span> <span class="hljs-title class_">ConnectError</span>.<span class="hljs-title class_">UnknownChainSelected</span>()
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">ConnectConsole</span>().<span class="hljs-title function_">selectedChain</span>()
 </code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
