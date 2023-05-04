@@ -1,5 +1,5 @@
 import MyProject from './api'
-import Project from '@hackbg/fadroma'
+import { Project } from '@hackbg/fadroma'
 
 export default class MyProjectProject extends Project {
 

@@ -1,4 +1,4 @@
-import Project from '@hackbg/fadroma'
+import { Project } from '@hackbg/fadroma'
 
 export class MyCommands extends Project {
 

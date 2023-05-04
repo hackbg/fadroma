@@ -16,12 +16,10 @@ $ npx @hackbg/fadroma@latest create
 ```
 
 ```typescript
-import { fixture } from '../fixtures/Fixtures.ts.md'
-const root = fixture('project') // replace with path to your project
+import { Project } from '@hackbg/fadroma'
 
-import Project from '@hackbg/fadroma'
 const project = new Project({
-  root,
+  root: tmpDir(), // replace with path to project directory
   name: 'my-project',
   templates: {
     test1: { crate: 'test1' },
@@ -30,6 +28,7 @@ const project = new Project({
 })
   .create()
   .status()
+  .cargoUpdate()
 ```
 
 ## Defining new contracts
@@ -42,7 +41,7 @@ $ npm exec fadroma add
 const test1 = project.getTemplate('test1')
 assert(test1 instanceof Template)
 
-const test3 = project.setTemplate('test3')
+const test3 = project.setTemplate('test3', { crate: 'test2' })
 assert(test3 instanceof Template)
 ```
 
@@ -53,7 +52,7 @@ $ npm exec fadroma build CONTRACT [...CONTRACT]
 ```
 
 ```typescript
-await project.build('test1', 'test1')
+await project.build('test1')
 ```
 
 Checksums of compiled contracts by version are stored in the build state
@@ -66,22 +65,12 @@ $ npm exec fadroma upload CONTRACT [...CONTRACT]
 ```
 
 ```typescript
-await project.upload('test2', 'test3')
+await project.upload('test2')
 ```
 
-## State
+Receipts for uploaded contracts are stored in `state/$CHAIN_ID/upload`.
 
-### Build artifacts
-
-### Upload receipts
-
-Records of a single uploaded contract binary.
-
-Stored in `state/$CHAIN_ID/upload/$CODE_ID.yml`.
-
-### Deploy receipts
-
-Records of one or more deployed contract instances.
+## Deploy state
 
 The **deployment receipt system** keeps track of the addresses, code ids, code hashes, and other
 info about the smart contracts that you deployed, in the form of files under
@@ -105,7 +94,10 @@ This is because labels are expected to be both meaningful and globally unique.
 * We recommend that you keep receipts of your primary mainnet and testnet deployments in your
   VCS system, in order to keep track of your project's footprint on public networks.
 
+---
+
 ```typescript
 import assert from 'node:assert'
 import { Template } from '@fadroma/agent'
+import { tmpDir } from '../fixtures/Fixtures.ts.md'
 ```

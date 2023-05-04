@@ -32,7 +32,7 @@ export const { version } = $(import.meta.url, '../package.json').as(JSONFile).lo
 
 const console = new Console(`@hackbg/fadroma ${version}`)
 
-export default class Project extends CommandContext {
+export class Project extends CommandContext {
   log = new Console(`Fadroma ${version}`) as any
   /** Fadroma settings. */
   config:    Config
@@ -176,7 +176,7 @@ export default class Project extends CommandContext {
   setTemplate = (
     name: string, value: string|Template<any>|(Buildable & Partial<Built>)
   ): Template<any> => {
-    const defaults = { workspace: ".", revision: 'HEAD' }
+    const defaults = { workspace: this.root.path, revision: 'HEAD' }
     return this.templates[name] =
       (typeof value === 'string') ? new Template({ ...defaults, crate: value }) :
       (value instanceof Template) ? value : new Template({ ...defaults, ...value })
@@ -316,7 +316,7 @@ export default class Project extends CommandContext {
     opsIndex.save([
       [
         `import ${Case.pascal(name)} from './api'`,
-        `import Project from '@hackbg/fadroma'`,
+        `import { Project } from '@hackbg/fadroma'`,
       ].join('\n'),
       [
         `export default class ${Case.pascal(name)}Project extends Project {`, ``,
@@ -381,6 +381,45 @@ export default class Project extends CommandContext {
       this.dirs.wasm.at(`${name}.sha256`).as(TextFile).save(`${sha256}  *${name}`)
     })
     this.log("created at", this.root.shortPath)
+    return this
+  }
+
+  /** Create a Git repository in the project directory and make an initial commit.
+    * @returns this */
+  gitSetup = () => {
+    this.runShellCommands(
+      'git --no-pager init',
+      'git --no-pager add .',
+      'git --no-pager status',
+      'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
+      "git --no-pager log",
+    )
+    return this
+  }
+
+  gitCommit = (message: string = "") => {
+    this.runShellCommands(
+      'git --no-pager add .',
+      'git --no-pager status',
+      `git --no-pager commit -m ${message}`,
+    )
+  }
+
+  /** @returns this */
+  npmInstall = ({ npm, yarn, pnpm }: any = tools()) => {
+    if (pnpm) {
+      this.runShellCommands('pnpm i')
+    } else if (yarn) {
+      this.runShellCommands('yarn')
+    } else {
+      this.runShellCommands('npm i')
+    }
+    return this
+  }
+
+  /** @returns this */
+  cargoUpdate = () => {
+    this.runShellCommands('cargo update')
     return this
   }
 
@@ -613,13 +652,7 @@ export class ProjectWizard {
     let nonfatal = false
     if (git) {
       try {
-        project.runShellCommands(
-          'git --no-pager init',
-          'git --no-pager add .',
-          'git --no-pager status',
-          'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
-          "git --no-pager log",
-        )
+        project.gitSetup()
       } catch (e) {
         console.warn('Non-fatal: Failed to create Git repo.')
         nonfatal = true
@@ -630,13 +663,7 @@ export class ProjectWizard {
     }
     if (pnpm || yarn || npm) {
       try {
-        if (pnpm) {
-          project.runShellCommands('pnpm i')
-        } else if (yarn) {
-          project.runShellCommands('yarn')
-        } else {
-          project.runShellCommands('npm i')
-        }
+        project.npmInstall(context)
         changed = true
       } catch (e) {
         console.warn('Non-fatal: NPM install failed:', e)
@@ -647,7 +674,7 @@ export class ProjectWizard {
     }
     if (cargo) {
       try {
-        project.runShellCommands('cargo update')
+        project.cargoUpdate()
         changed = true
       } catch (e) {
         console.warn('Non-fatal: Cargo update failed:', e)
@@ -658,11 +685,7 @@ export class ProjectWizard {
     }
     if (changed && git) {
       try {
-        project.runShellCommands(
-          'git --no-pager add .',
-          'git --no-pager status',
-          'git --no-pager commit -m "Updated lockfiles."',
-        )
+        project.gitCommit('"Updated lockfiles."')
       } catch (e) {
         console.warn('Non-fatal: Git status failed:', e)
         nonfatal = true
@@ -672,9 +695,9 @@ export class ProjectWizard {
       console.warn('One or more convenience operations failed.')
       console.warn('You can retry them manually later.')
     }
-    console.log("Done!")
+    console.log("Project created at", bold(project.root.shortPath))
     console.info()
-    console.info(`To build your code:`)
+    console.info(`To compile your contracts:`)
     console.info(`  $ npm run build`)
     console.info()
     console.info(`To spin up a local deployment:`)

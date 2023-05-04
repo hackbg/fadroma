@@ -69,9 +69,9 @@ function phase1 (options = {}) {
 
   log('Build phase 1: Preparing source repository for', ref)
   const context = tools()
-  if (verbose) lookAround()
   setupToolchain()
   prepareContext()
+  if (verbose) lookAround()
   prepareSource()
   buildCrates()
 
@@ -187,7 +187,7 @@ function phase1 (options = {}) {
       CARGO_TARGET_DIR: tmpTarget,
       PLATFORM:         platform,
     })
-    if (verbose) run(`tree ${tmpTarget}`)
+    if (verbose) try { run(`tree ${tmpTarget}`) } catch(e) {}
     for (const crate of crates) {
       const output     = `${fumigate(crate)}.wasm`
       const releaseDir = resolve(tmpTarget, platform, 'release')

@@ -107,3 +107,12 @@ export const mockAgent = () => new class MockAgent extends Agent {
 
 }
 ```
+
+```typescript
+import { withTmpDir } from '@hackbg/file'
+export const tmpDir = () => {
+  let x
+  withTmpDir(dir=>x=dir)
+  return x
+}
+```
