@@ -17,5 +17,5 @@ jobs:
           mkdir -p wasm
           rustup target add wasm32-unknown-unknown
           pnpm --version
-          pnpm i --frozen-lockfile
+          pnpm i
           FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
