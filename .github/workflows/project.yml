@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [16, 18, 20]
+        node-version: [16, 20]
     steps:
 
       - name: Setup Node ${{matrix.node-version}}
