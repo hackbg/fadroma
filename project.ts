@@ -316,7 +316,7 @@ export class Project extends CommandContext {
     opsIndex.save([
       [
         `import ${Case.pascal(name)} from './api'`,
-        `import { Project } from '@hackbg/fadroma'`,
+        `import Project from '@hackbg/fadroma'`,
       ].join('\n'),
       [
         `export default class ${Case.pascal(name)}Project extends Project {`, ``,
@@ -627,6 +627,8 @@ export class ContractCrate {
     ].join('\n'))
   }
 }
+
+export default Project
 
 /** Interactive project creation CLI.
   * TODO: single crate option

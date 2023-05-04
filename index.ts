@@ -25,6 +25,7 @@ export * from './build'
 export * from './upload'
 export * from './devnet/devnet'
 export * from './project'
+export { default as default } from './project'
 
 import type { ChainRegistry, DeploymentClass } from '@fadroma/agent'
 import { Chain, ChainMode, Deployment } from '@fadroma/agent'

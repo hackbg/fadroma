@@ -16,7 +16,7 @@ $ npx @hackbg/fadroma@latest create
 ```
 
 ```typescript
-import { Project } from '@hackbg/fadroma'
+import Project from '@hackbg/fadroma'
 
 const project = new Project({
   root: tmpDir(), // replace with path to project directory

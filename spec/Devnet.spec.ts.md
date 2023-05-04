@@ -109,7 +109,7 @@ of your integration pipeline.
 The `fadroma reset` command kills and erases the devnet.
 
 ```typescript
-import { Project } from '@hackbg/fadroma'
+import Project from '@hackbg/fadroma'
 const project = new Project()
 project.resetDevnet()
 ```
