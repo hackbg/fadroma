@@ -515,7 +515,7 @@ which runs the build procedure in a container
 provided by either Docker or Podman (as selected
 by the <code>FADROMA_BUILD_PODMAN</code> environment variable).</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">BuildContainer</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(builder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">BuildContainer</span>)
+assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">false</span> }) <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">BuildContainer</span>)
 </code></pre>
 <p><code>BuildContainer</code> uses <a href="https://www.npmjs.com/package/@hackbg/dock"><code>@hackbg/dock</code></a> to
 operate the container engine.</p>
@@ -523,7 +523,7 @@ operate the container engine.</p>
 assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">false</span> }).<span class="hljs-property">docker</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Dokeres</span>.<span class="hljs-property">Engine</span>)
 </code></pre>
 <p>Use <code>FADROMA_DOCKER</code> or the <code>dockerSocket</code> option to specify a non-default Docker socket path.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">dockerSocket</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
+<pre><code class="hljs language-typescript"><span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">false</span>, <span class="hljs-attr">dockerSocket</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
 </code></pre>
 <p>The <code>BuildContainer</code> runs the build procedure defined by the <code>FADROMA_BUILD_SCRIPT</code>
 in a container based on the <code>FADROMA_BUILD_IMAGE</code>, resulting in optimized WASM build artifacts
@@ -531,8 +531,8 @@ being output to the <code>FADROMA_ARTIFACTS</code> directory.</p>
 <h4 id="buildraw" tabindex="-1">BuildRaw</h4>
 <p>If you want to execute the build procedure in your
 current environment, you can switch to <code>BuildRaw</code>
-by passing <code>buildRaw: true</code> or setting <code>FADROMA_BUILD_RAW</code>.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> rawBuilder = <span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">buildRaw</span>: <span class="hljs-literal">true</span> })
+by passing <code>raw: true</code> or setting <code>FADROMA_BUILD_RAW</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> rawBuilder = <span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">true</span> })
 
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">BuildRaw</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 assert.<span class="hljs-title function_">ok</span>(rawBuilder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">BuildRaw</span>)
