@@ -422,6 +422,11 @@ export class BuildContainer extends BuildLocal {
       '/usr/bin/env', // container entrypoint command
       buildLogStream  // container log stream
     )
+    process.on('exit', async () => {
+      this.log.log('Killing build container', bold(buildContainer.id))
+      await buildContainer.kill()
+      this.log.log('Killed build container', bold(buildContainer.id))
+    })
     const {error, code} = await buildContainer.wait()
 
     // Throw error if launching the container failed

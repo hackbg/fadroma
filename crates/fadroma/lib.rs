@@ -118,31 +118,31 @@ pub mod prelude {
 /// ```
 #[macro_export]
 macro_rules! entrypoint {
-    (@init $init:ident) => {
+    (@init $($init:ident)::+) => {
         #[no_mangle]
         extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
-            $crate::cosmwasm_std::do_instantiate(&super::$init, env_ptr, info_ptr, msg_ptr)
+            $crate::cosmwasm_std::do_instantiate(&super::$($init)::+, env_ptr, info_ptr, msg_ptr)
         }
     };
 
-    (@execute $execute:ident) => {
+    (@execute $($execute:ident)::+) => {
         #[no_mangle]
         extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
-            $crate::cosmwasm_std::do_execute(&super::$execute, env_ptr, info_ptr, msg_ptr)
+            $crate::cosmwasm_std::do_execute(&super::$($execute)::+, env_ptr, info_ptr, msg_ptr)
         }
     };
 
-    (@query $query:ident) => {
+    (@query $($query:ident)::+) => {
         #[no_mangle]
         extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
-            $crate::cosmwasm_std::do_query(&super::$query, env_ptr, msg_ptr)
+            $crate::cosmwasm_std::do_query(&super::$($query)::+, env_ptr, msg_ptr)
         }
     };
 
-    (@reply $reply:ident) => {
+    (@reply $($reply:ident)::+) => {
         #[no_mangle]
         extern "C" fn reply(env_ptr: u32, msg_ptr: u32) -> u32 {
-            $crate::cosmwasm_std::do_reply(&super::$reply, env_ptr, msg_ptr)
+            $crate::cosmwasm_std::do_reply(&super::$($reply)::+, env_ptr, msg_ptr)
         }
     };
 
@@ -153,22 +153,18 @@ macro_rules! entrypoint {
         }
     };
 
-    (init: $init:ident, execute: $execute:ident, query: $query:ident, reply: $reply:ident) => {
+    (
+        init: $($init:ident)::+,
+        execute: $($execute:ident)::+,
+        query: $($query:ident)::+
+        $(, reply: $($reply:ident)::+)?
+    ) => {
         $crate::entrypoint! {
             @wasm_mod
-            $crate::entrypoint!(@init $init);
-            $crate::entrypoint!(@execute $execute);
-            $crate::entrypoint!(@query $query);
-            $crate::entrypoint!(@reply $reply);
-        }
-    };
-
-    (init: $init:ident, execute: $execute:ident, query: $query:ident) => {
-        $crate::entrypoint! {
-            @wasm_mod
-            $crate::entrypoint!(@init $init);
-            $crate::entrypoint!(@execute $execute);
-            $crate::entrypoint!(@query $query);
+            $crate::entrypoint!(@init    $($init)::+);
+            $crate::entrypoint!(@execute $($execute)::+);
+            $crate::entrypoint!(@query   $($query)::+);
+            $($crate::entrypoint!(@reply $($reply)::+);)?
         }
     };
 }

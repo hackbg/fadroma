@@ -1,6 +1,6 @@
 import type {
   AgentClass, Uint128, AgentOpts, BundleClass, ExecOpts, Uploadable, Uploaded,
-  Address, CodeHash, ChainId, CodeId, Message, Client, Label, AnyContract
+  Address, CodeHash, ChainId, CodeId, Message, Client, Label, AnyContract, Instantiated
 } from './agent'
 import { Error as BaseError, Console as BaseConsole, bold, colors, into } from './agent-base'
 import { Chain, ChainMode, Agent, Bundle, assertChain } from './agent-chain'
@@ -13,20 +13,35 @@ class MocknetConsole extends BaseConsole {
   label = 'Mocknet'
 }
 
+export const Console = MocknetConsole
+
 class MocknetError extends BaseError {
-  static ContextNoAddress = this.define('ContextNoAddress',
-    () => "MocknetBackend#context: Can't create contract environment without address")
-  static NoInstance = this.define('NoInstance',
-    () => `MocknetBackend#getInstance: can't get instance without address`)
-  static NoInstanceAtAddress = this.define('NoInstanceAtAddress',
-    (address: string) => `MocknetBackend#getInstance: no contract at ${address}`)
-  static NoChain = this.define('NoInstance',
-    () => `MocknetAgent#chain is not set`)
-  static NoBackend = this.define('NoInstance',
-    () => `Mocknet#backend is not set`)
+  static ContextNoAddress = this.define('ContextNoAddress', () =>
+    "MocknetBackend#context: Can't create contract environment without address")
+
+  static NoInstance = this.define('NoInstance', () =>
+    `MocknetBackend#getInstance: can't get instance without address`)
+
+  static NoInstanceAtAddress = this.define('NoInstanceAtAddress', (address: string) =>
+    `MocknetBackend#getInstance: no contract at ${address}`)
+
+  static NoChain = this.define('NoInstance', () =>
+    `MocknetAgent#chain is not set`)
+
+  static NoBackend = this.define('NoInstance', () =>
+    `Mocknet#backend is not set`)
+
+  static NoCWVersion = this.define('NoCWVersion',
+    (_, __, ___) => 'Failed to detect CosmWasm API version',
+    (err, wasmCode, wasmModule, wasmExports) => Object.assign(err, {
+      wasmCode, wasmModule, wasmExports
+    }))
+
+  static NoInitMsg = this.define('NoInitMsg',
+    () => 'Tried to instantiate a contract with undefined initMsg')
 }
 
-export const Console = MocknetConsole, Error = MocknetError
+export const Error = MocknetError
 
 /** Chain instance containing a local mocknet. */
 export class Mocknet extends Chain {
@@ -49,7 +64,14 @@ export class Mocknet extends Chain {
   /** Map of contract address to label. */
   labelOfAddress: Record<Address, Label> = {}
   /** Map of code ID to WASM code blobs. */
-  uploads: Record<CodeId, Uint8Array> = {}
+  uploads: Record<CodeId, {
+    codeId: CodeId,
+    codeHash: CodeHash,
+    wasm: Uint8Array,
+    module: WebAssembly.Module,
+    cwVersion: CW,
+    meta?: any,
+  }> = {}
   /** Map of addresses to WASM instances. */
   contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
 
@@ -61,7 +83,6 @@ export class Mocknet extends Chain {
       this.lastCodeId = Object.keys(this.uploads).map(x=>Number(x)).reduce((x,y)=>Math.max(x,y), 0)
     }
   }
-
   get isMocknet () {
     return true
   }
@@ -72,7 +93,6 @@ export class Mocknet extends Chain {
     this._height++
     return Promise.resolve(this._height)
   }
-
   async query <T, U> ({ address, codeHash }: Partial<Client>, msg: Message): Promise<U> {
     return this.getInstance(address).query({ msg })
   }
@@ -90,46 +110,54 @@ export class Mocknet extends Chain {
   async getBalance (address: Address) {
     return this.balances[address] || '0'
   }
-
-  upload (wasm: Uint8Array, meta?: any) {
-    const chainId  = this.chain.id
-    const codeId   = String(++this.chain.lastCodeId)
-    const content  = this.chain.uploads[codeId] = wasm
-    const codeHash = codeHashForBlob(wasm)
-    this.chain.codeIdOfCodeHash[codeHash] = String(codeId)
-    return { codeId, codeHash }
+  async upload (wasm: Uint8Array, meta?: any) {
+    if (meta) this.log.debug('uploading', wasm.length, 'bytes:', meta)
+    const chainId   = this.id
+    const codeId    = String(++this.lastCodeId)
+    const codeHash  = codeHashForBlob(wasm)
+    const module    = await WebAssembly.compile(wasm)
+    const exports   = WebAssembly.Module.exports(module)
+    const cwVersion = this.checkVersion(exports.map(x=>x.name))
+    if (cwVersion === null) throw new Error.NoCWVersion(wasm, module, exports)
+    this.codeIdOfCodeHash[codeHash] = String(codeId)
+    this.uploads[codeId] = { codeId, codeHash, wasm, meta, module, cwVersion }
+    return this.uploads[codeId]
   }
   getCode (codeId: CodeId) {
-    const code = this.chain.uploads[codeId]
+    const code = this.uploads[codeId]
     if (!code) throw new Error(`No code with id ${codeId}`)
     return code
   }
   async instantiate (sender: Address, instance: AnyContract): Promise<Partial<AnyContract>> {
-    const label = instance.label
-    const msg = await into(instance.initMsg)
-    if (typeof msg === 'undefined') throw new Error('Tried to instantiate a contract with undefined initMsg')
+    const { label, initMsg, codeId, codeHash } = instance
+    if (!codeId) throw new Error('missing code id')
+    // Check code hash
+    const { module, cwVersion, codeHash: expectedCodeHash } = this.getCode(codeId)
+    if (codeHash !== expectedCodeHash) this.log.warn('Wrong code hash passed with code id', codeId)
+    // Resolve lazy init
+    const msg = await into(initMsg)
+    if (typeof msg === 'undefined') throw new Error.NoInitMsg()
+    // Generate address and construct contract
     const address = randomBech32(MOCKNET_ADDRESS_PREFIX)
-    const contract = await new MocknetContract({
-      mocknet:   this,
-      cwVersion: '1.x',
-      codeId:    instance.codeId,
-      codeHash:  instance.codeHash,
-      address
-    })
-    await contract.load(this.getCode(instance.codeId!))
+    const mocknet = this
+    const contract = await new MocknetContract({ mocknet, codeId, codeHash, address, cwVersion })
+    // Provide imports and launch contract runtime (wasm instance)
+    const {imports, refresh} = contract.makeImports()
+    contract.runtime = await WebAssembly.instantiate(module, imports)
     const response = contract.init({ sender, msg })
     const {messages} = parseResult(response, 'instantiate', address)
     this.contracts[address] = contract
     this.codeIdOfAddress[address] = instance.codeId!
     this.labelOfAddress[address] = label!
     await this.passCallbacks(address, messages)
-    return {
-      address:  contract.address,
-      chainId:  this.id,
-      codeId:   instance.codeId,
-      codeHash: instance.codeHash,
-      label
+    return { chainId: this.id, address: contract.address, codeId, codeHash, label }
+  }
+  checkVersion (exports: string[]): CW|null {
+    switch (true) {
+      case !!(exports.indexOf('instantiate') > -1): return '1.x'
+      case !!(exports.indexOf('init')        > -1): return '0.x'
     }
+    return null
   }
   getInstance (address?: Address) {
     if (!address) throw new Error.NoInstance()
@@ -219,17 +247,22 @@ class MocknetAgent extends Agent {
 
   /** Upload a binary to the mocknet. */
   async upload (wasm: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
-    return new Contract(this.chain.upload(wasm, meta)) as unknown as Uploaded
+    this.log.trace({wasm, meta})
+    return new Contract(await this.chain.upload(wasm, meta)) as unknown as Uploaded
   }
   /** Instantiate a contract on the mocknet. */
-  async instantiate <C extends Client> (instance: Contract<C>) {
+  async instantiate <C extends Client> (instance: Contract<C>): Promise<Instantiated> {
     instance.initMsg = await into(instance.initMsg)
-    const result = await this.chain.instantiate(this.address, instance as unknown as AnyContract)
+    const {
+      address,
+      codeHash,
+      label
+    } = await this.chain.instantiate(this.address, instance as unknown as AnyContract)
     return {
       chainId:  this.chain.id,
-      address:  result.address!,
-      codeHash: result.codeHash!,
-      label:    result.label!,
+      address:  address!,
+      codeHash: codeHash!,
+      label:    label!,
       initBy:   this.address,
       initTx:   ''
     }
@@ -315,10 +348,11 @@ export class MocknetContract<V extends CW> {
   }
 
   get initMethod (): Function {
+    console.log(this)
     switch (this.cwVersion) {
       case '0.x': return (this.runtime!.exports as CWAPI<'0.x'>['exports']).init
       case '1.x': return (this.runtime!.exports as CWAPI<'1.x'>['exports']).instantiate
-      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+      default: throw new Error('Could not find init/instantiate entrypoint')
     }
   }
 
@@ -326,7 +360,7 @@ export class MocknetContract<V extends CW> {
     switch (this.cwVersion) {
       case '0.x': return (this.runtime!.exports as CWAPI<'0.x'>['exports']).handle
       case '1.x': return (this.runtime!.exports as CWAPI<'1.x'>['exports']).execute
-      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+      default: throw new Error('Could not find handle/execute entrypoint')
     }
   }
 
@@ -339,7 +373,7 @@ export class MocknetContract<V extends CW> {
     switch (this.cwVersion) {
       case '0.x': return [this.pass(env), this.pass(msg)]
       case '1.x': return [this.pass(env), this.pass(info), this.pass(msg)]
-      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+      default: throw new Error('Could not find init/instantiate entrypoint parameters')
     }
   }
 
@@ -348,7 +382,7 @@ export class MocknetContract<V extends CW> {
     switch (this.cwVersion) {
       case '0.x': return [this.pass(env), this.pass(msg)]
       case '1.x': return [this.pass(env), this.pass(info), this.pass(msg)]
-      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+      default: throw new Error('Could not find handle/execute entrypoint parameters')
     }
   }
 
@@ -357,7 +391,7 @@ export class MocknetContract<V extends CW> {
     switch (this.cwVersion) {
       case '0.x': return [this.pass(msg)]
       case '1.x': return [this.pass(env), this.pass(msg)]
-      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+      default: throw new Error('Could not find query entrypoint parameters')
     }
   }
 
@@ -418,33 +452,6 @@ export class MocknetContract<V extends CW> {
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on query:`, e.message)
       throw e
-    }
-  }
-
-  load = async <W extends CW> (code: unknown /** Buffer */): Promise<MocknetContract<W> & {
-    runtime:  WebAssembly.Instance<CWAPI<V>['exports']>,
-    codeHash: CodeHash
-  }> => {
-    const {imports, refresh} = this.makeImports()
-    const {instance: runtime} = await WebAssembly.instantiate(code, imports)
-    const {exports} = runtime
-    let cwVersion: CW
-    switch (true) {
-      case !!(exports as CWAPI<'1.x'>['exports']).instantiate:
-        this.log.debug(`Loaded CosmWasm 1.x contract`)
-        cwVersion = '1.x';
-        break
-      case !!(exports as CWAPI<'0.x'>['exports']).init:
-        this.log.debug(`Loaded CosmWasm 0.x contract`)
-        cwVersion = '0.x';
-        break
-      default:
-        throw Object.assign(new Error('Tried to load invalid binary'), { exports })
-    }
-    const codeHash = codeHashForBlob(code as Buffer)
-    return Object.assign(this, { runtime, cwVersion, codeHash }) as unknown as MocknetContract<W>&{
-      runtime:  WebAssembly.Instance<CWAPI<V>['exports']>,
-      codeHash: CodeHash
     }
   }
 
@@ -602,7 +609,7 @@ export class MocknetContract<V extends CW> {
         }
       } as CWAPI<'1.x'>['imports']
     } else {
-      throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+      throw new Error('Failed to detect CW API version for this contract')
     }
     return {
       imports: imports as CWAPI<V>['imports'],
@@ -642,7 +649,7 @@ export class MocknetContract<V extends CW> {
         }
       }
     } else {
-      throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+      throw new Error('Failed to detect CW API version for this contract')
     }
   }
 
@@ -703,15 +710,19 @@ export type CWAPI<V extends CW> = {
 }[V]
 
 declare namespace WebAssembly {
-  class Memory {
-    constructor ({ initial, maximum }: { initial: number, maximum: number })
-    buffer: any
+  class Module {
+    static exports (module: Module): { name: string, kind: string }[]
   }
+  function compile (code: unknown):
+    Promise<Module>
   class Instance<T> {
     exports: T
   }
-  function instantiate <V extends CW> (code: unknown, world: unknown): {
-    instance: WebAssembly.Instance<CWAPI<V>['exports']>
+  function instantiate <V extends CW> (code: unknown, world: unknown):
+    Promise<Instance<CWAPI<V>['exports']>>
+  class Memory {
+    constructor (options: { initial: number, maximum: number })
+    buffer: any
   }
 }
 

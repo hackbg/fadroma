@@ -20,7 +20,7 @@ Uploading with default configuration (from environment variables):
 
 ```typescript
 import { fixture } from '../fixtures/Fixtures.ts.md'
-const artifact = fixture('null.wasm') // replace with path to your binary
+const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
 
 import { upload } from '@hackbg/fadroma'
 await upload({ artifact })

@@ -1,3 +1,11 @@
+pub use contract::*;
+
+fadroma::entrypoint! {
+    init:    instantiate,
+    execute: execute,
+    query:   query
+}
+
 #[fadroma::dsl::contract]
 pub mod contract {
     use fadroma::{
@@ -22,19 +30,16 @@ pub mod contract {
         pub fn new () -> Result<Response, StdError> {
             Ok(Response::default())
         }
-    
         #[query]
         pub fn get (key: String) -> Result<(Option<Data>, Option<Time>), StdError> {
             Ok((DATA.load(deps.storage, &key)?, TIME.load(deps.storage, &key)?))
         }
-    
         #[execute]
         pub fn set (key: String, value: String) -> Result<Response, StdError> {
             DATA.save(deps.storage, &key, &value)?;
             TIME.save(deps.storage, &key, &env.block.time.nanos())?;
             Ok(Response::default())
         }
-    
         #[execute]
         pub fn del (key: String) -> Result<Response, StdError> {
             DATA.remove(deps.storage, &key);

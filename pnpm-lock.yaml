@@ -82,7 +82,7 @@ importers:
       '@hackbg/into': ^1.0.1
       '@hackbg/logs': workspace:^2.0.1
       '@hackbg/many': ^1
-      '@hackbg/oops': workspace:^1.0.1
+      '@hackbg/oops': workspace:^1.1
       '@hackbg/over': ^1.0.1
     dependencies:
       '@hackbg/4mat': link:../ensuite/toolbox/4mat

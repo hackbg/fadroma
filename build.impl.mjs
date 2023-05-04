@@ -5,41 +5,13 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 const { argv, umask, chdir, cwd, exit } = process
 const slashes = new RegExp("/", "g")
 const dashes = new RegExp("-", "g")
-const verbose = Boolean(env('_VERBOSE', false))
-const phases = { phase1 }
-const phase = argv[2]
-const main = phases[phase]
-main()
-
-function tool (command) {
-  let version = null
-  try {
-    version = String(execSync(command)).trim()
-    console.log('*', version)
-  } catch (e) {
-    console.log(`!`, `not found: ${command}`)
-  } finally {
-    return version
-  }
-}
-
-function tools () {
-  log('Checking tools')
-  return {
-    git:         tool(`git --version`),
-    rustup:      tool(`rustup --version`),
-    cargo:       tool(`cargo --version`),
-    rustc:       tool(`rustc --version`),
-    wasmOpt:     tool(`wasm-opt --version`),
-    wasmObjdump: tool(`wasm-objdump --version`),
-    sha256Sum:   tool(`sha256sum --version | head -n1`),
-  }
-}
+const verbose = Boolean(env('_VERBOSE', Boolean(env('FADROMA_BUILD_VERBOSE', false))))
+await main()
 
 /** As the initial user, set up the container and the source workspace,
   * checking out an old commit if specified. Then, call phase 2 with
   * the name of each crate sequentially. */
-function phase1 (options = {}) {
+async function main (options = {}) {
 
   let {
     tmpBuild    = env('_TMP_BUILD',  '/tmp/fadroma-build'),
@@ -73,7 +45,7 @@ function phase1 (options = {}) {
   prepareContext()
   if (verbose) lookAround()
   prepareSource()
-  buildCrates()
+  await buildCrates()
 
   function lookAround () {
     run(`pwd`)
@@ -172,7 +144,7 @@ function phase1 (options = {}) {
     chdir(subdir)
   }
 
-  function buildCrates () {
+  async function buildCrates () {
     if (crates.length < 1) {
       log('No crates to build.')
       return
@@ -180,9 +152,10 @@ function phase1 (options = {}) {
     log(`Building in:`, call('pwd'))
     log(`Building these crates: ${crates}`)
     run([
-      `cargo build ${`-p ` + crates.join(' -p ')}`,
+      `cargo build`,
       `--release --target ${platform}`,
-      `${locked} ${verbose?'--verbose':''}`
+      `${locked} ${verbose?'--verbose':''}`,
+      (`-p ` + crates.join(' -p '))
     ].join(' '), {
       CARGO_TARGET_DIR: tmpTarget,
       PLATFORM:         platform,
@@ -206,6 +179,11 @@ function phase1 (options = {}) {
           warn('please install wabt')
         }
       }
+      if (verbose) {
+        const module  = await WebAssembly.compile(readFileSync(compiled))
+        const exports = WebAssembly.Module.exports(module)
+        log(`Exports of ${compiled}:`, exports)
+      }
       if (context.wasmOpt) {
         log(`Optimizing ${compiled} into ${optimized}...`)
         run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
@@ -218,6 +196,11 @@ function phase1 (options = {}) {
           }
         }
         log(`Optimization complete`)
+        if (verbose) {
+          const module  = await WebAssembly.compile(readFileSync(optimized))
+          const exports = WebAssembly.Module.exports(module)
+          log(`Exports of ${optimized}:`, exports)
+        }
       } else {
         warn('please install wasm-opt')
         log(`Copying ${compiled} to ${optimized}...`)
@@ -281,4 +264,29 @@ function sanitize (x) {
 
 function fumigate (x) {
   return x.replace(dashes,  "_")
+}
+
+function tool (command) {
+  let version = null
+  try {
+    version = String(execSync(command)).trim()
+    console.log('*', version)
+  } catch (e) {
+    console.log(`!`, `not found: ${command}`)
+  } finally {
+    return version
+  }
+}
+
+function tools () {
+  log('Checking tools')
+  return {
+    git:         tool(`git --version`),
+    rustup:      tool(`rustup --version`),
+    cargo:       tool(`cargo --version`),
+    rustc:       tool(`rustc --version`),
+    wasmOpt:     tool(`wasm-opt --version`),
+    wasmObjdump: tool(`wasm-objdump --version`),
+    sha256Sum:   tool(`sha256sum --version | head -n1`),
+  }
 }

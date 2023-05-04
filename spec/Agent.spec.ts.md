@@ -174,11 +174,11 @@ await agent.send('recipient-address', [
 import { examples } from '../fixtures/Fixtures.ts.md'
 import { readFileSync } from 'node:fs'
 
-// Uploading from a Buffer
-await agent.upload(readFileSync(examples['KV'].path))
-
-// Optional metadata:
-await agent.upload(readFileSync(examples['KV'].path), { artifact: examples['KV'].path })
+// uploading from a Buffer
+await agent.upload(readFileSync(examples['KV'].path), {
+  // optional metadata
+  artifact: examples['KV'].path
+})
 
 // Uploading from a filename
 //await agent.upload('example.wasm')

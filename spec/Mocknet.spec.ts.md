@@ -68,11 +68,11 @@ import { examples } from '../fixtures/Fixtures.ts.md'
 
 assert.equal(chain.lastCodeId, 0)
 
-const uploaded_a = await agent.upload(examples['KV'].data.load())
+const uploaded_a = await agent.upload(examples['KV'].data.load(), examples['KV'])
 assert.equal(uploaded_a.codeId, 1)
 assert.equal(chain.lastCodeId, 1)
 
-const uploaded_b = await agent.upload(examples['Legacy'].data.load())
+const uploaded_b = await agent.upload(examples['Legacy'].data.load(), examples['Legacy'])
 assert.equal(uploaded_b.codeId, 2)
 assert.equal(chain.lastCodeId, 2)
 ```
@@ -91,22 +91,15 @@ assert.deepEqual(
   [null, null] // value returned from the contract
 )
 
+assert.ok(await client_a.execute({set: {key: "foo", value: "bar"}}))
+
+const [data, meta] = await client_a.query({get: {key: "foo"} })
+assert.equal(data, 'bar')
+assert.ok(meta)
+
 await chain.getLabel(client_a.address)
 await chain.getHash(client_a.address)
 await chain.getCodeId(client_a.codeHash)
-```
-
-Contract can use platform APIs as provided by Mocknet:
-
-```typescript
-//agent    = await chain.getAgent()
-//template = await agent.upload(examples['KV'].data)
-//instance = await agent.instantiate(new ContractInstance(template).define({ label: 'test', initMsg: { value: "foo" } }))
-//client   = Object.assign(instance.getClientSync(), { agent })
-
-//assert.equal(await client.query("get"), "foo")
-//assert.ok(await client.execute({"set": "bar"}))
-//assert.equal(await client.query("get"), "bar")
 ```
 
 ## Backwards compatibility
