@@ -41,7 +41,6 @@ Planned. See [issue #148](https://github.com/hackbg/fadroma/issues/148).
 
 Under consideration.
 
-
 ## Project structure
 
 The default structure of a project is implemented by the
@@ -55,6 +54,8 @@ Projects created by Fadroma are polyglot Rust/TypeScript repositories.
   which exports an `api.ts` module (the client library for your project),
   and also contains an `ops.ts` module (where your project, and any custom
   extensions to the workflow, are defined).
+
+See [the **Fadroma Project** Guide](project.html) for more info.
 
 ### Create project with NPX
 
