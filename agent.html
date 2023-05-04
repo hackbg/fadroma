@@ -477,11 +477,12 @@ with your identity (account, wallet). To do that, you obtain an
 to interact with the chain from multiple distinct identities.</p>
 <p>If you don't pass a mnemonic, a random mnemonic and address will be generated.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Agent</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">agent</span>: <span class="hljs-title class_">Agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;testing1agent0&#x27;</span> })
+<span class="hljs-keyword">let</span> <span class="hljs-attr">agent</span>: <span class="hljs-title class_">Agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;testing1&#x27;</span> })
 
-assert.<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>, <span class="hljs-string">&#x27;an Agent was returned&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">chain</span>, chain,  <span class="hljs-string">&#x27;agent.chain assigned&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">address</span>, <span class="hljs-string">&#x27;testing1agent0&#x27;</span>,  <span class="hljs-string">&#x27;agent.address assigned&#x27;</span>)
+assert.<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>,    <span class="hljs-string">&#x27;an Agent was returned&#x27;</span>)
+assert.<span class="hljs-title function_">ok</span>(agent.<span class="hljs-property">address</span>,             <span class="hljs-string">&#x27;agent has address&#x27;</span>)
+assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">name</span>, <span class="hljs-string">&#x27;testing1&#x27;</span>, <span class="hljs-string">&#x27;agent.name assigned&#x27;</span>)
+assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">chain</span>, chain,     <span class="hljs-string">&#x27;agent.chain assigned&#x27;</span>)
 </code></pre>
 <h3 id="block-height" tabindex="-1">Block height</h3>
 <p>Having obtained an <code>Agent</code>, you are ready to begin performing operations.

@@ -433,7 +433,7 @@ abstract class which represents connection info for chains.</li>
 <li><strong>NOTE:</strong> Mocknets are currently not persistent.</li>
 </ul>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Mocknet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">let</span> chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-title class_">CW1</span>()
+<span class="hljs-keyword">let</span> chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-title class_">Chain</span>()
 <span class="hljs-keyword">let</span> agent = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
 
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">Mocknet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
