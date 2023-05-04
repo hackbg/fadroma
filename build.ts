@@ -415,7 +415,7 @@ export class BuildContainer extends BuildLocal {
       '/usr/bin/env', // container entrypoint command
       buildLogStream  // container log stream
     )
-    process.on('exit', async () => {
+    process.on('beforeExit', async () => {
       this.log.log('Killing build container', bold(buildContainer.id))
       await buildContainer.kill()
       this.log.log('Killed build container', bold(buildContainer.id))
@@ -470,13 +470,13 @@ export class BuildRaw extends BuildLocal {
 
   /** Build a Source into a Template */
   async build (source: Buildable): Promise<Built> {
-    const { workspace = this.workspace, revision = HEAD, crate } = source
+    source.workspace ??= this.workspace
+    source.revision  ??= HEAD
+    const { workspace, revision, crate } = source
     if (!workspace) throw new Error('no workspace')
     if (!crate)     throw new Error('no crate')
-
     // Temporary dirs used for checkouts of non-HEAD builds
     let tmpGit, tmpBuild
-
     // Most of the parameters are passed to the build script
     // by way of environment variables.
     const env = {
@@ -486,7 +486,6 @@ export class BuildRaw extends BuildLocal {
       _REGISTRY:  '',
       _TOOLCHAIN: this.toolchain,
     }
-
     if ((revision ?? HEAD) !== HEAD) {
       const gitDir = this.getGitDir(source)
       // Provide the build script with the config values that ar
@@ -507,7 +506,6 @@ export class BuildRaw extends BuildLocal {
         _TMP_GIT:    tmpGit.path,
       })
     }
-
     // Run the build script
     const cmd  = this.runtime!
     const args = [this.script!, 'phase1', revision, crate ]
@@ -530,11 +528,9 @@ export class BuildRaw extends BuildLocal {
         }
       })
     })
-
     // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
     if (tmpGit   && tmpGit.exists())   tmpGit.delete()
     if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
-
     // Create an artifact for the build result
     const location = $(env._OUTPUT, artifactName(crate, sanitize(revision)))
     this.log.sub(source.crate).log('Build ok:', bold(location.shortPath))
@@ -582,9 +578,6 @@ export class DotGit extends Path {
     * its .git is a pointer to the parent's .git/modules */
   readonly isSubmodule: boolean = false
 
-  /* Matches "/.git" or "/.git/" */
-  static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
-
   constructor (base: string|URL, ...fragments: string[]) {
     if (base instanceof URL) base = fileURLToPath(base)
     super(base, ...fragments, '.git')
@@ -627,6 +620,9 @@ export class DotGit extends Path {
   get submoduleDir (): string {
     return this.path.split(DotGit.rootRepoRE)[1]
   }
+
+  /* Matches "/.git" or "/.git/" */
+  static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 }
 
 Object.assign(Builder.variants, {

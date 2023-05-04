@@ -138,9 +138,7 @@ To build multiple crates in parallel:
 For built contracts, the following holds true:
 
 ```typescript
-  for (const [contract, index] of [
-    contract_0, contract_1, contract_2
-  ].map((c,i)=>[c,i]) {
+  for (const [contract, index] of [ contract_0, contract_1, contract_2 ].map((c,i)=>[c,i]) {
 ```
 
 * Build result will contain code hash and path to binary:

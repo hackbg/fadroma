@@ -1,13 +1,10 @@
 import { Error, Console, Config } from '../util'
 import type { DevnetConfig } from '../util'
-
 import { bold, randomHex, ChainMode, Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
-
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import { freePort, Endpoint, waitPort, isPortTaken } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
-
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -15,6 +12,80 @@ import { fileURLToPath } from 'node:url'
 export function getDevnet (options: Partial<DevnetConfig> = {}) {
   return new Config({ devnet: options }).getDevnet()
 }
+
+/** Root of this module.
+  * Used for finding embedded assets, e.g. Dockerfiles.
+  * TypeScript doesn't like `import.meta.url` when compiling to JS. */
+//@ts-ignore
+export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource finder
+
+/** Used to reconnect between runs. */
+export interface DevnetState {
+  /** ID of Docker container to restart. */
+  containerId?: string
+  /** Chain ID that was set when creating the devnet. */
+  chainId:      string
+  /** The port on which the devnet will be listening. */
+  host?:        string
+  /** The port on which the devnet will be listening. */
+  port:         number|string
+}
+
+/** Supported connection types. */
+export type DevnetPortMode = 'lcp'|'grpcWeb'
+
+/** Supported devnet variants. */
+export type DevnetPlatform =
+  |'scrt_1.2'
+  |'scrt_1.3'
+  |'scrt_1.4'
+  |'scrt_1.5'
+  |'scrt_1.6'
+  |'scrt_1.7'
+  |'scrt_1.8'
+
+/** Default connection type to expose on each devnet variant. */
+export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
+  'scrt_1.2': 'lcp',
+  'scrt_1.3': 'grpcWeb',
+  'scrt_1.4': 'grpcWeb',
+  'scrt_1.5': 'lcp',
+  'scrt_1.6': 'lcp',
+  'scrt_1.7': 'lcp',
+  'scrt_1.8': 'lcp'
+}
+
+/** A Devnet is created from a given chain ID with given pre-configured identities,
+  * and its state is stored in a given directory (e.g. `state/fadroma-devnet`). */
+export interface DevnetOpts {
+  /** Internal name that will be given to chain. */
+  chainId?:    string
+  /** Names of genesis accounts to be created with the node */
+  identities?: Array<string>
+  /** Path to directory where state will be stored. */
+  stateRoot?:  string,
+  /** Host to connect to. */
+  host?:       string
+  /** Port to connect to. */
+  port?:       number
+  /** Which of the services should be exposed the devnet's port. */
+  portMode?:   DevnetPortMode
+  /** Whether to destroy this devnet on exit. */
+  ephemeral?:  boolean
+}
+
+/** Parameters for the Dockerode-based implementation of Devnet.
+  * (https://www.npmjs.com/package/dockerode) */
+export interface DockerDevnetOpts extends DevnetOpts {
+  /** Container image of the chain's runtime. */
+  image?: Dock.Image
+  /** Init script to launch the devnet. */
+  initScript?: string
+  /** Once this string is encountered in the log output
+    * from the container, the devnet is ready to accept requests. */
+  readyPhrase?: string
+}
+
 
 /** An ephemeral private instance of a network. */
 export abstract class Devnet implements DevnetHandle {
@@ -39,21 +110,16 @@ export abstract class Devnet implements DevnetHandle {
     * Must call the `respawn` method to get it running. */
   constructor (options?: Partial<DevnetOpts>) {
     let { chainId, identities, stateRoot, host, port, portMode, ephemeral } = options || {}
-
     this.chainId = chainId ?? this.chainId
     if (!this.chainId) throw new Error.Devnet.NoChainId()
-
     // FIXME: Is the auto-destroy working?
     this.ephemeral = ephemeral ?? this.ephemeral
-
     // Define connection method
     this.host     = host ?? this.host
     this.portMode = portMode! // this should go, in favor of exposing all ports
     this.port     = port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
-
     // Define initial wallets
     this.genesisAccounts = identities ?? this.genesisAccounts
-
     // Define storage
     this.stateRoot = $(stateRoot || $('state', this.chainId).path).as(OpaqueDirectory)
   }
@@ -125,83 +191,9 @@ export abstract class Devnet implements DevnetHandle {
   ): C {
     return new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
   }
+  /** Regexp for non-printable characters. */
+  static RE_GARBAGE = /[\x00-\x1F]/
 }
-
-/** A Devnet is created from a given chain ID with given pre-configured identities,
-  * and its state is stored in a given directory (e.g. `state/fadroma-devnet`). */
-export interface DevnetOpts {
-  /** Internal name that will be given to chain. */
-  chainId?:    string
-  /** Names of genesis accounts to be created with the node */
-  identities?: Array<string>
-  /** Path to directory where state will be stored. */
-  stateRoot?:  string,
-  /** Host to connect to. */
-  host?:       string
-  /** Port to connect to. */
-  port?:       number
-  /** Which of the services should be exposed the devnet's port. */
-  portMode?:   DevnetPortMode
-  /** Whether to destroy this devnet on exit. */
-  ephemeral?:  boolean
-}
-
-/** Used to reconnect between runs. */
-export interface DevnetState {
-  /** ID of Docker container to restart. */
-  containerId?: string
-  /** Chain ID that was set when creating the devnet. */
-  chainId:      string
-  /** The port on which the devnet will be listening. */
-  host?:        string
-  /** The port on which the devnet will be listening. */
-  port:         number|string
-}
-
-/** Supported connection types. */
-export type DevnetPortMode = 'lcp'|'grpcWeb'
-
-/** Supported devnet variants. */
-export type DevnetPlatform =
-  |'scrt_1.2'
-  |'scrt_1.3'
-  |'scrt_1.4'
-  |'scrt_1.5'
-  |'scrt_1.6'
-  |'scrt_1.7'
-  |'scrt_1.8'
-
-/** Default connection type to expose on each devnet variant. */
-export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
-  'scrt_1.2': 'lcp',
-  'scrt_1.3': 'grpcWeb',
-  'scrt_1.4': 'grpcWeb',
-  'scrt_1.5': 'lcp',
-  'scrt_1.6': 'lcp',
-  'scrt_1.7': 'lcp',
-  'scrt_1.8': 'lcp'
-}
-
-/** Root of this module.
-  * Used for finding embedded assets, e.g. Dockerfiles.
-  * TypeScript doesn't like `import.meta.url` when compiling to JS. */
-//@ts-ignore
-export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource finder
-
-/** Parameters for the Dockerode-based implementation of Devnet.
-  * (https://www.npmjs.com/package/dockerode) */
-export interface DockerDevnetOpts extends DevnetOpts {
-  /** Container image of the chain's runtime. */
-  image?: Dock.Image
-  /** Init script to launch the devnet. */
-  initScript?: string
-  /** Once this string is encountered in the log output
-    * from the container, the devnet is ready to accept requests. */
-  readyPhrase?: string
-}
-
-/** Regexp for non-printable characters. */
-const RE_GARBAGE = /[\x00-\x1F]/
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
@@ -263,7 +255,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
       !data.startsWith('INFO ')                  &&
       !data.startsWith('I[')                     &&
       !data.startsWith('Storing key:')           &&
-      !RE_GARBAGE.test(data)                     &&
+      !Devnet.RE_GARBAGE.test(data)                     &&
       !data.startsWith('{"app_message":')        &&
       !data.startsWith('configuration saved to') &&
       !(data.length>1000)
@@ -325,30 +317,24 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
   }
 
   async spawn () {
-    // if no port is specified, use a random port
+    // host is usr configurable, so should port
     this.host = process.env.FADROMA_DEVNET_HOST ?? this.host
-    // if no port is specified, use a random port
-    this.port ??= (await freePort()) as number
+    // if port is unspecified or taken, use a random port
+    while (!this.port || await isPortTaken(this.port)) {
+      this.port = (await freePort()) as number
+      this.log.log('Trying port', this.port)
+    }
     // tell the user that we have begun
-    this.log.info(`Spawning new node to listen on`, bold(this.url))
+    this.log.log(`Spawning new node to listen on`, bold(this.url))
     // create the state dirs and files
     const stateDirs = [ this.stateRoot, this.nodeState ]
-    for (const item of stateDirs) {
-      try {
-        item.make()
-      } catch (e: any) {
-        this.log.warn(`Failed to create ${item.path}: ${e.message}`)
-      }
-    }
+    for (const item of stateDirs) item.make()
     // run the container
     this.container = await this.image.run(
       `${this.chainId}-${this.port}`,               // container name
       this.spawnOptions,                            // container options
       this.initScript ? [this.initScriptMount] : [] // command and arguments
     )
-    // address the container by ip if possible to support docker-in-docker scenarios
-    // FIXME: this currently uses an env var; move it to DevnetConfig
-    //this.host = await this.container.ip ?? 'localhost'
     // update the record
     this.save()
     // Wait for everything to be ready

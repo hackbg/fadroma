@@ -111,10 +111,11 @@ export class Mocknet extends Chain {
     return this.balances[address] || '0'
   }
   async upload (wasm: Uint8Array, meta?: any) {
-    //if (meta) this.log.trace('uploading', wasm.length, 'bytes:', meta)
+    if (wasm.length < 1) throw new Error('Tried to upload empty binary.')
     const chainId   = this.id
     const codeId    = String(++this.lastCodeId)
     const codeHash  = codeHashForBlob(wasm)
+    this.log.debug('compiling', wasm.length, 'bytes')
     const module    = await WebAssembly.compile(wasm)
     const exports   = WebAssembly.Module.exports(module)
     const cwVersion = this.checkVersion(exports.map(x=>x.name))
@@ -138,7 +139,7 @@ export class Mocknet extends Chain {
     const msg = await into(initMsg)
     if (typeof msg === 'undefined') throw new Error.NoInitMsg()
     // Generate address and construct contract
-    const address = randomBech32(MOCKNET_ADDRESS_PREFIX)
+    const address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
     const mocknet = this
     const contract = await new MocknetContract({ mocknet, codeId, codeHash, address, cwVersion })
     // Provide imports and launch contract runtime (wasm instance)
@@ -229,7 +230,7 @@ export class Mocknet extends Chain {
 class MocknetAgent extends Agent {
   declare chain: Mocknet
   /** The address of this agent. */
-  address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
+  address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
 
   constructor (options: AgentOpts & { chain: Mocknet }) {
     super({ name: 'MocknetAgent', ...options||{}})
