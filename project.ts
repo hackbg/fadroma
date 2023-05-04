@@ -292,7 +292,7 @@ export class Project extends CommandContext {
         '',
         '}',
       ].join('\n'),
-      ...Object.keys(templates).map(Case.pascal).map(Contract => [
+      ...Object.keys(templates).map(x=>Case.pascal(x)).map(Contract => [
         `export class ${Contract} extends Client {`,
         `  // Implement methods calling the contract here:`, `  //`,
         `  // async myTx (arg1, arg2) {`,
