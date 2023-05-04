@@ -30,7 +30,7 @@ jobs:
         run: |
           npx @hackbg/fadroma@latest create test test1 test2
           cd test
-          fadroma build
-          fadroma mocknet deploy
-          fadroma devnet deploy
-          fadroma export
+          npm run build
+          npm run mocknet deploy
+          npm run devnet deploy
+          npm run export
