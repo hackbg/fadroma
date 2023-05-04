@@ -1281,35 +1281,49 @@ pub(crate) mod default_impl {
                     )
                 }
                 QueryWithPermit::AllowancesGiven { owner, page, page_size } => {
-                    if !permit.has_permission(&QueryPermission::Allowance) {
+                    if validated_addr != owner {
+                        return Err(StdError::generic_err(
+                            "Permit signer must match the \"owner\" parameter.",
+                        ));
+                    }
+
+                    if !permit.has_permission(&QueryPermission::Allowance) &&
+                        !permit.has_permission(&QueryPermission::Owner) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query given allowances, got permissions {:?}",
                             permit.params.permissions
                         )));
                     }
 
-                    let account = Account::of(owner.as_str().canonize(deps.api)?);
+                    let account = Account::of(validated_addr.as_str().canonize(deps.api)?);
 
                     Self::query_given_allowances(
                         deps,
-                        (&account, owner),
+                        (&account, validated_addr),
                         page,
                         page_size
                     )
                 }
                 QueryWithPermit::AllowancesReceived { spender, page, page_size } => {
-                    if !permit.has_permission(&QueryPermission::Allowance) {
+                    if validated_addr != spender {
+                        return Err(StdError::generic_err(
+                            "Permit signer must match the \"spender\" parameter.",
+                        ));
+                    }
+
+                    if !permit.has_permission(&QueryPermission::Allowance) &&
+                        !permit.has_permission(&QueryPermission::Owner) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query received allowances, got permissions {:?}",
                             permit.params.permissions
                         )));
                     }
 
-                    let account = Account::of(spender.as_str().canonize(deps.api)?);
+                    let account = Account::of(validated_addr.as_str().canonize(deps.api)?);
 
                     Self::query_received_allowances(
                         deps,
-                        (&account, spender),
+                        (&account, validated_addr),
                         page,
                         page_size
                     )

@@ -6,11 +6,13 @@ use crate::{
     killswitch::{self, ContractStatus},
     scrt::{
         vk::{ViewingKey, ViewingKeyHashed},
+        permit::{Permit, PermitParams},
         snip20::client::{
             ExecuteAnswer, QueryAnswer, ResponseStatus,
             InitialBalance, TokenConfig, TokenInfo,
-            RichTx, TxAction, BurnFromAction
-        },
+            RichTx, TxAction, BurnFromAction, QueryPermission,
+            QueryWithPermit
+        }
     },
     cosmwasm_std::{
         testing::{
@@ -110,6 +112,23 @@ fn init_helper_with_config(
     (result, deps)
 }
 
+fn permit(
+    signer: impl Into<String>,
+    permissions: impl IntoIterator<Item = QueryPermission>
+) -> Permit<QueryPermission> {
+    let env = mock_env();
+
+    Permit::new(
+        signer,
+        PermitParams {
+            allowed_tokens: vec![env.contract.address.into_string()],
+            permit_name: "snip20 permit".into(),
+            chain_id: env.block.chain_id,
+            permissions: permissions.into_iter().collect()
+        }
+    )
+}
+
 /// Will return a ViewingKey only for the first account in `initial_balances`
 fn _auth_query_helper(
     initial_balances: Vec<InitialBalance>,
@@ -143,6 +162,7 @@ fn _auth_query_helper(
 
     (vk, deps)
 }
+
 fn extract_error_msg<T: Any>(error: Result<T, Error>) -> String {
     match error {
         Ok(response) => {
@@ -1387,6 +1407,28 @@ fn test_handle_increase_allowance() {
     assert_eq!(allowances.0.len(), 1);
     assert_eq!(allowances.1, 1);
 
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("bob", [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: "bob".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances: result, count } => {
+            assert_eq!(owner, "bob");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 1);
+        }
+        _ => panic!()
+    }
+
     let allowance = &allowances.0[0];
     assert_eq!(allowance.allowance, Uint128::new(4000));
     assert_eq!(allowance.expiration, None);
@@ -1396,10 +1438,53 @@ fn test_handle_increase_allowance() {
     assert!(allowances.0.is_empty());
     assert_eq!(allowances.1, 0);
 
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("bob", [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: "bob".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances: result, count } => {
+            assert_eq!(spender, "bob");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 0);
+        }
+        _ => panic!()
+    }
 
     let allowances = alice.allowances(deps.as_ref(), 0, 10).unwrap();
     assert!(allowances.0.is_empty());
     assert_eq!(allowances.1, 0);
+
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: "alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances: result, count } => {
+            assert_eq!(owner, "alice");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 0);
+        }
+        _ => panic!()
+    }
 
     let allowances = alice.received_allowances(deps.as_ref(), 0, 10).unwrap();
     assert_eq!(allowances.0.len(), 1);
@@ -1409,6 +1494,103 @@ fn test_handle_increase_allowance() {
     assert_eq!(allowance.allowance, Uint128::new(4000));
     assert_eq!(allowance.expiration, None);
     assert_eq!(allowance.owner, Addr::unchecked("bob"));
+
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: "alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances: result, count } => {
+            assert_eq!(spender, "alice");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 1);
+        }
+        _ => panic!()
+    }
+}
+
+#[test]
+fn allowances_given_and_received_parameters_match_permit() {
+    let alice = "alice";
+
+    let given_err = "Generic error: Permit signer must match the \"owner\" parameter.";
+    let received_err = "Generic error: Permit signer must match the \"spender\" parameter.";
+
+    let (init_result, deps) = init_helper(vec![]);
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("not_alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: alice.into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), received_err);
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit(alice, [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: "not_alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), received_err);
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("not_alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: alice.into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), given_err);
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit(alice, [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: "not_alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), given_err);
 }
 
 #[test]
