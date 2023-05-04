@@ -30,6 +30,10 @@ jobs:
         run: |
           npx @hackbg/fadroma@latest create test test1 test2
           cd test
+          cat package.json
+          cat fadroma.json
+          cat api.ts
+          cat ops.ts
           npm run build
           npm run mocknet deploy
           npm run devnet deploy
