@@ -231,6 +231,22 @@ pub trait Snip20: VkAuth + Admin {
     ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
 
     #[query]
+    fn allowances_given(
+        owner: String,
+        key: String,
+        page: Option<u32>,
+        page_size: u32
+    ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn allowances_received(
+        spender: String,
+        key: String,
+        page: Option<u32>,
+        page_size: u32
+    ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
     fn with_permit(
         permit: Permit<QueryPermission>,
         query: QueryWithPermit
@@ -240,7 +256,7 @@ pub trait Snip20: VkAuth + Admin {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct InitialBalance {
     pub address: String,
-    pub amount: Uint128,
+    pub amount: Uint128
 }
 
 /// This type represents optional configuration values which can be overridden.
@@ -369,16 +385,26 @@ pub enum ExecuteAnswer {
 pub enum QueryWithPermit {
     Allowance {
         owner: String,
-        spender: String,
+        spender: String
     },
     Balance {},
     TransferHistory {
         page: Option<u32>,
-        page_size: u32,
+        page_size: u32
     },
     TransactionHistory {
         page: Option<u32>,
         page_size: u32
+    },
+    AllowancesGiven { 
+        owner: String, 
+        page: Option<u32>, 
+        page_size: u32 
+    },
+    AllowancesReceived { 
+        spender: String, 
+        page: Option<u32>, 
+        page_size: u32 
     }
 }
 
@@ -407,27 +433,37 @@ pub enum QueryAnswer {
     TokenInfo(TokenInfo),
     ExchangeRate {
         rate: Uint128,
-        denom: String,
+        denom: String
     },
     Allowance {
         spender: Addr,
         owner: Addr,
         allowance: Uint128,
-        expiration: Option<u64>,
+        expiration: Option<u64>
+    },
+    AllowancesGiven {
+        owner: Addr,
+        allowances: Vec<GivenAllowance>,
+        count: u64
+    },
+    AllowancesReceived {
+        spender: Addr,
+        allowances: Vec<ReceivedAllowance>,
+        count: u64
     },
     Balance {
-        amount: Uint128,
+        amount: Uint128
     },
     TransferHistory {
         txs: Vec<Tx<Addr>>,
-        total: Option<u64>,
+        total: Option<u64>
     },
     TransactionHistory {
         txs: Vec<RichTx>,
-        total: Option<u64>,
+        total: Option<u64>
     },
     ViewingKeyError {
-        msg: String,
+        msg: String
     },
     Minters {
         minters: Vec<Addr>
@@ -441,6 +477,20 @@ pub struct TokenInfo {
     pub decimals: u8,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_supply: Option<Uint128>
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Debug)]
+pub struct GivenAllowance {
+    pub spender: Addr,
+    pub allowance: Uint128,
+    pub expiration: Option<u64>
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Clone, Debug)]
+pub struct ReceivedAllowance {
+    pub owner: Addr,
+    pub allowance: Uint128,
+    pub expiration: Option<u64>
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]

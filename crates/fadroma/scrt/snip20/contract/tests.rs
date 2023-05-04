@@ -6,11 +6,13 @@ use crate::{
     killswitch::{self, ContractStatus},
     scrt::{
         vk::{ViewingKey, ViewingKeyHashed},
+        permit::{Permit, PermitParams},
         snip20::client::{
             ExecuteAnswer, QueryAnswer, ResponseStatus,
             InitialBalance, TokenConfig, TokenInfo,
-            RichTx, TxAction, BurnFromAction
-        },
+            RichTx, TxAction, BurnFromAction, QueryPermission,
+            QueryWithPermit
+        }
     },
     cosmwasm_std::{
         testing::{
@@ -110,6 +112,23 @@ fn init_helper_with_config(
     (result, deps)
 }
 
+fn permit(
+    signer: impl Into<String>,
+    permissions: impl IntoIterator<Item = QueryPermission>
+) -> Permit<QueryPermission> {
+    let env = mock_env();
+
+    Permit::new(
+        signer,
+        PermitParams {
+            allowed_tokens: vec![env.contract.address.into_string()],
+            permit_name: "snip20 permit".into(),
+            chain_id: env.block.chain_id,
+            permissions: permissions.into_iter().collect()
+        }
+    )
+}
+
 /// Will return a ViewingKey only for the first account in `initial_balances`
 fn _auth_query_helper(
     initial_balances: Vec<InitialBalance>,
@@ -143,6 +162,7 @@ fn _auth_query_helper(
 
     (vk, deps)
 }
+
 fn extract_error_msg<T: Any>(error: Result<T, Error>) -> String {
     match error {
         Ok(response) => {
@@ -1266,10 +1286,10 @@ fn test_handle_decrease_allowance() {
     );
 
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
-    let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
+    let alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
     assert_eq!(
         allowance,
@@ -1306,8 +1326,9 @@ fn test_handle_decrease_allowance() {
     );
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
+    
     assert_eq!(
         allowance,
         Allowance {
@@ -1343,10 +1364,10 @@ fn test_handle_increase_allowance() {
     );
 
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
-    let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
+    let alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
 
     assert_eq!(
@@ -1371,8 +1392,9 @@ fn test_handle_increase_allowance() {
     );
 
     let allowance = bob
-        .allowance(deps.as_ref().storage, &alice_canonical)
+        .allowance(deps.as_ref().storage, &alice)
         .unwrap();
+
     assert_eq!(
         allowance,
         Allowance {
@@ -1380,6 +1402,485 @@ fn test_handle_increase_allowance() {
             expiration: None
         }
     );
+
+    let allowances = bob.allowances(deps.as_ref(), 0, 10).unwrap();
+    assert_eq!(allowances.0.len(), 1);
+    assert_eq!(allowances.1, 1);
+
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("bob", [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: "bob".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances: result, count } => {
+            assert_eq!(owner, "bob");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 1);
+        }
+        _ => panic!()
+    }
+
+    let allowance = &allowances.0[0];
+    assert_eq!(allowance.allowance, Uint128::new(4000));
+    assert_eq!(allowance.expiration, None);
+    assert_eq!(allowance.spender, Addr::unchecked("alice"));
+
+    let allowances = bob.received_allowances(deps.as_ref(), 0, 10).unwrap();
+    assert!(allowances.0.is_empty());
+    assert_eq!(allowances.1, 0);
+
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("bob", [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: "bob".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances: result, count } => {
+            assert_eq!(spender, "bob");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 0);
+        }
+        _ => panic!()
+    }
+
+    let allowances = alice.allowances(deps.as_ref(), 0, 10).unwrap();
+    assert!(allowances.0.is_empty());
+    assert_eq!(allowances.1, 0);
+
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: "alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances: result, count } => {
+            assert_eq!(owner, "alice");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 0);
+        }
+        _ => panic!()
+    }
+
+    let allowances = alice.received_allowances(deps.as_ref(), 0, 10).unwrap();
+    assert_eq!(allowances.0.len(), 1);
+    assert_eq!(allowances.1, 1);
+
+    let allowance = &allowances.0[0];
+    assert_eq!(allowance.allowance, Uint128::new(4000));
+    assert_eq!(allowance.expiration, None);
+    assert_eq!(allowance.owner, Addr::unchecked("bob"));
+
+    let resp = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: "alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap();
+
+    match from_binary(&resp).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances: result, count } => {
+            assert_eq!(spender, "alice");
+            assert_eq!(result, allowances.0);
+            assert_eq!(count, 1);
+        }
+        _ => panic!()
+    }
+}
+
+#[test]
+fn allowances_given_and_received_parameters_match_permit() {
+    let alice = "alice";
+
+    let given_err = "Generic error: Permit signer must match the \"owner\" parameter.";
+    let received_err = "Generic error: Permit signer must match the \"spender\" parameter.";
+
+    let (init_result, deps) = init_helper(vec![]);
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("not_alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: alice.into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), received_err);
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit(alice, [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesReceived {
+                spender: "not_alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), received_err);
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit("not_alice", [QueryPermission::Owner]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: alice.into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), given_err);
+
+    let err = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::WithPermit {
+            permit: permit(alice, [QueryPermission::Allowance]),
+            query: QueryWithPermit::AllowancesGiven {
+                owner: "not_alice".into(),
+                page: None,
+                page_size: 10
+            }
+        }
+    ).unwrap_err();
+
+    assert_eq!(err.to_string(), given_err);
+}
+
+#[test]
+fn test_query_all_allowances() {
+    let num_owners = 3u64;
+    let num_spenders = 20u64;
+    let vk = "key".to_string();
+    let amount = Uint128::new(50);
+    let expiration: Option<u64> = None;
+
+    let initial_balances: Vec<InitialBalance> = (0..num_owners).into_iter().map(|i| {
+        InitialBalance {
+            address: format!("owner{}", i),
+            amount: Uint128::new(5000)
+        }
+    }).collect();
+
+    let (init_result, mut deps) = init_helper(initial_balances);
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    for i in 0..num_owners {
+        let handle_msg = ExecuteMsg::SetViewingKey {
+            key: vk.clone(),
+            padding: None,
+        };
+
+        let info = mock_info(format!("owner{}", i).as_str(), &[]);
+
+        let handle_result = execute(deps.as_mut(), mock_env(), info, handle_msg);
+        let unwrapped_result: ExecuteAnswer = from_binary(
+            &handle_result.unwrap().data.unwrap()
+        ).unwrap();
+
+        assert_eq!(
+            to_binary(&unwrapped_result).unwrap(),
+            to_binary(&ExecuteAnswer::SetViewingKey {
+                status: ResponseStatus::Success
+            })
+            .unwrap(),
+        );
+    }
+
+    for i in 0..num_owners {
+        for j in 0..num_spenders {
+            let handle_msg = ExecuteMsg::IncreaseAllowance {
+                spender: format!("spender{}", j),
+                amount,
+                expiration,
+                padding: None
+            };
+            let info = mock_info(format!("owner{}", i).as_str(), &[]);
+
+            let handle_result = execute(deps.as_mut(), mock_env(), info, handle_msg);
+            assert!(
+                handle_result.is_ok(),
+                "handle() failed: {}",
+                handle_result.err().unwrap()
+            );
+
+            let handle_msg = ExecuteMsg::SetViewingKey {
+                key: vk.clone(),
+                padding: None,
+            };
+            let info = mock_info(format!("spender{}", j).as_str(), &[]);
+
+            let handle_result = execute(deps.as_mut(), mock_env(), info, handle_msg);
+
+            let unwrapped_result: ExecuteAnswer =
+                from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
+                
+            assert_eq!(
+                to_binary(&unwrapped_result).unwrap(),
+                to_binary(&ExecuteAnswer::SetViewingKey {
+                    status: ResponseStatus::Success
+                })
+                .unwrap(),
+            );
+        }
+    }
+
+    for i in 0..num_owners {
+        let owner_addr = Addr::unchecked(format!("owner{}", i));
+
+        let owner = deps.api.addr_canonicalize(&owner_addr.as_ref()).unwrap();
+        let owner = Account::of(owner);
+
+        let (given, count) = owner.allowances(
+            deps.as_ref(),
+            0,
+            num_spenders as u32
+        ).unwrap();
+
+        assert_eq!(count, num_spenders);
+        assert_eq!(given.len(), num_spenders as usize);
+
+        for (i, item) in given.into_iter().enumerate(){
+            let spender = Addr::unchecked(format!("spender{}", i));
+
+            assert_eq!(item.spender, spender);
+            assert_eq!(item.allowance, amount);
+            assert_eq!(item.expiration, expiration);
+        }
+
+        let (given, count) = owner.received_allowances(
+            deps.as_ref(),
+            0,
+            (num_owners + num_spenders) as u32
+        ).unwrap();
+
+        assert_eq!(count, 0);
+        assert!(given.is_empty());
+    }
+
+    for j in 0..num_spenders {
+        let spender_addr = Addr::unchecked(format!("spender{}", j));
+
+        let spender = deps.api.addr_canonicalize(spender_addr.as_str()).unwrap();
+        let spender = Account::of(spender);
+
+        let (received, count) = spender.received_allowances(
+            deps.as_ref(),
+            0,
+            num_owners as u32
+        ).unwrap();
+        
+        assert_eq!(count, num_owners);
+        assert_eq!(received.len(), num_owners as usize);
+
+        for (i, item) in received.into_iter().enumerate(){
+            let owner = Addr::unchecked(format!("owner{}", i));
+
+            assert_eq!(item.owner, owner);
+            assert_eq!(item.allowance, amount);
+            assert_eq!(item.expiration, expiration);
+        }
+
+        let (given, count) = spender.allowances(
+            deps.as_ref(),
+            0,
+            (num_owners + num_spenders) as u32
+        ).unwrap();
+
+        assert_eq!(count, 0);
+        assert!(given.is_empty());
+    }
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner0".to_string(),
+        key: vk.clone(),
+        page: None,
+        page_size: 5,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner0".to_string());
+            assert_eq!(allowances.len(), 5);
+            assert_eq!(allowances[0].spender, "spender0");
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
+            assert_eq!(count, num_spenders);
+            
+            assert_eq!(allowances[1].spender, "spender1");
+            assert_eq!(allowances[2].spender, "spender2");
+            assert_eq!(allowances[3].spender, "spender3");
+            assert_eq!(allowances[4].spender, "spender4");
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner1".to_string(),
+        key: vk.clone(),
+        page: Some(1),
+        page_size: 5,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner1".to_string());
+            assert_eq!(allowances.len(), 5);
+            assert_eq!(allowances[0].spender, "spender5");
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
+            assert_eq!(count, num_spenders);
+
+            assert_eq!(allowances[1].spender, "spender6");
+            assert_eq!(allowances[2].spender, "spender7");
+            assert_eq!(allowances[3].spender, "spender8");
+            assert_eq!(allowances[4].spender, "spender9");
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner1".to_string(),
+        key: vk.clone(),
+        page: Some(0),
+        page_size: 23,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner1".to_string());
+            assert_eq!(allowances.len(), 20);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner1".to_string(),
+        key: vk.clone(),
+        page: Some(2),
+        page_size: 8,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner1".to_string());
+            assert_eq!(allowances.len(), 4);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesGiven {
+        owner: "owner2".to_string(),
+        key: vk.clone(),
+        page: Some(5),
+        page_size: 5,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesGiven { owner, allowances, count } => {
+            assert_eq!(owner, "owner2".to_string());
+            assert_eq!(allowances.len(), 0);
+            assert_eq!(count, num_spenders);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesReceived {
+        spender: "spender0".to_string(),
+        key: vk.clone(),
+        page: None,
+        page_size: 10,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances, count } => {
+            assert_eq!(spender, "spender0".to_string());
+            assert_eq!(allowances.len(), 3);
+            assert_eq!(allowances[0].owner, "owner0");
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
+            assert_eq!(count, num_owners);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
+
+    let query_msg = QueryMsg::AllowancesReceived {
+        spender: "spender1".to_string(),
+        key: vk.clone(),
+        page: Some(1),
+        page_size: 1,
+    };
+
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
+    match from_binary(&query_result.unwrap()).unwrap() {
+        QueryAnswer::AllowancesReceived { spender, allowances, count } => {
+            assert_eq!(spender, "spender1".to_string());
+            assert_eq!(allowances.len(), 1);
+            assert_eq!(allowances[0].owner, "owner1");
+            assert_eq!(allowances[0].allowance, amount);
+            assert_eq!(allowances[0].expiration, expiration);
+            assert_eq!(count, num_owners);
+        },
+        _ => panic!("Unexpected QueryAnswer"),
+    };
 }
 
 #[test]

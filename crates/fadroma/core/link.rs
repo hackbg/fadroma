@@ -2,7 +2,7 @@ use crate::{
     self as fadroma,
     cosmwasm_std::{self, StdResult, Addr, Env, Api},
     impl_canonize_default,
-    prelude::{Canonize, Humanize, FadromaSerialize, FadromaDeserialize},
+    prelude::{Canonize, FadromaSerialize, FadromaDeserialize},
     schemars::{self, JsonSchema},
 };
 

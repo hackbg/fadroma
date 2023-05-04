@@ -240,7 +240,7 @@ impl<T: Canonize> Canonize for Option<T> {
 #[macro_export]
 macro_rules! impl_canonize_default {
     ($ty: ty) => {
-        impl Humanize for $ty {
+        impl $crate::core::Humanize for $ty {
             type Output = Self;
 
             #[inline(always)]
@@ -252,7 +252,7 @@ macro_rules! impl_canonize_default {
             }
         }
 
-        impl Canonize for $ty {
+        impl $crate::core::Canonize for $ty {
             type Output = Self;
 
             #[inline(always)]
