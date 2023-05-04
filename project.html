@@ -405,7 +405,7 @@ hr {
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#configuration">Configuration</a></li><li><a href="#creating-a-project">Creating a project</a></li><li><a href="#defining-new-contracts">Defining new contracts</a></li><li><a href="#building">Building</a></li><li><a href="#uploading">Uploading</a></li><li><a href="#deploy-state">Deploy state</a></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#configuration">Configuration</a></li><li><a href="#creating-a-project">Creating a project</a></li><li><a href="#defining-new-contracts">Defining new contracts</a></li><li><a href="#building">Building</a></li><li><a href="#uploading">Uploading</a></li><li><a href="#deploying">Deploying</a></li></ul></div></p>
 <h1 id="project-api" tabindex="-1">Project API</h1>
 <h2 id="configuration" tabindex="-1">Configuration</h2>
 <table>
@@ -468,6 +468,10 @@ hr {
 <h2 id="building" tabindex="-1">Building</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma build CONTRACT [...CONTRACT]</span>
 </code></pre>
+<p>Building all templates in the project:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">build</span>()
+</code></pre>
+<p>Building some templates from the project:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">build</span>(<span class="hljs-string">&#x27;test1&#x27;</span>)
 </code></pre>
 <p>Checksums of compiled contracts by version are stored in the build state
@@ -475,36 +479,38 @@ directory, <code>wasm/</code>.</p>
 <h2 id="uploading" tabindex="-1">Uploading</h2>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma upload CONTRACT [...CONTRACT]</span>
 </code></pre>
+<p>Uploading all templates in the project:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">upload</span>()
+</code></pre>
+<p>Uploading some templates from the project:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">upload</span>(<span class="hljs-string">&#x27;test2&#x27;</span>)
 </code></pre>
-<p>Receipts for uploaded contracts are stored in <code>state/$CHAIN_ID/upload</code>.</p>
-<h2 id="deploy-state" tabindex="-1">Deploy state</h2>
-<p>The <strong>deployment receipt system</strong> keeps track of the addresses, code ids, code hashes, and other
-info about the smart contracts that you deployed, in the form of files under
-<code>state/$CHAIN_ID/deploy/$DEPLOYMENT.yml</code>.</p>
-<p>Besides <code>context.contract.get()</code> and <code>.getOrDeploy()</code>, you can access it directly via:</p>
-<ul>
-<li><code>context.deployment: Deployment</code>: handle to currently selected deployment.</li>
-<li><code>context.deployments: Deployments</code>: deployment directory for current project and chain,
-listing other deployments.</li>
-</ul>
-<p>The deployments system prefixes all contract labels with the name of the deployment.
-This is because labels are expected to be both meaningful and globally unique.</p>
-<ul>
-<li>
-<p>So if you <code>name</code> your contracts <code>ALICE</code> and <code>BOB</code>, and your deployment is called <code>20220706</code>,
-the on-chain labels of the contracts will be <code>20220706/ALICE</code> and <code>20220706/BOB</code>.</p>
-</li>
-<li>
-<p>The timestamp here corresponds to the moment the deployment was created, and not the moment
-when a particular contract was deployed. You can get the latter by looking at <code>initTx</code> in the
-deployment receipt, and querying that transaction in the transaction explorer.</p>
-</li>
-<li>
-<p>We recommend that you keep receipts of your primary mainnet and testnet deployments in your
-VCS system, in order to keep track of your project's footprint on public networks.</p>
-</li>
-</ul>
+<p>If contract binaries are not present, the upload command will try to build them first.
+Every successful upload logs the transaction as a file called an <strong>upload receipt</strong> under
+<code>state/$CHAIN_ID/upload.</code>. This contains info about the upload transaction.</p>
+<p>The <code>UploadStore</code> loads a collection of upload receipts and tells the <code>Uploader</code> if a
+binary has already been uploaded, so it can prevent duplicate uploads.</p>
+<h2 id="deploying" tabindex="-1">Deploying</h2>
+<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma deploy [...ARGS]</span>
+</code></pre>
+<p>Deploying the project:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">deploy</span>(<span class="hljs-comment">/* any deploy arguments, if you&#x27;ve overridden the deploy procedure */</span>)
+</code></pre>
+<p>Commencing a deployment creates a corresponding file under <code>state/$CHAIN_ID/deploy</code>, called
+a <strong>deploy receipt</strong>. As contracts are deployed as part of this deployment, their details
+will be appended to this file so that they can be found later.</p>
+<p>When a deploy receipt is created, that deployment is made active. This is so you can easily
+find and interact with the contract you just deployed. The default deploy procedure is
+dependency-based, so if the deployment fails, re-running <code>deploy</code> should try to resume
+where you left off. Running <code>deploy</code> on a completed deployment will do nothing.</p>
+<p>To start over, use the <code>redeploy</code> command:</p>
+<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">npm <span class="hljs-built_in">exec</span> fadroma redeploy [...ARGS]</span>
+</code></pre>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">redeploy</span>(<span class="hljs-comment">/* ... */</span>)
+</code></pre>
+<p>This will create and activate a new deployment, and deploy everything anew.</p>
+<p>Keeping receipts of your primary mainnet/testnet deployments in your version control system
+will let you keep track of your project's footprint on public networks.</p>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
