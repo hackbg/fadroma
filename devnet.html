@@ -454,8 +454,8 @@ assert.<span class="hljs-title function_">equal</span>(
 <h3 id="devnet-state" tabindex="-1">Devnet state</h3>
 <p>Devnet is stateful. It's represented in the project by e.g. <code>state/fadroma-devnet/devnet.json</code>.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">JSON</span>File, <span class="hljs-title class_">OpaqueDirectory</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/file&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">nodeState</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">JSON</span>File)
-assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">stateRoot</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">OpaqueDirectory</span>)
+assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">stateFile</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">JSON</span>File)
+assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">stateDir</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">OpaqueDirectory</span>)
 
 assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-title function_">save</span>())
 assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">load</span>())
@@ -465,7 +465,7 @@ assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">a
 which you can use by passing <code>name</code> to <code>getAgent</code>:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// specifying genesis accounts:</span>
 assert.<span class="hljs-title function_">deepEqual</span>(
-  <span class="hljs-keyword">new</span> <span class="hljs-title class_">Devnet</span>({ <span class="hljs-attr">identities</span>: [ <span class="hljs-string">&#x27;Alice&#x27;</span>, <span class="hljs-string">&#x27;Bob&#x27;</span> ] }).<span class="hljs-property">genesisAccounts</span>,
+  <span class="hljs-keyword">new</span> <span class="hljs-title class_">Devnet</span>({ <span class="hljs-attr">genesisAccounts</span>: [ <span class="hljs-string">&#x27;Alice&#x27;</span>, <span class="hljs-string">&#x27;Bob&#x27;</span> ] }).<span class="hljs-property">genesisAccounts</span>,
   [ <span class="hljs-string">&#x27;Alice&#x27;</span>, <span class="hljs-string">&#x27;Bob&#x27;</span> ]
 )
 
