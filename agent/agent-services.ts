@@ -104,7 +104,7 @@ export class Uploader {
     const { artifact } = contract
     if (!artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
-    this.log.log('Uploading', artifact)
+    this.log.log('Uploading:', String(artifact))
     const data = await this.fetch(artifact)
     const log = new Console(`Upload: ${bold(artifact)}`)
     log(`hash ${contract.codeHash}`)

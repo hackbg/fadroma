@@ -1,14 +1,23 @@
 {
-  "name": "@example/project",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "build": "fadroma build",
-    "devnet": "FADROMA_CHAIN=ScrtDevnet fadroma ./ops",
-    "testnet": "FADROMA_CHAIN=ScrtTestnet fadroma ./ops",
-    "mainnet": "FADROMA_CHAIN=ScrtMainnet fadroma ./ops"
+  "name": "my-project",
+  "main": "api.ts",
+  "type": "module",
+  "version": "0.1.0",
+  "dependencies": {
+    "@fadroma/agent": "latest",
+    "@fadroma/scrt": "latest"
   },
   "devDependencies": {
-    "@hackbg/fadroma": "latest"
+    "@hackbg/fadroma": "latest",
+    "@hackbg/ganesha": "latest",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "build": "fadroma build",
+    "status": "fadroma status",
+    "mocknet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=Mocknet fadroma",
+    "devnet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma",
+    "testnet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma",
+    "mainnet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma"
   }
 }

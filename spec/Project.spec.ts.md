@@ -25,7 +25,7 @@ const project = new Project({
   name: 'my-project',
   templates: {
     test1: { crate: 'test1' },
-    test2: { crate: 'text2' },
+    test2: { crate: 'test2' },
   }
 })
   .create()
@@ -39,18 +39,39 @@ $ npm exec fadroma add
 ```
 
 ```typescript
-const foo = project.getTemplate('test1')
-assert(foo instanceof Template)
+const test1 = project.getTemplate('test1')
+assert(test1 instanceof Template)
 
-const baz = project.setTemplate('test2')
-assert(baz instanceof Template)
+const test3 = project.setTemplate('test3')
+assert(test3 instanceof Template)
+```
+
+## Building
+
+```shell
+$ npm exec fadroma build CONTRACT [...CONTRACT]
+```
+
+```typescript
+await project.build('test1', 'test1')
+```
+
+Checksums of compiled contracts by version are stored in the build state
+directory, `wasm/`.
+
+## Uploading
+
+```shell
+$ npm exec fadroma upload CONTRACT [...CONTRACT]
+```
+
+```typescript
+await project.upload('test2', 'test3')
 ```
 
 ## State
 
 ### Build artifacts
-
-Checksums of compiled contracts by version.
 
 ### Upload receipts
 
