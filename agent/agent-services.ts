@@ -76,7 +76,6 @@ export interface UploaderClass<U extends Uploader> {
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
 export class Uploader {
-
   log = new Console('Uploader')
   /** Unique identifier of this uploader implementation. */
   id = 'Fetch'
@@ -84,6 +83,8 @@ export class Uploader {
   agent?: Agent
   /** If present, upload receipts are stored here and reused to save reuploads. */
   store?: UploadStore
+  /** If set, reuploads even if store is present. */
+  reupload?: boolean
 
   constructor (options: Partial<Uploader> = {}) {
     Object.assign(this, options)
@@ -95,35 +96,36 @@ export class Uploader {
     return this.agent?.chain
   }
 
-  /** Upload a contract.
-    * @returns the contract with populated codeId and codeHash */
+  /** Upload an Uploadable (such as a Contract or Template).
+    * @returns Promise<Uploaded> */
   async upload (contract: Uploadable): Promise<Uploaded> {
-    if (!this.agent) throw new Error('No upload agent')
+    const cached = this.store?.get(contract, this.agent?.chain?.id)
+    if (!this.reupload && cached) return cached
     const { artifact } = contract
     if (!artifact) throw new Error('No artifact to upload')
+    if (!this.agent) throw new Error('No upload agent')
     this.log.log('Uploading', artifact)
     const data = await this.fetch(artifact)
-    const result = await this.agent.upload(data, contract)
+    const log = new Console(`Upload: ${bold(artifact)}`)
+    log(`hash ${contract.codeHash}`)
+    log(`size (uncompressed): ${data.length} bytes`)
+    const result = await this.agent.upload(data)
     this.checkCodeHash(contract, result)
     const { codeId, codeHash, uploadTx } = result
+    log(`done, code id`, codeId)
     Object.assign(contract, { codeId, codeHash, uploadTx })
-    return { ...contract, codeId, codeHash, uploadTx }
+    const receipt = { ...contract, codeId, codeHash, uploadTx }
+    this.store?.set(receipt)
+    return receipt
   }
   /** Upload multiple contracts. */
   async uploadMany (inputs: Uploadable[]): Promise<Uploaded[]> {
-    const agent = assertAgent(this)
+    if (!this.agent) throw new Error('No upload agent')
     const outputs: Array<Uploaded> = []
     for (const i in inputs) {
       const input = inputs[i]
-      const { artifact } = input
-      if (!artifact) throw new Error.NoArtifact()
-      const data = await this.fetch(artifact)
-      input.codeHash ??= base16.encode(sha256(data))
-      this.log.log('Uploading', String(input.artifact), `(${data.length} bytes uncompressed)`)
-      const result = await agent.upload(data, input)
-      const output = override(input, result) as unknown as Uploaded
-      this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
-      outputs[i] = output
+      outputs[i] = await this.upload(input)
+      await this.agent.nextBlock
     }
     return outputs
   }
@@ -164,7 +166,8 @@ export class Uploader {
 }
 
 export interface UploadStore {
-  tryGet (contract: Uploadable, _chainId?: ChainId): Uploaded|null
+  get (contract: Uploadable, _chainId?: ChainId): Uploaded|null
+  set (receipt: Uploaded): void
 }
 
 /** Result of uploading a contract */
