@@ -1,5 +1,8 @@
 use std::ops::Deref;
 
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 use crate::{
     self as fadroma,
     storage::{Segment, iterable::IterableStorage},
@@ -11,9 +14,7 @@ use crate::{
     },
     impl_canonize_default
 };
-
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use super::safe_math::safe_add;
 
 crate::namespace!(pub ConstantsNs, b"N3QP0mNoPG");
 pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
@@ -96,12 +97,15 @@ impl Allowance {
 }
 
 impl TotalSupplyStore {
+    /// Saturates at [`Uint128::MAX`] and thus the return value is the actual amount added.
     #[inline]
-    pub fn increase(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let total_supply = self.load_or_default(storage)?;
-        let new_total = total_supply.checked_add(amount)?;
+    pub fn increase(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<Uint128> {
+        let mut total_supply = self.load_or_default(storage)?;
+        let amount_added = safe_add(&mut total_supply, amount);
 
-        self.save(storage, &new_total)
+        self.save(storage, &total_supply)?;
+
+        Ok(amount_added)
     }
 
     #[inline]

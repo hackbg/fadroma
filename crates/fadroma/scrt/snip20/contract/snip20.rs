@@ -126,6 +126,7 @@ pub(crate) mod default_impl {
                 },
                 contract::{
                     receiver::Snip20ReceiveMsg,
+                    safe_math::safe_add,
                     state::{
                         Account, Allowance, TokenPermission, CONSTANTS,
                         TOTAL_SUPPLY, MINTERS, PRNG_SEED
@@ -339,13 +340,13 @@ pub(crate) mod default_impl {
                     amount = coin.amount
                 } else {
                     return Err(StdError::generic_err(
-                        "Tried to deposit an unsupported token",
+                        "Tried to deposit an unsupported token.",
                     ));
                 }
             }
     
             if amount.is_zero() {
-                return Err(StdError::generic_err("No funds were sent to be deposited"));
+                return Err(StdError::generic_err("No funds were sent to be deposited."));
             }
     
             let settings = CONSTANTS.load_or_error(deps.storage)?.token_settings;
@@ -355,7 +356,7 @@ pub(crate) mod default_impl {
                 ));
             }
     
-            TOTAL_SUPPLY.increase(deps.storage, amount)?;
+            let amount = TOTAL_SUPPLY.increase(deps.storage, amount)?;
     
             let account = Account::of(info.sender.canonize(deps.api)?);
             account.add_balance(deps.storage, amount)?;
@@ -707,7 +708,7 @@ pub(crate) mod default_impl {
                 ));
             }
     
-            TOTAL_SUPPLY.increase(deps.storage, amount)?;
+            let amount = TOTAL_SUPPLY.increase(deps.storage, amount)?;
     
             let minter = Account::of(info.sender.canonize(deps.api)?);
             let recipient = Account::of(recipient.as_str().canonize(deps.api)?);
@@ -972,40 +973,29 @@ pub(crate) mod default_impl {
             let minters = MINTERS.load_humanize_or_default(deps.as_ref())?;
             if !minters.contains(&info.sender) {
                 return Err(StdError::generic_err(
-                    "Minting is allowed to minter accounts only",
+                    "Minting is allowed for minter accounts only",
                 ));
             }
     
             let mut total_supply = TOTAL_SUPPLY.load_or_default(deps.storage)?;
-    
-            // Quick loop to check that the total of amounts is valid
-            for action in &actions {
-                if let Ok(new_total_supply) = total_supply.checked_add(action.amount) {
-                    total_supply = new_total_supply;
-                } else {
-                    return Err(StdError::generic_err(
-                        format!("This mint attempt would increase the total supply above the supported maximum: {:?}", action),
-                    ));
-                }
-            }
-    
-            TOTAL_SUPPLY.save(deps.storage, &total_supply)?;
-    
             let minter = Account::of(info.sender.canonize(deps.api)?);
     
             for action in actions {
                 let recipient = Account::of(action.recipient.as_str().canonize(deps.api)?);
+                let mint_amount = safe_add(&mut total_supply, action.amount);
     
                 mint_impl(
                     deps.storage,
                     &minter,
                     &recipient,
-                    action.amount,
+                    mint_amount,
                     constants.symbol.clone(),
                     action.memo,
-                    &env.block,
+                    &env.block
                 )?;
             }
+
+            TOTAL_SUPPLY.save(deps.storage, &total_supply)?;
     
             ExecuteAnswer::BatchMint {
                 status: ResponseStatus::Success

@@ -3,6 +3,7 @@
 pub mod receiver;
 pub mod state;
 pub mod transaction_history;
+pub mod safe_math;
 pub(crate) mod snip20;
 mod symbol_validation;
 
