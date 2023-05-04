@@ -556,9 +556,7 @@ it once, and instantiate any number of <code>Contract</code>s from it.</p>
   ])
 </code></pre>
 <p>For built contracts, the following holds true:</p>
-<pre><code class="hljs language-typescript">  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [contract, index] <span class="hljs-keyword">of</span> [
-    contract_0, contract_1, contract_2
-  ].<span class="hljs-title function_">map</span>(<span class="hljs-params">(c,i)=&gt;[c,i]</span>) {
+<pre><code class="hljs language-typescript">  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [contract, index] <span class="hljs-keyword">of</span> [ contract_0, contract_1, contract_2 ].<span class="hljs-title function_">map</span>(<span class="hljs-params">(c,i)=&gt;[c,i]</span>) {
 </code></pre>
 <ul>
 <li>Build result will contain code hash and path to binary:</li>
