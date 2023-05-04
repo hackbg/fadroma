@@ -4,7 +4,7 @@ import type {
   Uploadable
 } from './agent'
 import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
-import type * as Mocknet from './mocknet/mocknet'
+import type * as Mocknet from './agent-mocknet'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -333,9 +333,8 @@ export abstract class Agent {
     })
   }
   /** Get an uploader instance which performs code uploads and optionally caches them. */
-  getUploader <U extends Uploader> ($U: UploaderClass<U>, ...options: any[]): U {
-    //@ts-ignore
-    return new $U(this, ...options) as U
+  getUploader <U extends Uploader> ($U: UploaderClass<U>, options?: Partial<U>): U {
+    return new $U({ agent: this, ...options||{} }) as U
   }
   /** Create a new smart contract from a code id, label and init message.
     * @example

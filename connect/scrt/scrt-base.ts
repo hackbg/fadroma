@@ -83,17 +83,19 @@ class ScrtConsole extends Console {
     finalUnsignedTx: any
   ) => {
     const output = `${name}.signed.json`
-    const txdata = shellescape([JSON.stringify(finalUnsignedTx)])
+    const string = JSON.stringify(finalUnsignedTx)
+    const txdata = shellescape([string])
 
-    this.log('Multisig bundle ready.\n')
-    this.log(`Run the following command to sign the bundle:\n`)
-    this.log(`  secretcli tx sign /dev/stdin --output-document=${output} \\
+    this.br()
+    this.log('Multisig bundle ready.')
+    this.log(`Run the following command to sign the bundle:
+\nsecretcli tx sign /dev/stdin --output-document=${output} \\
 --offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${multisig} \\
 --chain-id=${chainId} --account-number=${accountNumber} --sequence=${sequence} \\
-<<< ${txdata}\n`)
-
-    this.log(`Bundle contents as JSON:\n`)
-    this.log(' ', txdata, '\n')
+<<< ${txdata}`)
+    this.br()
+    this.log(`Bundle contents:`, JSON.stringify(finalUnsignedTx, null, 2))
+    this.br()
   }
 
   submittingBundleFailed ({ message }: Error) {

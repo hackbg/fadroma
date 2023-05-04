@@ -194,7 +194,7 @@ export class FSUploader extends Uploader {
       input.codeHash ??= base16.encode(sha256(data))
       log(`hash ${input.codeHash}`)
 
-      const result = await agent.upload(data)
+      const result = await agent.upload(data, input)
       const output = { ...input, ...result }
       this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
       outputs[i] = output

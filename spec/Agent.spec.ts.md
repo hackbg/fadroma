@@ -171,10 +171,14 @@ await agent.send('recipient-address', [
 #### Uploading code
 
 ```typescript
-import { nullWasm } from '../fixtures/Fixtures.ts.md'
+import { examples } from '../fixtures/Fixtures.ts.md'
+import { readFileSync } from 'node:fs'
 
 // Uploading from a Buffer
-await agent.upload(nullWasm)
+await agent.upload(readFileSync(examples['KV'].path))
+
+// Optional metadata:
+await agent.upload(readFileSync(examples['KV'].path), { artifact: examples['KV'].path })
 
 // Uploading from a filename
 //await agent.upload('example.wasm')
@@ -198,7 +202,7 @@ actual content of the code. Uploading the same code multiple times will give
 you different code IDs, but the same code hash.
 
 ```typescript
-import {  assertCodeHash, codeHashOf } from '@fadroma/agent'
+import { assertCodeHash, codeHashOf } from '@fadroma/agent'
 
 assert.ok(assertCodeHash({ codeHash: 'code-hash-stub' }))
 assert.throws(()=>assertCodeHash({}))
@@ -213,23 +217,27 @@ assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
 * Instantiating a single contract:
 
 ```typescript
-await agent.instantiate({ codeId: '1', label: 'unique1', initMsg: { arg: 'val' } })
+const c1 = await agent.instantiate({
+  codeId: '1',
+  label: 'unique1',
+  initMsg: { arg: 'val' }
+})
 ```
 
 * Instantiating multiple contracts in a single transaction:
 
 ```typescript
-await agent.instantiateMany([
+const [ c2, c3 ] = await agent.instantiateMany([
   { codeId: '2', label: 'unique2', initMsg: { arg: 'values' } },
   { codeId: '3', label: 'unique3', initMsg: { arg: 'values' } }
-})
+])
 ```
 
 #### Querying contract state
 
 ```typescript
-const response =
-  await agent.query({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
+const response = await agent.query(c1, { get: { key: '1' } })
+assert.rejects(agent.query(c1, { invalid: "query" }))
 ```
 
 #### Executing transactions
@@ -237,8 +245,8 @@ const response =
 Executing a single transaction:
 
 ```typescript
-const result =
-  await agent.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
+const result = await agent.execute(c1, { set: { key: '1', value: '2' } })
+assert.rejects(agent.execute(c1, { invalid: "tx" }))
 ```
 
 Broadcasting multiple execute calls as a single transaction message
@@ -246,8 +254,8 @@ Broadcasting multiple execute calls as a single transaction message
 
 ```typescript
 const results = await agent.bundle(async bundle=>{
-  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
-  await bundle.execute({ address: 'address', codeHash: 'codeHash' }, { method: { arg: 'val' } })
+  await bundle.execute(c1, { set: { key: '1', value: '2' } })
+  await bundle.execute(c2, { set: { key: '3', value: '4' } })
 }).run()
 ```
 

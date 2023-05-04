@@ -65,8 +65,15 @@ Uploading WASM blob will return the expected monotonously incrementing code ID..
 ```typescript
 import { pathToFileURL } from 'url'
 import { examples } from '../fixtures/Fixtures.ts.md'
+
+assert.equal(chain.lastCodeId, 0)
+
 const uploaded_a = await agent.upload(examples['KV'].data.load())
+assert.equal(chain.lastCodeId, 1)
+
 const uploaded_b = await agent.upload(examples['KV'].data.load())
+assert.equal(chain.lastCodeId, 2)
+
 assert.equal(uploaded_b.codeId, String(Number(uploaded_a.codeId) + 1))
 ```
 
@@ -93,6 +100,20 @@ Contract can use platform APIs as provided by Mocknet:
 //assert.equal(await client.query("get"), "foo")
 //assert.ok(await client.execute({"set": "bar"}))
 //assert.equal(await client.query("get"), "bar")
+```
+
+Mocknet can also be instantiated with pre-uploaded contracts:
+
+```typescript
+chain = new Mocknet.Chain({
+  uploads: {
+    1:   new Uint8Array(),
+    234: new Uint8Array()
+    567: new Uint8Array()
+  }
+})
+
+assert.equal(chain.lastCodeId, 567)
 ```
 
 ---

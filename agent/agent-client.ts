@@ -3,7 +3,7 @@ import type {
 } from './agent'
 import { Error, Console, hideProperties, HEAD } from './agent-base'
 import { assertAgent } from './agent-chain'
-import { Contract } from './agent-deployment'
+import { Contract } from './agent-deploy'
 
 import { validated } from '@hackbg/over'
 
