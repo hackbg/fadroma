@@ -472,7 +472,7 @@ export class BuildRaw extends BuildLocal {
 
   /** Build a Source into a Template */
   async build (source: Buildable): Promise<Built> {
-    const { workspace, revision = HEAD, crate } = source
+    const { workspace = this.workspace, revision = HEAD, crate } = source
     if (!workspace) throw new Error('no workspace')
     if (!crate)     throw new Error('no crate')
 
