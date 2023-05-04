@@ -459,8 +459,15 @@ assert.<span class="hljs-title function_">ok</span>(!<span class="hljs-keyword">
 <p>Uploading WASM blob will return the expected monotonously incrementing code ID...</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { pathToFileURL } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;url&#x27;</span>
 <span class="hljs-keyword">import</span> { examples } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
+
+assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">0</span>)
+
 <span class="hljs-keyword">const</span> uploaded_a = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">1</span>)
+
 <span class="hljs-keyword">const</span> uploaded_b = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">data</span>.<span class="hljs-title function_">load</span>())
+assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">2</span>)
+
 assert.<span class="hljs-title function_">equal</span>(uploaded_b.<span class="hljs-property">codeId</span>, <span class="hljs-title class_">String</span>(<span class="hljs-title class_">Number</span>(uploaded_a.<span class="hljs-property">codeId</span>) + <span class="hljs-number">1</span>))
 </code></pre>
 <p>...which you can use to instantiate the contract.</p>
@@ -481,6 +488,17 @@ assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-key
 <span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;foo&quot;)</span>
 <span class="hljs-comment">//assert.ok(await client.execute({&quot;set&quot;: &quot;bar&quot;}))</span>
 <span class="hljs-comment">//assert.equal(await client.query(&quot;get&quot;), &quot;bar&quot;)</span>
+</code></pre>
+<p>Mocknet can also be instantiated with pre-uploaded contracts:</p>
+<pre><code class="hljs language-typescript">chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Mocknet</span>.<span class="hljs-title class_">Chain</span>({
+  <span class="hljs-attr">uploads</span>: {
+    <span class="hljs-number">1</span>:   <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>(),
+    <span class="hljs-number">234</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>()
+    <span class="hljs-number">567</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>()
+  }
+})
+
+assert.<span class="hljs-title function_">equal</span>(chain.<span class="hljs-property">lastCodeId</span>, <span class="hljs-number">567</span>)
 </code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>

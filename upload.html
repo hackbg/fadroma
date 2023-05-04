@@ -444,8 +444,9 @@ containing upload metadata, which we call an <strong>upload receipt</strong>.</p
 </code></pre>
 <p>When trying to upload a binary file, the <code>Uploader</code> checks if a corresponding receipt exists;
 if it does, it returns the existing code ID instead of uploading the same file twice.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> <span class="hljs-title function_">withTmpDir</span>(<span class="hljs-keyword">async</span> path=&gt;{
-  uploader = <span class="hljs-keyword">new</span> <span class="hljs-title class_">FSUploader</span>(agent, <span class="hljs-keyword">new</span> <span class="hljs-title class_">JSON</span>Directory(path))
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">UploadStore</span>_JSON1 } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+<span class="hljs-keyword">await</span> <span class="hljs-title function_">withTmpDir</span>(<span class="hljs-keyword">async</span> path=&gt;{
+  uploader = <span class="hljs-keyword">new</span> <span class="hljs-title class_">FSUploader</span>({ agent, <span class="hljs-attr">store</span>: <span class="hljs-keyword">new</span> <span class="hljs-title class_">UploadStore</span>_JSON1(path) })
   assert.<span class="hljs-title function_">ok</span>(uploader.<span class="hljs-property">agent</span> === agent)
   assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">upload</span>(template))
   assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">upload</span>(template))

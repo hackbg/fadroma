@@ -521,10 +521,14 @@ The simplest operation you can conduct is transact with native tokens.</p>
 </code></pre>
 <h3 id="compute-transactions" tabindex="-1">Compute transactions</h3>
 <h4 id="uploading-code" tabindex="-1">Uploading code</h4>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { nullWasm } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { examples } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
+<span class="hljs-keyword">import</span> { readFileSync } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:fs&#x27;</span>
 
 <span class="hljs-comment">// Uploading from a Buffer</span>
-<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(nullWasm)
+<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(<span class="hljs-title function_">readFileSync</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">path</span>))
+
+<span class="hljs-comment">// Optional metadata:</span>
+<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(<span class="hljs-title function_">readFileSync</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">path</span>), { <span class="hljs-attr">artifact</span>: examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">path</span> })
 
 <span class="hljs-comment">// Uploading from a filename</span>
 <span class="hljs-comment">//await agent.upload(&#x27;example.wasm&#x27;)</span>
@@ -544,7 +548,7 @@ The simplest operation you can conduct is transact with native tokens.</p>
 However, unlike the code ID, which is opaque, the code hash corresponds to the
 actual content of the code. Uploading the same code multiple times will give
 you different code IDs, but the same code hash.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> {  assertCodeHash, codeHashOf } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { assertCodeHash, codeHashOf } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
 assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">assertCodeHash</span>({ <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;code-hash-stub&#x27;</span> }))
 assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">assertCodeHash</span>({}))
@@ -557,30 +561,34 @@ assert.<span class="hljs-title function_">throws</span>(<span class="hljs-functi
 <ul>
 <li>Instantiating a single contract:</li>
 </ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiate</span>({ <span class="hljs-attr">codeId</span>: <span class="hljs-string">&#x27;1&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;unique1&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> } })
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> c1 = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiate</span>({
+  <span class="hljs-attr">codeId</span>: <span class="hljs-string">&#x27;1&#x27;</span>,
+  <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;unique1&#x27;</span>,
+  <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> }
+})
 </code></pre>
 <ul>
 <li>Instantiating multiple contracts in a single transaction:</li>
 </ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiateMany</span>([
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> [ c2, c3 ] = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiateMany</span>([
   { <span class="hljs-attr">codeId</span>: <span class="hljs-string">&#x27;2&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;unique2&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;values&#x27;</span> } },
   { <span class="hljs-attr">codeId</span>: <span class="hljs-string">&#x27;3&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;unique3&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;values&#x27;</span> } }
-})
+])
 </code></pre>
 <h4 id="querying-contract-state" tabindex="-1">Querying contract state</h4>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> response =
-  <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;address&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;codeHash&#x27;</span> }, { <span class="hljs-attr">method</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> } })
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> response = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">query</span>(c1, { <span class="hljs-attr">get</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span> } })
+assert.<span class="hljs-title function_">rejects</span>(agent.<span class="hljs-title function_">query</span>(c1, { <span class="hljs-attr">invalid</span>: <span class="hljs-string">&quot;query&quot;</span> }))
 </code></pre>
 <h4 id="executing-transactions" tabindex="-1">Executing transactions</h4>
 <p>Executing a single transaction:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> result =
-  <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;address&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;codeHash&#x27;</span> }, { <span class="hljs-attr">method</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> } })
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;2&#x27;</span> } })
+assert.<span class="hljs-title function_">rejects</span>(agent.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">invalid</span>: <span class="hljs-string">&quot;tx&quot;</span> }))
 </code></pre>
 <p>Broadcasting multiple execute calls as a single transaction message
 (transaction bundling):</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> results = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">bundle</span>(<span class="hljs-keyword">async</span> bundle=&gt;{
-  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;address&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;codeHash&#x27;</span> }, { <span class="hljs-attr">method</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> } })
-  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">address</span>: <span class="hljs-string">&#x27;address&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;codeHash&#x27;</span> }, { <span class="hljs-attr">method</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> } })
+  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;2&#x27;</span> } })
+  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>(c2, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;3&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;4&#x27;</span> } })
 }).<span class="hljs-title function_">run</span>()
 </code></pre>
 <h4 id="batching-transactions" tabindex="-1">Batching transactions</h4>
