@@ -545,7 +545,7 @@ A <code>Template</code> is an undeployed contract. You can upload
 it once, and instantiate any number of <code>Contract</code>s from it.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// Build a single contract</span>
 
-<span class="hljs-keyword">const</span> contract_0 = <span class="hljs-keyword">await</span> builder.<span class="hljs-title function_">build</span>(<span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>)
+<span class="hljs-keyword">const</span> contract_0 = <span class="hljs-keyword">await</span> builder.<span class="hljs-title function_">build</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
 </code></pre>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// Build multiple contracts</span>
 
