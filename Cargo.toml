@@ -1,11 +1,19 @@
 [workspace]
+resolver = "2"
 members = [
   "crates/fadroma",
   "crates/fadroma-dsl",
   "crates/fadroma-proc-auth",
   "crates/fadroma-derive-serde",
   "crates/fadroma-derive-canonize",
-  "examples/*"
+  "examples/admin",
+  "examples/derive-contract-components",
+  "examples/derive-contract-interface",
+  "examples/ensemble",
+  #"examples/external",
+  #"examples/legacy",
+  "examples/killswitch",
+  "examples/kv",
 ]
 
 #[profile.release]

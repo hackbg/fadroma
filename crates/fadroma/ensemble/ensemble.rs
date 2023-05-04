@@ -753,7 +753,7 @@ impl Context {
                     msg,
                     funds,
                     label,
-                    code_hash,
+                    code_hash
                 } => {
                     let contract = self
                         .contracts
@@ -764,22 +764,22 @@ impl Context {
                         return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                     }
 
-                    let mut events = if funds.is_empty() {
+                    let env = MockEnv::new_sanitized(
+                        sender,
+                        label
+                    ).sent_funds(funds);
+
+                    let mut events = if env.sent_funds.is_empty() {
                         ProcessedEvents::empty()
                     } else {
                         let transfer_resp = self.state.transfer_funds(
-                            &sender,
-                            &label,
-                            funds.clone()
+                            env.sender(),
+                            env.contract(),
+                            env.sent_funds.clone()
                         )?;
     
                         ProcessedEvents::from(&transfer_resp)
                     };
-
-                    let env = MockEnv::new(
-                        sender,
-                        label
-                    ).sent_funds(funds);
 
                     let instantiate_resp = self.instantiate(
                         code_id,

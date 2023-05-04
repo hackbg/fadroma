@@ -64,9 +64,11 @@ pub mod prelude {
     pub use crate::scrt::permit::{Permission, Permit};
 }
 
-/// Define the `mod wasm` entrypoint for production builds.
-/// Supports `instantiate`, `execute` and `query` **or**
-/// `instantiate`, `execute`, `query` and `reply`.
+/// Define the `mod wasm` entrypoint for production builds,
+/// using the provided entry point functions.
+/// 
+/// Supports `init`, `execute` and `query` **or**
+/// `init`, `execute`, `query` and `reply`.
 /// 
 /// Note that Fadroma DSL already handles this for you and
 /// as such this macro is not needed when using it.
@@ -76,8 +78,11 @@ pub mod prelude {
 /// ```
 /// # #[macro_use] extern crate fadroma;
 /// # use fadroma::cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, StdResult, Response, Binary, to_binary};
+/// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 /// # pub struct InitMsg;
+/// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 /// # pub struct ExecuteMsg;
+/// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 /// # pub struct QueryMsg;
 /// pub fn instantiate(
 ///     _deps: DepsMut,
@@ -141,7 +146,7 @@ macro_rules! entrypoint {
         }
     };
 
-    (@wasm_mod $($contents:tt)*) =>  {
+    (@wasm_mod $($contents:tt)*) => {
         #[cfg(target_arch = "wasm32")]
         mod wasm {
             $($contents)*

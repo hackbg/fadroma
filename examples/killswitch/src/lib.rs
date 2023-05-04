@@ -1,15 +1,22 @@
 use fadroma::{
     admin::{self, Admin},
     killswitch::{self, Killswitch},
-    cosmwasm_std::{
+    prelude::cosmwasm_std::{
         Deps, DepsMut, Env, MessageInfo, StdResult,
-        Response, Binary, to_binary, entry_point
+        Response, Binary, to_binary,
     },
-    schemars::{self, JsonSchema}
+    schemars::{self, JsonSchema},
+    entrypoint,
 };
 use counter::interface::Counter;
 
 use serde::{Serialize, Deserialize};
+
+entrypoint! {
+    init: instantiate,
+    execute: execute,
+    query: query
+}
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct InstantiateMsg {
@@ -33,7 +40,6 @@ pub enum QueryMsg {
     Killswitch(killswitch::QueryMsg)
 }
 
-#[entry_point]
 pub fn instantiate(
     mut deps: DepsMut,
     env: Env,
@@ -47,7 +53,6 @@ pub fn instantiate(
     counter::Contract::new(deps, env, info, msg.counter.initial_value)
 }
 
-#[entry_point]
 pub fn execute(
     deps: DepsMut,
     env: Env,
@@ -87,7 +92,6 @@ pub fn execute(
     }
 }
 
-#[entry_point]
 pub fn query(
     deps: Deps,
     env: Env,
@@ -128,7 +132,12 @@ mod tests {
         ensemble::{ContractEnsemble, MockEnv}
     };
 
-    fadroma::impl_contract_harness!(KillswitchTest, super);
+    fadroma::contract_harness!(
+        KillswitchTest,
+        init: super::instantiate,
+        execute: super::execute,
+        query: super::query
+    );
 
     #[test]
     fn test_killswitch() {

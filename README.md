@@ -1,48 +1,19 @@
 <div align="center">
 
-[![Fadroma](./homepage/logo.svg)](https://fadroma.tech)
+[![Fadroma](./banner.svg)](https://fadroma.tech)
 
-*Level the landscape.*
+Distributed application framework developed at [**Hack.bg**](https://hack.bg).
 
-**Groundwork** for **dApp development** with **Rust** and **TypeScript** on **Secret Network**.
+|Component|Package|Docs|
+|-|-|-|
+|`fadroma` crate|[![Latest version](https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge)](https://crates.io/crates/fadroma)|[![Documentation](https://img.shields.io/docsrs/fadroma/latest?color=%2365b34c&style=for-the-badge)](https://docs.rs/fadroma)|
+|`fadroma-dsl` crate|[![Latest version](https://img.shields.io/crates/v/fadroma-dsl.svg?color=%2365b34c&style=for-the-badge)](https://crates.io/crates/fadroma-dsl)|[![Documentation](https://img.shields.io/docsrs/fadroma-dsl/latest?color=%2365b34c&style=for-the-badge)](https://docs.rs/fadroma-dsl)|
+|`@hackbg/fadroma`|[![](https://img.shields.io/npm/v/@hackbg/fadroma?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/fadroma)|[View docs](https://fadroma.tech/ts/modules/_hackbg_fadroma.html)|
+|`@fadroma/agent`|[![](https://img.shields.io/npm/v/@fadroma/agent?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/agent)|[View docs](https://fadroma.tech/ts/modules/_fadroma_agent.html)|
+|`@fadroma/connect`|[![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)|[View docs](https://fadroma.tech/ts/modules/_fadroma_connect.html)|
+|`@fadroma/scrt`|[![](https://img.shields.io/npm/v/@fadroma/connect?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_scrt.html)|
 
-### **Rust**
-[![Latest version](https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge)](https://crates.io/crates/fadroma)
-[![Documentation](https://img.shields.io/docsrs/fadroma/latest?color=%2365b34c&style=for-the-badge)](https://docs.rs/fadroma)
-
-### **TypeScript**
-[![](https://img.shields.io/npm/v/@fadroma/core?color=%2365b34c&label=%40fadroma%2Fcore&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/core)
-[![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)
-
----
-
-Start exploring:
-
-[**Getting Started Guide**](./guide/basic-project-setup.md) — [Rust Smart Contract API](https://fadroma.tech/rs/fadroma/index.html) — [TypeScript Operations API](https://fadroma.tech/js/modules.html)
-
-[**Executable Specification**](./SPEC.ts.md) — [Future Roadmap](./ROADMAP.ts.md) — [Contribution Guidelines](CONTRIBUTING.md)
-
----
-
-**Fadroma** aims to take the CosmWasm Compute module and spin it into a fully integrated app platform.
-
-This repository contains assorted **Rust** libraries for smart contracts
-and a **TypeScript** system for building, deploying, and interacting with them.
-
-Check out our [**example project**](https://github.com/hackbg/fadroma-example) to see how to
-build your dApp with Fadroma.
-
----
-
-```
-"The reasonable man adapts himself to the world;
- the unreasonable one persists in trying to adapt the world to himself.
- Therefore, all progress depends on the unreasonable man."
-                                    - Marvin Heemeyer
-```
-
----
-
-Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
+See [**https://fadroma.tech**](https://fadroma.tech) for overview or try the
+[**getting started guide**](./GUIDE.ts.md).
 
 </div>

@@ -1,0 +1,14 @@
+{
+  "templates": {
+    "test1": {
+      "revision": "HEAD",
+      "workspace": ".",
+      "crate": "test1"
+    },
+    "test2": {
+      "revision": "HEAD",
+      "workspace": ".",
+      "crate": "test2"
+    }
+  }
+}

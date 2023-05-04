@@ -37,7 +37,7 @@ pub fn to_cosmos_msg (
     }.into())
 }
 
-/// Take a Vec<u8> and pad it up to a multiple of `block_size`
+/// Take a `Vec<u8>` and pad it up to a multiple of `block_size`
 /// using spaces at the end.
 pub fn space_pad (
     message: &mut Vec<u8>,

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+ - BREAKING ⚠️: Renamed the `impl_contract_harness!` macro to `contract_harness!`. It now also uses the same
+ syntax as the `entrypoint!` macro and allows to optionally supply a reply entry point. ([#168](https://github.com/hackbg/fadroma/pull/168))
+
+## [0.8.6] - 2023-04-28
+
+### Changed
+
+ - BREAKING ⚠️: Addresses in the Ensemble are now checked if they are less than 55 bytes and all lower case characters.
+ `MockEnv` will panic if this is not the case. The `sender` and `contract` fields are now private in order ensure this invariant.
+ Use the getters if you need to read them. ([#166](https://github.com/hackbg/fadroma/pull/166))
+
+## [0.8.5] - 2023-04-26
+
 ### Added
 
  - `Map` and `InsertOnlyMap` storage types ([#163](https://github.com/hackbg/fadroma/pull/163))
