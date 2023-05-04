@@ -55,7 +55,7 @@ export class Config extends ConnectConfig {
   }
   /** @returns a configured builder. */
   getBuilder <B extends Builder> ($B?: BuilderClass<B>): B {
-    $B ??= Builder.variants[this.build.buildRaw?'Raw':'Container'] as unknown as BuilderClass<B>
+    $B ??= Builder.variants[this.build.raw?'Raw':'Container'] as unknown as BuilderClass<B>
     const builder = new $B(this.build) as B
     return builder
   }
@@ -125,7 +125,7 @@ export class BuilderConfig extends BaseConfig {
   /** Don't run "git fetch" during build. */
   noFetch: boolean = this.getFlag('FADROMA_NO_FETCH', ()=>false)
   /** Whether to bypass Docker and use the toolchain from the environment. */
-  buildRaw: boolean = this.getFlag('FADROMA_BUILD_RAW', ()=>false)
+  raw: boolean = this.getFlag('FADROMA_BUILD_RAW', ()=>false)
   /** Whether to use Podman instead of Docker to run the build container. */
   podman: boolean = this.getFlag('FADROMA_BUILD_PODMAN', () =>
     this.getFlag('FADROMA_BUILD_PODMAN', ()=>false))

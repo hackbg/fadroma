@@ -71,7 +71,7 @@ by the `FADROMA_BUILD_PODMAN` environment variable).
 
 ```typescript
 import { BuildContainer } from '@hackbg/fadroma'
-assert.ok(builder instanceof BuildContainer)
+assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
 ```
 
 `BuildContainer` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
@@ -85,7 +85,7 @@ assert.ok(getBuilder({ raw: false }).docker instanceof Dokeres.Engine)
 Use `FADROMA_DOCKER` or the `dockerSocket` option to specify a non-default Docker socket path.
 
 ```typescript
-getBuilder({ dockerSocket: 'test' })
+getBuilder({ raw: false, dockerSocket: 'test' })
 ```
 
 The `BuildContainer` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
@@ -96,10 +96,10 @@ being output to the `FADROMA_ARTIFACTS` directory.
 
 If you want to execute the build procedure in your
 current environment, you can switch to `BuildRaw`
-by passing `buildRaw: true` or setting `FADROMA_BUILD_RAW`.
+by passing `raw: true` or setting `FADROMA_BUILD_RAW`.
 
 ```typescript
-const rawBuilder = getBuilder({ buildRaw: true })
+const rawBuilder = getBuilder({ raw: true })
 
 import { BuildRaw } from '@hackbg/fadroma'
 assert.ok(rawBuilder instanceof BuildRaw)
