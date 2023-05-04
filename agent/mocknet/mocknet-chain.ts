@@ -80,6 +80,7 @@ export class Mocknet extends Chain {
   }
 
   upload (blob: Uint8Array) {
+    this.log.trace('Upload', blob)
     const chainId  = this.chain.id
     const codeId   = String(++this.chain.nextCodeId)
     const content  = this.chain.uploads[codeId] = blob
@@ -189,15 +190,13 @@ export class Mocknet extends Chain {
 class MocknetAgent extends Agent {
   declare chain: Mocknet
 
-  name: string = 'MocknetAgent'
-
   address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
 
   /** Message bundle that warns about unsupported messages. */
   static Bundle: BundleClass<MocknetBundle>
 
   constructor (options: AgentOpts & { chain: Mocknet }) {
-    super(options)
+    super({ name: 'MocknetAgent', ...options||{}})
     this.chain = options.chain
     this.log.label = `${this.address} on Mocknet`
   }
@@ -214,7 +213,10 @@ class MocknetAgent extends Agent {
   }
   async instantiate <C extends Client> (instance: Contract<C>) {
     instance.initMsg = await into(instance.initMsg)
-    const result = await this.chain.instantiate(this.address, instance as unknown as AnyContract)
+    const result = await this.chain.instantiate(
+      this.address,
+      instance as unknown as AnyContract
+    )
     return {
       chainId:  this.chain.id,
       address:  result.address!,

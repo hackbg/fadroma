@@ -135,11 +135,12 @@ export class MocknetContract<V extends CW> {
     }
   }
 
-  async load (code: unknown): Promise<this & {
+  async load (code: unknown /** Buffer */): Promise<this & {
     runtime:  WebAssembly.Instance<CWAPI<V>['exports']>,
     codeHash: CodeHash
   }> {
     const {imports, refresh} = this.makeImports()
+    this.log.trace({code, imports})
     const {instance: runtime} = await WebAssembly.instantiate(code, imports)
     return Object.assign(this, { runtime, codeHash: codeHashForBlob(code as Buffer) })
   }
@@ -423,9 +424,9 @@ export type Size    = number
 export type Region = [Ptr, Size, Size, Uint32Array?]
 /** Heap with allocator for talking to WASM-land */
 export interface Memory {
-  memory:                  WebAssembly.Memory
-  allocate    (len: Size): Ptr
-  deallocate? (ptr: Ptr):  void
+  memory: WebAssembly.Memory
+  allocate (len: Size): Ptr
+  deallocate? (ptr: Ptr): void
 }
 
 export const MOCKNET_ADDRESS_PREFIX = 'mocked'

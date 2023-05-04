@@ -842,14 +842,13 @@ export const tool = (
 export {
   DeployStore,
   YAML,
-  YAMLDeployStore_v1 as YAML1
 }
 
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class YAMLDeployStore_v1 extends DeployStore {
+export class DeployStore_YAML1 extends DeployStore {
   log = new Console('DeployStore (YAML1)')
   /** Root directory of deploy store. */
   root: YAMLDirectory<unknown>
@@ -963,4 +962,4 @@ export class YAMLDeployStore_v1 extends DeployStore {
 
 }
 
-Object.assign(DeployStore.variants, { YAML1: YAMLDeployStore_v1 })
+Object.assign(DeployStore.variants, { YAML1: DeployStore_YAML1 })

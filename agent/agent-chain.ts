@@ -1,6 +1,7 @@
 import type {
   Class, Address, Message, ExecOpts, AgentFees, ICoin, IFee, CodeHash, Client, ClientClass,
-  Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId
+  Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId,
+  Uploadable
 } from './agent'
 import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
 import type * as Mocknet from './mocknet/mocknet'
@@ -323,18 +324,13 @@ export abstract class Agent {
     return Promise.resolve()
   }
   /** Upload code, generating a new code id/hash pair. */
-  upload (blob: Uint8Array): Promise<Uploaded> {
+  upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
     this.log.warn('Agent#upload: stub')
     return Promise.resolve({
       chainId:  this.chain!.id,
       codeId:   '0',
       codeHash: ''
     })
-  }
-  /** Upload multiple pieces of code, generating multiple CodeID/CodeHash pairs.
-    * @returns Template[] */
-  uploadMany (blobs: Uint8Array[] = []): Promise<Uploaded[]> {
-    return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
   /** Get an uploader instance which performs code uploads and optionally caches them. */
   getUploader <U extends Uploader> ($U: UploaderClass<U>, ...options: any[]): U {
@@ -579,13 +575,13 @@ export abstract class Bundle implements Agent {
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
-  async upload (code: Uint8Array): Promise<never> {
+  async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<never> {
     throw new Error.NotInBundle("upload")
   }
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
-  async uploadMany (code: Uint8Array[] = []): Promise<never> {
+  async uploadMany (uploadables: Uploadable[] = []): Promise<never> {
     throw new Error.NotInBundle("upload")
   }
   /** Disallowed in bundle - do it beforehand or afterwards. */

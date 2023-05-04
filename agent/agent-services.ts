@@ -26,21 +26,6 @@ export interface Buildable {
   builder?:    Builder
 }
 
-/** Result of building a contract. */
-export interface Built extends Partial<Buildable> {
-  /** Path or URL to binary. */
-  artifact:   string|URL
-  /** SHA256 checksum of binary. */
-  codeHash?:  CodeHash
-  /** Builder class that produced binary. */
-  builder?:   Builder
-  /** ID of builder that produced binary. */
-  builderId?: string
-}
-
-/** The default Git ref when not specified. */
-export const HEAD = 'HEAD'
-
 /** Builders can be specified as ids, class names, or objects. */
 /** A constructor for a Builder subclass. */
 export type BuilderClass<B extends Builder> = Class<Builder, any>
@@ -66,16 +51,20 @@ export abstract class Builder {
   }
 }
 
-/** Throw appropriate error if not buildable. */
-export function assertBuilder ({ builder }: { builder?: Builder }): Builder {
-  //if (!this.crate) throw new Error.NoCrate()
-  if (!builder) throw new Error.NoBuilder()
-  //if (typeof builder === 'string') throw new Error.ProvideBuilder(builder)
-  return builder
+/** Result of building a contract. */
+export interface Built extends Partial<Buildable> {
+  /** Path or URL to binary. */
+  artifact:   string|URL
+  /** SHA256 checksum of binary. */
+  codeHash?:  CodeHash
+  /** Builder class that produced binary. */
+  builder?:   Builder
+  /** ID of builder that produced binary. */
+  builderId?: string
 }
 
 /** Parameters involved in uploading a contract */
-export interface Uploadable extends Partial<Built> {
+export interface Uploadable {
   /** Path or URL to binary. */
   artifact:  string|URL
   /** SHA256 checksum of binary. */
@@ -84,42 +73,71 @@ export interface Uploadable extends Partial<Built> {
   chainId:   ChainId,
 }
 
-/** Result of uploading a contract */
-export interface Uploaded extends Partial<Uploadable> {
-  /** Chain to which the contract was uploaded. */
-  chainId:   ChainId
-  /** Code ID assigned by the chain. */
-  codeId:    CodeId
-  /** SHA256 checksum of binary, confirmed by the chain. */
-  codeHash:  CodeHash
-  /** Uploader class used for the upload. */
-  uploader?: Uploader
-  /** Address of uploader account. */
-  uploadBy?: Address
-  /** ID of upload transaction. */
-  uploadTx?: TxHash
+/** A constructor for a subclass of Uploader. */
+export interface UploaderClass<U extends Uploader> {
+  new (options?: Partial<Uploader>): U
 }
 
-/** A constructor for a subclass of Uploader. */
-export interface UploaderClass<U extends Uploader> { new (agent?: Agent|null): U }
+/** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
+  * binding the `Template` to a particular `chainId` and `codeId`. */
+export class Uploader {
 
-/** Uploader: uploads a `Contract`'s `artifact` to a specific `Chain`,
-  * binding the `Contract` to a particular `chainId` and `codeId`. */
-export abstract class Uploader {
-  /** Global registry of Uploader implementations. Populated downstream. */
-  static variants: Record<string, UploaderClass<Uploader>> = {}
-
+  log = new Console('Uploader')
   /** Unique identifier of this uploader implementation. */
-  abstract id: string
- 
-  constructor (
-    public agent?: Agent|null
-  ) {}
+  id = 'Fetch'
+  /** Agent that will sign the upload transactions(s). */
+  agent?: Agent
+  /** If present, upload receipts are stored here and reused to save reuploads. */
+  store?: UploadStore
+
+  constructor (options: Partial<Uploader> = {}) {
+    Object.assign(this, options)
+    hideProperties(this, 'log')
+  }
 
   /** Chain to which this uploader uploads contracts. */
-  get chain () { return this.agent?.chain }
+  get chain () {
+    return this.agent?.chain
+  }
 
-  checkCodeHash (
+  /** Upload a contract.
+    * @returns the contract with populated codeId and codeHash */
+  async upload (contract: Uploadable): Promise<Uploaded> {
+    if (!this.agent) throw new Error('No upload agent')
+    const { artifact } = contract
+    if (!artifact) throw new Error('No artifact to upload')
+    this.log.log('Uploading', artifact)
+    const data = await this.fetch(artifact)
+    const result = await this.agent.upload(data, contract)
+    this.checkCodeHash(contract, result)
+    const { codeId, codeHash, uploadTx } = result
+    Object.assign(contract, { codeId, codeHash, uploadTx })
+    return { ...contract, codeId, codeHash, uploadTx }
+  }
+  /** Upload multiple contracts. */
+  async uploadMany (inputs: Uploadable[]): Promise<Uploaded[]> {
+    const agent = assertAgent(this)
+    const outputs: Array<Uploaded> = []
+    for (const i in inputs) {
+      const input = inputs[i]
+      const { artifact } = input
+      if (!artifact) throw new Error.NoArtifact()
+      const data = await this.fetch(artifact)
+      input.codeHash ??= base16.encode(sha256(data))
+      this.log.log('Uploading', String(input.artifact), `(${data.length} bytes uncompressed)`)
+      const result = await agent.upload(data, input)
+      const output = override(input, result) as unknown as Uploaded
+      this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
+      outputs[i] = output
+    }
+    return outputs
+  }
+  protected async fetch (path: string|URL): Promise<Uint8Array> {
+    if (!global.fetch) throw new Error.NoFetch()
+    const file = await fetch(new URL(path, 'file:'))
+    return new Uint8Array(await file.arrayBuffer())
+  }
+  protected checkCodeHash (
     a: { codeHash?: CodeHash, artifact?: string|URL },
     b: { codeHash?: CodeHash }
   ) {
@@ -144,63 +162,28 @@ export abstract class Uploader {
       `.trim().split('\n').map(x=>x.trim()).join(' '))
     }
   }
-  /** Upload a contract.
-    * @returns the contract with populated codeId and codeHash */
-  abstract upload (source: Uploadable): Promise<Uploaded>
-  /** Upload multiple contracts. */
-  abstract uploadMany (sources: Uploadable[]): Promise<Uploaded[]>
+
+  /** Global registry of Uploader implementations. Populated downstream. */
+  static variants: Record<string, UploaderClass<Uploader>> = { Fetch: this }
 
 }
 
-export class FetchUploader extends Uploader {
-  log = new Console('@fadroma/agent: FetchUploader' )
-
-  constructor (
-    /** Agent that will sign the upload transactions(s). */
-    public agent?: Agent|null,
-  ) {
-    super(agent)
-    this.log.warn('FetchUploader caching not implemented: reuploading')
-    hideProperties(this, 'log')
-  }
-
-  get id () { return 'Fetch' }
-
-  protected async fetch (path: string|URL): Promise<Uint8Array> {
-    const file = await fetch(new URL(path, 'file:'))
-    return new Uint8Array(await file.arrayBuffer())
-  }
-
-  async upload (contract: Uploadable): Promise<Uploaded> {
-    if (!global.fetch) throw new Error.NoFetch()
-    if (!contract.artifact) throw new Error('No artifact to upload')
-    if (!this.agent) throw new Error('No upload agent')
-    this.log.log('Uploading', contract.artifact)
-    const data   = await this.fetch(contract.artifact)
-    const result = await this.agent.upload(data)
-    this.checkCodeHash(contract, result)
-    const { codeId, codeHash, uploadTx } = result
-    Object.assign(contract, { codeId, codeHash, uploadTx })
-    return { ...contract, codeId, codeHash, uploadTx }
-  }
-
-  async uploadMany (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
-    const agent = assertAgent(this)
-    const outputs: Array<Uploaded> = []
-    for (const i in inputs) {
-      const input = inputs[i]
-      if (!input.artifact) throw new Error.NoArtifact()
-      const data = await this.fetch(input.artifact)
-      input.codeHash ??= base16.encode(sha256(data))
-      this.log.log('Uploading', String(input.artifact), `(${data.length} bytes uncompressed)`)
-      const result = await agent.upload(data)
-      const output = override(input, result) as unknown as Uploaded
-      this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
-      outputs[i] = output
-    }
-    return outputs
-  }
-
+export interface UploadStore {
+  tryGet (contract: Uploadable, _chainId?: ChainId): Uploaded|null
 }
 
-Uploader.variants['Fetch'] = FetchUploader
+/** Result of uploading a contract */
+export interface Uploaded extends Partial<Uploadable> {
+  /** Chain to which the contract was uploaded. */
+  chainId:   ChainId
+  /** Code ID assigned by the chain. */
+  codeId:    CodeId
+  /** SHA256 checksum of binary, confirmed by the chain. */
+  codeHash:  CodeHash
+  /** Uploader class used for the upload. */
+  uploader?: Uploader
+  /** Address of uploader account. */
+  uploadBy?: Address
+  /** ID of upload transaction. */
+  uploadTx?: TxHash
+}

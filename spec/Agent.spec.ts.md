@@ -105,11 +105,12 @@ If you don't pass a mnemonic, a random mnemonic and address will be generated.
 
 ```typescript
 import { Agent } from '@fadroma/agent'
-let agent: Agent = await chain.getAgent({ address: 'testing1agent0' })
+let agent: Agent = await chain.getAgent({ name: 'testing1' })
 
-assert.ok(agent instanceof Agent, 'an Agent was returned')
-assert.equal(agent.chain, chain,  'agent.chain assigned')
-assert.equal(agent.address, 'testing1agent0',  'agent.address assigned')
+assert.ok(agent instanceof Agent,    'an Agent was returned')
+assert.ok(agent.address,             'agent has address')
+assert.equal(agent.name, 'testing1', 'agent.name assigned')
+assert.equal(agent.chain, chain,     'agent.chain assigned')
 ```
 
 ### Block height

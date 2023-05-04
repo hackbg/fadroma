@@ -7,12 +7,14 @@ import type {
 
 export { bold, colors, timestamp } from '@hackbg/logs'
 export * from '@hackbg/into'
-export * from '@hackbg/over'
 export * from '@hackbg/hide'
 export * from '@hackbg/many'
 export * from '@hackbg/4mat'
 
 export type Name = string
+
+/** The default Git ref when not specified. */
+export const HEAD = 'HEAD'
 
 /** A class constructor. */
 export interface Class<T, U extends unknown[]> {

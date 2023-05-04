@@ -1,9 +1,11 @@
 import type {
   Agent, Class, Chain, Buildable, Built, Uploaded, Instantiated, AnyContract, Name
 } from './agent'
-import { Error, Console, validated, hideProperties } from './agent-base'
+import { Error, Console, hideProperties, HEAD } from './agent-base'
 import { assertAgent } from './agent-chain'
 import { Contract } from './agent-deployment'
+
+import { validated } from '@hackbg/over'
 
 /** A constructor for a Client subclass. */
 export interface ClientClass<C extends Client> extends Class<C, [Partial<C>, ...any]> {}
@@ -105,7 +107,7 @@ export class Client {
 export function getSourceSpecifier (meta: Buildable): string {
   const { crate, revision, features } = meta
   let result = crate ?? ''
-  if (revision !== 'HEAD') result = `${result}@${revision}`
+  if (revision !== HEAD) result = `${result}@${revision}`
   if (features && features.length > 0) result = `${result}+${features.join('+')}`
   return result
 }

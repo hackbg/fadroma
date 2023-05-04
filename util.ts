@@ -64,7 +64,7 @@ export class Config extends ConnectConfig {
     $U: UploaderClass<U> = Uploader.variants[this.upload.uploader] as UploaderClass<U>
   ): U {
     const agent = this.getAgent()
-    return new $U(agent)
+    return new $U({ agent })
   }
   /** @returns an instance of the selected deploy store implementation. */
   getDeployStore <S extends DeployStore> (

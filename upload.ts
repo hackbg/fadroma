@@ -1,7 +1,9 @@
 import { Config,  Console, colors, bold, Error, hideProperties as hide } from './util'
 import type { UploadConfig } from './util'
-import { Contract, Uploader, assertAgent, override, toUploadReceipt, base16, sha256 } from '@fadroma/agent'
-import type { Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract } from '@fadroma/agent'
+import { Contract, Uploader, assertAgent, toUploadReceipt, base16, sha256 } from '@fadroma/agent'
+import type {
+  Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, UploadStore, AnyContract
+} from '@fadroma/agent'
 import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
 
 /** @returns Uploader configured as per environment and options */
@@ -22,26 +24,22 @@ export function uploadMany (artifacts: Uploadable[]): Promise<Uploaded[]> {
 /** Directory collecting upload receipts.
   * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
   * and are kept so that we don't reupload the same contracts. */
-export class UploadStore extends JSONDirectory<UploadReceipt> {
+export class UploadStore_JSON1
+extends JSONDirectory<UploadStore_JSON1_Receipt>
+implements UploadStore {
   log = new Console('Upload')
-  tryGet (contract: Uploadable, _chainId?: ChainId): Uploaded|undefined {
+  tryGet (contract: Uploadable, _chainId?: ChainId): Uploaded|null {
     const name = this.getUploadReceiptName(contract)
     const receiptFile = this.at(name)
-    if (receiptFile.exists()) {
-      const receipt = receiptFile.as(UploadReceipt)
-      this.log.sub(name).log(`Already uploaded, see`, bold(receiptFile.shortPath))
-      const {
-        chainId = _chainId,
-        codeId,
-        codeHash,
-        uploadTx,
-      } = receipt.toContract()
-      const props = { chainId, codeId, codeHash, uploadTx }
-      return Object.assign(contract, props) as Uploaded & {
-        artifact: URL,
-        codeHash: CodeHash,
-        codeId:   CodeId
-      }
+    if (!receiptFile.exists()) return null
+    const receipt = receiptFile.as(UploadStore_JSON1_Receipt)
+    this.log.sub(name).log(`Already uploaded, see`, bold(receiptFile.shortPath))
+    const { chainId = _chainId, codeId, codeHash, uploadTx, } = receipt.toContract()
+    const props = { chainId, codeId, codeHash, uploadTx }
+    return Object.assign(contract, props) as Uploaded & {
+      artifact: URL,
+      codeHash: CodeHash,
+      codeId:   CodeId
     }
   }
   /** Generate the filename for an upload receipt. */
@@ -57,8 +55,7 @@ export class UploadStore extends JSONDirectory<UploadReceipt> {
 }
 
 /** Class that convert itself to a Contract, from which contracts can be instantiated. */
-export class UploadReceipt extends JSONFile<UploadReceiptData> {
-
+export class UploadStore_JSON1_Receipt extends JSONFile<UploadReceiptData> {
   /** Create a Contract object with the data from the receipt. */
   toContract (defaultChainId?: string) {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
@@ -66,7 +63,6 @@ export class UploadReceipt extends JSONFile<UploadReceiptData> {
     codeId  = String(codeId)
     return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
   }
-
 }
 
 export interface UploadReceiptData {
@@ -87,29 +83,19 @@ export interface UploadReceiptData {
   * if provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Uploader {
-  log = new Console('FSUploader' )
-  /** The uploader checks here whether a contract might be already uploaded. */
-  cache?: UploadStore
+  log = new Console('FSUploader')
 
-  constructor (
-    /** Agent that will sign the upload transactions(s). */
-    public agent?: Agent|null,
-    /** If present, upload receipts are stored in it and reused to save reuploads. */
-    cache?: string|Path|UploadStore
-  ) {
-    super(agent)
-    if (cache) this.cache = $(cache).as(UploadStore)
-    hide(this, 'log')
-  }
+  /** Unique identifier of this uploader implementation. */
+  id = 'FS'
 
-  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '(*)' }
+  declare store: UploadStore_JSON1
 
-  get id () { return 'FS' }
+  get [Symbol.toStringTag] () { return this.store?.shortPath ?? '(*)' }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (contract: Uploadable): Promise<Uploaded> {
-    let receipt: UploadReceipt|null = null
-    const cached: Uploaded|undefined = this.cache?.tryGet(contract, this.agent?.chain?.id)
+    let receipt: UploadStore_JSON1_Receipt|null = null
+    const cached = this.store?.tryGet(contract, this.agent?.chain?.id)
     if (cached) return cached
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
@@ -124,7 +110,7 @@ export class FSUploader extends Uploader {
     Object.assign(contract, { codeId, codeHash, uploadTx })
     if (receipt && !this.agent?.chain?.isMocknet) {
       // don't save receipts for mocknet because it's not stateful yet
-      (receipt as UploadReceipt).save(toUploadReceipt(contract as AnyContract))
+      (receipt as UploadStore_JSON1_Receipt).save(toUploadReceipt(contract as AnyContract))
     }
     return { ...contract, codeId, codeHash, uploadTx }
   }
@@ -134,7 +120,7 @@ export class FSUploader extends Uploader {
     //       this will only work if they add up to less than the max API request size
     //       (which is defined who knows where) */
     const self = this
-    if (!self.cache) {
+    if (!self.store) {
       this.log.warn('Upload cache disabled. Reuploading.')
       return this.uploadManySansCache(inputs)
     }
@@ -148,15 +134,15 @@ export class FSUploader extends Uploader {
       // If they still don't match after the reupload, there's a problem.
       input = self.ensureLocalCodeHash(input)
       // If there's no local upload receipt, time to reupload.
-      if (self.cache) {
-        const receiptPath  = self.cache.getUploadReceiptPath(input)
+      if (self.store) {
+        const receiptPath  = self.store.getUploadReceiptPath(input)
         const relativePath = $(receiptPath).shortPath
         if (!$(receiptPath).exists()) {
           toUpload[index] = input
           return
         }
         // If there's a local upload receipt and it doesn't contain a code hash, time to reupload.
-        const receiptData = $(receiptPath).as(UploadReceipt).load()
+        const receiptData = $(receiptPath).as(UploadStore_JSON1_Receipt).load()
         const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
         if (!receiptCodeHash) {
           self.log.warn(`No code hash in ${bold(relativePath)}; uploading...`)
@@ -186,8 +172,8 @@ export class FSUploader extends Uploader {
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const template = uploaded[i]
-        const receipt = $(this.cache!, this.cache!.getUploadReceiptName(toUpload[i]))
-        receipt.as(UploadReceipt).save(toUploadReceipt(template))
+        const receipt = $(this.store!, this.store!.getUploadReceiptName(toUpload[i]))
+        receipt.as(UploadStore_JSON1_Receipt).save(toUploadReceipt(template))
         outputs[i] = template
       }
     }
@@ -209,7 +195,7 @@ export class FSUploader extends Uploader {
       log(`hash ${input.codeHash}`)
 
       const result = await agent.upload(data)
-      const output = override(input, result) as unknown as Uploaded
+      const output = { ...input, ...result }
       this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
       outputs[i] = output
 

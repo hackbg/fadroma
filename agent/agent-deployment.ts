@@ -1,15 +1,16 @@
 import type {
-  Chain, Agent, ClientClass, Builder, Uploader, Buildable, Uploadable, Class, Many, Name, Named,
+  Chain, Agent, ClientClass, Builder, Buildable, Uploadable, Class, Many, Name, Named,
   IntoRecord, CodeId, CodeHash, Hashed, Address, TxHash, ChainId, Message, Into, Built, Uploaded,
   Label, ContractLink
 } from './agent'
 import {
-  Error, Console, mapAsync, hideProperties, defineDefault, into, intoRecord, call,
-  timestamp, override, map,
+  Error, Console, mapAsync, hideProperties, into, intoRecord, call, timestamp, map, HEAD
 } from './agent-base'
 import { assertAgent } from './agent-chain'
-import { FetchUploader, assertBuilder } from './agent-services'
 import { Client, assertAddress, codeHashOf, writeLabel } from './agent-client'
+import { Uploader } from './agent-services'
+
+import { override, defineDefault } from '@hackbg/over'
 
 export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
 
@@ -98,7 +99,7 @@ export class Deployment {
   /** Default Cargo workspace from which contracts will be built if needed. */
   workspace?:  string = undefined
   /** Default Git ref from which contracts will be built if needed. */
-  revision?:   string = 'HEAD'
+  revision?:   string = HEAD
   /** Build implementation. Contracts can't be built from source if this is missing. */
   builder?:    Builder
   /** Agent to use when deploying contracts. */
@@ -120,7 +121,7 @@ export class Deployment {
     this.agent     ??= options.agent
     this.chain     ??= options.chain ?? options.agent?.chain
     this.builder   ??= options.builder
-    this.uploader  ??= options.uploader ?? new FetchUploader(this.agent)
+    this.uploader  ??= options.uploader ?? new Uploader({ agent: this.agent })
     this.workspace ??= options.workspace ?? this.config?.build?.project
     this.revision  ??= options.revision
     this.store     ??= options.store
@@ -196,7 +197,7 @@ export class Deployment {
   defineContract <C extends Client> (opts: Partial<Contract<C>> = {}): Contract<C> {
     return new Contract({
       workspace: this.workspace,
-      revision:  this.revision ?? 'HEAD',
+      revision:  this.revision ?? HEAD,
       agent:     this.agent,
       builder:   this.builder,
       uploader:  this.uploader,
@@ -269,7 +270,7 @@ export class Deployment {
   template <C extends Client> (opts: Partial<Template<C>> = {}): Template<C> {
     return new Template({
       workspace: this.workspace,
-      revision:  this.revision ?? 'HEAD',
+      revision:  this.revision ?? HEAD,
       agent:     this.agent,
       builder:   this.builder,
       uploader:  this.uploader,
@@ -461,7 +462,8 @@ export class Template<C extends Client> {
     const building = new Promise<this & Built>(async (resolve, reject)=>{
       if (!this.artifact) {
         if (!this.crate) throw new Error.NoCrate()
-        builder ??= assertBuilder(this)
+        builder ??= this.builder
+        if (!builder) throw new Error.NoBuilder()
         const result = await builder!.build(this as Buildable)
         this.define(result as Partial<this>)
       }
