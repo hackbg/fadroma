@@ -97,8 +97,10 @@ export class Project extends CommandContext {
                  this.build)
     this.command('upload',   'upload the project or specific contracts from it',
                  this.upload)
-    this.command('deploy',   'deploy this project',
+    this.command('deploy',   'deploy this project or continue an interrupted deployment',
                  this.deploy)
+    this.command('redeploy', 'deploy this project from scratch',
+                 this.redeploy)
     this.command('select',   `activate another deployment on ${this.config.chainId}`,
                  this.selectDeployment)
     this.command('export',   `export current deployment to ${name}.json`,
@@ -469,7 +471,11 @@ export class Project extends CommandContext {
     await deployment.deploy()
     await this.log.deployment(deployment)
     if (!deployment.chain!.isMocknet) await this.selectDeployment(deployment.name)
-    return this
+    return deployment
+  }
+  redeploy = async (...args: string[]) => {
+    await this.createDeployment()
+    return await this.deploy(...args)
   }
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
@@ -488,8 +494,9 @@ export class Project extends CommandContext {
       this.config.chainId??'(unspecified)',
       this.config.getDeployStore()
     )
-  createDeployment = (name: string) =>
-    this.config.getDeployStore().create(name).then(()=>this.selectDeployment(name))
+  createDeployment = (name: string = timestamp()) =>
+    this.config.getDeployStore().create(name)
+      .then(()=>this.selectDeployment(name))
   selectDeployment = async (name?: string): Promise<DeploymentState|null> => {
     const store = this.deployStore
     const list = store.list()
