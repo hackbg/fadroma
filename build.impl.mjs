@@ -205,15 +205,15 @@ async function main (options = {}) {
         warn('please install wasm-opt')
         log(`Copying ${compiled} to ${optimized}...`)
         run(`cp ${compiled} ${optimized}`)
+        run(`chown ${uid} ${optimized}`)
+        run(`chgrp ${gid} ${optimized}`)
       }
       // Output checksum to artifacts directory
       log(`Saving checksum for ${optimized} into ${checksum}...`)
       run(`sha256sum -b ${optimized} > ${checksum}`)
-      log(`Checksum calculated:`, checksum)
-      run(`chown ${uid} ${optimized}`)
       run(`chown ${uid} ${checksum}`)
-      run(`chgrp ${gid} ${optimized}`)
       run(`chgrp ${gid} ${checksum}`)
+      log(`Checksum calculated:`, checksum)
       log(`Permissions set to: ${uid}:${gid}`)
     }
   }
