@@ -23,18 +23,11 @@ import * as Scrt from '@fadroma/scrt'
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'
 
-/** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
+// Populate `Chain.variants` with catalog of possible connections:
 Object.assign(Chain.variants as ChainRegistry, {
-  // Support for Mocknet
-  Mocknet_CW0: (options: Partial<Mocknet.CW0> = {}): Mocknet.CW0 =>
-    new Mocknet.CW0({ id: 'mocknet-cw0', ...options }),
-  Mocknet_CW1: (options: Partial<Mocknet.CW1> = {}): Mocknet.CW1 =>
-    new Mocknet.CW1({ id: 'mocknet-cw1', ...options }),
   // Support for Secret Network
-  ScrtMainnet:
-    Scrt.Chain.mainnet,
-  ScrtTestnet:
-    Scrt.Chain.testnet,
+  ScrtMainnet: Scrt.Chain.mainnet,
+  ScrtTestnet: Scrt.Chain.testnet,
   // Devnet is injected here by @hackbg/fadroma
 })
 
@@ -52,6 +45,7 @@ export default function connect <A extends Agent> (
 
 /** Connection configuration. Factory for `Chain` and `Agent` objects. */
 export class ConnectConfig extends Config {
+  log = new ConnectConsole('@fadroma/connect')
   /** Secret Network configuration. */
   scrt: Scrt.Config
   /** Mnemonic to use for authentication. Hidden by default. */
@@ -98,8 +92,6 @@ export class ConnectConfig extends Config {
     Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
     this.scrt = new Scrt.Config(options?.scrt, environment)
   }
-
-  log = new ConnectConsole('@fadroma/connect')
 
   /** Create the Chain instance specified by the configuration. */
   getChain <C extends Chain> (

@@ -34,22 +34,23 @@ class ScrtChain extends Chain {
   static mainnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.mainnet({
     id:  ScrtChain.Config.defaultMainnetChainId,
     url: ScrtChain.Config.defaultMainnetUrl,
-    ...options,
+    ...options||{},
   }) as ScrtChain
   /** Connect to the Secret Network Testnet. */
   static testnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.testnet({
     id:  ScrtChain.Config.defaultTestnetChainId,
     url: ScrtChain.Config.defaultTestnetUrl,
-    ...options,
+    ...options||{},
   }) as ScrtChain
   /** Connect to a Secret Network devnet. */
   static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.devnet({
-    ...options,
+    ...options||{},
   }) as ScrtChain
   /** Create to a Secret Network mocknet. */
-  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => {
-    return new Mocknet.CW1({ ...options, id: 'scrt-mocknet-cw1' })
-  }
+  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
+    id: 'scrt-mocknet',
+    ...options||{}
+  })
 
   log = new Console('Scrt')
   /** Smallest unit of native token. */

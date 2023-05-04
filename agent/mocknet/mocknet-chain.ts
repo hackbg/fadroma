@@ -2,35 +2,52 @@ import {
   Chain, ChainMode, Agent, Bundle, Contract, assertChain, into
 } from '../agent'
 import type {
-  AgentClass, CodeHash, Uint128,
+  AgentClass, CodeHash, Uint128, CodeId, Label,
   Address, AgentOpts, AnyContract, BundleClass, Client, ExecOpts, Message, Uploaded,
 } from '../agent'
 
-import { Error, Console } from './mocknet-base'
-import { MOCKNET_ADDRESS_PREFIX, MocknetBackend_CW0, MocknetBackend_CW1 } from './mocknet-impl'
-import type { MocknetBackend } from './mocknet-impl'
+import { Error, Console, bold } from './mocknet-base'
+import {
+  MOCKNET_ADDRESS_PREFIX, codeHashForBlob,
+  parseResult, MocknetContract, b64toUtf8
+} from './mocknet-impl'
 
 import { randomBech32 } from '@hackbg/4mat'
 
-/** Chain instance containing a local MocknetBackend. */
-export abstract class Mocknet extends Chain {
+/** Chain instance containing a local mocknet. */
+export class Mocknet extends Chain {
+  /** Agent class. */
+  static Agent: AgentClass<MocknetAgent> // populated below
+  /** Agent class. */
   Agent: AgentClass<MocknetAgent> = Mocknet.Agent
-
+  /** Block height. */
   _height = 0
-
+  /** Native token. */
   defaultDenom = 'umock'
   /** Simulation of bank module. */
   balances: Record<Address, Uint128> = {}
-  /** Simulation of Compute module. */
-  abstract backend: MocknetBackend
 
-  static variants: Record<'cw0'|'cw1', (config: any)=>Mocknet>
-  /** Agent instance calling its Chain's Mocknet backend. */
-  static Agent: AgentClass<MocknetAgent> // populated below
+  nextCodeId = 0
+
+  codeIdOfCodeHash: Record<CodeHash, CodeId> = {}
+
+  codeIdOfAddress: Record<Address, CodeId> = {}
+
+  labelOfAddress: Record<Address, Label> = {}
+
+  /** Map of code ID to WASM code blobs. */
+  uploads: Record<CodeId, unknown> = {}
+  /** Map of addresses to WASM instances. */
+  contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
 
   constructor (options: Partial<Mocknet> = {}) {
     super({ id: 'mocknet', ...options, mode: ChainMode.Mocknet })
     this.log.label = 'Mocknet'
+    this.uploads = options.uploads ?? this.uploads
+    if (Object.keys(this.uploads).length > 0) {
+      this.nextCodeId = Object.keys(this.uploads).map(x=>Number(x)).reduce((x,y)=>Math.max(x,y), 0)
+      this.nextCodeId += 1
+    }
   }
 
   get isMocknet () {
@@ -44,31 +61,129 @@ export abstract class Mocknet extends Chain {
     return Promise.resolve(this._height)
   }
 
-  async query <T, U> (contract: Partial<Client>, msg: T): Promise<U> {
-    return this.backend.query(contract, msg as Message)
+  async query <T, U> ({ address, codeHash }: Partial<Client>, msg: Message): Promise<U> {
+    return this.getInstance(address).query({ msg })
   }
   async getHash (arg: Address) {
-    return this.backend.instances[arg].codeHash as CodeHash
+    return this.contracts[arg].codeHash as CodeHash
   }
   async getCodeId (arg: any) {
-    const codeId = this.backend.codeIdForCodeHash[arg] ?? this.backend.codeIdForAddress[arg]
+    const codeId = this.codeIdOfCodeHash[arg] ?? this.codeIdOfAddress[arg]
     if (!codeId) throw new Error(`No code id for hash ${arg}`)
     return Promise.resolve(codeId)
   }
   async getLabel (address: Address) {
-    return this.backend.labelForAddress[address]
+    return this.labelOfAddress[address]
   }
   async getBalance (address: Address) {
     return this.balances[address] || '0'
   }
-}
 
-class Mocknet_CW0 extends Mocknet {
-  backend = new MocknetBackend_CW0(this.id)
-}
-
-class Mocknet_CW1 extends Mocknet {
-  backend = new MocknetBackend_CW1(this.id)
+  upload (blob: Uint8Array) {
+    const chainId  = this.chain.id
+    const codeId   = String(++this.chain.nextCodeId)
+    const content  = this.chain.uploads[codeId] = blob
+    const codeHash = codeHashForBlob(blob)
+    this.chain.codeIdOfCodeHash[codeHash] = String(codeId)
+    return { codeId, codeHash }
+  }
+  getCode (codeId: CodeId) {
+    const code = this.chain.uploads[codeId]
+    if (!code) throw new Error(`No code with id ${codeId}`)
+    return code
+  }
+  async instantiate (sender: Address, instance: AnyContract): Promise<Partial<AnyContract>> {
+    const label = instance.label
+    const msg = await into(instance.initMsg)
+    if (typeof msg === 'undefined') throw new Error('Tried to instantiate a contract with undefined initMsg')
+    const address = randomBech32(MOCKNET_ADDRESS_PREFIX)
+    const contract = await new MocknetContract({
+      mocknet:   this,
+      cwVersion: '1.x',
+      codeId:    instance.codeId,
+      codeHash:  instance.codeHash,
+      address
+    })
+    await contract.load(this.getCode(instance.codeId!))
+    const response = contract.init({ sender, msg })
+    const {messages} = parseResult(response, 'instantiate', address)
+    this.contracts[address] = contract
+    this.codeIdOfAddress[address] = instance.codeId!
+    this.labelOfAddress[address] = label!
+    await this.passCallbacks(address, messages)
+    return {
+      address:  contract.address,
+      chainId:  this.id,
+      codeId:   instance.codeId,
+      codeHash: instance.codeHash,
+      label
+    }
+  }
+  getInstance (address?: Address) {
+    if (!address) throw new Error.NoInstance()
+    const instance = this.contracts[address]
+    if (!instance) throw new Error.NoInstanceAtAddress(address)
+    return instance
+  }
+  async execute (
+    sender: Address,
+    { address, codeHash }: Partial<Client>,
+    msg:   Message,
+    funds: unknown,
+    memo?: unknown, 
+    fee?:  unknown
+  ) {
+    const result = this.getInstance(address).execute({ sender, msg })
+    const response = parseResult(result, 'execute', address)
+    if (response.data !== null) response.data = b64toUtf8(response.data)
+    await this.passCallbacks(address, response.messages)
+    return response
+  }
+  async passCallbacks (sender: Address|undefined, messages: Array<any>) {
+    if (!sender) {
+      throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
+    }
+    for (const message of messages) {
+      const { wasm } = message
+      if (!wasm) {
+        this.log.warn(
+          'mocknet.execute: transaction returned non-wasm message, ignoring:',
+          message
+        )
+        continue
+      }
+      const { instantiate, execute } = wasm
+      if (instantiate) {
+        const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
+        const instance = await this.instantiate(sender, new Contract({
+          codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
+        }))
+        this.log.debug(
+          `Callback from ${bold(sender)}: instantiated contract`, bold(label),
+          'from code id', bold(codeId), 'with hash', bold(codeHash),
+          'at address', bold(instance.address!)
+        )
+      } else if (execute) {
+        const { contract_addr, callback_code_hash, msg, send } = execute
+        const response = await this.execute(
+          sender,
+          { address: contract_addr, codeHash: callback_code_hash },
+          JSON.parse(b64toUtf8(msg)),
+          send
+        )
+        this.log.debug(
+          `Callback from ${bold(sender)}: executed transaction`,
+          'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
+        )
+      } else {
+        this.log.warn(
+          'mocknet.execute: transaction returned wasm message that was not '+
+          '"instantiate" or "execute", ignoring:',
+          message
+        )
+      }
+    }
+  }
 }
 
 class MocknetAgent extends Agent {
@@ -90,22 +205,16 @@ class MocknetAgent extends Agent {
   get defaultDenom (): string {
     return assertChain(this).defaultDenom
   }
-  get backend (): MocknetBackend {
-    const chain = this.chain
-    if (!chain) throw new Error.NoChain()
-    if (!chain.backend) throw new Error.NoBackend()
-    return chain.backend
-  }
   get account () {
     return Promise.resolve({})
   }
 
   async upload (blob: Uint8Array): Promise<Uploaded> {
-    return new Contract(this.backend.upload(blob)) as unknown as Uploaded
+    return new Contract(this.chain.upload(blob)) as unknown as Uploaded
   }
   async instantiate <C extends Client> (instance: Contract<C>) {
     instance.initMsg = await into(instance.initMsg)
-    const result = await this.backend.instantiate(this.address, instance as unknown as AnyContract)
+    const result = await this.chain.instantiate(this.address, instance as unknown as AnyContract)
     return {
       chainId:  this.chain.id,
       address:  result.address!,
@@ -120,7 +229,7 @@ class MocknetAgent extends Agent {
     msg:      Message,
     opts:     ExecOpts = {}
   ): Promise<R> {
-    return await this.backend.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
+    return await this.chain.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
   }
   async query <R> (instance: Client, msg: Message): Promise<R> {
     return await assertChain(this).query(instance, msg)
@@ -135,9 +244,9 @@ class MocknetAgent extends Agent {
 
 class MocknetBundle extends Bundle {
   declare agent: MocknetAgent
-
-  get log () { return new Console('Mocknet') }
-
+  get log () {
+    return this.agent.log.sub('(bundle)')
+  }
   async submit (memo = "") {
     this.log.info('Submitting mocknet bundle...')
     const results = []
@@ -166,8 +275,6 @@ Object.assign(Mocknet, { Agent: Object.assign(MocknetAgent, { Bundle: MocknetBun
 
 export {
   Mocknet       as Chain,
-  Mocknet_CW0   as CW0,
-  Mocknet_CW1   as CW1,
   MocknetAgent  as Agent,
   MocknetBundle as Bundle
 }

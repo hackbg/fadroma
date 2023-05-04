@@ -3,559 +3,402 @@ import type {
 } from '../agent'
 import { into, Contract, bold } from '../agent'
 import { Error, Console } from './mocknet-base'
+import type { Mocknet } from './mocknet-chain'
 import { randomBech32, sha256, base16, bech32 } from '@hackbg/4mat'
 import { brailleDump } from '@hackbg/dump'
 
 export type CW = '0.x' | '1.x'
 
-export abstract class MocknetBackend {
+export class MocknetContract<V extends CW> {
 
-  log = new Console('Mocknet')
+  log = new Console('MocknetContract')
 
-  codeId = 0
+  mocknet?:   Mocknet
 
-  codeIdForCodeHash: Record<CodeHash, CodeId> = {}
+  address?:   Address
 
-  codeIdForAddress: Record<Address, CodeId> = {}
+  codeHash?:  CodeHash
 
-  labelForAddress: Record<Address, Label> = {}
+  codeId?:    CodeId
 
-  constructor (
-    readonly chainId:   string,
-    /** Map of code ID to WASM code blobs. */
-    readonly uploads:   Record<CodeId, unknown>          = {},
-    /** Map of addresses to WASM instances. */
-    readonly instances: Record<Address, MocknetContract<any, any>> = {},
-  ) {
-    if (Object.keys(uploads).length > 0) {
-      this.codeId = (Math.max(...Object.keys(uploads).map(x=>Number(x))) ?? 0) + 1
-    }
-  }
-  getCode (codeId: CodeId) {
-    const code = this.uploads[codeId]
-    if (!code) throw new Error(`No code with id ${codeId}`)
-    return code
-  }
-  upload (blob: Uint8Array) {
-    const chainId  = this.chainId
-    const codeId   = String(++this.codeId)
-    const content  = this.uploads[codeId] = blob
-    const codeHash = codeHashForBlob(blob)
-    this.codeIdForCodeHash[codeHash] = String(codeId)
-    return { codeId, codeHash }
-  }
-  getInstance (address?: Address) {
-    if (!address) throw new Error.NoInstance()
-    const instance = this.instances[address]
-    if (!instance) throw new Error.NoInstanceAtAddress(address)
-    return instance
-  }
-  async instantiate (
-    sender:   Address,
-    instance: AnyContract
-  ): Promise<Partial<AnyContract>> {
-    const label    = instance.label
-    const initMsg  = await into(instance.initMsg)
-    if (typeof initMsg === 'undefined') throw new Error('Tried to instantiate a contract with undefined initMsg')
-    const chainId  = this.chainId
-    const code     = this.getCode(instance.codeId!)
-    const Contract = (this.constructor as any).Contract
-    const contract = await new Contract(this).load(code, instance.codeId)
-    const context  = this.context(sender, contract.address, instance.codeHash)
-    const response = contract.init(...context, initMsg!)
-    const initResponse = parseResult(response, 'instantiate', contract.address)
-    this.instances[contract.address]        = contract
-    this.codeIdForAddress[contract.address] = instance.codeId!
-    this.labelForAddress[contract.address]  = label!
-    await this.passCallbacks(contract.address, initResponse.messages)
-    return {
-      address:  contract.address,
-      chainId,
-      codeId:   instance.codeId,
-      codeHash: instance.codeHash,
-      label
-    }
-  }
-  async execute (
-    sender: Address,
-    { address, codeHash }: Partial<Client>,
-    msg:   Message,
-    funds: unknown,
-    memo?: unknown, 
-    fee?:  unknown
-  ) {
-    const context  = this.context(sender, address)
-    const result   = this.getInstance(address).execute(...context, msg)
-    const response = parseResult(result, 'execute', address)
-    if (response.data !== null) {
-      response.data = b64toUtf8(response.data)
-    }
-    await this.passCallbacks(address, response.messages)
-    return response
-  }
-  async passCallbacks (sender: Address|undefined, messages: Array<any>) {
-    if (!sender) {
-      throw new Error("MocknetBackend#passCallbacks: can't pass callbacks without sender")
-    }
-    for (const message of messages) {
-      const { wasm } = message
-      if (!wasm) {
-        this.log.warn(
-          'MocknetBackend#execute: transaction returned non-wasm message, ignoring:',
-          message
-        )
-        continue
-      }
-      const { instantiate, execute } = wasm
-      if (instantiate) {
-        const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
-        const instance = await this.instantiate(sender, new Contract({
-          codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
-        }))
-        this.log.debug(
-          `Callback from ${bold(sender)}: instantiated contract`, bold(label),
-          'from code id', bold(codeId), 'with hash', bold(codeHash),
-          'at address', bold(instance.address!)
-        )
-      } else if (execute) {
-        const { contract_addr, callback_code_hash, msg, send } = execute
-        const response = await this.execute(
-          sender,
-          { address: contract_addr, codeHash: callback_code_hash },
-          JSON.parse(b64toUtf8(msg)),
-          send
-        )
-        this.log.debug(
-          `Callback from ${bold(sender)}: executed transaction`,
-          'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
-        )
-      } else {
-        this.log.warn(
-          'MocknetBackend#execute: transaction returned wasm message that was not '+
-          '"instantiate" or "execute", ignoring:',
-          message
-        )
-      }
-    }
-  }
+  cwVersion?: V
 
-  abstract query ({ address, codeHash }: Partial<Client>, msg: Message): any
+  runtime?:   WebAssembly.Instance<CWAPI<V>['exports']>
 
-  abstract context (...args: unknown[]): unknown[]
-
-  static _makeContext (
-    now: number = + new Date()
-  ) {
-    const height = Math.floor(now/5000)
-    const time = Math.floor(now/1000)
-    const sent_funds: any[] = []
-    return { height, time, sent_funds }
-  }
-  static _makeImports (
-    contract: MocknetContract<any, any>
-  ): ContractImports & { getExports: Function } {
-    const log = contract.log
-    // initial memory
-    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
-    // when reentering, get the latest memory
-    const getExports = () => ({
-      memory:   contract.instance!.exports.memory,
-      allocate: contract.instance!.exports.allocate,
-    })
-    const methods = {
-      db_read (keyPtr: Ptr) {
-        const exports = getExports()
-        const key     = readUtf8(exports, keyPtr)
-        const val     = contract.storage.get(key)
-        log.debug(bold(contract.address), `db_read: ${bold(key)}`, val ? brailleDump(val) : null)
-        if (contract.storage.has(key)) {
-          return passBuffer(exports, val!)
-        } else {
-          return 0
-        }
-      },
-      db_write (keyPtr: Ptr, valPtr: Ptr) {
-        const exports = getExports()
-        const key     = readUtf8(exports, keyPtr)
-        const val     = readBuffer(exports, valPtr)
-        contract.storage.set(key, val)
-        log.debug(bold(contract.address), `db_write: ${bold(key)}`, brailleDump(val))
-      },
-      db_remove (keyPtr: Ptr) {
-        const exports = getExports()
-        const key     = readUtf8(exports, keyPtr)
-        log.debug(bold(contract.address), `db_remove:`, bold(key))
-        contract.storage.delete(key)
-      },
-      query_chain (reqPtr: Ptr) {
-        const exports  = getExports()
-        const req      = readUtf8(exports, reqPtr)
-        log.debug(bold(contract.address), 'query_chain:', req)
-        const { wasm } = JSON.parse(req)
-        if (!wasm) throw new Error(
-          `MocknetContract ${contract.address} made a non-wasm query:`+
-          ` ${JSON.stringify(req)}`
-        )
-        const { smart } = wasm
-        if (!wasm) throw new Error(
-          `MocknetContract ${contract.address} made a non-smart wasm query:`+
-          ` ${JSON.stringify(req)}`
-        )
-        if (!contract.backend) throw new Error(
-          `MocknetContract ${contract.address} made a query while isolated from`+
-          ` the MocknetBackend: ${JSON.stringify(req)}`
-        )
-        const { contract_addr, callback_code_hash, msg } = smart
-        const queried = contract.backend.getInstance(contract_addr)
-        if (!queried) {
-          throw new Error(
-            `MocknetContract ${contract.address} made a query to contract ${contract_addr}` +
-            ` which was not found in the MocknetBackend: ${JSON.stringify(req)}`
-          )
-        }
-        const decoded = JSON.parse(b64toUtf8(msg))
-        log.debug(`${bold(contract.address)} queries ${contract_addr}:`, decoded)
-        const result = parseResult(queried.query(decoded), 'query_chain', contract_addr)
-        log.debug(`${bold(contract_addr)} responds to ${contract.address}:`, b64toUtf8(result))
-        return pass(exports, { Ok: { Ok: result } })
-        // https://docs.rs/secret-cosmwasm-std/latest/secret_cosmwasm_std/type.QuerierResult.html
-      }
-    }
-    return { memory, getExports, env: methods }
-  }
-}
-
-export abstract class MocknetContract<I extends ContractImports, E extends ContractExports> {
-  log = new Console('Mocknet')
-  /** The instance of the contract code. */
-  instance?: WebAssembly.Instance<E>
-  /** The contract's basic key-value storage. */
   storage = new Map<string, Buffer>()
 
-  constructor (
-    readonly backend:   MocknetBackend|null = null,
-    readonly address:   Address = randomBech32(MOCKNET_ADDRESS_PREFIX),
-    readonly codeHash?: CodeHash,
-    readonly codeId?:   CodeId,
-  ) {}
+  constructor (options: Partial<MocknetContract<V>> = {}) {
+    Object.assign(this, options)
+  }
 
-  async load (code: unknown, codeId?: CodeId) {
-    return Object.assign(this, {
-      codeId:   this.codeId,
-      instance: (await WebAssembly.instantiate(code, this.makeImports())).instance,
-      codeHash: codeHashForBlob(code as Buffer)
-    })
+  get initMethod (): Function {
+    switch (this.cwVersion) {
+      case '0.x': return (this.runtime!.exports as CWAPI<'0.x'>['exports']).init
+      case '1.x': return (this.runtime!.exports as CWAPI<'1.x'>['exports']).instantiate
+      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+    }
   }
-  pass (data: any): Ptr {
-    return pass(this.instance!.exports, data)
+
+  get execMethod (): Function {
+    switch (this.cwVersion) {
+      case '0.x': return (this.runtime!.exports as CWAPI<'0.x'>['exports']).handle
+      case '1.x': return (this.runtime!.exports as CWAPI<'1.x'>['exports']).execute
+      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+    }
   }
-  readUtf8 (ptr: Ptr) {
-    return JSON.parse(readUtf8(this.instance!.exports, ptr))
+
+  get queryMethod (): Function {
+    return this.runtime!.exports.query
   }
-  init (...args: unknown[]) {
-    const msg = args[args.length - 1]
+
+  initPtrs = ({ env, info, msg }: any = {}): Ptr[] => {
+    switch (this.cwVersion) {
+      case '0.x': return [this.pass(env), this.pass(msg)]
+      case '1.x':
+        if (typeof msg === 'undefined') throw new Error("Can't init contract with undefined init msg")
+        return [this.pass(env), this.pass(info), this.pass(msg)]
+      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+    }
+  }
+
+  execPtrs = ({ env, info, msg }: any = {}): Ptr[] => {
+    switch (this.cwVersion) {
+      case '0.x': return [this.pass(env), this.pass(msg)]
+      case '1.x': return [this.pass(env), this.pass(info), this.pass(msg)]
+      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+    }
+  }
+
+  queryPtrs = ({ env, msg }: any = {}): Ptr[] => {
+    switch (this.cwVersion) {
+      case '0.x': return [this.pass(msg)]
+      case '1.x': return [this.pass(env), this.pass(msg)]
+      default: throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+    }
+  }
+
+  init = ({ sender, env, info, msg }: Partial<{
+    sender: Address
+    env:    object
+    info:   object
+    msg:    Message
+  }> = {}) => {
+    if (!sender) throw new Error('no sender')
+    const context = this.makeContext(sender)
+    env  ??= context.env
+    info ??= context.info
     try {
       const init = this.initMethod
       if (!init) {
-        this.log.error('WASM exports of contract:', ...Object.keys(this.instance?.exports??{}))
+        this.log.error('WASM exports of contract:', ...Object.keys(this.runtime?.exports??{}))
         throw new Error('Missing init entrypoint in contract.')
       }
-      return this.readUtf8(this.initMethod(...this.initPtrs(...args)))
+      return this.readUtf8(this.initMethod(...this.initPtrs({ env, info, msg })))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on init:`, e.message)
-      this.log.error(bold('Args:'), ...args)
+      this.log.error(bold('Args:'), { env, info, msg })
       throw e
     }
   }
-  execute (...args: unknown[]) {
-    const msg = args[args.length - 1]
+
+  execute = ({ sender, env, info, msg }: {
+    sender: Address
+    env?:   object
+    info?:  object
+    msg:    Message
+  }) => {
+    const context = this.makeContext(sender)
+    env  ??= context.env
+    info ??= context.info
     this.log.log(bold(this.address), `handle: ${JSON.stringify(msg)}`)
     try {
-      return this.readUtf8(this.execMethod(...this.execPtrs(...args)))
+      return this.readUtf8(this.execMethod(...this.execPtrs({ env, info, msg })))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on handle:`, e.message)
-      this.log.error(bold('Args:'), ...args)
+      this.log.error(bold('Args:'), { env, info, msg })
       throw e
     }
   }
-  query (...args: unknown[]) {
-    const msg = args[args.length - 1]
+
+  query = ({ env, msg }: {
+    msg:  Message
+    env?: object
+  }) => {
+    const context = this.makeContext('query')
+    env  ??= context.env
     this.log.log(bold(this.address), `query: ${JSON.stringify(msg)}`)
     try {
-      return this.readUtf8(this.queryMethod(...this.queryPtrs(...args)))
+      return this.readUtf8(this.queryMethod(...this.queryPtrs({ env, msg })))
     } catch (e: any) {
       this.log.error(bold(this.address), `crashed on query:`, e.message)
       throw e
     }
   }
 
-  abstract get initMethod (): Function
-
-  abstract get execMethod (): Function
-
-  abstract get queryMethod (): Function
-
-  abstract makeImports (): I
-
-  abstract initPtrs (...args: unknown[]): unknown[]
-
-  abstract execPtrs (...args: unknown[]): unknown[]
-
-  abstract queryPtrs (...args: unknown[]): unknown[]
-
-}
-export interface ContractImports {
-  memory: WebAssembly.Memory
-  env: {
-    db_read (key: Ptr): Ptr
-    db_write (key: Ptr, val: Ptr): void
-    db_remove (key: Ptr): void
-    query_chain (req: Ptr): Ptr
-  }
-}
-export interface ContractExports extends IOExports {
-  query (msg: Ptr): Ptr
-}
-
-export class MocknetBackend_CW0 extends MocknetBackend {
-  context (
-    sender:   Address,
-    address?: Address,
-    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
-    now:      number             = + new Date()
-  ): [unknown] {
-    return MocknetBackend_CW0.makeContext(this.chainId, sender, address, codeHash, now)
-  }
-  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
-    const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
-    return JSON.parse(result)
+  async load (code: unknown): Promise<this & {
+    runtime:  WebAssembly.Instance<CWAPI<V>['exports']>,
+    codeHash: CodeHash
+  }> {
+    const {imports, refresh} = this.makeImports()
+    const {instance: runtime} = await WebAssembly.instantiate(code, imports)
+    return Object.assign(this, { runtime, codeHash: codeHashForBlob(code as Buffer) })
   }
 
-  /** Contract host class for CW0. */
-  static Contract: typeof MocknetContract_CW0
-  /** Create the Env context parameter for a CW0 contract. */
-  static makeContext (
-    chain_id:  ChainId,
-    sender:    Address,
-    address?:  Address,
-    codeHash?: CodeHash|undefined,
-    now:       number = + new Date()
-  ): [unknown] {
-    if (!address) throw new Error.ContextNoAddress()
-    const { height, time, sent_funds } = MocknetBackend._makeContext()
-    return [{
-      block:    { height, time, chain_id },
-      message:  { sender, sent_funds },
-      contract: { address },
-      contract_key: "",
-      contract_code_hash: codeHash
-    }]
-  }
-  static makeImports (contract: MocknetContract<ContractImports_CW0, ContractExports_CW0>) {
-    const log = contract.log
-    const { memory, getExports, env } = MocknetBackend._makeImports(contract)
-    const cw0Methods = {
-      canonicalize_address (srcPtr: Ptr, dstPtr: Ptr) {
-        const exports = getExports()
-        const human   = readUtf8(exports, srcPtr)
-        const canon   = bech32.fromWords(bech32.decode(human).words)
-        const dst     = region(exports.memory.buffer, dstPtr)
-        log.debug(bold(contract.address), `canonize:`, human, '->', `${canon}`)
-        writeToRegion(exports, dstPtr, canon)
-        return 0
-      },
-      humanize_address (srcPtr: Ptr, dstPtr: Ptr) {
-        const exports = getExports()
-        const canon   = readBuffer(exports, srcPtr)
-        const human   = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
-        const dst     = region(exports.memory.buffer, dstPtr)
-        log.debug(bold(contract.address), `humanize:`, canon, '->', human)
-        writeToRegionUtf8(exports, dstPtr, human)
-        return 0
-      },
+  makeImports = (): { imports: CWAPI<V>['imports'], refresh: Function } => {
+    const {log, runtime, storage, address, mocknet} = this
+    // initial memory
+    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
+    // when reentering, get the latest memory
+    const refresh = () => ({
+      memory:   runtime!.exports.memory,
+      allocate: runtime!.exports.allocate,
+    })
+    let imports = {
+      memory,
+      env: {
+        db_read (keyPtr: Ptr) {
+          const exports = refresh()
+          const key = readUtf8(exports, keyPtr)
+          const val = storage.get(key)
+          log.debug(bold(address), `db_read: ${bold(key)}`, val ? brailleDump(val) : null)
+          if (storage.has(key)) {
+            return passBuffer(exports, val!)
+          } else {
+            return 0
+          }
+        },
+        db_write (keyPtr: Ptr, valPtr: Ptr) {
+          const exports = refresh()
+          const key = readUtf8(exports, keyPtr)
+          const val = readBuffer(exports, valPtr)
+          storage.set(key, val)
+          log.debug(bold(address), `db_write: ${bold(key)}`, brailleDump(val))
+        },
+        db_remove (keyPtr: Ptr) {
+          const exports = refresh()
+          const key = readUtf8(exports, keyPtr)
+          log.debug(bold(address), `db_remove:`, bold(key))
+          storage.delete(key)
+        },
+        query_chain (reqPtr: Ptr) {
+          const exports  = refresh()
+          const req      = readUtf8(exports, reqPtr)
+          log.debug(bold(address), 'query_chain:', req)
+          const { wasm } = JSON.parse(req)
+          if (!wasm) throw new Error(
+            `MocknetContract ${address} made a non-wasm query:`+
+            ` ${JSON.stringify(req)}`
+          )
+          const { smart } = wasm
+          if (!wasm) throw new Error(
+            `MocknetContract ${address} made a non-smart wasm query:`+
+            ` ${JSON.stringify(req)}`
+          )
+          if (!mocknet) throw new Error(
+            `MocknetContract ${address} made a query while isolated from`+
+            ` the MocknetBackend: ${JSON.stringify(req)}`
+          )
+          const { contract_addr, callback_code_hash, msg } = smart
+          const queried = mocknet.getInstance(contract_addr)
+          if (!queried) throw new Error(
+            `MocknetContract ${address} made a query to contract ${contract_addr}` +
+            ` which was not found in the MocknetBackend: ${JSON.stringify(req)}`
+          )
+          const decoded = JSON.parse(b64toUtf8(msg))
+          log.debug(`${bold(address)} queries ${contract_addr}:`, decoded)
+          const result = parseResult(queried.query({ msg: decoded }), 'query_chain', contract_addr)
+          log.debug(`${bold(contract_addr)} responds to ${address}:`, b64toUtf8(result))
+          return pass(exports, { Ok: { Ok: result } })
+          // https://docs.rs/secret-cosmwasm-std/latest/secret_cosmwasm_std/type.QuerierResult.html
+        }
+      }
     }
-    return { memory, env: { ...env, ...cw0Methods } }
-  }
-}
-/** Host for a WASM contract in a CW0 environment. */
-export class MocknetContract_CW0 extends MocknetContract<ContractImports_CW0, ContractExports_CW0> {
-  get initMethod () {
-    return this.instance!.exports.init
-  }
-  get execMethod () {
-    return this.instance!.exports.handle
-  }
-  get queryMethod () {
-    return this.instance!.exports.query
-  }
-  initPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-  execPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-  queryPtrs (msg: Message): [Ptr] {
-    return [this.pass(msg)]
-  }
-  makeImports (): ContractImports_CW0 {
-    return MocknetBackend_CW0.makeImports(this)
-  }
-}
-Object.assign(MocknetBackend_CW0, { Contract: MocknetContract_CW0 })
-/** The API that a CW0.10 contract expects. */
-export interface ContractImports_CW0 extends ContractImports {
-  env: ContractImports['env'] & {
-    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
-    humanize_address     (src: Ptr, dst: Ptr): ErrCode
-  }
-}
-/** A CW0.10 contract's raw API methods. */
-export interface ContractExports_CW0 extends ContractExports {
-  init   (env: Ptr, msg: Ptr): Ptr
-  handle (env: Ptr, msg: Ptr): Ptr
-}
-
-export class MocknetBackend_CW1 extends MocknetBackend {
-  context (
-    sender:   Address,
-    address?: Address,
-    codeHash: CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
-    now:      number             = + new Date()
-  ): [unknown, unknown] {
-    return MocknetBackend_CW1.makeContext(this.chainId, sender, address, codeHash, now)
-  }
-  async query ({ address, codeHash }: Partial<Client>, msg: Message) {
-    const [env] = this.context('', address, codeHash)
-    const result = b64toUtf8(parseResult(this.getInstance(address).query(env, msg), 'query', address))
-    return JSON.parse(result)
-  }
-
-  /** Contract host class for CW1. */
-  static Contract: typeof MocknetContract_CW1
-  /** Create the Env and Info context parameters for a CW1 contract. */
-  static makeContext (
-    chain_id:  ChainId,
-    sender:    Address,
-    address?:  Address,
-    codeHash?: CodeHash|undefined,
-    now:       number = + new Date()
-  ): [unknown, unknown] {
-    if (!address) throw new Error.ContextNoAddress()
-    const { height, time, sent_funds } = MocknetBackend._makeContext()
-    return [{
-      block:       { height, time: String(time), chain_id },
-      transaction: { index: 0 },
-      contract:    { address }
-    }, {
-      sender, funds: []
-    }]
-  }
-  static makeImports (contract: MocknetContract<ContractImports_CW1, ContractExports_CW1>) {
-    const log = contract.log
-    const { memory, getExports, env } = MocknetBackend._makeImports(contract)
-    const cw1Methods = {
-      addr_canonicalize (srcPtr: Ptr, dstPtr: Ptr) {
-        const exports = getExports()
-        const human   = readUtf8(exports, srcPtr)
-        const canon   = bech32.fromWords(bech32.decode(human).words)
-        const dst     = region(exports.memory.buffer, dstPtr)
-        log.debug(bold(contract.address), `canonize:`, human, '->', `${canon}`)
-        writeToRegion(exports, dstPtr, canon)
-        return 0
-      },
-      addr_humanize (srcPtr: Ptr, dstPtr: Ptr) {
-        const exports = getExports()
-        const canon   = readBuffer(exports, srcPtr)
-        const human   = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
-        const dst     = region(exports.memory.buffer, dstPtr)
-        log.debug(bold(contract.address), `humanize:`, canon, '->', human)
-        writeToRegionUtf8(exports, dstPtr, human)
-        return 0
-      },
-      addr_validate (srcPtr: Ptr) {
-        log.warn('addr_validate: not implemented')
-        return 0
-      },
-      secp256k1_recover_pubkey () {
-        log.warn('sec256k1_recover_pubkey: not implemented')
-        return 0
-      },
-      secp256k1_sign () {
-        log.warn('sec256k1_sign: not implemented')
-        return 0
-      },
-      secp256k1_verify () {
-        log.warn('sec256k1_verify: not implemented')
-        return 0
-      },
-      ed25519_batch_verify () {
-        log.warn('ed25519_batch_verify: not implemented')
-        return 0
-      },
-      ed25519_sign () {
-        log.warn('ed25519_sign: not implemented')
-        return 0
-      },
-      ed25519_verify () {
-        log.warn('ed25519_verify: not implemented')
-        return 0
-      },
-      debug (ptr: Ptr) {
-        const exports = getExports()
-        log.debug(bold(contract.address), `debug:`, readUtf8(exports, ptr))
-        return 0
-      },
+    if (this.cwVersion === '0.x') {
+      imports = {
+        ...imports,
+        env: {
+          ...imports.env,
+          canonicalize_address (srcPtr: Ptr, dstPtr: Ptr) {
+            const exports = refresh()
+            const human   = readUtf8(exports, srcPtr)
+            const canon   = bech32.fromWords(bech32.decode(human).words)
+            const dst     = region(exports.memory.buffer, dstPtr)
+            log.debug(bold(address), `canonize:`, human, '->', `${canon}`)
+            writeToRegion(exports, dstPtr, canon)
+            return 0
+          },
+          humanize_address (srcPtr: Ptr, dstPtr: Ptr) {
+            const exports = refresh()
+            const canon   = readBuffer(exports, srcPtr)
+            const human   = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
+            const dst     = region(exports.memory.buffer, dstPtr)
+            log.debug(bold(address), `humanize:`, canon, '->', human)
+            writeToRegionUtf8(exports, dstPtr, human)
+            return 0
+          },
+        }
+      } as CWAPI<'0.x'>['imports']
+    } else if (this.cwVersion === '1.x') {
+      imports = {
+        ...imports,
+        env: {
+          ...imports.env,
+          addr_canonicalize (srcPtr: Ptr, dstPtr: Ptr) {
+            const exports = refresh()
+            const human   = readUtf8(exports, srcPtr)
+            const canon   = bech32.fromWords(bech32.decode(human).words)
+            const dst     = region(exports.memory.buffer, dstPtr)
+            log.debug(bold(address), `canonize:`, human, '->', `${canon}`)
+            writeToRegion(exports, dstPtr, canon)
+            return 0
+          },
+          addr_humanize (srcPtr: Ptr, dstPtr: Ptr) {
+            const exports = refresh()
+            const canon   = readBuffer(exports, srcPtr)
+            const human   = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
+            const dst     = region(exports.memory.buffer, dstPtr)
+            log.debug(bold(address), `humanize:`, canon, '->', human)
+            writeToRegionUtf8(exports, dstPtr, human)
+            return 0
+          },
+          addr_validate (srcPtr: Ptr) {
+            log.warn('addr_validate: not implemented')
+            return 0
+          },
+          secp256k1_recover_pubkey () {
+            log.warn('sec256k1_recover_pubkey: not implemented')
+            return 0
+          },
+          secp256k1_sign () {
+            log.warn('sec256k1_sign: not implemented')
+            return 0
+          },
+          secp256k1_verify () {
+            log.warn('sec256k1_verify: not implemented')
+            return 0
+          },
+          ed25519_batch_verify () {
+            log.warn('ed25519_batch_verify: not implemented')
+            return 0
+          },
+          ed25519_sign () {
+            log.warn('ed25519_sign: not implemented')
+            return 0
+          },
+          ed25519_verify () {
+            log.warn('ed25519_verify: not implemented')
+            return 0
+          },
+          debug (ptr: Ptr) {
+            const exports = refresh()
+            log.debug(bold(address), `debug:`, readUtf8(exports, ptr))
+            return 0
+          },
+        }
+      } as CWAPI<'1.x'>['imports']
+    } else {
+      throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
     }
-    return { memory, env: { ...env, ...cw1Methods } }
+    return {
+      imports: imports as CWAPI<V>['imports'],
+      refresh
+    }
   }
+
+  makeContext = (sender: Address, now: number = + new Date()) => {
+    if (!this.mocknet) throw new Error.NoChain()
+    const chain_id = this.mocknet.id
+    const height = Math.floor(now/5000)
+    const time = Math.floor(now/1000)
+    const sent_funds: any[] = []
+    if (!this.address) throw new Error.NoAddress()
+    if (!this.codeHash) throw new Error.NoCodeHash()
+    const { address, codeHash } = this
+    if (this.cwVersion === '0.x') {
+      return {
+        env: {
+          block:    { height, time, chain_id },
+          message:  { sender, sent_funds },
+          contract: { address },
+          contract_key: "",
+          contract_code_hash: codeHash
+        }
+      }
+    } else if (this.cwVersion === '1.x') {
+      return {
+        env: {
+          block:       { height, time: String(time), chain_id },
+          transaction: { index: 0 },
+          contract:    { address }
+        },
+        info: {
+          sender,
+          funds: []
+        }
+      }
+    } else {
+      throw new Error('Invalid CW API version. Supported are "0.x" and "1.x"')
+    }
+  }
+
+  pass = (data: any): Ptr => pass(this.runtime!.exports, data)
+
+  readUtf8 = (ptr: Ptr) => JSON.parse(readUtf8(this.runtime!.exports, ptr))
+
 }
-/** Host for a WASM contract in a CW1 environment. */
-export class MocknetContract_CW1 extends MocknetContract<ContractImports_CW1, ContractExports_CW1> {
-  get initMethod () {
-    return this.instance!.exports.instantiate
+
+export type CWAPI<V extends CW> = {
+
+  /** CosmWasm v0 API */
+  '0.x': {
+    imports: {
+      memory: WebAssembly.Memory
+      env: {
+        db_read (key: Ptr): Ptr
+        db_write (key: Ptr, val: Ptr): void
+        db_remove (key: Ptr): void
+        query_chain (req: Ptr): Ptr
+        canonicalize_address (src: Ptr, dst: Ptr): ErrCode
+        humanize_address (src: Ptr, dst: Ptr): ErrCode
+      }
+    },
+    exports: Memory & {
+      init (env: Ptr, msg: Ptr): Ptr
+      handle (env: Ptr, msg: Ptr): Ptr
+      query (msg: Ptr): Ptr
+    },
+  },
+
+  /** CosmWasm v0 API */
+  '1.x': {
+    imports: {
+      memory: WebAssembly.Memory
+      env: {
+        db_read (key: Ptr): Ptr
+        db_write (key: Ptr, val: Ptr): void
+        db_remove (key: Ptr): void
+        query_chain (req: Ptr): Ptr
+        addr_canonicalize (src: Ptr, dst: Ptr): ErrCode
+        addr_humanize (src: Ptr, dst: Ptr): ErrCode
+        addr_validate (addr: Ptr): ErrCode
+        debug (key: Ptr): Ptr
+        ed25519_batch_verify (x: Ptr): Ptr
+        ed25519_sign (x: Ptr, y: Ptr): Ptr
+        ed25519_verify (x: Ptr, y: Ptr): Ptr
+        secp256k1_recover_pubkey (x: Ptr): Ptr
+        secp256k1_sign (x: Ptr, y: Ptr): Ptr
+        secp256k1_verify (x: Ptr, y: Ptr): Ptr
+      }
+    },
+    exports: Memory & {
+      instantiate (env: Ptr, info: Ptr, msg: Ptr): Ptr
+      execute (env: Ptr, info: Ptr, msg: Ptr): Ptr
+      query (msg: Ptr): Ptr
+      requires_staking (): Ptr
+    }
   }
-  get execMethod () {
-    return this.instance!.exports.execute
-  }
-  get queryMethod () {
-    return this.instance!.exports.query
-  }
-  initPtrs (env: unknown, info: unknown, msg: Message): [Ptr, Ptr, Ptr] {
-    if (typeof msg === 'undefined') throw new Error('Tried to init contract with undefined init msg')
-    return [this.pass(env), this.pass(info), this.pass(msg)]
-  }
-  execPtrs (env: unknown, info: unknown, msg: Message): [Ptr, Ptr, Ptr] {
-    return [this.pass(env), this.pass(info), this.pass(msg)]
-  }
-  queryPtrs (env: unknown, msg: Message): [Ptr, Ptr] {
-    return [this.pass(env), this.pass(msg)]
-  }
-  makeImports (): ContractImports_CW1 {
-    return MocknetBackend_CW1.makeImports(this)
-  }
-}
-Object.assign(MocknetBackend_CW1, { Contract: MocknetContract_CW1 })
-/** The API that a CW1.0 contract expects. */
-export interface ContractImports_CW1 extends ContractImports {
-  env: ContractImports['env'] & {
-    addr_canonicalize        (src:  Ptr, dst: Ptr): ErrCode
-    addr_humanize            (src:  Ptr, dst: Ptr): ErrCode
-    addr_validate            (addr: Ptr):           ErrCode
-    debug                    (key:  Ptr):           Ptr
-    ed25519_batch_verify     (x:    Ptr):           Ptr
-    ed25519_sign             (x:    Ptr, y:   Ptr): Ptr
-    ed25519_verify           (x:    Ptr, y:   Ptr): Ptr
-    secp256k1_recover_pubkey (x:    Ptr):           Ptr
-    secp256k1_sign           (x:    Ptr, y:   Ptr): Ptr
-    secp256k1_verify         (x:    Ptr, y:   Ptr): Ptr
-  }
-}
-/** A CW1.0 contract's raw API methods. */
-export interface ContractExports_CW1 extends ContractExports {
-  instantiate      (env: Ptr, info: Ptr, msg: Ptr): Ptr
-  execute          (env: Ptr, info: Ptr, msg: Ptr): Ptr
-  requires_staking ():                              Ptr
-}
+
+}[V]
 
 declare namespace WebAssembly {
   class Memory {
@@ -565,8 +408,8 @@ declare namespace WebAssembly {
   class Instance<T> {
     exports: T
   }
-  function instantiate (code: unknown, world: unknown): {
-    instance: WebAssembly.Instance<ContractExports>
+  function instantiate <V extends CW> (code: unknown, world: unknown): {
+    instance: WebAssembly.Instance<CWAPI<V>['exports']>
   }
 }
 
@@ -579,7 +422,7 @@ export type Size    = number
 /** Memory region as allocated by CosmWasm */
 export type Region = [Ptr, Size, Size, Uint32Array?]
 /** Heap with allocator for talking to WASM-land */
-export interface IOExports {
+export interface Memory {
   memory:                  WebAssembly.Memory
   allocate    (len: Size): Ptr
   deallocate? (ptr: Ptr):  void
@@ -611,6 +454,7 @@ export const parseResult = (
   }
   throw new Error(`Mocknet ${action}: contract ${address} returned non-Result type`)
 }
+
 /** Read region properties from pointer to region. */
 export const region = (buffer: any, ptr: Ptr): Region => {
   const u32a = new Uint32Array(buffer)
@@ -620,7 +464,7 @@ export const region = (buffer: any, ptr: Ptr): Region => {
   return [addr, size, used, u32a]
 }
 /** Read contents of region referenced by region pointer into a string. */
-export const readUtf8 = (exports: IOExports, ptr: Ptr): string => {
+export const readUtf8 = (exports: Memory, ptr: Ptr): string => {
   const { buffer } = exports.memory
   const [addr, size, used] = region(buffer, ptr)
   const u8a  = new Uint8Array(buffer)
@@ -630,7 +474,7 @@ export const readUtf8 = (exports: IOExports, ptr: Ptr): string => {
   return data
 }
 /** Read contents of region referenced by region pointer into a string. */
-export const readBuffer = (exports: IOExports, ptr: Ptr): Buffer => {
+export const readBuffer = (exports: Memory, ptr: Ptr): Buffer => {
   const { buffer } = exports.memory
   const [addr, size, used] = region(buffer, ptr)
   const u8a  = new Uint8Array(buffer)
@@ -641,14 +485,14 @@ export const readBuffer = (exports: IOExports, ptr: Ptr): Buffer => {
   return output
 }
 /** Serialize a datum into a JSON string and pass it into the contract. */
-export const pass = <T> (exports: IOExports, data: T): Ptr => {
+export const pass = <T> (exports: Memory, data: T): Ptr => {
   if (typeof data === 'undefined') throw new Error('Tried to pass undefined value into contract')
   const buffer = utf8toBuffer(JSON.stringify(data))
   return passBuffer(exports, buffer)
 }
 /** Allocate region, write data to it, and return the pointer.
   * See: https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
-export const passBuffer = (exports: IOExports, buf: Buffer): Ptr => {
+export const passBuffer = (exports: Memory, buf: Buffer): Ptr => {
   const ptr = exports.allocate(buf.length)
   const { buffer } = exports.memory // must be after allocation - see [1]
   const [ addr, _, __, u32a ] = region(buffer, ptr)
@@ -664,7 +508,7 @@ export const writeUtf8 = (buffer: any, addr: number, data: string): void =>
   new Uint8Array(buffer).set(encoder.encode(data), addr)
 /** Write data to address of region referenced by pointer. */
 export const writeToRegion = (
-  { memory: { buffer } }: IOExports, ptr: Ptr, data: ArrayLike<number>
+  { memory: { buffer } }: Memory, ptr: Ptr, data: ArrayLike<number>
 ): void => {
   const [addr, size, _, u32a] = region(exports.memory.buffer, ptr)
   if (data.length > size) { // if data length > Region.capacity
@@ -675,10 +519,10 @@ export const writeToRegion = (
   write(exports.memory.buffer, addr, data)
 }
 /** Write UTF8-encoded data to address of region referenced by pointer. */
-export const writeToRegionUtf8 = (exports: IOExports, ptr: Ptr, data: string): void =>
+export const writeToRegionUtf8 = (exports: Memory, ptr: Ptr, data: string): void =>
   writeToRegion(exports, ptr, encoder.encode(data))
 /** Deallocate memory. Fails silently if no deallocate callback is exposed by the blob. */
-export const drop = ({ deallocate }: IOExports, ptr: Ptr): void => deallocate && deallocate(ptr)
+export const drop = ({ deallocate }: Memory, ptr: Ptr): void => deallocate && deallocate(ptr)
 /** Convert base64 string to utf8 string */
 export const b64toUtf8 = (str: string) => Buffer.from(str, 'base64').toString('utf8')
 /** Convert utf8 string to base64 string */
@@ -687,8 +531,3 @@ export const utf8toB64 = (str: string) => Buffer.from(str, 'utf8').toString('bas
 export const utf8toBuffer = (str: string) => Buffer.from(str, 'utf8')
 /** Convert buffer to utf8 string. */
 export const bufferToUtf8 = (buf: Buffer) => buf.toString('utf8')
-
-//type CW<V extends '0'|'1'> = {
-  //'0':{},
-  //'1':{}
-//}[V]

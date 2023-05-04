@@ -3,6 +3,7 @@ import type {
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId
 } from './agent'
 import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
+import * as Mocknet from './mocknet/mocknet'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -65,15 +66,18 @@ export abstract class Chain {
     return new (this as any)({ ...options, mode: Chain.Mode.Devnet })
   }
   /** Create a mocknet instance of this chain. */
-  static mocknet (options: Partial<Chain> = {}): Chain {
-    return new (this as any)({ ...options, mode: Chain.Mode.Mocknet })
+  static mocknet (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain {
+    return new Mocknet.Chain({ id: 'mocknet', ...options })
   }
   /** Async functions that return Chain instances in different modes.
-    * Values for `FADROMA_CHAIN` environment variable. */
-  static variants: ChainRegistry = {}
+    * Values for `FADROMA_CHAIN` environment variable. Populated by @fadroma/connect. */
+  static variants: ChainRegistry = {
+    Mocknet: Chain.mocknet
+  }
 
   constructor (options: Partial<Chain> = {}) {
     if (!(this.id = options.id!)) throw new Error.NoChainId()
+    this.log.label = this.id ?? `(no chain id)`
     this.url  = options.url ?? this.url
     this.mode = options.mode!
     if (options.devnet) {
@@ -151,22 +155,22 @@ export abstract class Chain {
 
   /** Get the native balance of an address. */
   getBalance (denom: string, address: Address): Promise<string> {
-    this.log.warn('Chain#getBalance: stub')
+    this.log.warn('chain.getBalance: stub')
     return Promise.resolve('0')
   }
   /** Query a smart contract. */
   query <U> (contract: Client, msg: Message): Promise<U> {
-    this.log.warn('Chain#query: stub')
+    this.log.warn('chain.query: stub')
     return Promise.resolve({} as U)
   }
   /** Get the code id of a smart contract. */
   getCodeId (address: Address): Promise<CodeId> {
-    this.log.warn('Chain#getCodeId: stub')
+    this.log.warn('chain.getCodeId: stub')
     return Promise.resolve('code-id-stub')
   }
   /** Get the code hash of a smart contract. */
   getHash (address: Address|number): Promise<CodeHash> {
-    this.log.warn('Chain#getHash: stub')
+    this.log.warn('chain.getHash: stub')
     return Promise.resolve('code-hash-stub')
   }
   /** Get the code hash of a smart contract. */
@@ -184,7 +188,7 @@ export abstract class Chain {
   }
   /** Get the label of a smart contract. */
   getLabel (address: Address): Promise<string> {
-    this.log.warn('Chain#getLabel: stub')
+    this.log.warn('chain.getLabel: stub')
     return Promise.resolve('contract-label-stub')
   }
   /** Get a new instance of the appropriate Agent subclass. */
@@ -460,7 +464,7 @@ export abstract class Bundle implements Agent {
 
   get getUploader () { return this.agent.getUploader.bind(this) }
 
-  get getClient () { console.log({agent:this.agent});return this.agent.getClient.bind(this) }
+  get getClient () { return this.agent.getClient.bind(this) }
 
   /** Add a message to the bundle. */
   add (msg: Message) {

@@ -1,4 +1,4 @@
-import { Error, Console } from '../agent-base'
+import { Error, Console, bold, colors } from '../agent-base'
 
 class MocknetConsole extends Console {
   label = 'Mocknet'
@@ -19,5 +19,7 @@ class MocknetError extends Error {
 
 export {
   MocknetConsole as Console,
-  MocknetError   as Error
+  MocknetError   as Error,
+  bold,
+  colors
 }
