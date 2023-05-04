@@ -11,10 +11,10 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v2
         with: { version: 7.29.1 }
-      - name: Setup Node 20
+      - name: Setup Node 19
         uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          node-version: "19"
           check-latest: true
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
@@ -24,3 +24,5 @@ jobs:
           pnpm --version
           pnpm i --frozen-lockfile
           FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
+
+# See https://github.com/pnpm/pnpm/issues/6424 for why not Node 20
