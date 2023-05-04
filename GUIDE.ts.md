@@ -221,6 +221,10 @@ on the subject of devnets.
 our simulated environment for fast full-stack testing of production WASM builds.
 Mocknet is built into `@fadroma/agent`.
 
+## More resources
+
+* [HackSecret Fadroma Workshop Repo](https://github.com/hackbg/fadroma-workshop)
+
 ---
 
 
