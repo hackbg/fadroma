@@ -15,7 +15,7 @@ mod contract {
     impl Counter for Contract {
         type Error = StdError;
 
-        #[init(entry)]
+        #[init(entry_wasm)]
         fn new(initial_value: u64) -> Result<Response, Self::Error> {
             STATE.save(deps.storage, &initial_value)?;
 

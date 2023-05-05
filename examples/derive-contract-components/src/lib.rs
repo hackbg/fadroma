@@ -14,7 +14,7 @@ pub mod contract {
     pub const STATE: ItemSpace<u64, StateNs, TypedKey<CanonicalAddr>> = ItemSpace::new();
     
     impl Contract {
-        #[init(entry)]
+        #[init(entry_wasm)]
         pub fn new(admin: Option<String>) -> Result<Response, StdError> {
             admin::init(deps, admin.as_deref(), &info)?;
     
