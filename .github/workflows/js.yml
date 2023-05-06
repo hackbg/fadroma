@@ -32,10 +32,11 @@ jobs:
           cat fadroma.json
           cat api.ts
           cat ops.ts
-          npm run build
-          npm run mocknet deploy
-          npm run devnet deploy
-          npm run export
+          echo ''{"name":"testproject","main":"api.ts","type":"module","version":"0.1.0","dependencies":{"@fadroma/agent":"link:../fadroma/agent","@fadroma/scrt":"link:../fadroma/scrt"},"devDependencies":{"@hackbg/fadroma":"link:../fadroma","@hackbg/ganesha":"link:../fadroma/ensuite/ganesha","typescript":"^5"},"scripts":{"build":"fadroma build","status":"fadroma status","mocknet":"FADROMA_CHAIN=Mocknet fadroma","devnet":"FADROMA_CHAIN=ScrtDevnet fadroma","testnet":"FADROMA_CHAIN=ScrtTestnet fadroma","mainnet":"FADROMA_CHAIN=ScrtMainnet fadroma"}}'' > package.json
+          pnpm i
+          pnpm build
+          pnpm mocknet deploy
+          pnpm devnet deploy
           cd ..
           rm -rf testproject
 
