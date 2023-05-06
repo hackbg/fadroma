@@ -458,6 +458,7 @@ export class Project extends CommandContext {
       '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
     ].join('\n'))
     envfile.save([
+      'FADROMA_PROJECT=./ops.ts',
       '# FADROMA_MNEMONIC=your testnet mnemonic'
     ].join('\n'))
     shellNix.save([

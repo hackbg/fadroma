@@ -339,11 +339,11 @@ export class Console extends BaseConsole {
     },
 
     warnStoreDoesNotExist: (path: string) =>
-      self.warn(`deployment store "${path}" does not exist.`),
+      self.warn(`deployment store does not exist`),
     warnOverridingStore: (x: string) =>
       self.warn(`overriding store for ${x}`),
     warnNoAgent: (name?: string) =>
-      self.warn('no agent. authenticate by exporting FADROMA_MNEMONIC in your shell.'),
+      self.warn('no agent. authenticate by exporting FADROMA_MNEMONIC in your shell'),
 
   }))(this)
 
