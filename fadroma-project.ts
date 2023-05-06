@@ -386,10 +386,10 @@ export class Project extends CommandContext {
       scripts: {
         "build":   "fadroma build",
         "status":  "fadroma status",
-        "mocknet": `FADROMA_CHAIN=Mocknet fadroma`,
-        "devnet":  `FADROMA_CHAIN=ScrtDevnet fadroma`,
-        "testnet": `FADROMA_CHAIN=ScrtTestnet fadroma`,
-        "mainnet": `FADROMA_CHAIN=ScrtMainnet fadroma`,
+        "mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
+        "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
+        "testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
+        "mainnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
       },
     })
     apiIndex.save([
@@ -458,7 +458,6 @@ export class Project extends CommandContext {
       '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
     ].join('\n'))
     envfile.save([
-      'FADROMA_PROJECT=./ops.ts',
       '# FADROMA_MNEMONIC=your testnet mnemonic'
     ].join('\n'))
     shellNix.save([
