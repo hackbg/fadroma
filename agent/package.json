@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/agent",
-  "version": "1.0.0-rc.19",
+  "version": "1.0.0-rc.20",
   "type":    "module",
   "main":    "agent.ts",
   "files": [ "*.ts", "**/*.ts" ],

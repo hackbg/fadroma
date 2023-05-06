@@ -122,7 +122,6 @@ export class Mocknet extends Chain {
     return this.uploads[codeId]
   }
   getCode (codeId: CodeId) {
-    this.log.debug(this.uploads, codeId)
     const code = this.uploads[codeId]
     if (!code) throw new Error(`No code with id ${codeId}`)
     return code
