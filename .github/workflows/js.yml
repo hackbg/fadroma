@@ -24,5 +24,19 @@ jobs:
           pnpm --version
           pnpm i --frozen-lockfile
           FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
+      - name: Create, build, and deploy project
+        run: |
+          ../fadroma/fadroma.cli.cjs create testproject test1 test2
+          cd testproject
+          cat package.json
+          cat fadroma.json
+          cat api.ts
+          cat ops.ts
+          npm run build
+          npm run mocknet deploy
+          npm run devnet deploy
+          npm run export
+          cd ..
+          rm -rf testproject
 
 # See https://github.com/pnpm/pnpm/issues/6424 for why not Node 20

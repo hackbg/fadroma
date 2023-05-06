@@ -1,6 +1,6 @@
-import { Config, Console, colors, Error, DeployError } from './util'
-import { getBuilder, ContractCrate } from './build'
-import { getUploader } from './upload'
+import { Config, Console, colors, Error, DeployError } from './fadroma-base'
+import { getBuilder, ContractCrate } from './fadroma-build'
+import { getUploader } from './fadroma-upload'
 
 import type {
   Builder, Buildable, Built, Uploader, Chain,
@@ -538,8 +538,6 @@ export class Project extends CommandContext {
     })
   }
 }
-
-export default Project
 
 /** Interactive project creation CLI.
   * TODO: single crate option

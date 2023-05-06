@@ -1,5 +1,5 @@
-import { Error, Console, Config } from '../util'
-import type { DevnetConfig } from '../util'
+import { Error, Console, Config } from '../fadroma-base'
+import type { DevnetConfig } from '../fadroma-base'
 import { bold, randomHex, ChainMode, Chain } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'

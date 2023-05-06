@@ -1,7 +1,7 @@
 import { DevnetContainer } from './devnet/devnet'
 import type { DevnetPlatform } from './devnet/devnet'
-import { FSUploader } from './upload'
-import { getBuilder } from './build'
+import { FSUploader } from './fadroma-upload'
+import { getBuilder } from './fadroma-build'
 
 import {
   Builder, Deployment, DeployStore, ChainMode, Uploader,
@@ -21,6 +21,9 @@ import { Engine, Docker, Podman } from '@hackbg/dock'
 
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+export * from '@fadroma/connect'
+export type { Decimal } from '@fadroma/agent'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
@@ -168,7 +171,7 @@ export class DeployConfig extends BaseConfig {
   storePath: string | null = this.getString('FADROMA_DEPLOY_STATE', () =>
     this.chainId ? $(this.project).in('state').in(this.chainId).in('deploy').path : null)
   /** Which implementation of the receipt store to use. */
-  format = this.getString('FADROMA_DEPLOY_FORMAT', () => 'YAML1') as DeploymentFormat
+  format = this.getString('FADROMA_DEPLOY_FORMAT', () => 'v1') as DeploymentFormat
 
   constructor (
     readonly project: string,
@@ -182,6 +185,7 @@ export class DeployConfig extends BaseConfig {
 
   /** The deploy receipt store implementation selected by `format`. */
   get Store (): DeployStoreClass<DeployStore>|undefined {
+    console.log(this.format, DeployStore.variants)
     return DeployStore.variants[this.format]
   }
 }

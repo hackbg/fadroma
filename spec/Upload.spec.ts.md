@@ -54,9 +54,8 @@ When trying to upload a binary file, the `Uploader` checks if a corresponding re
 if it does, it returns the existing code ID instead of uploading the same file twice.
 
 ```typescript
-import { UploadStore_JSON1 } from '@hackbg/fadroma'
 await withTmpDir(async path=>{
-  uploader = new FSUploader({ agent, store: new UploadStore_JSON1(path) })
+  uploader = new FSUploader({ agent, store: path })
   assert.ok(uploader.agent === agent)
   assert.ok(await uploader.upload(template))
   assert.ok(await uploader.upload(template))

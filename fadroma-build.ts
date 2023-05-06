@@ -1,11 +1,9 @@
-import { Config, Console, bold, colors, Error } from './util'
-import type { BuilderConfig } from './util'
-import type { Project } from './project'
-
-import type { Class } from '@fadroma/agent'
-import { Builder, Contract, HEAD } from '@fadroma/agent'
-import type { BuilderClass, Buildable, Built } from '@fadroma/agent'
-import type { Template } from '@fadroma/agent'
+import type {
+  BuilderConfig, Project, Class, BuilderClass, Buildable, Built, Template
+} from './fadroma'
+import {
+  Builder, Contract, HEAD, Config, Console, bold, colors, Error
+} from './fadroma-base'
 
 import $, { Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile } from '@hackbg/file'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'

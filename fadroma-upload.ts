@@ -1,8 +1,12 @@
-import { Config,  Console, colors, bold, Error, hideProperties as hide } from './util'
-import type { UploadConfig } from './util'
-import { Template, Uploader, assertAgent, toUploadReceipt, base16, sha256 } from '@fadroma/agent'
 import type {
-  Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract
+  Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract,
+  UploadConfig
+} from './fadroma'
+import {
+  Config, Console, colors, bold, Error, hideProperties as hide
+} from './fadroma-base'
+import {
+  Template, Uploader, assertAgent, toUploadReceipt, base16, sha256
 } from '@fadroma/agent'
 import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
@@ -34,6 +38,7 @@ export class FSUploader extends Uploader {
 
   /** @returns Uploaded from the cache or store or undefined */
   get (uploadable: Uploadable): Uploaded|undefined {
+    this.addCodeHash(uploadable)
     const cached = super.get(uploadable)
     if (cached) return cached
     const { codeHash } = uploadable
@@ -59,6 +64,7 @@ export class FSUploader extends Uploader {
 
   /** Add an Uploaded to the cache and store. */
   set (uploaded: Uploaded): this {
+    this.addCodeHash(uploaded)
     super.set(uploaded)
     if (!this.agent) throw new Error.Missing.Agent()
     if (!this.agent.chain) throw new Error.Missing.Chain()
@@ -79,7 +85,20 @@ export class FSUploader extends Uploader {
     return this
   }
 
+  protected addCodeHash (uploadable: Partial<Uploadable>) {
+    if (!uploadable.codeHash) {
+      if (uploadable.artifact) {
+        uploadable.codeHash = base16.encode(sha256(this.fetchSync(uploadable.artifact)))
+        this.log(`hashed ${String(uploadable.artifact)}:`, uploadable.codeHash)
+      } else {
+        this.log(`no artifact, can't compute code hash`)
+      }
+    }
+  }
   protected async fetch (path: string|URL): Promise<Uint8Array> {
+    return await Promise.resolve(this.fetchSync(path))
+  }
+  protected fetchSync (path: string|URL): Uint8Array {
     return $(fileURLToPath(new URL(path, 'file:'))).as(BinaryFile).load()
   }
 }

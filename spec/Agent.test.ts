@@ -57,8 +57,7 @@ import { Console } from '@fadroma/agent'
 const log = new Console()
 for (const key of Object.keys(log)) {
   const method = log[key as keyof typeof log] as any
-  console.log({method})
-  //if (typeof method==='function') method.call(log)
+  if (typeof method==='function') try { method.bind(log)() } catch (e) { console.warn(e) }
 }
 
 /***

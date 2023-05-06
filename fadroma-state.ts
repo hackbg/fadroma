@@ -1,7 +1,7 @@
 import $, { Path, OpaqueDirectory, TextFile, JSONDirectory, JSONFile, YAMLDirectory, YAMLFile, alignYAML } from '@hackbg/file'
 import type { AnyContract, Uploadable, Uploaded, ChainId, CodeHash, CodeId, DeploymentState } from '@fadroma/agent'
 import { Contract, Template, toUploadReceipt, DeployStore, Deployment, toInstanceReceipt, timestamp } from '@fadroma/agent'
-import { Console, DeployError, bold } from './util'
+import { Console, DeployError, bold } from './fadroma-base'
 import { basename } from 'node:path'
 import YAML, { loadAll, dump } from 'js-yaml'
 
@@ -9,8 +9,8 @@ import YAML, { loadAll, dump } from 'js-yaml'
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class DeployStore_YAML1 extends DeployStore {
-  log = new Console('DeployStore_YAML1')
+export class DeployStore_v1 extends DeployStore {
+  log = new Console('DeployStore_v1')
   /** Root directory of deploy store. */
   root: YAMLDirectory<unknown>
   /** Name of symlink pointing to active deployment, without extension. */
@@ -123,4 +123,4 @@ export class DeployStore_YAML1 extends DeployStore {
 
 }
 
-Object.assign(DeployStore.variants, { YAML1: DeployStore_YAML1 })
+Object.assign(DeployStore.variants, { v1: DeployStore_v1 })

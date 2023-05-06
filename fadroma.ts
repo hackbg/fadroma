@@ -18,16 +18,17 @@
 
 **/
 
-export * from '@fadroma/connect'
-export * from './util'
-export { Config, Console, Error } from './util'
-export * from './stores'
-export * from './build'
-export * from './upload'
+export * from './fadroma-base'
+export * from './fadroma-state'
+export * from './fadroma-build'
+export * from './fadroma-upload'
 export * from './devnet/devnet'
-export * from './project'
-export { default as default } from './project'
-export type { Decimal } from '@fadroma/agent'
+export * from './fadroma-project'
+
+import { Project } from './fadroma-project'
+export default Project
+
+import { Config } from './fadroma-base'
 
 /** @returns Deployment configured according to environment and options */
 export function getDeployment <D extends Deployment> (
@@ -41,7 +42,6 @@ export function getDeployment <D extends Deployment> (
 import type { ChainRegistry, DeploymentClass } from '@fadroma/agent'
 import { Chain, ChainMode, Deployment } from '@fadroma/agent'
 import { Scrt } from '@fadroma/connect'
-import { Config } from './util'
 Object.assign(Chain.variants as ChainRegistry, {
   ScrtDevnet (options: Partial<Scrt.Chain> = {}): Scrt.Chain {
     const config = new Config()

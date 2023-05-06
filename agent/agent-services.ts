@@ -90,7 +90,7 @@ export class Uploader {
     this.id       = options.id       ?? this.id
     this.agent    = options.agent    ?? this.agent
     this.cache    = options.cache    ?? {}
-    this.reupload = options.reupload ?? false
+    this.reupload = options.reupload ?? this.agent?.chain?.isMocknet ?? false
     hideProperties(this, 'log')
   }
 

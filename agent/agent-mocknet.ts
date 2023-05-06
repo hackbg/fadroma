@@ -10,7 +10,7 @@ import { randomBech32, sha256, base16, bech32 } from '@hackbg/4mat'
 import { brailleDump } from '@hackbg/dump'
 
 class MocknetConsole extends BaseConsole {
-  label = 'Mocknet'
+  constructor (label = 'mocknet') { super(label) }
 }
 
 export const Console = MocknetConsole
@@ -71,7 +71,7 @@ export class Mocknet extends Chain {
 
   constructor (options: Partial<Mocknet> = {}) {
     super({ id: 'mocknet', ...options, mode: ChainMode.Mocknet })
-    this.log.label = 'Mocknet'
+    this.log.label = this.id
     this.uploads = options.uploads ?? this.uploads
     if (Object.keys(this.uploads).length > 0) {
       this.lastCodeId = Object.keys(this.uploads).map(x=>Number(x)).reduce((x,y)=>Math.max(x,y), 0)
@@ -108,18 +108,21 @@ export class Mocknet extends Chain {
     if (wasm.length < 1) throw new Error('Tried to upload empty binary.')
     const chainId   = this.id
     const codeId    = String(++this.lastCodeId)
+    this.log.log('uploading code id', codeId)
     const codeHash  = codeHashForBlob(wasm)
-    this.log.debug('compiling', wasm.length, 'bytes')
+    this.log.log('compiling', wasm.length, 'bytes')
     const module    = await WebAssembly.compile(wasm)
-    this.log.debug('compiled', wasm.length, 'bytes')
+    this.log.log('compiled', wasm.length, 'bytes')
     const exports   = WebAssembly.Module.exports(module)
     const cwVersion = this.checkVersion(exports.map(x=>x.name))
     if (cwVersion === null) throw new Error.NoCWVersion(wasm, module, exports)
     this.codeIdOfCodeHash[codeHash] = String(codeId)
     this.uploads[codeId] = { codeId, codeHash, wasm, meta, module, cwVersion }
+    this.log.log('code', codeId).debug('hash', codeHash)
     return this.uploads[codeId]
   }
   getCode (codeId: CodeId) {
+    this.log.debug(this.uploads, codeId)
     const code = this.uploads[codeId]
     if (!code) throw new Error(`No code with id ${codeId}`)
     return code
@@ -230,7 +233,7 @@ class MocknetAgent extends Agent {
   constructor (options: AgentOpts & { chain: Mocknet }) {
     super({ name: 'MocknetAgent', ...options||{}})
     this.chain = options.chain
-    this.log.label = `${this.address} on Mocknet`
+    this.log.label = `${this.address}@${this.chain.id}`
   }
 
   get defaultDenom (): string {
@@ -248,11 +251,8 @@ class MocknetAgent extends Agent {
   /** Instantiate a contract on the mocknet. */
   async instantiate <C extends Client> (instance: Contract<C>): Promise<Instantiated> {
     instance.initMsg = await into(instance.initMsg)
-    const {
-      address,
-      codeHash,
-      label
-    } = await this.chain.instantiate(this.address, instance as unknown as AnyContract)
+    const { address, codeHash, label } =
+      await this.chain.instantiate(this.address, instance as unknown as AnyContract)
     return {
       chainId:  this.chain.id,
       address:  address!,
