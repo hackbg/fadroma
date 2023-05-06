@@ -326,18 +326,22 @@ export class Project extends CommandContext {
     if (!state) throw new Error.Missing.Deployment()
     const deployment = this.deployment
     if (!deployment) throw new Error.Missing.Deployment()
-    const jsonFile = `${name}_@_${timestamp()}.json`
-    this.log.log(`Exporting deployment`, deployment.name, 'to', jsonFile)
-    this.log.deployment(deployment)
-    const undef = { context: undefined, builder: undefined, uploader: undefined, agent: undefined }
+    if (!path) path = process.cwd()
+    let file = $(path)
+    if (file.isDirectory()) file = file.in(`${name}_@_${timestamp()}.json`)
     const snapshot = Object.entries(deployment.contracts)
       .reduce((snapshot, [name, contract]: [string, any])=>Object.assign(snapshot, {
-        [name]: { ...contract, ...undef }
+        [name]: {
+          ...contract,
+          deployment: undefined,
+          builder:    undefined,
+          uploader:   undefined,
+          agent:      undefined
+        }
       }), {})
     // Serialize and write the deployment.
-    const file = $(path??(deployment?.store as any)?.root?.path??'').at(jsonFile).as(JSONFile)
-    file.makeParent().save(snapshot)
-    this.log.info('saving', Object.keys(state).length, 'contracts to', bold(file.shortPath))
+    file.as(JSONFile).makeParent().save(snapshot)
+    this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
   resetDevnet = async () => {
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
