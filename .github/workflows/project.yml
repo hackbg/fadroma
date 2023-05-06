@@ -28,8 +28,8 @@ jobs:
 
       - name: Create project through NPX
         run: |
-          npx @hackbg/fadroma@latest create test test1 test2
-          cd test
+          npx @hackbg/fadroma@latest create my-project my-contract-1 my-contract-2
+          cd my-project
           cat package.json
           cat fadroma.json
           cat api.ts
@@ -37,4 +37,4 @@ jobs:
           npm run build
           npm run mocknet deploy
           npm run devnet deploy
-          npm run export
+          npm run devnet export
