@@ -8,7 +8,7 @@ coverage:
     - shim/**/*
     - dist/**/*
     - typedoc-theme.tsx
-    - index.browser.ts
+    - fadroma.browser.ts
     - build.impl.mjs
     - devnet/devnet.init.mjs
     - devnet/devnet.server.mjs
