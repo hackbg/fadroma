@@ -28,8 +28,8 @@ jobs:
 
       - name: Create project through NPX
         run: |
-          npx @hackbg/fadroma@latest create my-project my-contract-1 my-contract-2
-          cd my-project
+          npx @hackbg/fadroma@latest create myproject mycontract1 mycontract2
+          cd myproject
           cat package.json
           cat fadroma.json
           cat api.ts
