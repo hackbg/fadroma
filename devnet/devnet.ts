@@ -353,7 +353,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     // update the record
     this.save()
     // Wait for everything to be ready
-    await this.container.waitLog(this.readyPhrase, DevnetContainer.logFilter, false)
+    await this.container.waitLog(this.readyPhrase, DevnetContainer.logFilter, true)
     await Dock.Docker.waitSeconds(this.postLaunchWait)
     await this.waitPort({ host: this.host, port: Number(this.port) })
     return this
