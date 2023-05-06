@@ -21,6 +21,7 @@
 export * from '@fadroma/connect'
 export * from './util'
 export { Config, Console, Error } from './util'
+export * from './stores'
 export * from './build'
 export * from './upload'
 export * from './devnet/devnet'

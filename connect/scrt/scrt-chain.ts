@@ -12,45 +12,8 @@ import type {
 
 /** Represents a Secret Network API endpoint. */
 class ScrtChain extends Chain {
-  /** Smallest unit of native token. */
-  static defaultDenom: string = 'uscrt'
-  /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) =>
-    new Fee(amount, this.defaultDenom)
-  /** Set permissive fees by default. */
-  static defaultFees: AgentFees = {
-    upload: this.gas(2000000),
-    init:   this.gas(2000000),
-    exec:   this.gas(1000000),
-    send:   this.gas(1000000),
-  }
   /** The default SecretJS module. */
   static SecretJS: typeof SecretJS
-  /** The default Config class for Secret Network. */
-  static Config = Config
-  /** The default Agent class for Secret Network. */
-  static Agent: AgentClass<ScrtAgent> // set in index
-  /** Connect to the Secret Network Mainnet. */
-  static mainnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.mainnet({
-    id:  ScrtChain.Config.defaultMainnetChainId,
-    url: ScrtChain.Config.defaultMainnetUrl,
-    ...options||{},
-  }) as ScrtChain
-  /** Connect to the Secret Network Testnet. */
-  static testnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.testnet({
-    id:  ScrtChain.Config.defaultTestnetChainId,
-    url: ScrtChain.Config.defaultTestnetUrl,
-    ...options||{},
-  }) as ScrtChain
-  /** Connect to a Secret Network devnet. */
-  static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.devnet({
-    ...options||{},
-  }) as ScrtChain
-  /** Create to a Secret Network mocknet. */
-  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
-    id: 'scrt-mocknet',
-    ...options||{}
-  })
 
   log = new Console('Scrt')
   /** Smallest unit of native token. */
@@ -135,6 +98,45 @@ class ScrtChain extends Chain {
     }
     return { gas: max_gas }
   }
+
+  /** Smallest unit of native token. */
+  static defaultDenom: string = 'uscrt'
+  /** @returns Fee in uscrt */
+  static gas = (amount: Uint128|number) =>
+    new Fee(amount, this.defaultDenom)
+  /** Set permissive fees by default. */
+  static defaultFees: AgentFees = {
+    upload: this.gas(2000000),
+    init:   this.gas(2000000),
+    exec:   this.gas(1000000),
+    send:   this.gas(1000000),
+  }
+  /** The default Config class for Secret Network. */
+  static Config = Config
+  /** The default Agent class for Secret Network. */
+  static Agent: AgentClass<ScrtAgent> // set in index
+  /** Connect to the Secret Network Mainnet. */
+  static mainnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.mainnet({
+    id:  ScrtChain.Config.defaultMainnetChainId,
+    url: ScrtChain.Config.defaultMainnetUrl,
+    ...options||{},
+  }) as ScrtChain
+  /** Connect to the Secret Network Testnet. */
+  static testnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.testnet({
+    id:  ScrtChain.Config.defaultTestnetChainId,
+    url: ScrtChain.Config.defaultTestnetUrl,
+    ...options||{},
+  }) as ScrtChain
+  /** Connect to a Secret Network devnet. */
+  static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.devnet({
+    ...options||{},
+  }) as ScrtChain
+  /** Create to a Secret Network mocknet. */
+  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
+    id: 'scrt-mocknet',
+    ...options||{}
+  })
+
 }
 
 export type TxResponse = SecretJS.TxResponse
@@ -180,7 +182,7 @@ class ScrtAgent extends Agent {
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
-    if (!this.chain) throw new Error.NoChain()
+    if (!this.chain) throw new Error.Missing.Chain()
     const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (resolve, reject)=>{
       try {
         const _SecretJS = this.chain.SecretJS
@@ -196,11 +198,11 @@ class ScrtAgent extends Agent {
           if (!this.mnemonic) {
             // Generate fresh mnemonic
             this.mnemonic = bip39.generateMnemonic(bip39EN)
-            this.log.warnGeneratedMnemonic(this.mnemonic!)
+            this.log.warn.generatedMnemonic(this.mnemonic!)
           }
           wallet = new _SecretJS.Wallet(this.mnemonic)
         } else if (this.mnemonic) {
-          this.log.warnIgnoringMnemonic()
+          this.log.warn.ignoringMnemonic()
         }
         // Construct the API client
         const url = this.chain.url && removeTrailingSlash(this.chain.url)
@@ -219,7 +221,7 @@ class ScrtAgent extends Agent {
             this.fees = { upload: max, init: max, exec: max, send: max }
           } catch (e) {
             this.log.warn(e)
-            this.log.warnCouldNotFetchBlockLimit(Object.values(this.fees))
+            this.log.warn.defaultGas(Object.values(this.fees))
           }
         }
         // Override address and set name if missing.
@@ -360,14 +362,14 @@ class ScrtAgent extends Agent {
           this.log.info(`Testnet faucet:`, bold(`https://faucet.starshell.net/`))
         }
       }
-      throw Object.assign(new Error.UploadFailed(), result)
+      throw new Error.Failed.Upload(result)
     }
     const codeId = result.arrayLog
       ?.find((log: Log) => log.type === "message" && log.key === "code_id")
       ?.value
     if (!codeId) {
       this.log.error(`Code id not found in result.`)
-      throw Object.assign(new Error.UploadFailed(), { noCodeId: true })
+      throw new Error.Failed.Upload({ ...result, noCodeId: true })
     }
     return {
       chainId:  assertChain(this).id,
@@ -390,9 +392,9 @@ class ScrtAgent extends Agent {
     }
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) throw new Error.CantInit_NoCodeId()
-    if (!label) throw new Error.CantInit_NoLabel()
-    if (!initMsg) throw new Error.CantInit_NoMessage()
+    if (isNaN(code_id)) throw new Error.CantInit.NoCodeId()
+    if (!label) throw new Error.CantInit.NoLabel()
+    if (!initMsg) throw new Error.CantInit.NoMessage()
     if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
     const parameters = {
       sender:    this.address,
@@ -406,7 +408,7 @@ class ScrtAgent extends Agent {
     const result = await api.tx.compute.instantiateContract(parameters, { gasLimit })
     if (result.code !== 0) {
       this.log.error('Init failed:', { initMsg, result })
-      throw Object.assign(new Error.InitFailed(code_id), { result })
+      throw Object.assign(new Error.Failed.Init(code_id), { result })
     }
     type Log = { type: string, key: string }
     const address  = result.arrayLog!
@@ -450,7 +452,7 @@ class ScrtAgent extends Agent {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
-    if (memo) this.log.warnNoMemos()
+    if (memo) this.log.warn.noMemos()
     const tx = {
       sender:           this.address,
       contract_address: instance.address!,

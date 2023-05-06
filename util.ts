@@ -71,7 +71,7 @@ export class Config extends ConnectConfig {
     $S: DeployStoreClass<S>|undefined = this.deploy.Store as DeployStoreClass<S>
   ): S {
     if (!$S) throw new Error('Missing deployment store constructor')
-    return new $S(this.deploy.deployState)
+    return new $S(this.deploy.storePath)
   }
   /** Create a new Deployment.
     * If a deploy store is specified, populate it with stored data (if present).
@@ -154,14 +154,10 @@ export class DeployConfig extends BaseConfig {
   /** Whether to generate unsigned transactions for manual multisig signing. */
   multisig: boolean = this.getFlag('FADROMA_MULTISIG', () => false)
   /** Directory to store the receipts for the deployed contracts. */
-  deployState: string | null = this.getString('FADROMA_DEPLOY_STATE', () =>
+  storePath: string | null = this.getString('FADROMA_DEPLOY_STATE', () =>
     this.chainId ? $(this.project).in('state').in(this.chainId).in('deploy').path : null)
   /** Which implementation of the receipt store to use. */
-  deploymentFormat = this.getString('FADROMA_DEPLOY_STORE', () => 'YAML1') as DeploymentFormat
-  /** The deploy receipt store implementation selected by `deploymentFormat`. */
-  get Store (): DeployStoreClass<DeployStore>|undefined {
-    return DeployStore.variants[this.deploymentFormat]
-  }
+  format = this.getString('FADROMA_DEPLOY_FORMAT', () => 'YAML1') as DeploymentFormat
 
   constructor (
     readonly project: string,
@@ -171,6 +167,11 @@ export class DeployConfig extends BaseConfig {
   ) {
     super(environment)
     this.override(options)
+  }
+
+  /** The deploy receipt store implementation selected by `format`. */
+  get Store (): DeployStoreClass<DeployStore>|undefined {
+    return DeployStore.variants[this.format]
   }
 }
 
@@ -230,25 +231,21 @@ export class Console extends BaseConsole {
 
   build = ((self: Console)=>({
 
+    one: ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => self.log(
+      'Building', bold(crate), ...(revision === 'HEAD')
+        ? ['from working tree']
+        : ['from Git reference', bold(revision)]),
+    many: (sources: Template<any>[]) =>
+      sources.forEach(source=>self.build.one(source)),
     workspace: (mounted: Path|string, ref: string = HEAD) => self.log(
-      `Building contracts from workspace:`, bold(`${$(mounted).shortPath}/`),
-      `@`, bold(ref)
-    ),
-    one: ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => {
-      self.log('Building', bold(crate), ...
-        (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
-    },
-    many: (sources: Template<any>[]) => {
-      for (const source of sources) self.build.one(source)
-    },
-    found: ({ artifact }: Built) => {
-      self.log(`found at ${bold($(artifact!).shortPath)}`)
-    },
+      `building from workspace:`, bold(`${$(mounted).shortPath}/`),
+      `@`, bold(ref)),
     container: (root: string|Path, revision: string, cratesToBuild: string[]) => {
       root = $(root).shortPath
       const crates = cratesToBuild.map(x=>bold(x)).join(', ')
-      self.log(`Started building from ${bold(root)} @ ${bold(revision)}:`, crates)
-    },
+      self.log(`started building from ${bold(root)} @ ${bold(revision)}:`, crates) },
+    found: ({ artifact }: Built) =>
+      self.log(`found at ${bold($(artifact!).shortPath)}`),
 
   }))(this)
 
@@ -272,22 +269,13 @@ export class Console extends BaseConsole {
 
   deploy = ((self: Console)=>({
 
-    storeDoesNotExist: (path: string) => {
-      self.warn(`Deployment store "${path}" does not exist.`)
-    },
-    warnOverridingStore: (x: string) => {
-      self.warn(`Overriding store for ${x}`)
-    },
-    warnNoAgent: (name?: string) => {
-      return self.warn(
-        'No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'
-      )
-    },
-    deployment: (deployment: Deployment, name = deployment.name) => {
-      name ??= $(deployment.name).shortPath
-      super.deployment(deployment, name)
-    },
-    deploymentList: (chainId: string, deployments: DeployStore) => {
+    creating: (name: string) =>
+      self.log('Creating:', bold(name)),
+    location: (path: string) =>
+      self.log('Location:', bold(path)),
+    activating: (name: string) =>
+      self.log('Activate:', bold(name)),
+    list: (chainId: string, deployments: DeployStore) => {
       const list = deployments.list()
       if (list.length > 0) {
         self.info(`Deployments on chain ${bold(chainId)}:`)
@@ -302,24 +290,20 @@ export class Console extends BaseConsole {
           const count = Object.keys(deployment.state).length
           let info = `${bold(name.padEnd(maxLength))}`
           info = `${info} (${deployment.size} contracts)`
-          if (deployments.active && deployments.active.name === name) {
-            info = `${info} ${bold('selected')}`
-          }
+          if (deployments.activeName === name) info = `${info} ${bold('selected')}`
           self.info(` `, info)
         }
       } else {
         self.info(`No deployments on chain ${bold(chainId)}`)
       }
     },
-    creating: (name: string) => {
-      self.log('Creating:', bold(name))
-    },
-    location: (path: string) => {
-      self.log('Location:', bold(path))
-    },
-    activating: (name: string) => {
-      self.log('Activate:', bold(name))
-    },
+
+    warnStoreDoesNotExist: (path: string) =>
+      self.warn(`Deployment store "${path}" does not exist.`),
+    warnOverridingStore: (x: string) =>
+      self.warn(`Overriding store for ${x}`),
+    warnNoAgent: (name?: string) =>
+      self.warn('No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'),
 
   }))(this)
 
@@ -339,12 +323,10 @@ export class UploadError extends Error {
 }
 
 export class DeployError extends Error {
-  static DeploymentAlreadyExists = this.define('DeploymentAlreadyExists',
-    (name: string)=>`Deployment "${name}" already exists`
-  )
-  static DeploymentDoesNotExist = this.define('DeploymentDoesNotExist',
-    (name: string)=>`Deployment "${name}" does not exist`
-  )
+  static DeploymentAlreadyExists = this.define('DeploymentAlreadyExists', (name: string)=>
+    `Deployment "${name}" already exists`)
+  static DeploymentDoesNotExist = this.define('DeploymentDoesNotExist', (name: string)=>
+    `Deployment "${name}" does not exist`)
 }
 
 export class DevnetError extends Error {

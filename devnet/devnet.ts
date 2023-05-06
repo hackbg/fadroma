@@ -101,11 +101,7 @@ export abstract class Devnet implements DevnetHandle {
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
   genesisAccounts: Array<string> = [
-    'Admin',
-    'Alice',
-    'Bob',
-    'Charlie',
-    'Mallory'
+    'Admin', 'Alice', 'Bob', 'Charlie', 'Mallory'
   ]
   /** Save the info needed to respawn the node */
   save (extraData = {}) {
@@ -157,8 +153,6 @@ export abstract class Devnet implements DevnetHandle {
   ): C {
     return new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
   }
-  /** Regexp for non-printable characters. */
-  static RE_GARBAGE = /[\x00-\x1F]/
 }
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
@@ -213,20 +207,21 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
   }
 
   /** Filter logs when waiting for the ready phrase. */
-  static logFilter (data: string) {
-    return (
-      data.length > 0                            &&
-      !data.startsWith('TRACE ')                 &&
-      !data.startsWith('DEBUG ')                 &&
-      !data.startsWith('INFO ')                  &&
-      !data.startsWith('I[')                     &&
-      !data.startsWith('Storing key:')           &&
-      !Devnet.RE_GARBAGE.test(data)                     &&
-      !data.startsWith('{"app_message":')        &&
-      !data.startsWith('configuration saved to') &&
-      !(data.length>1000)
+  static logFilter = (data: string) => {
+    return ((data.length > 0 && data.length <= 1024)
+      && !data.startsWith('TRACE ')
+      && !data.startsWith('DEBUG ')
+      && !data.startsWith('INFO ')
+      && !data.startsWith('I[')
+      && !data.startsWith('Storing key:')
+      && !this.RE_NON_PRINTABLE.test(data)
+      && !data.startsWith('{"app_message":')
+      && !data.startsWith('configuration saved to')
     )
   }
+
+  /** Regexp for non-printable characters. */
+  static RE_NON_PRINTABLE = /[\x00-\x1F]/
 
   log = new Console('DevnetContainer')
 
@@ -269,8 +264,8 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
   get spawnEnv () {
     // Environment variables in devnet container
     const env: Record<string, string> = {
-      Verbose:         process.env.FADROMA_DEVNET_VERBOSE ? 'yes' : '',
-      ChainID:         this.chainId,
+      Verbose: process.env.FADROMA_DEVNET_VERBOSE ? 'yes' : '',
+      ChainID: this.chainId,
       GenesisAccounts: this.genesisAccounts.join(' '),
       _UID: String(process.env.FADROMA_DEVNET_UID??(process.getuid?process.getuid():1000)),
       _GID: String(process.env.FADROMA_DEVNET_GID??(process.getgid?process.getgid():1000)),
@@ -405,7 +400,7 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
 
     this.container = await this.dock!.container(id)
 
-    // check if contract is running
+    // check if container is running
     let running: boolean
     try {
       running = await this.container.isRunning

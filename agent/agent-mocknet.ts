@@ -18,27 +18,21 @@ export const Console = MocknetConsole
 class MocknetError extends BaseError {
   static ContextNoAddress = this.define('ContextNoAddress', () =>
     "MocknetBackend#context: Can't create contract environment without address")
-
   static NoInstance = this.define('NoInstance', () =>
     `MocknetBackend#getInstance: can't get instance without address`)
-
   static NoInstanceAtAddress = this.define('NoInstanceAtAddress', (address: string) =>
     `MocknetBackend#getInstance: no contract at ${address}`)
-
   static NoChain = this.define('NoInstance', () =>
     `MocknetAgent#chain is not set`)
-
   static NoBackend = this.define('NoInstance', () =>
     `Mocknet#backend is not set`)
-
+  static NoInitMsg = this.define('NoInitMsg',
+    () => 'Tried to instantiate a contract with undefined initMsg')
   static NoCWVersion = this.define('NoCWVersion',
     (_, __, ___) => 'Failed to detect CosmWasm API version',
     (err, wasmCode, wasmModule, wasmExports) => Object.assign(err, {
       wasmCode, wasmModule, wasmExports
     }))
-
-  static NoInitMsg = this.define('NoInitMsg',
-    () => 'Tried to instantiate a contract with undefined initMsg')
 }
 
 export const Error = MocknetError
@@ -623,8 +617,8 @@ export class MocknetContract<V extends CW> {
     const height = Math.floor(now/5000)
     const time = Math.floor(now/1000)
     const sent_funds: any[] = []
-    if (!this.address) throw new Error.NoAddress()
-    if (!this.codeHash) throw new Error.NoCodeHash()
+    if (!this.address) throw new Error.Missing.Address()
+    if (!this.codeHash) throw new Error.Missing.CodeHash()
     const { address, codeHash } = this
     if (this.cwVersion === '0.x') {
       return {

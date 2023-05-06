@@ -130,7 +130,7 @@ export class Uploader {
     return outputs
   }
   protected async fetch (path: string|URL): Promise<Uint8Array> {
-    if (!global.fetch) throw new Error.NoFetch()
+    if (!global.fetch) throw new Error.Unsupported.Fetch()
     const file = await fetch(new URL(path, 'file:'))
     return new Uint8Array(await file.arrayBuffer())
   }
@@ -185,3 +185,115 @@ export interface Uploaded extends Partial<Uploadable> {
   /** ID of upload transaction. */
   uploadTx?: TxHash
 }
+
+/// ---
+/// Legacy code from FSUploader.
+/// TODO review for anything useful.
+
+  /** Upload multiple contracts from the filesystem. */
+  /*async uploadMany (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
+    // TODO: Optionally bundle the upload messages in one transaction -
+    //       this will only work if they add up to less than the max API request size
+    //       (which is defined who knows where)
+    const self = this
+    if (!self.store) {
+      this.log.warn('Upload cache disabled. Reuploading.')
+      return this.uploadManySansCache(inputs)
+    }
+    const toUpload: Uploadable[] = []
+    const outputs:  Uploaded[]   = []
+    inputs.forEach(function collectInput (input: Uploadable, index: number) {
+      // Skip empty positions
+      if (!input) return
+      // Make sure local code hash is available to compare against the result of the upload
+      // If these two don't match, the local contract was rebuilt and needs to be reuploaded.
+      // If they still don't match after the reupload, there's a problem.
+      input = self.ensureLocalCodeHash(input)
+      // If there's no upload store, always upload
+      if (!self.store) return toUpload[index] = input
+      // If there's no local upload receipt, time to reupload.
+      const receiptPath = $(self.store.getUploadReceiptPath(input))
+      const relativePath = receiptPath.shortPath
+      if (!receiptPath.exists()) {
+        self.log.log('!!!', receiptPath.path, 'does not exist, uploading')
+        return toUpload[index] = input
+      }
+      // If there's a local upload receipt and it doesn't contain a code hash, time to reupload.
+      const receiptData = receiptPath.as(UploadStore_JSON1_Receipt).load()
+      const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
+      if (!receiptCodeHash) {
+        self.log.warn(`No code hash in ${bold(relativePath)}; uploading...`)
+        return toUpload[index] = input
+      }
+      // If there's a local upload receipt and it contains a different code hash
+      // from the one computed earlier, time to reupload.
+      if (receiptCodeHash !== input.codeHash) {
+        self.log.warn(`Different code hash from ${bold(relativePath)}; reuploading...`)
+        return toUpload[index] = input
+      }
+      // Otherwise reuse the code ID from the receipt.
+      const codeHash = input.codeHash!
+      const codeId   = String(receiptData.codeId)
+      const uploadTx = receiptData.transactionHash as string
+      outputs[index] = Object.assign(input, { codeHash, codeId, uploadTx })
+    })
+    // If any contracts are marked for uploading:
+    // - upload them and save the receipts
+    // - update outputs with data from upload results (containing new code ids)
+    if (toUpload.length > 0) {
+      const uploaded = await this.uploadManySansCache(toUpload)
+      for (const i in uploaded) {
+        if (!uploaded[i]) continue // skip empty ones, preserving index
+        const template = uploaded[i]
+        const receipt = $(this.store!, this.store!.getUploadReceiptName(toUpload[i]))
+        receipt.as(UploadStore_JSON1_Receipt).save(toUploadReceipt(template))
+        outputs[i] = template
+      }
+    }
+    return outputs
+  }*/
+  /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
+  /*async uploadManySansCache (inputs: Array<Uploadable>): Promise<Array<Uploaded>> {
+    const agent = assertAgent(this)
+    const outputs: Array<Uploaded> = []
+    for (const i in inputs) {
+      const input = inputs[i]
+      if (!input.artifact) throw new Error.Missing.Artifact()
+      const path = $(input.artifact!)
+      const log = new Console(path.shortPath)
+      const data = path.as(BinaryFile).load()
+      log(`size (uncompressed): ${data.length} bytes`)
+      input.codeHash ??= base16.encode(sha256(data))
+      log(`hash ${input.codeHash}`)
+      const result = await agent.upload(data, input)
+      const output = { ...input, ...result }
+      this.checkLocalCodeHash(input as Uploadable & { codeHash: CodeHash }, output)
+      outputs[i] = output
+      log('uploaded to code id', bold(`${result.codeId}`))
+      log.br()
+      await agent.nextBlock
+    }
+    return outputs
+  }*/
+  /** Make sure that the optional `codeHash` property of an `Uploadable` is populated, by
+    * computing the code hash of the locally available artifact that he `Uploadable` specifies.
+    * This is used to validate the code hash of the local file against the one returned by the
+    * upload transaction. */
+  //private ensureLocalCodeHash (input: Uploadable): Uploadable & { codeHash: CodeHash } {
+    //if (!input.codeHash) {
+      //const artifact = $(input.artifact!)
+      //this.log.warn('No code hash in artifact', bold(artifact.shortPath))
+      //try {
+        //const codeHash = this.hashPath(artifact)
+        //this.log.warn('Computed code hash:', bold(input.codeHash!))
+        //input = Object.assign(input, { codeHash })
+      //} catch (e: any) {
+        //this.log.warn('Could not compute code hash:', e.message)
+      //}
+    //}
+    //return input as Uploadable & { codeHash: CodeHash }
+  //}
+  /** Compute the SHA256 of a local file. */
+  //private hashPath (path: string|Path) {
+    //return $(path).as(BinaryFile).sha256
+  //}

@@ -97,7 +97,7 @@ export class ConnectConfig extends Config {
   ): C {
     if (!getChain) {
       getChain = this.chain
-      if (!getChain) throw new Error.NoChain()
+      if (!getChain) throw new Error.Missing.Chain()
     }
     if (typeof getChain === 'string') { // allow name to be passed
       getChain = Chain.variants[getChain]

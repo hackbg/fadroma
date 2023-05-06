@@ -1,5 +1,6 @@
 import { Config, Console, bold, colors, Error } from './util'
 import type { BuilderConfig } from './util'
+import type { Project } from './project'
 
 import type { Class } from '@fadroma/agent'
 import { Builder, Contract, HEAD } from '@fadroma/agent'
@@ -618,3 +619,66 @@ Object.assign(Builder.variants, {
   'raw': BuildRaw,
   'Raw': BuildRaw
 })
+
+export class ContractCrate {
+  constructor (
+    readonly project: Project,
+    /** Name of crate */
+    readonly name: string,
+    /** Features of the 'fadroma' dependency to enable. */
+    readonly fadromaFeatures: string[] = [ 'scrt' ],
+    /** Root directory of crate. */
+    readonly dir: OpaqueDirectory = project.dirs.src.in(name).as(OpaqueDirectory),
+    /** Crate manifest. */
+    readonly cargoToml: TextFile = dir.at('Cargo.toml').as(TextFile),
+    /** Directory containing crate sources. */
+    readonly src: OpaqueDirectory = dir.in('src').as(OpaqueDirectory),
+    /** Root module of Rust crate. */
+    readonly libRs: TextFile = src.at('lib.rs').as(TextFile)
+  ) {}
+  create () {
+    this.cargoToml.save([
+      `[package]`,
+      `name = "${this.name}"`,
+      `version = "0.0.0"`,
+      `edition = "2021"`,
+      `authors = []`,
+      `keywords = ["fadroma"]`,
+      `description = ""`,
+      `readme = "README.md"`, ``,
+      `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
+      `[dependencies]`,
+      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "master", features = ${JSON.stringify(this.fadromaFeatures)} }`,
+      `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
+    ].join('\n'))
+    this.src.make()
+    this.libRs.save([
+      `//! Created by [Fadroma](https://fadroma.tech).`, ``,
+      `#[fadroma::dsl::contract] pub mod contract {`,
+      `    use fadroma::{*, dsl::*, prelude::*};`,
+      `    impl Contract {`,
+      `        #[init(entry_wasm)]`,
+      `        pub fn new () -> Result<Response, StdError> {`,
+      `            Ok(Response::default())`,
+      `        }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
+      `    }`,
+      `}`,
+    ].join('\n'))
+  }
+}

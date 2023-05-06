@@ -1,11 +1,11 @@
 import { Config, Console, colors, Error, DeployError } from './util'
-import { getBuilder } from './build'
+import { getBuilder, ContractCrate } from './build'
 import { getUploader } from './upload'
 
 import type {
   Builder, Buildable, Built, Uploader, Chain,
   CodeId, CodeHash, ChainId, Uploadable, Uploaded,
-  DeploymentClass,
+  DeploymentClass, DeployStoreClass,
 } from '@fadroma/agent'
 import {
   Deployment, DeployStore,
@@ -15,11 +15,10 @@ import {
 
 import { CommandContext } from '@hackbg/cmds'
 import $, {
-  Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory,
+  Path, YAMLDirectory, YAMLFile, TextFile, OpaqueDirectory,
   OpaqueFile, TOMLFile, JSONFile, JSONDirectory
 } from '@hackbg/file'
 
-import YAML, { loadAll, dump } from 'js-yaml'
 import Case from 'case'
 import prompts from 'prompts'
 
@@ -148,28 +147,17 @@ export class Project extends CommandContext {
   get deployment () {
     return this.getDeployment()
   }
+  /** The deploy receipt store implementation selected by `format`. */
+  get DeployStore (): DeployStoreClass<DeployStore> {
+    const variant = DeployStore.variants[this.config.deploy.format]
+    if (!variant) throw new Error.Missing.DeployFormat()
+    return variant
+  }
   /** @returns an up-to-date DeployStore */
   get deployStore () {
-    return this.config.getDeployStore()
+    return new (this.DeployStore)(this.config.deploy.storePath)
   }
 
-  runShellCommands = (...cmds: string[]) =>
-    cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
-  runScript = (script?: string, ...args: string[]) => {
-    if (!script)
-      throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
-    if (!$(script).exists())
-      throw new Error(`${script} doesn't exist`)
-    this.log.log(`Running ${script}`)
-    //@ts-ignore
-    return import($(script).path).then(script=>{
-      if (typeof script.default === 'function') {
-        return script.default(this, ...args)
-      } else {
-        this.log.info(`${$(script).shortPath} does not have a default export.`)
-      }
-    })
-  }
   addCrate = () => {
     throw new Error('unimplemented')
   }
@@ -283,8 +271,7 @@ export class Project extends CommandContext {
     return await this.uploader.uploadMany(templates as Uploadable[])
   }
   deploy = async (...args: string[]) => {
-    const deployment = this.deployment
-    if (!deployment) throw new Error.NoDeployment()
+    const deployment: Deployment = this.deployment || await this.createDeployment()
     this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
     await deployment.deploy()
     await this.log.deployment(deployment)
@@ -297,72 +284,62 @@ export class Project extends CommandContext {
   }
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
-  getDeployment = (name?: string): InstanceType<typeof this.Deployment>|null => {
+  getDeployment = (name?: string, contracts: Record<string, Partial<AnyContract>> = {}): InstanceType<typeof this.Deployment> => {
     return this.config.getDeployment(this.Deployment, {
       agent:     this.uploader.agent ??= this.config.getAgent(),
       chain:     this.uploader.agent.chain,
       builder:   this.builder,
       uploader:  this.uploader,
       workspace: this.root.path,
-      store:     this.deployStore
+      store:     this.deployStore,
+      contracts
     })
   }
   listDeployments = () =>
-    this.log.deploy.deploymentList(
-      this.config.chainId??'(unspecified)',
-      this.config.getDeployStore())
+    this.log.deploy.deploymentList(this.config.chainId??'(unspecified)', this.deployStore)
   createDeployment = (name: string = timestamp()) =>
-    this.config.getDeployStore().create(name)
-      .then(()=>this.selectDeployment(name))
-  selectDeployment = async (name?: string): Promise<DeploymentState|null> => {
+    this.deployStore.create(name).then(()=>this.selectDeployment(name))
+  selectDeployment = async (name?: string): Promise<Deployment> => {
     const store = this.deployStore
+    console.log(store, store.list())
     const list = store.list()
     if (list.length < 1) throw new Error('No deployments in this store')
-    let deployment
+    let deployment: Deployment
     if (name) {
-      deployment = await store.select(name)
+      return this.getDeployment(name, { contracts: await store.select(name) })
     } else if (process.stdout.isTTY) {
       name = await ProjectWizard.selectDeploymentFromStore(store)
       if (name) {
-        return await store.select(name)
+        return this.getDeployment(name, { contracts: await store.select(name) })
       } else {
-        return null
+        throw new Error(`No such deployment: ${name}`)
       }
-    } else if (store.active) {
-      deployment = store.active
+    } else if (store.activeName) {
+      return this.getDeployment(store.activeName, await store.load(store.activeName)!)
     } else {
       throw new Error('No active deployment in this store and no name passed')
     }
-    return deployment || null
   }
   exportDeployment = async (path?: string) => {
     const store = this.deployStore
-    const name  = this.deployStore.activeName
-    if (!name) throw new Error.Deploy.NoDeployment()
+    const name = this.deployStore.activeName
+    if (!name) throw new Error.Missing.Deployment()
     const state = store.load(name)
-    if (!state) throw new Error.Deploy.NoDeployment()
+    if (!state) throw new Error.Missing.Deployment()
     const deployment = this.deployment
-    if (!deployment) throw new Error.Deploy.NoDeployment()
+    if (!deployment) throw new Error.Missing.Deployment()
     const jsonFile = `${name}_@_${timestamp()}.json`
     this.log.log(`Exporting deployment`, deployment.name, 'to', jsonFile)
     this.log.deployment(deployment)
-    for (const [name, contract] of Object.entries(deployment.state)) {
-      state[name] = {
-        ...contract,
-        context:  undefined,
-        builder:  undefined,
-        uploader: undefined,
-        agent:    undefined
-      }
-    }
-    const file = $(path??(deployment?.store as any)?.root?.path??'')
-      .at(jsonFile)
-      .as(JSONFile)
-    file.save(state)
-    this.log.info(
-      'Wrote', Object.keys(state).length,
-      'contracts to', bold(file.shortPath)
-    )
+    const undef = { context: undefined, builder: undefined, uploader: undefined, agent: undefined }
+    const snapshot = Object.entries(deployment.contracts)
+      .reduce((snapshot, [name, contract]: [string, any])=>Object.assign(snapshot, {
+        [name]: { ...contract, ...undef }
+      }), {})
+    // Serialize and write the deployment.
+    const file = $(path??(deployment?.store as any)?.root?.path??'').at(jsonFile).as(JSONFile)
+    file.makeParent().save(snapshot)
+    this.log.info('saving', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
   resetDevnet = async () => {
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
@@ -426,25 +403,20 @@ export class Project extends CommandContext {
           `  })`
         ].join('\n')),
         '',
-        `  // Add contract with::`,
+        `  // Define your contract roles here with:`,
         `  //   contract = this.contract({...})`, `  //`,
-        `  // Add contract from fadroma.json with:`,
-        `  //   contract = this.template('name').instance({...})`,
+        `  // See https://fadroma.tech/deploy.html`,
+        `  // for more info about how to populate this section.`,
         '',
         '}',
       ].join('\n'),
       ...Object.keys(templates).map(x=>Case.pascal(x)).map(Contract => [
         `export class ${Contract} extends Client {`,
         `  // Implement methods calling the contract here:`, `  //`,
-        `  // async myTx (arg1, arg2) {`,
-        `  //   return await this.execute({ my_tx: { arg1, arg2 }})`,
-        `  // }`,
-        `  // async myQuery (arg1, arg2) {`,
-        `  //   return await this.query({ my_query: { arg1, arg2 } })`,
-        `  // }`, `  //`,
-        `  // or like this:`, `  //`,
         `  // myTx = (arg1, arg2) => this.execute({my_tx:{arg1, arg2}})`,
         `  // myQuery = (arg1, arg2) => this.query({my_query:{arg1, arg2}})`, `  //`,
+        `  // See https://fadroma.tech/agent.html#client`,
+        `  // for more info about how to populate this section.`,
         `}\n`
       ].join('\n'))
     ].join('\n\n'))
@@ -513,7 +485,6 @@ export class Project extends CommandContext {
     this.log("created at", this.root.shortPath)
     return this
   }
-
   /** Create a Git repository in the project directory and make an initial commit.
     * @returns this */
   gitSetup = () => {
@@ -526,15 +497,15 @@ export class Project extends CommandContext {
     )
     return this
   }
-
+  /** @returns this */
   gitCommit = (message: string = "") => {
     this.runShellCommands(
       'git --no-pager add .',
       'git --no-pager status',
       `git --no-pager commit -m ${message}`,
     )
+    return this
   }
-
   /** @returns this */
   npmInstall = ({ npm, yarn, pnpm }: any = toolVersions()) => {
     if (pnpm) {
@@ -546,80 +517,27 @@ export class Project extends CommandContext {
     }
     return this
   }
-
   /** @returns this */
   cargoUpdate = () => {
     this.runShellCommands('cargo update')
     return this
   }
-
-}
-
-export class ContractCrate {
-  constructor (
-    readonly project: Project,
-    /** Name of crate */
-    readonly name: string,
-    /** Features of the 'fadroma' dependency to enable. */
-    readonly fadromaFeatures: string[] = [ 'scrt' ],
-    /** Root directory of crate. */
-    readonly dir: OpaqueDirectory = project.dirs.src.in(name).as(OpaqueDirectory),
-    /** Crate manifest. */
-    readonly cargoToml: TextFile = dir.at('Cargo.toml').as(TextFile),
-    /** Directory containing crate sources. */
-    readonly src: OpaqueDirectory = dir.in('src').as(OpaqueDirectory),
-    /** Root module of Rust crate. */
-    readonly libRs: TextFile = src.at('lib.rs').as(TextFile)
-  ) {}
-  create () {
-    this.cargoToml.save([
-      `[package]`,
-      `name = "${this.name}"`,
-      `version = "0.0.0"`,
-      `edition = "2021"`,
-      `authors = []`,
-      `keywords = ["fadroma"]`,
-      `description = ""`,
-      `readme = "README.md"`, ``,
-      `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
-      `[dependencies]`,
-      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "master", features = ${JSON.stringify(this.fadromaFeatures)} }`,
-      `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
-    ].join('\n'))
-    this.src.make()
-    this.libRs.save([
-      `//! Created by [Fadroma](https://fadroma.tech).`, ``,
-      `fadroma::entrypoint! {`,
-      `    init:    instantiate,`,
-      `    execute: execute,`,
-      `    query:   query`,
-      `}`, '', `pub use contract::*;`, '',
-      `#[fadroma::dsl::contract] pub mod contract {`,
-      `    use fadroma::{*, dsl::*, prelude::*};`,
-      `    impl Contract {`,
-      `        #[init(entry)]`,
-      `        pub fn new () -> Result<Response, StdError> {`,
-      `            Ok(Response::default())`,
-      `        }`,
-      `        // #[execute]`,
-      `        // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-      `        //     Ok(Response::default())`,
-      `        // }`,
-      `        // #[execute]`,
-      `        // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-      `        //     Ok(Response::default())`,
-      `        // }`,
-      `        // #[query]`,
-      `        // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-      `        //     Ok(())`, '',
-      `        // }`,
-      `        // #[query]`,
-      `        // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-      `        //     Ok(())`, '',
-      `        // }`,
-      `    }`,
-      `}`,
-    ].join('\n'))
+  /** Run one or more external commands in the project root. */
+  runShellCommands = (...cmds: string[]) =>
+    cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
+  /** Load and execute the default export of an ES module. */
+  runScript = (script?: string, ...args: string[]) => {
+    if (!script) throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
+    if (!$(script).exists()) throw new Error(`${script} doesn't exist`)
+    this.log.log(`Running ${script}`)
+    //@ts-ignore
+    return import($(script).path).then(script=>{
+      if (typeof script.default === 'function') {
+        return script.default(this, ...args)
+      } else {
+        this.log.info(`${$(script).shortPath} does not have a default export.`)
+      }
+    })
   }
 }
 
@@ -822,7 +740,9 @@ export async function askSelect <T> (message: string, choices: any[]) {
   process.exit(1)
 }
 
-export async function askUntilDone <S> (state: S, selector: (state: S)=>Promise<Function|null>|Function|null) {
+export async function askUntilDone <S> (
+  state: S, selector: (state: S)=>Promise<Function|null>|Function|null
+) {
   let action = null
   while (typeof (action = await Promise.resolve(selector(state))) === 'function') {
     await Promise.resolve(action(state))
@@ -869,128 +789,3 @@ export const tool = (dependency: string|null, command: string): string|null => {
     return version
   }
 }
-
-export {
-  DeployStore,
-  YAML,
-}
-
-/** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
-  * Each deployment is represented by 1 multi-document YAML file, where every
-  * document is delimited by the `\n---\n` separator and represents a deployed
-  * smart contract. */
-export class DeployStore_YAML1 extends DeployStore {
-  log = new Console('DeployStore (YAML1)')
-  /** Root directory of deploy store. */
-  root: YAMLDirectory<unknown>
-  /** Name of symlink pointing to active deployment, without extension. */
-  KEY = '.active'
-
-  constructor (
-    storePath: string|Path|YAMLDirectory<unknown>,
-    public defaults: Partial<Deployment> = {},
-  ) {
-    super()
-    const root = this.root = $(storePath).as(YAMLDirectory)
-    Object.defineProperty(this, 'root', {
-      enumerable: true,
-      get () { return root }
-    })
-  }
-
-  get [Symbol.toStringTag]() { return `${this.root?.shortPath??'-'}` }
-
-  /** Load the deployment activeted by symlink */
-  get active () {
-    return this.load(this.KEY)
-  }
-  get activeName (): string|null {
-    let file = this.root.at(`${this.KEY}.yml`)
-    if (!file.exists()) return null
-    return basename(file.real.name, '.yml')
-  }
-  /** Create a deployment with a specific name. */
-  async create (name: string = timestamp()): Promise<DeploymentState> {
-    this.log.deploy.creating(name)
-    const path = this.root.at(`${name}.yml`)
-    if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.deploy.location(path.shortPath)
-    path.makeParent().as(YAMLFile).save(undefined)
-    return this.load(name)!
-  }
-  /** Make the specified deployment be the active deployment. */
-  async select (name: string = this.KEY): Promise<DeploymentState> {
-    let selected = this.root.at(`${name}.yml`)
-    if (selected.exists()) {
-      const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
-      if (name === this.KEY) name = active.real.name
-      name = basename(name, '.yml')
-      active.relLink(`${name}.yml`)
-      this.log.deploy.activating(selected.real.name)
-      return this.load(name)!
-    }
-    if (name === this.KEY) {
-      const deployment = new Deployment()
-      const d = await this.create(deployment.name)
-      return this.select(deployment.name)
-    }
-    throw new DeployError.DeploymentDoesNotExist(name)
-  }
-  /** List the deployments in the deployments directory. */
-  list (): string[] {
-    if (this.root.exists()) {
-      const list = this.root.as(OpaqueDirectory).list() ?? []
-      return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
-    } else {
-      this.log.deploy.storeDoesNotExist(this.root.shortPath)
-      return []
-    }
-  }
-  /** Get the contents of the named deployment, or null if it doesn't exist. */
-  load (name: string): DeploymentState|null {
-    const file = this.root.at(`${name}.yml`)
-    this.log.log('Loading deployment', name, 'from', file.shortPath)
-    if (!file.exists()) {
-      this.log.error(`${file.shortPath} does not exist.`)
-      return null
-    }
-    name = basename(file.real.name, '.yml')
-    const state: DeploymentState = {}
-    for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
-      if (!receipt.name) continue
-      state[receipt.name] = receipt
-    }
-    return state
-  }
-  /** Save a deployment's state to this store. */
-  save (name: string, state: DeploymentState = {}) {
-    this.root.make()
-    const file = this.root.at(`${name}.yml`)
-    // Serialize data to multi-document YAML
-    let output = ''
-    for (let [name, data] of Object.entries(state)) {
-      output += '---\n'
-      name ??= data.name!
-      if (!name) throw new Error('Deployment: no name')
-      const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
-      data = JSON.parse(JSON.stringify({
-        name,
-        label:    receipt.label,
-        address:  receipt.address,
-        codeHash: receipt.codeHash,
-        codeId:   receipt.label,
-        crate:    receipt.crate,
-        revision: receipt.revision,
-        ...receipt,
-        deployment: undefined
-      }))
-      const daDump = dump(data, { noRefs: true })
-      output += alignYAML(daDump)
-    }
-    file.as(TextFile).save(output)
-    return this
-  }
-
-}
-
-Object.assign(DeployStore.variants, { YAML1: DeployStore_YAML1 })
