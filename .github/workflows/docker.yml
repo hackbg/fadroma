@@ -4,6 +4,7 @@ on: [push]
 jobs:
 
   build-builder:
+    if: "!startsWith(github.ref, 'refs/tags/v')"
     name: build the build container image
     runs-on: ubuntu-latest
     steps:
@@ -24,6 +25,7 @@ jobs:
       - run: echo ${{ steps.docker_build.outputs.digest }}
 
   build-devnet:
+    if: "!startsWith(github.ref, 'refs/tags/v')"
     name: build the devnet container images
     runs-on: ubuntu-latest
     steps:
