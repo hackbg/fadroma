@@ -1,7 +1,7 @@
 import { DevnetContainer } from './devnet/devnet'
 import type { DevnetPlatform } from './devnet/devnet'
 import { FSUploader } from './upload'
-import { getBuilder, buildPackage } from './build'
+import { getBuilder } from './build'
 
 import {
   Builder, Deployment, DeployStore, ChainMode, Uploader,
@@ -22,13 +22,24 @@ import { Engine, Docker, Podman } from '@hackbg/dock'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+/** Path to this package. Used to find the build script, dockerfile, etc.
+  * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
+//@ts-ignore 
+export const thisPackage = dirname(fileURLToPath(import.meta.url))
+
 export class Config extends ConnectConfig {
-  /** Project root. Defaults to current working directory. */
-  project: string = this.getString('FADROMA_PROJECT', ()=>this.environment.cwd)
+  /** Project file. Defaults to `node_modules/fadroma/index.ts`, which just runs the Fadroma CLI
+    * and can create a project. Projects are expected to set this var to their own root file,
+    * which does `export default class MyProject extends Fadroma.Project { ... }` and points to
+    * the Deployment class. */
+  project: string = this.getString('FADROMA_PROJECT', ()=>$(process.cwd(), 'ops.ts').path)
+  /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
+    * Defaults to parent directory of FADROMA_PROJECT. */
+  workspace: string = this.getString('FADROMA_WORKSPACE', ()=>dirname(this.project))
   /** License token. */
   license: string = this.getString('FADROMA_LICENSE', ()=>'unlicensed')
   /** Build options. */
-  build:  BuilderConfig
+  build: BuilderConfig
   /** Upload options. */
   upload: UploadConfig
   /** Deploy options. */
@@ -48,9 +59,9 @@ export class Config extends ConnectConfig {
     super(environment)
     const { build, upload, deploy, devnet, ...rest } = options
     this.override(rest)
-    this.build = new BuilderConfig(this.project, build, environment)
-    this.upload = new UploadConfig(this.project, this.chainId, upload, environment)
-    this.deploy = new DeployConfig(this.project, this.chainId, deploy, environment)
+    this.build = new BuilderConfig(dirname(this.project), build, environment)
+    this.upload = new UploadConfig(dirname(this.project), this.chainId, upload, environment)
+    this.deploy = new DeployConfig(dirname(this.project), this.chainId, deploy, environment)
     this.devnet = new DevnetConfig(devnet, environment)
   }
   /** @returns a configured builder. */
@@ -119,7 +130,7 @@ export class BuilderConfig extends BaseConfig {
     $(this.project).in('wasm').path)
   /** Script that runs inside the build container, e.g. build.impl.mjs */
   script: string = this.getString('FADROMA_BUILD_SCRIPT', ()=>
-    $(buildPackage).at('build.impl.mjs').path)
+    $(thisPackage).at('build.impl.mjs').path)
   /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
   toolchain: string = this.getString('FADROMA_RUST', ()=>'')
   /** Don't run "git fetch" during build. */
@@ -137,7 +148,7 @@ export class BuilderConfig extends BaseConfig {
     ()=>'ghcr.io/hackbg/fadroma:master')
   /** Dockerfile to build the build image if not downloadable. */
   dockerfile: string = this.getString('FADROMA_BUILD_DOCKERFILE',
-    ()=>$(buildPackage).at('Dockerfile').path)
+    ()=>$(thisPackage).at('Dockerfile').path)
 
   constructor (
     readonly project: string,
@@ -221,94 +232,6 @@ export class UploadConfig extends BaseConfig {
   }
 }
 
-export { bold, colors }
-
-export class Console extends BaseConsole {
-
-  constructor (public label = '@hackbg/fadroma') {
-    super()
-  }
-
-  build = ((self: Console)=>({
-
-    one: ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => self.log(
-      'Building', bold(crate), ...(revision === 'HEAD')
-        ? ['from working tree']
-        : ['from Git reference', bold(revision)]),
-    many: (sources: Template<any>[]) =>
-      sources.forEach(source=>self.build.one(source)),
-    workspace: (mounted: Path|string, ref: string = HEAD) => self.log(
-      `building from workspace:`, bold(`${$(mounted).shortPath}/`),
-      `@`, bold(ref)),
-    container: (root: string|Path, revision: string, cratesToBuild: string[]) => {
-      root = $(root).shortPath
-      const crates = cratesToBuild.map(x=>bold(x)).join(', ')
-      self.log(`started building from ${bold(root)} @ ${bold(revision)}:`, crates) },
-    found: ({ artifact }: Built) =>
-      self.log(`found at ${bold($(artifact!).shortPath)}`),
-
-  }))(this)
-
-  devnet = ((self: Console)=>({
-
-    loadingState: (chainId1: string, chainId2: string) =>
-      self.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`),
-    loadingFailed: (path: string) =>
-      self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
-    loadingRejected: (path: string) =>
-      self.log(`${path} does not exist.`),
-    isNowRunning: (devnet: { chainId: string, port: any, container: { id: string }|null }) => {
-      const port = String(devnet.port)
-      const id = devnet.container!.id.slice(0,8)
-      self.info(`Devnet is running on port ${bold(port)} from container ${bold(id)}.`)
-      self.info('Use self command to reset it:')
-      self.info(`  docker kill ${id} && sudo rm -rf state/${devnet.chainId??'fadroma-devnet'}`)
-    }
-
-  }))(this)
-
-  deploy = ((self: Console)=>({
-
-    creating: (name: string) =>
-      self.log('Creating:', bold(name)),
-    location: (path: string) =>
-      self.log('Location:', bold(path)),
-    activating: (name: string) =>
-      self.log('Activate:', bold(name)),
-    list: (chainId: string, deployments: DeployStore) => {
-      const list = deployments.list()
-      if (list.length > 0) {
-        self.info(`Deployments on chain ${bold(chainId)}:`)
-        let maxLength = 0
-        for (let name of list) {
-          if (name === (deployments as any).KEY) continue
-          maxLength = Math.max(name.length, maxLength)
-        }
-        for (let name of list) {
-          if (name === (deployments as any).KEY) continue
-          const deployment = deployments.load(name)!
-          const count = Object.keys(deployment.state).length
-          let info = `${bold(name.padEnd(maxLength))}`
-          info = `${info} (${deployment.size} contracts)`
-          if (deployments.activeName === name) info = `${info} ${bold('selected')}`
-          self.info(` `, info)
-        }
-      } else {
-        self.info(`No deployments on chain ${bold(chainId)}`)
-      }
-    },
-
-    warnStoreDoesNotExist: (path: string) =>
-      self.warn(`Deployment store "${path}" does not exist.`),
-    warnOverridingStore: (x: string) =>
-      self.warn(`Overriding store for ${x}`),
-    warnNoAgent: (name?: string) =>
-      self.warn('No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'),
-
-  }))(this)
-
-}
-
 export class Error extends BaseError {
   static Build:  typeof BuildError
   static Upload: typeof UploadError
@@ -351,3 +274,91 @@ Object.assign(Error, {
 })
 
 export { hideProperties } from '@fadroma/agent'
+
+export { bold, colors }
+
+export class Console extends BaseConsole {
+
+  constructor (public label = '@hackbg/fadroma') {
+    super()
+  }
+
+  build = ((self: Console)=>({
+
+    one: ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => self.log(
+      'Building', bold(crate), ...(revision === 'HEAD')
+        ? ['from working tree']
+        : ['from Git reference', bold(revision)]),
+    many: (sources: Template<any>[]) =>
+      sources.forEach(source=>self.build.one(source)),
+    workspace: (mounted: Path|string, ref: string = HEAD) => self.log(
+      `building from workspace:`, bold(`${$(mounted).shortPath}/`),
+      `@`, bold(ref)),
+    container: (root: string|Path, revision: string, cratesToBuild: string[]) => {
+      root = $(root).shortPath
+      const crates = cratesToBuild.map(x=>bold(x)).join(', ')
+      self.log(`started building from ${bold(root)} @ ${bold(revision)}:`, crates) },
+    found: ({ artifact }: Built) =>
+      self.log(`found at ${bold($(artifact!).shortPath)}`),
+
+  }))(this)
+
+  deploy = ((self: Console)=>({
+
+    creating: (name: string) =>
+      self.log('creating', bold(name)),
+    location: (path: string) =>
+      self.log('location', bold(path)),
+    activating: (name: string) =>
+      self.log('activate', bold(name)),
+    list: (chainId: string, deployments: DeployStore) => {
+      const list = deployments.list()
+      if (list.length > 0) {
+        self.info(`deployments on ${bold(chainId)}:`)
+        let maxLength = 0
+        for (let name of list) {
+          if (name === (deployments as any).KEY) continue
+          maxLength = Math.max(name.length, maxLength)
+        }
+        for (let name of list) {
+          if (name === (deployments as any).KEY) continue
+          const deployment = deployments.load(name)!
+          const count = Object.keys(deployment.state).length
+          let info = `${bold(name.padEnd(maxLength))}`
+          info = `${info} (${deployment.size} contracts)`
+          if (deployments.activeName === name) info = `${info} ${bold('selected')}`
+          self.info(` `, info)
+        }
+      } else {
+        self.info(`no deployments on ${bold(chainId)}`)
+      }
+    },
+
+    warnStoreDoesNotExist: (path: string) =>
+      self.warn(`deployment store "${path}" does not exist.`),
+    warnOverridingStore: (x: string) =>
+      self.warn(`overriding store for ${x}`),
+    warnNoAgent: (name?: string) =>
+      self.warn('no agent. authenticate by exporting FADROMA_MNEMONIC in your shell.'),
+
+  }))(this)
+
+  devnet = ((self: Console)=>({
+
+    loadingState: (chainId1: string, chainId2: string) =>
+      self.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`),
+    loadingFailed: (path: string) =>
+      self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
+    loadingRejected: (path: string) =>
+      self.log(`${path} does not exist.`),
+    isNowRunning: ({ chainId, port, container: { id } }: any) => self
+      .info(`running on port`, bold(String(port)))
+      .info(`from container`, bold(id.slice(0,8)))
+      .info('manual reset with:').info(`$`,
+        `docker kill`, id.slice(0,8), `&&`,
+        `docker rm`, id.slice(0,8), `&&`,
+        `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
+
+  }))(this)
+
+}

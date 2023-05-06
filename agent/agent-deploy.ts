@@ -161,26 +161,54 @@ export class Deployment {
     return this.chain?.isMocknet ?? false
   }
   /** Print the status of this deployment. */
-  async showStatus () {
+  showStatus () {
     this.log.deployment(this)
+    return this
   }
   /** @returns Promise<this> */
   async deploy () {
-    const log = new Console(`Deploy: ${this.name}`)
+    const log = new Console(this.name)
     const contracts = Object.values(this.contracts)
-    if (contracts.length > 0) {
-      log.log('Making sure all contracts are built')
-      if (this.builder) await this.builder.buildMany(contracts as Buildable[])
-      log.log('Making sure all contracts are uploaded')
-      if (this.uploader) await this.uploader.uploadMany(contracts as Uploadable[])
-      // FIXME PERF: bundle concurrent inits into a single transaction
-      for (const contract of contracts) await contract.deployed
-      log.log('Deployed', contracts.length, 'contracts')
-    } else {
-      log.warn('No contracts defined in deployment')
+    if (contracts.length <= 0) {
+      log.warn('empty deployment, not saving')
+      return this
     }
-    this.save()
+    const toDeploy = contracts.filter(c=>!c.address)
+    if (toDeploy.length <= 0) {
+      log.log('all contracts are deployed')
+      return this
+    }
+    log.log(`${toDeploy.length} contracts not deployed`)
+    await this.buildContracts(toDeploy)
+    await this.uploadContracts(toDeploy)
+    log.log(`instantiating ${toDeploy.length} contracts`)
+    // FIXME PERF: bundle concurrent inits into a single transaction
+    for (const contract of contracts) await contract.deployed
+    log.log('deployed', contracts.length, 'contracts')
+    return this.save()
+  }
+  /** Save current deployment state to deploy store. */
+  async save (store: DeployStore|undefined = this.store): Promise<this> {
+    if (!store) return (this.log.warn.saveNoStore(this.name), this)
+    if (!this.chain) return (this.log.warn.saveNoChain(this.name), this)
+    if (this.chain.isMocknet) return (this.log.warn.notSavingMocknet(this.name), this)
+    this.log.saving(this.name, this.contracts)
+    store.save(this.name, this.contracts)
     return this
+  }
+  /** Specify a contract template.
+    * @returns a callable instance of `Template` bearing the specified parameters.
+    * Calling it will build and upload the template. */
+  template <C extends Client> (opts: Partial<Template<C>> = {}): Template<C> {
+    return new Template({
+      workspace: this.workspace,
+      revision:  this.revision ?? HEAD,
+      agent:     this.agent,
+      builder:   this.builder,
+      uploader:  this.uploader,
+      ...opts,
+      context:   this
+    })
   }
   /** Specify a contract.
     * @returns a callable instance of `Contract` bearing the specified parameters.
@@ -256,34 +284,14 @@ export class Deployment {
   /** Compile multiple contracts. */
   buildContracts (contracts: (string|AnyContract)[]) {
     if (!this.builder) throw new Error.Missing.Builder()
+    this.log(`making sure all ${contracts.length} contracts are built`)
     return this.builder.buildMany(contracts as unknown as Buildable[])
   }
   /** Upload multiple contracts. */
   uploadContracts (contracts: AnyContract[]) {
     if (!this.uploader) throw new Error.Missing.Uploader()
+    this.log(`making sure ${contracts.length} contract(s) are uploaded`)
     return this.uploader.uploadMany(contracts as unknown as Uploadable[])
-  }
-  /** Specify a contract template.
-    * @returns a callable instance of `Template` bearing the specified parameters.
-    * Calling it will build and upload the template. */
-  template <C extends Client> (opts: Partial<Template<C>> = {}): Template<C> {
-    return new Template({
-      workspace: this.workspace,
-      revision:  this.revision ?? HEAD,
-      agent:     this.agent,
-      builder:   this.builder,
-      uploader:  this.uploader,
-      ...opts,
-      context:   this
-    })
-  }
-  /** Save current deployment state to deploy store. */
-  async save (store: DeployStore|undefined = this.store) {
-    if (!store) return this.log.warn.saveNoStore(this.name)
-    if (!this.chain) return this.log.warn.saveNoChain(this.name)
-    if (this.chain.isMocknet) return this.log.warn.notSavingMocknet(this.name)
-    this.log.saving(this.name, this.contracts)
-    store.save(this.name, this.contracts)
   }
 }
 
@@ -667,4 +675,3 @@ export function toInstanceReceipt (
     suffix:  c.suffix
   }
 }
-

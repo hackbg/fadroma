@@ -124,7 +124,7 @@ class FadromaError extends Error {
       static Validation = this.define('Validation', (x: string, y: string, a: any, b: any) =>
         `Wrong ${x}: ${y} was passed ${a} but fetched ${b}`)
       static Upload = this.define('Upload', (args) =>
-        'Upload failed.', (args) => Object.assign(this, args||{}))
+        'Upload failed.', (err, args) => Object.assign(err, args||{}))
       static Init = this.define('Init', (id: any) =>
         `Instantiation of code id ${id} failed.`)
       static DeployMany = this.define('DeployMany', (e: any) =>
@@ -241,9 +241,9 @@ class FadromaConsole extends Console {
   }
 
   saving = (name: string, state: object) =>
-    this.log('Saving deployment', bold(name))
-  waitingForNextBlock = (height: number) =>
-    this.log(`Waiting for block height to increment beyond ${height}...`)
+    this.log('saving')
+  waitingForBlock = (height: number, elapsed?: number) =>
+    this.log(`waiting for block > ${height}...`, elapsed ? `${elapsed}ms elapsed` : '')
   confirmCodeHash = (address: string, codeHash: string) =>
     this.info(`Confirmed code hash of ${address}: ${codeHash}`)
   foundDeployedContract (address: Address, name: Name) {

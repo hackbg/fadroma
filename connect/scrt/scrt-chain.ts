@@ -33,7 +33,7 @@ class ScrtChain extends Chain {
     mode: Chain.Mode.Mainnet
   }) {
     super(options)
-    this.log.label = `@fadroma/scrt: ${this.id}`
+    this.log.label = `${this.id}`
     // Optional: Allow a different API-compatible version of SecretJS to be passed
     this.SecretJS = options.SecretJS ?? this.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
@@ -177,8 +177,7 @@ class ScrtAgent extends Agent {
     this.mnemonic        = options.mnemonic ?? this.mnemonic
     this.encryptionUtils = options.encryptionUtils
     this.simulate        = options.simulate ?? this.simulate
-    this.log.label =
-      `@fadroma/scrt: ${this.chain?.id??'(no chain id)'}://${this.address??'(no address)'}`
+    this.log.label = `${this.address??'(no address)'}@${this.chain?.id??'(no chain id)'}`
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
@@ -227,8 +226,8 @@ class ScrtAgent extends Agent {
         // Override address and set name if missing.
         this.address = wallet.address
         this.name ??= this.address
-        this.log.label = `@fadroma/scrt: ${this.chain.id??'(no chain id)'}://${this.address??'(no address)'}`
-        this.log.log('Agent authenticated.')
+        this.log.label = `${this.address??'(no address)'}@${this.chain.id??'(no chain id)'}`
+        this.log.log('authenticated')
         // Done.
         resolve(this as this & { api: SecretJS.SecretNetworkClient })
       } catch (e) {

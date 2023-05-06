@@ -76,18 +76,21 @@ export interface UploaderClass<U extends Uploader> {
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
 export class Uploader {
-  log = new Console('Uploader')
+  log = new Console('upload (fetch)')
   /** Unique identifier of this uploader implementation. */
   id = 'Fetch'
   /** Agent that will sign the upload transactions(s). */
   agent?: Agent
-  /** If present, upload receipts are stored here and reused to save reuploads. */
-  store?: UploadStore
   /** If set, reuploads even if store is present. */
-  reupload?: boolean
+  reupload: boolean
+  /** Map of code hash to `Uploaded` result. */
+  cache: Record<CodeHash, Uploaded>
 
   constructor (options: Partial<Uploader> = {}) {
-    Object.assign(this, options)
+    this.id       = options.id       ?? this.id
+    this.agent    = options.agent    ?? this.agent
+    this.cache    = options.cache    ?? {}
+    this.reupload = options.reupload ?? false
     hideProperties(this, 'log')
   }
 
@@ -96,26 +99,40 @@ export class Uploader {
     return this.agent?.chain
   }
 
+  /** @returns Uploaded from the cache or undefined */
+  get (uploadable: Uploadable): Uploaded|undefined {
+    if (!uploadable.codeHash) throw new Error.Missing.CodeHash()
+    return this.cache[uploadable.codeHash]
+  }
+
+  /** Add an Uploaded to the cache. */
+  set (uploaded: Uploaded): this {
+    if (!uploaded.codeHash) throw new Error.Missing.CodeHash()
+    this.cache[uploaded.codeHash] = uploaded
+    return this
+  }
+
   /** Upload an Uploadable (such as a Contract or Template).
     * @returns Promise<Uploaded> */
   async upload (contract: Uploadable): Promise<Uploaded> {
-    const cached = this.store?.get(contract, this.agent?.chain?.id)
-    if (!this.reupload && cached) return cached
+    const cached = this.get(contract)
+    if (cached && !this.reupload) return cached
     const { artifact } = contract
     if (!artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
-    this.log.log('Uploading:', String(artifact))
+    this.log.log('fetching', String(artifact))
     const data = await this.fetch(artifact)
-    const log = new Console(`Upload: ${bold(artifact)}`)
-    log(`hash ${contract.codeHash}`)
-    log(`size (uncompressed): ${data.length} bytes`)
+    const log = new Console(`${contract.codeHash} upload`)
+    log(`from ${bold(artifact)}`)
+    log(`${bold(String(data.length))} bytes (uncompressed)`)
     const result = await this.agent.upload(data, contract)
     this.checkCodeHash(contract, result)
     const { codeId, codeHash, uploadTx } = result
     log(`done, code id`, codeId)
     Object.assign(contract, { codeId, codeHash, uploadTx })
     const receipt = { ...contract, codeId, codeHash, uploadTx }
-    this.store?.set(receipt)
+    this.set(receipt)
+    await this.agent.nextBlock
     return receipt
   }
   /** Upload multiple contracts. */
@@ -125,7 +142,6 @@ export class Uploader {
     for (const i in inputs) {
       const input = inputs[i]
       outputs[i] = input ? await this.upload(input) : null
-      await this.agent.nextBlock
     }
     return outputs
   }
@@ -163,11 +179,6 @@ export class Uploader {
   /** Global registry of Uploader implementations. Populated downstream. */
   static variants: Record<string, UploaderClass<Uploader>> = { Fetch: this }
 
-}
-
-export interface UploadStore {
-  get (contract: Uploadable, _chainId?: ChainId): Uploaded|null
-  set (receipt: Uploaded): void
 }
 
 /** Result of uploading a contract */

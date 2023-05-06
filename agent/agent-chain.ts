@@ -66,6 +66,8 @@ export abstract class Chain {
         this.log.warn.devnetModeInvalid()
       }
     }
+    this.log.label = this.id ?? `(no chain id)` // again
+    if (this.devnet) this.log.label = `${this.log.label}@${this.devnet.url}`
     Object.defineProperties(this, {
       'id':    { enumerable: false, writable: true },
       'url':   { enumerable: false, writable: true },
@@ -99,12 +101,13 @@ export abstract class Chain {
         this.log.warn('Current block height undetermined. Not waiting for next block')
         return Promise.resolve(NaN)
       }
-      this.log.waitingForNextBlock(startingHeight)
+      this.log.waitingForBlock(startingHeight)
+      const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
           while (true) {
             await new Promise(ok=>setTimeout(ok, 250))
-            this.log.log('Still waiting for block height to increment beyond', startingHeight)
+            this.log.waitingForBlock(startingHeight, + new Date() - t)
             const height = await this.height
             if (height > startingHeight) {
               this.log.info(`Block height incremented to ${height}, continuing`)
@@ -437,7 +440,9 @@ export abstract class Bundle implements Agent {
 
   get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
 
-  get log () { return new Console(`Batch TX (${this.msgs.length}msgs): ${this.chain?.id}://${this.address}`) }
+  get log () {
+    return new Console(`${this.address}@${this.chain?.id} (batched: ${this.msgs.length})`)
+  }
 
   get ready () { return this.agent.ready.then(()=>this) }
 

@@ -38,10 +38,6 @@ export async function buildMany (sources: Buildable[]): Promise<Built[]> {
   return getBuilder().buildMany(sources)
 }
 
-/** Path to this package. Used to find the build script, dockerfile, etc. */
-//@ts-ignore
-export const buildPackage = dirname(fileURLToPath(import.meta.url))
-
 /** Can perform builds.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class BuildLocal extends Builder {
@@ -251,7 +247,7 @@ export class BuildContainer extends BuildLocal {
     //if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
-      new Console(`Build: ${crate}`).build.found(prebuilt)
+      new Console(`build ${crate}`).build.found(prebuilt)
       contract.artifact = prebuilt.artifact
       contract.codeHash = prebuilt.codeHash
       return true
@@ -452,7 +448,7 @@ export class BuildRaw extends BuildLocal {
 
   readonly id = 'Raw'
 
-  log = new Console('Build:')
+  log = new Console('build')
 
   runtime = process.argv[0]
 

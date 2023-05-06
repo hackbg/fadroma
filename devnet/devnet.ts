@@ -57,8 +57,6 @@ export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
 
 /** An ephemeral private instance of a network. */
 export abstract class Devnet implements DevnetHandle {
-  /** Logger. */
-  log:       Console = new Console('@fadroma/devnet')
   /** Whether to destroy this devnet on exit. */
   ephemeral: boolean = false
   /** The chain ID that will be passed to the devnet node. */
@@ -91,6 +89,7 @@ export abstract class Devnet implements DevnetHandle {
     this.stateDir  = options.stateDir ?? $('state', this.chainId).as(OpaqueDirectory)
   }
 
+  get log (): Console { return new Console(`devnet`) }
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL { return new URL(`${this.protocol}://${this.host}:${this.port}`) }
   /** This file contains the id of the current devnet container.
@@ -223,8 +222,6 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
   /** Regexp for non-printable characters. */
   static RE_NON_PRINTABLE = /[\x00-\x1F]/
 
-  log = new Console('DevnetContainer')
-
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
   /** Handle to created devnet container */
@@ -254,6 +251,9 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
     this.log.log(options.image?.name, `on`, options.image?.engine?.constructor.name)
+  }
+  get log (): Console {
+    return new Console(`devnet ${this.chainId}@${this.host}:${this.port}`)
   }
 
   /** Handle to Docker API if configured. */

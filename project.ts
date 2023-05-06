@@ -71,8 +71,8 @@ export class Project extends CommandContext {
     this.name = name
     this.root = root
     this.log.label = this.exists() ? name : `@hackbg/fadroma ${version}`
-    if (this.exists()) this.log.info(`Active project:`, bold(this.name), 'at', bold(this.root.path))
-    if (this.exists()) this.log.info(`Selected chain:`, bold(this.config.chainId))
+    if (this.exists()) this.log.info('at', bold(this.root.path))
+    if (this.exists()) this.log.info(`on`, bold(this.config.chainId))
     this.builder = getBuilder({ outputDir: this.dirs.wasm.path })
     const uploadState = this.config.chainId ? this.dirs.state.in(this.config.chainId).path : null
     this.uploader = getUploader({ uploadState })
@@ -272,7 +272,7 @@ export class Project extends CommandContext {
   }
   deploy = async (...args: string[]) => {
     const deployment: Deployment = this.deployment || await this.createDeployment()
-    this.log(`Active deployment is:`, bold(deployment.name), `(${deployment.constructor?.name})`)
+    this.log.info(`deployment:`, bold(deployment.name), `(${deployment.constructor?.name})`)
     await deployment.deploy()
     await this.log.deployment(deployment)
     if (!deployment.chain!.isMocknet) await this.selectDeployment(deployment.name)
@@ -301,9 +301,7 @@ export class Project extends CommandContext {
     this.deployStore.create(name).then(()=>this.selectDeployment(name))
   selectDeployment = async (name?: string): Promise<Deployment> => {
     const store = this.deployStore
-    console.log(store, store.list())
-    const list = store.list()
-    if (list.length < 1) throw new Error('No deployments in this store')
+    if (store.list().length < 1) throw new Error('No deployments in this store')
     let deployment: Deployment
     if (name) {
       return this.getDeployment(name, { contracts: await store.select(name) })
@@ -384,10 +382,10 @@ export class Project extends CommandContext {
       scripts: {
         "build":   "fadroma build",
         "status":  "fadroma status",
-        "mocknet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
-        "devnet":  `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
-        "testnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
-        "mainnet": `FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
+        "mocknet": `FADROMA_CHAIN=Mocknet fadroma`,
+        "devnet":  `FADROMA_CHAIN=ScrtDevnet fadroma`,
+        "testnet": `FADROMA_CHAIN=ScrtTestnet fadroma`,
+        "mainnet": `FADROMA_CHAIN=ScrtMainnet fadroma`,
       },
     })
     apiIndex.save([
@@ -395,7 +393,7 @@ export class Project extends CommandContext {
       [
         `export default class ${Case.pascal(name)} extends Deployment {`,
         ...Object.keys(templates).map(name => [
-          `  ${name} = this.contract({`,
+          ``, `  ${name} = this.contract({`,
           `    name: "${name}",`,
           `    crate: "${name}",`,
           `    client: ${Case.pascal(name)},`,
