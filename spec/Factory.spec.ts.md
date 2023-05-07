@@ -50,17 +50,17 @@ import { getDevnet, getDeployment } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
 import assert from 'node:assert'
 
-const devnet = getDevnet({ ephemeral: true, chainId: 'test-devnet' })
+const devnet = await getDevnet({ ephemeral: true, chainId: 'test-devnet' }).respawn()
+process.on('beforeExit', () => devnet.erase())
 
 for (const chain of [
   Scrt.Chain.mocknet(),
   Scrt.Chain.devnet({ devnet }),
 ]) {
-  console.log({chain})
-
-  const agent = await chain.getAgent().ready
-  console.log({agent})
-
+  console.log(chain)
+  const agent = await chain.getAgent({ name: 'Admin' }).ready
+  console.log(agent)
+  console.log(agent.chain)
   const deployment = getDeployment(FactoryDeployment, { agent })
   console.log({deployment})
 

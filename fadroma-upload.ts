@@ -50,7 +50,7 @@ export class FSUploader extends Uploader {
       .in('upload')
       .at(`${codeHash!.toLowerCase()}.json`)
       .as(JSONFile<Uploaded>)
-    this.log('trying', receipt.shortPath)
+    this.log('checking', receipt.shortPath)
     if (receipt.exists()) {
       const uploaded = receipt.load() as unknown as Uploaded
       if (uploaded.codeId) {

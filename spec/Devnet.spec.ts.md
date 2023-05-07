@@ -29,7 +29,7 @@ import { getDevnet } from '@hackbg/fadroma'
 const devnet = await getDevnet({ /* options */ })
 
 // but be ready to kill it if you unleash it:
-process.on('exit', () => devnet.erase())
+process.on('beforeExit', () => devnet.erase())
 
 await devnet.spawn()
 await devnet.kill()

@@ -26,13 +26,14 @@
 
     "prepare": "husky install",
 
-    "ubik":     "pnpm i && pnpm clean && pnpm check && pnpm cov && ubik",
+    "ubik": "pnpm i && pnpm clean && pnpm check && pnpm cov && ubik",
     "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd scrt && ubik wet'",
 
     "check": "time tsc --noEmit",
 
-    "test":       "time ensuite GUIDE.ts.md",
+    "test": "time ensuite GUIDE.ts.md",
     "test:agent": "time ensuite agent/Agent.spec.ts.md",
+    "test:factory": "time ensuite spec/Factory.spec.ts.md",
 
     "cov":   "time ensuite-cov GUIDE.ts.md",
     "ci":    "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",

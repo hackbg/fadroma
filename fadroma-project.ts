@@ -94,11 +94,15 @@ export class Project extends CommandContext {
                  this.addCrate)
     this.command('build',    'build the project or specific contracts from it',
                  this.build)
+    this.command('rebuild',  'rebuild the project or specific contracts from it',
+                 this.rebuild)
     this.command('upload',   'upload the project or specific contracts from it',
                  this.upload)
+    this.command('reupload', 'reupload the project or specific contracts from it',
+                 this.reupload)
     this.command('deploy',   'deploy this project or continue an interrupted deployment',
                  this.deploy)
-    this.command('redeploy', 'deploy this project from scratch',
+    this.command('redeploy', 'redeploy this project from scratch',
                  this.redeploy)
     this.command('select',   `activate another deployment on ${this.config.chainId}`,
                  this.selectDeployment)
@@ -247,6 +251,9 @@ export class Project extends CommandContext {
     }
     return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
   }
+  rebuild = async (...names: string[]): Promise<Built[]> => {
+    throw new Error.Unimplemented('rebuild')
+  }
   /** Uploads one or more named templates, or all templates if no arguments are passed.
     * Builds templates with missing artifacts if sources are available. */
   upload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
@@ -270,6 +277,9 @@ export class Project extends CommandContext {
     // Build templates if builder is available
     const templates = this.builder ? await this.builder.buildMany(sources) : sources
     return await this.uploader.uploadMany(templates as Uploadable[])
+  }
+  reupload = async (...names: string[]): Promise<Built[]> => {
+    throw new Error.Unimplemented('rebuild')
   }
   deploy = async (...args: string[]) => {
     const deployment: Deployment = this.deployment || await this.createDeployment()
