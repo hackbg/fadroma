@@ -574,17 +574,17 @@ export class Contract<C extends Client> extends Template<C> {
         if (this.address) return resolve(this.expect())
         // If address is missing, deploy contract
         // TODO also recheck in deploy store if available
-        if (!this.name) throw new Error.CantInit.NoName()
-        if (!this.agent) throw new Error.CantInit.NoAgent(this.name)
-        if (!this.initMsg) throw new Error.CantInit.NoMessage(this.name)
+        if (!this.name) throw new Error.Missing.Name()
+        if (!this.agent) throw new Error.Missing.Agent(this.name)
+        if (!this.initMsg) throw new Error.Missing.InitMsg(this.name)
         // Construct the full unique label of the contract
         this.label = writeLabel(this)
-        if (!this.label) throw new Error.CantInit.NoLabel(this.name)
+        if (!this.label) throw new Error.Missing.Label(this.name)
         // Resolve the provided init message
         this.initMsg ??= await into(initMsg) as Message
         // Make sure the code is compiled and uploaded
         await this.uploaded
-        if (!this.codeId) throw new Error.CantInit.NoCodeId(this.name)
+        if (!this.codeId) throw new Error.Missing.CodeId(this.name)
         this.log?.beforeDeploy(this, this.label!)
         // Perform the instantiation transaction
         const instance = await this.agent!.instantiate(this)

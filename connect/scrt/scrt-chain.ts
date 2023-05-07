@@ -391,9 +391,9 @@ class ScrtAgent extends Agent {
     }
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) throw new Error.CantInit.NoCodeId()
-    if (!label) throw new Error.CantInit.NoLabel()
-    if (!initMsg) throw new Error.CantInit.NoMessage()
+    if (isNaN(code_id)) throw new Error.Missing.CodeId()
+    if (!label) throw new Error.Missing.Label()
+    if (!initMsg) throw new Error.Missing.InitMsg()
     if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
     const parameters = {
       sender:    this.address,
