@@ -12,48 +12,9 @@ import { brailleDump } from '@hackbg/dump'
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
-export const Console = (()=>{
-  return class MocknetConsole extends BaseConsole {
-    constructor (label = 'mocknet') { super(label) }
-    warnStub = (name: string) => this.warn(`mocknet: ${name}: stub`)
-  }
-})()
-
-export const Error = (()=>{
-  class MocknetError extends BaseError {
-    static NoAddress = this.define('NoAddress', () =>
-      `Mocknet: can't get instance without address`)
-    static WrongAddress = this.define('WrongAddress', (address: string) =>
-      `Mocknet: no contract at ${address}`)
-    static NoChain = this.define('NoChain', () =>
-      `MocknetAgent: chain not set`)
-    static NoBackend = this.define('NoBackend', () =>
-      `Mocknet: backend not set`)
-    static NoInitMsg = this.define('NoInitMsg', () =>
-      'Mocknet: tried to instantiate with undefined initMsg')
-    static NoCWVersion = this.define('NoCWVersion',
-      (_, __, ___) => 'Mocknet: failed to detect CosmWasm API version from module',
-      (err, wasmCode, wasmModule, wasmExports) => Object.assign(err, {
-        wasmCode, wasmModule, wasmExports
-      }))
-    static Query: typeof MocknetError_Query
-  }
-  class MocknetError_Query extends MocknetError {
-    static NonWasm = this.define('NonWasm', (address, req) =>
-      `Mocknet: contract ${address} made a non-wasm query: ${JSON.stringify(req)}`,
-      (err, req) => Object.assign(err, { req }))
-    static NonSmart = this.define('NonSmart', (address, req) =>
-      `Mocknet: contract ${address} made a non-smart wasm query: ${JSON.stringify(req)}`,
-      (err, req) => Object.assign(err, { req }))
-    static NoMocknet = this.define('NoMocknet', (address, req) =>
-      `Mocknet: contract ${address} made a query while isolated: ${JSON.stringify(req)}`,
-      (err, req) => Object.assign(err, { req }))
-  }
-  return Object.assign(MocknetError, { Query: MocknetError_Query })
-})() //MocknetError
-
 /** Chain instance containing a local mocknet. */
 export class Mocknet extends Chain {
+  log = new Console('mocknet')
   /** Agent class. */
   static Agent: AgentClass<MocknetAgent> // populated below
   /** Agent class. */
@@ -103,7 +64,7 @@ export class Mocknet extends Chain {
     return Promise.resolve(this._height)
   }
   async query <T, U> ({ address, codeHash }: Partial<Client>, msg: Message): Promise<U> {
-    return this.getInstance(address).query({ msg })
+    return this.getContract(address).query({ msg })
   }
   async getHash (arg: Address) {
     return this.contracts[arg].codeHash as CodeHash
@@ -162,7 +123,7 @@ export class Mocknet extends Chain {
     this.contracts[address] = contract
     this.codeIdOfAddress[address] = instance.codeId!
     this.labelOfAddress[address] = label!
-    await this.passCallbacks(address, messages)
+    await this.passCallbacks(cwVersion, address, messages)
     return { chainId: this.id, address: contract.address, codeId, codeHash, label }
   }
   checkVersion (exports: string[]): CW|null {
@@ -172,7 +133,7 @@ export class Mocknet extends Chain {
     }
     return null
   }
-  getInstance (address?: Address) {
+  getContract (address?: Address) {
     if (!address) throw new Error.NoAddress()
     const instance = this.contracts[address]
     if (!instance) throw new Error.WrongAddress(address)
@@ -186,55 +147,69 @@ export class Mocknet extends Chain {
     memo?: unknown,
     fee?:  unknown
   ) {
-    const result = this.getInstance(address).execute({ sender, msg })
+    const contract = this.getContract(address)
+    const result   = contract.execute({ sender, msg })
     const response = parseResult(result, 'execute', address)
     if (response.data !== null) response.data = b64toUtf8(response.data)
-    await this.passCallbacks(address, response.messages)
+    await this.passCallbacks(contract.cwVersion!, address!, response.messages)
     return response
   }
-  async passCallbacks (sender: Address|undefined, messages: Array<any>) {
-    if (!sender) {
-      throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
-    }
-    for (const message of messages) {
-      const { wasm } = message
-      if (!wasm) {
-        this.log.warn(
-          'mocknet.execute: transaction returned non-wasm message, ignoring:',
-          message
-        )
-        continue
-      }
-      const { instantiate, execute } = wasm
-      if (instantiate) {
-        const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
-        const instance = await this.instantiate(sender, new Contract({
-          codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
-        }))
-        this.log.debug(
-          `Callback from ${bold(sender)}: instantiated contract`, bold(label),
-          'from code id', bold(codeId), 'with hash', bold(codeHash),
-          'at address', bold(instance.address!)
-        )
-      } else if (execute) {
-        const { contract_addr, callback_code_hash, msg, send } = execute
-        const response = await this.execute(
-          sender,
-          { address: contract_addr, codeHash: callback_code_hash },
-          JSON.parse(b64toUtf8(msg)),
-          send
-        )
-        this.log.debug(
-          `Callback from ${bold(sender)}: executed transaction`,
-          'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
-        )
-      } else {
-        this.log.warn(
-          'mocknet.execute: transaction returned wasm message that was not '+
-          '"instantiate" or "execute", ignoring:',
-          message
-        )
-      }
+  async passCallbacks (
+    cwVersion: CW,
+    sender:    Address,
+    messages:  Array<any>
+  ) {
+    if (!sender) throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
+    switch (cwVersion) {
+      case '0.x': for (const message of messages) {
+        const { wasm } = message || {}
+        if (!wasm) { this.log.warnNonWasm(message); continue }
+        const { instantiate, execute } = wasm
+        if (instantiate) {
+          const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
+          const instance = await this.instantiate(sender, new Contract({
+            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
+          }))
+          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
+        } else if (execute) {
+          const { contract_addr, callback_code_hash, msg, send } = execute
+          const response = await this.execute(
+            sender,
+            { address: contract_addr, codeHash: callback_code_hash },
+            JSON.parse(b64toUtf8(msg)),
+            send
+          )
+          this.log.execCallback(sender, contract_addr, callback_code_hash)
+        } else {
+          this.log.warnNonInitExec(message)
+        }
+      }; break
+      case '1.x': for (const message of messages) {
+        const { msg: { wasm = {} } = {} } = message||{}
+        if (!wasm) { this.log.warnNonWasm(message); continue }
+        const { instantiate, execute } = wasm
+        if (instantiate) {
+          const { code_id: codeId, code_hash: codeHash, label, msg, send } = instantiate
+          const instance = await this.instantiate(sender, new Contract({
+            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
+          }))
+          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
+        } else if (execute) {
+          const { contract_addr, callback_code_hash, msg, send } = execute
+          const response = await this.execute(
+            sender,
+            { address: contract_addr, codeHash: callback_code_hash },
+            JSON.parse(b64toUtf8(msg)),
+            send
+          )
+          this.log.execCallback(sender, contract_addr, callback_code_hash)
+        } else {
+          this.log.warnNonInitExec(message)
+        }
+      }; break
+      default: throw Object.assign(
+        new Error('passCallback: unknown CW version'), { sender, messages }
+      )
     }
   }
 }
@@ -307,7 +282,7 @@ class MocknetBundle extends Bundle {
   async submit (memo = "") {
     this.log.info('Submitting mocknet bundle...')
     const results = []
-    for (const { init, exec } of this.msgs) {
+    for (const { init, instantiate = init, exec, execute = exec } of this.msgs) {
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         results.push(await this.agent.instantiate(new Contract({
@@ -400,7 +375,7 @@ export type CWAPI<V extends CW> = {
 
 
 export class MocknetContract<V extends CW> {
-  log = new Console('MocknetContract')
+  log = new Console('mocknet')
   mocknet?:   Mocknet
   address?:   Address
   codeHash?:  CodeHash
@@ -592,7 +567,7 @@ export class MocknetContract<V extends CW> {
           if (!wasm) throw new Error.Query.NonSmart(address, req)
           if (!mocknet) throw new Error.Query.NoMocknet(address, req)
           const { contract_addr, callback_code_hash, msg } = smart
-          const queried = mocknet.getInstance(contract_addr)
+          const queried = mocknet.getContract(contract_addr)
           if (!queried) throw new Error(
             `MocknetContract ${address} made a query to contract ${contract_addr}` +
             ` which was not found in the Mocknet: ${JSON.stringify(req)}`
@@ -866,3 +841,66 @@ export const utf8toB64 = (str: string) => Buffer.from(str, 'utf8').toString('bas
 export const utf8toBuffer = (str: string) => Buffer.from(str, 'utf8')
 /** Convert buffer to utf8 string. */
 export const bufferToUtf8 = (buf: Buffer) => buf.toString('utf8')
+
+export const Console = (()=>{
+  return class MocknetConsole extends BaseConsole {
+    constructor (label = 'mocknet') { super(label) }
+    warnStub = (name: string) => this.warn(`mocknet: ${name}: stub`)
+    showDebug = true
+    initCallback = (
+      sender: Address, label: Label, codeId: CodeId, codeHash: CodeHash, instance: Address
+    ) => this.debug(
+      `callback from ${bold(sender)}: instantiated contract`, bold(label),
+      'from code id', bold(codeId), 'with hash', bold(codeHash),
+      'at address', bold(instance)
+    )
+    execCallback = (
+      sender: Address, contract: Address, codeHash: CodeHash
+    ) => this.debug(
+      `Callback from ${bold(sender)}: executed transaction`,
+      'on contract', bold(contract), 'with hash', bold(codeHash),
+    )
+    warnNonWasm = (message: unknown) => this.warn(
+      'mocknet.execute: transaction returned non-wasm message, ignoring:',
+      message
+    )
+    warnNonInitExec = (message: unknown) => this.warn(
+      'mocknet.execute: transaction returned wasm message that was not '+
+      '"instantiate" or "execute", ignoring:',
+      message
+    )
+  }
+})()
+
+export const Error = (()=>{
+  class MocknetError extends BaseError {
+    static NoAddress = this.define('NoAddress', () =>
+      `Mocknet: can't get instance without address`)
+    static WrongAddress = this.define('WrongAddress', (address: string) =>
+      `Mocknet: no contract at ${address}`)
+    static NoChain = this.define('NoChain', () =>
+      `MocknetAgent: chain not set`)
+    static NoBackend = this.define('NoBackend', () =>
+      `Mocknet: backend not set`)
+    static NoInitMsg = this.define('NoInitMsg', () =>
+      'Mocknet: tried to instantiate with undefined initMsg')
+    static NoCWVersion = this.define('NoCWVersion',
+      (_, __, ___) => 'Mocknet: failed to detect CosmWasm API version from module',
+      (err, wasmCode, wasmModule, wasmExports) => Object.assign(err, {
+        wasmCode, wasmModule, wasmExports
+      }))
+    static Query: typeof MocknetError_Query
+  }
+  class MocknetError_Query extends MocknetError {
+    static NonWasm = this.define('NonWasm', (address, req) =>
+      `Mocknet: contract ${address} made a non-wasm query: ${JSON.stringify(req)}`,
+      (err, req) => Object.assign(err, { req }))
+    static NonSmart = this.define('NonSmart', (address, req) =>
+      `Mocknet: contract ${address} made a non-smart wasm query: ${JSON.stringify(req)}`,
+      (err, req) => Object.assign(err, { req }))
+    static NoMocknet = this.define('NoMocknet', (address, req) =>
+      `Mocknet: contract ${address} made a query while isolated: ${JSON.stringify(req)}`,
+      (err, req) => Object.assign(err, { req }))
+  }
+  return Object.assign(MocknetError, { Query: MocknetError_Query })
+})() //MocknetError

@@ -6,7 +6,6 @@ use fadroma::{
     },
     dsl::*,
     schemars::{self, JsonSchema},
-    entrypoint,
 };
 use counter::interface::Counter;
 

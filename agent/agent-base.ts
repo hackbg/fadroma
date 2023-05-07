@@ -115,8 +115,6 @@ class FadromaError extends Error {
         'Trying to submit bundle with no messages')
       static Hashes = this.define('DifferentHashes', () =>
         'Passed an object with codeHash and code_hash both different')
-      static NameOutsideDevnet = this.define('NameOutsideDevnet', () =>
-        'Getting agent by name is only supported on devnet')
     }
 
   static Failed =

@@ -259,8 +259,7 @@ export abstract class Agent {
     const init = new Promise<this>(async (resolve, reject)=>{
       try {
         if (this.chain?.devnet) await this.chain?.devnet.respawn()
-        if (!this.mnemonic && this.name) {
-          if (!this.chain?.devnet) throw new Error.Invalid.NameOutsideDevnet()
+        if (!this.mnemonic && this.name && this.chain?.devnet) {
           Object.assign(this, await this.chain?.devnet.getGenesisAccount(this.name))
         }
         resolve(this)

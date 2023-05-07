@@ -11,10 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - BREAKING ⚠️: Renamed the `impl_contract_harness!` macro to `contract_harness!`. It now also uses the same
  syntax as the `entrypoint!` macro and allows to optionally supply a reply entry point. ([#168](https://github.com/hackbg/fadroma/pull/168))
+ - BREAKING ⚠️: Renamed `ContractInstantiationInfo` to `ContractCode`.
 
 ### Added
 
  - SNIP-25 allowance queries ([#169](https://github.com/hackbg/fadroma/pull/169))
+ - Generate init and exec messages from `ContractLink` and `ContractCode` directly:
+   - `ContractCode::instantiate(self, label, msg, funds) -> StdResult<WasmMsg::Instantiate>`
+   - `ContractLink::execute(self, msg, funds) -> StdResult<WasmMsg::Execute>>`
+ - Example of factory pattern with `factory`, `product` and `shared` crates
+   and usage of `#[interface]`.
 
 ## [0.8.6] - 2023-04-28
 

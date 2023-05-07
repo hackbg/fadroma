@@ -130,6 +130,7 @@ export class Project extends CommandContext {
       packageJson:    this.root.at('package.json').as(JSONFile),
       apiIndex:       this.root.at('api.ts').as(TextFile),
       opsIndex:       this.root.at('ops.ts').as(TextFile),
+      testIndex:      this.root.at('tes.ts').as(TextFile),
       readme:         this.root.at('README.md').as(TextFile),
       shellNix:       this.root.at('shell.nix').as(TextFile),
     }
@@ -360,7 +361,9 @@ export class Project extends CommandContext {
     root.make()
     Object.values(this.dirs).forEach(dir=>dir.make())
     const {
-      readme, fadromaJson, packageJson, apiIndex, opsIndex, gitignore, envfile, shellNix, cargoToml
+      readme, packageJson, cargoToml,
+      gitignore, envfile, shellNix,
+      fadromaJson, apiIndex, opsIndex, testIndex,
     } = files
     readme.save([
       `# ${name}\n---\n`,
@@ -390,6 +393,10 @@ export class Project extends CommandContext {
         "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
         "testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
         "mainnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
+        "test":         `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+        "test:mocknet": `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+        "test:devnet":  `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+        "test:testnet": `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
       },
     })
     apiIndex.save([
@@ -454,8 +461,26 @@ export class Project extends CommandContext {
         ``, `}`
       ].join('\n')
     ].join('\n\n'))
+    testIndex.save([
+      `import * as assert from 'node:assert'`,
+      `import ${Case.pascal(name)} from './api'`,
+      `import { getDeployment } from '@hackbg/fadroma`,
+      `const deployment = await getDeployment(${Case.pascal(name)}).deploy()`,
+      `// add your assertions here`
+    ].join('\n'))
     gitignore.save([
-      '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
+      '.env',
+      'node_modules',
+      'target',
+      'state/*',
+      '!state/secret-1',
+      '!state/secret-2',
+      '!state/secret-3',
+      '!state/secret-4',
+      '!state/pulsar-1',
+      '!state/pulsar-2',
+      'wasm/*',
+      '!wasm/*.sha256',
     ].join('\n'))
     envfile.save([
       '# FADROMA_MNEMONIC=your testnet mnemonic'

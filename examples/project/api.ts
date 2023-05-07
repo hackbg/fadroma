@@ -16,10 +16,6 @@ export default class MyProject extends Deployment {
 
   // Add contract with::
   //   contract = this.contract({...})
-  //
-  // Add contract from fadroma.json with:
-  //   contract = this.template('name').instance({...})
-
 }
 
 export class Test1 extends Client {

@@ -1,4 +1,4 @@
-import { DevnetContainer } from './devnet/devnet'
+import { Devnet } from './devnet/devnet'
 import type { DevnetPlatform } from './devnet/devnet'
 import { FSUploader } from './fadroma-upload'
 import { getBuilder } from './fadroma-build'
@@ -109,13 +109,13 @@ export class Config extends ConnectConfig {
     const deployment = store.getDeployment($D, ...args)
     return deployment
   }
-  /** @returns DevnetContainer */
+  /** @returns Devnet */
   getDevnet (platform: DevnetPlatform = this.devnet.platform ?? 'scrt_1.8') {
     if (!platform) throw new Error('Devnet platform not specified')
     const Engine = this.devnet.podman ? Podman.Engine : Docker.Engine
     const containerEngine = new Engine()
     const port = this.devnet.port ? Number(this.devnet.port) : undefined
-    return DevnetContainer.getOrCreate(platform, containerEngine, port)
+    return Devnet.getOrCreate(platform, containerEngine, port)
   }
 }
 
@@ -258,13 +258,13 @@ export class DeployError extends Error {
 
 export class DevnetError extends Error {
   static PortMode = this.define('PortMode',
-    ()=>"DevnetContainer#portMode must be either 'lcp' or 'grpcWeb'")
+    ()=>"Devnet#portMode must be either 'lcp' or 'grpcWeb'")
   static NoChainId = this.define('NoChainId',
     ()=>'Refusing to create directories for devnet with empty chain id')
   static NoContainerId = this.define('NoContainerId',
     ()=>'Missing container id in devnet state')
   static ContainerNotSet = this.define('ContainerNotSet',
-    ()=>'DevnetContainer#container is not set')
+    ()=>'Devnet#container is not set')
   static NoGenesisAccount = this.define('NoGenesisAccount',
     (name: string, error: any)=>
       `Genesis account not found: ${name} (${error})`)

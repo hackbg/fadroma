@@ -56,7 +56,7 @@ export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
 }
 
 /** An ephemeral private instance of a network. */
-export abstract class Devnet implements DevnetHandle {
+export class Devnet implements DevnetHandle {
   /** Whether to destroy this devnet on exit. */
   ephemeral: boolean = false
   /** The chain ID that will be passed to the devnet node. */
@@ -71,157 +71,6 @@ export abstract class Devnet implements DevnetHandle {
   portMode:  DevnetPortMode
   /** This directory is created to remember the state of the devnet setup. */
   stateDir:  OpaqueDirectory
-
-  /** Create an object representing a devnet.
-    * Must call the `respawn` method to get it running. */
-  constructor (options: Partial<Devnet> & {} = {}) {
-    this.chainId   = options.chainId ?? this.chainId
-    if (!this.chainId) throw new Error.Devnet.NoChainId()
-    // Whether the devnet should delete itself after the script ends.
-    this.ephemeral = options.ephemeral ?? this.ephemeral
-    // Define connection method
-    this.host      = options.host ?? this.host
-    this.portMode  = options.portMode! // this should go, in favor of exposing all ports
-    this.port      = options.port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
-    // Define initial accounts and balances
-    this.genesisAccounts = options.genesisAccounts ?? this.genesisAccounts
-    // Define storage
-    this.stateDir  = options.stateDir ?? $('state', this.chainId).as(OpaqueDirectory)
-  }
-
-  get log (): Console { return new Console(`devnet`) }
-  /** The API URL that can be used to talk to the devnet. */
-  get url (): URL { return new URL(`${this.protocol}://${this.host}:${this.port}`) }
-  /** This file contains the id of the current devnet container.
-    * TODO store multiple containers */
-  get stateFile (): JSONFile<DevnetState> {
-    return this.stateDir.at('devnet.json').as(JSONFile) as JSONFile<DevnetState>
-  }
-  /** List of genesis accounts that will be given an initial balance
-    * when creating the devnet container for the first time. */
-  genesisAccounts: Array<string> = [
-    'Admin', 'Alice', 'Bob', 'Charlie', 'Mallory'
-  ]
-  /** Save the info needed to respawn the node */
-  save (extraData = {}) {
-    const data = { chainId: this.chainId, port: this.port, ...extraData }
-    this.stateFile.save(data)
-    return this
-  }
-  /** Restore this node from the info stored in the stateFile file */
-  async load (): Promise<DevnetState|null> {
-    const path = this.stateFile.shortPath
-    if (this.stateDir.exists() && this.stateFile.exists()) {
-      try {
-        const data = this.stateFile.load()
-        const { chainId, port } = data
-        if (this.chainId !== chainId) {
-          this.log.devnet.loadingState(chainId, this.chainId)
-        }
-        this.port = port as number
-        return data
-      } catch (e) {
-        this.log.devnet.loadingFailed(path)
-        this.stateDir.delete()
-        throw e
-      }
-    } else {
-      this.log.devnet.loadingRejected(path)
-      return null
-    }
-  }
-  /** Stop this node and delete its state. */
-  async terminate () {
-    await this.kill()
-    await this.erase()
-    return this
-  }
-  /** Retrieve an identity */
-  abstract getGenesisAccount (name: string): Promise<AgentOpts>
-  /** Start the node. */
-  abstract spawn (): Promise<this>
-  /** Start the node if stopped. */
-  abstract respawn (): Promise<this>
-  /** Stop the node. */
-  abstract kill (): Promise<void>
-  /** Erase the state of the node. */
-  abstract erase (): Promise<void>
-
-  getChain <C extends Chain> (
-    $C: ChainClass<C> = Chain as unknown as ChainClass<C>
-  ): C {
-    return new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
-  }
-}
-
-/** Fadroma can spawn a devnet in a container using Dockerode.
-  * This requires an image name and a handle to Dockerode. */
-export class DevnetContainer extends Devnet implements DevnetHandle {
-
-  static dockerfiles: Record<DevnetPlatform, string> = {
-    'scrt_1.2': $(devnetPackage, 'scrt_1_2.Dockerfile').path,
-    'scrt_1.3': $(devnetPackage, 'scrt_1_3.Dockerfile').path,
-    'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path,
-    'scrt_1.5': $(devnetPackage, 'scrt_1_5.Dockerfile').path,
-    'scrt_1.6': $(devnetPackage, 'scrt_1_6.Dockerfile').path,
-    'scrt_1.7': $(devnetPackage, 'scrt_1_7.Dockerfile').path,
-    'scrt_1.8': $(devnetPackage, 'scrt_1_8.Dockerfile').path
-  }
-
-  static dockerTags: Record<DevnetPlatform, string> = {
-    'scrt_1.2': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
-    'scrt_1.3': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
-    'scrt_1.4': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
-    'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
-    'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
-    'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
-    'scrt_1.8': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
-  }
-
-  static readyMessage: Record<DevnetPlatform, string> = {
-    'scrt_1.2': 'indexed block',
-    'scrt_1.3': 'indexed block',
-    'scrt_1.4': 'indexed block',
-    'scrt_1.5': 'indexed block',
-    'scrt_1.6': 'indexed block',
-    'scrt_1.7': 'indexed block',
-    'scrt_1.8': 'Done verifying block height',
-  }
-
-  static initScriptMount = 'devnet.init.mjs'
-
-  static getOrCreate (
-    version: DevnetPlatform,
-    dock:    Dock.Engine,
-    port?:   number
-  ) {
-    const portMode    = devnetPortModes[version]
-    const dockerfile  = this.dockerfiles[version]
-    const imageTag    = this.dockerTags[version]
-    const readyPhrase = this.readyMessage[version]
-    //if (mountInitScript)
-    //const initScript = $(devnetPackage, this.initScriptMount).path
-    const image = dock.image(imageTag, dockerfile, [this.initScriptMount])
-    return new DevnetContainer({ port, portMode, image, readyPhrase })
-  }
-
-  /** Filter logs when waiting for the ready phrase. */
-  static logFilter = (data: string) => {
-    return ((data.length > 0 && data.length <= 1024)
-      && !data.startsWith('TRACE ')
-      && !data.startsWith('DEBUG ')
-      && !data.startsWith('INFO ')
-      && !data.startsWith('I[')
-      && !data.startsWith('Storing key:')
-      && !this.RE_NON_PRINTABLE.test(data)
-      && !data.startsWith('{"app_message":')
-      && !data.startsWith('configuration saved to')
-    )
-  }
-
-  /** Regexp for non-printable characters. */
-  static RE_NON_PRINTABLE = /[\x00-\x1F]/
-
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
   /** Handle to created devnet container */
@@ -244,18 +93,38 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
   /** Kludge. */
   private exitHandlerSet = false
 
-  constructor (options: Partial<DevnetContainer> = {}) {
-    super(options)
+  /** Create an object representing a devnet.
+    * Must call the `respawn` method to get it running. */
+  constructor (options: Partial<Devnet> & {} = {}) {
+    this.chainId   = options.chainId ?? this.chainId
+    if (!this.chainId) throw new Error.Devnet.NoChainId()
+    // Whether the devnet should delete itself after the script ends.
+    this.ephemeral = options.ephemeral ?? this.ephemeral
+    // Define connection method
+    this.host      = options.host ?? this.host
+    this.portMode  = options.portMode! // this should go, in favor of exposing all ports
+    this.port      = options.port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
+    // Define initial accounts and balances
+    this.genesisAccounts = options.genesisAccounts ?? this.genesisAccounts
+    // Define storage
+    this.stateDir  = options.stateDir ?? $('state', this.chainId).as(OpaqueDirectory)
     this.identities  ??= this.stateDir.in('wallet').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
     this.log.log(options.image?.name, `on`, options.image?.engine?.constructor.name)
   }
+
   get log (): Console {
     return new Console(`devnet ${this.chainId}@${this.host}:${this.port}`)
   }
-
+  /** The API URL that can be used to talk to the devnet. */
+  get url (): URL { return new URL(`${this.protocol}://${this.host}:${this.port}`) }
+  /** This file contains the id of the current devnet container.
+    * TODO store multiple containers */
+  get stateFile (): JSONFile<DevnetState> {
+    return this.stateDir.at('devnet.json').as(JSONFile) as JSONFile<DevnetState>
+  }
   /** Handle to Docker API if configured. */
   get dock (): Dock.Engine|null {
     return this.image.engine
@@ -280,41 +149,82 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
   }
   /** Options for the container. */
   get spawnOptions () {
-    const options = {
-      env: this.spawnEnv,
-      exposed: [`${this.port}/tcp`],
-      extra: {
-        Tty:          true,
-        AttachStdin:  true,
-        AttachStdout: true,
-        AttachStderr: true,
-        Hostname:     this.chainId,
-        Domainname:   this.chainId,
-        HostConfig:   {
-          NetworkMode: 'bridge',
-          Binds: [] as string[],
-          PortBindings: { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] }
-        }
-      }
-    }
+    const Binds: string[] = []
     // Override init script for development
-    if (this.initScript) {
-      options.extra.HostConfig.Binds.push(
-        `${this.initScript}:${this.initScriptMount}:ro`
-      )
-    }
+    if (this.initScript) Binds.push(`${this.initScript}:${this.initScriptMount}:ro`)
     // Mount receipts directory (FIXME:
     // - breaks Drone DinD CI
     // - leaves root-owned files in project dir)
-    if (!process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
-      options.extra.HostConfig.Binds.push(
-        `${this.stateDir.path}:/state/${this.chainId}:rw`
-      )
+    if (!process.env.FADROMA_DEVNET_NO_STATE_MOUNT) Binds.push(
+      `${this.stateDir.path}:/state/${this.chainId}:rw`
+    )
+    const NetworkMode = 'bridge'
+    const PortBindings = { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] }
+    const HostConfig = { Binds, NetworkMode, PortBindings }
+    const extra = {
+      Tty:          true,
+      AttachStdin:  true,
+      AttachStdout: true,
+      AttachStderr: true,
+      Hostname:     this.chainId,
+      Domainname:   this.chainId,
+      HostConfig
     }
+    const options = { env: this.spawnEnv, exposed: [`${this.port}/tcp`], extra }
     return options
   }
-
-  /** Gets the info for a genesis account, including the mnemonic */
+  /** Virtual path inside the container where the init script is mounted. */
+  get initScriptMount (): string {
+    return this.initScript ? $('/', $(this.initScript).name).path : '/devnet.init.mjs'
+  }
+  /** List of genesis accounts that will be given an initial balance
+    * when creating the devnet container for the first time. */
+  genesisAccounts: Array<string> = [
+    'Admin', 'Alice', 'Bob', 'Charlie', 'Mallory'
+  ]
+  /** Restore this node from the info stored in the stateFile file */
+  async load (): Promise<DevnetState|null> {
+    const path = this.stateFile.shortPath
+    if (!this.stateDir.exists() || !this.stateFile.exists()) {
+      this.log.devnet.loadingRejected(path)
+      return null
+    }
+    let state
+    try {
+      state = this.stateFile.load() || {}
+    } catch (e) {
+      this.log.devnet.loadingFailed(path)
+      this.stateDir.delete()
+      throw e
+    }
+    const { chainId, containerId, port } = state
+    if (containerId) {
+      this.container = await this.dock!.container(containerId)
+    } else {
+      throw new Error.Devnet('missing container id in devnet state')
+    }
+    if (this.chainId !== chainId) this.log.devnet.loadingState(chainId, this.chainId)
+    this.port = port as number
+    return state
+  }
+  /** Write the state of the devnet to a file.
+    * This saves the info needed to respawn the node */
+  save (extra = {}) {
+    this.stateFile.save({ chainId: this.chainId, containerId: this.container?.id, port: this.port, ...extra })
+    return this
+  }
+  /** Stop this node and delete its state. */
+  async terminate () {
+    await this.erase()
+    return this
+  }
+  /** Get a Chain object corresponding to this devnet. */
+  getChain <C extends Chain> (
+    $C: ChainClass<C> = Chain as unknown as ChainClass<C>
+  ): C {
+    return new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
+  }
+  /** Get the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<AgentOpts> {
     if (process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
       if (!this.container) throw new Error.Devnet.ContainerNotSet()
@@ -323,11 +233,6 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     } else {
       return this.identities.at(`${name}.json`).as(JSONFile).load() as AgentOpts
     }
-  }
-
-  /** Virtual path inside the container where the init script is mounted. */
-  get initScriptMount (): string {
-    return this.initScript ? $('/', $(this.initScript).name).path : '/devnet.init.mjs'
   }
 
   async spawn () {
@@ -353,41 +258,24 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     // update the record
     this.save()
     // Wait for everything to be ready
-    await this.container.waitLog(this.readyPhrase, DevnetContainer.logFilter, true)
+    await this.container.waitLog(this.readyPhrase, Devnet.logFilter, true)
     await Dock.Docker.waitSeconds(this.postLaunchWait)
     await this.waitPort({ host: this.host, port: Number(this.port) })
     return this
   }
 
-  async load (): Promise<DevnetState> {
-    const data = await super.load()
-    if (data?.containerId) {
-      this.container = await this.dock!.container(data.containerId)
-    } else {
-      throw new Error.Devnet('missing container id in devnet state')
-    }
-    return data
-  }
-
-  /** Write the state of the devnet to a file. */
-  save () {
-    return super.save({ containerId: this.container?.id })
-  }
-
-  /** Spawn the existing localnet, or a new one if that is impossible */
+  /** Start the node if stopped. */
   async respawn () {
     const shortPath = $(this.stateFile.path).shortPath
-
     // if no node state, spawn
     if (!this.stateFile.exists()) {
       this.log.log(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }
-
     // get stored info about the container was supposed to be
     let id: string
     try {
-      id = (await this.load()).containerId!
+      id = (await this.load())?.containerId!
     } catch (e) {
       if (!(e?.statusCode == 404 && e?.json?.message.startsWith('No such container'))) {
         this.log.warn(e)
@@ -397,10 +285,8 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
       this.log.log(`Reading ${bold(shortPath)} failed, starting devnet container`)
       return this.spawn()
     }
-
-    this.container = await this.dock!.container(id)
-
     // check if container is running
+    this.container = await this.dock!.container(id)
     let running: boolean
     try {
       running = await this.container.isRunning
@@ -412,13 +298,14 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
       this.log.log(`Trying to launch a new node...`)
       return this.spawn()
     }
-
     // if not running, RESPAWN
-    if (!running) {
-      await this.container.start()
-    }
-
+    if (!running) await this.container.start()
     // ...and try to make sure it dies when the Node process dies
+    this.setExitHandler()
+    return this
+  }
+
+  private setExitHandler () {
     if (!this.exitHandlerSet) {
       process.once('beforeExit', () => {
         if (this.ephemeral) {
@@ -430,8 +317,6 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
       })
       this.exitHandlerSet = true
     }
-
-    return this
   }
 
   /** Kill the container, if necessary find it first */
@@ -443,13 +328,13 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
       return
     }
     this.log.log(`Checking if there's an old node that needs to be stopped...`)
-    try {
-      const { containerId } = await this.load()
+    const { containerId } = await this.load() || {}
+    if (containerId) {
+      this.log(`Stopped container ${bold(containerId!)}.`)
       await this.container!.kill()
-      this.log.log(`Stopped container ${bold(containerId!)}.`)
-    } catch (_e) {
-      this.log.log("Didn't stop any container.")
+      return
     }
+    this.log("Didn't stop any container.")
   }
 
   /** External environment needs to be returned to a pristine state via Docker.
@@ -496,4 +381,68 @@ export class DevnetContainer extends Devnet implements DevnetHandle {
     if (!this.container) throw new Error.Devnet("Can't export: no container")
     return this.container.export(repository, tag)
   }
+
+  static dockerfiles: Record<DevnetPlatform, string> = {
+    'scrt_1.2': $(devnetPackage, 'scrt_1_2.Dockerfile').path,
+    'scrt_1.3': $(devnetPackage, 'scrt_1_3.Dockerfile').path,
+    'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path,
+    'scrt_1.5': $(devnetPackage, 'scrt_1_5.Dockerfile').path,
+    'scrt_1.6': $(devnetPackage, 'scrt_1_6.Dockerfile').path,
+    'scrt_1.7': $(devnetPackage, 'scrt_1_7.Dockerfile').path,
+    'scrt_1.8': $(devnetPackage, 'scrt_1_8.Dockerfile').path
+  }
+
+  static dockerTags: Record<DevnetPlatform, string> = {
+    'scrt_1.2': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
+    'scrt_1.3': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
+    'scrt_1.4': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
+    'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
+    'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
+    'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
+    'scrt_1.8': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
+  }
+
+  static readyMessage: Record<DevnetPlatform, string> = {
+    'scrt_1.2': 'indexed block',
+    'scrt_1.3': 'indexed block',
+    'scrt_1.4': 'indexed block',
+    'scrt_1.5': 'indexed block',
+    'scrt_1.6': 'indexed block',
+    'scrt_1.7': 'indexed block',
+    'scrt_1.8': 'Done verifying block height',
+  }
+
+  static initScriptMount = 'devnet.init.mjs'
+
+  static getOrCreate (
+    version: DevnetPlatform,
+    dock:    Dock.Engine,
+    port?:   number
+  ) {
+    const portMode    = devnetPortModes[version]
+    const dockerfile  = this.dockerfiles[version]
+    const imageTag    = this.dockerTags[version]
+    const readyPhrase = this.readyMessage[version]
+    //if (mountInitScript)
+    //const initScript = $(devnetPackage, this.initScriptMount).path
+    const image = dock.image(imageTag, dockerfile, [this.initScriptMount])
+    return new Devnet({ port, portMode, image, readyPhrase })
+  }
+
+  /** Filter logs when waiting for the ready phrase. */
+  static logFilter = (data: string) => {
+    return ((data.length > 0 && data.length <= 1024)
+      && !data.startsWith('TRACE ')
+      && !data.startsWith('DEBUG ')
+      && !data.startsWith('INFO ')
+      && !data.startsWith('I[')
+      && !data.startsWith('Storing key:')
+      && !this.RE_NON_PRINTABLE.test(data)
+      && !data.startsWith('{"app_message":')
+      && !data.startsWith('configuration saved to')
+    )
+  }
+
+  /** Regexp for non-printable characters. */
+  static RE_NON_PRINTABLE = /[\x00-\x1F]/
 }

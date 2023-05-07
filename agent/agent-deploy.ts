@@ -172,13 +172,13 @@ export class Deployment {
     if (contracts.length <= 0) return (log.warn('empty deployment, not saving'), this)
     const toDeploy = contracts.filter(c=>!c.address)
     if (toDeploy.length <= 0) return (log.log('all contracts are deployed'), this)
-    log.log(`${toDeploy.length} contracts are not deployed`)
+    log.log(`${toDeploy.length} contract(s) are not deployed`)
     await this.buildContracts(toDeploy)
     await this.uploadContracts(toDeploy)
-    log.log(`instantiating ${toDeploy.length} contracts`)
+    log.log(`instantiating ${toDeploy.length} contract(s)`)
     // FIXME PERF: bundle concurrent inits into a single transaction
     for (const contract of contracts) await contract.deployed
-    log.log('deployed', contracts.length, 'contracts')
+    log.log('deployed', contracts.length, 'contract(s)')
     return this.save()
   }
   /** Save current deployment state to deploy store. */
