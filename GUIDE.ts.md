@@ -225,6 +225,7 @@ Mocknet is built into `@fadroma/agent`.
 ## More resources
 
 * [HackSecret Fadroma Workshop Repo](https://github.com/hackbg/fadroma-workshop)
+* [Fadroma Factory Pattern Example](factory.html)
 
 ---
 
@@ -242,4 +243,5 @@ import './spec/Build.spec.ts.md'
 import './spec/Upload.spec.ts.md'
 import './spec/Deploy.spec.ts.md'
 import './spec/Scrt.spec.ts.md'
+import './spec/Factory.spec.ts.md'
 ```
