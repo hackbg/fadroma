@@ -1,5 +1,6 @@
 export * from './agent-base'
 export * from './agent-chain'
+export * from './agent-token'
 export * from './agent-client'
 export * from './agent-deploy'
 export * from './agent-services'

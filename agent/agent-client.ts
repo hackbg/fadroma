@@ -214,10 +214,14 @@ export interface ICoin { amount: Uint128, denom: string }
 
 /** A constructable gas fee in native tokens. */
 export class Fee implements IFee {
-  readonly amount: readonly ICoin[]
-  constructor (amount: Uint128|number, denom: string, readonly gas: string = String(amount)) {
-    this.amount = [{ amount: String(amount), denom }]
+  amount: ICoin[] = []
+  constructor (
+    amount: Uint128|number, denom: string, public gas: string = String(amount)
+  ) {
+    this.add(amount, denom)
   }
+  add = (amount: Uint128|number, denom: string) =>
+    this.amount.push({ amount: String(amount), denom })
 }
 
 /** Represents some amount of native token. */

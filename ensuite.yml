@@ -1,6 +1,7 @@
 coverage:
   exclude:
     - coverage/**/*
+    - "*/coverage/**/*"
     - ensuite/**/*
     - examples/**/*
     - fixtures/**/*
