@@ -35,8 +35,10 @@
     "test:agent": "time ensuite agent/Agent.spec.ts.md",
     "test:factory": "time ensuite spec/Factory.spec.ts.md",
 
-    "cov":   "time ensuite-cov GUIDE.ts.md",
-    "ci":    "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
+    "cov": "time ensuite-cov GUIDE.ts.md",
+    "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",
+
+    "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 
     "build": "./fadroma.cli.cjs build",
@@ -59,7 +61,7 @@
     "@fadroma/connect": "workspace:*",
     "@hackbg/logs": "workspace:^2.0.1",
     "@hackbg/cmds": "workspace:^3",
-    "@hackbg/dock": "workspace:^1.3",
+    "@hackbg/dock": "workspace:^1.3.2",
     "@hackbg/file": "workspace:^1.2",
     "@hackbg/port": "workspace:^1",
     "case": "^1.6.3",

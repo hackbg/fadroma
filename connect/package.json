@@ -13,6 +13,6 @@
   "dependencies": {
     "@fadroma/agent": "workspace:^1.0.0-rc.20",
     "@fadroma/scrt":  "workspace:^9.0.0-rc.20",
-    "@hackbg/conf":   "workspace:^2"
+    "@hackbg/conf":   "workspace:^3.1"
   }
 }

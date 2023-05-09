@@ -1,5 +1,5 @@
 import type {
-  BuilderConfig, Project, Class, BuilderClass, Buildable, Built, Template
+  Project, Class, BuilderClass, Buildable, Built, Template
 } from './fadroma'
 import {
   Builder, Contract, HEAD, Config, Console, bold, colors, Error
@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { readFileSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
 
 /** The parts of Cargo.toml which the builder needs to be aware of. */
 export type CargoTOML = TOMLFile<{ package: { name: string } }>
@@ -22,7 +23,7 @@ export type CargoTOML = TOMLFile<{ package: { name: string } }>
 export { Builder }
 
 /** @returns Builder configured as per environment and options */
-export function getBuilder (options: Partial<BuilderConfig> = {}): Builder {
+export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
   return new Config({ build: options }).getBuilder()
 }
 
@@ -61,9 +62,9 @@ export abstract class BuildLocal extends Builder {
   /** Default Git reference from which to build sources. */
   revision:   string = HEAD
 
-  constructor (options: Partial<BuilderConfig>) {
+  constructor (options: Partial<Config["build"]>) {
     super()
-    this.workspace = options.project   ?? this.workspace
+    this.workspace = options.workspace ?? this.workspace
     this.noFetch   = options.noFetch   ?? this.noFetch
     this.toolchain = options.toolchain ?? this.toolchain
     this.verbose   = options.verbose   ?? this.verbose
@@ -112,7 +113,7 @@ export class BuildContainer extends BuildLocal {
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
 
-  constructor (opts: Partial<BuilderConfig & { docker?: Engine }> = {}) {
+  constructor (opts: Partial<Config["build"] & { docker?: Engine }> = {}) {
     super(opts)
     const { docker, dockerSocket, dockerImage } = opts
     // Set up Docker API handle
@@ -387,7 +388,7 @@ export class BuildContainer extends BuildLocal {
     }
     // Run the build container
     this.log.build.container(root, revision, cratesToBuild)
-    const buildName = `fadroma-build-${sanitize($(root).name)}@${revision}`
+    const buildName = `fadroma-build-${randomBytes(3).toString('hex')}`
     const buildContainer = await this.image.run(
       buildName,      // container name
       buildOptions,   // container options

@@ -16,7 +16,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Console, Error, Chain, ChainMode, ChainId, Mocknet, bold } from '@fadroma/agent'
+import {
+  Console, Error, Chain, ChainMode, ChainId, Mocknet, bold, randomChainId
+} from '@fadroma/agent'
 import type { Agent, AgentOpts, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
 
@@ -61,7 +63,7 @@ export class ConnectConfig extends Config {
   chainId: ChainId|null = this.getString('FADROMA_CHAIN_ID', ()=>{
     const chainIds = {
       Mocknet:     'mocknet',
-      ScrtDevnet:  'fadroma-devnet',
+      ScrtDevnet:  randomChainId(),
       ScrtTestnet: Scrt.Config.defaultTestnetChainId,
       ScrtMainnet: Scrt.Config.defaultMainnetChainId,
     }

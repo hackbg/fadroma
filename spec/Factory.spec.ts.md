@@ -57,7 +57,7 @@ for (const chain of [
   Scrt.Chain.mocknet(),
   Scrt.Chain.devnet({ devnet }),
 ]) {
-  console.log(chain)
+  console.log('Deploying factory on:', chain)
   const agent = await chain.getAgent({ name: 'Admin' }).ready
   console.log(agent)
   console.log(agent.chain)

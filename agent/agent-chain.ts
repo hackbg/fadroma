@@ -3,7 +3,7 @@ import type {
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId,
   Uploadable
 } from './agent'
-import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
+import { Error, Console, into, prop, hideProperties as hide, randomBytes } from './agent-base'
 import type * as Mocknet from './agent-mocknet'
 
 /** A chain can be in one of the following modes: */
@@ -637,3 +637,6 @@ export abstract class Bundle implements Agent {
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })
+
+export const randomChainId = (prefix = `fadroma-devnet-`) =>
+  `${prefix}${randomBytes(3).toString('hex')}`

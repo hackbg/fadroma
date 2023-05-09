@@ -1,6 +1,7 @@
 import { Config, Console, colors, Error, DeployError } from './fadroma-base'
 import { getBuilder, ContractCrate } from './fadroma-build'
 import { getUploader } from './fadroma-upload'
+import { Devnet } from './devnet/devnet'
 
 import type {
   Builder, Buildable, Built, Uploader, Chain,
@@ -13,6 +14,7 @@ import {
   toInstanceReceipt, timestamp, bold
 } from '@fadroma/agent'
 
+import * as Dock from '@hackbg/dock'
 import { CommandContext } from '@hackbg/cmds'
 import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, OpaqueDirectory,
@@ -66,7 +68,7 @@ export class Project extends CommandContext {
 
     // Configure
     this.config = options?.config ?? new Config()
-    const root = $(options?.root || process.cwd()).as(OpaqueDirectory)
+    const root = $(options?.root || this.config.root || process.cwd()).as(OpaqueDirectory)
     const name = options?.name || root.name
     this.name = name
     this.root = root
@@ -108,8 +110,8 @@ export class Project extends CommandContext {
                  this.selectDeployment)
     this.command('export',   `export current deployment to ${name}.json`,
                  this.exportDeployment)
-    this.command('reset',    'stop and erase running devnet',
-                 this.resetDevnet)
+    this.command('reset',    'stop and erase running devnets',
+                 this.resetDevnets)
   }
 
   /** @returns stateless handles for the subdirectories of the project. */
@@ -354,16 +356,8 @@ export class Project extends CommandContext {
     file.as(JSONFile).makeParent().save(snapshot)
     this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
-  resetDevnet = async () => {
-    const chain = this.uploader?.agent?.chain ?? this.config.getChain()
-    if (!chain) {
-      this.log.info('No active chain.')
-    } else if (!chain.isDevnet || !chain.devnet) {
-      this.log.error('This command is only valid for devnets.')
-    } else {
-      await chain.devnet.terminate()
-    }
-  }
+  resetDevnets = async (...ids: ChainId[]) =>
+    Devnet.resetMany(this.root.in('state'), ids)
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {

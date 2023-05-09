@@ -1,6 +1,5 @@
 import type {
   Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract,
-  UploadConfig
 } from './fadroma'
 import {
   Config, Console, colors, bold, Error, hideProperties as hide
@@ -12,7 +11,7 @@ import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
 
 /** @returns Uploader configured as per environment and options */
-export function getUploader (options: Partial<UploadConfig> = {}): Uploader {
+export function getUploader (options: Partial<Config["upload"]> = {}): Uploader {
   return new Config({ upload: options }).getUploader()
 }
 /** Upload a single contract with default settings. */

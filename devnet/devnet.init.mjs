@@ -55,16 +55,9 @@ function genesis ({
   run(`rm -rf ~/.secretd ~/.secretcli /opt/secret/.sgx-secrets`)
 
   console.info('\nEstablishing initial config...')
-  if (!existsSync(stateDir)) {
-    run(`mkdir -p ${stateDir}`)
-    if (uid) run(`chown -R ${uid}`)
-    if (gid) run(`chgrp -R ${gid}`)
-  }
-  if (!existsSync(`${stateDir}/wallet`)) {
-    run(`mkdir -p ${stateDir}/wallet`)
-    if (uid) run(`chown -R ${uid} ${stateDir}/wallet`)
-    if (gid) run(`chgrp -R ${gid} ${stateDir}/wallet`)
-  }
+  run(`mkdir -p ${stateDir}/wallet`)
+  if (uid) run(`chown -R ${uid} ${stateDir}`)
+  if (gid) run(`chgrp -R ${gid} ${stateDir}`)
   run(`secretd config chain-id "${chainId}"`)
   run(`secretd config keyring-backend test`)
   run(`secretd init fadroma-devnet --chain-id "${chainId}"`)
@@ -80,6 +73,8 @@ function genesis ({
     if (uid) run(`chown -R ${uid} ${identity}`)
     if (gid) run(`chgrp -R ${gid} ${identity}`)
   }
+  if (uid) run(`chown -R ${uid} ${stateDir}`)
+  if (gid) run(`chgrp -R ${gid} ${stateDir}`)
 
   console.info('\nAdding genesis accounts...')
   for (const name of genesisAccounts) {

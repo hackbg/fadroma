@@ -5,7 +5,8 @@ import { getBuilder } from './fadroma-build'
 
 import {
   Builder, Deployment, DeployStore, ChainMode, Uploader,
-  Error as BaseError, Console as BaseConsole, colors, bold, HEAD
+  Error as BaseError, Console as BaseConsole, colors, bold, HEAD,
+  randomChainId
 } from '@fadroma/agent'
 import type {
   BuilderClass, Chain, ChainId, UploaderClass, Template, Built,
@@ -27,45 +28,141 @@ export type { Decimal } from '@fadroma/agent'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
-//@ts-ignore 
+//@ts-ignore
 export const thisPackage = dirname(fileURLToPath(import.meta.url))
 
 export class Config extends ConnectConfig {
+  /** License token. */
+  license?: string = this.getString(
+    'FADROMA_LICENSE', ()=>undefined)
+  /** The topmost directory visible to Fadroma.
+    * Usually the root of NPM package and Cargo workspace. */
+  root: string = this.getString(
+    'FADROMA_ROOT', ()=>$(process.cwd()).path)
   /** Project file. Defaults to `node_modules/fadroma/index.ts`, which just runs the Fadroma CLI
     * and can create a project. Projects are expected to set this var to their own root file,
     * which does `export default class MyProject extends Fadroma.Project { ... }` and points to
     * the Deployment class. */
-  project: string = this.getString('FADROMA_PROJECT', ()=>$(process.cwd(), 'ops.ts').path)
-  /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
-    * Defaults to parent directory of FADROMA_PROJECT. */
-  workspace: string = this.getString('FADROMA_WORKSPACE', ()=>dirname(this.project))
-  /** License token. */
-  license: string = this.getString('FADROMA_LICENSE', ()=>'unlicensed')
+  project: string = $(this.root, this.getString(
+    'FADROMA_PROJECT', ()=>$(thisPackage, 'fadroma.ts').path)).path
+  /** Project file. Defaults to `node_modules/fadroma/index.ts`, which just runs the Fadroma CLI
+    * and can create a project. Projects are expected to set this var to their own root file,
+    * which does `export default class MyProject extends Fadroma.Project { ... }` and points to
+    * the Deployment class. */
   /** Build options. */
-  build: BuilderConfig
+  build = {
+    /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
+      * Defaults to parent directory of FADROMA_PROJECT. */
+    workspace: this.getString(
+      'FADROMA_WORKSPACE', ()=>this.root),
+    /** Builder to use */
+    builder: this.getString(
+      'FADROMA_BUILDER', ()=>Object.keys(Builder.variants)[0]),
+    /** Whether the build process should print more detail to the console. */
+    verbose: this.getFlag(
+      'FADROMA_BUILD_VERBOSE', ()=>false),
+    /** Whether the build log should be printed only on error, or always */
+    quiet: this.getFlag(
+      'FADROMA_BUILD_QUIET', ()=>false),
+    /** Whether to enable caching and reuse contracts from artifacts directory. */
+    caching: !this.getFlag(
+      'FADROMA_REBUILD', ()=>false),
+    /** Name of output directory. */
+    outputDir: this.getString(
+      'FADROMA_ARTIFACTS', ()=>$(this.root).in('wasm').path),
+    /** Script that runs inside the build container, e.g. build.impl.mjs */
+    script: this.getString(
+      'FADROMA_BUILD_SCRIPT', ()=>$(thisPackage).at('build.impl.mjs').path),
+    /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
+    toolchain: this.getString(
+      'FADROMA_RUST', ()=>''),
+    /** Don't run "git fetch" during build. */
+    noFetch: this.getFlag(
+      'FADROMA_NO_FETCH', ()=>false),
+    /** Whether to bypass Docker and use the toolchain from the environment. */
+    raw: this.getFlag(
+      'FADROMA_BUILD_RAW', ()=>false),
+    /** Whether to use Podman instead of Docker to run the build container. */
+    podman: this.getFlag(
+      'FADROMA_BUILD_PODMAN', () => this.getFlag('FADROMA_BUILD_PODMAN', ()=>false)),
+    /** Path to Docker API endpoint. */
+    dockerSocket: this.getString(
+      'FADROMA_DOCKER', ()=>'/var/run/docker.sock'),
+    /** Docker image to use for dockerized builds. */
+    dockerImage: this.getString(
+      'FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master'),
+    /** Dockerfile to build the build image if not downloadable. */
+    dockerfile: this.getString(
+      'FADROMA_BUILD_DOCKERFILE', ()=>$(thisPackage).at('Dockerfile').path),
+  }
   /** Upload options. */
-  upload: UploadConfig
+  upload = {
+    /** Whether to always upload contracts, ignoring upload receipts that match. */
+    reupload: this.getFlag(
+      'FADROMA_REUPLOAD', () => false),
+    /** Directory to store the receipts for the deployed contracts. */
+    uploadState: this.getString(
+      'FADROMA_UPLOAD_STATE', () => this.chainId
+        ? $(this.root).in('state').in(this.chainId).in('upload').path
+        : null),
+    /** Variant of uploader to use */
+    uploader: this.getString(
+      'FADROMA_UPLOADER', () => 'FS')
+  }
   /** Deploy options. */
-  deploy: DeployConfig
+  deploy = {
+    /** Whether to generate unsigned transactions for manual multisig signing. */
+    multisig: this.getFlag(
+      'FADROMA_MULTISIG', () => false),
+    /** Directory to store the receipts for the deployed contracts. */
+    storePath: this.getString(
+      'FADROMA_DEPLOY_STATE', () =>
+      this.chainId ? $(this.root).in('state').in(this.chainId).in('deploy').path : null),
+    /** Which implementation of the receipt store to use. */
+    format: this.getString(
+      'FADROMA_DEPLOY_FORMAT', () => 'v1') as DeploymentFormat
+  }
   /** Devnet options. */
-  devnet: DevnetConfig
+  devnet = {
+    /** Which kind of devnet to launch */
+    platform: this.getString(
+      'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8') as DevnetPlatform,
+    /** Chain id for devnet .*/
+    chainId: this.getString(
+      'FADROMA_DEVNET_CHAIN_ID', ()=>randomChainId()),
+    /** Whether the devnet should remain running after the command ends. */
+    persistent: this.getFlag(
+      'FADROMA_DEVNET_PERSISTENT', ()=>true),
+    /** Whether the devnet should be erased after the command ends. */
+    ephemeral: this.getFlag(
+      'FADROMA_DEVNET_EPHEMERAL', ()=>false),
+    /** Host for devnet. */
+    host: this.getString(
+      'FADROMA_DEVNET_HOST', ()=>null),
+    /** Port for devnet. */
+    port: this.getString(
+      'FADROMA_DEVNET_PORT', ()=>null),
+    /** Whether to use Podman instead of Docker to run the devnet container. */
+    podman: this.getFlag(
+      'FADROMA_DEVNET_PODMAN', () => this.getFlag('FADROMA_PODMAN', ()=>false))
+  }
 
   constructor (
-    options: Partial<ConnectConfig> & Partial<{
-      build: Partial<BuilderConfig>,
-      upload: Partial<UploadConfig>,
-      deploy: Partial<DeployConfig>,
-      devnet: Partial<DevnetConfig>
+    options:  Partial<ConnectConfig> & Partial<{
+      build:  Partial<Config["build"]>,
+      upload: Partial<Config["upload"]>,
+      deploy: Partial<Config["deploy"]>,
+      devnet: Partial<Config["devnet"]>
     }> = {},
     environment?: Environment
   ) {
-    super(environment)
+    super({}, environment)
     const { build, upload, deploy, devnet, ...rest } = options
     this.override(rest)
-    this.build = new BuilderConfig(dirname(this.project), build, environment)
-    this.upload = new UploadConfig(dirname(this.project), this.chainId, upload, environment)
-    this.deploy = new DeployConfig(dirname(this.project), this.chainId, deploy, environment)
-    this.devnet = new DevnetConfig(devnet, environment)
+    this.build  = { ...this.build, ...build }
+    this.upload = { ...this.upload, ...upload }
+    this.deploy = { ...this.deploy, ...deploy }
+    this.devnet = { ...this.devnet, ...devnet }
   }
   /** @returns a configured builder. */
   getBuilder <B extends Builder> ($B?: BuilderClass<B>): B {
@@ -80,9 +177,13 @@ export class Config extends ConnectConfig {
     const agent = this.getAgent()
     return new $U({ agent })
   }
+  /** The deploy receipt store implementation selected by `format`. */
+  get DeployStore (): DeployStoreClass<DeployStore>|undefined {
+    return DeployStore.variants[this.deploy.format]
+  }
   /** @returns an instance of the selected deploy store implementation. */
   getDeployStore <S extends DeployStore> (
-    $S: DeployStoreClass<S>|undefined = this.deploy.Store as DeployStoreClass<S>
+    $S: DeployStoreClass<S>|undefined = this.DeployStore as DeployStoreClass<S>
   ): S {
     if (!$S) throw new Error('Missing deployment store constructor')
     return new $S(this.deploy.storePath)
@@ -119,123 +220,6 @@ export class Config extends ConnectConfig {
   }
 }
 
-export class BuilderConfig extends BaseConfig {
-  /** Builder to use */
-  builder: string = this.getString('FADROMA_BUILDER', ()=>Object.keys(Builder.variants)[0])
-  /** Whether the build process should print more detail to the console. */
-  verbose: boolean = this.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
-  /** Whether the build log should be printed only on error, or always */
-  quiet: boolean = this.getFlag('FADROMA_BUILD_QUIET', ()=>false)
-  /** Whether to enable caching and reuse contracts from artifacts directory. */
-  caching: boolean = !this.getFlag('FADROMA_REBUILD', ()=>false)
-  /** Name of output directory. */
-  outputDir: string = this.getString('FADROMA_ARTIFACTS', ()=>
-    $(this.project).in('wasm').path)
-  /** Script that runs inside the build container, e.g. build.impl.mjs */
-  script: string = this.getString('FADROMA_BUILD_SCRIPT', ()=>
-    $(thisPackage).at('build.impl.mjs').path)
-  /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
-  toolchain: string = this.getString('FADROMA_RUST', ()=>'')
-  /** Don't run "git fetch" during build. */
-  noFetch: boolean = this.getFlag('FADROMA_NO_FETCH', ()=>false)
-  /** Whether to bypass Docker and use the toolchain from the environment. */
-  raw: boolean = this.getFlag('FADROMA_BUILD_RAW', ()=>false)
-  /** Whether to use Podman instead of Docker to run the build container. */
-  podman: boolean = this.getFlag('FADROMA_BUILD_PODMAN', () =>
-    this.getFlag('FADROMA_BUILD_PODMAN', ()=>false))
-  /** Path to Docker API endpoint. */
-  dockerSocket: string = this.getString('FADROMA_DOCKER',
-    ()=>'/var/run/docker.sock')
-  /** Docker image to use for dockerized builds. */
-  dockerImage: string = this.getString('FADROMA_BUILD_IMAGE',
-    ()=>'ghcr.io/hackbg/fadroma:master')
-  /** Dockerfile to build the build image if not downloadable. */
-  dockerfile: string = this.getString('FADROMA_BUILD_DOCKERFILE',
-    ()=>$(thisPackage).at('Dockerfile').path)
-
-  constructor (
-    readonly project: string,
-    options: Partial<BuilderConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-  }
-}
-
-/** Deployment system configuration and factory for populated Deployments. */
-export class DeployConfig extends BaseConfig {
-  /** Whether to generate unsigned transactions for manual multisig signing. */
-  multisig: boolean = this.getFlag('FADROMA_MULTISIG', () => false)
-  /** Directory to store the receipts for the deployed contracts. */
-  storePath: string | null = this.getString('FADROMA_DEPLOY_STATE', () =>
-    this.chainId ? $(this.project).in('state').in(this.chainId).in('deploy').path : null)
-  /** Which implementation of the receipt store to use. */
-  format = this.getString('FADROMA_DEPLOY_FORMAT', () => 'v1') as DeploymentFormat
-
-  constructor (
-    readonly project: string,
-    readonly chainId: ChainId|null,
-    options: Partial<DeployConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-  }
-
-  /** The deploy receipt store implementation selected by `format`. */
-  get Store (): DeployStoreClass<DeployStore>|undefined {
-    console.log(this.format, DeployStore.variants)
-    return DeployStore.variants[this.format]
-  }
-}
-
-/** Gets devnet settings from environment. */
-export class DevnetConfig extends BaseConfig {
-  /** Which kind of devnet to launch */
-  platform: DevnetPlatform = this.getString('FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8') as DevnetPlatform
-  /** Chain id for devnet .*/
-  chainId: string = this.getString('FADROMA_DEVNET_CHAIN_ID', ()=>"fadroma-devnet")
-  /** Whether the devnet should remain running after the command ends. */
-  persistent: boolean = this.getFlag('FADROMA_DEVNET_PERSISTENT', ()=>true)
-  /** Whether the devnet should be erased after the command ends. */
-  ephemeral: boolean = this.getFlag('FADROMA_DEVNET_EPHEMERAL', ()=>false)
-  /** Host for devnet. */
-  host: string|null = this.getString('FADROMA_DEVNET_HOST', ()=>null)
-  /** Port for devnet. */
-  port: string|null = this.getString('FADROMA_DEVNET_PORT', ()=>null)
-  /** Whether to use Podman instead of Docker to run the devnet container. */
-  podman: boolean = this.getFlag('FADROMA_DEVNET_PODMAN', () => this.getFlag('FADROMA_PODMAN', ()=>false))
-
-  constructor (
-    options: Partial<DevnetConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-  }
-}
-
-export class UploadConfig extends BaseConfig {
-  /** Whether to always upload contracts, ignoring upload receipts that match. */
-  reupload: boolean = this.getFlag('FADROMA_REUPLOAD', () => false)
-  /** Directory to store the receipts for the deployed contracts. */
-  uploadState: string|null = this.getString('FADROMA_UPLOAD_STATE', () =>
-    this.chainId ? $(this.project).in('state').in(this.chainId).in('upload').path : null)
-  /** Variant of uploader to use */
-  uploader: string = this.getString('FADROMA_UPLOADER', () => 'FS')
-
-  constructor (
-    readonly project: string,
-    readonly chainId: ChainId|null,
-    options: Partial<UploadConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-  }
-}
-
 export class Error extends BaseError {
   static Build:  typeof BuildError
   static Upload: typeof UploadError
@@ -243,11 +227,9 @@ export class Error extends BaseError {
   static Devnet: typeof DevnetError
 }
 
-export class BuildError extends Error {
-}
+export class BuildError extends Error {}
 
-export class UploadError extends Error {
-}
+export class UploadError extends Error {}
 
 export class DeployError extends Error {
   static DeploymentAlreadyExists = this.define('DeploymentAlreadyExists', (name: string)=>

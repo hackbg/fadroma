@@ -1,15 +1,16 @@
 import { Error, Console, Config } from '../fadroma-base'
-import type { DevnetConfig } from '../fadroma-base'
-import { bold, randomHex, ChainMode, Chain } from '@fadroma/agent'
+import { bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/agent'
 import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
 import { freePort, Endpoint, waitPort, isPortTaken } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { randomBytes } from 'node:crypto'
 
 /** @returns Devnet configured as per environment and options. */
-export function getDevnet (options: Partial<DevnetConfig> = {}) {
+export function getDevnet (options: Partial<Config["devnet"]> = {}) {
   return new Config({ devnet: options }).getDevnet()
 }
 
@@ -24,25 +25,18 @@ export interface DevnetState {
   /** ID of Docker container to restart. */
   containerId?: string
   /** Chain ID that was set when creating the devnet. */
-  chainId:      string
+  chainId: string
   /** The port on which the devnet will be listening. */
-  host?:        string
+  host?: string
   /** The port on which the devnet will be listening. */
-  port:         number|string
+  port: number|string
 }
 
 /** Supported connection types. */
 export type DevnetPortMode = 'lcp'|'grpcWeb'
 
 /** Supported devnet variants. */
-export type DevnetPlatform =
-  |'scrt_1.2'
-  |'scrt_1.3'
-  |'scrt_1.4'
-  |'scrt_1.5'
-  |'scrt_1.6'
-  |'scrt_1.7'
-  |'scrt_1.8'
+export type DevnetPlatform = `scrt_1.${2|3|4|5|6|7|8}`
 
 /** Default connection type to expose on each devnet variant. */
 export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
@@ -60,17 +54,17 @@ export class Devnet implements DevnetHandle {
   /** Whether to destroy this devnet on exit. */
   ephemeral: boolean = false
   /** The chain ID that will be passed to the devnet node. */
-  chainId:   ChainId = 'fadroma-devnet'
+  chainId: ChainId = randomChainId()
   /** The protocol of the API URL without the trailing colon. */
-  protocol:  string = 'http'
+  protocol: string = 'http'
   /** The hostname of the API URL. */
-  host:      string = process.env.FADROMA_DEVNET_HOST ?? 'localhost'
+  host: string = process.env.FADROMA_DEVNET_HOST ?? 'localhost'
   /** The port of the API URL. If `null`, `freePort` will be used to obtain a random port. */
-  port:      number
+  port: number
   /** Which service does the API URL port correspond to. */
-  portMode:  DevnetPortMode
+  portMode: DevnetPortMode
   /** This directory is created to remember the state of the devnet setup. */
-  stateDir:  OpaqueDirectory
+  stateDir: OpaqueDirectory
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
   /** Handle to created devnet container */
@@ -96,23 +90,22 @@ export class Devnet implements DevnetHandle {
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
   constructor (options: Partial<Devnet> & {} = {}) {
-    this.chainId   = options.chainId ?? this.chainId
+    this.chainId = options.chainId ?? this.chainId
     if (!this.chainId) throw new Error.Devnet.NoChainId()
     // Whether the devnet should delete itself after the script ends.
     this.ephemeral = options.ephemeral ?? this.ephemeral
     // Define connection method
-    this.host      = options.host ?? this.host
-    this.portMode  = options.portMode! // this should go, in favor of exposing all ports
-    this.port      = options.port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
+    this.host = options.host ?? this.host
+    this.portMode = options.portMode! // this should go, in favor of exposing all ports
+    this.port = options.port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
     // Define initial accounts and balances
     this.genesisAccounts = options.genesisAccounts ?? this.genesisAccounts
     // Define storage
-    this.stateDir  = options.stateDir ?? $('state', this.chainId).as(OpaqueDirectory)
-    this.identities  ??= this.stateDir.in('wallet').as(JSONDirectory)
-    this.image       ??= options.image!
-    this.initScript  ??= options.initScript!
+    this.stateDir = options.stateDir ?? $('state', this.chainId).as(OpaqueDirectory)
+    this.identities ??= this.stateDir.in('wallet').as(JSONDirectory)
+    this.image ??= options.image!
+    this.initScript ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
-    this.log.log(options.image?.name, `on`, options.image?.engine?.constructor.name)
   }
 
   get log (): Console {
@@ -134,10 +127,10 @@ export class Devnet implements DevnetHandle {
     // Environment variables in devnet container
     const env: Record<string, string> = {
       Verbose: process.env.FADROMA_DEVNET_VERBOSE ? 'yes' : '',
-      ChainID: this.chainId,
+      ChainId: this.chainId,
       GenesisAccounts: this.genesisAccounts.join(' '),
-      _UID: String(process.env.FADROMA_DEVNET_UID??(process.getuid?process.getuid():1000)),
-      _GID: String(process.env.FADROMA_DEVNET_GID??(process.getgid?process.getgid():1000)),
+      _UID: String((process.getuid!)()),
+      _GID: String((process.getgid!)()),
     }
     // Which kind of API to expose at the default container port
     switch (this.portMode) {
@@ -215,8 +208,7 @@ export class Devnet implements DevnetHandle {
   }
   /** Stop this node and delete its state. */
   async terminate () {
-    await this.erase()
-    return this
+    return await this.erase()
   }
   /** Get a Chain object corresponding to this devnet. */
   getChain <C extends Chain> (
@@ -236,6 +228,7 @@ export class Devnet implements DevnetHandle {
   }
 
   async spawn () {
+    if (!this.chainId) throw new Error.Missing.ChainId()
     // host is usr configurable, so should port
     this.host = process.env.FADROMA_DEVNET_HOST ?? this.host
     // if port is unspecified or taken, increment
@@ -250,11 +243,8 @@ export class Devnet implements DevnetHandle {
     const stateDirs = [ this.stateDir, this.stateFile ]
     for (const item of stateDirs) item.make()
     // run the container
-    this.container = await this.image.run(
-      `${this.chainId}-${this.port}`,               // container name
-      this.spawnOptions,                            // container options
-      this.initScript ? [this.initScriptMount] : [] // command and arguments
-    )
+    this.container = await this.image.run(this.chainId, this.spawnOptions, this.initScript
+      ? [this.initScriptMount] : [])
     // update the record
     this.save()
     // Wait for everything to be ready
@@ -348,33 +338,39 @@ export class Devnet implements DevnetHandle {
       }
     } catch (e: any) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
-        this.log.warn(`Failed to delete ${path}: ${e.code}; trying cleanup container...`)
-        await this.image.ensure()
-        const containerName = `${this.chainId}-${this.port}-cleanup`
-        const options = {
-          AutoRemove: true,
-          Image:      this.image.name,
-          Entrypoint: [ '/bin/rm' ],
-          Cmd:        ['-rvf', '/state',],
-          HostConfig: { Binds: [`${this.stateDir.path}:/state:rw`] }
-          //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
-        }
-        const cleanupContainer = await this.image.run(
-          containerName,
-          { extra: options },
-          ['-rvf', '/state'],
-          '/bin/rm'
-        )
-        this.log.log(`Starting cleanup container...`)
-        await cleanupContainer.start()
-        this.log.log('Waiting for cleanup to finish...')
-        await cleanupContainer.wait()
-        this.log.log(`Deleted ${path} via cleanup container.`)
+        this.log.warn(`failed to delete ${path}: ${e.code}`)
+        await this.runCleanupContainer(path)
       } else {
-        this.log.warn(`Failed to delete ${path}: ${e.message}`)
+        this.log.warn(`failed to delete ${path}:`, e)
         throw e
       }
     }
+    return this
+  }
+
+  async runCleanupContainer (path: string) {
+    this.log.log('running cleanup container for', path)
+    await this.image.ensure()
+    const containerName = `${this.chainId}-${this.port}-cleanup`
+    const options = {
+      AutoRemove: true,
+      Image:      this.image.name,
+      Entrypoint: [ '/bin/rm' ],
+      Cmd:        ['-rvf', '/state',],
+      HostConfig: { Binds: [`${this.stateDir.path}:/state:rw`] }
+      //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
+    }
+    const cleanupContainer = await this.image.run(
+      containerName,
+      { extra: options },
+      ['-rvf', '/state'],
+      '/bin/rm'
+    )
+    this.log.log(`Starting cleanup container...`)
+    await cleanupContainer.start()
+    this.log.log('Waiting for cleanup to finish...')
+    await cleanupContainer.wait()
+    this.log.log(`Deleted ${path} via cleanup container.`)
   }
 
   async export (repository?: string, tag?: string) {
@@ -445,4 +441,55 @@ export class Devnet implements DevnetHandle {
 
   /** Regexp for non-printable characters. */
   static RE_NON_PRINTABLE = /[\x00-\x1F]/
+
+  static resetMany = async (path: string|Path, ids?: ChainId[]) => {
+    const console = new Console('devnet')
+    const state  = $(path).as(OpaqueDirectory)
+    const chains = (state.list() || [])
+      .map(name => $(state, name))
+      .filter(path => path.isDirectory())
+      .map(path => path.at('devnet.json').as(JSONFile))
+      .filter(path => path.isFile())
+    for (const devnetJSON of chains) {
+      const {engine='docker', containerId, chainId}: any = devnetJSON.load() || {}
+      console.log(`${chainId} (${devnetJSON.shortPath})`)
+      console.log(`${engine}: ${containerId}`)
+      if (engine === 'docker') {
+        try {
+          const docker = new Dock.Docker.Engine()
+          const container = await docker.container(containerId)
+          await container.kill()
+          console.log(`${containerId}: killed`)
+          await container.remove()
+          console.log(`${containerId}: removed`)
+        } catch (e) {
+          if (e.statusCode === 404) {
+            console.log(`${containerId}: not found`)
+          } else {
+            console.warn(`${containerId}: failed to remove:`, e)
+          }
+        }
+      } else {
+        console.warn(`BUG: can't reset devnet on engine: ${engine}`)
+      }
+      const dir = $(devnetJSON, '..')
+      try {
+        dir.delete()
+      } catch (e) {
+        if (e.code === 'EACCES') console.warn(
+          `BUG: devnet may have written its files with wrong permissions at ${dir.shortPath}`
+        )
+        console.warn(`Failed to delete ${dir.shortPath}`, e)
+      }
+    }
+    //const chain = this.uploader?.agent?.chain ?? this.config.getChain()
+    //if (!chain) {
+      //console.info('No active chain.')
+    //} else if (!chain.isDevnet || !chain.devnet) {
+      //console.error('This command is only valid for devnets.')
+    //} else {
+      //await chain.devnet.terminate()
+    //}
+  }
+
 }
