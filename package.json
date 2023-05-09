@@ -32,8 +32,8 @@
     "check": "time tsc --noEmit",
 
     "test": "time ensuite GUIDE.ts.md",
-    "test:agent": "time ensuite agent/Agent.spec.ts.md",
     "test:factory": "time ensuite spec/Factory.spec.ts.md",
+    "test:devnet": "time ensuite spec/Devnet.spec.ts.md",
 
     "cov": "time ensuite-cov GUIDE.ts.md",
     "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",

@@ -21,15 +21,11 @@ export function getDevnet (options: Partial<Config["devnet"]> = {}) {
 export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource finder
 
 /** Used to reconnect between runs. */
-export interface DevnetState {
+export type DevnetState = Partial<Devnet> & {
   /** ID of Docker container to restart. */
   containerId?: string
   /** Chain ID that was set when creating the devnet. */
   chainId: string
-  /** The port on which the devnet will be listening. */
-  host?: string
-  /** The port on which the devnet will be listening. */
-  port: number|string
 }
 
 /** Supported connection types. */
@@ -59,16 +55,16 @@ export class Devnet implements DevnetHandle {
   /** The port of the API URL. */
   port?: string|number
   /** This directory is created to remember the state of the devnet setup. */
-  stateDir: OpaqueDirectory
+  stateDir: string
+  /** Containerization engine (Docker or Podman). */
+  engine: Dock.Engine
   /** This should point to the standard production docker image for the network. */
   image: Dock.Image
   /** Handle to created devnet container */
   container?: Dock.Container
   /** If set, overrides the script that launches the devnet in the container. */
   initScript?: string
-  /** Mounted out of devnet container to persist keys of genesis wallets. */
-  identities: JSONDirectory<unknown>
-  /** Whether to ignore identities and don't mount them out of the container. */
+  /** Whether to skip mounting a local state directory into/out of the container. */
   noStateMount: boolean
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
@@ -99,17 +95,17 @@ export class Devnet implements DevnetHandle {
     this.launchTimeout = options.launchTimeout ?? 10
     this.noStateMount = options.noStateMount ?? false
     this.genesisAccounts = options.genesisAccounts ?? this.genesisAccounts
-    this.stateDir = options.stateDir ?? $('state', this.chainId).as(OpaqueDirectory)
-    this.identities ??= this.stateDir.in('wallet').as(JSONDirectory)
+    this.stateDir = options.stateDir ?? $('state', this.chainId).path
     this.initScript ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase ?? Devnet.readyMessage[this.platform]
     this.protocol = options.protocol ?? 'http'
     this.host = options.host ?? 'localhost'
     this.portMode = Devnet.portModes[this.platform]
     this.port = options.port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
-    const dock = options.image?.engine ?? options.dock ??
+    this.engine = options.container?.image?.engine ?? options.image?.engine ?? options.engine ??
       new (this.podman ? Dock.Podman.Engine : Dock.Docker.Engine)()
-    this.image = options.image ?? dock.image(
+    this.container = options.container
+    this.image = this.container?.image ?? options.image ?? this.engine.image(
       Devnet.dockerTags[this.platform],
       Devnet.dockerfiles[this.platform],
       [this.initScriptMount]
@@ -123,8 +119,8 @@ export class Devnet implements DevnetHandle {
   get url (): URL { return new URL(`${this.protocol}://${this.host}:${this.port}`) }
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
-  get stateFile (): JSONFile<DevnetState> {
-    return this.stateDir.at('devnet.json').as(JSONFile) as JSONFile<DevnetState>
+  get devnetJSON (): JSONFile<DevnetState> {
+    return $(this.stateDir, 'devnet.json').as(JSONFile) as JSONFile<DevnetState>
   }
   /** Handle to Docker API if configured. */
   get dock (): Dock.Engine|null {
@@ -154,7 +150,7 @@ export class Devnet implements DevnetHandle {
     if (this.initScript)
       Binds.push(`${this.initScript}:${this.initScriptMount}:ro`)
     if (!this.noStateMount)
-      Binds.push(`${this.stateDir.path}:/state/${this.chainId}:rw`)
+      Binds.push(`${$(this.stateDir).path}:/state/${this.chainId}:rw`)
     const NetworkMode = 'bridge'
     const PortBindings = { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] }
     const HostConfig = { Binds, NetworkMode, PortBindings }
@@ -177,24 +173,24 @@ export class Devnet implements DevnetHandle {
   genesisAccounts: Array<string> = [
     'Admin', 'Alice', 'Bob', 'Charlie', 'Mallory'
   ]
-  /** Restore this node from the info stored in the stateFile file */
+  /** Restore this node from the info stored in the devnetJSON file */
   async load (): Promise<DevnetState|null> {
-    const path = this.stateFile.shortPath
-    if (!this.stateDir.exists() || !this.stateFile.exists()) {
+    const path = this.devnetJSON.shortPath
+    if (!$(this.stateDir).exists() || !this.devnetJSON.exists()) {
       this.log.devnet.loadingRejected(path)
       return null
     }
     let state
     try {
-      state = this.stateFile.load() || {}
+      state = this.devnetJSON.load() || {}
     } catch (e) {
       this.log.devnet.loadingFailed(path)
-      this.stateDir.delete()
+      $(this.stateDir).delete()
       throw e
     }
-    const { chainId, containerId, port } = state
+    const { podman, chainId, containerId, port } = state
     if (containerId) {
-      this.container = await this.dock!.container(containerId)
+      this.container = await this.engine.container(containerId)
     } else {
       throw new Error.Devnet('missing container id in devnet state')
     }
@@ -205,11 +201,11 @@ export class Devnet implements DevnetHandle {
   /** Write the state of the devnet to a file.
     * This saves the info needed to respawn the node */
   save (extra = {}) {
-    this.stateFile.save({
-      chainId: this.chainId,
+    this.devnetJSON.save({
+      podman:      this.podman,
+      port:        this.port,
       containerId: this.container?.id,
-      port: this.port,
-      ...extra
+      imageName:   this.image?.name
     })
     return this
   }
@@ -225,15 +221,14 @@ export class Devnet implements DevnetHandle {
   }
   /** Get the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<AgentOpts> {
-    if (process.env.FADROMA_DEVNET_NO_STATE_MOUNT) {
+    if (this.noStateMount) {
       if (!this.container) throw new Error.Devnet.ContainerNotSet()
       const [identity] = await this.container.exec(
-        'cat',
-        `/state/${this.chainId}/wallet/${name}.json`
+        'cat', `/state/${this.chainId}/wallet/${name}.json`
       )
       return JSON.parse(identity)
     } else {
-      return this.identities.at(`${name}.json`).as(JSONFile).load() as AgentOpts
+      return $(this.stateDir, 'wallet', `${name}.json`).as(JSONFile).load() as AgentOpts
     }
   }
 
@@ -248,15 +243,14 @@ export class Devnet implements DevnetHandle {
     // tell the user that we have begun
     this.log.log(`Spawning new node to listen on`, bold(this.url))
     // create the state dirs and files
-    for (const item of [ this.stateDir, this.stateFile ]) {
-      item.make()
-    }
+    for (const item of [ $(this.stateDir).as(OpaqueDirectory), this.devnetJSON ]) item.make()
     // run the container
     this.container = await this.image.run(
       this.chainId,
       this.spawnOptions,
       this.initScript ? [this.initScriptMount] : []
     )
+    if (!this.persistent) process.on('beforeExit', async () => await this.kill())
     // update the record
     this.save()
     // Wait for everything to be ready
@@ -268,9 +262,9 @@ export class Devnet implements DevnetHandle {
 
   /** Start the node if stopped. */
   async respawn () {
-    const shortPath = $(this.stateFile.path).shortPath
+    const shortPath = $(this.devnetJSON.path).shortPath
     // if no node state, spawn
-    if (!this.stateFile.exists()) {
+    if (!this.devnetJSON.exists()) {
       this.log.log(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }
@@ -327,26 +321,57 @@ export class Devnet implements DevnetHandle {
       const { id } = this.container
       await this.container.kill()
       this.log.log(`Stopped container`, bold(id))
-      return
+      return this
     }
     this.log.log(`Checking if there's an old node that needs to be stopped...`)
     const { containerId } = await this.load() || {}
     if (containerId) {
       this.log(`Stopped container ${bold(containerId!)}.`)
       await this.container!.kill()
-      return
+      return this
     }
     this.log("Didn't stop any container.")
+    return this
+      //console.log(`${chainId} (${devnetJSON.shortPath})`)
+      //console.log(`${engine}: ${containerId}`)
+      //if (engine === 'docker') {
+        //try {
+          //const docker = new Dock.Docker.Engine()
+          //const container = await docker.container(containerId)
+          //await container.kill()
+          //console.log(`${containerId}: killed`)
+          //await container.remove()
+          //console.log(`${containerId}: removed`)
+        //} catch (e) {
+          //if (e.statusCode === 404) {
+            //console.log(`${containerId}: not found`)
+          //} else {
+            //console.warn(`${containerId}: failed to remove:`, e)
+          //}
+        //}
+      //} else {
+        //console.warn(`BUG: can't reset devnet on engine: ${engine}`)
+      //}
+      //const dir = $(devnetJSON, '..')
+      //try {
+        //dir.delete()
+      //} catch (e) {
+        //if (e.code === 'EACCES') console.warn(
+          //`BUG: devnet may have written its files with wrong permissions at ${dir.shortPath}`
+        //)
+        //console.warn(`Failed to delete ${dir.shortPath}`, e)
+      //}
   }
 
   /** External environment needs to be returned to a pristine state via Docker.
     * (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.) */
   async erase () {
-    const path = this.stateDir.shortPath
+    const state = $(this.stateDir)
+    const path  = state.shortPath
     try {
-      if (this.stateDir.exists()) {
+      if (state.exists()) {
         this.log.log(`Deleting ${path}...`)
-        this.stateDir.delete()
+        state.delete()
       }
     } catch (e: any) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
@@ -369,7 +394,7 @@ export class Devnet implements DevnetHandle {
       Image:      this.image.name,
       Entrypoint: [ '/bin/rm' ],
       Cmd:        ['-rvf', '/state',],
-      HostConfig: { Binds: [`${this.stateDir.path}:/state:rw`] }
+      HostConfig: { Binds: [`${$(this.stateDir).path}:/state:rw`] }
       //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
     }
     const cleanupContainer = await this.image.run(
@@ -442,51 +467,14 @@ export class Devnet implements DevnetHandle {
   static resetMany = async (path: string|Path, ids?: ChainId[]) => {
     const console = new Console('devnet')
     const state  = $(path).as(OpaqueDirectory)
-    const chains = (state.list() || [])
+    const chains = (state.exists()&&state.list()||[])
       .map(name => $(state, name))
       .filter(path => path.isDirectory())
       .map(path => path.at('devnet.json').as(JSONFile))
       .filter(path => path.isFile())
     for (const devnetJSON of chains) {
-      const {engine='docker', containerId, chainId}: any = devnetJSON.load() || {}
-      console.log(`${chainId} (${devnetJSON.shortPath})`)
-      console.log(`${engine}: ${containerId}`)
-      if (engine === 'docker') {
-        try {
-          const docker = new Dock.Docker.Engine()
-          const container = await docker.container(containerId)
-          await container.kill()
-          console.log(`${containerId}: killed`)
-          await container.remove()
-          console.log(`${containerId}: removed`)
-        } catch (e) {
-          if (e.statusCode === 404) {
-            console.log(`${containerId}: not found`)
-          } else {
-            console.warn(`${containerId}: failed to remove:`, e)
-          }
-        }
-      } else {
-        console.warn(`BUG: can't reset devnet on engine: ${engine}`)
-      }
-      const dir = $(devnetJSON, '..')
-      try {
-        dir.delete()
-      } catch (e) {
-        if (e.code === 'EACCES') console.warn(
-          `BUG: devnet may have written its files with wrong permissions at ${dir.shortPath}`
-        )
-        console.warn(`Failed to delete ${dir.shortPath}`, e)
-      }
+      await new Devnet(devnetJSON.load()!).kill().then(devnet=>devnet.erase())
     }
-    //const chain = this.uploader?.agent?.chain ?? this.config.getChain()
-    //if (!chain) {
-      //console.info('No active chain.')
-    //} else if (!chain.isDevnet || !chain.devnet) {
-      //console.error('This command is only valid for devnets.')
-    //} else {
-      //await chain.devnet.terminate()
-    //}
   }
 
   /** Default connection type to expose on each devnet variant. */

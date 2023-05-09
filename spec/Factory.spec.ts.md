@@ -50,7 +50,7 @@ import { getDevnet, getDeployment } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
 import assert from 'node:assert'
 
-const devnet = await getDevnet({ ephemeral: true, chainId: 'test-devnet' }).respawn()
+const devnet = await getDevnet({ temporary: true }).respawn()
 process.on('beforeExit', () => devnet.erase())
 
 for (const chain of [
