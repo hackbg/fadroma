@@ -14,7 +14,10 @@ use crate::{
     },
     impl_canonize_default
 };
-use super::safe_math::safe_add;
+use super::{
+    safe_math::safe_add,
+    decoy::Decoys
+};
 
 crate::namespace!(pub ConstantsNs, b"N3QP0mNoPG");
 pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
@@ -216,19 +219,74 @@ impl Account {
     }
 
     #[inline]
-    pub fn add_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.balance(storage)?;
-        let new_balance = account_balance.checked_add(amount)?;
+    pub fn add_balance(
+        &self,
+        storage: &mut dyn Storage,
+        amount: Uint128,
+        decoys: Option<&Decoys>
+    ) -> StdResult<()> {
+        match decoys {
+            Some(decoys) => {
+                let mut updated = false;
 
-        Self::BALANCE.save(storage, self, &new_balance)
+                for decoy in decoys.shuffle_in(self) {
+                    // Always load and save account balance to obfuscate the real account.
+                    let mut balance = decoy.balance(storage)?;
+
+                    if decoy.addr == self.addr && !updated {
+                        updated = true;
+                        let _ = safe_add(&mut balance, amount);
+                    }
+
+                    Self::BALANCE.save(storage, decoy, &balance)?;
+                }
+
+                Ok(())
+            }
+            None => {
+                let mut balance = self.balance(storage)?;
+                let _ = safe_add(&mut balance, amount);
+        
+                Self::BALANCE.save(storage, self, &balance)
+            }
+        }
     }
 
     #[inline]
-    pub fn subtract_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.balance(storage)?;
-        let new_balance = account_balance.checked_sub(amount)?;
+    pub fn subtract_balance(
+        &self,
+        storage: &mut dyn Storage,
+        amount: Uint128,
+        decoys: Option<&Decoys>
+    ) -> StdResult<()> {
+        match decoys {
+            Some(decoys) => {
+                let mut updated = false;
 
-        Self::BALANCE.save(storage, self, &new_balance)
+                for decoy in decoys.shuffle_in(self) {
+                    // Always load and save account balance to obfuscate the real account.
+                    let balance = decoy.balance(storage)?;
+
+                    let balance = if decoy.addr == self.addr && !updated {
+                        updated = true;
+
+                        balance.checked_sub(amount)?
+                    } else {
+                        balance
+                    };
+
+                    Self::BALANCE.save(storage, decoy, &balance)?;
+                }
+
+                Ok(())
+            }
+            None => {
+                let balance = self.balance(storage)?;
+                let new_balance = balance.checked_sub(amount)?;
+        
+                Self::BALANCE.save(storage, self, &new_balance)
+            }
+        }
     }
 
     pub fn update_allowance<F>(

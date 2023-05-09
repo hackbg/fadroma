@@ -64,7 +64,12 @@ impl ISnip20 {
     }
 
     #[inline]
-    pub fn mint(mut self, recipient: String, amount: Uint128) -> StdResult<CosmosMsg> {
+    pub fn mint(
+        mut self, recipient: String,
+        amount: Uint128,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>
+    ) -> StdResult<CosmosMsg> {
         let padding = self.padding.take();
         let memo = self.memo.take();
 
@@ -72,6 +77,8 @@ impl ISnip20 {
             recipient,
             amount,
             memo,
+            decoys,
+            entropy,
             padding
         })
     }
@@ -92,7 +99,9 @@ impl ISnip20 {
         recipient: String,
         amount: Uint128,
         msg: Option<Binary>,
-        recipient_code_hash: Option<String>
+        recipient_code_hash: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>
     ) -> StdResult<CosmosMsg> {
         let padding = self.padding.take();
         let memo = self.memo.take();
@@ -103,6 +112,8 @@ impl ISnip20 {
             amount,
             msg,
             memo,
+            decoys,
+            entropy,
             padding
         })
     }
@@ -114,7 +125,9 @@ impl ISnip20 {
         recipient: String,
         amount: Uint128,
         msg: Option<Binary>,
-        recipient_code_hash: Option<String>
+        recipient_code_hash: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>
     ) -> StdResult<CosmosMsg> {
         let padding = self.padding.take();
         let memo = self.memo.take();
@@ -126,6 +139,8 @@ impl ISnip20 {
             amount,
             msg,
             memo,
+            entropy,
+            decoys,
             padding
         })
     }
@@ -141,7 +156,13 @@ impl ISnip20 {
     }
 
     #[inline]
-    pub fn transfer(mut self, recipient: String, amount: Uint128) -> StdResult<CosmosMsg> {
+    pub fn transfer(
+        mut self,
+        recipient: String,
+        amount: Uint128,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>
+    ) -> StdResult<CosmosMsg> {
         let padding = self.padding.take();
         let memo = self.memo.take();
 
@@ -149,6 +170,8 @@ impl ISnip20 {
             recipient,
             amount,
             memo,
+            entropy,
+            decoys,
             padding
         })
     }
@@ -159,6 +182,8 @@ impl ISnip20 {
         owner: String,
         recipient: String,
         amount: Uint128,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>
     ) -> StdResult<CosmosMsg> {
         let padding = self.padding.take();
         let memo = self.memo.take();
@@ -168,16 +193,23 @@ impl ISnip20 {
             recipient,
             amount,
             memo,
+            entropy,
+            decoys,
             padding
         })
     }
 
     #[inline]
-    pub fn batch_transfer(mut self, actions: Vec<TransferAction>) -> StdResult<CosmosMsg> {
+    pub fn batch_transfer(
+        mut self,
+        actions: Vec<TransferAction>,
+        entropy: Option<Binary>
+    ) -> StdResult<CosmosMsg> {
         let padding = self.padding.take();
 
         self.cosmos_msg(&ExecuteMsg::BatchTransfer {
             actions,
+            entropy,
             padding
         })
     }
