@@ -185,8 +185,8 @@ impl Account {
 
         match decoys {
             Some(decoys) => {
-                for decoy in decoys.shuffle_in(self) {
-                    if decoy.addr() == self.addr() {
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    if decoys.acc_index() == i {
                         txs.push(storage, tx)?;
                     } else {
                         let action = TxActionCanon::decoy(decoy.addr().clone());
@@ -220,8 +220,8 @@ impl Account {
 
         match decoys {
             Some(decoys) => {
-                for decoy in decoys.shuffle_in(self) {
-                    if decoy.addr() == self.addr() {
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    if decoys.acc_index() == i {
                         transfers.push(storage, tx)?;
                     } else {
                         let tx = Tx {

@@ -229,11 +229,11 @@ impl Account {
             Some(decoys) => {
                 let mut updated = false;
 
-                for decoy in decoys.shuffle_in(self) {
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
                     // Always load and save account balance to obfuscate the real account.
                     let mut balance = decoy.balance(storage)?;
 
-                    if decoy.addr == self.addr && !updated {
+                    if !updated && decoys.acc_index() == i {
                         updated = true;
                         let _ = safe_add(&mut balance, amount);
                     }
@@ -263,11 +263,11 @@ impl Account {
             Some(decoys) => {
                 let mut updated = false;
 
-                for decoy in decoys.shuffle_in(self) {
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
                     // Always load and save account balance to obfuscate the real account.
                     let balance = decoy.balance(storage)?;
 
-                    let balance = if decoy.addr == self.addr && !updated {
+                    let balance = if !updated && decoys.acc_index() == i {
                         updated = true;
 
                         balance.checked_sub(amount)?

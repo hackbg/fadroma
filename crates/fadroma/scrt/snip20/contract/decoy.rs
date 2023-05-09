@@ -42,12 +42,12 @@ impl Builder {
         let real_acc_pos = self.rand % (decoys.len() + 1);
         
         Ok(Some(Decoys {
+            real_acc_pos,
             accounts: decoys.iter()
-            .map(|x| api.addr_canonicalize(x)
-                .and_then(|addr| Ok(Account::from(addr)))
-            )
-            .collect::<StdResult<Vec<Account>>>()?,
-            real_acc_pos
+                .map(|x| api.addr_canonicalize(x)
+                    .and_then(|addr| Ok(Account::from(addr)))
+                )
+                .collect::<StdResult<Vec<Account>>>()?
         }))
     }
 }
@@ -62,6 +62,13 @@ impl Decoys {
         let builder = Builder::new(deps.storage, entropy)?;
 
         builder.create(deps.api, decoys)
+    }
+
+    /// Returns the index at which the real account will
+    /// be shuffled in.
+    #[inline]
+    pub fn acc_index(&self) -> usize {
+        self.real_acc_pos
     }
 
     /// Mixes the given `account` with the decoy accounts
