@@ -4,7 +4,7 @@ import { FSUploader } from './fadroma-upload'
 import { getBuilder } from './fadroma-build'
 
 import {
-  Builder, Deployment, DeployStore, ChainMode, Uploader,
+  Builder, Deployment as BaseDeployment, DeployStore, ChainMode, Uploader,
   Error as BaseError, Console as BaseConsole, colors, bold, HEAD,
   randomChainId
 } from '@fadroma/agent'
@@ -18,7 +18,6 @@ import type { Environment } from '@fadroma/connect'
 
 import $ from '@hackbg/file'
 import type { Path } from '@hackbg/file'
-import { Engine, Docker, Podman } from '@hackbg/dock'
 
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,6 +31,7 @@ export type { Decimal } from '@fadroma/agent'
 export const thisPackage = dirname(fileURLToPath(import.meta.url))
 
 export class Config extends ConnectConfig {
+
   /** License token. */
   license?: string = this.getString(
     'FADROMA_LICENSE', ()=>undefined)
@@ -45,10 +45,25 @@ export class Config extends ConnectConfig {
     * the Deployment class. */
   project: string = $(this.root, this.getString(
     'FADROMA_PROJECT', ()=>$(thisPackage, 'fadroma.ts').path)).path
-  /** Project file. Defaults to `node_modules/fadroma/index.ts`, which just runs the Fadroma CLI
-    * and can create a project. Projects are expected to set this var to their own root file,
-    * which does `export default class MyProject extends Fadroma.Project { ... }` and points to
-    * the Deployment class. */
+
+  constructor (
+    options:  Partial<ConnectConfig> & Partial<{
+      build:  Partial<Config["build"]>,
+      upload: Partial<Config["upload"]>,
+      deploy: Partial<Config["deploy"]>,
+      devnet: Partial<Config["devnet"]>
+    }> = {},
+    environment?: Environment
+  ) {
+    super({}, environment)
+    const { build, upload, deploy, devnet, ...rest } = options
+    this.override(rest)
+    this.build  = { ...this.build, ...build }
+    this.upload = { ...this.upload, ...upload }
+    this.deploy = { ...this.deploy, ...deploy }
+    this.devnet = { ...this.devnet, ...devnet }
+  }
+
   /** Build options. */
   build = {
     /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
@@ -95,6 +110,19 @@ export class Config extends ConnectConfig {
     dockerfile: this.getString(
       'FADROMA_BUILD_DOCKERFILE', ()=>$(thisPackage).at('Dockerfile').path),
   }
+
+  /** @returns the Builder class exposed by the config */
+  get Builder () {
+    return Builder.variants[this.build.raw ? 'Raw' : 'Container']
+  }
+
+  /** @returns a configured builder. */
+  getBuilder <T extends Builder> (Builder?: BuilderClass<T>): T {
+    Builder ??= this.Builder
+    const builder = new Builder(this.build) as T
+    return builder
+  }
+
   /** Upload options. */
   upload = {
     /** Whether to always upload contracts, ignoring upload receipts that match. */
@@ -109,6 +137,22 @@ export class Config extends ConnectConfig {
     uploader: this.getString(
       'FADROMA_UPLOADER', () => 'FS')
   }
+
+  /** @returns the Uploader class exposed by the config */
+  get Uploader () {
+    return Uploader.variants[this.upload.uploader]
+  }
+
+  /** @returns a configured uploader. */
+  getUploader <T extends Uploader, U extends UploaderClass<T>> (
+    Uploader?: U, ...args: ConstructorParameters<U>
+  ): T {
+    Uploader ??= this.Uploader as U
+    args[0] ??= { agent: this.getAgent() }
+    const uploader = new Uploader(...args)
+    return uploader
+  }
+
   /** Deploy options. */
   deploy = {
     /** Whether to generate unsigned transactions for manual multisig signing. */
@@ -122,102 +166,66 @@ export class Config extends ConnectConfig {
     format: this.getString(
       'FADROMA_DEPLOY_FORMAT', () => 'v1') as DeploymentFormat
   }
-  /** Devnet options. */
-  devnet = {
-    /** Which kind of devnet to launch */
-    platform: this.getString(
-      'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8') as DevnetPlatform,
-    /** Chain id for devnet .*/
-    chainId: this.getString(
-      'FADROMA_DEVNET_CHAIN_ID', ()=>randomChainId()),
-    /** Whether the devnet should remain running after the command ends. */
-    persistent: this.getFlag(
-      'FADROMA_DEVNET_PERSISTENT', ()=>true),
-    /** Whether the devnet should be erased after the command ends. */
-    ephemeral: this.getFlag(
-      'FADROMA_DEVNET_EPHEMERAL', ()=>false),
-    /** Host for devnet. */
-    host: this.getString(
-      'FADROMA_DEVNET_HOST', ()=>null),
-    /** Port for devnet. */
-    port: this.getString(
-      'FADROMA_DEVNET_PORT', ()=>null),
-    /** Whether to use Podman instead of Docker to run the devnet container. */
-    podman: this.getFlag(
-      'FADROMA_DEVNET_PODMAN', () => this.getFlag('FADROMA_PODMAN', ()=>false))
-  }
 
-  constructor (
-    options:  Partial<ConnectConfig> & Partial<{
-      build:  Partial<Config["build"]>,
-      upload: Partial<Config["upload"]>,
-      deploy: Partial<Config["deploy"]>,
-      devnet: Partial<Config["devnet"]>
-    }> = {},
-    environment?: Environment
-  ) {
-    super({}, environment)
-    const { build, upload, deploy, devnet, ...rest } = options
-    this.override(rest)
-    this.build  = { ...this.build, ...build }
-    this.upload = { ...this.upload, ...upload }
-    this.deploy = { ...this.deploy, ...deploy }
-    this.devnet = { ...this.devnet, ...devnet }
-  }
-  /** @returns a configured builder. */
-  getBuilder <B extends Builder> ($B?: BuilderClass<B>): B {
-    $B ??= Builder.variants[this.build.raw?'Raw':'Container'] as unknown as BuilderClass<B>
-    const builder = new $B(this.build) as B
-    return builder
-  }
-  /** @returns a configured uploader. */
-  getUploader <U extends Uploader> (
-    $U: UploaderClass<U> = Uploader.variants[this.upload.uploader] as UploaderClass<U>
-  ): U {
-    const agent = this.getAgent()
-    return new $U({ agent })
-  }
   /** The deploy receipt store implementation selected by `format`. */
   get DeployStore (): DeployStoreClass<DeployStore>|undefined {
     return DeployStore.variants[this.deploy.format]
   }
+
   /** @returns an instance of the selected deploy store implementation. */
-  getDeployStore <S extends DeployStore> (
-    $S: DeployStoreClass<S>|undefined = this.DeployStore as DeployStoreClass<S>
-  ): S {
-    if (!$S) throw new Error('Missing deployment store constructor')
-    return new $S(this.deploy.storePath)
+  getDeployStore <T extends DeployStore> (
+    DeployStore?: DeployStoreClass<T>
+  ): T {
+    DeployStore ??= this.DeployStore as DeployStoreClass<T>
+    if (!DeployStore) throw new Error('Missing deployment store constructor')
+    return new DeployStore(this.deploy.storePath)
   }
+
   /** Create a new Deployment.
     * If a deploy store is specified, populate it with stored data (if present).
     * @returns Deployment or subclass */
-  getDeployment <D extends Deployment> (
-    $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
-    ...args: ConstructorParameters<typeof $D>
-  ): D {
+  getDeployment <T extends BaseDeployment> (
+    Deployment: DeploymentClass<T>,
+    ...args: ConstructorParameters<typeof Deployment>
+  ): T {
+    Deployment ??= BaseDeployment as DeploymentClass<T>
     args = [...args]
-    args[0] = {...args[0] ?? {} }
-    const chain     = args[0].chain     ||= this.getChain()
-    if (!chain) throw new Error('Missing chain')
-    const agent     = args[0].agent     ||= this.getAgent()
-    const builder   = args[0].builder   ||= getBuilder()
-    const uploader  = args[0].uploader  ||= agent.getUploader(FSUploader)
-    const workspace = args[0].workspace ||= process.cwd()
-    const store     = args[0].store     ||= this.getDeployStore()
-    const name      = args[0].name      ||= store.activeName || undefined
-    if (args[0]) args[0].config ||= this
-    //args[0] = { config: this, chain, agent, builder, uploader, workspace, ...args }
-    const deployment = store.getDeployment($D, ...args)
+    args[0] = ({ config: this, ...args[0] ?? {} })
+    args[0].chain     ||= this.getChain()
+    if (!args[0].chain) throw new Error('Missing chain')
+    args[0].agent     ||= this.getAgent()
+    args[0].builder   ||= getBuilder()
+    args[0].uploader  ||= args[0].agent.getUploader(FSUploader)
+    args[0].workspace ||= process.cwd()
+    args[0].store     ||= this.getDeployStore()
+    args[0].name      ||= args[0].store.activeName || undefined
+    const deployment = args[0].store.getDeployment(Deployment, ...args)
     return deployment
   }
-  /** @returns Devnet */
-  getDevnet (platform: DevnetPlatform = this.devnet.platform ?? 'scrt_1.8') {
-    if (!platform) throw new Error('Devnet platform not specified')
-    const Engine = this.devnet.podman ? Podman.Engine : Docker.Engine
-    const containerEngine = new Engine()
-    const port = this.devnet.port ? Number(this.devnet.port) : undefined
-    return Devnet.getOrCreate(platform, containerEngine, port)
+
+  /** Devnet options. */
+  devnet: Partial<Devnet> = {
+    platform: this.getString(
+      'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8'),
+    chainId: this.getString(
+      'FADROMA_DEVNET_CHAIN_ID', ()=>randomChainId()),
+    temporary: this.getFlag(
+      'FADROMA_DEVNET_EPHEMERAL', ()=>false),
+    persistent: this.getFlag(
+      'FADROMA_DEVNET_PERSISTENT', ()=>true),
+    host: this.getString(
+      'FADROMA_DEVNET_HOST', ()=>undefined),
+    port: this.getString(
+      'FADROMA_DEVNET_PORT', ()=>undefined),
+    podman: this.getFlag(
+      'FADROMA_DEVNET_PODMAN', ()=>this.getFlag('FADROMA_PODMAN', ()=>false)),
+    noStateMount: this.getFlag(
+      'FADROMA_DEVNET_NO_STATE_MOUNT', () => false)
   }
+
+  /** @returns Devnet */
+  getDevnet = (options: Partial<Devnet> = {}) =>
+    new Devnet({ ...this.devnet, ...options })
 }
 
 export class Error extends BaseError {

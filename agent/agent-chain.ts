@@ -41,6 +41,8 @@ export abstract class Chain {
   mode: ChainMode
   /** If this is a devnet, this contains an interface to the devnet container. */
   devnet?: DevnetHandle
+  /** Whether this chain is stopped. */
+  stopped: boolean = false
   /** The Agent subclass to use for interacting with this chain. */
   Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
   /** The default denomination of the chain's native token. */
@@ -105,7 +107,7 @@ export abstract class Chain {
       const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
-          while (true) {
+          while (true && !this.chain.stopped) {
             await new Promise(ok=>setTimeout(ok, 250))
             this.log.waitingForBlock(startingHeight, + new Date() - t)
             const height = await this.height

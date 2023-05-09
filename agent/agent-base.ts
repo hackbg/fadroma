@@ -62,7 +62,7 @@ class AgentError_Invalid extends AgentError.define(
     `This operation is invalid when batching: ${op}`)
   static EmptyBundle = this.define('EmptyBundle', () =>
     'Trying to submit bundle with no messages')
-  static Hashes = this.define('DifferentHashes', () =>
+  static Hashes = this.define('Hashes', () =>
     'Passed an object with codeHash and code_hash both different')
 }
 
