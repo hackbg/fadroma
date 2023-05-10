@@ -129,6 +129,14 @@ This will create and activate a new deployment, and deploy everything anew.
 Keeping receipts of your primary mainnet/testnet deployments in your version control system
 will let you keep track of your project's footprint on public networks.
 
+During development, receipts for deployments of a project are kept in a
+human- and VCS-friendly YAML format. When publishing an API client,
+you may want to include individual deployments as JSON>
+
+```typescript
+await project.exportDeployment('state')
+```
+
 ---
 
 ```typescript

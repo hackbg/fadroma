@@ -162,7 +162,7 @@ class ScrtAgent extends Agent {
     this.address         = this.wallet?.address
     this.mnemonic        = options.mnemonic ?? this.mnemonic
     this.encryptionUtils = options.encryptionUtils
-    this.simulateForGas        = options.simulateForGas ?? this.simulateForGas
+    this.simulateForGas  = options.simulateForGas ?? this.simulateForGas
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 

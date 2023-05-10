@@ -127,7 +127,9 @@ export class Deployment {
     this.store     ??= options.store
     // Hydrate state
     this.contracts ??= {}
-    for (const [name, contract] of Object.entries(this.contracts)) this.contract(contract)
+    for (const [name, contract] of Object.entries(options.contracts ?? {})) {
+      this.contract(contract)
+    }
     // Hide non-essential properties
     hideProperties(this, ...[
       'args', 'before', 'commandTree', 'currentCommand', 'description',
@@ -159,6 +161,33 @@ export class Deployment {
   /** @returns true if the chain is a mocknet */
   get isMocknet (): boolean {
     return this.chain?.isMocknet ?? false
+  }
+  /** @returns a snapshot of the contracts state of this deployment */
+  get snapshot () {
+    const filter = (contract: Partial<AnyContract>) => {
+      contract = {...contract}
+      const filtered = ['deployment', 'builder', 'uploader', 'agent']
+      for (const key in contract) {
+        switch (true) {
+          case (typeof (contract as any)[key] === 'function'):
+          case ((contract as any)[key] === undefined):
+            delete (contract as any)[key]
+            continue
+          case ((contract as any)[key] instanceof URL):
+            (contract as any)[key] = String((contract as any)[key])
+            continue
+          case filtered.includes(key):
+            delete (contract as any)[key]
+            continue
+        }
+      }
+      return contract
+    }
+    const contracts = Object.entries(this.contracts).reduce(
+      (snapshot, [name, contract]: [string, any])=>
+        Object.assign(snapshot, { [name]: filter(contract) }),
+      {})
+    return {contracts}
   }
   /** Print the status of this deployment. */
   showStatus () {
@@ -557,6 +586,8 @@ export class Contract<C extends Client> extends Template<C> {
       })
     }
   }
+
+  get [Symbol.toStringTag]() { return this.name }
 
   /** One-shot deployment task. After the first call, `deploy` redefines it
     * to return the self-same deploying promise. Call `deploy` again to reset. */

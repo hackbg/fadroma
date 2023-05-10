@@ -22,41 +22,58 @@ $ npx fadroma devnet clear
 
 ## Devnet API
 
+The easiest way to start using Fadroma Devnet from a script
+is the `getDevnet` function.
+
 ```typescript
-import { getDevnet } from '@hackbg/fadroma'
+import { Devnet, getDevnet } from '@hackbg/fadroma'
+let devnet: Devnet
+```
 
-// unleash the kraken:
-const devnet = await getDevnet({ /* options */ })
+This is how to get a devnet that will keep running after the script exits:
 
-// but be ready to kill it if you unleash it:
-process.on('beforeExit', () => devnet.erase())
+```typescript
+devnet = getDevnet({ persistent: true })
 
+assert(devnet instanceof Devnet)
+```
+
+This is how to get a devnet that will delete all trace of itself
+after the script exits:
+
+```typescript
+devnet = getDevnet({ temporary: true })
+
+assert(devnet instanceof Devnet)
+```
+
+And how to manage its lifecycle:
+
+```typescript
 await devnet.spawn()
 await devnet.kill()
 await devnet.respawn()
 await devnet.kill()
 await devnet.erase()
+```
 
-import { Devnet } from '@hackbg/fadroma'
-assert(devnet instanceof Devnet)
+To get a `Chain` for operating on the `Devnet`:
+
+```typescript
+const chain = devnet.getChain()
 
 import { Chain } from '@fadroma/agent'
 assert(devnet.getChain() instanceof Chain)
 assert.equal(devnet.getChain().mode, Chain.Mode.Devnet)
 ```
 
-### Connecting to a devnet
+Devnet URL defaults to localhost:
 
 ```typescript
-
 // specifying devnet port:
-assert.equal(
-  new Devnet({ port: '1234' }).url.toString(),
-  'http://localhost:1234/'
-)
+const url = getDevnet({ port: '1234' }).url.toString()
+assert.equal(url, 'http://localhost:1234/')
 ```
-
-### Devnet state
 
 Devnet is stateful. It's represented in the project by e.g. `state/fadroma-devnet/devnet.json`.
 
@@ -75,7 +92,7 @@ which you can use by passing `name` to `getAgent`:
 ```typescript
 // specifying genesis accounts:
 assert.deepEqual(
-  new Devnet({ genesisAccounts: [ 'Alice', 'Bob' ] }).genesisAccounts,
+  getDevnet({ temporary: true, genesisAccounts: [ 'Alice', 'Bob' ] }).genesisAccounts,
   [ 'Alice', 'Bob' ]
 )
 

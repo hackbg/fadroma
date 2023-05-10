@@ -340,20 +340,11 @@ export class Project extends CommandContext {
     const deployment = this.deployment
     if (!deployment) throw new Error.Missing.Deployment()
     if (!path) path = process.cwd()
+    // If passed a directory, generate file name
     let file = $(path)
     if (file.isDirectory()) file = file.in(`${name}_@_${timestamp()}.json`)
-    const snapshot = Object.entries(deployment.contracts)
-      .reduce((snapshot, [name, contract]: [string, any])=>Object.assign(snapshot, {
-        [name]: {
-          ...contract,
-          deployment: undefined,
-          builder:    undefined,
-          uploader:   undefined,
-          agent:      undefined
-        }
-      }), {})
     // Serialize and write the deployment.
-    file.as(JSONFile).makeParent().save(snapshot)
+    file.as(JSONFile).makeParent().save(deployment.snapshot)
     this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
   resetDevnets = async (...ids: ChainId[]) =>

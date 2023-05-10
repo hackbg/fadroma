@@ -57,15 +57,11 @@ for (const chain of [
   Scrt.Chain.mocknet(),
   Scrt.Chain.devnet({ devnet }),
 ]) {
-  console.log('Deploying factory on:', chain)
+
   const agent = await chain.getAgent({ name: 'Admin' }).ready
-  console.log(agent)
-  console.log(agent.chain)
   const deployment = getDeployment(FactoryDeployment, { agent })
-  console.log({deployment})
 
   await deployment.deploy()
-
   assert.deepEqual(
     await deployment.products,
     { total: 0, entries: [] },
@@ -73,7 +69,6 @@ for (const chain of [
   )
 
   await deployment.factory.expect().create('foo')
-
   assert(
     (await deployment.products).entries.every(entry=>entry instanceof Product),
     'factory records created contract and deployment wraps them in Product class'

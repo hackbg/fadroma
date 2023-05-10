@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.92",
+  "version": "1.0.0-beta.93",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -34,6 +34,8 @@
     "test": "time ensuite GUIDE.ts.md",
     "test:factory": "time ensuite spec/Factory.spec.ts.md",
     "test:devnet": "time ensuite spec/Devnet.spec.ts.md",
+    "test:scrt": "time ensuite spec/Scrt.spec.ts.md",
+    "test:deploy": "time ensuite spec/Deploy.spec.ts.md",
 
     "cov": "time ensuite-cov GUIDE.ts.md",
     "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",
@@ -61,7 +63,7 @@
     "@fadroma/connect": "workspace:*",
     "@hackbg/logs": "workspace:^2.0.1",
     "@hackbg/cmds": "workspace:^3",
-    "@hackbg/dock": "workspace:^1.3.2",
+    "@hackbg/dock": "workspace:^1.4.1",
     "@hackbg/file": "workspace:^1.2",
     "@hackbg/port": "workspace:^1",
     "case": "^1.6.3",

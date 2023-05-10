@@ -19,6 +19,7 @@ export type ChainRegistry = Record<string, (config: any)=>Chain>
 export interface DevnetHandle {
   chainId: string
   url: URL
+  running: boolean
   respawn (): Promise<unknown>
   terminate (): Promise<this>
   getGenesisAccount (name: string): Promise<Partial<Agent>>
@@ -57,11 +58,11 @@ export abstract class Chain {
       if (options.mode === Chain.Mode.Devnet) {
         this.devnet = options.devnet
         if (this.url !== String(this.devnet.url)) {
-          this.log.warn.devnetUrlOverride(this.devnet.url, this.url)
+          if (!!this.url) this.log.warn.devnetUrlOverride(this.devnet.url, this.url)
           this.url = String(this.devnet.url)
         }
         if (this.id !== this.devnet.chainId) {
-          this.log.warn.devnetIdOverride(this.devnet.chainId, this.id)
+          if (!!this.url) this.log.warn.devnetIdOverride(this.devnet.chainId, this.id)
           this.id = this.devnet.chainId
         }
       } else {
@@ -69,7 +70,10 @@ export abstract class Chain {
       }
     }
     this.log.label = this.id ?? `(no chain id)` // again
-    if (this.devnet) this.log.label = `${this.log.label} @ ${this.devnet.url}`
+    if (this.devnet) {
+      this.log.label = `${this.log.label} @ ${this.devnet.url}`
+      Object.defineProperty(this, 'stopped', { get () { return !this.devnet.running } })
+    }
     Object.defineProperties(this, {
       'id':    { enumerable: false, writable: true },
       'url':   { enumerable: false, writable: true },
@@ -100,7 +104,7 @@ export abstract class Chain {
     return this.height.then(async startingHeight=>{
       startingHeight = Number(startingHeight)
       if (isNaN(startingHeight)) {
-        this.log.warn('current block height undetermined. Not waiting for next block')
+        this.log.warn('current block height undetermined. not waiting for next block')
         return Promise.resolve(NaN)
       }
       this.log.waitingForBlock(startingHeight)

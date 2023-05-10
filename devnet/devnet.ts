@@ -73,6 +73,9 @@ export class Devnet implements DevnetHandle {
   launchTimeout: number
   /** Whether more detailed output is preferred. */
   verbose: boolean
+  /** Is this thing on? */
+  running: boolean = false
+
   /** Overridable for testing. */
   //@ts-ignore
   protected waitPort = waitPort
@@ -202,10 +205,11 @@ export class Devnet implements DevnetHandle {
     * This saves the info needed to respawn the node */
   save (extra = {}) {
     this.devnetJSON.save({
-      podman:      this.podman,
+      chainId:     this.chainId,
       port:        this.port,
       containerId: this.container?.id,
-      imageName:   this.image?.name
+      imageName:   this.image?.name,
+      podman:      this.podman||undefined,
     })
     return this
   }
@@ -214,10 +218,9 @@ export class Devnet implements DevnetHandle {
     return await this.erase()
   }
   /** Get a Chain object corresponding to this devnet. */
-  getChain <C extends Chain> (
-    $C: ChainClass<C> = Chain as unknown as ChainClass<C>
-  ): C {
-    return new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
+  getChain <C extends Chain> ($C: ChainClass<C> = Chain as unknown as ChainClass<C>): C {
+    const chain = new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
+    return chain
   }
   /** Get the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<Partial<Agent>> {
@@ -250,7 +253,8 @@ export class Devnet implements DevnetHandle {
       this.spawnOptions,
       this.initScript ? [this.initScriptMount] : []
     )
-    if (!this.persistent) process.on('beforeExit', async () => await this.kill())
+    this.running = true
+    if (!this.persistent) this.setExitHandler()
     // update the record
     this.save()
     // Wait for everything to be ready
@@ -283,9 +287,8 @@ export class Devnet implements DevnetHandle {
     }
     // check if container is running
     this.container = await this.dock!.container(id)
-    let running: boolean
     try {
-      running = await this.container.isRunning
+      this.running = await this.container.isRunning
     } catch (e) {
       // if error when checking, RESPAWN
       this.log.log(`Failed to get container ${bold(id)}. Error was:`, e)
@@ -295,9 +298,10 @@ export class Devnet implements DevnetHandle {
       return this.spawn()
     }
     // if not running, RESPAWN
-    if (!running) await this.container.start()
+    if (!this.running) await this.container.start()
+    this.running = true
     // ...and try to make sure it dies when the Node process dies
-    this.setExitHandler()
+    if (!this.persistent) this.setExitHandler()
     return this
   }
 
@@ -305,7 +309,7 @@ export class Devnet implements DevnetHandle {
     if (!this.exitHandlerSet) {
       process.once('beforeExit', () => {
         if (this.temporary) {
-          this.container!.kill()
+          this.kill()
         } else {
           this.log.br()
           this.log.devnet.isNowRunning(this)
@@ -317,17 +321,17 @@ export class Devnet implements DevnetHandle {
 
   /** Kill the container, if necessary find it first */
   async kill () {
+    this.running = false
     if (this.container) {
       const { id } = this.container
       await this.container.kill()
-      this.log.log(`Stopped container`, bold(id))
+      this.log.log(`stopped container`, bold(id))
       return this
     }
-    this.log.log(`Checking if there's an old node that needs to be stopped...`)
     const { containerId } = await this.load() || {}
     if (containerId) {
-      this.log(`Stopped container ${bold(containerId!)}.`)
       await this.container!.kill()
+      this.log(`stopped ${bold(containerId!)}.`)
       return this
     }
     this.log("Didn't stop any container.")
@@ -403,11 +407,12 @@ export class Devnet implements DevnetHandle {
       ['-rvf', '/state'],
       '/bin/rm'
     )
-    this.log.log(`Starting cleanup container...`)
+    this.log.log(`starting cleanup container...`)
     await cleanupContainer.start()
-    this.log.log('Waiting for cleanup to finish...')
+    this.log.log('waiting for cleanup to finish...')
     await cleanupContainer.wait()
-    this.log.log(`Deleted ${path} via cleanup container.`)
+    this.log.log(`deleted ${path}/* via cleanup container.`)
+    $(this.stateDir).delete()
   }
 
   async export (repository?: string, tag?: string) {

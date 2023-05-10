@@ -365,10 +365,7 @@ export class BuildContainer extends BuildLocal {
       writable,
       cwd: '/src',
       env: buildEnv as Record<string, string>,
-      extra: {
-        Tty: true,
-        AttachStdin: true
-      }
+      extra: { Tty: true, AttachStdin: true }
     }
     // This stream collects the output from the build container, i.e. the build logs.
     const buildLogStream = new LineTransformStream((!this.quiet)
