@@ -405,7 +405,7 @@ hr {
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#devnet-cli">Devnet CLI</a></li><li><a href="#devnet-api">Devnet API</a><ul><li><a href="#connecting-to-a-devnet">Connecting to a devnet</a></li><li><a href="#devnet-state">Devnet state</a></li><li><a href="#using-genesis-accounts">Using genesis accounts</a></li><li><a href="#exporting-a-devnet-snapshot">Exporting a devnet snapshot</a></li><li><a href="#resetting-the-devnet">Resetting the devnet</a></li></ul></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#devnet-cli">Devnet CLI</a></li><li><a href="#devnet-api">Devnet API</a><ul><li><a href="#using-genesis-accounts">Using genesis accounts</a></li><li><a href="#exporting-a-devnet-snapshot">Exporting a devnet snapshot</a></li><li><a href="#resetting-the-devnet">Resetting the devnet</a></li></ul></li></ul></div></p>
 <h1 id="fadroma-guide%3A-devnet" tabindex="-1">Fadroma Guide: Devnet</h1>
 <p>The <strong>devnet</strong> (a.k.a. localnet) is a local instance of the selected chain.
 Devnets are persistent, and can be started and stopped; info about contracts
@@ -422,41 +422,44 @@ $ npx fadroma devnet <span class="hljs-built_in">export</span>
 $ npx fadroma devnet clear
 </code></pre>
 <h2 id="devnet-api" tabindex="-1">Devnet API</h2>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getDevnet } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+<p>The easiest way to start using Fadroma Devnet from a script
+is the <code>getDevnet</code> function.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Devnet</span>, getDevnet } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+<span class="hljs-keyword">let</span> <span class="hljs-attr">devnet</span>: <span class="hljs-title class_">Devnet</span>
+</code></pre>
+<p>This is how to get a devnet that will keep running after the script exits:</p>
+<pre><code class="hljs language-typescript">devnet = <span class="hljs-title function_">getDevnet</span>({ <span class="hljs-attr">persistent</span>: <span class="hljs-literal">true</span> })
 
-<span class="hljs-comment">// unleash the kraken:</span>
-<span class="hljs-keyword">const</span> devnet = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDevnet</span>({ <span class="hljs-comment">/* options */</span> })
+<span class="hljs-title function_">assert</span>(devnet <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Devnet</span>)
+</code></pre>
+<p>This is how to get a devnet that will delete all trace of itself
+after the script exits:</p>
+<pre><code class="hljs language-typescript">devnet = <span class="hljs-title function_">getDevnet</span>({ <span class="hljs-attr">temporary</span>: <span class="hljs-literal">true</span> })
 
-<span class="hljs-comment">// but be ready to kill it if you unleash it:</span>
-process.<span class="hljs-title function_">on</span>(<span class="hljs-string">&#x27;exit&#x27;</span>, <span class="hljs-function">() =&gt;</span> devnet.<span class="hljs-title function_">erase</span>())
-
-<span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">spawn</span>()
+<span class="hljs-title function_">assert</span>(devnet <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Devnet</span>)
+</code></pre>
+<p>And how to manage its lifecycle:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">spawn</span>()
 <span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">kill</span>()
 <span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">respawn</span>()
 <span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">kill</span>()
 <span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">erase</span>()
-
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Devnet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-<span class="hljs-title function_">assert</span>(devnet <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Devnet</span>)
+</code></pre>
+<p>To get a <code>Chain</code> for operating on the <code>Devnet</code>:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> chain = devnet.<span class="hljs-title function_">getChain</span>()
 
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-title function_">assert</span>(devnet.<span class="hljs-title function_">getChain</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Chain</span>)
 assert.<span class="hljs-title function_">equal</span>(devnet.<span class="hljs-title function_">getChain</span>().<span class="hljs-property">mode</span>, <span class="hljs-title class_">Chain</span>.<span class="hljs-property">Mode</span>.<span class="hljs-property">Devnet</span>)
 </code></pre>
-<h3 id="connecting-to-a-devnet" tabindex="-1">Connecting to a devnet</h3>
-<pre><code class="hljs language-typescript">
-<span class="hljs-comment">// specifying devnet port:</span>
-assert.<span class="hljs-title function_">equal</span>(
-  <span class="hljs-keyword">new</span> <span class="hljs-title class_">Devnet</span>({ <span class="hljs-attr">port</span>: <span class="hljs-string">&#x27;1234&#x27;</span> }).<span class="hljs-property">url</span>.<span class="hljs-title function_">toString</span>(),
-  <span class="hljs-string">&#x27;http://localhost:1234/&#x27;</span>
-)
+<p>Devnet URL defaults to localhost:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// specifying devnet port:</span>
+<span class="hljs-keyword">const</span> url = <span class="hljs-title function_">getDevnet</span>({ <span class="hljs-attr">port</span>: <span class="hljs-string">&#x27;1234&#x27;</span> }).<span class="hljs-property">url</span>.<span class="hljs-title function_">toString</span>()
+assert.<span class="hljs-title function_">equal</span>(url, <span class="hljs-string">&#x27;http://localhost:1234/&#x27;</span>)
 </code></pre>
-<h3 id="devnet-state" tabindex="-1">Devnet state</h3>
 <p>Devnet is stateful. It's represented in the project by e.g. <code>state/fadroma-devnet/devnet.json</code>.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">JSON</span>File, <span class="hljs-title class_">OpaqueDirectory</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/file&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">stateFile</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">JSON</span>File)
-assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">stateDir</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">OpaqueDirectory</span>)
-
+assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-property">stateDir</span>)
 assert.<span class="hljs-title function_">ok</span>(devnet.<span class="hljs-title function_">save</span>())
 assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> devnet.<span class="hljs-title function_">load</span>())
 </code></pre>
@@ -465,7 +468,7 @@ assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">a
 which you can use by passing <code>name</code> to <code>getAgent</code>:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// specifying genesis accounts:</span>
 assert.<span class="hljs-title function_">deepEqual</span>(
-  <span class="hljs-keyword">new</span> <span class="hljs-title class_">Devnet</span>({ <span class="hljs-attr">genesisAccounts</span>: [ <span class="hljs-string">&#x27;Alice&#x27;</span>, <span class="hljs-string">&#x27;Bob&#x27;</span> ] }).<span class="hljs-property">genesisAccounts</span>,
+  <span class="hljs-title function_">getDevnet</span>({ <span class="hljs-attr">temporary</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">genesisAccounts</span>: [ <span class="hljs-string">&#x27;Alice&#x27;</span>, <span class="hljs-string">&#x27;Bob&#x27;</span> ] }).<span class="hljs-property">genesisAccounts</span>,
   [ <span class="hljs-string">&#x27;Alice&#x27;</span>, <span class="hljs-string">&#x27;Bob&#x27;</span> ]
 )
 
@@ -489,7 +492,7 @@ of your integration pipeline.</p>
 <p>The <code>fadroma reset</code> command kills and erases the devnet.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-title class_">Project</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 <span class="hljs-keyword">const</span> project = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Project</span>()
-project.<span class="hljs-title function_">resetDevnet</span>()
+project.<span class="hljs-title function_">resetDevnets</span>()
 </code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>

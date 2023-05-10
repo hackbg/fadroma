@@ -405,7 +405,7 @@ hr {
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
 <content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#configuring">Configuring</a></li><li><a href="#connecting-and-authenticating">Connecting and authenticating</a><ul><li><a href="#fresh-wallet">Fresh wallet</a></li><li><a href="#by-mnemonic">By mnemonic</a></li><li><a href="#keplr">Keplr</a></li><li><a href="#secretcli">secretcli</a></li></ul></li><li><a href="#querying-data-from-secret-network">Querying data from Secret Network</a></li><li><a href="#viewing-keys">Viewing keys</a></li><li><a href="#query-permits">Query permits</a></li></ul></div></p>
+<p><div class="table-of-contents"><ul><li><a href="#configuring">Configuring</a></li><li><a href="#connecting-and-authenticating">Connecting and authenticating</a><ul><li><a href="#fresh-wallet">Fresh wallet</a></li><li><a href="#by-mnemonic">By mnemonic</a></li><li><a href="#keplr">Keplr</a></li><li><a href="#secretcli">secretcli</a></li></ul></li><li><a href="#querying">Querying</a></li><li><a href="#tokens">Tokens</a></li><li><a href="#viewing-keys">Viewing keys</a></li><li><a href="#query-permits">Query permits</a></li></ul></div></p>
 <h1 id="secret-network" tabindex="-1">Secret Network</h1>
 <p>Fadroma's support for Secret Network is achieved in this package,
 by implementing the core Fadroma Agent API (<code>Chain</code>, <code>Agent</code>, <code>Bundle</code>),
@@ -511,7 +511,7 @@ assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-pro
 <span class="hljs-comment">// ok(agent3.mnemonic)</span>
 <span class="hljs-comment">// ok(agent3.address)</span>
 </code></pre>
-<h2 id="querying-data-from-secret-network" tabindex="-1">Querying data from Secret Network</h2>
+<h2 id="querying" tabindex="-1">Querying</h2>
 <p>The <code>SecretJS</code> module used by a <code>ScrtChain</code> is available on the <code>SecretJS</code> property.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> chain <span class="hljs-keyword">of</span> [mainnet, testnet, devnet, mocknet]) {
   <span class="hljs-keyword">await</span> chain.<span class="hljs-property">api</span>
@@ -537,21 +537,39 @@ instances.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent1.<span class="hljs-property">ready</span>
 <span class="hljs-title function_">ok</span>(agent1.<span class="hljs-property">api</span>)
 </code></pre>
-<h2 id="viewing-keys" tabindex="-1">Viewing keys</h2>
-<p>Fadroma provides the <code>ViewingKeyClient</code> class for embedding into your own <code>Client</code> classes
-for contracts that use SNIP20-compatible the viewing keys.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> client = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">ViewingKeyClient</span>()
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent    = agent0
+<span class="hljs-keyword">const</span> address  = <span class="hljs-string">&#x27;some-addr&#x27;</span>
+<span class="hljs-keyword">const</span> codeHash = <span class="hljs-string">&#x27;some-hash&#x27;</span>
 </code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">class</span> <span class="hljs-title class_">MyClient</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
-  vk = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">ViewingKeyClient</span>()
+<h2 id="tokens" tabindex="-1">Tokens</h2>
+<p><code>@fadroma/scrt</code> exports a <code>Snip20</code> client class with most of the SNIP-20 methods exposed.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> token = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">Snip20</span>({ agent, address, codeHash })
+</code></pre>
+<p>There is also a <code>Snip721</code> stub client. See <a href="https://github.com/hackbg/fadroma/issues/172">#172</a>
+if you want to contribute a SNIP-721 client implementation:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> nft = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">Snip721</span>({ agent, address, codeHash })
+</code></pre>
+<h2 id="viewing-keys" tabindex="-1">Viewing keys</h2>
+<p><code>@fadroma/scrt</code> exports the <strong><code>ViewingKeyClient</code></strong> class.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> client = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">ViewingKeyClient</span>({ agent, address, codeHash })
+</code></pre>
+<p>This is meant for embedding into your own <code>Client</code> classes
+for contracts that implement the SNIP20-compatible viewing key API.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyClient</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
+  get vk () { <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-title class_">ViewingKeyClient</span>(<span class="hljs-variable language_">this</span>) }
 }
 </code></pre>
+<p>Each <code>Snip20</code> instance already has a <code>vk</code> property that is a <code>ViewingKeyClient</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-title function_">assert</span>(token.<span class="hljs-property">vk</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">ViewingKeyClient</span>)
+</code></pre>
+<p>This is an example of composing client APIs by ownership rather than inheritance,
+as shown above.</p>
 <h2 id="query-permits" tabindex="-1">Query permits</h2>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO add docs</span>
 </code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { ok } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Scrt.test.ts&#x27;</span>
 </code></pre>
 

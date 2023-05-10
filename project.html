@@ -513,6 +513,11 @@ where you left off. Running <code>deploy</code> on a completed deployment will d
 <p>This will create and activate a new deployment, and deploy everything anew.</p>
 <p>Keeping receipts of your primary mainnet/testnet deployments in your version control system
 will let you keep track of your project's footprint on public networks.</p>
+<p>During development, receipts for deployments of a project are kept in a
+human- and VCS-friendly YAML format. When publishing an API client,
+you may want to include individual deployments as JSON&gt;</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> project.<span class="hljs-title function_">exportDeployment</span>(<span class="hljs-string">&#x27;state&#x27;</span>)
+</code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
