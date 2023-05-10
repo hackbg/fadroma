@@ -6,7 +6,6 @@ use fadroma::{
         Response, Binary, to_binary,
     },
     schemars::{self, JsonSchema},
-    entrypoint,
 };
 use counter::interface::Counter;
 

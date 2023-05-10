@@ -3,7 +3,7 @@ import type {
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId,
   Uploadable
 } from './agent'
-import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
+import { Error, Console, into, prop, hideProperties as hide, randomBytes } from './agent-base'
 import type * as Mocknet from './agent-mocknet'
 
 /** A chain can be in one of the following modes: */
@@ -19,9 +19,10 @@ export type ChainRegistry = Record<string, (config: any)=>Chain>
 export interface DevnetHandle {
   chainId: string
   url: URL
+  running: boolean
   respawn (): Promise<unknown>
   terminate (): Promise<this>
-  getGenesisAccount (name: string): Promise<AgentOpts>
+  getGenesisAccount (name: string): Promise<Partial<Agent>>
 }
 
 /** A constructor for a Chain subclass. */
@@ -41,6 +42,8 @@ export abstract class Chain {
   mode: ChainMode
   /** If this is a devnet, this contains an interface to the devnet container. */
   devnet?: DevnetHandle
+  /** Whether this chain is stopped. */
+  stopped: boolean = false
   /** The Agent subclass to use for interacting with this chain. */
   Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
   /** The default denomination of the chain's native token. */
@@ -55,11 +58,11 @@ export abstract class Chain {
       if (options.mode === Chain.Mode.Devnet) {
         this.devnet = options.devnet
         if (this.url !== String(this.devnet.url)) {
-          this.log.warn.devnetUrlOverride(this.devnet.url, this.url)
+          if (!!this.url) this.log.warn.devnetUrlOverride(this.devnet.url, this.url)
           this.url = String(this.devnet.url)
         }
         if (this.id !== this.devnet.chainId) {
-          this.log.warn.devnetIdOverride(this.devnet.chainId, this.id)
+          if (!!this.url) this.log.warn.devnetIdOverride(this.devnet.chainId, this.id)
           this.id = this.devnet.chainId
         }
       } else {
@@ -67,7 +70,10 @@ export abstract class Chain {
       }
     }
     this.log.label = this.id ?? `(no chain id)` // again
-    if (this.devnet) this.log.label = `${this.log.label}@${this.devnet.url}`
+    if (this.devnet) {
+      this.log.label = `${this.log.label} @ ${this.devnet.url}`
+      Object.defineProperty(this, 'stopped', { get () { return !this.devnet.running } })
+    }
     Object.defineProperties(this, {
       'id':    { enumerable: false, writable: true },
       'url':   { enumerable: false, writable: true },
@@ -98,19 +104,19 @@ export abstract class Chain {
     return this.height.then(async startingHeight=>{
       startingHeight = Number(startingHeight)
       if (isNaN(startingHeight)) {
-        this.log.warn('Current block height undetermined. Not waiting for next block')
+        this.log.warn('current block height undetermined. not waiting for next block')
         return Promise.resolve(NaN)
       }
       this.log.waitingForBlock(startingHeight)
       const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
-          while (true) {
+          while (true && !this.chain.stopped) {
             await new Promise(ok=>setTimeout(ok, 250))
             this.log.waitingForBlock(startingHeight, + new Date() - t)
             const height = await this.height
             if (height > startingHeight) {
-              this.log.info(`Block height incremented to ${height}, continuing`)
+              this.log.info(`block height incremented to ${height}, continuing`)
               return resolve(height)
             }
           }
@@ -160,8 +166,8 @@ export abstract class Chain {
     return Promise.resolve('contract-label-stub')
   }
   /** Get a new instance of the appropriate Agent subclass. */
-  getAgent (options?: Partial<AgentOpts>): Agent
-  getAgent ($A: AgentClass<Agent>, options?: Partial<AgentOpts>): InstanceType<typeof $A>
+  getAgent (options?: Partial<Agent>): Agent
+  getAgent ($A: AgentClass<Agent>, options?: Partial<Agent>): InstanceType<typeof $A>
   getAgent (...args: any) {
     const $A = (typeof args[0] === 'function') ? args[0] : this.Agent
     let options = (typeof args[0] === 'function') ? args[1] : args[0]
@@ -213,27 +219,18 @@ export interface AgentClass<A extends Agent> extends Class<A, ConstructorParamet
   Bundle: BundleClass<Bundle> // static
 }
 
-export interface AgentOpts {
-  chain:     Chain
-  name?:     string
-  mnemonic?: string
-  address?:  Address
-  fees?:     AgentFees
-  [key: string]: unknown
-}
-
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
   log = new Console('@fadroma/agent: Agent')
+  /** The friendly name of the agent. */
+  name?:     string
   /** The chain on which this agent operates. */
   chain?:    Chain
   /** The address from which transactions are signed and sent. */
   address?:  Address
   /** The wallet's mnemonic. */
   mnemonic?: string
-  /** The friendly name of the agent. */
-  name?:     string
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:     AgentFees
   /** The Bundle subclass to use. */
@@ -242,7 +239,7 @@ export abstract class Agent {
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below
 
-  constructor (options: Partial<AgentOpts> = {}) {
+  constructor (options: Partial<Agent> = {}) {
     this.chain   = options.chain ?? this.chain
     this.name    = options.name  ?? this.name
     this.fees    = options.fees  ?? this.fees
@@ -259,8 +256,7 @@ export abstract class Agent {
     const init = new Promise<this>(async (resolve, reject)=>{
       try {
         if (this.chain?.devnet) await this.chain?.devnet.respawn()
-        if (!this.mnemonic && this.name) {
-          if (!this.chain?.devnet) throw new Error.Invalid.NameOutsideDevnet()
+        if (!this.mnemonic && this.name && this.chain?.devnet) {
           Object.assign(this, await this.chain?.devnet.getGenesisAccount(this.name))
         }
         resolve(this)
@@ -441,7 +437,7 @@ export abstract class Bundle implements Agent {
   get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
 
   get log () {
-    return new Console(`${this.address}@${this.chain?.id} (batched: ${this.msgs.length})`)
+    return new Console(`${this.address} @ ${this.chain?.id} (batched: ${this.msgs.length})`)
   }
 
   get ready () { return this.agent.ready.then(()=>this) }
@@ -450,7 +446,7 @@ export abstract class Bundle implements Agent {
 
   get address () { return this.agent.address }
 
-  get name () { return `${this.agent.name}@BUNDLE` }
+  get name () { return `${this.agent.name} (batched)` }
 
   get fees () { return this.agent.fees }
 
@@ -638,3 +634,6 @@ export abstract class Bundle implements Agent {
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })
+
+export const randomChainId = (prefix = `fadroma-devnet-`) =>
+  `${prefix}${randomBytes(3).toString('hex')}`

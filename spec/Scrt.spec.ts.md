@@ -100,7 +100,7 @@ ok(agent1.address)
 // ok(agent3.address)
 ```
 
-## Querying data from Secret Network
+## Querying
 
 The `SecretJS` module used by a `ScrtChain` is available on the `SecretJS` property.
 
@@ -133,21 +133,52 @@ await agent1.ready
 ok(agent1.api)
 ```
 
+```typescript
+const agent    = agent0
+const address  = 'some-addr'
+const codeHash = 'some-hash'
+```
+
+## Tokens
+
+`@fadroma/scrt` exports a `Snip20` client class with most of the SNIP-20 methods exposed.
+
+```typescript
+const token = new Scrt.Snip20({ agent, address, codeHash })
+```
+
+There is also a `Snip721` stub client. See [#172](https://github.com/hackbg/fadroma/issues/172)
+if you want to contribute a SNIP-721 client implementation:
+
+```typescript
+const nft = new Scrt.Snip721({ agent, address, codeHash })
+```
+
 ## Viewing keys
 
-Fadroma provides the `ViewingKeyClient` class for embedding into your own `Client` classes
-for contracts that use SNIP20-compatible the viewing keys.
+`@fadroma/scrt` exports the **`ViewingKeyClient`** class.
 
 ```typescript
-const client = new Scrt.ViewingKeyClient()
+const client = new Scrt.ViewingKeyClient({ agent, address, codeHash })
 ```
 
+This is meant for embedding into your own `Client` classes
+for contracts that implement the SNIP20-compatible viewing key API.
+
 ```typescript
-import { Client } from '@fadroma/agent'
 class MyClient extends Client {
-  vk = new Scrt.ViewingKeyClient()
+  get vk () { return new Scrt.ViewingKeyClient(this) }
 }
 ```
+
+Each `Snip20` instance already has a `vk` property that is a `ViewingKeyClient`.
+
+```typescript
+assert(token.vk instanceof Scrt.ViewingKeyClient)
+```
+
+This is an example of composing client APIs by ownership rather than inheritance,
+as shown above.
 
 ## Query permits
 
@@ -159,5 +190,6 @@ class MyClient extends Client {
 
 ```typescript
 import { ok } from 'node:assert'
+import { Client } from '@fadroma/agent'
 import './Scrt.test.ts'
 ```

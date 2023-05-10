@@ -16,7 +16,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }})" >> $GITHUB_ENV
+      - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }} | tr '@' '_')" >> $GITHUB_ENV
       - uses: docker/build-push-action@v4
         with:
           context: .
@@ -40,7 +40,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }})" >> $GITHUB_ENV
+      - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }} | tr '@' '_')" >> $GITHUB_ENV
       - uses: docker/build-push-action@v4
         with:
           context: ./devnet

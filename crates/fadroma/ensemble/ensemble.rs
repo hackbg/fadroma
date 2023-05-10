@@ -8,7 +8,7 @@ use serde::{
 };
 
 use crate::{
-    prelude::{ContractInstantiationInfo, ContractLink},
+    prelude::{ContractCode, ContractLink},
     cosmwasm_std::{
         SubMsg, Deps, DepsMut, Env, Response, MessageInfo, Binary, Coin, Empty,
         CosmosMsg, WasmMsg, BlockInfo, ContractInfo, BankMsg, Timestamp, Addr,
@@ -188,7 +188,7 @@ impl ContractEnsemble {
     /// 
     /// Returns the code id that must be use to create an instance of it
     /// and its unique code hash.
-    pub fn register(&mut self, code: Box<dyn ContractHarness>) -> ContractInstantiationInfo {
+    pub fn register(&mut self, code: Box<dyn ContractHarness>) -> ContractCode {
         let id = self.ctx.contracts.len() as u64;
         let code_hash = format!("test_contract_{}", id);
 
@@ -197,7 +197,7 @@ impl ContractEnsemble {
             code
         });
 
-        ContractInstantiationInfo {
+        ContractCode {
             id,
             code_hash
         }

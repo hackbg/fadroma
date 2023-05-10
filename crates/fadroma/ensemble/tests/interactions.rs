@@ -20,7 +20,7 @@ struct Counter;
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 struct CounterInit {
-    info: ContractInstantiationInfo,
+    info: ContractCode,
     fail: bool,
     fail_multiplier: bool,
 }

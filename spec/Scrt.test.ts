@@ -1,32 +1,39 @@
 import assert from 'node:assert'
 import * as Scrt from '@fadroma/scrt'
-import { ChainId, Address } from '@fadroma/agent'
+import { Agent, ChainId, Address, Deployment, Client } from '@fadroma/agent'
+import { getDeployment, getDevnet } from '@hackbg/fadroma'
 
 const SecretJS = (Scrt.SecretJS as any).default
+const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
+let chain: any // for mocking
+let agent: Agent
+
+/// DEVNET
+
+chain = {
+  SecretJS,
+  getApi: () => ({}),
+  isDevnet: true,
+  devnet: {
+    respawn: () => Promise.resolve(),
+    getGenesisAccount: ()=>Promise.resolve({ mnemonic: 'the genesis account mnemonic' } as any)
+  } as any,
+}
 
 assert.equal(
-
   'the genesis account mnemonic',
-
   (await new Scrt.Agent({
     name:     'genesis',
     mnemonic: 'if name is passed mnemonic is ignored',
-    chain: {
-      SecretJS,
-      getApi: () => ({}),
-      isDevnet: true,
-      devnet: {
-        respawn: () => Promise.resolve(),
-        getGenesisAccount: ()=>Promise.resolve({ mnemonic: 'the genesis account mnemonic' } as any)
-      } as any,
-    } as any
+    chain
   }).ready).mnemonic,
-
-  [ 'the "name" constructor property of ScrtAgent can be used'
-  , 'to get a devnet genesis account' ].join()
-
+  joinWith(' ',
+    'the "name" constructor property of ScrtAgent can be used',
+    'to get a devnet genesis account')
 )
-              // what is up with this syntax highlighting ?
+
+/// FEES
+
 assert.ok(
 
   await new Scrt.Agent({
@@ -43,6 +50,8 @@ assert.ok(
     'fees are fetched from the chain' ].join()
 
 )
+
+/// BUNDLES
 
 const someBundle = () => new Scrt.Agent({
   chain: {
@@ -80,6 +89,8 @@ assert(
   'ScrtBundle is returned'
 )
 
+/// PERMITS
+
 Scrt.PermitSigner.createSignDoc('chain-id', {foo:'bar'})
 
 new Scrt.PermitSignerKeplr('chain-id', 'address', { signAmino })
@@ -93,17 +104,15 @@ async function signAmino (
 ) {
   return {
     signature: {
-      pub_key: 'pub_key' as any,
-      signature: 'signature'
+      pub_key: 'pub_key' as any, signature: 'signature'
     },
     params: {
-      permit_name:    'permit_name',
-      allowed_tokens: [],
-      chain_id:       'chain-id',
-      permissions:    []
+      permit_name: 'permit_name', allowed_tokens: [], chain_id: 'chain-id', permissions: []
     }
   }
 }
+
+/// CONSOLE
 
 new Scrt.Console()
   .warn.noMemos()

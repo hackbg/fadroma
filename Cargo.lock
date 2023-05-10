@@ -580,6 +580,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "fadroma-example-factory"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "fadroma-example-factory-shared",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-factory-product"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "fadroma-example-factory-shared",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-factory-shared"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
 name = "fadroma-example-killswitch"
 version = "0.1.0"
 dependencies = [

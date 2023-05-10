@@ -72,6 +72,9 @@ routes:
   - path: /upload.html
     page: spec/Upload.spec.ts.md
     name: Uploading
+  - path: /factory.html
+    page: spec/Factory.spec.ts.md
+    name: Factory Pattern
 
 styles:
   - assets/fonts.css

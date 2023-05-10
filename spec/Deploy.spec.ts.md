@@ -1,7 +1,15 @@
 # Fadroma Deploy API
 
-The **Deploy API** revolves around the `Deployment` class, and associated
+The **Deploy API** revolves around the `Deployment` class,
+the `Template` and `Contract` classes, and the associated
 implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
+
+```typescript
+import { Deployment, Template, Contract, Client } from '@fadroma/agent'
+let deployment: Deployment
+let template:   Template
+let contract:   Contract
+```
 
 These classes are used for describing systems consisting of multiple smart contracts,
 such as when deploying them from source. By defining such a system as one or more
@@ -16,23 +24,38 @@ To define your deployment, extend the `Deployment` class, and use the
 what contracts to deploy:
 
 ```typescript
+// in your project's api.ts:
+
 import { Deployment } from '@fadroma/agent'
 
-export class BasicDeployment extends Deployment {
-  kv1 = this.contract({ crate: 'fadroma-example-kv', name: 'kv1', initMsg: {} })
-  kv2 = this.contract({ crate: 'fadroma-example-kv', name: 'kv2', initMsg: {} })
+export class DeploymentA extends Deployment {
+
+  kv1 = this.contract({
+    crate: 'fadroma-example-kv',
+    name: 'kv1',
+    initMsg: {}
+  })
+
+  kv2 = this.contract({
+    crate: 'fadroma-example-kv',
+    name: 'kv2',
+    initMsg: {}
+  })
+
 }
 ```
 
-### Deploying everything
+### Preparing
 
 To prepare a deployment for deploying, use `getDeployment`.
 This will provide a populated instance of your deployment class.
 
 ```typescript
 import { getDeployment } from '@hackbg/fadroma'
-let deployment = getDeployment(BasicDeployment, /* ...constructor args */)
+deployment = getDeployment(DeploymentA, /* ...constructor args */)
 ```
+
+### Deploying everything
 
 Then, call its `deploy` method:
 
@@ -46,66 +69,130 @@ For each contract defined in the deployment, this will do the following:
 * If it's not uploaded yet, it will **upload** it.
 * If it's not instantiated yet, it will **instantiate** it.
 
+### Expecting contracts to be deployed
+
 Having deployed a contract, you want to obtain a `Client` instance
 that points to it, so you can call the contract's methods.
 
-There are two ways of doing this, awaiting and expecting.
+Using the `contract.expect()` method you can get an instance
+of the `Client` specified in the contract options, provided
+the contract is already deployed (i.e. its address is known).
 
-### Deploying individual contracts and their dependencies
+```typescript
+assert(deployment.kv1.expect() instanceof Client)
+assert(deployment.kv2.expect() instanceof Client)
+```
+
+This is the recommended method for passing handles to contracts
+to your UI code after deploying or connecting to a stored deployment
+(see below).
+
+If the address of the request contract is not available,
+this will throw an error.
+
+### Deploying individual contracts with dependencies
 
 By `await`ing a `Contract`'s `deployed` property, you say:
 "give me a handle to this contract; if it's not deployed,
 deploy it, and all of its dependencies (as specified by the `initMsg` method)".
 
 ```typescript
-const kv11 = await deployment.kv1.deployed
-const kv21 = await deployment.kv2.deployed
-
-import { Client } from '@fadroma/agent'
-assert(kv11 instanceof Client)
-assert(kv21 instanceof Client)
+assert(await deployment.kv1.deployed instanceof Client)
+assert(await deployment.kv2.deployed instanceof Client)
 ```
 
 Since this does not call the deployment's `deploy` method,
 it *only* deploys the requested contract and its dependencies
 but not any other contracts defined in the deployment.
 
-### Adding custom migrations
+### Deploying with custom logic
 
-The default `Deployment#deploy` method simply instantiates all
-contracts defined using the `Deployment#contract` method. To
-implement a custom deploy order, you can override `deploy`.
-
-Let's build on top of the first example and implement
-a custom `deploy` method:
+The `deployment.deploy` method simply instantiates
+all contracts in order. You are free to override it
+and deploy the defined contracts according to some
+custom logic:
 
 ```typescript
-class DeploymentWithCustomMethods extends BasicDeployment {
-  async deploy (deployOnlyFoo?: boolean) {
-    /** You can override the deploy method to deploy with custom logic. */
+class DeploymentB extends Deployment {
+  kv1 = this.contract({ crate: 'fadroma-example-kv', name: 'kv1', initMsg: {} })
+  kv2 = this.contract({ crate: 'fadroma-example-kv', name: 'kv2', initMsg: {} })
+
+  deploy = async (deployBoth: boolean = false) => {
     await this.kv1.deployed
-    if (!deployOnlyFoo) await this.kv2.deployed
+    if (deployBoth) await this.kv2.deployed
     return this
   }
-  async update (previous: Deployment) {
-    /** Here you may implement an upgrade method that fetches
-      * the state of existing contracts, and deploys new ones. */
-  }
 }
-
-deployment = await getDeployment(DeploymentWithCustomMethods).deploy()
-
-assert(deployment.kv1.expect() instanceof Client)
-assert(deployment.kv2.expect() instanceof Client)
 ```
 
-### How state is stored
+### Storing and exporting deployment state
 
-See the `DeployStore` implementation.
+By default, the list of contracts in each deployment created by Fadroma
+is stored in `state/${CHAIN_ID}/deploy/${DEPLOYMENT}.yml`.
+
+The deployment currently selected as "active" by the CLI
+(usually, the latest created deployment) is symlinked at
+`state/${CHAIN_ID}/deploy/.active.yml`.
 
 ### Exporting the deployment
 
-This feature is a work-in-progress.
+Deployments in YAML multi-document format are human-readable
+and version control-friendly. When a list of contracts in JSON
+is desired, you can use the `export` command to export a JSON
+snapshot of the active deployment.
+
+For example, to select and export a mainnet deployment:
+
+```sh
+pnpm mainnet select NAME
+pnpm mainnet export [DIRECTORY]
+```
+
+This will create a file named `NAME_@_TIMESTAMP.json`
+in the current working directory (or another specified).
+
+Internally, the data for the export is generated by the
+`deployment.snapshot` getter:
+
+```typescript
+assert.deepEqual(
+  Object.keys(deployment.snapshot.contracts),
+  ['kv1', 'kv2']
+)
+```
+
+In a standard Fadroma project, where the Rust contracts
+and TypeScript API client live in the same repo, by `export`ing
+the latest mainnet and testnet deployments to JSON files
+during the TypeScript build process, and adding them to your
+API client package, you can publish an up-to-date "address book"
+of your project's active contracts as part of your API client library.
+
+```typescript
+// in your project's api.ts:
+
+import { Deployment } from '@fadroma/agent'
+
+// you would load snapshots as JSON, e.g.:
+// const testnet = await (await fetch('./testnet_v4.json')).json()
+export const mainnet = deployment.snapshot
+export const testnet = deployment.snapshot
+
+// and create instances of your deployment with preloaded
+// "address books" of contracts. for example here we restore
+// a different snapshot depending on whether we're passed a
+// mainnet or testnet connection.
+class DeploymentC extends Deployment {
+  kv1 = this.contract({ crate: 'fadroma-example-kv', name: 'kv1', initMsg: {} })
+  kv2 = this.contract({ crate: 'fadroma-example-kv', name: 'kv2', initMsg: {} })
+
+  static connect = (agent: Agent) => {
+    if (agent?.chain?.isMainnet) return new this({ ...mainnet, agent })
+    if (agent?.chain?.isTestnet) return new this({ ...testnet, agent })
+    return new this({ agent })
+  }
+}
+```
 
 ### Connecting to an exported deployment
 
@@ -114,64 +201,99 @@ The `Deployment`'s `connect` method loads stored data about
 the contracts in the deployment, populating the contained
 `Contract` instances.
 
-### Expecting contracts to be deployed
-
-Using the `expect` method, you state: "I expect that
-at the current point in time, this contract is deployed;
-now, give me a handle to it".
+With the above setup you can automatically connect to
+your project in mainnet or testnet mode, depending on
+what `Agent` you pass:
 
 ```typescript
-const kv1 = deployment.kv1.expect()
-const kv2 = deployment.kv2.expect()
+const mainnetAgent = { chain: { isMainnet: true } } // mock
+const testnetAgent = { chain: { isTestnet: true } } // mock
 
+const onMainnet = DeploymentC.connect(mainnetAgent)
+
+const onTestnet = DeploymentC.connect(testnetAgent)
+
+assert(onMainnet.isMainnet)
+assert(onTestnet.isTestnet)
+assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
+assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
+```
+
+Or, to connect to individual contracts from the stored deployment:
+
+```typescript
+const kv1 = DeploymentC.connect(mainnetAgent).kv1.expect()
 assert(kv1 instanceof Client)
+
+const kv2 = DeploymentC.connect(testnetAgent).kv2.expect()
 assert(kv2 instanceof Client)
 ```
 
-If the address of the request contract is not available,
-this will throw an error.
+### Adding custom migrations
+
+Migrations can be implemented as static or regular methods
+of `Deployment` classes.
 
 ```typescript
-import assert from 'node:assert'
-import './Deploy.test.ts'
+// in your project's api.ts:
+
+import { Deployment } from '@fadroma/agent'
+
+class DeploymentD extends DeploymentC {
+  kv3 = this.contract({ crate: 'fadroma-example-kv', name: 'kv3', initMsg: {} })
+
+  // simplest client-side migration is to just instantiate
+  // a new deployment with the data from the old deployment.
+  static upgrade = (previous: DeploymentC) =>
+    new this({ ...previous })
+}
+
+// simplest chain-side migration is to just call default deploy,
+// which should reuse kv1 and kv2 and only deploy kv3.
+deployment = await DeploymentD.upgrade(deployment).deploy()
 ```
 
 ## Template
 
-The `Contract` class describes a smart contract's source, binary, and upload.
+The `Template` class represents a smart contract's source, compilation,
+binary, and upload. It can have a `codeHash` and `codeId` but not an
+`address`.
+
+**Instantiating a template** refers to calling the `template.instance`
+method (or its plural, `template.instances`), which returns `Contract`,
+which represents a particular smart contract instance, which can have
+an `address`.
 
 ### Deploying multiple contracts from a template
 
 The `deployment.template` method adds a `Template` to the `Deployment`.
 
-A `Template` represents the code of a smart contract before instantiation.
-A `Template` can be `built` and `uploaded`. Multiple `Contract` instances
-can be created with the `template.instance` and `template.instances([...]|{...})` methods.
-
-You can pass either an array or an object to `template.instances`.
-
 ```typescript
-class DeploymentWithTemplates extends Deployment {
+class Deployment4 extends Deployment {
+
   t = this.template({ crate: 'fadroma-example-kv' })
+
   a = this.t.instance({ name: 'a', initMsg: {} })
+
   b = this.t.instances([
     {name:'b1',initMsg:{}},
     {name:'b2',initMsg:{}},
     {name:'b3',initMsg:{}}
   ])
+
   c = this.t.instances({
     c1:{name:'c1',initMsg:{}},
     c2:{name:'c2',initMsg:{}},
     c3:{name:'c3',initMsg:{}}
   })
-}
 
-deployment = await getDeployment(DeploymentWithTemplates).deploy()
+}
 ```
 
-```typescript
-import { Contract, Template } from '@fadroma/agent'
+You can pass either an array or an object to `template.instances`.
 
+```typescript
+deployment = await getDeployment(Deployment4).deploy()
 assert(deployment.t instanceof Template)
 
 assert([
@@ -299,4 +421,9 @@ await deployment.a.upload()
 
 await deployment.a.built
 await deployment.a.build()
+```
+
+```typescript
+import assert from 'node:assert'
+import './Deploy.test.ts'
 ```

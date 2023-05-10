@@ -122,7 +122,7 @@ export class Uploader {
     if (!this.agent) throw new Error('No upload agent')
     this.log.log('fetching', String(artifact))
     const data = await this.fetch(artifact)
-    const log = new Console(`${contract.codeHash} upload`)
+    const log = new Console(`${contract.codeHash} -> ${this.agent.chain?.id??'(unknown chain id)'}`)
     log(`from ${bold(artifact)}`)
     log(`${bold(String(data.length))} bytes (uncompressed)`)
     const result = await this.agent.upload(data, contract)
@@ -195,6 +195,8 @@ export interface Uploaded extends Partial<Uploadable> {
   uploadBy?: Address
   /** ID of upload transaction. */
   uploadTx?: TxHash
+  /** Gas used by upload tx. */
+  uploadGas?: string|number
 }
 
 /// ---

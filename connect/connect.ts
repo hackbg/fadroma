@@ -16,8 +16,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Console, Error, Chain, ChainMode, ChainId, Mocknet, bold } from '@fadroma/agent'
-import type { Agent, AgentOpts, ChainRegistry } from '@fadroma/agent'
+import {
+  Console, Error, Chain, ChainMode, ChainId, Mocknet, bold, randomChainId
+} from '@fadroma/agent'
+import type { Agent, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
 
 import { Config } from '@hackbg/conf'
@@ -61,7 +63,7 @@ export class ConnectConfig extends Config {
   chainId: ChainId|null = this.getString('FADROMA_CHAIN_ID', ()=>{
     const chainIds = {
       Mocknet:     'mocknet',
-      ScrtDevnet:  'fadroma-devnet',
+      ScrtDevnet:  randomChainId(),
       ScrtTestnet: Scrt.Config.defaultTestnetChainId,
       ScrtMainnet: Scrt.Config.defaultMainnetChainId,
     }
@@ -109,7 +111,7 @@ export class ConnectConfig extends Config {
   }
 
   /** Create the Agent instance identified by the configuration. */
-  getAgent <A extends Agent> (options: Partial<AgentOpts> = {}): A {
+  getAgent <A extends Agent> (options: Partial<A> = {}): A {
     options.chain ??= this.getChain()
     options.name = this.agentName
     options.mnemonic = this.mnemonic

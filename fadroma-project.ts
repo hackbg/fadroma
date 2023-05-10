@@ -1,6 +1,7 @@
 import { Config, Console, colors, Error, DeployError } from './fadroma-base'
 import { getBuilder, ContractCrate } from './fadroma-build'
 import { getUploader } from './fadroma-upload'
+import { Devnet } from './devnet/devnet'
 
 import type {
   Builder, Buildable, Built, Uploader, Chain,
@@ -13,6 +14,7 @@ import {
   toInstanceReceipt, timestamp, bold
 } from '@fadroma/agent'
 
+import * as Dock from '@hackbg/dock'
 import { CommandContext } from '@hackbg/cmds'
 import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, OpaqueDirectory,
@@ -66,7 +68,7 @@ export class Project extends CommandContext {
 
     // Configure
     this.config = options?.config ?? new Config()
-    const root = $(options?.root || process.cwd()).as(OpaqueDirectory)
+    const root = $(options?.root || this.config.root || process.cwd()).as(OpaqueDirectory)
     const name = options?.name || root.name
     this.name = name
     this.root = root
@@ -94,18 +96,22 @@ export class Project extends CommandContext {
                  this.addCrate)
     this.command('build',    'build the project or specific contracts from it',
                  this.build)
+    this.command('rebuild',  'rebuild the project or specific contracts from it',
+                 this.rebuild)
     this.command('upload',   'upload the project or specific contracts from it',
                  this.upload)
+    this.command('reupload', 'reupload the project or specific contracts from it',
+                 this.reupload)
     this.command('deploy',   'deploy this project or continue an interrupted deployment',
                  this.deploy)
-    this.command('redeploy', 'deploy this project from scratch',
+    this.command('redeploy', 'redeploy this project from scratch',
                  this.redeploy)
     this.command('select',   `activate another deployment on ${this.config.chainId}`,
                  this.selectDeployment)
     this.command('export',   `export current deployment to ${name}.json`,
                  this.exportDeployment)
-    this.command('reset',    'stop and erase running devnet',
-                 this.resetDevnet)
+    this.command('reset',    'stop and erase running devnets',
+                 this.resetDevnets)
   }
 
   /** @returns stateless handles for the subdirectories of the project. */
@@ -130,6 +136,7 @@ export class Project extends CommandContext {
       packageJson:    this.root.at('package.json').as(JSONFile),
       apiIndex:       this.root.at('api.ts').as(TextFile),
       opsIndex:       this.root.at('ops.ts').as(TextFile),
+      testIndex:      this.root.at('tes.ts').as(TextFile),
       readme:         this.root.at('README.md').as(TextFile),
       shellNix:       this.root.at('shell.nix').as(TextFile),
     }
@@ -246,6 +253,9 @@ export class Project extends CommandContext {
     }
     return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
   }
+  rebuild = async (...names: string[]): Promise<Built[]> => {
+    throw new Error.Unimplemented('rebuild')
+  }
   /** Uploads one or more named templates, or all templates if no arguments are passed.
     * Builds templates with missing artifacts if sources are available. */
   upload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
@@ -269,6 +279,9 @@ export class Project extends CommandContext {
     // Build templates if builder is available
     const templates = this.builder ? await this.builder.buildMany(sources) : sources
     return await this.uploader.uploadMany(templates as Uploadable[])
+  }
+  reupload = async (...names: string[]): Promise<Built[]> => {
+    throw new Error.Unimplemented('rebuild')
   }
   deploy = async (...args: string[]) => {
     const deployment: Deployment = this.deployment || await this.createDeployment()
@@ -327,32 +340,15 @@ export class Project extends CommandContext {
     const deployment = this.deployment
     if (!deployment) throw new Error.Missing.Deployment()
     if (!path) path = process.cwd()
+    // If passed a directory, generate file name
     let file = $(path)
     if (file.isDirectory()) file = file.in(`${name}_@_${timestamp()}.json`)
-    const snapshot = Object.entries(deployment.contracts)
-      .reduce((snapshot, [name, contract]: [string, any])=>Object.assign(snapshot, {
-        [name]: {
-          ...contract,
-          deployment: undefined,
-          builder:    undefined,
-          uploader:   undefined,
-          agent:      undefined
-        }
-      }), {})
     // Serialize and write the deployment.
-    file.as(JSONFile).makeParent().save(snapshot)
+    file.as(JSONFile).makeParent().save(deployment.snapshot)
     this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
-  resetDevnet = async () => {
-    const chain = this.uploader?.agent?.chain ?? this.config.getChain()
-    if (!chain) {
-      this.log.info('No active chain.')
-    } else if (!chain.isDevnet || !chain.devnet) {
-      this.log.error('This command is only valid for devnets.')
-    } else {
-      await chain.devnet.terminate()
-    }
-  }
+  resetDevnets = async (...ids: ChainId[]) =>
+    Devnet.resetMany(this.root.in('state'), ids)
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {
@@ -360,7 +356,9 @@ export class Project extends CommandContext {
     root.make()
     Object.values(this.dirs).forEach(dir=>dir.make())
     const {
-      readme, fadromaJson, packageJson, apiIndex, opsIndex, gitignore, envfile, shellNix, cargoToml
+      readme, packageJson, cargoToml,
+      gitignore, envfile, shellNix,
+      fadromaJson, apiIndex, opsIndex, testIndex,
     } = files
     readme.save([
       `# ${name}\n---\n`,
@@ -390,6 +388,10 @@ export class Project extends CommandContext {
         "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
         "testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
         "mainnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
+        "test":         `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+        "test:mocknet": `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+        "test:devnet":  `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+        "test:testnet": `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
       },
     })
     apiIndex.save([
@@ -454,8 +456,26 @@ export class Project extends CommandContext {
         ``, `}`
       ].join('\n')
     ].join('\n\n'))
+    testIndex.save([
+      `import * as assert from 'node:assert'`,
+      `import ${Case.pascal(name)} from './api'`,
+      `import { getDeployment } from '@hackbg/fadroma`,
+      `const deployment = await getDeployment(${Case.pascal(name)}).deploy()`,
+      `// add your assertions here`
+    ].join('\n'))
     gitignore.save([
-      '.env', 'node_modules', 'target', 'state/fadroma-devnet*', '*.wasm',
+      '.env',
+      'node_modules',
+      'target',
+      'state/*',
+      '!state/secret-1',
+      '!state/secret-2',
+      '!state/secret-3',
+      '!state/secret-4',
+      '!state/pulsar-1',
+      '!state/pulsar-2',
+      'wasm/*',
+      '!wasm/*.sha256',
     ].join('\n'))
     envfile.save([
       '# FADROMA_MNEMONIC=your testnet mnemonic'

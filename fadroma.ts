@@ -19,9 +19,9 @@
 **/
 
 export * from './fadroma-base'
-export * from './fadroma-state'
 export * from './fadroma-build'
 export * from './fadroma-upload'
+export * from './fadroma-deploy'
 export * from './devnet/devnet'
 export * from './fadroma-project'
 
@@ -45,7 +45,7 @@ import { Scrt } from '@fadroma/connect'
 Object.assign(Chain.variants as ChainRegistry, {
   ScrtDevnet (options: Partial<Scrt.Chain> = {}): Scrt.Chain {
     const config = new Config()
-    const devnet = config.getDevnet('scrt_1.8')
+    const devnet = config.getDevnet({ platform: 'scrt_1.8' })
     const id     = devnet.chainId
     const url    = devnet.url.toString()
     return Scrt.Chain.devnet({ id, url, devnet, ...options })
