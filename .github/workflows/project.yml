@@ -7,6 +7,7 @@ jobs:
   project:
     name: Create and build a project
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     strategy:
       matrix:
         node-version: [16, 20]
