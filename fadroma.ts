@@ -19,9 +19,9 @@
 **/
 
 export * from './fadroma-base'
-export * from './fadroma-state'
 export * from './fadroma-build'
 export * from './fadroma-upload'
+export * from './fadroma-deploy'
 export * from './devnet/devnet'
 export * from './fadroma-project'
 
