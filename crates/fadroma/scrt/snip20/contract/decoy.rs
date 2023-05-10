@@ -83,3 +83,53 @@ impl Decoys {
         lhs.iter().chain([account]).chain(rhs)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cosmwasm_std::testing::mock_dependencies;
+
+    #[test]
+    fn shuffles_account_in_the_correct_index() {
+        let mut deps = mock_dependencies();
+        let mut deps = deps.as_mut();
+
+        PRNG_SEED.save(deps.storage, &[33; 32]).unwrap();
+
+        let accounts = ["where", "light", "divides", "the", "holler"]
+            .into_iter()
+            .map(|x| String::from(x))
+            .collect::<Vec<String>>();
+
+        let account = Account::of(deps.api.addr_canonicalize("real_acc").unwrap());
+
+        for i in 0..50 {
+            let entropy = format!("entropy_{}", i);
+            let decoys = Decoys::new(
+                deps.branch(),
+                &accounts,
+                Some(entropy.as_bytes())
+            ).unwrap().unwrap();
+
+            for (i, acc) in decoys.shuffle_in(&account).enumerate() {
+                if i == decoys.acc_index() {
+                    assert_eq!(acc.addr(), account.addr());
+                } else {
+                    assert_ne!(acc.addr(), account.addr());
+                }
+            }
+        }
+
+        let mut decoys = Decoys::new(deps.branch(), &accounts, Some(b"entropy")).unwrap().unwrap();
+        decoys.real_acc_pos = 0;
+
+        let mut iter = decoys.shuffle_in(&account);
+        assert_eq!(iter.next().unwrap().addr(), account.addr());
+        drop(iter);
+
+        decoys.real_acc_pos = accounts.len();
+
+        let iter = decoys.shuffle_in(&account);
+        assert_eq!(iter.last().unwrap().addr(), account.addr());
+    }
+}

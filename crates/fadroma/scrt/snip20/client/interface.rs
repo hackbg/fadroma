@@ -534,7 +534,7 @@ pub enum ResponseStatus {
 }
 
 // Transfer history
-#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, PartialEq, Clone, Debug)]
 pub struct Tx<T> {
     pub id: u64,
     pub from: T,
