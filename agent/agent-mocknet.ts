@@ -94,7 +94,9 @@ export class Mocknet extends Chain {
     if (cwVersion === null) throw new Error.NoCWVersion(wasm, module, exports)
     this.codeIdOfCodeHash[codeHash] = String(codeId)
     this.uploads[codeId] = { codeId, codeHash, wasm, meta, module, cwVersion }
-    this.log.log('code', codeId).debug('hash', codeHash)
+    this.log
+      .log('code', codeId)
+      .log('hash', codeHash)
     return this.uploads[codeId]
   }
   getCode (codeId: CodeId) {
@@ -222,7 +224,7 @@ class MocknetAgent extends Agent {
   constructor (options: AgentOpts & { chain: Mocknet }) {
     super({ name: 'MocknetAgent', ...options||{}})
     this.chain = options.chain
-    this.log.label = `${this.address}@${this.chain.id}`
+    this.log.label = `${this.address} @ ${this.chain.id}`
   }
 
   get defaultDenom (): string {
@@ -454,8 +456,9 @@ export class MocknetContract<V extends CW> {
       }
       return this.readUtf8(this.initMethod(...this.initPointers({ env, info, msg })))
     } catch (e: any) {
-      this.log.error(bold(this.address), `crashed on init:`, e.message)
-      this.log.error(bold('Args:'), { env, info, msg })
+      this.log
+        .error(bold(this.address), `crashed on init:`, e.message)
+        .error(bold('Args:'), { env, info, msg })
       throw e
     }
   }

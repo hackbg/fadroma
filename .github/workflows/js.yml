@@ -20,6 +20,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - name: Run pnpm ci
         run: |
+          sudo apt install -y wabt binaryen
           mkdir -p wasm
           rustup target add wasm32-unknown-unknown
           pnpm --version

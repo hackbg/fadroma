@@ -177,7 +177,7 @@ class ScrtAgent extends Agent {
     this.mnemonic        = options.mnemonic ?? this.mnemonic
     this.encryptionUtils = options.encryptionUtils
     this.simulate        = options.simulate ?? this.simulate
-    this.log.label = `${this.address??'(no address)'}@${this.chain?.id??'(no chain id)'}`
+    this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
@@ -226,7 +226,7 @@ class ScrtAgent extends Agent {
         // Override address and set name if missing.
         this.address = wallet.address
         this.name ??= this.address
-        this.log.label = `${this.address??'(no address)'}@${this.chain.id??'(no chain id)'}`
+        this.log.label = `${this.address??'(no address)'} @ ${this.chain.id??'(no chain id)'}`
         this.log.log('authenticated')
         // Done.
         resolve(this as this & { api: SecretJS.SecretNetworkClient })
@@ -370,7 +370,7 @@ class ScrtAgent extends Agent {
       this.log.error(`Code id not found in result.`)
       throw new Error.Failed.Upload({ ...result, noCodeId: true })
     }
-    this.log.debug('gas used for upload:', result.gasUsed)
+    this.log.debug(`gas used for upload of ${data.length} bytes:`, result.gasUsed)
     return {
       chainId:  assertChain(this).id,
       codeId,
@@ -415,7 +415,7 @@ class ScrtAgent extends Agent {
     const address  = result.arrayLog!
       .find((log: Log) => log.type === "message" && log.key === "contract_address")
       ?.value!
-    this.log.debug('gas used for init:', result.gasUsed)
+    this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
     return {
       chainId: chainId!,
       address,

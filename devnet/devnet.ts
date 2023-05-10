@@ -113,7 +113,7 @@ export class Devnet implements DevnetHandle {
   }
 
   get log (): Console {
-    return new Console(`devnet ${this.chainId}@${this.host}:${this.port}`)
+    return new Console(`${this.chainId} @ ${this.host}:${this.port}`)
   }
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL { return new URL(`${this.protocol}://${this.host}:${this.port}`) }

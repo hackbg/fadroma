@@ -69,7 +69,7 @@ export abstract class Chain {
       }
     }
     this.log.label = this.id ?? `(no chain id)` // again
-    if (this.devnet) this.log.label = `${this.log.label}@${this.devnet.url}`
+    if (this.devnet) this.log.label = `${this.log.label} @ ${this.devnet.url}`
     Object.defineProperties(this, {
       'id':    { enumerable: false, writable: true },
       'url':   { enumerable: false, writable: true },
@@ -100,7 +100,7 @@ export abstract class Chain {
     return this.height.then(async startingHeight=>{
       startingHeight = Number(startingHeight)
       if (isNaN(startingHeight)) {
-        this.log.warn('Current block height undetermined. Not waiting for next block')
+        this.log.warn('current block height undetermined. Not waiting for next block')
         return Promise.resolve(NaN)
       }
       this.log.waitingForBlock(startingHeight)
@@ -112,7 +112,7 @@ export abstract class Chain {
             this.log.waitingForBlock(startingHeight, + new Date() - t)
             const height = await this.height
             if (height > startingHeight) {
-              this.log.info(`Block height incremented to ${height}, continuing`)
+              this.log.info(`block height incremented to ${height}, continuing`)
               return resolve(height)
             }
           }
@@ -442,7 +442,7 @@ export abstract class Bundle implements Agent {
   get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
 
   get log () {
-    return new Console(`${this.address}@${this.chain?.id} (batched: ${this.msgs.length})`)
+    return new Console(`${this.address} @ ${this.chain?.id} (batched: ${this.msgs.length})`)
   }
 
   get ready () { return this.agent.ready.then(()=>this) }
@@ -451,7 +451,7 @@ export abstract class Bundle implements Agent {
 
   get address () { return this.agent.address }
 
-  get name () { return `${this.agent.name}@BUNDLE` }
+  get name () { return `${this.agent.name} (batched)` }
 
   get fees () { return this.agent.fees }
 

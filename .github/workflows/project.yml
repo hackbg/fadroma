@@ -28,6 +28,7 @@ jobs:
 
       - name: Create project through NPX
         run: |
+          sudo apt install -y wabt binaryen
           npx @hackbg/fadroma@latest create myproject mycontract1 mycontract2
           cd myproject
           cat package.json

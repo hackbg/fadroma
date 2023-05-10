@@ -516,7 +516,7 @@ export class BuildRaw extends BuildLocal {
     if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
     // Create an artifact for the build result
     const location = $(env._OUTPUT, artifactName(crate, sanitize(revision)))
-    this.log.sub(source.crate).log('Build ok:', bold(location.shortPath))
+    this.log.sub(source.crate).log('built', bold(location.shortPath))
     return Object.assign(source, {
       artifact: pathToFileURL(location.path),
       codeHash: this.hashPath(location.path)
