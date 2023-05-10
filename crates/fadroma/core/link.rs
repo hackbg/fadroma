@@ -29,13 +29,17 @@ impl PartialEq for ContractCode {
 
 impl ContractCode {
     #[inline]
-    pub fn instantiate(self, label: &str, msg: &impl Serialize, funds: Vec<Coin>)
-        -> StdResult<WasmMsg>
+    pub fn instantiate(
+        self,
+        label: impl Into<String>,
+        msg: &impl Serialize,
+        funds: Vec<Coin>
+    ) -> StdResult<WasmMsg>
     {
         Ok(WasmMsg::Instantiate {
             code_id: self.id,
             code_hash: self.code_hash,
-            label: label.to_string(),
+            label: label.into(),
             msg: to_binary(msg)?,
             funds,
         })
@@ -57,6 +61,7 @@ impl ContractLink<String> {
             code_hash: self.code_hash
         })
     }
+    
     #[inline]
     pub fn execute(self, msg: &impl Serialize, funds: Vec<Coin>) -> StdResult<WasmMsg> {
         Ok(WasmMsg::Execute {
