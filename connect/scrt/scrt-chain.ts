@@ -5,7 +5,7 @@ import {
   Chain, Fee, Mocknet, Bundle, assertChain
 } from '@fadroma/agent'
 import type {
-  AgentClass, AgentOpts, Built, Uploaded, AgentFees, ChainClass, Uint128, BundleClass, Client,
+  AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BundleClass, Client,
   ExecOpts, ICoin, Message, Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label,
   Instantiated
 } from '@fadroma/agent'
@@ -141,20 +141,6 @@ class ScrtChain extends Chain {
 
 export type TxResponse = SecretJS.TxResponse
 
-export interface ScrtAgentClass extends AgentClass<ScrtAgent> {}
-
-/** Agent configuration options for Secret Network. */
-export interface ScrtAgentOpts extends AgentOpts {
-  /** Instance of the underlying platform API provided by `secretjs`. */
-  api:             SecretJS.SecretNetworkClient
-  /** This agent's identity on the chain. */
-  wallet:          SecretJS.Wallet
-  /** Whether to simulate each execution first to get a more accurate gas estimate. */
-  simulate:        boolean
-  /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
-  encryptionUtils: SecretJS.EncryptionUtils
-}
-
 /** Represents a connection to the Secret Network,
   * authenticated as a specific address. */
 class ScrtAgent extends Agent {
@@ -163,12 +149,12 @@ class ScrtAgent extends Agent {
   declare chain: ScrtChain
   /** Bundle class used by this agent. */
   Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
-  /** Whether transactions should be simulated instead of executed. */
-  simulate: boolean = false
+  /** Whether to simulate each execution first to get a more accurate gas estimate. */
+  simulateForGas: boolean = false
   /** Default fees for this agent. */
   fees = ScrtChain.defaultFees
 
-  constructor (options: Partial<ScrtAgentOpts> = {}) {
+  constructor (options: Partial<ScrtAgent> = {}) {
     super(options)
     this.fees            = options.fees ?? this.fees
     this.api             = options.api
@@ -176,7 +162,7 @@ class ScrtAgent extends Agent {
     this.address         = this.wallet?.address
     this.mnemonic        = options.mnemonic ?? this.mnemonic
     this.encryptionUtils = options.encryptionUtils
-    this.simulate        = options.simulate ?? this.simulate
+    this.simulateForGas        = options.simulateForGas ?? this.simulateForGas
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
@@ -238,6 +224,7 @@ class ScrtAgent extends Agent {
     return init
   }
 
+  /** Instance of the underlying platform API provided by `secretjs`. */
   get api (): SecretJS.SecretNetworkClient|undefined {
     return undefined
   }
@@ -245,6 +232,7 @@ class ScrtAgent extends Agent {
     setApi(this, value)
   }
 
+  /** This agent's identity on the chain. */
   get wallet (): SecretJS.Wallet|undefined {
     return (this.api as any)?.wallet
   }
@@ -252,6 +240,7 @@ class ScrtAgent extends Agent {
     setWallet(this, value)
   }
 
+  /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
   get encryptionUtils (): SecretJS.EncryptionUtils|undefined {
     return (this.api as any)?.encryptionUtils
   }
@@ -466,7 +455,7 @@ class ScrtAgent extends Agent {
     const txOpts = {
       gasLimit: Number(fee?.gas) || undefined
     }
-    if (this.simulate) {
+    if (this.simulateForGas) {
       this.log.info('Simulating transaction...')
       let simResult
       try {
@@ -728,7 +717,7 @@ class ScrtBundle extends Bundle {
     return results
   }
 
-  async simulate () {
+  async simulateForGas () {
     const { api } = await this.agent.ready
     const msgs = this.conformedMsgs
     return await api!.tx.simulate(msgs as any)

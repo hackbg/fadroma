@@ -1,6 +1,6 @@
 import { Error, Console, Config } from '../fadroma-base'
 import { bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/agent'
-import type { AgentOpts, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
+import type { Agent, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { freePort, Endpoint, waitPort, isPortTaken } from '@hackbg/port'
@@ -220,7 +220,7 @@ export class Devnet implements DevnetHandle {
     return new $C({ id: this.chainId, mode: Chain.Mode.Devnet, devnet: this })
   }
   /** Get the info for a genesis account, including the mnemonic */
-  async getGenesisAccount (name: string): Promise<AgentOpts> {
+  async getGenesisAccount (name: string): Promise<Partial<Agent>> {
     if (this.noStateMount) {
       if (!this.container) throw new Error.Devnet.ContainerNotSet()
       const [identity] = await this.container.exec(
@@ -228,7 +228,7 @@ export class Devnet implements DevnetHandle {
       )
       return JSON.parse(identity)
     } else {
-      return $(this.stateDir, 'wallet', `${name}.json`).as(JSONFile).load() as AgentOpts
+      return $(this.stateDir, 'wallet', `${name}.json`).as(JSONFile).load() as Partial<Agent>
     }
   }
 

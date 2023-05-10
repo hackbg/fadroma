@@ -21,7 +21,7 @@ export interface DevnetHandle {
   url: URL
   respawn (): Promise<unknown>
   terminate (): Promise<this>
-  getGenesisAccount (name: string): Promise<AgentOpts>
+  getGenesisAccount (name: string): Promise<Partial<Agent>>
 }
 
 /** A constructor for a Chain subclass. */
@@ -162,8 +162,8 @@ export abstract class Chain {
     return Promise.resolve('contract-label-stub')
   }
   /** Get a new instance of the appropriate Agent subclass. */
-  getAgent (options?: Partial<AgentOpts>): Agent
-  getAgent ($A: AgentClass<Agent>, options?: Partial<AgentOpts>): InstanceType<typeof $A>
+  getAgent (options?: Partial<Agent>): Agent
+  getAgent ($A: AgentClass<Agent>, options?: Partial<Agent>): InstanceType<typeof $A>
   getAgent (...args: any) {
     const $A = (typeof args[0] === 'function') ? args[0] : this.Agent
     let options = (typeof args[0] === 'function') ? args[1] : args[0]
@@ -215,27 +215,18 @@ export interface AgentClass<A extends Agent> extends Class<A, ConstructorParamet
   Bundle: BundleClass<Bundle> // static
 }
 
-export interface AgentOpts {
-  chain:     Chain
-  name?:     string
-  mnemonic?: string
-  address?:  Address
-  fees?:     AgentFees
-  [key: string]: unknown
-}
-
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
   log = new Console('@fadroma/agent: Agent')
+  /** The friendly name of the agent. */
+  name?:     string
   /** The chain on which this agent operates. */
   chain?:    Chain
   /** The address from which transactions are signed and sent. */
   address?:  Address
   /** The wallet's mnemonic. */
   mnemonic?: string
-  /** The friendly name of the agent. */
-  name?:     string
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:     AgentFees
   /** The Bundle subclass to use. */
@@ -244,7 +235,7 @@ export abstract class Agent {
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below
 
-  constructor (options: Partial<AgentOpts> = {}) {
+  constructor (options: Partial<Agent> = {}) {
     this.chain   = options.chain ?? this.chain
     this.name    = options.name  ?? this.name
     this.fees    = options.fees  ?? this.fees

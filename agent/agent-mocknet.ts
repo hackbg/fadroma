@@ -1,5 +1,5 @@
 import type {
-  AgentClass, Uint128, AgentOpts, BundleClass, ExecOpts, Uploadable, Uploaded,
+  AgentClass, Uint128, BundleClass, ExecOpts, Uploadable, Uploaded,
   Address, CodeHash, ChainId, CodeId, Message, Client, Label, AnyContract, Instantiated
 } from './agent'
 import { Error as BaseError, Console as BaseConsole, bold, colors, into } from './agent-base'
@@ -221,7 +221,7 @@ class MocknetAgent extends Agent {
   /** The address of this agent. */
   address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
 
-  constructor (options: AgentOpts & { chain: Mocknet }) {
+  constructor (options: Partial<Agent> & { chain: Mocknet }) {
     super({ name: 'MocknetAgent', ...options||{}})
     this.chain = options.chain
     this.log.label = `${this.address} @ ${this.chain.id}`
