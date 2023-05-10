@@ -389,9 +389,9 @@ export class Project extends CommandContext {
         "testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
         "mainnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
         "test":         `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
-        "test:mocknet": `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
-        "test:devnet":  `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
-        "test:testnet": `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+        "test:mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma run tes.ts`,
+        "test:devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma run tes.ts`,
+        "test:testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma run tes.ts`,
       },
     })
     apiIndex.save([
