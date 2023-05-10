@@ -39,6 +39,7 @@ jobs:
           pnpm build
           pnpm mocknet deploy
           pnpm devnet deploy
+          pnpm devnet status
           pnpm devnet export
           cd ..
           rm -rf testproject
