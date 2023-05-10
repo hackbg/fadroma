@@ -195,6 +195,8 @@ export interface Uploaded extends Partial<Uploadable> {
   uploadBy?: Address
   /** ID of upload transaction. */
   uploadTx?: TxHash
+  /** Gas used by upload tx. */
+  uploadGas?: string|number
 }
 
 /// ---

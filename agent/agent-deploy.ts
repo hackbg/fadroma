@@ -472,6 +472,8 @@ export interface Instantiated {
   suffix?:  Name
   initBy?:  Address
   initTx?:  TxHash
+  /** Gas used by init tx. */
+  initGas?: string|number
 }
 
 export type AnyContract = Contract<Client>

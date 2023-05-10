@@ -370,19 +370,21 @@ class ScrtAgent extends Agent {
       this.log.error(`Code id not found in result.`)
       throw new Error.Failed.Upload({ ...result, noCodeId: true })
     }
+    this.log.debug('gas used for upload:', result.gasUsed)
     return {
       chainId:  assertChain(this).id,
       codeId,
       codeHash: await this.getHash(Number(codeId)),
       uploadBy: this.address,
-      uploadTx: result.transactionHash
+      uploadTx: result.transactionHash,
+      uploadGas: result.gasUsed
     }
   }
 
   async instantiate <C extends Client> (
     instance: Contract<C>,
     init_funds: ICoin[] = []
-  ) {
+  ): Promise<Instantiated> {
     const { api } = await this.ready
     if (!this.address) throw new Error("Agent has no address")
     if (instance.address) {
@@ -413,12 +415,14 @@ class ScrtAgent extends Agent {
     const address  = result.arrayLog!
       .find((log: Log) => log.type === "message" && log.key === "contract_address")
       ?.value!
+    this.log.debug('gas used for init:', result.gasUsed)
     return {
       chainId: chainId!,
       address,
       codeHash: codeHash!,
-      initTx: result.transactionHash,
       initBy: this.address,
+      initTx: result.transactionHash,
+      initGas: result.gasUsed,
       label,
     }
   }
