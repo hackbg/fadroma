@@ -12,12 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  - BREAKING ⚠️: Renamed the `impl_contract_harness!` macro to `contract_harness!`. It now also uses the same
  syntax as the `entrypoint!` macro and allows to optionally supply a reply entry point. ([#168](https://github.com/hackbg/fadroma/pull/168))
+ - BREAKING ⚠️: Renamed `ContractInstantiationInfo` to `ContractCode`. ([#171](https://github.com/hackbg/fadroma/pull/171))
 
 ### Added
 
  - SNIP-25 allowance queries ([#169](https://github.com/hackbg/fadroma/pull/169))
  - Methods to get a random number (`next_u32/u64`) and to fill a slice with random bytes (`fill_bytes`) in `Prng` ([#170](https://github.com/hackbg/fadroma/pull/170))
  - SNIP-20 decoys ([#170](https://github.com/hackbg/fadroma/pull/170))
+ - Convenience methods to create init and execute messages from `ContractCode` and `ContractLink` ([#171](https://github.com/hackbg/fadroma/pull/171))
 
 ## [0.8.6] - 2023-04-28
 

@@ -3,7 +3,7 @@ import type {
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId,
   Uploadable
 } from './agent'
-import { Error, Console, into, prop, hideProperties as hide } from './agent-base'
+import { Error, Console, into, prop, hideProperties as hide, randomBytes } from './agent-base'
 import type * as Mocknet from './agent-mocknet'
 
 /** A chain can be in one of the following modes: */
@@ -19,9 +19,10 @@ export type ChainRegistry = Record<string, (config: any)=>Chain>
 export interface DevnetHandle {
   chainId: string
   url: URL
+  running: boolean
   respawn (): Promise<unknown>
   terminate (): Promise<this>
-  getGenesisAccount (name: string): Promise<AgentOpts>
+  getGenesisAccount (name: string): Promise<Partial<Agent>>
 }
 
 /** A constructor for a Chain subclass. */
@@ -41,44 +42,15 @@ export abstract class Chain {
   mode: ChainMode
   /** If this is a devnet, this contains an interface to the devnet container. */
   devnet?: DevnetHandle
-  /** The default denomination of the chain's native token. */
-  abstract defaultDenom: string
+  /** Whether this chain is stopped. */
+  stopped: boolean = false
   /** The Agent subclass to use for interacting with this chain. */
   Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
-  /** The default Agent subclass to use for interacting with this chain. */
-  static Agent: AgentClass<Agent> // populated below
-  /** Shorthand for the ChainMode enum. */
-  static Mode = ChainMode
-  /** Create a mainnet instance of this chain. */
-  static mainnet (options: Partial<Chain> = {}): Chain {
-    return new (this as any)({ ...options, mode: Chain.Mode.Mainnet })
-  }
-  /** Create a testnet instance of this chain. */
-  static testnet (options: Partial<Chain> = {}): Chain {
-    return new (this as any)({ ...options, mode: Chain.Mode.Testnet })
-  }
-  /** Create a devnet instance of this chain. */
-  static devnet (options: Partial<Chain> = {}): Chain {
-    options = { ...options }
-    if (options.devnet) {
-      options.id  ??= options.devnet.chainId
-      options.url ??= options.devnet.url.toString()
-    }
-    return new (this as any)({ ...options, mode: Chain.Mode.Devnet })
-  }
-  /** Create a mocknet instance of this chain. */
-  static mocknet (options?: Partial<Mocknet.Chain>): Mocknet.Chain {
-    // this method is replaced in the root of the package
-    throw new Error('stub. try with `new Mocknet()`')
-  }
-  /** Async functions that return Chain instances in different modes.
-    * Values for `FADROMA_CHAIN` environment variable. Populated by @fadroma/connect. */
-  static variants: ChainRegistry = {
-    Mocknet: (...args) => Chain.mocknet(...args)
-  }
+  /** The default denomination of the chain's native token. */
+  abstract defaultDenom: string
 
   constructor (options: Partial<Chain> = {}) {
-    if (!(this.id = options.id!)) throw new Error.NoChainId()
+    if (!(this.id = options.id!)) throw new Error.Missing.ChainId()
     this.log.label = this.id ?? `(no chain id)`
     this.url  = options.url ?? this.url
     this.mode = options.mode!
@@ -86,16 +58,21 @@ export abstract class Chain {
       if (options.mode === Chain.Mode.Devnet) {
         this.devnet = options.devnet
         if (this.url !== String(this.devnet.url)) {
-          this.log.warnUrlOverride(this.devnet.url, this.url)
+          if (!!this.url) this.log.warn.devnetUrlOverride(this.devnet.url, this.url)
           this.url = String(this.devnet.url)
         }
         if (this.id !== this.devnet.chainId) {
-          this.log.warnIdOverride(this.devnet.chainId, this.id)
+          if (!!this.url) this.log.warn.devnetIdOverride(this.devnet.chainId, this.id)
           this.id = this.devnet.chainId
         }
       } else {
-        this.log.warnNodeNonDevnet()
+        this.log.warn.devnetModeInvalid()
       }
+    }
+    this.log.label = this.id ?? `(no chain id)` // again
+    if (this.devnet) {
+      this.log.label = `${this.log.label} @ ${this.devnet.url}`
+      Object.defineProperty(this, 'stopped', { get () { return !this.devnet.running } })
     }
     Object.defineProperties(this, {
       'id':    { enumerable: false, writable: true },
@@ -122,28 +99,24 @@ export abstract class Chain {
   get chain     () { return this }
   /** Get the current block height. */
   get height    (): Promise<number> { return Promise.resolve(0) }
-
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
     return this.height.then(async startingHeight=>{
-
       startingHeight = Number(startingHeight)
-
       if (isNaN(startingHeight)) {
-        this.log.warn('Current block height undetermined. Not waiting for next block')
+        this.log.warn('current block height undetermined. not waiting for next block')
         return Promise.resolve(NaN)
       }
-
-      this.log.waitingForNextBlock(startingHeight)
-
+      this.log.waitingForBlock(startingHeight)
+      const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
-          while (true) {
+          while (true && !this.chain.stopped) {
             await new Promise(ok=>setTimeout(ok, 250))
-            this.log.log('Still waiting for block height to increment beyond', startingHeight)
+            this.log.waitingForBlock(startingHeight, + new Date() - t)
             const height = await this.height
             if (height > startingHeight) {
-              this.log.info(`Block height incremented to ${height}, continuing`)
+              this.log.info(`block height incremented to ${height}, continuing`)
               return resolve(height)
             }
           }
@@ -151,7 +124,6 @@ export abstract class Chain {
           reject(e)
         }
       })
-
     })
   }
 
@@ -180,9 +152,9 @@ export abstract class Chain {
     // Soft code hash checking for now
     const fetchedCodeHash = await this.getHash(address)
     if (!expectedCodeHash) {
-      this.log.warnNoCodeHashProvided(address, fetchedCodeHash)
+      this.log.warn.noCodeHash(address)
     } if (expectedCodeHash !== fetchedCodeHash) {
-      this.log.warnCodeHashMismatch(address, expectedCodeHash, fetchedCodeHash)
+      this.log.warn.codeHashMismatch(address, expectedCodeHash, fetchedCodeHash)
     } else {
       this.log.confirmCodeHash(address, fetchedCodeHash)
     }
@@ -194,8 +166,8 @@ export abstract class Chain {
     return Promise.resolve('contract-label-stub')
   }
   /** Get a new instance of the appropriate Agent subclass. */
-  getAgent (options?: Partial<AgentOpts>): Agent
-  getAgent ($A: AgentClass<Agent>, options?: Partial<AgentOpts>): InstanceType<typeof $A>
+  getAgent (options?: Partial<Agent>): Agent
+  getAgent ($A: AgentClass<Agent>, options?: Partial<Agent>): InstanceType<typeof $A>
   getAgent (...args: any) {
     const $A = (typeof args[0] === 'function') ? args[0] : this.Agent
     let options = (typeof args[0] === 'function') ? args[1] : args[0]
@@ -203,12 +175,42 @@ export abstract class Chain {
     const agent = new $A(options)
     return agent
   }
+
+  /** The default Agent subclass to use for interacting with this chain. */
+  static Agent: AgentClass<Agent> // populated below
+  /** Shorthand for the ChainMode enum. */
+  static Mode = ChainMode
+  /** @returns a mainnet instance of this chain. */
+  static mainnet (options: Partial<Chain> = {}): Chain {
+    return new (this as any)({ ...options, mode: Chain.Mode.Mainnet })
+  }
+  /** @returns a testnet instance of this chain. */
+  static testnet (options: Partial<Chain> = {}): Chain {
+    return new (this as any)({ ...options, mode: Chain.Mode.Testnet })
+  }
+  /** @returns a devnet instance of this chain. */
+  static devnet (options: Partial<Chain> = {}): Chain {
+    return new (this as any)({
+      ...options.devnet ? { id: options.devnet.chainId, url: options.devnet.url.toString() } : {},
+      ...options,
+      mode: Chain.Mode.Devnet
+    })
+  }
+  /** @returns a mocknet instance of this chain. */
+  static mocknet (options?: Partial<Mocknet.Chain>): Mocknet.Chain {
+    // this method is replaced in the root of the package
+    throw new Error('stub. try with `new Mocknet()`')
+  }
+  /** Async functions that return Chain instances in different modes.
+    * Values for `FADROMA_CHAIN` environment variable.
+    * Populated by @fadroma/connect. */
+  static variants: ChainRegistry = { Mocknet: (...args) => Chain.mocknet(...args) }
 }
 
 /** @returns the chain of a thing
   * @throws  ExpectedChain if missing. */
 export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): C {
-  if (!thing.chain) throw new Error.NoChain()
+  if (!thing.chain) throw new Error.Missing.Chain()
   return thing.chain
 }
 
@@ -217,27 +219,18 @@ export interface AgentClass<A extends Agent> extends Class<A, ConstructorParamet
   Bundle: BundleClass<Bundle> // static
 }
 
-export interface AgentOpts {
-  chain:     Chain
-  name?:     string
-  mnemonic?: string
-  address?:  Address
-  fees?:     AgentFees
-  [key: string]: unknown
-}
-
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
   log = new Console('@fadroma/agent: Agent')
+  /** The friendly name of the agent. */
+  name?:     string
   /** The chain on which this agent operates. */
   chain?:    Chain
   /** The address from which transactions are signed and sent. */
   address?:  Address
   /** The wallet's mnemonic. */
   mnemonic?: string
-  /** The friendly name of the agent. */
-  name?:     string
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:     AgentFees
   /** The Bundle subclass to use. */
@@ -246,7 +239,7 @@ export abstract class Agent {
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below
 
-  constructor (options: Partial<AgentOpts> = {}) {
+  constructor (options: Partial<Agent> = {}) {
     this.chain   = options.chain ?? this.chain
     this.name    = options.name  ?? this.name
     this.fees    = options.fees  ?? this.fees
@@ -263,8 +256,7 @@ export abstract class Agent {
     const init = new Promise<this>(async (resolve, reject)=>{
       try {
         if (this.chain?.devnet) await this.chain?.devnet.respawn()
-        if (!this.mnemonic && this.name) {
-          if (!this.chain?.devnet) throw new Error.NameOutsideDevnet()
+        if (!this.mnemonic && this.name && this.chain?.devnet) {
           Object.assign(this, await this.chain?.devnet.getGenesisAccount(this.name))
         }
         resolve(this)
@@ -293,9 +285,9 @@ export abstract class Agent {
   }
   /** Get the balance of this or another address. */
   getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
-    if (!this.chain) throw new Error.NoChain()
-    if (!address) throw new Error.BalanceNoAddress()
-    return this.chain.getBalance(denom!, address)
+    assertChain(this)
+    if (!address) throw new Error.Missing.Address()
+    return this.chain!.getBalance(denom!, address)
   }
   /** Get the code ID of a contract. */
   getCodeId (address: Address) {
@@ -405,15 +397,15 @@ export abstract class Agent {
   /** Execute a transaction bundle.
     * @returns Bundle if called with no arguments
     * @returns Promise<any[]> if called with Bundle#wrap args */
-  bundle (cb?: BundleCallback<Bundle>): Bundle {
-    return new this.Bundle(this, cb)
+  bundle <B extends Bundle> (cb?: BundleCallback<B>): B {
+    return new this.Bundle(this, cb as BundleCallback<Bundle>) as unknown as B
   }
 }
 
 /** @returns the agent of a thing
-  * @throws  ExpectedAgent if missing. */
+  * @throws  FadromaError.Missing.Agent */
 export function assertAgent <A extends Agent> (thing: { agent?: A|null } = {}): A {
-  if (!thing.agent) throw new Error.ExpectedAgent(thing.constructor?.name)
+  if (!thing.agent) throw new Error.Missing.Agent(thing.constructor?.name)
   return thing.agent
 }
 
@@ -439,12 +431,14 @@ export abstract class Bundle implements Agent {
     /** Evaluating this defines the contents of the bundle. */
     public callback?: (bundle: Bundle)=>unknown
   ) {
-    if (!agent) throw new Error.NoBundleAgent()
+    if (!agent) throw new Error.Missing.BundleAgent()
   }
 
   get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
 
-  get log () { return new Console(`Batch TX (${this.msgs.length}msgs): ${this.chain?.id}://${this.address}`) }
+  get log () {
+    return new Console(`${this.address} @ ${this.chain?.id} (batched: ${this.msgs.length})`)
+  }
 
   get ready () { return this.agent.ready.then(()=>this) }
 
@@ -452,7 +446,7 @@ export abstract class Bundle implements Agent {
 
   get address () { return this.agent.address }
 
-  get name () { return `${this.agent.name}@BUNDLE` }
+  get name () { return `${this.agent.name} (batched)` }
 
   get fees () { return this.agent.fees }
 
@@ -507,7 +501,7 @@ export abstract class Bundle implements Agent {
 
   /** Throws if the bundle is invalid. */
   assertMessages (): any[] {
-    if (this.msgs.length < 1) throw this.log.warnEmptyBundle()
+    if (this.msgs.length < 1) throw this.log.warn.emptyBundle()
     return this.msgs
   }
 
@@ -569,31 +563,31 @@ export abstract class Bundle implements Agent {
     * the bundle is ultimately submitted as a single transaction and
     * it doesn't make sense to query state in the middle of that. */
   async query <U> (contract: Client, msg: Message): Promise<never> {
-    throw new Error.NotInBundle("query")
+    throw new Error.Invalid.Batching("query")
   }
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<never> {
-    throw new Error.NotInBundle("upload")
+    throw new Error.Invalid.Batching("upload")
   }
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async uploadMany (uploadables: Uploadable[] = []): Promise<never> {
-    throw new Error.NotInBundle("upload")
+    throw new Error.Invalid.Batching("upload")
   }
   /** Disallowed in bundle - do it beforehand or afterwards. */
   get balance (): Promise<string> {
-    throw new Error.NotInBundle("query balance")
+    throw new Error.Invalid.Batching("query balance")
   }
   /** Disallowed in bundle - do it beforehand or afterwards. */
   get height (): Promise<number> {
-    throw new Error.NotInBundle("query block height inside bundle")
+    throw new Error.Invalid.Batching("query block height inside bundle")
   }
   /** Disallowed in bundle - do it beforehand or afterwards. */
   get nextBlock (): Promise<number> {
-    throw new Error.NotInBundle("wait for next block")
+    throw new Error.Invalid.Batching("wait for next block")
   }
   /** This doesnt change over time so it's allowed when building bundles. */
   getCodeId (address: Address) {
@@ -613,23 +607,23 @@ export abstract class Bundle implements Agent {
   }
   /** Disallowed in bundle - do it beforehand or afterwards. */
   async getBalance (denom: string): Promise<string> {
-    throw new Error.NotInBundle("query balance")
+    throw new Error.Invalid.Batching("query balance")
   }
   /** Disallowed in bundle - do it beforehand or afterwards. */
   async send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
-    throw new Error.NotInBundle("send")
+    throw new Error.Invalid.Batching("send")
   }
   /** Disallowed in bundle - do it beforehand or afterwards. */
   async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
-    throw new Error.NotInBundle("send")
+    throw new Error.Invalid.Batching("send")
   }
 
   /** Nested bundles are flattened, i.e. trying to create a bundle
     * from inside a bundle returns the same bundle. */
-  bundle (cb?: BundleCallback<this>): this {
+  bundle <B extends Bundle> (cb?: BundleCallback<B>): B {
     if (cb) this.log.warn('Nested bundle callback ignored.')
     this.log.warn('Nest bundles with care. Depth:', ++this.depth)
-    return this
+    return this as unknown as B
   }
   /** Bundle class to use when creating a bundle inside a bundle.
     * @default self */
@@ -640,3 +634,6 @@ export abstract class Bundle implements Agent {
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })
+
+export const randomChainId = (prefix = `fadroma-devnet-`) =>
+  `${prefix}${randomBytes(3).toString('hex')}`

@@ -1,42 +1,49 @@
 import assert from 'node:assert'
 import * as Scrt from '@fadroma/scrt'
-import { ChainId, Address } from '@fadroma/agent'
+import { Agent, ChainId, Address, Deployment, Client } from '@fadroma/agent'
+import { getDeployment, getDevnet } from '@hackbg/fadroma'
+
+const SecretJS = (Scrt.SecretJS as any).default
+const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
+let chain: any // for mocking
+let agent: Agent
+
+/// DEVNET
+
+chain = {
+  SecretJS,
+  getApi: () => ({}),
+  isDevnet: true,
+  devnet: {
+    respawn: () => Promise.resolve(),
+    getGenesisAccount: ()=>Promise.resolve({ mnemonic: 'the genesis account mnemonic' } as any)
+  } as any,
+}
 
 assert.equal(
-
   'the genesis account mnemonic',
-
   (await new Scrt.Agent({
     name:     'genesis',
     mnemonic: 'if name is passed mnemonic is ignored',
-    chain: {
-      SecretJS: Scrt.SecretJS.default,
-      getApi: () => ({}),
-      isDevnet: true,
-      devnet: {
-        respawn: () => Promise.resolve(),
-        getGenesisAccount: ()=>Promise.resolve({
-          mnemonic: 'the genesis account mnemonic'
-        })
-      },
-    }
+    chain
   }).ready).mnemonic,
-
-  [ 'the "name" constructor property of ScrtAgent can be used'
-  , 'to get a devnet genesis account' ].join()
-
+  joinWith(' ',
+    'the "name" constructor property of ScrtAgent can be used',
+    'to get a devnet genesis account')
 )
-              // what is up with this syntax highlighting ?
+
+/// FEES
+
 assert.ok(
 
   await new Scrt.Agent({
-    fees: false,
+    fees: false as any,
     chain: {
-      SecretJS: Scrt.SecretJS.default,
+      SecretJS,
       getApi: () => ({}),
       fetchLimits: ()=>Promise.resolve({gas: 'max'}),
       id: 'test',
-    },
+    } as any,
   }).ready,
 
   [ 'if fees=false is passed to ScrtAgent, ',
@@ -44,9 +51,11 @@ assert.ok(
 
 )
 
+/// BUNDLES
+
 const someBundle = () => new Scrt.Agent({
   chain: {
-    SecretJS: Scrt.SecretJS.default,
+    SecretJS,
     getApi: () => ({
       encryptionUtils: {
         encrypt: () => Promise.resolve(new Uint8Array())
@@ -59,10 +68,11 @@ const someBundle = () => new Scrt.Agent({
         simulate: () => Promise.resolve({ code: 0 })
       }
     })
-  }
-}).bundle(async (bundle: Scrt.Bundle)=>{
-  await bundle.instantiate({ codeId: 'id', codeHash: 'hash', msg: {} })
-  await bundle.execute({ address: 'addr', codeHash: 'hash', msg: {} })
+  } as any
+}).bundle(async (bundle)=>{
+  assert(bundle instanceof Scrt.Bundle)
+  await bundle.instantiate({ codeId: 'id', codeHash: 'hash', msg: {} } as any)
+  await bundle.execute({ address: 'addr', codeHash: 'hash', msg: {} } as any, {})
 })
 
 assert.ok(
@@ -79,6 +89,8 @@ assert(
   'ScrtBundle is returned'
 )
 
+/// PERMITS
+
 Scrt.PermitSigner.createSignDoc('chain-id', {foo:'bar'})
 
 new Scrt.PermitSignerKeplr('chain-id', 'address', { signAmino })
@@ -92,20 +104,18 @@ async function signAmino (
 ) {
   return {
     signature: {
-      pub_key: 'pub_key',
-      signature: 'signature'
+      pub_key: 'pub_key' as any, signature: 'signature'
     },
     params: {
-      permit_name:    'permit_name',
-      allowed_tokens: [],
-      chain_id:       'chain-id',
-      permissions:    []
+      permit_name: 'permit_name', allowed_tokens: [], chain_id: 'chain-id', permissions: []
     }
   }
 }
 
+/// CONSOLE
+
 new Scrt.Console()
-  .warnIgnoringMnemonic()
-  .warnNoMemos()
-  .warnCouldNotFetchBlockLimit([])
-  .submittingBundleFailed([])
+  .warn.noMemos()
+  .warn.ignoringMnemonic()
+  .warn.defaultGas([])
+  .submittingBundleFailed(new Error())

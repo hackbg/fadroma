@@ -100,4 +100,7 @@ The TypeScript packages have been configured to use `@hackbg/ubik` for publishin
 Packages published using Ubik contain TS, ESM and CJS code side by side.
 This is all because in 2022 TypeScript made the decision to generate invalid ESM modules
 that Node 16+ would not consume. (Ubik "fixes it in post" by rewriting the `import` statements.)
-The command to publish a package to NPM is `pnpm ubik wet`; to do a "dry run", use `pnpm ubik dry`.
+
+To publish an individual package, use `pnpm ubik wet`; the "dry run" is on `pnpm ubik dry`.
+Having made changes to `@hackbg/fadroma` and one or more subpackages, use `pnpm ubik:all`
+to publish them on NPM (note that this command has no dry run).

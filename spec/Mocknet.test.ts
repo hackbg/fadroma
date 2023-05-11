@@ -8,8 +8,8 @@ new Mocknet.Console().debug('...')
 // responses) are returned by the contract as Base64-encoded strings
 // If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
 // These functions are used by the mocknet code to encode/decode the base64.
-assert.equal(Mocknet.Backend.b64toUtf8('IkVjaG8i'), '"Echo"')
-assert.equal(Mocknet.Backend.utf8toB64('"Echo"'), 'IkVjaG8i')
+assert.equal(Mocknet.b64toUtf8('IkVjaG8i'), '"Echo"')
+assert.equal(Mocknet.utf8toB64('"Echo"'), 'IkVjaG8i')
 
 let key:   string
 let value: string

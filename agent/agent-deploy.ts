@@ -12,7 +12,7 @@ import { Uploader } from './agent-services'
 
 import { override, defineDefault } from '@hackbg/over'
 
-export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
+export type DeploymentFormat = 'v1'
 
 export type DeploymentState = Record<string, Partial<AnyContract>>
 
@@ -33,16 +33,15 @@ export abstract class DeployStore {
   static variants: DeployStores = {}
   /** Get the names of all stored deployments. */
   abstract list (): string[]
-  /** Get a deployment by name, or null if such doesn't exist. */
-  abstract load (name: string): DeploymentState|null
+  /** Get a deployment by name, or the active deployment if none is passed. 
+    * @returns Deployment, or null if such doesn't exist. */
+  abstract load (name: string|null|undefined): DeploymentState|null
   /** Update a deployment's data. */
   abstract save (name: string, state?: DeploymentState): void
   /** Create a new deployment. */
   abstract create (name?: string): Promise<DeploymentState>
   /** Activate a new deployment, or throw if such doesn't exist. */
   abstract select (name: string): Promise<DeploymentState>
-  /** Get the active deployment, or null if there isn't one. */
-  abstract get active (): DeploymentState|null
   /** Get name of the active deployment, or null if there isn't one. */
   abstract get activeName (): string|null
   /** Default values for Deployments created from this store. */
@@ -68,8 +67,8 @@ export abstract class DeployStore {
     // the deployment with those from the loaded data.
     // If such a named contract is missing, define it.
     for (const name of Object.keys(state)) {
-      if (deployment.state[name]) {
-        Object.assign(deployment.state[name], state[name])
+      if (deployment.contracts[name]) {
+        Object.assign(deployment.contracts[name], state[name])
       } else {
         deployment.contract(state[name])
       }
@@ -91,7 +90,7 @@ export class Deployment {
   /** Name of deployment. Used as label prefix of deployed contracts. */
   name:        string
   /** Mapping of contract names to contract instances. */
-  state:       Record<string, AnyContract>
+  contracts:   Record<string, AnyContract>
   /** Default state store to which updates to this deployment's state will be saved. */
   store?:      DeployStore
   /** Default Git ref from which contracts will be built if needed. */
@@ -112,12 +111,13 @@ export class Deployment {
 
   config?: { build?: { project?: any } } & any // FIXME
 
-  constructor (options: Partial<Deployment> = {}) {
+  constructor (options: Partial<Omit<Deployment, 'contracts'>> & Partial<{
+    contracts?: Record<string, Partial<AnyContract>>|Record<string, AnyContract>
+  }> = {}) {
     const name = options.name ?? timestamp()
     //super(name)
     this.name = name
     if (this.name) this.log.label = `${this.constructor.name}: ${this.name}`
-    this.state     ??= options.state ?? {}
     this.agent     ??= options.agent
     this.chain     ??= options.chain ?? options.agent?.chain
     this.builder   ??= options.builder
@@ -125,6 +125,11 @@ export class Deployment {
     this.workspace ??= options.workspace ?? this.config?.build?.project
     this.revision  ??= options.revision
     this.store     ??= options.store
+    // Hydrate state
+    this.contracts ??= {}
+    for (const [name, contract] of Object.entries(options.contracts ?? {})) {
+      this.contract(contract)
+    }
     // Hide non-essential properties
     hideProperties(this, ...[
       'args', 'before', 'commandTree', 'currentCommand', 'description',
@@ -133,14 +138,9 @@ export class Deployment {
   }
 
   get [Symbol.toStringTag]() { return `${this.name??'-'}` }
-
-  /** Print the status of this deployment. */
-  async showStatus () {
-    this.log.deployment(this)
-  }
   /** @returns the number of contracts in this deployment */
   get size (): number {
-    return Object.keys(this.state).length
+    return Object.keys(this.contracts).length
   }
   /** @returns true if the chain is a devnet or mocknet */
   get devMode (): boolean {
@@ -162,23 +162,76 @@ export class Deployment {
   get isMocknet (): boolean {
     return this.chain?.isMocknet ?? false
   }
+  /** @returns a snapshot of the contracts state of this deployment */
+  get snapshot () {
+    const filter = (contract: Partial<AnyContract>) => {
+      contract = {...contract}
+      const filtered = ['deployment', 'builder', 'uploader', 'agent']
+      for (const key in contract) {
+        switch (true) {
+          case (typeof (contract as any)[key] === 'function'):
+          case ((contract as any)[key] === undefined):
+            delete (contract as any)[key]
+            continue
+          case ((contract as any)[key] instanceof URL):
+            (contract as any)[key] = String((contract as any)[key])
+            continue
+          case filtered.includes(key):
+            delete (contract as any)[key]
+            continue
+        }
+      }
+      return contract
+    }
+    const contracts = Object.entries(this.contracts).reduce(
+      (snapshot, [name, contract]: [string, any])=>
+        Object.assign(snapshot, { [name]: filter(contract) }),
+      {})
+    return {contracts}
+  }
+  /** Print the status of this deployment. */
+  showStatus () {
+    this.log.deployment(this)
+    return this
+  }
   /** @returns Promise<this> */
   async deploy () {
-    const log = new Console(`Deploy: ${this.name}`)
-    const contracts = Object.values(this.state)
-    if (contracts.length > 0) {
-      log.log('Making sure all contracts are built')
-      if (this.builder)  await this.builder.buildMany(contracts as Buildable[])
-      log.log('Making sure all contracts are uploaded')
-      if (this.uploader) await this.uploader.uploadMany(contracts as Uploadable[])
-      // FIXME PERF: bundle concurrent inits into a single transaction
-      for (const contract of contracts) await contract.deployed
-      log.log('Deployed', contracts.length, 'contracts')
-      this.save()
-    } else {
-      log.warn('No contracts defined in deployment')
-    }
+    const log = new Console(this.name)
+    const contracts = Object.values(this.contracts)
+    if (contracts.length <= 0) return (log.warn('empty deployment, not saving'), this)
+    const toDeploy = contracts.filter(c=>!c.address)
+    if (toDeploy.length <= 0) return (log.log('all contracts are deployed'), this)
+    log.log(`${toDeploy.length} contract(s) are not deployed`)
+    await this.buildContracts(toDeploy)
+    await this.uploadContracts(toDeploy)
+    log.log(`instantiating ${toDeploy.length} contract(s)`)
+    // FIXME PERF: bundle concurrent inits into a single transaction
+    for (const contract of contracts) await contract.deployed
+    log.log('deployed', contracts.length, 'contract(s)')
+    return this.save()
+  }
+  /** Save current deployment state to deploy store. */
+  async save (store: DeployStore|undefined = this.store): Promise<this> {
+    if (!store) return (this.log.warn.saveNoStore(this.name), this)
+    if (!this.chain) return (this.log.warn.saveNoChain(this.name), this)
+    if (this.chain.isMocknet) return (this.log.warn.notSavingMocknet(this.name), this)
+    this.log.saving(this.name, this.contracts)
+    store.save(this.name, this.contracts)
     return this
+  }
+  /** Specify a contract template.
+    * @returns a callable instance of `Template` bearing the specified parameters.
+    * Calling it will build and upload the template. */
+  template <C extends Client> (opts: Partial<Template<C>> = {}): Template<C> {
+    return new Template({
+      workspace: this.workspace,
+      revision:  this.revision ?? HEAD,
+      agent:     this.agent,
+      builder:   this.builder,
+      uploader:  this.uploader,
+      ...opts,
+      deployment:   this
+    })
   }
   /** Specify a contract.
     * @returns a callable instance of `Contract` bearing the specified parameters.
@@ -203,24 +256,24 @@ export class Deployment {
       uploader:  this.uploader,
       ...opts,
       prefix:    this.name,
-      context:   this
+      deployment:   this
     })
   }
   /** Check if the deployment contains a contract with a certain name.
     * @returns boolean */
   hasContract (name: Name): boolean {
-    return !!(this.state||{})[name]
+    return !!(this.contracts||{})[name]
   }
   /** Get the Contract corresponding to a given name.
     * If the data is not a Contract instance, converts it internally to a Contract
     * @returns Contract */
   getContract <C extends Client> (name: Name, client?: ClientClass<C>) {
-    let state = this.state[name] || {}
+    let state = this.contracts[name] || {}
     if (state instanceof Contract) {
       return state
     } else {
-      return this.state[name] = this.defineContract({
-        ...this.state[name], name, client
+      return this.contracts[name] = this.defineContract({
+        ...this.contracts[name], name, client: client as any
       }) as unknown as AnyContract
     }
   }
@@ -236,16 +289,13 @@ export class Deployment {
   findContracts <C extends Client> (
     predicate: (meta: AnyContract) => boolean = (x) => true
   ): Contract<C>[] {
-    return Object.values(this.state).filter(
-      contract=>predicate(contract!)
-    ) as unknown as Contract<C>[]
+    return Object.values(this.contracts).filter(contract=>predicate(contract!)) as Contract<C>[]
   }
   /** Set the Contract corresponding to a given name,
     * attaching it to this deployment. =
     * @returns the passed Contract */
   addContract <C extends Client> (id: Name, contract: Contract<C>) {
-    this.state[id] = contract as unknown as AnyContract
-    return contract
+    return (this.contracts[id] = contract as unknown as AnyContract) as Contract<C>
   }
   /** Throw if a contract with the specified name is not found in this deployment.
     * @returns the Contract instance, if present */
@@ -256,44 +306,15 @@ export class Deployment {
   }
   /** Compile multiple contracts. */
   buildContracts (contracts: (string|AnyContract)[]) {
-    if (!this.builder) throw new Error.NoBuilder()
+    if (!this.builder) throw new Error.Missing.Builder()
+    this.log(`making sure all ${contracts.length} contracts are built`)
     return this.builder.buildMany(contracts as unknown as Buildable[])
   }
   /** Upload multiple contracts. */
   uploadContracts (contracts: AnyContract[]) {
-    if (!this.uploader) throw new Error.NoBuilder()
+    if (!this.uploader) throw new Error.Missing.Uploader()
+    this.log(`making sure ${contracts.length} contract(s) are uploaded`)
     return this.uploader.uploadMany(contracts as unknown as Uploadable[])
-  }
-  /** Specify a contract template.
-    * @returns a callable instance of `Template` bearing the specified parameters.
-    * Calling it will build and upload the template. */
-  template <C extends Client> (opts: Partial<Template<C>> = {}): Template<C> {
-    return new Template({
-      workspace: this.workspace,
-      revision:  this.revision ?? HEAD,
-      agent:     this.agent,
-      builder:   this.builder,
-      uploader:  this.uploader,
-      ...opts,
-      context:   this
-    })
-  }
-  /** Save current deployment state to deploy store. */
-  async save (store: DeployStore|undefined = this.store) {
-    if (!store) {
-      this.log.warnSaveNoStore(this.name)
-      return
-    }
-    if (!this.chain) {
-      this.log.warnSaveNoChain(this.name)
-      return
-    }
-    if (this.chain.isMocknet) {
-      this.log.warnNotSavingMocknet(this.name)
-      return
-    }
-    this.log.saving(this.name, this.state)
-    store.save(this.name, this.state)
   }
 }
 
@@ -310,11 +331,8 @@ export interface Subsystem<D extends Deployment, E extends Deployment> extends C
   * Can produce deployable Contract instances. */
 export class Template<C extends Client> {
   log = new Console(this.constructor.name)
-  /** The Client subclass that exposes the contract's methods.
-    * @default the base Client class. */
-  client?:     ClientClass<C> = undefined
   /** The deployment that this template belongs to. */
-  context?:    Deployment = undefined
+  deployment?: Deployment = undefined
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL = undefined
   /** Branch/tag pointing to the source commit. */
@@ -349,22 +367,39 @@ export class Template<C extends Client> {
   codeId?:     CodeId     = undefined
   /** The Agent instance that will be used to upload and instantiate the contract. */
   agent?:      Agent      = undefined
+  /** The Client subclass that exposes the contract's methods.
+    * @default the base Client class. */
+  client?:     ClientClass<C> = undefined
 
   constructor (options: Partial<Template<C>> = {}) {
     this.define(options)
-    if (this.context) {
-      defineDefault(this, this.context, 'agent')
-      defineDefault(this, this.context, 'builder')
-      defineDefault(this, this.context, 'uploader')
-      defineDefault(this, this.context, 'repository')
-      defineDefault(this, this.context, 'revision')
-      defineDefault(this, this.context, 'workspace')
+    if (this.deployment) {
+      defineDefault(this, this.deployment, 'agent')
+      defineDefault(this, this.deployment, 'builder')
+      defineDefault(this, this.deployment, 'uploader')
+      defineDefault(this, this.deployment, 'repository')
+      defineDefault(this, this.deployment, 'revision')
+      defineDefault(this, this.deployment, 'workspace')
     }
     hideProperties(this, 'log')
-    Object.defineProperty(this, 'built', { configurable: true, get () { return this.build() } })
-    Object.defineProperty(this, 'uploaded', { configurable: true, get () { return this.upload() } })
+    Object.defineProperties(this, {
+      'built': {
+        configurable: true,
+        get () { return this.build() }
+      },
+      'uploaded': {
+        configurable: true,
+        get () { return this.upload() }
+      }
+    })
   }
 
+  get asInfo (): ContractInfo {
+    return {
+      id:        Number(this.codeId!) as any,
+      code_hash: this.codeHash!
+    }
+  }
   get description (): string {
     let name = 'Template'
     if (this.crate || this.revision || this.codeId) {
@@ -375,76 +410,64 @@ export class Template<C extends Client> {
     }
     return name
   }
-  get built (): Promise<this & Built> { return this.build() }
-  get uploaded (): Promise<this & Uploaded> { return this.upload() }
-  get asInfo (): ContractInfo {
-    return {
-      id:        Number(this.codeId!) as any,
-      code_hash: this.codeHash!
-    }
+  get built (): Promise<this & Built> {
+    return this.build()
+  }
+  get uploaded (): Promise<this & Uploaded> {
+    return this.upload()
   }
 
-  /** @returns a copy of this object with a changed agent.
-    * @warning overriding constructor signature is discouraged. */
-  asAgent (agent: Agent): this {
-    return new (this.constructor as any)({ ...this, agent })
-  }
-  /** Provide parameters for an existing instance.
-    * @returns mutated self */
-  define (options: Partial<Template<C>> = {}): this {
-    return override(this, options as object)
-  }
   /** Compile the source using the selected builder.
     * @returns this */
-  build (builder: Builder|undefined = this.builder): Promise<this & Built> {
-    const name = `compile ${this.crate ?? 'contract'}`
-    const building = new Promise<this & Built>(async (resolve, reject)=>{
-      if (!this.artifact) {
-        if (!this.crate) throw new Error.NoCrate()
+  build = (builder: Builder|undefined = this.builder): Promise<this & Built> => {
+    return Object.defineProperty(this, 'built', {
+      get: () => new Promise<this & Built>(async (resolve, reject)=>{
+        if (this.artifact) return resolve(this as this & Built)
+        if (!this.crate) throw new Error.Missing.Crate()
         builder ??= this.builder
-        if (!builder) throw new Error.NoBuilder()
+        if (!builder) throw new Error.Missing.Builder()
         const result = await builder!.build(this as Buildable)
         this.define(result as Partial<this>)
-      }
-      return resolve(this as this & Built)
-    })
-    Object.defineProperty(this, 'built', { get () { return building } })
-    return building
+        return resolve(this as this & Built)
+      })
+    }).built
   }
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
-  upload (uploader: Uploader|undefined = this.uploader): Promise<this & Uploaded> {
-    const name = `upload ${this.artifact ?? this.crate ?? 'contract'}`
-    const uploading = new Promise<this & Uploaded>(async (resolve, reject)=>{
-      if (!this.codeId) {
-        await this.built
-        if (!uploader) throw new Error.NoUploader()
+  upload = (uploader: Uploader|undefined = this.uploader): Promise<this & Uploaded> => {
+    return Object.defineProperty(this, 'uploaded', {
+      get: () => new Promise<this & Uploaded>(async (resolve, reject)=>{
+        if (this.codeId) return resolve(this as this & Uploaded)
+        if (!this.artifact) await this.built
+        if (!uploader) throw new Error.Missing.Uploader()
         const result = await uploader.upload(this as Uploadable)
         this.define(result as Partial<this>)
-      }
-      return resolve(this as this & Uploaded)
-    })
-    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
-    return uploading
+        return resolve(this as this & Uploaded)
+      })
+    }).uploaded
   }
   /** @returns a Contract representing a specific instance of this Template. */
-  instance (options?: Partial<Contract<C>>): Contract<C> {
+  instance = (options?: Partial<Contract<C>>): Contract<C> => {
     // Use values from Template as defaults for Contract
     options = { ...this as unknown as Partial<Contract<C>>, ...options }
     // Create the Contract
-    const instance: Contract<C> = this.context
-      ? this.context.contract(options)
+    const instance: Contract<C> = this.deployment
+      ? this.deployment.contract(options)
       : new Contract(options)
     return instance
   }
   /** Get a collection of multiple contracts from this template.
     * @returns task for deploying multiple contracts, resolving to their clients */
-  instances (contracts: Many<Partial<Contract<C>>>): Many<Contract<C>> {
-    type Self = typeof this
-    const size = Object.keys(contracts).length
-    const name = (size === 1) ? `deploy contract` : `deploy ${size} contracts`
-    return map(contracts, contract=>this.instance(contract))
-  }
+  instances = (contracts: Many<Partial<Contract<C>>>): Many<Contract<C>> =>
+    map(contracts, contract=>this.instance(contract))
+  /** @returns a copy of this object with a changed agent.
+    * @warning overriding constructor signature is discouraged. */
+  asAgent = (agent: Agent): this =>
+    new (this.constructor as any)({ ...this, agent })
+  /** Provide parameters for an existing instance.
+    * @returns mutated self */
+  define = (options: Partial<Template<C>> = {}): this =>
+    override(this, options as object)
 }
 
 type Task<T, U> = void // FIXME
@@ -478,6 +501,8 @@ export interface Instantiated {
   suffix?:  Name
   initBy?:  Address
   initTx?:  TxHash
+  /** Gas used by init tx. */
+  initGas?: string|number
 }
 
 export type AnyContract = Contract<Client>
@@ -515,19 +540,28 @@ export class Contract<C extends Client> extends Template<C> {
 
   constructor (options: Partial<Contract<C>> = {}) {
     super({})
+
     const self = this
+
     if (options.name) setName(options.name)
-    if (this.context) setPrefix(this.context.name)
+    if (this.deployment) setPrefix(this.deployment.name)
+
     this.log = new Console(`${this.name ?? new.target.name}`)
-    this.agent      = this.context?.agent      ?? this.agent
-    this.builder    = this.context?.builder    ?? this.builder
-    this.uploader   = this.context?.uploader   ?? this.uploader
-    this.repository = this.context?.repository ?? this.repository
-    this.revision   = this.context?.revision   ?? this.revision
-    this.workspace  = this.context?.workspace  ?? this.workspace
+
+    this.agent      = this.deployment?.agent      ?? this.agent
+    this.builder    = this.deployment?.builder    ?? this.builder
+    this.uploader   = this.deployment?.uploader   ?? this.uploader
+    this.repository = this.deployment?.repository ?? this.repository
+    this.revision   = this.deployment?.revision   ?? this.revision
+    this.workspace  = this.deployment?.workspace  ?? this.workspace
+
     override(this, options)
     hideProperties(this, 'log')
-    Object.defineProperty(this, 'deployed', { configurable: true, get () { return this.deploy() } })
+
+    Object.defineProperty(this, 'deployed', {
+      configurable: true,
+      get () { return this.deploy() }
+    })
 
     function setName (value: Name) {
       Object.defineProperty(self, 'name', {
@@ -542,63 +576,60 @@ export class Contract<C extends Client> extends Template<C> {
       Object.defineProperty(self, 'prefix', {
         enumerable: true,
         configurable: true,
-        get () { return self.context?.name },
+        get () { return self.deployment?.name },
         set (v: string) {
-          if (v !== self.context?.name) {
-            self.log!.warn(`BUG: Overriding prefix from "${self.context?.name}" to "${v}"`)
+          if (v !== self.deployment?.name) {
+            self.log!.warn(`BUG: Overriding prefix from "${self.deployment?.name}" to "${v}"`)
           }
           setPrefix(v)
         }
       })
     }
-
   }
+
+  get [Symbol.toStringTag]() { return this.name }
 
   /** One-shot deployment task. After the first call, `deploy` redefines it
     * to return the self-same deploying promise. Call `deploy` again to reset. */
-  get deployed (): Promise<C> { return this.deploy() }
-
+  get deployed (): Promise<C> {
+    return this.deploy()
+  }
   get asLink (): ContractLink {
-    return {
-      address:   this.address!,
-      code_hash: this.codeHash!
-    }
+    return { address: this.address!, code_hash: this.codeHash! }
   }
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
-  deploy (initMsg: Into<Message>|undefined = this.initMsg): Promise<C> {
-    const name = `deploy ${this.name ?? 'contract'}`
-    const deploying = new Promise<C>(async (resolve, reject)=>{
-      // If address is missing, deploy contract
-      // FIXME also check in deploy store
-      if (!this.address) {
-        if (!this.name) throw new Error.CantInit_NoName()
-        if (!this.agent) throw new Error.CantInit_NoAgent(this.name)
-        if (!this.initMsg) throw new Error.CantInit_NoMessage(this.name)
+  deploy = (initMsg: Into<Message>|undefined = this.initMsg): Promise<C> => {
+    return Object.defineProperty(this, 'deployed', {
+      get: () => new Promise<C>(async (resolve, reject)=>{
+        // If address is present, return client
+        if (this.address) return resolve(this.expect())
+        // If address is missing, deploy contract
+        // TODO also recheck in deploy store if available
+        if (!this.name) throw new Error.Missing.Name()
+        if (!this.agent) throw new Error.Missing.Agent(this.name)
+        if (!this.initMsg) throw new Error.Missing.InitMsg(this.name)
         // Construct the full unique label of the contract
         this.label = writeLabel(this)
-        if (!this.label) throw new Error.CantInit_NoLabel(this.name)
+        if (!this.label) throw new Error.Missing.Label(this.name)
         // Resolve the provided init message
         this.initMsg ??= await into(initMsg) as Message
         // Make sure the code is compiled and uploaded
         await this.uploaded
-        if (!this.codeId) throw new Error.CantInit_NoCodeId(this.name)
+        if (!this.codeId) throw new Error.Missing.CodeId(this.name)
         this.log?.beforeDeploy(this, this.label!)
         // Perform the instantiation transaction
         const instance = await this.agent!.instantiate(this)
         // Populate self with result of instantiation (address)
         override(this as Contract<C>, instance)
         this.log?.afterDeploy(this as Partial<Contract<C>>)
-        // Add self to deployment (FIXME necessary?)
-        if (this.context) this.context.addContract(this.name!, this)
-      }
-      // Create and return the Client instance used to interact with the contract
-      return resolve(this.expect())
-    })
-    Object.defineProperty(this, 'deployed', { get () { return deploying } })
-    return deploying
+        // address should now be present. return client
+        return resolve(this.expect())
+      })
+    }).deployed
   }
+
   /** @returns an instance of this contract's client
     * @throws tf the contract has no known address. */
   expect (message?: string): C {
@@ -672,4 +703,3 @@ export function toInstanceReceipt (
     suffix:  c.suffix
   }
 }
-

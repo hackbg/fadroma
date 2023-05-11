@@ -225,6 +225,7 @@ Mocknet is built into `@fadroma/agent`.
 ## More resources
 
 * [HackSecret Fadroma Workshop Repo](https://github.com/hackbg/fadroma-workshop)
+* [Fadroma Factory Pattern Example](factory.html)
 
 ---
 
@@ -233,13 +234,14 @@ Mocknet is built into `@fadroma/agent`.
 These imports add the rest of the guides to the test run:*
 
 ```typescript
-import './spec/Agent.spec.ts.md'
-import './spec/Mocknet.spec.ts.md'
-import './spec/Connect.spec.ts.md'
-import './spec/Devnet.spec.ts.md'
-import './spec/Project.spec.ts.md'
-import './spec/Build.spec.ts.md'
-import './spec/Upload.spec.ts.md'
-import './spec/Deploy.spec.ts.md'
-import './spec/Scrt.spec.ts.md'
+await import('./spec/Agent.spec.ts.md')
+await import('./spec/Mocknet.spec.ts.md')
+await import('./spec/Connect.spec.ts.md')
+await import('./spec/Devnet.spec.ts.md')
+await import('./spec/Project.spec.ts.md')
+await import('./spec/Build.spec.ts.md')
+await import('./spec/Upload.spec.ts.md')
+await import('./spec/Deploy.spec.ts.md')
+await import('./spec/Scrt.spec.ts.md')
+await import('./spec/Factory.spec.ts.md')
 ```

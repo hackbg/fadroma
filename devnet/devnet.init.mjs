@@ -16,8 +16,6 @@ function start ({
   grpcAddr    = process.env.grpcAddr    || '0.0.0.0:9090',
   grpcWebAddr = process.env.grpcWebAddr || '0.0.0.0:9091',
   genesisJSON = '~/.secretd/config/genesis.json',
-  uid = process.env._UID,
-  gid = process.env._GID
 } = {}) {
   if (!existsSync(genesisJSON)) {
     console.info(`${genesisJSON} missing -> performing genesis`)
@@ -49,20 +47,17 @@ function genesis ({
   chainId         = process.env.ChainId || 'fadroma-devnet',
   stateDir        = `/state/${chainId}`,
   genesisAccounts = (process.env.GenesisAccounts || 'Admin Alice Bob Charlie Mallory').split(' '),
-  amount          = "1000000000000000000uscrt"
+  amount          = "1000000000000000000uscrt",
+  uid = process.env._UID,
+  gid = process.env._GID
 } = {}) {
   console.info('\nEnsuring a clean slate...')
   run(`rm -rf ~/.secretd ~/.secretcli /opt/secret/.sgx-secrets`)
 
   console.info('\nEstablishing initial config...')
-  if (!existsSync(stateDir)) {
-    run(`mkdir -p ${stateDir}`)
-    if (uid) run(`chown ${uid}`)
-    if (gid) run(`chgrp ${gid}`)
-  }
   run(`mkdir -p ${stateDir}/wallet`)
-  if (uid) run(`chown ${uid} ${stateDir}/wallet`)
-  if (gid) run(`chgrp ${gid} ${stateDir}/wallet`)
+  if (uid) run(`chown -R ${uid} ${stateDir}`)
+  if (gid) run(`chgrp -R ${gid} ${stateDir}`)
   run(`secretd config chain-id "${chainId}"`)
   run(`secretd config keyring-backend test`)
   run(`secretd init fadroma-devnet --chain-id "${chainId}"`)
@@ -75,9 +70,11 @@ function genesis ({
     const address  = run(`secretd keys show -a "${name}"`)
     const identity = `${stateDir}/wallet/${name}.json`
     writeFileSync(identity, JSON.stringify({ address, mnemonic }))
-    if (uid) run(`chown ${uid} ${identity}`)
-    if (gid) run(`chgrp ${gid} ${identity}`)
+    if (uid) run(`chown -R ${uid} ${identity}`)
+    if (gid) run(`chgrp -R ${gid} ${identity}`)
   }
+  if (uid) run(`chown -R ${uid} ${stateDir}`)
+  if (gid) run(`chgrp -R ${gid} ${stateDir}`)
 
   console.info('\nAdding genesis accounts...')
   for (const name of genesisAccounts) {

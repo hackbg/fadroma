@@ -55,24 +55,32 @@ class ScrtError extends Error {
     () => 'Missing code hash')
 }
 
+const _super = new Console()
+
 class ScrtConsole extends Console {
   label = '@fadroma/scrt'
 
-  warnIgnoringMnemonic = () =>
-    this.warn('Created from wallet, ignoring mnemonic')
-
-  warnNoMemos = () =>
-    this.warn("Transaction memos are not supported.")
-
-  warnCouldNotFetchBlockLimit = (fees: Fee[]) =>
-    this.warn("Could not fetch block gas limit, defaulting to:",
-      fees.map(fee=>fee.gas).join('/'))
-
-  warnGeneratedMnemonic = (mnemonic: string, address?: string) => {
-    this.warn("No mnemonic passed, generated this one:", bold(mnemonic))
-    if (address) this.warn("The corresponding address is:", bold(address))
-    this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
-  }
+  warn: (typeof _super.warn & {
+    noMemos(): ScrtConsole
+    defaultGas (fees: Fee[]): ScrtConsole
+    ignoringMnemonic (): ScrtConsole
+    generatedMnemonic (mnemonic: string, address?: string): ScrtConsole
+  } & ((...args: any)=>this)) = Object.assign(this.warn, {
+    noMemos:
+      () => this.warn("Transaction memos are not supported."),
+    defaultGas:
+      (fees: Fee[]) => this.warn("Could not fetch block gas limit,",
+        "defaulting to:", fees.map(fee=>fee.gas).join('/')),
+    ignoringMnemonic:
+      () => this.warn('Created from wallet, ignoring mnemonic'),
+    generatedMnemonic:
+      (mnemonic: string, address?: string) => {
+        this.warn("No mnemonic passed, generated this one:", bold(mnemonic))
+        if (address) this.warn("The corresponding address is:", bold(address))
+        this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
+        return this
+      },
+  })
 
   bundleSigningCommand = (
     name:            string,

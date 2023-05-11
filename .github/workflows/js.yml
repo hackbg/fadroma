@@ -18,11 +18,30 @@ jobs:
           check-latest: true
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-      - run: |
+      - name: Run pnpm ci
+        run: |
+          sudo apt install -y wabt binaryen
           mkdir -p wasm
           rustup target add wasm32-unknown-unknown
           pnpm --version
           pnpm i --frozen-lockfile
           FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
+      - name: Create, build, and deploy project
+        run: |
+          ../fadroma/fadroma.cli.cjs create testproject test1 test2
+          cd testproject
+          cat package.json
+          cat fadroma.json
+          cat api.ts
+          cat ops.ts
+          echo '{"name":"testproject","main":"api.ts","type":"module","version":"0.1.0","dependencies":{"@fadroma/agent":"link:../fadroma/agent","@fadroma/scrt":"link:../fadroma/scrt"},"devDependencies":{"@hackbg/fadroma":"link:../fadroma","@hackbg/ganesha":"link:../fadroma/ensuite/ganesha","typescript":"^5"},"scripts":{"build":"fadroma build","status":"fadroma status","mocknet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma","devnet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma","testnet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma","mainnet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma"}}' > package.json
+          pnpm i
+          pnpm build
+          pnpm mocknet deploy
+          pnpm devnet deploy
+          pnpm devnet status
+          pnpm devnet export
+          cd ..
+          rm -rf testproject
 
 # See https://github.com/pnpm/pnpm/issues/6424 for why not Node 20

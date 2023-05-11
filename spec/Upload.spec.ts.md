@@ -20,7 +20,7 @@ Uploading with default configuration (from environment variables):
 
 ```typescript
 import { fixture } from '../fixtures/Fixtures.ts.md'
-const artifact = fixture('null.wasm') // replace with path to your binary
+const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
 
 import { upload } from '@hackbg/fadroma'
 await upload({ artifact })
@@ -54,9 +54,8 @@ When trying to upload a binary file, the `Uploader` checks if a corresponding re
 if it does, it returns the existing code ID instead of uploading the same file twice.
 
 ```typescript
-import { UploadStore_JSON1 } from '@hackbg/fadroma'
 await withTmpDir(async path=>{
-  uploader = new FSUploader({ agent, store: new UploadStore_JSON1(path) })
+  uploader = new FSUploader({ agent, store: path })
   assert.ok(uploader.agent === agent)
   assert.ok(await uploader.upload(template))
   assert.ok(await uploader.upload(template))

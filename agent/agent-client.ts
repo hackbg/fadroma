@@ -73,7 +73,7 @@ export class Client {
       return fees[msg] || defaultFee
     } else if (typeof msg === 'object') {
       const keys = Object.keys(msg)
-      if (keys.length !== 1) throw new Error.InvalidMessage()
+      if (keys.length !== 1) throw new Error.Invalid.Message()
       return fees[keys[0]] || defaultFee
     }
     return this.fee || defaultFee
@@ -99,7 +99,7 @@ export class Client {
   /** Throw if fetched metadata differs from configured. */
   protected validate (kind: string, expected: any, actual: any) {
     const name = this.constructor.name
-    if (expected !== actual) throw new Error.ValidationFailed(kind, name, expected, actual)
+    if (expected !== actual) throw new Error.Failed.Validation(kind, name, expected, actual)
   }
 }
 
@@ -118,7 +118,7 @@ export type CodeHash = string
 /** @returns the code hash of the thing
   * @throws  LinkNoCodeHash if missing. */
 export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): CodeHash {
-  if (!codeHash) throw new Error.LinkNoCodeHash()
+  if (!codeHash) throw new Error.Missing.LinkCodeHash()
   return codeHash
 }
 
@@ -129,9 +129,9 @@ export async function fetchCodeHash (
   meta:   Partial<Built> & Partial<Uploaded> & Partial<Instantiated>,
   agent?: Agent|null|undefined, expected?: CodeHash,
 ): Promise<CodeHash> {
-  if (!agent) throw new Error.NoAgent()
+  if (!agent) throw new Error.Missing.Agent()
   if (!meta.address && !meta.codeId && !meta.codeHash) {
-    throw new Error('Unable to fetch code hash: no address or code id.')
+    throw new Error.Failed('Unable to fetch code hash: no address or code id.')
   }
   const codeHashByAddress = meta.address
     ? validated('codeHashByAddress', await agent.getHash(meta.address), expected)
@@ -140,10 +140,10 @@ export async function fetchCodeHash (
     ? validated('codeHashByCodeId',  await agent.getHash(meta.codeId),  expected)
     : undefined
   if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
-    throw new Error('Validation failed: different code hashes fetched by address and by code id.')
+    throw new Error.Failed('Validation failed: different code hashes fetched by address and by code id.')
   }
   if (!codeHashByAddress && !codeHashByCodeId) {
-    throw new Error('Code hash unavailable.')
+    throw new Error.Missing.CodeHash()
   }
   return codeHashByAddress! ?? codeHashByCodeId!
 }
@@ -158,9 +158,9 @@ export function codeHashOf (hashed: Hashed): CodeHash {
   let { code_hash, codeHash } = hashed as any
   if (typeof code_hash === 'string') code_hash = code_hash.toLowerCase()
   if (typeof codeHash  === 'string') codeHash  = codeHash.toLowerCase()
-  if (code_hash && codeHash && code_hash !== codeHash) throw new Error.DifferentHashes()
+  if (code_hash && codeHash && code_hash !== codeHash) throw new Error.Invalid.Hashes()
   const result = code_hash ?? codeHash
-  if (!result) throw new Error.NoCodeHash()
+  if (!result) throw new Error.Missing.CodeHash()
   return result
 }
 
@@ -202,7 +202,7 @@ export type Address = string
 /** @returns the address of a thing
   * @throws  LinkNoAddress if missing. */
 export function assertAddress ({ address }: { address?: Address|null } = {}): Address {
-  if (!address) throw new Error.LinkNoAddress()
+  if (!address) throw new Error.Missing.Address()
   return address
 }
 
@@ -214,10 +214,14 @@ export interface ICoin { amount: Uint128, denom: string }
 
 /** A constructable gas fee in native tokens. */
 export class Fee implements IFee {
-  readonly amount: readonly ICoin[]
-  constructor (amount: Uint128|number, denom: string, readonly gas: string = String(amount)) {
-    this.amount = [{ amount: String(amount), denom }]
+  amount: ICoin[] = []
+  constructor (
+    amount: Uint128|number, denom: string, public gas: string = String(amount)
+  ) {
+    this.add(amount, denom)
   }
+  add = (amount: Uint128|number, denom: string) =>
+    this.amount.push({ amount: String(amount), denom })
 }
 
 /** Represents some amount of native token. */
@@ -294,15 +298,15 @@ export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
 /** Parse a label into prefix, name, and suffix. */
 export function parseLabel (label: Label): StructuredLabel {
   const matches = label.match(RE_LABEL)
-  if (!matches || !matches.groups) throw new Error.InvalidLabel(label)
+  if (!matches || !matches.groups) throw new Error.Invalid.Label(label)
   const { name, prefix, suffix } = matches.groups
-  if (!name) throw new Error.InvalidLabel(label)
+  if (!name) throw new Error.Invalid.Label(label)
   return { label, name, prefix, suffix }
 }
 
 /** Construct a label from prefix, name, and suffix. */
 export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
-  if (!name) throw new Error.NoName()
+  if (!name) throw new Error.Missing.Name()
   let label = name
   if (prefix) label = `${prefix}/${label}`
   if (suffix) label = `${label}+${suffix}`

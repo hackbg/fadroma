@@ -6,17 +6,10 @@ use fadroma::{
     },
     dsl::*,
     schemars::{self, JsonSchema},
-    entrypoint,
 };
 use counter::interface::Counter;
 
 use serde::{Serialize, Deserialize};
-
-entrypoint! {
-    init: instantiate,
-    execute: execute,
-    query: query
-}
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct InstantiateMsg {

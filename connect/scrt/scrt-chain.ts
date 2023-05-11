@@ -5,52 +5,15 @@ import {
   Chain, Fee, Mocknet, Bundle, assertChain
 } from '@fadroma/agent'
 import type {
-  AgentClass, AgentOpts, Built, Uploaded, AgentFees, ChainClass, Uint128, BundleClass, Client,
+  AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BundleClass, Client,
   ExecOpts, ICoin, Message, Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label,
   Instantiated
 } from '@fadroma/agent'
 
 /** Represents a Secret Network API endpoint. */
 class ScrtChain extends Chain {
-  /** Smallest unit of native token. */
-  static defaultDenom: string = 'uscrt'
-  /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) =>
-    new Fee(amount, this.defaultDenom)
-  /** Set permissive fees by default. */
-  static defaultFees: AgentFees = {
-    upload: this.gas(2000000),
-    init:   this.gas(2000000),
-    exec:   this.gas(1000000),
-    send:   this.gas(1000000),
-  }
   /** The default SecretJS module. */
   static SecretJS: typeof SecretJS
-  /** The default Config class for Secret Network. */
-  static Config = Config
-  /** The default Agent class for Secret Network. */
-  static Agent: AgentClass<ScrtAgent> // set in index
-  /** Connect to the Secret Network Mainnet. */
-  static mainnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.mainnet({
-    id:  ScrtChain.Config.defaultMainnetChainId,
-    url: ScrtChain.Config.defaultMainnetUrl,
-    ...options||{},
-  }) as ScrtChain
-  /** Connect to the Secret Network Testnet. */
-  static testnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.testnet({
-    id:  ScrtChain.Config.defaultTestnetChainId,
-    url: ScrtChain.Config.defaultTestnetUrl,
-    ...options||{},
-  }) as ScrtChain
-  /** Connect to a Secret Network devnet. */
-  static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.devnet({
-    ...options||{},
-  }) as ScrtChain
-  /** Create to a Secret Network mocknet. */
-  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
-    id: 'scrt-mocknet',
-    ...options||{}
-  })
 
   log = new Console('Scrt')
   /** Smallest unit of native token. */
@@ -70,7 +33,7 @@ class ScrtChain extends Chain {
     mode: Chain.Mode.Mainnet
   }) {
     super(options)
-    this.log.label = `@fadroma/scrt: ${this.id}`
+    this.log.label = `${this.id}`
     // Optional: Allow a different API-compatible version of SecretJS to be passed
     this.SecretJS = options.SecretJS ?? this.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
@@ -135,23 +98,48 @@ class ScrtChain extends Chain {
     }
     return { gas: max_gas }
   }
+
+  /** Smallest unit of native token. */
+  static defaultDenom: string = 'uscrt'
+  /** @returns Fee in uscrt */
+  static gas = (amount: Uint128|number) =>
+    new Fee(amount, this.defaultDenom)
+  /** Set permissive fees by default. */
+  static defaultFees: AgentFees = {
+    upload: this.gas(2000000),
+    init:   this.gas(2000000),
+    exec:   this.gas(1000000),
+    send:   this.gas(1000000),
+  }
+  /** The default Config class for Secret Network. */
+  static Config = Config
+  /** The default Agent class for Secret Network. */
+  static Agent: AgentClass<ScrtAgent> // set in index
+  /** Connect to the Secret Network Mainnet. */
+  static mainnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.mainnet({
+    id:  ScrtChain.Config.defaultMainnetChainId,
+    url: ScrtChain.Config.defaultMainnetUrl,
+    ...options||{},
+  }) as ScrtChain
+  /** Connect to the Secret Network Testnet. */
+  static testnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.testnet({
+    id:  ScrtChain.Config.defaultTestnetChainId,
+    url: ScrtChain.Config.defaultTestnetUrl,
+    ...options||{},
+  }) as ScrtChain
+  /** Connect to a Secret Network devnet. */
+  static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.devnet({
+    ...options||{},
+  }) as ScrtChain
+  /** Create to a Secret Network mocknet. */
+  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
+    id: 'scrt-mocknet',
+    ...options||{}
+  })
+
 }
 
 export type TxResponse = SecretJS.TxResponse
-
-export interface ScrtAgentClass extends AgentClass<ScrtAgent> {}
-
-/** Agent configuration options for Secret Network. */
-export interface ScrtAgentOpts extends AgentOpts {
-  /** Instance of the underlying platform API provided by `secretjs`. */
-  api:             SecretJS.SecretNetworkClient
-  /** This agent's identity on the chain. */
-  wallet:          SecretJS.Wallet
-  /** Whether to simulate each execution first to get a more accurate gas estimate. */
-  simulate:        boolean
-  /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
-  encryptionUtils: SecretJS.EncryptionUtils
-}
 
 /** Represents a connection to the Secret Network,
   * authenticated as a specific address. */
@@ -161,12 +149,12 @@ class ScrtAgent extends Agent {
   declare chain: ScrtChain
   /** Bundle class used by this agent. */
   Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
-  /** Whether transactions should be simulated instead of executed. */
-  simulate: boolean = false
+  /** Whether to simulate each execution first to get a more accurate gas estimate. */
+  simulateForGas: boolean = false
   /** Default fees for this agent. */
   fees = ScrtChain.defaultFees
 
-  constructor (options: Partial<ScrtAgentOpts> = {}) {
+  constructor (options: Partial<ScrtAgent> = {}) {
     super(options)
     this.fees            = options.fees ?? this.fees
     this.api             = options.api
@@ -174,13 +162,12 @@ class ScrtAgent extends Agent {
     this.address         = this.wallet?.address
     this.mnemonic        = options.mnemonic ?? this.mnemonic
     this.encryptionUtils = options.encryptionUtils
-    this.simulate        = options.simulate ?? this.simulate
-    this.log.label =
-      `@fadroma/scrt: ${this.chain?.id??'(no chain id)'}://${this.address??'(no address)'}`
+    this.simulateForGas  = options.simulateForGas ?? this.simulateForGas
+    this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
-    if (!this.chain) throw new Error.NoChain()
+    if (!this.chain) throw new Error.Missing.Chain()
     const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (resolve, reject)=>{
       try {
         const _SecretJS = this.chain.SecretJS
@@ -196,11 +183,11 @@ class ScrtAgent extends Agent {
           if (!this.mnemonic) {
             // Generate fresh mnemonic
             this.mnemonic = bip39.generateMnemonic(bip39EN)
-            this.log.warnGeneratedMnemonic(this.mnemonic!)
+            this.log.warn.generatedMnemonic(this.mnemonic!)
           }
           wallet = new _SecretJS.Wallet(this.mnemonic)
         } else if (this.mnemonic) {
-          this.log.warnIgnoringMnemonic()
+          this.log.warn.ignoringMnemonic()
         }
         // Construct the API client
         const url = this.chain.url && removeTrailingSlash(this.chain.url)
@@ -219,14 +206,14 @@ class ScrtAgent extends Agent {
             this.fees = { upload: max, init: max, exec: max, send: max }
           } catch (e) {
             this.log.warn(e)
-            this.log.warnCouldNotFetchBlockLimit(Object.values(this.fees))
+            this.log.warn.defaultGas(Object.values(this.fees))
           }
         }
         // Override address and set name if missing.
         this.address = wallet.address
         this.name ??= this.address
-        this.log.label = `@fadroma/scrt: ${this.chain.id??'(no chain id)'}://${this.address??'(no address)'}`
-        this.log.log('Agent authenticated.')
+        this.log.label = `${this.address??'(no address)'} @ ${this.chain.id??'(no chain id)'}`
+        this.log.log('authenticated')
         // Done.
         resolve(this as this & { api: SecretJS.SecretNetworkClient })
       } catch (e) {
@@ -237,6 +224,7 @@ class ScrtAgent extends Agent {
     return init
   }
 
+  /** Instance of the underlying platform API provided by `secretjs`. */
   get api (): SecretJS.SecretNetworkClient|undefined {
     return undefined
   }
@@ -244,6 +232,7 @@ class ScrtAgent extends Agent {
     setApi(this, value)
   }
 
+  /** This agent's identity on the chain. */
   get wallet (): SecretJS.Wallet|undefined {
     return (this.api as any)?.wallet
   }
@@ -251,6 +240,7 @@ class ScrtAgent extends Agent {
     setWallet(this, value)
   }
 
+  /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
   get encryptionUtils (): SecretJS.EncryptionUtils|undefined {
     return (this.api as any)?.encryptionUtils
   }
@@ -360,28 +350,30 @@ class ScrtAgent extends Agent {
           this.log.info(`Testnet faucet:`, bold(`https://faucet.starshell.net/`))
         }
       }
-      throw Object.assign(new Error.UploadFailed(), result)
+      throw new Error.Failed.Upload(result)
     }
     const codeId = result.arrayLog
       ?.find((log: Log) => log.type === "message" && log.key === "code_id")
       ?.value
     if (!codeId) {
       this.log.error(`Code id not found in result.`)
-      throw Object.assign(new Error.UploadFailed(), { noCodeId: true })
+      throw new Error.Failed.Upload({ ...result, noCodeId: true })
     }
+    this.log.debug(`gas used for upload of ${data.length} bytes:`, result.gasUsed)
     return {
       chainId:  assertChain(this).id,
       codeId,
       codeHash: await this.getHash(Number(codeId)),
       uploadBy: this.address,
-      uploadTx: result.transactionHash
+      uploadTx: result.transactionHash,
+      uploadGas: result.gasUsed
     }
   }
 
   async instantiate <C extends Client> (
     instance: Contract<C>,
     init_funds: ICoin[] = []
-  ) {
+  ): Promise<Instantiated> {
     const { api } = await this.ready
     if (!this.address) throw new Error("Agent has no address")
     if (instance.address) {
@@ -390,9 +382,9 @@ class ScrtAgent extends Agent {
     }
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) throw new Error.CantInit_NoCodeId()
-    if (!label) throw new Error.CantInit_NoLabel()
-    if (!initMsg) throw new Error.CantInit_NoMessage()
+    if (isNaN(code_id)) throw new Error.Missing.CodeId()
+    if (!label) throw new Error.Missing.Label()
+    if (!initMsg) throw new Error.Missing.InitMsg()
     if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
     const parameters = {
       sender:    this.address,
@@ -406,18 +398,20 @@ class ScrtAgent extends Agent {
     const result = await api.tx.compute.instantiateContract(parameters, { gasLimit })
     if (result.code !== 0) {
       this.log.error('Init failed:', { initMsg, result })
-      throw Object.assign(new Error.InitFailed(code_id), { result })
+      throw Object.assign(new Error.Failed.Init(code_id), { result })
     }
     type Log = { type: string, key: string }
     const address  = result.arrayLog!
       .find((log: Log) => log.type === "message" && log.key === "contract_address")
       ?.value!
+    this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
     return {
       chainId: chainId!,
       address,
       codeHash: codeHash!,
-      initTx: result.transactionHash,
       initBy: this.address,
+      initTx: result.transactionHash,
+      initGas: result.gasUsed,
       label,
     }
   }
@@ -450,7 +444,7 @@ class ScrtAgent extends Agent {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
-    if (memo) this.log.warnNoMemos()
+    if (memo) this.log.warn.noMemos()
     const tx = {
       sender:           this.address,
       contract_address: instance.address!,
@@ -461,7 +455,7 @@ class ScrtAgent extends Agent {
     const txOpts = {
       gasLimit: Number(fee?.gas) || undefined
     }
-    if (this.simulate) {
+    if (this.simulateForGas) {
       this.log.info('Simulating transaction...')
       let simResult
       try {
@@ -723,7 +717,7 @@ class ScrtBundle extends Bundle {
     return results
   }
 
-  async simulate () {
+  async simulateForGas () {
     const { api } = await this.agent.ready
     const msgs = this.conformedMsgs
     return await api!.tx.simulate(msgs as any)

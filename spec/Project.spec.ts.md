@@ -18,9 +18,11 @@ $ npx @hackbg/fadroma@latest create
 ```typescript
 import Project from '@hackbg/fadroma'
 
-const project = new Project({
-  root: tmpDir(), // replace with path to project directory
-  name: 'my-project',
+const root = tmpDir()
+
+let project: Project = new Project({
+  root: `${root}/test-project-1`,
+  name: 'test-project-1',
   templates: {
     test1: { crate: 'test1' },
     test2: { crate: 'test2' },
@@ -127,10 +129,19 @@ This will create and activate a new deployment, and deploy everything anew.
 Keeping receipts of your primary mainnet/testnet deployments in your version control system
 will let you keep track of your project's footprint on public networks.
 
+During development, receipts for deployments of a project are kept in a
+human- and VCS-friendly YAML format. When publishing an API client,
+you may want to include individual deployments as JSON>
+
+```typescript
+await project.exportDeployment('state')
+```
+
 ---
 
 ```typescript
 import assert from 'node:assert'
 import { Template } from '@fadroma/agent'
 import { tmpDir } from '../fixtures/Fixtures.ts.md'
+import './Project.test'
 ```

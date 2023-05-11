@@ -7,9 +7,10 @@ jobs:
   project:
     name: Create and build a project
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     strategy:
       matrix:
-        node-version: [16, 18, 20]
+        node-version: [16, 20]
     steps:
 
       - name: Setup Node ${{matrix.node-version}}
@@ -28,8 +29,9 @@ jobs:
 
       - name: Create project through NPX
         run: |
-          npx @hackbg/fadroma@latest create test test1 test2
-          cd test
+          sudo apt install -y wabt binaryen
+          npx @hackbg/fadroma@latest create myproject mycontract1 mycontract2
+          cd myproject
           cat package.json
           cat fadroma.json
           cat api.ts
@@ -37,4 +39,4 @@ jobs:
           npm run build
           npm run mocknet deploy
           npm run devnet deploy
-          npm run export
+          npm run devnet export

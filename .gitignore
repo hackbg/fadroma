@@ -5,6 +5,7 @@
 .yarn
 wasm
 !wasm/*.sha256
+!wasm/.gitkeep
 state
 coverage
 node_modules

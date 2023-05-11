@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/agent",
-  "version": "1.0.0-rc.18",
+  "version": "1.0.0-rc.21",
   "type":    "module",
   "main":    "agent.ts",
   "files": [ "*.ts", "**/*.ts" ],
@@ -18,8 +18,10 @@
     "@hackbg/into": "^1.0.1",
     "@hackbg/logs": "workspace:^2.0.1",
     "@hackbg/many": "^1",
-    "@hackbg/oops": "workspace:^1.0.1",
-    "@hackbg/over": "^1.0.1"
+    "@hackbg/oops": "workspace:^1.1",
+    "@hackbg/over": "^1.1",
+    "@noble/secp256k1": "^2.0.0",
+    "@noble/ed25519":   "^2.0.0"
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.1"

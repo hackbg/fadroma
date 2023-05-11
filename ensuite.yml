@@ -1,6 +1,7 @@
 coverage:
   exclude:
     - coverage/**/*
+    - "*/coverage/**/*"
     - ensuite/**/*
     - examples/**/*
     - fixtures/**/*
@@ -8,7 +9,7 @@ coverage:
     - shim/**/*
     - dist/**/*
     - typedoc-theme.tsx
-    - index.browser.ts
+    - fadroma.browser.ts
     - build.impl.mjs
     - devnet/devnet.init.mjs
     - devnet/devnet.server.mjs
@@ -71,6 +72,9 @@ routes:
   - path: /upload.html
     page: spec/Upload.spec.ts.md
     name: Uploading
+  - path: /factory.html
+    page: spec/Factory.spec.ts.md
+    name: Factory Pattern
 
 styles:
   - assets/fonts.css

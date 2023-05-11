@@ -14,6 +14,6 @@ Distributed application framework developed at [**Hack.bg**](https://hack.bg).
 |`@fadroma/scrt`|[![](https://img.shields.io/npm/v/@fadroma/connect?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_scrt.html)|
 
 See [**https://fadroma.tech**](https://fadroma.tech) for overview or try the
-[**getting started guide**](./GUIDE.ts.md).
+[**getting started guide**](https://fadroma.tech/guide.html).
 
 </div>
