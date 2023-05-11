@@ -55,6 +55,7 @@ fn init_helper(
         initial_balances: Some(initial_balances),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: None,
+        supported_denoms: None,
         callback: None,
     };
 
@@ -89,7 +90,8 @@ fn init_helper_with_config(
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             enable_deposit, enable_redeem, enable_mint, enable_burn
         )
         .as_bytes(),
@@ -104,6 +106,7 @@ fn init_helper_with_config(
         initial_balances: Some(initial_balances),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: Some(vec!["uscrt".into()]),
         callback: None,
     };
 
@@ -2090,9 +2093,10 @@ fn test_handle_redeem() {
         mock_info("butler", &[]),
         handle_msg,
     );
+
     let error = extract_error_msg(handle_result);
     assert!(error.contains(
-        "You are trying to redeem for more SCRT than the token has in its deposit reserve."
+        "You are trying to redeem more uscrt than the token has in its reserve."
     ));
 
     let handle_msg = ExecuteMsg::Redeem {
@@ -2967,6 +2971,7 @@ fn test_query_token_info() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3018,7 +3023,8 @@ fn test_query_exchange_rate() {
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             true, true, false, false, false
         )
         .as_bytes(),
@@ -3035,6 +3041,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3076,7 +3083,8 @@ fn test_query_exchange_rate() {
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             true, true, false, false, false
         )
         .as_bytes(),
@@ -3093,6 +3101,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3134,7 +3143,8 @@ fn test_query_exchange_rate() {
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             true, true, false, false, false
         )
         .as_bytes(),
@@ -3152,6 +3162,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
 
@@ -3200,6 +3211,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: None,
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3745,7 +3757,7 @@ fn test_query_transaction_history() {
             id: 3,
             action: TxAction::Redeem {},
             coins: Coin {
-                denom: "SECSEC".to_string(),
+                denom: "uscrt".to_string(),
                 amount: Uint128::new(1000),
             },
             memo: None,
@@ -3776,7 +3788,6 @@ fn test_query_transaction_history() {
                 denom: "SECSEC".to_string(),
                 amount: Uint128::new(10000),
             },
-
             memo: Some("Initial Balance".to_string()),
             block_time: 1571797419,
             block_height: 12345,
