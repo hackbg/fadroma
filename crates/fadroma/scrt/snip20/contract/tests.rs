@@ -20,8 +20,8 @@ use crate::{
             MockQuerier, MockStorage,
         },
         Addr, Api, Binary, Coin, CosmosMsg, OwnedDeps, QueryResponse,
-        ReplyOn, Response, StdError, SubMsg, Uint128, WasmMsg,
-        from_binary, to_binary 
+        ReplyOn, Response, StdError, SubMsg, Uint128, WasmMsg, BankMsg,
+        from_binary, to_binary, coin
     },
     core::Canonize
 };
@@ -54,7 +54,7 @@ fn init_helper(
         decimals: 8,
         initial_balances: Some(initial_balances),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
-        config: None,
+        config: Some(TokenConfig::default().enable_modify_denoms()),
         supported_denoms: None,
         callback: None,
     };
@@ -4374,4 +4374,162 @@ fn history_with_decoys() {
     assert_eq!(transfers[1].sender, Addr::unchecked(barry));
     assert_eq!(transfers[1].receiver, Addr::unchecked(casey));
     assert_eq!(transfers[1].block_height, Some(0));
+}
+
+#[test]
+fn multi_denom_deposit_redeem() {
+    let (init_result, mut deps) = init_helper_with_config(
+        vec![],
+        true, true, false, false, 0
+    );
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let uscrt = "uscrt";
+    let ucosm = "ucosm";
+    let sender = "sender";
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        ExecuteMsg::AddSupportedDenoms {
+            denoms: vec![uscrt.into(), ucosm.into()]
+        }
+    ).unwrap();
+
+    let amount = 100;
+
+    let deposited = vec![
+        coin(amount, uscrt),
+        coin(amount, ucosm)
+    ];
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &deposited),
+        ExecuteMsg::Deposit { decoys: None, entropy: None, padding: None }
+    ).unwrap();
+
+    deps.querier.update_balance(mock_env().contract.address, deposited);
+
+    let account = Account::of(sender.canonize(&deps.api).unwrap());
+
+    let txs = account.txs(deps.as_ref(), 0, 10, true).unwrap().0;
+    assert_eq!(txs.len(), 2);
+    assert_eq!(txs[0].coins, coin(amount, ucosm));
+    assert_eq!(txs[1].coins, coin(amount, uscrt));
+
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(
+            sender,
+            &[
+                coin(amount, uscrt),
+                coin(amount, "unsupported")
+            ]
+        ),
+        ExecuteMsg::Deposit { decoys: None, entropy: None, padding: None }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Tried to deposit an unsupported token: unsupported."
+    );
+
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: amount.into(),
+            denom: None,
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Tried to redeem without specifying denom, but multiple coins are supported."
+    );
+
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: amount.into(),
+            denom: Some("unsupported".into()),
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Tried to redeem an unsupported coin."
+    );
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        ExecuteMsg::RemoveSupportedDenoms {
+            denoms: vec![uscrt.into()]
+        }
+    ).unwrap();
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: (amount / 2).into(),
+            denom: None,
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap();
+
+    let mut resp = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: (amount / 2).into(),
+            denom: Some(ucosm.into()),
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap();
+
+    assert_eq!(resp.messages.len(), 1);
+
+    let msg = resp.messages.pop().unwrap();
+    let expected_amount = amount / 2;
+
+    let CosmosMsg::Bank(
+        BankMsg::Send { to_address, amount: sent_coins }
+    ) = msg.msg else{
+        panic!("Expecting a BankMsg.");
+    };
+
+    assert_eq!(to_address, sender);
+    assert_eq!(sent_coins, vec![coin(expected_amount, ucosm)]);
+
+    let txs = account.txs(deps.as_ref(), 0, 10, true).unwrap().0;
+    // Should be 4 instead of 5, but there is no storage revert.
+    assert_eq!(txs.len(), 5);
+    assert_eq!(txs[0].coins, coin(amount / 2, ucosm));
+    assert_eq!(txs[1].coins, coin(amount / 2, ucosm));
 }

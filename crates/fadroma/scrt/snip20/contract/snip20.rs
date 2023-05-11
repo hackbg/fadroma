@@ -389,7 +389,7 @@ pub(crate) mod default_impl {
                     )?;
                 } else {
                     return Err(StdError::generic_err(format!(
-                        "Tried to deposit an unsupported token: {}",
+                        "Tried to deposit an unsupported token: {}.",
                         coin.denom
                     )));
                 }
@@ -449,7 +449,7 @@ pub(crate) mod default_impl {
                 .querier
                 .query_balance(env.contract.address, &denom)?
                 .amount;
-
+            
             if amount > token_reserve {
                 return Err(StdError::generic_err(format!(
                     "You are trying to redeem more {} than the token has in its reserve.",
