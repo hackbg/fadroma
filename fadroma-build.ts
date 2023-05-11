@@ -394,14 +394,14 @@ export class BuildContainer extends BuildLocal {
       buildLogStream  // container log stream
     )
     process.once('beforeExit', async () => {
-      this.log.log('Killing build container', bold(buildContainer.id))
+      this.log.log('killing build container', bold(buildContainer.id))
       try {
         await buildContainer.kill()
-        this.log.log('Killed build container', bold(buildContainer.id))
+        this.log.log('killed build container', bold(buildContainer.id))
       } catch (e) {
         if (!e.statusCode) this.log.error(e)
         else if (e.statusCode === '404') {}
-        else this.log.warn('Failed to kill build container', e.statusCode, e.reason)
+        else this.log.warn('failed to kill build container', e.statusCode, e.reason)
       }
     })
     const {error, code} = await buildContainer.wait()

@@ -42,7 +42,7 @@ This is how to get a devnet that will delete all trace of itself
 after the script exits:
 
 ```typescript
-devnet = getDevnet({ temporary: true })
+devnet = getDevnet({ removeOnExit: true })
 
 assert(devnet instanceof Devnet)
 ```
@@ -50,11 +50,11 @@ assert(devnet instanceof Devnet)
 And how to manage its lifecycle:
 
 ```typescript
-await devnet.spawn()
-await devnet.kill()
-await devnet.respawn()
-await devnet.kill()
-await devnet.erase()
+await devnet.create()
+await devnet.start()
+await devnet.save()
+await devnet.pause()
+await devnet.delete()
 ```
 
 To get a `Chain` for operating on the `Devnet`:
@@ -81,7 +81,7 @@ Devnet is stateful. It's represented in the project by e.g. `state/fadroma-devne
 import { JSONFile, OpaqueDirectory } from '@hackbg/file'
 assert.ok(devnet.stateDir)
 assert.ok(devnet.save())
-assert.ok(await devnet.load())
+assert.ok(await Devnet.load(devnet.stateDir))
 ```
 
 ### Using genesis accounts
@@ -92,7 +92,7 @@ which you can use by passing `name` to `getAgent`:
 ```typescript
 // specifying genesis accounts:
 assert.deepEqual(
-  getDevnet({ temporary: true, genesisAccounts: [ 'Alice', 'Bob' ] }).genesisAccounts,
+  getDevnet({ removeOnExit: true, accounts: [ 'Alice', 'Bob' ] }).accounts,
   [ 'Alice', 'Bob' ]
 )
 

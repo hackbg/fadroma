@@ -17,12 +17,11 @@ export type ChainRegistry = Record<string, (config: any)=>Chain>
 /** Options for connecting to a chain. */
 
 export interface DevnetHandle {
-  chainId: string
   url: URL
   running: boolean
-  respawn (): Promise<unknown>
-  terminate (): Promise<this>
-  getGenesisAccount (name: string): Promise<Partial<Agent>>
+  chainId: string
+  start: () => Promise<this>
+  getAccount: (name: string) => Promise<Partial<Agent>>
 }
 
 /** A constructor for a Chain subclass. */
@@ -204,7 +203,9 @@ export abstract class Chain {
   /** Async functions that return Chain instances in different modes.
     * Values for `FADROMA_CHAIN` environment variable.
     * Populated by @fadroma/connect. */
-  static variants: ChainRegistry = { Mocknet: (...args) => Chain.mocknet(...args) }
+  static variants: ChainRegistry = {
+    Mocknet: (...args) => this.mocknet(...args)
+  }
 }
 
 /** @returns the chain of a thing
@@ -255,9 +256,9 @@ export abstract class Agent {
   get ready (): Promise<this> {
     const init = new Promise<this>(async (resolve, reject)=>{
       try {
-        if (this.chain?.devnet) await this.chain?.devnet.respawn()
+        if (this.chain?.devnet) await this.chain?.devnet.start()
         if (!this.mnemonic && this.name && this.chain?.devnet) {
-          Object.assign(this, await this.chain?.devnet.getGenesisAccount(this.name))
+          Object.assign(this, await this.chain?.devnet.getAccount(this.name))
         }
         resolve(this)
       } catch (e) {

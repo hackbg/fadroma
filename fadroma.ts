@@ -24,11 +24,13 @@ export * from './fadroma-upload'
 export * from './fadroma-deploy'
 export * from './devnet/devnet'
 export * from './fadroma-project'
-
-import { Project } from './fadroma-project'
-export default Project
+export { Project as default } from './fadroma-project'
 
 import { Config } from './fadroma-base'
+import type { Devnet } from './devnet/devnet'
+import type { ChainRegistry, ChainClass, DeploymentClass } from '@fadroma/agent'
+import { Chain, ChainMode, Deployment } from '@fadroma/agent'
+import { Scrt } from '@fadroma/connect'
 
 /** @returns Deployment configured according to environment and options */
 export function getDeployment <D extends Deployment> (
@@ -39,15 +41,6 @@ export function getDeployment <D extends Deployment> (
 }
 
 // This installs devnet:
-import type { ChainRegistry, DeploymentClass } from '@fadroma/agent'
-import { Chain, ChainMode, Deployment } from '@fadroma/agent'
-import { Scrt } from '@fadroma/connect'
-Object.assign(Chain.variants as ChainRegistry, {
-  ScrtDevnet (options: Partial<Scrt.Chain> = {}): Scrt.Chain {
-    const config = new Config()
-    const devnet = config.getDevnet({ platform: 'scrt_1.8' })
-    const id     = devnet.chainId
-    const url    = devnet.url.toString()
-    return Scrt.Chain.devnet({ id, url, devnet, ...options })
-  }
-})
+Chain.variants['ScrtDevnet'] =
+  (options: Partial<Devnet> = { platform: 'scrt_1.8' }): Scrt.Chain =>
+    new Config().getDevnet(options).getChain(Scrt.Chain as ChainClass<Scrt.Chain>)

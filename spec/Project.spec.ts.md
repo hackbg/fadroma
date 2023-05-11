@@ -4,10 +4,11 @@
 
 |Env var|Default path|Description|
 |-|-|-|
-|`FADROMA_CONFIG`     |`@/fadroma.json`          |Global project configuration|
-|`FADROMA_ARTIFACTS`  |`@/artifacts.sha256`      |Checksums of compiled contracts by version|
-|`FADROMA_UPLOADS`    |`@/state/uploads.csv`     |Receipts of uploaded contracts|
-|`FADROMA_DEPLOYMENTS`|`@/state/deployments.csv` |Receipts of instantiated (deployed) contracts|
+|`FADROMA_ROOT`        |current working directory |Root directory of project|
+|`FADROMA_PROJECT`     |`@/ops.ts`                |Project command entrypoint|
+|`FADROMA_BUILD_STATE` |`@/wasm`                  |Checksums of compiled contracts by version|
+|`FADROMA_UPLOAD_STATE`|`@/state/uploads.csv`     |Receipts of uploaded contracts|
+|`FADROMA_DEPLOY_STATE`|`@/state/deployments.csv` |Receipts of instantiated (deployed) contracts|
 
 ## Creating a project
 

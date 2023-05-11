@@ -348,7 +348,7 @@ export class Project extends CommandContext {
     this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
   resetDevnets = async (...ids: ChainId[]) =>
-    Devnet.resetMany(this.root.in('state'), ids)
+    Devnet.deleteMany(this.root.in('state'), ids)
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {

@@ -176,8 +176,8 @@ class ScrtAgent extends Agent {
           // If this is a named devnet agent
           if (this.name && this.chain.isDevnet && this.chain.devnet) {
             // Provide mnemonic from devnet genesis accounts
-            await this.chain.devnet.respawn()
-            this.mnemonic = (await this.chain.devnet.getGenesisAccount(this.name)).mnemonic!
+            await this.chain.devnet.start()
+            this.mnemonic = (await this.chain.devnet.getAccount(this.name)).mnemonic!
           }
           // If there is still no mnemonic
           if (!this.mnemonic) {

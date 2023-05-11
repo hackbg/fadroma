@@ -46,16 +46,13 @@ Testing this on mocknet and devnet:
 ```typescript
 // test:
 
-import { getDevnet, getDeployment } from '@hackbg/fadroma'
+import { Chain, getDeployment } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
 import assert from 'node:assert'
 
-const devnet = await getDevnet({ temporary: true }).respawn()
-process.on('beforeExit', () => devnet.erase())
-
 for (const chain of [
-  Scrt.Chain.mocknet(),
-  Scrt.Chain.devnet({ devnet }),
+  Chain.variants['Mocknet'](),
+  Chain.variants['ScrtDevnet']({ removeOnExit: true }),
 ]) {
 
   const agent = await chain.getAgent({ name: 'Admin' }).ready

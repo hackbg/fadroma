@@ -209,18 +209,18 @@ export class Config extends ConnectConfig {
       'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8'),
     chainId: this.getString(
       'FADROMA_DEVNET_CHAIN_ID', ()=>randomChainId()),
-    temporary: this.getFlag(
-      'FADROMA_DEVNET_EPHEMERAL', ()=>false),
-    persistent: this.getFlag(
-      'FADROMA_DEVNET_PERSISTENT', ()=>true),
+    removeOnExit: this.getFlag(
+      'FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false),
+    keepRunning: this.getFlag(
+      'FADROMA_DEVNET_KEEP_RUNNING', ()=>true),
     host: this.getString(
       'FADROMA_DEVNET_HOST', ()=>undefined),
     port: this.getString(
       'FADROMA_DEVNET_PORT', ()=>undefined),
     podman: this.getFlag(
       'FADROMA_DEVNET_PODMAN', ()=>this.getFlag('FADROMA_PODMAN', ()=>false)),
-    noStateMount: this.getFlag(
-      'FADROMA_DEVNET_NO_STATE_MOUNT', () => false)
+    dontMountState: this.getFlag(
+      'FADROMA_DEVNET_DONT_MOUNT_STATE', () => false)
   }
 
   /** @returns Devnet */
