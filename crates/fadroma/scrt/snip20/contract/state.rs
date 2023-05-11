@@ -1,5 +1,8 @@
 use std::ops::Deref;
 
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 use crate::{
     self as fadroma,
     storage::{Segment, iterable::IterableStorage},
@@ -11,9 +14,10 @@ use crate::{
     },
     impl_canonize_default
 };
-
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use super::{
+    safe_math::safe_add,
+    decoy::Decoys
+};
 
 crate::namespace!(pub ConstantsNs, b"N3QP0mNoPG");
 pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
@@ -96,12 +100,15 @@ impl Allowance {
 }
 
 impl TotalSupplyStore {
+    /// Saturates at [`Uint128::MAX`] and thus the return value is the actual amount added.
     #[inline]
-    pub fn increase(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let total_supply = self.load_or_default(storage)?;
-        let new_total = total_supply.checked_add(amount)?;
+    pub fn increase(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<Uint128> {
+        let mut total_supply = self.load_or_default(storage)?;
+        let amount_added = safe_add(&mut total_supply, amount);
 
-        self.save(storage, &new_total)
+        self.save(storage, &total_supply)?;
+
+        Ok(amount_added)
     }
 
     #[inline]
@@ -212,19 +219,74 @@ impl Account {
     }
 
     #[inline]
-    pub fn add_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.balance(storage)?;
-        let new_balance = account_balance.checked_add(amount)?;
+    pub fn add_balance(
+        &self,
+        storage: &mut dyn Storage,
+        amount: Uint128,
+        decoys: Option<&Decoys>
+    ) -> StdResult<()> {
+        match decoys {
+            Some(decoys) => {
+                let mut updated = false;
 
-        Self::BALANCE.save(storage, self, &new_balance)
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    // Always load and save account balance to obfuscate the real account.
+                    let mut balance = decoy.balance(storage)?;
+
+                    if !updated && decoys.acc_index() == i {
+                        updated = true;
+                        let _ = safe_add(&mut balance, amount);
+                    }
+
+                    Self::BALANCE.save(storage, decoy, &balance)?;
+                }
+
+                Ok(())
+            }
+            None => {
+                let mut balance = self.balance(storage)?;
+                let _ = safe_add(&mut balance, amount);
+        
+                Self::BALANCE.save(storage, self, &balance)
+            }
+        }
     }
 
     #[inline]
-    pub fn subtract_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.balance(storage)?;
-        let new_balance = account_balance.checked_sub(amount)?;
+    pub fn subtract_balance(
+        &self,
+        storage: &mut dyn Storage,
+        amount: Uint128,
+        decoys: Option<&Decoys>
+    ) -> StdResult<()> {
+        match decoys {
+            Some(decoys) => {
+                let mut updated = false;
 
-        Self::BALANCE.save(storage, self, &new_balance)
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    // Always load and save account balance to obfuscate the real account.
+                    let balance = decoy.balance(storage)?;
+
+                    let balance = if !updated && decoys.acc_index() == i {
+                        updated = true;
+
+                        balance.checked_sub(amount)?
+                    } else {
+                        balance
+                    };
+
+                    Self::BALANCE.save(storage, decoy, &balance)?;
+                }
+
+                Ok(())
+            }
+            None => {
+                let balance = self.balance(storage)?;
+                let new_balance = balance.checked_sub(amount)?;
+        
+                Self::BALANCE.save(storage, self, &new_balance)
+            }
+        }
     }
 
     pub fn update_allowance<F>(

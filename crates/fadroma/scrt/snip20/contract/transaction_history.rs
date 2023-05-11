@@ -3,9 +3,12 @@ use std::ops::Deref;
 use crate::{
     prelude::*,
     storage::iterable::{self, IterableStorage},
-    scrt::snip20::client::{Tx, RichTx, RichTxCanon, TxActionCanon}
+    scrt::snip20::client::{Tx, RichTx, RichTxCanon, TxActionCanon, TxCode}
 };
-use super::state::Account;
+use super::{
+    state::Account,
+    decoy::Decoys
+};
 
 crate::namespace!(pub TxCountNs, b"n8BHFWp7eT");
 pub const TX_COUNT: TxCountStore = TxCountStore(SingleItem::new());
@@ -24,7 +27,8 @@ pub fn store_transfer(
     amount: Uint128,
     denom: String,
     memo: Option<String>,
-    block: &BlockInfo
+    block: &BlockInfo,
+    decoys: Option<&Decoys>
 ) -> StdResult<()> {
     let block_time = block.time.seconds();
     let transfer = Tx {
@@ -55,19 +59,19 @@ pub fn store_transfer(
 
     // Write to the owners history if it's different from the other two addresses
     if owner != sender && owner != receiver {
-        owner.add_tx(store, &tx)?;
-        owner.add_transfer(store, &transfer)?;
+        owner.add_tx(store, &tx, None)?;
+        owner.add_transfer(store, &transfer, None)?;
     }
     // Write to the sender's history if it's different from the receiver
     if sender != receiver {
-        sender.add_tx(store, &tx)?;
-        sender.add_transfer(store, &transfer)?;
+        sender.add_tx(store, &tx, None)?;
+        sender.add_transfer(store, &transfer, None)?;
     }
 
     // Always write to the recipient's history
-    receiver.add_tx(store, &tx)?;
+    receiver.add_tx(store, &tx, decoys)?;
 
-    receiver.add_transfer(store, &transfer)
+    receiver.add_transfer(store, &transfer, decoys)
 }
 
 pub fn store_mint(
@@ -78,6 +82,7 @@ pub fn store_mint(
     denom: String,
     memo: Option<String>,
     block: &BlockInfo,
+    decoys: Option<&Decoys>
 ) -> StdResult<()> {
     let action = TxActionCanon::mint(
         minter.addr().clone(),
@@ -93,10 +98,10 @@ pub fn store_mint(
     );
 
     if minter != recipient {
-        recipient.add_tx(store, &tx)?;
+        recipient.add_tx(store, &tx, decoys)?;
     }
     
-    minter.add_tx(store, &tx)
+    minter.add_tx(store, &tx, None)
 }
 
 pub fn store_burn(
@@ -107,6 +112,7 @@ pub fn store_burn(
     denom: String,
     memo: Option<String>,
     block: &BlockInfo,
+    decoys: Option<&Decoys>
 ) -> StdResult<()> {
     let action = TxActionCanon::burn(
         owner.addr().clone(),
@@ -121,10 +127,10 @@ pub fn store_burn(
     );
 
     if burner != owner {
-        owner.add_tx(store, &tx)?;
+        owner.add_tx(store, &tx, decoys)?;
     }
 
-    burner.add_tx(store, &tx)
+    burner.add_tx(store, &tx, None)
 }
 
 #[inline]
@@ -134,6 +140,7 @@ pub fn store_deposit(
     amount: Uint128,
     denom: String,
     block: &BlockInfo,
+    decoys: Option<&Decoys>
 ) -> StdResult<()> {
     let tx = RichTxCanon::new(
         TX_COUNT.increment(store)?,
@@ -143,7 +150,7 @@ pub fn store_deposit(
         block
     );
 
-    recipient.add_tx(store, &tx)
+    recipient.add_tx(store, &tx, decoys)
 }
 
 #[inline]
@@ -153,6 +160,7 @@ pub fn store_redeem(
     amount: Uint128,
     denom: String,
     block: &BlockInfo,
+    decoys: Option<&Decoys>
 ) -> StdResult<()> {
     let tx = RichTxCanon::new(
         TX_COUNT.increment(store)?,
@@ -162,7 +170,7 @@ pub fn store_redeem(
         block
     );
 
-    redeemer.add_tx(store, &tx)
+    redeemer.add_tx(store, &tx, decoys)
 }
 
 impl Account {
@@ -170,10 +178,33 @@ impl Account {
     pub fn add_tx(
         &self,
         storage: &mut dyn Storage,
-        tx: &RichTxCanon
+        tx: &RichTxCanon,
+        decoys: Option<&Decoys>
     ) -> StdResult<()> {
         let mut txs = self.txs_storage();
-        txs.push(storage, tx)?;
+
+        match decoys {
+            Some(decoys) => {
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    if decoys.acc_index() == i {
+                        txs.push(storage, tx)?;
+                    } else {
+                        let action = TxActionCanon::decoy(decoy.addr().clone());
+                        let tx = RichTxCanon {
+                            id: tx.id,
+                            action,
+                            coins: tx.coins.clone(),
+                            memo: tx.memo.clone(),
+                            block_time: tx.block_time,
+                            block_height: tx.block_height
+                        };
+
+                        decoy.add_tx(storage, &tx, None)?;
+                    }
+                }
+            },
+            None => { txs.push(storage, tx)?; }
+        }
 
         Ok(())
     }
@@ -182,10 +213,35 @@ impl Account {
     pub fn add_transfer(
         &self,
         storage: &mut dyn Storage,
-        tx: &Tx<CanonicalAddr>
+        tx: &Tx<CanonicalAddr>,
+        decoys: Option<&Decoys>
     ) -> StdResult<()> {
         let mut transfers = self.transfers_storage();
-        transfers.push(storage, tx)?;
+
+        match decoys {
+            Some(decoys) => {
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    if decoys.acc_index() == i {
+                        transfers.push(storage, tx)?;
+                    } else {
+                        let tx = Tx {
+                            id: tx.id,
+                            from: tx.from.clone(),
+                            sender: tx.sender.clone(),
+                            receiver: decoy.addr().clone(),
+                            coins: tx.coins.clone(),
+                            memo: tx.memo.clone(),
+                            block_time: tx.block_time,
+                            // This serves as a decoy identifier
+                            block_height: Some(0)
+                        };
+
+                        decoy.add_transfer(storage, &tx, None)?;
+                    }
+                }
+            },
+            None => { transfers.push(storage, tx)?; }
+        }
 
         Ok(())
     }
@@ -195,11 +251,22 @@ impl Account {
         &self,
         deps: Deps,
         page: u32,
-        page_size: u32
+        page_size: u32,
+        filter_decoys: bool
     ) -> StdResult<(Vec<RichTx>, u64)> {
         let iter = self.txs_storage().iter(deps.storage)?;
         
-        pages(iter, deps.api, page, page_size)
+        pages(
+            iter,
+            deps.api,
+            page,
+            page_size,
+            if filter_decoys {
+                Some(|x: &RichTxCanon| x.action.ty() != TxCode::Decoy)
+            } else {
+                None
+            }
+        )
     }
 
     #[inline]
@@ -207,11 +274,22 @@ impl Account {
         &self,
         deps: Deps,
         page: u32,
-        page_size: u32
+        page_size: u32,
+        filter_decoys: bool
     ) -> StdResult<(Vec<Tx<Addr>>, u64)> {
         let iter = self.transfers_storage().iter(deps.storage)?;
 
-        pages(iter, deps.api, page, page_size)
+        pages(
+            iter,
+            deps.api,
+            page,
+            page_size,
+            if filter_decoys {
+                Some(|x: &Tx<CanonicalAddr>| x.block_height != Some(0))
+            } else {
+                None
+            }
+        )
     }
 
     #[inline]
@@ -235,19 +313,30 @@ fn pages<'a, T: FadromaSerialize + FadromaDeserialize + Humanize>(
     iter: iterable::Iter<'a, T>,
     api: &dyn Api,
     page: u32,
-    page_size: u32
+    page_size: u32,
+    filter: Option<impl Fn(&T) -> bool>
 ) -> StdResult<(Vec<<T as Humanize>::Output>, u64)>  {
     let len = iter.len();
     let iter = iter
         .into_iter()
         .rev()
-        .skip((page * page_size) as _)
-        .take(page_size as _);
+        .skip((page * page_size) as usize)
+        .take(page_size as usize);
 
     let mut result = Vec::with_capacity(iter.len());
 
-    for item in iter {
-        result.push(item?.humanize(api)?);
+    if let Some(filter) = filter {
+        for item in iter {
+            let item = item?;
+
+            if filter(&item) {
+                result.push(item.humanize(api)?);
+            }
+        }
+    } else {
+        for item in iter {
+            result.push(item?.humanize(api)?);
+        }
     }
 
     Ok((result, len))

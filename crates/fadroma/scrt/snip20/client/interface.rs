@@ -39,6 +39,8 @@ pub trait Snip20: VkAuth + Admin {
 
     #[execute]
     fn deposit(
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -46,6 +48,8 @@ pub trait Snip20: VkAuth + Admin {
     fn redeem(
         amount: Uint128,
         denom: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -54,6 +58,8 @@ pub trait Snip20: VkAuth + Admin {
         recipient: String,
         amount: Uint128,
         memo: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -64,6 +70,8 @@ pub trait Snip20: VkAuth + Admin {
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -71,6 +79,8 @@ pub trait Snip20: VkAuth + Admin {
     fn burn(
         amount: Uint128,
         memo: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -102,6 +112,8 @@ pub trait Snip20: VkAuth + Admin {
         recipient: String,
         amount: Uint128,
         memo: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -113,6 +125,8 @@ pub trait Snip20: VkAuth + Admin {
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -121,6 +135,8 @@ pub trait Snip20: VkAuth + Admin {
         owner: String,
         amount: Uint128,
         memo: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -129,6 +145,8 @@ pub trait Snip20: VkAuth + Admin {
         recipient: String,
         amount: Uint128,
         memo: Option<String>,
+        decoys: Option<Vec<String>>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -153,36 +171,42 @@ pub trait Snip20: VkAuth + Admin {
     #[execute]
     fn batch_transfer(
         actions: Vec<TransferAction>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
     #[execute]
     fn batch_send(
         actions: Vec<SendAction>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
     #[execute]
     fn batch_transfer_from(
         actions: Vec<TransferFromAction>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
     #[execute]
     fn batch_send_from(
         actions: Vec<SendFromAction>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
     #[execute]
     fn batch_burn_from(
         actions: Vec<BurnFromAction>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
     #[execute]
     fn batch_mint(
         actions: Vec<MintAction>,
+        entropy: Option<Binary>,
         padding: Option<String>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -219,7 +243,8 @@ pub trait Snip20: VkAuth + Admin {
         address: String,
         key: String,
         page: Option<u32>,
-        page_size: u32
+        page_size: u32,
+        should_filter_decoys: bool
     ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
 
     #[query]
@@ -227,7 +252,8 @@ pub trait Snip20: VkAuth + Admin {
         address: String,
         key: String,
         page: Option<u32>,
-        page_size: u32
+        page_size: u32,
+        should_filter_decoys: bool
     ) -> Result<QueryAnswer, <Self as Snip20>::Error>;
 
     #[query]
@@ -390,11 +416,13 @@ pub enum QueryWithPermit {
     Balance {},
     TransferHistory {
         page: Option<u32>,
-        page_size: u32
+        page_size: u32,
+        should_filter_decoys: bool
     },
     TransactionHistory {
         page: Option<u32>,
-        page_size: u32
+        page_size: u32,
+        should_filter_decoys: bool
     },
     AllowancesGiven { 
         owner: String, 
@@ -506,7 +534,7 @@ pub enum ResponseStatus {
 }
 
 // Transfer history
-#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, JsonSchema, PartialEq, Clone, Debug)]
 pub struct Tx<T> {
     pub id: u64,
     pub from: T,
@@ -550,17 +578,21 @@ pub enum TxAction {
         owner: Addr
     },
     Deposit {},
-    Redeem {}
+    Redeem {},
+    Decoy {
+        address: Addr
+    }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 #[repr(u8)]
 pub enum TxCode {
     Transfer = 0,
     Mint = 1,
     Burn = 2,
     Deposit = 3,
-    Redeem = 4
+    Redeem = 4,
+    Decoy = 255
 }
 
 #[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Clone, Debug)]
@@ -579,7 +611,8 @@ pub struct TxActionCanon {
 pub struct TransferAction {
     pub recipient: String,
     pub amount: Uint128,
-    pub memo: Option<String>
+    pub memo: Option<String>,
+    pub decoys: Option<Vec<String>>
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
@@ -589,7 +622,8 @@ pub struct SendAction {
     pub recipient_code_hash: Option<String>,
     pub amount: Uint128,
     pub msg: Option<Binary>,
-    pub memo: Option<String>
+    pub memo: Option<String>,
+    pub decoys: Option<Vec<String>>
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
@@ -598,7 +632,8 @@ pub struct TransferFromAction {
     pub owner: String,
     pub recipient: String,
     pub amount: Uint128,
-    pub memo: Option<String>
+    pub memo: Option<String>,
+    pub decoys: Option<Vec<String>>
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
@@ -609,7 +644,8 @@ pub struct SendFromAction {
     pub recipient: String,
     pub amount: Uint128,
     pub msg: Option<Binary>,
-    pub memo: Option<String>
+    pub memo: Option<String>,
+    pub decoys: Option<Vec<String>>
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
@@ -617,7 +653,8 @@ pub struct SendFromAction {
 pub struct MintAction {
     pub recipient: String,
     pub amount: Uint128,
-    pub memo: Option<String>
+    pub memo: Option<String>,
+    pub decoys: Option<Vec<String>>
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
@@ -625,10 +662,18 @@ pub struct MintAction {
 pub struct BurnFromAction {
     pub owner: String,
     pub amount: Uint128,
-    pub memo: Option<String>
+    pub memo: Option<String>,
+    pub decoys: Option<Vec<String>>
 }
 
 impl TxActionCanon {
+    #[inline]
+    pub fn ty(&self) -> TxCode {
+        // Safety: TxActionCanon can only be constructed using the action
+        // constructors that use the reverse cast which is always safe.
+        unsafe { mem::transmute(self.tx_type) }
+    }
+
     #[inline]
     pub fn transfer(
         from: CanonicalAddr,
@@ -682,6 +727,16 @@ impl TxActionCanon {
             address3: None
         }
     }
+
+    #[inline]
+    pub fn decoy(recipient: CanonicalAddr) -> Self {
+        Self {
+            tx_type: TxCode::Decoy as u8,
+            address1: Some(recipient),
+            address2: None,
+            address3: None
+        }
+    }
 }
 
 impl Canonize for TxAction {
@@ -706,7 +761,9 @@ impl Canonize for TxAction {
                     burner.canonize(api)?
                 ),
             Self::Deposit { } => TxActionCanon::deposit(),
-            Self::Redeem { } => TxActionCanon::redeem()
+            Self::Redeem { } => TxActionCanon::redeem(),
+            Self::Decoy { address } =>
+                TxActionCanon::decoy(address.canonize(api)?)
         };
 
         Ok(action)
@@ -717,11 +774,7 @@ impl Humanize for TxActionCanon {
     type Output = TxAction;
 
     fn humanize(self, api: &dyn Api) -> StdResult<Self::Output> {
-        // Safety: TxActionCanon can only be constructed using the action
-        // constructors that use the reverse cast which is always safe.
-        let code: TxCode = unsafe { mem::transmute(self.tx_type) };
-
-        let result = match code {
+        let result = match self.ty() {
             TxCode::Transfer => {
                 let from = self.address1.unwrap();
                 let sender = self.address2.unwrap();
@@ -753,6 +806,13 @@ impl Humanize for TxActionCanon {
             }
             TxCode::Deposit => TxAction::Deposit {},
             TxCode::Redeem => TxAction::Redeem {},
+            TxCode::Decoy => {
+                let address = self.address1.unwrap();
+
+                TxAction::Decoy {
+                    address: address.humanize(api)?
+                }
+            }
         };
 
         Ok(result)

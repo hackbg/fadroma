@@ -41,7 +41,7 @@ pub fn instantiate(
 
         for balance in initial_balances {
             let account = Account::of(balance.address.as_str().canonize(deps.api)?);
-            account.add_balance(deps.storage, balance.amount)?;
+            account.add_balance(deps.storage, balance.amount, None)?;
 
             if let Ok(new_total_supply) = total_supply.checked_add(balance.amount) {
                 total_supply = new_total_supply;
@@ -58,7 +58,8 @@ pub fn instantiate(
                 balance.amount,
                 msg.symbol.clone(),
                 Some("Initial Balance".to_string()),
-                &env.block
+                &env.block,
+                None
             )?;
         }
     }
@@ -126,6 +127,7 @@ pub(crate) mod default_impl {
                 },
                 contract::{
                     receiver::Snip20ReceiveMsg,
+                    safe_math::safe_add,
                     state::{
                         Account, Allowance, TokenPermission, CONSTANTS,
                         TOTAL_SUPPLY, MINTERS, PRNG_SEED
@@ -133,6 +135,7 @@ pub(crate) mod default_impl {
                     transaction_history::{
                         store_burn, store_deposit, store_mint, store_redeem, store_transfer
                     },
+                    decoy::{self, Decoys},
                     TokenValidation
                 }
             },
@@ -270,9 +273,16 @@ pub(crate) mod default_impl {
             deps: Deps,
             account: &Account,
             page: Option<u32>,
-            page_size: u32
+            page_size: u32,
+            filter_decoys: bool
+
         ) -> StdResult<QueryAnswer> {
-            let (txs, total) = account.transfers(deps, page.unwrap_or(0), page_size)?;
+            let (txs, total) = account.transfers(
+                deps,
+                page.unwrap_or(0),
+                page_size,
+                filter_decoys
+            )?;
     
             Ok(QueryAnswer::TransferHistory {
                 txs,
@@ -288,9 +298,15 @@ pub(crate) mod default_impl {
             deps: Deps,
             account: &Account,
             page: Option<u32>,
-            page_size: u32
+            page_size: u32,
+            filter_decoys: bool
         ) -> StdResult<QueryAnswer> {
-            let (txs, total) = account.txs(deps, page.unwrap_or(0), page_size)?;
+            let (txs, total) = account.txs(
+                deps,
+                page.unwrap_or(0),
+                page_size,
+                filter_decoys
+            )?;
     
             Ok(QueryAnswer::TransactionHistory {
                 txs,
@@ -330,6 +346,8 @@ pub(crate) mod default_impl {
     
         #[execute]
         fn deposit(
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let mut amount = Uint128::zero();
@@ -339,13 +357,13 @@ pub(crate) mod default_impl {
                     amount = coin.amount
                 } else {
                     return Err(StdError::generic_err(
-                        "Tried to deposit an unsupported token",
+                        "Tried to deposit an unsupported token.",
                     ));
                 }
             }
     
             if amount.is_zero() {
-                return Err(StdError::generic_err("No funds were sent to be deposited"));
+                return Err(StdError::generic_err("No funds were sent to be deposited."));
             }
     
             let settings = CONSTANTS.load_or_error(deps.storage)?.token_settings;
@@ -354,18 +372,25 @@ pub(crate) mod default_impl {
                     "Deposit functionality is not enabled for this token.",
                 ));
             }
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
-            TOTAL_SUPPLY.increase(deps.storage, amount)?;
+            let amount = TOTAL_SUPPLY.increase(deps.storage, amount)?;
     
             let account = Account::of(info.sender.canonize(deps.api)?);
-            account.add_balance(deps.storage, amount)?;
+            account.add_balance(deps.storage, amount, decoys.as_ref())?;
     
             store_deposit(
                 deps.storage,
                 &account,
                 amount,
                 "uscrt".to_string(),
-                &env.block
+                &env.block,
+                decoys.as_ref()
             )?;
             
             ExecuteAnswer::Deposit {
@@ -377,6 +402,8 @@ pub(crate) mod default_impl {
         fn redeem(
             amount: Uint128,
             _denom: Option<String>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
@@ -385,9 +412,15 @@ pub(crate) mod default_impl {
                     "Redeem functionality is not enabled for this token.",
                 ));
             }
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
             let account = Account::of(info.sender.as_str().canonize(deps.api)?);
-            account.subtract_balance(deps.storage, amount)?;
+            account.subtract_balance(deps.storage, amount, decoys.as_ref())?;
     
             TOTAL_SUPPLY.decrease(deps.storage, amount)?;
     
@@ -407,7 +440,8 @@ pub(crate) mod default_impl {
                 &account,
                 amount,
                 constants.symbol,
-                &env.block
+                &env.block,
+                decoys.as_ref()
             )?;
 
             let resp = Response::new().add_message(
@@ -430,12 +464,28 @@ pub(crate) mod default_impl {
             recipient: String,
             amount: Uint128,
             memo: Option<String>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let sender = Account::of(info.sender.canonize(deps.api)?);
             let recipient = Account::of(recipient.as_str().canonize(deps.api)?);
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
-            transfer_impl(deps, &sender, &recipient, amount, memo, &env.block)?;
+            transfer_impl(
+                deps,
+                &sender,
+                &recipient,
+                amount,
+                memo,
+                &env.block,
+                decoys.as_ref()
+            )?;
     
             ExecuteAnswer::Transfer {
                 status: ResponseStatus::Success
@@ -449,10 +499,18 @@ pub(crate) mod default_impl {
             amount: Uint128,
             memo: Option<String>,
             msg: Option<Binary>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let sender = Account::of(info.sender.canonize(deps.api)?);
             let recipient = Account::of(recipient.as_str().canonize(deps.api)?);
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
             let messages = send_impl(
                 deps,
@@ -463,6 +521,7 @@ pub(crate) mod default_impl {
                 memo,
                 msg,
                 &env.block,
+                decoys.as_ref()
             )?;
     
             ExecuteAnswer::Send {
@@ -474,6 +533,8 @@ pub(crate) mod default_impl {
         fn burn(
             amount: Uint128,
             memo: Option<String>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
@@ -482,9 +543,15 @@ pub(crate) mod default_impl {
                     "Burn functionality is not enabled for this token.",
                 ));
             }
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
             let account = Account::of(info.sender.canonize(deps.api)?);
-            account.subtract_balance(deps.storage, amount)?;
+            account.subtract_balance(deps.storage, amount, decoys.as_ref())?;
     
             TOTAL_SUPPLY.decrease(deps.storage, amount)?;
     
@@ -496,6 +563,7 @@ pub(crate) mod default_impl {
                 constants.symbol,
                 memo,
                 &env.block,
+                decoys.as_ref()
             )?;
 
             ExecuteAnswer::Burn {
@@ -602,13 +670,30 @@ pub(crate) mod default_impl {
             recipient: String,
             amount: Uint128,
             memo: Option<String>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let spender = Account::of(info.sender.canonize(deps.api)?);
             let owner = Account::of(owner.as_str().canonize(deps.api)?);
             let recipient = Account::of(recipient.as_str().canonize(deps.api)?);
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
-            transfer_from_impl(deps, &env, &spender, &owner, &recipient, amount, memo)?;
+            transfer_from_impl(
+                deps,
+                &env,
+                &spender,
+                &owner,
+                &recipient,
+                amount,
+                memo,
+                decoys.as_ref()
+            )?;
     
             ExecuteAnswer::TransferFrom {
                 status: ResponseStatus::Success,
@@ -623,11 +708,19 @@ pub(crate) mod default_impl {
             amount: Uint128,
             memo: Option<String>,
             msg: Option<Binary>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let spender = Account::of(info.sender.canonize(deps.api)?);
             let owner = Account::of(owner.as_str().canonize(deps.api)?);
             let recipient = Account::of(recipient.as_str().canonize(deps.api)?);
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
             let messages = send_from_impl(
                 deps,
@@ -638,7 +731,8 @@ pub(crate) mod default_impl {
                 recipient_code_hash,
                 amount,
                 memo,
-                msg
+                msg,
+                decoys.as_ref()
             )?;
 
             ExecuteAnswer::SendFrom {
@@ -653,6 +747,8 @@ pub(crate) mod default_impl {
             owner: String,
             amount: Uint128,
             memo: Option<String>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
@@ -664,10 +760,16 @@ pub(crate) mod default_impl {
 
             let owner = Account::of(owner.as_str().canonize(deps.api)?);
             let spender = Account::of(info.sender.canonize(deps.api)?);
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
             use_allowance(deps.storage, &env, &owner, &spender, amount)?;
     
-            owner.subtract_balance(deps.storage, amount)?;
+            owner.subtract_balance(deps.storage, amount, decoys.as_ref())?;
     
             TOTAL_SUPPLY.decrease(deps.storage, amount)?;
     
@@ -678,7 +780,8 @@ pub(crate) mod default_impl {
                 amount,
                 constants.symbol,
                 memo,
-                &env.block
+                &env.block,
+                decoys.as_ref()
             )?;
 
             ExecuteAnswer::BurnFrom {
@@ -691,6 +794,8 @@ pub(crate) mod default_impl {
             recipient: String,
             amount: Uint128,
             memo: Option<String>,
+            decoys: Option<Vec<String>>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
@@ -706,8 +811,14 @@ pub(crate) mod default_impl {
                     "Minting is allowed to minter accounts only",
                 ));
             }
+
+            let decoys = if let Some(decoys) = decoys {
+                Decoys::new(deps.branch(), &decoys, entropy.and_then(|x| Some(x.0)))?
+            } else {
+                None
+            };
     
-            TOTAL_SUPPLY.increase(deps.storage, amount)?;
+            let amount = TOTAL_SUPPLY.increase(deps.storage, amount)?;
     
             let minter = Account::of(info.sender.canonize(deps.api)?);
             let recipient = Account::of(recipient.as_str().canonize(deps.api)?);
@@ -720,6 +831,7 @@ pub(crate) mod default_impl {
                 constants.symbol,
                 memo,
                 &env.block,
+                decoys.as_ref()
             )?;
 
             ExecuteAnswer::Mint {
@@ -793,12 +905,22 @@ pub(crate) mod default_impl {
         #[execute]
         fn batch_transfer(
             actions: Vec<TransferAction>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let sender = Account::of(info.sender.canonize(deps.api)?);
+            let builder = decoy::Builder::new(
+                deps.storage,
+                entropy.and_then(|x| Some(x.0))
+            )?;
 
             for action in actions {
                 let recipient = Account::of(action.recipient.as_str().canonize(deps.api)?);
+                let decoys = if let Some(decoys) = action.decoys {
+                    builder.create(deps.api, &decoys)?
+                } else {
+                    None
+                };
     
                 transfer_impl(
                     deps.branch(),
@@ -807,6 +929,7 @@ pub(crate) mod default_impl {
                     action.amount,
                     action.memo,
                     &env.block,
+                    decoys.as_ref()
                 )?;
             }
     
@@ -818,13 +941,24 @@ pub(crate) mod default_impl {
         #[execute]
         fn batch_send(
             actions: Vec<SendAction>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let mut messages = Vec::with_capacity(actions.len());
             let sender = Account::of(info.sender.canonize(deps.api)?);
+
+            let builder = decoy::Builder::new(
+                deps.storage,
+                entropy.and_then(|x| Some(x.0))
+            )?;
     
             for action in actions {
                 let recipient = Account::of(action.recipient.as_str().canonize(deps.api)?);
+                let decoys = if let Some(decoys) = action.decoys {
+                    builder.create(deps.api, &decoys)?
+                } else {
+                    None
+                };
     
                 let msgs = send_impl(
                     deps.branch(),
@@ -834,7 +968,8 @@ pub(crate) mod default_impl {
                     action.amount,
                     action.memo,
                     action.msg,
-                    &env.block
+                    &env.block,
+                    decoys.as_ref()
                 )?;
     
                 messages.extend(msgs);
@@ -850,13 +985,24 @@ pub(crate) mod default_impl {
         #[execute]
         fn batch_transfer_from(
             actions: Vec<TransferFromAction>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let spender = Account::of(info.sender.canonize(deps.api)?);
+            let builder = decoy::Builder::new(
+                deps.storage,
+                entropy.and_then(|x| Some(x.0))
+            )?;
 
             for action in actions {
                 let owner = Account::of(action.owner.as_str().canonize(deps.api)?);
                 let recipient = Account::of(action.recipient.as_str().canonize(deps.api)?);
+
+                let decoys = if let Some(decoys) = action.decoys {
+                    builder.create(deps.api, &decoys)?
+                } else {
+                    None
+                };
     
                 transfer_from_impl(
                     deps.branch(),
@@ -866,6 +1012,7 @@ pub(crate) mod default_impl {
                     &recipient,
                     action.amount,
                     action.memo,
+                    decoys.as_ref()
                 )?;
             }
     
@@ -877,14 +1024,26 @@ pub(crate) mod default_impl {
         #[execute]
         fn batch_send_from(
             actions: Vec<SendFromAction>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let mut messages = Vec::with_capacity(actions.len());
             let spender = Account::of(info.sender.canonize(deps.api)?);
+
+            let builder = decoy::Builder::new(
+                deps.storage,
+                entropy.and_then(|x| Some(x.0))
+            )?;
     
             for action in actions {
                 let owner = Account::of(action.owner.as_str().canonize(deps.api)?);
                 let recipient = Account::of(action.recipient.as_str().canonize(deps.api)?);
+
+                let decoys = if let Some(decoys) = action.decoys {
+                    builder.create(deps.api, &decoys)?
+                } else {
+                    None
+                };
     
                 let msgs = send_from_impl(
                     deps.branch(),
@@ -896,6 +1055,7 @@ pub(crate) mod default_impl {
                     action.amount,
                     action.memo,
                     action.msg,
+                    decoys.as_ref()
                 )?;
     
                 messages.extend(msgs);
@@ -911,6 +1071,7 @@ pub(crate) mod default_impl {
         #[execute]
         fn batch_burn_from(
             actions: Vec<BurnFromAction>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
@@ -922,12 +1083,22 @@ pub(crate) mod default_impl {
     
             let spender = Account::of(info.sender.canonize(deps.api)?);
             let mut total_supply = TOTAL_SUPPLY.load_or_default(deps.storage)?;
+
+            let builder = decoy::Builder::new(
+                deps.storage,
+                entropy.and_then(|x| Some(x.0))
+            )?;
     
             for action in actions {
                 let owner = Account::of(action.owner.as_str().canonize(deps.api)?);
+                let decoys = if let Some(decoys) = &action.decoys {
+                    builder.create(deps.api, decoys)?
+                } else {
+                    None
+                };
     
                 use_allowance(deps.storage, &env, &owner, &spender, action.amount)?;
-                owner.subtract_balance(deps.storage, action.amount)?;
+                owner.subtract_balance(deps.storage, action.amount, decoys.as_ref())?;
     
                 // remove from supply
                 if let Ok(new_total_supply) = total_supply.checked_sub(action.amount) {
@@ -947,6 +1118,7 @@ pub(crate) mod default_impl {
                     constants.symbol.clone(),
                     action.memo,
                     &env.block,
+                    decoys.as_ref()
                 )?;
             }
     
@@ -960,6 +1132,7 @@ pub(crate) mod default_impl {
         #[execute]
         fn batch_mint(
             actions: Vec<MintAction>,
+            entropy: Option<Binary>,
             _padding: Option<String>
         ) -> Result<Response, <Self as Snip20>::Error> {
             let constants = CONSTANTS.load_or_error(deps.storage)?;
@@ -972,40 +1145,41 @@ pub(crate) mod default_impl {
             let minters = MINTERS.load_humanize_or_default(deps.as_ref())?;
             if !minters.contains(&info.sender) {
                 return Err(StdError::generic_err(
-                    "Minting is allowed to minter accounts only",
+                    "Minting is allowed for minter accounts only!",
                 ));
             }
+
+            let builder = decoy::Builder::new(
+                deps.storage,
+                entropy.and_then(|x| Some(x.0))
+            )?;
     
             let mut total_supply = TOTAL_SUPPLY.load_or_default(deps.storage)?;
-    
-            // Quick loop to check that the total of amounts is valid
-            for action in &actions {
-                if let Ok(new_total_supply) = total_supply.checked_add(action.amount) {
-                    total_supply = new_total_supply;
-                } else {
-                    return Err(StdError::generic_err(
-                        format!("This mint attempt would increase the total supply above the supported maximum: {:?}", action),
-                    ));
-                }
-            }
-    
-            TOTAL_SUPPLY.save(deps.storage, &total_supply)?;
-    
             let minter = Account::of(info.sender.canonize(deps.api)?);
     
             for action in actions {
                 let recipient = Account::of(action.recipient.as_str().canonize(deps.api)?);
+                let mint_amount = safe_add(&mut total_supply, action.amount);
+
+                let decoys = if let Some(decoys) = action.decoys {
+                    builder.create(deps.api, &decoys)?
+                } else {
+                    None
+                };
     
                 mint_impl(
                     deps.storage,
                     &minter,
                     &recipient,
-                    action.amount,
+                    mint_amount,
                     constants.symbol.clone(),
                     action.memo,
                     &env.block,
+                    decoys.as_ref()
                 )?;
             }
+
+            TOTAL_SUPPLY.save(deps.storage, &total_supply)?;
     
             ExecuteAnswer::BatchMint {
                 status: ResponseStatus::Success
@@ -1127,7 +1301,8 @@ pub(crate) mod default_impl {
             address: String,
             key: String,
             page: Option<u32>,
-            page_size: u32
+            page_size: u32,
+            should_filter_decoys: bool
         ) -> Result<QueryAnswer, <Self as Snip20>::Error> {
             let account = Account::of(address.as_str().canonize(deps.api)?);
 
@@ -1138,7 +1313,13 @@ pub(crate) mod default_impl {
             )? {
                 Ok(err)
             } else {
-                Self::query_transfers(deps, &account, page, page_size)
+                Self::query_transfers(
+                    deps,
+                    &account,
+                    page,
+                    page_size,
+                    should_filter_decoys
+                )
             }
         }
     
@@ -1147,7 +1328,8 @@ pub(crate) mod default_impl {
             address: String,
             key: String,
             page: Option<u32>,
-            page_size: u32
+            page_size: u32,
+            should_filter_decoys: bool
         ) -> Result<QueryAnswer, <Self as Snip20>::Error> {
             let account = Account::of(address.as_str().canonize(deps.api)?);
 
@@ -1158,7 +1340,13 @@ pub(crate) mod default_impl {
             )? {
                 Ok(err)
             } else {
-                Self::query_transactions(deps, &account, page, page_size)
+                Self::query_transactions(
+                    deps,
+                    &account,
+                    page,
+                    page_size,
+                    should_filter_decoys
+                )
             }
         }
 
@@ -1232,7 +1420,7 @@ pub(crate) mod default_impl {
         
                     Self::query_balance(deps.storage, &account)
                 }
-                QueryWithPermit::TransferHistory { page, page_size } => {
+                QueryWithPermit::TransferHistory { page, page_size, should_filter_decoys } => {
                     if !permit.has_permission(&QueryPermission::History) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query history, got permissions {:?}",
@@ -1242,9 +1430,15 @@ pub(crate) mod default_impl {
                     
                     let account = Account::of(validated_addr.as_str().canonize(deps.api)?);
         
-                    Self::query_transfers(deps, &account, page, page_size)
+                    Self::query_transfers(
+                        deps,
+                        &account,
+                        page,
+                        page_size,
+                        should_filter_decoys
+                    )
                 }
-                QueryWithPermit::TransactionHistory { page, page_size } => {
+                QueryWithPermit::TransactionHistory { page, page_size, should_filter_decoys } => {
                     if !permit.has_permission(&QueryPermission::History) {
                         return Err(StdError::generic_err(format!(
                             "No permission to query history, got permissions {:?}",
@@ -1254,7 +1448,13 @@ pub(crate) mod default_impl {
                     
                     let account = Account::of(validated_addr.as_str().canonize(deps.api)?);
         
-                    Self::query_transactions(deps, &account, page, page_size)
+                    Self::query_transactions(
+                        deps,
+                        &account,
+                        page,
+                        page_size,
+                        should_filter_decoys
+                    )
                 }
                 QueryWithPermit::Allowance { owner, spender } => {
                     if !permit.has_permission(&QueryPermission::Allowance) {
@@ -1409,8 +1609,9 @@ pub(crate) mod default_impl {
         amount: Uint128,
         memo: Option<String>,
         block: &BlockInfo,
+        decoys: Option<&Decoys>
     ) -> StdResult<()> {
-        perform_transfer(deps.storage, sender, recipient, amount)?;
+        perform_transfer(deps.storage, sender, recipient, amount, decoys)?;
         let symbol = CONSTANTS.load_or_error(deps.storage)?.symbol;
 
         store_transfer(
@@ -1421,7 +1622,8 @@ pub(crate) mod default_impl {
             amount,
             symbol,
             memo,
-            block
+            block,
+            decoys
         )
     }
 
@@ -1431,11 +1633,13 @@ pub(crate) mod default_impl {
         from: &Account,
         to: &Account,
         amount: Uint128,
+        decoys: Option<&Decoys>
     ) -> StdResult<()> {
-        from.subtract_balance(storage, amount)?;
-        to.add_balance(storage, amount)
+        from.subtract_balance(storage, amount, None)?;
+        to.add_balance(storage, amount, decoys)
     }
 
+    #[inline]
     pub fn send_impl(
         mut deps: DepsMut,
         sender: &Account,
@@ -1445,6 +1649,7 @@ pub(crate) mod default_impl {
         memo: Option<String>,
         msg: Option<Binary>,
         block: &BlockInfo,
+        decoys: Option<&Decoys>
     ) -> StdResult<Vec<CosmosMsg>> {
         transfer_impl(
             deps.branch(),
@@ -1452,7 +1657,8 @@ pub(crate) mod default_impl {
             recipient,
             amount,
             memo.clone(),
-            block
+            block,
+            decoys
         )?;
 
         let sender_addr = deps.api.addr_humanize(sender.addr())?;
@@ -1469,6 +1675,7 @@ pub(crate) mod default_impl {
         )
     }
 
+    #[inline]
     pub fn add_receiver_api_callback(
         deps: Deps,
         recipient: &Account,
@@ -1494,9 +1701,11 @@ pub(crate) mod default_impl {
 
             return Ok(vec![callback_msg]);
         }
+
         Ok(vec![])
     }
 
+    #[inline]
     pub fn transfer_from_impl(
         deps: DepsMut,
         env: &Env,
@@ -1505,9 +1714,10 @@ pub(crate) mod default_impl {
         recipient: &Account,
         amount: Uint128,
         memo: Option<String>,
+        decoys: Option<&Decoys>
     ) -> StdResult<()> {
         use_allowance(deps.storage, env, owner, spender, amount)?;
-        perform_transfer(deps.storage, owner, recipient, amount)?;
+        perform_transfer(deps.storage, owner, recipient, amount, decoys)?;
 
         let symbol = CONSTANTS.load_or_error(deps.storage)?.symbol;
 
@@ -1520,11 +1730,13 @@ pub(crate) mod default_impl {
             symbol,
             memo,
             &env.block,
+            decoys
         )?;
 
         Ok(())
     }
 
+    #[inline]
     pub fn use_allowance(
         storage: &mut dyn Storage,
         env: &Env,
@@ -1554,6 +1766,7 @@ pub(crate) mod default_impl {
         })
     }
 
+    #[inline]
     pub fn send_from_impl(
         mut deps: DepsMut,
         env: &Env,
@@ -1564,6 +1777,7 @@ pub(crate) mod default_impl {
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
+        decoys: Option<&Decoys>
     ) -> StdResult<Vec<CosmosMsg>> {
         transfer_from_impl(
             deps.branch(),
@@ -1573,6 +1787,7 @@ pub(crate) mod default_impl {
             recipient,
             amount,
             memo.clone(),
+            decoys
         )?;
 
         add_receiver_api_callback(
@@ -1583,7 +1798,7 @@ pub(crate) mod default_impl {
             deps.api.addr_humanize(spender.addr())?,
             deps.api.addr_humanize(owner.addr())?,
             amount,
-            memo,
+            memo
         )
     }
 
@@ -1596,8 +1811,9 @@ pub(crate) mod default_impl {
         denom: String,
         memo: Option<String>,
         block: &BlockInfo,
+        decoys: Option<&Decoys>
     ) -> StdResult<()> {
-        recipient.add_balance(storage, amount)?;
+        recipient.add_balance(storage, amount, decoys)?;
 
         store_mint(
             storage,
@@ -1607,6 +1823,7 @@ pub(crate) mod default_impl {
             denom,
             memo,
             block,
+            decoys
         )
     }
 }
