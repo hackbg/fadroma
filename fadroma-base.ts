@@ -365,12 +365,12 @@ export class Console extends BaseConsole {
       self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
     loadingRejected: (path: string) =>
       self.log(`${path} does not exist.`),
-    isNowRunning: ({ chainId, port, container: { id } }: any) => self
+    isNowRunning: ({ chainId, containerId, port }: Partial<Devnet>) => self
       .info(`running on port`, bold(String(port)))
-      .info(`from container`, bold(id.slice(0,8)))
+      .info(`from container`, bold(containerId?.slice(0,8)))
       .info('manual reset with:').info(`$`,
-        `docker kill`, id.slice(0,8), `&&`,
-        `docker rm`, id.slice(0,8), `&&`,
+        `docker kill`, containerId?.slice(0,8), `&&`,
+        `docker rm`, containerId?.slice(0,8), `&&`,
         `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
 
   }))(this)
