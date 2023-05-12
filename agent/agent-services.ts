@@ -1,5 +1,6 @@
 import type {
-  Address, TxHash, ChainId, Agent, ClientClass, Hashed, CodeId, Deployment, Class, CodeHash
+  Address, TxHash, ChainId, Agent, ClientClass, Hashed, CodeId, Deployment, Class, CodeHash,
+  Mocknet
 } from './agent'
 import { Error, Console, pluralize, bold, hideProperties } from './agent-base'
 import { Client, fetchCodeHash, getSourceSpecifier } from './agent-client'
@@ -90,7 +91,7 @@ export class Uploader {
     this.id       = options.id       ?? this.id
     this.agent    = options.agent    ?? this.agent
     this.cache    = options.cache    ?? {}
-    this.reupload = options.reupload ?? this.agent?.chain?.isMocknet ?? false
+    this.reupload = options.reupload ?? false
     hideProperties(this, 'log')
   }
 
@@ -117,21 +118,31 @@ export class Uploader {
   async upload (contract: Uploadable & Partial<Uploaded>): Promise<Uploaded> {
     if (contract.codeId) {
       this.log.log('found code id', contract.codeId)
-      if (!this.reupload) return contract as Uploaded
-      this.log.log('reuploading anyway because reupload is set')
+      if (this.reupload) {
+        this.log.log('reuploading because reupload is set')
+      } else if (this.agent?.chain?.isMocknet && contract.codeHash) {
+        const { codeHash } = (this.agent.chain as Mocknet.Chain).uploads[contract.codeId] || {}
+        if (codeHash === contract.codeHash) return contract as Uploaded
+        this.log.log('reuploading because mocknet is not stateful yet')
+      } else {
+        return contract as Uploaded
+      }
     }
+    if (!this.agent) throw new Error('no upload agent')
     const cached = this.get(contract)
-    if (cached) {
+    if (cached && cached.codeId) {
       this.log.log('found cached code id', cached.codeId, 'for code hash', cached.codeHash)
-      if (!this.reupload) return cached
-      this.log.log('reuploading anyway because reupload is set')
+      if (this.reupload) {
+        this.log.log('reuploading because reupload is set')
+      } else if (this.agent?.chain?.isMocknet) {
+        const { codeHash } = (this.agent.chain as Mocknet.Chain).uploads[cached.codeId] || {}
+        if (codeHash === contract.codeHash) return cached
+        this.log.log('reuploading because mocknet is not stateful yet')
+      } else {
+        return Object.assign(contract, cached as Uploaded)
+      }
     }
-    if (!contract.artifact) {
-      throw new Error('no artifact to upload')
-    }
-    if (!this.agent) {
-      throw new Error('no upload agent')
-    }
+    if (!contract.artifact) throw new Error('no artifact to upload')
     this.log.log('fetching', String(contract.artifact))
     const data = await this.fetch(contract.artifact)
     const log = new Console(`${contract.codeHash} -> ${this.agent.chain?.id??'(unknown chain id)'}`)
