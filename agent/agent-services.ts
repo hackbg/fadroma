@@ -114,16 +114,28 @@ export class Uploader {
 
   /** Upload an Uploadable (such as a Contract or Template).
     * @returns Promise<Uploaded> */
-  async upload (contract: Uploadable): Promise<Uploaded> {
+  async upload (contract: Uploadable & Partial<Uploaded>): Promise<Uploaded> {
+    if (contract.codeId) {
+      this.log.log('found code id', contract.codeId)
+      if (!this.reupload) return contract as Uploaded
+      this.log.log('reuploading anyway because reupload is set')
+    }
     const cached = this.get(contract)
-    if (cached && !this.reupload) return cached
-    const { artifact } = contract
-    if (!artifact) throw new Error('No artifact to upload')
-    if (!this.agent) throw new Error('No upload agent')
-    this.log.log('fetching', String(artifact))
-    const data = await this.fetch(artifact)
+    if (cached) {
+      this.log.log('found cached code id', cached.codeId, 'for code hash', cached.codeHash)
+      if (!this.reupload) return cached
+      this.log.log('reuploading anyway because reupload is set')
+    }
+    if (!contract.artifact) {
+      throw new Error('no artifact to upload')
+    }
+    if (!this.agent) {
+      throw new Error('no upload agent')
+    }
+    this.log.log('fetching', String(contract.artifact))
+    const data = await this.fetch(contract.artifact)
     const log = new Console(`${contract.codeHash} -> ${this.agent.chain?.id??'(unknown chain id)'}`)
-    log(`from ${bold(artifact)}`)
+    log(`from ${bold(contract.artifact)}`)
     log(`${bold(String(data.length))} bytes (uncompressed)`)
     const result = await this.agent.upload(data, contract)
     this.checkCodeHash(contract, result)
