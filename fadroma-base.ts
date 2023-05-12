@@ -229,7 +229,7 @@ export class Config extends ConnectConfig {
     chainId: this.getString(
       'FADROMA_DEVNET_CHAIN_ID', ()=>undefined),
     platform: this.getString(
-      'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8'),
+      'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.9'),
     deleteOnExit: this.getFlag(
       'FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false),
     keepRunning: this.getFlag(
