@@ -52,7 +52,7 @@ import assert from 'node:assert'
 
 for (const chain of [
   Chain.variants['Mocknet'](),
-  Chain.variants['ScrtDevnet']({ removeOnExit: true }),
+  Chain.variants['ScrtDevnet']({ deleteOnExit: true }),
 ]) {
 
   const agent = await chain.getAgent({ name: 'Admin' }).ready

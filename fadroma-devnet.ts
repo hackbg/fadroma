@@ -66,7 +66,7 @@ export class Devnet implements DevnetHandle {
   /** The chain ID that will be passed to the devnet node. */
   chainId: ChainId
   /** Whether to destroy this devnet on exit. */
-  removeOnExit: boolean
+  deleteOnExit: boolean
   /** Whether the devnet should remain running after the command ends. */
   keepRunning: boolean
   /** The protocol of the API URL without the trailing colon. */
@@ -104,10 +104,10 @@ export class Devnet implements DevnetHandle {
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
   constructor (options: Partial<Devnet> = {}) {
-    this.removeOnExit   = options.removeOnExit ?? false
-    this.chainId        = options.chainId ?? (this.removeOnExit?randomChainId():'fadroma-devnet')
+    this.deleteOnExit   = options.deleteOnExit ?? false
+    this.chainId        = options.chainId ?? (this.deleteOnExit?randomChainId():'fadroma-devnet')
     if (!this.chainId) throw new Error.Devnet.NoChainId()
-    this.keepRunning    = options.keepRunning ?? !this.removeOnExit
+    this.keepRunning    = options.keepRunning ?? !this.deleteOnExit
     this.podman         = options.podman ?? false
     this.platform       = options.platform ?? 'scrt_1.8'
     this.verbose        = options.verbose ?? false
@@ -366,7 +366,7 @@ export class Devnet implements DevnetHandle {
       return
     }
     process.once('beforeExit', async () => {
-      if (this.removeOnExit) {
+      if (this.deleteOnExit) {
         await this.pause()
         await this.delete()
       } else if (!this.keepRunning) {

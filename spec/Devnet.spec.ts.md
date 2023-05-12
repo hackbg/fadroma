@@ -42,7 +42,7 @@ This is how to get a devnet that will delete all trace of itself
 after the script exits:
 
 ```typescript
-devnet = getDevnet({ removeOnExit: true })
+devnet = getDevnet({ deleteOnExit: true })
 
 assert(devnet instanceof Devnet)
 ```
@@ -92,7 +92,7 @@ which you can use by passing `name` to `getAgent`:
 ```typescript
 // specifying genesis accounts:
 assert.deepEqual(
-  getDevnet({ removeOnExit: true, accounts: [ 'Alice', 'Bob' ] }).accounts,
+  getDevnet({ deleteOnExit: true, accounts: [ 'Alice', 'Bob' ] }).accounts,
   [ 'Alice', 'Bob' ]
 )
 
