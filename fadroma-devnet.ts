@@ -320,11 +320,9 @@ export class Devnet implements DevnetHandle {
             AutoRemove: true,
             HostConfig: { Binds: [`${$(this.stateDir).path}:/state:rw`] }
           }
-          this.log.log(`creating cleanup container...`)
           const cleanupContainer = await image.run(name, { extra }, ['-rvf', '/state'], '/bin/rm')
-          this.log.log(`starting cleanup container...`)
           await cleanupContainer.start()
-          this.log.log('waiting for cleanup to finish...')
+          this.log.log('waiting for cleanup container to finish...')
           await cleanupContainer.wait()
           this.log.log(`deleted ${path}/* via cleanup container.`)
           $(this.stateDir).delete()
