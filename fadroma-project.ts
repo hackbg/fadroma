@@ -404,6 +404,7 @@ export class Project extends CommandContext {
       },
       scripts: {
         "build":   "fadroma build",
+        "rebuild": "fadroma rebuild",
         "status":  "fadroma status",
         "mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
         "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
