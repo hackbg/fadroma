@@ -20,13 +20,15 @@
 * `Chain.variants.ScrtDevnet(options)` now takes `Devnet` options and not `Scrt.Chain` options
 * `ProjectWizard` is not exported anymore.
 
-#### Features
+#### New features
 
 * Enabled `fadroma rebuild` command.
 * Enabled `fadroma reupload` command.
+* Contracts created by project wizard now depend on fadroma `^0.8` instead of Git dependency.
 
-#### Fixes
+#### Fixed
 
+* Devnet support for Secret Network 1.9
 * Don't reupload if code ID is present.
 * Don't always reupload if running on mocknet.
 
@@ -101,6 +103,6 @@
 * `scrtAgent.simulate` -> `scrtAgent.simulateForGas` to clarify purpose.
 * Moved `Token`, etc. types listed above into `@fadroma/agent`.
 
-#### Features
+#### New features
 
 * Gas consumed by uploads and inits is now reported to the console.
