@@ -33,10 +33,26 @@ impl Prng {
         hash_bytes.copy_from_slice(hash.as_slice());
 
         let rng: ChaChaRng = ChaChaRng::from_seed(hash_bytes);
-
+        
         Self(rng)
     }
 
+    #[inline]
+    pub fn fill_bytes(&mut self, dest: &mut [u8]) {
+        self.0.fill_bytes(dest);
+    }
+
+    #[inline]
+    pub fn next_u32(&mut self) -> u32 {
+        self.0.next_u32()
+    }
+
+    #[inline]
+    pub fn next_u64(&mut self) -> u64 {
+        self.0.next_u64()
+    }
+
+    #[inline]
     pub fn rand_bytes(&mut self) -> [u8; 32] {
         let mut bytes = [0u8; 32];
         self.0.fill_bytes(&mut bytes);

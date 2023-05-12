@@ -39,10 +39,10 @@ pub mod factory {
             let address = CanonicalAddr(Binary::default());
             let link = ContractLink { address, code_hash: code.code_hash.clone() };
             products().push(deps.storage, &link)?;
-            let label = &format!("contract {} from factory {}", &name, &env.contract.address);
+            let label = format!("contract {} from factory {}", &name, &env.contract.address);
             let funds = vec![];
             let msg = fadroma_example_factory_shared::InstantiateMsg {};
-            let msg = code.instantiate(&label, &msg, funds)?;
+            let msg = code.instantiate(label, &msg, funds)?;
             let msg = SubMsg::reply_on_success(msg, 0);
             Ok(Response::default().add_submessage(msg))
         }

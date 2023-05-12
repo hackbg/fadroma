@@ -1,5 +1,8 @@
 use std::ops::Deref;
 
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 use crate::{
     self as fadroma,
     storage::{Segment, iterable::IterableStorage},
@@ -11,9 +14,10 @@ use crate::{
     },
     impl_canonize_default
 };
-
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use super::{
+    safe_math::safe_add,
+    decoy::Decoys
+};
 
 crate::namespace!(pub ConstantsNs, b"N3QP0mNoPG");
 pub const CONSTANTS: SingleItem<Constants, ConstantsNs> = SingleItem::new();
@@ -26,6 +30,12 @@ pub const TOTAL_SUPPLY: TotalSupplyStore = TotalSupplyStore(SingleItem::new());
 
 crate::namespace!(pub MintersNs, b"wpitCjS7wB");
 pub const MINTERS: MintersStore = MintersStore(SingleItem::new());
+
+crate::namespace!(pub SupportedDenomsNs, b"OxL3tsqB9N");
+pub const SUPPORTED_DENOMS: SingleItem<
+    Vec<String>,
+    SupportedDenomsNs
+> = SingleItem::new();
 
 #[doc(hidden)]
 pub struct MintersStore(pub SingleItem<Vec<CanonicalAddr>, MintersNs>);
@@ -51,7 +61,8 @@ pub enum TokenPermission {
     Deposit = 1 << 1,
     Redeem = 1 << 2,
     Mint = 1 << 3,
-    Burn = 1 << 4
+    Burn = 1 << 4,
+    ModifyDenoms = 1 << 5
 }
 
 crate::namespace!(BalancesNs, b"DyCKbmlEL8");
@@ -96,12 +107,15 @@ impl Allowance {
 }
 
 impl TotalSupplyStore {
+    /// Saturates at [`Uint128::MAX`] and thus the return value is the actual amount added.
     #[inline]
-    pub fn increase(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let total_supply = self.load_or_default(storage)?;
-        let new_total = total_supply.checked_add(amount)?;
+    pub fn increase(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<Uint128> {
+        let mut total_supply = self.load_or_default(storage)?;
+        let amount_added = safe_add(&mut total_supply, amount);
 
-        self.save(storage, &new_total)
+        self.save(storage, &total_supply)?;
+
+        Ok(amount_added)
     }
 
     #[inline]
@@ -212,19 +226,74 @@ impl Account {
     }
 
     #[inline]
-    pub fn add_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.balance(storage)?;
-        let new_balance = account_balance.checked_add(amount)?;
+    pub fn add_balance(
+        &self,
+        storage: &mut dyn Storage,
+        amount: Uint128,
+        decoys: Option<&Decoys>
+    ) -> StdResult<()> {
+        match decoys {
+            Some(decoys) => {
+                let mut updated = false;
 
-        Self::BALANCE.save(storage, self, &new_balance)
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    // Always load and save account balance to obfuscate the real account.
+                    let mut balance = decoy.balance(storage)?;
+
+                    if !updated && decoys.acc_index() == i {
+                        updated = true;
+                        let _ = safe_add(&mut balance, amount);
+                    }
+
+                    Self::BALANCE.save(storage, decoy, &balance)?;
+                }
+
+                Ok(())
+            }
+            None => {
+                let mut balance = self.balance(storage)?;
+                let _ = safe_add(&mut balance, amount);
+        
+                Self::BALANCE.save(storage, self, &balance)
+            }
+        }
     }
 
     #[inline]
-    pub fn subtract_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
-        let account_balance = self.balance(storage)?;
-        let new_balance = account_balance.checked_sub(amount)?;
+    pub fn subtract_balance(
+        &self,
+        storage: &mut dyn Storage,
+        amount: Uint128,
+        decoys: Option<&Decoys>
+    ) -> StdResult<()> {
+        match decoys {
+            Some(decoys) => {
+                let mut updated = false;
 
-        Self::BALANCE.save(storage, self, &new_balance)
+                for (i, decoy) in decoys.shuffle_in(self).enumerate() {
+                    // Always load and save account balance to obfuscate the real account.
+                    let balance = decoy.balance(storage)?;
+
+                    let balance = if !updated && decoys.acc_index() == i {
+                        updated = true;
+
+                        balance.checked_sub(amount)?
+                    } else {
+                        balance
+                    };
+
+                    Self::BALANCE.save(storage, decoy, &balance)?;
+                }
+
+                Ok(())
+            }
+            None => {
+                let balance = self.balance(storage)?;
+                let new_balance = balance.checked_sub(amount)?;
+        
+                Self::BALANCE.save(storage, self, &new_balance)
+            }
+        }
     }
 
     pub fn update_allowance<F>(
@@ -441,6 +510,10 @@ impl From<TokenConfig> for TokenSettings {
             s.set(TokenPermission::Burn);
         }
 
+        if config.enable_modify_denoms {
+            s.set(TokenPermission::ModifyDenoms);
+        }
+
         s
     }
 }
@@ -451,35 +524,38 @@ mod tests {
 
     #[test]
     fn token_settings() {
-        fn test(s: TokenSettings, e: [bool; 5]) {
+        fn test(s: TokenSettings, e: [bool; 6]) {
             assert_eq!(s.is_set(TokenPermission::PublicTotalSupply), e[0]);
             assert_eq!(s.is_set(TokenPermission::Deposit), e[1]);
             assert_eq!(s.is_set(TokenPermission::Redeem), e[2]);
             assert_eq!(s.is_set(TokenPermission::Mint), e[3]);
             assert_eq!(s.is_set(TokenPermission::Burn), e[4]);
+            assert_eq!(s.is_set(TokenPermission::ModifyDenoms), e[5]);
         }
 
         let mut s = TokenSettings::default();
-        test(s, [false, false, false, false, false]);
+        test(s, [false, false, false, false, false, false]);
 
         s.set(TokenPermission::PublicTotalSupply);
         s.set(TokenPermission::Redeem);
 
-        test(s, [true, false, true, false, false]);
+        test(s, [true, false, true, false, false, false]);
 
         s.set(TokenPermission::Deposit);
-        test(s, [true, true, true, false, false]);
+        test(s, [true, true, true, false, false, false]);
 
         s.set(TokenPermission::Mint);
-        test(s, [true, true, true, true, false]);
+        test(s, [true, true, true, true, false, false]);
 
         s.set(TokenPermission::Burn);
-        test(s, [true, true, true, true, true]);
+        test(s, [true, true, true, true, true, false]);
 
         let mut s = TokenSettings::default();
 
         s.set(TokenPermission::Deposit);
         s.set(TokenPermission::Mint);
-        test(s, [false, true, false, true, false]);
+        s.set(TokenPermission::ModifyDenoms);
+
+        test(s, [false, true, false, true, false, true]);
     }
 }
