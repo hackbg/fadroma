@@ -67,9 +67,7 @@ export class Project extends CommandContext {
   /** Default deployment class. */
   Deployment = Deployment
 
-  static wizard = (...args: any[]) => new ProjectWizard().createProject(
-    this.constructor as typeof Project, ...args
-  )
+  static wizard = (...args: any[]) => new ProjectWizard().createProject(this, ...args)
 
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
     const configFile = $(path, 'fadroma.yml').as(YAMLFile)
@@ -570,17 +568,17 @@ export class Project extends CommandContext {
   runShellCommands = (...cmds: string[]) =>
     cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
   /** Load and execute the default export of an ES module. */
-  runScript = (script?: string, ...args: string[]) => {
+  runScript = async (script?: string, ...args: string[]) => {
     if (!script) throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
     if (!$(script).exists()) throw new Error(`${script} doesn't exist`)
     this.log.log(`Running ${script}`)
+    const path = $(script).path
     //@ts-ignore
-    return import($(script).path).then(script=>{
-      if (typeof script.default === 'function') {
-        return script.default(this, ...args)
-      } else {
-        this.log.info(`${$(script).shortPath} does not have a default export.`)
-      }
-    })
+    const { default: main } = await import(path)
+    if (typeof main === 'function') {
+      return main(this, ...args)
+    } else {
+      this.log.info(`${$(script).shortPath} does not have a default export.`)
+    }
   }
 }

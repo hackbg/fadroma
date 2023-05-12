@@ -11,7 +11,7 @@ importers:
       '@hackbg/dock': workspace:^2
       '@hackbg/ensuite': workspace:*
       '@hackbg/fadroma': workspace:*
-      '@hackbg/file': workspace:^1.2.1
+      '@hackbg/file': workspace:^1.2.2
       '@hackbg/ganesha': workspace:*
       '@hackbg/logs': workspace:^2.0.1
       '@hackbg/port': workspace:^1
@@ -380,6 +380,7 @@ importers:
     specifiers:
       '@hackbg/4mat': workspace:^1
       '@hackbg/ganesha': ^2.2.5
+      '@hackbg/hide': workspace:^1
       '@hackbg/logs': workspace:^2.0.1
       '@hackbg/spec': workspace:*
       '@types/js-yaml': ^4.0.5
@@ -396,6 +397,7 @@ importers:
       toml: ^3
     dependencies:
       '@hackbg/4mat': link:../4mat
+      '@hackbg/hide': link:../hide
       '@hackbg/logs': link:../logs
       js-yaml: 4.1.0
       mkdirp: 1.0.4

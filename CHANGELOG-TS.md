@@ -18,6 +18,7 @@
   * The above should prevent orphaned devnet containers.
 * Removed `deployment.config`
 * `Chain.variants.ScrtDevnet(options)` now takes `Devnet` options and not `Scrt.Chain` options
+* `ProjectWizard` is not exported anymore.
 
 #### Features
 

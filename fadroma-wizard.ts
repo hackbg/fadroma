@@ -33,6 +33,8 @@ const console = new Console(`@hackbg/fadroma ${version}`)
   * TODO: `shared` crate option */
 export class ProjectWizard {
 
+  log = new Console(`@hackbg/fadroma ${version}`)
+
   cwd: string = process.cwd()
 
   tools: ReturnType<typeof toolVersions> = toolVersions()
@@ -45,23 +47,29 @@ export class ProjectWizard {
     this.interactive = options.interactive ?? this.interactive
   }
 
-  async createProject ($P: typeof Project, ...args: any[]): Promise<Project> {
+  async createProject (_P: typeof Project, ...args: any[]): Promise<Project> {
     let { git, pnpm, yarn, npm, cargo, docker, podman } = this.tools
-    const name = this.interactive
-      ? await this.askName()
-      : args[0]
+    const name = args[0] ?? (this.interactive ? await this.askName() : undefined)
+    if (name === 'undefined') throw new Error('missing project name')
+    console.log(`Creating project`, name)
     const root = (this.interactive
       ? $(await this.askRoot(name))
       : $(this.cwd, name)).as(OpaqueDirectory)
-    const templates = this.interactive
-      ? await this.askTemplates(name)
-      : args.slice(1).reduce((templates, crate)=>Object.assign(templates, { [crate]: crate }), {})
-    const project = new $P({ name, root, templates: templates as any }).create()
+    console.log(`Creating in`, root.shortPath)
+    const templates = args.slice(1).length > 0
+      ? args.slice(1).reduce((templates, crate)=>Object.assign(templates, { [crate]: crate }), {})
+      : this.interactive
+        ? await this.askTemplates(name)
+        : {}
+    console.log(`Defining`, Object.keys(templates).length, `template(s) in project`)
+    const options = { name, root, templates: templates as any }
+    const project = new _P(options)
+    project.create()
     if (this.interactive) {
       switch (await this.selectBuilder()) {
         case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
         case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
-        default:
+        default: break
       }
     }
     let changed = false
@@ -129,14 +137,17 @@ export class ProjectWizard {
     return value
   }
   askRoot (name: string): Promise<Path> {
-    const cwd = $(process.cwd())
+    const cwd    = $(process.cwd()).as(OpaqueDirectory)
     const exists = cwd.in(name).exists()
-    const inSub = `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
-    const inCwd = `Current directory (${cwd.name})`
-    return askSelect(`Create project ${name} in current directory or subdirectory?`, [
+    const empty  = (cwd.list()?.length||0) === 0
+    const inSub  = `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
+    const inCwd  = `Current directory (${cwd.name})`
+    const choice = [
       { title: inSub, value: cwd.in(name) },
       { title: inCwd, value: cwd },
-    ])
+    ]
+    if (empty) choice.reverse()
+    return askSelect(`Create project ${name} in current directory or subdirectory?`, choice)
   }
   askTemplates (name: string):
     Promise<Record<string, Template<any>|(Buildable & Partial<Built>)>>
@@ -163,30 +174,32 @@ export class ProjectWizard {
         ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
         { title: `(done)`, value: null },
       ])
+      if (name === null) return
       delete state[name]
     }
     async function renameContract (state: Record<string, any>) {
-      const contract = await askSelect(`Select contract to rename:`, [
+      const name = await askSelect(`Select contract to rename:`, [
         ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
         { title: `(done)`, value: null },
       ])
-      const name = await askText(`Enter a new name for ${contract} (a-z, 0-9, dash/underscore):`)
-      if (name) {
-        state[name] = state[contract]
-        delete state[contract]
+      if (name === null) return
+      const newName = await askText(`Enter a new name for ${name} (a-z, 0-9, dash/underscore):`)
+      if (newName) {
+        state[newName] = Object.assign(state[name], { name: newName })
+        delete state[name]
       }
     }
   }
   selectBuilder (): 'podman'|'raw'|any {
     const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = this.tools
-    const buildRaw    = { value: 'raw',    title: `No, build with local toolchain (${cargo})` }
-    const buildDocker = { value: 'docker', title: `Yes, build in a Docker container (${docker})` }
-    const buildPodman = { value: 'podman', title: `Yes, build in a Podman container (${podman})` }
+    const buildRaw    = { value: 'raw',    title: `Build with local toolchain (${cargo||'cargo not found'})` }
+    const buildDocker = { value: 'docker', title: `Build in a Docker container (${docker||'docker not found'})` }
+    const buildPodman = { value: 'podman', title: `Build in a Podman container (experimental; ${podman||'podman not found'})` }
     const hasPodman = podman && (podman !== 'not installed')
     const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
     const isLinux = platform() === 'linux'
     const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
-    return askSelect(`Use build isolation?`, choices)
+    return askSelect(`Select build isolation mode:`, choices)
   }
   static selectDeploymentFromStore = async (store: DeployStore & {
     root?: Path
