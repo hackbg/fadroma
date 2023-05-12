@@ -419,7 +419,7 @@ export class Devnet implements DevnetHandle {
     'scrt_1.6': 'indexed block',
     'scrt_1.7': 'indexed block',
     'scrt_1.8': 'Done verifying block height',
-    'scrt_1.9': 'Done verifying block height',
+    'scrt_1.9': 'Validating proposal',
   }
 
   static initScriptMount = 'devnet.init.mjs'
