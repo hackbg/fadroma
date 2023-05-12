@@ -385,6 +385,8 @@ export type CWAPI<V extends CW> = {
         secp256k1_sign (msg: Pointer, priv: Pointer): Pointer
         secp256k1_verify (hash: Pointer, sig: Pointer, pub: Pointer): Pointer
         secp256k1_recover_pubkey (hash: Pointer, sig: Pointer, param: Pointer): Pointer
+
+        gas_evaporate (...args: any): any
       }
     },
     exports: {
@@ -715,6 +717,10 @@ export class MocknetContract<V extends CW> {
 
         check_gas (): Pointer {
           log.debug('check_gas: not implemented')
+          return 0
+        },
+        gas_evaporate (): Pointer {
+          log.debug('gas_evaporate: not implemented')
           return 0
         }
 
