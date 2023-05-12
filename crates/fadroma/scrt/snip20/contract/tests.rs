@@ -20,8 +20,8 @@ use crate::{
             MockQuerier, MockStorage,
         },
         Addr, Api, Binary, Coin, CosmosMsg, OwnedDeps, QueryResponse,
-        ReplyOn, Response, StdError, SubMsg, Uint128, WasmMsg,
-        from_binary, to_binary 
+        ReplyOn, Response, StdError, SubMsg, Uint128, WasmMsg, BankMsg,
+        from_binary, to_binary, coin
     },
     core::Canonize
 };
@@ -54,7 +54,8 @@ fn init_helper(
         decimals: 8,
         initial_balances: Some(initial_balances),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
-        config: None,
+        config: Some(TokenConfig::default().enable_modify_denoms()),
+        supported_denoms: None,
         callback: None,
     };
 
@@ -89,7 +90,8 @@ fn init_helper_with_config(
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             enable_deposit, enable_redeem, enable_mint, enable_burn
         )
         .as_bytes(),
@@ -104,6 +106,7 @@ fn init_helper_with_config(
         initial_balances: Some(initial_balances),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: Some(vec!["uscrt".into()]),
         callback: None,
     };
 
@@ -2090,9 +2093,10 @@ fn test_handle_redeem() {
         mock_info("butler", &[]),
         handle_msg,
     );
+
     let error = extract_error_msg(handle_result);
     assert!(error.contains(
-        "You are trying to redeem for more SCRT than the token has in its deposit reserve."
+        "You are trying to redeem more uscrt than the token has in its reserve."
     ));
 
     let handle_msg = ExecuteMsg::Redeem {
@@ -2967,6 +2971,7 @@ fn test_query_token_info() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3018,7 +3023,8 @@ fn test_query_exchange_rate() {
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             true, true, false, false, false
         )
         .as_bytes(),
@@ -3035,6 +3041,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3076,7 +3083,8 @@ fn test_query_exchange_rate() {
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             true, true, false, false, false
         )
         .as_bytes(),
@@ -3093,6 +3101,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3134,7 +3143,8 @@ fn test_query_exchange_rate() {
         \"enable_deposit\":{},
         \"enable_redeem\":{},
         \"enable_mint\":{},
-        \"enable_burn\":{}}}",
+        \"enable_burn\":{},
+        \"enable_modify_denoms\": true}}",
             true, true, false, false, false
         )
         .as_bytes(),
@@ -3152,6 +3162,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
+        supported_denoms: None,
         callback: None,
     };
 
@@ -3200,6 +3211,7 @@ fn test_query_exchange_rate() {
         }]),
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: None,
+        supported_denoms: None,
         callback: None,
     };
     let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
@@ -3745,7 +3757,7 @@ fn test_query_transaction_history() {
             id: 3,
             action: TxAction::Redeem {},
             coins: Coin {
-                denom: "SECSEC".to_string(),
+                denom: "uscrt".to_string(),
                 amount: Uint128::new(1000),
             },
             memo: None,
@@ -3776,7 +3788,6 @@ fn test_query_transaction_history() {
                 denom: "SECSEC".to_string(),
                 amount: Uint128::new(10000),
             },
-
             memo: Some("Initial Balance".to_string()),
             block_time: 1571797419,
             block_height: 12345,
@@ -4363,4 +4374,237 @@ fn history_with_decoys() {
     assert_eq!(transfers[1].sender, Addr::unchecked(barry));
     assert_eq!(transfers[1].receiver, Addr::unchecked(casey));
     assert_eq!(transfers[1].block_height, Some(0));
+}
+
+#[test]
+fn multi_denom_deposit_redeem() {
+    let (init_result, mut deps) = init_helper_with_config(
+        vec![],
+        true, true, false, false, 0
+    );
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let uscrt = "uscrt";
+    let ucosm = "ucosm";
+    let sender = "sender";
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        ExecuteMsg::AddSupportedDenoms {
+            denoms: vec![uscrt.into(), ucosm.into()]
+        }
+    ).unwrap();
+
+    let amount = 100;
+
+    let deposited = vec![
+        coin(amount, uscrt),
+        coin(amount, ucosm),
+        // This should be skipped and not added to history
+        coin(0, ucosm),
+    ];
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &deposited),
+        ExecuteMsg::Deposit { decoys: None, entropy: None, padding: None }
+    ).unwrap();
+
+    deps.querier.update_balance(mock_env().contract.address, deposited);
+
+    let account = Account::of(sender.canonize(&deps.api).unwrap());
+
+    let txs = account.txs(deps.as_ref(), 0, 10, true).unwrap().0;
+    assert_eq!(txs.len(), 2);
+    assert_eq!(txs[0].coins, coin(amount, ucosm));
+    assert_eq!(txs[1].coins, coin(amount, uscrt));
+
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(
+            sender,
+            &[
+                coin(amount, uscrt),
+                coin(amount, "unsupported")
+            ]
+        ),
+        ExecuteMsg::Deposit { decoys: None, entropy: None, padding: None }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Tried to deposit an unsupported token: unsupported."
+    );
+
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: amount.into(),
+            denom: None,
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Tried to redeem without specifying denom, but multiple coins are supported."
+    );
+
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: amount.into(),
+            denom: Some("unsupported".into()),
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Tried to redeem an unsupported coin."
+    );
+
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: Uint128::zero(),
+            denom: Some(uscrt.into()),
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Redeem amount cannot be 0."
+    );
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        ExecuteMsg::RemoveSupportedDenoms {
+            denoms: vec![uscrt.into()]
+        }
+    ).unwrap();
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: (amount / 2).into(),
+            denom: None,
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap();
+
+    let mut resp = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: (amount / 2).into(),
+            denom: Some(ucosm.into()),
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap();
+
+    assert_eq!(resp.messages.len(), 1);
+
+    let msg = resp.messages.pop().unwrap();
+    let expected_amount = amount / 2;
+
+    let CosmosMsg::Bank(
+        BankMsg::Send { to_address, amount: sent_coins }
+    ) = msg.msg else{
+        panic!("Expecting a BankMsg.");
+    };
+
+    assert_eq!(to_address, sender);
+    assert_eq!(sent_coins, vec![coin(expected_amount, ucosm)]);
+
+    let txs = account.txs(deps.as_ref(), 0, 10, true).unwrap().0;
+    // Should be 4 instead of 5, but there is no storage revert.
+    assert_eq!(txs.len(), 5);
+    assert_eq!(txs[0].coins, coin(amount / 2, ucosm));
+    assert_eq!(txs[1].coins, coin(amount / 2, ucosm));
+}
+
+#[test]
+fn token_config() {
+    let (init_result, mut deps) = init_helper_with_config(
+        vec![],
+        false, true, false, true, 0
+    );
+
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let uscrt = "uscrt";
+    let ucosm = "ucosm";
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        ExecuteMsg::AddSupportedDenoms {
+            denoms: vec![uscrt.into(), ucosm.into()]
+        }
+    ).unwrap();
+
+    let result = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::TokenConfig { }
+    ).unwrap();
+
+    let result: QueryAnswer = from_binary(&result).unwrap();
+
+    let QueryAnswer::TokenConfig {
+        public_total_supply,
+        deposit_enabled,
+        redeem_enabled,
+        mint_enabled,
+        burn_enabled,
+        supported_denoms
+    } = result else {
+        panic!("Expecting QueryAnswer::TokenConfig");
+    };
+
+    assert!(!public_total_supply);
+    assert!(!deposit_enabled);
+    assert!(redeem_enabled);
+    assert!(!mint_enabled);
+    assert!(burn_enabled);
+    assert_eq!(
+        supported_denoms,
+        [uscrt.to_string(), ucosm.to_string()]
+    );
 }

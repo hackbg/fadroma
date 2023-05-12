@@ -34,6 +34,7 @@ pub trait Snip20: VkAuth + Admin {
         initial_balances: Option<Vec<InitialBalance>>,
         prng_seed: Binary,
         config: Option<TokenConfig>,
+        supported_denoms: Option<Vec<String>>,
         callback: Option<Callback<String>>
     ) -> Result<Response, <Self as Snip20>::Error>;
 
@@ -169,6 +170,16 @@ pub trait Snip20: VkAuth + Admin {
     ) -> Result<Response, <Self as Snip20>::Error>;
 
     #[execute]
+    fn add_supported_denoms(
+        denoms: Vec<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
+    fn remove_supported_denoms(
+        denoms: Vec<String>
+    ) -> Result<Response, <Self as Snip20>::Error>;
+
+    #[execute]
     fn batch_transfer(
         actions: Vec<TransferAction>,
         entropy: Option<Binary>,
@@ -221,6 +232,9 @@ pub trait Snip20: VkAuth + Admin {
 
     #[query]
     fn token_info() -> Result<QueryAnswer, <Self as Snip20>::Error>;
+
+    #[query]
+    fn token_config() -> Result<QueryAnswer, <Self as Snip20>::Error>;
 
     #[query]
     fn minters() -> Result<QueryAnswer, <Self as Snip20>::Error>;
@@ -305,7 +319,11 @@ pub struct TokenConfig {
     pub enable_mint: bool,
     /// Indicates whether burn functionality should be enabled
     /// default: False
-    pub enable_burn: bool
+    pub enable_burn: bool,
+    /// Indicates whether it's possible to change the allowed
+    /// native denoms that can be exchanged for this token.
+    /// default: False
+    pub enable_modify_denoms: bool
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
@@ -316,6 +334,12 @@ pub enum ExecuteAnswer {
         status: ResponseStatus,
     },
     Redeem {
+        status: ResponseStatus,
+    },
+    AddSupportedDenoms {
+        status: ResponseStatus,
+    },
+    RemoveSupportedDenoms {
         status: ResponseStatus,
     },
 
@@ -459,6 +483,14 @@ pub enum QueryPermission {
 #[serde(rename_all = "snake_case")]
 pub enum QueryAnswer {
     TokenInfo(TokenInfo),
+    TokenConfig {
+        public_total_supply: bool,
+        deposit_enabled: bool,
+        redeem_enabled: bool,
+        mint_enabled: bool,
+        burn_enabled: bool,
+        supported_denoms: Vec<String>
+    },
     ExchangeRate {
         rate: Uint128,
         denom: String
@@ -851,6 +883,13 @@ impl TokenConfig {
     #[inline]
     pub fn enable_burn(mut self) -> Self {
         self.enable_burn = true;
+
+        self
+    }
+
+    #[inline]
+    pub fn enable_modify_denoms(mut self) -> Self {
+        self.enable_modify_denoms = true;
 
         self
     }
