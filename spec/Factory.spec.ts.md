@@ -110,7 +110,7 @@ const chains = [
   Chain.variants['ScrtDevnet']({ deleteOnExit: true }),
 ]
 
-chains.forEach(chain=>{
+for (const chain of chains) {
 
   const agent = await chain.getAgent({ name: 'Admin' }).ready
 
