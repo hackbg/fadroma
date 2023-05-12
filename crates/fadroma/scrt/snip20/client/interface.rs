@@ -320,8 +320,8 @@ pub struct TokenConfig {
     /// Indicates whether burn functionality should be enabled
     /// default: False
     pub enable_burn: bool,
-    /// Indicates whether it's possible to the allowed native denoms
-    /// that can be exchanged for this token.
+    /// Indicates whether it's possible to change the allowed
+    /// native denoms that can be exchanged for this token.
     /// default: False
     pub enable_modify_denoms: bool
 }

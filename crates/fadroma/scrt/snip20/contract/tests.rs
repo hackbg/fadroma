@@ -4405,7 +4405,9 @@ fn multi_denom_deposit_redeem() {
 
     let deposited = vec![
         coin(amount, uscrt),
-        coin(amount, ucosm)
+        coin(amount, ucosm),
+        // This should be skipped and not added to history
+        coin(0, ucosm),
     ];
 
     execute(
@@ -4478,6 +4480,24 @@ fn multi_denom_deposit_redeem() {
         "Generic error: Tried to redeem an unsupported coin."
     );
 
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(sender, &[]),
+        ExecuteMsg::Redeem {
+            amount: Uint128::zero(),
+            denom: Some(uscrt.into()),
+            entropy: None,
+            decoys: None,
+            padding: None
+        }
+    ).unwrap_err();
+
+    assert_eq!(
+        err.to_string(),
+        "Generic error: Redeem amount cannot be 0."
+    );
+
     execute(
         deps.as_mut(),
         mock_env(),
@@ -4532,4 +4552,59 @@ fn multi_denom_deposit_redeem() {
     assert_eq!(txs.len(), 5);
     assert_eq!(txs[0].coins, coin(amount / 2, ucosm));
     assert_eq!(txs[1].coins, coin(amount / 2, ucosm));
+}
+
+#[test]
+fn token_config() {
+    let (init_result, mut deps) = init_helper_with_config(
+        vec![],
+        false, true, false, true, 0
+    );
+
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let uscrt = "uscrt";
+    let ucosm = "ucosm";
+
+    execute(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        ExecuteMsg::AddSupportedDenoms {
+            denoms: vec![uscrt.into(), ucosm.into()]
+        }
+    ).unwrap();
+
+    let result = query(
+        deps.as_ref(),
+        mock_env(),
+        QueryMsg::TokenConfig { }
+    ).unwrap();
+
+    let result: QueryAnswer = from_binary(&result).unwrap();
+
+    let QueryAnswer::TokenConfig {
+        public_total_supply,
+        deposit_enabled,
+        redeem_enabled,
+        mint_enabled,
+        burn_enabled,
+        supported_denoms
+    } = result else {
+        panic!("Expecting QueryAnswer::TokenConfig");
+    };
+
+    assert!(!public_total_supply);
+    assert!(!deposit_enabled);
+    assert!(redeem_enabled);
+    assert!(!mint_enabled);
+    assert!(burn_enabled);
+    assert_eq!(
+        supported_denoms,
+        [uscrt.to_string(), ucosm.to_string()]
+    );
 }

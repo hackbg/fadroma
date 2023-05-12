@@ -379,14 +379,16 @@ pub(crate) mod default_impl {
                 if supported.contains(&coin.denom) {
                     amount += coin.amount;
 
-                    store_deposit(
-                        deps.storage,
-                        &account,
-                        coin.amount,
-                        coin.denom,
-                        &env.block,
-                        decoys.as_ref()
-                    )?;
+                    if !coin.amount.is_zero() {
+                        store_deposit(
+                            deps.storage,
+                            &account,
+                            coin.amount,
+                            coin.denom,
+                            &env.block,
+                            decoys.as_ref()
+                        )?;
+                    }
                 } else {
                     return Err(StdError::generic_err(format!(
                         "Tried to deposit an unsupported token: {}.",
@@ -420,6 +422,10 @@ pub(crate) mod default_impl {
                 return Err(StdError::generic_err(
                     "Redeem functionality is not enabled for this token.",
                 ));
+            }
+
+            if amount.is_zero() {
+                return Err(StdError::generic_err("Redeem amount cannot be 0."));
             }
 
             let mut supported = SUPPORTED_DENOMS.load_or_default(deps.storage)?;
