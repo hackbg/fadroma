@@ -39,7 +39,7 @@ To connect to Secret Network with Fadroma, use one of the following:
 ```typescript
 const mainnet = Scrt.Chain.mainnet({ url: 'test' })
 const testnet = Scrt.Chain.testnet({ url: 'test' })
-const devnet  = new Devnet({ platform: 'scrt_1.8' }).getChain(Scrt.Chain)
+const devnet  = new Devnet({ platform: 'scrt_1.9' }).getChain(Scrt.Chain)
 const mocknet = Scrt.Chain.mocknet({ url: 'test' })
 ```
 

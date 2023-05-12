@@ -43,7 +43,7 @@ export function getDevnet (options: Partial<Config["devnet"]> = {}) {
 export type DevnetPortMode = 'lcp'|'grpcWeb'
 
 /** Supported devnet variants. */
-export type DevnetPlatform = `scrt_1.${2|3|4|5|6|7|8}`
+export type DevnetPlatform = `scrt_1.${2|3|4|5|6|7|8|9}`
 
 /** A private local instance of a network. */
 export class Devnet implements DevnetHandle {
@@ -109,7 +109,7 @@ export class Devnet implements DevnetHandle {
     if (!this.chainId) throw new Error.Devnet.NoChainId()
     this.keepRunning    = options.keepRunning ?? !this.deleteOnExit
     this.podman         = options.podman ?? false
-    this.platform       = options.platform ?? 'scrt_1.8'
+    this.platform       = options.platform ?? 'scrt_1.9'
     this.verbose        = options.verbose ?? false
     this.launchTimeout  = options.launchTimeout ?? 10
     this.dontMountState = options.dontMountState ?? false
@@ -300,7 +300,10 @@ export class Devnet implements DevnetHandle {
         throw e
       }
     }
-    if (container && await container?.isRunning) await this.pause()
+    if (container && await container?.isRunning) {
+      await this.pause()
+      await container.remove()
+    }
     const state = $(this.stateDir)
     const path  = state.shortPath
     try {
@@ -393,7 +396,8 @@ export class Devnet implements DevnetHandle {
     'scrt_1.5': $(thisPackage, 'devnets', 'scrt_1_5.Dockerfile').path,
     'scrt_1.6': $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
     'scrt_1.7': $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
-    'scrt_1.8': $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path
+    'scrt_1.8': $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path,
+    'scrt_1.9': $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
@@ -404,6 +408,7 @@ export class Devnet implements DevnetHandle {
     'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
     'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
     'scrt_1.8': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
+    'scrt_1.9': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
   }
 
   static readyMessage: Record<DevnetPlatform, string> = {
@@ -414,6 +419,7 @@ export class Devnet implements DevnetHandle {
     'scrt_1.6': 'indexed block',
     'scrt_1.7': 'indexed block',
     'scrt_1.8': 'Done verifying block height',
+    'scrt_1.9': 'Done verifying block height',
   }
 
   static initScriptMount = 'devnet.init.mjs'
@@ -443,7 +449,8 @@ export class Devnet implements DevnetHandle {
     'scrt_1.5': 'lcp',
     'scrt_1.6': 'lcp',
     'scrt_1.7': 'lcp',
-    'scrt_1.8': 'lcp'
+    'scrt_1.8': 'lcp',
+    'scrt_1.9': 'lcp'
   }
 
 }

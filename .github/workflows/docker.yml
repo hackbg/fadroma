@@ -44,6 +44,12 @@ jobs:
       - uses: docker/build-push-action@v4
         with:
           context: ./devnets
+          file:    devnets/scrt_1_9.Dockerfile
+          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.9:${{ env.IMAGE_TAG }}
+          push:    true
+      - uses: docker/build-push-action@v4
+        with:
+          context: ./devnets
           file:    devnets/scrt_1_8.Dockerfile
           tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.8:${{ env.IMAGE_TAG }}
           push:    true
@@ -58,10 +64,4 @@ jobs:
           context: ./devnets
           file:    devnets/scrt_1_6.Dockerfile
           tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.6:${{ env.IMAGE_TAG }}
-          push:    true
-      - uses: docker/build-push-action@v4
-        with:
-          context: ./devnets
-          file:    devnets/scrt_1_5.Dockerfile
-          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.5:${{ env.IMAGE_TAG }}
           push:    true

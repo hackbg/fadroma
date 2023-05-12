@@ -42,5 +42,5 @@ export function getDeployment <D extends Deployment> (
 
 // This installs devnet:
 Chain.variants['ScrtDevnet'] =
-  (options: Partial<Devnet> = { platform: 'scrt_1.8' }): Scrt.Chain =>
+  (options: Partial<Devnet> = { platform: 'scrt_1.9' }): Scrt.Chain =>
     new Config().getDevnet(options).getChain(Scrt.Chain as ChainClass<Scrt.Chain>)
