@@ -26,7 +26,6 @@ import { getBuilder } from './fadroma-build'
 import {
   Builder, Deployment as BaseDeployment, DeployStore, ChainMode, Uploader,
   Error as BaseError, Console as BaseConsole, colors, bold, HEAD,
-  randomChainId
 } from '@fadroma/agent'
 import type {
   BuilderClass, Chain, ChainId, UploaderClass, Template, Built,
@@ -227,10 +226,10 @@ export class Config extends ConnectConfig {
 
   /** Devnet options. */
   devnet: Partial<Devnet> = {
+    chainId: this.getString(
+      'FADROMA_DEVNET_CHAIN_ID', ()=>undefined),
     platform: this.getString(
       'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8'),
-    chainId: this.getString(
-      'FADROMA_DEVNET_CHAIN_ID', ()=>randomChainId()),
     deleteOnExit: this.getFlag(
       'FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false),
     keepRunning: this.getFlag(

@@ -60,14 +60,14 @@ export class ConnectConfig extends Config {
   chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
     ()=>'Mocknet')
   /** Override chain id. */
-  chainId: ChainId|null = this.getString('FADROMA_CHAIN_ID', ()=>{
+  chainId?: ChainId = this.getString('FADROMA_CHAIN_ID', ()=>{
     const chainIds = {
       Mocknet:     'mocknet',
-      ScrtDevnet:  randomChainId(),
+      ScrtDevnet:  'fadroma-devnet',
       ScrtTestnet: Scrt.Config.defaultTestnetChainId,
       ScrtMainnet: Scrt.Config.defaultMainnetChainId,
     }
-    return chainIds[this.chain as keyof typeof chainIds] || null
+    return chainIds[this.chain as keyof typeof chainIds]
   })
   /** Override chain mode. */
   chainMode: ChainMode = this.getString('FADROMA_CHAIN_MODE', () => {

@@ -105,7 +105,7 @@ export class Devnet implements DevnetHandle {
     * Must call the `respawn` method to get it running. */
   constructor (options: Partial<Devnet> = {}) {
     this.deleteOnExit   = options.deleteOnExit ?? false
-    this.chainId        = options.chainId ?? (this.deleteOnExit?randomChainId():'fadroma-devnet')
+    this.chainId        = options.chainId ?? (this.deleteOnExit ? randomChainId() : 'fadroma-devnet')
     if (!this.chainId) throw new Error.Devnet.NoChainId()
     this.keepRunning    = options.keepRunning ?? !this.deleteOnExit
     this.podman         = options.podman ?? false
@@ -212,7 +212,7 @@ export class Devnet implements DevnetHandle {
     this.setExitHandler()
     // set id and save
     this.containerId = container.id
-    this.log.log(`created container`, container.id)
+    this.log.log(`created container`, container.id?.slice(0, 8))
     return await this.save()
   }
 
@@ -252,7 +252,7 @@ export class Devnet implements DevnetHandle {
   start = async (): Promise<this> => {
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
-      this.log.log('starting container', container.id)
+      this.log.log('starting container', container.id?.slice(0, 8))
       await container.start()
       this.running = true
       await this.save()
@@ -285,13 +285,22 @@ export class Devnet implements DevnetHandle {
   /** Export the state of the devnet as a container image. */
   export = async (repository?: string, tag?: string) => {
     const container = await this.container
-    if (!container) throw new Error.Devnet("Can't export: no container")
+    if (!container) throw new Error.Devnet("can't export: no container")
     return container.export(repository, tag)
   }
 
   delete = async () => {
-    const container = await this.container
-    if (await container?.isRunning) await this.pause()
+    let container
+    try {
+      container = await this.container
+    } catch (e) {
+      if (e.statusCode === 404) {
+        this.log.info(`no container`, this.containerId?.slice(0, 8))
+      } else {
+        throw e
+      }
+    }
+    if (container && await container?.isRunning) await this.pause()
     const state = $(this.stateDir)
     const path  = state.shortPath
     try {
