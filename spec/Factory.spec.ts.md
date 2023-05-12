@@ -11,12 +11,12 @@ in the `examples/` directory of the Fadroma repo.)
 
 The control flow goes something like this:
 
-* Build and upload Factory and Product
-* Instantiate Factory, giving it code id and code hash of product
-* User requests from Factory to create Product
-* Factory instantiates a Product
-* Product calls back to factory to register itself
-* Factory can list all Products created in such a way.
+* Build and upload Factory and Product.
+* Instantiate a Factory, providing it with code id and code hash for Product.
+* User requests from the Factory to create a Product.
+* Factory instantiates a Product.
+* The Product calls back to factory to register itself.
+* That way, the Factory can list all Products created through it.
 
 ## Defining
 
@@ -87,7 +87,7 @@ class Factory extends Client {
 // An empty `Client` class is just a marker for what kind of contract that it connects to.
 class Product extends Client {
 
-  // But in practice you would have your Product's methods here -
+  // In practice, you would have your Product's methods here -
   // for example, if your factory instantiates AMM pools,
   // you would add things like `swap` and `add_liquidity`
 
@@ -96,7 +96,7 @@ class Product extends Client {
 
 ## Testing
 
-Testing this on mocknet and devnet:
+And here's how you would test it on mocknet and devnet:
 
 ```typescript
 // test:
@@ -105,15 +105,19 @@ import { Chain, getDeployment } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
 import assert from 'node:assert'
 
-for (const chain of [
+const chains = [
   Chain.variants['Mocknet'](),
   Chain.variants['ScrtDevnet']({ deleteOnExit: true }),
-]) {
+]
+
+chains.forEach(chain=>{
 
   const agent = await chain.getAgent({ name: 'Admin' }).ready
+
   const deployment = getDeployment(FactoryDeployment, { agent })
 
   await deployment.deploy()
+
   assert.deepEqual(
     await deployment.products,
     { total: 0, entries: [] },
@@ -121,9 +125,10 @@ for (const chain of [
   )
 
   await deployment.factory.expect().create('foo')
+
   assert(
     (await deployment.products).entries.every(entry=>entry instanceof Product),
-    'factory records created contract and deployment wraps them in Product class'
+    'the factory records the created contracts; deployment turns them into Producti nstances'
   )
 
 }
