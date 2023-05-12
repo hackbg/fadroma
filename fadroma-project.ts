@@ -1,7 +1,7 @@
 import { Config, Console, colors, Error, DeployError } from './fadroma-base'
 import { getBuilder, ContractCrate } from './fadroma-build'
 import { getUploader } from './fadroma-upload'
-import { Devnet } from './devnet/devnet'
+import { Devnet } from './fadroma-devnet'
 
 import type {
   Builder, Buildable, Built, Uploader, Chain,

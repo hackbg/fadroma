@@ -1,4 +1,4 @@
-import { Error, Console, Config } from '../fadroma-base'
+import { Error, Console, Config } from './fadroma-base'
 import { bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/agent'
 import type { Agent, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
@@ -9,16 +9,15 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
 
+/** Path to this package. Used to find the build script, dockerfile, etc.
+  * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
+//@ts-ignore
+const thisPackage = dirname(fileURLToPath(import.meta.url))
+
 /** @returns Devnet configured as per environment and options. */
 export function getDevnet (options: Partial<Config["devnet"]> = {}) {
   return new Config({ devnet: options }).getDevnet()
 }
-
-/** Root of this module.
-  * Used for finding embedded assets, e.g. Dockerfiles.
-  * TypeScript doesn't like `import.meta.url` when compiling to JS. */
-//@ts-ignore
-export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource finder
 
 /** Supported connection types. */
 export type DevnetPortMode = 'lcp'|'grpcWeb'
@@ -118,7 +117,7 @@ export class Devnet implements DevnetHandle {
   /** This should point to the standard production docker image for the network. */
   get image () {
     if (this.engine && this.imageTag) {
-      return this.engine.image(this.imageTag, this.dockerfile, [this.initScriptMount])
+      return this.engine.image(this.imageTag, this.dockerfile, [this.initScriptMount]).ensure()
     }
   }
   /** Virtual path inside the container where the init script is mounted. */
@@ -186,7 +185,7 @@ export class Devnet implements DevnetHandle {
     }
     // create container
     this.log.log(`creating devnet`, this.chainId, `on`, String(this.url))
-    const container = this.image.container(
+    const container = image!.container(
       this.chainId, this.spawnOptions, this.initScript ? [this.initScriptMount] : []
     )
     await container.create()
@@ -233,6 +232,7 @@ export class Devnet implements DevnetHandle {
   start = async (): Promise<this> => {
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
+      this.log.log('starting container', container.id)
       await container.start()
       this.running = true
       await this.save()
@@ -247,6 +247,7 @@ export class Devnet implements DevnetHandle {
   pause = async () => {
     const container = await this.container
     if (container) {
+      this.log.log('stopping container', container.id)
       try {
         if (await container.isRunning) await container.kill()
       } catch (e) {
@@ -271,7 +272,6 @@ export class Devnet implements DevnetHandle {
   delete = async () => {
     const container = await this.container
     if (await container?.isRunning) await this.pause()
-    this.log.log('devnet erase requested', this)
     const state = $(this.stateDir)
     const path  = state.shortPath
     try {
@@ -360,13 +360,13 @@ export class Devnet implements DevnetHandle {
   }
 
   static dockerfiles: Record<DevnetPlatform, string> = {
-    'scrt_1.2': $(devnetPackage, 'scrt_1_2.Dockerfile').path,
-    'scrt_1.3': $(devnetPackage, 'scrt_1_3.Dockerfile').path,
-    'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path,
-    'scrt_1.5': $(devnetPackage, 'scrt_1_5.Dockerfile').path,
-    'scrt_1.6': $(devnetPackage, 'scrt_1_6.Dockerfile').path,
-    'scrt_1.7': $(devnetPackage, 'scrt_1_7.Dockerfile').path,
-    'scrt_1.8': $(devnetPackage, 'scrt_1_8.Dockerfile').path
+    'scrt_1.2': $(thisPackage, 'devnets', 'scrt_1_2.Dockerfile').path,
+    'scrt_1.3': $(thisPackage, 'devnets', 'scrt_1_3.Dockerfile').path,
+    'scrt_1.4': $(thisPackage, 'devnets', 'scrt_1_4.Dockerfile').path,
+    'scrt_1.5': $(thisPackage, 'devnets', 'scrt_1_5.Dockerfile').path,
+    'scrt_1.6': $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
+    'scrt_1.7': $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
+    'scrt_1.8': $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {

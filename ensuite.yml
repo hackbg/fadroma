@@ -11,8 +11,8 @@ coverage:
     - typedoc-theme.tsx
     - fadroma.browser.ts
     - build.impl.mjs
-    - devnet/devnet.init.mjs
-    - devnet/devnet.server.mjs
+    - devnets/devnet.init.mjs
+    - devnets/devnet.server.mjs
     - fadroma.cli.cjs
 
 header:

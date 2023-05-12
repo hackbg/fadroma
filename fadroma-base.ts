@@ -1,5 +1,5 @@
-import { Devnet } from './devnet/devnet'
-import type { DevnetPlatform } from './devnet/devnet'
+import { Devnet } from './fadroma-devnet'
+import type { DevnetPlatform } from './fadroma-devnet'
 import { FSUploader } from './fadroma-upload'
 import { getBuilder } from './fadroma-build'
 
