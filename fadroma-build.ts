@@ -77,8 +77,6 @@ export abstract class BuildLocal extends Builder {
   verbose:    boolean     = false
   /** Whether the build log should be printed only on error, or always */
   quiet:      boolean     = false
-  /** Whether to enable caching. */
-  caching:    boolean     = true
   /** Default Git reference from which to build sources. */
   revision:   string = HEAD
 
@@ -414,14 +412,16 @@ export class BuildContainer extends BuildLocal {
       buildLogStream  // container log stream
     )
     process.once('beforeExit', async () => {
-      this.log.log('killing build container', bold(buildContainer.id))
+      if (this.verbose) this.log.log('killing build container', bold(buildContainer.id))
       try {
         await buildContainer.kill()
         this.log.log('killed build container', bold(buildContainer.id))
       } catch (e) {
         if (!e.statusCode) this.log.error(e)
-        else if (e.statusCode === '404') {}
-        else this.log.warn('failed to kill build container', e.statusCode, e.reason)
+        else if (e.statusCode === 404) {}
+        else if (this.verbose) this.log.warn(
+          'failed to kill build container', e.statusCode, `(${e.reason})`
+        )
       }
     })
     const {error, code} = await buildContainer.wait()
@@ -437,8 +437,9 @@ export class BuildContainer extends BuildLocal {
 
   protected buildFailed (crates: string[], code: string|number, logs: string) {
     const crateList = crates.join(' ')
-    this.log.log(logs)
-    this.log.error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
+    this.log
+      .log(logs)
+      .error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
     throw new Error(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
   }
 

@@ -54,6 +54,10 @@ export type BuilderClass<B extends Builder> = Class<Builder, any>
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder {
   log = new Console(this.constructor.name)
+  /** Whether to enable build caching.
+    * When set to false, this builder will rebuild even when
+    * binary and checksum are both present in wasm/ directory */
+  caching: boolean = true
   /** Global registry of builder variants. Populated downstream. */
   static variants: Record<string, BuilderClass<Builder>> = {}
   /** Unique identifier of this builder implementation. */

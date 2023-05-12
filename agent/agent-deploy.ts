@@ -129,8 +129,6 @@ export class Deployment {
     * except by using `agent.upload` directly, which does not cache or log uploads. */
   uploader?:   Uploader
 
-  config?: { build?: { project?: any } } & any // FIXME
-
   constructor (options: Partial<Omit<Deployment, 'contracts'>> & Partial<{
     contracts?: Record<string, Partial<AnyContract>>|Record<string, AnyContract>
   }> = {}) {
@@ -142,7 +140,7 @@ export class Deployment {
     this.chain     ??= options.chain ?? options.agent?.chain
     this.builder   ??= options.builder
     this.uploader  ??= options.uploader ?? new Uploader({ agent: this.agent })
-    this.workspace ??= options.workspace ?? this.config?.build?.project
+    this.workspace ??= options.workspace
     this.revision  ??= options.revision
     this.store     ??= options.store
     // Hydrate state
@@ -327,7 +325,7 @@ export class Deployment {
   /** Compile multiple contracts. */
   buildContracts (contracts: (string|AnyContract)[]) {
     if (!this.builder) throw new Error.Missing.Builder()
-    this.log(`making sure all ${contracts.length} contracts are built`)
+    this.log(`making sure all ${contracts.length} contract(s) are built`)
     return this.builder.buildMany(contracts as unknown as Buildable[])
   }
   /** Upload multiple contracts. */

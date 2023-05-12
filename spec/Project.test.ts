@@ -1,6 +1,7 @@
 import assert from 'node:assert'
-import { Project, ProjectWizard } from '@hackbg/fadroma'
+import { Project } from '@hackbg/fadroma'
 import { withTmpDir } from '@hackbg/file'
+import { ProjectWizard } from '../fadroma-wizard'
 
 export const tmpDir = () => {
   let x
@@ -9,6 +10,7 @@ export const tmpDir = () => {
 }
 
 assert(await new ProjectWizard({ interactive: false, cwd: tmpDir() }).createProject(
+  Project,
   'test-project-2',
   'test3',
   'test4'

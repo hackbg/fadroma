@@ -36,7 +36,7 @@ import type {
 import { Config as BaseConfig, ConnectConfig } from '@fadroma/connect'
 import type { Environment } from '@fadroma/connect'
 
-import $ from '@hackbg/file'
+import $, { JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 
 import { dirname } from 'node:path'
@@ -49,6 +49,8 @@ export type { Decimal } from '@fadroma/agent'
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 //@ts-ignore
 export const thisPackage = dirname(fileURLToPath(import.meta.url))
+
+export const { version } = $(thisPackage, 'package.json').as(JSONFile).load() as any
 
 export class Config extends ConnectConfig {
 
@@ -210,7 +212,7 @@ export class Config extends ConnectConfig {
   ): T {
     Deployment ??= BaseDeployment as DeploymentClass<T>
     args = [...args]
-    args[0] = ({ config: this, ...args[0] ?? {} })
+    args[0] = ({ ...args[0] ?? {} })
     args[0].chain     ||= this.getChain()
     if (!args[0].chain) throw new Error('Missing chain')
     args[0].agent     ||= this.getAgent()
