@@ -72,7 +72,7 @@ export class Project extends CommandContext {
   )
 
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
-    const configFile = $(path, 'fadroma.json').as(JSONFile)
+    const configFile = $(path, 'fadroma.yml').as(YAMLFile)
     if (configFile.exists()) {
       return new Project(configFile.load() as Partial<Project>)
     } else {
@@ -101,7 +101,7 @@ export class Project extends CommandContext {
     // Populate templates
     this.templates = {}
     const templates = options?.templates || (this.exists()
-      ? ((this.files.fadromaJson.load()||{}) as any).templates||{}
+      ? ((this.files.fadromaYaml.load()||{}) as any).templates||{}
       : {}) as Record<string, Template<any>|(Buildable & Partial<Built>)>
     for (const [key, val] of Object.entries(templates)) this.setTemplate(key, val)
 
@@ -149,7 +149,7 @@ export class Project extends CommandContext {
       dockerfile:     null,
       droneWorkflow:  null,
       envfile:        this.root.at('.env').as(TextFile),
-      fadromaJson:    this.root.at('fadroma.json').as(JSONFile),
+      fadromaYaml:    this.root.at('fadroma.yml').as(YAMLFile),
       githubWorkflow: null,
       gitignore:      this.root.at('.gitignore').as(TextFile),
       packageJson:    this.root.at('package.json').as(JSONFile),
@@ -161,7 +161,7 @@ export class Project extends CommandContext {
     }
   }
   /** @returns stateless handles for the contract crates
-    * corresponding to templates in fadroma.json */
+    * corresponding to templates in fadroma.yml */
   get crates () {
     const crates: Record<string, ContractCrate> = {}
     for (const [name, template] of Object.entries(this.templates)) {
@@ -248,9 +248,9 @@ export class Project extends CommandContext {
     return this
   }
 
-  /** @returns Boolean whether the project (as defined by fadroma.json in root) exists */
+  /** @returns Boolean whether the project (as defined by fadroma.yml in root) exists */
   exists = () =>
-    this.files.fadromaJson.exists()
+    this.files.fadromaYaml.exists()
   /** Builds one or more named templates, or all templates if no arguments are passed. */
   build = async (...names: string[]): Promise<Built[]> => {
     if (names.length < 1) {
@@ -379,7 +379,7 @@ export class Project extends CommandContext {
     const {
       readme, packageJson, cargoToml,
       gitignore, envfile, shellNix,
-      fadromaJson, apiIndex, opsIndex, testIndex,
+      fadromaYaml, apiIndex, opsIndex, testIndex,
     } = files
     readme.save([
       `# ${name}\n---\n`,
@@ -387,7 +387,7 @@ export class Project extends CommandContext {
       `by [Hack.bg](https://hack.bg) `,
       `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
     ].join(''))
-    fadromaJson.save({ templates })
+    fadromaYaml.save({ templates })
     packageJson.save({
       name: `${name}`,
       main: `api.ts`,
