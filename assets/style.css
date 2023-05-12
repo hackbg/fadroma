@@ -251,27 +251,53 @@ svg.icon-todo {
 }
 
 .ensuite-md-rendered {
-  background: white;
-  display: block;
-  max-width: 54rem;
-  margin: 3rem auto 0 38%;
-  padding: 3rem;
-  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
-}
-.ensuite-md-rendered .table-of-contents {
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  bottom: 0;
-  width: 38%;
-  background: #476d3b;
-  background: hsl(106 25% 25% / 1);
-  color: white;
-  padding: 1rem 0 2rem 1rem;
-  border-right: 1px solid #888;
+  /*background: white;*/
+  /*display: block;*/
+  /*max-width: 54rem;*/
+  /*margin: 3rem auto 0 38%;*/
+  /*padding: 3rem;*/
+  /*box-shadow: 3px 3px 6px rgba(0,0,0,0.1)*/
   display: flex;
-  justify-content: flex-end;
+  flex-flow: row nowrap;
+  justify-content: center;
 }
+
+
+.ensuite-md-content {
+  background: white;
+  padding:    5rem 3rem 2rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  max-width:  54rem;
+}
+
+.ensuite-md-nav {}
+.ensuite-md-nav ul { list-style: none; margin-top: 5rem; margin-right: 2rem; }
+.ensuite-md-nav li a { display: inline-block; font-weight: bold; padding: 0.5rem 1rem; text-transform: uppercase; font-size: 0.9rem; line-height: 1rem }
+
+.ensuite-md-toc {}
+.ensuite-md-toc .table-of-contents { margin-top: 5rem; margin-left: 1rem; overflow: auto; }
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { text-decoration: underline 2px solid }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+
+
+/*.ensuite-md-rendered .table-of-contents {*/
+  /*position: fixed;*/
+  /*top: 3rem;*/
+  /*left: 0;*/
+  /*bottom: 0;*/
+  /*width: 38%;*/
+  /*background: #476d3b;*/
+  /*background: hsl(106 25% 25% / 1);*/
+  /*color: white;*/
+  /*padding: 1rem 0 2rem 1rem;*/
+  /*border-right: 1px solid #888;*/
+  /*display: flex;*/
+  /*justify-content: flex-end;*/
+/*}*/
 .ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
 .ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
 
@@ -297,13 +323,6 @@ pre > code.language-typescript {
   background: #ffe;
   border-radius: 0.15rem;
 }
-
-.table-of-contents { overflow: auto }
-.table-of-contents a { display: block; color: white; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
-.table-of-contents a:hover { text-decoration: underline 2px solid white }
-.table-of-contents li { margin: 0 0 }
-.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
-.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 
 .ensuite-md-header {
   z-index: 100;
