@@ -26,7 +26,7 @@
 <ul class="tsd-hierarchy">
 <li><span class="target">BuildContainer</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L105">fadroma-build.ts:105</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L123">fadroma-build.ts:123</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -85,31 +85,33 @@
 <h4 class="tsd-returns-title">Returns <a href="_hackbg_fadroma.BuildContainer.html" class="tsd-signature-type" data-tsd-kind="Class">BuildContainer</a></h4><aside class="tsd-sources">
 <p>Overrides <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#constructor">constructor</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L116">fadroma-build.ts:116</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L134">fadroma-build.ts:134</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Properties</h2>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="caching" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>caching</span><a href="#caching" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">caching<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = true</span></div>
-<div class="tsd-comment tsd-typography"><p>Whether to enable caching.</p>
+<div class="tsd-comment tsd-typography"><p>Whether to enable build caching.
+When set to false, this builder will rebuild even when
+binary and checksum are both present in wasm/ directory</p>
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#caching">caching</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L61">fadroma-build.ts:61</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/agent/agent-services.ts#L60">agent/agent-services.ts:60</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="docker" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>docker</span><a href="#docker" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">docker<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Engine</span></div>
 <div class="tsd-comment tsd-typography"><p>Used to launch build container.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L110">fadroma-build.ts:110</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L128">fadroma-build.ts:128</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="dockerfile" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>dockerfile</span><a href="#dockerfile" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">dockerfile<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Path to the dockerfile to build the build container if missing.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L114">fadroma-build.ts:114</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L132">fadroma-build.ts:132</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="id" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagReadonly">Readonly</code> <span>id</span><a href="#id" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;Container&quot;</span><span class="tsd-signature-symbol"> = &#39;Container&#39;</span></div>
@@ -117,14 +119,14 @@
 </div><aside class="tsd-sources">
 <p>Overrides <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#id">id</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L106">fadroma-build.ts:106</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L124">fadroma-build.ts:124</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="image" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>image</span><a href="#image" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">image<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Image</span></div>
 <div class="tsd-comment tsd-typography"><p>Tag of the docker image for the build container.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L112">fadroma-build.ts:112</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L130">fadroma-build.ts:130</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class"><a id="log" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>log</span><a href="#log" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">log<span class="tsd-signature-symbol">:</span> <a href="_hackbg_fadroma.Console.html" class="tsd-signature-type" data-tsd-kind="Class">Console</a><span class="tsd-signature-symbol"> = ...</span></div>
@@ -132,7 +134,7 @@
 </div><aside class="tsd-sources">
 <p>Overrides <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#log">log</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L108">fadroma-build.ts:108</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L126">fadroma-build.ts:126</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="noFetch" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>no<wbr/>Fetch</span><a href="#noFetch" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">no<wbr/>Fetch<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
@@ -140,7 +142,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#noFetch">noFetch</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L51">fadroma-build.ts:51</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L71">fadroma-build.ts:71</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="outputDir" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>output<wbr/>Dir</span><a href="#outputDir" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">output<wbr/>Dir<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">OpaqueDirectory</span></div>
@@ -148,7 +150,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#outputDir">outputDir</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L53">fadroma-build.ts:53</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L73">fadroma-build.ts:73</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="quiet" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>quiet</span><a href="#quiet" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">quiet<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
@@ -156,7 +158,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#quiet">quiet</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L59">fadroma-build.ts:59</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L79">fadroma-build.ts:79</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="revision" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>revision</span><a href="#revision" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">revision<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = HEAD</span></div>
@@ -164,7 +166,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#revision">revision</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L63">fadroma-build.ts:63</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L81">fadroma-build.ts:81</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="script" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>script</span><a href="#script" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">script<span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
@@ -172,7 +174,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#script">script</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L47">fadroma-build.ts:47</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L67">fadroma-build.ts:67</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="toolchain" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>toolchain</span><a href="#toolchain" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">toolchain<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = null</span></div>
@@ -180,7 +182,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#toolchain">toolchain</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L55">fadroma-build.ts:55</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L75">fadroma-build.ts:75</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="verbose" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>verbose</span><a href="#verbose" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">verbose<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
@@ -188,7 +190,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#verbose">verbose</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L57">fadroma-build.ts:57</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L77">fadroma-build.ts:77</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="workspace" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>workspace</span><a href="#workspace" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">workspace<span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
@@ -196,7 +198,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#workspace">workspace</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L49">fadroma-build.ts:49</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L69">fadroma-build.ts:69</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a id="variants" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagStatic">Static</code> <span>variants</span><a href="#variants" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <div class="tsd-signature">variants<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><a href="../types/_hackbg_fadroma.BuilderClass.html" class="tsd-signature-type" data-tsd-kind="Type alias">BuilderClass</a><span class="tsd-signature-symbol">&lt;</span><a href="_hackbg_fadroma.Builder.html" class="tsd-signature-type" data-tsd-kind="Class">Builder</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> = {}</span></div>
@@ -204,7 +206,7 @@
 </div><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#variants">variants</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/agent/agent-services.ts#L37">agent/agent-services.ts:37</a></li></ul></aside></section></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/agent/agent-services.ts#L62">agent/agent-services.ts:62</a></li></ul></aside></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Accessors</h2>
 <section class="tsd-panel tsd-member tsd-kind-accessor tsd-parent-kind-class"><a id="_toStringTag_" class="tsd-anchor"></a>
@@ -214,7 +216,7 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L432">fadroma-build.ts:432</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L453">fadroma-build.ts:453</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group">
 <h2>Methods</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="build" class="tsd-anchor"></a>
@@ -232,7 +234,7 @@
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_hackbg_fadroma.Built.html" class="tsd-signature-type" data-tsd-kind="Interface">Built</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#build">build</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L146">fadroma-build.ts:146</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L164">fadroma-build.ts:164</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a id="buildFailed" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>build<wbr/>Failed</span><a href="#buildFailed" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
@@ -249,7 +251,7 @@
 <h5>logs: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L418">fadroma-build.ts:418</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L438">fadroma-build.ts:438</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="buildMany" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>build<wbr/>Many</span><a href="#buildMany" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -268,7 +270,7 @@ reusing the container&#39;s internal intermediate build cache.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_hackbg_fadroma.Built.html" class="tsd-signature-type" data-tsd-kind="Interface">Built</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Overrides <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#buildMany">buildMany</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L155">fadroma-build.ts:155</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L173">fadroma-build.ts:173</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a id="fetch" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>fetch</span><a href="#fetch" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
@@ -283,7 +285,7 @@ reusing the container&#39;s internal intermediate build cache.</p>
 <h5>remote: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L240">fadroma-build.ts:240</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L258">fadroma-build.ts:258</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a id="hashPath" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>hash<wbr/>Path</span><a href="#hashPath" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
@@ -297,7 +299,7 @@ reusing the container&#39;s internal intermediate build cache.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#hashPath">hashPath</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L92">fadroma-build.ts:92</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L110">fadroma-build.ts:110</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a id="locationToContract" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>location<wbr/>To<wbr/>Contract</span><a href="#locationToContract" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
@@ -310,7 +312,7 @@ reusing the container&#39;s internal intermediate build cache.</p>
 <h5>location: <span class="tsd-signature-type">any</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><a href="_hackbg_fadroma.Contract.html" class="tsd-signature-type" data-tsd-kind="Class">Contract</a><span class="tsd-signature-symbol">&lt;</span><a href="_hackbg_fadroma.Client.html" class="tsd-signature-type" data-tsd-kind="Class">Client</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L425">fadroma-build.ts:425</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L446">fadroma-build.ts:446</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected tsd-is-inherited"><a id="prebuild" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>prebuild</span><a href="#prebuild" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected tsd-is-inherited">
@@ -331,7 +333,7 @@ If it does, don&#39;t rebuild it but return it from there.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><a href="../interfaces/_hackbg_fadroma.Built.html" class="tsd-signature-type" data-tsd-kind="Interface">Built</a></h4><aside class="tsd-sources">
 <p>Inherited from <a href="_hackbg_fadroma.BuildLocal.html">BuildLocal</a>.<a href="_hackbg_fadroma.BuildLocal.html#prebuild">prebuild</a></p>
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L78">fadroma-build.ts:78</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L96">fadroma-build.ts:96</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a id="prebuilt" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>prebuilt</span><a href="#prebuilt" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
@@ -344,7 +346,7 @@ If it does, don&#39;t rebuild it but return it from there.</p>
 <h5>contract: <a href="../interfaces/_hackbg_fadroma.Buildable.html" class="tsd-signature-type" data-tsd-kind="Interface">Buildable</a><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_hackbg_fadroma.Built.html" class="tsd-signature-type" data-tsd-kind="Interface">Built</a><span class="tsd-signature-symbol">&gt;</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L244">fadroma-build.ts:244</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L262">fadroma-build.ts:262</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a id="runBuildContainer" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagProtected">Protected</code> <span>run<wbr/>Build<wbr/>Container</span><a href="#runBuildContainer" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
@@ -367,7 +369,7 @@ If it does, don&#39;t rebuild it but return it from there.</p>
 <h5>outputDir: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = ...</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><a href="../interfaces/_hackbg_fadroma.Built.html" class="tsd-signature-type" data-tsd-kind="Interface">Built</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/7aa65df/fadroma-build.ts#L257">fadroma-build.ts:257</a></li></ul></aside></li></ul></section></section></div>
+<li>Defined in <a href="https://github.com/hackbg/fadroma/blob/517a95a/fadroma-build.ts#L275">fadroma-build.ts:275</a></li></ul></aside></li></ul></section></section></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">

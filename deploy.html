@@ -291,27 +291,53 @@ svg.icon-todo {
 }
 
 .ensuite-md-rendered {
-  background: white;
-  display: block;
-  max-width: 54rem;
-  margin: 3rem auto 0 38%;
-  padding: 3rem;
-  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
-}
-.ensuite-md-rendered .table-of-contents {
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  bottom: 0;
-  width: 38%;
-  background: #476d3b;
-  background: hsl(106 25% 25% / 1);
-  color: white;
-  padding: 1rem 0 2rem 1rem;
-  border-right: 1px solid #888;
+  /*background: white;*/
+  /*display: block;*/
+  /*max-width: 54rem;*/
+  /*margin: 3rem auto 0 38%;*/
+  /*padding: 3rem;*/
+  /*box-shadow: 3px 3px 6px rgba(0,0,0,0.1)*/
   display: flex;
-  justify-content: flex-end;
+  flex-flow: row nowrap;
+  justify-content: center;
 }
+
+
+.ensuite-md-content {
+  background: white;
+  padding:    5rem 3rem 2rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  max-width:  54rem;
+}
+
+.ensuite-md-nav {}
+.ensuite-md-nav ul { list-style: none; margin-top: 5rem; margin-right: 2rem; }
+.ensuite-md-nav li a { display: inline-block; font-weight: bold; padding: 0.5rem 1rem; text-transform: uppercase; font-size: 0.9rem; line-height: 1rem }
+
+.ensuite-md-toc {}
+.ensuite-md-toc .table-of-contents { margin-top: 5rem; margin-left: 1rem; overflow: auto; }
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { text-decoration: underline 2px solid }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+
+
+/*.ensuite-md-rendered .table-of-contents {*/
+  /*position: fixed;*/
+  /*top: 3rem;*/
+  /*left: 0;*/
+  /*bottom: 0;*/
+  /*width: 38%;*/
+  /*background: #476d3b;*/
+  /*background: hsl(106 25% 25% / 1);*/
+  /*color: white;*/
+  /*padding: 1rem 0 2rem 1rem;*/
+  /*border-right: 1px solid #888;*/
+  /*display: flex;*/
+  /*justify-content: flex-end;*/
+/*}*/
 .ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
 .ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
 
@@ -337,13 +363,6 @@ pre > code.language-typescript {
   background: #ffe;
   border-radius: 0.15rem;
 }
-
-.table-of-contents { overflow: auto }
-.table-of-contents a { display: block; color: white; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
-.table-of-contents a:hover { text-decoration: underline 2px solid white }
-.table-of-contents li { margin: 0 0 }
-.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
-.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 
 .ensuite-md-header {
   z-index: 100;
@@ -404,8 +423,21 @@ hr {
 <a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
-<content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#preparing">Preparing</a></li><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li><li><a href="#deploying-individual-contracts-with-dependencies">Deploying individual contracts with dependencies</a></li><li><a href="#deploying-with-custom-logic">Deploying with custom logic</a></li><li><a href="#storing-and-exporting-deployment-state">Storing and exporting deployment state</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#adding-custom-migrations">Adding custom migrations</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building-from-source-code">Building from source code</a></li><li><a href="#uploading-binaries">Uploading binaries</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming-and-labels">Naming and labels</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying-contract-instances">Deploying contract instances</a></li></ul></li></ul></div></p>
+<div class="ensuite-md-rendered">
+<nav class="ensuite-md-nav"><ul>
+<li><a class="ensuite-md-link" href=/guide.html>Getting started</a></li>
+<li><a class="ensuite-md-link" href=/project.html>Projects</a></li>
+<li><a class="ensuite-md-link" href=/agent.html>Agent API</a></li>
+<li><a class="ensuite-md-link" href=/scrt.html>Secret Network</a></li>
+<li><a class="ensuite-md-link" href=/dsl.html>Macro DSL</a></li>
+<li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
+<li><a class="ensuite-md-link" href=/build.html>Building</a></li>
+<li><a class="ensuite-md-link" href=/upload.html>Uploading</a></li>
+<li><a class="ensuite-md-link" href=/deploy.html>Deploy API</a></li>
+<li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
+<li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
+</ul></nav>
+<content class="ensuite-md-content"><div><p></div></p>
 <h1 id="fadroma-deploy-api" tabindex="-1">Fadroma Deploy API</h1>
 <p>The <strong>Deploy API</strong> revolves around the <code>Deployment</code> class,
 the <code>Template</code> and <code>Contract</code> classes, and the associated
@@ -729,7 +761,8 @@ this will try to upload and build the code first.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Deploy.test.ts&#x27;</span>
 </code></pre>
-
 </content>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#deployment">Deployment</a><ul><li><a href="#preparing">Preparing</a></li><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li><li><a href="#deploying-individual-contracts-with-dependencies">Deploying individual contracts with dependencies</a></li><li><a href="#deploying-with-custom-logic">Deploying with custom logic</a></li><li><a href="#storing-and-exporting-deployment-state">Storing and exporting deployment state</a></li><li><a href="#exporting-the-deployment">Exporting the deployment</a></li><li><a href="#connecting-to-an-exported-deployment">Connecting to an exported deployment</a></li><li><a href="#adding-custom-migrations">Adding custom migrations</a></li></ul></li><li><a href="#template">Template</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building-from-source-code">Building from source code</a></li><li><a href="#uploading-binaries">Uploading binaries</a></li></ul></li><li><a href="#contract">Contract</a><ul><li><a href="#naming-and-labels">Naming and labels</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying-contract-instances">Deploying contract instances</a></li></ul></li></ul></div></p></nav>
+</div>
 </body>
 </html>

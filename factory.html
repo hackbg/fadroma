@@ -291,27 +291,53 @@ svg.icon-todo {
 }
 
 .ensuite-md-rendered {
-  background: white;
-  display: block;
-  max-width: 54rem;
-  margin: 3rem auto 0 38%;
-  padding: 3rem;
-  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
-}
-.ensuite-md-rendered .table-of-contents {
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  bottom: 0;
-  width: 38%;
-  background: #476d3b;
-  background: hsl(106 25% 25% / 1);
-  color: white;
-  padding: 1rem 0 2rem 1rem;
-  border-right: 1px solid #888;
+  /*background: white;*/
+  /*display: block;*/
+  /*max-width: 54rem;*/
+  /*margin: 3rem auto 0 38%;*/
+  /*padding: 3rem;*/
+  /*box-shadow: 3px 3px 6px rgba(0,0,0,0.1)*/
   display: flex;
-  justify-content: flex-end;
+  flex-flow: row nowrap;
+  justify-content: center;
 }
+
+
+.ensuite-md-content {
+  background: white;
+  padding:    5rem 3rem 2rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  max-width:  54rem;
+}
+
+.ensuite-md-nav {}
+.ensuite-md-nav ul { list-style: none; margin-top: 5rem; margin-right: 2rem; }
+.ensuite-md-nav li a { display: inline-block; font-weight: bold; padding: 0.5rem 1rem; text-transform: uppercase; font-size: 0.9rem; line-height: 1rem }
+
+.ensuite-md-toc {}
+.ensuite-md-toc .table-of-contents { margin-top: 5rem; margin-left: 1rem; overflow: auto; }
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { text-decoration: underline 2px solid }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+
+
+/*.ensuite-md-rendered .table-of-contents {*/
+  /*position: fixed;*/
+  /*top: 3rem;*/
+  /*left: 0;*/
+  /*bottom: 0;*/
+  /*width: 38%;*/
+  /*background: #476d3b;*/
+  /*background: hsl(106 25% 25% / 1);*/
+  /*color: white;*/
+  /*padding: 1rem 0 2rem 1rem;*/
+  /*border-right: 1px solid #888;*/
+  /*display: flex;*/
+  /*justify-content: flex-end;*/
+/*}*/
 .ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
 .ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
 
@@ -337,13 +363,6 @@ pre > code.language-typescript {
   background: #ffe;
   border-radius: 0.15rem;
 }
-
-.table-of-contents { overflow: auto }
-.table-of-contents a { display: block; color: white; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
-.table-of-contents a:hover { text-decoration: underline 2px solid white }
-.table-of-contents li { margin: 0 0 }
-.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
-.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 
 .ensuite-md-header {
   z-index: 100;
@@ -404,64 +423,130 @@ hr {
 <a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
-<content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul></ul></div></p>
-<h1 id="the-fadroma-factory-pattern" tabindex="-1">The Fadroma Factory Pattern</h1>
-<p>Given the code hash and code id of a binary, a <code>Factory</code> instantiates
-multiple <code>Product</code>s, which <code>reply</code> to the factory with their <code>address</code>es
-so that the factory can provide a list of the contracts it has instantiated.</p>
-<p>Here's how this pattern can be described as a <code>Deployment</code>:</p>
+<div class="ensuite-md-rendered">
+<nav class="ensuite-md-nav"><ul>
+<li><a class="ensuite-md-link" href=/guide.html>Getting started</a></li>
+<li><a class="ensuite-md-link" href=/project.html>Projects</a></li>
+<li><a class="ensuite-md-link" href=/agent.html>Agent API</a></li>
+<li><a class="ensuite-md-link" href=/scrt.html>Secret Network</a></li>
+<li><a class="ensuite-md-link" href=/dsl.html>Macro DSL</a></li>
+<li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
+<li><a class="ensuite-md-link" href=/build.html>Building</a></li>
+<li><a class="ensuite-md-link" href=/upload.html>Uploading</a></li>
+<li><a class="ensuite-md-link" href=/deploy.html>Deploy API</a></li>
+<li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
+<li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
+</ul></nav>
+<content class="ensuite-md-content"><div><p></div></p>
+<h1 id="a-fadroma-pattern%3A-factory" tabindex="-1">A Fadroma Pattern: Factory</h1>
+<h2 id="overview" tabindex="-1">Overview</h2>
+<p>This is a common pattern that uses simple ICC (inter-contract communication) to let users
+instantiate contracts in a semi-controlled way.</p>
+<p>In the following example, there are two contracts involved, <code>Factory</code> and <code>Product</code>.
+(For their code, see the <code>factory</code>, <code>factory-product</code> and <code>factory-shared</code> crates
+in the <code>examples/</code> directory of the Fadroma repo.)</p>
+<p>The control flow goes something like this:</p>
+<ul>
+<li>Build and upload Factory and Product.</li>
+<li>Instantiate a Factory, providing it with code id and code hash for Product.</li>
+<li>User requests from the Factory to create a Product.</li>
+<li>Factory instantiates a Product.</li>
+<li>The Product calls back to factory to register itself.</li>
+<li>That way, the Factory can list all Products created through it.</li>
+</ul>
+<h2 id="defining" tabindex="-1">Defining</h2>
+<p>Here's how this pattern can be described as a <code>Deployment</code> in your project's <code>api.ts</code> or similar.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span>, <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
-<span class="hljs-keyword">class</span> <span class="hljs-title class_">FactoryDeployment</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
-  product = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({
-    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory-product&#x27;</span>,
-    <span class="hljs-attr">client</span>: <span class="hljs-title class_">Product</span>
-  })
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">FactoryDeployment</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
+
+  <span class="hljs-comment">// Since there is going to be an arbitrary number of Product contracts</span>
+  <span class="hljs-comment">// instantiated by the Factory, here we use `this.template` to define</span>
+  <span class="hljs-comment">// just the initial source code and final client class.</span>
+  product = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory-product&#x27;</span>, <span class="hljs-attr">client</span>: <span class="hljs-title class_">Product</span> })
+
+  <span class="hljs-comment">// The Factory is a single contract instance, so we use `this.contract`</span>
+  <span class="hljs-comment">// to also specify a name and an init message for it.</span>
   factory = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({
     <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;factory&#x27;</span>,
     <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory&#x27;</span>,
     <span class="hljs-attr">client</span>: <span class="hljs-title class_">Factory</span>,
-    <span class="hljs-attr">initMsg</span>: <span class="hljs-keyword">async</span> () =&gt; ({ <span class="hljs-attr">code</span>: (<span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">product</span>.<span class="hljs-property">uploaded</span>).<span class="hljs-property">asInfo</span> })
+    <span class="hljs-attr">initMsg</span>: <span class="hljs-keyword">async</span> () =&gt; ({
+      <span class="hljs-comment">// Here the `code` parameter to the Factory&#x27;s init message is defined</span>
+      <span class="hljs-comment">// as containing the code id and code hash of the uploaded Product template.</span>
+      <span class="hljs-comment">// Using `await this.product.uploaded` here makes sure that,</span>
+      <span class="hljs-comment">// if the template is not uploaded yet, instantiating a Factory will upload it first.</span>
+      <span class="hljs-comment">// The `asContractCode` getter converts a `Template` into the `ContractCode { id, code_hash }`</span>
+      <span class="hljs-comment">// struct that the Factory expects.</span>
+      <span class="hljs-attr">code</span>: (<span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">product</span>.<span class="hljs-property">uploaded</span>).<span class="hljs-property">asContractCode</span>
+    })
   })
+
+  <span class="hljs-comment">// You can define methods directly on the deployment that call into individual contracts.</span>
+  <span class="hljs-comment">// Here, `contract.expect()` is used to make the method call fail if the contract is not</span>
+  <span class="hljs-comment">// already instantiated.</span>
+  create = <span class="hljs-function">(<span class="hljs-params">name: <span class="hljs-built_in">string</span></span>) =&gt;</span>
+    <span class="hljs-variable language_">this</span>.<span class="hljs-property">factory</span>.<span class="hljs-title function_">expect</span>().<span class="hljs-title function_">create</span>(name)
+
+  <span class="hljs-comment">// This getter returns a list of `Product` instances, created from</span>
+  <span class="hljs-comment">// the plain list of `{ address, code_hash }` structs returned by</span>
+  <span class="hljs-comment">// the `factory.list()` method.</span>
   get products () {
     <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">factory</span>.<span class="hljs-title function_">expect</span>().<span class="hljs-title function_">list</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">(<span class="hljs-params">{entries, ...rest}</span>)=&gt;</span>({
+      <span class="hljs-comment">// Return other info unchanged</span>
       ...rest,
+      <span class="hljs-comment">// Convert every `{address, code_hash}` entry into a `Product` instance</span>
+      <span class="hljs-comment">// bound to the current `agent`.</span>
       <span class="hljs-attr">entries</span>: entries.<span class="hljs-title function_">map</span>(<span class="hljs-function">(<span class="hljs-params">{address,code_hash}</span>)=&gt;</span><span class="hljs-variable language_">this</span>.<span class="hljs-property">agent</span>.<span class="hljs-title function_">getClient</span>(
         <span class="hljs-title class_">Product</span>, address, code_hash
       ))
     }))
   }
+
 }
 
+<span class="hljs-comment">// A `Client` class can be used to compose the actual JSON messages passed to the contract.</span>
+<span class="hljs-comment">// You can also put metadata, validation, etc. here</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">Factory</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
-  create = <span class="hljs-function">(<span class="hljs-params">name: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">create</span>: { name } })
-  list = <span class="hljs-function">(<span class="hljs-params">pagination = { start: <span class="hljs-number">0</span>, limit: <span class="hljs-number">100</span> }</span>) =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">list</span>: { pagination } })
+
+  create = <span class="hljs-function">(<span class="hljs-params">name: <span class="hljs-built_in">string</span></span>) =&gt;</span>
+    <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">create</span>: { name } })
+
+  list = <span class="hljs-function">(<span class="hljs-params">pagination = { start: <span class="hljs-number">0</span>, limit: <span class="hljs-number">100</span> }</span>) =&gt;</span>
+    <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">list</span>: { pagination } })
+
 }
 
-<span class="hljs-keyword">class</span> <span class="hljs-title class_">Product</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {}
+<span class="hljs-comment">// An empty `Client` class is just a marker for what kind of contract that it connects to.</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">Product</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
+
+  <span class="hljs-comment">// In practice, you would have your Product&#x27;s methods here -</span>
+  <span class="hljs-comment">// for example, if your factory instantiates AMM pools,</span>
+  <span class="hljs-comment">// you would add things like `swap` and `add_liquidity`</span>
+
+}
 </code></pre>
-<p>For the Rust code, see the <code>factory</code>, <code>factory-product</code> and <code>factory-shared</code>
-in the <code>examples/</code> directory of the Fadroma repo.</p>
-<p>Testing this on mocknet and devnet:</p>
+<h2 id="testing" tabindex="-1">Testing</h2>
+<p>And here's how you would test it on mocknet and devnet:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// test:</span>
 
-<span class="hljs-keyword">import</span> { getDevnet, getDeployment } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, getDeployment } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 <span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Scrt</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/scrt&#x27;</span>
 <span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 
-<span class="hljs-keyword">const</span> devnet = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getDevnet</span>({ <span class="hljs-attr">temporary</span>: <span class="hljs-literal">true</span> }).<span class="hljs-title function_">respawn</span>()
-process.<span class="hljs-title function_">on</span>(<span class="hljs-string">&#x27;beforeExit&#x27;</span>, <span class="hljs-function">() =&gt;</span> devnet.<span class="hljs-title function_">erase</span>())
+<span class="hljs-keyword">const</span> chains = [
+  <span class="hljs-title class_">Chain</span>.<span class="hljs-property">variants</span>[<span class="hljs-string">&#x27;Mocknet&#x27;</span>](),
+  <span class="hljs-title class_">Chain</span>.<span class="hljs-property">variants</span>[<span class="hljs-string">&#x27;ScrtDevnet&#x27;</span>]({ <span class="hljs-attr">deleteOnExit</span>: <span class="hljs-literal">true</span> }),
+]
 
-<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> chain <span class="hljs-keyword">of</span> [
-  <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mocknet</span>(),
-  <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">devnet</span>({ devnet }),
-]) {
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> chain <span class="hljs-keyword">of</span> chains) {
 
   <span class="hljs-keyword">const</span> agent = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;Admin&#x27;</span> }).<span class="hljs-property">ready</span>
+
   <span class="hljs-keyword">const</span> deployment = <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">FactoryDeployment</span>, { agent })
 
   <span class="hljs-keyword">await</span> deployment.<span class="hljs-title function_">deploy</span>()
+
   assert.<span class="hljs-title function_">deepEqual</span>(
     <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">products</span>,
     { <span class="hljs-attr">total</span>: <span class="hljs-number">0</span>, <span class="hljs-attr">entries</span>: [] },
@@ -469,14 +554,16 @@ process.<span class="hljs-title function_">on</span>(<span class="hljs-string">&
   )
 
   <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">factory</span>.<span class="hljs-title function_">expect</span>().<span class="hljs-title function_">create</span>(<span class="hljs-string">&#x27;foo&#x27;</span>)
+
   <span class="hljs-title function_">assert</span>(
     (<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">products</span>).<span class="hljs-property">entries</span>.<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">entry</span>=&gt;</span>entry <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Product</span>),
-    <span class="hljs-string">&#x27;factory records created contract and deployment wraps them in Product class&#x27;</span>
+    <span class="hljs-string">&#x27;the factory records the created contracts; deployment turns them into Producti nstances&#x27;</span>
   )
 
 }
 </code></pre>
-
 </content>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#overview">Overview</a></li><li><a href="#defining">Defining</a></li><li><a href="#testing">Testing</a></li></ul></div></p></nav>
+</div>
 </body>
 </html>

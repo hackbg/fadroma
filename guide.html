@@ -291,27 +291,53 @@ svg.icon-todo {
 }
 
 .ensuite-md-rendered {
-  background: white;
-  display: block;
-  max-width: 54rem;
-  margin: 3rem auto 0 38%;
-  padding: 3rem;
-  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
-}
-.ensuite-md-rendered .table-of-contents {
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  bottom: 0;
-  width: 38%;
-  background: #476d3b;
-  background: hsl(106 25% 25% / 1);
-  color: white;
-  padding: 1rem 0 2rem 1rem;
-  border-right: 1px solid #888;
+  /*background: white;*/
+  /*display: block;*/
+  /*max-width: 54rem;*/
+  /*margin: 3rem auto 0 38%;*/
+  /*padding: 3rem;*/
+  /*box-shadow: 3px 3px 6px rgba(0,0,0,0.1)*/
   display: flex;
-  justify-content: flex-end;
+  flex-flow: row nowrap;
+  justify-content: center;
 }
+
+
+.ensuite-md-content {
+  background: white;
+  padding:    5rem 3rem 2rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  max-width:  54rem;
+}
+
+.ensuite-md-nav {}
+.ensuite-md-nav ul { list-style: none; margin-top: 5rem; margin-right: 2rem; }
+.ensuite-md-nav li a { display: inline-block; font-weight: bold; padding: 0.5rem 1rem; text-transform: uppercase; font-size: 0.9rem; line-height: 1rem }
+
+.ensuite-md-toc {}
+.ensuite-md-toc .table-of-contents { margin-top: 5rem; margin-left: 1rem; overflow: auto; }
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { text-decoration: underline 2px solid }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+
+
+/*.ensuite-md-rendered .table-of-contents {*/
+  /*position: fixed;*/
+  /*top: 3rem;*/
+  /*left: 0;*/
+  /*bottom: 0;*/
+  /*width: 38%;*/
+  /*background: #476d3b;*/
+  /*background: hsl(106 25% 25% / 1);*/
+  /*color: white;*/
+  /*padding: 1rem 0 2rem 1rem;*/
+  /*border-right: 1px solid #888;*/
+  /*display: flex;*/
+  /*justify-content: flex-end;*/
+/*}*/
 .ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
 .ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
 
@@ -337,13 +363,6 @@ pre > code.language-typescript {
   background: #ffe;
   border-radius: 0.15rem;
 }
-
-.table-of-contents { overflow: auto }
-.table-of-contents a { display: block; color: white; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
-.table-of-contents a:hover { text-decoration: underline 2px solid white }
-.table-of-contents li { margin: 0 0 }
-.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
-.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 
 .ensuite-md-header {
   z-index: 100;
@@ -404,8 +423,21 @@ hr {
 <a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
-<content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#supported-platforms">Supported platforms</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmwasm-chains">Other CosmWasm chains</a></li><li><a href="#non-cosmwasm-chains">Non-CosmWasm chains</a></li></ul></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-project-with-npx">Create project with NPX</a></li><li><a href="#nix-support">Nix support</a></li></ul></li><li><a href="#writing-smart-contracts">Writing smart contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#building">Building</a></li><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li></ul></li><li><a href="#deploying-and-scripting">Deploying and scripting</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#running-scripts">Running scripts</a></li><li><a href="#adding-commands">Adding commands</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deploy-api">Deploy API</a></li><li><a href="#testing-with-devnet">Testing with Devnet</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#more-resources">More resources</a></li></ul></div></p>
+<div class="ensuite-md-rendered">
+<nav class="ensuite-md-nav"><ul>
+<li><a class="ensuite-md-link" href=/guide.html>Getting started</a></li>
+<li><a class="ensuite-md-link" href=/project.html>Projects</a></li>
+<li><a class="ensuite-md-link" href=/agent.html>Agent API</a></li>
+<li><a class="ensuite-md-link" href=/scrt.html>Secret Network</a></li>
+<li><a class="ensuite-md-link" href=/dsl.html>Macro DSL</a></li>
+<li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
+<li><a class="ensuite-md-link" href=/build.html>Building</a></li>
+<li><a class="ensuite-md-link" href=/upload.html>Uploading</a></li>
+<li><a class="ensuite-md-link" href=/deploy.html>Deploy API</a></li>
+<li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
+<li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
+</ul></nav>
+<content class="ensuite-md-content"><div><p></div></p>
 <h1 id="getting-started" tabindex="-1">Getting started</h1>
 <p><strong>Fadroma</strong> is an application framework for the CosmWasm Compute module.
 Fadroma includes <strong>Rust</strong> libraries for writing smart contracts and a
@@ -576,7 +608,8 @@ These imports add the rest of the guides to the test run:</em></p>
 <span class="hljs-keyword">await</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;./spec/Scrt.spec.ts.md&#x27;</span>)
 <span class="hljs-keyword">await</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;./spec/Factory.spec.ts.md&#x27;</span>)
 </code></pre>
-
 </content>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#supported-platforms">Supported platforms</a><ul><li><a href="#secret-network">Secret Network</a></li><li><a href="#other-cosmwasm-chains">Other CosmWasm chains</a></li><li><a href="#non-cosmwasm-chains">Non-CosmWasm chains</a></li></ul></li><li><a href="#project-structure">Project structure</a><ul><li><a href="#create-project-with-npx">Create project with NPX</a></li><li><a href="#nix-support">Nix support</a></li></ul></li><li><a href="#writing-smart-contracts">Writing smart contracts</a><ul><li><a href="#macro-dsl">Macro DSL</a></li><li><a href="#libraries">Libraries</a></li><li><a href="#building">Building</a></li><li><a href="#testing-with-ensemble">Testing with Ensemble</a></li></ul></li><li><a href="#deploying-and-scripting">Deploying and scripting</a><ul><li><a href="#deploy-cli">Deploy CLI</a></li><li><a href="#running-scripts">Running scripts</a></li><li><a href="#adding-commands">Adding commands</a></li><li><a href="#agent-api">Agent API</a></li><li><a href="#deploy-api">Deploy API</a></li><li><a href="#testing-with-devnet">Testing with Devnet</a></li><li><a href="#testing-with-mocknet">Testing with Mocknet</a></li></ul></li><li><a href="#more-resources">More resources</a></li></ul></div></p></nav>
+</div>
 </body>
 </html>

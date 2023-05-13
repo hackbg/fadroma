@@ -291,27 +291,53 @@ svg.icon-todo {
 }
 
 .ensuite-md-rendered {
-  background: white;
-  display: block;
-  max-width: 54rem;
-  margin: 3rem auto 0 38%;
-  padding: 3rem;
-  box-shadow: 3px 3px 6px rgba(0,0,0,0.1)
-}
-.ensuite-md-rendered .table-of-contents {
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  bottom: 0;
-  width: 38%;
-  background: #476d3b;
-  background: hsl(106 25% 25% / 1);
-  color: white;
-  padding: 1rem 0 2rem 1rem;
-  border-right: 1px solid #888;
+  /*background: white;*/
+  /*display: block;*/
+  /*max-width: 54rem;*/
+  /*margin: 3rem auto 0 38%;*/
+  /*padding: 3rem;*/
+  /*box-shadow: 3px 3px 6px rgba(0,0,0,0.1)*/
   display: flex;
-  justify-content: flex-end;
+  flex-flow: row nowrap;
+  justify-content: center;
 }
+
+
+.ensuite-md-content {
+  background: white;
+  padding:    5rem 3rem 2rem;
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  max-width:  54rem;
+}
+
+.ensuite-md-nav {}
+.ensuite-md-nav ul { list-style: none; margin-top: 5rem; margin-right: 2rem; }
+.ensuite-md-nav li a { display: inline-block; font-weight: bold; padding: 0.5rem 1rem; text-transform: uppercase; font-size: 0.9rem; line-height: 1rem }
+
+.ensuite-md-toc {}
+.ensuite-md-toc .table-of-contents { margin-top: 5rem; margin-left: 1rem; overflow: auto; }
+.table-of-contents { overflow: auto }
+.table-of-contents a { display: block; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
+.table-of-contents a:hover { text-decoration: underline 2px solid }
+.table-of-contents li { margin: 0 0 }
+.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
+.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
+
+
+/*.ensuite-md-rendered .table-of-contents {*/
+  /*position: fixed;*/
+  /*top: 3rem;*/
+  /*left: 0;*/
+  /*bottom: 0;*/
+  /*width: 38%;*/
+  /*background: #476d3b;*/
+  /*background: hsl(106 25% 25% / 1);*/
+  /*color: white;*/
+  /*padding: 1rem 0 2rem 1rem;*/
+  /*border-right: 1px solid #888;*/
+  /*display: flex;*/
+  /*justify-content: flex-end;*/
+/*}*/
 .ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
 .ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
 
@@ -337,13 +363,6 @@ pre > code.language-typescript {
   background: #ffe;
   border-radius: 0.15rem;
 }
-
-.table-of-contents { overflow: auto }
-.table-of-contents a { display: block; color: white; text-decoration: none; padding: 0.25rem 1.5rem 0.25rem }
-.table-of-contents a:hover { text-decoration: underline 2px solid white }
-.table-of-contents li { margin: 0 0 }
-.table-of-contents ul { font-weight: bold; margin-left: 0; list-style: none }
-.table-of-contents ul ul { font-weight: normal; margin-left: 1em }
 
 .ensuite-md-header {
   z-index: 100;
@@ -404,8 +423,21 @@ hr {
 <a class="ensuite-md-link" href=https://www.npmjs.com/search?q=fadroma>NPM</a>
 <a class="ensuite-md-link" href=https://hack.bg/>Hack.bg</a>
 </header>
-<content class="ensuite-md-rendered">
-<p><div class="table-of-contents"><ul><li><a href="#configuring">Configuring</a></li><li><a href="#connecting-and-authenticating">Connecting and authenticating</a><ul><li><a href="#fresh-wallet">Fresh wallet</a></li><li><a href="#by-mnemonic">By mnemonic</a></li><li><a href="#keplr">Keplr</a></li><li><a href="#secretcli">secretcli</a></li></ul></li><li><a href="#querying">Querying</a></li><li><a href="#tokens">Tokens</a></li><li><a href="#viewing-keys">Viewing keys</a></li><li><a href="#query-permits">Query permits</a></li></ul></div></p>
+<div class="ensuite-md-rendered">
+<nav class="ensuite-md-nav"><ul>
+<li><a class="ensuite-md-link" href=/guide.html>Getting started</a></li>
+<li><a class="ensuite-md-link" href=/project.html>Projects</a></li>
+<li><a class="ensuite-md-link" href=/agent.html>Agent API</a></li>
+<li><a class="ensuite-md-link" href=/scrt.html>Secret Network</a></li>
+<li><a class="ensuite-md-link" href=/dsl.html>Macro DSL</a></li>
+<li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
+<li><a class="ensuite-md-link" href=/build.html>Building</a></li>
+<li><a class="ensuite-md-link" href=/upload.html>Uploading</a></li>
+<li><a class="ensuite-md-link" href=/deploy.html>Deploy API</a></li>
+<li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
+<li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
+</ul></nav>
+<content class="ensuite-md-content"><div><p></div></p>
 <h1 id="secret-network" tabindex="-1">Secret Network</h1>
 <p>Fadroma's support for Secret Network is achieved in this package,
 by implementing the core Fadroma Agent API (<code>Chain</code>, <code>Agent</code>, <code>Bundle</code>),
@@ -417,6 +449,7 @@ one of its design goals is to be usable in Node and browsers without modificatio
 <li><code>@hackbg/fadroma</code> automatically has this package through <code>@fadroma/connect</code></li>
 </ul>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Scrt</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Devnet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 <span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
 </code></pre>
 <h2 id="configuring" tabindex="-1">Configuring</h2>
@@ -468,7 +501,7 @@ one of its design goals is to be usable in Node and browsers without modificatio
 <p>To connect to Secret Network with Fadroma, use one of the following:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> mainnet = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mainnet</span>({ <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
 <span class="hljs-keyword">const</span> testnet = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">testnet</span>({ <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
-<span class="hljs-keyword">const</span> devnet  = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">devnet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;test-scrt-devnet&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
+<span class="hljs-keyword">const</span> devnet  = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Devnet</span>({ <span class="hljs-attr">platform</span>: <span class="hljs-string">&#x27;scrt_1.9&#x27;</span> }).<span class="hljs-title function_">getChain</span>(<span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>)
 <span class="hljs-keyword">const</span> mocknet = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mocknet</span>({ <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
 </code></pre>
 <p>This will give you a <code>Scrt</code> instance (subclass of <code>Chain</code>):</p>
@@ -572,7 +605,8 @@ as shown above.</p>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Scrt.test.ts&#x27;</span>
 </code></pre>
-
 </content>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#configuring">Configuring</a></li><li><a href="#connecting-and-authenticating">Connecting and authenticating</a><ul><li><a href="#fresh-wallet">Fresh wallet</a></li><li><a href="#by-mnemonic">By mnemonic</a></li><li><a href="#keplr">Keplr</a></li><li><a href="#secretcli">secretcli</a></li></ul></li><li><a href="#querying">Querying</a></li><li><a href="#tokens">Tokens</a></li><li><a href="#viewing-keys">Viewing keys</a></li><li><a href="#query-permits">Query permits</a></li></ul></div></p></nav>
+</div>
 </body>
 </html>
