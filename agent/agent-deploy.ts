@@ -1,3 +1,23 @@
+/**
+
+  Fadroma: Base Deploy API
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
+
 import type {
   Chain, Agent, ClientClass, Builder, Buildable, Uploadable, Class, Many, Name, Named,
   IntoRecord, CodeId, CodeHash, Hashed, Address, TxHash, ChainId, Message, Into, Built, Uploaded,
@@ -109,8 +129,6 @@ export class Deployment {
     * except by using `agent.upload` directly, which does not cache or log uploads. */
   uploader?:   Uploader
 
-  config?: { build?: { project?: any } } & any // FIXME
-
   constructor (options: Partial<Omit<Deployment, 'contracts'>> & Partial<{
     contracts?: Record<string, Partial<AnyContract>>|Record<string, AnyContract>
   }> = {}) {
@@ -122,7 +140,7 @@ export class Deployment {
     this.chain     ??= options.chain ?? options.agent?.chain
     this.builder   ??= options.builder
     this.uploader  ??= options.uploader ?? new Uploader({ agent: this.agent })
-    this.workspace ??= options.workspace ?? this.config?.build?.project
+    this.workspace ??= options.workspace
     this.revision  ??= options.revision
     this.store     ??= options.store
     // Hydrate state
@@ -307,7 +325,7 @@ export class Deployment {
   /** Compile multiple contracts. */
   buildContracts (contracts: (string|AnyContract)[]) {
     if (!this.builder) throw new Error.Missing.Builder()
-    this.log(`making sure all ${contracts.length} contracts are built`)
+    this.log(`making sure all ${contracts.length} contract(s) are built`)
     return this.builder.buildMany(contracts as unknown as Buildable[])
   }
   /** Upload multiple contracts. */
@@ -394,7 +412,7 @@ export class Template<C extends Client> {
     })
   }
 
-  get asInfo (): ContractInfo {
+  get asContractCode (): ContractCode {
     return {
       id:        Number(this.codeId!) as any,
       code_hash: this.codeHash!
@@ -473,7 +491,7 @@ export class Template<C extends Client> {
 type Task<T, U> = void // FIXME
 
 /** Reference to an instantiated smart contract, to be used by contracts. */
-export interface ContractInfo {
+export interface ContractCode {
   readonly id:        CodeId
   readonly code_hash: CodeHash
 }
@@ -594,7 +612,7 @@ export class Contract<C extends Client> extends Template<C> {
   get deployed (): Promise<C> {
     return this.deploy()
   }
-  get asLink (): ContractLink {
+  get asContractLink (): ContractLink {
     return { address: this.address!, code_hash: this.codeHash! }
   }
 

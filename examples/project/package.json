@@ -15,9 +15,9 @@
   "scripts": {
     "build": "fadroma build",
     "status": "fadroma status",
-    "mocknet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=Mocknet fadroma",
-    "devnet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma",
-    "testnet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma",
-    "mainnet": "FADROMA_OPS=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma"
+    "mocknet": "FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma",
+    "devnet": "FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma",
+    "testnet": "FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma",
+    "mainnet": "FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma"
   }
 }

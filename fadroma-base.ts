@@ -1,12 +1,31 @@
-import { Devnet } from './devnet/devnet'
-import type { DevnetPlatform } from './devnet/devnet'
+/**
+
+  Fadroma Base Configuration
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
+
+import { Devnet } from './fadroma-devnet'
+import type { DevnetPlatform } from './fadroma-devnet'
 import { FSUploader } from './fadroma-upload'
 import { getBuilder } from './fadroma-build'
 
 import {
   Builder, Deployment as BaseDeployment, DeployStore, ChainMode, Uploader,
   Error as BaseError, Console as BaseConsole, colors, bold, HEAD,
-  randomChainId
 } from '@fadroma/agent'
 import type {
   BuilderClass, Chain, ChainId, UploaderClass, Template, Built,
@@ -16,7 +35,7 @@ import type {
 import { Config as BaseConfig, ConnectConfig } from '@fadroma/connect'
 import type { Environment } from '@fadroma/connect'
 
-import $ from '@hackbg/file'
+import $, { JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 
 import { dirname } from 'node:path'
@@ -29,6 +48,8 @@ export type { Decimal } from '@fadroma/agent'
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 //@ts-ignore
 export const thisPackage = dirname(fileURLToPath(import.meta.url))
+
+export const { version } = $(thisPackage, 'package.json').as(JSONFile).load() as any
 
 export class Config extends ConnectConfig {
 
@@ -190,7 +211,7 @@ export class Config extends ConnectConfig {
   ): T {
     Deployment ??= BaseDeployment as DeploymentClass<T>
     args = [...args]
-    args[0] = ({ config: this, ...args[0] ?? {} })
+    args[0] = ({ ...args[0] ?? {} })
     args[0].chain     ||= this.getChain()
     if (!args[0].chain) throw new Error('Missing chain')
     args[0].agent     ||= this.getAgent()
@@ -205,22 +226,22 @@ export class Config extends ConnectConfig {
 
   /** Devnet options. */
   devnet: Partial<Devnet> = {
-    platform: this.getString(
-      'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.8'),
     chainId: this.getString(
-      'FADROMA_DEVNET_CHAIN_ID', ()=>randomChainId()),
-    temporary: this.getFlag(
-      'FADROMA_DEVNET_EPHEMERAL', ()=>false),
-    persistent: this.getFlag(
-      'FADROMA_DEVNET_PERSISTENT', ()=>true),
+      'FADROMA_DEVNET_CHAIN_ID', ()=>undefined),
+    platform: this.getString(
+      'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.9'),
+    deleteOnExit: this.getFlag(
+      'FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false),
+    keepRunning: this.getFlag(
+      'FADROMA_DEVNET_KEEP_RUNNING', ()=>true),
     host: this.getString(
       'FADROMA_DEVNET_HOST', ()=>undefined),
     port: this.getString(
       'FADROMA_DEVNET_PORT', ()=>undefined),
     podman: this.getFlag(
       'FADROMA_DEVNET_PODMAN', ()=>this.getFlag('FADROMA_PODMAN', ()=>false)),
-    noStateMount: this.getFlag(
-      'FADROMA_DEVNET_NO_STATE_MOUNT', () => false)
+    dontMountState: this.getFlag(
+      'FADROMA_DEVNET_DONT_MOUNT_STATE', () => false)
   }
 
   /** @returns Devnet */
@@ -345,12 +366,12 @@ export class Console extends BaseConsole {
       self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
     loadingRejected: (path: string) =>
       self.log(`${path} does not exist.`),
-    isNowRunning: ({ chainId, port, container: { id } }: any) => self
+    isNowRunning: ({ chainId, containerId, port }: Partial<Devnet>) => self
       .info(`running on port`, bold(String(port)))
-      .info(`from container`, bold(id.slice(0,8)))
+      .info(`from container`, bold(containerId?.slice(0,8)))
       .info('manual reset with:').info(`$`,
-        `docker kill`, id.slice(0,8), `&&`,
-        `docker rm`, id.slice(0,8), `&&`,
+        `docker kill`, containerId?.slice(0,8), `&&`,
+        `docker rm`, containerId?.slice(0,8), `&&`,
         `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
 
   }))(this)

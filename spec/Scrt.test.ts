@@ -15,8 +15,8 @@ chain = {
   getApi: () => ({}),
   isDevnet: true,
   devnet: {
-    respawn: () => Promise.resolve(),
-    getGenesisAccount: ()=>Promise.resolve({ mnemonic: 'the genesis account mnemonic' } as any)
+    start: () => Promise.resolve(),
+    getAccount: ()=>Promise.resolve({ mnemonic: 'the genesis account mnemonic' } as any)
   } as any,
 }
 

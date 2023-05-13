@@ -1,5 +1,26 @@
+/**
+
+  Fadroma: Base Services
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
+
 import type {
-  Address, TxHash, ChainId, Agent, ClientClass, Hashed, CodeId, Deployment, Class, CodeHash
+  Address, TxHash, ChainId, Agent, ClientClass, Hashed, CodeId, Deployment, Class, CodeHash,
+  Mocknet
 } from './agent'
 import { Error, Console, pluralize, bold, hideProperties } from './agent-base'
 import { Client, fetchCodeHash, getSourceSpecifier } from './agent-client'
@@ -33,6 +54,10 @@ export type BuilderClass<B extends Builder> = Class<Builder, any>
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder {
   log = new Console(this.constructor.name)
+  /** Whether to enable build caching.
+    * When set to false, this builder will rebuild even when
+    * binary and checksum are both present in wasm/ directory */
+  caching: boolean = true
   /** Global registry of builder variants. Populated downstream. */
   static variants: Record<string, BuilderClass<Builder>> = {}
   /** Unique identifier of this builder implementation. */
@@ -90,7 +115,7 @@ export class Uploader {
     this.id       = options.id       ?? this.id
     this.agent    = options.agent    ?? this.agent
     this.cache    = options.cache    ?? {}
-    this.reupload = options.reupload ?? this.agent?.chain?.isMocknet ?? false
+    this.reupload = options.reupload ?? false
     hideProperties(this, 'log')
   }
 
@@ -114,16 +139,38 @@ export class Uploader {
 
   /** Upload an Uploadable (such as a Contract or Template).
     * @returns Promise<Uploaded> */
-  async upload (contract: Uploadable): Promise<Uploaded> {
+  async upload (contract: Uploadable & Partial<Uploaded>): Promise<Uploaded> {
+    if (contract.codeId) {
+      this.log.log('found code id', contract.codeId)
+      if (this.reupload) {
+        this.log.log('reuploading because reupload is set')
+      } else if (this.agent?.chain?.isMocknet && contract.codeHash) {
+        const { codeHash } = (this.agent.chain as Mocknet.Chain).uploads[contract.codeId] || {}
+        if (codeHash === contract.codeHash) return contract as Uploaded
+        this.log.log('reuploading because mocknet is not stateful yet')
+      } else {
+        return contract as Uploaded
+      }
+    }
+    if (!this.agent) throw new Error('no upload agent')
     const cached = this.get(contract)
-    if (cached && !this.reupload) return cached
-    const { artifact } = contract
-    if (!artifact) throw new Error('No artifact to upload')
-    if (!this.agent) throw new Error('No upload agent')
-    this.log.log('fetching', String(artifact))
-    const data = await this.fetch(artifact)
+    if (cached && cached.codeId) {
+      this.log.log('found cached code id', cached.codeId, 'for code hash', cached.codeHash)
+      if (this.reupload) {
+        this.log.log('reuploading because reupload is set')
+      } else if (this.agent?.chain?.isMocknet) {
+        const { codeHash } = (this.agent.chain as Mocknet.Chain).uploads[cached.codeId] || {}
+        if (codeHash === contract.codeHash) return cached
+        this.log.log('reuploading because mocknet is not stateful yet')
+      } else {
+        return Object.assign(contract, cached as Uploaded)
+      }
+    }
+    if (!contract.artifact) throw new Error('no artifact to upload')
+    this.log.log('fetching', String(contract.artifact))
+    const data = await this.fetch(contract.artifact)
     const log = new Console(`${contract.codeHash} -> ${this.agent.chain?.id??'(unknown chain id)'}`)
-    log(`from ${bold(artifact)}`)
+    log(`from ${bold(contract.artifact)}`)
     log(`${bold(String(data.length))} bytes (uncompressed)`)
     const result = await this.agent.upload(data, contract)
     this.checkCodeHash(contract, result)

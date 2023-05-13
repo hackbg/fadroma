@@ -11,6 +11,7 @@ and a `ViewingKeyClient`).
 
 ```typescript
 import { Scrt } from '@fadroma/connect'
+import { Devnet } from '@hackbg/fadroma'
 import assert from 'node:assert'
 ```
 
@@ -38,7 +39,7 @@ To connect to Secret Network with Fadroma, use one of the following:
 ```typescript
 const mainnet = Scrt.Chain.mainnet({ url: 'test' })
 const testnet = Scrt.Chain.testnet({ url: 'test' })
-const devnet  = Scrt.Chain.devnet({ id: 'test-scrt-devnet', url: 'test' })
+const devnet  = new Devnet({ platform: 'scrt_1.9' }).getChain(Scrt.Chain)
 const mocknet = Scrt.Chain.mocknet({ url: 'test' })
 ```
 

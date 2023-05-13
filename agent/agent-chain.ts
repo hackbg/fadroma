@@ -1,3 +1,23 @@
+/**
+
+  Fadroma: Base Agent/Chain API
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
+
 import type {
   Class, Address, Message, ExecOpts, AgentFees, ICoin, IFee, CodeHash, Client, ClientClass,
   Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId,
@@ -17,12 +37,11 @@ export type ChainRegistry = Record<string, (config: any)=>Chain>
 /** Options for connecting to a chain. */
 
 export interface DevnetHandle {
-  chainId: string
   url: URL
   running: boolean
-  respawn (): Promise<unknown>
-  terminate (): Promise<this>
-  getGenesisAccount (name: string): Promise<Partial<Agent>>
+  chainId: string
+  start: () => Promise<this>
+  getAccount: (name: string) => Promise<Partial<Agent>>
 }
 
 /** A constructor for a Chain subclass. */
@@ -204,7 +223,9 @@ export abstract class Chain {
   /** Async functions that return Chain instances in different modes.
     * Values for `FADROMA_CHAIN` environment variable.
     * Populated by @fadroma/connect. */
-  static variants: ChainRegistry = { Mocknet: (...args) => Chain.mocknet(...args) }
+  static variants: ChainRegistry = {
+    Mocknet: (...args) => this.mocknet(...args)
+  }
 }
 
 /** @returns the chain of a thing
@@ -255,9 +276,9 @@ export abstract class Agent {
   get ready (): Promise<this> {
     const init = new Promise<this>(async (resolve, reject)=>{
       try {
-        if (this.chain?.devnet) await this.chain?.devnet.respawn()
+        if (this.chain?.devnet) await this.chain?.devnet.start()
         if (!this.mnemonic && this.name && this.chain?.devnet) {
-          Object.assign(this, await this.chain?.devnet.getGenesisAccount(this.name))
+          Object.assign(this, await this.chain?.devnet.getAccount(this.name))
         }
         resolve(this)
       } catch (e) {

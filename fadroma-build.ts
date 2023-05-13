@@ -1,3 +1,23 @@
+/**
+
+  Fadroma Build
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
+
 import type {
   Project, Class, BuilderClass, Buildable, Built, Template
 } from './fadroma'
@@ -57,8 +77,6 @@ export abstract class BuildLocal extends Builder {
   verbose:    boolean     = false
   /** Whether the build log should be printed only on error, or always */
   quiet:      boolean     = false
-  /** Whether to enable caching. */
-  caching:    boolean     = true
   /** Default Git reference from which to build sources. */
   revision:   string = HEAD
 
@@ -394,14 +412,16 @@ export class BuildContainer extends BuildLocal {
       buildLogStream  // container log stream
     )
     process.once('beforeExit', async () => {
-      this.log.log('Killing build container', bold(buildContainer.id))
+      if (this.verbose) this.log.log('killing build container', bold(buildContainer.id))
       try {
         await buildContainer.kill()
-        this.log.log('Killed build container', bold(buildContainer.id))
+        this.log.log('killed build container', bold(buildContainer.id))
       } catch (e) {
         if (!e.statusCode) this.log.error(e)
-        else if (e.statusCode === '404') {}
-        else this.log.warn('Failed to kill build container', e.statusCode, e.reason)
+        else if (e.statusCode === 404) {}
+        else if (this.verbose) this.log.warn(
+          'failed to kill build container', e.statusCode, `(${e.reason})`
+        )
       }
     })
     const {error, code} = await buildContainer.wait()
@@ -417,8 +437,9 @@ export class BuildContainer extends BuildLocal {
 
   protected buildFailed (crates: string[], code: string|number, logs: string) {
     const crateList = crates.join(' ')
-    this.log.log(logs)
-    this.log.error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
+    this.log
+      .log(logs)
+      .error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
     throw new Error(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
   }
 
@@ -640,7 +661,7 @@ export class ContractCrate {
       `readme = "README.md"`, ``,
       `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
       `[dependencies]`,
-      `fadroma = { git = "https://github.com/hackbg/fadroma", branch = "master", features = ${JSON.stringify(this.fadromaFeatures)} }`,
+      `fadroma = { version = "^0.8.7", features = ${JSON.stringify(this.fadromaFeatures)} }`,
       `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
     ].join('\n'))
     this.src.make()

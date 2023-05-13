@@ -1,3 +1,23 @@
+/**
+
+  Fadroma Mocknet
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
+
 import type {
   AgentClass, Uint128, BundleClass, ExecOpts, Uploadable, Uploaded,
   Address, CodeHash, ChainId, CodeId, Message, Client, Label, AnyContract, Instantiated
@@ -365,6 +385,8 @@ export type CWAPI<V extends CW> = {
         secp256k1_sign (msg: Pointer, priv: Pointer): Pointer
         secp256k1_verify (hash: Pointer, sig: Pointer, pub: Pointer): Pointer
         secp256k1_recover_pubkey (hash: Pointer, sig: Pointer, param: Pointer): Pointer
+
+        gas_evaporate (...args: any): any
       }
     },
     exports: {
@@ -695,6 +717,10 @@ export class MocknetContract<V extends CW> {
 
         check_gas (): Pointer {
           log.debug('check_gas: not implemented')
+          return 0
+        },
+        gas_evaporate (): Pointer {
+          log.debug('gas_evaporate: not implemented')
           return 0
         }
 

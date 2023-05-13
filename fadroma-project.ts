@@ -1,7 +1,28 @@
-import { Config, Console, colors, Error, DeployError } from './fadroma-base'
+/**
+
+  Fadroma Project
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
+
+import { version, Config, Console, colors, Error, DeployError } from './fadroma-base'
 import { getBuilder, ContractCrate } from './fadroma-build'
 import { getUploader } from './fadroma-upload'
-import { Devnet } from './devnet/devnet'
+import { Devnet } from './fadroma-devnet'
+import { ProjectWizard, toolVersions } from './fadroma-wizard'
 
 import type {
   Builder, Buildable, Built, Uploader, Chain,
@@ -26,10 +47,6 @@ import prompts from 'prompts'
 
 import { basename } from 'node:path'
 import { execSync } from 'node:child_process'
-import { platform } from 'node:os'
-
-//@ts-ignore
-export const { version } = $(import.meta.url, '../package.json').as(JSONFile).load() as any
 
 const console = new Console(`@hackbg/fadroma ${version}`)
 
@@ -50,10 +67,10 @@ export class Project extends CommandContext {
   /** Default deployment class. */
   Deployment = Deployment
 
-  static wizard = (...args: any[]) => new ProjectWizard().createProject(...args)
+  static wizard = (...args: any[]) => new ProjectWizard().createProject(this, ...args)
 
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
-    const configFile = $(path, 'fadroma.json').as(JSONFile)
+    const configFile = $(path, 'fadroma.yml').as(YAMLFile)
     if (configFile.exists()) {
       return new Project(configFile.load() as Partial<Project>)
     } else {
@@ -82,7 +99,7 @@ export class Project extends CommandContext {
     // Populate templates
     this.templates = {}
     const templates = options?.templates || (this.exists()
-      ? ((this.files.fadromaJson.load()||{}) as any).templates||{}
+      ? ((this.files.fadromaYaml.load()||{}) as any).templates||{}
       : {}) as Record<string, Template<any>|(Buildable & Partial<Built>)>
     for (const [key, val] of Object.entries(templates)) this.setTemplate(key, val)
 
@@ -130,7 +147,7 @@ export class Project extends CommandContext {
       dockerfile:     null,
       droneWorkflow:  null,
       envfile:        this.root.at('.env').as(TextFile),
-      fadromaJson:    this.root.at('fadroma.json').as(JSONFile),
+      fadromaYaml:    this.root.at('fadroma.yml').as(YAMLFile),
       githubWorkflow: null,
       gitignore:      this.root.at('.gitignore').as(TextFile),
       packageJson:    this.root.at('package.json').as(JSONFile),
@@ -142,7 +159,7 @@ export class Project extends CommandContext {
     }
   }
   /** @returns stateless handles for the contract crates
-    * corresponding to templates in fadroma.json */
+    * corresponding to templates in fadroma.yml */
   get crates () {
     const crates: Record<string, ContractCrate> = {}
     for (const [name, template] of Object.entries(this.templates)) {
@@ -229,9 +246,9 @@ export class Project extends CommandContext {
     return this
   }
 
-  /** @returns Boolean whether the project (as defined by fadroma.json in root) exists */
+  /** @returns Boolean whether the project (as defined by fadroma.yml in root) exists */
   exists = () =>
-    this.files.fadromaJson.exists()
+    this.files.fadromaYaml.exists()
   /** Builds one or more named templates, or all templates if no arguments are passed. */
   build = async (...names: string[]): Promise<Built[]> => {
     if (names.length < 1) {
@@ -254,7 +271,8 @@ export class Project extends CommandContext {
     return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
   }
   rebuild = async (...names: string[]): Promise<Built[]> => {
-    throw new Error.Unimplemented('rebuild')
+    this.builder.caching = false
+    return this.build(...names)
   }
   /** Uploads one or more named templates, or all templates if no arguments are passed.
     * Builds templates with missing artifacts if sources are available. */
@@ -280,8 +298,9 @@ export class Project extends CommandContext {
     const templates = this.builder ? await this.builder.buildMany(sources) : sources
     return await this.uploader.uploadMany(templates as Uploadable[])
   }
-  reupload = async (...names: string[]): Promise<Built[]> => {
-    throw new Error.Unimplemented('rebuild')
+  reupload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
+    this.uploader.reupload = true
+    return this.upload(...names)
   }
   deploy = async (...args: string[]) => {
     const deployment: Deployment = this.deployment || await this.createDeployment()
@@ -348,7 +367,7 @@ export class Project extends CommandContext {
     this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
   resetDevnets = async (...ids: ChainId[]) =>
-    Devnet.resetMany(this.root.in('state'), ids)
+    Devnet.deleteMany(this.root.in('state'), ids)
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {
@@ -358,7 +377,7 @@ export class Project extends CommandContext {
     const {
       readme, packageJson, cargoToml,
       gitignore, envfile, shellNix,
-      fadromaJson, apiIndex, opsIndex, testIndex,
+      fadromaYaml, apiIndex, opsIndex, testIndex,
     } = files
     readme.save([
       `# ${name}\n---\n`,
@@ -366,7 +385,7 @@ export class Project extends CommandContext {
       `by [Hack.bg](https://hack.bg) `,
       `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
     ].join(''))
-    fadromaJson.save({ templates })
+    fadromaYaml.save({ templates })
     packageJson.save({
       name: `${name}`,
       main: `api.ts`,
@@ -383,6 +402,7 @@ export class Project extends CommandContext {
       },
       scripts: {
         "build":   "fadroma build",
+        "rebuild": "fadroma rebuild",
         "status":  "fadroma status",
         "mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
         "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
@@ -548,264 +568,17 @@ export class Project extends CommandContext {
   runShellCommands = (...cmds: string[]) =>
     cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
   /** Load and execute the default export of an ES module. */
-  runScript = (script?: string, ...args: string[]) => {
+  runScript = async (script?: string, ...args: string[]) => {
     if (!script) throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
     if (!$(script).exists()) throw new Error(`${script} doesn't exist`)
     this.log.log(`Running ${script}`)
+    const path = $(script).path
     //@ts-ignore
-    return import($(script).path).then(script=>{
-      if (typeof script.default === 'function') {
-        return script.default(this, ...args)
-      } else {
-        this.log.info(`${$(script).shortPath} does not have a default export.`)
-      }
-    })
-  }
-}
-
-/** Interactive project creation CLI.
-  * TODO: single crate option
-  * TODO: `shared` crate option */
-export class ProjectWizard {
-
-  cwd: string = process.cwd()
-
-  tools: ReturnType<typeof toolVersions> = toolVersions()
-
-  interactive: boolean = !!process.stdin.isTTY && process.stdout.isTTY
-
-  constructor (options: Partial<ProjectWizard> = {}) {
-    this.cwd         = options.cwd ?? this.cwd
-    this.tools       = options.tools ?? this.tools
-    this.interactive = options.interactive ?? this.interactive
-  }
-
-  async createProject (...args: any[]): Promise<Project> {
-    let { git, pnpm, yarn, npm, cargo, docker, podman } = this.tools
-    const name = this.interactive
-      ? await this.askName()
-      : args[0]
-    const root = (this.interactive
-      ? $(await this.askRoot(name))
-      : $(this.cwd, name)).as(OpaqueDirectory)
-    const templates = this.interactive
-      ? await this.askTemplates(name)
-      : args.slice(1).reduce((templates, crate)=>Object.assign(templates, { [crate]: crate }), {})
-    const project = new Project({ name, root, templates: templates as any }).create()
-    if (this.interactive) {
-      switch (await this.selectBuilder()) {
-        case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
-        case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
-        default:
-      }
-    }
-    let changed = false
-    let nonfatal = false
-    if (git) {
-      try {
-        project.gitSetup()
-      } catch (e) {
-        console.warn('Non-fatal: Failed to create Git repo.')
-        nonfatal = true
-        git = null
-      }
+    const { default: main } = await import(path)
+    if (typeof main === 'function') {
+      return main(this, ...args)
     } else {
-      console.warn('Git not found. Not creating repo.')
+      this.log.info(`${$(script).shortPath} does not have a default export.`)
     }
-    if (pnpm || yarn || npm) {
-      try {
-        project.npmInstall(this.tools)
-        changed = true
-      } catch (e) {
-        console.warn('Non-fatal: NPM install failed:', e)
-        nonfatal = true
-      }
-    } else {
-      console.warn('NPM/Yarn/PNPM not found. Not creating lockfile.')
-    }
-    if (cargo) {
-      try {
-        project.cargoUpdate()
-        changed = true
-      } catch (e) {
-        console.warn('Non-fatal: Cargo update failed:', e)
-        nonfatal = true
-      }
-    } else {
-      console.warn('Cargo not found. Not creating lockfile.')
-    }
-    if (changed && git) {
-      try {
-        project.gitCommit('"Updated lockfiles."')
-      } catch (e) {
-        console.warn('Non-fatal: Git status failed:', e)
-        nonfatal = true
-      }
-    }
-    if (nonfatal) {
-      console.warn('One or more convenience operations failed.')
-      console.warn('You can retry them manually later.')
-    }
-    console.log("Project created at", bold(project.root.shortPath))
-    console.info()
-    console.info(`To compile your contracts:`)
-    console.info(`  $ npm run build`)
-    console.info()
-    console.info(`To spin up a local deployment:`)
-    console.info(`  $ npm run devnet deploy`)
-    console.info()
-    //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
-    return project
-  }
-
-  async askName (): Promise<string> {
-    let value
-    while ((value = (await askText('Enter a project name (a-z, 0-9, dash/underscore)')??'').trim()) === '') {}
-    return value
-  }
-  askRoot (name: string): Promise<Path> {
-    const cwd = $(process.cwd())
-    const exists = cwd.in(name).exists()
-    const inSub = `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
-    const inCwd = `Current directory (${cwd.name})`
-    return askSelect(`Create project ${name} in current directory or subdirectory?`, [
-      { title: inSub, value: cwd.in(name) },
-      { title: inCwd, value: cwd },
-    ])
-  }
-  askTemplates (name: string):
-    Promise<Record<string, Template<any>|(Buildable & Partial<Built>)>>
-  {
-    return askUntilDone({}, (state) => askSelect([
-      `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
-      `  ${Object.keys(state).join(',\n  ')}\n`
-    ].join(''), [
-      { title: `Add contract template to the project`, value: defineContract },
-      { title: `Remove contract template`, value: undefineContract },
-      { title: `Rename contract template`, value: renameContract },
-      { title: `(done)`, value: null },
-    ]))
-    async function defineContract (state: Record<string, any>) {
-      const crate = await askText([
-        'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):',
-      ].join('\n'))
-      if (crate) {
-        state[crate] = { crate }
-      }
-    }
-    async function undefineContract (state: Record<string, any>) {
-      const name = await askSelect(`Select contract to remove from project scope:`, [
-        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
-        { title: `(done)`, value: null },
-      ])
-      delete state[name]
-    }
-    async function renameContract (state: Record<string, any>) {
-      const contract = await askSelect(`Select contract to rename:`, [
-        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
-        { title: `(done)`, value: null },
-      ])
-      const name = await askText(`Enter a new name for ${contract} (a-z, 0-9, dash/underscore):`)
-      if (name) {
-        state[name] = state[contract]
-        delete state[contract]
-      }
-    }
-  }
-  selectBuilder (): 'podman'|'raw'|any {
-    const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = this.tools
-    const buildRaw    = { value: 'raw',    title: `No, build with local toolchain (${cargo})` }
-    const buildDocker = { value: 'docker', title: `Yes, build in a Docker container (${docker})` }
-    const buildPodman = { value: 'podman', title: `Yes, build in a Podman container (${podman})` }
-    const hasPodman = podman && (podman !== 'not installed')
-    const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
-    const isLinux = platform() === 'linux'
-    const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
-    return askSelect(`Use build isolation?`, choices)
-  }
-  static selectDeploymentFromStore = async (store: DeployStore & {
-    root?: Path
-  }): Promise<string|undefined> => {
-    const label = store.root
-      ? `Select a deployment from ${store.root.shortPath}:`
-      : `Select a deployment:`
-    return await askSelect(label, [
-      ...store.list().map(title=>({ title, value: title })),
-      { title: '(cancel)', value: undefined }
-    ])
-  }
-
-}
-
-export async function askText <T> (
-  message: string,
-  valid = (x: string) => clean(x).length > 0,
-  clean = (x: string) => x.trim()
-) {
-  while (true) {
-    const input = await prompts.prompt({ type: 'text', name: 'value', message })
-    if ('value' in input) {
-      if (valid(input.value)) return clean(input.value)
-    } else {
-      console.error('Input cancelled.')
-      process.exit(1)
-    }
-  }
-}
-
-export async function askSelect <T> (message: string, choices: any[]) {
-  const input = await prompts.prompt({ type: 'select', name: 'value', message, choices })
-  if ('value' in input) return input.value
-  console.error('Input cancelled.')
-  process.exit(1)
-}
-
-export async function askUntilDone <S> (
-  state: S, selector: (state: S)=>Promise<Function|null>|Function|null
-) {
-  let action = null
-  while (typeof (action = await Promise.resolve(selector(state))) === 'function') {
-    await Promise.resolve(action(state))
-  }
-  return state
-}
-
-export const toolVersions = () => {
-  console.br()
-  return {
-    ttyIn:  check('TTY in:   ', !!process.stdin.isTTY),
-    ttyOut: check('TTY out:  ', !!process.stdout.isTTY),
-    //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
-    git:       tool('Git:      ', 'git --no-pager --version'),
-    node:      tool('Node:     ', 'node --version'),
-    npm:       tool('NPM:      ', 'npm --version'),
-    yarn:      tool('Yarn:     ', 'yarn --version'),
-    pnpm:      tool('PNPM:     ', 'pnpm --version'),
-    tsc:       tool('TSC:      ', 'tsc --version'),
-    cargo:     tool('Cargo:    ', 'cargo --version'),
-    rust:      tool('Rust:     ', 'rustc --version'),
-    docker:    tool('Docker:   ', 'docker --version'),
-    podman:    tool('Podman:   ', 'podman --version'),
-    nix:       tool('Nix:      ', 'nix --version'),
-    secretcli: tool('secretcli:', 'secretcli version')
-  }
-}
-
-/** Check a variable */
-export const check = <T> (name: string|null, value: T): T => {
-  if (name) console.info(bold(name), value)
-  return value
-}
-
-/** Check if an external binary is on the PATH. */
-export const tool = (dependency: string|null, command: string): string|null => {
-  let version = null
-  try {
-    version = String(execSync(command)).trim()
-    if (dependency) console.info(bold(dependency), version)
-  } catch (e) {
-    if (dependency) console.warn(bold(dependency), colors.yellow('(not found)'))
-  } finally {
-    return version
   }
 }

@@ -1,5 +1,37 @@
 # Changelog (TypeScript)
 
+## 2023-05-12
+
+### `@hackbg/fadroma 1.0.0-beta.94`
+
+#### Breaking changes
+
+* The project manifest is now `fadroma.yml` instead of `fadroma.json`.
+  If you created your project with an earlier version, just rename that file -
+  as YAML is a superset of JSON, things should just work.
+* Devnet API and implementation overhaul:
+  * Removed crufty `devnet.spawn`, `devnet.respawn` and `devnet.kill` methods.
+  * Replaced them with clear `create`/`delete`, `start`/`stop`, `load`/`save`.
+  * Renamed devnet's `persistent` and `ephemeral` flags to `keepRuning` and `deleteOnExit`.
+  * Replaced `devnet.container` and `devnet.image` with getters
+    based on `devnet.containerId` and `devnet.imageTag`
+  * The above should prevent orphaned devnet containers.
+* Removed `deployment.config`
+* `Chain.variants.ScrtDevnet(options)` now takes `Devnet` options and not `Scrt.Chain` options
+* `ProjectWizard` is not exported anymore.
+
+#### New features
+
+* Enabled `fadroma rebuild` command.
+* Enabled `fadroma reupload` command.
+* Contracts created by project wizard now depend on fadroma `^0.8` instead of Git dependency.
+
+#### Fixed
+
+* Devnet support for Secret Network 1.9
+* Don't reupload if code ID is present.
+* Don't always reupload if running on mocknet.
+
 ## 2023-05-10
 
 ### `@hackbg/fadroma 1.0.0-beta.93`
@@ -71,6 +103,6 @@
 * `scrtAgent.simulate` -> `scrtAgent.simulateForGas` to clarify purpose.
 * Moved `Token`, etc. types listed above into `@fadroma/agent`.
 
-#### Features
+#### New features
 
 * Gas consumed by uploads and inits is now reported to the console.

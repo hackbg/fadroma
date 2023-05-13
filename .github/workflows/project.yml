@@ -33,7 +33,7 @@ jobs:
           npx @hackbg/fadroma@latest create myproject mycontract1 mycontract2
           cd myproject
           cat package.json
-          cat fadroma.json
+          cat fadroma.yml
           cat api.ts
           cat ops.ts
           npm run build

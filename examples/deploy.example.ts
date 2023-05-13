@@ -7,7 +7,7 @@ export class MyProject extends Deployment {
     .deploy({})
 
   kv = this.contract({ crate: 'echo', name: 'Echo' })
-    .deploy(async () => ({ dependency: (await this.echo).asLink }))
+    .deploy(async () => ({ dependency: (await this.echo).asContractLink }))
 
 }
 

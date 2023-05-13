@@ -11,8 +11,8 @@ coverage:
     - typedoc-theme.tsx
     - fadroma.browser.ts
     - build.impl.mjs
-    - devnet/devnet.init.mjs
-    - devnet/devnet.server.mjs
+    - devnets/devnet.init.mjs
+    - devnets/devnet.server.mjs
     - fadroma.cli.cjs
 
 header:
@@ -31,6 +31,31 @@ header:
       href: https://www.npmjs.com/search?q=fadroma
     - text: Hack.bg
       href: https://hack.bg/
+
+sidebar:
+  links:
+    - href: /guide.html
+      text: Getting started
+    - href: /project.html
+      text: Projects
+    - href: /agent.html
+      text: Agent API
+    - href: /scrt.html
+      text: Secret Network
+    - href: /dsl.html
+      text: Macro DSL
+    - href: /factory.html
+      text: Factories
+    - href: /build.html
+      text: Building
+    - href: /upload.html
+      text: Uploading
+    - href: /deploy.html
+      text: Deploy API
+    - href: /devnet.html
+      text: Devnets
+    - href: /mocknet.html
+      text: Mocknets
 
 routes:
   - path: /index.html
