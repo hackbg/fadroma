@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.93",
+  "version": "1.0.0-beta.95",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -12,7 +12,7 @@
     "tsconfig.json",
     "Dockerfile",
     "build.impl.mjs",
-    "devnet/*",
+    "devnets/*",
     "logo.svg",
     "!agent/*",
     "!connect/*",
