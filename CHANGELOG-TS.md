@@ -19,6 +19,9 @@
 * Removed `deployment.config`
 * `Chain.variants.ScrtDevnet(options)` now takes `Devnet` options and not `Scrt.Chain` options
 * `ProjectWizard` is not exported anymore.
+* `asLink` and `asInfo` getters on `Template`, `Contract`, and `Client` were renamed
+  to `asContractLink` and `asContractCode`, matching `ContractLink` and `ContractCode`
+  on the Rust side.
 
 #### New features
 
