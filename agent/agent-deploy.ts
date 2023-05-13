@@ -412,7 +412,7 @@ export class Template<C extends Client> {
     })
   }
 
-  get asInfo (): ContractInfo {
+  get asContractCode (): ContractCode {
     return {
       id:        Number(this.codeId!) as any,
       code_hash: this.codeHash!
@@ -491,7 +491,7 @@ export class Template<C extends Client> {
 type Task<T, U> = void // FIXME
 
 /** Reference to an instantiated smart contract, to be used by contracts. */
-export interface ContractInfo {
+export interface ContractCode {
   readonly id:        CodeId
   readonly code_hash: CodeHash
 }
@@ -612,7 +612,7 @@ export class Contract<C extends Client> extends Template<C> {
   get deployed (): Promise<C> {
     return this.deploy()
   }
-  get asLink (): ContractLink {
+  get asContractLink (): ContractLink {
     return { address: this.address!, code_hash: this.codeHash! }
   }
 

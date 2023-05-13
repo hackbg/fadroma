@@ -43,9 +43,9 @@ export default class FactoryDeployment extends Deployment {
       // as containing the code id and code hash of the uploaded Product template.
       // Using `await this.product.uploaded` here makes sure that,
       // if the template is not uploaded yet, instantiating a Factory will upload it first.
-      // The `asInfo` getter converts a `Template` into the `ContractCode { id, code_hash }`
+      // The `asContractCode` getter converts a `Template` into the `ContractCode { id, code_hash }`
       // struct that the Factory expects.
-      code: (await this.product.uploaded).asInfo
+      code: (await this.product.uploaded).asContractCode
     })
   })
 

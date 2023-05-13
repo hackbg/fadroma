@@ -61,12 +61,12 @@ export class Client {
     return this.agent?.chain
   }
   /** The contract represented in ICC format (`{address, code_hash}`) */
-  get asLink (): ContractLink {
-    return this.meta.asLink
+  get asContractLink (): ContractLink {
+    return this.meta.asContractLink
   }
   /** The contract template represented in factory format (`{code_id, code_hash}`) */
-  get asInfo () {
-    return this.meta.asInfo
+  get asContractCode () {
+    return this.meta.asContractCode
   }
   /** Fetch code hash from address.
     * @returns Promise<this> */
