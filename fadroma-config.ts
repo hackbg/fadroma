@@ -38,8 +38,8 @@ import { fileURLToPath } from 'node:url'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
-//@ts-ignore
 export const thisPackage =
+  //@ts-ignore
   dirname(fileURLToPath(import.meta.url))
 
 export const { version } =

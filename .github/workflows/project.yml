@@ -29,12 +29,14 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-      - name: Create project through NPX
+      - name: Build Fadroma to NPM equivalent
+        run: |
+          pnpm i # install with dev dependencies
+          pnpm exec ubik fix # compile to js, don't typecheck or run tests
+          pnpm i -P # remove dev dependencies
+      - name: Create project
         run: |
           sudo apt install -y wabt binaryen
-          pnpm i        # install with dev dependencies
-          pnpm ubik fix # compile to js
-          pnpm i -P     # remove dev dependencies
           export FADROMA="$(pwd)"
           export TMP_PROJECT="$(mktemp)"
           cd "$TMP_PROJECT"
