@@ -40,6 +40,7 @@ jobs:
           sudo apt install -y wabt binaryen
           export FADROMA="$(pwd)"
           export TMP_PROJECT="$(mktemp)"
+          mkdir -p "$TMP_PROJECT"
           cd "$TMP_PROJECT"
           npx "$FADROMA" create myproject mycontract1 mycontract2
           cd myproject
