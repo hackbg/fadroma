@@ -23,47 +23,68 @@ The control flow goes something like this:
 Here's how this pattern can be described as a `Deployment` in your project's `api.ts` or similar.
 
 ```typescript
+// api.ts
+
 import { Deployment, Client } from '@fadroma/agent'
 
 export default class FactoryDeployment extends Deployment {
 
-  // Since there is going to be an arbitrary number of Product contracts
-  // instantiated by the Factory, here we use `this.template` to define
-  // just the initial source code and final client class.
-  product = this.template({ crate: 'fadroma-example-factory-product', client: Product })
+  // There will be an unlimited number of `Product` contracts
+  // instantiated by the `Factory`. Let's use `this.template`
+  // to define the initial source code and final client class
+  // for each one of them:
+  product = this.template({
+    crate: 'fadroma-example-factory-product',
+    client: Product
+  })
 
-  // The Factory is a single contract instance, so we use `this.contract`
-  // to also specify a name and an init message for it.
+  // The `Factory`, on the other hand, is a single contract instance.
+  // So, let's use `this.contract` to provide its name and init message:
   factory = this.contract({
     name: 'factory',
     crate: 'fadroma-example-factory',
     client: Factory,
     initMsg: async () => ({
-      // Here the `code` parameter to the Factory's init message is defined
-      // as containing the code id and code hash of the uploaded Product template.
-      // Using `await this.product.uploaded` here makes sure that,
-      // if the template is not uploaded yet, instantiating a Factory will upload it first.
-      // The `asContractCode` getter converts a `Template` into the `ContractCode { id, code_hash }`
-      // struct that the Factory expects.
+      // This `Factory` takes one configuration parameter, `code`,
+      // which contains the code id and code hash needed to
+      // instantiate `Product`s.
+      //
+      // Using `await this.product.uploaded` here makes sure that
+      // instantiating a Factory will automatically upload the
+      // `Product` template if it's not uploaded yet.
+      //
+      // The `asContractCode` getter converts a `Template` into
+      // the `ContractCode { id, code_hash }` struct that the
+      // `Factory` expects.
       code: (await this.product.uploaded).asContractCode
     })
   })
 
-  // You can define methods directly on the deployment that call into individual contracts.
-  // Here, `contract.expect()` is used to make the method call fail if the contract is not
-  // already instantiated.
+  // Defining custom methods directly on the `Deployment`
+  // lets you interact with the deployed multi-contract system
+  // as a coherent whole.
   create = (name: string) =>
+    // Here, `contract.expect()` makes the method call fail
+    // if the `Factory` is not already instantiated. Otherwise,
+    // it will return an instance of the `client` class specified
+    // in the definition above.
+    //
+    // Having made sure that there is a contract to call, the
+    // `factory.client` method is called. (This is defined on the
+    // `Factory` client class below.)
     this.factory.expect().create(name)
 
-  // This getter returns a list of `Product` instances, created from
-  // the plain list of `{ address, code_hash }` structs returned by
-  // the `factory.list()` method.
+  // Finally, here's a getter which fetches the list of `Product`
+  // instances that have been created so far.
   get products () {
+    // Once again, we `expect` the factory to already exist,
+    // and call the `factory.list` method (defined below).
     return this.factory.expect().list().then(({entries, ...rest})=>({
-      // Return other info unchanged
+      // Return any other info from the response unchanged...
       ...rest,
-      // Convert every `{address, code_hash}` entry into a `Product` instance
-      // bound to the current `agent`.
+      // ...only convert the array of plain `{ address, code_hash }`
+      // structs returned by the contract into an array of `Product`
+      // instances that are bound to the current `agent`.
       entries: entries.map(({address,code_hash})=>this.agent.getClient(
         Product, address, code_hash
       ))
@@ -72,8 +93,9 @@ export default class FactoryDeployment extends Deployment {
 
 }
 
-// A `Client` class can be used to compose the actual JSON messages passed to the contract.
-// You can also put metadata, validation, etc. here
+// A `Client` class can be used to compose the actual JSON messages
+// that are passed to the contract. You can also add metadata,
+// validation, etc.
 class Factory extends Client {
 
   create = (name: string) =>
@@ -84,22 +106,25 @@ class Factory extends Client {
 
 }
 
-// An empty `Client` class is just a marker for what kind of contract that it connects to.
+// An empty `Client` class is just a marker
+// for what kind of contract it connects to.
 class Product extends Client {
 
-  // In practice, you would have your Product's methods here -
-  // for example, if your factory instantiates AMM pools,
-  // you would add things like `swap` and `add_liquidity`
+  // In practice, you would have your `Product`'s methods here -
+  // for example, if your `Factory` instantiates AMM pools,
+  // you could define add things like `swap` or `addLiquidity`.
 
 }
 ```
 
 ## Testing
 
-And here's how you would test it on mocknet and devnet:
+And here's how you would deploy and test it on mocknet and devnet:
 
 ```typescript
-// test:
+// tes.ts
+
+// import { FadromaDeployment } from './api.ts'
 
 import { Chain, getDeployment } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
@@ -112,24 +137,65 @@ const chains = [
 
 for (const chain of chains) {
 
-  const agent = await chain.getAgent({ name: 'Admin' }).ready
+  // Get a populated instance of `FactoryDeployment`:
+  const deployment = getDeployment(FactoryDeployment, {
+    // You need to provide an authenticated `Agent`:
+    agent: await chain.getAgent({ name: 'Admin' }).ready
+  })
 
-  const deployment = getDeployment(FactoryDeployment, { agent })
-
+  // Deploy all contracts:
   await deployment.deploy()
 
+  // In our case, the above will build+upload+instantiate `Factory`
+  // (because it's defined with `deployment.contract`), and it will
+  // only build+upload `Product` (because it's defined with
+  // `deployment.template`).
+
+  // Smoke check: in the initial state of the deployment,
+  // the `products` getter should return zero things:
   assert.deepEqual(
     await deployment.products,
     { total: 0, entries: [] },
     'factory starts out empty'
   )
 
-  await deployment.factory.expect().create('foo')
+  // Let's instantiate a `Product` now:
+  await deployment.create('foo')
 
+  // And make sure that the `products` getter converts
+  // all returned values to `Product` client instances.
   assert(
-    (await deployment.products).entries.every(entry=>entry instanceof Product),
-    'the factory records the created contracts; deployment turns them into Producti nstances'
+    (await deployment.products).entries.every(
+      entry=>entry instanceof Product
+    ),
+    'factory tracks created contracts; deployment returns them as Product instances'
   )
 
 }
+```
+
+This is how you would use the [Fadroma Agent API](./agent.html)
+and [Fadroma Deploy API](./deploy.html) to manage the deployment
+and operations of your smart contracts.
+
+## Exporting and connecting
+
+The next step after validating a successful deployment is
+to provide access to it downstream, i.e. let a front-end
+connect to it so that people can use it as any Web app.
+
+⚠️ This API is a work in progress.
+
+```typescript
+// your-frontend.ts
+
+// import FadromaDeployment, { mainnetState, testnetState } from '@your/project'
+
+// const testnet = FadromaDeployment.connect(testnetState, {
+//   agent: Chain.variants['ScrtTestnet'].getAgent()
+// })
+
+// const mainnet = FadromaDeployment.connect(mainnetState, {
+//   agent: Chain.variants['ScrtMainnet'].getAgent()
+// })
 ```

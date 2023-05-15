@@ -1,8 +1,17 @@
 # Fadroma Upload
 
-This package implements **uploading WASM files to get code ids**.
+Fadroma takes care of **uploading WASM files to get code IDs**.
+
+Like builds, uploads are *idempotent*: if the same code hash is
+known to already be uploaded to the same chain (as represented by
+an upload receipt in `state/$CHAIN/uploads/$CODE_HASH.json`,
+Fadroma will skip the upload and reues the existing code ID.
 
 ## Upload CLI
+
+The `fadroma upload` command (available through `npm run $MODE upload`
+in the default project structure) lets you access Fadroma's `Uploader`
+implementation from the command line.
 
 ```shell
 $ fadroma upload CONTRACT   # nil if same contract is already uploaded
@@ -11,80 +20,44 @@ $ fadroma reupload CONTRACT # always reupload
 
 ## Upload API
 
-## Uploader
+The client package, `@fadroma/agent`, exposes a base `Uploader` class,
+which the global `fetch` method to obtain code from any supported URL
+(`file:///` or otherwise).
 
-* **FetchUploader**: Support for uploading from any URL incl. `file:///`
-* **FSUploader**: Support for uploading files from local FS with `node:fs`.
+This `fetch`-based implementation only supports temporary, in-memory
+upload caching: if you ask it to upload the same contract many times,
+it will upload it only once - but it will forget all about that
+as soon as you refresh the page.
 
-Uploading with default configuration (from environment variables):
+The backend package, `@hackbg/fadroma`, provides `FSUploader`.
+This extension of `Uploader` uses Node's `fs` API instead, and
+writes upload receipts into the upload state directory for the
+given chain (e.g. `state/$CHAIN/uploads/`).
+
+Let's try uploading an example WASM binary:
 
 ```typescript
 import { fixture } from '../fixtures/Fixtures.ts.md'
 const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
+```
 
+* Uploading with default configuration (from environment variables):
+
+```typescript
 import { upload } from '@hackbg/fadroma'
 await upload({ artifact })
 ```
 
-Passing custom options to the uploader:
+* Passing custom options to the uploader:
 
 ```typescript
 import { getUploader } from '@hackbg/fadroma'
 await getUploader({ /* options */ }).upload({ artifact })
 ```
 
-### Upload caching
-
-Contracts start out as source code, which `@hackbg/fadroma` compiles to binary artifacts
-(WASM files). The `Uploader` class takes care of uploading them and producing a JSON file
-containing upload metadata, which we call an **upload receipt**.
-
-```typescript
-import { JSONDirectory, withTmpDir } from '@hackbg/file'
-import { DeployConfig, FSUploader } from '@hackbg/fadroma'
-import { Agent, Uploader, Template } from '@fadroma/agent'
-import { examples } from '../fixtures/Fixtures.ts.md'
-let config:   DeployConfig
-let uploader: Uploader
-let agent:    Agent = { chain: { id: 'testing' }, upload: async x => x }
-let template: Template = new Template({ artifact })
-```
-
-When trying to upload a binary file, the `Uploader` checks if a corresponding receipt exists;
-if it does, it returns the existing code ID instead of uploading the same file twice.
-
-```typescript
-await withTmpDir(async path=>{
-  uploader = new FSUploader({ agent, store: path })
-  assert.ok(uploader.agent === agent)
-  assert.ok(await uploader.upload(template))
-  assert.ok(await uploader.upload(template))
-  assert.ok(await uploader.uploadMany([template]))
-})
-```
-
-### Uploader variants
-
-#### FSUploader
-
-`FSUploader` uploads WASM to the chain from local files.
-
-#### FetchUploader
-
-`FetchUploader`, uploads WASM to the chain from remote URLs.
-
-### Upload events
-
-```typescript
-```
-
-### Upload errors
-
-```typescript
-```
-
 ---
 
 ```typescript
 import assert from 'node:assert'
+//await import('./Upload.test.ts')
 ```
