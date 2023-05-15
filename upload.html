@@ -439,65 +439,52 @@ hr {
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
 <h1 id="fadroma-upload" tabindex="-1">Fadroma Upload</h1>
-<p>This package implements <strong>uploading WASM files to get code ids</strong>.</p>
+<p>Fadroma takes care of <strong>uploading WASM files to get code IDs</strong>.</p>
+<p>Like builds, uploads are <em>idempotent</em>: if the same code hash is
+known to already be uploaded to the same chain (as represented by
+an upload receipt in <code>state/$CHAIN/uploads/$CODE_HASH.json</code>,
+Fadroma will skip the upload and reues the existing code ID.</p>
 <h2 id="upload-cli" tabindex="-1">Upload CLI</h2>
+<p>The <code>fadroma upload</code> command (available through <code>npm run $MODE upload</code>
+in the default project structure) lets you access Fadroma's <code>Uploader</code>
+implementation from the command line.</p>
 <pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma upload CONTRACT   <span class="hljs-comment"># nil if same contract is already uploaded</span></span>
 <span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma reupload CONTRACT <span class="hljs-comment"># always reupload</span></span>
 </code></pre>
 <h2 id="upload-api" tabindex="-1">Upload API</h2>
-<h2 id="uploader" tabindex="-1">Uploader</h2>
-<ul>
-<li><strong>FetchUploader</strong>: Support for uploading from any URL incl. <code>file:///</code></li>
-<li><strong>FSUploader</strong>: Support for uploading files from local FS with <code>node:fs</code>.</li>
-</ul>
-<p>Uploading with default configuration (from environment variables):</p>
+<p>The client package, <code>@fadroma/agent</code>, exposes a base <code>Uploader</code> class,
+which the global <code>fetch</code> method to obtain code from any supported URL
+(<code>file:///</code> or otherwise).</p>
+<p>This <code>fetch</code>-based implementation only supports temporary, in-memory
+upload caching: if you ask it to upload the same contract many times,
+it will upload it only once - but it will forget all about that
+as soon as you refresh the page.</p>
+<p>The backend package, <code>@hackbg/fadroma</code>, provides <code>FSUploader</code>.
+This extension of <code>Uploader</code> uses Node's <code>fs</code> API instead, and
+writes upload receipts into the upload state directory for the
+given chain (e.g. <code>state/$CHAIN/uploads/</code>).</p>
+<p>Let's try uploading an example WASM binary:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fixture } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
 <span class="hljs-keyword">const</span> artifact = <span class="hljs-title function_">fixture</span>(<span class="hljs-string">&#x27;fadroma-example-kv@HEAD.wasm&#x27;</span>) <span class="hljs-comment">// replace with path to your binary</span>
-
-<span class="hljs-keyword">import</span> { upload } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+</code></pre>
+<ul>
+<li>Uploading with default configuration (from environment variables):</li>
+</ul>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { upload } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 <span class="hljs-keyword">await</span> <span class="hljs-title function_">upload</span>({ artifact })
 </code></pre>
-<p>Passing custom options to the uploader:</p>
+<ul>
+<li>Passing custom options to the uploader:</li>
+</ul>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getUploader } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 <span class="hljs-keyword">await</span> <span class="hljs-title function_">getUploader</span>({ <span class="hljs-comment">/* options */</span> }).<span class="hljs-title function_">upload</span>({ artifact })
 </code></pre>
-<h3 id="upload-caching" tabindex="-1">Upload caching</h3>
-<p>Contracts start out as source code, which <code>@hackbg/fadroma</code> compiles to binary artifacts
-(WASM files). The <code>Uploader</code> class takes care of uploading them and producing a JSON file
-containing upload metadata, which we call an <strong>upload receipt</strong>.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">JSON</span>Directory, withTmpDir } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/file&#x27;</span>
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">DeployConfig</span>, <span class="hljs-title class_">FSUploader</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">Uploader</span>, <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">import</span> { examples } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../fixtures/Fixtures.ts.md&#x27;</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">config</span>:   <span class="hljs-title class_">DeployConfig</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">uploader</span>: <span class="hljs-title class_">Uploader</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">agent</span>:    <span class="hljs-title class_">Agent</span> = { <span class="hljs-attr">chain</span>: { <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;testing&#x27;</span> }, <span class="hljs-attr">upload</span>: <span class="hljs-keyword">async</span> x =&gt; x }
-<span class="hljs-keyword">let</span> <span class="hljs-attr">template</span>: <span class="hljs-title class_">Template</span> = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Template</span>({ artifact })
-</code></pre>
-<p>When trying to upload a binary file, the <code>Uploader</code> checks if a corresponding receipt exists;
-if it does, it returns the existing code ID instead of uploading the same file twice.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> <span class="hljs-title function_">withTmpDir</span>(<span class="hljs-keyword">async</span> path=&gt;{
-  uploader = <span class="hljs-keyword">new</span> <span class="hljs-title class_">FSUploader</span>({ agent, <span class="hljs-attr">store</span>: path })
-  assert.<span class="hljs-title function_">ok</span>(uploader.<span class="hljs-property">agent</span> === agent)
-  assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">upload</span>(template))
-  assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">upload</span>(template))
-  assert.<span class="hljs-title function_">ok</span>(<span class="hljs-keyword">await</span> uploader.<span class="hljs-title function_">uploadMany</span>([template]))
-})
-</code></pre>
-<h3 id="uploader-variants" tabindex="-1">Uploader variants</h3>
-<h4 id="fsuploader" tabindex="-1">FSUploader</h4>
-<p><code>FSUploader</code> uploads WASM to the chain from local files.</p>
-<h4 id="fetchuploader" tabindex="-1">FetchUploader</h4>
-<p><code>FetchUploader</code>, uploads WASM to the chain from remote URLs.</p>
-<h3 id="upload-events" tabindex="-1">Upload events</h3>
-<pre><code class="hljs language-typescript"></code></pre>
-<h3 id="upload-errors" tabindex="-1">Upload errors</h3>
-<pre><code class="hljs language-typescript"></code></pre>
 <hr>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
+<span class="hljs-comment">//await import(&#x27;./Upload.test.ts&#x27;)</span>
 </code></pre>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#upload-cli">Upload CLI</a></li><li><a href="#upload-api">Upload API</a></li><li><a href="#uploader">Uploader</a><ul><li><a href="#upload-caching">Upload caching</a></li><li><a href="#uploader-variants">Uploader variants</a><ul><li><a href="#fsuploader">FSUploader</a></li><li><a href="#fetchuploader">FetchUploader</a></li></ul></li><li><a href="#upload-events">Upload events</a></li><li><a href="#upload-errors">Upload errors</a></li></ul></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#upload-cli">Upload CLI</a></li><li><a href="#upload-api">Upload API</a></li></ul></div></p></nav>
 </div>
 </body>
 </html>

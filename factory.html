@@ -456,47 +456,68 @@ in the <code>examples/</code> directory of the Fadroma repo.)</p>
 </ul>
 <h2 id="defining" tabindex="-1">Defining</h2>
 <p>Here's how this pattern can be described as a <code>Deployment</code> in your project's <code>api.ts</code> or similar.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span>, <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// api.ts</span>
+
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span>, <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
 <span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">FactoryDeployment</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
 
-  <span class="hljs-comment">// Since there is going to be an arbitrary number of Product contracts</span>
-  <span class="hljs-comment">// instantiated by the Factory, here we use `this.template` to define</span>
-  <span class="hljs-comment">// just the initial source code and final client class.</span>
-  product = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory-product&#x27;</span>, <span class="hljs-attr">client</span>: <span class="hljs-title class_">Product</span> })
+  <span class="hljs-comment">// There will be an unlimited number of `Product` contracts</span>
+  <span class="hljs-comment">// instantiated by the `Factory`. Let&#x27;s use `this.template`</span>
+  <span class="hljs-comment">// to define the initial source code and final client class</span>
+  <span class="hljs-comment">// for each one of them:</span>
+  product = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({
+    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory-product&#x27;</span>,
+    <span class="hljs-attr">client</span>: <span class="hljs-title class_">Product</span>
+  })
 
-  <span class="hljs-comment">// The Factory is a single contract instance, so we use `this.contract`</span>
-  <span class="hljs-comment">// to also specify a name and an init message for it.</span>
+  <span class="hljs-comment">// The `Factory`, on the other hand, is a single contract instance.</span>
+  <span class="hljs-comment">// So, let&#x27;s use `this.contract` to provide its name and init message:</span>
   factory = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({
     <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;factory&#x27;</span>,
     <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory&#x27;</span>,
     <span class="hljs-attr">client</span>: <span class="hljs-title class_">Factory</span>,
     <span class="hljs-attr">initMsg</span>: <span class="hljs-keyword">async</span> () =&gt; ({
-      <span class="hljs-comment">// Here the `code` parameter to the Factory&#x27;s init message is defined</span>
-      <span class="hljs-comment">// as containing the code id and code hash of the uploaded Product template.</span>
-      <span class="hljs-comment">// Using `await this.product.uploaded` here makes sure that,</span>
-      <span class="hljs-comment">// if the template is not uploaded yet, instantiating a Factory will upload it first.</span>
-      <span class="hljs-comment">// The `asContractCode` getter converts a `Template` into the `ContractCode { id, code_hash }`</span>
-      <span class="hljs-comment">// struct that the Factory expects.</span>
+      <span class="hljs-comment">// This `Factory` takes one configuration parameter, `code`,</span>
+      <span class="hljs-comment">// which contains the code id and code hash needed to</span>
+      <span class="hljs-comment">// instantiate `Product`s.</span>
+      <span class="hljs-comment">//</span>
+      <span class="hljs-comment">// Using `await this.product.uploaded` here makes sure that</span>
+      <span class="hljs-comment">// instantiating a Factory will automatically upload the</span>
+      <span class="hljs-comment">// `Product` template if it&#x27;s not uploaded yet.</span>
+      <span class="hljs-comment">//</span>
+      <span class="hljs-comment">// The `asContractCode` getter converts a `Template` into</span>
+      <span class="hljs-comment">// the `ContractCode { id, code_hash }` struct that the</span>
+      <span class="hljs-comment">// `Factory` expects.</span>
       <span class="hljs-attr">code</span>: (<span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">product</span>.<span class="hljs-property">uploaded</span>).<span class="hljs-property">asContractCode</span>
     })
   })
 
-  <span class="hljs-comment">// You can define methods directly on the deployment that call into individual contracts.</span>
-  <span class="hljs-comment">// Here, `contract.expect()` is used to make the method call fail if the contract is not</span>
-  <span class="hljs-comment">// already instantiated.</span>
+  <span class="hljs-comment">// Defining custom methods directly on the `Deployment`</span>
+  <span class="hljs-comment">// lets you interact with the deployed multi-contract system</span>
+  <span class="hljs-comment">// as a coherent whole.</span>
   create = <span class="hljs-function">(<span class="hljs-params">name: <span class="hljs-built_in">string</span></span>) =&gt;</span>
+    <span class="hljs-comment">// Here, `contract.expect()` makes the method call fail</span>
+    <span class="hljs-comment">// if the `Factory` is not already instantiated. Otherwise,</span>
+    <span class="hljs-comment">// it will return an instance of the `client` class specified</span>
+    <span class="hljs-comment">// in the definition above.</span>
+    <span class="hljs-comment">//</span>
+    <span class="hljs-comment">// Having made sure that there is a contract to call, the</span>
+    <span class="hljs-comment">// `factory.client` method is called. (This is defined on the</span>
+    <span class="hljs-comment">// `Factory` client class below.)</span>
     <span class="hljs-variable language_">this</span>.<span class="hljs-property">factory</span>.<span class="hljs-title function_">expect</span>().<span class="hljs-title function_">create</span>(name)
 
-  <span class="hljs-comment">// This getter returns a list of `Product` instances, created from</span>
-  <span class="hljs-comment">// the plain list of `{ address, code_hash }` structs returned by</span>
-  <span class="hljs-comment">// the `factory.list()` method.</span>
+  <span class="hljs-comment">// Finally, here&#x27;s a getter which fetches the list of `Product`</span>
+  <span class="hljs-comment">// instances that have been created so far.</span>
   get products () {
+    <span class="hljs-comment">// Once again, we `expect` the factory to already exist,</span>
+    <span class="hljs-comment">// and call the `factory.list` method (defined below).</span>
     <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">factory</span>.<span class="hljs-title function_">expect</span>().<span class="hljs-title function_">list</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">(<span class="hljs-params">{entries, ...rest}</span>)=&gt;</span>({
-      <span class="hljs-comment">// Return other info unchanged</span>
+      <span class="hljs-comment">// Return any other info from the response unchanged...</span>
       ...rest,
-      <span class="hljs-comment">// Convert every `{address, code_hash}` entry into a `Product` instance</span>
-      <span class="hljs-comment">// bound to the current `agent`.</span>
+      <span class="hljs-comment">// ...only convert the array of plain `{ address, code_hash }`</span>
+      <span class="hljs-comment">// structs returned by the contract into an array of `Product`</span>
+      <span class="hljs-comment">// instances that are bound to the current `agent`.</span>
       <span class="hljs-attr">entries</span>: entries.<span class="hljs-title function_">map</span>(<span class="hljs-function">(<span class="hljs-params">{address,code_hash}</span>)=&gt;</span><span class="hljs-variable language_">this</span>.<span class="hljs-property">agent</span>.<span class="hljs-title function_">getClient</span>(
         <span class="hljs-title class_">Product</span>, address, code_hash
       ))
@@ -505,8 +526,9 @@ in the <code>examples/</code> directory of the Fadroma repo.)</p>
 
 }
 
-<span class="hljs-comment">// A `Client` class can be used to compose the actual JSON messages passed to the contract.</span>
-<span class="hljs-comment">// You can also put metadata, validation, etc. here</span>
+<span class="hljs-comment">// A `Client` class can be used to compose the actual JSON messages</span>
+<span class="hljs-comment">// that are passed to the contract. You can also add metadata,</span>
+<span class="hljs-comment">// validation, etc.</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">Factory</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
 
   create = <span class="hljs-function">(<span class="hljs-params">name: <span class="hljs-built_in">string</span></span>) =&gt;</span>
@@ -517,18 +539,21 @@ in the <code>examples/</code> directory of the Fadroma repo.)</p>
 
 }
 
-<span class="hljs-comment">// An empty `Client` class is just a marker for what kind of contract that it connects to.</span>
+<span class="hljs-comment">// An empty `Client` class is just a marker</span>
+<span class="hljs-comment">// for what kind of contract it connects to.</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">Product</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
 
-  <span class="hljs-comment">// In practice, you would have your Product&#x27;s methods here -</span>
-  <span class="hljs-comment">// for example, if your factory instantiates AMM pools,</span>
-  <span class="hljs-comment">// you would add things like `swap` and `add_liquidity`</span>
+  <span class="hljs-comment">// In practice, you would have your `Product`&#x27;s methods here -</span>
+  <span class="hljs-comment">// for example, if your `Factory` instantiates AMM pools,</span>
+  <span class="hljs-comment">// you could define add things like `swap` or `addLiquidity`.</span>
 
 }
 </code></pre>
 <h2 id="testing" tabindex="-1">Testing</h2>
-<p>And here's how you would test it on mocknet and devnet:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// test:</span>
+<p>And here's how you would deploy and test it on mocknet and devnet:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// tes.ts</span>
+
+<span class="hljs-comment">// import { FadromaDeployment } from &#x27;./api.ts&#x27;</span>
 
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, getDeployment } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
 <span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Scrt</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/scrt&#x27;</span>
@@ -541,29 +566,64 @@ in the <code>examples/</code> directory of the Fadroma repo.)</p>
 
 <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> chain <span class="hljs-keyword">of</span> chains) {
 
-  <span class="hljs-keyword">const</span> agent = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;Admin&#x27;</span> }).<span class="hljs-property">ready</span>
+  <span class="hljs-comment">// Get a populated instance of `FactoryDeployment`:</span>
+  <span class="hljs-keyword">const</span> deployment = <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">FactoryDeployment</span>, {
+    <span class="hljs-comment">// You need to provide an authenticated `Agent`:</span>
+    <span class="hljs-attr">agent</span>: <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;Admin&#x27;</span> }).<span class="hljs-property">ready</span>
+  })
 
-  <span class="hljs-keyword">const</span> deployment = <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">FactoryDeployment</span>, { agent })
-
+  <span class="hljs-comment">// Deploy all contracts:</span>
   <span class="hljs-keyword">await</span> deployment.<span class="hljs-title function_">deploy</span>()
 
+  <span class="hljs-comment">// In our case, the above will build+upload+instantiate `Factory`</span>
+  <span class="hljs-comment">// (because it&#x27;s defined with `deployment.contract`), and it will</span>
+  <span class="hljs-comment">// only build+upload `Product` (because it&#x27;s defined with</span>
+  <span class="hljs-comment">// `deployment.template`).</span>
+
+  <span class="hljs-comment">// Smoke check: in the initial state of the deployment,</span>
+  <span class="hljs-comment">// the `products` getter should return zero things:</span>
   assert.<span class="hljs-title function_">deepEqual</span>(
     <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">products</span>,
     { <span class="hljs-attr">total</span>: <span class="hljs-number">0</span>, <span class="hljs-attr">entries</span>: [] },
     <span class="hljs-string">&#x27;factory starts out empty&#x27;</span>
   )
 
-  <span class="hljs-keyword">await</span> deployment.<span class="hljs-property">factory</span>.<span class="hljs-title function_">expect</span>().<span class="hljs-title function_">create</span>(<span class="hljs-string">&#x27;foo&#x27;</span>)
+  <span class="hljs-comment">// Let&#x27;s instantiate a `Product` now:</span>
+  <span class="hljs-keyword">await</span> deployment.<span class="hljs-title function_">create</span>(<span class="hljs-string">&#x27;foo&#x27;</span>)
 
+  <span class="hljs-comment">// And make sure that the `products` getter converts</span>
+  <span class="hljs-comment">// all returned values to `Product` client instances.</span>
   <span class="hljs-title function_">assert</span>(
-    (<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">products</span>).<span class="hljs-property">entries</span>.<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">entry</span>=&gt;</span>entry <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Product</span>),
-    <span class="hljs-string">&#x27;the factory records the created contracts; deployment turns them into Producti nstances&#x27;</span>
+    (<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">products</span>).<span class="hljs-property">entries</span>.<span class="hljs-title function_">every</span>(
+      <span class="hljs-function"><span class="hljs-params">entry</span>=&gt;</span>entry <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Product</span>
+    ),
+    <span class="hljs-string">&#x27;factory tracks created contracts; deployment returns them as Product instances&#x27;</span>
   )
 
 }
 </code></pre>
+<p>This is how you would use the <a href="./agent.html">Fadroma Agent API</a>
+and <a href="./deploy.html">Fadroma Deploy API</a> to manage the deployment
+and operations of your smart contracts.</p>
+<h2 id="exporting-and-connecting" tabindex="-1">Exporting and connecting</h2>
+<p>The next step after validating a successful deployment is
+to provide access to it downstream, i.e. let a front-end
+connect to it so that people can use it as any Web app.</p>
+<p>⚠️ This API is a work in progress.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// your-frontend.ts</span>
+
+<span class="hljs-comment">// import FadromaDeployment, { mainnetState, testnetState } from &#x27;@your/project&#x27;</span>
+
+<span class="hljs-comment">// const testnet = FadromaDeployment.connect(testnetState, {</span>
+<span class="hljs-comment">//   agent: Chain.variants[&#x27;ScrtTestnet&#x27;].getAgent()</span>
+<span class="hljs-comment">// })</span>
+
+<span class="hljs-comment">// const mainnet = FadromaDeployment.connect(mainnetState, {</span>
+<span class="hljs-comment">//   agent: Chain.variants[&#x27;ScrtMainnet&#x27;].getAgent()</span>
+<span class="hljs-comment">// })</span>
+</code></pre>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#overview">Overview</a></li><li><a href="#defining">Defining</a></li><li><a href="#testing">Testing</a></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#overview">Overview</a></li><li><a href="#defining">Defining</a></li><li><a href="#testing">Testing</a></li><li><a href="#exporting-and-connecting">Exporting and connecting</a></li></ul></div></p></nav>
 </div>
 </body>
 </html>
