@@ -2,7 +2,7 @@
 
 ## 2023-05-12
 
-### `@hackbg/fadroma 1.0.0-beta.94`
+### `@hackbg/fadroma 1.0.0-beta.95`
 
 #### Breaking changes
 
