@@ -58,17 +58,21 @@ export abstract class BuildLocal extends Builder {
   /** The project workspace. */
   workspace?: string
   /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
-  noFetch:    boolean     = false
+  noFetch:    boolean = false
   /** Name of directory where build artifacts are collected. */
   outputDir:  OpaqueDirectory
   /** Version of Rust toolchain to use. */
   toolchain:  string|null = null
   /** Whether the build process should print more detail to the console. */
-  verbose:    boolean     = false
+  verbose:    boolean = false
   /** Whether the build log should be printed only on error, or always */
-  quiet:      boolean     = false
+  quiet:      boolean = false
   /** Default Git reference from which to build sources. */
   revision:   string = HEAD
+  /** Owner uid that is set on build artifacts. */
+  buildUid?:  number = (process.getuid ? process.getuid() : undefined) // process.env.FADROMA_BUILD_UID
+  /** Owner gid that is set on build artifacts. */
+  buildGid?:  number = (process.getgid ? process.getgid() : undefined) // process.env.FADROMA_BUILD_GID
 
   constructor (options: Partial<Config["build"]>) {
     super()
@@ -120,6 +124,13 @@ export class BuildContainer extends BuildLocal {
   image: Image
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
+
+  /** Used to authenticate Git in build container. */
+  sshAuthSocket?: string // process.env.SSH_AUTH_SOCK
+  /** Used to fix Cargo when Fadroma is included as a Git submodule */
+  workspaceManifest?: string // process.env.FADROMA_BUILD_WORKSPACE_MANIFEST
+  /** Used for historical builds. */
+  preferredRemote: string = 'origin' // process.env.FADROMA_PREFERRED_REMOTE
 
   constructor (opts: Partial<Config["build"] & { docker?: Engine }> = {}) {
     super(opts)
@@ -309,7 +320,7 @@ export class BuildContainer extends BuildLocal {
       ...(etcKnownHosts.isFile() ? { [etcKnownHosts.path] : '/etc/ssh/ssh_known_hosts' } : {}),
     }
     // For fetching from private repos, we need to give the container access to ssh-agent
-    if (process.env.SSH_AUTH_SOCK) readonly[process.env.SSH_AUTH_SOCK] = '/ssh_agent_socket'
+    if (this.sshAuthSocket) readonly[this.sshAuthSocket] = '/ssh_agent_socket'
     const writable = {
       // Output path for final artifacts
       [outputDir]:                  `/output`,
@@ -322,16 +333,16 @@ export class BuildContainer extends BuildLocal {
     // workpace root manifest is renamed to _Cargo.toml.
     // Here we can mount it under its proper name
     // if building the example contracts from Fadroma.
-    if (process.env.FADROMA_BUILD_WORKSPACE_MANIFEST) {
+    if (this.workspaceManifest) {
       if (revision !== HEAD) {
         throw new Error(
-          'Fadroma Build: FADROMA_BUILD_WORKSPACE_ROOT can only' +
+          'Fadroma Build: FADROMA_BUILD_WORKSPACE_MANIFEST can only' +
           'be used when building from working tree'
         )
       }
       writable[$(root).path] = readonly[$(root).path]
       delete readonly[$(root).path]
-      readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
+      readonly[$(this.workspaceManifest).path] = `/src/Cargo.toml`
     }
     // Pre-populate the list of expected artifacts.
     const outputWasms: Array<string|null> = [...new Array(crates.length)].map(()=>null)
@@ -342,17 +353,18 @@ export class BuildContainer extends BuildLocal {
     const cratesToBuild = Object.keys(shouldBuild)
     const buildCommand = [ 'node', buildScript, 'phase1', revision, ...cratesToBuild ]
     const buildEnv = {
-      // Variables used by the build script are prefixed with underscore;
-      // variables used by the tools that the build script uses are left as is
-      _BUILD_USER: process.env.FADROMA_BUILD_USER ?? 'fadroma-builder',
-      _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getuid ? process.getuid() : undefined),
-      _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getgid ? process.getgid() : undefined),
-      _GIT_REMOTE: process.env.FADROMA_PREFERRED_REMOTE ?? 'origin',
+      // Variables used by the build script itself
+      // are prefixed with underscore:
+      _BUILD_UID:  String(this.buildUid),
+      _BUILD_GID:  String(this.buildGid),
+      _GIT_REMOTE: this.preferredRemote,
       _GIT_SUBDIR: gitSubdir,
       _SUBDIR:     subdir,
       _NO_FETCH:   String(this.noFetch),
       _VERBOSE:    String(this.verbose),
 
+      // Variables used by the tools invoked by the build script
+      // are left as is:
       LOCKED: '',/*'--locked'*/
       CARGO_HTTP_TIMEOUT: '240',
       CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
@@ -471,8 +483,8 @@ export class BuildRaw extends BuildLocal {
     // Most of the parameters are passed to the build script
     // by way of environment variables.
     const env = {
-      _BUILD_GID: process.getgid ? process.getgid() : undefined,
-      _BUILD_UID: process.getuid ? process.getuid() : undefined,
+      _BUILD_GID: String(this.buildUid),
+      _BUILD_UID: String(this.buildGid),
       _OUTPUT:    $(workspace).in('wasm').path,
       _REGISTRY:  '',
       _TOOLCHAIN: this.toolchain,
