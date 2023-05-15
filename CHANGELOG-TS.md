@@ -1,5 +1,13 @@
 # Changelog (TypeScript)
 
+## 2023-05-15
+
+### `@hackbg/fadroma 1.0.0-beta.96`
+
+#### Fixed
+
+* Resolved a nasty circular dependency during project creation.
+
 ## 2023-05-12
 
 ### `@hackbg/fadroma 1.0.0-beta.95`
