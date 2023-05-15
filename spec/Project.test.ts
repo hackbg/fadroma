@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { Project } from '@hackbg/fadroma'
+import Project from '@hackbg/fadroma'
 import { withTmpDir } from '@hackbg/file'
 import { ProjectWizard } from '../fadroma-wizard'
 

@@ -21,27 +21,18 @@
 import type {
   Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract,
 } from './fadroma'
-import {
-  Config, Console, colors, bold, Error, hideProperties as hide
-} from './fadroma-base'
-import {
-  Template, Uploader, assertAgent, toUploadReceipt, base16, sha256
-} from '@fadroma/agent'
-import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
-import { fileURLToPath } from 'node:url'
+import Config from './fadroma-config'
+import Console, { colors, bold } from './fadroma-console'
+import Error from './fadroma-error'
 
-/** @returns Uploader configured as per environment and options */
-export function getUploader (options: Partial<Config["upload"]> = {}): Uploader {
-  return new Config({ upload: options }).getUploader()
-}
-/** Upload a single contract with default settings. */
-export function upload (artifact: Uploadable): Promise<Uploaded> {
-  return getUploader().upload(artifact)
-}
-/** Upload multiple contracts with default settings. */
-export function uploadMany (artifacts: Uploadable[]): Promise<(Uploaded|null)[]> {
-  return getUploader().uploadMany(artifacts)
-}
+import {
+  Template, Uploader, assertAgent, toUploadReceipt, base16, sha256,
+  hideProperties as hide,
+} from '@fadroma/connect'
+
+import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
+
+import { fileURLToPath } from 'node:url'
 
 /** Uploads contracts from the local filesystem, with optional caching:
   * if provided with an Uploads directory containing upload receipts,

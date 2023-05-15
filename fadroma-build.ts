@@ -18,15 +18,20 @@
 
 **/
 
-import type {
-  Project, Class, BuilderClass, Buildable, Built, Template
-} from './fadroma'
-import {
-  Builder, Contract, HEAD, Config, Console, bold, colors, Error
-} from './fadroma-base'
+import type Project from './fadroma'
+import type { Class, BuilderClass, Buildable, Built, Template } from './fadroma'
+import Config from './fadroma-config'
+import Error from './fadroma-error'
+import Console, { bold, colors } from './fadroma-console'
 
-import $, { Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile } from '@hackbg/file'
-import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
+import { Builder, Contract, HEAD } from '@fadroma/connect'
+
+import $, {
+  Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile
+} from '@hackbg/file'
+import {
+  Engine, Image, Docker, Podman, LineTransformStream
+} from '@hackbg/dock'
 
 import { default as simpleGit } from 'simple-git'
 
@@ -41,21 +46,6 @@ import { randomBytes } from 'node:crypto'
 export type CargoTOML = TOMLFile<{ package: { name: string } }>
 
 export { Builder }
-
-/** @returns Builder configured as per environment and options */
-export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
-  return new Config({ build: options }).getBuilder()
-}
-
-/** Compile a single contract with default settings. */
-export async function build (source: Buildable): Promise<Built> {
-  return getBuilder().build(source)
-}
-
-/** Compile multiple single contracts with default settings. */
-export async function buildMany (sources: Buildable[]): Promise<Built[]> {
-  return getBuilder().buildMany(sources)
-}
 
 /** Can perform builds.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */

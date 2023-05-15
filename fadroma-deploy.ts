@@ -18,12 +18,23 @@
 
 **/
 
-import $, { Path, OpaqueDirectory, TextFile, JSONDirectory, JSONFile, YAMLDirectory, YAMLFile, alignYAML } from '@hackbg/file'
-import type { AnyContract, Uploadable, Uploaded, ChainId, CodeHash, CodeId, DeploymentState } from '@fadroma/agent'
-import { Contract, Template, toUploadReceipt, DeployStore, Deployment, toInstanceReceipt, timestamp } from '@fadroma/agent'
-import { Console, DeployError, bold } from './fadroma-base'
-import { basename } from 'node:path'
+import type {
+  AnyContract, Uploadable, Uploaded, ChainId, CodeHash, CodeId, DeploymentState
+} from './fadroma'
+import Console, { bold } from './fadroma-console'
+import { DeployError } from './fadroma-error'
+
+import {
+  Contract, Template, toUploadReceipt, DeployStore, Deployment, toInstanceReceipt, timestamp
+} from '@fadroma/connect'
+
+import $, {
+  Path, OpaqueDirectory, TextFile, JSONDirectory, JSONFile, YAMLDirectory, YAMLFile, alignYAML
+} from '@hackbg/file'
+
 import YAML, { loadAll, dump } from 'js-yaml'
+
+import { basename } from 'node:path'
 
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
   * Each deployment is represented by 1 multi-document YAML file, where every

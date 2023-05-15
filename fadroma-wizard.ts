@@ -18,8 +18,11 @@
 
 **/
 
-import type { Project, Class, Template, Buildable, DeployStore, Built } from './fadroma'
-import { version, Console, bold, colors } from './fadroma-base'
+import type Project from './fadroma'
+import type { Class, Template, Buildable, DeployStore, Built } from './fadroma'
+import Console, { bold, colors } from './fadroma-console'
+import { version } from './fadroma-config'
+
 import $, { Path, OpaqueDirectory } from '@hackbg/file'
 import prompts from 'prompts'
 

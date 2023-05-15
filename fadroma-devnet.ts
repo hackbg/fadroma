@@ -18,13 +18,18 @@
 
 **/
 
-import { Error, Console, Config } from './fadroma-base'
-import { bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/agent'
-import type { Agent, ChainClass, ChainId, DevnetHandle } from '@fadroma/agent'
+import type { Agent, ChainClass, ChainId, DevnetHandle } from './fadroma'
+import Error from './fadroma-error'
+import Config from './fadroma-config'
+import Console from './fadroma-console'
+
+import { bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/connect'
+
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { freePort, Endpoint, waitPort, isPortTaken } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
+
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
@@ -33,11 +38,6 @@ import { randomBytes } from 'node:crypto'
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 //@ts-ignore
 const thisPackage = dirname(fileURLToPath(import.meta.url))
-
-/** @returns Devnet configured as per environment and options. */
-export function getDevnet (options: Partial<Config["devnet"]> = {}) {
-  return new Config({ devnet: options }).getDevnet()
-}
 
 /** Supported connection types. */
 export type DevnetPortMode = 'lcp'|'grpcWeb'

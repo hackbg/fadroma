@@ -43,6 +43,12 @@ assert.equal(result, '---\n{}\n---\n{}\n')
 assert.ok(store[Symbol.toStringTag])
 
 new Console('test').deploy.list('test-chain-id', store)
+new Console('test').deploy.list('test-chain-id', {
+  KEY: '.active',
+  list: () => ['.active', 'd1', 'd2'],
+  activeName: 'd2',
+  load: (name: string) => ({size: 2, state: { 'c1': {}, 'c2': {} }})
+} as any)
 
 // doesnt belong here but whatever
 new Console('test').devnet.isNowRunning({ chainId: 'chain', containerId: 'container', port: 1234 })
