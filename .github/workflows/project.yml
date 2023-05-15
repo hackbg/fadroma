@@ -40,11 +40,10 @@ jobs:
           sudo apt install -y wabt binaryen
           export FADROMA="$(pwd)"
           cd ..
-          mkdir -p tmp_project
-          cd tmp_project
-          export TMP_PROJECT="$(pwd)"
-          npx "$FADROMA" create myproject mycontract1 mycontract2
+          npx ./fadroma create myproject mycontract1 mycontract2
           cd myproject
+          cat package.json
+          echo '{"name":"myproject","main":"api.ts","type":"module","version":"0.1.0","dependencies":{"@fadroma/agent":"link:../fadroma/agent","@fadroma/scrt":"link:../fadroma/scrt"},"devDependencies":{"@hackbg/fadroma":"link:../fadroma","@hackbg/ganesha":"link:../fadroma/ensuite/ganesha","typescript":"^5"},"scripts":{"build":"fadroma build","status":"fadroma status","mocknet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma","devnet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma","testnet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma","mainnet":"FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma"}}' > package.json
           cat package.json
           cat fadroma.yml
           cat api.ts
@@ -54,8 +53,8 @@ jobs:
           npm run devnet deploy
           npm run devnet export
           npm run devnet reset
-          cd "$FADROMA"
-          rm -rf "$TMP_PROJECT"
+          cd ..
+          rm -rf myproject
 
   # Here we test creating a project from NPM.
   project-npm:
