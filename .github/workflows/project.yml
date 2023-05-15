@@ -51,6 +51,8 @@ jobs:
           cat ops.ts
           npm run build
           npm run mocknet deploy
+          ls -al state
+          ls -al state/*
           npm run devnet deploy
           npm run devnet export
           npm run devnet reset
