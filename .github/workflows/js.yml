@@ -41,6 +41,7 @@ jobs:
           pnpm devnet deploy
           pnpm devnet status
           pnpm devnet export
+          pnpm devnet reset
           cd ..
           rm -rf testproject
 

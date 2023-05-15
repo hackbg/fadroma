@@ -40,3 +40,4 @@ jobs:
           npm run mocknet deploy
           npm run devnet deploy
           npm run devnet export
+          npm run devnet reset
