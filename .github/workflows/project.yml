@@ -4,10 +4,62 @@ on: [push]
 
 jobs:
 
-  project:
-    name: Create and build a project
+  # Here we test creating a project from NPM.
+  project-gh:
+    name: Create and build a project by compiled checkout
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Clone with submodules
+        uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
+        with: { version: 7.29.1, run_install: false }
+      - name: Setup Node 19
+        uses: actions/setup-node@v3
+        with:
+          node-version: "19"
+          check-latest: true
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Setup Rust (stable, wasm32-unknown-unknown)
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      - name: Create project through NPX
+        run: |
+          sudo apt install -y wabt binaryen
+          pnpm i        # install with dev dependencies
+          pnpm ubik fix # compile to js
+          pnpm i -P     # remove dev dependencies
+          export FADROMA="$(pwd)"
+          export TMP_PROJECT="$(mktemp)"
+          cd "$TMP_PROJECT"
+          npx "$FADROMA" create myproject mycontract1 mycontract2
+          cd myproject
+          cat package.json
+          cat fadroma.yml
+          cat api.ts
+          cat ops.ts
+          npm run build
+          npm run mocknet deploy
+          npm run devnet deploy
+          npm run devnet export
+          npm run devnet reset
+          cd "$FADROMA"
+          rm -rf "$TMP_PROJECT"
+
+  # Here we test creating a project from NPM.
+  project-npm:
+    # `npm/` tags are automatically pushed by `@hackbg/ubik`
+    # after publishing the packages to NPM for real.
+    # TODO: Add retry in case NPM caches are slow to refresh after publication.
+    if: "startsWith(github.ref, 'refs/tags/npm/')"
+    name: Create and build a project by published package
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [16, 20]
@@ -19,7 +71,7 @@ jobs:
           node-version: "${{matrix.node-version}}"
           check-latest: true
 
-      - name: Setup Rust (stable for wasm32-unknown-unknown)
+      - name: Setup Rust (stable, wasm32-unknown-unknown)
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
