@@ -44,7 +44,8 @@ export const thisPackage =
   dirname(fileURLToPath(import.meta.url))
 
 export const { version } =
-  $(thisPackage, 'package.json').as(JSONFile).load() as { version: string }
+  $(thisPackage, 'package.json').as(JSONFile)
+    .load() as { version: string }
 
 export default class Config extends ConnectConfig {
 

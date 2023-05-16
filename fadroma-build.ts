@@ -305,7 +305,7 @@ export class BuildContainer extends BuildLocal {
       return templates
     }
     // Define the mounts and environment variables of the build container
-    if (!this.script) throw new Error.Build('Build script not set.')
+    if (!this.script) throw new Error.Build.ScriptNotSet()
     const buildScript = $(`/`, $(this.script).name).path
     const safeRef = sanitize(revision)
     const knownHosts = $(homedir()).in('.ssh').at('known_hosts')
@@ -334,12 +334,7 @@ export class BuildContainer extends BuildLocal {
     // Here we can mount it under its proper name
     // if building the example contracts from Fadroma.
     if (this.workspaceManifest) {
-      if (revision !== HEAD) {
-        throw new Error(
-          'Fadroma Build: FADROMA_BUILD_WORKSPACE_MANIFEST can only' +
-          'be used when building from working tree'
-        )
-      }
+      if (revision !== HEAD) throw new Error.Build.NoHistoricalManifest()
       writable[$(root).path] = readonly[$(root).path]
       delete readonly[$(root).path]
       readonly[$(this.workspaceManifest).path] = `/src/Cargo.toml`
@@ -476,8 +471,8 @@ export class BuildRaw extends BuildLocal {
     source.workspace ??= this.workspace
     source.revision  ??= HEAD
     const { workspace, revision, crate } = source
-    if (!workspace) throw new Error('no workspace')
-    if (!crate)     throw new Error('no crate')
+    if (!workspace) throw new Error.Missing('missing workspace')
+    if (!crate)     throw new Error.Missing.Crate()
     // Temporary dirs used for checkouts of non-HEAD builds
     let tmpGit, tmpBuild
     // Most of the parameters are passed to the build script
@@ -494,7 +489,7 @@ export class BuildRaw extends BuildLocal {
       // Provide the build script with the config values that ar
       // needed to make a temporary checkout of another commit
       if (!gitDir?.present) {
-        const error = new Error("Fadroma Build: could not find Git directory for source.")
+        const error = new Error.Build.NoGitDir()
         throw Object.assign(error, { source })
       }
       // Create a temporary Git directory. The build script will copy the Git history

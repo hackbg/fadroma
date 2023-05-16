@@ -27,29 +27,43 @@ class FadromaError extends ConnectError {
   static Devnet: typeof DevnetError
 }
 
-export class BuildError extends FadromaError {}
+export class BuildError extends FadromaError {
+  static ScriptNotSet = this.define('ScriptNotSet',
+    ()=>'build script not set')
+  static NoHistoricalManifest = this.define('NoHistoricalManifest',
+    ()=>'the workspace manifest option can only be used when building from working tree')
+  static NoGitDir = this.define('NoGitDir',
+    ()=>'could not find .git directory')
+}
 
 export class UploadError extends FadromaError {}
 
 export class DeployError extends FadromaError {
   static DeploymentAlreadyExists = this.define('DeploymentAlreadyExists', (name: string)=>
-    `Deployment "${name}" already exists`)
+    `deployment "${name}" already exists`)
   static DeploymentDoesNotExist = this.define('DeploymentDoesNotExist', (name: string)=>
-    `Deployment "${name}" does not exist`)
+    `deployment "${name}" does not exist`)
 }
 
 export class DevnetError extends FadromaError {
   static PortMode = this.define('PortMode',
-    ()=>"Devnet#portMode must be either 'lcp' or 'grpcWeb'")
+    ()=>"devnet.portMode must be either 'lcp' or 'grpcWeb'")
   static NoChainId = this.define('NoChainId',
-    ()=>'Refusing to create directories for devnet with empty chain id')
+    ()=>'refusing to create directories for devnet with empty chain id')
   static NoContainerId = this.define('NoContainerId',
-    ()=>'Missing container id in devnet state')
+    ()=>'missing container id in devnet state')
   static ContainerNotSet = this.define('ContainerNotSet',
-    ()=>'Devnet#container is not set')
+    ()=>'devnet.container is not set')
   static NoGenesisAccount = this.define('NoGenesisAccount',
-    (name: string, error: any)=>
-      `Genesis account not found: ${name} (${error})`)
+    (name: string, error: any)=>`genesis account not found: ${name} (${error})`)
+  static NotADirectory = this.define('NotADirectory',
+    (path: string) => `not a directory: ${path}`)
+  static NotAFile = this.define('NotAFile',
+    (path: string) => `not a file: ${path}`)
+  static FailedRestoring = this.define('FailedRestoring',
+    (path: string) => `failed restoring devnet from ${path}`)
+  static CantExport = this.define('CantExport',
+    (reason: string) => `can't export: ${reason}`)
 }
 
 export default Object.assign(FadromaError, {

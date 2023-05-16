@@ -101,15 +101,21 @@ export default class Console extends BaseConsole {
       self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
     loadingRejected: (path: string) =>
       self.log(`${path} does not exist.`),
-    isNowRunning: ({ chainId, containerId, port }: Partial<Devnet>) => self
-      .info(`running on port`, bold(String(port)))
-      .info(`from container`, bold(containerId?.slice(0,8)))
-      .info('manual reset with:').info(`$`,
-        `docker kill`, containerId?.slice(0,8), `&&`,
-        `docker rm`, containerId?.slice(0,8), `&&`,
-        `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
+    isNowRunning ({ chainId, containerId, port }: Partial<Devnet>) {
+      return self
+        .info('running on port', bold(String(port)))
+        .info(`from container`, bold(containerId?.slice(0,8)))
+        .info('manual reset with:').info(`$`,
+          `docker kill`, containerId?.slice(0,8), `&&`,
+          `docker rm`, containerId?.slice(0,8), `&&`,
+          `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
+    },
+    warnMissingValues ({ chainId, containerId, port }: Partial<Devnet>, path: string) {
+      if (!containerId) console.warn(`${path}: no containerId`)
+      if (!chainId)     console.warn(`${path}: no chainId`)
+      if (!port)        console.warn(`${path}: no port`)
+    }
 
   }))(this)
 
 }
-

@@ -232,19 +232,21 @@ export class Devnet implements DevnetHandle {
   static load (dir: string|Path): Devnet {
     const console = new Console('devnet')
     dir = $(dir)
-    if (!dir.isDirectory()) throw new Error(`not a directory: ${dir.path}`)
+    if (!dir.isDirectory()) {
+      throw new Error.Devnet.NotADirectory(dir.path)
+    }
     const devnetJSON = dir.at('devnet.json')
-    if (!dir.at('devnet.json').isFile()) throw new Error(`not a file: ${devnetJSON.path}`)
+    if (!dir.at('devnet.json').isFile()) {
+      throw new Error.Devnet.NotAFile(devnetJSON.path)
+    }
     let state: Partial<Devnet>
     try {
       state = devnetJSON.as(JSONFile).load() || {}
     } catch (e) {
       console.warn(e)
-      throw new Error(`failed restoring devnet from ${devnetJSON.path}`)
+      throw new Error.Devnet.FailedRestoring(devnetJSON.path)
     }
-    if (!state.containerId) console.warn(`${devnetJSON.path}: no containerId`)
-    if (!state.chainId) console.warn(`${devnetJSON.path}: no chainId`)
-    if (!state.port) console.warn(`${devnetJSON.path}: no port`)
+    console.devnet.warnMissingValues(state, devnetJSON.path)
     return new Devnet(state)
   }
 
@@ -285,7 +287,7 @@ export class Devnet implements DevnetHandle {
   /** Export the state of the devnet as a container image. */
   export = async (repository?: string, tag?: string) => {
     const container = await this.container
-    if (!container) throw new Error.Devnet("can't export: no container")
+    if (!container) throw new Error.Devnet.CantExport("no container")
     return container.export(repository, tag)
   }
 
