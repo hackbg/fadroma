@@ -20,8 +20,9 @@
 
 import type Project from './fadroma'
 import type { Class, Template, Buildable, DeployStore, Built } from './fadroma'
-import Console, { bold, colors } from './fadroma-console'
 import { version } from './fadroma-config'
+
+import { Console, bold, colors } from '@fadroma/connect'
 
 import $, { Path, OpaqueDirectory } from '@hackbg/file'
 import prompts from 'prompts'

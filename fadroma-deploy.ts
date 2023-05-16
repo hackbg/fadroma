@@ -21,11 +21,11 @@
 import type {
   AnyContract, Uploadable, Uploaded, ChainId, CodeHash, CodeId, DeploymentState
 } from './fadroma'
-import Console, { bold } from './fadroma-console'
 import { DeployError } from './fadroma-error'
 
 import {
-  Contract, Template, toUploadReceipt, DeployStore, Deployment, toInstanceReceipt, timestamp
+  Contract, Template, toUploadReceipt, DeployStore, Deployment, toInstanceReceipt, timestamp,
+  Console, bold
 } from '@fadroma/connect'
 
 import $, {
@@ -41,7 +41,7 @@ import { basename } from 'node:path'
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
 export class DeployStore_v1 extends DeployStore {
-  log = new Console('DeployStore_v1')
+  log = new DeployConsole('DeployStore_v1')
   /** Root directory of deploy store. */
   root: YAMLDirectory<unknown>
   /** Name of symlink pointing to active deployment, without extension. */
@@ -76,10 +76,10 @@ export class DeployStore_v1 extends DeployStore {
       this.log('creating', this.root.shortPath)
       this.root.make()
     }
-    this.log.deploy.creating(name)
+    this.log.creating(name)
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.deploy.location(path.shortPath)
+    this.log.location(path.shortPath)
     path.makeParent().as(YAMLFile).save('')
     return this.load(name)
   }
@@ -88,7 +88,7 @@ export class DeployStore_v1 extends DeployStore {
     if (!name) throw new Error('no deployment selected')
     let selected = this.root.at(`${name}.yml`)
     if (selected.exists()) {
-      this.log.deploy.activating(selected.real.name)
+      this.log.activating(selected.real.name)
       const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
       if (name === this.KEY) name = active.real.name
       name = basename(name, '.yml')
@@ -106,7 +106,7 @@ export class DeployStore_v1 extends DeployStore {
         .map(x=>basename(x, '.yml'))
         .filter(x=>x!=this.KEY)
     } else {
-      this.log.deploy.warnStoreDoesNotExist(this.root.shortPath)
+      this.log.storeDoesNotExist(this.root.shortPath)
       return []
     }
   }
@@ -155,3 +155,41 @@ export class DeployStore_v1 extends DeployStore {
 }
 
 Object.assign(DeployStore.variants, { v1: DeployStore_v1 })
+
+class DeployConsole extends Console {
+  creating = (name: string) =>
+    this.log('creating', bold(name))
+  location = (path: string) =>
+    this.log('location', bold(path))
+  activating = (name: string) =>
+    this.log('activate', bold(name))
+  list = (chainId: string, deployments: DeployStore) => {
+    const list = deployments.list()
+    if (list.length > 0) {
+      this.info(`deployments on ${bold(chainId)}:`)
+      let maxLength = 0
+      for (let name of list) {
+        if (name === (deployments as any).KEY) continue
+        maxLength = Math.max(name.length, maxLength)
+      }
+      for (let name of list) {
+        if (name === (deployments as any).KEY) continue
+        const deployment = deployments.load(name)!
+        const count = Object.keys(deployment.state).length
+        let info = `${bold(name.padEnd(maxLength))}`
+        info = `${info} (${deployment.size} contracts)`
+        if (deployments.activeName === name) info = `${info} ${bold('selected')}`
+        this.info(` `, info)
+      }
+    } else {
+      this.info(`no deployments on ${bold(chainId)}`)
+    }
+  }
+
+  storeDoesNotExist = (path: string) =>
+    this.warn(`deployment store does not exist`)
+  overridingStore = (x: string) =>
+    this.warn(`overriding store for ${x}`)
+  noAgent = (name?: string) =>
+    this.warn('no agent. authenticate by exporting FADROMA_MNEMONIC in your shell')
+}

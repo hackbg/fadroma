@@ -22,9 +22,8 @@ import type Project from './fadroma'
 import type { Class, BuilderClass, Buildable, Built, Template } from './fadroma'
 import Config from './fadroma-config'
 import Error from './fadroma-error'
-import Console, { bold, colors } from './fadroma-console'
 
-import { Builder, Contract, HEAD } from '@fadroma/connect'
+import { Builder, Contract, HEAD, Console, bold, colors } from '@fadroma/connect'
 
 import $, {
   Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile
@@ -52,7 +51,7 @@ export { Builder }
 export abstract class BuildLocal extends Builder {
   readonly id: string = 'local'
   /** Logger. */
-  log = new Console('Local Builder')
+  log = new BuildConsole('build (local)')
   /** The build script. */
   script?:    string
   /** The project workspace. */
@@ -117,7 +116,7 @@ export const sanitize = (ref: string) =>
 export class BuildContainer extends BuildLocal {
   readonly id = 'Container'
   /** Logger */
-  log = new Console('@hackbg/fadroma: BuildContainer')
+  log = new BuildConsole('build (container)')
   /** Used to launch build container. */
   docker: Engine
   /** Tag of the docker image for the build container. */
@@ -188,7 +187,7 @@ export class BuildContainer extends BuildLocal {
       contract.revision  ??= 'HEAD'
       // If the contract is already built, don't build it again
       if (!this.prebuilt(contract)) {
-        this.log.build.one(contract)
+        this.log.one(contract)
         // Set ourselves as the contract's builder
         contract.builder = this as unknown as Builder
         // Add the source repository of the contract to the list of sources to build
@@ -206,7 +205,7 @@ export class BuildContainer extends BuildLocal {
         // a parent directory may need to be mounted to get the full
         // Git history.
         let mounted = $(path)
-        if (this.verbose) this.log.build.workspace(mounted, revision)
+        if (this.verbose) this.log.workspace(mounted, revision)
         // If we're building from history, update `mounted` to make sure
         // that the full contents of the Git repo will be mounted in the
         // build container.
@@ -264,7 +263,7 @@ export class BuildContainer extends BuildLocal {
     //if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
-      new Console(`build ${crate}`).build.found(prebuilt)
+      new BuildConsole(`build ${crate}`).found(prebuilt)
       contract.artifact = prebuilt.artifact
       contract.codeHash = prebuilt.codeHash
       return true
@@ -398,7 +397,7 @@ export class BuildContainer extends BuildLocal {
       buildLogStream.on('data', (data: string) => buildLogs += data)
     }
     // Run the build container
-    this.log.build.container(root, revision, cratesToBuild)
+    this.log.container(root, revision, cratesToBuild)
     const buildName = `fadroma-build-${randomBytes(3).toString('hex')}`
     const buildContainer = await this.image.run(
       buildName,      // container name
@@ -461,7 +460,7 @@ export class BuildRaw extends BuildLocal {
 
   readonly id = 'Raw'
 
-  log = new Console('build')
+  log = new BuildConsole('build (raw)')
 
   runtime = process.argv[0]
 
@@ -557,6 +556,13 @@ export class BuildRaw extends BuildLocal {
 
 }
 
+Object.assign(Builder.variants, {
+  'container': BuildContainer,
+  'Container': BuildContainer,
+  'raw': BuildRaw,
+  'Raw': BuildRaw
+})
+
 export function getGitDir (template: Partial<Template<any>> = {}): DotGit {
   const { workspace } = template || {}
   if (!workspace) throw new Error("No workspace specified; can't find gitDir")
@@ -622,13 +628,6 @@ export class DotGit extends Path {
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 }
 
-Object.assign(Builder.variants, {
-  'container': BuildContainer,
-  'Container': BuildContainer,
-  'raw': BuildRaw,
-  'Raw': BuildRaw
-})
-
 export class ContractCrate {
   constructor (
     readonly project: Project,
@@ -690,4 +689,29 @@ export class ContractCrate {
       `}`,
     ].join('\n'))
   }
+}
+
+class BuildConsole extends Console {
+
+  one = ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => this.log(
+    'Building', bold(crate), ...(revision === 'HEAD')
+      ? ['from working tree']
+      : ['from Git reference', bold(revision)])
+
+  many = (sources: Template<any>[]) =>
+    sources.forEach(source=>this.one(source))
+
+  found = ({ artifact }: Built) =>
+    this.log(`found at ${bold($(artifact!).shortPath)}`)
+
+  workspace = (mounted: Path|string, ref: string = HEAD) => this.log(
+    `building from workspace:`, bold(`${$(mounted).shortPath}/`),
+    `@`, bold(ref))
+
+  container = (root: string|Path, revision: string, cratesToBuild: string[]) =>
+    this.log(
+      `started building from ${bold($(root).shortPath)} @ ${bold(revision)}:`,
+      cratesToBuild.map(x=>bold(x)).join(', ')
+    )
+
 }

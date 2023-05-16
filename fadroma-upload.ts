@@ -22,12 +22,11 @@ import type {
   Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract,
 } from './fadroma'
 import Config from './fadroma-config'
-import Console, { colors, bold } from './fadroma-console'
 import Error from './fadroma-error'
 
 import {
   Template, Uploader, assertAgent, toUploadReceipt, base16, sha256,
-  hideProperties as hide,
+  hideProperties as hide, Console, colors, bold
 } from '@fadroma/connect'
 
 import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
