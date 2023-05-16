@@ -311,7 +311,7 @@ export class BuildContainer extends BuildLocal {
     const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
       // The script that will run in the container
-      [this.script]:  buildScript,
+      [this.script]: buildScript,
       // Root directory of repository, containing real .git directory
       [$(root).path]: `/src`,
       // For non-interactively fetching submodules over SSH, we need to propagate known_hosts

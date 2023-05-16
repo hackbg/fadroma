@@ -20,6 +20,8 @@
 
 import { Error as ConnectError } from '@fadroma/connect'
 
+import { dirname } from 'node:path'
+
 class FadromaError extends ConnectError {
   static Build:  typeof BuildError
   static Upload: typeof UploadError
@@ -60,10 +62,15 @@ export class DevnetError extends FadromaError {
     (path: string) => `not a directory: ${path}`)
   static NotAFile = this.define('NotAFile',
     (path: string) => `not a file: ${path}`)
-  static FailedRestoring = this.define('FailedRestoring',
-    (path: string) => `failed restoring devnet from ${path}`)
   static CantExport = this.define('CantExport',
     (reason: string) => `can't export: ${reason}`)
+  static LoadingFailed = this.define('LoadingFailed',
+    (path: string, cause?: Error) =>
+      `failed restoring devnet state from ${path}; ` +
+      `try deleting ${dirname(path)}` +
+      (cause ? ` ${cause.message}` : ``),
+    (error: any, path: string, cause?: Error) =>
+      Object.assign(error, { path, cause }))
 }
 
 export default Object.assign(FadromaError, {
