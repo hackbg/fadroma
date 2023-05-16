@@ -21,11 +21,10 @@
 import type {
   AnyContract, Uploadable, Uploaded, ChainId, CodeHash, CodeId, DeploymentState
 } from './fadroma'
-import { DeployError } from './fadroma-error'
 
 import {
   Contract, Template, toUploadReceipt, DeployStore, Deployment, toInstanceReceipt, timestamp,
-  Console, bold
+  Error as BaseError, Console, bold
 } from '@fadroma/connect'
 
 import $, {
@@ -85,7 +84,7 @@ export class DeployStore_v1 extends DeployStore {
   }
   /** Make the specified deployment be the active deployment. */
   async select (name: string|null = this.activeName): Promise<DeploymentState> {
-    if (!name) throw new Error('no deployment selected')
+    if (!name) throw new DeployError('no deployment selected')
     let selected = this.root.at(`${name}.yml`)
     if (selected.exists()) {
       this.log.activating(selected.real.name)
@@ -112,7 +111,7 @@ export class DeployStore_v1 extends DeployStore {
   }
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   load (name: string|null|undefined = this.activeName): DeploymentState {
-    if (!name) throw new Error('pass deployment name')
+    if (!name) throw new DeployError('pass deployment name')
     const file = this.root.at(`${name}.yml`)
     this.log.log('loading', name)
     name = basename(file.real.name, '.yml')
@@ -132,7 +131,7 @@ export class DeployStore_v1 extends DeployStore {
     for (let [name, data] of Object.entries(state)) {
       output += '---\n'
       name ??= data.name!
-      if (!name) throw new Error('Deployment: no name')
+      if (!name) throw new DeployError('Deployment: no name')
       const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
       data = JSON.parse(JSON.stringify({
         name,
@@ -192,4 +191,11 @@ class DeployConsole extends Console {
     this.warn(`overriding store for ${x}`)
   noAgent = (name?: string) =>
     this.warn('no agent. authenticate by exporting FADROMA_MNEMONIC in your shell')
+}
+
+export class DeployError extends BaseError {
+  static DeploymentAlreadyExists = this.define('DeploymentAlreadyExists', (name: string)=>
+    `deployment "${name}" already exists`)
+  static DeploymentDoesNotExist = this.define('DeploymentDoesNotExist', (name: string)=>
+    `deployment "${name}" does not exist`)
 }

@@ -19,10 +19,9 @@
 **/
 
 import type { Agent, ChainClass, ChainId, DevnetHandle } from './fadroma'
-import Error from './fadroma-error'
 import Config from './fadroma-config'
 
-import { Console, bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/connect'
+import { Error as BaseError, Console, bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -107,7 +106,7 @@ export class Devnet implements DevnetHandle {
     this.deleteOnExit = options.deleteOnExit ?? false
     // This determines the state directory path
     this.chainId = options.chainId ?? (this.deleteOnExit ? randomChainId() : 'fadroma-devnet')
-    if (!this.chainId) throw new Error.Devnet.NoChainId()
+    if (!this.chainId) throw new DevnetError.NoChainId()
     // Try to update options from stored state
     this.stateDir = options.stateDir ?? $('state', this.chainId).path
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
@@ -116,7 +115,7 @@ export class Devnet implements DevnetHandle {
         // Options always override stored state
         options = { ...state, ...options }
       } catch (e) {
-        throw new Error.Devnet.LoadingFailed(this.stateFile.path, e)
+        throw new DevnetError.LoadingFailed(this.stateFile.path, e)
       }
     }
     // Apply the rest of the configuration options
@@ -170,7 +169,7 @@ export class Devnet implements DevnetHandle {
     switch (this.portMode) {
       case 'lcp':     env.lcpPort     = String(this.port);      break
       case 'grpcWeb': env.grpcWebAddr = `0.0.0.0:${this.port}`; break
-      default: throw new Error.Devnet.PortMode(this.portMode)
+      default: throw new DevnetError.PortMode(this.portMode)
     }
     return env
   }
@@ -208,8 +207,8 @@ export class Devnet implements DevnetHandle {
   create = async (): Promise<this> => {
     // ensure we have image and chain id
     const image = await this.image
-    if (!this.image) throw new Error.Missing('devnet image')
-    if (!this.chainId) throw new Error.Missing.ChainId()
+    if (!this.image) throw new DevnetError.Missing('devnet image')
+    if (!this.chainId) throw new DevnetError.Missing.ChainId()
     // if port is unspecified or taken, increment
     while (!this.port || await isPortTaken(Number(this.port))) {
       this.port = Number(this.port) + 1 || await freePort()
@@ -245,18 +244,18 @@ export class Devnet implements DevnetHandle {
     const console = new DevnetConsole('devnet')
     dir = $(dir)
     if (!dir.isDirectory()) {
-      throw new Error.Devnet.NotADirectory(dir.path)
+      throw new DevnetError.NotADirectory(dir.path)
     }
     const stateFile = dir.at(Devnet.stateFile)
     if (!dir.at(Devnet.stateFile).isFile()) {
-      throw new Error.Devnet.NotAFile(stateFile.path)
+      throw new DevnetError.NotAFile(stateFile.path)
     }
     let state: Partial<Devnet>
     try {
       state = stateFile.as(JSONFile).load() || {}
     } catch (e) {
       console.warn(e)
-      throw new Error.Devnet.LoadingFailed(stateFile.path)
+      throw new DevnetError.LoadingFailed(stateFile.path)
     }
     console.missingValues(state, stateFile.path)
     return new Devnet(state)
@@ -299,7 +298,7 @@ export class Devnet implements DevnetHandle {
   /** Export the state of the devnet as a container image. */
   export = async (repository?: string, tag?: string) => {
     const container = await this.container
-    if (!container) throw new Error.Devnet.CantExport("no container")
+    if (!container) throw new DevnetError.CantExport("no container")
     return container.export(repository, tag)
   }
 
@@ -374,7 +373,7 @@ export class Devnet implements DevnetHandle {
   /** Get the info for a genesis account, including the mnemonic */
   getAccount = async (name: string): Promise<Partial<Agent>> => {
     if (this.dontMountState) {
-      if (!this.container) throw new Error.Devnet.ContainerNotSet()
+      if (!this.container) throw new DevnetError.ContainerNotSet()
       const path = `/state/${this.chainId}/wallet/${name}.json`
       const [identity] = await (await this.container).exec('cat', path)
       return JSON.parse(identity)
@@ -520,4 +519,30 @@ class DevnetConsole extends Console {
         `docker rm`, containerId?.slice(0,8), `&&`,
         `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
   }
+}
+
+export class DevnetError extends BaseError {
+  static PortMode = this.define('PortMode',
+    (mode?: string) => `devnet.portMode must be either 'lcp' or 'grpcWeb', found: ${mode}`)
+  static NoChainId = this.define('NoChainId',
+    ()=>'refusing to create directories for devnet with empty chain id')
+  static NoContainerId = this.define('NoContainerId',
+    ()=>'missing container id in devnet state')
+  static ContainerNotSet = this.define('ContainerNotSet',
+    ()=>'devnet.container is not set')
+  static NoGenesisAccount = this.define('NoGenesisAccount',
+    (name: string, error: any)=>`genesis account not found: ${name} (${error})`)
+  static NotADirectory = this.define('NotADirectory',
+    (path: string) => `not a directory: ${path}`)
+  static NotAFile = this.define('NotAFile',
+    (path: string) => `not a file: ${path}`)
+  static CantExport = this.define('CantExport',
+    (reason: string) => `can't export: ${reason}`)
+  static LoadingFailed = this.define('LoadingFailed',
+    (path: string, cause?: Error) =>
+      `failed restoring devnet state from ${path}; ` +
+      `try deleting ${dirname(path)}` +
+      (cause ? ` ${cause.message}` : ``),
+    (error: any, path: string, cause?: Error) =>
+      Object.assign(error, { path, cause }))
 }

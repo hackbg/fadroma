@@ -22,11 +22,10 @@ import type {
   Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract,
 } from './fadroma'
 import Config from './fadroma-config'
-import Error from './fadroma-error'
 
 import {
   Template, Uploader, assertAgent, toUploadReceipt, base16, sha256,
-  hideProperties as hide, Console, colors, bold
+  hideProperties as hide, Error as BaseError, Console, colors, bold
 } from '@fadroma/connect'
 
 import $, { Path, BinaryFile, JSONFile, JSONDirectory } from '@hackbg/file'
@@ -51,8 +50,8 @@ export class FSUploader extends Uploader {
     const cached = super.get(uploadable)
     if (cached) return cached
     const { codeHash } = uploadable
-    if (!this.agent) throw new Error.Missing.Agent()
-    if (!this.agent.chain) throw new Error.Missing.Chain()
+    if (!this.agent) throw new UploadError.Missing.Agent()
+    if (!this.agent.chain) throw new UploadError.Missing.Chain()
     const receipt = this.store
       .in('state')
       .in(this.agent.chain.id)
@@ -74,8 +73,8 @@ export class FSUploader extends Uploader {
   set (uploaded: Uploaded): this {
     this.addCodeHash(uploaded)
     super.set(uploaded)
-    if (!this.agent) throw new Error.Missing.Agent()
-    if (!this.agent.chain) throw new Error.Missing.Chain()
+    if (!this.agent) throw new UploadError.Missing.Agent()
+    if (!this.agent.chain) throw new UploadError.Missing.Chain()
     const receipt = this.store
       .in('state')
       .in(this.agent.chain.id)
@@ -139,3 +138,5 @@ export interface UploadReceiptData {
   transactionHash:    string
   uploadTx?:          string
 }
+
+export class UploadError extends BaseError {}

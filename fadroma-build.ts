@@ -21,9 +21,8 @@
 import type Project from './fadroma'
 import type { Class, BuilderClass, Buildable, Built, Template } from './fadroma'
 import Config from './fadroma-config'
-import Error from './fadroma-error'
 
-import { Builder, Contract, HEAD, Console, bold, colors } from '@fadroma/connect'
+import { Builder, Contract, HEAD, Error as BaseError, Console, bold, colors } from '@fadroma/connect'
 
 import $, {
   Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile
@@ -260,7 +259,7 @@ export class BuildContainer extends BuildLocal {
 
   protected prebuilt (contract: Buildable & Partial<Built>): boolean {
     const { workspace, revision, crate } = contract
-    //if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
+    //if (!workspace) throw new BuildError(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
       new BuildConsole(`build ${crate}`).found(prebuilt)
@@ -303,7 +302,7 @@ export class BuildContainer extends BuildLocal {
       return templates
     }
     // Define the mounts and environment variables of the build container
-    if (!this.script) throw new Error.Build.ScriptNotSet()
+    if (!this.script) throw new BuildError.ScriptNotSet()
     const buildScript = $(`/`, $(this.script).name).path
     const safeRef = sanitize(revision)
     const knownHosts = $(homedir()).in('.ssh').at('known_hosts')
@@ -332,7 +331,7 @@ export class BuildContainer extends BuildLocal {
     // Here we can mount it under its proper name
     // if building the example contracts from Fadroma.
     if (this.workspaceManifest) {
-      if (revision !== HEAD) throw new Error.Build.NoHistoricalManifest()
+      if (revision !== HEAD) throw new BuildError.NoHistoricalManifest()
       writable[$(root).path] = readonly[$(root).path]
       delete readonly[$(root).path]
       readonly[$(this.workspaceManifest).path] = `/src/Cargo.toml`
@@ -422,7 +421,7 @@ export class BuildContainer extends BuildLocal {
     const {error, code} = await buildContainer.wait()
     // Throw error if launching the container failed
     if (error) {
-      throw new Error(`[@hackbg/fadroma] Docker error: ${error}`)
+      throw new BuildError(`[@hackbg/fadroma] Docker error: ${error}`)
     }
     // Throw error if the build failed
     if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
@@ -435,7 +434,7 @@ export class BuildContainer extends BuildLocal {
     this.log
       .log(logs)
       .error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
-    throw new Error(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
+    throw new BuildError(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
   }
 
   protected locationToContract (location: any) {
@@ -469,8 +468,8 @@ export class BuildRaw extends BuildLocal {
     source.workspace ??= this.workspace
     source.revision  ??= HEAD
     const { workspace, revision, crate } = source
-    if (!workspace) throw new Error.Missing('missing workspace')
-    if (!crate)     throw new Error.Missing.Crate()
+    if (!workspace) throw new BuildError.Missing('missing workspace')
+    if (!crate)     throw new BuildError.Missing.Crate()
     // Temporary dirs used for checkouts of non-HEAD builds
     let tmpGit, tmpBuild
     // Most of the parameters are passed to the build script
@@ -487,7 +486,7 @@ export class BuildRaw extends BuildLocal {
       // Provide the build script with the config values that ar
       // needed to make a temporary checkout of another commit
       if (!gitDir?.present) {
-        const error = new Error.Build.NoGitDir()
+        const error = new BuildError.NoGitDir()
         throw Object.assign(error, { source })
       }
       // Create a temporary Git directory. The build script will copy the Git history
@@ -515,12 +514,12 @@ export class BuildRaw extends BuildLocal {
         } else if (code !== null) {
           const message = `${build} exited with code ${code}`
           this.log.error(message)
-          throw Object.assign(new Error(message), { source, code })
+          throw Object.assign(new BuildError(message), { source, code })
         } else if (signal !== null) {
           const message = `${build} exited by signal ${signal}`
           this.log.warn(message)
         } else {
-          throw new Error('Unreachable')
+          throw new BuildError('Unreachable')
         }
       })
     })
@@ -565,7 +564,7 @@ Object.assign(Builder.variants, {
 
 export function getGitDir (template: Partial<Template<any>> = {}): DotGit {
   const { workspace } = template || {}
-  if (!workspace) throw new Error("No workspace specified; can't find gitDir")
+  if (!workspace) throw new BuildError("No workspace specified; can't find gitDir")
   return new DotGit(workspace)
 }
 
@@ -692,26 +691,29 @@ export class ContractCrate {
 }
 
 class BuildConsole extends Console {
-
   one = ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => this.log(
     'Building', bold(crate), ...(revision === 'HEAD')
       ? ['from working tree']
       : ['from Git reference', bold(revision)])
-
   many = (sources: Template<any>[]) =>
     sources.forEach(source=>this.one(source))
-
   found = ({ artifact }: Built) =>
     this.log(`found at ${bold($(artifact!).shortPath)}`)
-
   workspace = (mounted: Path|string, ref: string = HEAD) => this.log(
     `building from workspace:`, bold(`${$(mounted).shortPath}/`),
     `@`, bold(ref))
-
   container = (root: string|Path, revision: string, cratesToBuild: string[]) =>
     this.log(
       `started building from ${bold($(root).shortPath)} @ ${bold(revision)}:`,
       cratesToBuild.map(x=>bold(x)).join(', ')
     )
+}
 
+export class BuildError extends BaseError {
+  static ScriptNotSet = this.define('ScriptNotSet',
+    ()=>'build script not set')
+  static NoHistoricalManifest = this.define('NoHistoricalManifest',
+    ()=>'the workspace manifest option can only be used when building from working tree')
+  static NoGitDir = this.define('NoGitDir',
+    ()=>'could not find .git directory')
 }
