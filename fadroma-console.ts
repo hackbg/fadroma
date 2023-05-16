@@ -95,12 +95,26 @@ export default class Console extends BaseConsole {
 
   devnet = ((self: Console)=>({
 
+    tryingPort: (port: string|number) =>
+      this.log(`trying port`, port),
+    creating: ({ chainId, url }: Partial<Devnet>) =>
+      this.log(`creating devnet`, chainId, `on`, String(url)),
     loadingState: (chainId1: string, chainId2: string) =>
       self.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`),
     loadingFailed: (path: string) =>
       self.warn(`Failed to load devnet state from ${path}. Deleting it.`),
     loadingRejected: (path: string) =>
       self.log(`${path} does not exist.`),
+    createdContainer: (id?: string) =>
+      self.log(`created container`, id?.slice(0, 8)),
+    startingContainer: (id?: string) =>
+      self.log(`starting container`, id?.slice(0, 8)),
+    stoppingContainer: (id?: string) =>
+      self.log(`stopping container`, id?.slice(0, 8)),
+    warnContainerNotFound: (id?: string) =>
+      self.warn(`container ${id} not found`),
+    noContainerToDelete: (id?: string) =>
+      self.log(`no container found`, id?.slice(0, 8)),
     isNowRunning ({ chainId, containerId, port }: Partial<Devnet>) {
       return self
         .info('running on port', bold(String(port)))
@@ -110,10 +124,31 @@ export default class Console extends BaseConsole {
           `docker rm`, containerId?.slice(0,8), `&&`,
           `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
     },
-    warnMissingValues ({ chainId, containerId, port }: Partial<Devnet>, path: string) {
+    missingValues ({ chainId, containerId, port }: Partial<Devnet>, path: string) {
       if (!containerId) console.warn(`${path}: no containerId`)
       if (!chainId)     console.warn(`${path}: no chainId`)
       if (!port)        console.warn(`${path}: no port`)
+    },
+    deleting (path: string) {
+      return self.log(`deleting ${path}...`)
+    },
+    cannotDelete (path: string, error: any) {
+      return self.warn(`failed to delete ${path}: ${error.code}`)
+    },
+    runningCleanupContainer (path: string) {
+      return self.log('running cleanup container for', path)
+    },
+    waitingForCleanupContainer () {
+      return self.log('waiting for cleanup container to finish...')
+    },
+    cleanupContainerDone (path: string) {
+      return self.log(`deleted ${path}/* via cleanup container.`)
+    },
+    failedToDelete (path: string, error: any) {
+      return self.warn(`failed to delete ${path}:`, error)
+    },
+    exitHandlerSet (chainId: string) {
+      return self.warn('exit handler already set for', chainId)
     }
 
   }))(this)

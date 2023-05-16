@@ -1,7 +1,6 @@
 import assert from 'node:assert'
 import * as Scrt from '@fadroma/scrt'
-import { Agent, ChainId, Address, Deployment, Client } from '@fadroma/agent'
-import { getDeployment, getDevnet } from '@hackbg/fadroma'
+import { Agent, ChainId, Address } from '@fadroma/agent'
 
 const SecretJS = (Scrt.SecretJS as any).default
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)

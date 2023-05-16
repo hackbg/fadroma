@@ -28,7 +28,8 @@ import { Devnet } from './fadroma-devnet'
 import {
   Builder, ConnectConfig, Uploader, DeployStore,
   Config as BaseConfig,
-  Deployment as BaseDeployment
+  Deployment as BaseDeployment,
+  Error
 } from '@fadroma/connect'
 
 import $, { JSONFile } from '@hackbg/file'
@@ -210,7 +211,7 @@ export default class Config extends ConnectConfig {
     DeployStore?: DeployStoreClass<T>
   ): T {
     DeployStore ??= this.DeployStore as DeployStoreClass<T>
-    if (!DeployStore) throw new Error('Missing deployment store constructor')
+    if (!DeployStore) throw new Error.Missing('missing deployment store constructor')
     return new DeployStore(this.deploy.storePath)
   }
 
@@ -225,7 +226,7 @@ export default class Config extends ConnectConfig {
     args = [...args]
     args[0] = ({ ...args[0] ?? {} })
     args[0].chain     ||= this.getChain()
-    if (!args[0].chain) throw new Error('Missing chain')
+    if (!args[0].chain) throw new Error.Missing.Chain()
     args[0].agent     ||= this.getAgent()
     args[0].builder   ||= this.getBuilder()
     args[0].uploader  ||= args[0].agent.getUploader(this.Uploader)
@@ -260,4 +261,5 @@ export default class Config extends ConnectConfig {
   /** @returns Devnet */
   getDevnet = (options: Partial<Devnet> = {}) =>
     new Devnet({ ...this.devnet, ...options })
+
 }

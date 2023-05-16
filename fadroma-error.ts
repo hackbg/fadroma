@@ -47,7 +47,7 @@ export class DeployError extends FadromaError {
 
 export class DevnetError extends FadromaError {
   static PortMode = this.define('PortMode',
-    ()=>"devnet.portMode must be either 'lcp' or 'grpcWeb'")
+    (mode?: string) => `devnet.portMode must be either 'lcp' or 'grpcWeb', found: ${mode}`)
   static NoChainId = this.define('NoChainId',
     ()=>'refusing to create directories for devnet with empty chain id')
   static NoContainerId = this.define('NoContainerId',

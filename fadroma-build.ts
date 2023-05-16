@@ -57,7 +57,7 @@ export abstract class BuildLocal extends Builder {
   script?:    string
   /** The project workspace. */
   workspace?: string
-  /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
+  /** Whether to skip any `git fetch` calls in the build script. */
   noFetch:    boolean = false
   /** Name of directory where build artifacts are collected. */
   outputDir:  OpaqueDirectory
@@ -124,7 +124,6 @@ export class BuildContainer extends BuildLocal {
   image: Image
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
-
   /** Used to authenticate Git in build container. */
   sshAuthSocket?: string // process.env.SSH_AUTH_SOCK
   /** Used to fix Cargo when Fadroma is included as a Git submodule */
