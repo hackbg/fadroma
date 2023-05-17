@@ -21,7 +21,7 @@ The control flow goes something like this:
 * User requests from the Factory to create a Product.
 * Factory instantiates a Product.
 * The Product calls back to factory to register itself.
-* That way, the Factory can list all Products created through it.
+* That way, the Factory keeps track of all Products created through it.
 
 ## Defining a Deployment subclass
 
@@ -218,7 +218,7 @@ Reconstructing a deployment from a snapshot can look like this:
 ```typescript
 // some-downstream.ts
 
-// import FadromaDeployment, { mainnetState, testnetState } from '@your/project'
+// import FadromaDeployment, { mainnetState, testnetState } from '@some/project'
 
 const mainnetState = {/* ... */} // mock
 const testnetState = {/* ... */} // mock
@@ -230,9 +230,8 @@ const agent = Chain.variants[chain].getAgent({/* mnemonic: '...' */})
 const app = new FadromaDeployment({ ...state, agent })
 ```
 
-A nice way to simplify that even further for the users of your API client users
-is to define "connect" entrypoints, as functions (as show below), or
-as static methods on your deployment class:
+Here's a nice way to simplify that even further, for the users of your API client:
+define "connect" entrypoints - either as functions (as show below):
 
 ```typescript
 // api.ts
@@ -244,7 +243,7 @@ export const connectToFactory = {
   onMainnet: () => (mnemonic: string) => new FadromaDeployment({
     ...mainnetState,
     agent: Chain.variants['ScrtMainnet'].getAgent({ mnemonic })
-  })
+  }),
   onTestnet: () => (mnemonic: string) => new FadromaDeployment({
     ...testnetState,
     agent: Chain.variants['ScrtTestnet'].getAgent({ mnemonic })
@@ -252,9 +251,31 @@ export const connectToFactory = {
 }
 ```
 
-If you use arrow functions to define the methods of `FadromaDeployment`,
-(as alredy shown in the beginning of this document), that lets users
-just destructure the `FactoryDeployment` instance that they have,
+or as static methods:
+
+```typescript
+// api.ts
+
+// import * as mainnetState from './mainnet-snapshot.json'
+// import * as testnetState from './testnet-snapshot.json'
+
+export class imagine_this_is_FactoryDeployment {
+  // ... the rest of your Deployment class ...
+  static mainnet = () => (mnemonic: string) => new FadromaDeployment({
+    ...mainnetState,
+    agent: Chain.variants['ScrtMainnet'].getAgent({ mnemonic })
+  })
+  static testnet = () => (mnemonic: string) => new FadromaDeployment({
+    ...testnetState,
+    agent: Chain.variants['ScrtTestnet'].getAgent({ mnemonic })
+  })
+  // ... the rest of your Deployment class ...
+}
+```
+
+Furthermore: you may have noticed that the `FactoryDeployment` definition
+uses the arrow syntax to define methods. This allows users of your API
+client library to directly destructure a `FactoryDeployment` instance,
 and get nice free-standing functions that represent the relevant actions
 from your business logic:
 
@@ -276,12 +297,12 @@ reducing it to simple declarative programming and taking care of
 all the steps behind the scenes.
 
 In the future, we hope to expand this functionality to other
-Cosmos-compatible chains, and allow deploying contracts to multiple
-chains from the same definition.
+Cosmos-compatible chains, and allow deploying contracts across
+multiple chains from the same unified definition.
 
 For now, we hope that this abstraction expands your horizons about
-all the exciting and novel things that you can build on a distributed
-compute backend such as the Secret Network.
+all the exciting and novel things that you can build on the distributed
+compute backend of the [Secret Network](https://scrt.network).
 
 ## See also
 
