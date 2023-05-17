@@ -136,7 +136,7 @@ test your contracts on the real thing.
 ```typescript
 // tes.ts
 
-// import { FadromaDeployment } from './api.ts'
+// import { FactoryDeployment } from './api.ts'
 
 import { Chain, getDeployment } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
@@ -218,7 +218,7 @@ Reconstructing a deployment from a snapshot can look like this:
 ```typescript
 // some-downstream.ts
 
-// import FadromaDeployment, { mainnetState, testnetState } from '@some/project'
+// import FactoryDeployment, { mainnetState, testnetState } from '@some/project'
 
 const mainnetState = {/* ... */} // mock
 const testnetState = {/* ... */} // mock
@@ -227,7 +227,7 @@ const mainnet = true // process.env.MAINNET, or a toggle in your UI, etc.
 const chain = mainnet ? 'ScrtMainnet' : 'ScrtTestnet'
 const state = mainnet ? mainnetState : testnetState
 const agent = Chain.variants[chain]().getAgent({/* mnemonic: '...' */})
-const app = new FadromaDeployment({ ...state, agent })
+const app = new FactoryDeployment({ ...state, agent })
 ```
 
 Here's a nice way to simplify that even further, for the users of your API client:
@@ -240,11 +240,11 @@ define "connect" entrypoints - either as functions (as show below):
 // import * as testnetState from './testnet-snapshot.json'
 
 export const connectToFactory = {
-  onMainnet: () => (mnemonic: string) => new FadromaDeployment({
+  onMainnet: () => (mnemonic: string) => new FactoryDeployment({
     ...mainnetState,
     agent: Chain.variants['ScrtMainnet']().getAgent({ mnemonic })
   }),
-  onTestnet: () => (mnemonic: string) => new FadromaDeployment({
+  onTestnet: () => (mnemonic: string) => new FactoryDeployment({
     ...testnetState,
     agent: Chain.variants['ScrtTestnet']().getAgent({ mnemonic })
   })
@@ -261,11 +261,11 @@ or as static methods:
 
 export class imagine_this_is_FactoryDeployment {
   // ... the rest of your Deployment class ...
-  static mainnet = () => (mnemonic: string) => new FadromaDeployment({
+  static mainnet = () => (mnemonic: string) => new FactoryDeployment({
     ...mainnetState,
     agent: Chain.variants['ScrtMainnet'].getAgent({ mnemonic })
   })
-  static testnet = () => (mnemonic: string) => new FadromaDeployment({
+  static testnet = () => (mnemonic: string) => new FactoryDeployment({
     ...testnetState,
     agent: Chain.variants['ScrtTestnet'].getAgent({ mnemonic })
   })
