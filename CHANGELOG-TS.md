@@ -1,5 +1,25 @@
 # Changelog (TypeScript)
 
+## 2023-05-17
+
+### `@hackbg/fadroma 1.0.0-beta.97`
+
+#### Breaking
+
+* The custom consoles and error constructors are now private.
+
+#### Fixed
+
+* Reconnecting to persistent devnet is now unbroken.
+
+### `@fadroma/agent 1.0.0-rc.23`
+
+#### New features
+
+* `Deployment`'s methods are now defined with arrow syntax. This enables things like
+  `const { contract, template } = new Deployment({ agent })` for deploying contracts
+  in an imperative style.
+
 ## 2023-05-15
 
 ### `@hackbg/fadroma 1.0.0-beta.96`
