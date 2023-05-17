@@ -226,7 +226,7 @@ const testnetState = {/* ... */} // mock
 const mainnet = true // process.env.MAINNET, or a toggle in your UI, etc.
 const chain = mainnet ? 'ScrtMainnet' : 'ScrtTestnet'
 const state = mainnet ? mainnetState : testnetState
-const agent = Chain.variants[chain].getAgent({/* mnemonic: '...' */})
+const agent = Chain.variants[chain]().getAgent({/* mnemonic: '...' */})
 const app = new FadromaDeployment({ ...state, agent })
 ```
 
@@ -242,11 +242,11 @@ define "connect" entrypoints - either as functions (as show below):
 export const connectToFactory = {
   onMainnet: () => (mnemonic: string) => new FadromaDeployment({
     ...mainnetState,
-    agent: Chain.variants['ScrtMainnet'].getAgent({ mnemonic })
+    agent: Chain.variants['ScrtMainnet']().getAgent({ mnemonic })
   }),
   onTestnet: () => (mnemonic: string) => new FadromaDeployment({
     ...testnetState,
-    agent: Chain.variants['ScrtTestnet'].getAgent({ mnemonic })
+    agent: Chain.variants['ScrtTestnet']().getAgent({ mnemonic })
   })
 }
 ```
