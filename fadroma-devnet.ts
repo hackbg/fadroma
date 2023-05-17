@@ -318,7 +318,7 @@ export class Devnet implements DevnetHandle {
       await container.remove()
     }
     const state = $(this.stateDir)
-    const path  = state.shortPath
+    const path = state.shortPath
     try {
       if (state.exists()) {
         this.log.deleting(path)
@@ -351,7 +351,7 @@ export class Devnet implements DevnetHandle {
   }
 
   static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<Devnet[]> => {
-    const state  = $(path).as(OpaqueDirectory)
+    const state = $(path).as(OpaqueDirectory)
     const chains = (state.exists()&&state.list()||[])
       .map(name => $(state, name))
       .filter(path => path.isDirectory())
@@ -389,7 +389,9 @@ export class Devnet implements DevnetHandle {
       this.log.exitHandlerSet(this.chainId)
       return
     }
-    process.once('beforeExit', async () => {
+    let exitHandlerCalled = false
+    const exitHandler = async () => {
+      if (exitHandlerCalled) return
       if (this.deleteOnExit) {
         await this.pause()
         await this.delete()
@@ -399,7 +401,9 @@ export class Devnet implements DevnetHandle {
         this.log.br()
         this.log.isNowRunning(this)
       }
-    })
+    }
+    process.once('beforeExit', exitHandler)
+    process.once('uncaughtExceptionMonitor', exitHandler)
     this.exitHandlerSet = true
   }
 
