@@ -204,8 +204,8 @@ async function main (options = {}) {
         warn('please install wasm-opt')
         log(`Copying ${compiled} to ${optimized}...`)
         run(`cp ${compiled} ${optimized}`)
-        chown(optimized, uid, gid)
       }
+      chown(optimized, uid, gid)
       // Output checksum to artifacts directory
       log(`Saving checksum for ${optimized} into ${checksum}...`)
       run(`sha256sum -b ${optimized} > ${checksum}`)
