@@ -1,9 +1,12 @@
 # A Fadroma Pattern: Factory
 
-## Overview
+## Introduction
 
-This is a common pattern that uses simple ICC (inter-contract communication) to let users
-instantiate contracts in a semi-controlled way.
+This is a common pattern that uses simple ICC (inter-contract communication) to let end users
+instantiate contracts in a semi-controlled way: the "factory" contract determines the code of
+the contract to instantiate, and callers can specify init parameters for the individual
+"product" contract instances that they request from the factory. This factory also keeps track
+of all contracts instantiated through it, and can be queried to provide a paginated list.
 
 In the following example, there are two contracts involved, `Factory` and `Product`.
 (For their code, see the [`factory`](https://github.com/hackbg/fadroma/tree/master/examples/factory),
@@ -20,7 +23,7 @@ The control flow goes something like this:
 * The Product calls back to factory to register itself.
 * That way, the Factory can list all Products created through it.
 
-## Defining
+## Defining a Deployment subclass
 
 Here's how this pattern can be described as a `Deployment` in your project's `api.ts` or similar.
 
@@ -119,9 +122,16 @@ class Product extends Client {
 }
 ```
 
-## Testing
+## Integration testing
 
-And here's how you would deploy and test it on mocknet and devnet:
+Here's how you would deploy and test the system described above,
+using Fadroma's Mocknet and Devnet features to avoid cluttering the
+public testnet with intermediate iterations.
+
+The Mocknet uses JavaScript's built-in WebAssembly runtime
+and a quick and dirty simulation of a CosmWasm environment, while
+the Devnet launches a temporary `localsecret`-based container to
+test your contracts on the real thing.
 
 ```typescript
 // tes.ts
