@@ -16,8 +16,9 @@ Distributed application framework developed at [**Hack.bg**](https://hack.bg).
 See [**https://fadroma.tech**](https://fadroma.tech) for overview or try the
 [**getting started guide**](https://fadroma.tech/guide.html).
 
-Also check the [**Fadroma Workshop**](https://github.com/hackbg/fadroma-workshop) repo
-for a real-world example which includes a step-by-step guide on how to build smart
-contracts using the Fadroma Rust crate.
+See the [**Fadroma Workshop**](https://github.com/hackbg/fadroma-workshop) repo
+for a real-world example, which includes a step-by-step guide on how to build smart
+contracts using the Fadroma Rust crate, and the [**Fadroma Factory Example**](https://fadroma.tech/factory.html)
+for a guide to deploying your Rust contracts using the Fadroma TypeScript package.
 
 </div>
