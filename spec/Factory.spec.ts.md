@@ -280,7 +280,7 @@ and get nice free-standing functions that represent the relevant actions
 from your business logic:
 
 ```typescript
-const { getProducts, createProduct } = connectToFactory.onMainnet(mnemonic)
+const { getProducts, createProduct } = connectToFactory.onMainnet(/*'mnemonic'*/)
 // await getProducts()
 // await createProduct('...')
 // et cetera.
