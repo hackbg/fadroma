@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "3.0.0-rc.33",
+  "version": "3.0.0-rc.35",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts" ],
@@ -11,8 +11,8 @@
     "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "dependencies": {
-    "@fadroma/agent": "workspace:^1.0.0-rc.21",
-    "@fadroma/scrt":  "workspace:^9.0.0-rc.21",
+    "@fadroma/agent": "workspace:^1.0.0-rc.22",
+    "@fadroma/scrt":  "workspace:^9.0.0-rc.22",
     "@hackbg/conf":   "workspace:^3.1"
   }
 }
