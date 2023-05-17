@@ -10,7 +10,7 @@
 
 #### Fixed
 
-* Reconnecting to persistent devnet is now unbroken.
+* Non-persistent devnets are now properly deleted on uncaught exceptions.
 
 ### `@fadroma/agent 1.0.0-rc.23`
 
