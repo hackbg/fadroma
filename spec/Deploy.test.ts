@@ -1,5 +1,5 @@
 import { DeployStore, Deployment } from '@fadroma/agent'
-import { DeployStore_v1, Console } from '@hackbg/fadroma'
+import { DeployStore_v1 } from '@hackbg/fadroma'
 import * as assert from 'node:assert'
 
 new class MyDeployStore extends DeployStore {
@@ -41,14 +41,3 @@ store.list()
 store.save('foo', { contract1: { deployment: true }, contract2: { deployment: true } } as any)
 assert.equal(result, '---\n{}\n---\n{}\n')
 assert.ok(store[Symbol.toStringTag])
-
-new Console('test').deploy.list('test-chain-id', store)
-new Console('test').deploy.list('test-chain-id', {
-  KEY: '.active',
-  list: () => ['.active', 'd1', 'd2'],
-  activeName: 'd2',
-  load: (name: string) => ({size: 2, state: { 'c1': {}, 'c2': {} }})
-} as any)
-
-// doesnt belong here but whatever
-new Console('test').devnet.isNowRunning({ chainId: 'chain', containerId: 'container', port: 1234 })

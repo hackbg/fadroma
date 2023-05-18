@@ -19,7 +19,8 @@
 **/
 
 import type {
-  Environment, BuilderClass, UploaderClass, DeploymentFormat, DeployStoreClass, DeploymentClass,
+  Environment, BuilderClass, UploaderClass,
+  DeploymentFormat, DeployStoreClass, DeploymentClass,
   DevnetPlatform
 } from './fadroma'
 import { Devnet } from './fadroma-devnet'
@@ -27,7 +28,8 @@ import { Devnet } from './fadroma-devnet'
 import {
   Builder, ConnectConfig, Uploader, DeployStore,
   Config as BaseConfig,
-  Deployment as BaseDeployment
+  Deployment as BaseDeployment,
+  Error
 } from '@fadroma/connect'
 
 import $, { JSONFile } from '@hackbg/file'
@@ -43,7 +45,8 @@ export const thisPackage =
   dirname(fileURLToPath(import.meta.url))
 
 export const { version } =
-  $(thisPackage, 'package.json').as(JSONFile).load() as { version: string }
+  $(thisPackage, 'package.json').as(JSONFile)
+    .load() as { version: string }
 
 export default class Config extends ConnectConfig {
 
@@ -114,7 +117,8 @@ export default class Config extends ConnectConfig {
       'FADROMA_BUILD_RAW', ()=>false),
     /** Whether to use Podman instead of Docker to run the build container. */
     podman: this.getFlag(
-      'FADROMA_BUILD_PODMAN', () => this.getFlag('FADROMA_BUILD_PODMAN', ()=>false)),
+      'FADROMA_BUILD_PODMAN', () =>
+        this.getFlag('FADROMA_PODMAN', ()=>false)),
     /** Path to Docker API endpoint. */
     dockerSocket: this.getString(
       'FADROMA_DOCKER', ()=>'/var/run/docker.sock'),
@@ -124,6 +128,21 @@ export default class Config extends ConnectConfig {
     /** Dockerfile to build the build image if not downloadable. */
     dockerfile: this.getString(
       'FADROMA_BUILD_DOCKERFILE', ()=>$(thisPackage).at('Dockerfile').path),
+    /** Owner uid that is set on build artifacts. */
+    outputUid: this.getString(
+      'FADROMA_BUILD_UID', () => undefined),
+    /** Owner gid that is set on build artifacts. */
+    outputGid: this.getString(
+      'FADROMA_BUILD_GID', () => undefined),
+    /** Used to authenticate Git in build container. */
+    sshAuthSocket: this.getString(
+      'SSH_AUTH_SOCK', () => undefined),
+    /** Used to fix Cargo when Fadroma is included as a Git submodule */
+    workspaceManifest: this.getString(
+      'FADROMA_WORKSPACE_MANIFEST', () => undefined),
+    /** Used for historical builds. */
+    preferredRemote: this.getString(
+      'FADROMA_PREFERRED_REMOTE', () => undefined)
   }
 
   /** @returns the Builder class exposed by the config */
@@ -182,17 +201,17 @@ export default class Config extends ConnectConfig {
       'FADROMA_DEPLOY_FORMAT', () => 'v1') as DeploymentFormat
   }
 
-  /** The deploy receipt store implementation selected by `format`. */
+  /** @returns DeployStoreClass selected by `this.deploy.format` (`FADROMA_DEPLOY_FORMAT`). */
   get DeployStore (): DeployStoreClass<DeployStore>|undefined {
     return DeployStore.variants[this.deploy.format]
   }
 
-  /** @returns an instance of the selected deploy store implementation. */
+  /** @returns DeployStore or subclass instance */
   getDeployStore <T extends DeployStore> (
     DeployStore?: DeployStoreClass<T>
   ): T {
     DeployStore ??= this.DeployStore as DeployStoreClass<T>
-    if (!DeployStore) throw new Error('Missing deployment store constructor')
+    if (!DeployStore) throw new Error.Missing.DeployStoreClass()
     return new DeployStore(this.deploy.storePath)
   }
 
@@ -207,7 +226,7 @@ export default class Config extends ConnectConfig {
     args = [...args]
     args[0] = ({ ...args[0] ?? {} })
     args[0].chain     ||= this.getChain()
-    if (!args[0].chain) throw new Error('Missing chain')
+    if (!args[0].chain) throw new Error.Missing.Chain()
     args[0].agent     ||= this.getAgent()
     args[0].builder   ||= this.getBuilder()
     args[0].uploader  ||= args[0].agent.getUploader(this.Uploader)
@@ -233,12 +252,14 @@ export default class Config extends ConnectConfig {
     port: this.getString(
       'FADROMA_DEVNET_PORT', ()=>undefined),
     podman: this.getFlag(
-      'FADROMA_DEVNET_PODMAN', ()=>this.getFlag('FADROMA_PODMAN', ()=>false)),
+      'FADROMA_DEVNET_PODMAN', ()=>
+        this.getFlag('FADROMA_PODMAN', ()=>false)),
     dontMountState: this.getFlag(
-      'FADROMA_DEVNET_DONT_MOUNT_STATE', () => false)
+      'FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false)
   }
 
   /** @returns Devnet */
   getDevnet = (options: Partial<Devnet> = {}) =>
     new Devnet({ ...this.devnet, ...options })
+
 }

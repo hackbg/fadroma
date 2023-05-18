@@ -241,18 +241,6 @@ which is launched by the builders.
 The subclasses of the abstract base class `Builder` in Fadroma Core
 implement the compilation procedure for contracts.
 
-### Build events
-
-```typescript
-import { Console } from '@hackbg/fadroma'
-import { Contract } from '@fadroma/agent'
-const log = new Console({ info: () => {} })
-log.build.workspace('foo')
-log.build.one(new Contract({ crate: 'bar' }))
-log.build.one(new Contract({ crate: 'bar', revision: 'commit' }))
-log.build.many([new Contract({ crate: 'bar' }), new Contract({ crate: 'bar', revision: 'commit' })])
-```
-
 ---
 
 ```typescript

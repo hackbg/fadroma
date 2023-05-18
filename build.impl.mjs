@@ -31,7 +31,6 @@ async function main (options = {}) {
     script      = argv[1], // this file
     ref         = argv[3], // "HEAD" | <git ref>
     crates      = argv.slice(4), // all crates to build
-    user        = 'fadroma-builder',
     buildRoot   = resolve(tmpBuild, sanitize(ref)),
     gitDir      = resolve(gitRoot, gitSubdir),
     toolchain   = env('_TOOLCHAIN'),
@@ -205,19 +204,30 @@ async function main (options = {}) {
         warn('please install wasm-opt')
         log(`Copying ${compiled} to ${optimized}...`)
         run(`cp ${compiled} ${optimized}`)
-        run(`chown ${uid} ${optimized}`)
-        run(`chgrp ${gid} ${optimized}`)
       }
+      chown(optimized, uid, gid)
       // Output checksum to artifacts directory
       log(`Saving checksum for ${optimized} into ${checksum}...`)
       run(`sha256sum -b ${optimized} > ${checksum}`)
-      run(`chown ${uid} ${checksum}`)
-      run(`chgrp ${gid} ${checksum}`)
-      log(`Checksum calculated:`, checksum)
-      log(`Permissions set to: ${uid}:${gid}`)
+      chown(checksum, uid, gid)
     }
   }
 
+}
+
+function chown (path, uid, gid) {
+  try {
+    run(`chown ${uid} ${path}`)
+    log(`owner of ${path} set to ${uid}`)
+  } catch (e) {
+    log(`!!! setting owner of ${path} to ${uid} failed:`, e)
+  }
+  try {
+    run(`chgrp ${gid} ${path}`)
+    log(`group of ${path} set to ${gid}`)
+  } catch (e) {
+    log(`!!! setting owner of ${path} to ${gid} failed:`, e)
+  }
 }
 
 function log (...args) {

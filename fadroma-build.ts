@@ -21,10 +21,8 @@
 import type Project from './fadroma'
 import type { Class, BuilderClass, Buildable, Built, Template } from './fadroma'
 import Config from './fadroma-config'
-import Error from './fadroma-error'
-import Console, { bold, colors } from './fadroma-console'
 
-import { Builder, Contract, HEAD } from '@fadroma/connect'
+import { Builder, Contract, HEAD, Error as BaseError, Console, bold, colors } from '@fadroma/connect'
 
 import $, {
   Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile
@@ -52,23 +50,27 @@ export { Builder }
 export abstract class BuildLocal extends Builder {
   readonly id: string = 'local'
   /** Logger. */
-  log = new Console('Local Builder')
+  log = new BuildConsole('build (local)')
   /** The build script. */
   script?:    string
   /** The project workspace. */
   workspace?: string
-  /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
-  noFetch:    boolean     = false
+  /** Whether to skip any `git fetch` calls in the build script. */
+  noFetch:    boolean = false
   /** Name of directory where build artifacts are collected. */
   outputDir:  OpaqueDirectory
   /** Version of Rust toolchain to use. */
   toolchain:  string|null = null
   /** Whether the build process should print more detail to the console. */
-  verbose:    boolean     = false
+  verbose:    boolean = false
   /** Whether the build log should be printed only on error, or always */
-  quiet:      boolean     = false
+  quiet:      boolean = false
   /** Default Git reference from which to build sources. */
   revision:   string = HEAD
+  /** Owner uid that is set on build artifacts. */
+  buildUid?:  number = (process.getuid ? process.getuid() : undefined) // process.env.FADROMA_BUILD_UID
+  /** Owner gid that is set on build artifacts. */
+  buildGid?:  number = (process.getgid ? process.getgid() : undefined) // process.env.FADROMA_BUILD_GID
 
   constructor (options: Partial<Config["build"]>) {
     super()
@@ -113,13 +115,19 @@ export const sanitize = (ref: string) =>
 export class BuildContainer extends BuildLocal {
   readonly id = 'Container'
   /** Logger */
-  log = new Console('@hackbg/fadroma: BuildContainer')
+  log = new BuildConsole('build (container)')
   /** Used to launch build container. */
   docker: Engine
   /** Tag of the docker image for the build container. */
   image: Image
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
+  /** Used to authenticate Git in build container. */
+  sshAuthSocket?: string // process.env.SSH_AUTH_SOCK
+  /** Used to fix Cargo when Fadroma is included as a Git submodule */
+  workspaceManifest?: string // process.env.FADROMA_BUILD_WORKSPACE_MANIFEST
+  /** Used for historical builds. */
+  preferredRemote: string = 'origin' // process.env.FADROMA_PREFERRED_REMOTE
 
   constructor (opts: Partial<Config["build"] & { docker?: Engine }> = {}) {
     super(opts)
@@ -178,7 +186,7 @@ export class BuildContainer extends BuildLocal {
       contract.revision  ??= 'HEAD'
       // If the contract is already built, don't build it again
       if (!this.prebuilt(contract)) {
-        this.log.build.one(contract)
+        this.log.one(contract)
         // Set ourselves as the contract's builder
         contract.builder = this as unknown as Builder
         // Add the source repository of the contract to the list of sources to build
@@ -196,7 +204,7 @@ export class BuildContainer extends BuildLocal {
         // a parent directory may need to be mounted to get the full
         // Git history.
         let mounted = $(path)
-        if (this.verbose) this.log.build.workspace(mounted, revision)
+        if (this.verbose) this.log.workspace(mounted, revision)
         // If we're building from history, update `mounted` to make sure
         // that the full contents of the Git repo will be mounted in the
         // build container.
@@ -251,10 +259,10 @@ export class BuildContainer extends BuildLocal {
 
   protected prebuilt (contract: Buildable & Partial<Built>): boolean {
     const { workspace, revision, crate } = contract
-    //if (!workspace) throw new Error(`Workspace not set, can't build crate "${contract.crate}"`)
+    //if (!workspace) throw new BuildError(`Workspace not set, can't build crate "${contract.crate}"`)
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
     if (prebuilt) {
-      new Console(`build ${crate}`).build.found(prebuilt)
+      new BuildConsole(`build ${crate}`).found(prebuilt)
       contract.artifact = prebuilt.artifact
       contract.codeHash = prebuilt.codeHash
       return true
@@ -294,14 +302,14 @@ export class BuildContainer extends BuildLocal {
       return templates
     }
     // Define the mounts and environment variables of the build container
-    if (!this.script) throw new Error.Build('Build script not set.')
+    if (!this.script) throw new BuildError.ScriptNotSet()
     const buildScript = $(`/`, $(this.script).name).path
     const safeRef = sanitize(revision)
     const knownHosts = $(homedir()).in('.ssh').at('known_hosts')
     const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
       // The script that will run in the container
-      [this.script]:  buildScript,
+      [this.script]: buildScript,
       // Root directory of repository, containing real .git directory
       [$(root).path]: `/src`,
       // For non-interactively fetching submodules over SSH, we need to propagate known_hosts
@@ -309,7 +317,7 @@ export class BuildContainer extends BuildLocal {
       ...(etcKnownHosts.isFile() ? { [etcKnownHosts.path] : '/etc/ssh/ssh_known_hosts' } : {}),
     }
     // For fetching from private repos, we need to give the container access to ssh-agent
-    if (process.env.SSH_AUTH_SOCK) readonly[process.env.SSH_AUTH_SOCK] = '/ssh_agent_socket'
+    if (this.sshAuthSocket) readonly[this.sshAuthSocket] = '/ssh_agent_socket'
     const writable = {
       // Output path for final artifacts
       [outputDir]:                  `/output`,
@@ -322,16 +330,11 @@ export class BuildContainer extends BuildLocal {
     // workpace root manifest is renamed to _Cargo.toml.
     // Here we can mount it under its proper name
     // if building the example contracts from Fadroma.
-    if (process.env.FADROMA_BUILD_WORKSPACE_MANIFEST) {
-      if (revision !== HEAD) {
-        throw new Error(
-          'Fadroma Build: FADROMA_BUILD_WORKSPACE_ROOT can only' +
-          'be used when building from working tree'
-        )
-      }
+    if (this.workspaceManifest) {
+      if (revision !== HEAD) throw new BuildError.NoHistoricalManifest()
       writable[$(root).path] = readonly[$(root).path]
       delete readonly[$(root).path]
-      readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
+      readonly[$(this.workspaceManifest).path] = `/src/Cargo.toml`
     }
     // Pre-populate the list of expected artifacts.
     const outputWasms: Array<string|null> = [...new Array(crates.length)].map(()=>null)
@@ -342,17 +345,18 @@ export class BuildContainer extends BuildLocal {
     const cratesToBuild = Object.keys(shouldBuild)
     const buildCommand = [ 'node', buildScript, 'phase1', revision, ...cratesToBuild ]
     const buildEnv = {
-      // Variables used by the build script are prefixed with underscore;
-      // variables used by the tools that the build script uses are left as is
-      _BUILD_USER: process.env.FADROMA_BUILD_USER ?? 'fadroma-builder',
-      _BUILD_UID:  process.env.FADROMA_BUILD_UID ?? (process.getuid ? process.getuid() : undefined),
-      _BUILD_GID:  process.env.FADROMA_BUILD_GID ?? (process.getgid ? process.getgid() : undefined),
-      _GIT_REMOTE: process.env.FADROMA_PREFERRED_REMOTE ?? 'origin',
+      // Variables used by the build script itself
+      // are prefixed with underscore:
+      _BUILD_UID:  String(this.buildUid),
+      _BUILD_GID:  String(this.buildGid),
+      _GIT_REMOTE: this.preferredRemote,
       _GIT_SUBDIR: gitSubdir,
       _SUBDIR:     subdir,
       _NO_FETCH:   String(this.noFetch),
       _VERBOSE:    String(this.verbose),
 
+      // Variables used by the tools invoked by the build script
+      // are left as is:
       LOCKED: '',/*'--locked'*/
       CARGO_HTTP_TIMEOUT: '240',
       CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
@@ -392,7 +396,7 @@ export class BuildContainer extends BuildLocal {
       buildLogStream.on('data', (data: string) => buildLogs += data)
     }
     // Run the build container
-    this.log.build.container(root, revision, cratesToBuild)
+    this.log.container(root, revision, cratesToBuild)
     const buildName = `fadroma-build-${randomBytes(3).toString('hex')}`
     const buildContainer = await this.image.run(
       buildName,      // container name
@@ -417,7 +421,7 @@ export class BuildContainer extends BuildLocal {
     const {error, code} = await buildContainer.wait()
     // Throw error if launching the container failed
     if (error) {
-      throw new Error(`[@hackbg/fadroma] Docker error: ${error}`)
+      throw new BuildError(`[@hackbg/fadroma] Docker error: ${error}`)
     }
     // Throw error if the build failed
     if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
@@ -430,7 +434,7 @@ export class BuildContainer extends BuildLocal {
     this.log
       .log(logs)
       .error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
-    throw new Error(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
+    throw new BuildError(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
   }
 
   protected locationToContract (location: any) {
@@ -455,7 +459,7 @@ export class BuildRaw extends BuildLocal {
 
   readonly id = 'Raw'
 
-  log = new Console('build')
+  log = new BuildConsole('build (raw)')
 
   runtime = process.argv[0]
 
@@ -464,15 +468,15 @@ export class BuildRaw extends BuildLocal {
     source.workspace ??= this.workspace
     source.revision  ??= HEAD
     const { workspace, revision, crate } = source
-    if (!workspace) throw new Error('no workspace')
-    if (!crate)     throw new Error('no crate')
+    if (!workspace) throw new BuildError.Missing.Workspace()
+    if (!crate)     throw new BuildError.Missing.Crate()
     // Temporary dirs used for checkouts of non-HEAD builds
     let tmpGit, tmpBuild
     // Most of the parameters are passed to the build script
     // by way of environment variables.
     const env = {
-      _BUILD_GID: process.getgid ? process.getgid() : undefined,
-      _BUILD_UID: process.getuid ? process.getuid() : undefined,
+      _BUILD_GID: String(this.buildUid),
+      _BUILD_UID: String(this.buildGid),
       _OUTPUT:    $(workspace).in('wasm').path,
       _REGISTRY:  '',
       _TOOLCHAIN: this.toolchain,
@@ -482,7 +486,7 @@ export class BuildRaw extends BuildLocal {
       // Provide the build script with the config values that ar
       // needed to make a temporary checkout of another commit
       if (!gitDir?.present) {
-        const error = new Error("Fadroma Build: could not find Git directory for source.")
+        const error = new BuildError.NoGitDir()
         throw Object.assign(error, { source })
       }
       // Create a temporary Git directory. The build script will copy the Git history
@@ -510,12 +514,12 @@ export class BuildRaw extends BuildLocal {
         } else if (code !== null) {
           const message = `${build} exited with code ${code}`
           this.log.error(message)
-          throw Object.assign(new Error(message), { source, code })
+          throw Object.assign(new BuildError(message), { source, code })
         } else if (signal !== null) {
           const message = `${build} exited by signal ${signal}`
           this.log.warn(message)
         } else {
-          throw new Error('Unreachable')
+          throw new BuildError('Unreachable')
         }
       })
     })
@@ -551,9 +555,16 @@ export class BuildRaw extends BuildLocal {
 
 }
 
+Object.assign(Builder.variants, {
+  'container': BuildContainer,
+  'Container': BuildContainer,
+  'raw': BuildRaw,
+  'Raw': BuildRaw
+})
+
 export function getGitDir (template: Partial<Template<any>> = {}): DotGit {
   const { workspace } = template || {}
-  if (!workspace) throw new Error("No workspace specified; can't find gitDir")
+  if (!workspace) throw new BuildError("No workspace specified; can't find gitDir")
   return new DotGit(workspace)
 }
 
@@ -616,13 +627,6 @@ export class DotGit extends Path {
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 }
 
-Object.assign(Builder.variants, {
-  'container': BuildContainer,
-  'Container': BuildContainer,
-  'raw': BuildRaw,
-  'Raw': BuildRaw
-})
-
 export class ContractCrate {
   constructor (
     readonly project: Project,
@@ -684,4 +688,32 @@ export class ContractCrate {
       `}`,
     ].join('\n'))
   }
+}
+
+class BuildConsole extends Console {
+  one = ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => this.log(
+    'Building', bold(crate), ...(revision === 'HEAD')
+      ? ['from working tree']
+      : ['from Git reference', bold(revision)])
+  many = (sources: Template<any>[]) =>
+    sources.forEach(source=>this.one(source))
+  found = ({ artifact }: Built) =>
+    this.log(`found at ${bold($(artifact!).shortPath)}`)
+  workspace = (mounted: Path|string, ref: string = HEAD) => this.log(
+    `building from workspace:`, bold(`${$(mounted).shortPath}/`),
+    `@`, bold(ref))
+  container = (root: string|Path, revision: string, cratesToBuild: string[]) =>
+    this.log(
+      `started building from ${bold($(root).shortPath)} @ ${bold(revision)}:`,
+      cratesToBuild.map(x=>bold(x)).join(', ')
+    )
+}
+
+export class BuildError extends BaseError {
+  static ScriptNotSet = this.define('ScriptNotSet',
+    ()=>'build script not set')
+  static NoHistoricalManifest = this.define('NoHistoricalManifest',
+    ()=>'the workspace manifest option can only be used when building from working tree')
+  static NoGitDir = this.define('NoGitDir',
+    ()=>'could not find .git directory')
 }

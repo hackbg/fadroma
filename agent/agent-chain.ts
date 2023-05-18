@@ -77,15 +77,15 @@ export abstract class Chain {
       if (options.mode === Chain.Mode.Devnet) {
         this.devnet = options.devnet
         if (this.url !== String(this.devnet.url)) {
-          if (!!this.url) this.log.warn.devnetUrlOverride(this.devnet.url, this.url)
+          if (!!this.url) this.log.devnetUrlOverride(this.devnet.url, this.url)
           this.url = String(this.devnet.url)
         }
         if (this.id !== this.devnet.chainId) {
-          if (!!this.url) this.log.warn.devnetIdOverride(this.devnet.chainId, this.id)
+          if (!!this.url) this.log.devnetIdOverride(this.devnet.chainId, this.id)
           this.id = this.devnet.chainId
         }
       } else {
-        this.log.warn.devnetModeInvalid()
+        this.log.devnetModeInvalid()
       }
     }
     this.log.label = this.id ?? `(no chain id)` // again
@@ -171,9 +171,9 @@ export abstract class Chain {
     // Soft code hash checking for now
     const fetchedCodeHash = await this.getHash(address)
     if (!expectedCodeHash) {
-      this.log.warn.noCodeHash(address)
+      this.log.noCodeHash(address)
     } if (expectedCodeHash !== fetchedCodeHash) {
-      this.log.warn.codeHashMismatch(address, expectedCodeHash, fetchedCodeHash)
+      this.log.codeHashMismatch(address, expectedCodeHash, fetchedCodeHash)
     } else {
       this.log.confirmCodeHash(address, fetchedCodeHash)
     }
@@ -452,7 +452,7 @@ export abstract class Bundle implements Agent {
     /** Evaluating this defines the contents of the bundle. */
     public callback?: (bundle: Bundle)=>unknown
   ) {
-    if (!agent) throw new Error.Missing.BundleAgent()
+    if (!agent) throw new Error.Missing.Agent('for bundle')
   }
 
   get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
@@ -522,7 +522,7 @@ export abstract class Bundle implements Agent {
 
   /** Throws if the bundle is invalid. */
   assertMessages (): any[] {
-    if (this.msgs.length < 1) throw this.log.warn.emptyBundle()
+    if (this.msgs.length < 1) throw this.log.emptyBundle()
     return this.msgs
   }
 

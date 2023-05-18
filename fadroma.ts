@@ -23,8 +23,6 @@ import type {
   Uploader, Uploadable, Uploaded, CodeId, CodeHash, ChainId, DeployStoreClass,
 } from './fadroma'
 import Config, { version } from './fadroma-config'
-import Error, { DeployError } from './fadroma-error'
-import Console, { colors } from './fadroma-console'
 import { ContractCrate } from './fadroma-build'
 import { Devnet } from './fadroma-devnet'
 import { ProjectWizard, toolVersions } from './fadroma-wizard'
@@ -32,7 +30,7 @@ import { ProjectWizard, toolVersions } from './fadroma-wizard'
 import {
   Chain, ChainMode, Scrt, Deployment, DeployStore,
   Agent, AnyContract, Contract, Client, DeploymentState, Template,
-  toInstanceReceipt, timestamp, bold
+  toInstanceReceipt, timestamp, bold, Console, Error
 } from '@fadroma/connect'
 
 
@@ -639,9 +637,5 @@ export * from './fadroma-upload'
 export * from './fadroma-deploy'
 export * from './fadroma-devnet'
 
-export * from './fadroma-error'
-export { default as Error } from './fadroma-error'
 export * from './fadroma-config'
 export { default as Config } from './fadroma-config'
-export * from './fadroma-console'
-export { default as Console } from './fadroma-console'

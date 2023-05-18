@@ -136,6 +136,7 @@ export class ConnectConsole extends Console {
       this.info(`  ${bold(chain)}`)
     }
   }
+
   selectedChain (chain?: string) {
     this.br()
     if (chain) {
@@ -154,11 +155,11 @@ export class ConnectError extends Error {
   static UnknownChainSelected = this.define('UnknownChainSelected',
     (name: string, chains?: Record<string, unknown>)=>{
       //chains && log.supportedChains(chains)
-      return `Unknown chain "${name}". ${ConnectError.SelectChainHint}`
+      return `Unknown chain "${name}". ${this.SelectChainHint}`
     })
   static NoChainSelected = this.define('NoChainSelected',
     (chains?: Record<string, unknown>)=>{
       //chains && log.supportedChains(chains)
-      return `No chain selected. ${ConnectError.SelectChainHint}`
+      return `No chain selected. ${this.SelectChainHint}`
     })
 }

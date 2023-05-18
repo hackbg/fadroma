@@ -84,7 +84,7 @@ class ScrtChain extends Chain {
     options: Partial<SecretJS.CreateClientOptions> = {}
   ): Promise<SecretJS.SecretNetworkClient> {
     options = { chainId: this.id, url: this.url, ...options }
-    if (!options.url) throw new Error.NoApiUrl()
+    if (!options.url) throw new Error.Missing('api url')
     return await new (this.SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
   }
   async fetchLimits (): Promise<{ gas: number }> {
@@ -183,11 +183,11 @@ class ScrtAgent extends Agent {
           if (!this.mnemonic) {
             // Generate fresh mnemonic
             this.mnemonic = bip39.generateMnemonic(bip39EN)
-            this.log.warn.generatedMnemonic(this.mnemonic!)
+            this.log.generatedMnemonic(this.mnemonic!)
           }
           wallet = new _SecretJS.Wallet(this.mnemonic)
         } else if (this.mnemonic) {
-          this.log.warn.ignoringMnemonic()
+          this.log.ignoringMnemonic()
         }
         // Construct the API client
         const url = this.chain.url && removeTrailingSlash(this.chain.url)
@@ -206,7 +206,7 @@ class ScrtAgent extends Agent {
             this.fees = { upload: max, init: max, exec: max, send: max }
           } catch (e) {
             this.log.warn(e)
-            this.log.warn.defaultGas(Object.values(this.fees))
+            this.log.defaultGas(Object.values(this.fees))
           }
         }
         // Override address and set name if missing.
@@ -312,7 +312,7 @@ class ScrtAgent extends Agent {
   }
 
   async encrypt (codeHash: CodeHash, msg: Message) {
-    if (!codeHash) throw new Error.NoCodeHash()
+    if (!codeHash) throw new Error.Missing.CodeHash()
     const { api } = await this.ready
     const { encryptionUtils } = await this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
@@ -334,7 +334,7 @@ class ScrtAgent extends Agent {
   async upload (data: Uint8Array): Promise<Uploaded> {
     const { api } = await this.ready
     type Log = { type: string, key: string }
-    if (!this.address) throw new Error.NoAddress()
+    if (!this.address) throw new Error.Missing.Address()
     const request  = { sender: this.address, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
     const result   = await api.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
@@ -385,7 +385,7 @@ class ScrtAgent extends Agent {
     if (isNaN(code_id)) throw new Error.Missing.CodeId()
     if (!label) throw new Error.Missing.Label()
     if (!initMsg) throw new Error.Missing.InitMsg()
-    if (chainId && chainId !== assertChain(this).id) throw new Error.WrongChain()
+    if (chainId && chainId !== assertChain(this).id) throw new Error.Invalid.WrongChain()
     const parameters = {
       sender:    this.address,
       code_id,
@@ -444,7 +444,7 @@ class ScrtAgent extends Agent {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
-    if (memo) this.log.warn.noMemos()
+    if (memo) this.log.noMemos()
     const tx = {
       sender:           this.address,
       contract_address: instance.address!,

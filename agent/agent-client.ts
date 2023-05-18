@@ -119,7 +119,7 @@ export class Client {
   /** Throw if fetched metadata differs from configured. */
   protected validate (kind: string, expected: any, actual: any) {
     const name = this.constructor.name
-    if (expected !== actual) throw new Error.Failed.Validation(kind, name, expected, actual)
+    if (expected !== actual) throw new Error.Invalid.Value(kind, name, expected, actual)
   }
 }
 
@@ -136,9 +136,9 @@ export function getSourceSpecifier (meta: Buildable): string {
 export type CodeHash = string
 
 /** @returns the code hash of the thing
-  * @throws  LinkNoCodeHash if missing. */
+  * @throws if missing. */
 export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): CodeHash {
-  if (!codeHash) throw new Error.Missing.LinkCodeHash()
+  if (!codeHash) throw new Error.Missing.CodeHash()
   return codeHash
 }
 
