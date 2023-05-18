@@ -114,7 +114,7 @@ async function signAmino (
 /// CONSOLE
 
 new Scrt.Console()
-  .warn.noMemos()
-  .warn.ignoringMnemonic()
-  .warn.defaultGas([])
+  .noMemos()
+  .ignoringMnemonic()
+  .defaultGas([])
   .submittingBundleFailed(new Error())
