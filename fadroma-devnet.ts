@@ -207,7 +207,7 @@ export class Devnet implements DevnetHandle {
   create = async (): Promise<this> => {
     // ensure we have image and chain id
     const image = await this.image
-    if (!this.image) throw new DevnetError.Missing('devnet image')
+    if (!this.image) throw new DevnetError.Missing('missing devnet image')
     if (!this.chainId) throw new DevnetError.Missing.ChainId()
     // if port is unspecified or taken, increment
     while (!this.port || await isPortTaken(Number(this.port))) {
