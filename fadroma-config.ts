@@ -211,7 +211,7 @@ export default class Config extends ConnectConfig {
     DeployStore?: DeployStoreClass<T>
   ): T {
     DeployStore ??= this.DeployStore as DeployStoreClass<T>
-    if (!DeployStore) throw new Error.Missing('missing deployment store constructor')
+    if (!DeployStore) throw new Error.Missing.DeployStoreClass()
     return new DeployStore(this.deploy.storePath)
   }
 

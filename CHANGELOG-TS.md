@@ -14,6 +14,10 @@
 
 ### `@fadroma/agent 1.0.0-rc.23`
 
+#### Breaking
+
+* The base error class was renamed from `AgentError` back to `FadromaError`.
+
 #### New features
 
 * `Deployment`'s methods are now defined with arrow syntax. This enables things like

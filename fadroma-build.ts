@@ -468,7 +468,7 @@ export class BuildRaw extends BuildLocal {
     source.workspace ??= this.workspace
     source.revision  ??= HEAD
     const { workspace, revision, crate } = source
-    if (!workspace) throw new BuildError.Missing('missing workspace')
+    if (!workspace) throw new BuildError.Missing.Workspace()
     if (!crate)     throw new BuildError.Missing.Crate()
     // Temporary dirs used for checkouts of non-HEAD builds
     let tmpGit, tmpBuild

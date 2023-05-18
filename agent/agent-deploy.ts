@@ -291,9 +291,18 @@ export class Deployment {
   }
   /** Save current deployment state to deploy store. */
   save = async (store: DeployStore|undefined = this.store): Promise<this> => {
-    if (!store) return (this.log.warn.saveNoStore(this.name), this)
-    if (!this.chain) return (this.log.warn.saveNoChain(this.name), this)
-    if (this.chain.isMocknet) return (this.log.warn.notSavingMocknet(this.name), this)
+    if (!store) {
+      this.log.saveNoStore(this.name)
+      return this
+    }
+    if (!this.chain) {
+      this.log.saveNoChain(this.name)
+      return this
+    }
+    if (this.chain.isMocknet) {
+      this.log.notSavingMocknet(this.name)
+      return this
+    }
     this.log.saving(this.name, this.contracts)
     store.save(this.name, this.contracts)
     return this
