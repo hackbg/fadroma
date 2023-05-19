@@ -1,5 +1,23 @@
 # Changelog (TypeScript)
 
+## 2023-05-19
+
+### `@hackbg/fadroma 1.0.0`
+
+* Initial stable release
+
+### `@fadroma/agent 1.0.0`
+
+* Initial stable release
+
+### `@fadroma/connect 3.0.0`
+
+* Stable release
+
+### `@fadroma/scrt 9.0.0`
+
+* Stable release
+
 ## 2023-05-17
 
 ### `@hackbg/fadroma 1.0.0-beta.97`
