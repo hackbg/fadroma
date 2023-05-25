@@ -10,7 +10,8 @@ use crate::{
     cosmwasm_std::{self, BlockInfo, CanonicalAddr, StdResult, Storage, Uint128, Deps},
     prelude::{
         ViewingKey, ViewingKeyHashed, SingleItem, ItemSpace, TypedKey,
-        TypedKey2, FadromaSerialize, FadromaDeserialize, Canonize, Humanize
+        TypedKey2, FadromaSerialize, FadromaDeserialize, Canonize, Humanize,
+        Address
     },
     impl_canonize_default
 };
@@ -84,7 +85,7 @@ pub struct Allowance {
 }
 
 #[derive(FadromaSerialize, FadromaDeserialize, JsonSchema, Canonize, Debug)]
-struct AllowanceEntry<A> {
+struct AllowanceEntry<A: Address> {
     spender: A,
     allowance: Allowance
 }

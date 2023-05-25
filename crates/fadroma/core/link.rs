@@ -1,12 +1,13 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     self as fadroma,
     cosmwasm_std::{self, StdResult, Addr, Env, Api, WasmMsg, to_binary, Coin},
     impl_canonize_default,
     prelude::{Canonize, FadromaSerialize, FadromaDeserialize},
-    schemars::{self, JsonSchema},
+    schemars::{self, JsonSchema}
 };
-
-use serde::{Deserialize, Serialize};
+use super::addr::MaybeAddress;
 
 /// Info needed to instantiate a contract.
 #[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
@@ -48,7 +49,7 @@ impl ContractCode {
 
 /// Info needed to talk to a contract instance.
 #[derive(Default, Serialize, Canonize, Deserialize, FadromaSerialize, FadromaDeserialize, JsonSchema, Clone, Debug)]
-pub struct ContractLink<A> {
+pub struct ContractLink<A: MaybeAddress> {
     pub address: A,
     pub code_hash: String
 }
@@ -77,7 +78,7 @@ impl ContractLink<String> {
 // Converting to the same case first and the comparing is unnecessary
 // as providing the wrong code hash when calling a contract will result
 // in an error regardless and we have no way of checking that here.
-impl<A: PartialEq> PartialEq for ContractLink<A> {
+impl<A: MaybeAddress + PartialEq> PartialEq for ContractLink<A> {
     fn eq(&self, other: &Self) -> bool {
         self.address == other.address
     }
@@ -87,7 +88,7 @@ impl From<&Env> for ContractLink<Addr> {
     fn from(env: &Env) -> ContractLink<Addr> {
         ContractLink {
             address: env.contract.address.clone(),
-            code_hash: env.contract.code_hash.clone(),
+            code_hash: env.contract.code_hash.clone()
         }
     }
 }

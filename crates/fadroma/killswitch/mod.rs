@@ -19,7 +19,7 @@ pub const STORE: SingleItem<ContractStatus<CanonicalAddr>, KillswitchNs> = Singl
 
 /// Possible states of a contract.
 #[derive(Serialize, Deserialize, Canonize, FadromaSerialize, FadromaDeserialize, JsonSchema, PartialEq, Debug, Clone)]
-pub enum ContractStatus<A> {
+pub enum ContractStatus<A: Address> {
     /// Live
     Operational,
     /// Temporarily disabled
@@ -139,7 +139,7 @@ pub fn set_status(
     STORE.canonize_and_save(deps, status)
 }
 
-impl<A> Default for ContractStatus<A> {
+impl<A: Address> Default for ContractStatus<A> {
     fn default() -> Self {
         Self::Operational
     }
