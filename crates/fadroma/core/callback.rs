@@ -4,7 +4,10 @@ use crate::{
     cosmwasm_std::{self, StdResult, Api, Addr, Binary, CosmosMsg, WasmMsg},
     schemars::{self, JsonSchema}
 };
-use super::link::ContractLink;
+use super::{
+    link::ContractLink,
+    addr::MaybeAddress
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +16,7 @@ use serde::{Deserialize, Serialize};
 /// didn't exist yet. However, it is still useful when you want to
 /// be able to reply with arbitrary messages.
 #[derive(Serialize, Deserialize, Canonize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Callback<A> {
+pub struct Callback<A: MaybeAddress> {
     /// The message to call.
     pub msg: Binary,
     /// Info about the contract requesting the callback.
@@ -33,7 +36,18 @@ impl Callback<String> {
 impl Into<CosmosMsg> for Callback<Addr> {
     fn into(self) -> CosmosMsg {
         CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.contract.address.to_string(),
+            contract_addr: self.contract.address.into_string(),
+            code_hash: self.contract.code_hash,
+            msg: self.msg,
+            funds: vec![]
+        })
+    }
+}
+
+impl Into<CosmosMsg> for Callback<String> {
+    fn into(self) -> CosmosMsg {
+        CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: self.contract.address,
             code_hash: self.contract.code_hash,
             msg: self.msg,
             funds: vec![]

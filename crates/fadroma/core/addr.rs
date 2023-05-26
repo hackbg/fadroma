@@ -5,6 +5,8 @@ use crate::cosmwasm_std::{
     StdResult, Uint64, Uint128, Uint256, Uint512, Decimal, Decimal256,
 };
 
+use super::sealed;
+
 /// The trait that represents any type which contains a [`cosmwasm_std::Addr`]
 /// and needs to be stored since [`cosmwasm_std::Addr`] is usually converted
 /// to [`cosmwasm_std::CanonicalAddr`] first. The trait must be implemented on
@@ -76,6 +78,28 @@ pub trait Humanize {
 
     fn humanize(self, api: &dyn Api) -> StdResult<Self::Output>;
 }
+
+/// Sealed marker trait for types that *may* represent
+/// an address. The types that *may* be a valid address are
+/// [`&str`] and [`String`] since they could potentially contain
+/// an address. We use [`cosmwasm_std::Api::addr_validate`] or
+/// [`cosmwasm_std::Api::addr_canonicalize`] to turn them into
+/// [`cosmwasm_std::Addr`] and [`cosmwasm_std::CanonicalAddr`]
+/// respectively, both of which definitely *do* contain
+/// a valid address and therefore also satisfy this trait.
+/// 
+/// If you want to constrain your type to contain valid
+/// addresses **only**, use [`Address`] instead.
+pub trait MaybeAddress: sealed::Sealed { }
+
+/// Sealed marker trait for types that represent a valid address.
+/// Those can only be [`cosmwasm_std::Addr`] and [`cosmwasm_std::CanonicalAddr`]
+/// and thus are the only types that implement the trait.
+/// 
+/// If you want to constrain your type to contain addresses
+/// that *may* have not be validated (i.e [`&str`] and [`String`]),
+/// use [`MaybeAddress`] instead.
+pub trait Address: MaybeAddress { }
 
 /// Attempting to canonicalize an empty address will fail.
 /// This function skips calling [`cosmwasm_std::Api::addr_canonicalize`]
@@ -233,6 +257,19 @@ impl<T: Canonize> Canonize for Option<T> {
         }
     }
 }
+
+impl sealed::Sealed for &str { }
+impl sealed::Sealed for String { }
+impl sealed::Sealed for Addr { }
+impl sealed::Sealed for CanonicalAddr { }
+
+impl MaybeAddress for &str { }
+impl MaybeAddress for String { }
+impl MaybeAddress for Addr { }
+impl MaybeAddress for CanonicalAddr { }
+
+impl Address for Addr { }
+impl Address for CanonicalAddr { }
 
 /// Use on any type that **does not** contain a [`cosmwasm_std::Addr`].
 /// The implementation simply returns `Ok(self)` without doing any

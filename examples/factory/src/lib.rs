@@ -22,8 +22,8 @@ pub mod factory {
 
     #[derive(Serialize, Deserialize, FadromaSerialize, FadromaDeserialize, Canonize, Debug)]
     #[serde(rename_all = "snake_case")]
-    pub struct Entry<A> {
-        pub link: ContractLink<A>,
+    pub struct Entry<A: Address> {
+        pub link: ContractLink<A>
     }
 
     impl Contract {
