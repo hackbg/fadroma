@@ -74,6 +74,18 @@ impl ContractLink<String> {
     }
 }
 
+impl ContractLink<Addr> {
+    #[inline]
+    pub fn execute(self, msg: &impl Serialize, funds: Vec<Coin>) -> StdResult<WasmMsg> {
+        Ok(WasmMsg::Execute {
+            contract_addr: self.address.into_string(),
+            code_hash: self.code_hash,
+            msg: to_binary(msg)?,
+            funds
+        })
+    }
+}
+
 // Disregard code hash because it is case insensitive.
 // Converting to the same case first and the comparing is unnecessary
 // as providing the wrong code hash when calling a contract will result

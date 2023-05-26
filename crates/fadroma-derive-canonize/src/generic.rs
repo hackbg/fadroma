@@ -8,7 +8,7 @@ pub fn generate(strukt: ItemStruct) -> proc_macro::TokenStream {
     if strukt.generics.params.len() > 1 {
         let err = syn::Error::new(
             Span::call_site(),
-            "Structs with multiple generic arguments currently not supported."
+            "Structs with multiple generic arguments are currently not supported."
         ).into_compile_error();
 
         return proc_macro::TokenStream::from(quote!(#err))

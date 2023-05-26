@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+ - BREAKING ⚠️: Introduced the `Address` and `MaybeAddress` marker traits to constrain the
+ possible types for generic arguments as well as making it clear that an address is expected.
+ ([#177](https://github.com/hackbg/fadroma/pull/177))
+
 ## [0.8.7] - 2023-05-12
 
 ### Changed

@@ -7,7 +7,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
     if input.generics.params.len() > 1 {
         let err = syn::Error::new(
             Span::call_site(),
-            "Enums with multiple generic arguments current not supported.",
+            "Enums with multiple generic arguments are currently not supported.",
         )
         .into_compile_error();
 

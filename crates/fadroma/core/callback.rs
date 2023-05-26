@@ -36,7 +36,18 @@ impl Callback<String> {
 impl Into<CosmosMsg> for Callback<Addr> {
     fn into(self) -> CosmosMsg {
         CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: self.contract.address.to_string(),
+            contract_addr: self.contract.address.into_string(),
+            code_hash: self.contract.code_hash,
+            msg: self.msg,
+            funds: vec![]
+        })
+    }
+}
+
+impl Into<CosmosMsg> for Callback<String> {
+    fn into(self) -> CosmosMsg {
+        CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: self.contract.address,
             code_hash: self.contract.code_hash,
             msg: self.msg,
             funds: vec![]
