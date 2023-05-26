@@ -53,7 +53,7 @@
     <span class="kw">if </span>input.generics.params.len() &gt; <span class="number">1 </span>{
         <span class="kw">let </span>err = syn::Error::new(
             Span::call_site(),
-            <span class="string">&quot;Enums with multiple generic arguments current not supported.&quot;</span>,
+            <span class="string">&quot;Enums with multiple generic arguments are currently not supported.&quot;</span>,
         )
         .into_compile_error();
 
