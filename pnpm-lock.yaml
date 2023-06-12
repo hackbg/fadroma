@@ -59,7 +59,7 @@ importers:
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
       '@types/js-yaml': 4.0.5
-      '@types/node': 20.2.1
+      '@types/node': 20.3.0
       '@types/prettyjson': 0.0.30
       '@types/prompts': 2.4.4
       '@types/secure-random': 1.1.0
@@ -109,6 +109,19 @@ importers:
       '@fadroma/agent': link:../agent
       '@fadroma/scrt': link:scrt
       '@hackbg/conf': link:../ensuite/toolbox/conf
+
+  connect/cw:
+    specifiers:
+      '@hackbg/conf': ^2
+      '@hackbg/ensuite': ^1.0.2
+      '@types/ungap__structured-clone': ^0.3.0
+      '@ungap/structured-clone': ^1.0.1
+    dependencies:
+      '@hackbg/conf': 2.0.0
+      '@ungap/structured-clone': 1.0.1
+    devDependencies:
+      '@hackbg/ensuite': link:../../ensuite
+      '@types/ungap__structured-clone': 0.3.0
 
   connect/scrt:
     specifiers:
@@ -293,7 +306,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 20.2.1
+      '@types/node': 20.3.0
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -958,7 +971,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 20.1.1
+      '@types/node': 20.3.0
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -977,7 +990,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 20.1.1
+      '@types/node': 20.3.0
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1031,12 +1044,11 @@ packages:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
     dev: true
 
-  /@types/node/20.1.1:
-    resolution: {integrity: sha512-uKBEevTNb+l6/aCQaKVnUModfEMjAl98lw2Si9P5y4hLu9tm6AlX2ZIoXZX6Wh9lJueYPrGPKk5WMCNHg/u6/A==}
-    dev: true
-
   /@types/node/20.2.1:
     resolution: {integrity: sha512-DqJociPbZP1lbZ5SQPk4oag6W7AyaGMO6gSfRwq3PWl4PXTwJpRQJhDq4W0kzrg3w6tJ1SwlvGZ5uKFHY13LIg==}
+
+  /@types/node/20.3.0:
+    resolution: {integrity: sha512-cumHmIAf6On83X7yP+LrsEyUOf/YlociZelmpRYaGFydoaPdxdt80MAbu6vWerQT2COCp2nPvHdsbD7tHn/YlQ==}
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -1045,7 +1057,7 @@ packages:
   /@types/prompts/2.4.4:
     resolution: {integrity: sha512-p5N9uoTH76lLvSAaYSZtBCdEXzpOOufsRjnhjVSrZGXikVGHX9+cc9ERtHRV4hvBKHyZb1bg4K+56Bd2TqUn4A==}
     dependencies:
-      '@types/node': 20.2.1
+      '@types/node': 20.3.0
       kleur: 3.0.3
     dev: true
 
@@ -1064,7 +1076,7 @@ packages:
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 20.1.1
+      '@types/node': 20.3.0
     dev: true
 
   /@types/tmp/0.2.3:
@@ -3313,7 +3325,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 20.2.1
+      '@types/node': 20.3.0
       long: 4.0.0
     dev: false
 
