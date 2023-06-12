@@ -418,159 +418,7 @@ export default class Project extends CommandContext {
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {
-    const { name, templates, root, dirs, files, crates } = this
-    root.make()
-    Object.values(this.dirs).forEach(dir=>dir.make())
-    const {
-      readme, packageJson, cargoToml,
-      gitignore, envfile, shellNix,
-      fadromaYaml, apiIndex, opsIndex, testIndex,
-    } = files
-    readme.save([
-      `# ${name}\n---\n`,
-      `Powered by [Fadroma](https://fadroma.tech) `,
-      `by [Hack.bg](https://hack.bg) `,
-      `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
-    ].join(''))
-    fadromaYaml.save({ templates })
-    packageJson.save({
-      name: `${name}`,
-      main: `api.ts`,
-      type: "module",
-      version: "0.1.0",
-      dependencies: {
-        "@fadroma/agent": "latest",
-        "@fadroma/scrt": "latest",
-      },
-      devDependencies: {
-        "@hackbg/fadroma": "latest",
-        "@hackbg/ganesha": "latest",
-        "typescript": "^5",
-      },
-      scripts: {
-        "build":   "fadroma build",
-        "rebuild": "fadroma rebuild",
-        "status":  "fadroma status",
-        "mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
-        "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
-        "testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
-        "mainnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
-        "test":         `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
-        "test:mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma run tes.ts`,
-        "test:devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma run tes.ts`,
-        "test:testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma run tes.ts`,
-      },
-    })
-    apiIndex.save([
-      `import { Client, Deployment } from '@fadroma/agent'`,
-      [
-        `export default class ${Case.pascal(name)} extends Deployment {`,
-        ...Object.keys(templates).map(name => [
-          ``, `  ${name} = this.contract({`,
-          `    name: "${name}",`,
-          `    crate: "${name}",`,
-          `    client: ${Case.pascal(name)},`,
-          `    initMsg: async () => ({})`,
-          `  })`
-        ].join('\n')),
-        '',
-        `  // Define your contract roles here with:`,
-        `  //   contract = this.contract({...})`, `  //`,
-        `  // See https://fadroma.tech/deploy.html`,
-        `  // for more info about how to populate this section.`,
-        '',
-        '}',
-      ].join('\n'),
-      ...Object.keys(templates).map(x=>Case.pascal(x)).map(Contract => [
-        `export class ${Contract} extends Client {`,
-        `  // Implement methods calling the contract here:`, `  //`,
-        `  // myTx = (arg1, arg2) => this.execute({my_tx:{arg1, arg2}})`,
-        `  // myQuery = (arg1, arg2) => this.query({my_query:{arg1, arg2}})`, `  //`,
-        `  // See https://fadroma.tech/agent.html#client`,
-        `  // for more info about how to populate this section.`,
-        `}\n`
-      ].join('\n'))
-    ].join('\n\n'))
-    opsIndex.save([
-      [
-        `import ${Case.pascal(name)} from './api'`,
-        `import Project from '@hackbg/fadroma'`,
-      ].join('\n'),
-      [
-        `export default class ${Case.pascal(name)}Project extends Project {`, ``,
-        `  Deployment = ${Case.pascal(name)}`, ``,
-        `  // Override to customize the build command:`, `  //`,
-        `  // build = async (...contracts: string[]) => { `,
-        `  //   await super.build(...contracts)`,
-        `  // }`, ``,
-        `  // Override to customize the upload command:`, `  //`,
-        `  // upload = async (...contracts: string[]) => {`,
-        `  //   await super.upload(...contracts)`,
-        `  // }`, ``,
-        `  // Override to customize the deploy command:`,
-        `  //`,
-        `  // deploy = async (...args: string[]) => {`,
-        `  //   await super.deploy(...args)`,
-        `  // }`, ``,
-        `  // Override to customize the status command:`, `  //`,
-        `  // status = async (...args: string[]) => {`,
-        `  //   await super.status()`,
-        `  // }`, ``,
-        `  // Define custom commands using \`this.command\`:`, `  //`,
-        `  // custom = this.command('custom', 'run a custom procedure', async () => {`,
-        `  //   // ...`,
-        `  // })`,
-        ``, `}`
-      ].join('\n')
-    ].join('\n\n'))
-    testIndex.save([
-      `import * as assert from 'node:assert'`,
-      `import ${Case.pascal(name)} from './api'`,
-      `import { getDeployment } from '@hackbg/fadroma`,
-      `const deployment = await getDeployment(${Case.pascal(name)}).deploy()`,
-      `// add your assertions here`
-    ].join('\n'))
-    gitignore.save([
-      '.env',
-      'node_modules',
-      'target',
-      'state/*',
-      '!state/secret-1',
-      '!state/secret-2',
-      '!state/secret-3',
-      '!state/secret-4',
-      '!state/pulsar-1',
-      '!state/pulsar-2',
-      'wasm/*',
-      '!wasm/*.sha256',
-    ].join('\n'))
-    envfile.save([
-      '# FADROMA_MNEMONIC=your testnet mnemonic'
-    ].join('\n'))
-    shellNix.save([
-      `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
-      `  inherit name;`,
-      `  nativeBuildInputs = with pkgs; [`,
-      `    git nodejs nodePackages_latest.pnpm rustup`,
-      `    binaryen wabt wasm-pack wasm-bindgen-cli`,
-      `  ];`,
-      `  shellHook = ''`,
-      `    export PS1="$PS1[\${name}] "`,
-      `    export PATH="$PATH:$HOME/.cargo/bin:\${./.}/node_modules/.bin"`,
-      `  '';`,
-      `}`,
-    ].join('\n'))
-    cargoToml.as(TextFile).save([
-      `[workspace]`, `resolver = "2"`, `members = [`,
-      Object.values(this.crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
-      `]`
-    ].join('\n'))
-    const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
-    Object.values(crates).forEach(crate=>{
-      crate.create()
-      const name = `${crate.name}@HEAD.wasm`
-      this.dirs.wasm.at(`${name}.sha256`).as(TextFile).save(`${sha256}  *${name}`)
-    })
+    writeProject(this)
     this.log("created at", this.root.shortPath)
     return this
   }
@@ -639,3 +487,159 @@ export * from './fadroma-devnet'
 
 export * from './fadroma-config'
 export { default as Config } from './fadroma-config'
+
+export function writeProject ({ name, templates, root, dirs, files, crates }: Project) {
+  root.make()
+  Object.values(dirs).forEach(dir=>dir.make())
+  const {
+    readme, packageJson, cargoToml,
+    gitignore, envfile, shellNix,
+    fadromaYaml, apiIndex, opsIndex, testIndex,
+  } = files
+  readme.save([
+    `# ${name}\n---\n`,
+    `Powered by [Fadroma](https://fadroma.tech) `,
+    `by [Hack.bg](https://hack.bg) `,
+    `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
+  ].join(''))
+  fadromaYaml.save({ templates })
+  packageJson.save({
+    name: `${name}`,
+    main: `api.ts`,
+    type: "module",
+    version: "0.1.0",
+    dependencies: {
+      "@fadroma/agent": "latest",
+      "@fadroma/scrt": "latest",
+      "secretjs": "1.9.3"
+    },
+    devDependencies: {
+      "@hackbg/fadroma": "latest",
+      "@hackbg/ganesha": "latest",
+      "typescript": "^5",
+    },
+    scripts: {
+      "build":   "fadroma build",
+      "rebuild": "fadroma rebuild",
+      "status":  "fadroma status",
+      "mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
+      "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
+      "testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
+      "mainnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
+      "test":         `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
+      "test:mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma run tes.ts`,
+      "test:devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma run tes.ts`,
+      "test:testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma run tes.ts`,
+    },
+  })
+  apiIndex.save([
+    `import { Client, Deployment } from '@fadroma/agent'`,
+    [
+      `export default class ${Case.pascal(name)} extends Deployment {`,
+      ...Object.keys(templates).map(name => [
+        ``, `  ${name} = this.contract({`,
+        `    name: "${name}",`,
+        `    crate: "${name}",`,
+        `    client: ${Case.pascal(name)},`,
+        `    initMsg: async () => ({})`,
+        `  })`
+      ].join('\n')),
+      '',
+      `  // Define your contract roles here with:`,
+      `  //   contract = this.contract({...})`, `  //`,
+      `  // See https://fadroma.tech/deploy.html`,
+      `  // for more info about how to populate this section.`,
+      '',
+      '}',
+    ].join('\n'),
+    ...Object.keys(templates).map(x=>Case.pascal(x)).map(Contract => [
+      `export class ${Contract} extends Client {`,
+      `  // Implement methods calling the contract here:`, `  //`,
+      `  // myTx = (arg1, arg2) => this.execute({my_tx:{arg1, arg2}})`,
+      `  // myQuery = (arg1, arg2) => this.query({my_query:{arg1, arg2}})`, `  //`,
+      `  // See https://fadroma.tech/agent.html#client`,
+      `  // for more info about how to populate this section.`,
+      `}\n`
+    ].join('\n'))
+  ].join('\n\n'))
+  opsIndex.save([
+    [
+      `import ${Case.pascal(name)} from './api'`,
+      `import Project from '@hackbg/fadroma'`,
+    ].join('\n'),
+    [
+      `export default class ${Case.pascal(name)}Project extends Project {`, ``,
+      `  Deployment = ${Case.pascal(name)}`, ``,
+      `  // Override to customize the build command:`, `  //`,
+      `  // build = async (...contracts: string[]) => { `,
+      `  //   await super.build(...contracts)`,
+      `  // }`, ``,
+      `  // Override to customize the upload command:`, `  //`,
+      `  // upload = async (...contracts: string[]) => {`,
+      `  //   await super.upload(...contracts)`,
+      `  // }`, ``,
+      `  // Override to customize the deploy command:`,
+      `  //`,
+      `  // deploy = async (...args: string[]) => {`,
+      `  //   await super.deploy(...args)`,
+      `  // }`, ``,
+      `  // Override to customize the status command:`, `  //`,
+      `  // status = async (...args: string[]) => {`,
+      `  //   await super.status()`,
+      `  // }`, ``,
+      `  // Define custom commands using \`this.command\`:`, `  //`,
+      `  // custom = this.command('custom', 'run a custom procedure', async () => {`,
+      `  //   // ...`,
+      `  // })`,
+      ``, `}`
+    ].join('\n')
+  ].join('\n\n'))
+  testIndex.save([
+    `import * as assert from 'node:assert'`,
+    `import ${Case.pascal(name)} from './api'`,
+    `import { getDeployment } from '@hackbg/fadroma`,
+    `const deployment = await getDeployment(${Case.pascal(name)}).deploy()`,
+    `// add your assertions here`
+  ].join('\n'))
+  gitignore.save([
+    '.env',
+    'node_modules',
+    'target',
+    'state/*',
+    '!state/secret-1',
+    '!state/secret-2',
+    '!state/secret-3',
+    '!state/secret-4',
+    '!state/pulsar-1',
+    '!state/pulsar-2',
+    'wasm/*',
+    '!wasm/*.sha256',
+  ].join('\n'))
+  envfile.save([
+    '# FADROMA_MNEMONIC=your testnet mnemonic'
+  ].join('\n'))
+  shellNix.save([
+    `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
+    `  inherit name;`,
+    `  nativeBuildInputs = with pkgs; [`,
+    `    git nodejs nodePackages_latest.pnpm rustup`,
+    `    binaryen wabt wasm-pack wasm-bindgen-cli`,
+    `  ];`,
+    `  shellHook = ''`,
+    `    export PS1="$PS1[\${name}] "`,
+    `    export PATH="$PATH:$HOME/.cargo/bin:\${./.}/node_modules/.bin"`,
+    `  '';`,
+    `}`,
+  ].join('\n'))
+  cargoToml.as(TextFile).save([
+    `[workspace]`, `resolver = "2"`, `members = [`,
+    Object.values(crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
+    `]`
+  ].join('\n'))
+  const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
+  Object.values(crates).forEach(crate=>{
+    crate.create()
+    const name = `${crate.name}@HEAD.wasm`
+    dirs.wasm.at(`${name}.sha256`).as(TextFile).save(`${sha256}  *${name}`)
+  })
+}
