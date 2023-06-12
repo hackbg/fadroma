@@ -49,7 +49,7 @@ class CosmosChain extends Chain {
   }) as CosmosChain
   /** Create to a Secret Network mocknet. */
   static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
-    id: 'scrt-mocknet',
+    id: 'cw-mocknet',
     ...options||{}
   })
   /** Set permissive fees by default. */
