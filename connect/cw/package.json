@@ -1,0 +1,27 @@
+{
+  "name": "@fadroma/cw",
+  "version": "0.0.0",
+  "type":    "module",
+  "main":    "cw.ts",
+  "files": [ "*.ts" ],
+  "description": "Fadroma support for CosmWasm-based platforms other than Secret Network.",
+  "dependencies": {
+    "@hackbg/conf": "^2",
+    "@ungap/structured-clone": "^1.0.1",
+    "@cosmjs/stargate": "^0.30.1"
+  },
+  "peerDependencies": {
+    "@fadroma/agent": "workspace:1.0.0"
+  },
+  "devDependencies": {
+    "@types/ungap__structured-clone": "^0.3.0",
+    "@hackbg/ensuite": "^1.0.2"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "ubik":  "npm run check && npm run cov && ubik",
+    "test":  "cd ../.. && ensuite spec/Scrt.spec.ts.md",
+    "cov":   "cd ../.. && ensuite-cov -r text -r lcov -- spec/Scrt.spec.ts.md"
+  }
+}
+
