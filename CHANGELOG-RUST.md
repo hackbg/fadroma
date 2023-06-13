@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  possible types for generic arguments as well as making it clear that an address is expected.
  ([#177](https://github.com/hackbg/fadroma/pull/177))
 
+### Fixed
+  - BREAKING ⚠️: Removed the underscore in the contract address attribute in the events
+  produced by the Ensemble. ([5813304](https://github.com/hackbg/fadroma/commit/5813304e588d54348228e61668c262ee7d8c59ca))
+
 ## [0.8.7] - 2023-05-12
 
 ### Changed
