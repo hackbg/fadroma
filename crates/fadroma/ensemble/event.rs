@@ -13,7 +13,7 @@ use super::{
 #[cfg(feature = "ensemble-staking")]
 use super::response::{StakingResponse, StakingOp, DistributionResponse, DistributionOp};
 
-const CONTRACT_ATTR: &str = "_contract_address";
+const CONTRACT_ATTR: &str = "contract_address";
 
 pub struct ProcessedEvents(Vec<Event>);
 
