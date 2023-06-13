@@ -6,6 +6,7 @@ use serde::{
     Serialize,
     de::DeserializeOwned
 };
+use oorandom::Rand64;
 
 use crate::{
     prelude::{ContractCode, ContractLink},
@@ -892,11 +893,17 @@ impl Context {
 
     #[inline]
     fn create_env(&self, contract: ContractLink<Addr>) -> Env {
+        let seed = 94759574359011638572u128.wrapping_mul(self.block.height as u128);
+        
+        let mut rng = Rand64::new(seed);
+        let bytes = rng.rand_u64().to_le_bytes();
+
         Env {
             block: BlockInfo {
                 height: self.block.height,
                 time: Timestamp::from_seconds(self.block.time),
                 chain_id: self.chain_id.clone(),
+                random: Some(Binary::from(bytes))
             },
             transaction: None,
             contract: ContractInfo {
