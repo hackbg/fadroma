@@ -489,10 +489,8 @@ dependencies = [
 name = "fadroma-derive-canonize"
 version = "0.3.5"
 dependencies = [
- "fadroma",
  "proc-macro2",
  "quote",
- "serde",
  "syn 1.0.109",
 ]
 
@@ -500,7 +498,6 @@ dependencies = [
 name = "fadroma-derive-serde"
 version = "0.3.0"
 dependencies = [
- "fadroma",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -510,87 +507,9 @@ dependencies = [
 name = "fadroma-dsl"
 version = "0.8.0"
 dependencies = [
- "fadroma",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "fadroma-example-admin"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "fadroma-example-derive-contract-interface",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-derive-contract-components"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-derive-contract-interface"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-ensemble"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "fadroma-example-derive-contract-interface",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-factory"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "fadroma-example-factory-shared",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-factory-product"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "fadroma-example-factory-shared",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-factory-shared"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-killswitch"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "fadroma-example-derive-contract-interface",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-kv"
-version = "0.1.0"
-dependencies = [
- "fadroma",
- "serde",
 ]
 
 [[package]]

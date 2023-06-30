@@ -1,4 +1,3 @@
-
 use criterion::Criterion;
 use fadroma::{
     cosmwasm_std::to_vec,
