@@ -1,9 +1,7 @@
 # Writing smart contracts with Fadroma DSL
 
-The `fadroma-dsl` crate provides a procedural macro that generates
-composable, boilerplate-free CosmWasm contracts.
-
-## Introduction
+The `fadroma-dsl` crate defines a simple procedural macro-based DSL that
+helps you write composable, boilerplate-free CosmWasm contracts.
 
 Fadroma DSL sets out to achieve two main goals:
 
@@ -22,12 +20,14 @@ add or change in order for it to compile.
 
 ### Prerequisites
 
-Using Fadroma DSL requires you to be familiar with the general architecture and operational model
+Using Fadroma DSL assumes you're familiar with the general architecture and operational model
 of CosmWasm smart contracts.
 
 ### Examples
 
-If you learn best from example, check out the [`examples`](https://github.com/hackbg/fadroma/tree/master/examples)
+For a quick comparison of DSL-based code vs. "raw" CosmWasm, see [Comparison](#comparison).
+
+See also: the [`examples`](https://github.com/hackbg/fadroma/tree/master/examples)
 directory in the Fadroma repo. These examples showcase how to use the DSL and the pre-defined
 DSL-based features in Fadroma. Furthermode, the DSL-based features can be used in non-DSL contracts.
 
@@ -154,10 +154,9 @@ impl MyInterface for Contract {
 ```
 
 #### Meta arguments
+
   - Path to the struct that implements the trait
   - Not optional.
-
-## **Usage**
 
 The ubiquitous `Deps`/`DepsMut`, `Env` and `MessageInfo` types are automatically added
 to generated method signatures, so that they don't need to be specified all the time.
@@ -175,7 +174,7 @@ The following table describes which attribute includes what parameters:
 
 ## Comparison
 
-To better understand what the macro generates here's a simple contract and what the generated code ends up looking like:
+To better understand what the macro generates, here's a simple contract:
 
 ```rust ignore
 #[fadroma::dsl::contract]
@@ -192,12 +191,10 @@ pub mod counter_contract {
         pub fn new(initial_value: u64) -> Result<Response, StdError> {
             Ok(Response::default())
         }
-
         #[execute]
         pub fn add(value: u64) -> Result<Response, StdError> {
             Ok(Response::default())
         }
-
         #[query]
         pub fn value() -> Result<u64, StdError> {
             Ok(0)
@@ -208,13 +205,13 @@ pub mod counter_contract {
     impl Admin for Contract {
         #[execute]
         fn change_admin(mode: Option<Mode>) -> Result<Response, Self::Error> { }
-    
         #[query]
         fn admin() -> Result<Option<Addr>, Self::Error> { }
     }
 }
 ```
-will expand to:
+
+And here's what the expanded code ends up looking like:
 
 ```rust ignore
 pub mod counter_contract {
