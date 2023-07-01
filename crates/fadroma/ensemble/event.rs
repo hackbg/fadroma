@@ -13,7 +13,7 @@ use super::{
 #[cfg(feature = "ensemble-staking")]
 use super::response::{StakingResponse, StakingOp, DistributionResponse, DistributionOp};
 
-const CONTRACT_ATTR: &str = "_contract_address";
+const CONTRACT_ATTR: &str = "contract_address";
 
 pub struct ProcessedEvents(Vec<Event>);
 
@@ -183,7 +183,7 @@ fn process_wasm_response(
 
     // Response::add_atrribute/s creates a new event in the array where
     // the type is "wasm" and inserts them under it. And attribute with key 
-    // "_contract_address" is also inserted.
+    // "contract_address" is also inserted.
     if !response.attributes.is_empty() {
         // Attributes are inserted in LIFO order i.e in reverse.
         events.push(Event::new("wasm")
@@ -194,7 +194,7 @@ fn process_wasm_response(
 
     // Response::add_event/s creates a new event in the array where
     // the type is prefixed with "wasm-". And attribute with key 
-    // "_contract_address" is also inserted.
+    // "contract_address" is also inserted.
     let wasm_events = response.events.clone().into_iter().map(|mut x| {
         x.ty = format!("wasm-{}", x.ty);
         x.attributes.insert(

@@ -1,6 +1,6 @@
 [package]
 name = "fadroma"
-version = "0.8.7"
+version = "0.8.8"
 edition = "2021"
 license = "AGPL-3.0"
 keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
@@ -68,7 +68,7 @@ staking = ["secret-cosmwasm-std/staking"]
 
 [dependencies]
 # Supported platforms
-secret-cosmwasm-std = { version = "1.1.10", default-features = false, optional = true }
+secret-cosmwasm-std = { version = "1.1.10", default-features = false, features = ["random"], optional = true }
 
 # Procedural macro crates
 fadroma-dsl = { version = "0.8.0", path = "../fadroma-dsl" }
@@ -93,7 +93,7 @@ time = { optional = true, version = "0.3.17" }
 
 # Enable iterator for testing (not supported in production)
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]
-secret-cosmwasm-std = { version = "1.1.10", default-features = false, features = ["iterator"], optional = true }
+secret-cosmwasm-std = { version = "1.1.10", default-features = false, features = ["iterator", "random"], optional = true }
 
 [dev-dependencies]
 criterion = "0.4.0"
