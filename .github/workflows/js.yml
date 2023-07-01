@@ -22,6 +22,7 @@ jobs:
         run: |
           sudo apt install -y wabt binaryen
           mkdir -p wasm
+          rustup default 1.69
           rustup target add wasm32-unknown-unknown --toolchain 1.69
           rustup
           pnpm --version
