@@ -1,4 +1,4 @@
-FROM rust:1.69-slim
+FROM rust:1.70-slim
 
 # Install Rust
 RUN rustup default 1.69 && \
