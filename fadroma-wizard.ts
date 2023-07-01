@@ -196,9 +196,9 @@ export class ProjectWizard {
   }
   selectBuilder (): 'podman'|'raw'|any {
     const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = this.tools
-    const buildRaw    = { value: 'raw',    title: `Build with your local toolchain (${cargo||'cargo not found'})` }
-    const buildDocker = { value: 'docker', title: `Build in a Docker container (${docker||'docker not found'})` }
-    const buildPodman = { value: 'podman', title: `Build in a Podman container (experimental; ${podman||'podman not found'})` }
+    const buildRaw    = { value: 'raw',    title: `No isolation, build with local toolchain (${cargo||'cargo: not found!'})` }
+    const buildDocker = { value: 'docker', title: `Perform builds in a Docker container (${docker||'docker: not found!'})` }
+    const buildPodman = { value: 'podman', title: `Perform builds in a Podman container (experimental; ${podman||'podman: not found!'})` }
     const hasPodman = podman && (podman !== 'not installed')
     const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
     const isLinux = platform() === 'linux'

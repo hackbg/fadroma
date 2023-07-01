@@ -104,3 +104,11 @@ that Node 16+ would not consume. (Ubik "fixes it in post" by rewriting the `impo
 To publish an individual package, use `pnpm ubik wet`; the "dry run" is on `pnpm ubik dry`.
 Having made changes to `@hackbg/fadroma` and one or more subpackages, use `pnpm ubik:all`
 to publish them on NPM (note that this command has no dry run).
+
+### Publishing docker image
+
+When updating the base image (`FROM` line) in a Dockerfile (such as the base build Dockerfile,
+or the devnet Dockerfiles), make sure to preserve the registry URL prefix and SHA256 digest
+of the base image. In the spirit of reproducible builds, this prevents a hostile build
+environment from potentially replacing base images with its own versions for "optimization"
+purposes.
