@@ -70,9 +70,7 @@ time = { optional = true, version = "0.3.17" }
 
 # Enable iterator for testing (not supported in production)
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]
-secret-cosmwasm-std = {
-  version = "1.1.10", default-features = false, features = ["iterator", "random"], optional = true
-}
+secret-cosmwasm-std = { version = "1.1.10", default-features = false, features = ["iterator", "random"], optional = true }
 
 [dev-dependencies]
 criterion = "0.4.0"
