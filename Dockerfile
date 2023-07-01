@@ -1,4 +1,4 @@
-FROM registry.hub.docker.com/library/rust:1.70-slim@sha256:c1df230815034aecf0b4bfeae2df100a7c4fdd5eb12dd5a3985f4bd6b5e6bf18
+FROM registry.hub.docker.com/library/rust:1.69-slim@sha256:2522978d04d670d70389ee2d91ae7d266f622eb619560f6a242ee4c5544a39c5
 
 # Install Rust
 RUN rustup default 1.70 && \
