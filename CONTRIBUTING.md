@@ -109,5 +109,6 @@ to publish them on NPM (note that this command has no dry run).
 
 When updating the base image (`FROM` line) in a Dockerfile (such as the base build Dockerfile,
 or the devnet Dockerfiles), make sure to preserve the registry URL prefix and SHA256 digest
-of the base image. GitHub Actions is liable to replace unpinned base images with its own
-versions for "optimization" purposes.
+of the base image. In the spirit of reproducible builds, this prevents a hostile build
+environment from potentially replacing base images with its own versions for "optimization"
+purposes.
