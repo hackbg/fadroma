@@ -14,5 +14,5 @@ readme = "README.md"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fadroma = { path = "../../crates/fadroma", features = [ "scrt" ] }
+fadroma = { path = "../..", features = [ "scrt" ] }
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }

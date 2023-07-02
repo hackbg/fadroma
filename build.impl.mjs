@@ -151,9 +151,7 @@ async function main (options = {}) {
     log(`Building in:`, call('pwd'))
     log(`Building these crates: ${crates}`)
     run([
-      `cargo build`,
-      `--release --target ${platform}`,
-      `${locked} ${verbose?'--verbose':''}`,
+      `cargo build`, `--release --target ${platform}`, `${locked} ${verbose?'--verbose':''}`,
       (`-p ` + crates.join(' -p '))
     ].join(' '), {
       CARGO_TARGET_DIR: tmpTarget,
