@@ -37,7 +37,7 @@ given chain (e.g. `state/$CHAIN/uploads/`).
 Let's try uploading an example WASM binary:
 
 ```typescript
-import { fixture } from '../fixtures/Fixtures.ts.md'
+import { fixture } from './fixtures/Fixtures.ts.md'
 const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
 ```
 
