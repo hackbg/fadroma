@@ -26,18 +26,20 @@ import { sha256, base16 } from '@hackbg/4mat'
 import { override } from '@hackbg/over'
 /** Parameters involved in building a contract. */
 export interface Buildable {
-  /** Name of crate. */
-  crate:       string
-  /** Crate features that need to be enabled. */
-  features?:   string[]
-  /** Path to workspace to which the crate belongs. */
-  workspace?:  string
   /** Path or URL to source repository for crate/workspace. */
   repository?: string|URL
   /** Commit in source repository which is built. */
   revision?:   string
   /** Whether this build contains uncommitted code. */
   dirty?:      boolean
+  /** Path to root directory of workspace to which crate belongs. */
+  workspace?:  string
+  /** Path to root directory of crate. */
+  sourceDir?:  string
+  /** Name of crate. */
+  crate:       string
+  /** Crate features that need to be enabled. */
+  features?:   string[]
   /** Builder class to use for build. */
   builder?:    Builder
 }
@@ -97,7 +99,7 @@ export abstract class Builder {
   /** Up to the implementation.
     * `@hackbg/fadroma` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  abstract build (source: Buildable, ...args: any[]): Promise<Built>
+  abstract build (buildable: Buildable, ...args: any[]): Promise<Built>
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
   abstract buildMany (sources: Buildable[], ...args: unknown[]): Promise<Built[]>

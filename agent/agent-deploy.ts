@@ -330,8 +330,10 @@ export class Template<C extends Client> {
   revision?:   string     = undefined
   /** Whether there were any uncommitted changes at build time. */
   dirty?:      boolean    = undefined
-  /** Path to local Cargo workspace. */
+  /** Path to root directory of workspace to which crate belongs. */
   workspace?:  string     = undefined
+  /** Path to root directory of crate. */
+  sourceDir?:  string     = undefined
   /** Name of crate in workspace. */
   crate?:      string     = undefined
   /** List of crate features to enable during build. */
