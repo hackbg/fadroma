@@ -463,14 +463,14 @@ what contracts to deploy:</p>
 <span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">DeploymentA</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
 
   kv1 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({
-    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>,
     <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv1&#x27;</span>,
+    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>,
     <span class="hljs-attr">initMsg</span>: {}
   })
 
   kv2 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({
-    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>,
     <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv2&#x27;</span>,
+    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>,
     <span class="hljs-attr">initMsg</span>: {}
   })
 
@@ -522,8 +522,8 @@ all contracts in order. You are free to override it
 and deploy the defined contracts according to some
 custom logic:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">DeploymentB</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
-  kv1 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
-  kv2 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  kv1 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  kv2 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
 
   deploy = <span class="hljs-keyword">async</span> (<span class="hljs-attr">deployBoth</span>: <span class="hljs-built_in">boolean</span> = <span class="hljs-literal">false</span>) =&gt; {
     <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">kv1</span>.<span class="hljs-property">deployed</span>
@@ -576,8 +576,8 @@ of your project's active contracts as part of your API client library.</p>
 <span class="hljs-comment">// a different snapshot depending on whether we&#x27;re passed a</span>
 <span class="hljs-comment">// mainnet or testnet connection.</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">DeploymentC</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
-  kv1 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
-  kv2 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  kv1 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  kv2 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
 
   <span class="hljs-keyword">static</span> connect = <span class="hljs-function">(<span class="hljs-params">agent: Agent</span>) =&gt;</span> {
     <span class="hljs-keyword">if</span> (agent?.<span class="hljs-property">chain</span>?.<span class="hljs-property">isMainnet</span>) <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title function_">this</span>({ ...mainnet, agent })
@@ -621,7 +621,7 @@ of <code>Deployment</code> classes.</p>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">DeploymentD</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">DeploymentC</span> {
-  kv3 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv3&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  kv3 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv3&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
 
   <span class="hljs-comment">// simplest client-side migration is to just instantiate</span>
   <span class="hljs-comment">// a new deployment with the data from the old deployment.</span>
@@ -645,7 +645,7 @@ an <code>address</code>.</p>
 <p>The <code>deployment.template</code> method adds a <code>Template</code> to the <code>Deployment</code>.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Deployment4</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
 
-  t = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
+  t = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span> })
 
   a = <span class="hljs-variable language_">this</span>.<span class="hljs-property">t</span>.<span class="hljs-title function_">instance</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;a&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
 
@@ -720,7 +720,7 @@ within the <code>Deployment</code>.</p>
   <span class="hljs-attr">artifact</span>:   <span class="hljs-string">&#x27;ARTIFACT&#x27;</span>,
   <span class="hljs-attr">chain</span>:      { <span class="hljs-comment">/* ... */</span> },
   <span class="hljs-attr">agent</span>:      { <span class="hljs-comment">/* ... */</span> },
-  <span class="hljs-attr">deployment</span>: { <span class="hljs-comment">/* ... */</span> }
+  <span class="hljs-attr">deployment</span>: { <span class="hljs-comment">/* ... */</span> },
   <span class="hljs-attr">codeId</span>:     <span class="hljs-number">0</span>,
   <span class="hljs-attr">codeHash</span>:   <span class="hljs-string">&#x27;CODEHASH&#x27;</span>
   <span class="hljs-attr">client</span>:     <span class="hljs-title class_">Client</span>,

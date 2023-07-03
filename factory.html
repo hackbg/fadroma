@@ -472,15 +472,17 @@ in the <a href="https://github.com/hackbg/fadroma/tree/master/examples"><code>ex
   <span class="hljs-comment">// to define the initial source code and final client class</span>
   <span class="hljs-comment">// for each one of them:</span>
   product = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">template</span>({
-    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory-product&#x27;</span>,
+    <span class="hljs-attr">workspace</span>: <span class="hljs-string">&#x27;.&#x27;</span>,
+    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/factory-product&#x27;</span>,
     <span class="hljs-attr">client</span>: <span class="hljs-title class_">Product</span>
   })
 
   <span class="hljs-comment">// The `Factory`, on the other hand, is a single contract instance.</span>
   <span class="hljs-comment">// So, let&#x27;s use `this.contract` to provide its name and init message:</span>
   factory = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({
+    <span class="hljs-attr">workspace</span>: <span class="hljs-string">&#x27;.&#x27;</span>,
     <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;factory&#x27;</span>,
-    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-factory&#x27;</span>,
+    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/factory&#x27;</span>,
     <span class="hljs-attr">client</span>: <span class="hljs-title class_">Factory</span>,
     <span class="hljs-attr">initMsg</span>: <span class="hljs-keyword">async</span> () =&gt; ({
       <span class="hljs-comment">// This `Factory` takes one configuration parameter, `code`,</span>
