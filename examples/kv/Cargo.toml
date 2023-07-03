@@ -8,5 +8,5 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-fadroma = { path = "../../crates/fadroma", features = ["scrt", "vk", "ensemble"] }
+fadroma = { path = "../..", features = ["scrt", "vk", "ensemble"] }
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }

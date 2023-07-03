@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -32,6 +32,7 @@
     "check": "time tsc --noEmit",
 
     "test": "time ensuite GUIDE.ts.md",
+    "test:build":   "time ensuite spec/Build.spec.ts.md",
     "test:deploy":  "time ensuite spec/Deploy.spec.ts.md",
     "test:devnet":  "time ensuite spec/Devnet.spec.ts.md",
     "test:factory": "time ensuite spec/Factory.spec.ts.md",
@@ -67,6 +68,7 @@
     "@hackbg/dock": "workspace:^2",
     "@hackbg/file": "workspace:^1.2.2",
     "@hackbg/port": "workspace:^1",
+    "@hackbg/hide": "workspace:^1",
     "case": "^1.6.3",
     "dotenv": "^16.0.1",
     "js-yaml": "^4.1.0",

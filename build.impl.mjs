@@ -18,7 +18,7 @@ async function main (options = {}) {
     tmpTarget   = env('_TMP_TARGET', '/tmp/target'),
     tmpGit      = env('_TMP_GIT',    '/tmp/git'),
     registry    = env('_REGISTRY',   '/usr/local/cargo/registry'),
-    subdir      = env('_SUBDIR',     '.') || '.',
+    srcSubdir   = env('_SRC_SUBDIR', '.') || '.',
     gitRoot     = env('_GIT_ROOT',   `/src/.git`),
     gitSubdir   = env('_GIT_SUBDIR', ''),
     gitRemote   = env('_GIT_REMOTE', 'origin'),
@@ -42,7 +42,7 @@ async function main (options = {}) {
   const context = tools()
   setupToolchain()
   prepareContext()
-  if (verbose) lookAround()
+  lookAround()
   prepareSource()
   await buildCrates()
 
@@ -76,7 +76,7 @@ async function main (options = {}) {
     // Copy the source into the build dir
     if (ref === 'HEAD') {
       log(`Building from working tree.`)
-      chdir(subdir)
+      chdir(srcSubdir)
     } else {
       prepareHistory
     }
@@ -140,7 +140,7 @@ async function main (options = {}) {
     // Clone submodules
     log(`Populating Git submodules...`)
     git(`submodule update --init --recursive`)
-    chdir(subdir)
+    chdir(srcSubdir)
   }
 
   async function buildCrates () {
@@ -151,9 +151,7 @@ async function main (options = {}) {
     log(`Building in:`, call('pwd'))
     log(`Building these crates: ${crates}`)
     run([
-      `cargo build`,
-      `--release --target ${platform}`,
-      `${locked} ${verbose?'--verbose':''}`,
+      `cargo build`, `--release --target ${platform}`, `${locked} ${verbose?'--verbose':''}`,
       (`-p ` + crates.join(' -p '))
     ].join(' '), {
       CARGO_TARGET_DIR: tmpTarget,
@@ -226,7 +224,7 @@ function chown (path, uid, gid) {
     run(`chgrp ${gid} ${path}`)
     log(`group of ${path} set to ${gid}`)
   } catch (e) {
-    log(`!!! setting owner of ${path} to ${gid} failed:`, e)
+    log(`!!! setting group of ${path} to ${gid} failed:`, e)
   }
 }
 

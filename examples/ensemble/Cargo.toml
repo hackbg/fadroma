@@ -9,6 +9,6 @@ crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
 
 [dependencies]
-fadroma = { path = "../../crates/fadroma", features = ["scrt", "ensemble"] }
+fadroma = { path = "../..", features = ["scrt", "ensemble"] }
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
 counter = { package = "fadroma-example-derive-contract-interface", path = "../derive-contract-interface" }

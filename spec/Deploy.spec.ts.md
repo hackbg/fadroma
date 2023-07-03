@@ -31,14 +31,14 @@ import { Deployment } from '@fadroma/agent'
 export class DeploymentA extends Deployment {
 
   kv1 = this.contract({
-    crate: 'fadroma-example-kv',
     name: 'kv1',
+    crate: 'examples/kv',
     initMsg: {}
   })
 
   kv2 = this.contract({
-    crate: 'fadroma-example-kv',
     name: 'kv2',
+    crate: 'examples/kv',
     initMsg: {}
   })
 
@@ -114,8 +114,8 @@ custom logic:
 
 ```typescript
 class DeploymentB extends Deployment {
-  kv1 = this.contract({ crate: 'fadroma-example-kv', name: 'kv1', initMsg: {} })
-  kv2 = this.contract({ crate: 'fadroma-example-kv', name: 'kv2', initMsg: {} })
+  kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
+  kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
 
   deploy = async (deployBoth: boolean = false) => {
     await this.kv1.deployed
@@ -183,8 +183,8 @@ export const testnet = deployment.snapshot
 // a different snapshot depending on whether we're passed a
 // mainnet or testnet connection.
 class DeploymentC extends Deployment {
-  kv1 = this.contract({ crate: 'fadroma-example-kv', name: 'kv1', initMsg: {} })
-  kv2 = this.contract({ crate: 'fadroma-example-kv', name: 'kv2', initMsg: {} })
+  kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
+  kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
 
   static connect = (agent: Agent) => {
     if (agent?.chain?.isMainnet) return new this({ ...mainnet, agent })
@@ -240,7 +240,7 @@ of `Deployment` classes.
 import { Deployment } from '@fadroma/agent'
 
 class DeploymentD extends DeploymentC {
-  kv3 = this.contract({ crate: 'fadroma-example-kv', name: 'kv3', initMsg: {} })
+  kv3 = this.contract({ crate: 'examples/kv', name: 'kv3', initMsg: {} })
 
   // simplest client-side migration is to just instantiate
   // a new deployment with the data from the old deployment.
@@ -271,7 +271,7 @@ The `deployment.template` method adds a `Template` to the `Deployment`.
 ```typescript
 class Deployment4 extends Deployment {
 
-  t = this.template({ crate: 'fadroma-example-kv' })
+  t = this.template({ crate: 'examples/kv' })
 
   a = this.t.instance({ name: 'a', initMsg: {} })
 
@@ -370,7 +370,7 @@ new Contract({
   artifact:   'ARTIFACT',
   chain:      { /* ... */ },
   agent:      { /* ... */ },
-  deployment: { /* ... */ }
+  deployment: { /* ... */ },
   codeId:     0,
   codeHash:   'CODEHASH'
   client:     Client,

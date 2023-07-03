@@ -120,18 +120,18 @@ for (const raw of [true, false]) {
   const builder = getBuilder({ raw })
 ```
 
-To build a single crate from the current space through a Fadroma builder:
+To build a single crate with the builder:
 
 ```typescript
-  const contract_0 = await builder.build({ crate: 'fadroma-example-kv' })
+  const contract_0 = await builder.build({ crate: 'examples/kv' })
 ```
 
 To build multiple crates in parallel:
 
 ```typescript
   const [contract_1, contract_2] = await builder.buildMany([
-    { crate: 'fadroma-example-admin' },
-    { crate: 'fadroma-example-killswitch' }
+    { crate: 'examples/admin' },
+    { crate: 'examples/killswitch' }
   ])
 ```
 

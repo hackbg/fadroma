@@ -64,7 +64,7 @@ Uploading WASM blob will return the expected monotonously incrementing code ID..
 
 ```typescript
 import { pathToFileURL } from 'url'
-import { examples } from '../fixtures/Fixtures.ts.md'
+import { examples } from './fixtures/Fixtures.ts.md'
 
 assert.equal(chain.lastCodeId, 0)
 

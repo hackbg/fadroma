@@ -171,7 +171,7 @@ await agent.send('recipient-address', [
 #### Uploading code
 
 ```typescript
-import { examples } from '../fixtures/Fixtures.ts.md'
+import { examples } from './fixtures/Fixtures.ts.md'
 import { readFileSync } from 'node:fs'
 
 // uploading from a Buffer

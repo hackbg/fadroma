@@ -143,6 +143,6 @@ await project.exportDeployment('state')
 ```typescript
 import assert from 'node:assert'
 import { Template } from '@fadroma/agent'
-import { tmpDir } from '../fixtures/Fixtures.ts.md'
+import { tmpDir } from './fixtures/Fixtures.ts.md'
 import './Project.test'
 ```
