@@ -31,14 +31,14 @@ import { Deployment } from '@fadroma/agent'
 export class DeploymentA extends Deployment {
 
   kv1 = this.contract({
-    crate: 'fadroma-example-kv',
     name: 'kv1',
+    crate: 'examples/kv',
     initMsg: {}
   })
 
   kv2 = this.contract({
-    crate: 'fadroma-example-kv',
     name: 'kv2',
+    crate: 'examples/kv',
     initMsg: {}
   })
 

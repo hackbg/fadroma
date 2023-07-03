@@ -42,7 +42,7 @@ async function main (options = {}) {
   const context = tools()
   setupToolchain()
   prepareContext()
-  if (verbose) lookAround()
+  lookAround()
   prepareSource()
   await buildCrates()
 
@@ -224,7 +224,7 @@ function chown (path, uid, gid) {
     run(`chgrp ${gid} ${path}`)
     log(`group of ${path} set to ${gid}`)
   } catch (e) {
-    log(`!!! setting owner of ${path} to ${gid} failed:`, e)
+    log(`!!! setting group of ${path} to ${gid} failed:`, e)
   }
 }
 

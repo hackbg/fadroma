@@ -14,6 +14,7 @@ coverage:
     - devnets/devnet.init.mjs
     - devnets/devnet.server.mjs
     - fadroma.cli.cjs
+    - "*.dist.*"
 
 header:
   title: Fadroma

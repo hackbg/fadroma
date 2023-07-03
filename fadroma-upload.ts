@@ -36,14 +36,12 @@ import { fileURLToPath } from 'node:url'
   * if provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Uploader {
-  log = new Console('upload (node:fs)')
+  get [Symbol.toStringTag] () { return this.store?.shortPath ?? '(*)' }
+  log = new UploadConsole('upload (node:fs)')
   /** Unique identifier of this uploader implementation. */
   id = 'FS'
   /** Directory with JSON files */
   store = new JSONDirectory<UploadReceipt_v1>()
-
-  get [Symbol.toStringTag] () { return this.store?.shortPath ?? '(*)' }
-
   /** @returns Uploaded from the cache or store or undefined */
   get (uploadable: Uploadable): Uploaded|undefined {
     this.addCodeHash(uploadable)
@@ -60,15 +58,10 @@ export class FSUploader extends Uploader {
       .as(JSONFile<Uploaded>)
     if (receipt.exists()) {
       const uploaded = receipt.load() as unknown as Uploaded
-      if (uploaded.codeId) {
-        this.log('found code id', uploaded.codeId, 'at', receipt.shortPath)
-        return this.cache[codeHash!] = uploaded
-      } else {
-        this.log.warn(receipt.shortPath, 'contained no "codeId"')
-      }
+      this.log.receiptCodeId(receipt, uploaded.codeId)
+      if (uploaded.codeId) return this.cache[codeHash!] = uploaded
     }
   }
-
   /** Add an Uploaded to the cache and store. */
   set (uploaded: Uploaded): this {
     this.addCodeHash(uploaded)
@@ -91,14 +84,13 @@ export class FSUploader extends Uploader {
     })
     return this
   }
-
-  protected addCodeHash (uploadable: Partial<Uploadable>) {
+  protected addCodeHash (uploadable: Partial<Uploadable & { name: string }>) {
     if (!uploadable.codeHash) {
       if (uploadable.artifact) {
         uploadable.codeHash = base16.encode(sha256(this.fetchSync(uploadable.artifact)))
         this.log(`hashed ${String(uploadable.artifact)}:`, uploadable.codeHash)
       } else {
-        this.log(`no artifact, can't compute code hash`)
+        this.log(`no artifact, can't compute code hash for: ${uploadable?.name||'(unnamed)'}`)
       }
     }
   }
@@ -140,3 +132,9 @@ export interface UploadReceiptData {
 }
 
 export class UploadError extends BaseError {}
+
+class UploadConsole extends Console {
+  receiptCodeId = (receipt: Path, id?: CodeId) => id
+    ? this.log('found code id', id, 'at', receipt.shortPath)
+    : this.warn(receipt.shortPath, 'contained no "codeId"')
+}
