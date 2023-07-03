@@ -67,7 +67,7 @@ routes:
     page: GUIDE.ts.md
     name: Getting started
   - path: /dsl.html
-    page: crates/fadroma-dsl/README.md
+    page: proc/fadroma-dsl/README.md
     name: Macro DSL
   - path: /agent.html
     page: spec/Agent.spec.ts.md
