@@ -32,10 +32,8 @@ export interface Buildable {
   revision?:   string
   /** Whether this build contains uncommitted code. */
   dirty?:      boolean
-  /** Path to root directory of workspace to which crate belongs. */
+  /** Path to root directory of crate source or workspace. */
   workspace?:  string
-  /** Path to root directory of crate. */
-  sourceDir?:  string
   /** Name of crate. */
   crate:       string
   /** Crate features that need to be enabled. */

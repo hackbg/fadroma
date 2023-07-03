@@ -111,8 +111,8 @@ export abstract class BuildLocal extends Builder {
     // If the `crate` field contains a slash, this is a crate path and not a crate name.
     // Add the crate path to the workspace path, and set the real crate name.
     if (buildable.crate && buildable.crate.includes(sep)) {
-      buildable.sourceDir = $(buildable.workspace||'', buildable.crate).path
-      const cargoTOML = $(buildable.sourceDir, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
+      buildable.workspace = $(buildable.workspace||'', buildable.crate).shortPath
+      const cargoTOML = $(buildable.workspace, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
       buildable.crate = cargoTOML.package.name
     }
     return buildable
@@ -185,7 +185,7 @@ export class BuildContainer extends BuildLocal {
     // This copies the argument because we'll mutate its contents anyway
     inputs = inputs.map(buildable=>this.resolveSource(buildable))
     // Batch together inputs from the same repo+commit
-    const [workspaces, revisions] = this.collectBuildBatches(inputs as Buildable[])
+    const [workspaces, revisions] = this.collectBatches(inputs as Buildable[])
     // For each repository/revision pair, build the inputs from it.
     for (const path of workspaces)
       for (const revision of revisions)
@@ -195,7 +195,7 @@ export class BuildContainer extends BuildLocal {
   /** Go over the list of inputs, filtering out the ones that are already built,
     * and collecting the source repositories and revisions. This will allow for
     * multiple crates from the same source checkout to be passed to a single build command. */
-  protected collectBuildBatches (inputs: Buildable[]) {
+  protected collectBatches (inputs: Buildable[]) {
     const workspaces = new Set<string>()
     const revisions  = new Set<string>()
     for (let id in inputs) {
@@ -220,6 +220,7 @@ export class BuildContainer extends BuildLocal {
     let root = $(path)
     let gitSubDir = ''
     let srcSubDir = ''
+    const paths = new Set([ root.path ])
     // If building from history, make sure that full source is mounted, and fetch history
     if (rev !== HEAD) {
       const gitDir = getGitDir({ workspace: path })
@@ -235,29 +236,44 @@ export class BuildContainer extends BuildLocal {
     // If inputs contain path dependencies pointing to parent dirs
     // (e.g. fadroma/examples/foo pointing to ../../), make sure
     // those are mounted into the container.
-    for (const input of inputs) {
-      const cargoTOML = $(input.workspace!, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
-      console.log({path, rev, input, cargoTOML})
-      console.log(cargoTOML.dependencies)
-      for (const [dep, ver] of Object.entries(cargoTOML.dependencies||[])) {
-        console.log(dep, ver)
-        if (ver.path) {
-          const path = $(input.workspace!, ver.path)
-          console.log({input, path})
-        }
-      }
-    }
+    for (const input of inputs)
+      for (const path of this.getPathDependencies(input))
+        paths.add(path)
+    ;([root, srcSubDir] = this.getSrcSubDir(paths, root))
     if (this.verbose) this.log.workspace(root.path, rev)
     const matched = this.matchBatch(inputs, path, rev)
     const results = await this.runContainer(root.path, root.relative(path), rev, matched, gitSubDir)
-    // Using the previously collected indices,
-    // populate the values in each of the passed inputs.
+    // Using the previously collected indices, populate the values in each of the passed inputs.
     for (const index in results) {
       if (!results[index]) continue
-      const built = inputs[index] as Buildable & Partial<Built>
-      built.artifact = results[index]!.artifact
-      built.codeHash = results[index]!.codeHash
+      const input = inputs[index] as Buildable & Partial<Built>
+      input.artifact = results[index]!.artifact
+      input.codeHash = results[index]!.codeHash
     }
+  }
+  protected getPathDependencies (input: Buildable): Set<string> {
+    const paths = new Set<string>()
+    const cargoTOML = $(input.workspace!, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
+    for (const [dep, ver] of Object.entries(cargoTOML.dependencies||[])) {
+      if (ver.path) paths.add($(input.workspace!, ver.path).path)
+    }
+    return paths
+  }
+  protected getSrcSubDir (paths: Set<string>, root: Path): [Path, string] {
+    const allPathFragments  = [...paths].sort().map(path=>path.split(sep))
+    const basePathFragments = []
+    const firstPath = allPathFragments[0]
+    const lastPath  = allPathFragments[allPathFragments.length - 1]
+    let i
+    for (i = 0; i < firstPath.length; i++) {
+      if (firstPath[i] === lastPath[i]) {
+        basePathFragments.push(firstPath[i])
+      } else {
+        break
+      }
+    }
+    const basePath = $(basePathFragments.join(sep))
+    return [basePath, basePath.relative($('.', ...root.path.split(sep).slice(i)))]
   }
   protected async fetch (gitDir: Path, remote: string) {
     await simpleGit(gitDir.path).fetch(remote)
@@ -276,7 +292,7 @@ export class BuildContainer extends BuildLocal {
   /** Build the crates from each same workspace/revision pair and collect the results. */
   protected async runContainer (
     root: string, subdir: string, rev: string,
-    crates: [number, string][], gitSubdir: string = '', outputDir: string = this.outputDir.path
+    crates: [number, string][], gitSubDir: string = '', outputDir: string = this.outputDir.path
   ): Promise<(Built|null)[]> {
     if (!this.script) throw new BuildError.ScriptNotSet()
     // Default to building from working tree.
@@ -296,9 +312,9 @@ export class BuildContainer extends BuildLocal {
     // Rest of container config:
     const buildScript = $(`/`, $(this.script).name).path
     const command = [ 'node', buildScript, 'phase1', rev, ...cratesToBuild ]
-    const buildEnv = this.getEnv(subdir, gitSubdir)
+    const buildEnv = this.getEnv(subdir, gitSubDir)
     const {readonly, writable} = this.getMounts(buildScript, root, outputDir, safeRef)
-    const options = this.getOptions(subdir, gitSubdir, readonly, writable)
+    const options = this.getOptions(subdir, gitSubDir, readonly, writable)
     let buildLogs = ''
     const logs = this.getLogStream(rev, (data) => {buildLogs += data})
     // Create output directory as user if it does not exist
@@ -373,7 +389,7 @@ export class BuildContainer extends BuildLocal {
       _BUILD_GID:  String(this.buildGid),
       _GIT_REMOTE: this.preferredRemote,
       _GIT_SUBDIR: gitSubdir,
-      _SUBDIR:     subdir,
+      _SRC_SUBDIR:     subdir,
       _NO_FETCH:   String(this.noFetch),
       _VERBOSE:    String(this.verbose),
       // Vars used by the tools invoked by the build script are left as is:
@@ -510,10 +526,10 @@ export class BuildRaw extends BuildLocal {
   }
   protected runBuild (buildable: Buildable, env: { _OUTPUT: string }): Promise<Path> {
     buildable = this.resolveSource(buildable)
-    const { crate, workspace, sourceDir, revision = 'HEAD' } = buildable
+    const { crate, workspace, revision = 'HEAD' } = buildable
     return new Promise((resolve, reject)=>this.spawn(
       this.runtime!, [ this.script!, 'phase1', revision, crate ],
-      { cwd: sourceDir||workspace, env: { ...process.env, ...env }, stdio: 'inherit' } as any
+      { cwd: workspace, env: { ...process.env, ...env }, stdio: 'inherit' } as any
     ).on('exit', (code: number, signal: any) => {
       const build = `Build of ${crate} from ${$(workspace!).shortPath} @ ${revision}`
       if (code === 0) {
