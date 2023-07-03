@@ -13,6 +13,7 @@ importers:
       '@hackbg/fadroma': workspace:*
       '@hackbg/file': workspace:^1.2.2
       '@hackbg/ganesha': workspace:*
+      '@hackbg/hide': workspace:^1
       '@hackbg/logs': workspace:^2.0.1
       '@hackbg/port': workspace:^1
       '@hackbg/spec': ^1
@@ -43,6 +44,7 @@ importers:
       '@hackbg/cmds': link:ensuite/toolbox/cmds
       '@hackbg/dock': link:ensuite/toolbox/dock
       '@hackbg/file': link:ensuite/toolbox/file
+      '@hackbg/hide': link:ensuite/toolbox/hide
       '@hackbg/logs': link:ensuite/toolbox/logs
       '@hackbg/port': link:ensuite/toolbox/port
       case: 1.6.3
@@ -59,7 +61,7 @@ importers:
       '@hackbg/ubik': link:ensuite/toolbox/ubik
       '@types/dockerode': 3.3.14
       '@types/js-yaml': 4.0.5
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
       '@types/prettyjson': 0.0.30
       '@types/prompts': 2.4.4
       '@types/secure-random': 1.1.0
@@ -295,7 +297,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
@@ -1010,6 +1012,10 @@ packages:
 
   /@types/node/20.3.0:
     resolution: {integrity: sha512-cumHmIAf6On83X7yP+LrsEyUOf/YlociZelmpRYaGFydoaPdxdt80MAbu6vWerQT2COCp2nPvHdsbD7tHn/YlQ==}
+    dev: true
+
+  /@types/node/20.3.3:
+    resolution: {integrity: sha512-wheIYdr4NYML61AjC8MKj/2jrR/kDQri/CIpVoZwldwhnIrD/j9jIU5bJ8yBKuB2VhpFV7Ab6G2XkBjv9r9Zzw==}
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -1018,7 +1024,7 @@ packages:
   /@types/prompts/2.4.4:
     resolution: {integrity: sha512-p5N9uoTH76lLvSAaYSZtBCdEXzpOOufsRjnhjVSrZGXikVGHX9+cc9ERtHRV4hvBKHyZb1bg4K+56Bd2TqUn4A==}
     dependencies:
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
       kleur: 3.0.3
     dev: true
 
@@ -1032,7 +1038,7 @@ packages:
   /@types/secure-random/1.1.0:
     resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
     dependencies:
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
 
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
@@ -3247,7 +3253,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
       long: 4.0.0
 
   /proxy-addr/2.0.7:
