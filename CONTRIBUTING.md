@@ -55,7 +55,7 @@ items. In addition, use the following review explanations:
     - Code must live in a reasonable location.
 - If you are only making "surface level" reviews, submit any notes as `Comments` without adding a review.
 
-## Contributing code code
+## Contributing code
 
 ### Prerequisites
 
@@ -101,9 +101,20 @@ Packages published using Ubik contain TS, ESM and CJS code side by side.
 This is all because in 2022 TypeScript made the decision to generate invalid ESM modules
 that Node 16+ would not consume. (Ubik "fixes it in post" by rewriting the `import` statements.)
 
-To publish an individual package, use `pnpm ubik wet`; the "dry run" is on `pnpm ubik dry`.
-Having made changes to `@hackbg/fadroma` and one or more subpackages, use `pnpm ubik:all`
-to publish them on NPM (note that this command has no dry run).
+To test if a package is fit for publishing, use a "dry run":
+
+```sh
+pnpm ubik dry
+```
+
+To publish an individual package, use:
+
+```sh
+pnpm ubik wet --otp <OTP>
+```
+
+Having made changes to `@hackbg/fadroma` and one or more subpackages,
+you can use `pnpm ubik:all` to publish them on NPM (note that this command has no dry run).
 
 ### Publishing docker image
 
