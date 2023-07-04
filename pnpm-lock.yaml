@@ -36,7 +36,7 @@ importers:
       lint-staged: ^13.1.2
       prompts: ^2.4.2
       simple-git: ^3.7.1
-      typedoc: ^0.23.25
+      typedoc: ^0.24.8
       typescript: ^5
     dependencies:
       '@fadroma/agent': link:agent
@@ -72,7 +72,7 @@ importers:
       freeport-async: 2.0.0
       husky: 8.0.3
       lint-staged: 13.1.2
-      typedoc: 0.23.25_typescript@5.0.2
+      typedoc: 0.24.8_typescript@5.0.2
       typescript: 5.0.2
 
   agent:
@@ -279,7 +279,7 @@ importers:
       open: ^8.4.0
       rimraf: ^3.0.2
       signal-exit: ^3.0.7
-      typedoc: ^0.23.25
+      typedoc: ^0.24.8
       typescript: ^5
       vitepress: 1.0.0-alpha.10
     dependencies:
@@ -301,13 +301,13 @@ importers:
       concurrently: 7.2.2
       husky: 8.0.3
       lint-staged: 13.1.2
-      typedoc: 0.23.25_typescript@5.0.2
+      typedoc: 0.24.8_typescript@5.0.2
       typescript: 5.0.2
       vitepress: 1.0.0-alpha.10
 
   ensuite/toolbox/4mat:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
       '@noble/hashes': ^1.1.5
       '@scure/base': ^1.1.1
       '@scure/bip32': ^1.1.3
@@ -322,13 +322,19 @@ importers:
       '@types/secure-random': 1.1.0
       secure-random: 1.1.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/allo:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
+
+  ensuite/toolbox/atom:
+    specifiers:
+      '@hackbg/ensuite': ^1.4.5
+    devDependencies:
+      '@hackbg/ensuite': link:../..
 
   ensuite/toolbox/cmds:
     specifiers:
@@ -372,18 +378,30 @@ importers:
       '@hackbg/ensuite': link:../..
       '@types/dockerode': 3.3.14
 
+  ensuite/toolbox/dome:
+    specifiers:
+      '@hackbg/ensuite': ^1.4.5
+    devDependencies:
+      '@hackbg/ensuite': link:../..
+
   ensuite/toolbox/dump:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
       '@hackbg/ubik': workspace:*
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
       '@hackbg/ubik': link:../ubik
+
+  ensuite/toolbox/emit:
+    specifiers:
+      '@hackbg/ensuite': ^1.4.5
+    devDependencies:
+      '@hackbg/ensuite': link:../..
 
   ensuite/toolbox/file:
     specifiers:
       '@hackbg/4mat': workspace:^1
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
       '@hackbg/hide': workspace:^1
       '@hackbg/logs': workspace:^2.0.1
       '@hackbg/spec': workspace:*
@@ -411,7 +429,7 @@ importers:
       tmp: 0.2.1
       toml: 3.0.0
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
       '@hackbg/spec': link:../spec
       '@types/js-yaml': 4.0.5
       '@types/mkdirp': 1.0.2
@@ -421,31 +439,31 @@ importers:
 
   ensuite/toolbox/fork:
     specifiers:
-      '@hackbg/ganesha': ^2
+      '@hackbg/ganesha': ^4.2
       '@types/zen-observable': ^0.8.3
       zen-observable: ^0.8.15
     dependencies:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/hide:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/into:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/logs:
     specifiers:
       '@hackbg/allo': workspace:^1
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
       '@hackbg/hide': workspace:^1
       chalk: ^4
     dependencies:
@@ -453,25 +471,25 @@ importers:
       '@hackbg/hide': link:../hide
       chalk: 4.1.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/many:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/oops:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/over:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/port:
     specifiers:
@@ -486,18 +504,18 @@ importers:
 
   ensuite/toolbox/task:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
       '@hackbg/logs': workspace:^2.0.1
     dependencies:
       '@hackbg/logs': link:../logs
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/time:
     specifiers:
-      '@hackbg/ganesha': ^2.2.5
+      '@hackbg/ganesha': ^4.2
     devDependencies:
-      '@hackbg/ganesha': 2.3.0
+      '@hackbg/ganesha': link:../../ganesha
 
   ensuite/toolbox/ubik:
     specifiers:
@@ -737,48 +755,9 @@ packages:
     dev: true
     optional: true
 
-  /@ganesha/core/2.0.1:
-    resolution: {integrity: sha512-eaYn9IpHWc8gzPB3sHgksAkluB0/lYKm41KrY+6vwGeUjCp6S6D/Rk5pRqpbQ0RsRyM5ah2ZmkBfnKpOVsyqUg==}
-    dependencies:
-      joycon: 3.1.1
-      jsonc-parser: 3.2.0
-      typescript: 4.9.4
-    dev: true
-
-  /@ganesha/node-legacy/3.0.2:
-    resolution: {integrity: sha512-w4genePLoho8CSqj5xg6f8qMFkLs1XCI+SZuQ/qLgusXoO35vpUgMy22eKDg9JwDNSSH7VdsOm57QX65UP3fRA==}
-    dependencies:
-      '@ganesha/core': 2.0.1
-      front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.2.0
-      pirates: 4.0.5
-      source-map-support: 0.5.21
-    dev: true
-
-  /@ganesha/node/2.3.3:
-    resolution: {integrity: sha512-/8mp/vqGHEv7KjzV8lCfIdQ3NWqgtIU7/h0iNqlF3QiMJKD3OaesafBs9/HrTfi31rYu9rOV/awCFlGUWkLmgg==}
-    dependencies:
-      '@ganesha/core': 2.0.1
-      front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.2.0
-      source-map-support: 0.5.21
-    dev: true
-
   /@hackbg/conf/2.0.0:
     resolution: {integrity: sha512-uHhqHwNWwfoU9dArJOwByujEwZ37ucgIn8gWb3WA8ypDoizwxrzdait4vDNQyT9iMCeZW/crhCXgXoQIp0FVyg==}
     dev: false
-
-  /@hackbg/ganesha/2.3.0:
-    resolution: {integrity: sha512-kpSgGTooNwWg5ROR6TMrh+9xKRjGLRy0MWE7L3M/cltZQpvJQ83b5Pf5QM7UiVboaW9iXCSKZTrC8/lNjk1e/w==}
-    hasBin: true
-    dependencies:
-      '@ganesha/core': 2.0.1
-      '@ganesha/node': 2.3.3
-      '@ganesha/node-legacy': 3.0.2
-      cross-spawn: 7.0.3
-    dev: true
 
   /@istanbuljs/schema/0.1.3:
     resolution: {integrity: sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA==}
@@ -940,7 +919,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -959,7 +938,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
     dev: true
 
   /@types/istanbul-lib-coverage/2.0.4:
@@ -1010,10 +989,6 @@ packages:
     resolution: {integrity: sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==}
     dev: true
 
-  /@types/node/20.3.0:
-    resolution: {integrity: sha512-cumHmIAf6On83X7yP+LrsEyUOf/YlociZelmpRYaGFydoaPdxdt80MAbu6vWerQT2COCp2nPvHdsbD7tHn/YlQ==}
-    dev: true
-
   /@types/node/20.3.3:
     resolution: {integrity: sha512-wheIYdr4NYML61AjC8MKj/2jrR/kDQri/CIpVoZwldwhnIrD/j9jIU5bJ8yBKuB2VhpFV7Ab6G2XkBjv9r9Zzw==}
 
@@ -1043,7 +1018,7 @@ packages:
   /@types/ssh2/1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 20.3.0
+      '@types/node': 20.3.3
     dev: true
 
   /@types/tmp/0.2.3:
@@ -1303,6 +1278,7 @@ packages:
     resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==}
     dependencies:
       sprintf-js: 1.0.3
+    dev: false
 
   /argparse/2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
@@ -1539,6 +1515,7 @@ packages:
 
   /buffer-from/1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
+    dev: false
 
   /buffer/5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
@@ -2171,6 +2148,7 @@ packages:
     resolution: {integrity: sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==}
     engines: {node: '>=4'}
     hasBin: true
+    dev: false
 
   /estree-walker/2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
@@ -2327,6 +2305,7 @@ packages:
     resolution: {integrity: sha512-I8ZuJ/qG92NWX8i5x1Y8qyj3vizhXS31OxjKDu3LKP+7/qBgfIKValiZIEwoVoJKUHlhWtYrktkxV1XsX+pPlg==}
     dependencies:
       js-yaml: 3.14.1
+    dev: false
 
   /fs-constants/1.0.0:
     resolution: {integrity: sha512-y6OAwoSIf7FyjMIv94u+b5rdheZEjzR63GTyZJm5qh4Bi+2YgwLCcI/fPFZkL5PSixOt6ZNKm+w+Hfp/Bciwow==}
@@ -2653,6 +2632,7 @@ packages:
   /joycon/3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
+    dev: false
 
   /js-stringify/1.0.2:
     resolution: {integrity: sha512-rtS5ATOo2Q5k1G+DADISilDA6lv79zIiwFd6CcjuIxGKLFm5C+RLImRscVap9k55i+MOZwgliw+NejvkLuGD5g==}
@@ -2664,6 +2644,7 @@ packages:
     dependencies:
       argparse: 1.0.10
       esprima: 4.0.1
+    dev: false
 
   /js-yaml/4.1.0:
     resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
@@ -2839,6 +2820,13 @@ packages:
     resolution: {integrity: sha512-yr8hSKa3Fv4D3jdZmtMMPghgVt6TWbk86WQaWhDloQjRSQhMMYCAro7jP7VDJrjjdV8pxVxMssXS8B8Y5DZ5aw==}
     engines: {node: '>= 12'}
     hasBin: true
+    dev: false
+
+  /marked/4.3.0:
+    resolution: {integrity: sha512-PRsaiG84bK+AMvxziE/lCFss8juXjNaWzVbN5tXAm4XjeaS9NAHhop+PjQxz2A9h8Q4M/xGmzP8vqNwy6JeK0A==}
+    engines: {node: '>= 12'}
+    hasBin: true
+    dev: true
 
   /maximatch/0.1.0:
     resolution: {integrity: sha512-9ORVtDUFk4u/NFfo0vG/ND/z7UQCVZBL539YW0+U1I7H1BkZwizcPx5foFv7LCPcBnm2U6RjFnQOsIvN4/Vm2A==}
@@ -2930,19 +2918,19 @@ packages:
     dependencies:
       brace-expansion: 1.1.11
 
-  /minimatch/6.2.0:
-    resolution: {integrity: sha512-sauLxniAmvnhhRjFwPNnJKaPFYyddAgbYdeUpHULtCT/GhzdCx/MDNy+Y40lBxTQUrMzDE8e0S43Z5uqfO0REg==}
-    engines: {node: '>=10'}
-    dependencies:
-      brace-expansion: 2.0.1
-    dev: true
-
   /minimatch/7.4.2:
     resolution: {integrity: sha512-xy4q7wou3vUoC9k1xGTXc+awNdGaGVHtFUaey8tiX4H1QRc04DZ/rmDFwNm2EBsuYEhAZ6SgMmYf3InGY6OauA==}
     engines: {node: '>=10'}
     dependencies:
       brace-expansion: 2.0.1
     dev: false
+
+  /minimatch/9.0.2:
+    resolution: {integrity: sha512-PZOT9g5v2ojiTL7r1xF6plNHLtOeTpSlDI007As2NlA2aYBMfVom17yqa6QzhmDP8QOhn7LjHTg7DFCVSSa6yg==}
+    engines: {node: '>=16 || 14 >=14.17'}
+    dependencies:
+      brace-expansion: 2.0.1
+    dev: true
 
   /minimist/1.2.6:
     resolution: {integrity: sha512-Jsjnk4bw3YJqYzbdyBiNsPWHPfO++UGG749Cxs6peCu5Xg4nrena6OVxOYxrQTqww0Jmwt+Ref8rggumkTLz9Q==}
@@ -3202,6 +3190,7 @@ packages:
   /pirates/4.0.5:
     resolution: {integrity: sha512-8V9+HQPupnaXMA23c5hvl69zXvTwTzyAYasnkb0Tts4XvO4CliqONMOnvlq26rkhLC3nWDFBJf73LU1e1VZLaQ==}
     engines: {node: '>= 6'}
+    dev: false
 
   /pkg-up/4.0.0:
     resolution: {integrity: sha512-N4zdA4sfOe6yCv+ulPCmpnIBQ5I60xfhDr1otdBBhKte9QtEf3bhfrfkW7dTb+IQ0iEx4ZDzas0kc1o5rdWpYg==}
@@ -3739,6 +3728,7 @@ packages:
     dependencies:
       buffer-from: 1.1.2
       source-map: 0.6.1
+    dev: false
 
   /source-map/0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
@@ -3757,6 +3747,7 @@ packages:
 
   /sprintf-js/1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
+    dev: false
 
   /ssh2/1.11.0:
     resolution: {integrity: sha512-nfg0wZWGSsfUe/IBJkXVll3PEZ//YH2guww+mP88gTpuSU4FtZN7zu9JoeTGOyCNx2dTDtT9fOpWwlzyj4uOOw==}
@@ -3952,28 +3943,22 @@ packages:
       mime-types: 2.1.35
     dev: true
 
-  /typedoc/0.23.25_typescript@5.0.2:
-    resolution: {integrity: sha512-O1he153qVyoCgJYSvIyY3bPP1wAJTegZfa6tL3APinSZhJOf8CSd8F/21M6ex8pUY/fuY6n0jAsT4fIuMGA6sA==}
+  /typedoc/0.24.8_typescript@5.0.2:
+    resolution: {integrity: sha512-ahJ6Cpcvxwaxfu4KtjA8qZNqS43wYt6JL27wYiIgl1vd38WW/KWX11YuAeZhuz9v+ttrutSsgK+XO1CjL1kA3w==}
     engines: {node: '>= 14.14'}
     hasBin: true
     peerDependencies:
-      typescript: 4.6.x || 4.7.x || 4.8.x || 4.9.x || ^4.9
+      typescript: 4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || 5.1.x || ^4.9
     dependencies:
       lunr: 2.3.9
-      marked: 4.2.12
-      minimatch: 6.2.0
+      marked: 4.3.0
+      minimatch: 9.0.2
       shiki: 0.14.1
       typescript: 5.0.2
     dev: true
 
   /typeforce/1.18.0:
     resolution: {integrity: sha512-7uc1O8h1M1g0rArakJdf0uLRSSgFcYexrVoKo+bzJd32gd4gDy2L/Z+8/FjPnU9ydY3pEnVPtr9FyscYY60K1g==}
-
-  /typescript/4.9.4:
-    resolution: {integrity: sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==}
-    engines: {node: '>=4.2.0'}
-    hasBin: true
-    dev: true
 
   /typescript/5.0.2:
     resolution: {integrity: sha512-wVORMBGO/FAs/++blGNeAVdbNKtIh1rbBL2EyQ1+J9lClJ93KiiKe8PmFIVdXhHcyv44SL9oglmfeSsndo0jRw==}
