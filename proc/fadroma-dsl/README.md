@@ -1,9 +1,9 @@
 # Writing smart contracts with Fadroma DSL
 
-The `fadroma-dsl` crate defines a simple procedural macro-based DSL that
-helps you write composable, boilerplate-free CosmWasm contracts.
+The `fadroma-dsl` crate defines a simple **procedural macro-based DSL** that
+helps you write **composable, boilerplate-free CosmWasm smart contracts**.
 
-Fadroma DSL sets out to achieve two main goals:
+**Fadroma DSL** sets out to achieve two main goals:
 
 * **Brevity.** Repetitive code that you'd otherwise write manually is generated automatically
   in a structured way.
@@ -16,7 +16,7 @@ Fadroma DSL sets out to achieve two main goals:
 
 Any misuse of the macro will result in simple **compile errors** -- not some hidden or unexpected
 runtime behavior. Additionally, the macro error messages should tell you exactly what you need to
-add or change in order for it to compile.
+add or change in order for the code to compile.
 
 ### Prerequisites
 
@@ -40,100 +40,150 @@ The DSL has the following attributes defined:
 **Note that you don't you don't have to remember all the attributes and
 rules around them because the compiler will guide you.**
 
-#### **`contract`**
+#### **`#[contract] mod`**
 
-Only valid for `mod` items. The `mod` will contain the entire implementation of your contract.
-It generates a zero-sized `Contract` struct which you **must** use to implement the contract
-methods as well as any interfaces that you wish. All methods marked with any of the `#[init]`,
-`#[execute]` or `#[query]` attributes will be included as part of the available functionality
-that the contract exposes. Though, you are free to write any other `Contract` methods or functions
-inside the module as well. Interfaces are implemented for the contract using the standard Rust
-syntax i.e `impl MyTrait for Contract { ... }` where `MyTrait` is a trait declared with the
-`#[interface]` attribute. Technically you can use any trait that satisfies the types that
-`#[interface]` requires and it won't break anything since the macro enforces that. The macro
-also generates an `Error` enum that represents all possible errors that you use across your
-contract and the interfaces that it implements. This is used in the generated `execute` and
-`query` functions but rather an implementation detail that ties everything together. On
-the other hand, it's there if you want to use it for anything.
+* Only valid for `mod` items. The `mod` will contain the entire implementation of your contract.
 
-#### **`interface`**
+```rust
+#[contract]
+pub mod contract {
+  /* ... */
+}
+```
 
-Unless you have multiple contracts that talk to each other, you don't need this attribute and can
-just use `#[contract]`. But when that is the case, this attribute allows to define the interface of
-your contract separately and generate its `InstantiateMsg` (if present), `ExecuteMsg` and `QueryMsg`.
-This means that the interface can be defined in a separate crate and can be consumed by multiple
-other crates that implement a contract. This approach plays well with the common pattern of defining
-all contract messages in a single crate and having the contract crates use that to implement and call
-eachother. In addition, having to implement the interface trait in your contract means that Rust will
-never let the interface and implementation go out of sync. The interfaces forces you to declare the
-associated type `type Error: std::fmt::Display;` and all methods must return that as an error type.
-This is allows to have a custom error type. Otherwise, just use `cosmwasm_std::StdError`.
+* It generates a zero-sized `Contract` struct, on which you must implement
+  the contract API methods, as well as any interfaces that you wish to support.
 
-#### **`init`**
+* All methods marked with any of the `#[init]`, `#[execute]` or `#[query]` attributes
+  will be included as part of the available functionality that the contract exposes.
 
-The instantiate method for the contract. There can be only one per contract but each interface
-that your contract implements must have it as well if it has it defined. Can be omitted altogether
-both in `#[contract]` and `#[interface]` contexts. When used in the latter, it will simply generate
-an `InstantiateMsg` struct. In the former it only serves as a marker inside any implemented
-interfaces unless the `entry` meta argument is used.
+* You are free to write any other `Contract` methods or functions inside the module as well.
+
+* Interfaces are implemented for the contract using the standard Rust syntax i.e
+  `impl MyTrait for Contract { ... }`, where `MyTrait` is a trait declared with the
+  `#[interface]` attribute.
+
+* Technically you can use any trait that satisfies the types that `#[interface]` requires,
+  and it won't break anything since the macro enforces that.
+
+* The macro also generates an `Error` enum that represents all possible errors that you use
+  across your contract and the interfaces that it implements. This is used in the generated
+  `execute` and `query` functions but rather an implementation detail that ties everything together.
+  On the other hand, it's there if you want to use it for anything.
+
+#### **`#[interface] mod`**
+
+* Used when you have multiple contracts that talk to each other. (Otherwise you don't need this
+  attribute and can just use `#[contract]`.)
+
+* This attribute allows to define the interface of your contract separately,
+  automatically generating the `InstantiateMsg` (if present), `ExecuteMsg` and `QueryMsg` structs
+  that represent the contract API, but not the corresponding functions that implement it.
+
+* This means that the interface can be defined in a separate crate and can be consumed by multiple
+  other crates that implement a contract.
+
+* This approach plays well with the common pattern of defining all contract messages in a single
+  crate, and having the contract crates use that to implement and call each other.
+
+* In addition, having to implement the interface trait in your contract means that Rust will
+  never let the interface and implementation go out of sync.
+
+* The interface requires you to declare the associated type `type Error: std::fmt::Display;` and
+  all methods must return that as an error type. This allows to have a custom error type.
+  Otherwise, just use `cosmwasm_std::StdError`.
+
+#### **`#[init] fn`**
+
+* The instantiate method for the contract.
+
+* There can be only one per contract but each interface that your contract implements must have it
+  as well if it has it defined.
+
+* Can be omitted altogether both in `#[contract]` and `#[interface]` contexts.
+  When used in the latter, it will simply generate an `InstantiateMsg` struct.
+  In the former it only serves as a marker inside any implemented interfaces,
+  unless the `entry` meta argument is used.
 
 ##### Meta arguments
 
-- `entry`
-  - Used as `#[init(entry)]` and creates the `InstantiateMsg`, `ExecuteMsg` and `QueryMsg` structs,
+* `entry`
+
+  * Used as `#[init(entry)]` and creates the `InstantiateMsg`, `ExecuteMsg` and `QueryMsg` structs,
     the `instantiate`, `execute` and `query` entry point functions.
-  - Is optional.
-  - Can only be used in `#[contract]`.
-  - Only a single `#[init]` can be marked with it and this includes any interfaces that
+
+  * Is optional.
+
+  * Can only be used in `#[contract]`.
+
+  * Only a single `#[init]` can be marked with it and this includes any interfaces that
     the contract implements.
-  - If you have an `#[init]` attribute in one of your contract methods (inside the
+
+  * If you have an `#[init]` attribute in one of your contract methods (inside the
     `impl Contract` block) you must add this attribute. The reasoning for this being that since
     this is what generates the message enums and entry functions, having an `#[init]` attribute in
     a contract method (but not in interface methods) without it would basically do nothing.
 
-- `entry_wasm`
-  - Generates the same boilerplate and has the same rules as the `entry` meta
+* `entry_wasm`
+
+  * Generates the same boilerplate and has the same rules as the `entry` meta
     but will also generate the WASM boilerplate FFI module.
 
-#### **`execute`**
+#### **`#[execute] fn`**
 
-A method that is part of the executable set of methods of the contract.
-Each method that is to be part of that set must be annotated with that.
-The generated `ExecuteMsg` enum is comprised of the names of all those methods.
-Dispatch also happens automatically through the generated `execute` functions.
-This is all code that you'd write yourself.
+* A method that is part of the executable set of methods of the contract.
 
-#### **`query`**
+* Each method that is to be part of that set must be annotated with that.
 
-Identical to how the `#[execute]` attribute works but generated
-the `QueryMsg` enum and the `query` function.
+* The generated `ExecuteMsg` enum is comprised of the names of all those methods.
 
-#### **`reply`**
+* Dispatch also happens automatically through the generated `execute` functions.
+  This is all code that you'd write yourself.
 
-Marks the method as a CosmWasm reply handler. Only **one** such function can exist per contract
-and it must have a single parameter with the `cosmwasm_std::Reply` type.
+#### **`#[query] fn`**
 
-#### **`execute_guard`**
-An execute guard function is a special function that is called before matching the `ExecuteMsg`
-enum inside the `execute` function both of which are generated by the macro. Only **one** such
-function can exist per contract and it must have a single parameter with the `&ExecuteMsg` type.
+* Identical to how the `#[execute]` attribute works
 
-It is useful in cases where we want to assert some state before proceeding with executing the
-incoming message and fail before that if necessary. For [example](https://github.com/hackbg/fadroma/blob/master/examples/derive-contract-components/src/lib.rs#L24-L38),
-it should be used with Fadroma's killswitch component. Inside the execute guard we check whether
-the contract is pausing or migrated and return an `Err(())` if so.
+* Generates the `QueryMsg` enum and the `query` function.
 
-#### **`auto_impl`**
+#### **`#[reply] fn`**
 
-Only valid for trait `impl` blocks. It takes a path to a struct which implements the given
-interface trait being implemented. For each method that is part of the trait, it delegates the
-implementation to the given struct. We ensure that the provided struct exactly implements the
-trait by using Rust's fully qualified syntax (`<MyStruct as Trait>::method_name()`). It will also
-fill in the concrete `Error` type that the interface must have. You delegate the implementation to
-the struct by leaving the method body **completely** empty. Otherwise, writing a method body will
-use your code. This allows for great flexibility since you can implement an interface by using an 
-existing implementation while allowing you to directly override any methods that you wish. For 
-example:
+* Marks the method as a CosmWasm reply handler.
+
+* Only **one** such function can exist per contract
+  and it must have a single parameter with the `cosmwasm_std::Reply` type.
+
+#### **`#[execute_guard] fn`**
+
+* An execute guard function is a special function that is called before matching the `ExecuteMsg`
+  enum inside the `execute` function both of which are generated by the macro.
+
+* Only **one** such function can exist per contract and it must have a single parameter
+  with the `&ExecuteMsg` type.
+
+* It is useful in cases where we want to assert some state before proceeding with executing
+  the incoming message and fail before that if necessary. For [example](https://github.com/hackbg/fadroma/blob/master/examples/derive-contract-components/src/lib.rs#L24-L38),
+  it should be used with Fadroma's killswitch component: inside the execute guard, we check whether
+  the contract is pausing or migrated and return an `Err(())` if so.
+
+#### **`#[auto_impl] impl`**
+
+* Only valid for trait `impl` blocks.
+
+* It takes a path to a struct which implements the given interface trait being implemented.
+
+* For each method that is part of the trait, it delegates the implementation to the given struct.
+
+* We ensure that the provided struct exactly implements the trait by using Rust's fully qualified
+  syntax (`<MyStruct as Trait>::method_name()`).
+
+* It will also fill in the concrete `Error` type that the interface must have.
+
+* You delegate the implementation to the struct by leaving the method body **completely** empty.
+
+* Otherwise, writing a method body will use your code. This allows for great flexibility since you
+  can implement an interface by using an  existing implementation while allowing you to directly
+  override any methods that you wish. For example:
 
 ```rust ignore
 #[auto_impl(ImplementingStuct)]
@@ -155,14 +205,15 @@ impl MyInterface for Contract {
 
 #### Meta arguments
 
-  - Path to the struct that implements the trait
-  - Not optional.
+* Path to the struct that implements the trait
 
-The ubiquitous `Deps`/`DepsMut`, `Env` and `MessageInfo` types are automatically added
-to generated method signatures, so that they don't need to be specified all the time.
+* Not optional.
 
-Parameters that your message declares are appended after those in the method signature.
-The following table describes which attribute includes what parameters:
+* The ubiquitous `Deps`/`DepsMut`, `Env` and `MessageInfo` types are automatically added
+  to generated method signatures, so that they don't need to be specified all the time.
+
+* Parameters that your message declares are appended after those in the method signature.
+  The following table describes which attribute includes what parameters:
 
 |Attribute       |Generated signature                                    |
 |----------------|-------------------------------------------------------|
