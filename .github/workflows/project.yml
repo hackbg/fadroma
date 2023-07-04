@@ -27,7 +27,8 @@ jobs:
         run: |
           sudo apt install -y wabt binaryen
           mkdir -p wasm
-          rustup target add wasm32-unknown-unknown
+          rustup default 1.69
+          rustup target add wasm32-unknown-unknown --toolchain 1.69
           pnpm --version
           pnpm i --frozen-lockfile
           FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
@@ -73,7 +74,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.69.0
           target: wasm32-unknown-unknown
           override: true
       - name: Build Fadroma to NPM equivalent

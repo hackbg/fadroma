@@ -1,6 +1,6 @@
 <div align="center">
 
-[![Fadroma](./banner.svg)](https://fadroma.tech)
+[![Fadroma](https://fadroma.tech/logo.svg)](https://fadroma.tech)
 
 Distributed application framework developed at [**Hack.bg**](https://hack.bg).
 

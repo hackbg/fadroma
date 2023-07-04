@@ -134,15 +134,12 @@ export default class Config extends ConnectConfig {
     /** Owner gid that is set on build artifacts. */
     outputGid: this.getString(
       'FADROMA_BUILD_GID', () => undefined),
+    /** Used for historical builds. */
+    preferredRemote: this.getString(
+      'FADROMA_PREFERRED_REMOTE', () => undefined),
     /** Used to authenticate Git in build container. */
     sshAuthSocket: this.getString(
       'SSH_AUTH_SOCK', () => undefined),
-    /** Used to fix Cargo when Fadroma is included as a Git submodule */
-    workspaceManifest: this.getString(
-      'FADROMA_WORKSPACE_MANIFEST', () => undefined),
-    /** Used for historical builds. */
-    preferredRemote: this.getString(
-      'FADROMA_PREFERRED_REMOTE', () => undefined)
   }
 
   /** @returns the Builder class exposed by the config */

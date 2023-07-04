@@ -39,15 +39,17 @@ export default class FactoryDeployment extends Deployment {
   // to define the initial source code and final client class
   // for each one of them:
   product = this.template({
-    crate: 'fadroma-example-factory-product',
+    workspace: '.',
+    crate: 'examples/factory-product',
     client: Product
   })
 
   // The `Factory`, on the other hand, is a single contract instance.
   // So, let's use `this.contract` to provide its name and init message:
   factory = this.contract({
+    workspace: '.',
     name: 'factory',
-    crate: 'fadroma-example-factory',
+    crate: 'examples/factory',
     client: Factory,
     initMsg: async () => ({
       // This `Factory` takes one configuration parameter, `code`,
