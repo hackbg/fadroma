@@ -436,3 +436,7 @@ features:
         text: "@hackbg/ensuite"
         href: https://github.com/hackbg/ensuite
         bold: true
+
+extra:
+  beforeBody:
+    - <script data-goatcounter="https://goat.fadroma.hack.bg/count" async src="//goat.fadroma.hack.bg/count.js"></script>
