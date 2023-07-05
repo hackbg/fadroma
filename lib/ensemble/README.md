@@ -6,9 +6,10 @@ without having to deploy contracts on-chain.
 This approach allows a lot of flexibility for testing contracts. Mock implementations can be
 created, contract methods can be overridden, `Bank` interactions are also possible.
 
-To start testing with Fadroma Ensemble, you must implement `ContractHarness` for each
-contract under test. In each test cases, you must instantiate `ContractEnsemble` and
-register the contracts using `ContractEnsemble::register`.
+* To start testing with Fadroma Ensemble, you must **implement `ContractHarness` for each
+  contract under test**.
+* In each test case, you must **instantiate `ContractEnsemble` and register the contracts**
+  using the `register` method.
 
 ### `ContractEnsemble`
 
@@ -16,9 +17,10 @@ register the contracts using `ContractEnsemble::register`.
 and executing messages between contracts.
 
 It exposes:
-  * methods like `register` for registering contract harnesses
-  * `instantiate`, `execute`, `reply`, `query` for interacting with contracts
-  * methods to inspect/alter the raw storage if needed.
+
+* methods like `register` for registering contract harnesses
+* `instantiate`, `execute`, `reply`, `query` for interacting with contracts
+* methods to inspect/alter the raw storage if needed.
 
 Just like on the blockchain, if any contract returns an error during exection,
 all state is reverted.
