@@ -1,7 +1,7 @@
 FROM registry.hub.docker.com/library/rust:1.69-slim@sha256:2522978d04d670d70389ee2d91ae7d266f622eb619560f6a242ee4c5544a39c5
 
 # Install Rust
-RUN rustup default 1.70 && \
+RUN rustup default 1.69 && \
   rustup target add wasm32-unknown-unknown && \
   rustup toolchain list && \
   rustup target list
