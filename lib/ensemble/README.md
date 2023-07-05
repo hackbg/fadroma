@@ -17,8 +17,48 @@ created, contract methods can be overridden, `Bank` interactions are also possib
 To start testing with ensemble, `ContractHarness` has to be implemented
 for each contract and registered by the `ContractEnsemble`.
 
+### ContractEnsemble
+
+`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state
+and executing messages between contracts.
+
+It exposes:
+  * methods like `register` for registering contract harnesses
+  * `instantiate`, `execute`, `reply`, `query` for interacting with contracts
+  * methods to inspect/alter the raw storage if needed.
+
+Just like on the blockchain, if any contract returns an error during exection,
+all state is reverted.
+
+Currently, supported messages are `CosmosMsg::Wasm` and `CosmosMsg::Bank`.
+
+```rust
+#[test]
+fn test_query_price() {
+    let mut ensemble = ContractEnsemble::new();
+    // environment identifies contract and sender:
+    let env = MockEnv::new("address_of_sender", "address_of_contract");
+    // register contract
+    let oracle = ensemble.register(Box::new(Oracle));
+    // register each contract (once) and instantiate it (once or more)
+    let oracle = ensemble.instantiate(oracle.id, &{}, env.clone())
+        .unwrap()
+        .instance;
+    // executing transactions:
+    let tx_response = ensemble
+        .execute(&oracle::ExecuteMsg::UpdatePrices {}, env.clone())
+        .unwrap();
+    // querying:
+    let query_response = ensemble
+        .query(oracle.address, &oracle::QueryMsg::GetPrice { base_symbol: "SCRT".into })
+        .unwrap();
+    assert_eq!(query_response.price, Uint128(1_000_000_000));
+}
+```
+
 ### ContractHarness
 
+For each contract under test, you must implement the `ContractHarness` trait.
 `ContractHarness` defines entrypoints to any contract: `init`, `handle`, `query`.
 In order to implement contract we can use `DefaultImpl` from existing contract code,
 or override contract methods.
@@ -73,43 +113,6 @@ impl ContractHarness for Oracle {
 
         result
     }
-}
-```
-
-### ContractEnsemble
-
-`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state
-and executing messages between contracts. Currently, supported messages are `CosmosMsg::Wasm` and
-`CosmosMsg::Bank`. It exposes methods like `register` for registering contract harnesses and
-`instantiate`, `execute`, `reply`, `query` for interacting with contracts and methods to
-inspect/alter the raw storage if needed. Just like on the blockchain, if any contract returns an
-error during exection, all state is reverted.
-
-```rust
-#[test]
-fn test_query_price() {
-    let mut ensemble = ContractEnsemble::new();
-
-    // register contract
-    let oracle = ensemble.register(Box::new(Oracle));
-
-    // instantiate
-    let oracle = ensemble.instantiate(
-        oracle.id,
-        &{},
-        MockEnv::new(
-            "Admin",
-            "oracle" // This will be the contract address
-        )
-    ).unwrap().instance;
-
-    // query
-    let oracle::QueryMsg::GetPrice { price } = ensemble.query(
-        oracle.address,
-        &oracle::QueryMsg::GetPrice { base_symbol: "SCRT".into },
-    ).unwrap();
-
-    assert_eq!(price, Uint128(1_000_000_000));
 }
 ```
 
