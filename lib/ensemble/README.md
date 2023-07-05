@@ -5,13 +5,26 @@
 **How to write multi-contract CosmWasm integration tests in Rust using `fadroma-ensemble`**
 
 ## Introduction
-Fadroma Ensemble provides a way to test multi-contract interactions without having to deploy contracts on-chain.
+
+Fadroma Ensemble provides a way to test multi-contract interactions
+without having to deploy contracts on-chain.
+
+This approach allows a lot of flexibility for testing contracts. Mock implementations can be
+created, contract methods can be overridden, `Bank` interactions are also possible.
 
 ## Getting started
-To start testing with ensemble `ContractHarness` has to be implemented for each contract and registered by the `ContractEnsemble`. This approach allows a lot of flexibility for testing contracts. Mock implementations can be created, contract methods can be overridden, `Bank` interactions are also possible.
+
+To start testing with ensemble, `ContractHarness` has to be implemented
+for each contract and registered by the `ContractEnsemble`.
 
 ### ContractHarness
-`ContractHarness` defines entrypoints to any contract: `init`, `handle`, `query`. In order to implement contract we can use `DefaultImpl` from existing contract code, or override contract methods. You can also use the `impl_contract_harness!` macro.
+
+`ContractHarness` defines entrypoints to any contract: `init`, `handle`, `query`.
+In order to implement contract we can use `DefaultImpl` from existing contract code,
+or override contract methods.
+
+You can also use the `contract_harness!` macro.
+
 ```rust
 // Here we create a ContractHarness implementation for an Oracle contract
 use path::to::contracts::oracle;
@@ -62,8 +75,15 @@ impl ContractHarness for Oracle {
     }
 }
 ```
+
 ### ContractEnsemble
-`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state and executing messages between contracts. Currently, supported messages are `CosmosMsg::Wasm` and `CosmosMsg::Bank`. It exposes methods like `register` for registering contract harnesses and `instantiate`, `execute`, `reply`, `query` for interacting with contracts and methods to inspect/alter the raw storage if needed. Just like on the blockchain, if any contract returns an error during exection, all state is reverted.
+
+`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state
+and executing messages between contracts. Currently, supported messages are `CosmosMsg::Wasm` and
+`CosmosMsg::Bank`. It exposes methods like `register` for registering contract harnesses and
+`instantiate`, `execute`, `reply`, `query` for interacting with contracts and methods to
+inspect/alter the raw storage if needed. Just like on the blockchain, if any contract returns an
+error during exection, all state is reverted.
 
 ```rust
 #[test]
@@ -94,8 +114,15 @@ fn test_query_price() {
 ```
 
 ### Simulating blocks
-Since the ensemble is designed to simulate a blockchain environment it maintains an idea of block height and time. Block height increases automatically with each successful call to execute and instantiate messages (**sub-messages don't trigger this behaviour**). It is possible to configure as needed: blocks can be incremented by a fixed amount or by a random value within a provided range. In addition, the current block can be frozen so subsequent calls will not modify it if desired.
-  
+
+Since the ensemble is designed to simulate a blockchain environment, it maintains
+the current block height and time.
+
+Block height increases automatically with each successful call to execute and instantiate messages
+(**sub-messages don't trigger this behaviour**). It is possible to configure as needed:
+blocks can be incremented by a fixed amount or by a random value within a provided range.
+In addition, the current block can be frozen so subsequent calls will not modify it if desired.
+
 Set the block height manually:
 
 ```rust
@@ -105,7 +132,8 @@ ensemble.block_mut().height = 10;
 ensemble.block_mut().time = 10000;
 ```
 
-Use auto-increments (after each **successful** call) for block height and time when initializing the ensemble:
+Use auto-increments (after each **successful** call)
+for block height and time when initializing the ensemble:
 
 ```rust
 // For exact increments
