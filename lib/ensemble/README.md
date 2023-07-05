@@ -1,23 +1,16 @@
 # Fadroma Ensemble
 
-![](https://img.shields.io/badge/version-0.1.0-blueviolet)
-
-**How to write multi-contract CosmWasm integration tests in Rust using `fadroma-ensemble`**
-
-## Introduction
-
 Fadroma Ensemble provides a way to test multi-contract interactions
 without having to deploy contracts on-chain.
 
 This approach allows a lot of flexibility for testing contracts. Mock implementations can be
 created, contract methods can be overridden, `Bank` interactions are also possible.
 
-## Getting started
+To start testing with Fadroma Ensemble, you must implement `ContractHarness` for each
+contract under test. In each test cases, you must instantiate `ContractEnsemble` and
+register the contracts using `ContractEnsemble::register`.
 
-To start testing with ensemble, `ContractHarness` has to be implemented
-for each contract and registered by the `ContractEnsemble`.
-
-### ContractEnsemble
+### `ContractEnsemble`
 
 `ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state
 and executing messages between contracts.
@@ -56,7 +49,7 @@ fn test_query_price() {
 }
 ```
 
-### ContractHarness
+### `ContractHarness`
 
 For each contract under test, you must implement the `ContractHarness` trait.
 `ContractHarness` defines entrypoints to any contract: `init`, `handle`, `query`.
@@ -116,7 +109,7 @@ impl ContractHarness for Oracle {
 }
 ```
 
-### Simulating blocks
+### Simulating the passage of time
 
 Since the ensemble is designed to simulate a blockchain environment, it maintains
 the current block height and time.
