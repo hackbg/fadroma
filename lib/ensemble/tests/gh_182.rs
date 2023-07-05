@@ -28,7 +28,7 @@ use crate::{prelude::*, ensemble::*};
     let response = ensemble
         .execute(&ContractAExec::InstantiateBC {}, env.clone())
         .unwrap();
-    unimplemented!();
+    unimplemented!("{:?}", &response);
 }
 
 type CodeId = u64;
@@ -67,51 +67,62 @@ struct ContractCInit {
 }
 
 impl ContractHarness for ContractA {
-    fn instantiate (&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+    fn instantiate (&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary)
+        -> AnyResult<Response>
+    {
         let ContractAInit { ref code_id_b, ref code_id_c } = from_binary(&msg)?;
         CODE_ID_B.save(deps.storage, code_id_b)?;
         CODE_ID_C.save(deps.storage, code_id_c)?;
         Ok(Response::default())
     }
-    fn execute (&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+
+    fn execute (&self, deps: DepsMut, _: Env, _: MessageInfo, msg: Binary)
+        -> AnyResult<Response>
+    {
         Ok(match from_binary::<ContractAExec>(&msg)? {
             ContractAExec::InstantiateBC {} => {
                 Response::default()
                     .add_submessage(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
-                        code_id: CODE_ID_B.load(deps.storage)?.unwrap(),
-                        code_hash: "".to_string(),
-                        funds: vec![],
-                        label: "contract_b".to_string(),
-                        msg:   to_binary("{}")?
+                        code_id:   CODE_ID_B.load(deps.storage)?.unwrap(),
+                        code_hash: "test_contract_1".to_string(),
+                        funds:     vec![],
+                        label:     "contract_b".to_string(),
+                        msg:       to_binary("{}")?
                     })))
             }
         })
     }
-    fn query (&self, _deps: Deps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
+
+    fn query (&self, _: Deps, _: Env, _: Binary) -> AnyResult<Binary> {
         unreachable!();
+    }
+
+    fn reply (&self, _: DepsMut, _: Env, reply: Reply) -> AnyResult<Response> {
+        panic!("{:?}", &reply);
+        Ok(Response::default())
     }
 }
 
 impl ContractHarness for ContractB {
-    fn instantiate(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
+    fn instantiate(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
         Ok(Response::default())
     }
-    fn execute(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
+    fn execute(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
         unreachable!();
     }
-    fn query (&self, _deps: Deps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
+    fn query (&self, _: Deps, _: Env, _: Binary) -> AnyResult<Binary> {
         unreachable!();
     }
 }
 
 impl ContractHarness for ContractC {
-    fn instantiate(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
+    fn instantiate(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
         Ok(Response::default())
     }
-    fn execute(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
+    fn execute(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
         unreachable!();
     }
-    fn query (&self, _deps: Deps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
+    fn query (&self, _: Deps, _: Env, _: Binary) -> AnyResult<Binary> {
         unreachable!();
     }
 }
