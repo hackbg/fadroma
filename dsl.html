@@ -7,6 +7,7 @@
 <title>Rendered by Ensuite</title>
 </head>
 <body>
+<script data-goatcounter="https://goat.fadroma.hack.bg/count" async src="//goat.fadroma.hack.bg/count.js"></script>
 <style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
 @font-face {
   font-family: 'Inter';
@@ -438,56 +439,235 @@ hr {
 <li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
-<h1 id="fadroma-dsl" tabindex="-1">Fadroma DSL</h1>
-<p><strong>Procedural macro for composable boilerplate-free CosmWasm smart contracts.</strong></p>
-<h2 id="introduction" tabindex="-1">Introduction</h2>
-<p>Fadroma DSL takes care of all the necessary boilerplate in CosmWasm smart contracts
-and provides a more productive development experience. There are two main goals the it aims to achieve.</p>
-<p>The first is to generate the repetitive code that you'd write anyway but in a structured way such that you'd know what to expect when seeing a piece of code written using the DSL.</p>
-<p>Secondly, it aims to provide a reliable and flexible system for composing common smart contract functionality and even extending entire contracts. That is, if you already have implemented admin functionality for example, you could easily add this to your contract and extend/change whatever you need just as easily. The granularity of this extends to the individual functions. Furthermore, your module could require some other module in order for it to work. You can enforce this with the DSL such that it will be a compile error if you didn't include what is needed.</p>
-<p>Any misuse of the macro will result in <strong>compile errors</strong> and not some hidden or unexpected runtime behavior. Additionally, the macro error messages should tell you exactly what you need to add or change in order for it to compile.</p>
+<h1 id="writing-smart-contracts-with-fadroma-dsl" tabindex="-1">Writing smart contracts with Fadroma DSL</h1>
+<p>The <code>fadroma-dsl</code> crate defines a simple <strong>procedural macro-based DSL</strong> that
+helps you write <strong>composable, boilerplate-free CosmWasm smart contracts</strong>.</p>
+<p><strong>Fadroma DSL</strong> sets out to achieve two main goals:</p>
+<ul>
+<li>
+<p><strong>Brevity.</strong> Repetitive code that you'd otherwise write manually is generated automatically
+in a structured way.</p>
+</li>
+<li>
+<p><strong>Composability.</strong> The procedural macro provides a reliable and flexible system for composing
+common smart contract functionality and extending contracts. Individual high-level features,
+such as admin functionality, can easily be added to a smart contract, reused and extended as
+needed. The granularity of this extends to the individual functions. Furthermore, dependencies
+between Fadroma DSL-based features can be defined and enforced.</p>
+</li>
+</ul>
+<p>Any misuse of the macro will result in simple <strong>compile errors</strong> -- not some hidden or unexpected
+runtime behavior. Additionally, the macro error messages should tell you exactly what you need to
+add or change in order for the code to compile.</p>
+<h3 id="prerequisites" tabindex="-1">Prerequisites</h3>
+<p>Using Fadroma DSL assumes you're familiar with the general architecture and operational model
+of CosmWasm smart contracts.</p>
+<h3 id="examples" tabindex="-1">Examples</h3>
+<p>For a quick comparison of DSL-based code vs. &quot;raw&quot; CosmWasm, see <a href="#comparison">Comparison</a>.</p>
+<p>See also: the <a href="https://github.com/hackbg/fadroma/tree/master/examples"><code>examples</code></a>
+directory in the Fadroma repo. These examples showcase how to use the DSL and the pre-defined
+DSL-based features in Fadroma. Furthermode, the DSL-based features can be used in non-DSL contracts.</p>
 <h2 id="usage" tabindex="-1">Usage</h2>
-<p>If you are already familiar with CosmWasm contracts then it should be easier to understand Fadroma DSL and why it does the things the way it does. Otherwise it might be better to get acquainted with that first. Also see the <a href="https://github.com/hackbg/fadroma/tree/master/examples">examples</a> in the Fadroma repo which showcase how to use the DSL and use modules defined in Fadroma (that also use the DSL) with or without it.</p>
+<h3 id="attribute-macros" tabindex="-1">Attribute macros</h3>
 <p>The DSL has the following attributes defined:</p>
-<p><strong>Note that you don't you don't have to remember all the attributes and rules around them because the compiler will guide you.</strong></p>
-<h3 id="contract" tabindex="-1"><strong>contract</strong></h3>
-<p>Only valid for <code>mod</code> items. The <code>mod</code> will contain the entire implementation of your contract. It generates a zero-sized <code>Contract</code> struct which you <strong>must</strong> use to implement the contract methods as well as any interfaces that you wish. All methods marked with any of the <code>#[init]</code>, <code>#[execute]</code> or <code>#[query]</code> attributes will be included as part of the available functionality that the contract exposes. Though, you are free to write any other <code>Contract</code> methods or functions inside the module as well. Interfaces are implemented for the contract using the standard Rust syntax i.e <code>impl MyTrait for Contract { ... }</code> where <code>MyTrait</code> is a trait declared with the <code>#[interface]</code> attribute. Technically you can use any trait that satisfies the types that <code>#[interface]</code> requires and it won't break anything since the macro enforces that. The macro also generates an <code>Error</code> enum that represents all possible errors that you use across your contract and the interfaces that it implements. This is used in the generated <code>execute</code> and <code>query</code> functions but rather an implementation detail that ties everything together. On the other hand, it's there if you want to use it for anything.</p>
-<h3 id="interface" tabindex="-1"><strong>interface</strong></h3>
-<p>Unless you have multiple contracts that talk to eachother, you don't need this attribute and can just use <code>#[contract]</code>. But when that is the case, this attribute allows to define the interface of your contract separately and generate its <code>InstantiateMsg</code> (if present), <code>ExecuteMsg</code> and <code>QueryMsg</code>. This means that the interface can be defined in a separate crate and can be consumed by multiple other crates that implement a contract. This approach plays well with the common pattern of defining all contract messages in a single crate and having the contract crates use that to implement and call eachother. In addition, having to implement the interface trait in your contract means that Rust will never let the interface and implementation go out of sync. The interfaces forces you to declare the associated type <code>type Error: std::fmt::Display;</code> and all methods must return that as an error type. This is allows to have a custom error type. Otherwise, just use <code>cosmwasm_std::StdError</code>.</p>
-<h3 id="init" tabindex="-1"><strong>init</strong></h3>
-<p>The instantiate method for the contract. There can be only one per contract but each interface that your contract implements
-must have it as well if it has it defined. Can be omitted altogether both in <code>#[contract]</code> and <code>#[interface]</code> contexts. When used in the latter, it will simply generate an <code>InstantiateMsg</code> struct. In the former it only serves as a marker inside any implemented
-interfaces unless the <code>entry</code> meta argument is used.</p>
-<h4 id="meta-arguments" tabindex="-1">Meta arguments</h4>
+<p><strong>Note that you don't you don't have to remember all the attributes and
+rules around them because the compiler will guide you.</strong></p>
+<h4 id="%23%5Bcontract%5D-mod" tabindex="-1"><strong><code>#[contract] mod</code></strong></h4>
 <ul>
-<li><code>entry</code>
+<li>Only valid for <code>mod</code> items. The <code>mod</code> will contain the entire implementation of your contract.</li>
+</ul>
+<pre><code class="hljs language-rust"><span class="hljs-meta">#[contract]</span>
+<span class="hljs-keyword">pub</span> <span class="hljs-keyword">mod</span> contract {
+  <span class="hljs-comment">/* ... */</span>
+}
+</code></pre>
 <ul>
-<li>Used as <code>#[init(entry)]</code> and creates the <code>InstantiateMsg</code>, <code>ExecuteMsg</code> and <code>QueryMsg</code> structs, the <code>instantiate</code>, <code>execute</code> and <code>query</code> entry point functions.</li>
-<li>Is optional.</li>
-<li>Can only be used in <code>#[contract]</code>.</li>
-<li>Only a single <code>#[init]</code> can be marked with it and this includes any interfaces that the contract implements.</li>
-<li>If you have an <code>#[init]</code> attribute in one of your contract methods (inside the <code>impl Contract</code> block) you must add
-this attribute. The reasoning for this being that since this is what generates the message enums and entry functions,
-having an <code>#[init]</code> attribute in a contract method (but not in interface methods) without it would basically do nothing.</li>
+<li>
+<p>It generates a zero-sized <code>Contract</code> struct, on which you must implement
+the contract API methods, as well as any interfaces that you wish to support.</p>
+</li>
+<li>
+<p>All methods marked with any of the <code>#[init]</code>, <code>#[execute]</code> or <code>#[query]</code> attributes
+will be included as part of the available functionality that the contract exposes.</p>
+</li>
+<li>
+<p>You are free to write any other <code>Contract</code> methods or functions inside the module as well.</p>
+</li>
+<li>
+<p>Interfaces are implemented for the contract using the standard Rust syntax i.e
+<code>impl MyTrait for Contract { ... }</code>, where <code>MyTrait</code> is a trait declared with the
+<code>#[interface]</code> attribute.</p>
+</li>
+<li>
+<p>Technically you can use any trait that satisfies the types that <code>#[interface]</code> requires,
+and it won't break anything since the macro enforces that.</p>
+</li>
+<li>
+<p>The macro also generates an <code>Error</code> enum that represents all possible errors that you use
+across your contract and the interfaces that it implements. This is used in the generated
+<code>execute</code> and <code>query</code> functions but rather an implementation detail that ties everything together.
+On the other hand, it's there if you want to use it for anything.</p>
+</li>
+</ul>
+<h4 id="%23%5Binterface%5D-mod" tabindex="-1"><strong><code>#[interface] mod</code></strong></h4>
+<ul>
+<li>
+<p>Used when you have multiple contracts that talk to each other. (Otherwise you don't need this
+attribute and can just use <code>#[contract]</code>.)</p>
+</li>
+<li>
+<p>This attribute allows to define the interface of your contract separately,
+automatically generating the <code>InstantiateMsg</code> (if present), <code>ExecuteMsg</code> and <code>QueryMsg</code> structs
+that represent the contract API, but not the corresponding functions that implement it.</p>
+</li>
+<li>
+<p>This means that the interface can be defined in a separate crate and can be consumed by multiple
+other crates that implement a contract.</p>
+</li>
+<li>
+<p>This approach plays well with the common pattern of defining all contract messages in a single
+crate, and having the contract crates use that to implement and call each other.</p>
+</li>
+<li>
+<p>In addition, having to implement the interface trait in your contract means that Rust will
+never let the interface and implementation go out of sync.</p>
+</li>
+<li>
+<p>The interface requires you to declare the associated type <code>type Error: std::fmt::Display;</code> and
+all methods must return that as an error type. This allows to have a custom error type.
+Otherwise, just use <code>cosmwasm_std::StdError</code>.</p>
+</li>
+</ul>
+<h4 id="%23%5Binit%5D-fn" tabindex="-1"><strong><code>#[init] fn</code></strong></h4>
+<ul>
+<li>
+<p>The instantiate method for the contract.</p>
+</li>
+<li>
+<p>There can be only one per contract but each interface that your contract implements must have it
+as well if it has it defined.</p>
+</li>
+<li>
+<p>Can be omitted altogether both in <code>#[contract]</code> and <code>#[interface]</code> contexts.
+When used in the latter, it will simply generate an <code>InstantiateMsg</code> struct.
+In the former it only serves as a marker inside any implemented interfaces,
+unless the <code>entry</code> meta argument is used.</p>
+</li>
+</ul>
+<h5 id="meta-arguments" tabindex="-1">Meta arguments</h5>
+<ul>
+<li>
+<p><code>entry</code></p>
+<ul>
+<li>
+<p>Used as <code>#[init(entry)]</code> and creates the <code>InstantiateMsg</code>, <code>ExecuteMsg</code> and <code>QueryMsg</code> structs,
+the <code>instantiate</code>, <code>execute</code> and <code>query</code> entry point functions.</p>
+</li>
+<li>
+<p>Is optional.</p>
+</li>
+<li>
+<p>Can only be used in <code>#[contract]</code>.</p>
+</li>
+<li>
+<p>Only a single <code>#[init]</code> can be marked with it and this includes any interfaces that
+the contract implements.</p>
+</li>
+<li>
+<p>If you have an <code>#[init]</code> attribute in one of your contract methods (inside the
+<code>impl Contract</code> block) you must add this attribute. The reasoning for this being that since
+this is what generates the message enums and entry functions, having an <code>#[init]</code> attribute in
+a contract method (but not in interface methods) without it would basically do nothing.</p>
+</li>
 </ul>
 </li>
-<li><code>entry_wasm</code>
+<li>
+<p><code>entry_wasm</code></p>
 <ul>
-<li>Generates the same boilerplate and has the same rules as the <code>entry</code> meta but will also generate the WASM boilerplate FFI module.</li>
+<li>Generates the same boilerplate and has the same rules as the <code>entry</code> meta
+but will also generate the WASM boilerplate FFI module.</li>
 </ul>
 </li>
 </ul>
-<h3 id="execute" tabindex="-1"><strong>execute</strong></h3>
-<p>A method that is part of the executable set of methods of the contract. Each method that is to be part of that set must be annotated with that. The generated <code>ExecuteMsg</code> enum is comprised of the names of all those methods. Dispatch also happens automatically through the generated <code>execute</code> functions. This is all code that you'd write yourself.</p>
-<h3 id="query" tabindex="-1"><strong>query</strong></h3>
-<p>Identical to how the <code>#[execute]</code> attribute works but generated the <code>QueryMsg</code> enum and the <code>query</code> function.</p>
-<h3 id="reply" tabindex="-1"><strong>reply</strong></h3>
-<p>Marks the method as a CosmWasm reply handler. Only <strong>one</strong> such function can exist per contract and it must have a single parameter with the <code>cosmwasm_std::Reply</code> type.</p>
-<h3 id="execute_guard" tabindex="-1"><strong>execute_guard</strong></h3>
-<p>An execute guard function is a special function that is called before matching the <code>ExecuteMsg</code> enum inside the <code>execute</code> function both of which are generated by the macro. Only <strong>one</strong> such function can exist per contract and it must have a single parameter with the <code>&amp;ExecuteMsg</code> type.</p>
-<p>It is useful in cases where we want to assert some state before proceeding with executing the incoming message and fail before that if necessary. For <a href="https://github.com/hackbg/fadroma/blob/master/examples/derive-contract-components/src/lib.rs#L24-L38">example</a>, it should be used with Fadroma's killswitch component. Inside the execute guard we check whether the contract is pausing or migrated and return an <code>Err(())</code> if so.</p>
-<h3 id="auto_impl" tabindex="-1"><strong>auto_impl</strong></h3>
-<p>Only valid for trait <code>impl</code> blocks. It takes a path to a struct which implements the given interface trait being implemented. For each method that is part of the trait, it delegates the implementation to the given struct. We ensure that the provided struct exactly implements the trait by using Rust's fully qualified syntax (<code>&lt;MyStruct as Trait&gt;::method_name()</code>). It will also fill in the concrete <code>Error</code> type that the interface must have. You delegate the implementation to the struct by leaving the method body <strong>completely</strong> empty. Otherwise, writing a method body will use your code. This allows for great flexibility since you can implement an interface by using an existing implementation while allowing you to directly override any methods that you wish. For example:</p>
+<h4 id="%23%5Bexecute%5D-fn" tabindex="-1"><strong><code>#[execute] fn</code></strong></h4>
+<ul>
+<li>
+<p>A method that is part of the executable set of methods of the contract.</p>
+</li>
+<li>
+<p>Each method that is to be part of that set must be annotated with that.</p>
+</li>
+<li>
+<p>The generated <code>ExecuteMsg</code> enum is comprised of the names of all those methods.</p>
+</li>
+<li>
+<p>Dispatch also happens automatically through the generated <code>execute</code> functions.
+This is all code that you'd write yourself.</p>
+</li>
+</ul>
+<h4 id="%23%5Bquery%5D-fn" tabindex="-1"><strong><code>#[query] fn</code></strong></h4>
+<ul>
+<li>
+<p>Identical to how the <code>#[execute]</code> attribute works</p>
+</li>
+<li>
+<p>Generates the <code>QueryMsg</code> enum and the <code>query</code> function.</p>
+</li>
+</ul>
+<h4 id="%23%5Breply%5D-fn" tabindex="-1"><strong><code>#[reply] fn</code></strong></h4>
+<ul>
+<li>
+<p>Marks the method as a CosmWasm reply handler.</p>
+</li>
+<li>
+<p>Only <strong>one</strong> such function can exist per contract
+and it must have a single parameter with the <code>cosmwasm_std::Reply</code> type.</p>
+</li>
+</ul>
+<h4 id="%23%5Bexecute_guard%5D-fn" tabindex="-1"><strong><code>#[execute_guard] fn</code></strong></h4>
+<ul>
+<li>
+<p>An execute guard function is a special function that is called before matching the <code>ExecuteMsg</code>
+enum inside the <code>execute</code> function both of which are generated by the macro.</p>
+</li>
+<li>
+<p>Only <strong>one</strong> such function can exist per contract and it must have a single parameter
+with the <code>&amp;ExecuteMsg</code> type.</p>
+</li>
+<li>
+<p>It is useful in cases where we want to assert some state before proceeding with executing
+the incoming message and fail before that if necessary. For <a href="https://github.com/hackbg/fadroma/blob/master/examples/derive-contract-components/src/lib.rs#L24-L38">example</a>,
+it should be used with Fadroma's killswitch component: inside the execute guard, we check whether
+the contract is pausing or migrated and return an <code>Err(())</code> if so.</p>
+</li>
+</ul>
+<h4 id="%23%5Bauto_impl%5D-impl" tabindex="-1"><strong><code>#[auto_impl] impl</code></strong></h4>
+<ul>
+<li>
+<p>Only valid for trait <code>impl</code> blocks.</p>
+</li>
+<li>
+<p>It takes a path to a struct which implements the given interface trait being implemented.</p>
+</li>
+<li>
+<p>For each method that is part of the trait, it delegates the implementation to the given struct.</p>
+</li>
+<li>
+<p>We ensure that the provided struct exactly implements the trait by using Rust's fully qualified
+syntax (<code>&lt;MyStruct as Trait&gt;::method_name()</code>).</p>
+</li>
+<li>
+<p>It will also fill in the concrete <code>Error</code> type that the interface must have.</p>
+</li>
+<li>
+<p>You delegate the implementation to the struct by leaving the method body <strong>completely</strong> empty.</p>
+</li>
+<li>
+<p>Otherwise, writing a method body will use your code. This allows for great flexibility since you
+can implement an interface by using an  existing implementation while allowing you to directly
+override any methods that you wish. For example:</p>
+</li>
+</ul>
 <pre><code class="hljs language-rust"><span class="hljs-meta">#[auto_impl(ImplementingStuct)]</span>
 <span class="hljs-keyword">impl</span> <span class="hljs-title class_">MyInterface</span> <span class="hljs-keyword">for</span> <span class="hljs-title class_">Contract</span> {
   <span class="hljs-comment">// Here we leave the body empty and it will delegate the implementation to ImplementingStuct</span>
@@ -506,89 +686,53 @@ having an <code>#[init]</code> attribute in a contract method (but not in interf
 </code></pre>
 <h4 id="meta-arguments-1" tabindex="-1">Meta arguments</h4>
 <ul>
-<li>Path to the struct that implements the trait</li>
-<li>Not optional.</li>
+<li>
+<p>Path to the struct that implements the trait</p>
+</li>
+<li>
+<p>Not optional.</p>
+</li>
+<li>
+<p>The ubiquitous <code>Deps</code>/<code>DepsMut</code>, <code>Env</code> and <code>MessageInfo</code> types are automatically added
+to generated method signatures, so that they don't need to be specified all the time.</p>
+</li>
+<li>
+<p>Parameters that your message declares are appended after those in the method signature.
+The following table describes which attribute includes what parameters:</p>
+</li>
 </ul>
-<h2 id="usage-1" tabindex="-1"><strong>Usage</strong></h2>
-<p>Since their usage is always a fact in CosmWasm contracts, the <code>Deps/DepsMut</code>, <code>Env</code> and <code>MessageInfo</code> types are inserted as parameters in the relevant methods so that they don't need to be specified all the time. Any parameters that your message declares are appended after those in the method signature. The following table describes which attribute includes what parameters:</p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
-<th>Parameter name</th>
-<th>Parameter type</th>
+<th>Generated signature</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>init</td>
-<td>deps</td>
-<td>DepsMut</td>
+<td>#[init]</td>
+<td><code>deps: DepsMut, env: Env, info: MessageInfo, ...msg</code></td>
 </tr>
 <tr>
-<td>init</td>
-<td>env</td>
-<td>Env</td>
+<td>#[execute]</td>
+<td><code>deps: DepsMut, env: Env, info: MessageInfo, ...msg</code></td>
 </tr>
 <tr>
-<td>init</td>
-<td>info</td>
-<td>MessageInfo</td>
+<td>#[query]</td>
+<td><code>deps: Deps, env: Env, ...msg</code></td>
 </tr>
 <tr>
-<td>execute</td>
-<td>deps</td>
-<td>DepsMut</td>
+<td>#[reply]</td>
+<td><code>deps: DepsMut, env: Env, ...msg</code></td>
 </tr>
 <tr>
-<td>execute</td>
-<td>env</td>
-<td>Env</td>
-</tr>
-<tr>
-<td>execute</td>
-<td>info</td>
-<td>MessageInfo</td>
-</tr>
-<tr>
-<td>query</td>
-<td>deps</td>
-<td>Deps</td>
-</tr>
-<tr>
-<td>query</td>
-<td>env</td>
-<td>Env</td>
-</tr>
-<tr>
-<td>reply</td>
-<td>deps</td>
-<td>DepsMut</td>
-</tr>
-<tr>
-<td>reply</td>
-<td>env</td>
-<td>Env</td>
-</tr>
-<tr>
-<td>execute_guard</td>
-<td>deps</td>
-<td>DepsMut</td>
-</tr>
-<tr>
-<td>execute_guard</td>
-<td>env</td>
-<td>&amp;Env</td>
-</tr>
-<tr>
-<td>execute_guard</td>
-<td>info</td>
-<td>&amp;MessageInfo</td>
+<td>#[execute_guard]</td>
+<td><code>deps: DepsMut, env: &amp;Env, info: &amp;MessageInfo, ...msg</code></td>
 </tr>
 </tbody>
 </table>
 <h2 id="comparison" tabindex="-1">Comparison</h2>
-<p>To better understand what the macro generates here's a simple contract and what the generated code ends up looking like:</p>
+<p>To better understand what the macro generates, here's a simple contract:</p>
 <pre><code class="hljs language-rust"><span class="hljs-meta">#[fadroma::dsl::contract]</span>
 <span class="hljs-keyword">pub</span> <span class="hljs-keyword">mod</span> counter_contract {
     <span class="hljs-keyword">use</span> fadroma::{
@@ -603,12 +747,10 @@ having an <code>#[init]</code> attribute in a contract method (but not in interf
         <span class="hljs-keyword">pub</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">new</span>(initial_value: <span class="hljs-type">u64</span>) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Result</span>&lt;Response, StdError&gt; {
             <span class="hljs-title function_ invoke__">Ok</span>(Response::<span class="hljs-title function_ invoke__">default</span>())
         }
-
         <span class="hljs-meta">#[execute]</span>
         <span class="hljs-keyword">pub</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">add</span>(value: <span class="hljs-type">u64</span>) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Result</span>&lt;Response, StdError&gt; {
             <span class="hljs-title function_ invoke__">Ok</span>(Response::<span class="hljs-title function_ invoke__">default</span>())
         }
-
         <span class="hljs-meta">#[query]</span>
         <span class="hljs-keyword">pub</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">value</span>() <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Result</span>&lt;<span class="hljs-type">u64</span>, StdError&gt; {
             <span class="hljs-title function_ invoke__">Ok</span>(<span class="hljs-number">0</span>)
@@ -619,13 +761,12 @@ having an <code>#[init]</code> attribute in a contract method (but not in interf
     <span class="hljs-keyword">impl</span> <span class="hljs-title class_">Admin</span> <span class="hljs-keyword">for</span> <span class="hljs-title class_">Contract</span> {
         <span class="hljs-meta">#[execute]</span>
         <span class="hljs-keyword">fn</span> <span class="hljs-title function_">change_admin</span>(mode: <span class="hljs-type">Option</span>&lt;Mode&gt;) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Result</span>&lt;Response, <span class="hljs-keyword">Self</span>::Error&gt; { }
-    
         <span class="hljs-meta">#[query]</span>
         <span class="hljs-keyword">fn</span> <span class="hljs-title function_">admin</span>() <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Result</span>&lt;<span class="hljs-type">Option</span>&lt;Addr&gt;, <span class="hljs-keyword">Self</span>::Error&gt; { }
     }
 }
 </code></pre>
-<p>will expand to:</p>
+<p>And here's what the expanded code ends up looking like:</p>
 <pre><code class="hljs language-rust"><span class="hljs-keyword">pub</span> <span class="hljs-keyword">mod</span> counter_contract {
     <span class="hljs-keyword">use</span> fadroma::{
         dsl::*,
@@ -794,7 +935,7 @@ having an <code>#[init]</code> attribute in a contract method (but not in interf
 }
 </code></pre>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#introduction">Introduction</a></li><li><a href="#usage">Usage</a><ul><li><a href="#contract">contract</a></li><li><a href="#interface">interface</a></li><li><a href="#init">init</a><ul><li><a href="#meta-arguments">Meta arguments</a></li></ul></li><li><a href="#execute">execute</a></li><li><a href="#query">query</a></li><li><a href="#reply">reply</a></li><li><a href="#execute_guard">execute_guard</a></li><li><a href="#auto_impl">auto_impl</a><ul><li><a href="#meta-arguments-1">Meta arguments</a></li></ul></li></ul></li><li><a href="#usage-1">Usage</a></li><li><a href="#comparison">Comparison</a></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><ul><li><a href="#prerequisites">Prerequisites</a></li><li><a href="#examples">Examples</a></li></ul></li><li><a href="#usage">Usage</a><ul><li><a href="#attribute-macros">Attribute macros</a><ul><li><a href="#%23%5Bcontract%5D-mod">#[contract] mod</a></li><li><a href="#%23%5Binterface%5D-mod">#[interface] mod</a></li><li><a href="#%23%5Binit%5D-fn">#[init] fn</a></li><li><a href="#%23%5Bexecute%5D-fn">#[execute] fn</a></li><li><a href="#%23%5Bquery%5D-fn">#[query] fn</a></li><li><a href="#%23%5Breply%5D-fn">#[reply] fn</a></li><li><a href="#%23%5Bexecute_guard%5D-fn">#[execute_guard] fn</a></li><li><a href="#%23%5Bauto_impl%5D-impl">#[auto_impl] impl</a></li><li><a href="#meta-arguments-1">Meta arguments</a></li></ul></li></ul></li><li><a href="#comparison">Comparison</a></li></ul></div></p></nav>
 </div>
 </body>
 </html>
