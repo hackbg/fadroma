@@ -16,40 +16,76 @@ use crate::{prelude::*, ensemble::*};
     let mut ensemble = ContractEnsemble::new();
     let env = MockEnv::new("admin", "contract_a");
     let contract_a = ensemble.register(Box::new(ContractA));
+    let contract_b = ensemble.register(Box::new(ContractB));
+    let contract_c = ensemble.register(Box::new(ContractC));
     let contract_a = ensemble
-        .instantiate(contract_a.id, &{}, env.clone())
+        .instantiate(contract_a.id, &ContractAInit {
+            code_id_b: contract_b.id,
+            code_id_c: contract_c.id,
+        }, env.clone())
         .unwrap()
         .instance;
     let response = ensemble
-        .execute(&ExecuteMsg::InstantiateBC {}, env.clone())
+        .execute(&ContractAExec::InstantiateBC {}, env.clone())
         .unwrap();
-    panic!("{:?}", &response);
+    unimplemented!();
 }
+
+type CodeId = u64;
+
+macro_rules! storage {
+    ($name:ident, $ty:ty, $ns:ident, $prefix:literal) => {
+        crate::namespace!($ns, $prefix);
+        const $name: SingleItem<$ty, $ns> = SingleItem::new();
+    }
+}
+
+storage!(CODE_ID_B, CodeId, CodeIdB, b"code_id_b_");
+
+storage!(CODE_ID_C, CodeId, CodeIdC, b"code_id_c_");
 
 struct ContractA;
-struct ContractB;
-struct ContractC;
 
 #[derive(Serialize, Deserialize)]
-struct InstantiateMsg {
-    contract_b_address: CanonicalAddr
+struct ContractAInit {
+    code_id_b: CodeId,
+    code_id_c: CodeId
 }
 
 #[derive(Serialize, Deserialize)]
-enum ExecuteMsg {
+enum ContractAExec {
     InstantiateBC {}
 }
 
+struct ContractB;
+
+struct ContractC;
+
 #[derive(Serialize, Deserialize)]
-enum QueryMsg {}
+struct ContractCInit {
+    contract_b_address: CanonicalAddr
+}
 
 impl ContractHarness for ContractA {
-    fn instantiate(&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+    fn instantiate (&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+        let ContractAInit { ref code_id_b, ref code_id_c } = from_binary(&msg)?;
+        CODE_ID_B.save(deps.storage, code_id_b)?;
+        CODE_ID_C.save(deps.storage, code_id_c)?;
         Ok(Response::default())
     }
-    fn execute(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response> {
-        let msg: ExecuteMsg = from_binary(&msg)?;
-        Ok(Response::default())
+    fn execute (&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+        Ok(match from_binary::<ContractAExec>(&msg)? {
+            ContractAExec::InstantiateBC {} => {
+                Response::default()
+                    .add_submessage(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
+                        code_id: CODE_ID_B.load(deps.storage)?.unwrap(),
+                        code_hash: "".to_string(),
+                        funds: vec![],
+                        label: "contract_b".to_string(),
+                        msg:   to_binary("{}")?
+                    })))
+            }
+        })
     }
     fn query (&self, _deps: Deps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
         unreachable!();
@@ -57,7 +93,7 @@ impl ContractHarness for ContractA {
 }
 
 impl ContractHarness for ContractB {
-    fn instantiate(&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+    fn instantiate(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
         Ok(Response::default())
     }
     fn execute(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
@@ -69,7 +105,7 @@ impl ContractHarness for ContractB {
 }
 
 impl ContractHarness for ContractC {
-    fn instantiate(&self, deps: DepsMut, _env: Env, _info: MessageInfo, msg: Binary) -> AnyResult<Response> {
+    fn instantiate(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
         Ok(Response::default())
     }
     fn execute(&self, _deps: DepsMut, _env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
