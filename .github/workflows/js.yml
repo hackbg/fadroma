@@ -19,6 +19,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - name: Run pnpm ci
+        env:
+          FORCE_COLOR: 2
         run: |
           sudo apt install -y wabt binaryen
           mkdir -p wasm

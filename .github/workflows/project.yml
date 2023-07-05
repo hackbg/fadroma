@@ -24,6 +24,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
       - name: Run pnpm ci
+        env:
+          FORCE_COLOR: 2
         run: |
           sudo apt install -y wabt binaryen
           mkdir -p wasm
@@ -31,8 +33,10 @@ jobs:
           rustup target add wasm32-unknown-unknown --toolchain 1.69
           pnpm --version
           pnpm i --frozen-lockfile
-          FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
+          FORCE_COLOR=1 FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
       - name: Create, build, and deploy project
+        env:
+          FORCE_COLOR: 2
         run: |
           ../fadroma/fadroma.cli.cjs create testproject test1 test2
           cd testproject
@@ -78,12 +82,16 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
       - name: Build Fadroma to NPM equivalent
+        env:
+          FORCE_COLOR: 2
         run: |
           pnpm i # install with dev dependencies
           pnpm exec ubik fix # compile to js, don't typecheck or run tests
           sudo ln -s `which true` /usr/local/bin/husky # stub husky
           pnpm i -P # remove dev dependencies
       - name: Create project
+        env:
+          FORCE_COLOR: 2
         run: |
           sudo apt install -y wabt binaryen
           export FADROMA="$(pwd)"
