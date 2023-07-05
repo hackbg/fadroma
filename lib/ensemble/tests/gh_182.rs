@@ -28,7 +28,7 @@ use crate::{prelude::*, ensemble::*};
     let response = ensemble
         .execute(&ContractAExec::InstantiateBC {}, env.clone())
         .unwrap();
-    unimplemented!("{:?}", &response);
+    unimplemented!("{:#?}", &response);
 }
 
 type CodeId = u64;
@@ -40,9 +40,10 @@ macro_rules! storage {
     }
 }
 
-storage!(CODE_ID_B, CodeId, CodeIdB, b"code_id_b_");
+storage!(CODE_ID_B, CodeId, CodeIdB,  b"code_id_b");
+storage!(CODE_ID_C, CodeId, CodeIdC,  b"code_id_c");
 
-storage!(CODE_ID_C, CodeId, CodeIdC, b"code_id_c_");
+storage!(ADDRESS_B, String, AddressB, b"address_b");
 
 struct ContractA;
 
@@ -63,7 +64,7 @@ struct ContractC;
 
 #[derive(Serialize, Deserialize)]
 struct ContractCInit {
-    contract_b_address: CanonicalAddr
+    address_b: Addr
 }
 
 impl ContractHarness for ContractA {
@@ -80,16 +81,14 @@ impl ContractHarness for ContractA {
         -> AnyResult<Response>
     {
         Ok(match from_binary::<ContractAExec>(&msg)? {
-            ContractAExec::InstantiateBC {} => {
-                Response::default()
-                    .add_submessage(SubMsg::new(CosmosMsg::Wasm(WasmMsg::Instantiate {
-                        code_id:   CODE_ID_B.load(deps.storage)?.unwrap(),
-                        code_hash: "test_contract_1".to_string(),
-                        funds:     vec![],
-                        label:     "contract_b".to_string(),
-                        msg:       to_binary("{}")?
-                    })))
-            }
+            ContractAExec::InstantiateBC {} => Response::default()
+                .add_submessage(SubMsg::reply_on_success(WasmMsg::Instantiate {
+                    code_id:   CODE_ID_B.load(deps.storage)?.unwrap(),
+                    code_hash: "test_contract_1".to_string(),
+                    funds:     vec![],
+                    label:     "contract_b".to_string(),
+                    msg:       to_binary("{}")?
+                }, 0))
         })
     }
 
@@ -97,9 +96,32 @@ impl ContractHarness for ContractA {
         unreachable!();
     }
 
-    fn reply (&self, _: DepsMut, _: Env, reply: Reply) -> AnyResult<Response> {
-        panic!("{:?}", &reply);
-        Ok(Response::default())
+    fn reply (&self, deps: DepsMut, _: Env, reply: Reply) -> AnyResult<Response> {
+        Ok(match reply.id {
+            0 => {
+                let address_b = &reply.result.unwrap().events[0].attributes[0].value;
+                ADDRESS_B.save(deps.storage, address_b)?;
+                let address_b = deps.api.addr_validate(address_b)?;
+                Response::default()
+                    .add_submessage(SubMsg::reply_on_success(WasmMsg::Instantiate {
+                        code_id:   CODE_ID_C.load(deps.storage)?.unwrap(),
+                        code_hash: "test_contract_2".to_string(),
+                        funds:     vec![],
+                        label:     "contract_c".to_string(),
+                        msg:       to_binary(&ContractCInit { address_b })?
+                    }, 1))
+            },
+            1 => {
+                let address_b = ADDRESS_B.load(deps.storage)?.unwrap();
+                let address_c = &reply.result.unwrap().events[0].attributes[0].value;
+                Response::default()
+                    .add_attributes(vec![
+                        ("address_b", address_b),
+                        ("address_c", address_c.clone()),
+                    ])
+            },
+            _ => unreachable!()
+        })
     }
 }
 
