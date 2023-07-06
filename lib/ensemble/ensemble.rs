@@ -1,13 +1,6 @@
-use std::{
-    fmt::Debug,
-    convert::TryFrom
-};
-use serde::{
-    Serialize,
-    de::DeserializeOwned
-};
+use std::{fmt::Debug, convert::TryFrom};
+use serde::{Serialize, de::DeserializeOwned};
 use oorandom::Rand64;
-
 use crate::{
     prelude::{ContractCode, ContractLink},
     cosmwasm_std::{
@@ -19,7 +12,6 @@ use crate::{
 };
 #[cfg(feature = "ensemble-staking")]
 use crate::cosmwasm_std::{Uint128, FullDelegation, Validator, Delegation, StakingMsg, DistributionMsg};
-
 use super::{
     bank::Balances,
     block::Block,
@@ -34,11 +26,11 @@ use super::{
     error::{EnsembleError, RegistryError},
     event::ProcessedEvents
 };
-
 #[cfg(feature = "ensemble-staking")]
 use super::staking::Delegations;
 
 pub type AnyResult<T> = anyhow::Result<T>;
+
 pub type EnsembleResult<T> = core::result::Result<T, EnsembleError>;
 
 pub(crate) type SubMsgExecuteResult = EnsembleResult<(ResponseVariants, ProcessedEvents)>;
@@ -46,15 +38,12 @@ pub(crate) type SubMsgExecuteResult = EnsembleResult<(ResponseVariants, Processe
 /// The trait that allows the ensemble to execute your contract. Must be implemented
 /// for each contract that will participate in the shared execution. Usually implemented
 /// by calling the respective contract function for each method of the trait by passing
-/// down the parameters of the method and calling `cosmwasm_std::from_binary()` on the 
+/// down the parameters of the method and calling `cosmwasm_std::from_binary()` on the
 /// `msg` parameter. It can also be used to implement a mock contract directly.
 pub trait ContractHarness {
     fn instantiate(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
-
     fn execute(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
-
     fn query(&self, deps: Deps, env: Env, msg: Binary) -> AnyResult<Binary>;
-
     fn reply(&self, _deps: DepsMut, _env: Env, _reply: Reply) -> AnyResult<Response> {
         panic!("Reply entry point not implemented.")
     }
@@ -165,22 +154,16 @@ impl ContractEnsemble {
     pub fn new() -> Self {
         #[cfg(feature = "scrt")]
         let denom = "uscrt";
-
         #[cfg(not(feature = "scrt"))]
         let denom = "uatom";
-
-        Self {
-            ctx: Box::new(Context::new(denom.into()))
-        }
+        Self { ctx: Box::new(Context::new(denom.into())) }
     }
 
     /// Creates a new instance of the ensemble that will use
     /// the provided denomination as the native coin.
     #[cfg(feature = "ensemble-staking")]
     pub fn new_with_denom(native_denom: impl Into<String>) -> Self {
-        Self {
-            ctx: Box::new(Context::new(native_denom.into()))
-        }
+        Self { ctx: Box::new(Context::new(native_denom.into())) }
     }
 
     /// Registers a contract with the ensemble which enables it to be
@@ -192,16 +175,8 @@ impl ContractEnsemble {
     pub fn register(&mut self, code: Box<dyn ContractHarness>) -> ContractCode {
         let id = self.ctx.contracts.len() as u64;
         let code_hash = format!("test_contract_{}", id);
-
-        self.ctx.contracts.push(ContractUpload {
-            code_hash: code_hash.clone(),
-            code
-        });
-
-        ContractCode {
-            id,
-            code_hash
-        }
+        self.ctx.contracts.push(ContractUpload { code_hash: code_hash.clone(), code });
+        ContractCode { id, code_hash }
     }
 
     /// Returns a reference to the current block state.
@@ -254,11 +229,7 @@ impl ContractEnsemble {
         to: impl AsRef<str>,
         coin: Coin
     ) -> EnsembleResult<()> {
-        self.ctx.state.bank.transfer(
-            from.as_ref(),
-            to.as_ref(),
-            coin
-        )
+        self.ctx.state.bank.transfer(from.as_ref(), to.as_ref(), coin)
     }
 
     /// Returns a reference to all the balances associated with the given
@@ -352,9 +323,7 @@ impl ContractEnsemble {
     #[inline]
     #[cfg(feature = "ensemble-staking")]
     pub fn fast_forward_delegation_waits(&mut self) {
-        let unbondings = self.ctx.delegations.fast_forward_waits();
-
-        for unbonding in unbondings {
+        for unbonding in self.ctx.delegations.fast_forward_waits() {
             self.ctx.state.bank.add_funds(
                 unbonding.delegator.as_str(),
                 unbonding.amount
@@ -371,7 +340,6 @@ impl ContractEnsemble {
     {
         let instance = self.ctx.state.instance(address.as_ref())?;
         borrow(&instance.storage as &dyn Storage);
-
         Ok(())
     }
 
@@ -384,13 +352,11 @@ impl ContractEnsemble {
     {
         self.ctx.state.push_scope();
         let result = self.ctx.state.borrow_storage_mut(address.as_ref(), mutate);
-
         if result.is_ok() {
             self.ctx.state.commit();
         } else {
             self.ctx.state.revert();
         }
-
         result
     }
 
@@ -402,12 +368,9 @@ impl ContractEnsemble {
     /// 
     /// The `instance` field of the response will contain this address and
     /// the code hash associated with this instance.
-    pub fn instantiate<T: Serialize>(
-        &mut self,
-        code_id: u64,
-        msg: &T,
-        env: MockEnv
-    ) -> EnsembleResult<InstantiateResponse> {
+    pub fn instantiate<T: Serialize>(&mut self, code_id: u64, msg: &T, env: MockEnv) ->
+        EnsembleResult<InstantiateResponse>
+    {
         let contract = self.ctx.contracts.get(code_id as usize).ok_or_else(
             || EnsembleError::registry(RegistryError::IdNotFound(code_id)))?;
         match self.ctx.execute_messages(SubMsg::new(WasmMsg::Instantiate {
@@ -423,11 +386,9 @@ impl ContractEnsemble {
     }
 
     /// Executes the contract with the address provided in `env.contract`.
-    pub fn execute<T: Serialize + ?Sized>(
-        &mut self,
-        msg: &T,
-        env: MockEnv
-    ) -> EnsembleResult<ExecuteResponse> {
+    pub fn execute<T: Serialize + ?Sized>(&mut self, msg: &T, env: MockEnv)
+        -> EnsembleResult<ExecuteResponse>
+    {
         let address = env.contract.into_string();
         let instance = self.ctx.state.instance(&address)?;
         let code_hash = self.ctx.contracts[instance.index].code_hash.clone();
@@ -686,10 +647,7 @@ impl Context {
         -> SubMsgExecuteResult
     {
         match msg {
-            BankMsg::Send {
-                to_address,
-                amount,
-            } => {
+            BankMsg::Send { to_address, amount } => {
                 let resp = self.state.transfer_funds(&sender, &to_address, amount)?;
                 let events = ProcessedEvents::from(&resp);
                 Ok((resp.into(), events))
@@ -768,10 +726,8 @@ impl Context {
     #[inline]
     fn create_env(&self, contract: ContractLink<Addr>) -> Env {
         let seed = 94759574359011638572u128.wrapping_mul(self.block.height as u128);
-        
         let mut rng = Rand64::new(seed);
         let bytes = rng.rand_u64().to_le_bytes();
-
         Env {
             block: BlockInfo {
                 height: self.block.height,

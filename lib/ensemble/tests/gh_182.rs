@@ -15,21 +15,20 @@ use crate::{prelude::*, ensemble::*};
 #[test] fn test_gh_182 () {
     let mut ensemble = ContractEnsemble::new();
     let env = MockEnv::new("admin", "contract_a");
+    // "Upload" the 3 contracts
     let contract_a = ensemble.register(Box::new(ContractA));
     let contract_b = ensemble.register(Box::new(ContractB));
     let contract_c = ensemble.register(Box::new(ContractC));
-    let contract_a = ensemble
-        .instantiate(contract_a.id, &ContractAInit {
-            code_id_b: contract_b.id,
-            code_id_c: contract_c.id,
-        }, env.clone())
-        .unwrap()
-        .instance;
-    let response = ensemble
-        .execute(&ContractAExec::InstantiateBC {}, env.clone())
-        .unwrap();
-    println!("{}", &response);
-    unimplemented!();
+    // Instantiate contract A with the code ids of contracts B and C
+    let init = ContractAInit { code_id_b: contract_b.id, code_id_c: contract_c.id };
+    let contract_a = ensemble.instantiate(contract_a.id, &init, env.clone()).unwrap().instance;
+    // Execute a transaction that instantiates contracts B and C
+    let response = ensemble.execute(&ContractAExec::InstantiateBC {}, env.clone()).unwrap();
+    assert_eq!(response.response.messages, vec![]);
+    assert_eq!(response.response.attributes, vec![
+        Attribute { key: "address_b".to_string(), value: "contract_b".to_string(), encrypted: false },
+        Attribute { key: "address_c".to_string(), value: "contract_c".to_string(), encrypted: false },
+    ]);
 }
 
 type CodeId = u64;

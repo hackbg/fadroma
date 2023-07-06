@@ -6,33 +6,35 @@ use crate::{
     }
 };
 
-pub struct ExecutionState {
-    states: Vec<ExecutionLevel>,
+#[derive(Debug)]
+pub(crate) struct ExecutionState {
+    pub(crate) levels: Vec<ExecutionLevel>,
     next: Option<MessageType>
 }
 
+#[derive(Debug)]
 pub enum MessageType {
     SubMsg { msg: SubMsg, sender: String },
     Reply { id: u64, error: Option<String>, target: String }
 }
 
 #[derive(Debug)]
-struct ExecutionLevel {
-    data: Option<Binary>,
-    responses: Vec<ResponseVariants>,
-    msgs: Vec<SubMsgNode>,
-    msg_index: usize
+pub(crate) struct ExecutionLevel {
+    pub(crate) data:      Option<Binary>,
+    pub(crate) responses: Vec<ResponseVariants>,
+    pub(crate) msgs:      Vec<SubMsgNode>,
+    pub(crate) msg_index: usize
 }
 
 #[derive(Debug)]
-struct SubMsgNode {
-    msg: SubMsg,
-    state: SubMsgState,
-    events: Vec<Event>
+pub(crate) struct SubMsgNode {
+    pub(crate) msg:    SubMsg,
+    pub(crate) state:  SubMsgState,
+    pub(crate) events: Vec<Event>
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum SubMsgState {
+pub(crate) enum SubMsgState {
     NotExecuted,
     ShouldReply,
     Replying,
@@ -41,17 +43,15 @@ enum SubMsgState {
 
 impl ExecutionState {
     #[inline]
-    pub fn new(initial: SubMsg, sender: String) -> Self {
-        assert_eq!(initial.reply_on, ReplyOn::Never);
-        let mut level = ExecutionLevel::new(vec![initial.clone()]);
+    pub fn new(msg: SubMsg, sender: String) -> Self {
+        assert_eq!(msg.reply_on, ReplyOn::Never);
+        let mut level = ExecutionLevel::new(vec![msg.clone()]);
         level.current_mut().state = SubMsgState::Done;
-        let states = vec![level];
-        let next = Some(MessageType::SubMsg { msg: initial, sender });
-        Self { states, next }
+        Self { levels: vec![level], next: Some(MessageType::SubMsg { msg, sender }) }
     }
 
     pub fn process_result(&mut self, result: SubMsgExecuteResult) -> EnsembleResult<usize> {
-        print_sub_msg_execute_result(&self, &result);
+        //super::display::print_sub_msg_execute_result(&self, &result);
         match result {
             Ok((response, events)) => self.process_result_success(response, events),
             Err(err) if err.is_contract_error() => self.process_result_contract_error(err),
@@ -65,8 +65,8 @@ impl ExecutionState {
         if let Some(cw_resp) = response.response() {
             // Replies will overwrite the caller data if they return Some.
             if response.is_reply() && cw_resp.data.is_some() {
-                let index = self.states.len() - 2;
-                self.states[index].data = cw_resp.data.clone();
+                let index = self.levels.len() - 2;
+                self.levels[index].data = cw_resp.data.clone();
             } else {
                 self.current_level_mut().data = cw_resp.data.clone();
             }
@@ -76,7 +76,7 @@ impl ExecutionState {
         let messages = response.messages().to_vec();
         level.responses.push(response);
         if messages.len() > 0 {
-            self.states.push(ExecutionLevel::new(messages));
+            self.levels.push(ExecutionLevel::new(messages));
         }
         self.find_next(None, |r| matches!(r, ReplyOn::Always | ReplyOn::Success));
         Ok(0)
@@ -113,53 +113,49 @@ impl ExecutionState {
     }
 
     pub fn finalize(mut self) -> ResponseVariants {
-        assert!(self.states.len() == 1 && self.next.is_none());
-        assert_eq!(self.states[0].responses.len(), 1);
-
-        self.states[0].responses.pop().unwrap()
+        assert!(self.levels.len() == 1 && self.next.is_none());
+        assert_eq!(self.levels[0].responses.len(), 1);
+        //super::display::print_finalized_execution_state(&self);
+        self.levels[0].responses.pop().unwrap()
     }
 
     fn current_sender(&self) -> String {
-        let index = self.states.len() - 2;
-        contract_address(self.states[index].responses.last().unwrap()).to_string()        
+        let index = self.levels.len() - 2;
+        contract_address(self.levels[index].responses.last().unwrap()).to_string()
     }
 
     fn find_next<F>(&mut self, error: Option<String>, test: F) -> usize
        where F: Fn(&ReplyOn) -> bool
     {
         assert!(self.next.is_none());
-        let start_index = self.states.len() - 1;
+        let start_index = self.levels.len() - 1;
         let mut responses_thrown = 0;
         loop {
-            if self.states.is_empty() {
+            if self.levels.is_empty() {
                 break;
             }
-            let index = self.states.len() - 1;
-            match self.states[index].current().state {
+            let index = self.levels.len() - 1;
+            match self.levels[index].current().state {
                 SubMsgState::NotExecuted => {
-                    let state = &mut self.states[index];
+                    let state = &mut self.levels[index];
                     let current = state.current_mut();
-
                     current.state = if current.msg.reply_on == ReplyOn::Never {
                         SubMsgState::Done
                     } else {
                         SubMsgState::ShouldReply
                     };
-                    
                     self.next = Some(MessageType::SubMsg {
                         msg: current.msg.clone(),
                         sender: self.current_sender()
                     });
-
                     break;
                 },
                 SubMsgState::Done => {
                     if error.is_some() {
                         responses_thrown += self.pop().responses.len();
                     } else {
-                        let state = &mut self.states[index];
+                        let state = &mut self.levels[index];
                         state.next();
-    
                         // If we don't have a next node and we are currently
                         // at the root then we are finished.
                         if !state.has_next() && !self.squash_latest() {
@@ -169,16 +165,14 @@ impl ExecutionState {
                 }
                 SubMsgState::ShouldReply => {
                     let reply = self.find_reply(error.clone(), &test);
-
                     if error.is_some() {
                         if reply.is_some() {
                             // We only do this if we have already recursed up
                             // (i.e this is not the first iteration of the loop) otherwise,
                             // the response wasn't added to begin with since we have an error.
                             if index != start_index {
-                                let state = &mut self.states[index];
+                                let state = &mut self.levels[index];
                                 state.responses.pop();
-    
                                 responses_thrown += 1;
                             }
                         } else {
@@ -187,17 +181,15 @@ impl ExecutionState {
                             continue;
                         }
                     }
-
                     self.next = reply;
-                    self.states[index].current_mut().state = SubMsgState::Replying;
-
+                    self.levels[index].current_mut().state = SubMsgState::Replying;
                     break;
                 }
                 SubMsgState::Replying => {
                     if error.is_some() {
                         responses_thrown += self.pop().responses.len();
                     } else {
-                        self.states[index].current_mut().state = SubMsgState::Done;
+                        self.levels[index].current_mut().state = SubMsgState::Done;
                     }
                 }
             }
@@ -205,80 +197,58 @@ impl ExecutionState {
         responses_thrown
     }
 
-    fn find_reply<F>(
-        &self,
-        error: Option<String>,
-        test: &F
-    ) -> Option<MessageType>
+    fn find_reply<F>(&self, error: Option<String>, test: &F) -> Option<MessageType>
         where F: Fn(&ReplyOn) -> bool
     {
-        if self.states.len() < 2 {
+        if self.levels.len() < 2 {
             return None;
         }
-
         let current = self.current_level().current();
-
         if test(&current.msg.reply_on) {
-            let index = self.states.len() - 2;
-            let target = contract_address(
-                self.states[index].responses.last().unwrap()
-            ).to_string();
-
-            let reply = MessageType::Reply {
-                id: current.msg.id,
-                error,
-                target
-            };
-
-            Some(reply)
+            let index = self.levels.len() - 2;
+            let target = contract_address(self.levels[index].responses.last().unwrap());
+            Some(MessageType::Reply { id: current.msg.id, error, target: target.to_string() })
         } else {
             None
         }
     }
 
     fn squash_latest(&mut self) -> bool {
-        if self.states.len() <= 1 {
+        if self.levels.len() <= 1 {
             return false;
         }
-
         let latest = self.pop();
         let level = self.current_level_mut();
-
         level.responses.last_mut().unwrap()
             .add_responses(latest.responses);
-
         let len = latest.msgs.iter().map(|x| x.events.len()).sum();
         let mut events = Vec::with_capacity(len);
-
         for x in latest.msgs {
             events.extend(x.events);
         }
-
         level.current_mut().events.extend(events);
-
         true
     }
 
     #[inline]
     fn current_level_mut(&mut self) -> &mut ExecutionLevel {
-        self.states.last_mut().unwrap()
+        self.levels.last_mut().unwrap()
     }
 
     #[inline]
     fn current_level(&self) -> &ExecutionLevel {
-        self.states.last().unwrap()
+        self.levels.last().unwrap()
     }
 
     #[inline]
     fn pop(&mut self) -> ExecutionLevel {
-        self.states.pop().unwrap()
+        self.levels.pop().unwrap()
     }
 }
 
 impl ExecutionLevel {
     fn new(msgs: Vec<SubMsg>) -> Self {
         assert!(!msgs.is_empty());
-
         Self {
             data: None,
             responses: Vec::with_capacity(msgs.len()),
@@ -335,22 +305,5 @@ fn contract_address(resp: &ResponseVariants) -> &str {
         ResponseVariants::Staking(_) => unreachable!(),
         #[cfg(feature = "ensemble-staking")]
         ResponseVariants::Distribution(_) => unreachable!()
-    }
-}
-
-/// For debugging purposes only:
-fn print_sub_msg_execute_result (
-    state:  &ExecutionState,
-    result: &SubMsgExecuteResult
-) {
-    match result {
-        Ok((response, events)) => {
-            let states = state.states.len();
-            let response = indent::indent_all_by(2, format!("{response}"));
-            println!("OK: Processed result (depth {states}):\n{response}\n{events}");
-        },
-        Err(err) => {
-            println!("ERR (reverting): {err}")
-        }
     }
 }

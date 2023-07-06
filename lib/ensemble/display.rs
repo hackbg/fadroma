@@ -1,5 +1,5 @@
 use super::*;
-use crate::{prelude::*, ensemble::{event::ProcessedEvents, execution_state::ExecutionState}};
+use crate::{prelude::*, ensemble::{event::ProcessedEvents, execution_state::*}};
 use std::fmt::{Display, Debug, Formatter, Result};
 use indent::indent_all_by;
 
@@ -24,7 +24,7 @@ fn format_list <T, F: Fn(&T)->String> (title: &str, input: &Vec<T>, format: F) -
         output.push(format(item));
     }
     if output.len() > 0 {
-        indent_all_by(TAB, format!("{title}\n{}\n", indent_all_by(TAB, output.join("\n"))))
+        indent_all_by(TAB, format!("\n{title}\n{}", indent_all_by(TAB, output.join("\n"))))
     } else {
         String::new()
     }
@@ -33,19 +33,20 @@ fn format_list <T, F: Fn(&T)->String> (title: &str, input: &Vec<T>, format: F) -
 impl Display for ExecuteResponse {
     fn fmt(&self, f: &mut Formatter) -> Result {
         let Self { sender, address, response, msg, sent } = self;
-        let msgs = format_list("Response messages:", &response.messages,
-            |sub: &SubMsg|format!("{}: {:?}", sub.id, sub.msg));
-        let attrs = format_list("Response attributes:", &response.attributes,
-            |attr: &Attribute|format!("{} = {}", attr.key, attr.value));
-        let evts = format_list("Response events:", &response.events,
-            |event: &Event|format!("{event:?}"));
+        let Response { messages, attributes, events, data, .. } = response;
+        let msgs = format_list("Response messages:", &messages,
+            |s: &SubMsg|   format!("{}: {:?}", s.id, s.msg));
+        let attrs = format_list("Response attributes:", &attributes,
+            |a: &Attribute|format!("{} = {}", a.key, a.value));
+        let evts = format_list("Response events:", &events,
+            |e: &Event|format!("{e:?}"));
         let sent = format_list("Sent messages:", &sent,
-            |msg: &ResponseVariants|format!("{msg}"));
-        let data = format_option("Response data:", &response.data,
-            |data: &Binary|format!("{data:?}"));
+            |m: &ResponseVariants|format!("{m}"));
+        let data = format_option("Response data:", &data,
+            |d: &Binary|format!("{d:?}"));
         let msg = indent_all_by(4, String::from_utf8(msg.0.clone()).unwrap());
         write!(f, "ExecuteResponse ({sender} <- {address})\n  \
-            Message:\n{msg}\n{msgs}{attrs}{evts}{data}{sent}")
+            Message:\n{msg}{msgs}{attrs}{evts}{data}{sent}")
 
     }
 }
@@ -56,9 +57,9 @@ impl Display for ResponseVariants {
             Self::Instantiate(resp) => write!(f,
                 "Instantiate ({} <- {})", resp.sender, resp.instance.address),
             Self::Execute(resp) => write!(f,
-                "Execute     ({} <- {})", resp.sender, resp.address),
+                "Execute ({} <- {})", resp.sender, resp.address),
             Self::Reply(resp) => write!(f,
-                "Reply #{}    ({} <-)", resp.reply.id, resp.address),
+                "Reply #{} ({} <-)", resp.reply.id, resp.address),
             Self::Bank(resp) =>
                 Debug::fmt(resp, f),
             #[cfg(feature = "ensemble-staking")]
@@ -73,8 +74,53 @@ impl Display for ResponseVariants {
 
 impl Display for ProcessedEvents {
     fn fmt (&self, f: &mut Formatter) -> Result {
-        write!(f, "{}", format_list("Processed events:", &self.0, |event: &Event|
-            format_list(&event.ty, &event.attributes, |attr: &Attribute|
-                format!("{} = {}", attr.key, attr.value))))
+        write!(f, "{}", format_list("Events:", &self.0,
+            |event: &Event| format_list(&event.ty, &event.attributes,
+                |attr: &Attribute| format!("{} = {}", attr.key, attr.value))))
     }
+}
+
+impl Display for ExecutionLevel {
+    fn fmt (&self, f: &mut Formatter) -> Result {
+        let messages = format_list("Messages:", &self.msgs,
+            |m: &SubMsgNode|format!("{m}"));
+        let responses = format_list("Responses:", &self.responses,
+            |r: &ResponseVariants|format!("{r}"));
+        let data = format_option("Data:", &self.data,
+            |d: &Binary|format!("{d:?}"));
+        let index = self.msg_index;
+        write!(f, "Level (index={index}):{data}  {messages}{responses}")
+    }
+}
+
+impl Display for SubMsgNode {
+    fn fmt (&self, f: &mut Formatter) -> Result {
+        let events = format_list("Events:", &self.events,
+            |e: &Event| format_list(&e.ty, &e.attributes,
+                |a: &Attribute| format!("{} = {}", a.key, a.value)));
+        let state = self.state;
+        let SubMsg { id, msg, gas_limit, reply_on } = &self.msg;
+        write!(f, "\n  Message (state={state:?} reply_on={reply_on:?}):\n    {msg:?}\n{events}")
+    }
+}
+
+pub(crate) fn print_sub_msg_execute_result (
+    state: &ExecutionState, result: &SubMsgExecuteResult
+) {
+    println!("{}", match result {
+        Ok((response, events)) => {
+            let levels = state.levels.len();
+            let response = indent::indent_all_by(2, format!("{response}"));
+            format!("\n[depth={levels}]{response}{events}")
+        },
+        Err(err) => {
+            format!("ERR (reverting): {err}")
+        }
+    })
+}
+
+pub(crate) fn print_finalized_execution_state (state: &ExecutionState) {
+    let levels = format_list("Levels:", &state.levels,
+        |level: &ExecutionLevel|format!("- {level}"));
+    println!("\nOK: Finalized execution state:{levels}");
 }
