@@ -1,7 +1,7 @@
 use std::iter::Iterator;
 
 use crate::{
-    prelude::ContractLink,
+    prelude::{ContractLink, from_binary},
     cosmwasm_std::{Addr, Binary, Response, Coin, Reply, SubMsg}
 };
 

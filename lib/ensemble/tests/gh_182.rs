@@ -28,7 +28,8 @@ use crate::{prelude::*, ensemble::*};
     let response = ensemble
         .execute(&ContractAExec::InstantiateBC {}, env.clone())
         .unwrap();
-    unimplemented!("{:#?}", &response);
+    println!("{}", &response);
+    unimplemented!();
 }
 
 type CodeId = u64;
@@ -42,7 +43,6 @@ macro_rules! storage {
 
 storage!(CODE_ID_B, CodeId, CodeIdB,  b"code_id_b");
 storage!(CODE_ID_C, CodeId, CodeIdC,  b"code_id_c");
-
 storage!(ADDRESS_B, String, AddressB, b"address_b");
 
 struct ContractA;

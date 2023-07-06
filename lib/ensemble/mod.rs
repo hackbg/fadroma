@@ -14,6 +14,7 @@ mod state;
 mod execution_state;
 mod error;
 mod event;
+mod display;
 
 #[cfg(test)]
 mod tests;

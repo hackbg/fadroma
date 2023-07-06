@@ -99,10 +99,8 @@ impl State {
     {
         if let Some(instance) = self.instances.get_mut(address) {
             let result = borrow(&mut instance.storage as &mut dyn Storage);
-            
             let ops = instance.storage.ops();
             self.push_ops(ops);
-
             result
         } else {
             Err(EnsembleError::registry(RegistryError::NotFound(address.into())))
@@ -128,9 +126,7 @@ impl State {
 
     pub fn revert_scope(&mut self) {
         assert!(self.scopes.len() > 0);
-
         let scope = self.scopes.pop().unwrap();
-
         for op in scope.0 {
             match op {
                 Op::CreateInstance { address } => {
@@ -165,15 +161,11 @@ impl State {
         coins: Vec<Coin>
     ) {
         assert!(self.scopes.len() > 0);
-
         let address: String = address.into();
-
         let scope = self.scopes.last_mut().unwrap();
         scope.0.reserve_exact(coins.len());
-
         for coin in coins {
             self.bank.add_funds(&address, coin.clone());
-
             scope.0.push(Op::BankAddFunds {
                 address: address.clone(),
                 coin
@@ -188,13 +180,10 @@ impl State {
         coins: Vec<Coin>
     ) -> EnsembleResult<()> {
         assert!(self.scopes.len() > 0);
-
         let address: String = address.into();
         self.push_scope();
-
         let temp = self.scopes.last_mut().unwrap();
         temp.0.reserve_exact(coins.len());
-
         for coin in coins {
             match self.bank.remove_funds(&address, coin.clone()) {
                 Ok(()) => {
@@ -210,10 +199,8 @@ impl State {
                 }
             }
         }
-
-        let temp = self.scopes.pop().unwrap();
-        self.current_scope_mut().0.extend(temp.0);
-
+        let ops = self.scopes.pop().unwrap().0;
+        self.push_ops(ops);
         Ok(())
     }
 
@@ -224,21 +211,12 @@ impl State {
         coins: Vec<Coin>
     ) -> EnsembleResult<BankResponse> {
         assert!(self.scopes.len() > 0);
-
         let from = from.into();
         let to = to.into();
-
-        let res = BankResponse {
-            sender: from.clone(),
-            receiver: to.clone(),
-            coins: coins.clone()
-        };
-
+        let res = BankResponse { sender: from.clone(), receiver: to.clone(), coins: coins.clone() };
         self.push_scope();
-
         let temp = self.scopes.last_mut().unwrap();
         temp.0.reserve_exact(coins.len());
-
         for coin in coins {
             match self.bank.transfer(&from, &to, coin.clone()) {
                 Ok(()) => {
@@ -250,27 +228,22 @@ impl State {
                 },
                 Err(err) => {
                     self.revert_scope();
-
                     return Err(err);
                 }
             }
         }
-
-        let temp = self.scopes.pop().unwrap();
-        self.current_scope_mut().0.extend(temp.0);
-
+        let ops = self.scopes.pop().unwrap().0;
+        self.push_ops(ops);
         Ok(res)
     }
 
     fn push_ops(&mut self, ops: Vec<Op>) {
-        let scope = self.current_scope_mut();
-        scope.0.extend(ops);
+        self.current_scope_mut().0.extend(ops);
     }
 
     #[inline]
     fn current_scope_mut(&mut self) -> &mut Scope {
         assert!(self.scopes.len() > 0);
-
         self.scopes.last_mut().unwrap()
     }
 }

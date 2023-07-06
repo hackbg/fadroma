@@ -408,21 +408,15 @@ impl ContractEnsemble {
         msg: &T,
         env: MockEnv
     ) -> EnsembleResult<InstantiateResponse> {
-        let contract = self
-            .ctx
-            .contracts
-            .get(code_id as usize)
-            .ok_or_else(|| EnsembleError::registry(RegistryError::IdNotFound(code_id)))?;
-
-        let sub_msg = SubMsg::new(WasmMsg::Instantiate {
+        let contract = self.ctx.contracts.get(code_id as usize).ok_or_else(
+            || EnsembleError::registry(RegistryError::IdNotFound(code_id)))?;
+        match self.ctx.execute_messages(SubMsg::new(WasmMsg::Instantiate {
             code_id,
             code_hash: contract.code_hash.clone(),
             msg: to_binary(msg)?,
             funds: env.sent_funds,
             label: env.contract.into_string()
-        });
-
-        match self.ctx.execute_messages(sub_msg, env.sender.into_string())? {
+        }), env.sender.into_string())? {
             ResponseVariants::Instantiate(resp) => Ok(resp),
             _ => unreachable!()
         }
@@ -435,18 +429,14 @@ impl ContractEnsemble {
         env: MockEnv
     ) -> EnsembleResult<ExecuteResponse> {
         let address = env.contract.into_string();
-
         let instance = self.ctx.state.instance(&address)?;
         let code_hash = self.ctx.contracts[instance.index].code_hash.clone();
-
-        let sub_msg = SubMsg::new(WasmMsg::Execute {
+        match self.ctx.execute_messages(SubMsg::new(WasmMsg::Execute {
             contract_addr: address,
             code_hash,
             msg: to_binary(msg)?,
             funds: env.sent_funds
-        });
-
-        match self.ctx.execute_messages(sub_msg, env.sender.into_string())? {
+        }), env.sender.into_string())? {
             ResponseVariants::Execute(resp) => Ok(resp),
             _ => unreachable!()
         }
@@ -502,122 +492,71 @@ impl Context {
 
     fn instantiate(
         &mut self,
-        id: u64,
+        code_id: u64,
         msg: Binary,
         env: MockEnv,
     ) -> EnsembleResult<InstantiateResponse> {
         // We check for validity in execute_sub_msg()
-        let contract = &self.contracts[id as usize];
-
+        let contract = &self.contracts[code_id as usize];
         let sender = env.sender.to_string();
         let address = env.contract.to_string();
         let code_hash = contract.code_hash.clone();
-
-        self.state.create_contract_instance(address.clone(), id as usize)?;
-
-        let (env, msg_info) = self.create_msg_deps(
-            env,
-            code_hash.clone()
-        );
-
+        self.state.create_contract_instance(address.clone(), code_id as usize)?;
+        let (env, msg_info) = self.create_msg_deps(env, code_hash.clone());
         let querier = EnsembleQuerier::new(&self);
         let response = self.state.borrow_storage_mut(&address, |storage| {
-            let deps = DepsMut::<Empty> {
-                storage,
-                api: &MockApi::default() as &dyn Api,
-                querier: QuerierWrapper::new(&querier as &dyn Querier)
-            };
-
-            let result = contract.code.instantiate(deps, env, msg_info, msg.clone())?;
-
-            Ok(result)
+            let api = &MockApi::default() as &dyn Api;
+            let querier = QuerierWrapper::new(&querier as &dyn Querier); 
+            let deps = DepsMut::<Empty> { storage, api, querier };
+            Ok(contract.code.instantiate(deps, env, msg_info, msg.clone())?)
         })?;
-
-        Ok(InstantiateResponse {
-            sent: Vec::with_capacity(response.messages.len()),
-            sender,
-            instance: ContractLink {
-                address: Addr::unchecked(address),
-                code_hash
-            },
-            code_id: id,
-            msg,
-            response
-        })
+        let sent = Vec::with_capacity(response.messages.len());
+        let instance = ContractLink { address: Addr::unchecked(address), code_hash };
+        Ok(InstantiateResponse { sent, sender, instance, code_id, msg, response })
     }
 
     fn execute(&mut self, msg: Binary, env: MockEnv) -> EnsembleResult<ExecuteResponse> {
         let address = env.contract.to_string();
-        let (index, code_hash) = {
-            let instance = self.state.instance(&address)?;
-            let code_hash = self.contracts[instance.index].code_hash.clone();
-
-            (instance.index, code_hash)
-        };
-
+        let index = self.state.instance(&address)?.index;
+        let code_hash = self.contracts[index].code_hash.clone();
         let (env, msg_info) = self.create_msg_deps(env, code_hash);
         let sender = msg_info.sender.to_string();
-        
         let contract = &self.contracts[index];
-
         let querier = EnsembleQuerier::new(&self);
         let response = self.state.borrow_storage_mut(&address, |storage| {
-            let deps = DepsMut::<Empty> {
-                storage,
-                api: &MockApi::default() as &dyn Api,
-                querier: QuerierWrapper::new(&querier as &dyn Querier)
-            };
-
-            let result = contract.code.execute(deps, env, msg_info, msg.clone())?;
-
-            Ok(result)
+            let api = &MockApi::default() as &dyn Api;
+            let querier = QuerierWrapper::new(&querier as &dyn Querier);
+            let deps = DepsMut::<Empty> { storage, api, querier };
+            Ok(contract.code.execute(deps, env, msg_info, msg.clone())?)
         })?;
-
-        Ok(ExecuteResponse {
-            sent: Vec::with_capacity(response.messages.len()),
-            sender,
-            address,
-            msg,
-            response
-        })
+        let sent = Vec::with_capacity(response.messages.len());
+        Ok(ExecuteResponse { sent, sender, address, msg, response })
     }
 
     pub(crate) fn query(&self, address: &str, msg: Binary) -> EnsembleResult<Binary> {
         let instance = self.state.instance(address)?;
         let contract = &self.contracts[instance.index];
-
         let env = self.create_env(ContractLink {
             address: Addr::unchecked(address),
             code_hash: contract.code_hash.clone()
         });
-
         let querier = EnsembleQuerier::new(&self);
         let deps = Deps::<Empty> {
             storage: &instance.storage as &dyn Storage,
             api: &MockApi::default() as &dyn Api,
             querier: QuerierWrapper::new(&querier as &dyn Querier)
         };
-
-        let result = contract.code.query(deps, env, msg)?;
-
-        Ok(result)
+        Ok(contract.code.query(deps, env, msg)?)
     }
 
     fn reply(&mut self, address: String, reply: Reply) -> EnsembleResult<ReplyResponse> {
-        let (index, code_hash) = {
-            let instance = self.state.instance(&address)?;
-            let code_hash = self.contracts[instance.index].code_hash.clone();
-
-            (instance.index, code_hash)
-        };
-
+        let index = self.state.instance(&address)?.index;
+        let code_hash = self.contracts[index].code_hash.clone();
         let env = self.create_env(ContractLink {
             address: Addr::unchecked(address.clone()),
             code_hash
         });
-
         let contract = &self.contracts[index];
-
         let querier = EnsembleQuerier::new(&self);
         let response = self.state.borrow_storage_mut(&address, |storage| {
             let deps = DepsMut::<Empty> {
@@ -625,68 +564,25 @@ impl Context {
                 api: &MockApi::default() as &dyn Api,
                 querier: QuerierWrapper::new(&querier as &dyn Querier)
             };
-
             let result = contract.code.reply(deps, env, reply.clone())?;
-
             Ok(result)
         })?;
-
-        Ok(ReplyResponse {
-            sent: Vec::with_capacity(response.messages.len()),
-            address,
-            reply,
-            response
-        })
+        let sent = Vec::with_capacity(response.messages.len());
+        Ok(ReplyResponse { sent, address, reply, response })
     }
 
-    fn execute_messages(
-        &mut self,
-        msg: SubMsg,
-        initial_sender: String
-    ) -> EnsembleResult<ResponseVariants> {
+    fn execute_messages(&mut self, msg: SubMsg, initial_sender: String)
+        -> EnsembleResult<ResponseVariants>
+    {
         let mut state = ExecutionState::new(msg, initial_sender);
-
         while let Some(msg_ty) = state.next() {
             self.state.push_scope();
-
             let result = match msg_ty {
-                MessageType::SubMsg { msg, sender } => {
-                    self.execute_sub_msg(msg, sender)
-                }
-                MessageType::Reply { id, error, target } => {
-                    let result = match error {
-                        Some(err) => {
-                            let reply = Reply {
-                                id,
-                                result: SubMsgResult::Err(err)
-                            };
-
-                            self.reply(target, reply)
-                        },
-                        None => {
-                            let reply = Reply {
-                                id,
-                                result: SubMsgResult::Ok(SubMsgResponse {
-                                    events: state.events().to_vec(),
-                                    data: state.data().cloned()
-                                })
-                            };
-
-                            self.reply(target, reply)
-                        }
-                    };
-
-                    match result {
-                        Ok(resp) => {
-                            ProcessedEvents::try_from(&resp).and_then(|x|
-                                Ok((resp.into(), x))
-                            )
-                        },
-                        Err(err) => Err(err)
-                    }
-                }
+                MessageType::Reply { id, error, target } =>
+                    self.execute_reply(&mut state, id, error, target),
+                MessageType::SubMsg { msg, sender } =>
+                    self.execute_sub_msg(msg, sender),
             };
-
             match state.process_result(result) {
                 Ok(mut msgs_reverted) => {
                     while msgs_reverted > 0 {
@@ -696,184 +592,162 @@ impl Context {
                 },
                 Err(err) => {
                     self.state.revert();
-    
                     return Err(err);
                 }
             }
         }
-
         self.block.next();
         self.state.commit();
-
         Ok(state.finalize())
     }
 
-    fn execute_sub_msg(
-        &mut self,
-        sub_msg: SubMsg,
-        sender: String,
+    fn execute_reply(
+        &mut self, state: &mut ExecutionState, id: u64, error: Option<String>, target: String
     ) -> SubMsgExecuteResult {
+        let result = match error {
+            Some(err) => SubMsgResult::Err(err),
+            None => SubMsgResult::Ok(SubMsgResponse {
+                events: state.events().to_vec(),
+                data: state.data().cloned()
+            })
+        };
+        match self.reply(target, Reply { id, result }) {
+            Ok(resp) => ProcessedEvents::try_from(&resp).and_then(|x|Ok((resp.into(), x))),
+            Err(err) => Err(err)
+        }
+    }
+
+    fn execute_sub_msg(&mut self, sub_msg: SubMsg, sender: String) ->
+        SubMsgExecuteResult
+    {
         match sub_msg.msg {
-            CosmosMsg::Wasm(msg) => match msg {
-                WasmMsg::Execute {
-                    contract_addr,
-                    msg,
-                    funds,
-                    code_hash,
-                } => {
-                    let index = self.state.instance(&contract_addr)?.index;
+            CosmosMsg::Wasm(msg) => self.execute_sub_msg_wasm(msg, sender),
+            CosmosMsg::Bank(msg) => self.execute_sub_msg_bank(msg, sender),
+            #[cfg(feature = "ensemble-staking")]
+            CosmosMsg::Staking(msg) => self.execute_sub_msg_staking(msg, sender),
+            #[cfg(feature = "ensemble-staking")]
+            CosmosMsg::Distribution(msg) => self.execute_sub_msg_distribution(msg, sender),
+            _ => panic!("Ensemble: Unsupported message: {:?}", sub_msg)
+        }
+    }
 
-                    if self.contracts[index].code_hash != code_hash {
-                        return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
-                    }
-
-                    let mut events = if funds.is_empty() {
-                        ProcessedEvents::empty()
-                    } else {
-                        let transfer_resp = self.state.transfer_funds(
-                            &sender,
-                            &contract_addr,
-                            funds.clone()
-                        )?;
-    
-                        ProcessedEvents::from(&transfer_resp)
-                    };
-
-                    let env = MockEnv::new(
-                        sender,
-                        contract_addr.clone()
-                    ).sent_funds(funds);
-
-                    let execute_resp = self.execute(msg, env)?;
-                    events.extend(&execute_resp)?;
-
-                    Ok((execute_resp.into(), events))
+    fn execute_sub_msg_wasm (&mut self, msg: WasmMsg, sender: String)
+        -> SubMsgExecuteResult
+    {
+        match msg {
+            WasmMsg::Instantiate { code_id, msg, funds, label, code_hash } => {
+                let contract = self.contracts.get(code_id as usize).ok_or_else(
+                    || EnsembleError::registry(RegistryError::IdNotFound(code_id)))?;
+                if contract.code_hash != code_hash {
+                    return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                 }
-                WasmMsg::Instantiate {
+                let env = MockEnv::new_sanitized(sender, label).sent_funds(funds);
+                let mut events = if env.sent_funds.is_empty() {
+                    ProcessedEvents::empty()
+                } else {
+                    ProcessedEvents::from(&self.state.transfer_funds(
+                        env.sender(),
+                        env.contract(),
+                        env.sent_funds.clone()
+                    )?)
+                };
+                let instantiate_resp = self.instantiate(
                     code_id,
                     msg,
-                    funds,
-                    label,
-                    code_hash
-                } => {
-                    let contract = self
-                        .contracts
-                        .get(code_id as usize)
-                        .ok_or_else(|| EnsembleError::registry(RegistryError::IdNotFound(code_id)))?;
-
-                    if contract.code_hash != code_hash {
-                        return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
-                    }
-
-                    let env = MockEnv::new_sanitized(
-                        sender,
-                        label
-                    ).sent_funds(funds);
-
-                    let mut events = if env.sent_funds.is_empty() {
-                        ProcessedEvents::empty()
-                    } else {
-                        let transfer_resp = self.state.transfer_funds(
-                            env.sender(),
-                            env.contract(),
-                            env.sent_funds.clone()
-                        )?;
-    
-                        ProcessedEvents::from(&transfer_resp)
-                    };
-
-                    let instantiate_resp = self.instantiate(
-                        code_id,
-                        msg,
-                        env
-                    )?;
-
-                    events.extend(&instantiate_resp)?;
-
-                    Ok((instantiate_resp.into(), events))
+                    env
+                )?;
+                events.extend(&instantiate_resp)?;
+                Ok((instantiate_resp.into(), events))
+            },
+            WasmMsg::Execute { contract_addr, msg, funds, code_hash, } => {
+                let index = self.state.instance(&contract_addr)?.index;
+                if self.contracts[index].code_hash != code_hash {
+                    return Err(EnsembleError::registry(RegistryError::InvalidCodeHash(code_hash)));
                 }
-                _ => panic!("Ensemble: Unsupported message: {:?}", msg)
-            }
-            CosmosMsg::Bank(msg) => match msg {
-                BankMsg::Send {
-                    to_address,
-                    amount,
-                } => {
-                    let resp = self.state.transfer_funds(
+                let mut events = if funds.is_empty() {
+                    ProcessedEvents::empty()
+                } else {
+                    ProcessedEvents::from(&self.state.transfer_funds(
                         &sender,
-                        &to_address,
-                        amount
-                    )?;
-
-                    let events = ProcessedEvents::from(&resp);
-
-                    Ok((resp.into(), events))
-                },
-                _ => panic!("Ensemble: Unsupported message: {:?}", msg)
+                        &contract_addr,
+                        funds.clone()
+                    )?)
+                };
+                let env = MockEnv::new(sender, contract_addr.clone()).sent_funds(funds);
+                let execute_resp = self.execute(msg, env)?;
+                events.extend(&execute_resp)?;
+                Ok((execute_resp.into(), events))
             }
-            #[cfg(feature = "ensemble-staking")]
-            CosmosMsg::Staking(msg) => match msg {
-                StakingMsg::Delegate { validator, amount } => {
-                    self.state.remove_funds(&sender, vec![amount.clone()])?;
+            _ => panic!("Ensemble: Unsupported message: {:?}", msg)
+        }
+    }
 
-                    let resp = self.delegations.delegate(
-                        sender.clone(),
-                        validator,
-                        amount
-                    )?;
+    fn execute_sub_msg_bank (&mut self, msg: BankMsg, sender: String)
+        -> SubMsgExecuteResult
+    {
+        match msg {
+            BankMsg::Send {
+                to_address,
+                amount,
+            } => {
+                let resp = self.state.transfer_funds(&sender, &to_address, amount)?;
+                let events = ProcessedEvents::from(&resp);
+                Ok((resp.into(), events))
+            },
+            _ => panic!("Ensemble: Unsupported message: {:?}", msg)
+        }
+    }
 
-                    let events = ProcessedEvents::from(&resp);
-
-                    Ok((resp.into(), events))
-                }
-                StakingMsg::Undelegate { validator, amount } => {
-                    let resp = self.delegations.undelegate(
-                        sender.clone(),
-                        validator,
-                        amount.clone(),
-                    )?;
-
-                    let events = ProcessedEvents::from(&resp);
-
-                    Ok((resp.into(), events))
-                }
-                StakingMsg::Redelegate {
+    #[cfg(feature = "ensemble-staking")]
+    fn execute_sub_msg_staking (&mut self, msg: StakingMsg, sender: String)
+        -> SubMsgExecuteResult
+    {
+        match msg {
+            StakingMsg::Delegate { validator, amount } => {
+                self.state.remove_funds(&sender, vec![amount.clone()])?;
+                let resp = self.delegations.delegate(sender.clone(), validator, amount)?;
+                let events = ProcessedEvents::from(&resp);
+                Ok((resp.into(), events))
+            }
+            StakingMsg::Undelegate { validator, amount } => {
+                let resp = self.delegations.undelegate(sender.clone(),
+                    validator,
+                    amount.clone(),
+                )?;
+                let events = ProcessedEvents::from(&resp);
+                Ok((resp.into(), events))
+            }
+            StakingMsg::Redelegate { src_validator, dst_validator, amount, } => {
+                let resp = self.delegations.redelegate(
+                    sender.clone(),
                     src_validator,
                     dst_validator,
                     amount,
-                } => {
-                    let resp = self.delegations.redelegate(
-                        sender.clone(),
-                        src_validator,
-                        dst_validator,
-                        amount,
-                    )?;
-
-                    let events = ProcessedEvents::from(&resp);
-
-                    Ok((resp.into(), events))
-                },
-                _ => panic!("Ensemble: Unsupported message: {:?}", msg)
+                )?;
+                let events = ProcessedEvents::from(&resp);
+                Ok((resp.into(), events))
             },
-            #[cfg(feature = "ensemble-staking")]
-            CosmosMsg::Distribution(msg) => match msg {
-                DistributionMsg::WithdrawDelegatorReward { validator } => {
-                    // Query accumulated rewards so bank transaction can take place first
-                    let withdraw_amount = match self.delegations.delegation(&sender, &validator) {
-                        Some(amount) => amount.accumulated_rewards,
-                        None => return Err(EnsembleError::Staking("Delegation not found".into())),
-                    };
+            _ => panic!("Ensemble: Unsupported message: {:?}", msg)
+        }
+    }
 
-                    self.state.add_funds(sender.clone(), withdraw_amount);
-
-                    let resp = self.delegations.withdraw(sender, validator)?;
-                    let events = ProcessedEvents::from(&resp);
-
-                    Ok((resp.into(), events))
-                },
-                _ => unimplemented!()
-            }
-            _ => panic!("Ensemble: Unsupported message: {:?}", sub_msg)
+    #[cfg(feature = "ensemble-staking")]
+    fn execute_sub_msg_distribution (&mut self, msg: DistributionMsg, sender: String)
+        -> SubMsgExecuteResult
+    {
+        match msg {
+            DistributionMsg::WithdrawDelegatorReward { validator } => {
+                // Query accumulated rewards so bank transaction can take place first
+                let withdraw_amount = match self.delegations.delegation(&sender, &validator) {
+                    Some(amount) => amount.accumulated_rewards,
+                    None => return Err(EnsembleError::Staking("Delegation not found".into())),
+                };
+                self.state.add_funds(sender.clone(), withdraw_amount);
+                let resp = self.delegations.withdraw(sender, validator)?;
+                let events = ProcessedEvents::from(&resp);
+                Ok((resp.into(), events))
+            },
+            _ => unimplemented!()
         }
     }
 

@@ -1,7 +1,8 @@
 use crate::{
     cosmwasm_std::{SubMsg, ReplyOn, Event, Binary},
     ensemble::{
-        ResponseVariants, EnsembleResult, SubMsgExecuteResult
+        ResponseVariants, EnsembleResult, EnsembleError, SubMsgExecuteResult,
+        event::ProcessedEvents
     }
 };
 
@@ -11,17 +12,11 @@ pub struct ExecutionState {
 }
 
 pub enum MessageType {
-    SubMsg {
-        msg: SubMsg,
-        sender: String
-    },
-    Reply {
-        id: u64,
-        error: Option<String>,
-        target: String
-    }
+    SubMsg { msg: SubMsg, sender: String },
+    Reply { id: u64, error: Option<String>, target: String }
 }
 
+#[derive(Debug)]
 struct ExecutionLevel {
     data: Option<Binary>,
     responses: Vec<ResponseVariants>,
@@ -29,6 +24,7 @@ struct ExecutionLevel {
     msg_index: usize
 }
 
+#[derive(Debug)]
 struct SubMsgNode {
     msg: SubMsg,
     state: SubMsgState,
@@ -47,69 +43,57 @@ impl ExecutionState {
     #[inline]
     pub fn new(initial: SubMsg, sender: String) -> Self {
         assert_eq!(initial.reply_on, ReplyOn::Never);
-
         let mut level = ExecutionLevel::new(vec![initial.clone()]);
         level.current_mut().state = SubMsgState::Done;
+        let states = vec![level];
+        let next = Some(MessageType::SubMsg { msg: initial, sender });
+        Self { states, next }
+    }
 
-        Self {
-            states: vec![level],
-            next: Some(MessageType::SubMsg {
-                msg: initial,
-                sender
-            })
+    pub fn process_result(&mut self, result: SubMsgExecuteResult) -> EnsembleResult<usize> {
+        print_sub_msg_execute_result(&self, &result);
+        match result {
+            Ok((response, events)) => self.process_result_success(response, events),
+            Err(err) if err.is_contract_error() => self.process_result_contract_error(err),
+            Err(err) => Err(err)
         }
     }
 
-    pub fn process_result(
-        &mut self,
-        result: SubMsgExecuteResult
-    ) -> EnsembleResult<usize> {
-        match result {
-            Ok((response, events)) => {
+    fn process_result_success (&mut self, response: ResponseVariants, events: ProcessedEvents)
+        -> EnsembleResult<usize>
+    {
+        if let Some(cw_resp) = response.response() {
+            // Replies will overwrite the caller data if they return Some.
+            if response.is_reply() && cw_resp.data.is_some() {
+                let index = self.states.len() - 2;
+                self.states[index].data = cw_resp.data.clone();
+            } else {
+                self.current_level_mut().data = cw_resp.data.clone();
+            }
+        }
+        let level = self.current_level_mut();
+        level.current_mut().events.extend(events.take());
+        let messages = response.messages().to_vec();
+        level.responses.push(response);
+        if messages.len() > 0 {
+            self.states.push(ExecutionLevel::new(messages));
+        }
+        self.find_next(None, |r| matches!(r, ReplyOn::Always | ReplyOn::Success));
+        Ok(0)
+    }
 
-                if let Some(cw_resp) = response.response() {
-                    // Replies will overwrite the caller data if they return Some.
-                    if response.is_reply() && cw_resp.data.is_some() {
-                        let index = self.states.len() - 2;
-                        self.states[index].data = cw_resp.data.clone();
-                    } else {
-                        self.current_level_mut().data = cw_resp.data.clone();
-                    }
-                }
-
-                let level = self.current_level_mut();
-                level.current_mut().events.extend(events.take());
-
-                let messages = response.messages().to_vec();
-                level.responses.push(response);
-        
-                if messages.len() > 0 {
-                    self.states.push(ExecutionLevel::new(messages));
-                }
-
-                self.find_next(
-                    None,
-                    |reply_on| matches!(reply_on, ReplyOn::Always | ReplyOn::Success)
-                );
-
-                Ok(0)
-            },
-            Err(err) if err.is_contract_error() => {
-                let revert_count = self.find_next(
-                    Some(err.to_string()),
-                    |reply_on| matches!(reply_on, ReplyOn::Always | ReplyOn::Error)
-                );
-
-                if self.next.is_none() {
-                    // If a contract returned an error but no caller
-                    // could "catch" it, the entire TX should be reverted.
-                    Err(err)
-                } else {
-                    // +1 because we have to revert the current scope as well
-                    Ok(revert_count + 1)
-                }
-            },
-            Err(err) => Err(err)
+    fn process_result_contract_error (&mut self, err: EnsembleError) -> EnsembleResult<usize> {
+        let revert_count = self.find_next(
+            Some(err.to_string()),
+            |reply_on| matches!(reply_on, ReplyOn::Always | ReplyOn::Error)
+        );
+        if self.next.is_none() {
+            // If a contract returned an error but no caller
+            // could "catch" it, the entire TX should be reverted.
+            Err(err)
+        } else {
+            // +1 because we have to revert the current scope as well
+            Ok(revert_count + 1)
         }
     }
 
@@ -137,27 +121,20 @@ impl ExecutionState {
 
     fn current_sender(&self) -> String {
         let index = self.states.len() - 2;
-
-        contract_address(
-            self.states[index].responses.last().unwrap()
-        ).to_string()        
+        contract_address(self.states[index].responses.last().unwrap()).to_string()        
     }
 
     fn find_next<F>(&mut self, error: Option<String>, test: F) -> usize
        where F: Fn(&ReplyOn) -> bool
     {
         assert!(self.next.is_none());
-
         let start_index = self.states.len() - 1;
         let mut responses_thrown = 0;
-
         loop {
             if self.states.is_empty() {
                 break;
             }
-
             let index = self.states.len() - 1;
-
             match self.states[index].current().state {
                 SubMsgState::NotExecuted => {
                     let state = &mut self.states[index];
@@ -225,7 +202,6 @@ impl ExecutionState {
                 }
             }
         }
-
         responses_thrown
     }
 
@@ -359,5 +335,22 @@ fn contract_address(resp: &ResponseVariants) -> &str {
         ResponseVariants::Staking(_) => unreachable!(),
         #[cfg(feature = "ensemble-staking")]
         ResponseVariants::Distribution(_) => unreachable!()
+    }
+}
+
+/// For debugging purposes only:
+fn print_sub_msg_execute_result (
+    state:  &ExecutionState,
+    result: &SubMsgExecuteResult
+) {
+    match result {
+        Ok((response, events)) => {
+            let states = state.states.len();
+            let response = indent::indent_all_by(2, format!("{response}"));
+            println!("OK: Processed result (depth {states}):\n{response}\n{events}");
+        },
+        Err(err) => {
+            println!("ERR (reverting): {err}")
+        }
     }
 }
