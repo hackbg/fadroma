@@ -22,7 +22,7 @@ use super::{
         InstantiateResponse, ReplyResponse
     },
     state::State,
-    execution_state::{Stack, MessageType},
+    execution_state::{Stack, NextMessage},
     error::{EnsembleError, RegistryError},
     event::ProcessedEvents
 };
@@ -449,49 +449,6 @@ impl Context {
         }
     }
 
-    fn instantiate(
-        &mut self,
-        code_id: u64,
-        msg: Binary,
-        env: MockEnv,
-    ) -> EnsembleResult<InstantiateResponse> {
-        // We check for validity in execute_sub_msg()
-        let contract = &self.contracts[code_id as usize];
-        let sender = env.sender.to_string();
-        let address = env.contract.to_string();
-        let code_hash = contract.code_hash.clone();
-        self.state.create_contract_instance(address.clone(), code_id as usize)?;
-        let (env, msg_info) = self.create_msg_deps(env, code_hash.clone());
-        let querier = EnsembleQuerier::new(&self);
-        let response = self.state.borrow_storage_mut(&address, |storage| {
-            let api = &MockApi::default() as &dyn Api;
-            let querier = QuerierWrapper::new(&querier as &dyn Querier); 
-            let deps = DepsMut::<Empty> { storage, api, querier };
-            Ok(contract.code.instantiate(deps, env, msg_info, msg.clone())?)
-        })?;
-        let sent = Vec::with_capacity(response.messages.len());
-        let instance = ContractLink { address: Addr::unchecked(address), code_hash };
-        Ok(InstantiateResponse { sent, sender, instance, code_id, msg, response })
-    }
-
-    fn execute(&mut self, msg: Binary, env: MockEnv) -> EnsembleResult<ExecuteResponse> {
-        let address = env.contract.to_string();
-        let index = self.state.instance(&address)?.index;
-        let code_hash = self.contracts[index].code_hash.clone();
-        let (env, msg_info) = self.create_msg_deps(env, code_hash);
-        let sender = msg_info.sender.to_string();
-        let contract = &self.contracts[index];
-        let querier = EnsembleQuerier::new(&self);
-        let response = self.state.borrow_storage_mut(&address, |storage| {
-            let api = &MockApi::default() as &dyn Api;
-            let querier = QuerierWrapper::new(&querier as &dyn Querier);
-            let deps = DepsMut::<Empty> { storage, api, querier };
-            Ok(contract.code.execute(deps, env, msg_info, msg.clone())?)
-        })?;
-        let sent = Vec::with_capacity(response.messages.len());
-        Ok(ExecuteResponse { sent, sender, address, msg, response })
-    }
-
     pub(crate) fn query(&self, address: &str, msg: Binary) -> EnsembleResult<Binary> {
         let instance = self.state.instance(address)?;
         let contract = &self.contracts[instance.index];
@@ -530,6 +487,8 @@ impl Context {
         Ok(ReplyResponse { sent, address, reply, response })
     }
 
+    // Create and execute a message stack.
+    // Called from `ContractEnsemble::instantiate` or `ContractEnsemble::execute`
     fn execute_messages(&mut self, msg: SubMsg, initial_sender: String)
         -> EnsembleResult<ResponseVariants>
     {
@@ -537,22 +496,22 @@ impl Context {
         let mut stack = Stack::new(msg, initial_sender);
         // Recursively execute: the initial message, then any messages that
         // it added to the stack, and so on until the whole transaction is executed.
-        while let Some(msg_ty) = stack.take_next() {
+        while let Some(msg) = stack.take_next() {
             self.state.push_scope();
             // Execute the next step in the stack, which may be either
             // the reply from the previous message, or a new message.
-            let result = match msg_ty {
-                MessageType::Reply { id, error, target } =>
-                    self.execute_reply(&mut stack, id, error, target),
-                MessageType::SubMsg { msg, sender } =>
-                    self.execute_sub_msg(msg, sender),
-            };
-
+            let result = self.execute_message(&mut stack, msg);
+            // Update the stack and state according to the result from the contract.
+            // - If contract execution is successful, nothing is reverted.
+            // - If contract returns error, a number of frames/scopes
+            //   are reverted.
+            // - If a non-contract error occurs, everything is reverted
+            //   and the error is rethrown.
             match stack.process_result(result) {
-                Ok(mut msgs_reverted) => {
-                    while msgs_reverted > 0 {
+                Ok(mut to_revert) => {
+                    while to_revert > 0 {
                         self.state.revert_scope();
-                        msgs_reverted -= 1;
+                        to_revert -= 1;
                     }
                 },
                 Err(err) => {
@@ -560,7 +519,6 @@ impl Context {
                     return Err(err);
                 }
             }
-
         }
         // Advance time
         self.block.next();
@@ -569,6 +527,15 @@ impl Context {
         // Validate the state of the stack,
         // and return the response to the initial message.
         Ok(stack.finalize())
+    }
+
+    fn execute_message (&mut self, stack: &mut Stack, msg: NextMessage) -> SubMsgExecuteResult {
+        match msg {
+            NextMessage::Reply { id, error, target } =>
+                self.execute_reply(stack, id, error, target),
+            NextMessage::SubMsg { msg, sender } =>
+                self.execute_sub_msg(msg, sender),
+        }
     }
 
     fn execute_reply(
@@ -650,6 +617,49 @@ impl Context {
             }
             _ => panic!("Ensemble: Unsupported message: {:?}", msg)
         }
+    }
+
+    fn instantiate(
+        &mut self,
+        code_id: u64,
+        msg: Binary,
+        env: MockEnv,
+    ) -> EnsembleResult<InstantiateResponse> {
+        // We check for validity in execute_sub_msg()
+        let contract = &self.contracts[code_id as usize];
+        let sender = env.sender.to_string();
+        let address = env.contract.to_string();
+        let code_hash = contract.code_hash.clone();
+        self.state.create_contract_instance(address.clone(), code_id as usize)?;
+        let (env, msg_info) = self.create_msg_deps(env, code_hash.clone());
+        let querier = EnsembleQuerier::new(&self);
+        let response = self.state.borrow_storage_mut(&address, |storage| {
+            let api = &MockApi::default() as &dyn Api;
+            let querier = QuerierWrapper::new(&querier as &dyn Querier);
+            let deps = DepsMut::<Empty> { storage, api, querier };
+            Ok(contract.code.instantiate(deps, env, msg_info, msg.clone())?)
+        })?;
+        let sent = Vec::with_capacity(response.messages.len());
+        let instance = ContractLink { address: Addr::unchecked(address), code_hash };
+        Ok(InstantiateResponse { sent, sender, instance, code_id, msg, response })
+    }
+
+    fn execute(&mut self, msg: Binary, env: MockEnv) -> EnsembleResult<ExecuteResponse> {
+        let address = env.contract.to_string();
+        let index = self.state.instance(&address)?.index;
+        let code_hash = self.contracts[index].code_hash.clone();
+        let (env, msg_info) = self.create_msg_deps(env, code_hash);
+        let sender = msg_info.sender.to_string();
+        let contract = &self.contracts[index];
+        let querier = EnsembleQuerier::new(&self);
+        let response = self.state.borrow_storage_mut(&address, |storage| {
+            let api = &MockApi::default() as &dyn Api;
+            let querier = QuerierWrapper::new(&querier as &dyn Querier);
+            let deps = DepsMut::<Empty> { storage, api, querier };
+            Ok(contract.code.execute(deps, env, msg_info, msg.clone())?)
+        })?;
+        let sent = Vec::with_capacity(response.messages.len());
+        Ok(ExecuteResponse { sent, sender, address, msg, response })
     }
 
     fn execute_sub_msg_bank (&mut self, msg: BankMsg, sender: String)

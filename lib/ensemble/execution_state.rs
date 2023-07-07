@@ -4,13 +4,13 @@ use crate::{cosmwasm_std::*, ensemble::{*, event::*}};
 #[derive(Debug)]
 pub(crate) struct Stack {
     /// Execution slot: contains next message to execute.
-    next: Option<MessageType>,
+    next: Option<NextMessage>,
     /// State frames in the stack.
     pub(crate) frames: Vec<Frame>,
 }
 
 #[derive(Debug)]
-pub enum MessageType {
+pub enum NextMessage {
     SubMsg { msg: SubMsg, sender: String },
     Reply { id: u64, error: Option<String>, target: String }
 }
@@ -28,7 +28,7 @@ impl Stack {
         // Create a new instance of `Stack` with a single state frame,
         // and the initial message in the execution slot.
         let frames = vec![Frame::new_done(&msg)];
-        let next = Some(MessageType::SubMsg { msg, sender });
+        let next = Some(NextMessage::SubMsg { msg, sender });
         Self { next, frames }
         // From here, `Context::execute_messages` will repeatedly:
         // - pass the `next` message to the corresponding contract,
@@ -39,12 +39,12 @@ impl Stack {
     /// Return the next message in this stack, if present,
     /// resetting `self.next` to `None`.
     #[inline]
-    pub fn take_next(&mut self) -> Option<MessageType> {
+    pub fn take_next(&mut self) -> Option<NextMessage> {
         self.next.take()
     }
     /// Process the next result. (Called from `Context::execute_messages`
     /// as long as `Stack::next()` returns new replies or messages for
-    /// the contract to execute.)
+    /// the contract to execute.) Return the number of frames to revert.
     pub fn process_result(&mut self, result: SubMsgExecuteResult) -> EnsembleResult<usize> {
         super::display::print_sub_msg_execute_result(&self, &result);
         match result {
@@ -56,32 +56,55 @@ impl Stack {
                 Err(err)
         }
     }
-
+    /// Assert that this stack is fully executed, and that
+    /// there exists exactly one final response. Return that response.
+    pub fn finalize(mut self) -> ResponseVariants {
+        assert!(self.frames.len() == 1 && self.next.is_none());
+        assert_eq!(self.frames[0].responses.len(), 1);
+        //super::display::print_finalized_execution_state(&self);
+        self.frames[0].responses.pop().unwrap()
+    }
+    /// If contract execution succeeded:
+    /// - 0 frames need to be reverted
+    /// - New frames may be added to the stack
     fn on_success (&mut self, response: ResponseVariants, events: ProcessedEvents)
         -> EnsembleResult<usize>
     {
-        if let Some(cw_resp) = response.response() {
-            // Replies will overwrite the caller data if they return Some.
-            if response.is_reply() && cw_resp.data.is_some() {
+        println!("Response: {response:#?}\nEvents: {events:#?}");
+        // Replies will overwrite the caller data if they return Some.
+        if let Some(contract_response) = response.response() {
+            if response.is_reply() && contract_response.data.is_some() {
+                // If this is a reply, add the data to the caller frame.
                 let index = self.frames.len() - 2;
-                self.frames[index].data = cw_resp.data.clone();
+                self.frames[index].data = contract_response.data.clone();
             } else {
-                self.current_frame_mut().data = cw_resp.data.clone();
+                // Otherwise add it to the current frame.
+                self.current_frame_mut().data = contract_response.data.clone();
             }
         }
+        // Update current frame, adding results from contract call:
         let frame = self.current_frame_mut();
-        frame.current_mut().events.extend(events.take());
+        // - Add the events from the contract to the current frame's events.
+        frame.current_msg_mut().events.extend(events.take());
         let messages = response.messages().to_vec();
+        println!("Frame: {frame:#?}\nMessages: {messages:#?}");
+        // - Add the response from the contract to the current frame's responses.
         frame.responses.push(response);
+        // - If the contract response contains any messages,
+        //   add them to the stack as a new frame.
         if messages.len() > 0 {
             self.frames.push(Frame::new(messages));
         }
-        self.find_next(None, |r| matches!(r, ReplyOn::Always | ReplyOn::Success));
+        // Find the next message to execute.
+        self.update_next(None, |r| matches!(r, ReplyOn::Always | ReplyOn::Success));
         Ok(0)
     }
-
+    /// If contract returned error:
+    /// - If there is no next message, the error is returned.
+    /// - If there is a next message, the number of states to revert is returned,
+    ///   and the caller contract is allowed to handle the error.
     fn on_error (&mut self, err: EnsembleError) -> EnsembleResult<usize> {
-        let revert_count = self.find_next(Some(err.to_string()), 
+        let to_revert = self.update_next(Some(err.to_string()),
             |r| matches!(r, ReplyOn::Always | ReplyOn::Error));
         if self.next.is_none() {
             // If a contract returned an error but no caller
@@ -89,31 +112,31 @@ impl Stack {
             Err(err)
         } else {
             // +1 because we have to revert the current scope as well
-            Ok(revert_count + 1)
+            Ok(to_revert + 1)
         }
     }
-
     /// Find the next message to execute according to the given predicate,
-    /// set it in `self.next`, and return the number of (?thrown responses).
-    fn find_next<F: Fn(&ReplyOn) -> bool>(&mut self, error: Option<String>, test: F) -> usize {
+    /// set it in `self.next`, and return the number of frames to revert
+    /// (minus one, which is added by `Stack::on_error`).
+    fn update_next<F: Fn(&ReplyOn) -> bool>(&mut self, error: Option<String>, test: F) -> usize {
         assert!(self.next.is_none());
         let start_index = self.frames.len() - 1;
-        let mut responses_thrown = 0;
+        let mut to_revert = 0;
         loop {
             if self.frames.is_empty() {
                 break;
             }
             let index = self.frames.len() - 1;
-            match self.frames[index].current().state {
+            match self.frames[index].current_msg().state {
                 SubMsgState::NotExecuted => {
                     let frame = &mut self.frames[index];
-                    let current = frame.current_mut();
+                    let current = frame.current_msg_mut();
                     current.state = if current.msg.reply_on == ReplyOn::Never {
                         SubMsgState::Done
                     } else {
                         SubMsgState::ShouldReply
                     };
-                    self.next = Some(MessageType::SubMsg {
+                    self.next = Some(NextMessage::SubMsg {
                         msg: current.msg.clone(),
                         sender: self.current_sender()
                     });
@@ -121,13 +144,13 @@ impl Stack {
                 },
                 SubMsgState::Done => {
                     if error.is_some() {
-                        responses_thrown += self.pop().responses.len();
+                        to_revert += self.pop().responses.len();
                     } else {
                         let frame = &mut self.frames[index];
-                        frame.next();
+                        frame.next_msg();
                         // If we don't have a next node and we are currently
                         // at the root then we are finished.
-                        if !frame.has_next() && !self.squash_latest() {
+                        if !frame.has_next_msg() && !self.squash_latest() {
                             break;
                         }
                     }
@@ -142,47 +165,38 @@ impl Stack {
                             if index != start_index {
                                 let state = &mut self.frames[index];
                                 state.responses.pop();
-                                responses_thrown += 1;
+                                to_revert += 1;
                             }
                         } else {
-                            responses_thrown += self.pop().responses.len();
+                            to_revert += self.pop().responses.len();
 
                             continue;
                         }
                     }
                     self.next = reply;
-                    self.frames[index].current_mut().state = SubMsgState::Replying;
+                    self.frames[index].current_msg_mut().state = SubMsgState::Replying;
                     break;
                 }
                 SubMsgState::Replying => {
                     if error.is_some() {
-                        responses_thrown += self.pop().responses.len();
+                        to_revert += self.pop().responses.len();
                     } else {
-                        self.frames[index].current_mut().state = SubMsgState::Done;
+                        self.frames[index].current_msg_mut().state = SubMsgState::Done;
                     }
                 }
             }
         }
-        responses_thrown
+        to_revert
     }
 
     #[inline]
     pub fn events(&self) -> &[Event] {
-        &self.current_frame().current().events
+        &self.current_frame().current_msg().events
     }
 
     #[inline]
     pub fn data(&mut self) -> Option<&Binary> {
         self.current_frame_mut().data.as_ref()
-    }
-
-    /// Assert that this stack is fully executed, and that
-    /// there exists exactly one final response. Return that response.
-    pub fn finalize(mut self) -> ResponseVariants {
-        assert!(self.frames.len() == 1 && self.next.is_none());
-        assert_eq!(self.frames[0].responses.len(), 1);
-        //super::display::print_finalized_execution_state(&self);
-        self.frames[0].responses.pop().unwrap()
     }
 
     /// Return the address of the message sender for the current frame.
@@ -191,17 +205,17 @@ impl Stack {
         contract_address(self.frames[self.frames.len() - 2].responses.last().unwrap()).to_string()
     }
 
-    fn find_reply<F>(&self, error: Option<String>, test: &F) -> Option<MessageType>
+    fn find_reply<F>(&self, error: Option<String>, test: &F) -> Option<NextMessage>
         where F: Fn(&ReplyOn) -> bool
     {
         if self.frames.len() < 2 {
             None
         } else {
-            let current = self.current_frame().current();
+            let current = self.current_frame().current_msg();
             if test(&current.msg.reply_on) {
                 let index = self.frames.len() - 2;
                 let target = contract_address(self.frames[index].responses.last().unwrap());
-                Some(MessageType::Reply { id: current.msg.id, error, target: target.to_string() })
+                Some(NextMessage::Reply { id: current.msg.id, error, target: target.to_string() })
             } else {
                 None
             }
@@ -220,7 +234,7 @@ impl Stack {
             for x in latest.msgs {
                 events.extend(x.events);
             }
-            frame.current_mut().events.extend(events);
+            frame.current_msg_mut().events.extend(events);
             true
         }
     }
@@ -262,28 +276,28 @@ impl Frame {
 
     fn new_done(msg: &SubMsg) -> Self {
         let mut frame = Self::new(vec![msg.clone()]);
-        frame.current_mut().state = SubMsgState::Done;
+        frame.current_msg_mut().state = SubMsgState::Done;
         frame
     }
 
     #[inline]
-    fn current(&self) -> &SubMsgNode {
+    fn current_msg(&self) -> &SubMsgNode {
         &self.msgs[self.msg_index]
     }
 
     #[inline]
-    fn current_mut(&mut self) -> &mut SubMsgNode {
+    fn current_msg_mut(&mut self) -> &mut SubMsgNode {
         &mut self.msgs[self.msg_index]
     }
 
     #[inline]
-    fn next(&mut self) {
-        assert_eq!(self.current().state, SubMsgState::Done);
+    fn next_msg(&mut self) {
+        assert_eq!(self.current_msg().state, SubMsgState::Done);
         self.msg_index += 1;
     }
 
     #[inline]
-    fn has_next(&self) -> bool {
+    fn has_next_msg(&self) -> bool {
         self.msg_index < self.msgs.len()
     }
 }
