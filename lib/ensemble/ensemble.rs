@@ -1,12 +1,7 @@
 use std::{fmt::Debug, convert::TryFrom};
 use serde::{Serialize, de::DeserializeOwned};
 use oorandom::Rand64;
-use crate::{
-    prelude::{ContractCode, ContractLink},
-    cosmwasm_std::{*, testing::*},
-};
-#[cfg(feature = "ensemble-staking")]
-use crate::cosmwasm_std::{Uint128, FullDelegation, Validator, Delegation, StakingMsg, DistributionMsg};
+use crate::{prelude::*, cosmwasm_std::{*, testing::*}};
 use super::{
     bank::Balances,
     block::Block,
@@ -400,9 +395,7 @@ impl ContractEnsemble {
     /// attempts to deserialize its response to the given type parameter.
     #[inline]
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
-        &self,
-        address: impl AsRef<str>,
-        msg: &T
+        &self, address: impl AsRef<str>, msg: &T
     ) -> EnsembleResult<R> {
         let result = self.query_raw(address, msg)?;
         let result = from_binary(&result)?;
@@ -413,9 +406,7 @@ impl ContractEnsemble {
     /// attempting to deserialize its response.
     #[inline]
     pub fn query_raw<T: Serialize + ?Sized>(
-        &self,
-        address: impl AsRef<str>,
-        msg: &T
+        &self, address: impl AsRef<str>, msg: &T
     ) -> EnsembleResult<Binary> {
         self.ctx.query(address.as_ref(), to_binary(msg)?)
     }
@@ -582,13 +573,27 @@ impl Context {
                         env.sent_funds.clone()
                     )?)
                 };
-                let instantiate_resp = self.instantiate(
-                    code_id,
-                    msg,
-                    env
-                )?;
-                events.extend(&instantiate_resp)?;
-                Ok((instantiate_resp.into(), events))
+                // We check for validity in execute_submsg()
+                let contract = &self.contracts[code_id as usize];
+                let sender = env.sender.to_string();
+                let address = env.contract.to_string();
+                let code_hash = contract.code_hash.clone();
+                self.state.create_contract_instance(address.clone(), code_id as usize)?;
+                let (env, msg_info) = self.create_msg_deps(env, code_hash.clone());
+                let querier = EnsembleQuerier::new(&self);
+                let response = self.state.borrow_storage_mut(&address, |storage| {
+                    let api = &MockApi::default() as &dyn Api;
+                    let querier = QuerierWrapper::new(&querier as &dyn Querier);
+                    let deps = DepsMut::<Empty> { storage, api, querier };
+                    Ok(contract.code.instantiate(deps, env, msg_info, msg.clone())?)
+                })?;
+                let sent = Vec::with_capacity(response.messages.len());
+                let instance = ContractLink { address: Addr::unchecked(address), code_hash };
+                let response = InstantiateResponse {
+                    sent, sender, instance, code_id, msg, response
+                };
+                events.extend(&response)?;
+                Ok((response.into(), events))
             },
             WasmMsg::Execute { contract_addr, msg, funds, code_hash, } => {
                 let index = self.state.instance(&contract_addr)?.index;
@@ -605,55 +610,26 @@ impl Context {
                     )?)
                 };
                 let env = MockEnv::new(sender, contract_addr.clone()).sent_funds(funds);
-                let execute_resp = self.execute(msg, env)?;
-                events.extend(&execute_resp)?;
-                Ok((execute_resp.into(), events))
+                let address = env.contract.to_string();
+                let index = self.state.instance(&address)?.index;
+                let code_hash = self.contracts[index].code_hash.clone();
+                let (env, msg_info) = self.create_msg_deps(env, code_hash);
+                let sender = msg_info.sender.to_string();
+                let contract = &self.contracts[index];
+                let querier = EnsembleQuerier::new(&self);
+                let response = self.state.borrow_storage_mut(&address, |storage| {
+                    let api = &MockApi::default() as &dyn Api;
+                    let querier = QuerierWrapper::new(&querier as &dyn Querier);
+                    let deps = DepsMut::<Empty> { storage, api, querier };
+                    Ok(contract.code.execute(deps, env, msg_info, msg.clone())?)
+                })?;
+                let sent = Vec::with_capacity(response.messages.len());
+                let response = ExecuteResponse { sent, sender, address, msg, response };
+                events.extend(&response)?;
+                Ok((response.into(), events))
             }
             _ => panic!("Ensemble: Unsupported message: {:?}", msg)
         }
-    }
-
-    fn instantiate(
-        &mut self,
-        code_id: u64,
-        msg: Binary,
-        env: MockEnv,
-    ) -> EnsembleResult<InstantiateResponse> {
-        // We check for validity in execute_submsg()
-        let contract = &self.contracts[code_id as usize];
-        let sender = env.sender.to_string();
-        let address = env.contract.to_string();
-        let code_hash = contract.code_hash.clone();
-        self.state.create_contract_instance(address.clone(), code_id as usize)?;
-        let (env, msg_info) = self.create_msg_deps(env, code_hash.clone());
-        let querier = EnsembleQuerier::new(&self);
-        let response = self.state.borrow_storage_mut(&address, |storage| {
-            let api = &MockApi::default() as &dyn Api;
-            let querier = QuerierWrapper::new(&querier as &dyn Querier);
-            let deps = DepsMut::<Empty> { storage, api, querier };
-            Ok(contract.code.instantiate(deps, env, msg_info, msg.clone())?)
-        })?;
-        let sent = Vec::with_capacity(response.messages.len());
-        let instance = ContractLink { address: Addr::unchecked(address), code_hash };
-        Ok(InstantiateResponse { sent, sender, instance, code_id, msg, response })
-    }
-
-    fn execute(&mut self, msg: Binary, env: MockEnv) -> EnsembleResult<ExecuteResponse> {
-        let address = env.contract.to_string();
-        let index = self.state.instance(&address)?.index;
-        let code_hash = self.contracts[index].code_hash.clone();
-        let (env, msg_info) = self.create_msg_deps(env, code_hash);
-        let sender = msg_info.sender.to_string();
-        let contract = &self.contracts[index];
-        let querier = EnsembleQuerier::new(&self);
-        let response = self.state.borrow_storage_mut(&address, |storage| {
-            let api = &MockApi::default() as &dyn Api;
-            let querier = QuerierWrapper::new(&querier as &dyn Querier);
-            let deps = DepsMut::<Empty> { storage, api, querier };
-            Ok(contract.code.execute(deps, env, msg_info, msg.clone())?)
-        })?;
-        let sent = Vec::with_capacity(response.messages.len());
-        Ok(ExecuteResponse { sent, sender, address, msg, response })
     }
 
     fn execute_submsg_bank (&mut self, msg: BankMsg, sender: String)
