@@ -528,7 +528,7 @@ impl Context {
             NextMessage::Reply { id, error, target } =>
                 self.execute_reply(stack, id, error, target),
             NextMessage::SubMsg { msg, sender } =>
-                self.execute_sub_msg(msg, sender),
+                self.execute_submsg(msg, sender),
         }
     }
 
@@ -536,11 +536,13 @@ impl Context {
         &mut self, state: &mut Stack, id: u64, error: Option<String>, target: String
     ) -> SubMsgExecuteResult {
         let result = match error {
-            Some(err) => SubMsgResult::Err(err),
-            None => SubMsgResult::Ok(SubMsgResponse {
-                events: state.events().to_vec(),
-                data: state.data().cloned()
-            })
+            Some(err) =>
+                SubMsgResult::Err(err),
+            None =>
+                SubMsgResult::Ok(SubMsgResponse {
+                    events: state.events().to_vec(),
+                    data: state.data().cloned()
+                })
         };
         match self.reply(target, Reply { id, result }) {
             Ok(resp) => ProcessedEvents::try_from(&resp).and_then(|x|Ok((resp.into(), x))),
@@ -548,21 +550,19 @@ impl Context {
         }
     }
 
-    fn execute_sub_msg(&mut self, sub_msg: SubMsg, sender: String) ->
-        SubMsgExecuteResult
-    {
-        match sub_msg.msg {
-            CosmosMsg::Wasm(msg) => self.execute_sub_msg_wasm(msg, sender),
-            CosmosMsg::Bank(msg) => self.execute_sub_msg_bank(msg, sender),
+    fn execute_submsg(&mut self, submsg: SubMsg, sender: String) -> SubMsgExecuteResult {
+        match submsg.msg {
+            CosmosMsg::Wasm(msg) => self.execute_submsg_wasm(msg, sender),
+            CosmosMsg::Bank(msg) => self.execute_submsg_bank(msg, sender),
             #[cfg(feature = "ensemble-staking")]
-            CosmosMsg::Staking(msg) => self.execute_sub_msg_staking(msg, sender),
+            CosmosMsg::Staking(msg) => self.execute_submsg_staking(msg, sender),
             #[cfg(feature = "ensemble-staking")]
-            CosmosMsg::Distribution(msg) => self.execute_sub_msg_distribution(msg, sender),
-            _ => panic!("Ensemble: Unsupported message: {:?}", sub_msg)
+            CosmosMsg::Distribution(msg) => self.execute_submsg_distribution(msg, sender),
+            _ => panic!("Ensemble: Unsupported message: {:?}", submsg)
         }
     }
 
-    fn execute_sub_msg_wasm (&mut self, msg: WasmMsg, sender: String)
+    fn execute_submsg_wasm (&mut self, msg: WasmMsg, sender: String)
         -> SubMsgExecuteResult
     {
         match msg {
@@ -619,7 +619,7 @@ impl Context {
         msg: Binary,
         env: MockEnv,
     ) -> EnsembleResult<InstantiateResponse> {
-        // We check for validity in execute_sub_msg()
+        // We check for validity in execute_submsg()
         let contract = &self.contracts[code_id as usize];
         let sender = env.sender.to_string();
         let address = env.contract.to_string();
@@ -656,7 +656,7 @@ impl Context {
         Ok(ExecuteResponse { sent, sender, address, msg, response })
     }
 
-    fn execute_sub_msg_bank (&mut self, msg: BankMsg, sender: String)
+    fn execute_submsg_bank (&mut self, msg: BankMsg, sender: String)
         -> SubMsgExecuteResult
     {
         match msg {
@@ -670,7 +670,7 @@ impl Context {
     }
 
     #[cfg(feature = "ensemble-staking")]
-    fn execute_sub_msg_staking (&mut self, msg: StakingMsg, sender: String)
+    fn execute_submsg_staking (&mut self, msg: StakingMsg, sender: String)
         -> SubMsgExecuteResult
     {
         match msg {
@@ -703,7 +703,7 @@ impl Context {
     }
 
     #[cfg(feature = "ensemble-staking")]
-    fn execute_sub_msg_distribution (&mut self, msg: DistributionMsg, sender: String)
+    fn execute_submsg_distribution (&mut self, msg: DistributionMsg, sender: String)
         -> SubMsgExecuteResult
     {
         match msg {
@@ -813,7 +813,7 @@ impl Stack {
     /// as long as `Stack::next()` returns new replies or messages for
     /// the contract to execute.) Return the number of frames to revert.
     pub fn process_result(&mut self, result: SubMsgExecuteResult) -> EnsembleResult<usize> {
-        super::display::print_sub_msg_execute_result(&self, &result);
+        super::display::print_submsg_execute_result(&self, &result);
         match result {
             Ok((response, events)) =>
                 self.on_success(response, events),

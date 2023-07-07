@@ -107,7 +107,7 @@ impl Display for SubMsgNode {
 }
 
 #[allow(dead_code)]
-pub(crate) fn print_sub_msg_execute_result (state: &Stack, result: &SubMsgExecuteResult) {
+pub(crate) fn print_submsg_execute_result (state: &Stack, result: &SubMsgExecuteResult) {
     println!("{}", match result {
         Ok((response, events)) => {
             let frames = state.frames.len();
