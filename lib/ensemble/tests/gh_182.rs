@@ -29,8 +29,8 @@ use crate::{prelude::*, ensemble::*};
     //assert_eq!(response.response.messages, vec![]);
     println!("Final response: {:#?}", response);
     assert_eq!(response.response.attributes, vec![
-        Attribute { key: "address_b".to_string(), value: "contract_b".to_string(), encrypted: false },
-        Attribute { key: "address_c".to_string(), value: "contract_c".to_string(), encrypted: false },
+        Attribute::new("address_b", "contract_b"),
+        Attribute::new("address_c", "contract_c"),
     ]);
 }
 

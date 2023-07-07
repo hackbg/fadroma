@@ -392,15 +392,12 @@ impl ContractEnsemble {
         }
     }
     /// Query the contract associated with the given address and
-    /// attempts to deserialize its response to the given type parameter.
+    /// attempt to deserialize its response to the given type parameter.
     #[inline]
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
         &self, address: impl AsRef<str>, msg: &T
     ) -> EnsembleResult<R> {
-        let result = self.query_raw(address, msg)?;
-        let result = from_binary(&result)?;
-
-        Ok(result)
+        Ok(from_binary(&self.query_raw(address, msg)?)?)
     }
     /// Query the contract associated with the given address without
     /// attempting to deserialize its response.
@@ -408,7 +405,7 @@ impl ContractEnsemble {
     pub fn query_raw<T: Serialize + ?Sized>(
         &self, address: impl AsRef<str>, msg: &T
     ) -> EnsembleResult<Binary> {
-        self.ctx.query(address.as_ref(), to_binary(msg)?)
+        self.ctx.execute_query(address.as_ref(), to_binary(msg)?)
     }
 }
 
@@ -434,44 +431,6 @@ impl Context {
         }
     }
 
-    pub(crate) fn query(&self, address: &str, msg: Binary) -> EnsembleResult<Binary> {
-        let instance = self.state.instance(address)?;
-        let contract = &self.contracts[instance.index];
-        let env = self.create_env(ContractLink {
-            address: Addr::unchecked(address),
-            code_hash: contract.code_hash.clone()
-        });
-        let querier = EnsembleQuerier::new(&self);
-        let deps = Deps::<Empty> {
-            storage: &instance.storage as &dyn Storage,
-            api: &MockApi::default() as &dyn Api,
-            querier: QuerierWrapper::new(&querier as &dyn Querier)
-        };
-        Ok(contract.code.query(deps, env, msg)?)
-    }
-
-    fn reply(&mut self, address: String, reply: Reply) -> EnsembleResult<ReplyResponse> {
-        let index = self.state.instance(&address)?.index;
-        let code_hash = self.contracts[index].code_hash.clone();
-        let env = self.create_env(ContractLink {
-            address: Addr::unchecked(address.clone()),
-            code_hash
-        });
-        let contract = &self.contracts[index];
-        let querier = EnsembleQuerier::new(&self);
-        let response = self.state.borrow_storage_mut(&address, |storage| {
-            let deps = DepsMut::<Empty> {
-                storage,
-                api: &MockApi::default() as &dyn Api,
-                querier: QuerierWrapper::new(&querier as &dyn Querier)
-            };
-            let result = contract.code.reply(deps, env, reply.clone())?;
-            Ok(result)
-        })?;
-        let sent = Vec::with_capacity(response.messages.len());
-        Ok(ReplyResponse { sent, address, reply, response })
-    }
-
     // Create and execute a message stack.
     // Called from `ContractEnsemble::instantiate` or `ContractEnsemble::execute`
     fn execute_messages(&mut self, msg: SubMsg, initial_sender: String)
@@ -485,7 +444,12 @@ impl Context {
             self.state.push_scope();
             // Execute the next step in the stack, which may be either
             // the reply from the previous message, or a new message.
-            let result = self.execute_message(&mut stack, msg);
+            let result = match msg {
+                NextMessage::Reply { id, error, target } =>
+                    self.execute_reply(&mut stack, id, error, target),
+                NextMessage::SubMsg { msg, sender } =>
+                    self.execute_submsg(msg, sender),
+            };
             // Update the stack and state according to the result from the contract.
             // - If contract execution is successful, nothing is reverted.
             // - If contract returns error, a number of frames/scopes
@@ -514,18 +478,10 @@ impl Context {
         Ok(stack.finalize())
     }
 
-    fn execute_message (&mut self, stack: &mut Stack, msg: NextMessage) -> SubMsgExecuteResult {
-        match msg {
-            NextMessage::Reply { id, error, target } =>
-                self.execute_reply(stack, id, error, target),
-            NextMessage::SubMsg { msg, sender } =>
-                self.execute_submsg(msg, sender),
-        }
-    }
-
-    fn execute_reply(
-        &mut self, state: &mut Stack, id: u64, error: Option<String>, target: String
-    ) -> SubMsgExecuteResult {
+    /// Pass a reply back to the caller.
+    fn execute_reply(&mut self, state: &mut Stack, id: u64, error: Option<String>, address: String)
+        -> SubMsgExecuteResult
+    {
         let result = match error {
             Some(err) =>
                 SubMsgResult::Err(err),
@@ -535,12 +491,30 @@ impl Context {
                     data: state.data().cloned()
                 })
         };
-        match self.reply(target, Reply { id, result }) {
-            Ok(resp) => ProcessedEvents::try_from(&resp).and_then(|x|Ok((resp.into(), x))),
-            Err(err) => Err(err)
-        }
+        let reply = Reply { id, result };
+        let index = self.state.instance(&address)?.index;
+        let code_hash = self.contracts[index].code_hash.clone();
+        let env = self.create_env(ContractLink {
+            address: Addr::unchecked(address.clone()),
+            code_hash
+        });
+        let contract = &self.contracts[index];
+        let querier = EnsembleQuerier::new(&self);
+        let response = self.state.borrow_storage_mut(&address, |storage| {
+            let deps = DepsMut::<Empty> {
+                storage,
+                api: &MockApi::default() as &dyn Api,
+                querier: QuerierWrapper::new(&querier as &dyn Querier)
+            };
+            let result = contract.code.reply(deps, env, reply.clone())?;
+            Ok(result)
+        })?;
+        let sent = Vec::with_capacity(response.messages.len());
+        let resp = ReplyResponse { sent, address, reply, response };
+        ProcessedEvents::try_from(&resp).and_then(|x|Ok((resp.into(), x)))
     }
 
+    /// Execute a Cosmos message.
     fn execute_submsg(&mut self, submsg: SubMsg, sender: String) -> SubMsgExecuteResult {
         match submsg.msg {
             CosmosMsg::Wasm(msg) => self.execute_submsg_wasm(msg, sender),
@@ -552,7 +526,7 @@ impl Context {
             _ => panic!("Ensemble: Unsupported message: {:?}", submsg)
         }
     }
-
+    /// Execute a WASM message.
     fn execute_submsg_wasm (&mut self, msg: WasmMsg, sender: String)
         -> SubMsgExecuteResult
     {
@@ -631,7 +605,7 @@ impl Context {
             _ => panic!("Ensemble: Unsupported message: {:?}", msg)
         }
     }
-
+    /// Execute a bank message.
     fn execute_submsg_bank (&mut self, msg: BankMsg, sender: String)
         -> SubMsgExecuteResult
     {
@@ -644,7 +618,7 @@ impl Context {
             _ => panic!("Ensemble: Unsupported message: {:?}", msg)
         }
     }
-
+    /// Execute a staking message.
     #[cfg(feature = "ensemble-staking")]
     fn execute_submsg_staking (&mut self, msg: StakingMsg, sender: String)
         -> SubMsgExecuteResult
@@ -677,7 +651,7 @@ impl Context {
             _ => panic!("Ensemble: Unsupported message: {:?}", msg)
         }
     }
-
+    /// Execute a distribution message.
     #[cfg(feature = "ensemble-staking")]
     fn execute_submsg_distribution (&mut self, msg: DistributionMsg, sender: String)
         -> SubMsgExecuteResult
@@ -700,16 +674,9 @@ impl Context {
 
     #[inline]
     fn create_msg_deps(&self, env: MockEnv, code_hash: String) -> (Env, MessageInfo) {
-        (
-            self.create_env(ContractLink {
-                address: env.contract,
-                code_hash
-            }),
-            MessageInfo {
-                sender: env.sender,
-                funds: env.sent_funds
-            }
-        )
+        let contract = ContractLink { address: env.contract, code_hash };
+        let msg_info = MessageInfo { sender: env.sender, funds: env.sent_funds };
+        (self.create_env(contract), msg_info)
     }
 
     #[inline]
@@ -730,6 +697,22 @@ impl Context {
                 code_hash: contract.code_hash,
             }
         }
+    }
+
+    pub(crate) fn execute_query(&self, address: &str, msg: Binary) -> EnsembleResult<Binary> {
+        let instance = self.state.instance(address)?;
+        let contract = &self.contracts[instance.index];
+        let env = self.create_env(ContractLink {
+            address: Addr::unchecked(address),
+            code_hash: contract.code_hash.clone()
+        });
+        let querier = EnsembleQuerier::new(&self);
+        let deps = Deps::<Empty> {
+            storage: &instance.storage as &dyn Storage,
+            api: &MockApi::default() as &dyn Api,
+            querier: QuerierWrapper::new(&querier as &dyn Querier)
+        };
+        Ok(contract.code.query(deps, env, msg)?)
     }
 }
 
@@ -879,15 +862,15 @@ impl Stack {
                     } else {
                         SubMsgState::ShouldReply
                     };
-                    self.next = Some(NextMessage::SubMsg {
-                        msg: current.msg.clone(),
-                        sender: self.current_sender()
-                    });
+                    let msg = current.msg.clone();
+                    let last_response = self.frames[self.frames.len() - 2].responses.last();
+                    let sender = contract_address(last_response.unwrap()).to_string();
+                    self.next = Some(NextMessage::SubMsg { msg, sender });
                     break;
                 },
                 SubMsgState::Done => {
                     if error.is_some() {
-                        to_revert += self.pop().responses.len();
+                        to_revert += self.pop_frame().responses.len();
                     } else {
                         let frame = &mut self.frames[index];
                         frame.next_msg();
@@ -906,12 +889,12 @@ impl Stack {
                             // (i.e this is not the first iteration of the loop) otherwise,
                             // the response wasn't added to begin with since we have an error.
                             if index != start_index {
-                                let state = &mut self.frames[index];
-                                state.responses.pop();
+                                let frame = &mut self.frames[index];
+                                frame.responses.pop();
                                 to_revert += 1;
                             }
                         } else {
-                            to_revert += self.pop().responses.len();
+                            to_revert += self.pop_frame().responses.len();
 
                             continue;
                         }
@@ -922,7 +905,7 @@ impl Stack {
                 }
                 SubMsgState::Replying => {
                     if error.is_some() {
-                        to_revert += self.pop().responses.len();
+                        to_revert += self.pop_frame().responses.len();
                     } else {
                         self.frames[index].current_msg_mut().state = SubMsgState::Done;
                     }
@@ -931,23 +914,7 @@ impl Stack {
         }
         to_revert
     }
-
-    #[inline]
-    pub fn events(&self) -> &[Event] {
-        &self.current_frame().current_msg().events
-    }
-
-    #[inline]
-    pub fn data(&mut self) -> Option<&Binary> {
-        self.current_frame_mut().data.as_ref()
-    }
-
-    /// Return the address of the message sender for the current frame.
-    /// Where does the magic number 2 come from?
-    fn current_sender(&self) -> String {
-        contract_address(self.frames[self.frames.len() - 2].responses.last().unwrap()).to_string()
-    }
-
+    /// Find the next reply.
     fn find_reply<F>(&self, error: Option<String>, test: &F) -> Option<NextMessage>
         where F: Fn(&ReplyOn) -> bool
     {
@@ -964,14 +931,21 @@ impl Stack {
             }
         }
     }
-
+    /// If there are two or more frames, merge the latest two and return true:
+    /// - Add responses from last frame to current frame's last response.
+    /// - Add events from current frame to current message.
+    /// Otherwise return false, signifying that execution of this stack is complete.
     fn squash_latest(&mut self) -> bool {
         if self.frames.len() <= 1 {
             false
         } else {
-            let latest = self.pop();
+            // Pop the last frame.
+            let latest = self.pop_frame();
+            // Get the current frame.
             let frame = self.current_frame_mut();
+            // Add responses.
             frame.responses.last_mut().unwrap().add_responses(latest.responses);
+            // Add events.
             let len = latest.msgs.iter().map(|x| x.events.len()).sum();
             let mut events = Vec::with_capacity(len);
             for x in latest.msgs {
@@ -981,20 +955,30 @@ impl Stack {
             true
         }
     }
-
+    /// Get a mutable reference to the current (last) frame.
     #[inline]
     fn current_frame_mut(&mut self) -> &mut Frame {
         self.frames.last_mut().unwrap()
     }
-
+    /// Get an immutable reference to the current (last) frame.
     #[inline]
     fn current_frame(&self) -> &Frame {
         self.frames.last().unwrap()
     }
-
+    /// Remove the last frame from the stack and return it.
     #[inline]
-    fn pop(&mut self) -> Frame {
+    fn pop_frame(&mut self) -> Frame {
         self.frames.pop().unwrap()
+    }
+    /// Return an immutable reference to the current frame's events.
+    #[inline]
+    pub fn events(&self) -> &[Event] {
+        &self.current_frame().current_msg().events
+    }
+    /// Return a mutable reference to the current frame's data.
+    #[inline]
+    pub fn data(&mut self) -> Option<&Binary> {
+        self.current_frame_mut().data.as_ref()
     }
 }
 
