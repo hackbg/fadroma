@@ -22,7 +22,7 @@ use super::{
         InstantiateResponse, ReplyResponse
     },
     state::State,
-    execution_state::{ExecutionState, MessageType},
+    execution_state::{Stack, MessageType},
     error::{EnsembleError, RegistryError},
     event::ProcessedEvents
 };
@@ -40,12 +40,30 @@ pub(crate) type SubMsgExecuteResult = EnsembleResult<(ResponseVariants, Processe
 /// by calling the respective contract function for each method of the trait by passing
 /// down the parameters of the method and calling `cosmwasm_std::from_binary()` on the
 /// `msg` parameter. It can also be used to implement a mock contract directly.
+#[allow(unused)]
 pub trait ContractHarness {
-    fn instantiate(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
-    fn execute(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
-    fn query(&self, deps: Deps, env: Env, msg: Binary) -> AnyResult<Binary>;
-    fn reply(&self, _deps: DepsMut, _env: Env, _reply: Reply) -> AnyResult<Response> {
-        panic!("Reply entry point not implemented.")
+    fn instantiate(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary)
+        -> AnyResult<Response>
+    {
+        panic!("ContractHarness::instantiate not implemented.")
+    }
+
+    fn execute(&self, deps: DepsMut, env: Env, info: MessageInfo, msg: Binary)
+        -> AnyResult<Response>
+    {
+        panic!("ContractHarness::execute not implemented.")
+    }
+
+    fn query(&self, deps: Deps, env: Env, msg: Binary) ->
+        AnyResult<Binary>
+    {
+        panic!("ContractHarness::query not implemented.")
+    }
+
+    fn reply(&self, _deps: DepsMut, _env: Env, _reply: Reply)
+        -> AnyResult<Response>
+    {
+        panic!("ContractHarness::reply not implemented.")
     }
 }
 
@@ -148,7 +166,7 @@ pub(crate) struct ContractUpload {
 }
 
 impl ContractEnsemble {
-    /// Creates a new instance of the ensemble that will use
+    /// Create a new instance of the ensemble that will use
     /// "uscrt" as the native coin when the `scrt` feature is
     /// enabled. Otherwise, will use `uatom`.
     pub fn new() -> Self {
@@ -158,15 +176,13 @@ impl ContractEnsemble {
         let denom = "uatom";
         Self { ctx: Box::new(Context::new(denom.into())) }
     }
-
-    /// Creates a new instance of the ensemble that will use
+    /// Create a new instance of the ensemble that will use
     /// the provided denomination as the native coin.
     #[cfg(feature = "ensemble-staking")]
     pub fn new_with_denom(native_denom: impl Into<String>) -> Self {
         Self { ctx: Box::new(Context::new(native_denom.into())) }
     }
-
-    /// Registers a contract with the ensemble which enables it to be
+    /// Register a contract with the ensemble which enables it to be
     /// called by the sender or by other contracts. Corresponds to the
     /// upload step of the real chain.
     /// 
@@ -178,14 +194,12 @@ impl ContractEnsemble {
         self.ctx.contracts.push(ContractUpload { code_hash: code_hash.clone(), code });
         ContractCode { id, code_hash }
     }
-
     /// Returns a reference to the current block state.
     #[inline]
     pub fn block(&self) -> &Block {
         &self.ctx.block
     }
-
-    /// Returns a mutable reference to the current block state.
+    /// Return a mutable reference to the current block state.
     /// Can be used to manually advance the block time and height
     /// or configure the auto advancement strategy. Auto advancement
     /// occurs on successful message execution.
@@ -193,14 +207,12 @@ impl ContractEnsemble {
     pub fn block_mut(&mut self) -> &mut Block {
         &mut self.ctx.block
     }
-
     /// Sets that chain id string i.e `env.block.chain_id`.
     #[inline]
     pub fn set_chain_id(&mut self, id: impl Into<String>) {
         self.ctx.chain_id = id.into();
     }
-
-    /// Adds the given funds that will be associated with the
+    /// Add the given funds that will be associated with the
     /// provided account's address. Can either be a contract or
     /// a mock user's address. You need to use this method first
     /// if you want to send a contract funds when using [`MockEnv::sent_funds`].
@@ -210,8 +222,7 @@ impl ContractEnsemble {
             self.ctx.state.bank.add_funds(address.as_ref(), coin);
         }
     }
-
-    /// Removes the given funds from the provided account's
+    /// Remove the given funds from the provided account's
     /// address. Can either be a contract or a mock user's address.
     /// The account must already exist and have at least the given amount
     /// in order for this to be a success.
@@ -219,8 +230,7 @@ impl ContractEnsemble {
     pub fn remove_funds(&mut self, address: impl AsRef<str>, coin: Coin) -> EnsembleResult<()> {
         self.ctx.state.bank.remove_funds(address.as_ref(), coin)
     }
-
-    /// Transfers funds from one account to another. The `from` address
+    /// Transfer funds from one account to another. The `from` address
     /// must have the sufficient amount.
     #[inline]
     pub fn transfer_funds(
@@ -231,8 +241,7 @@ impl ContractEnsemble {
     ) -> EnsembleResult<()> {
         self.ctx.state.bank.transfer(from.as_ref(), to.as_ref(), coin)
     }
-
-    /// Returns a reference to all the balances associated with the given
+    /// Return a reference to all the balances associated with the given
     /// account. Returns [`None`] if the account doesn't exist or hasn't
     /// received any funds before.
     /// 
@@ -256,8 +265,7 @@ impl ContractEnsemble {
     pub fn balances(&self, address: impl AsRef<str>) -> Option<&Balances> {
         self.ctx.state.bank.0.get(address.as_ref())
     }
-
-    /// Returns a mutable reference to all the balances associated with the
+    /// Return a mutable reference to all the balances associated with the
     /// given account. Returns [`None`] if the account doesn't exist or hasn't
     /// received any funds before.
     /// 
@@ -280,19 +288,18 @@ impl ContractEnsemble {
     /// assert_eq!(balances.get("uscrt").unwrap().u128(), 50);
     ///
     /// assert!(ensemble.balances("absent").is_none());
+    /// ```
     #[inline]
     pub fn balances_mut(&mut self, address: impl AsRef<str>) -> Option<&mut Balances> {
         self.ctx.state.bank.0.get_mut(address.as_ref())
     }
-
-    /// Returns all active delegations associated with the given address.
+    /// Return all active delegations associated with the given address.
     #[inline]
     #[cfg(feature = "ensemble-staking")]
     pub fn delegations(&self, address: impl AsRef<str>) -> Vec<Delegation> {
         self.ctx.delegations.all_delegations(address.as_ref())
     }
-
-    /// Creates a new delegation for the given address using the given validator.
+    /// Create a new delegation for the given address using the given validator.
     #[inline]
     #[cfg(feature = "ensemble-staking")]
     pub fn delegation(
@@ -304,21 +311,18 @@ impl ContractEnsemble {
             .delegations
             .delegation(delegator.as_ref(), validator.as_ref())
     }
-
     /// Adds the validator to the validator list.
     #[inline]
     #[cfg(feature = "ensemble-staking")]
     pub fn add_validator(&mut self, validator: Validator) {
         self.ctx.delegations.add_validator(validator);
     }
-
-    /// Distributes the given amount as rewards.
+    /// Distribute the given amount as rewards.
     #[inline]
     #[cfg(feature = "ensemble-staking")]
     pub fn add_rewards(&mut self, amount: impl Into<Uint128>) {
         self.ctx.delegations.distribute_rewards(amount.into());
     }
-
     /// Re-allow redelegating and deposit unbondings.
     #[inline]
     #[cfg(feature = "ensemble-staking")]
@@ -330,8 +334,7 @@ impl ContractEnsemble {
             );
         }
     }
-
-    /// Provides read access to the storage associated with the given contract address.
+    /// Provide read access to the storage associated with the given contract address.
     /// 
     /// Returns `Err` if a contract with `address` wasn't found.
     #[inline]
@@ -342,8 +345,7 @@ impl ContractEnsemble {
         borrow(&instance.storage as &dyn Storage);
         Ok(())
     }
-
-    /// Provides write access to the storage associated with the given contract address.
+    /// Provide write access to the storage associated with the given contract address.
     /// 
     /// Returns an `Err` if a contract with `address` wasn't found. In case an error
     /// is returned from the closure, the updates to that storage are discarded.
@@ -359,8 +361,7 @@ impl ContractEnsemble {
         }
         result
     }
-
-    /// Creates a new contract instance using the given code id. The code id
+    /// Create a new contract instance using the given code id. The code id
     /// must be obtained by calling the [`ContractEnsemble::register`] method first.
     /// 
     /// The contract will be assigned the address the was provided with
@@ -384,8 +385,7 @@ impl ContractEnsemble {
             _ => unreachable!()
         }
     }
-
-    /// Executes the contract with the address provided in `env.contract`.
+    /// Execute the contract with the address provided in `env.contract`.
     pub fn execute<T: Serialize + ?Sized>(&mut self, msg: &T, env: MockEnv)
         -> EnsembleResult<ExecuteResponse>
     {
@@ -402,8 +402,7 @@ impl ContractEnsemble {
             _ => unreachable!()
         }
     }
-
-    /// Queries the contract associated with the given address and
+    /// Query the contract associated with the given address and
     /// attempts to deserialize its response to the given type parameter.
     #[inline]
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
@@ -416,8 +415,7 @@ impl ContractEnsemble {
 
         Ok(result)
     }
-
-    /// Queries the contract associated with the given address without
+    /// Query the contract associated with the given address without
     /// attempting to deserialize its response.
     #[inline]
     pub fn query_raw<T: Serialize + ?Sized>(
@@ -535,16 +533,22 @@ impl Context {
     fn execute_messages(&mut self, msg: SubMsg, initial_sender: String)
         -> EnsembleResult<ResponseVariants>
     {
-        let mut state = ExecutionState::new(msg, initial_sender);
-        while let Some(msg_ty) = state.next() {
+        // Create a new execution stack, starting with the initial message.
+        let mut stack = Stack::new(msg, initial_sender);
+        // Recursively execute: the initial message, then any messages that
+        // it added to the stack, and so on until the whole transaction is executed.
+        while let Some(msg_ty) = stack.take_next() {
             self.state.push_scope();
+            // Execute the next step in the stack, which may be either
+            // the reply from the previous message, or a new message.
             let result = match msg_ty {
                 MessageType::Reply { id, error, target } =>
-                    self.execute_reply(&mut state, id, error, target),
+                    self.execute_reply(&mut stack, id, error, target),
                 MessageType::SubMsg { msg, sender } =>
                     self.execute_sub_msg(msg, sender),
             };
-            match state.process_result(result) {
+
+            match stack.process_result(result) {
                 Ok(mut msgs_reverted) => {
                     while msgs_reverted > 0 {
                         self.state.revert_scope();
@@ -556,14 +560,19 @@ impl Context {
                     return Err(err);
                 }
             }
+
         }
+        // Advance time
         self.block.next();
+        // Commit strate mutations
         self.state.commit();
-        Ok(state.finalize())
+        // Validate the state of the stack,
+        // and return the response to the initial message.
+        Ok(stack.finalize())
     }
 
     fn execute_reply(
-        &mut self, state: &mut ExecutionState, id: u64, error: Option<String>, target: String
+        &mut self, state: &mut Stack, id: u64, error: Option<String>, target: String
     ) -> SubMsgExecuteResult {
         let result = match error {
             Some(err) => SubMsgResult::Err(err),

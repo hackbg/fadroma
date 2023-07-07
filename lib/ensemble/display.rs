@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use super::*;
 use crate::{prelude::*, ensemble::{event::ProcessedEvents, execution_state::*}};
 use std::fmt::{Display, Debug, Formatter, Result};
@@ -80,7 +82,7 @@ impl Display for ProcessedEvents {
     }
 }
 
-impl Display for ExecutionLevel {
+impl Display for Frame {
     fn fmt (&self, f: &mut Formatter) -> Result {
         let messages = format_list("Messages:", &self.msgs,
             |m: &SubMsgNode|format!("{m}"));
@@ -89,7 +91,7 @@ impl Display for ExecutionLevel {
         let data = format_option("Data:", &self.data,
             |d: &Binary|format!("{d:?}"));
         let index = self.msg_index;
-        write!(f, "Level (index={index}):{data}  {messages}{responses}")
+        write!(f, "Frame (index={index}):{data}  {messages}{responses}")
     }
 }
 
@@ -104,14 +106,13 @@ impl Display for SubMsgNode {
     }
 }
 
-pub(crate) fn print_sub_msg_execute_result (
-    state: &ExecutionState, result: &SubMsgExecuteResult
-) {
+#[allow(dead_code)]
+pub(crate) fn print_sub_msg_execute_result (state: &Stack, result: &SubMsgExecuteResult) {
     println!("{}", match result {
         Ok((response, events)) => {
-            let levels = state.levels.len();
+            let frames = state.frames.len();
             let response = indent::indent_all_by(2, format!("{response}"));
-            format!("\n[depth={levels}]{response}{events}")
+            format!("\n[depth={frames}]{response}{events}")
         },
         Err(err) => {
             format!("ERR (reverting): {err}")
@@ -119,8 +120,9 @@ pub(crate) fn print_sub_msg_execute_result (
     })
 }
 
-pub(crate) fn print_finalized_execution_state (state: &ExecutionState) {
-    let levels = format_list("Levels:", &state.levels,
-        |level: &ExecutionLevel|format!("- {level}"));
-    println!("\nOK: Finalized execution state:{levels}");
+#[allow(dead_code)]
+pub(crate) fn print_finalized_execution_state (state: &Stack) {
+    let frames = format_list("Frames:", &state.frames,
+        |frame: &Frame|format!("- {frame}"));
+    println!("\nOK: Finalized execution state:{frames}");
 }

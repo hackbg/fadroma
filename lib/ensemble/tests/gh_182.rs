@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 //! https://github.com/hackbg/fadroma/issues/182
 //!
 //! > I have a fairly complex operation which when I execute it in Contract A, will instantiate two Contracts B & C.
@@ -75,7 +77,6 @@ impl ContractHarness for ContractA {
         CODE_ID_C.save(deps.storage, code_id_c)?;
         Ok(Response::default())
     }
-
     fn execute (&self, deps: DepsMut, _: Env, _: MessageInfo, msg: Binary)
         -> AnyResult<Response>
     {
@@ -90,11 +91,6 @@ impl ContractHarness for ContractA {
                 }, 0))
         })
     }
-
-    fn query (&self, _: Deps, _: Env, _: Binary) -> AnyResult<Binary> {
-        unreachable!();
-    }
-
     fn reply (&self, deps: DepsMut, _: Env, reply: Reply) -> AnyResult<Response> {
         Ok(match reply.id {
             0 => {
@@ -128,22 +124,10 @@ impl ContractHarness for ContractB {
     fn instantiate(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
         Ok(Response::default())
     }
-    fn execute(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
-        unreachable!();
-    }
-    fn query (&self, _: Deps, _: Env, _: Binary) -> AnyResult<Binary> {
-        unreachable!();
-    }
 }
 
 impl ContractHarness for ContractC {
     fn instantiate(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
         Ok(Response::default())
-    }
-    fn execute(&self, _: DepsMut, _: Env, _: MessageInfo, _: Binary) -> AnyResult<Response> {
-        unreachable!();
-    }
-    fn query (&self, _: Deps, _: Env, _: Binary) -> AnyResult<Binary> {
-        unreachable!();
     }
 }
