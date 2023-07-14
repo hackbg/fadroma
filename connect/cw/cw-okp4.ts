@@ -1,5 +1,6 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
-import type { AgentClass } from '@fadroma/agent'
+import type { AgentClass, Uint128 } from '@fadroma/agent'
+import { Client } from '@fadroma/agent'
 import { StargateClient } from '@cosmjs/stargate'
 
 class OKP4Config extends Config {
@@ -17,8 +18,8 @@ class OKP4Config extends Config {
 /** OKP4 chain. */
 class OKP4Chain extends Chain {
   declare Agent: AgentClass<OKP4Agent>
-  defaultDenom = 'uknow'
   log = new Console('OKP4Chain')
+  defaultDenom = 'uknow'
 
   /** Connect to OKP4 in testnet mode. */
   static testnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => super.testnet({
@@ -47,16 +48,58 @@ class OKP4Agent extends Agent {
 }
 
 /** Transaction bundle for OKP4. */
-class OKP4Bundle extends Bundle {
-}
+class OKP4Bundle extends Bundle {}
 
-export const testnet = OKP4Chain.testnet
-
-Object.assign(OKP4Chain, { Agent: OKP4Agent })
+Object.assign(OKP4Chain, { Agent: Object.assign(OKP4Agent, { Bundle: OKP4Bundle }) })
 
 export {
   OKP4Config as Config,
   OKP4Chain  as Chain,
   OKP4Agent  as Agent,
-  OKP4Bundle as Bundle
+  OKP4Bundle as Bundle,
+}
+
+export const testnet = OKP4Chain.testnet
+
+export class Cognitarium extends Client {
+  static init = (limits?: CognitariumLimits) => ({ limits })
+
+  insert = (format: CognitariumFormat, data: string) => this.execute({
+    insert_data: { format, data }
+  })
+
+  select = (
+    limit:    number,
+    prefixes: CognitariumPrefix[],
+    select:   CognitariumSelect[],
+    where:    CognitariumWhere[]
+  ) => this.query({
+    select: { query: { limit, prefixes, select, where } }
+  })
+}
+
+export type CognitariumLimits = {
+  max_byte_size:                Uint128
+  max_insert_data_byte_size:    Uint128
+  max_insert_data_triple_count: Uint128
+  max_query_limit:              number
+  max_query_variable_count:     number
+  max_triple_byte_size:         Uint128
+  max_triple_count:             Uint128
+}
+
+export type CognitariumFormat = 'turtle'|'rdf_xml'|'n_triples'|'n_quads'
+
+export type CognitariumPrefix = { prefix: string, namespace: string }
+
+export type CognitariumSelect = { variable: string }
+
+export type CognitariumWhere = {
+  simple: {
+    triple_pattern: {
+      subject: { variable: string }
+      predicate: { node: { named_node: string } }
+      object: { variable: string }
+    }
+  }
 }
