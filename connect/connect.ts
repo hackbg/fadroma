@@ -21,6 +21,7 @@ import {
 } from '@fadroma/agent'
 import type { Agent, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
+export * from '@fadroma/cw'
 
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'

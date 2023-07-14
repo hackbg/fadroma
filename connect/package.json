@@ -6,14 +6,15 @@
   "files":   [ "*.ts" ],
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && ubik dry",
-    "release:wet": "pnpm ts:check && ubik wet --access=public"
+    "check": "tsc --noEmit",
+    "ubik":  "pnpm check && ubik"
   },
   "dependencies": {
-    "@fadroma/agent": "workspace:^1.0.1",
-    "@fadroma/scrt":  "workspace:^10.0.1",
-    "@hackbg/conf":   "workspace:^3.1",
-    "secretjs": "1.x"
+    "@fadroma/agent":   "workspace:^1.0.1",
+    "@fadroma/scrt":    "workspace:^10.0.1",
+    "@fadroma/cw":      "workspace:^0.1.0",
+    "@hackbg/conf":     "workspace:^3.1",
+    "secretjs":         "1.x",
+    "@cosmjs/stargate": "0.31.x"
   }
 }
