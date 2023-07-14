@@ -1,10 +1,11 @@
 <div align="center">
 
-# Fadroma Scrt
+# Fadroma Agent for Secret Network
 
 [![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)
 
-Secret Network implementation of Fadroma Agent.
+This package lets you use Fadroma Agent on Secret Network using
+the SecretJS client library.
 
 See https://fadroma.tech for more info.
 
