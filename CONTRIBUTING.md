@@ -101,13 +101,20 @@ You'll need:
 
 ### Submodule setup
 
-Fadroma uses Git submodules in its development workflow,
-and can itself be included as a submodule in your project:
+Fadroma's development workflow leverages Git submodules.
+
+When cloning the Fadroma repo, use the `--recursive` option to populate the submodule directories:
+
+```sh
+git clone --recursive git@github.com:hackbg/fadroma.git
+```
+
+Fadroma can be included as a submodule in your project:
 
 To add Fadroma as Git submodule:
 
 ```sh
-git submodule add -b refactor/x git@github.com:hackbg/fadroma.git
+git submodule add -b refactor/x git@github.com:$UPSTREAM/fadroma.git
 git submodule update --init --recursive
 git commit -m "tabula rasa"
 ```
