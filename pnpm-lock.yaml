@@ -151,16 +151,16 @@ importers:
         specifier: 0.31.x
         version: 0.31.0
       '@fadroma/agent':
-        specifier: workspace:^1.0.1
+        specifier: workspace:1.x
         version: link:../agent
       '@fadroma/cw':
-        specifier: workspace:^0.1.0
+        specifier: workspace:0.1.x
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:^10.0.1
+        specifier: workspace:10.x
         version: link:scrt
       '@hackbg/conf':
-        specifier: workspace:^3.1
+        specifier: workspace:3.x
         version: link:../ensuite/toolbox/conf
       secretjs:
         specifier: 1.x

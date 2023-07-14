@@ -3,17 +3,17 @@
   "version": "3.1.0",
   "type":    "module",
   "main":    "./connect.ts",
-  "files":   [ "*.ts" ],
+  "files":   [ "*.ts", "!cw", "!scrt" ],
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
     "check": "tsc --noEmit",
     "ubik":  "pnpm check && ubik"
   },
   "dependencies": {
-    "@fadroma/agent":   "workspace:^1.0.1",
-    "@fadroma/scrt":    "workspace:^10.0.1",
-    "@fadroma/cw":      "workspace:^0.1.0",
-    "@hackbg/conf":     "workspace:^3.1",
+    "@fadroma/agent":   "workspace:1.x",
+    "@fadroma/scrt":    "workspace:10.x",
+    "@fadroma/cw":      "workspace:0.1.x",
+    "@hackbg/conf":     "workspace:3.x",
     "secretjs":         "1.x",
     "@cosmjs/stargate": "0.31.x"
   }
