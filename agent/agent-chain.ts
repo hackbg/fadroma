@@ -35,20 +35,17 @@ export type ChainId = string
 /** A collection of functions that return Chain instances. */
 export type ChainRegistry = Record<string, (config: any)=>Chain>
 /** Options for connecting to a chain. */
-
 export interface DevnetHandle {
-  url: URL
+  url:     URL
   running: boolean
   chainId: string
   start: () => Promise<this>
   getAccount: (name: string) => Promise<Partial<Agent>>
 }
-
 /** A constructor for a Chain subclass. */
 export interface ChainClass<C> extends Class<C, ConstructorParameters<typeof Chain>> {
   Agent: AgentClass<Agent> // static
 }
-
 /** Represents a particular chain. */
 export abstract class Chain {
   /** Logger. */
@@ -227,19 +224,16 @@ export abstract class Chain {
     Mocknet: (...args) => this.mocknet(...args)
   }
 }
-
 /** @returns the chain of a thing
   * @throws  ExpectedChain if missing. */
 export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): C {
   if (!thing.chain) throw new Error.Missing.Chain()
   return thing.chain
 }
-
 /** A constructor for an Agent subclass. */
 export interface AgentClass<A extends Agent> extends Class<A, ConstructorParameters<typeof Agent>>{
   Bundle: BundleClass<Bundle> // static
 }
-
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
@@ -256,7 +250,6 @@ export abstract class Agent {
   fees?:     AgentFees
   /** The Bundle subclass to use. */
   Bundle:    BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
-
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below
 
@@ -638,8 +631,7 @@ export abstract class Bundle implements Agent {
   async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
     throw new Error.Invalid.Batching("send")
   }
-
-  /** Nested bundles are flattened, i.e. trying to create a bundle
+  /** Nested bundles are "flattened": trying to create a bundle
     * from inside a bundle returns the same bundle. */
   bundle <B extends Bundle> (cb?: BundleCallback<B>): B {
     if (cb) this.log.warn('Nested bundle callback ignored.')
@@ -654,7 +646,20 @@ export abstract class Bundle implements Agent {
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
-Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })
+// The `any` types here are required because in this case
+// Chain, Agent, and Bundle are abstract classes and TS complains.
+// When implementing chain support, you don't need to use `as any`.
+bindChainSupport(Chain, Agent, Bundle)
 
+/** Set the `Chain.Agent` and `Agent.Bundle` static properties.
+  * This is how a custom chain implementation knows how to use
+  * the corresponding agent implementation, and likewise for bundles. */
+export function bindChainSupport (Chain: Function, Agent: Function, Bundle: Function) {
+  Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })
+  return { Chain, Agent, Bundle }
+}
+
+/** Generate a random chain ID with a given prefix.
+  * The default prefix is `fadroma-devnet-`. */
 export const randomChainId = (prefix = `fadroma-devnet-`) =>
-  `${prefix}${randomBytes(3).toString('hex')}`
+  `${prefix}${randomBytes(4).toString('hex')}`
