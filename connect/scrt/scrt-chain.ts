@@ -167,7 +167,11 @@ class ScrtAgent extends Agent {
   }
 
   get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
+    // Require chain reference to be populated.
     if (!this.chain) throw new Error.Missing.Chain()
+    // If an API instance is already available (e.g. provided to constructor), just use that.
+    if (this.api) return Promise.resolve(this as this & { api: SecretJS.SecretNetworkClient })
+    // Begin asynchronous init.
     const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (resolve, reject)=>{
       try {
         const _SecretJS = this.chain.SecretJS
@@ -220,6 +224,7 @@ class ScrtAgent extends Agent {
         reject(e)
       }
     })
+    // Memoize the init procedure.
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
   }
