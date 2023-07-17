@@ -1,32 +1,99 @@
 # Guide to implementing support in Fadroma for new chains
 
+## Before you begin
+
 To benefit from Fadroma, the blockchain must be roughly OOP-shaped:
 "smart contract" is understood as a persistent stateful entity with a
 constructor (init procedure) and callable read-only and read-write
-transaction methods
+transaction methods.
 
-Minimum viable glue for supporting any new blockchain to Fadroma:
+You will also probably need to implement the methods for sending and
+querying the native tokens that are used to pay transaction fees.
 
-* The package should live in a subdirectory of `connect/`
+## Obtaining the source code
 
-* The package should be reexported by `connect/`,
-  which is the library for connecting Fadroma Agent
-  to any supported chain.
+```sh
+# in your lab directory:
+git clone --recursive git@github.com:hackbg/fadroma.git
+cd fadroma
+```
 
-* The official client library (`secretjs`, etc)
-  should be a peer dependency of the package.
-  This allows the user to upgrade (or pin) the
-  version of the client library that they are using
-  without depending on the one we use for testing.
+Note the `--recursive` flag and the SSH clone.
 
-So, basically one package under `./connect/` per lower-level library:
-`@fadroma/scrt` calls `secretjs`; `@fadroma/cw` calls `@cosmjs/stargate`;
-`@fadroma/eth` would call `web3`/`ethers`/`viem`; whether we would want to
-support one or more of those and whether that would be 1 or 3 connect modules
-is an open-ended question.
+## Should you create a new package?
 
-* The package should implement the `Chain`, `Agent` and `Bundle`
-  classes from `@fadroma/core`.
+If the chain you're adding is already accessible through
+a supported client library (such as `secretjs` or `@cosmjs/stargate`),
+skip this step and continue with the corresponding library package.[^0]
+
+If you want to add support for a chain that uses its own client library,
+create a new package in a subdirectory of `connect/`:
+
+```sh
+# in the repo root:
+mkdir connect/newchain
+echo "{}" > connect/newchain/package.json
+```
+
+* Add the new connector module as a `peerDependency`.
+
+```json
+// in connect/newchain/package.json
+{
+  "name": "@fadroma/newchain",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "newchain.ts",
+  "dependencies": {
+    "@fadroma/agent": "..."
+  },
+  "peerDependencies": {
+    "newchainjs": "^1.2.3"
+  }
+}
+```
+
+* Reexport the connector module through `@fadroma/connect`,
+  alongside preferred version of the original client library:
+
+```json
+// in connect/package.json
+{
+  "name": "@fadroma/connect",
+  "//": "..."
+  "dependencies": {
+    "//": "...",
+    "@fadroma/newchain": "workspace:^0.x",
+    "newchainjs": "^1.2.3"
+    "//": "..."
+  }
+}
+```
+
+Using `peerDependencies` lets the downstream update the
+client library independently of the one that we use
+for testing.
+
+```typescript
+// in connect/connect.ts:
+// ...
+export * as NewChain from '@fadroma/newchain'
+// ...
+```
+
+The reexport means users can either depend on `@fadroma/connect`
+for immediate full access to all supported chains, OR they can
+depend only on a particular subpackage and not download the
+dependencies for any of the others.
+
+[^0]: Whether `@fadroma/eth` would be based on `web3`/`ethers`/`viem`;
+whether we would want to support one or more of those; and whether
+that would be 1 or 3 connector modules is an open-ended question.
+
+## Implementing the Fadroma Agent API
+
+Your connector package should implement the `Chain`, `Agent`,
+and `Bundle` classes defined in `@fadroma/agent`.
 
 * `Chain` should be a stateless representation for the whole chain
   (user would create one instance for each mainnet, testnet, etc.
@@ -39,5 +106,3 @@ is an open-ended question.
 * `Bundle` may be implemented if client-side transaction batching
   is to be supported. This is the basis for exporting things like
   multisig transactions to be manually signed and broadcast.
-
-[^1]: The reason it's like that comes from the early days of Sec
