@@ -58,6 +58,8 @@ sidebar:
       text: Devnets
     - href: /mocknet.html
       text: Mocknets
+    - href: /implementing.html
+      text: Supporting new chains
 
 routes:
   - path: /index.html
@@ -102,6 +104,9 @@ routes:
   - path: /factory.html
     page: spec/Factory.spec.ts.md
     name: Factory Pattern
+  - path: /implementing.html
+    page: spec/Implementing.spec.ts.md
+    name: Implementing support for new chains
 
 styles:
   - assets/fonts.css
