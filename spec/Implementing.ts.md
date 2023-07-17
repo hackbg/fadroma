@@ -92,17 +92,66 @@ that would be 1 or 3 connector modules is an open-ended question.
 
 ## Implementing the Fadroma Agent API
 
-Your connector package should implement the `Chain`, `Agent`,
-and `Bundle` classes defined in `@fadroma/agent`.
+Having set up your connector package, you should now implement the
+`Chain`, `Agent`, and `Bundle` classes defined by `@fadroma/agent`:
 
-* `Chain` should be a stateless representation for the whole chain
-  (user would create one instance for each mainnet, testnet, etc.
-  that they want to connect to during the application run).
+```typescript
+// in connect/newchain/newchain.ts
+// (or e.g. connect/cw/cw-newchain.ts if using @cosmjs/stargate)
+import { Chain, Agent, Bundle, bindChainSupport } from '@fadroma/agent'
+```
 
-* `Agent` is a wrapper binding a wallet to an API client.
-  The `upload` and `instantiate` methods allow contracts to
-  be created, and `execute` and `query` to transact with them.
+`Chain` should be a stateless representation for the whole chain
+(user would create one instance for each mainnet, testnet, etc.
+that they want to connect to during the application run).
 
-* `Bundle` may be implemented if client-side transaction batching
-  is to be supported. This is the basis for exporting things like
-  multisig transactions to be manually signed and broadcast.
+```typescript
+// in connect/newchain/newchain.ts etc.
+class NewChain extends Chain {
+  // TODO add example
+}
+```
+
+`Agent` is a wrapper binding a wallet to an API client.
+The `upload` and `instantiate` methods allow contracts to
+be created, and `execute` and `query` to transact with them.
+
+```typescript
+// in connect/newchain/newchain.ts etc.
+class NewAgent extends Agent {
+  // TODO add example
+}
+```
+
+`Bundle` may be implemented if client-side transaction batching
+is to be supported. This is the basis for exporting things like
+multisig transactions to be manually signed and broadcast.
+
+```typescript
+// in connect/newchain/newchain.ts etc.
+class NewBundle extends Bundle {
+  // TODO add example
+}
+```
+
+Finally, use `bindChainSupport` to make sure that
+the three implementations are aware of each other.
+
+This line must go after the class definitions:
+
+```typescript
+// in connect/newchain/newchain.ts etc.
+bindChainSupport(NewChain, NewAgent, NewBundle)
+```
+
+And that's it! You can now transact, deploy, and use smart contracts on this chain.
+
+Note that it was not needed to extend `Client`, `Contract`, or `Template` to add
+support for contracts on the new chain[^2].
+
+[^2]: That sort of thing might only be necessary in the case of
+a chain that implements custom modifications to its CosmWasm compute module.
+
+## Implementing the devnet and build environments
+
+TODO
