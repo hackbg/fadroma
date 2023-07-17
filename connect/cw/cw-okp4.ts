@@ -101,6 +101,17 @@ export type CognitariumWhere = {
 
 /** OKP4 object store. */
 export class Objectarium extends Client {
+  /** Create an init message for an objectarium. */
+  static init = (bucket: string) =>
+    ({ bucket })
+  store = (pin: boolean, data: string) =>
+    this.execute({ store_object: { data, pin } })
+  pin = (id: string) =>
+    this.execute({ pin_object: { id } })
+  unpin = (id: string) =>
+    this.execute({ unpin_object: { id } })
+  forget = (id: string) =>
+    this.execute({ forget_object: { id } })
 }
 
 /** OKP4 rule engine. */
