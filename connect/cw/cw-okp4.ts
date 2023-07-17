@@ -1,5 +1,5 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
-import type { AgentClass, Uint128 } from '@fadroma/agent'
+import type { AgentClass, Uint128, Address } from '@fadroma/agent'
 import { Client, bindChainSupport } from '@fadroma/agent'
 import { StargateClient } from '@cosmjs/stargate'
 
@@ -100,7 +100,18 @@ export type CognitariumWhere = {
 }
 
 /** OKP4 object store. */
-export class Objectarium extends Client {}
+export class Objectarium extends Client {
+}
 
 /** OKP4 rule engine. */
-export class LawStone extends Client {}
+export class LawStone extends Client {
+  /** Create an init message for a law stone. */
+  static init = (storage_address: Address, program: string) =>
+    ({ storage_address, program })
+  /** Make a query against this law stone's program. */
+  ask = (query: string) =>
+    this.query({ ask: { query } })
+  /** Permanently prevent this law stone from answering further queries. */
+  break = () =>
+    this.execute("break_stone")
+}
