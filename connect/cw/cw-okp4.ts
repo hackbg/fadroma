@@ -1,6 +1,6 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
 import type { AgentClass, Uint128 } from '@fadroma/agent'
-import { Client } from '@fadroma/agent'
+import { Client, bindChainSupport } from '@fadroma/agent'
 import { StargateClient } from '@cosmjs/stargate'
 
 class OKP4Config extends Config {
@@ -10,9 +10,11 @@ class OKP4Config extends Config {
     'https://okp4-testnet-rpc.polkachu.com/'
     //'https://okp4-testnet-api.polkachu.com/'
   testnetChainId: string = this.getString(
-    'FADROMA_OKP4_TESTNET_CHAIN_ID', () => OKP4Config.defaultTestnetChainId)
+    'FADROMA_OKP4_TESTNET_CHAIN_ID',
+    () => OKP4Config.defaultTestnetChainId)
   testnetUrl: string = this.getString(
-    'FADROMA_OKP4_TESTNET_URL', () => OKP4Config.defaultTestnetUrl)
+    'FADROMA_OKP4_TESTNET_URL',
+    () => OKP4Config.defaultTestnetUrl)
 }
 
 /** OKP4 chain. */
@@ -32,13 +34,10 @@ class OKP4Chain extends Chain {
 /** Agent for OKP4. */
 class OKP4Agent extends Agent {
   declare chain: OKP4Chain
+  declare api?: StargateClient
   log = new Console('OKP4Agent')
-  api?: StargateClient
   constructor (options: Partial<OKP4Agent> = {}) {
     super(options)
-    this.fees      = options.fees ?? this.fees
-    this.api       = options.api ?? this.api
-    this.mnemonic  = options.mnemonic ?? this.mnemonic
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
   get ready (): Promise<this & { api: StargateClient }> {
@@ -50,32 +49,28 @@ class OKP4Agent extends Agent {
 /** Transaction bundle for OKP4. */
 class OKP4Bundle extends Bundle {}
 
-Object.assign(OKP4Chain, { Agent: Object.assign(OKP4Agent, { Bundle: OKP4Bundle }) })
+bindChainSupport(OKP4Chain, OKP4Agent, OKP4Bundle)
+export { OKP4Config as Config, OKP4Chain as Chain, OKP4Agent as Agent, OKP4Bundle as Bundle }
 
-export {
-  OKP4Config as Config,
-  OKP4Chain  as Chain,
-  OKP4Agent  as Agent,
-  OKP4Bundle as Bundle,
-}
-
+/** Connect to OKP4 testnet. */
 export const testnet = OKP4Chain.testnet
 
+/** OKP4 triple store. */
 export class Cognitarium extends Client {
-  static init = (limits?: CognitariumLimits) => ({ limits })
-
-  insert = (format: CognitariumFormat, data: string) => this.execute({
-    insert_data: { format, data }
-  })
-
+  /** Create an init message for a cognitarium. */
+  static init = (limits?: CognitariumLimits) =>
+    ({ limits })
+  /** Add data to this cognitarium. */
+  insert = (format: CognitariumFormat, data: string) =>
+    this.execute({ insert_data: { format, data } })
+  /** Query data in this cognitarium. */
   select = (
     limit:    number,
     prefixes: CognitariumPrefix[],
     select:   CognitariumSelect[],
     where:    CognitariumWhere[]
-  ) => this.query({
-    select: { query: { limit, prefixes, select, where } }
-  })
+  ) =>
+    this.query({ select: { query: { limit, prefixes, select, where } } })
 }
 
 export type CognitariumLimits = {
@@ -103,3 +98,9 @@ export type CognitariumWhere = {
     }
   }
 }
+
+/** OKP4 object store. */
+export class Objectarium extends Client {}
+
+/** OKP4 rule engine. */
+export class LawStone extends Client {}

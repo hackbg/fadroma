@@ -1,5 +1,5 @@
 import { Config } from '@hackbg/conf'
-import { Chain, Agent, Bundle, Console, Error, bold } from '@fadroma/agent'
+import { bindChainSupport, Chain, Agent, Bundle, Console, Error, bold } from '@fadroma/agent'
 
 class CWConfig extends Config {}
 
@@ -8,9 +8,7 @@ class CWError extends Error {}
 class CWConsole extends Console {}
 
 /** Generic CosmWasm-enabled chain. */
-class CWChain extends Chain {
-  defaultDenom = ''
-}
+class CWChain extends Chain { defaultDenom = '' }
 
 /** Generic agent for CosmWasm-enabled chains. */
 class CWAgent extends Agent {}
@@ -26,3 +24,5 @@ export {
   CWAgent   as Agent,
   CWBundle  as Bundle
 }
+
+bindChainSupport(CWChain, CWAgent, CWBundle)
