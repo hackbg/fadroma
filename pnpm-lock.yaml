@@ -102,8 +102,8 @@ importers:
         specifier: ^13.1.2
         version: 13.1.2
       typedoc:
-        specifier: ^0.24.8
-        version: 0.24.8(typescript@5.0.2)
+        specifier: 0.24.6
+        version: 0.24.6(typescript@5.0.2)
       typescript:
         specifier: ^5
         version: 5.0.2
@@ -4112,6 +4112,20 @@ packages:
     dependencies:
       media-typer: 0.3.0
       mime-types: 2.1.35
+    dev: true
+
+  /typedoc@0.24.6(typescript@5.0.2):
+    resolution: {integrity: sha512-c3y3h45xJv3qYwKDAwU6Cl+26CjT0ZvblHzfHJ+SjQDM4p1mZxtgHky4lhmG0+nNarRht8kADfZlbspJWdZarQ==}
+    engines: {node: '>= 14.14'}
+    hasBin: true
+    peerDependencies:
+      typescript: 4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || ^4.9
+    dependencies:
+      lunr: 2.3.9
+      marked: 4.3.0
+      minimatch: 9.0.2
+      shiki: 0.14.1
+      typescript: 5.0.2
     dev: true
 
   /typedoc@0.24.8(typescript@5.0.2):
