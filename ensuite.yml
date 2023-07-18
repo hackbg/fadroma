@@ -102,6 +102,9 @@ routes:
   - path: /factory.html
     page: spec/Factory.spec.ts.md
     name: Factory Pattern
+  - path: /impl.html
+    page: spec/Implementing.spec.ts.md
+    name: Implementing support for new chains
 
 styles:
   - assets/fonts.css
@@ -223,6 +226,10 @@ features:
         text: "WIP: @fadroma/cw"
         info: Generic support for `@cosmjs/stargate` connections
         href: https://github.com/hackbg/fadroma/issues/148
+      - icon: typescript
+        bold: true
+        text: Guide to implementing support for new chains
+        href: /impl.html
 
   - name: Fadroma DSL
     info: |
