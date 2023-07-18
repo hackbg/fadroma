@@ -101,7 +101,7 @@
     "freeport-async": "^2.0.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.1.2",
-    "typedoc": "^0.24.8",
+    "typedoc": "0.24.6",
     "typescript": "^5"
   },
   "pnpm": {
