@@ -1,0 +1,66 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    title CosmWasm JSON Schema Viewer and Converter · Fadroma by Hack.bg
+    script(data-goatcounter="https://goat.fadroma.hack.bg/count" async src="//goat.fadroma.hack.bg/count.js")
+    style(type="text/css")
+      include ../assets/fonts.css
+      include ../assets/style.css
+  body.schema-converter
+
+    svg(
+      style="position:absolute;width:0;height:0;overflow:hidden"
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+    )
+      defs
+        each icon in self.icons
+          symbol(id=icon.id viewBox=icon.viewBox)
+            title= icon.title
+            path(d=icon.path)
+
+    mixin icon (id)
+      svg(class=`icon icon-${id}`)
+        use(xlink:href=`#${id}`)
+
+    header
+      h1 CosmWasm Schema Converter
+
+    content
+
+      .schema-converter-input
+        label
+          Schema from URL:
+          input
+        label
+          Schema from file:
+          input
+        label
+          Or paste schema:
+          textarea
+
+      .schema-converter-output
+
+        .schema-converter-output-field Name
+        .schema-converter-output-field Version
+        .schema-converter-output-field IDL version
+
+        .schema-converter-output-api Instantiate
+        .schema-converter-output-api Execute
+        .schema-converter-output-api Query
+        .schema-converter-output-api Migrate
+        .schema-converter-output-api Sudo
+        .schema-converter-output-api Responses
+        .schema-converter-output-api Description
+
+    footer
+      span This tool is part of
+      strong
+        a.logo(href="https://github.com/hackbg/fadroma") Fadroma
+      span by
+      strong
+        a.logo(href="https://hack.bg") Hack.bg
+
+    script

@@ -1,5 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
 
+html, body { min-height: 100%; height: 100% }
+
 body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
 body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
 
@@ -372,3 +374,42 @@ pre > code.language-typescript {
 hr {
   margin: 1rem -1rem;
 }
+
+.schema-converter {}
+  body.schema-converter {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+  .schema-converter > header {
+    padding: 1rem 1rem 0;
+  }
+  .schema-converter > content {
+    flex-grow: 1;
+    z-index: 1;
+    box-shadow: 0 3px 3px rgba(0,0,0,0.5);
+  }
+  .schema-converter h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  .schema-converter-input {
+    background: rgba(0,0,0,0.1);
+    padding: 0.5rem;
+    margin: 0.5rem;
+    display: flex;
+    align-items: flex-start;
+  }
+  .schema-converter-output {
+    background: rgba(255,255,255,0.1);
+    padding: 0.5rem;
+    margin: 0.5rem;
+    align-items: flex-start;
+  }
+  .schema-converter footer {
+    background: #98cc88;
+  }
+  .schema-converter footer a {
+    color: black;
+    text-decoration: underline;
+    padding: 0 0.33em;
+  }
