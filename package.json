@@ -55,7 +55,7 @@
 
     "docs:dev":      "ensuite-dev",
     "docs:render":   "time ensuite/ensuite-render.cli.mjs",
-    "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints agent --entryPoints connect/* --entryPoints connect --entryPoints .",
+    "docs:typedoc":  "time typedoc --customCss ./typedoc.css --tsconfig ./tsconfig.json --entryPointStrategy legacy-packages --entryPoints agent --entryPoints connect/* --entryPoints connect --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve"
@@ -102,7 +102,7 @@
     "freeport-async": "^2.0.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.1.2",
-    "typedoc": "^0.24.8",
+    "typedoc": "0.24.8",
     "typescript": "^5"
   },
   "pnpm": {

@@ -104,7 +104,7 @@ routes:
   - path: /factory.html
     page: spec/Factory.spec.ts.md
     name: Factory Pattern
-  - path: /implementing.html
+  - path: /impl.html
     page: spec/Implementing.spec.ts.md
     name: Implementing support for new chains
 
@@ -207,9 +207,10 @@ features:
 
   - name: Supported platforms
     info: |
-      Presently, we support [Secret Network](https://scrt.network/),
-      an open-source, permissionless blockchain, based on privacy research
-      including [*Decentralizing Privacy*](https://ieeexplore.ieee.org/document/7163223).
+      Fadroma 1.0.0 supports [Secret Network](https://scrt.network/).
+      During [**HackWasm Berlin 2023**](https://dorahacks.io/hackathon/hackwasm/detail),
+      work began on generic support for other CosmWasm chains, and
+      [**OKP4**](https://okp4.network/) in particular.
     links:
       - icon: rust
         text: fadroma::scrt
@@ -220,8 +221,17 @@ features:
         href: /scrt.html
         bold: true
       - icon: todo
+        text: "WIP: OKP4"
+        info: Chain with triple store, object store, and Prolog rule engine
+        href: https://github.com/hackbg/fadroma/pull/188
+      - icon: todo
         text: "WIP: @fadroma/cw"
+        info: Generic support for `@cosmjs/stargate` connections
         href: https://github.com/hackbg/fadroma/issues/148
+      - icon: typescript
+        bold: true
+        text: Guide to implementing support for new chains
+        href: /impl.html
 
   - name: Fadroma DSL
     info: |
@@ -237,7 +247,7 @@ features:
         href: ./dsl.html
         bold: true
       - icon: rust
-        text: Example contracts in different configurations
+        text: Example contracts
         href: https://github.com/hackbg/fadroma/tree/master/examples/
 
   - name: Build reproducibly

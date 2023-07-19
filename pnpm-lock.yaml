@@ -102,7 +102,7 @@ importers:
         specifier: ^13.1.2
         version: 13.1.2
       typedoc:
-        specifier: ^0.24.8
+        specifier: 0.24.8
         version: 0.24.8(typescript@5.0.2)
       typescript:
         specifier: ^5
