@@ -1,5 +1,6 @@
 doctype html
 html(lang='en')
+
   head
     meta(charset='utf-8')
     title CosmWasm JSON Schema Viewer and Converter · Fadroma by Hack.bg
@@ -7,6 +8,7 @@ html(lang='en')
     style(type="text/css")
       include ../assets/fonts.css
       include ../assets/style.css
+
   body.schema-converter
 
     svg(
@@ -26,7 +28,7 @@ html(lang='en')
         use(xlink:href=`#${id}`)
 
     header.schema-converter-header
-      h1 CosmWasm Schema Converter
+      h1 Fadroma Schema
       .schema-converter-input
         strong Upload from:
         button#upload-from-url URL
@@ -42,21 +44,25 @@ html(lang='en')
 
     content.schema-converter-output
 
-      section.schema-converter-contract-info
-        strong.schema-converter-output-field Contract info
+      section.schema-converter-metadata
+        strong Metadata
         .schema-converter-output-field Name
         .schema-converter-output-field Version
         .schema-converter-output-field IDL version
         .schema-converter-output-field Description
-
-      section.schema-converter-contract-api
-        strong.schema-converter-output-api Contract API
+        br
+        strong API
         .schema-converter-output-api Instantiate
         .schema-converter-output-api Execute
         .schema-converter-output-api Query
         .schema-converter-output-api Migrate
         .schema-converter-output-api Sudo
         .schema-converter-output-api Responses
+
+      section.schema-converter-body
+
+      section.schema-converter-definitions
+        strong Definitions
 
     footer
       span This tool is part of
@@ -70,9 +76,10 @@ html(lang='en')
       .schema-converter-modal-background
       .schema-converter-modal-content
         strong Upload contract schema from URL:
-        input(type="text" size="50" placeholder="enter URL here")
+        input.schema-converter-modal-input(type="text" size="50" placeholder="enter URL here")
         div
-          button Upload
-          button Cancel
+          button.schema-converter-modal-upload Upload
+          button.schema-converter-modal-cancel Cancel
+        .schema-converter-modal-error
 
     script(type="module" src="page/schema.gui.mjs")

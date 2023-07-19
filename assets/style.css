@@ -380,6 +380,7 @@ hr {
   .schema-converter-header {
     background: rgba(0,0,0,0.1);
     padding: 1rem 2rem 0;
+    width: 100%;
   }
     .schema-converter-header h1 {
       font-size: 1.5rem;
@@ -418,10 +419,21 @@ hr {
   }
   .schema-converter-output {
     background: rgba(255,255,255,0.1);
-    padding: 0.5rem;
+    padding: 0;
     margin: 0 0.5rem;
     align-items: flex-start;
+    display: flex;
+    flex-flow: row wrap;
   }
+    .schema-converter-output .schema-converter-metadata,
+    .schema-converter-output .schema-converter-definitions {
+      flex-grow: 1;
+    }
+    .schema-converter-output .schema-converter-body {
+      flex-grow: 5;
+      background: rgba(255,255,255,0.5);
+      min-height: 100%;
+    }
   .schema-converter footer {
     background: #98cc88;
   }
@@ -455,6 +467,10 @@ hr {
     backdrop-filter: blur(5px);
   }
 
+  .schema-converter-modal-error {
+    font-weight: bold;
+    color: tomato;
+  }
   .schema-converter-modal-content {
     padding: 2rem;
     background: white;
