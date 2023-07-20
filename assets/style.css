@@ -48,6 +48,17 @@ a.button:focus, a.button:visited, a.button:active, a.button:hover {
 th, td { text-align: left; vertical-align: top; }
 th { padding-right: 5em }
 
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+.column {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -374,112 +385,3 @@ pre > code.language-typescript {
 hr {
   margin: 1rem -1rem;
 }
-
-.schema-converter {}
-
-  .schema-converter-header {
-    background: rgba(0,0,0,0.1);
-    padding: 1rem 2rem 0;
-    width: 100%;
-  }
-    .schema-converter-header h1 {
-      font-size: 1.5rem;
-      line-height: 1;
-      margin-bottom: 0;
-      text-align: left;
-    }
-    .schema-converter-input {
-      display: flex;
-      flex-flow: row wrap;
-      white-space: nowrap;
-      padding: 0.5rem;
-      margin: 0.5rem;
-      display: flex;
-      align-items: center;
-      flex-flow: row nowrap;
-    }
-    .schema-converter-input > button {
-      margin: 0.25rem;
-      padding: 0.25rem 0.5rem;
-      border: none;
-      text-shadow: none;
-      border-radius: 2px;
-      font-weight: bold;
-      cursor: pointer
-    }
-
-  body.schema-converter {
-    display: flex;
-    flex-flow: column nowrap;
-  }
-  .schema-converter > content {
-    flex-grow: 1;
-    z-index: 1;
-    box-shadow: 0 0 3px rgba(0,0,0,0.5);
-  }
-  .schema-converter-output {
-    background: rgba(255,255,255,0.1);
-    padding: 0;
-    margin: 0 0.5rem;
-    align-items: flex-start;
-    display: flex;
-    flex-flow: row wrap;
-  }
-    .schema-converter-output .schema-converter-metadata,
-    .schema-converter-output .schema-converter-definitions {
-      flex-grow: 1;
-    }
-    .schema-converter-output .schema-converter-body {
-      flex-grow: 5;
-      background: rgba(255,255,255,0.5);
-      min-height: 100%;
-    }
-  .schema-converter footer {
-    background: #98cc88;
-  }
-  .schema-converter footer a {
-    color: black;
-    text-decoration: underline;
-    padding: 0 0.33em;
-  }
-
-  .schema-converter-modal {
-    position: fixed;
-    z-index: 100;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .schema-converter-modal-background {
-    position: fixed;
-    z-index: 100;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0,0,0,0.2);
-    transition: all 100ms linear;
-    backdrop-filter: blur(5px);
-  }
-
-  .schema-converter-modal-error {
-    font-weight: bold;
-    color: tomato;
-  }
-  .schema-converter-modal-content {
-    padding: 2rem;
-    background: white;
-    position: relative;
-    z-index: 200;
-    display: flex;
-    flex-flow: column nowrap;
-  }
-    .schema-converter-modal-content input {
-      padding: 0.5rem;
-      margin: 0.5rem 0;
-    }

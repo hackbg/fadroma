@@ -1,0 +1,242 @@
+.grow {
+  flex-grow: 1;
+}
+
+body.schema-converter {
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+}
+  .schema-converter footer {
+    background: #98cc88;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .schema-converter footer a {
+    color: black;
+    text-decoration: underline;
+    padding: 0 0.33em;
+  }
+
+.schema-converter-header {
+  padding: 0 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  justify-content: space-between;
+}
+  .schema-converter-header h1 {
+    font-size: 1.5rem;
+    line-height: 1;
+    margin-bottom: 0;
+    text-align: left;
+  }
+  .schema-converter-input {
+    display: flex;
+    flex-flow: row wrap;
+    white-space: nowrap;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    display: flex;
+    align-items: center;
+    flex-flow: row nowrap;
+  }
+
+.schema-converter-modal {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.schema-converter-modal-background {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.2);
+  transition: all 100ms linear;
+  backdrop-filter: blur(3px) brightness(0.66) saturate(0.75)
+}
+
+.schema-converter-modal-error {
+  font-weight: bold;
+  color: tomato;
+}
+
+.schema-converter-modal-content {
+  padding: 2rem;
+  background: white;
+  position: relative;
+  z-index: 200;
+  display: flex;
+  flex-flow: column nowrap;
+}
+  .schema-converter-modal-content input {
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+  }
+
+.schemas {
+  flex-grow: 1;
+  overflow: auto;
+  z-index: 1;
+  padding: 0 1rem;
+}
+
+.schema {
+  flex-grow: 1;
+  z-index: 1;
+  padding: 0;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  margin-bottom: 1rem;
+}
+  .schema:last-child {
+    /*margin-bottom: 0 */
+  }
+
+.schema-actions {
+  font-size: 1rem;
+}
+  .schema-actions label {
+    white-space: nowrap;
+    margin-right: 0.5rem;
+  }
+
+.schema-content {
+  flex-grow: 1;
+  align-items: flex-start;
+}
+
+.schema-header {
+  font-size: 1.5em;
+  background: white;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  border: 1px solid #888;
+  border-bottom: none;
+}
+
+.schema-url {
+  font-family: monospace;
+  font-size: 0.8rem;
+  background: white;
+  padding: 0 1rem;
+  font-weight: bold;
+  padding-bottom: 1em;
+  border: 1px solid #888;
+  border-top: none;
+}
+
+.schema-metadata {
+  margin: 0;
+  min-width: 25vw;
+  padding: 1rem;
+  height: 100%;
+  overflow: auto;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: white;
+  border-right: 1px solid #888;
+  border: 1px solid #888;
+  border-top: none;
+}
+
+.schema-body {
+  padding: 0.5rem 1rem;
+  height: 100%;
+  overflow: auto;
+  flex-grow: 5;
+  min-height: 100%;
+  border: 1px solid #888;
+  border-top: none;
+  background: white;
+  margin-left: -1px;
+}
+  .schema-body h1 {
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+    font-size: 1.75rem;
+  }
+  .schema-body h2 {
+    margin-bottom: 0.5rem;
+    margin-top: 2.5rem;
+    font-size: 1.5rem;
+  }
+  .schema-body h3 {
+    margin-bottom: 0.5rem;
+    margin-top: 2rem;
+    font-size: 1.33rem;
+  }
+  .schema-body h4 {
+    margin-top: 1rem;
+  }
+
+.schema-definitions {
+  flex-grow: 0;
+  flex-shrink: 0;
+  margin-top: 1rem;
+}
+
+.schema-field {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+  .schema-field hr {
+    flex-grow: 1;
+    margin: 0;
+    height: 1px;
+    border: none;
+    margin: 0 0.33em;
+    background: black;
+  }
+
+.schema-converter button {
+  font-size: 1rem;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+  transition: background 100ms linear;
+  box-shadow: 1px 1px 0 rgba(0,0,0,0.33);
+  border: 1px solid rgba(101,179,76);
+  color: rgb(101,179,76);
+  background: rgba(255,255,255,0.3);
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 3px;
+  margin: 0;
+}
+
+.schema-converter-input > button {
+  margin: 0.25rem;
+  padding: 0.5rem 1rem;
+}
+
+.schema-actions button,
+.schema-url button {
+  text-align: left;
+  text-shadow: none;
+  padding: 0.25rem 1rem;
+  align-self: stretch;
+  margin-right: 1px;
+  margin: 0.25rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.schema-converter-input > button:hover,
+.schema-actions > button:hover,
+.schema-url > button:hover {
+  background: rgba(255,255,255,0.6);
+}
+
+.schema-url > button {
+  font-size: 0.8rem;
+}

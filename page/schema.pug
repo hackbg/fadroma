@@ -8,6 +8,7 @@ html(lang='en')
     style(type="text/css")
       include ../assets/fonts.css
       include ../assets/style.css
+      include ./schema.css
 
   body.schema-converter
 
@@ -27,58 +28,83 @@ html(lang='en')
       svg(class=`icon icon-${id}`)
         use(xlink:href=`#${id}`)
 
+    mixin field (name)
+      .schema-field(data-name=name)
+        span.name= name
+        hr
+        span.value
+
     header.schema-converter-header
-      h1 Fadroma Schema
+      h1.row
+        img(src="../banner2.svg" alt="Fadroma" style="height:3em;margin:0 0.5rem 0 0")
+        span Schema Tool
+      .grow
       .schema-converter-input
-        strong Upload from:
-        button#upload-from-url URL
-        button#upload-from-file File
-        button#upload-from-clipboard Clipboard
-      .schema-converter-input
-        strong Download as:
-        button HTML
-        button Markdown
-        button JSON (pretty)
-        button JSON (compact)
-        button YAML
+        button#upload-from-url Add from URL
+        button#upload-from-file Add from file
+        button#upload-from-clipboard Add from clipboard
 
-    content.schema-converter-output
+    content.schemas
 
-      section.schema-converter-metadata
-        strong Metadata
-        .schema-converter-output-field Name
-        .schema-converter-output-field Version
-        .schema-converter-output-field IDL version
-        .schema-converter-output-field Description
-        br
-        strong API
-        .schema-converter-output-api Instantiate
-        .schema-converter-output-api Execute
-        .schema-converter-output-api Query
-        .schema-converter-output-api Migrate
-        .schema-converter-output-api Sudo
-        .schema-converter-output-api Responses
+    template.schema-template
+      .schema
+        .schema-header.row
+          .schema-field(data-name="Name")
+            strong.value
+          .schema-field(data-name="Version")
+            span &nbsp;v
+            strong.value
+          .grow
+          .schema-actions.row
+            label
+              strong Download as:
+            button JSON (pretty)
+            button JSON (compact)
+            button YAML
+            button HTML
+            button Markdown
 
-      section.schema-converter-body
+        .schema-url.row
+          span(data-name="Source")
+          .grow
+          button(data-name="Show") Show details
+          button(data-name="Hide") Hide details
 
-      section.schema-converter-definitions
-        strong Definitions
+        .schema-content.row
+          .schema-metadata
+            .schema-api
+              strong API overview:
+              +field("Instantiate")
+              +field("Execute")
+              +field("Query")
+              +field("Migrate")
+              +field("Sudo")
+              +field("Responses")
+            .schema-definitions
+              strong Type definitions:
 
-    footer
+          .schema-body
+
+    footer.row
       span This tool is part of
       strong
         a.logo(href="https://github.com/hackbg/fadroma") Fadroma
       span by
       strong
         a.logo(href="https://hack.bg") Hack.bg
+      .grow
+      span All submitted data is processed securely in your browser, never uploaded anywhere.
+      .grow
+      button Clear local storage
 
     .schema-converter-modal(style="display:none;visibility:hidden")
       .schema-converter-modal-background
       .schema-converter-modal-content
         strong Upload contract schema from URL:
-        input.schema-converter-modal-input(type="text" size="50" placeholder="enter URL here")
-        div
+        input.schema-converter-modal-input(type="text" size="50" placeholder="enter URL to a CosmWasm schema")
+        div.row
           button.schema-converter-modal-upload Upload
+          .grow
           button.schema-converter-modal-cancel Cancel
         .schema-converter-modal-error
 
