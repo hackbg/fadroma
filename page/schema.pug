@@ -66,6 +66,7 @@ html(lang='en')
 
         .schema-url.row
           span(data-name="Source")
+            span.value
           .grow
           button(data-name="Show") Show details
           button(data-name="Hide") Hide details
@@ -75,10 +76,10 @@ html(lang='en')
             .schema-api
               strong API overview:
               +field("Instantiate")
-              +field("Execute")
-              +field("Query")
-              +field("Migrate")
-              +field("Sudo")
+              +field("Transaction methods")
+              +field("Query methods")
+              +field("Migrate methods")
+              +field("Sudo methods")
               +field("Responses")
             .schema-definitions
               strong Type definitions:
@@ -95,7 +96,7 @@ html(lang='en')
       .grow
       span All submitted data is processed securely in your browser, never uploaded anywhere.
       .grow
-      button Clear local storage
+      button(data-name="Clear") Clear local storage
 
     .schema-converter-modal(style="display:none;visibility:hidden")
       .schema-converter-modal-background
@@ -108,4 +109,6 @@ html(lang='en')
           button.schema-converter-modal-cancel Cancel
         .schema-converter-modal-error
 
-    script(type="module" src="page/schema.gui.mjs")
+    script(type="module").
+      import App from './page/schema.gui.mjs'
+      new App()

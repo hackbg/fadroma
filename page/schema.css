@@ -180,6 +180,12 @@ body.schema-converter {
   .schema-body h4 {
     margin-top: 1rem;
   }
+  .schema-body pre > code {
+    font-size: 0.9rem;
+    line-height: 1;
+    margin: 1rem 0;
+    padding: 1em
+  }
 
 .schema-definitions {
   flex-grow: 0;
