@@ -186,6 +186,9 @@ body.schema-converter {
     margin: 1rem 0;
     padding: 1em
   }
+  .schema-body hr + h2 {
+    margin-top: 0;
+  }
 
 .schema-definitions {
   flex-grow: 0;
@@ -245,4 +248,28 @@ body.schema-converter {
 
 .schema-url > button {
   font-size: 0.8rem;
+}
+
+.schema-type {
+  opacity: 0.66;
+  user-select: none;
+}
+
+.schema-sample {
+  font-family: monospace;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  border: 1px solid #888;
+  background: #465;
+  color: white;
+}
+.schema-sample td:nth-child(2) {
+  font-weight: bold;
+}
+.schema-sample td:nth-child(3) {
+  padding: 0 0.33rem;
+  font-weight: bold;
+}
+.schema-sample td:nth-child(4) {
+  padding: 0 0.5rem;
 }

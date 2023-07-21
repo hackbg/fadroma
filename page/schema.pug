@@ -111,4 +111,11 @@ html(lang='en')
 
     script(type="module").
       import App from './page/schema.gui.mjs'
-      new App()
+      const app = new App()
+      for (const url of [
+        'https://docs.okp4.network/assets/files/okp4-law-stone-f26aee4b82425895e7f93cb468b1b639.json',
+        'https://docs.okp4.network/assets/files/okp4-cognitarium-38b87179f0c3c7c6f7b35f81306caf25.json',
+        'https://docs.okp4.network/assets/files/okp4-objectarium-eada0cda6e11102840a1c57adfa7132e.json',
+      ]) {
+        await app.loadUrl(url)
+      }

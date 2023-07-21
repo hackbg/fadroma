@@ -1,5 +1,6 @@
 // TODO: in null state, center logo and toolbar in the middle of the screen!
 
+import Dome from '../ensuite/toolbox/dome/dome.mjs'
 import Schema from './schema.mjs'
 import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
 import * as Marked from 'https://cdn.jsdelivr.net/npm/marked@5.1.1/lib/marked.esm.js'
@@ -25,9 +26,7 @@ export default class App {
       this.schemaList.innerText = ''
       for (const key in globalThis.localStorage) delete localStorage[key]
     })
-    this.loadUrl('https://docs.okp4.network/assets/files/okp4-cognitarium-38b87179f0c3c7c6f7b35f81306caf25.json')
-    this.loadUrl('https://docs.okp4.network/assets/files/okp4-objectarium-eada0cda6e11102840a1c57adfa7132e.json')
-    this.loadUrl('https://docs.okp4.network/assets/files/okp4-law-stone-f26aee4b82425895e7f93cb468b1b639.json')
+    this
   }
 
   loadUrl (url) {
@@ -157,10 +156,15 @@ class SchemaViewer {
     this.body.appendChild(Object.assign(document.createElement('hr')))
     // Add method lists
     this.populateSection(schema.instantiate, this.populateInitMethod)
-    this.populateSection(schema.execute,     this.populateMethodVariants)
-    this.populateSection(schema.query,       this.populateMethodVariants)
-    this.populateSection(schema.migrate,     this.populateMethodVariants)
-    this.populateSection(schema.sudo,        this.populateMethodVariants)
+    this.body.appendChild(Object.assign(document.createElement('hr')))
+    this.populateSection(schema.execute, this.populateMethodVariants)
+    this.body.appendChild(Object.assign(document.createElement('hr')))
+    this.populateSection(schema.query, this.populateMethodVariants)
+    this.body.appendChild(Object.assign(document.createElement('hr')))
+    this.populateSection(schema.migrate, this.populateMethodVariants)
+    this.body.appendChild(Object.assign(document.createElement('hr')))
+    this.populateSection(schema.sudo, this.populateMethodVariants)
+    this.body.appendChild(Object.assign(document.createElement('hr')))
     this.populateSection(schema.responses)
     const definitionList = this.root.querySelector('.schema-definitions')
     for (const name of [...this.definitionMap.keys()].sort()) {
@@ -188,47 +192,91 @@ class SchemaViewer {
     if (data && render) render(data)
   }
 
+  schemaSample = (properties) => Dome('table.schema-sample',
+    ['tr', ['td', '{']],
+    ...Object.entries(properties).map(([key, val])=>[
+      'tr', ['td'],
+      ['td', `"${key}":`],
+      [`td.schema-type`, this.schemaType(val)],
+      val.description?['td.schema-type', '//']:null,
+      val.description?['td.schema-type', { innerHTML: Marked.parse(val.description) }]:null,
+    ]),
+    ['tr', ['td', '}']],
+  )
+
+  schemaType = val =>
+    val.type || val.allOf?.map(x=>x.$ref.split('/').slice(-1)).join(' | ')
+
   populateInitMethod = (variant) => {
     const { title, description, definitions, properties, oneOf } = variant
-    if (definitions) for (const name of Object.keys(definitions).sort()) this.definitionMap.set(name)
-    this.body.appendChild(Object.assign(document.createElement('h2'), { innerText: `Message: ${title}` }))
-    this.body.appendChild(Object.assign(document.createElement('p'), {
-      innerHTML: Marked.parse(description)
-    }))
-    for (const [key, value] of Object.entries(properties)) {
-      this.body.appendChild(Object.assign(document.createElement('h4'), { innerText: `Parameter: ${key}` }))
-      this.body.appendChild(Object.assign(document.createElement('div'), {
-        innerHTML: Marked.parse(description)
-      }))
-    }
+    if (definitions)
+      for (const name of Object.keys(definitions).sort())
+        this.definitionMap.set(name)
+    Dome.append(this.body,
+      Dome('h2',
+        ['span', { style:'opacity:0.5'},`Message: `],
+        `${title}`),
+      Dome('p', { innerHTML: Marked.parse(description) }),
+      this.schemaSample(properties))
   }
+
   populateMethodVariants = (variant) => {
     const { title, description, definitions, oneOf } = variant
-    if (definitions) for (const name of Object.keys(definitions).sort()) this.definitionMap.set(name)
-    this.body.appendChild(Object.assign(document.createElement('h2'), { innerText: `Message: ${title}` }))
-    this.body.appendChild(Object.assign(document.createElement('p'), {
-      innerHTML: Marked.parse(description)
-    }))
+    if (definitions)
+      for (const name of Object.keys(definitions).sort())
+        this.definitionMap.set(name)
+    Dome.append(this.body,
+      Dome('.row',
+        ['h2', { style:'margin:0' }, ['span', { style:'opacity:0.5'},`Message: `], `${title}`],
+        ['.grow'],
+        ['button', 'Copy JSONSchema']))
     for (const subvariant of oneOf) {
       const { type, title, description, properties, enum: _enum } = subvariant
-      this.body.appendChild(Object.assign(document.createElement('h3'), { innerText: `Variant: ${title}` }))
-      this.body.appendChild(Object.assign(document.createElement('p'), {
-        innerHTML: Marked.parse(description)
-      }))
-      switch (type) {
-        case 'object':
-          for (const [key, value] of Object.entries(properties)) {
-            this.body.appendChild(Object.assign(document.createElement('h4'), { innerText: `Parameter: ${key}` }))
-          }
-          continue
-        case 'string':
-          for (const key of _enum) {
-            this.body.appendChild(Object.assign(document.createElement('h4'), { innerText: `Parameter: ${key}` }))
-          }
-          continue
-        default:
-          throw Object.assign(new Error(`Unsupported: type of ${title} was ${type}`), { variant })
-      }
+      const content = Dome('div')
+      Dome.append(this.body, Dome('div',
+        ['div',
+          ['h3', ['span', {style:'opacity:0.5'}, `${variant.title}::`], `${title}`],
+          ['p', { innerHTML: Marked.parse(description) }]],
+        content,
+        this.schemaSample(properties)))
+      //if (type === 'object') {
+        //for (const [key, value] of Object.entries(properties)) {
+          //const properties = Object.entries(value.properties)
+            //.map(([key,val])=>`"${key}": ${JSON.stringify(val,null,2)}`)
+            //.join(',\n    ')
+          //Dome.append(content, Dome('.row', { style: 'align-items:flex-start' },
+            //['h4', {style:'white-space:pre;font-family:monospace;font-size:1rem'},
+              //`{\n`,
+              //`  "${key}": `,
+              //['span.schema-type', `<${value.type}> `],
+              //`{\n    ${properties}\n  }\n}`],
+            //['.grow'],
+            //['span.schema-type', '<object>']))
+        //}
+      //}
+      //switch (type) {
+        //case 'object':
+          ////Dome.append(this.body, this.schemaSample(properties))
+          ////for (const [key, value] of Object.entries(properties)) {
+            ////console.log(key, value)
+            ////Dome.append(this.body, Dome('h4', {style:'white-space:pre;font-family:monospace;font-size:1rem'},
+              ////`{\n`,
+              ////`  "${key}": `,
+              ////['span.schema-type', `<${value.type}> `],
+              ////`{\n    ${Object.keys(value.properties).map(x=>`"${x}": `).join(',\n    ')}\n  }\n}`))
+            ////console.log(variant.title, title, key, value)
+          ////}
+          //continue
+        //case 'string':
+          //Dome.append(this.body, )
+          //continue
+        //default:
+          //throw Object.assign(new Error(`Unsupported: type of ${title} was ${type}`), { variant })
+      //}
+
+      //Dome.append(this.body,
+        //Dome('p', { innerHTML: Marked.parse(description) }))
+
     }
   }
 }
