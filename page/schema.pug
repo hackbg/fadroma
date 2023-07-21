@@ -40,9 +40,9 @@ html(lang='en')
         span Schema Tool
       .grow
       .schema-converter-input
-        button#upload-from-url Add from URL
-        button#upload-from-file Add from file
-        button#upload-from-clipboard Add from clipboard
+        button(data-name="AddFromURL") Add from URL
+        button(data-name="AddFromFile") Add from file
+        button(data-name="AddFromClipboard") Add from clipboard
 
     content.schemas
 
@@ -98,10 +98,21 @@ html(lang='en')
       .grow
       button(data-name="Clear") Clear local storage
 
-    .schema-converter-modal(style="display:none;visibility:hidden")
+    .schema-converter-modal(data-name="URL" style="display:none;visibility:hidden")
       .schema-converter-modal-background
       .schema-converter-modal-content
-        strong Upload contract schema from URL:
+        strong Fetch contract schema from URL:
+        input.schema-converter-modal-input(type="text" size="50" placeholder="enter URL to a CosmWasm schema")
+        div.row
+          button.schema-converter-modal-upload Upload
+          .grow
+          button.schema-converter-modal-cancel Cancel
+        .schema-converter-modal-error
+
+    .schema-converter-modal(data-name="File" style="display:none;visibility:hidden")
+      .schema-converter-modal-background
+      .schema-converter-modal-content
+        strong Upload contract schema from file:
         input.schema-converter-modal-input(type="text" size="50" placeholder="enter URL to a CosmWasm schema")
         div.row
           button.schema-converter-modal-upload Upload
@@ -110,12 +121,13 @@ html(lang='en')
         .schema-converter-modal-error
 
     script(type="module").
-      import App from './page/schema.gui.mjs'
-      const app = new App()
-      for (const url of [
-        'https://docs.okp4.network/assets/files/okp4-law-stone-f26aee4b82425895e7f93cb468b1b639.json',
-        'https://docs.okp4.network/assets/files/okp4-cognitarium-38b87179f0c3c7c6f7b35f81306caf25.json',
-        'https://docs.okp4.network/assets/files/okp4-objectarium-eada0cda6e11102840a1c57adfa7132e.json',
-      ]) {
-        await app.loadUrl(url)
-      }
+      globalThis.App = import('./page/schema.gui.mjs')
+        .then(({ default: App })=>new App())
+        .catch(error=>document.body.innerHTML = `<pre>${error.stack||error.message}</pre>`)
+      //-for (const url of [
+        //-'https://docs.okp4.network/assets/files/okp4-law-stone-f26aee4b82425895e7f93cb468b1b639.json',
+        //-'https://docs.okp4.network/assets/files/okp4-cognitarium-38b87179f0c3c7c6f7b35f81306caf25.json',
+        //-'https://docs.okp4.network/assets/files/okp4-objectarium-eada0cda6e11102840a1c57adfa7132e.json',
+      //-]) {
+        //-await app.loadUrl(url)
+      //-}

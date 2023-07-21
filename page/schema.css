@@ -263,13 +263,32 @@ body.schema-converter {
   background: #465;
   color: white;
 }
-.schema-sample td:nth-child(2) {
-  font-weight: bold;
+  .schema-sample td:nth-child(1) {
+    font-weight: bold;
+  }
+  .schema-sample td:nth-child(2) {
+    padding: 0 0.33rem;
+    font-weight: bold;
+  }
+  .schema-sample td:nth-child(3) {
+    padding: 0 0.5rem;
+  }
+  .schema-sample p {
+    margin-bottom: 0;
+    margin-top: 1em;
+  }
+  .schema-sample .schema-type {
+    vertical-align: baseline;
+  }
+
+.schema-message-name {
+  opacity: 0.5
 }
-.schema-sample td:nth-child(3) {
-  padding: 0 0.33rem;
-  font-weight: bold;
+.schema-field-key {
+  white-space: pre;
 }
-.schema-sample td:nth-child(4) {
-  padding: 0 0.5rem;
+.schema-field-comment {
+  font-weight: normal
+  white-space: pre-wrap;
+  opacity: 0.66;
 }
