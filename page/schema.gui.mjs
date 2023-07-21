@@ -1,19 +1,13 @@
 // TODO: in null state, center logo and toolbar in the middle of the screen!
-
-import Dome from '../ensuite/toolbox/dome/dome.mjs'
+import Dome   from '../ensuite/toolbox/dome/dome.mjs'
 import Schema from './schema.mjs'
-import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
-import * as Marked from 'https://cdn.jsdelivr.net/npm/marked@5.1.1/lib/marked.esm.js'
+import Dexie  from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
 
+import * as Marked from 'https://cdn.jsdelivr.net/npm/marked@5.1.1/lib/marked.esm.js'
 Marked.use({ mangle: false, headerIds: false })
 
 export const DB = new Dexie("FadromaJSONSchemaTool")
-DB.version(1).stores({ schemas: 'url,timestamp' })
-
-const pickFiles = (cb, multiple) =>
-  Dome.bind(Dome('input', { type: 'file', multiple: true }), {
-    change: (event) => cb(event.target.files)
-  }).click()
+DB.version(1).stores({ schemas: 'url,added,[url+added],[name+version]' })
 
 /** Main class. */
 export default class App {
@@ -33,7 +27,11 @@ export default class App {
         console.debug(`Reading ${file.name}`)
         const json = await file.text()
         const data = JSON.parse(json)
-        new SchemaViewer(file, data)
+        new SchemaViewer(file.name, data)
+        const added = + new Date()
+        const { contract_name: name, contract_version: version } = data
+        const url = new URL(file.name, 'file:').toString()
+        await DB.schemas.put({ name, version, data, url, added })
       }
     })
   })
@@ -45,6 +43,11 @@ export default class App {
   /** Load a schema from URL programmatically. */
   loadUrl = (url) => new SchemaFromURLModal(null).upload(url) /** hack */
 }
+
+/** Open a file picker. */
+const pickFiles = (cb) => Dome.bind(Dome('input', { type: 'file', multiple: true }), {
+  change: (event) => cb(event.target.files)
+}).click()
 
 /** Displays a contract schema */
 class SchemaViewer extends Schema {
@@ -110,10 +113,10 @@ class SchemaViewer extends Schema {
     const { title, description, definitions, properties, oneOf } = variant
     if (definitions)
       for (const name of Object.keys(definitions).sort())
-        this.definitions.set(name)
+        this.definitions.set(name, definitions[name])
     Dome.append(this.body,
       Dome('.row',
-        ['h2', ['span.schema-message-name', `Message: `], `${title}`],
+        ['h2', { style:'margin:0' }, ['span.schema-message-name', `Message: `], `${title}`],
         ['.grow'],
         ['button', 'Copy JSONSchema']),
       Dome('p', { innerHTML: Marked.parse(description) }),
@@ -125,7 +128,7 @@ class SchemaViewer extends Schema {
     // Collect type definitions used in this family of methods
     if (definitions)
       for (const name of Object.keys(definitions).sort())
-        this.definitions.set(name)
+        this.definitions.set(name, definitions[name])
     // Add header
     Dome.append(this.body,
       Dome('.row',
@@ -158,28 +161,52 @@ class SchemaViewer extends Schema {
     for (const [k, v] of Object.entries(properties)) {
       rows = rows.concat(this.schemaSampleField(k, v))
     }
-    return Dome('table.schema-sample', ['tr', ['td', '{']], ...rows, ['tr', ['td', '}']])
+    return Dome('table.schema-sample', { cellSpacing: 0 },
+      ['thead',
+        ['tr',
+          ['td', 'field'],
+          ['td', 'type'],
+          ['td', 'default'],
+          ['td', 'description']]],
+      ['tbody',
+        ['tr',
+          ['td', '{'],
+          ['td'],
+          ['td'],
+          ['td', { style:'text-align:right'}, ['button', 'Copy message']]],
+        ...rows,
+        ['tr',
+          ['td', '}']]])
   }
 
   schemaSampleField = (key, val) => {
-    const emptyValue =
-      (val.type === 'string') ? '""' :
-      (val.type === 'object') ? '{'  :
-      (val.allOf?.length > 0) ? '{'  : 'null'
-    const isObject = (val.type === 'object' || (val.allOf?.length > 0))
+    const isObject = (val.allOf?.length > 0) || (val.type === 'object')
+    const isString = (val.type === 'string')
+    const isNumber = (val.type === 'integer') || (val.type === 'float')
+    // Collection of rows that will be returned
     const rows = []
-    if (val.description) rows.push(['tr',
-      [ 'td.schema-field-comment', { colSpan: 3 },
-        ['.row', ['pre', '  // '], ['div', { innerHTML: `${val.description}` }]] ]])
+    // If this field has a description, add it as a comment
+    //if (val.description) commentRow(2, Marked.parse(val.description))
+    // Add the field name, type, and 1st line of default value
     rows.push(['tr',
-      ['td.schema-field-key', `  "${key}": `, ['span.schema-type', this.schemaType(key, val)]],
-      ['td', emptyValue]])
-    if (val.allOf?.length > 0 || val.type === 'object') {
-      console.debug({val})
-      if (val.default) for (const [k, v] of Object.entries(val.default)) {
+      ['td.schema-field-key', `  "${key}": `],
+      ['td.schema-type', this.schemaType(key, val)],
+      ['td', isObject ? '{' : isString ? '""' : isNumber ? 0 : null],
+      val.description && ['td', ['.row.align-start.no-select',
+        ['pre', `// `],
+        ['div', { innerHTML: Marked.parse(val.description) }]]]])
+    // If type is object, add remaining lines of default value
+    if (isObject) {
+      const properties = this.resolveAllOf(val.properties, val.allOf)
+      for (const [k, v] of Object.entries(properties)) {
+        //if (v.description) commentRow(4, Marked.parse(v.description))
         rows.push(['tr',
           ['td.schema-field-key', `    "${k}": `],
-          ['td', `${JSON.stringify(v)}`]])
+          ['td.schema-type', this.schemaType(k, v)],
+          ['td', `${JSON.stringify(v.default)}`],
+          v.description && ['td', ['.row.align-start.no-select',
+            ['pre', `// `],
+            ['div', { innerHTML: Marked.parse(v.description) }]]]])
       }
       rows.push(['tr', ['td', {style:'font-weight:normal;white-space:pre'}, '  }'],])
     }
@@ -187,7 +214,23 @@ class SchemaViewer extends Schema {
     return rows
   }
 
+  resolveAllOf = (properties, allOf) => {
+    properties ||= {}
+    allOf ||= []
+    for (const type of allOf) {
+      if (!type.$ref) throw new Error('Unsupported', { type })
+      const name = type.$ref.split('/').slice(-1)[0]
+      const definition = this.definitions.get(name)
+      if (!definition) throw new Error('Missing definition', { name })
+      Object.assign(properties, definition.properties)
+    }
+    return properties
+  }
+
   schemaType = (key, val) => {
+    if (val.type === 'integer') {
+      return "integer"
+    }
     if (val.type === 'string') {
       return "string"
     }
@@ -197,9 +240,10 @@ class SchemaViewer extends Schema {
     if (val.allOf) {
       let type = val.allOf[0].$ref.split('/').slice(-1)[0]
       if (val.allOf.length > 1) type = `${type} + ...`
-      return `${type}`
+      return ['a', {href:'#'}, `${type}`]
     }
-    throw new Error('Unsupported field definition', { key, val })
+    console.warn(`Unsupported field definition: ${key} -> ${JSON.stringify(val)}`, { key, val })
+    return ['span', { style:'color:tomato' }, 'unsupported']
   }
 }
 

@@ -1,6 +1,12 @@
 .grow {
   flex-grow: 1;
 }
+.align-start {
+  align-items: flex-start;
+}
+.no-select {
+  user-select: none;
+}
 
 body.schema-converter {
   height: 100%;
@@ -211,18 +217,28 @@ body.schema-converter {
   }
 
 .schema-converter button {
+  user-select: none;
   font-size: 1rem;
   text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
   transition: background 100ms linear;
   box-shadow: 1px 1px 0 rgba(0,0,0,0.33);
   border: 1px solid rgba(101,179,76);
-  color: rgb(101,179,76);
-  background: rgba(255,255,255,0.3);
+  color: #5f924f;
+  background: linear-gradient(to bottom, #fff, #eef0ee);
   cursor: pointer;
   font-weight: bold;
   border-radius: 3px;
   margin: 0;
 }
+  .schema-converter button:hover {
+    background: linear-gradient(to bottom, #fff, #fff);
+    color: rgb(101,179,76);
+  }
+
+  .schema-converter .schema-sample button {
+    color: #fff;
+    background: #5f924f;
+  }
 
 .schema-converter-input > button {
   margin: 0.25rem;
@@ -240,12 +256,6 @@ body.schema-converter {
   padding: 0.25rem 0.5rem;
 }
 
-.schema-converter-input > button:hover,
-.schema-actions > button:hover,
-.schema-url > button:hover {
-  background: rgba(255,255,255,0.6);
-}
-
 .schema-url > button {
   font-size: 0.8rem;
 }
@@ -258,27 +268,29 @@ body.schema-converter {
 .schema-sample {
   font-family: monospace;
   font-size: 0.9rem;
-  padding: 0.5rem;
+  /*padding: 0.5rem;*/
   border: 1px solid #888;
   background: #465;
   color: white;
 }
-  .schema-sample td:nth-child(1) {
-    font-weight: bold;
+  .schema-sample td {
+    padding: 0 0.5em;
   }
-  .schema-sample td:nth-child(2) {
-    padding: 0 0.33rem;
+  .schema-sample thead td {
+    background: rgba(0,0,0,0.5);
+    font-family: 'Inter', sans-serif;
+    user-select: none;
     font-weight: bold;
-  }
-  .schema-sample td:nth-child(3) {
-    padding: 0 0.5rem;
   }
   .schema-sample p {
-    margin-bottom: 0;
-    margin-top: 1em;
+    margin: 0;
   }
   .schema-sample .schema-type {
     vertical-align: baseline;
+  }
+  .schema-sample a {
+    color: #fe8;
+    font-weight: bold;
   }
 
 .schema-message-name {
