@@ -20,6 +20,9 @@ export default class App {
       for (const key in globalThis.localStorage) delete localStorage[key]
     }
   })
+  /** Add a new schema viewer. */
+  addSchemaViewer = (source, schema) =>
+    new SchemaViewer(source, schema)
   /** Button for uploading schema from file dialog. */
   addFromFileButton = Dome.bind(Dome.select('header button[data-name="AddFromFile"]'), {
     'click': () => pickFiles(async files=>{
@@ -27,7 +30,7 @@ export default class App {
         console.debug(`Reading ${file.name}`)
         const json = await file.text()
         const data = JSON.parse(json)
-        new SchemaViewer(file.name, data)
+        this.addSchemaViewer(file.name, data)
         const added = + new Date()
         const { contract_name: name, contract_version: version } = data
         const url = new URL(file.name, 'file:').toString()
@@ -55,8 +58,24 @@ class SchemaViewer extends Schema {
   root = Dome.select('.schema-template').content.cloneNode(true).firstChild
   /** Container for main content. */
   content = this.root.querySelector('.schema-content')
+  /** Container for mainer main content */
+  body = this.root.querySelector('.schema-body')
   /** Collection of type definitions referenced by schemas. */
   definitions = new Map()
+  /** Container element for index of definitions. */
+  definitionList = this.root.querySelector('.schema-definitions')
+  /** Button to show details */
+  showButton = Dome.bind(this.root.querySelector('[data-name="Show"]'), {
+    click: ()=>this.toggle(true)
+  })
+  /** Button to hide details */
+  hideButton = Dome.bind(this.root.querySelector('[data-name="Hide"]'), {
+    click: ()=>this.toggle(false)
+  })
+  /** Container for schema description */
+  descriptionBox = this.root.querySelector('.schema-description')
+  /** Button to open conversion menu */
+  convertButton = this.root.querySelector('[data-name="Convert"]')
 
   constructor (source, schema) {
     super(source, schema)
@@ -65,8 +84,8 @@ class SchemaViewer extends Schema {
     // Add metadata
     for (const [name, value] of this.getOverview().entries()) this.populateField(name, value)
     // Add description
-    this.body = Object.assign(this.root.querySelector('.schema-body'), { innerText: '' })
-    Dome.append(this.body, Dome('div', { innerHTML: Marked.parse(this.description) }), Dome('hr'))
+    this.body.innerText = ''
+    this.descriptionBox.innerHTML = Marked.parse(this.description)
     // Add constructor
     this.populateInitMethod(this.instantiate)
     // Add methods and responses
@@ -81,20 +100,23 @@ class SchemaViewer extends Schema {
       this.populateResponses(this.responses)
     }
     // Add type definitions
-    const definitionList = this.root.querySelector('.schema-definitions')
-    for (const name of [...this.definitions.keys()].sort()) {
-      definitionList.appendChild(Object.assign(document.createElement('div'), {
-        className: 'schema-definition', innerText: name
-      }))}
+    for (const name of [...this.definitions.keys()].sort())
+      Dome.append(this.definitionList,
+        Dome('div.schema-definition', name))
     // Append the hydrated template to the document
     Dome.append(Dome.select('.schemas'), this.root)
     // Bind event handlers
-    Dome.bind(this.root.querySelector('[data-name="Show"]'), { click: ()=>this.toggle(true) })
-    Dome.bind(this.root.querySelector('[data-name="Hide"]'), { click: ()=>this.toggle(false) })
+    Object.assign(this.showButton.style, { display: 'none', visibility: 'hidden' })
   }
 
   toggle (show = this.content.style.visibility === 'hidden') {
     Object.assign(this.content.style, show
+      ? { display: '', visibility: 'visible' }
+      : { display: 'none', visibility: 'hidden' })
+    Object.assign(this.showButton.style, !show
+      ? { display: '', visibility: 'visible' }
+      : { display: 'none', visibility: 'hidden' })
+    Object.assign(this.hideButton.style, show
       ? { display: '', visibility: 'visible' }
       : { display: 'none', visibility: 'hidden' })
   }
@@ -138,11 +160,10 @@ class SchemaViewer extends Schema {
     // Add each method
     for (const subvariant of oneOf) {
       const { title, description, properties, enum: enum_ } = subvariant
-      Dome.append(this.body, Dome('.row.wrap.align-start.schema-message',
+      Dome.append(this.body, Dome('.schema-message',
         ['div',
           ['h3', ['span.schema-message-name', `${variant.title}::`], `${title}`],
           ['p', { innerHTML: Marked.parse(description) }]],
-        ['.grow'],
         this.schemaSample(properties, enum_)))
     }
   }
@@ -190,19 +211,22 @@ class SchemaViewer extends Schema {
     // Add the field name, type, and 1st line of default value
     rows.push(['tr',
       ['td.schema-field-key', `  "${key}": `],
-      ['td.schema-type', this.schemaType(key, val)],
       ['td', isObject ? '{' : isString ? '"",' : isNumber ? '0,' : null],
+      ['td.schema-type', this.schemaType(key, val)],
       ['td.schema-field-description.no-select',
         val.description ? { innerHTML: Marked.parse(val.description) } : ['p']]])
     // If type is object, add remaining lines of default value
     if (isObject) {
       const properties = this.resolveAllOf(val.properties, val.allOf)
       for (const [k, v] of Object.entries(properties)) {
+        const isObject = (v.allOf?.length > 0) || (v.type === 'object')
+        const isString = (v.type === 'string')
+        const isNumber = (v.type === 'integer') || (v.type === 'float')
         //if (v.description) commentRow(4, Marked.parse(v.description))
         rows.push(['tr',
           ['td.schema-field-key', `    "${k}": `],
+          ['td', `${JSON.stringify(v.default||isObject ? {} : isString ? "" : isNumber ? 0 : null)}`],
           ['td.schema-type', this.schemaType(k, v)],
-          ['td', `${JSON.stringify(v.default)}`],
           ['td.schema-field-description.no-select',
             v.description ? { innerHTML: Marked.parse(v.description) } : ['p']]])
       }

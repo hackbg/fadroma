@@ -37,7 +37,7 @@ html(lang='en')
     header.schema-converter-header
       h1.row
         img(src="../banner2.svg" alt="Fadroma" style="height:3em;margin:0 0.5rem 0 0")
-        span Schema Tool
+        span Schema Browser
       .grow
       .schema-converter-input
         button(data-name="AddFromURL") Add from URL
@@ -49,42 +49,46 @@ html(lang='en')
     template.schema-template
       .schema
         .schema-header.row
-          .schema-field(data-name="Name")
-            strong.value
-          .schema-field(data-name="Version")
-            span &nbsp;v
-            strong.value
+          .row.wrap
+            .schema-field(style="white-space:nowrap" data-name="Name")
+              strong.value
+              span &nbsp;
+            .schema-field(style="white-space:nowrap" data-name="Version")
+              span v
+              strong.value
+            .schema-url
+              span(style='font-weight:normal') From:&nbsp;
+              span(data-name="Source")
+                span.value
           .grow
-          .schema-actions.row
+          .schema-actions.row.wrap(style='display:none')
             label
               strong Download as:
-            button JSON (pretty)
-            button JSON (compact)
-            button YAML
-            button HTML
-            button(data-name="Markdown") Markdown
+            .row
+              button JSON (pretty)
+              button JSON (compact)
+              button YAML
+              button HTML
+              button(data-name="Markdown") Markdown
+          button(style="white-space:nowrap" data-name="Convert") Convert ▼
+          .vsep
+          button(style="white-space:nowrap" data-name="Show") Show details ▼
+          button(style="white-space:nowrap" data-name="Hide") Hide details ▲
 
-        .schema-url.row
-          span(style='font-weight:normal') From:&nbsp;
-          span(data-name="Source")
-            span.value
-          .grow
-          button(data-name="Show") Show details
-          button(data-name="Hide") Hide details
-
-        .schema-content.row
-          .schema-metadata
-            .schema-api
-              strong API overview:
-              +field("Instantiate")
-              +field("Transaction methods")
-              +field("Query methods")
-              +field("Migrate methods")
-              +field("Sudo methods")
-              +field("Responses")
-            .schema-definitions
-              strong Type definitions:
-
+        .schema-content
+          .row.schema-overview
+            .schema-description
+            .schema-metadata(style="display:none")
+              .schema-api
+                strong API overview:
+                +field("Instantiate")
+                +field("Transaction methods")
+                +field("Query methods")
+                +field("Migrate methods")
+                +field("Sudo methods")
+                +field("Responses")
+              .schema-definitions
+                strong Type definitions:
           .schema-body
 
     footer.row
