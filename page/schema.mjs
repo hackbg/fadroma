@@ -111,6 +111,9 @@ const refLink = ref =>
 const slugify = ref =>
   ref.replace(/ /g, '-')
 
+const formatDescription = (definition) =>
+  (definition?.description||'').replace(/\n/g, '<br>')
+
 /** Converts a contract schema to a Markdown document. */
 export class SchemaToMarkdown extends Schema {
   /** Convert to Markdown. */
@@ -152,7 +155,7 @@ export class SchemaToMarkdown extends Schema {
     ``, `${variant.description}`,
     ``, this.toMdSchemaTable(variant.title, variant, 'parameter').join('\n')
   ]
-  /** Render response section. */
+  /** Render responses section. */
   toMdResponses = (responses = this.responses) => {
     if (!this.responses || Object.keys(this.responses).length < 1) return []
     return [
@@ -175,7 +178,7 @@ export class SchemaToMarkdown extends Schema {
       ...[...this.definitions.keys()].sort().map(k=>this.toMdDefinitionVariant(k).join('\n'))
     ]
   }
-  /** Render definitions variant. */
+  /** Render definition. */
   toMdDefinitionVariant = (name, definition = this.definitions.get(name)) => [
     ``, `### ${name}`,
     ``, this.overrides[name]||definition.description||'',
@@ -211,7 +214,7 @@ export class SchemaToMarkdown extends Schema {
             ``
             + (required?.includes(name)?`*(Required.)* `:'')
             + `**${this.toMdSchemaType(name, property)}**. `
-            + `${(property.description||'')}`
+            + `${formatDescription(property)}`
           )
           // If this property is an object, add its keys on an indented level
           if (isObject(property)) {
@@ -222,7 +225,7 @@ export class SchemaToMarkdown extends Schema {
               `\`${parentName}.${name}\``,
               ``
               + (parentProp.required?.includes(name)?`*(Required.)* `:'')
-              + `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}`
+              + `**${this.toMdSchemaType(name, property)}**. ${formatDescription(property)}`
               + (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
             )
           }
@@ -235,20 +238,13 @@ export class SchemaToMarkdown extends Schema {
       `|variant|description|`,
       `|-------|-----------|`,
       oneOf.map(variant=>{
-        let {title, type, enum: enum_, description} = variant
+        let {title, type, enum: enum_} = variant
         if (this.definitions.has(title)) title = refLink(title)
         type = enum_
           ? `**${type}**: ${enum_.map(x=>`\`${x}\``).join('\\|')}.`
           : `**${type}**.`
-        return `|${title}|${type} ${description}|`
+        return `|${title}|${type} ${formatDescription(variant)}|`
       }).join('\n'),
-      oneOf.map(variant=>{
-        let {title, type, enum: enum_, description} = variant
-        if (this.definitions.has(title)) return
-        if (enum_) return
-        return `\n#### ${definition.title} as ${title}`
-      }).join('\n'),
-
     ]
 
     if (type) return [
@@ -267,7 +263,7 @@ export class SchemaToMarkdown extends Schema {
 
     const resolveRef = x =>
       x.type ? refLink(x.title||x.type) :
-      x.$ref ? refLink(x.$ref) : '(unknown)'
+      x.$ref ? refLink(refName(x)) : '(unknown)'
     const joinOr = '\\|'
     const joinAnd = '&'
 
