@@ -49,8 +49,13 @@ export default class Schema {
   /** Collect type definitions from a schema */
   addDefinitions = section => {
     if (section && section.definitions)
-      for (const name of Object.keys(section.definitions).sort())
+      for (const name of Object.keys(section.definitions).sort()) {
         this.definitions.set(name, section.definitions[name])
+        if (section.definitions[name].oneOf)
+          for (const definition of section.definitions[name].oneOf)
+            if (!this.definitions.has(definition.title))
+              this.definitions.set(definition.title, definition)
+      }
   }
   /** Resolve an `allOf` schema clause against all definitions in this schema. */
   resolveAllOf = (property) =>
@@ -60,6 +65,11 @@ export default class Schema {
     isObject(property) ? undefined :
     isString(property) ? "" :
     isNumber(property) ? 0  : ''
+  /** Hardcoded overrides for a couple of types that fail to represent correctly. */
+  overrides = {
+    Uint128: 'A string containing a 128-bit integer in decimal representation.',
+    Binary:  'A string containing Base64-encoded data.'
+  }
 }
 
 /** Resolve an `allOf` schema clause against a pre-existing map of definitions. */
@@ -115,7 +125,7 @@ export class SchemaToMarkdown extends Schema {
     return [
       ``, `## ${section.title}`,
       ``, `${section.description}`,
-      ``, this.toMdSchemaTable(section).join('\n')
+      ``, this.toMdSchemaTable(section.title, section).join('\n')
     ]
   }
   /** Render non-init message section. */
@@ -131,7 +141,7 @@ export class SchemaToMarkdown extends Schema {
   toMdSectionVariant = (section, variant) => [
     ``, `### ${section.title}::${variant.title}`,
     ``, `${variant.description}`,
-    ``, this.toMdSchemaTable(variant).join('\n')
+    ``, this.toMdSchemaTable(variant.title, variant).join('\n')
   ]
   /** Render response section. */
   toMdResponses = (responses = this.responses) => {
@@ -146,7 +156,7 @@ export class SchemaToMarkdown extends Schema {
   toMdResponseVariant = (name, response) => [
     ``, `### ${name}`,
     ``, `${response.description}`,
-    ``, this.toMdSchemaTable(response).join('\n')
+    ``, this.toMdSchemaTable(name, response).join('\n')
   ]
   /** Render definitions section. */
   toMdDefinitions = () => {
@@ -161,10 +171,10 @@ export class SchemaToMarkdown extends Schema {
     ``, `### ${name}`,
     ...(!definition.description||['Uint128', 'Binary'].includes(name))
       ? [] : [``, `${definition.description}`],
-    ``, this.toMdSchemaTable(definition).join('\n')
+    ``, this.toMdSchemaTable(name, definition).join('\n')
   ]
   /** Render table with the fields of a type. */
-  toMdSchemaTable = (definition) => {
+  toMdSchemaTable = (name, definition) => {
 
     const { type, properties, enum: enum_, oneOf } = definition
 
@@ -175,8 +185,8 @@ export class SchemaToMarkdown extends Schema {
     ]
 
     if (properties) return [
-      `|field|description|`,
-      `|-----|-----------|`,
+      `|parameter|description|`,
+      `|---------|-----------|`,
       Object.entries(properties)
         .map(([name, property])=>{
           // Collection of rows that will be returned
@@ -230,7 +240,7 @@ export class SchemaToMarkdown extends Schema {
     if (type) return [
       `|type|`,
       `|----|`,
-      `|${type}|`
+      `|**${type}**. ${['Uint128', 'Binary'].includes(name)?'':description}|`
     ]
 
     return []
@@ -238,31 +248,31 @@ export class SchemaToMarkdown extends Schema {
   }
   /** Return a representation of the a property's type */
   toMdSchemaType = (key, val) => {
-    switch (true) {
-      case (val.type instanceof Array):
-        return val.type.join('\\|')
-      case (val.type === 'integer'):
-        return "integer"
-      case (val.type === 'string'):
-        return "string"
-      case (val.type === 'object'):
-        return "object"
-      case (val.type === 'boolean'):
-        return "boolean"
-      case (val.type === 'array'):
-        return `Array<${`[${refName(val.items)}](#${refName(val.items)})`}>`
-      case (!!val.allOf): {
-        let type = val.allOf[0].$ref.split('/').slice(-1)[0]
-        if (val.allOf.length > 1) type = `${type} + ...`
-        return type
-      }
-      case (!!val.anyOf): {
-        return val.anyOf
-          .map(x=>x.type ? x.type : x.$ref ? `[${refName(x)}](#${refName(x)})` : '(unknown)')
-          .join('\\|')
-      }
+    if (val.type instanceof Array) return val.type.join('\\|')
+
+    if (val.type === 'integer') return "integer"
+
+    if (val.type === 'string') return "string"
+
+    if (val.type === 'object') return "object"
+
+    if (val.type === 'boolean') return "boolean"
+
+    if (val.type === 'array') return `Array<${`[${refName(val.items)}](#${refName(val.items)})`}>`
+
+    if (!!val.allOf) {
+      let type = val.allOf[0].$ref.split('/').slice(-1)[0]
+      if (val.allOf.length > 1) type = `${type} + ...`
+      return type
     }
-    process.stderr.write(`unsupported field definition`)
+
+    if (!!val.anyOf) {
+      return val.anyOf
+        .map(x=>x.type ? x.type : x.$ref ? `[${refName(x)}](#${refName(x)})` : '(unknown)')
+        .join('\\|')
+    }
+
+    process.stderr.write(`Warning: unsupported field definition: ${key} -> ${JSON.stringify(val)}`)
     return '(unsupported)'
   }
 }
