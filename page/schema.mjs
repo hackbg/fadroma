@@ -248,17 +248,26 @@ export class SchemaToMarkdown extends Schema {
   }
   /** Return a representation of the a property's type */
   toMdSchemaType = (key, val) => {
-    if (val.type instanceof Array) return val.type.join('\\|')
+    if (val.$ref) return this.toMdSchemaType(
+      refName(val), this.definitions.get(refName(val)) || {})
 
-    if (val.type === 'integer') return "integer"
+    if (val.type instanceof Array)
+      return val.type.join('\\|')
 
-    if (val.type === 'string') return "string"
+    if (val.type === 'integer')
+      return "integer"
 
-    if (val.type === 'object') return "object"
+    if (val.type === 'string')
+      return "string"
 
-    if (val.type === 'boolean') return "boolean"
+    if (val.type === 'object')
+      return "object"
 
-    if (val.type === 'array') return `Array<${`[${refName(val.items)}](#${refName(val.items)})`}>`
+    if (val.type === 'boolean')
+      return "boolean"
+
+    if (val.type === 'array')
+      return `Array<${`[${refName(val.items)}](#${refName(val.items)})`}>`
 
     if (!!val.allOf) {
       let type = val.allOf[0].$ref.split('/').slice(-1)[0]
