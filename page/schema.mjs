@@ -101,9 +101,15 @@ export const refName = type =>
   type.type ? type.type :
   type.$ref ? type.$ref.split('/').slice(-1)[0] : undefined
 
-export const refLink = type =>
-  type.type ? type.type :
-  type.$ref ? ['a', { href: '#' }, refName(type)] : undefined
+const primitiveTypes = new Set([
+  'integer', 'float', 'string', 'boolean', 'object', 'null'
+])
+
+const refLink = ref =>
+  (primitiveTypes.has(ref) || !ref) ? ref : `[${ref}](#${slugify(ref)})`
+
+const slugify = ref =>
+  ref.replace(/ /g, '-')
 
 /** Converts a contract schema to a Markdown document. */
 export class SchemaToMarkdown extends Schema {
@@ -128,7 +134,7 @@ export class SchemaToMarkdown extends Schema {
     return [
       ``, `## ${section.title}`,
       ``, `${section.description}`,
-      ``, this.toMdSchemaTable(section.title, section).join('\n')
+      ``, this.toMdSchemaTable(section.title, section, 'parameter').join('\n')
     ]
   }
   /** Render non-init message section. */
@@ -144,7 +150,7 @@ export class SchemaToMarkdown extends Schema {
   toMdSectionVariant = (section, variant) => [
     ``, `### ${section.title}::${variant.title}`,
     ``, `${variant.description}`,
-    ``, this.toMdSchemaTable(variant.title, variant).join('\n')
+    ``, this.toMdSchemaTable(variant.title, variant, 'parameter').join('\n')
   ]
   /** Render response section. */
   toMdResponses = (responses = this.responses) => {
@@ -172,24 +178,23 @@ export class SchemaToMarkdown extends Schema {
   /** Render definitions variant. */
   toMdDefinitionVariant = (name, definition = this.definitions.get(name)) => [
     ``, `### ${name}`,
-    ...(!definition.description||['Uint128', 'Binary'].includes(name))
-      ? [] : [``, `${definition.description}`],
+    ``, this.overrides[name]||definition.description||'',
     ``, this.toMdSchemaTable(name, definition).join('\n')
   ]
   /** Render table with the fields of a type. */
-  toMdSchemaTable = (name, definition) => {
+  toMdSchemaTable = (name, definition, keyName = 'property') => {
 
-    const { type, properties, enum: enum_, oneOf } = definition
+    const { type, properties, enum: enum_, oneOf, description, required } = definition
 
     if (enum_) return [
-      `|message|`,
+      `|literal|`,
       `|-------|`,
       `|${enum_.map(x=>`\`"${x}"\``).join(" \\| ")}|`
     ]
 
     if (properties) return [
-      `|parameter|description|`,
-      `|---------|-----------|`,
+      `|${keyName}|description|`,
+      `|----------|-----------|`,
       Object.entries(properties)
         .map(([name, property])=>{
           // Collection of rows that will be returned
@@ -203,16 +208,22 @@ export class SchemaToMarkdown extends Schema {
           // Add the field name, type, and 1st line of default value
           row(
             `\`${name}\``,
-            `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}`
+            ``
+            + (required?.includes(name)?`*(Required.)* `:'')
+            + `**${this.toMdSchemaType(name, property)}**. `
+            + `${(property.description||'')}`
           )
           // If this property is an object, add its keys on an indented level
-          const parentName = name
           if (isObject(property)) {
+            const parentName = name
+            const parentProp = property
             const properties = this.resolveAllOf(property)
             for (const [name, property] of Object.entries(properties)) row(
               `\`${parentName}.${name}\``,
-              `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}` +
-              (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
+              ``
+              + (parentProp.required?.includes(name)?`*(Required.)* `:'')
+              + `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}`
+              + (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
             )
           }
           return rows.join('\n')
@@ -225,7 +236,7 @@ export class SchemaToMarkdown extends Schema {
       `|-------|-----------|`,
       oneOf.map(variant=>{
         let {title, type, enum: enum_, description} = variant
-        if (this.definitions.has(title)) title = `[**${title}**](#${title})`
+        if (this.definitions.has(title)) title = refLink(title)
         type = enum_
           ? `**${type}**: ${enum_.map(x=>`\`${x}\``).join('\\|')}.`
           : `**${type}**.`
@@ -243,7 +254,7 @@ export class SchemaToMarkdown extends Schema {
     if (type) return [
       `|type|`,
       `|----|`,
-      `|**${type}**. ${['Uint128', 'Binary'].includes(name)?'':description}|`
+      `|**${type}**.|`
     ]
 
     return []
@@ -251,18 +262,14 @@ export class SchemaToMarkdown extends Schema {
   }
   /** Return a representation of the a property's type */
   toMdSchemaType = (key, val) => {
-    process.stderr.write(`\n${key} =>\n  ${JSON.stringify(val)}`)
-    process.stderr.write('\n')
-
     if (val.$ref) return (this.toMdSchemaType(
       refName(val), this.definitions.get(refName(val)) || {}))
 
     const resolveRef = x =>
-      x.type ? (x.title||x.type) :
-      x.$ref ? `[${refName(x)}](#${refName(x)})` : '(unknown)'
+      x.type ? refLink(x.title||x.type) :
+      x.$ref ? refLink(x.$ref) : '(unknown)'
     const joinOr = '\\|'
     const joinAnd = '&'
-    const linkRef = ref => `[${ref}](#${ref})`
 
     if (val.anyOf) return val.anyOf.map(resolveRef).join(joinOr)
     if (val.oneOf) return val.oneOf.map(resolveRef).join(joinOr)
@@ -272,7 +279,7 @@ export class SchemaToMarkdown extends Schema {
     if (val.type === 'integer') return "integer"
     if (val.type === 'string')  return "string"
     if (val.type === 'boolean') return "boolean"
-    if (val.type === 'array')   return `Array<${linkRef(refName(val.items))}>`
+    if (val.type === 'array')   return `Array<${refLink(refName(val.items))}>`
     if (val.type === 'object')  return "object"
 
     process.stderr.write(`Warning: unsupported field definition: ${key} -> ${JSON.stringify(val)}`)

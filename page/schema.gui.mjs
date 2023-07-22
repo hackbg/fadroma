@@ -401,3 +401,7 @@ async function attempt (cb, onfail) {
   }
   return result
 }
+
+const refLink = type =>
+  type.type ? type.type :
+  type.$ref ? ['a', { href: '#' }, refName(type)] : undefined
