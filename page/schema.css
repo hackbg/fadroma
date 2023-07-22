@@ -14,7 +14,8 @@
 .schema-converter {
   height: 100%;
   display: flex;
-  flex-flow: row nowrap;
+  flex-flow: row wrap;
+  justify-content: center;
 }
   .schema-converter footer {
     background: #98cc88;
@@ -27,15 +28,16 @@
     right: 0;
     font-size: 0.8em;
     padding: 0.5em 1em;
+    z-index: 10;
   }
-  .schema-converter footer a {
-    color: black;
-    text-decoration: underline;
-    padding: 0 0.33em;
-  }
+    .schema-converter footer a {
+      color: black;
+      text-decoration: underline;
+      padding: 0 0.33em;
+    }
 
 .schema-converter-header {
-  padding: 0 0.5rem;
+  padding: 1rem;
   width: 100%;
   max-width: 100%;
   justify-content: center;
@@ -47,16 +49,17 @@
     margin-bottom: 0;
     text-align: left;
   }
-  .schema-converter-input {
-    display: flex;
-    flex-flow: row wrap;
-    white-space: nowrap;
-    padding: 0.5rem;
-    margin: 0.5rem;
-    display: flex;
-    align-items: center;
-    flex-flow: row nowrap;
-  }
+
+.schema-converter-input {
+  display: flex;
+  flex-flow: row wrap;
+  white-space: nowrap;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-flow: row nowrap;
+}
 
 .schema-converter-modal {
   position: fixed;
@@ -103,7 +106,7 @@
 .schemas {
   overflow: auto;
   z-index: 1;
-  padding: 0 1rem;
+  padding: 0 0 4rem;
 }
 
 .schema {
@@ -113,9 +116,8 @@
   display: flex;
   flex-flow: column nowrap;
   align-items: stretch;
-  width: 100%;
-  max-width: 80em;
-  margin: 0 auto 1rem;
+  max-width: 72em;
+  margin: 0 1rem 1rem;
 }
   .schema:last-child {
     /*margin-bottom: 0 */
@@ -286,15 +288,26 @@
   user-select: none;
 }
 
+.schema-sample-wrapper {
+  background: #465;
+  color: white;
+  width: 100%;
+  border: 1px solid #888;
+}
 .schema-sample {
-  margin: 0 auto;
+  position: relative;
+  margin: 0;
   font-family: monospace;
   font-size: 0.9rem;
   padding: 0.5rem 0;
-  border: 1px solid #888;
   background: #465;
   color: white;
 }
+  .schema-sample > button {
+    position: absolute;
+    top: 0.5em;
+    right: 0.5em;
+  }
   .schema-sample td {
     padding: 0 0.5em;
   }
@@ -338,6 +351,28 @@
 .schema-message-name {
   opacity: 0.5
 }
+.schema-message-example {
+  align-items: flex-start;
+}
+  .schema-message-example .schema-sample {
+    flex-grow: 1;
+  }
+  .schema-message-example .spacer {
+    flex-grow: 0;
+  }
+  .schema-message-example button {
+    margin-left: 1em;
+  }
+
+.schema-sample-actions {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch
+}
+  .schema-sample-actions button {
+    margin-bottom: 0.5em;
+  }
+
 .schema-field-key {
   white-space: pre;
   font-weight: bold;

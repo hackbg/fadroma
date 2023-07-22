@@ -57,8 +57,6 @@ class SchemaViewer extends Schema {
   root = Dome.select('.schema-template').content.cloneNode(true).firstChild
   /** Container for main content. */
   content = this.root.querySelector('.schema-content')
-  /** Container for mainer main content */
-  body = this.root.querySelector('.schema-body')
   /** Collection of type definitions referenced by schemas. */
   definitions = new Map()
   /** Container element for index of definitions. */
@@ -83,21 +81,16 @@ class SchemaViewer extends Schema {
     // Add metadata
     for (const [name, value] of this.getOverview().entries()) this.populateField(name, value)
     // Add description
-    this.body.innerText = ''
     this.descriptionBox.innerHTML = Marked.parse(this.description)
     // Add constructor
     this.populateInitMethod(this.instantiate)
     // Add methods and responses
-    for (const section of [this.execute, this.query, this.migrate, this.sudo]) {
-      if (!section) continue
-      Dome.append(this.body, Dome('hr'))
-      this.populateMethodVariants(section)
-    }
+    for (const section of [this.execute, this.query, this.migrate, this.sudo])
+      if (section)
+        this.populateMethodVariants(section)
     // Add responses
-    if (this.responses) {
-      Dome.append(this.body, Dome('hr'))
+    if (this.responses)
       this.populateResponses(this.responses)
-    }
     // Add type definitions
     for (const name of [...this.definitions.keys()].sort())
       Dome.append(this.definitionList,
@@ -135,14 +128,15 @@ class SchemaViewer extends Schema {
     if (definitions)
       for (const name of Object.keys(definitions).sort())
         this.definitions.set(name, definitions[name])
-    Dome.append(this.body,
-      Dome('.row.schema-message-header',
-        ['h2', { style:'margin:0' }, ['span.schema-message-name', `Message: `], `${title}`],
-        ['.grow'],
-        ['button', 'Copy example message'],
-        ['button', 'Copy JSONSchema']),
-      Dome('p', { innerHTML: Marked.parse(description) }),
-      this.schemaSample(properties))
+    Dome.append(this.content,
+      Dome('.schema-body',
+        ['.row.schema-message-header',
+          ['h2', { style:'margin:0' }, ['span.schema-message-name', `Message: `], `${title}`],
+          ['.grow'],
+          ['button', 'Copy example message'],
+          ['button', 'Copy JSONSchema']],
+        ['p', { innerHTML: Marked.parse(description) }],
+        this.schemaSample(properties)))
   }
 
   populateMethodVariants = (variant) => {
@@ -151,20 +145,26 @@ class SchemaViewer extends Schema {
     if (definitions)
       for (const name of Object.keys(definitions).sort())
         this.definitions.set(name, definitions[name])
-    // Add header
-    Dome.append(this.body,
-      Dome('.row',
+    // Add message
+    const body = Dome('.schema-body',
+      ['.row',
         ['h2', { style:'margin:0' }, ['span.schema-message-name', `Message: `], `${title}`],
         ['.grow'],
-        ['button', 'Copy JSONSchema']))
+        ['button', 'Copy JSONSchema']]) 
+    Dome.append(this.content, body)
     // Add each method
     for (const subvariant of oneOf) {
       const { title, description, properties, enum: enum_ } = subvariant
-      Dome.append(this.body, Dome('.schema-message',
-        ['div',
-          ['h3', ['span.schema-message-name', `${variant.title}::`], `${title}`],
-          ['p', { innerHTML: Marked.parse(description) }],
-          this.schemaSample(properties, enum_)]))
+      Dome.append(body,
+        Dome('.schema-message',
+          ['div',
+            ['h3', ['span.schema-message-name', `${variant.title}::`], `${title}`],
+            ['p', { innerHTML: Marked.parse(description) }],
+            ['.row.schema-message-example',
+              ['.schema-sample-wrapper', this.schemaSample(properties, enum_)],
+              ['.schema-sample-actions',
+                ['button', {style:'white-space:nowrap'}, 'Copy JSON message'],
+                ['button', {style:'white-space:nowrap'}, 'Copy okp4d command']]]]))
     }
   }
 
@@ -176,13 +176,13 @@ class SchemaViewer extends Schema {
   schemaSample = (properties = {}, enum_) => {
     if (enum_) {
       enum_ = enum_.map(x=>`"${x}"`).join(" | ")
-      return Dome('table.schema-sample', ['tr', ['td', enum_]])
+      return ['table.schema-sample', ['tr', ['td', enum_]]]
     }
     let rows = []
     for (const [k, v] of Object.entries(properties)) {
       rows = rows.concat(this.schemaSampleField(k, v))
     }
-    return Dome('table.schema-sample', { cellSpacing: 0 },
+    return ['table.schema-sample', { cellSpacing: 0 },
       //['thead',
         //['tr',
           //['td', 'field'],
@@ -190,13 +190,9 @@ class SchemaViewer extends Schema {
           //['td', 'default'],
           //['td', 'description']]],
       ['tbody',
-        ['tr',
-          ['td', '{'],
-          ['td'],
-          ['td', { style:'text-align:right'}, ['button', 'Copy message']]],
+        ['tr', ['td', '{']],
         ...rows,
-        ['tr',
-          ['td', '}']]])
+        ['tr', ['td', '}']]]]
   }
 
   schemaSampleField = (key, val) => {
@@ -225,7 +221,7 @@ class SchemaViewer extends Schema {
         //if (v.description) commentRow(4, Marked.parse(v.description))
         rows.push(['tr',
           ['td.schema-field-key', `    "${k}": `],
-          ['td', `${JSON.stringify(v.default||isObject ? {} : isString ? "" : isNumber ? 0 : null)}`],
+          ['td', `${JSON.stringify(v.default||(isObject ? {} : isString ? "" : isNumber ? 0 : null))}`],
           ['td.schema-field-description.no-select',
             ['span.schema-type', this.schemaType(k, v)],
             '. ',
@@ -302,6 +298,10 @@ class Toggle {
     }
   }
 }
+
+class PopupMenu extends Toggle {}
+
+class CopyGuard extends Toggle {}
 
 /** Base modal class that can be toggled, and dims everything else. */
 class Modal extends Toggle {
