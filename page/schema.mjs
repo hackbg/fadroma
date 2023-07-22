@@ -212,12 +212,19 @@ export class SchemaToMarkdown extends Schema {
       `|-------|-----------|`,
       oneOf.map(variant=>{
         let {title, type, enum: enum_, description} = variant
+        if (this.definitions.has(title)) title = `[**${title}**](#${title})`
         type = enum_
           ? `**${type}**: ${enum_.map(x=>`\`${x}\``).join('\\|')}.`
           : `**${type}**.`
         return `|${title}|${type} ${description}|`
-      }).join('\n')
-      //`|${JSON.stringify(oneOf)}|`
+      }).join('\n'),
+      oneOf.map(variant=>{
+        let {title, type, enum: enum_, description} = variant
+        if (this.definitions.has(title)) return
+        if (enum_) return
+        return `\n#### ${definition.title} as ${title}`
+      }).join('\n'),
+
     ]
 
     if (type) return [
