@@ -126,7 +126,7 @@ body.schema-converter {
 .schema-header {
   font-size: 1.5em;
   background: white;
-  padding: 0.5rem 1rem;
+  padding: 0 0.5rem;
   margin: 0;
   border: 1px solid #888;
   border-bottom: none;
@@ -136,17 +136,17 @@ body.schema-converter {
   font-family: monospace;
   font-size: 0.8rem;
   background: white;
-  padding: 0 1rem;
+  padding: 0 0.5rem;
   font-weight: bold;
-  padding-bottom: 1em;
   border: 1px solid #888;
   border-top: none;
+  align-items: flex-start;
 }
 
 .schema-metadata {
   margin: 0;
   min-width: 25vw;
-  padding: 1rem;
+  padding: 0.5rem;
   height: 100%;
   overflow: auto;
   flex-grow: 0;
@@ -268,7 +268,7 @@ body.schema-converter {
 .schema-sample {
   font-family: monospace;
   font-size: 0.9rem;
-  /*padding: 0.5rem;*/
+  padding: 0.5rem 0;
   border: 1px solid #888;
   background: #465;
   color: white;
@@ -279,11 +279,19 @@ body.schema-converter {
   .schema-sample thead td {
     background: rgba(0,0,0,0.5);
     font-family: 'Inter', sans-serif;
+    font-size: 0.9em;
+    text-transform: uppercase;
     user-select: none;
     font-weight: bold;
   }
+  .schema-sample td,
   .schema-sample p {
+    line-height: 1.5em;
     margin: 0;
+  }
+  .schema-sample p + p {
+    margin-top: 0.5em;
+    /*margin-bottom: 0.33em;*/
   }
   .schema-sample .schema-type {
     vertical-align: baseline;
@@ -292,15 +300,34 @@ body.schema-converter {
     color: #fe8;
     font-weight: bold;
   }
+  .schema-sample code {
+    background rgba(0,0,0,0.1);
+    color: #fff;
+    font-style: italic;
+  }
+
+.schema-message {
+  margin-top: 2rem;
+}
+  .schema-message h3:first-child {
+    margin-top: 0;
+  }
+  .schema-message .schema-sample {
+    margin: 1rem 0 0 1rem;
+  }
 
 .schema-message-name {
   opacity: 0.5
 }
 .schema-field-key {
   white-space: pre;
+  font-weight: bold;
 }
 .schema-field-comment {
   font-weight: normal
   white-space: pre-wrap;
   opacity: 0.66;
+}
+.schema-field-description {
+  font-family: Inter, sans-serif;
 }

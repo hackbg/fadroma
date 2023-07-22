@@ -138,11 +138,11 @@ class SchemaViewer extends Schema {
     // Add each method
     for (const subvariant of oneOf) {
       const { title, description, properties, enum: enum_ } = subvariant
-      Dome.append(this.body, Dome('div',
+      Dome.append(this.body, Dome('.row.wrap.align-start.schema-message',
         ['div',
           ['h3', ['span.schema-message-name', `${variant.title}::`], `${title}`],
           ['p', { innerHTML: Marked.parse(description) }]],
-        ['div'],
+        ['.grow'],
         this.schemaSample(properties, enum_)))
     }
   }
@@ -162,18 +162,18 @@ class SchemaViewer extends Schema {
       rows = rows.concat(this.schemaSampleField(k, v))
     }
     return Dome('table.schema-sample', { cellSpacing: 0 },
-      ['thead',
-        ['tr',
-          ['td', 'field'],
-          ['td', 'type'],
-          ['td', 'default'],
-          ['td', 'description']]],
+      //['thead',
+        //['tr',
+          //['td', 'field'],
+          //['td', 'type'],
+          //['td', 'default'],
+          //['td', 'description']]],
       ['tbody',
         ['tr',
           ['td', '{'],
           ['td'],
           ['td'],
-          ['td', { style:'text-align:right'}, ['button', 'Copy message']]],
+          ['td', { style:'text-align:right'}, ['button', 'Copy']]],
         ...rows,
         ['tr',
           ['td', '}']]])
@@ -191,10 +191,9 @@ class SchemaViewer extends Schema {
     rows.push(['tr',
       ['td.schema-field-key', `  "${key}": `],
       ['td.schema-type', this.schemaType(key, val)],
-      ['td', isObject ? '{' : isString ? '""' : isNumber ? 0 : null],
-      val.description && ['td', ['.row.align-start.no-select',
-        ['pre', `// `],
-        ['div', { innerHTML: Marked.parse(val.description) }]]]])
+      ['td', isObject ? '{' : isString ? '"",' : isNumber ? '0,' : null],
+      ['td.schema-field-description.no-select',
+        val.description ? { innerHTML: Marked.parse(val.description) } : ['p']]])
     // If type is object, add remaining lines of default value
     if (isObject) {
       const properties = this.resolveAllOf(val.properties, val.allOf)
@@ -204,22 +203,29 @@ class SchemaViewer extends Schema {
           ['td.schema-field-key', `    "${k}": `],
           ['td.schema-type', this.schemaType(k, v)],
           ['td', `${JSON.stringify(v.default)}`],
-          v.description && ['td', ['.row.align-start.no-select',
-            ['pre', `// `],
-            ['div', { innerHTML: Marked.parse(v.description) }]]]])
+          ['td.schema-field-description.no-select',
+            v.description ? { innerHTML: Marked.parse(v.description) } : ['p']]])
       }
-      rows.push(['tr', ['td', {style:'font-weight:normal;white-space:pre'}, '  }'],])
+      rows.push(['tr', ['td', {style:'font-weight:normal;white-space:pre'}, ['p', '  },']],])
     }
     console.log('schemaSampleField', key, val, rows)
     return rows
   }
+
+  refName = type =>
+    type.type ? type.type :
+    type.$ref ? type.$ref.split('/').slice(-1)[0] : undefined
+
+  refLink = type =>
+    type.type ? type.type :
+    type.$ref ? ['a', { href: '#' }, this.refName(type)] : undefined
 
   resolveAllOf = (properties, allOf) => {
     properties ||= {}
     allOf ||= []
     for (const type of allOf) {
       if (!type.$ref) throw new Error('Unsupported', { type })
-      const name = type.$ref.split('/').slice(-1)[0]
+      const name = this.refName(type)
       const definition = this.definitions.get(name)
       if (!definition) throw new Error('Missing definition', { name })
       Object.assign(properties, definition.properties)
@@ -228,21 +234,29 @@ class SchemaViewer extends Schema {
   }
 
   schemaType = (key, val) => {
-    if (val.type === 'integer') {
-      return "integer"
+    switch (true) {
+      case (val.type instanceof Array): return val.type.join('|')
+      case (val.type === 'integer'):    return "integer"
+      case (val.type === 'string'):     return "string"
+      case (val.type === 'object'):     return "object"
+      case (val.type === 'boolean'):    return "boolean"
+      case (val.type === 'array'):      return ['span', `Array<`, this.refLink(val.items), '>']
+      case (!!val.allOf): {
+        let type = val.allOf[0].$ref.split('/').slice(-1)[0]
+        if (val.allOf.length > 1) type = `${type} + ...`
+        return ['a', {href:'#'}, `${type}`]
+      }
+      case (!!val.anyOf): {
+        return val.anyOf
+          .map(x=>
+            x.type ? x.type :
+            x.$ref ? this.refName(x) : ['span', { style:'color:tomato' }, 'unknown'])
+          .join('|')
+      }
     }
-    if (val.type === 'string') {
-      return "string"
-    }
-    if (val.type === 'object') {
-      return "object"
-    }
-    if (val.allOf) {
-      let type = val.allOf[0].$ref.split('/').slice(-1)[0]
-      if (val.allOf.length > 1) type = `${type} + ...`
-      return ['a', {href:'#'}, `${type}`]
-    }
-    console.warn(`Unsupported field definition: ${key} -> ${JSON.stringify(val)}`, { key, val })
+    console.warn(`Unsupported field definition: ${key} -> ${JSON.stringify(val)}`, {
+      key, val
+    })
     return ['span', { style:'color:tomato' }, 'unsupported']
   }
 }
