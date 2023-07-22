@@ -1,4 +1,3 @@
-// TODO: in null state, center logo and toolbar in the middle of the screen!
 import Dome   from '../ensuite/toolbox/dome/dome.mjs'
 import Schema from './schema.mjs'
 import Dexie  from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
@@ -137,9 +136,10 @@ class SchemaViewer extends Schema {
       for (const name of Object.keys(definitions).sort())
         this.definitions.set(name, definitions[name])
     Dome.append(this.body,
-      Dome('.row',
+      Dome('.row.schema-message-header',
         ['h2', { style:'margin:0' }, ['span.schema-message-name', `Message: `], `${title}`],
         ['.grow'],
+        ['button', 'Copy example message'],
         ['button', 'Copy JSONSchema']),
       Dome('p', { innerHTML: Marked.parse(description) }),
       this.schemaSample(properties))
@@ -163,8 +163,8 @@ class SchemaViewer extends Schema {
       Dome.append(this.body, Dome('.schema-message',
         ['div',
           ['h3', ['span.schema-message-name', `${variant.title}::`], `${title}`],
-          ['p', { innerHTML: Marked.parse(description) }]],
-        this.schemaSample(properties, enum_)))
+          ['p', { innerHTML: Marked.parse(description) }],
+          this.schemaSample(properties, enum_)]))
     }
   }
 
@@ -193,8 +193,7 @@ class SchemaViewer extends Schema {
         ['tr',
           ['td', '{'],
           ['td'],
-          ['td'],
-          ['td', { style:'text-align:right'}, ['button', 'Copy']]],
+          ['td', { style:'text-align:right'}, ['button', 'Copy message']]],
         ...rows,
         ['tr',
           ['td', '}']]])
@@ -212,9 +211,10 @@ class SchemaViewer extends Schema {
     rows.push(['tr',
       ['td.schema-field-key', `  "${key}": `],
       ['td', isObject ? '{' : isString ? '"",' : isNumber ? '0,' : null],
-      ['td.schema-type', this.schemaType(key, val)],
       ['td.schema-field-description.no-select',
-        val.description ? { innerHTML: Marked.parse(val.description) } : ['p']]])
+        ['span.schema-type', this.schemaType(key, val)],
+        '. ',
+        ['span', val.description ? { innerHTML: Marked.parse(val.description) } : ['p']]]])
     // If type is object, add remaining lines of default value
     if (isObject) {
       const properties = this.resolveAllOf(val.properties, val.allOf)
@@ -226,9 +226,10 @@ class SchemaViewer extends Schema {
         rows.push(['tr',
           ['td.schema-field-key', `    "${k}": `],
           ['td', `${JSON.stringify(v.default||isObject ? {} : isString ? "" : isNumber ? 0 : null)}`],
-          ['td.schema-type', this.schemaType(k, v)],
           ['td.schema-field-description.no-select',
-            v.description ? { innerHTML: Marked.parse(v.description) } : ['p']]])
+            ['span.schema-type', this.schemaType(k, v)],
+            '. ',
+            ['span', v.description ? { innerHTML: Marked.parse(v.description) } : ['p']]]])
       }
       rows.push(['tr', ['td', {style:'font-weight:normal;white-space:pre'}, ['p', '  },']],])
     }

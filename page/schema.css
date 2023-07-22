@@ -11,16 +11,22 @@
   user-select: none;
 }
 
-body.schema-converter {
+.schema-converter {
   height: 100%;
   display: flex;
-  flex-flow: column nowrap;
+  flex-flow: row nowrap;
 }
   .schema-converter footer {
     background: #98cc88;
     flex-flow: row wrap;
     align-items: center;
     justify-content: space-between;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: 0.8em;
+    padding: 0.5em 1em;
   }
   .schema-converter footer a {
     color: black;
@@ -32,7 +38,8 @@ body.schema-converter {
   padding: 0 0.5rem;
   width: 100%;
   max-width: 100%;
-  justify-content: space-between;
+  justify-content: center;
+  flex-flow: column nowrap;
 }
   .schema-converter-header h1 {
     font-size: 1.5rem;
@@ -94,7 +101,6 @@ body.schema-converter {
   }
 
 .schemas {
-  flex-grow: 1;
   overflow: auto;
   z-index: 1;
   padding: 0 1rem;
@@ -133,7 +139,7 @@ body.schema-converter {
 
 .schema-header {
   font-size: 1.5em;
-  background: white;
+  background: #98cc88;
   padding: 0 0.5rem;
   margin: 0;
   border: 1px solid #888;
@@ -161,12 +167,12 @@ body.schema-converter {
 }
 
 .schema-description {
-  padding: 0 0.5rem;
+  padding: 1rem 5%;
   width: 100%;
 }
 
 .schema-body {
-  padding: 0.5rem;
+  padding: 1rem 5%;
   height: 100%;
   overflow: auto;
   flex-grow: 5;
@@ -197,7 +203,7 @@ body.schema-converter {
   .schema pre > code {
     font-size: 0.9rem;
     line-height: 1;
-    margin: 1rem 0;
+    margin: 0.5rem 0 1.5rem;
     padding: 1em
   }
   .schema hr + h2 {
@@ -281,6 +287,7 @@ body.schema-converter {
 }
 
 .schema-sample {
+  margin: 0 auto;
   font-family: monospace;
   font-size: 0.9rem;
   padding: 0.5rem 0;
@@ -343,6 +350,9 @@ body.schema-converter {
 .schema-field-description {
   font-family: Inter, sans-serif;
 }
+.schema-field-description > span > p:first-child {
+  display: inline;
+}
 
 .vsep {
   margin: -0.66rem 0.33rem;
@@ -353,4 +363,8 @@ body.schema-converter {
 
 .schema-body hr {
   margin: 0.5rem -0.5rem;
+}
+
+.schema-message-header button {
+  margin-left: 0.5rem;
 }
