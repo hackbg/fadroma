@@ -1,4 +1,4 @@
-/**
+/** Renderer
 
   Fadroma Headless Schema Tool
   Copyright (C) 2023 Hack.bg
@@ -19,6 +19,7 @@
 **/
 
 export default class Schema {
+
   constructor (source, {
     contract_name, contract_version, idl_version, description,
     instantiate, execute, query, migrate, sudo, responses
@@ -57,44 +58,110 @@ export default class Schema {
     return props
   }
 
-  toMd () {
-    const fragments = [this.description]
-    fragments.concat([
-      `## ${this.instantiate.title}`,
-      `${this.instantiate.description}`,
-      this.toMdSchemaTable(this.instantitate.properties)
-    ])
+  toMd = () => {
+    let fragments = [this.description]
+    // Add init message
+    fragments = fragments.concat(this.toMdInstantiate(this.instantiate))
+    // Add other messages
     for (const section of [this.execute, this.query, this.migrate, this.sudo]) {
-      if (section) {
-        fragments.concat([
-          `## ${section.title}`,
-          `${section.description}`,
-        ])
-        for (const variant of section.oneOf) {
-          fragments.concat([
-            `### ${section.title}::${variant.title}`,
-            `${variant.description}`,
-            this.toMdSchemaTable(variant.properties, variant['enum'])
-          ])
-        }
-      }
+      const rendered = this.toMdSection(section)
+      process.stderr.write(JSON.stringify(rendered))
+      process.stderr.write('\n')
+      fragments = fragments.concat(rendered)
     }
     return fragments.join('\n')
   }
 
+  toMdInstantiate = ({ title, description, properties }) => [
+    ``,
+    `## ${title}`,
+    ``,
+    `${description}`,
+    ``,
+    this.toMdSchemaTable(properties)
+  ]
+
+  toMdSection = section => section ? [
+    ``,
+    `## ${section.title}`,
+    ``,
+    `${section.description}`,
+    ...section.oneOf.map(variant=>[
+      ``,
+      `### ${section.title}::${variant.title}`,
+      ``,
+      `${variant.description}`,
+      ``,
+      this.toMdSchemaTable(variant.properties, variant['enum'], variant.description)
+    ].join('\n'))
+  ] : []
+
   toMdSchemaTable = (properties = {}, enum_) => {
-    if (enum_) {
-      enum_ = enum_.map(x=>`"${x}"`).join(" \\| ")
-      return [
-        `|message|description|`,
-        `|-|-|`,
-        `|${enum_}||`
-      ].join('\n')
+    if (enum_) return this.toMdSchemaTableEnum(enum_)
+    if (properties) return this.toMdSchemaTableProperties(properties)
+    return '(unsupported type!)'
+  }
+
+  toMdSchemaTableEnum = enum_ => [
+    `|message|`,
+    `|-------|`,
+    `|${enum_.map(x=>`"${x}"`).join(" \\| ")}|`
+  ].join('\n')
+
+  toMdSchemaTableProperties = properties => [
+    `|field|default|description|`,
+    `|-----|-------|-----------|`,
+    ...Object.entries(properties).map(([name, property])=>
+      this.toMdSchemaTableProperty(name, property))
+  ].join('\n')
+
+  toMdSchemaTableProperty = (name, property) => {
+    const isObject = (property.allOf?.length > 0) || (property.type === 'object')
+    const isString = (property.type === 'string')
+    const isNumber = (property.type === 'integer') || (property.type === 'float')
+    // Collection of rows that will be returned
+    const rows = []
+    // If this field has a description, add it as a comment
+    // Add the field name, type, and 1st line of default value
+    rows.push([
+      '',
+      `\`${name}\``,
+      isObject ? '{' : isString ? '""' : isNumber ? '0' : '',
+      `**${this.toMdSchemaType(name, property)}**`
+        + '. '
+        + (property.description||'').replace(/\n/g,'<br>'),
+      ''
+    ].join('|'))
+    return rows
+  }
+
+  toMdSchemaType = (key, val) => {
+    switch (true) {
+      case (val.type instanceof Array):
+        return val.type.join('|')
+      case (val.type === 'integer'):
+        return "integer"
+      case (val.type === 'string'):
+        return "string"
+      case (val.type === 'object'):
+        return "object"
+      case (val.type === 'boolean'):
+        return "boolean"
+      case (val.type === 'array'):
+        return ['span', `Array<`, this.refLink(val.items), '>']
+      case (!!val.allOf): {
+        let type = val.allOf[0].$ref.split('/').slice(-1)[0]
+        if (val.allOf.length > 1) type = `${type} + ...`
+        return type
+      }
+      case (!!val.anyOf): {
+        return val.anyOf
+          .map(x=>x.type ? x.type : x.$ref ? this.refName(x) : '(unknown)')
+          .join('|')
+      }
     }
-    const rows = [
-      `|field|type|default|description|`
-      `|-|-|-|-|`
-    ]
+    process.stderr.write(`unsupported field definition`)
+    return '(unsupported)'
   }
 
   toHtml () {
@@ -126,13 +193,16 @@ Promise.all([
       {argv, env, cwd},
       {pathToFileURL},
       {dirname, basename, resolve, relative},
-      {existsSync, realpathSync}
+      {existsSync, realpathSync, readFileSync}
     ])=>{
       const main = pathToFileURL(argv[1]).href
       if (import.meta.url === main) {
-        const args = argv.slice(2)
-        if (args.length > 1) {
-          console.info('Converting schema:', argv.slice(2))
+        if (argv.length > 2) {
+          process.stderr.write(`Converting schema: ${argv[2]}\n`)
+          const source = readFileSync(argv[2], 'utf8')
+          const parsed = JSON.parse(source)
+          const schema = new Schema(argv[2], parsed)
+          process.stdout.write(schema.toMd())
         } else {
           // Shorten paths for usage
           const paths = (env.PATH||'').split(':')
@@ -149,10 +219,11 @@ Promise.all([
           }
           argv[1] = relative(cwd(), argv[1])
           // Print usage
-          console.info([
+          process.stderr.write([
             `Fadroma Schema Renderer (https://fadroma.tech)`,
             `Usage:`,
-            `  ${process.argv.join(' ')} CONTRACT_SCHEMA.json`
+            `  ${process.argv.join(' ')} CONTRACT_SCHEMA.json`,
+            ''
           ].join('\n'))
           process.exit(1)
         }
