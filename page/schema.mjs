@@ -1,4 +1,4 @@
-/** Renderer
+/**
 
   Fadroma Headless Schema Tool
   Copyright (C) 2023 Hack.bg
@@ -18,7 +18,10 @@
 
 **/
 
+/** The set of JSONSchemas describing a certain CosmWasm contract. */
 export default class Schema {
+  /** Collection of type definitions referenced by the included JSONSchemas. */
+  definitions = new Map()
 
   constructor (source, {
     contract_name, contract_version, idl_version, description,
@@ -29,34 +32,62 @@ export default class Schema {
       contract_name, contract_version, idl_version, description,
       instantiate, execute, query, migrate, sudo, responses
     })
+    /** Collect type definitions used by all schemas. */
+    for (const section of [
+      this.instantiate,
+      this.execute,
+      this.query,
+      this.migrate,
+      this.sudo
+    ]) {
+      this.addDefinitions(section)
+    }
   }
 
-  getOverview () {
-    const props = new Map()
-    props.set('Source',
-      this.source || `❌`)
-    props.set('Name',
-      this.contract_name || `❌`)
-    props.set('Version',
-      this.contract_version || `❌`)
-    props.set('IDL version',
-      this.idl_version || `❌`)
-    props.set('Description',
-      this.description || `❌`)
-    props.set('Instantiate',         this.instantiate?.properties
-      ? `${Object.keys(this.instantiate.properties).length} parameter(s)` : `❌`)
-    props.set('Transaction methods', this.execute?.oneOf?.length
-      ? `${this.execute.oneOf.length} method(s)`   : `❌`)
-    props.set('Query methods',       this.query?.oneOf?.length
-      ? `${this.query?.oneOf?.length} method(s)`   : `❌`)
-    props.set('Migrate methods',     this.migrate?.oneOf?.length
-      ? `${this.migrate?.oneOf?.length} method(s)` : `❌`)
-    props.set('Sudo methods',        this.sudo?.oneOf?.length
-      ? `${this.sudo?.oneOf?.length} method(s)`    : `❌`)
-    props.set('Responses',           this.responses
-      ? `${Object.keys(this.responses).length}`    : `❌`)
-    return props
+  /** Collect type definitions from a schema */
+  addDefinitions = section => {
+    if (section && section.definitions)
+      for (const name of Object.keys(section.definitions).sort())
+        this.definitions.set(name, section.definitions[name])
   }
+
+  resolveAllOf = (property) => {
+    let { properties = {}, allOf = [] } = property
+    for (const type of allOf) {
+      if (!type.$ref) throw new Error('Unsupported', { type })
+      const name = refName(type)
+      const definition = this.definitions.get(name)
+      if (!definition) throw new Error('Missing definition', { name })
+      Object.assign(properties, definition.properties)
+    }
+    return properties
+  }
+
+  defaultValueFor = (property) =>
+    isObject(property) ? undefined :
+    isString(property) ? "" :
+    isNumber(property) ? 0  : ''
+
+}
+
+export const isObject = property =>
+  (property.type === 'object') || (property.allOf?.length > 0)
+
+export const isString = property =>
+  (property.type === 'string')
+
+export const isNumber = property =>
+  (property.type === 'integer') || (property.type === 'float')
+
+export const refName = type =>
+  type.type ? type.type :
+  type.$ref ? type.$ref.split('/').slice(-1)[0] : undefined
+
+export const refLink = type =>
+  type.type ? type.type :
+  type.$ref ? ['a', { href: '#' }, refName(type)] : undefined
+
+export class SchemaToMarkdown extends Schema {
 
   toMd = () => {
     let fragments = [this.description]
@@ -65,8 +96,6 @@ export default class Schema {
     // Add other messages
     for (const section of [this.execute, this.query, this.migrate, this.sudo]) {
       const rendered = this.toMdSection(section)
-      process.stderr.write(JSON.stringify(rendered))
-      process.stderr.write('\n')
       fragments = fragments.concat(rendered)
     }
     return fragments.join('\n')
@@ -97,48 +126,58 @@ export default class Schema {
   ] : []
 
   toMdSchemaTable = (properties = {}, enum_) => {
-    if (enum_) return this.toMdSchemaTableEnum(enum_)
-    if (properties) return this.toMdSchemaTableProperties(properties)
+    if (enum_)
+      return this.toMdSchemaTableEnum(enum_).join('\n')
+    if (properties)
+      return this.toMdSchemaTableWithProperties(properties).join('\n')
     return '(unsupported type!)'
   }
 
   toMdSchemaTableEnum = enum_ => [
-    `|message|`,
-    `|-------|`,
-    `|${enum_.map(x=>`"${x}"`).join(" \\| ")}|`
-  ].join('\n')
+    `|message|`, `|-|`, `|${enum_.map(x=>`"${x}"`).join(" \\| ")}|`
+  ]
 
-  toMdSchemaTableProperties = properties => [
-    `|field|default|description|`,
-    `|-----|-------|-----------|`,
-    ...Object.entries(properties).map(([name, property])=>
+  toMdSchemaTableWithProperties = properties => [
+    `|field|description|`, `|-|-|`, this.toMdSchemaTableProperties(properties).join('\n')
+  ]
+
+  toMdSchemaTableProperties = properties =>
+    Object.entries(properties).map(([name, property])=>
       this.toMdSchemaTableProperty(name, property))
-  ].join('\n')
 
   toMdSchemaTableProperty = (name, property) => {
-    const isObject = (property.allOf?.length > 0) || (property.type === 'object')
-    const isString = (property.type === 'string')
-    const isNumber = (property.type === 'integer') || (property.type === 'float')
     // Collection of rows that will be returned
     const rows = []
-    // If this field has a description, add it as a comment
+    // Turn values into a table row and add it to the table.
+    const row = (...args) => rows.push(['', ...args, '']
+      // Replaces newlines with <br> tags.
+      .map(x=>String(x).replace(/\n/g,'<br>'))
+      // Table cells are terminated by pypes
+      .join('|'))
     // Add the field name, type, and 1st line of default value
-    rows.push([
-      '',
+    row(
       `\`${name}\``,
-      isObject ? '{' : isString ? '""' : isNumber ? '0' : '',
-      `**${this.toMdSchemaType(name, property)}**`
-        + '. '
-        + (property.description||'').replace(/\n/g,'<br>'),
-      ''
-    ].join('|'))
-    return rows
+      `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}`
+    )
+    // If this property is an object, add its keys on an indented level
+    const parentName = name
+    if (isObject(property)) {
+      const properties = this.resolveAllOf(property)
+      for (const [name, property] of Object.entries(properties)) {
+        row(
+          `\`${parentName}.${name}\``,
+          `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}` +
+          (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
+        )
+      }
+    }
+    return rows.join('\n')
   }
 
   toMdSchemaType = (key, val) => {
     switch (true) {
       case (val.type instanceof Array):
-        return val.type.join('|')
+        return val.type.join('\\|')
       case (val.type === 'integer'):
         return "integer"
       case (val.type === 'string'):
@@ -148,7 +187,7 @@ export default class Schema {
       case (val.type === 'boolean'):
         return "boolean"
       case (val.type === 'array'):
-        return ['span', `Array<`, this.refLink(val.items), '>']
+        return `Array<${refName(val.items)}>`
       case (!!val.allOf): {
         let type = val.allOf[0].$ref.split('/').slice(-1)[0]
         if (val.allOf.length > 1) type = `${type} + ...`
@@ -156,8 +195,8 @@ export default class Schema {
       }
       case (!!val.anyOf): {
         return val.anyOf
-          .map(x=>x.type ? x.type : x.$ref ? this.refName(x) : '(unknown)')
-          .join('|')
+          .map(x=>x.type ? x.type : x.$ref ? refName(x) : '(unknown)')
+          .join('\\|')
       }
     }
     process.stderr.write(`unsupported field definition`)
@@ -201,7 +240,7 @@ Promise.all([
           process.stderr.write(`Converting schema: ${argv[2]}\n`)
           const source = readFileSync(argv[2], 'utf8')
           const parsed = JSON.parse(source)
-          const schema = new Schema(argv[2], parsed)
+          const schema = new SchemaToMarkdown(argv[2], parsed)
           process.stdout.write(schema.toMd())
         } else {
           // Shorten paths for usage

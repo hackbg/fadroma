@@ -1,6 +1,22 @@
-import Dome   from '../ensuite/toolbox/dome/dome.mjs'
-import Schema from './schema.mjs'
-import Dexie  from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
+/**
+
+  Fadroma Schema Tool Web GUI
+  Copyright (C) 2023 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**/
 
 import * as Marked from 'https://cdn.jsdelivr.net/npm/marked@5.1.1/lib/marked.esm.js'
 Marked.use({ mangle: false, headerIds: false })
@@ -9,8 +25,13 @@ const renderMD = md => {
   return { innerHTML: Marked.parse(md) }
 }
 
+import Dexie  from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
 export const DB = new Dexie("FadromaJSONSchemaTool")
 DB.version(1).stores({ schemas: 'url,added,[url+added],[name+version]' })
+
+import Schema, { refLink, refName, isObject, isString, isNumber } from './schema.mjs'
+
+import Dome from '../ensuite/toolbox/dome/dome.mjs'
 
 /** Main class. */
 export default class App {
@@ -61,8 +82,6 @@ class SchemaViewer extends Schema {
   root = Dome.select('.schema-template').content.cloneNode(true).firstChild
   /** Container for main content. */
   content = this.root.querySelector('.schema-content')
-  /** Collection of type definitions referenced by schemas. */
-  definitions = new Map()
   /** Container element for index of definitions. */
   definitionList = this.root.querySelector('.schema-definitions')
   /** Button to show details */
@@ -117,6 +136,33 @@ class SchemaViewer extends Schema {
       : { display: 'none', visibility: 'hidden' })
   }
 
+  getOverview () {
+    const props = new Map()
+    props.set('Source',
+      this.source || `❌`)
+    props.set('Name',
+      this.contract_name || `❌`)
+    props.set('Version',
+      this.contract_version || `❌`)
+    props.set('IDL version',
+      this.idl_version || `❌`)
+    props.set('Description',
+      this.description || `❌`)
+    props.set('Instantiate',         this.instantiate?.properties
+      ? `${Object.keys(this.instantiate.properties).length} parameter(s)` : `❌`)
+    props.set('Transaction methods', this.execute?.oneOf?.length
+      ? `${this.execute.oneOf.length} method(s)`   : `❌`)
+    props.set('Query methods',       this.query?.oneOf?.length
+      ? `${this.query?.oneOf?.length} method(s)`   : `❌`)
+    props.set('Migrate methods',     this.migrate?.oneOf?.length
+      ? `${this.migrate?.oneOf?.length} method(s)` : `❌`)
+    props.set('Sudo methods',        this.sudo?.oneOf?.length
+      ? `${this.sudo?.oneOf?.length} method(s)`    : `❌`)
+    props.set('Responses',           this.responses
+      ? `${Object.keys(this.responses).length}`    : `❌`)
+    return props
+  }
+
   populateField (name, value) {
     const selector = `[data-name="${name}"] .value`
     const element = this.root.querySelector(selector)
@@ -129,9 +175,6 @@ class SchemaViewer extends Schema {
 
   populateInitMethod = (variant) => {
     const { title, description, definitions, properties } = variant
-    if (definitions)
-      for (const name of Object.keys(definitions).sort())
-        this.definitions.set(name, definitions[name])
     Dome.append(this.content,
       Dome('.schema-body',
         ['.row.schema-message-header',
@@ -145,10 +188,6 @@ class SchemaViewer extends Schema {
 
   populateMethodVariants = (variant) => {
     const { title, description, definitions, oneOf } = variant
-    // Collect type definitions used in this family of methods
-    if (definitions)
-      for (const name of Object.keys(definitions).sort())
-        this.definitions.set(name, definitions[name])
     // Add message
     const body = Dome('.schema-body',
       ['.row',
@@ -216,7 +255,7 @@ class SchemaViewer extends Schema {
         ['span', val.description ? renderMD(val.description) : ['p']]]])
     // If type is object, add remaining lines of default value
     if (isObject) {
-      const properties = this.resolveAllOf(val.properties, val.allOf)
+      const properties = this.resolveAllOf(val)
       for (const [k, v] of Object.entries(properties)) {
         const isObject = (v.allOf?.length > 0) || (v.type === 'object')
         const isString = (v.type === 'string')
@@ -235,27 +274,6 @@ class SchemaViewer extends Schema {
     return rows
   }
 
-  refName = type =>
-    type.type ? type.type :
-    type.$ref ? type.$ref.split('/').slice(-1)[0] : undefined
-
-  refLink = type =>
-    type.type ? type.type :
-    type.$ref ? ['a', { href: '#' }, this.refName(type)] : undefined
-
-  resolveAllOf = (properties, allOf) => {
-    properties ||= {}
-    allOf ||= []
-    for (const type of allOf) {
-      if (!type.$ref) throw new Error('Unsupported', { type })
-      const name = this.refName(type)
-      const definition = this.definitions.get(name)
-      if (!definition) throw new Error('Missing definition', { name })
-      Object.assign(properties, definition.properties)
-    }
-    return properties
-  }
-
   schemaType = (key, val) => {
     switch (true) {
       case (val.type instanceof Array): return val.type.join('|')
@@ -263,7 +281,7 @@ class SchemaViewer extends Schema {
       case (val.type === 'string'):     return "string"
       case (val.type === 'object'):     return "object"
       case (val.type === 'boolean'):    return "boolean"
-      case (val.type === 'array'):      return ['span', `Array<`, this.refLink(val.items), '>']
+      case (val.type === 'array'):      return ['span', `Array<`, refLink(val.items), '>']
       case (!!val.allOf): {
         let type = val.allOf[0].$ref.split('/').slice(-1)[0]
         if (val.allOf.length > 1) type = `${type} + ...`
@@ -273,7 +291,7 @@ class SchemaViewer extends Schema {
         return val.anyOf
           .map(x=>
             x.type ? x.type :
-            x.$ref ? this.refName(x) : ['span', { style:'color:tomato' }, 'unknown'])
+            x.$ref ? refName(x) : ['span', { style:'color:tomato' }, 'unknown'])
           .join('|')
       }
     }
