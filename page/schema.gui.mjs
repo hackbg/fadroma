@@ -4,6 +4,10 @@ import Dexie  from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
 
 import * as Marked from 'https://cdn.jsdelivr.net/npm/marked@5.1.1/lib/marked.esm.js'
 Marked.use({ mangle: false, headerIds: false })
+const renderMD = md => {
+  console.warn('Fixme: Unsafe MD->HTML render! Sanitize the output!')
+  return { innerHTML: Marked.parse(md) }
+}
 
 export const DB = new Dexie("FadromaJSONSchemaTool")
 DB.version(1).stores({ schemas: 'url,added,[url+added],[name+version]' })
@@ -81,7 +85,7 @@ class SchemaViewer extends Schema {
     // Add metadata
     for (const [name, value] of this.getOverview().entries()) this.populateField(name, value)
     // Add description
-    this.descriptionBox.innerHTML = Marked.parse(this.description)
+    Object.assign(this.descriptionBox, renderMD(this.description))
     // Add constructor
     this.populateInitMethod(this.instantiate)
     // Add methods and responses
@@ -124,7 +128,7 @@ class SchemaViewer extends Schema {
   }
 
   populateInitMethod = (variant) => {
-    const { title, description, definitions, properties, oneOf } = variant
+    const { title, description, definitions, properties } = variant
     if (definitions)
       for (const name of Object.keys(definitions).sort())
         this.definitions.set(name, definitions[name])
@@ -135,7 +139,7 @@ class SchemaViewer extends Schema {
           ['.grow'],
           ['button', 'Copy example message'],
           ['button', 'Copy JSONSchema']],
-        ['p', { innerHTML: Marked.parse(description) }],
+        ['p', renderMD(description)],
         this.schemaSample(properties)))
   }
 
@@ -159,7 +163,7 @@ class SchemaViewer extends Schema {
         Dome('.schema-message',
           ['div',
             ['h3', ['span.schema-message-name', `${variant.title}::`], `${title}`],
-            ['p', { innerHTML: Marked.parse(description) }],
+            ['p', renderMD(description)],
             ['.row.schema-message-example',
               ['.schema-sample-wrapper', this.schemaSample(properties, enum_)],
               ['.schema-sample-actions',
@@ -202,7 +206,6 @@ class SchemaViewer extends Schema {
     // Collection of rows that will be returned
     const rows = []
     // If this field has a description, add it as a comment
-    //if (val.description) commentRow(2, Marked.parse(val.description))
     // Add the field name, type, and 1st line of default value
     rows.push(['tr',
       ['td.schema-field-key', `  "${key}": `],
@@ -210,7 +213,7 @@ class SchemaViewer extends Schema {
       ['td.schema-field-description.no-select',
         ['span.schema-type', this.schemaType(key, val)],
         '. ',
-        ['span', val.description ? { innerHTML: Marked.parse(val.description) } : ['p']]]])
+        ['span', val.description ? renderMD(val.description) : ['p']]]])
     // If type is object, add remaining lines of default value
     if (isObject) {
       const properties = this.resolveAllOf(val.properties, val.allOf)
@@ -218,14 +221,13 @@ class SchemaViewer extends Schema {
         const isObject = (v.allOf?.length > 0) || (v.type === 'object')
         const isString = (v.type === 'string')
         const isNumber = (v.type === 'integer') || (v.type === 'float')
-        //if (v.description) commentRow(4, Marked.parse(v.description))
         rows.push(['tr',
           ['td.schema-field-key', `    "${k}": `],
           ['td', `${JSON.stringify(v.default||(isObject ? {} : isString ? "" : isNumber ? 0 : null))}`],
           ['td.schema-field-description.no-select',
             ['span.schema-type', this.schemaType(k, v)],
             '. ',
-            ['span', v.description ? { innerHTML: Marked.parse(v.description) } : ['p']]]])
+            ['span', v.description ? renderMD(v.description) : ['p']]]])
       }
       rows.push(['tr', ['td', {style:'font-weight:normal;white-space:pre'}, ['p', '  },']],])
     }
