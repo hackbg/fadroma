@@ -115,7 +115,7 @@ export class SchemaToMarkdown extends Schema {
     return [
       ``, `## ${section.title}`,
       ``, `${section.description}`,
-      ``, this.toMdSchemaTable(section['properties'])
+      ``, this.toMdSchemaTable(section).join('\n')
     ]
   }
   /** Render non-init message section. */
@@ -131,7 +131,7 @@ export class SchemaToMarkdown extends Schema {
   toMdSectionVariant = (section, variant) => [
     ``, `### ${section.title}::${variant.title}`,
     ``, `${variant.description}`,
-    ``, this.toMdSchemaTable(variant['properties'], variant['enum'])
+    ``, this.toMdSchemaTable(variant).join('\n')
   ]
   /** Render response section. */
   toMdResponses = (responses = this.responses) => {
@@ -146,7 +146,7 @@ export class SchemaToMarkdown extends Schema {
   toMdResponseVariant = (name, response) => [
     ``, `### ${name}`,
     ``, `${response.description}`,
-    ``, this.toMdSchemaTable(response['properties'], response['enum'])
+    ``, this.toMdSchemaTable(response).join('\n')
   ]
   /** Render definitions section. */
   toMdDefinitions = () => {
@@ -161,54 +161,73 @@ export class SchemaToMarkdown extends Schema {
     ``, `### ${name}`,
     ...(!definition.description||['Uint128', 'Binary'].includes(name))
       ? [] : [``, `${definition.description}`],
-    ``, this.toMdSchemaTable(definition['properties'], definition['enum'])
+    ``, this.toMdSchemaTable(definition).join('\n')
   ]
   /** Render table with the fields of a type. */
-  toMdSchemaTable = (properties = {}, enum_) => {
-    if (enum_)
-      return this.toMdSchemaTableEnum(enum_).join('\n')
-    if (properties)
-      return this.toMdSchemaTableWithProperties(properties).join('\n')
-    return '(unsupported type!)'
-  }
-  /** Render string message. */
-  toMdSchemaTableEnum = enum_ => [
-    `|message|`, `|-|`, `|${enum_.map(x=>`"${x}"`).join(" \\| ")}|`
-  ]
-  /** Render struct message. */
-  toMdSchemaTableWithProperties = properties => [
-    `|field|description|`, `|-|-|`, this.toMdSchemaTableProperties(properties).join('\n')
-  ]
-  /** Render all properties of a struct message to table rows. */
-  toMdSchemaTableProperties = properties =>
-    Object.entries(properties).map(([name, property])=>
-      this.toMdSchemaTableProperty(name, property))
-  /** Render a property of a struct message to a table row. */
-  toMdSchemaTableProperty = (name, property) => {
-    // Collection of rows that will be returned
-    const rows = []
-    // Turn values into a table row and add it to the table.
-    const row = (...args) => rows.push(['', ...args, '']
-      // Replaces newlines with <br> tags.
-      .map(x=>String(x).replace(/\n/g,'<br>'))
-      // Table cells are terminated by pypes
-      .join('|'))
-    // Add the field name, type, and 1st line of default value
-    row(
-      `\`${name}\``,
-      `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}`
-    )
-    // If this property is an object, add its keys on an indented level
-    const parentName = name
-    if (isObject(property)) {
-      const properties = this.resolveAllOf(property)
-      for (const [name, property] of Object.entries(properties)) row(
-        `\`${parentName}.${name}\``,
-        `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}` +
-        (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
-      )
-    }
-    return rows.join('\n')
+  toMdSchemaTable = (definition) => {
+
+    const { type, properties, enum: enum_, oneOf } = definition
+
+    if (enum_) return [
+      `|message|`,
+      `|-------|`,
+      `|${enum_.map(x=>`\`"${x}"\``).join(" \\| ")}|`
+    ]
+
+    if (properties) return [
+      `|field|description|`,
+      `|-----|-----------|`,
+      Object.entries(properties)
+        .map(([name, property])=>{
+          // Collection of rows that will be returned
+          const rows = []
+          // Turn values into a table row and add it to the table.
+          const row = (...args) => rows.push(['', ...args, '']
+            // Replaces newlines with <br> tags.
+            .map(x=>String(x).replace(/\n/g,'<br>'))
+            // Table cells are terminated by pypes
+            .join('|'))
+          // Add the field name, type, and 1st line of default value
+          row(
+            `\`${name}\``,
+            `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}`
+          )
+          // If this property is an object, add its keys on an indented level
+          const parentName = name
+          if (isObject(property)) {
+            const properties = this.resolveAllOf(property)
+            for (const [name, property] of Object.entries(properties)) row(
+              `\`${parentName}.${name}\``,
+              `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}` +
+              (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
+            )
+          }
+          return rows.join('\n')
+        })
+        .join('\n')
+    ]
+
+    if (oneOf) return [
+      `|variant|description|`,
+      `|-------|-----------|`,
+      oneOf.map(variant=>{
+        let {title, type, enum: enum_, description} = variant
+        type = enum_
+          ? `**${type}**: ${enum_.map(x=>`\`${x}\``).join('\\|')}.`
+          : `**${type}**.`
+        return `|${title}|${type} ${description}|`
+      }).join('\n')
+      //`|${JSON.stringify(oneOf)}|`
+    ]
+
+    if (type) return [
+      `|type|`,
+      `|----|`,
+      `|${type}|`
+    ]
+
+    return []
+
   }
   /** Return a representation of the a property's type */
   toMdSchemaType = (key, val) => {
@@ -224,7 +243,7 @@ export class SchemaToMarkdown extends Schema {
       case (val.type === 'boolean'):
         return "boolean"
       case (val.type === 'array'):
-        return `Array<${refName(val.items)}>`
+        return `Array<${`[${refName(val.items)}](#${refName(val.items)})`}>`
       case (!!val.allOf): {
         let type = val.allOf[0].$ref.split('/').slice(-1)[0]
         if (val.allOf.length > 1) type = `${type} + ...`
@@ -232,7 +251,7 @@ export class SchemaToMarkdown extends Schema {
       }
       case (!!val.anyOf): {
         return val.anyOf
-          .map(x=>x.type ? x.type : x.$ref ? refName(x) : '(unknown)')
+          .map(x=>x.type ? x.type : x.$ref ? `[${refName(x)}](#${refName(x)})` : '(unknown)')
           .join('\\|')
       }
     }
