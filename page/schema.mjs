@@ -20,9 +20,6 @@
 
 /** The set of JSONSchemas describing a certain CosmWasm contract. */
 export default class Schema {
-  /** Collection of type definitions referenced by the included JSONSchemas. */
-  definitions = new Map()
-
   constructor (source, {
     contract_name, contract_version, idl_version, description,
     instantiate, execute, query, migrate, sudo, responses
@@ -32,42 +29,50 @@ export default class Schema {
       contract_name, contract_version, idl_version, description,
       instantiate, execute, query, migrate, sudo, responses
     })
-    /** Collect type definitions used by all schemas. */
+    /** Collect type definitions used by all schemas.
+      * WARNING: Duplicate definitions are silently overwritten.
+      *          Contracts shouldn't contain any of those, though. */
     for (const section of [
       this.instantiate,
       this.execute,
       this.query,
       this.migrate,
-      this.sudo
+      this.sudo,
+      this.responses,
+      ...Object.values(this.responses)
     ]) {
       this.addDefinitions(section)
     }
   }
-
+  /** Collection of type definitions referenced by the included JSONSchemas. */
+  definitions = new Map()
   /** Collect type definitions from a schema */
   addDefinitions = section => {
     if (section && section.definitions)
       for (const name of Object.keys(section.definitions).sort())
         this.definitions.set(name, section.definitions[name])
   }
-
-  resolveAllOf = (property) => {
-    let { properties = {}, allOf = [] } = property
-    for (const type of allOf) {
-      if (!type.$ref) throw new Error('Unsupported', { type })
-      const name = refName(type)
-      const definition = this.definitions.get(name)
-      if (!definition) throw new Error('Missing definition', { name })
-      Object.assign(properties, definition.properties)
-    }
-    return properties
-  }
-
+  /** Resolve an `allOf` schema clause against all definitions in this schema. */
+  resolveAllOf = (property) =>
+    allOf(this.definitions, property)
+  /** Get a safe default value for a property. */
   defaultValueFor = (property) =>
     isObject(property) ? undefined :
     isString(property) ? "" :
     isNumber(property) ? 0  : ''
+}
 
+/** Resolve an `allOf` schema clause against a pre-existing map of definitions. */
+export const allOf = (definitions, property) => {
+  let { properties = {}, allOf = [] } = property
+  for (const type of allOf) {
+    if (!type.$ref) throw new Error('Unsupported', { type })
+    const name = refName(type)
+    const definition = definitions.get(name)
+    if (!definition) throw new Error(`Missing definition: ${name}`, { name })
+    Object.assign(properties, definition.properties)
+  }
+  return properties
 }
 
 export const isObject = property =>
@@ -87,44 +92,78 @@ export const refLink = type =>
   type.type ? type.type :
   type.$ref ? ['a', { href: '#' }, refName(type)] : undefined
 
+/** Converts a contract schema to a Markdown document. */
 export class SchemaToMarkdown extends Schema {
-
+  /** Convert to Markdown. */
   toMd = () => {
-    let fragments = [this.description]
+    const fragments = [this.description]
     // Add init message
-    fragments = fragments.concat(this.toMdInstantiate(this.instantiate))
+    for (const f of this.toMdInstantiate()) fragments.push(f)
     // Add other messages
     for (const section of [this.execute, this.query, this.migrate, this.sudo]) {
-      const rendered = this.toMdSection(section)
-      fragments = fragments.concat(rendered)
+      for (const f of this.toMdSection(section)) fragments.push(f)
     }
+    // Add responses
+    for (const f of this.toMdResponses(this.responses)) fragments.push(f)
+    // Add definitions
+    for (const f of this.toMdDefinitions(this.definitions)) fragments.push(f)
     return fragments.join('\n')
   }
-
-  toMdInstantiate = ({ title, description, properties }) => [
-    ``,
-    `## ${title}`,
-    ``,
-    `${description}`,
-    ``,
-    this.toMdSchemaTable(properties)
+  /** Render init message section. */
+  toMdInstantiate = (section = this.instantiate) => {
+    if (!section) return []
+    return [
+      ``, `## ${section.title}`,
+      ``, `${section.description}`,
+      ``, this.toMdSchemaTable(section['properties'])
+    ]
+  }
+  /** Render non-init message section. */
+  toMdSection = (section) => {
+    if (!section || section.oneOf.length < 1) return []
+    return [
+      ``, `## ${section.title}`,
+      ``, `${section.description}`,
+      ...section.oneOf.map(variant=>this.toMdSectionVariant(section, variant).join('\n'))
+    ]
+  }
+  /** Render non-init message variant. */
+  toMdSectionVariant = (section, variant) => [
+    ``, `### ${section.title}::${variant.title}`,
+    ``, `${variant.description}`,
+    ``, this.toMdSchemaTable(variant['properties'], variant['enum'])
   ]
-
-  toMdSection = section => section ? [
-    ``,
-    `## ${section.title}`,
-    ``,
-    `${section.description}`,
-    ...section.oneOf.map(variant=>[
-      ``,
-      `### ${section.title}::${variant.title}`,
-      ``,
-      `${variant.description}`,
-      ``,
-      this.toMdSchemaTable(variant.properties, variant['enum'], variant.description)
-    ].join('\n'))
-  ] : []
-
+  /** Render response section. */
+  toMdResponses = (responses = this.responses) => {
+    if (!this.responses || Object.keys(this.responses).length < 1) return []
+    return [
+      ``, `## Responses`,
+      ...Object.entries(this.responses)
+        .map(([name, response])=>this.toMdResponseVariant(name, response).join('\n'))
+    ]
+  }
+  /** Render response variant. */
+  toMdResponseVariant = (name, response) => [
+    ``, `### ${name}`,
+    ``, `${response.description}`,
+    ``, this.toMdSchemaTable(response['properties'], response['enum'])
+  ]
+  /** Render definitions section. */
+  toMdDefinitions = () => {
+    if (!this.definitions || this.definitions.size < 1) return []
+    return [
+      ``, `## Definitions`,
+      ...[...this.definitions.keys()].sort().map(k=>this.toMdDefinitionVariant(k).join('\n'))
+    ]
+  }
+  /** Render definitions variant. */
+  toMdDefinitionVariant = (name, definition = this.definitions.get(name)) => [
+    ``, `### ${name}`,
+    ...(!definition.description||['Uint128', 'Binary'].includes(name))
+      ? [] : [``, `${definition.description}`],
+    ``, this.toMdSchemaTable(definition['properties'], definition['enum'])
+  ]
+  /** Render table with the fields of a type. */
   toMdSchemaTable = (properties = {}, enum_) => {
     if (enum_)
       return this.toMdSchemaTableEnum(enum_).join('\n')
@@ -132,19 +171,19 @@ export class SchemaToMarkdown extends Schema {
       return this.toMdSchemaTableWithProperties(properties).join('\n')
     return '(unsupported type!)'
   }
-
+  /** Render string message. */
   toMdSchemaTableEnum = enum_ => [
     `|message|`, `|-|`, `|${enum_.map(x=>`"${x}"`).join(" \\| ")}|`
   ]
-
+  /** Render struct message. */
   toMdSchemaTableWithProperties = properties => [
     `|field|description|`, `|-|-|`, this.toMdSchemaTableProperties(properties).join('\n')
   ]
-
+  /** Render all properties of a struct message to table rows. */
   toMdSchemaTableProperties = properties =>
     Object.entries(properties).map(([name, property])=>
       this.toMdSchemaTableProperty(name, property))
-
+  /** Render a property of a struct message to a table row. */
   toMdSchemaTableProperty = (name, property) => {
     // Collection of rows that will be returned
     const rows = []
@@ -163,17 +202,15 @@ export class SchemaToMarkdown extends Schema {
     const parentName = name
     if (isObject(property)) {
       const properties = this.resolveAllOf(property)
-      for (const [name, property] of Object.entries(properties)) {
-        row(
-          `\`${parentName}.${name}\``,
-          `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}` +
-          (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
-        )
-      }
+      for (const [name, property] of Object.entries(properties)) row(
+        `\`${parentName}.${name}\``,
+        `**${this.toMdSchemaType(name, property)}**. ${(property.description||'')}` +
+        (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
+      )
     }
     return rows.join('\n')
   }
-
+  /** Return a representation of the a property's type */
   toMdSchemaType = (key, val) => {
     switch (true) {
       case (val.type instanceof Array):
@@ -202,25 +239,9 @@ export class SchemaToMarkdown extends Schema {
     process.stderr.write(`unsupported field definition`)
     return '(unsupported)'
   }
-
-  toHtml () {
-    throw new Error('unimplemented')
-  }
-
-  toJsonCompact () {
-    throw new Error('unimplemented')
-  }
-
-  toJsonPretty () {
-    throw new Error('unimplemented')
-  }
-
-  toYaml () {
-    throw new Error('unimplemented')
-  }
-
 }
 
+// CLI entry point when running as a standalone script:
 Promise.all([
   import('node:process'),
   import('node:url'),
