@@ -51,10 +51,13 @@ export default class Schema {
     if (section && section.definitions)
       for (const name of Object.keys(section.definitions).sort()) {
         this.definitions.set(name, section.definitions[name])
-        if (section.definitions[name].oneOf)
-          for (const definition of section.definitions[name].oneOf)
-            if (!this.definitions.has(definition.title))
-              this.definitions.set(definition.title, definition)
+        for (const definition of [
+          ...section.definitions[name].oneOf||[],
+          ...section.definitions[name].anyOf||[],
+          ...section.definitions[name].allOf||[],
+        ])
+          if (!this.definitions.has(definition.title))
+            this.definitions.set(definition.title, definition)
       }
   }
   /** Resolve an `allOf` schema clause against all definitions in this schema. */
@@ -248,38 +251,29 @@ export class SchemaToMarkdown extends Schema {
   }
   /** Return a representation of the a property's type */
   toMdSchemaType = (key, val) => {
-    if (val.$ref) return this.toMdSchemaType(
-      refName(val), this.definitions.get(refName(val)) || {})
+    process.stderr.write(`\n${key} =>\n  ${JSON.stringify(val)}`)
+    process.stderr.write('\n')
 
-    if (val.type instanceof Array)
-      return val.type.join('\\|')
+    if (val.$ref) return (this.toMdSchemaType(
+      refName(val), this.definitions.get(refName(val)) || {}))
 
-    if (val.type === 'integer')
-      return "integer"
+    const resolveRef = x =>
+      x.type ? (x.title||x.type) :
+      x.$ref ? `[${refName(x)}](#${refName(x)})` : '(unknown)'
+    const joinOr = '\\|'
+    const joinAnd = '&'
+    const linkRef = ref => `[${ref}](#${ref})`
 
-    if (val.type === 'string')
-      return "string"
+    if (val.anyOf) return val.anyOf.map(resolveRef).join(joinOr)
+    if (val.oneOf) return val.oneOf.map(resolveRef).join(joinOr)
+    if (val.allOf) return val.allOf.map(resolveRef).join(joinAnd)
+    if (val.type instanceof Array) return val.type.join(joinOr)
 
-    if (val.type === 'object')
-      return "object"
-
-    if (val.type === 'boolean')
-      return "boolean"
-
-    if (val.type === 'array')
-      return `Array<${`[${refName(val.items)}](#${refName(val.items)})`}>`
-
-    if (!!val.allOf) {
-      let type = val.allOf[0].$ref.split('/').slice(-1)[0]
-      if (val.allOf.length > 1) type = `${type} + ...`
-      return type
-    }
-
-    if (!!val.anyOf) {
-      return val.anyOf
-        .map(x=>x.type ? x.type : x.$ref ? `[${refName(x)}](#${refName(x)})` : '(unknown)')
-        .join('\\|')
-    }
+    if (val.type === 'integer') return "integer"
+    if (val.type === 'string')  return "string"
+    if (val.type === 'boolean') return "boolean"
+    if (val.type === 'array')   return `Array<${linkRef(refName(val.items))}>`
+    if (val.type === 'object')  return "object"
 
     process.stderr.write(`Warning: unsupported field definition: ${key} -> ${JSON.stringify(val)}`)
     return '(unsupported)'
