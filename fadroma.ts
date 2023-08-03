@@ -30,7 +30,8 @@ import { ProjectWizard, toolVersions } from './fadroma-wizard'
 import {
   Chain, ChainMode, Scrt, Deployment, DeployStore,
   Agent, AnyContract, Contract, Client, DeploymentState, Template,
-  toInstanceReceipt, timestamp, bold, Console, Error
+  toInstanceReceipt, timestamp, bold, Console, Error,
+  bip39, bip39EN
 } from '@fadroma/connect'
 
 
@@ -616,7 +617,8 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     '!wasm/*.sha256',
   ].join('\n'))
   envfile.save([
-    '# FADROMA_MNEMONIC=your testnet mnemonic'
+    '# FADROMA_MNEMONIC=your mainnet mnemonic',
+    `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`
   ].join('\n'))
   shellNix.save([
     `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
