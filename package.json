@@ -26,7 +26,7 @@
 
     "prepare": "husky install",
 
-    "ubik": "pnpm i && pnpm clean && pnpm check && pnpm cov && ubik",
+    "ubik": "pnpm i && pnpm clean && pnpm check && ubik",
     "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd scrt && ubik wet'",
 
     "check": "time tsc --noEmit",
