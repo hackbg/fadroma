@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-let dotenv; try { dotenv = require('dotenv') } catch (e) { console.log(e); dotenv = null }
-if (dotenv) dotenv.config()
+require('dotenv').config()
 const { join, resolve } = require('path')
 const { readFileSync } = require('fs')
 const node = process.argv[0]
