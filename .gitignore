@@ -28,3 +28,4 @@ tarpaulin-report.html
 wasm/*
 yarn-error.log
 yarn.lock
+!page/*.js

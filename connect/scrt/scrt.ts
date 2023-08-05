@@ -21,3 +21,9 @@ export * from './scrt-chain'
 export * from './scrt-auth'
 export * from './scrt-token'
 export * as SecretJS from 'secretjs'
+
+import { Chain } from './scrt-chain'
+export const mainnet = Chain.mainnet
+export const testnet = Chain.testnet
+export const devnet  = Chain.devnet
+export const mocknet = Chain.mocknet

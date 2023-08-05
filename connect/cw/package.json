@@ -1,0 +1,28 @@
+{
+  "name": "@fadroma/cw",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "cw.ts",
+  "files": [ "*.ts" ],
+  "description": "Fadroma support for generic CosmWasm-enabled networks based on @cosmjs/stargate",
+  "dependencies": {
+    "@hackbg/conf": "^2"
+  },
+  "peerDependencies": {
+    "@fadroma/agent": "workspace:1.x",
+    "@cosmjs/stargate": "0.31.x"
+  },
+  "devDependencies": {
+    "@hackbg/ensuite": "1.x",
+    "@cosmjs/stargate": "0.31.x",
+    "json-schema-to-typescript": "13.x",
+    "json-schema-to-ts": "2.9.x"
+  },
+  "scripts": {
+    "check":  "tsc --noEmit",
+    "ubik":   "npm run check && npm run cov && ubik",
+    "test":   "cd ../.. && ensuite spec/CW.spec.ts.md",
+    "cov":    "cd ../.. && ensuite-cov -r text -r lcov -- spec/CW.spec.ts.md",
+    "schema": "./schema/cw-gen-types.cjs"
+  }
+}

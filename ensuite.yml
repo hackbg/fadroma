@@ -58,6 +58,8 @@ sidebar:
       text: Devnets
     - href: /mocknet.html
       text: Mocknets
+    - href: /implementing.html
+      text: Supporting new chains
 
 routes:
   - path: /index.html
@@ -105,6 +107,9 @@ routes:
   - path: /impl.html
     page: spec/Implementing.spec.ts.md
     name: Implementing support for new chains
+  - path: /schema.html
+    page: schema/schema.pug
+    name: CosmWasm Schema Tool
 
 styles:
   - assets/fonts.css
