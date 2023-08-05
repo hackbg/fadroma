@@ -219,7 +219,7 @@ export class SchemaToMarkdown extends Schema {
           row(
             `\`${name}\``,
             ``
-            + (required?.includes(name)?`*(Required.)* `:'')
+            + (required?.includes(name)?`*(Required.) * `:'')
             + `**${this.toMdSchemaType(name, property)}**. `
             + `${formatDescriptionInTable(property)}`
           )
@@ -231,7 +231,7 @@ export class SchemaToMarkdown extends Schema {
             for (const [name, property] of Object.entries(properties)) row(
               `\`${parentName}.${name}\``,
               ``
-              + (parentProp.required?.includes(name)?`*(Required.)* `:'')
+              + (parentProp.required?.includes(name)?`*(Required.) * `:'')
               + `**${this.toMdSchemaType(name, property)}**. ${formatDescriptionInTable(property)}`
               + (property.default?`<br />**Default:** \`${JSON.stringify(property.default)}\``:'')
             )
@@ -282,7 +282,7 @@ export class SchemaToMarkdown extends Schema {
     if (val.type === 'integer') return "integer"
     if (val.type === 'string')  return "string"
     if (val.type === 'boolean') return "boolean"
-    if (val.type === 'array')   return `Array&lt;${refLink(refName(val.items))}&;gr`
+    if (val.type === 'array')   return `Array&lt;${refLink(refName(val.items))}&gt;`
     if (val.type === 'object')  return "object"
 
     process.stderr.write(`Warning: unsupported field definition: ${key} -> ${JSON.stringify(val)}`)
@@ -300,12 +300,13 @@ Promise.all([
   .then(
     ([
       {argv, env, cwd},
-      {pathToFileURL},
+      {fileURLToPath},
       {dirname, basename, resolve, relative},
       {existsSync, realpathSync, readFileSync}
     ])=>{
-      const main = pathToFileURL(argv[1]).href
-      if (import.meta.url === main) {
+      const main = realpathSync(fileURLToPath(import.meta.url))
+      const self = realpathSync(argv[1])
+      if (main === self) {
         if (argv.length > 2) {
           process.stderr.write(`Converting schema: ${argv[2]}\n`)
           const source = readFileSync(argv[2], 'utf8')

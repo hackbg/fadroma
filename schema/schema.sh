@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-node $(realpath $(dirname $0))/schema.mjs $@
+MAIN="$(npm prefix)/node_modules/@fadroma/schema/schema.mjs"
+node "$MAIN" $@
