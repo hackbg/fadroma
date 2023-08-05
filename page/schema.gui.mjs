@@ -25,7 +25,7 @@ const renderMD = md => {
   return { innerHTML: Marked.parse(md) }
 }
 
-import Dexie  from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
+import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs'
 export const DB = new Dexie("FadromaJSONSchemaTool")
 DB.version(1).stores({ schemas: 'url,added,[url+added],[name+version]' })
 

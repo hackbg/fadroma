@@ -109,10 +109,13 @@ const refLink = ref =>
   (primitiveTypes.has(ref) || !ref) ? ref : `[${ref}](#${slugify(ref)})`
 
 const slugify = ref =>
-  ref.replace(/ /g, '-')
+  ref.replace(/ /g, '-').toLowerCase()
 
 const formatDescription = (definition) =>
-  (definition?.description||'').replace(/\n/g, '<br>')
+  (definition?.description||'')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br />')
 
 /** Converts a contract schema to a Markdown document. */
 export class SchemaToMarkdown extends Schema {
@@ -205,7 +208,7 @@ export class SchemaToMarkdown extends Schema {
           // Turn values into a table row and add it to the table.
           const row = (...args) => rows.push(['', ...args, '']
             // Replaces newlines with <br> tags.
-            .map(x=>String(x).replace(/\n/g,'<br>'))
+            .map(x=>String(x).replace(/\n/g,'<br />'))
             // Table cells are terminated by pypes
             .join('|'))
           // Add the field name, type, and 1st line of default value
@@ -226,7 +229,7 @@ export class SchemaToMarkdown extends Schema {
               ``
               + (parentProp.required?.includes(name)?`*(Required.)* `:'')
               + `**${this.toMdSchemaType(name, property)}**. ${formatDescription(property)}`
-              + (property.default?`<br>**Default:** \`${JSON.stringify(property.default)}\``:'')
+              + (property.default?`<br />**Default:** \`${JSON.stringify(property.default)}\``:'')
             )
           }
           return rows.join('\n')
@@ -275,7 +278,7 @@ export class SchemaToMarkdown extends Schema {
     if (val.type === 'integer') return "integer"
     if (val.type === 'string')  return "string"
     if (val.type === 'boolean') return "boolean"
-    if (val.type === 'array')   return `Array<${refLink(refName(val.items))}>`
+    if (val.type === 'array')   return `Array&lt;${refLink(refName(val.items))}&;gr`
     if (val.type === 'object')  return "object"
 
     process.stderr.write(`Warning: unsupported field definition: ${key} -> ${JSON.stringify(val)}`)
