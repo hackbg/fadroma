@@ -282,7 +282,7 @@ export class SchemaToMarkdown extends Schema {
     if (val.type === 'integer') return "integer"
     if (val.type === 'string')  return "string"
     if (val.type === 'boolean') return "boolean"
-    if (val.type === 'array')   return `Array&lt;${refLink(refName(val.items))}&;gr`
+    if (val.type === 'array')   return `Array&lt;${refLink(refName(val.items))}&gt;`
     if (val.type === 'object')  return "object"
 
     process.stderr.write(`Warning: unsupported field definition: ${key} -> ${JSON.stringify(val)}`)
