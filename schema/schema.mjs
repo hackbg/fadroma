@@ -219,7 +219,7 @@ export class SchemaToMarkdown extends Schema {
           row(
             `\`${name}\``,
             ``
-            + (required?.includes(name)?`*(Required.)* `:'')
+            + (required?.includes(name)?`*(Required.) * `:'')
             + `**${this.toMdSchemaType(name, property)}**. `
             + `${formatDescriptionInTable(property)}`
           )
@@ -231,7 +231,7 @@ export class SchemaToMarkdown extends Schema {
             for (const [name, property] of Object.entries(properties)) row(
               `\`${parentName}.${name}\``,
               ``
-              + (parentProp.required?.includes(name)?`*(Required.)* `:'')
+              + (parentProp.required?.includes(name)?`*(Required.) * `:'')
               + `**${this.toMdSchemaType(name, property)}**. ${formatDescriptionInTable(property)}`
               + (property.default?`<br />**Default:** \`${JSON.stringify(property.default)}\``:'')
             )
