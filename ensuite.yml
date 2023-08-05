@@ -108,7 +108,7 @@ routes:
     page: spec/Implementing.spec.ts.md
     name: Implementing support for new chains
   - path: /schema.html
-    page: page/schema.pug
+    page: schema/schema.pug
     name: CosmWasm Schema Tool
 
 styles:

@@ -1,0 +1,14 @@
+{
+  "name": "@fadroma/schema",
+  "version": "1.0.0-rc.0",
+  "type": "module",
+  "main": "schema.mjs",
+  "description": "Documentation generator from cosmwasm-schema",
+  "bin": {
+    "fadroma-schema": "./schema.sh"
+  },
+  "scripts": {
+    "start": "schema.mjs",
+    "ubik": "ubik"
+  }
+}
