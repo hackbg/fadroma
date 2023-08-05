@@ -300,12 +300,13 @@ Promise.all([
   .then(
     ([
       {argv, env, cwd},
-      {pathToFileURL},
+      {fileURLToPath},
       {dirname, basename, resolve, relative},
       {existsSync, realpathSync, readFileSync}
     ])=>{
-      const main = pathToFileURL(argv[1]).href
-      if (import.meta.url === main) {
+      const main = realpathSync(fileURLToPath(import.meta.url))
+      const self = realpathSync(argv[1])
+      if (main === self) {
         if (argv.length > 2) {
           process.stderr.write(`Converting schema: ${argv[2]}\n`)
           const source = readFileSync(argv[2], 'utf8')
