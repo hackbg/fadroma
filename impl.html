@@ -41,6 +41,8 @@
 <style name="ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#3e5915;background:#f6f5b2}.hljs-keyword,.hljs-literal,.hljs-selector-tag{color:#059}.hljs-subst{color:#3e5915}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-link,.hljs-section,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#2c009f}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#e60415}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}</style>
 <style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
 
+html, body { min-height: 100%; height: 100% }
+
 body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
 body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
 
@@ -86,6 +88,17 @@ a.button:focus, a.button:visited, a.button:active, a.button:hover {
 
 th, td { text-align: left; vertical-align: top; }
 th { padding-right: 5em }
+
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+.column {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
 
 .grid {
   display: grid;
@@ -437,6 +450,7 @@ hr {
 <li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
 <li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
 <li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
+<li><a class="ensuite-md-link" href=/implementing.html>Supporting new chains</a></li>
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
 <h1 id="guide-to-implementing-support-in-fadroma-for-new-chains" tabindex="-1">Guide to implementing support in Fadroma for new chains</h1>
@@ -448,49 +462,50 @@ transaction methods.</p>
 <p>You will also probably need to implement the methods for sending and
 querying the native tokens that are used to pay transaction fees.</p>
 <h2 id="obtaining-the-source-code" tabindex="-1">Obtaining the source code</h2>
-<p>If you want to send us a pull request and do not have commit access
-to the Fadroma repo, it's easiest to fork <a href="https://github.com/hackbg/fadroma"><code>hackbg/fadroma</code> on GitHub</a>,
-replacing <code>hackbg</code> with your username in the following command:</p>
 <pre><code class="hljs language-sh"><span class="hljs-comment"># in your lab directory:</span>
 git <span class="hljs-built_in">clone</span> --recursive git@github.com:hackbg/fadroma.git
 <span class="hljs-built_in">cd</span> fadroma
 </code></pre>
-<p>Note the <code>--recursive</code> flag which populates the submodules.</p>
+<p>Note the <code>--recursive</code> flag and the SSH clone.</p>
 <h2 id="should-you-create-a-new-package%3F" tabindex="-1">Should you create a new package?</h2>
-<p><strong>If the chain you're adding is already accessible through
-a supported client library (such as <code>secretjs</code> or <code>@cosmjs/stargate</code>),</strong>
-skip this step and perform the next one in the existing library package.[^0]</p>
+<p>If the chain you're adding is already accessible through
+a supported client library (such as <code>secretjs</code> or <code>@cosmjs/stargate</code>),
+skip this step and continue with the corresponding library package.[^0]</p>
 <p>If you want to add support for a chain that uses its own client library,
 create a new package in a subdirectory of <code>connect/</code>:</p>
 <pre><code class="hljs language-sh"><span class="hljs-comment"># in the repo root:</span>
-<span class="hljs-built_in">mkdir</span> connect/nova
-<span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;{}&quot;</span> &gt; connect/nova/package.json
+<span class="hljs-built_in">mkdir</span> connect/newchain
+<span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;{}&quot;</span> &gt; connect/newchain/package.json
 </code></pre>
-<p>Add the new connector module as a <code>peerDependency</code>.</p>
-<pre><code class="hljs language-json"><span class="hljs-comment">// in connect/nova/package.json</span>
+<ul>
+<li>Add the new connector module as a <code>peerDependency</code>.</li>
+</ul>
+<pre><code class="hljs language-json"><span class="hljs-comment">// in connect/newchain/package.json</span>
 <span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;@fadroma/nova&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;@fadroma/newchain&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;0.1.0&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;module&quot;</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">&quot;main&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;nova.ts&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;main&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;newchain.ts&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;dependencies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;@fadroma/agent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span>
   <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;peerDependencies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-    <span class="hljs-attr">&quot;novajs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;^1.2.3&quot;</span>
+    <span class="hljs-attr">&quot;newchainjs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;^1.2.3&quot;</span>
   <span class="hljs-punctuation">}</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
-<p>Reexport the connector module through <code>@fadroma/connect</code>,
-alongside preferred version of the original client library:</p>
+<ul>
+<li>Reexport the connector module through <code>@fadroma/connect</code>,
+alongside preferred version of the original client library:</li>
+</ul>
 <pre><code class="hljs language-json"><span class="hljs-comment">// in connect/package.json</span>
 <span class="hljs-punctuation">{</span>
   <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;@fadroma/connect&quot;</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">&quot;//&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span>
   <span class="hljs-attr">&quot;dependencies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">&quot;//&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span><span class="hljs-punctuation">,</span>
-    <span class="hljs-attr">&quot;@fadroma/nova&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;workspace:^0.x&quot;</span><span class="hljs-punctuation">,</span>
-    <span class="hljs-attr">&quot;novajs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;^1.2.3&quot;</span>
+    <span class="hljs-attr">&quot;@fadroma/newchain&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;workspace:^0.x&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;newchainjs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;^1.2.3&quot;</span>
     <span class="hljs-attr">&quot;//&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span>
   <span class="hljs-punctuation">}</span>
 <span class="hljs-punctuation">}</span>
@@ -500,7 +515,7 @@ client library independently of the one that we use
 for testing.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/connect.ts:</span>
 <span class="hljs-comment">// ...</span>
-<span class="hljs-keyword">export</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Nova</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/nova&#x27;</span>
+<span class="hljs-keyword">export</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">NewChain</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/newchain&#x27;</span>
 <span class="hljs-comment">// ...</span>
 </code></pre>
 <p>The reexport means users can either depend on <code>@fadroma/connect</code>
@@ -513,22 +528,22 @@ that would be 1 or 3 connector modules is an open-ended question.</p>
 <h2 id="implementing-the-fadroma-agent-api" tabindex="-1">Implementing the Fadroma Agent API</h2>
 <p>Having set up your connector package, you should now implement the
 <code>Chain</code>, <code>Agent</code>, and <code>Bundle</code> classes defined by <code>@fadroma/agent</code>:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/nova/nova.ts</span>
-<span class="hljs-comment">// (or e.g. connect/cw/cw-nova.ts if using @cosmjs/stargate)</span>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/newchain/newchain.ts</span>
+<span class="hljs-comment">// (or e.g. connect/cw/cw-newchain.ts if using @cosmjs/stargate)</span>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">Bundle</span>, bindChainSupport } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
 </code></pre>
 <p><code>Chain</code> should be a stateless representation for the whole chain
 (user would create one instance for each mainnet, testnet, etc.
 that they want to connect to during the application run).</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/nova/nova.ts etc.</span>
-<span class="hljs-keyword">class</span> <span class="hljs-title class_">Nova</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Chain</span> {
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/newchain/newchain.ts etc.</span>
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">NewChain</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Chain</span> {
   <span class="hljs-comment">// TODO add example</span>
 }
 </code></pre>
 <p><code>Agent</code> is a wrapper binding a wallet to an API client.
 The <code>upload</code> and <code>instantiate</code> methods allow contracts to
 be created, and <code>execute</code> and <code>query</code> to transact with them.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/nova/nova.ts etc.</span>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/newchain/newchain.ts etc.</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">NewAgent</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Agent</span> {
   <span class="hljs-comment">// TODO add example</span>
 }
@@ -536,85 +551,26 @@ be created, and <code>execute</code> and <code>query</code> to transact with the
 <p><code>Bundle</code> may be implemented if client-side transaction batching
 is to be supported. This is the basis for exporting things like
 multisig transactions to be manually signed and broadcast.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/nova/nova.ts etc.</span>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/newchain/newchain.ts etc.</span>
 <span class="hljs-keyword">class</span> <span class="hljs-title class_">NewBundle</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Bundle</span> {
   <span class="hljs-comment">// TODO add example</span>
 }
 </code></pre>
-<p>Use <code>bindChainSupport</code> to make sure that the three implementations
-are aware of each other. This line must go after the class definitions:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/nova/nova.ts etc.</span>
-<span class="hljs-title function_">bindChainSupport</span>(<span class="hljs-title class_">Nova</span>, <span class="hljs-title class_">NewAgent</span>, <span class="hljs-title class_">NewBundle</span>)
-</code></pre>
-<p>Afterwards, export the newly implemented classes
-renamed to <code>Chain</code>, <code>Agent</code> and <code>Bundle</code> in the
-eyes of the downstream:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">export</span> { <span class="hljs-title class_">Nova</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">NewAgent</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">NewBundle</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">Bunde</span> }
+<p>Finally, use <code>bindChainSupport</code> to make sure that
+the three implementations are aware of each other.</p>
+<p>This line must go after the class definitions:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// in connect/newchain/newchain.ts etc.</span>
+<span class="hljs-title function_">bindChainSupport</span>(<span class="hljs-title class_">NewChain</span>, <span class="hljs-title class_">NewAgent</span>, <span class="hljs-title class_">NewBundle</span>)
 </code></pre>
 <p>And that's it! You can now transact, deploy, and use smart contracts on this chain.</p>
 <p>Note that it was not needed to extend <code>Client</code>, <code>Contract</code>, or <code>Template</code> to add
 support for contracts on the new chain[^2].</p>
 <p>[^2]: That sort of thing might only be necessary in the case of
 a chain that implements custom modifications to its CosmWasm compute module.</p>
-<h2 id="adding-support-for-new-chains-in-fadroma-devnet" tabindex="-1">Adding support for new chains in Fadroma Devnet</h2>
-<p>Add <code>devnets/nova_1.0.Dockerfile</code>:</p>
-<pre><code class="hljs language-dockerfile"><span class="hljs-keyword">FROM</span> officialbaseimage:v1.<span class="hljs-number">0.1</span>@sha256:...
-<span class="hljs-keyword">RUN</span><span class="language-bash"> apt update &amp;&amp; apt install -y nodejs &amp;&amp; npm i -g n &amp;&amp; n i 20</span>
-<span class="hljs-keyword">ADD</span><span class="language-bash"> devnet.init.mjs /</span>
-<span class="hljs-keyword">ENTRYPOINT</span><span class="language-bash"> [ <span class="hljs-string">&quot;/usr/bin/node&quot;</span> ]</span>
-<span class="hljs-keyword">CMD</span><span class="language-bash"> [ <span class="hljs-string">&quot;/devnet.init.mjs&quot;</span> ]</span>
-</code></pre>
-<p>Don't forget to pin the <code>sha256</code> cheksum to the one you see
-so that a malicious registry can't swap it out from under you.</p>
-<p>In <code>fadroma-devnet.ts</code>, add identifier of new chain type
-to the <code>DevnetPlatform</code> string union. This should be the
-name and version of the chain node software, not a chain id.</p>
-<p>You can use this kind of type interpolation to define version ranges[^3]:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// in fadroma/devnet.ts</span>
-<span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> <span class="hljs-title class_">DevnetPlatform</span> =
-  | <span class="hljs-string">`scrt_1.<span class="hljs-subst">${<span class="hljs-number">2</span>|<span class="hljs-number">3</span>|<span class="hljs-number">4</span>|<span class="hljs-number">5</span>|<span class="hljs-number">6</span>|<span class="hljs-number">7</span>|<span class="hljs-number">8</span>|<span class="hljs-number">9</span>}</span>`</span>
-  | <span class="hljs-string">&#x27;okp4_1.0&#x27;</span>
-  | <span class="hljs-string">&#x27;nova_0.1&#x27;</span>
-</code></pre>
-<p>[^3]: If you're the maniac who will make the TypeScript type system
-parse semver-style version strings, what are you waiting for,
-send us a PR!</p>
-<p>Further on in the same file, bind the new devnet identifier you defined above
-to <code>dockerfiles</code>, <code>dockerTags</code> and <code>readyMessage</code>.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// still in fadroma/devnet.ts</span>
-<span class="hljs-comment">//...</span>
-<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Devnet</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">DevnetHandle</span> {
-  <span class="hljs-comment">// ...</span>
-  <span class="hljs-keyword">static</span> <span class="hljs-attr">dockerfiles</span>: <span class="hljs-title class_">Record</span>&lt;<span class="hljs-title class_">DevnetPlatform</span>, <span class="hljs-built_in">string</span>&gt; = {
-    <span class="hljs-comment">// ...</span>
-    <span class="hljs-string">&#x27;nova_1.0&#x27;</span>: $(thisPackage, <span class="hljs-string">&#x27;devnets&#x27;</span>, <span class="hljs-string">&#x27;nova_1_0.Dockerfile&#x27;</span>).<span class="hljs-property">path</span>
-  }
-  <span class="hljs-keyword">static</span> <span class="hljs-attr">dockerTags</span>: <span class="hljs-title class_">Record</span>&lt;<span class="hljs-title class_">DevnetPlatform</span>, <span class="hljs-built_in">string</span>&gt; = {
-    <span class="hljs-comment">// ...</span>
-    <span class="hljs-string">&#x27;nova_1.0&#x27;</span>: <span class="hljs-string">&#x27;ghcr.io/hackbg/fadroma-devnet-nova-1.2:master&#x27;</span>,
-  }
-  <span class="hljs-keyword">static</span> <span class="hljs-attr">readyMessage</span>: <span class="hljs-title class_">Record</span>&lt;<span class="hljs-title class_">DevnetPlatform</span>, <span class="hljs-built_in">string</span>&gt; = {
-    <span class="hljs-comment">// ...</span>
-    <span class="hljs-string">&#x27;nova_1.0&#x27;</span>: <span class="hljs-string">&#x27;Block validation continues&#x27;</span>,
-  }
-}
-<span class="hljs-comment">//...</span>
-</code></pre>
-<p>In <code>fadroma.ts</code>, add a chain-constructing function to <code>Chain.variants</code>
-using the environment variable-friendly name of the devnet:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-comment">// now in fadroma.ts:</span>
-<span class="hljs-keyword">import</span> <span class="hljs-title class_">Nova</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/nova&#x27;</span>
-<span class="hljs-comment">//...</span>
-<span class="hljs-title class_">Chain</span>.<span class="hljs-property">variants</span>[<span class="hljs-string">&#x27;NovaDevnet&#x27;</span>] =
-  (<span class="hljs-attr">options</span>: <span class="hljs-title class_">Partial</span>&lt;<span class="hljs-title class_">Devnet</span>&gt; = { <span class="hljs-attr">platform</span>: <span class="hljs-string">&#x27;nova_1.0&#x27;</span> }): <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span> =&gt;
-    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Config</span>().<span class="hljs-title function_">getDevnet</span>(options).<span class="hljs-title function_">getChain</span>(<span class="hljs-title class_">Nova</span>.<span class="hljs-property">Chain</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">ChainClass</span>&lt;<span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>&gt;)
-<span class="hljs-comment">//...</span>
-</code></pre>
-<p>And that's it! Now you can invoke actions on the new devnet with:</p>
-<pre><code class="hljs language-shell">FADROMA_CHAIN=NovaDevnet fadroma deploy
-</code></pre>
+<h2 id="implementing-the-devnet-and-build-environments" tabindex="-1">Implementing the devnet and build environments</h2>
+<p>TODO</p>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#before-you-begin">Before you begin</a></li><li><a href="#obtaining-the-source-code">Obtaining the source code</a></li><li><a href="#should-you-create-a-new-package%3F">Should you create a new package?</a></li><li><a href="#implementing-the-fadroma-agent-api">Implementing the Fadroma Agent API</a></li><li><a href="#adding-support-for-new-chains-in-fadroma-devnet">Adding support for new chains in Fadroma Devnet</a></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#before-you-begin">Before you begin</a></li><li><a href="#obtaining-the-source-code">Obtaining the source code</a></li><li><a href="#should-you-create-a-new-package%3F">Should you create a new package?</a></li><li><a href="#implementing-the-fadroma-agent-api">Implementing the Fadroma Agent API</a></li><li><a href="#implementing-the-devnet-and-build-environments">Implementing the devnet and build environments</a></li></ul></div></p></nav>
 </div>
 </body>
 </html>

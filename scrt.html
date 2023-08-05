@@ -41,6 +41,8 @@
 <style name="ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#3e5915;background:#f6f5b2}.hljs-keyword,.hljs-literal,.hljs-selector-tag{color:#059}.hljs-subst{color:#3e5915}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-link,.hljs-section,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#2c009f}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#e60415}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}</style>
 <style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
 
+html, body { min-height: 100%; height: 100% }
+
 body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
 body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
 
@@ -86,6 +88,17 @@ a.button:focus, a.button:visited, a.button:active, a.button:hover {
 
 th, td { text-align: left; vertical-align: top; }
 th { padding-right: 5em }
+
+.row {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+.column {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
 
 .grid {
   display: grid;
@@ -437,17 +450,22 @@ hr {
 <li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
 <li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
 <li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
+<li><a class="ensuite-md-link" href=/implementing.html>Supporting new chains</a></li>
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
 <h1 id="secret-network" tabindex="-1">Secret Network</h1>
-<p>Fadroma's support for Secret Network is achieved in this package,
-by implementing the core Fadroma Agent API (<code>Chain</code>, <code>Agent</code>, <code>Bundle</code>),
-as well as SN-specific amenities on top of it (such as a <code>Snip20</code> token client
-and a <code>ViewingKeyClient</code>).</p>
+<p>To use Fadroma Agent with SecretJS, you need the <code>@fadroma/scrt</code> package.
+This package implements the core Fadroma Agent API with SecretJS.
+It also exposes SN-specifics, such as a <code>Snip20</code> token client
+and a <code>ViewingKeyClient</code>.</p>
 <ul>
-<li>Like <code>@fadroma/agent</code>, this package aims to be <em>isomorphic</em>:
-one of its design goals is to be usable in Node and browsers without modification.</li>
-<li><code>@hackbg/fadroma</code> automatically has this package through <code>@fadroma/connect</code></li>
+<li>
+<p>Like <code>@fadroma/agent</code>, this package aims to be <em>isomorphic</em>:
+one of its design goals is to be usable in Node and browsers without modification.</p>
+</li>
+<li>
+<p><code>@hackbg/fadroma</code> automatically has this package through <code>@fadroma/connect</code></p>
+</li>
 </ul>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Scrt</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
 <span class="hljs-keyword">import</span> { <span class="hljs-title class_">Devnet</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
