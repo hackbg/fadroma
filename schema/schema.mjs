@@ -115,6 +115,9 @@ const formatDescription = (definition) =>
   (definition?.description||'')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+
+const formatDescriptionInTable = (definition) =>
+  formatDescription(definition)
     .replace(/\n/g, '<br />')
 
 /** Converts a contract schema to a Markdown document. */
@@ -139,7 +142,7 @@ export class SchemaToMarkdown extends Schema {
     if (!section) return []
     return [
       ``, `## ${section.title}`,
-      ``, `${section.description}`,
+      ``, `${formatDescription(section)}`,
       ``, this.toMdSchemaTable(section.title, section, 'parameter').join('\n')
     ]
   }
@@ -148,14 +151,14 @@ export class SchemaToMarkdown extends Schema {
     if (!section || section.oneOf.length < 1) return []
     return [
       ``, `## ${section.title}`,
-      ``, `${section.description}`,
+      ``, `${formatDescription(section)}`,
       ...section.oneOf.map(variant=>this.toMdSectionVariant(section, variant).join('\n'))
     ]
   }
   /** Render non-init message variant. */
   toMdSectionVariant = (section, variant) => [
     ``, `### ${section.title}::${variant.title}`,
-    ``, `${variant.description}`,
+    ``, `${formatDescription(variant)}`,
     ``, this.toMdSchemaTable(variant.title, variant, 'parameter').join('\n')
   ]
   /** Render responses section. */
@@ -170,9 +173,10 @@ export class SchemaToMarkdown extends Schema {
   /** Render response variant. */
   toMdResponseVariant = (name, response) => [
     ``, `### ${name}`,
-    ``, `${response.description}`,
+    ``, `${formatDescription(response)}`,
     ``, this.toMdSchemaTable(name, response).join('\n')
   ]
+
   /** Render definitions section. */
   toMdDefinitions = () => {
     if (!this.definitions || this.definitions.size < 1) return []
@@ -217,7 +221,7 @@ export class SchemaToMarkdown extends Schema {
             ``
             + (required?.includes(name)?`*(Required.)* `:'')
             + `**${this.toMdSchemaType(name, property)}**. `
-            + `${formatDescription(property)}`
+            + `${formatDescriptionInTable(property)}`
           )
           // If this property is an object, add its keys on an indented level
           if (isObject(property)) {
@@ -228,7 +232,7 @@ export class SchemaToMarkdown extends Schema {
               `\`${parentName}.${name}\``,
               ``
               + (parentProp.required?.includes(name)?`*(Required.)* `:'')
-              + `**${this.toMdSchemaType(name, property)}**. ${formatDescription(property)}`
+              + `**${this.toMdSchemaType(name, property)}**. ${formatDescriptionInTable(property)}`
               + (property.default?`<br />**Default:** \`${JSON.stringify(property.default)}\``:'')
             )
           }
@@ -246,7 +250,7 @@ export class SchemaToMarkdown extends Schema {
         type = enum_
           ? `**${type}**: ${enum_.map(x=>`\`${x}\``).join('\\|')}.`
           : `**${type}**.`
-        return `|${title}|${type} ${formatDescription(variant)}|`
+        return `|${title}|${type} ${formatDescriptionInTable(variant)}|`
       }).join('\n'),
     ]
 
