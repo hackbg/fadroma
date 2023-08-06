@@ -2,6 +2,7 @@
   "extends": "./tsconfig.base.json",
   "exclude": [
     "**/*.dist.*",
+    "**/*.mjs",
     "**/*.spec.ts",
     "**/dist/**/*",
     "*.test.*",
