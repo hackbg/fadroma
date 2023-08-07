@@ -48,12 +48,19 @@ export default function connect <A extends Agent> (
 
 /** Connection configuration. Factory for `Chain` and `Agent` objects. */
 export class ConnectConfig extends Config {
+  constructor (
+    options: Partial<ConnectConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+    Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
+    this.scrt = new Scrt.Config(options?.scrt, environment)
+  }
+  /** Logger handle. */
   log = new ConnectConsole('@fadroma/connect')
   /** Secret Network configuration. */
   scrt: Scrt.Config
-  /** Mnemonic to use for authentication. Hidden by default. */
-  mnemonic?: string
-    = this.getString('FADROMA_MNEMONIC', ()=>undefined)
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName: string
     = this.getString('FADROMA_AGENT', ()=>'Admin')
@@ -83,17 +90,12 @@ export class ConnectConfig extends Config {
     if (!result) throw new ConnectError.UnknownChainSelected(this.chain, chainModes)
     return result
   }) as ChainMode
-
-  constructor (
-    options: Partial<ConnectConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-    Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
-    this.scrt = new Scrt.Config(options?.scrt, environment)
-  }
-
+  /** Mnemonic to use for authentication to testnet. */
+  testnetMnemonic?: string
+    = this.getString('FADROMA_TESTNET_MNEMONIC', ()=>undefined)
+  /** Mnemonic to use for authentication. Hidden from logs by default. */
+  mnemonic?: string
+    = this.getString('FADROMA_MNEMONIC', ()=>undefined)
   /** Create the Chain instance specified by the configuration. */
   getChain <C extends Chain> (
     getChain: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chain
@@ -110,21 +112,22 @@ export class ConnectConfig extends Config {
     }
     return getChain({ config: this }) as C // create Chain object
   }
-
   /** Create the Agent instance identified by the configuration. */
   getAgent <A extends Agent> (options: Partial<A> = {}): A {
     options.chain ??= this.getChain()
-    options.name = this.agentName
-    options.mnemonic = this.mnemonic
+    options.name ??= this.agentName
+    if (this.chainMode === ChainMode.Testnet) {
+      options.mnemonic ??= this.testnetMnemonic
+    } else {
+      options.mnemonic ??= this.mnemonic
+    }
     return options.chain.getAgent(options) as A
   }
-
   /** List all known chains. */
   listChains () {
     this.log.supportedChains()
     this.log.selectedChain(this.chain as string)
   }
-
 }
 
 export class ConnectConsole extends Console {

@@ -22,10 +22,11 @@ import type Project from './fadroma'
 import type { Class, Template, Buildable, DeployStore, Built } from './fadroma'
 import { version } from './fadroma-config'
 
-import { Console, bold, colors } from '@fadroma/connect'
+import { Console, bold, colors, Scrt } from '@fadroma/connect'
 
-import $, { Path, OpaqueDirectory } from '@hackbg/file'
+import $, { Path, OpaqueDirectory, TextFile } from '@hackbg/file'
 import prompts from 'prompts'
+import * as dotenv from 'dotenv'
 
 import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
@@ -130,6 +131,21 @@ export class ProjectWizard {
     console.info()
     console.info(`To spin up a local deployment:`)
     console.info(`  $ npm run devnet deploy`)
+    console.info()
+    const {
+      FADROMA_TESTNET_MNEMONIC: mnemonic
+    } = dotenv.parse(project.root.at('.env').as(TextFile).load())
+    console.info(`Your testnet mnemonic:`)
+    console.info(`  ${mnemonic}`)
+    const testnetAgent = Scrt.Chain.testnet().getAgent({ mnemonic })
+    //@ts-ignore
+    testnetAgent.log = { log () {} }
+    await testnetAgent.ready
+    console.info(`Your testnet address:`)
+    console.info(`  ${testnetAgent.address}`)
+    console.info(`Fund your testnet wallet at:`)
+    console.info(`  https://faucet.starshell.net/`)
+    console.info()
     console.info()
     //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
     return project

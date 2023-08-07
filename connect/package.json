@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts", "!cw", "!scrt" ],

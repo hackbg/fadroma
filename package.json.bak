@@ -42,7 +42,6 @@
     "test:factory": "time ensuite spec/Factory.spec.ts.md",
     "test:project": "time ensuite spec/Project.spec.ts.md",
     "test:scrt":    "time ensuite spec/Scrt.spec.ts.md",
-    "test:cw":      "time ensuite spec/CW.spec.ts.md",
 
     "cov": "time ensuite-cov GUIDE.ts.md",
     "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",
