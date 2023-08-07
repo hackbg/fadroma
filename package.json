@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -18,8 +18,12 @@
     "!connect/*",
     "!examples/*",
     "!coverage/*",
-    "!target/*"
+    "!target/*",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "LICENSE"
   ],
+  "license": "AGPL-3.0-only",
   "scripts": {
 
     "start": "cmds-ts ./FadromaCommands.ts",
