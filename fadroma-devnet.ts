@@ -209,6 +209,7 @@ export class Devnet implements DevnetHandle {
     if (this.containerId) {
       try {
         await this.container
+        this.log.info("container id:", bold(this.containerId.slice(0, 8)))
       } catch (e) {
         throw new Error(
           `Failed to connect to devnet "${this.chainId}": ${e.message}`
