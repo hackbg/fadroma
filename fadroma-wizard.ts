@@ -151,7 +151,14 @@ export class ProjectWizard {
 
   async askName (): Promise<string> {
     let value
-    while ((value = (await askText('Enter a project name (a-z, 0-9, dash/underscore)')??'').trim()) === '') {}
+    do {
+      value = await askText('Enter a project name (a-z, 0-9, dash/underscore)')??''
+      value = value.trim()
+      if (!isNaN(value[0] as any)) {
+        console.info('Project name cannot start with a digit.')
+        value = ''
+      }
+    } while (value === '')
     return value
   }
   askRoot (name: string): Promise<Path> {
@@ -172,7 +179,7 @@ export class ProjectWizard {
   {
     return askUntilDone({}, (state) => askSelect([
       `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
-      `  ${Object.keys(state).join(',\n  ')}\n`
+      `  ${Object.keys(state).join(',\n  ')}`
     ].join(''), [
       { title: `Add contract template to the project`, value: defineContract },
       { title: `Remove contract template`, value: undefineContract },
@@ -180,9 +187,12 @@ export class ProjectWizard {
       { title: `(done)`, value: null },
     ]))
     async function defineContract (state: Record<string, any>) {
-      const crate = await askText([
-        'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):',
-      ].join('\n'))
+      let crate
+      crate = await askText('Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):')??''
+      if (!isNaN(crate[0] as any)) {
+        console.info('Contract name cannot start with a digit.')
+        crate = ''
+      }
       if (crate) {
         state[crate] = { crate }
       }
