@@ -598,7 +598,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
   testIndex.save([
     `import * as assert from 'node:assert'`,
     `import ${Case.pascal(name)} from './api'`,
-    `import { getDeployment } from '@hackbg/fadroma`,
+    `import { getDeployment } from '@hackbg/fadroma'`,
     `const deployment = await getDeployment(${Case.pascal(name)}).deploy()`,
     `// add your assertions here`
   ].join('\n'))
