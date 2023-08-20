@@ -533,10 +533,14 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
       "test:testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma run tes.ts`,
     },
   })
+  let deploymentClassName =
+    (Object.keys(templates).includes(name))
+      ? `${Case.pascal(name)}Deployment`
+      : Case.pascal(name)
   apiIndex.save([
     `import { Client, Deployment } from '@fadroma/agent'`,
     [
-      `export default class ${Case.pascal(name)} extends Deployment {`,
+      `export default class ${deploymentClassName} extends Deployment {`,
       ...Object.keys(templates).map(name => [
         ``, `  ${name} = this.contract({`,
         `    name: "${name}",`,
