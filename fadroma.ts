@@ -542,7 +542,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     [
       `export default class ${deploymentClassName} extends Deployment {`,
       ...Object.keys(templates).map(name => [
-        ``, `  ${name} = this.contract({`,
+        ``, `  ${Case.camel(name)} = this.contract({`,
         `    name: "${name}",`,
         `    crate: "${name}",`,
         `    client: ${Case.pascal(name)},`,
