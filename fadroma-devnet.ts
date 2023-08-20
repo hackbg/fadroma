@@ -280,7 +280,13 @@ export class Devnet implements DevnetHandle {
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
       this.log.startingContainer(container.id)
-      await container.start()
+      try {
+        await container.start()
+      } catch (e) {
+        // Don't throw if container already started.
+        // TODO: This must be handled in @hackbg/dock
+        if (e.code !== 304) throw e
+      }
       this.running = true
       await this.save()
       await container.waitLog(this.readyPhrase, Devnet.logFilter, true)
