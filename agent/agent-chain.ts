@@ -41,6 +41,7 @@ export interface DevnetHandle {
   chainId: string
   start: () => Promise<this>
   getAccount: (name: string) => Promise<Partial<Agent>>
+  assertPresence: () => Promise<void>
 }
 /** A constructor for a Chain subclass. */
 export interface ChainClass<C> extends Class<C, ConstructorParameters<typeof Chain>> {

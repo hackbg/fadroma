@@ -204,6 +204,19 @@ export class Devnet implements DevnetHandle {
       .as(JSONFile) as JSONFile<Partial<this>>
   }
 
+  /** Emit a warning if devnet state is missing. */
+  async assertPresence () {
+    if (this.containerId) {
+      try {
+        await this.container
+      } catch (e) {
+        throw new Error(
+          `Failed to connect to devnet "${this.chainId}": ${e.message}`
+        )
+      }
+    }
+  }
+
   create = async (): Promise<this> => {
     // ensure we have image and chain id
     const image = await this.image
