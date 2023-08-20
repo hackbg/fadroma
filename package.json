@@ -69,8 +69,8 @@
   "dependencies": {
     "@fadroma/agent": "workspace:*",
     "@fadroma/connect": "workspace:*",
-    "@hackbg/logs": "workspace:^2.0.1",
-    "@hackbg/cmds": "workspace:^3",
+    "@hackbg/logs": "workspace:^2.0.2",
+    "@hackbg/cmds": "workspace:^3.0.1",
     "@hackbg/dock": "workspace:^2",
     "@hackbg/file": "workspace:^1.2.2",
     "@hackbg/port": "workspace:^1",
