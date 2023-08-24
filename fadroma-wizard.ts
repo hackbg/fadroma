@@ -60,7 +60,7 @@ export class ProjectWizard {
 
   async createProject (_P: typeof Project, ...args: any[]): Promise<Project> {
 
-    let { git, pnpm, yarn, npm, cargo, docker, podman } = this.tools
+    let { git, pnpm, yarn, npm, cargo, docker, podman, corepack } = this.tools
 
     const name = args[0] ?? (this.interactive ? await this.askName() : undefined)
     if (name === 'undefined') throw new Error('missing project name')
@@ -84,8 +84,12 @@ export class ProjectWizard {
 
     if (this.interactive) {
       switch (await this.selectBuilder()) {
-        case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
-        case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
+        case 'podman': project.files.envfile.save(
+          `${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`
+        ); break
+        case 'raw': project.files.envfile.save(
+          `${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`
+        ); break
         default: break
       }
     }
@@ -105,6 +109,10 @@ export class ProjectWizard {
     }
 
     if (pnpm || yarn || npm) {
+      if (!pnpm && corepack) {
+        console.info('Try PNPM! To enable it, just run:')
+        console.info('  $ corepack enable')
+      }
       try {
         project.npmInstall(this.tools)
         changed = true
