@@ -157,7 +157,7 @@ importers:
         specifier: workspace:^0.x
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:^10.1.2
+        specifier: workspace:^10.1.3
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:^3.x

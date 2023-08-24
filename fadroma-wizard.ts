@@ -210,7 +210,7 @@ export class ProjectWizard {
     console.info(`  ${bold(testnetAgent.address)}`)
 
     console.info(`Fund your testnet wallet at:`)
-    console.info(`  ${bold('https://faucet.starshell.net/')}`)
+    console.info(`  ${bold('https://faucet.pulsar.scrttestnet.com')}`)
 
     //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
 

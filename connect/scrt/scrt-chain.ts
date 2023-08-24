@@ -352,7 +352,7 @@ class ScrtAgent extends Agent {
           this.log.info(`Mainnet fee grant faucet:`, bold(`https://faucet.secretsaturn.net/`))
         }
         if (this.chain.isTestnet) {
-          this.log.info(`Testnet faucet:`, bold(`https://faucet.starshell.net/`))
+          this.log.info(`Testnet faucet:`, bold(`https://faucet.pulsar.scrttestnet.com/`))
         }
       }
       throw new Error.Failed.Upload(result)
