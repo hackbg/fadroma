@@ -53,23 +53,29 @@ export class ProjectWizard {
   }
 
   async createProject (_P: typeof Project, ...args: any[]): Promise<Project> {
+
     let { git, pnpm, yarn, npm, cargo, docker, podman } = this.tools
+
     const name = args[0] ?? (this.interactive ? await this.askName() : undefined)
     if (name === 'undefined') throw new Error('missing project name')
     console.log(`Creating project`, name)
+
     const root = (this.interactive
       ? $(await this.askRoot(name))
       : $(this.cwd, name)).as(OpaqueDirectory)
     console.log(`Creating in`, root.shortPath)
+
     const templates = args.slice(1).length > 0
       ? args.slice(1).reduce((templates, crate)=>Object.assign(templates, { [crate]: crate }), {})
       : this.interactive
         ? await this.askTemplates(name)
         : {}
     console.log(`Defining`, Object.keys(templates).length, `template(s) in project`)
+
     const options = { name, root, templates: templates as any }
     const project = new _P(options)
     project.create()
+
     if (this.interactive) {
       switch (await this.selectBuilder()) {
         case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
@@ -77,6 +83,7 @@ export class ProjectWizard {
         default: break
       }
     }
+
     let changed = false
     let nonfatal = false
     if (git) {
@@ -90,6 +97,7 @@ export class ProjectWizard {
     } else {
       console.warn('Git not found. Not creating repo.')
     }
+
     if (pnpm || yarn || npm) {
       try {
         project.npmInstall(this.tools)
@@ -101,6 +109,7 @@ export class ProjectWizard {
     } else {
       console.warn('NPM/Yarn/PNPM not found. Not creating lockfile.')
     }
+
     if (cargo) {
       try {
         project.cargoUpdate()
@@ -112,6 +121,7 @@ export class ProjectWizard {
     } else {
       console.warn('Cargo not found. Not creating lockfile.')
     }
+
     if (changed && git) {
       try {
         project.gitCommit('"Updated lockfiles."')
@@ -120,32 +130,43 @@ export class ProjectWizard {
         nonfatal = true
       }
     }
+
     if (nonfatal) {
       console.warn('One or more convenience operations failed.')
       console.warn('You can retry them manually later.')
     }
+
     console.log("Project created at", bold(project.root.shortPath))
     console.info()
+
     console.info(`To compile your contracts:`)
     console.info(`  $ ${bold('npm run build')}`)
+
     console.info(`To spin up a local deployment:`)
     console.info(`  $ ${bold('npm run devnet deploy')}`)
+
     console.info(`To deploy to testnet:`)
     console.info(`  $ ${bold('npm run testnet deploy')}`)
-    const {
-      FADROMA_TESTNET_MNEMONIC: mnemonic
-    } = dotenv.parse(project.root.at('.env').as(TextFile).load())
+
+    const { FADROMA_TESTNET_MNEMONIC: mnemonic } = dotenv.parse(
+      project.root.at('.env').as(TextFile).load()
+    )
     console.info(`Your testnet mnemonic:`)
     console.info(`  ${bold(mnemonic)}`)
     const testnetAgent = Scrt.Chain.testnet().getAgent({ mnemonic })
+
     //@ts-ignore
     testnetAgent.log = { log () {} }
     await testnetAgent.ready
+
     console.info(`Your testnet address:`)
     console.info(`  ${bold(testnetAgent.address)}`)
+
     console.info(`Fund your testnet wallet at:`)
     console.info(`  ${bold('https://faucet.starshell.net/')}`)
+
     //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
+
     return project
   }
 
