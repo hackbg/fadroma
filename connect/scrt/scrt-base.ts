@@ -12,7 +12,7 @@ class ScrtConfig extends Config {
   /** The testnet chain ID. */
   static defaultTestnetChainId: string = 'pulsar-3'
   /** The testnet URL. */
-  static defaultTestnetUrl:     string = 'https://lcd.testnet.secretsaturn.net'
+  static defaultTestnetUrl:     string = 'https://api.pulsar3.scrttestnet.com/'
 
   constructor (
     options: Partial<ScrtConfig> = {},

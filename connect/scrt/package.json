@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "10.1.1",
+  "version": "10.1.2",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
