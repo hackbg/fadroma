@@ -11,7 +11,7 @@ importers:
         specifier: workspace:*
         version: link:connect
       '@hackbg/cmds':
-        specifier: workspace:^3.0.5
+        specifier: workspace:^3.0.6
         version: link:ensuite/toolbox/cmds
       '@hackbg/dock':
         specifier: workspace:^2
@@ -23,7 +23,7 @@ importers:
         specifier: workspace:^1
         version: link:ensuite/toolbox/hide
       '@hackbg/logs':
-        specifier: workspace:^2.0.5
+        specifier: workspace:^2.0.6
         version: link:ensuite/toolbox/logs
       '@hackbg/port':
         specifier: workspace:^1
@@ -476,10 +476,10 @@ importers:
   ensuite/toolbox/cmds:
     dependencies:
       '@hackbg/hide':
-        specifier: workspace:^1.0.2
+        specifier: workspace:^1.0.3
         version: link:../hide
       '@hackbg/logs':
-        specifier: workspace:^2.0.5
+        specifier: workspace:^2.0.6
         version: link:../logs
       '@hackbg/task':
         specifier: workspace:^1
@@ -633,7 +633,7 @@ importers:
         specifier: workspace:^1
         version: link:../allo
       '@hackbg/hide':
-        specifier: workspace:^1.0.2
+        specifier: workspace:^1.0.3
         version: link:../hide
       chalk:
         specifier: ^4
