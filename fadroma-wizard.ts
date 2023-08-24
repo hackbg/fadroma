@@ -272,24 +272,30 @@ export class ProjectWizard {
 
 }
 
+const NOT_INSTALLED = 'not installed'
+
 export const toolVersions = () => {
   console.br()
   return {
-    ttyIn:  check('TTY in:   ', !!process.stdin.isTTY),
-    ttyOut: check('TTY out:  ', !!process.stdout.isTTY),
+    ttyIn:  check('TTY in:  ', !!process.stdin.isTTY),
+    ttyOut: check('TTY out: ', !!process.stdout.isTTY),
     //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
-    git:       tool('Git:      ', 'git --no-pager --version'),
-    node:      tool('Node:     ', 'node --version'),
-    npm:       tool('NPM:      ', 'npm --version'),
-    yarn:      tool('Yarn:     ', 'yarn --version'),
-    pnpm:      tool('PNPM:     ', 'pnpm --version'),
-    tsc:       tool('TSC:      ', 'tsc --version'),
-    cargo:     tool('Cargo:    ', 'cargo --version'),
-    rust:      tool('Rust:     ', 'rustc --version'),
-    docker:    tool('Docker:   ', 'docker --version'),
-    podman:    tool('Podman:   ', 'podman --version'),
-    nix:       tool('Nix:      ', 'nix --version'),
-    secretcli: tool('secretcli:', 'secretcli version')
+    git:       tool('Git      ', 'git --no-pager --version'),
+    node:      tool('Node     ', 'node --version'),
+    npm:       tool('NPM      ', 'npm --version'),
+    yarn:      tool('Yarn     ', 'yarn --version'),
+    pnpm:      tool('PNPM     ', 'pnpm --version'),
+    corepack:  tool('corepack ', 'corepack --version'),
+    tsc:       tool('TSC      ', 'tsc --version'),
+    cargo:     tool('Cargo    ', 'cargo --version'),
+    rust:      tool('Rust     ', 'rustc --version'),
+    sha256sum: tool('sha256sum', 'sha256sum --version'),
+    wasmOpt:   tool('wasm-opt ', 'wasm-opt --version'),
+    docker:    tool('Docker   ', 'docker --version'),
+    podman:    tool('Podman   ', 'podman --version'),
+    nix:       tool('Nix      ', 'nix --version'),
+    secretcli: tool('secretcli', 'secretcli version'),
+    homebrew:  tool('homebrew ', 'brew --version'),
   }
 }
 
@@ -303,7 +309,7 @@ export const check = <T> (name: string|null, value: T): T => {
 export const tool = (dependency: string|null, command: string): string|null => {
   let version = null
   try {
-    version = String(execSync(command)).trim()
+    version = String(execSync(command)).trim().split('\n')[0]
     if (dependency) console.info(bold(dependency), version)
   } catch (e) {
     if (dependency) console.warn(bold(dependency), colors.yellow('(not found)'))
