@@ -479,7 +479,7 @@ importers:
         specifier: workspace:^1
         version: link:../hide
       '@hackbg/logs':
-        specifier: workspace:^2.0.3
+        specifier: workspace:^2.0.4
         version: link:../logs
       '@hackbg/task':
         specifier: workspace:^1
