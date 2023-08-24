@@ -11,7 +11,7 @@ importers:
         specifier: workspace:*
         version: link:connect
       '@hackbg/cmds':
-        specifier: workspace:^3.0.1
+        specifier: workspace:^3.0.3
         version: link:ensuite/toolbox/cmds
       '@hackbg/dock':
         specifier: workspace:^2
