@@ -10,7 +10,7 @@ class ScrtConfig extends Config {
   /** The mainnet URL. */
   static defaultMainnetUrl:     string = 'https://lcd.mainnet.secretsaturn.net'
   /** The testnet chain ID. */
-  static defaultTestnetChainId: string = 'pulsar-2'
+  static defaultTestnetChainId: string = 'pulsar-3'
   /** The testnet URL. */
   static defaultTestnetUrl:     string = 'https://lcd.testnet.secretsaturn.net'
 
