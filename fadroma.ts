@@ -608,6 +608,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
   ].join('\n'))
   gitignore.save([
     '.env',
+    '*.swp',
     'node_modules',
     'target',
     'state/*',
@@ -617,6 +618,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     '!state/secret-4',
     '!state/pulsar-1',
     '!state/pulsar-2',
+    '!state/pulsar-3',
     'wasm/*',
     '!wasm/*.sha256',
   ].join('\n'))
