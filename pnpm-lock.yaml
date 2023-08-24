@@ -70,7 +70,7 @@ importers:
         version: 4.0.5
       '@types/node':
         specifier: latest
-        version: 20.5.4
+        version: 20.5.5
       '@types/prettyjson':
         specifier: ^0.0.30
         version: 0.0.30
@@ -157,7 +157,7 @@ importers:
         specifier: workspace:^0.x
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:^10.x
+        specifier: workspace:^10.1.1
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:^3.x
@@ -416,7 +416,7 @@ importers:
         version: link:ubik
       '@types/node':
         specifier: latest
-        version: 20.5.4
+        version: 20.5.5
       concurrently:
         specifier: 7.2.2
         version: 7.2.2
@@ -1233,7 +1233,7 @@ packages:
   /@types/docker-modem@3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 20.5.5
+      '@types/node': 20.5.6
       '@types/ssh2': 1.11.5
     dev: true
 
@@ -1252,7 +1252,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 5.1.0
-      '@types/node': 20.5.5
+      '@types/node': 20.5.6
     dev: true
 
   /@types/istanbul-lib-coverage@2.0.4:
@@ -1314,12 +1314,12 @@ packages:
   /@types/node@20.3.3:
     resolution: {integrity: sha512-wheIYdr4NYML61AjC8MKj/2jrR/kDQri/CIpVoZwldwhnIrD/j9jIU5bJ8yBKuB2VhpFV7Ab6G2XkBjv9r9Zzw==}
 
-  /@types/node@20.5.4:
-    resolution: {integrity: sha512-Y9vbIAoM31djQZrPYjpTLo0XlaSwOIsrlfE3LpulZeRblttsLQRFRlBAppW0LOxyT3ALj2M5vU1ucQQayQH3jA==}
-    dev: true
-
   /@types/node@20.5.5:
     resolution: {integrity: sha512-c0Snqx/IpY+QHnCqEQzo9NjhBNth6gm6/4wDgWt1ML24ldNiStXmxuKJUKM7ob/iAhQWH/dUH1STRt5eTUixlw==}
+    dev: true
+
+  /@types/node@20.5.6:
+    resolution: {integrity: sha512-Gi5wRGPbbyOTX+4Y2iULQ27oUPrefaB0PxGQJnfyWN3kvEDGM3mIB5M/gQLmitZf7A9FmLeaqxD3L1CXpm3VKQ==}
 
   /@types/prettier@2.7.3:
     resolution: {integrity: sha512-+68kP9yzs4LMp7VNh8gdzMSPZFL44MLGqiHWvttYJe+6qnuVr4Ek9wSBQoveqY/r+LwjCcU29kNVkidwim+kYA==}
@@ -1332,7 +1332,7 @@ packages:
   /@types/prompts@2.4.4:
     resolution: {integrity: sha512-p5N9uoTH76lLvSAaYSZtBCdEXzpOOufsRjnhjVSrZGXikVGHX9+cc9ERtHRV4hvBKHyZb1bg4K+56Bd2TqUn4A==}
     dependencies:
-      '@types/node': 20.5.5
+      '@types/node': 20.5.6
       kleur: 3.0.3
     dev: true
 
@@ -1351,7 +1351,7 @@ packages:
   /@types/ssh2@1.11.5:
     resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
     dependencies:
-      '@types/node': 20.5.5
+      '@types/node': 20.5.6
     dev: true
 
   /@types/tmp@0.2.3:
@@ -3763,7 +3763,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 20.5.5
+      '@types/node': 20.5.6
       long: 4.0.0
 
   /proxy-addr@2.0.7:
