@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.3.9",
+  "version": "1.3.10",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -9,7 +9,6 @@
   "bin": { "fadroma": "fadroma.cli.cjs" },
   "files": [
     "*.ts",
-    "shims.dist.js",
     "tsconfig.json",
     "Dockerfile",
     "build.impl.mjs",

@@ -29,6 +29,3 @@ wasm/*
 yarn-error.log
 yarn.lock
 !page/*.js
-
-#temporary:
-!shims.dist.js
