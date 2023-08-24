@@ -553,10 +553,10 @@ importers:
         specifier: workspace:^1
         version: link:../4mat
       '@hackbg/hide':
-        specifier: workspace:^1
+        specifier: workspace:^1.0.3
         version: link:../hide
       '@hackbg/logs':
-        specifier: workspace:^2.0.1
+        specifier: workspace:^2.0.7
         version: link:../logs
       js-yaml:
         specifier: ^4.1.0
