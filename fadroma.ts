@@ -26,6 +26,7 @@ import Config, { version } from './fadroma-config'
 import { ContractCrate } from './fadroma-build'
 import { Devnet } from './fadroma-devnet'
 import { ProjectWizard, toolVersions } from './fadroma-wizard'
+import { fadromaVersion } from './shims.cjs'
 
 import {
   Chain, ChainMode, Scrt, Deployment, DeployStore,
@@ -515,7 +516,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
       "secretjs": "1.9.3"
     },
     devDependencies: {
-      "@hackbg/fadroma": "latest",
+      "@hackbg/fadroma": `^${fadromaVersion}`,
       "@hackbg/ganesha": "latest",
       "typescript": "^5",
     },
