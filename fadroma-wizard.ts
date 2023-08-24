@@ -42,6 +42,12 @@ export class ProjectWizard {
 
   cwd: string = process.cwd()
 
+  isLinux: boolean = platform() === 'linux'
+
+  isMac: boolean = platform() === 'darwin'
+
+  isWin: boolean = platform() === 'win32'
+
   tools: ReturnType<typeof toolVersions> = toolVersions()
 
   interactive: boolean = !!process.stdin.isTTY && process.stdout.isTTY
@@ -254,8 +260,7 @@ export class ProjectWizard {
     const hasPodman = podman && (podman !== NOT_INSTALLED)
     const engines = [ buildDocker ]
     // const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
-    const isLinux = platform() === 'linux'
-    const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
+    const choices = this.isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
     return askSelect(`Select build isolation mode:`, choices)
   }
   static selectDeploymentFromStore = async (store: DeployStore & {
