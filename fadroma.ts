@@ -26,7 +26,10 @@ import Config, { version } from './fadroma-config'
 import { ContractCrate } from './fadroma-build'
 import { Devnet } from './fadroma-devnet'
 import { ProjectWizard, toolVersions } from './fadroma-wizard'
-import { fadromaVersion } from './shims.cjs'
+
+// temporary ts-ignore
+//@ts-ignore
+import { fadromaVersion } from './shims'
 
 import {
   Chain, ChainMode, Scrt, Deployment, DeployStore,
