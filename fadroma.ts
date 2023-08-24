@@ -511,7 +511,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     version: "0.1.0",
     dependencies: {
       "@fadroma/agent": "latest",
-      "@fadroma/scrt": "latest",
+      "@fadroma/scrt": "^10.1.1",
       "secretjs": "1.9.3"
     },
     devDependencies: {
