@@ -39,16 +39,15 @@ const console = new Console(`@hackbg/fadroma ${version}`)
 export class ProjectWizard {
 
   log = new Console(`@hackbg/fadroma ${version}`)
-
   cwd: string = process.cwd()
 
   isLinux: boolean = platform() === 'linux'
+  isMac:   boolean = platform() === 'darwin'
+  isWin:   boolean = platform() === 'win32'
 
-  isMac: boolean = platform() === 'darwin'
-
-  isWin: boolean = platform() === 'win32'
-
-  tools: ReturnType<typeof toolVersions> = toolVersions()
+  tools: ReturnType<typeof toolVersions> = toolVersions({
+    isMac: this.isMac
+  })
 
   interactive: boolean = !!process.stdin.isTTY && process.stdout.isTTY
 
@@ -60,7 +59,9 @@ export class ProjectWizard {
 
   async createProject (_P: typeof Project, ...args: any[]): Promise<Project> {
 
-    let { git, pnpm, yarn, npm, cargo, docker, podman, corepack } = this.tools
+    let {
+      git, pnpm, yarn, npm, cargo, rust, docker, podman, corepack, sha256sum, wasmOpt, homebrew
+    } = this.tools
 
     const name = args[0] ?? (this.interactive ? await this.askName() : undefined)
     if (name === 'undefined') throw new Error('missing project name')
@@ -142,6 +143,38 @@ export class ProjectWizard {
       } catch (e) {
         console.warn('Non-fatal: Git status failed:', e)
         nonfatal = true
+      }
+    }
+
+    if (!cargo || !rust) {
+      console.warn('Tool not available: cargo or rustc.')
+      console.warn('Building contract without container will fail.')
+      if (this.isMac && !homebrew) {
+        console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+      } else {
+        console.info('You can install it with:')
+        console.info('  $ brew install rustup')
+        console.info('  $ rustup target add wasm32-unknown-unknown')
+      }
+    }
+
+    if (!sha256sum) {
+      console.warn('Tool not available: sha256sum. Building contract without container will fail.')
+      if (this.isMac && !homebrew) {
+        console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+      } else {
+        console.info('You can install it with:')
+        console.info('  $ brew install coreutils')
+      }
+    }
+
+    if (!wasmOpt) {
+      console.warn('Tool not available: wasm-opt. Building contract without container will fail.')
+      if (this.isMac && !homebrew) {
+        console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+      } else {
+        console.info('You can install it with:')
+        console.info('  $ brew install binaryen')
       }
     }
 
@@ -287,9 +320,7 @@ export class ProjectWizard {
 
 const NOT_INSTALLED = 'not installed'
 
-export const toolVersions = () => {
-  console.br()
-  return {
+export const toolVersions = ({ isMac }: { isMac?: boolean } = {}) => ({
     ttyIn:  check('TTY in:  ', !!process.stdin.isTTY),
     ttyOut: check('TTY out: ', !!process.stdout.isTTY),
     //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
@@ -299,7 +330,7 @@ export const toolVersions = () => {
     yarn:      tool('Yarn     ', 'yarn --version'),
     pnpm:      tool('PNPM     ', 'pnpm --version'),
     corepack:  tool('corepack ', 'corepack --version'),
-    tsc:       tool('TSC      ', 'tsc --version'),
+    tsc:       undefined,//tool('TSC      ', 'tsc --version'),
     cargo:     tool('Cargo    ', 'cargo --version'),
     rust:      tool('Rust     ', 'rustc --version'),
     sha256sum: tool('sha256sum', 'sha256sum --version'),
@@ -308,9 +339,9 @@ export const toolVersions = () => {
     podman:    tool('Podman   ', 'podman --version'),
     nix:       tool('Nix      ', 'nix --version'),
     secretcli: tool('secretcli', 'secretcli version'),
-    homebrew:  tool('homebrew ', 'brew --version'),
-  }
-}
+    homebrew:  isMac ? tool('homebrew ', 'brew --version') : undefined,
+    _: console.br() || undefined
+  })
 
 /** Check a variable */
 export const check = <T> (name: string|null, value: T): T => {
