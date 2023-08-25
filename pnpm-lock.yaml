@@ -151,7 +151,7 @@ importers:
         specifier: 0.31.x
         version: 0.31.0
       '@fadroma/agent':
-        specifier: workspace:^1.x
+        specifier: workspace:^1.1.2
         version: link:../agent
       '@fadroma/cw':
         specifier: workspace:^0.x

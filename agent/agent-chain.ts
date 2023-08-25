@@ -516,7 +516,10 @@ export abstract class Bundle implements Agent {
 
   /** Throws if the bundle is invalid. */
   assertMessages (): any[] {
-    if (this.msgs.length < 1) throw this.log.emptyBundle()
+    if (this.msgs.length < 1) {
+      this.log.emptyBundle()
+      throw new Error('Bundle contained no messages.')
+    }
     return this.msgs
   }
 
