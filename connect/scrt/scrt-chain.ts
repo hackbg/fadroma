@@ -116,15 +116,21 @@ class ScrtChain extends Chain {
   /** The default Agent class for Secret Network. */
   static Agent: AgentClass<ScrtAgent> // set in index
   /** Connect to the Secret Network Mainnet. */
-  static mainnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.mainnet({
-    id:  ScrtChain.Config.defaultMainnetChainId,
-    url: ScrtChain.Config.defaultMainnetUrl,
+  static mainnet = (
+    options: Partial<ScrtChain> = {},
+    config = new Config()
+  ): ScrtChain => super.mainnet({
+    id:  config.mainnetChainId,
+    url: config.mainnetUrl,
     ...options||{},
   }) as ScrtChain
   /** Connect to the Secret Network Testnet. */
-  static testnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.testnet({
-    id:  ScrtChain.Config.defaultTestnetChainId,
-    url: ScrtChain.Config.defaultTestnetUrl,
+  static testnet = (
+    options: Partial<ScrtChain> = {},
+    config = new Config()
+  ): ScrtChain => super.testnet({
+    id:  config.testnetChainId,
+    url: config.testnetUrl,
     ...options||{},
   }) as ScrtChain
   /** Connect to a Secret Network devnet. */
@@ -172,7 +178,9 @@ class ScrtAgent extends Agent {
     // If an API instance is already available (e.g. provided to constructor), just use that.
     if (this.api) return Promise.resolve(this as this & { api: SecretJS.SecretNetworkClient })
     // Begin asynchronous init.
-    const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (resolve, reject)=>{
+    const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (
+      resolve, reject
+    )=>{
       try {
         const _SecretJS = this.chain.SecretJS
         let wallet = this.wallet
