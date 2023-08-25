@@ -626,9 +626,11 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     '# FADROMA_MNEMONIC=your mainnet mnemonic',
     `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`,
     ``,
-    `# Just remove these when pulsar-3 is ready:`,
+    `# Just remove these two when pulsar-3 is ready:`,
     `FADROMA_SCRT_TESTNET_CHAIN_ID=pulsar-2`,
     `FADROMA_SCRT_TESTNET_URL=https://lcd.testnet.secretsaturn.net`,
+    ``,
+    `# Other settings:`,
   ].join('\n'))
   shellNix.save([
     `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
