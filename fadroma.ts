@@ -510,13 +510,13 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     type: "module",
     version: "0.1.0",
     dependencies: {
-      "@fadroma/agent": "latest",
-      "@fadroma/scrt": "^10.1.3",
+      "@fadroma/agent": "^1.1.1",
+      "@fadroma/scrt": "^10.1.5",
       "secretjs": "1.9.3"
     },
     devDependencies: {
-      "@hackbg/fadroma": `^1.3.10`,
-      "@hackbg/ganesha": "latest",
+      "@hackbg/fadroma": `^1.4.6`,
+      "@hackbg/ganesha": "4.2.0",
       "typescript": "^5.1.6",
     },
     scripts: {
@@ -624,7 +624,11 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
   ].join('\n'))
   envfile.save([
     '# FADROMA_MNEMONIC=your mainnet mnemonic',
-    `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`
+    `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`,
+    ``,
+    `# Just remove these when pulsar-3 is ready:`,
+    `FADROMA_SCRT_TESTNET_CHAIN_ID=pulsar-2`,
+    `FADROMA_SCRT_TESTNET_URL=https://lcd.testnet.secretsaturn.net`,
   ].join('\n'))
   shellNix.save([
     `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
