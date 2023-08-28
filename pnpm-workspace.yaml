@@ -3,6 +3,8 @@ packages:
   - 'ops'
   - 'connect'
   - 'connect/*'
+  - 'connect/cw/cosmjs-esm'
+  - 'connect/cw/cosmjs-esm/ubik'
 
   - 'ensuite'
   - 'ensuite/toolbox'

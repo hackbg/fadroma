@@ -10,12 +10,12 @@
   },
   "peerDependencies": {
     "@fadroma/agent": "workspace:1.x",
-    "@cosmjs/stargate": "0.31.x"
+    "@hackbg/cosmjs-esm": "workspace:*"
   },
   "devDependencies": {
     "@hackbg/ensuite": "1.x",
-    "@cosmjs/stargate": "0.31.x",
-    "json-schema-to-typescript": "13.x",
+    "@hackbg/cosmjs-esm": "workspace:*",
+    "json-schema-to-typescript": "^13.1.0",
     "json-schema-to-ts": "2.9.x"
   },
   "scripts": {
