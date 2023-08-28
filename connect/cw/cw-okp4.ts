@@ -1,7 +1,6 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
 import type { AgentClass, Uint128, Address } from '@fadroma/agent'
 import { Client, bindChainSupport } from '@fadroma/agent'
-import { StargateClient } from '@cosmjs/stargate'
 
 class OKP4Config extends Config {
   static defaultTestnetChainId: string =
@@ -19,30 +18,59 @@ class OKP4Config extends Config {
 
 /** OKP4 chain. */
 class OKP4Chain extends Chain {
+  /** Default Agent class to use. */
   declare Agent: AgentClass<OKP4Agent>
+  /** Logging handle. */
   log = new Console('OKP4Chain')
+  /** Default denomination of gas token. */
   defaultDenom = 'uknow'
 
+  constructor (options: Partial<OKP4Chain> & { config?: OKP4Config } = {
+    config: new OKP4Config()
+  }) {
+    super(options)
+  }
+
   /** Connect to OKP4 in testnet mode. */
-  static testnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => super.testnet({
-    id:  OKP4Config.defaultTestnetChainId,
-    url: OKP4Config.defaultTestnetUrl,
-    ...options||{},
-  }) as OKP4Chain
+  static testnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => {
+    const config = new OKP4Config()
+    return super.testnet({
+      id:  config.testnetChainId,
+      url: config.testnetUrl,
+      ...options||{},
+    }) as OKP4Chain
+  }
+
+  static lawStoneCodeIds    = [5]
+  static cognitariumCodeIds = [6]
+  static objectariumCodeIds = [7]
+
+  async cognitaria () {
+    const { api } = await this.ready
+    return await api.getContracts(OKP4Chain.cognitariumCodeIds[0])
+  }
+
+  async objectaria () {
+    const { api } = await this.ready
+    return await api.getContracts(OKP4Chain.objectariumCodeIds[0])
+  }
+
+  async lawStones () {
+    const { api } = await this.ready
+    return await api.getContracts(OKP4Chain.lawStoneCodeIds[0])
+  }
 }
 
 /** Agent for OKP4. */
 class OKP4Agent extends Agent {
+  /** Expected chain class. */
   declare chain: OKP4Chain
-  declare api?: StargateClient
+  /** Logging handle. */
   log = new Console('OKP4Agent')
+
   constructor (options: Partial<OKP4Agent> = {}) {
     super(options)
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
-  }
-  get ready (): Promise<this & { api: StargateClient }> {
-    if (this.api) return Promise.resolve(this) as Promise<this & { api: StargateClient }>
-    return StargateClient.connect(this.chain.url).then(api=>Object.assign(this, { api }))
   }
 }
 
