@@ -41,6 +41,8 @@ export class Client {
   address?:  Address
   /** Code hash confirming the contract's integrity. */
   codeHash?: CodeHash
+  /** Code ID for the contract's code. */
+  codeId?:   CodeId
   /** Contract metadata. */
   meta:      Contract<any>
   /** Default fee for all contract transactions. */

@@ -1,6 +1,7 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
-import type { AgentClass, Uint128, Address } from '@fadroma/agent'
+import type { AgentClass, ClientClass, Uint128, Address } from '@fadroma/agent'
 import { Client, bindChainSupport } from '@fadroma/agent'
+import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 class OKP4Config extends Config {
   static defaultTestnetChainId: string =
@@ -41,24 +42,66 @@ class OKP4Chain extends Chain {
     }) as OKP4Chain
   }
 
-  static lawStoneCodeIds    = [5]
+  /** Code IDs for versions of Cognitarium contract. */
   static cognitariumCodeIds = [6]
+
+  /** Get clients for all Cognitarium instances,
+    * keyed by address. */
+  async cognitaria (map = true) {
+    const { api } = await this.ready
+    const ids = OKP4Chain.cognitariumCodeIds
+    const $C = Cognitarium
+    return await getContractsById(api, $C, ids, map)
+  }
+
+  /** Code IDs for versions of Objectarium contract. */
   static objectariumCodeIds = [7]
 
-  async cognitaria () {
+  /** Get clients for all Objectarium instances,
+    * keyed by address. */
+  async objectaria (map = true) {
     const { api } = await this.ready
-    return await api.getContracts(OKP4Chain.cognitariumCodeIds[0])
+    const ids = OKP4Chain.objectariumCodeIds
+    const $C = Objectarium
+    return await getContractsById(api, $C, ids, map)
   }
 
-  async objectaria () {
-    const { api } = await this.ready
-    return await api.getContracts(OKP4Chain.objectariumCodeIds[0])
-  }
+  /** Code IDs for versions of Law Stone contract. */
+  static lawStoneCodeIds = [5]
 
-  async lawStones () {
+  /** Get clients for all Law Stone instances,
+    * keyed by address. */
+  async lawStones (map = true) {
     const { api } = await this.ready
-    return await api.getContracts(OKP4Chain.lawStoneCodeIds[0])
+    const ids = OKP4Chain.lawStoneCodeIds
+    const $C = LawStone
+    return await getContractsById(api, $C, ids, map)
   }
+}
+
+async function getContractsById <C extends Client> (
+  api: CosmWasmClient, $C: ClientClass<C>, ids: number[], map = true
+): Promise<
+  typeof map extends true ? Map<Address, C> : Record<Address, C>
+> {
+  const contracts = map ? new Map() : {}
+  for (const codeId of ids) {
+    const { checksum } = await api.getCodeDetails(codeId)
+    const addresses = await api.getContracts(codeId)
+    for (const address of addresses) {
+      const contract = new $C({
+        address,
+        codeHash: checksum,
+        codeId: String(codeId),
+      } as Partial<C>)
+      if (map) {
+        (contracts as Map<Address, C>).set(address, contract)
+      } else {
+        (contracts as Record<Address, C>)[address] = contract
+      }
+    }
+  }
+  return contracts
 }
 
 /** Agent for OKP4. */
@@ -72,6 +115,38 @@ class OKP4Agent extends Agent {
     super(options)
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
+
+  /** Get clients for all Cognitarium instances,
+    * keyed by address. */
+  async cognitaria (map = true) {
+    return populateAgent(map, await this.chain.cognitaria(map), this)
+  }
+
+  /** Get clients for all Objectarium instances,
+    * keyed by address. */
+  async objectaria (map = true) {
+    return populateAgent(map, await this.chain.objectaria(map), this)
+  }
+
+  /** Get clients for all Law Stone instances,
+    * keyed by address. */
+  async lawStones (map = true) {
+    return populateAgent(map, await this.chain.lawStones(map), this)
+  }
+}
+
+function populateAgent <C extends Client> (
+  map: boolean,
+  contracts: typeof map extends true ? Map<Address, C> : Record<Address, C>,
+  agent: OKP4Agent
+) {
+  const values = map
+    ? (contracts as unknown as Map<Address, Cognitarium>).values()
+    : Object.values(contracts)
+  for (const contract of values) {
+    contract.agent = agent
+  }
+  return contracts
 }
 
 /** Transaction bundle for OKP4. */
