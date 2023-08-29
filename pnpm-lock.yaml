@@ -165,6 +165,10 @@ importers:
       secretjs:
         specifier: 1.x
         version: 1.9.0
+    devDependencies:
+      '@hackbg/ubik':
+        specifier: workspace:./cw/cosmjs-esm/ubik
+        version: link:cw/cosmjs-esm/ubik
 
   connect/cw:
     dependencies:
