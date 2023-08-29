@@ -1,13 +1,13 @@
 {
   "name": "@fadroma/cw",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts" ],
   "description": "Fadroma support for generic CosmWasm-enabled networks based on CosmJS",
   "dependencies": {
     "@hackbg/conf": "^2",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.12"
+    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.14"
   },
   "peerDependencies": {
     "@fadroma/agent": "workspace:1.x"
