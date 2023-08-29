@@ -39,10 +39,15 @@ const console = new Console(`@hackbg/fadroma ${version}`)
 export class ProjectWizard {
 
   log = new Console(`@hackbg/fadroma ${version}`)
-
   cwd: string = process.cwd()
 
-  tools: ReturnType<typeof toolVersions> = toolVersions()
+  isLinux: boolean = platform() === 'linux'
+  isMac:   boolean = platform() === 'darwin'
+  isWin:   boolean = platform() === 'win32'
+
+  tools: ReturnType<typeof toolVersions> = toolVersions({
+    isMac: this.isMac
+  })
 
   interactive: boolean = !!process.stdin.isTTY && process.stdout.isTTY
 
@@ -53,30 +58,43 @@ export class ProjectWizard {
   }
 
   async createProject (_P: typeof Project, ...args: any[]): Promise<Project> {
-    let { git, pnpm, yarn, npm, cargo, docker, podman } = this.tools
+
+    let {
+      git, pnpm, yarn, npm, cargo, rust, docker, podman, corepack, sha256sum, wasmOpt, homebrew
+    } = this.tools
+
     const name = args[0] ?? (this.interactive ? await this.askName() : undefined)
     if (name === 'undefined') throw new Error('missing project name')
     console.log(`Creating project`, name)
+
     const root = (this.interactive
       ? $(await this.askRoot(name))
       : $(this.cwd, name)).as(OpaqueDirectory)
     console.log(`Creating in`, root.shortPath)
+
     const templates = args.slice(1).length > 0
       ? args.slice(1).reduce((templates, crate)=>Object.assign(templates, { [crate]: crate }), {})
       : this.interactive
         ? await this.askTemplates(name)
         : {}
     console.log(`Defining`, Object.keys(templates).length, `template(s) in project`)
+
     const options = { name, root, templates: templates as any }
     const project = new _P(options)
     project.create()
+
     if (this.interactive) {
       switch (await this.selectBuilder()) {
-        case 'podman': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`); break
-        case 'raw': project.files.envfile.save(`${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`); break
+        case 'podman': project.files.envfile.save(
+          `${project.files.envfile.load()}\nFADROMA_BUILD_PODMAN=1`
+        ); break
+        case 'raw': project.files.envfile.save(
+          `${project.files.envfile.load()}\nFADROMA_BUILD_RAW=1`
+        ); break
         default: break
       }
     }
+
     let changed = false
     let nonfatal = false
     if (git) {
@@ -90,7 +108,12 @@ export class ProjectWizard {
     } else {
       console.warn('Git not found. Not creating repo.')
     }
+
     if (pnpm || yarn || npm) {
+      if (!pnpm && corepack) {
+        console.info('Try PNPM! To enable it, just run:')
+        console.info('  $ corepack enable')
+      }
       try {
         project.npmInstall(this.tools)
         changed = true
@@ -101,6 +124,7 @@ export class ProjectWizard {
     } else {
       console.warn('NPM/Yarn/PNPM not found. Not creating lockfile.')
     }
+
     if (cargo) {
       try {
         project.cargoUpdate()
@@ -112,6 +136,7 @@ export class ProjectWizard {
     } else {
       console.warn('Cargo not found. Not creating lockfile.')
     }
+
     if (changed && git) {
       try {
         project.gitCommit('"Updated lockfiles."')
@@ -120,40 +145,88 @@ export class ProjectWizard {
         nonfatal = true
       }
     }
+
+    if (!cargo || !rust) {
+      console.warn('Tool not available: cargo or rustc.')
+      console.warn('Building contract without container will fail.')
+      if (this.isMac && !homebrew) {
+        console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+      } else {
+        console.info('You can install it with:')
+        console.info('  $ brew install rustup')
+        console.info('  $ rustup target add wasm32-unknown-unknown')
+      }
+    }
+
+    if (!sha256sum) {
+      console.warn('Tool not available: sha256sum. Building contract without container will fail.')
+      if (this.isMac && !homebrew) {
+        console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+      } else {
+        console.info('You can install it with:')
+        console.info('  $ brew install coreutils')
+      }
+    }
+
+    if (!wasmOpt) {
+      console.warn('Tool not available: wasm-opt. Building contract without container will fail.')
+      if (this.isMac && !homebrew) {
+        console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+      } else {
+        console.info('You can install it with:')
+        console.info('  $ brew install binaryen')
+      }
+    }
+
     if (nonfatal) {
       console.warn('One or more convenience operations failed.')
       console.warn('You can retry them manually later.')
     }
+
     console.log("Project created at", bold(project.root.shortPath))
     console.info()
+
     console.info(`To compile your contracts:`)
-    console.info(`  $ npm run build`)
-    console.info()
+    console.info(`  $ ${bold('npm run build')}`)
+
     console.info(`To spin up a local deployment:`)
-    console.info(`  $ npm run devnet deploy`)
-    console.info()
-    const {
-      FADROMA_TESTNET_MNEMONIC: mnemonic
-    } = dotenv.parse(project.root.at('.env').as(TextFile).load())
+    console.info(`  $ ${bold('npm run devnet deploy')}`)
+
+    console.info(`To deploy to testnet:`)
+    console.info(`  $ ${bold('npm run testnet deploy')}`)
+
+    const { FADROMA_TESTNET_MNEMONIC: mnemonic } = dotenv.parse(
+      project.root.at('.env').as(TextFile).load()
+    )
     console.info(`Your testnet mnemonic:`)
-    console.info(`  ${mnemonic}`)
+    console.info(`  ${bold(mnemonic)}`)
     const testnetAgent = Scrt.Chain.testnet().getAgent({ mnemonic })
+
     //@ts-ignore
     testnetAgent.log = { log () {} }
     await testnetAgent.ready
+
     console.info(`Your testnet address:`)
-    console.info(`  ${testnetAgent.address}`)
+    console.info(`  ${bold(testnetAgent.address)}`)
+
     console.info(`Fund your testnet wallet at:`)
-    console.info(`  https://faucet.starshell.net/`)
-    console.info()
-    console.info()
+    console.info(`  ${bold('https://faucet.pulsar.scrttestnet.com')}`)
+
     //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
+
     return project
   }
 
   async askName (): Promise<string> {
     let value
-    while ((value = (await askText('Enter a project name (a-z, 0-9, dash/underscore)')??'').trim()) === '') {}
+    do {
+      value = await askText('Enter a project name (a-z, 0-9, dash/underscore)')??''
+      value = value.trim()
+      if (!isNaN(value[0] as any)) {
+        console.info('Project name cannot start with a digit.')
+        value = ''
+      }
+    } while (value === '')
     return value
   }
   askRoot (name: string): Promise<Path> {
@@ -174,7 +247,7 @@ export class ProjectWizard {
   {
     return askUntilDone({}, (state) => askSelect([
       `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
-      `  ${Object.keys(state).join(',\n  ')}\n`
+      `  ${Object.keys(state).join(',\n  ')}`
     ].join(''), [
       { title: `Add contract template to the project`, value: defineContract },
       { title: `Remove contract template`, value: undefineContract },
@@ -182,9 +255,12 @@ export class ProjectWizard {
       { title: `(done)`, value: null },
     ]))
     async function defineContract (state: Record<string, any>) {
-      const crate = await askText([
-        'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):',
-      ].join('\n'))
+      let crate
+      crate = await askText('Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):')??''
+      if (!isNaN(crate[0] as any)) {
+        console.info('Contract name cannot start with a digit.')
+        crate = ''
+      }
       if (crate) {
         state[crate] = { crate }
       }
@@ -211,14 +287,21 @@ export class ProjectWizard {
     }
   }
   selectBuilder (): 'podman'|'raw'|any {
-    const { cargo = 'not installed', docker = 'not installed', podman = 'not installed' } = this.tools
-    const buildRaw    = { value: 'raw',    title: `No isolation, build with local toolchain (${cargo||'cargo: not found!'})` }
-    const buildDocker = { value: 'docker', title: `Perform builds in a Docker container (${docker||'docker: not found!'})` }
-    const buildPodman = { value: 'podman', title: `Perform builds in a Podman container (experimental; ${podman||'podman: not found!'})` }
-    const hasPodman = podman && (podman !== 'not installed')
-    const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
-    const isLinux = platform() === 'linux'
-    const choices = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
+    let { cargo = NOT_INSTALLED, docker = NOT_INSTALLED, podman = NOT_INSTALLED } = this.tools
+    // FIXME: podman is currently disabled
+    podman = NOT_INSTALLED
+    const variant = (value: string, title: string) =>
+      ({ value, title })
+    const buildRaw = variant('raw',
+      `No isolation, build with local toolchain (${cargo||'cargo: not found!'})`)
+    const buildDocker = variant('docker',
+      `Isolate builds in a Docker container (${docker||'docker: not found!'})`)
+    const buildPodman = variant('podman',
+      `Isolate builds in a Podman container (experimental; ${podman||'podman: not found!'})`)
+    const hasPodman = podman && (podman !== NOT_INSTALLED)
+    const engines = [ buildDocker ]
+    // const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ]
+    const choices = this.isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
     return askSelect(`Select build isolation mode:`, choices)
   }
   static selectDeploymentFromStore = async (store: DeployStore & {
@@ -235,26 +318,30 @@ export class ProjectWizard {
 
 }
 
-export const toolVersions = () => {
-  console.br()
-  return {
-    ttyIn:  check('TTY in:   ', !!process.stdin.isTTY),
-    ttyOut: check('TTY out:  ', !!process.stdout.isTTY),
+const NOT_INSTALLED = 'not installed'
+
+export const toolVersions = ({ isMac }: { isMac?: boolean } = {}) => ({
+    ttyIn:  check('TTY in:  ', !!process.stdin.isTTY),
+    ttyOut: check('TTY out: ', !!process.stdout.isTTY),
     //console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
-    git:       tool('Git:      ', 'git --no-pager --version'),
-    node:      tool('Node:     ', 'node --version'),
-    npm:       tool('NPM:      ', 'npm --version'),
-    yarn:      tool('Yarn:     ', 'yarn --version'),
-    pnpm:      tool('PNPM:     ', 'pnpm --version'),
-    tsc:       tool('TSC:      ', 'tsc --version'),
-    cargo:     tool('Cargo:    ', 'cargo --version'),
-    rust:      tool('Rust:     ', 'rustc --version'),
-    docker:    tool('Docker:   ', 'docker --version'),
-    podman:    tool('Podman:   ', 'podman --version'),
-    nix:       tool('Nix:      ', 'nix --version'),
-    secretcli: tool('secretcli:', 'secretcli version')
-  }
-}
+    git:       tool('Git      ', 'git --no-pager --version'),
+    node:      tool('Node     ', 'node --version'),
+    npm:       tool('NPM      ', 'npm --version'),
+    yarn:      tool('Yarn     ', 'yarn --version'),
+    pnpm:      tool('PNPM     ', 'pnpm --version'),
+    corepack:  tool('corepack ', 'corepack --version'),
+    tsc:       undefined,//tool('TSC      ', 'tsc --version'),
+    cargo:     tool('Cargo    ', 'cargo --version'),
+    rust:      tool('Rust     ', 'rustc --version'),
+    sha256sum: tool('sha256sum', 'sha256sum --version'),
+    wasmOpt:   tool('wasm-opt ', 'wasm-opt --version'),
+    docker:    tool('Docker   ', 'docker --version'),
+    podman:    tool('Podman   ', 'podman --version'),
+    nix:       tool('Nix      ', 'nix --version'),
+    secretcli: tool('secretcli', 'secretcli version'),
+    homebrew:  isMac ? tool('homebrew ', 'brew --version') : undefined,
+    _: console.br() || undefined
+  })
 
 /** Check a variable */
 export const check = <T> (name: string|null, value: T): T => {
@@ -266,7 +353,7 @@ export const check = <T> (name: string|null, value: T): T => {
 export const tool = (dependency: string|null, command: string): string|null => {
   let version = null
   try {
-    version = String(execSync(command)).trim()
+    version = String(execSync(command)).trim().split('\n')[0]
     if (dependency) console.info(bold(dependency), version)
   } catch (e) {
     if (dependency) console.warn(bold(dependency), colors.yellow('(not found)'))

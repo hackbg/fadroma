@@ -99,36 +99,36 @@ You'll need:
     (providing Rust 1.59 in the default build container) and to launch devnets (providing a
     local development environment).
 
-### Submodule setup
+### Git workflow
 
-Fadroma's development workflow leverages Git submodules.
+* **Merge, don't rebase.** Cool history doesn't change. As a rule, avoid rebases.
+  The only exception is `git pull --rebase`.
 
-When cloning the Fadroma repo, use the `--recursive` option to populate the submodule directories:
+* **Fadroma uses nested [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).**
+
+  * **When cloning the Fadroma repo, use `--recursive`** to automatically populate all submodules:
 
 ```sh
 git clone --recursive git@github.com:hackbg/fadroma.git
 ```
 
-Fadroma can be included as a submodule in your project:
-
-To add Fadroma as Git submodule:
+  * Fadroma's project structure makes it easy to include Fadroma as a submodule into
+    a downstream repo, should you need to hack on Fadroma in the context of an existing project.
 
 ```sh
-git submodule add -b refactor/x git@github.com:$UPSTREAM/fadroma.git
+git submodule add -b fix/something git@github.com:$YOURFORK/fadroma.git
 git submodule update --init --recursive
-git commit -m "tabula rasa"
+git commit -m "added Fadroma as submodule"
 ```
-
-(Replacing `hackbg/fadroma` with the name of your fork)
-
-> Read more about [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 
 ### Running tests
 
 If you clone the Fadroma repo, you can use `pnpm test` to run the TS tests,
 and `pnpm test:cov` or `pnpm test:lcov` to generate a test coverage report. Happy hacking!
 
-### Publishing packages
+### Making releases
+
+#### Publishing package versions
 
 The TypeScript packages have been configured to use `@hackbg/ubik` for publishing.
 Packages published using Ubik contain TS, ESM and CJS code side by side.
@@ -150,7 +150,7 @@ pnpm ubik wet --otp <OTP>
 Having made changes to `@hackbg/fadroma` and one or more subpackages,
 you can use `pnpm ubik:all` to publish them on NPM (note that this command has no dry run).
 
-### Publishing docker image
+#### Publishing docker image
 
 When updating the base image (`FROM` line) in a Dockerfile (such as the base build Dockerfile,
 or the devnet Dockerfiles), make sure to preserve the registry URL prefix and SHA256 digest

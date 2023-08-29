@@ -56,6 +56,15 @@ export class ConnectConfig extends Config {
     this.override(options)
     Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
     this.scrt = new Scrt.Config(options?.scrt, environment)
+    this.chainId = this.getString('FADROMA_CHAIN_ID', ()=>{
+      const chainIds = {
+        Mocknet:     'mocknet',
+        ScrtDevnet:  'fadroma-devnet',
+        ScrtTestnet: this.scrt.testnetChainId,
+        ScrtMainnet: this.scrt.mainnetChainId,
+      }
+      return chainIds[this.chain as keyof typeof chainIds]
+    })
   }
   /** Logger handle. */
   log = new ConnectConsole('@fadroma/connect')
@@ -68,15 +77,7 @@ export class ConnectConfig extends Config {
   chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
     ()=>'Mocknet')
   /** Override chain id. */
-  chainId?: ChainId = this.getString('FADROMA_CHAIN_ID', ()=>{
-    const chainIds = {
-      Mocknet:     'mocknet',
-      ScrtDevnet:  'fadroma-devnet',
-      ScrtTestnet: Scrt.Config.defaultTestnetChainId,
-      ScrtMainnet: Scrt.Config.defaultMainnetChainId,
-    }
-    return chainIds[this.chain as keyof typeof chainIds]
-  })
+  chainId?: ChainId
   /** Override chain mode. */
   chainMode: ChainMode = this.getString('FADROMA_CHAIN_MODE', () => {
     const chainModes = {

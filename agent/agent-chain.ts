@@ -41,6 +41,7 @@ export interface DevnetHandle {
   chainId: string
   start: () => Promise<this>
   getAccount: (name: string) => Promise<Partial<Agent>>
+  assertPresence: () => Promise<void>
 }
 /** A constructor for a Chain subclass. */
 export interface ChainClass<C> extends Class<C, ConstructorParameters<typeof Chain>> {
@@ -515,7 +516,10 @@ export abstract class Bundle implements Agent {
 
   /** Throws if the bundle is invalid. */
   assertMessages (): any[] {
-    if (this.msgs.length < 1) throw this.log.emptyBundle()
+    if (this.msgs.length < 1) {
+      this.log.emptyBundle()
+      throw new Error('Bundle contained no messages.')
+    }
     return this.msgs
   }
 

@@ -196,7 +196,8 @@ export class Deployment {
     return {contracts}
   }
   /** Print the status of this deployment. */
-  showStatus = () => {
+  showStatus = async () => {
+    if (this.chain?.isDevnet && this.chain?.devnet) await this.chain.devnet.assertPresence()
     this.log.deployment(this)
     return this
   }
@@ -263,6 +264,7 @@ export class Deployment {
   }
   /** @returns Promise<this> */
   deploy = async () => {
+    if (this.chain?.isDevnet && this.chain?.devnet) await this.chain.devnet.assertPresence()
     const log = new Console(this.name)
     const contracts = Object.values(this.contracts)
     if (contracts.length <= 0) return (log.warn('empty deployment, not saving'), this)
@@ -278,16 +280,17 @@ export class Deployment {
     return this.save()
   }
   /** Compile multiple contracts. */
-  buildContracts (contracts: (string|AnyContract)[]) {
+  async buildContracts (contracts: (string|AnyContract)[]) {
     if (!this.builder) throw new Error.Missing.Builder()
     this.log(`making sure all ${contracts.length} contract(s) are built`)
-    return this.builder.buildMany(contracts as unknown as Buildable[])
+    return await this.builder.buildMany(contracts as unknown as Buildable[])
   }
   /** Upload multiple contracts. */
-  uploadContracts (contracts: AnyContract[]) {
+  async uploadContracts (contracts: AnyContract[]) {
+    if (this.chain?.isDevnet && this.chain?.devnet) await this.chain.devnet.assertPresence()
     if (!this.uploader) throw new Error.Missing.Uploader()
     this.log(`making sure ${contracts.length} contract(s) are uploaded`)
-    return this.uploader.uploadMany(contracts as unknown as Uploadable[])
+    return await this.uploader.uploadMany(contracts as unknown as Uploadable[])
   }
   /** Save current deployment state to deploy store. */
   save = async (store: DeployStore|undefined = this.store): Promise<this> => {

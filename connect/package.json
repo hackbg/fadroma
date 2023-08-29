@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "3.3.0",
+  "version": "3.3.6",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts", "!cw", "!scrt" ],
@@ -10,8 +10,8 @@
     "ubik":  "pnpm check && ubik"
   },
   "dependencies": {
-    "@fadroma/agent":   "workspace:^1.x",
-    "@fadroma/scrt":    "workspace:^10.x",
+    "@fadroma/agent":   "workspace:^1.1.2",
+    "@fadroma/scrt":    "workspace:^10.1.3",
     "@fadroma/cw":      "workspace:^0.x",
     "@hackbg/conf":     "workspace:^3.x",
     "secretjs":         "1.x",

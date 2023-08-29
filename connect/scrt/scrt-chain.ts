@@ -106,8 +106,8 @@ class ScrtChain extends Chain {
     new Fee(amount, this.defaultDenom)
   /** Set permissive fees by default. */
   static defaultFees: AgentFees = {
-    upload: this.gas(2000000),
-    init:   this.gas(2000000),
+    upload: this.gas(10000000),
+    init:   this.gas(10000000),
     exec:   this.gas(1000000),
     send:   this.gas(1000000),
   }
@@ -116,15 +116,21 @@ class ScrtChain extends Chain {
   /** The default Agent class for Secret Network. */
   static Agent: AgentClass<ScrtAgent> // set in index
   /** Connect to the Secret Network Mainnet. */
-  static mainnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.mainnet({
-    id:  ScrtChain.Config.defaultMainnetChainId,
-    url: ScrtChain.Config.defaultMainnetUrl,
+  static mainnet = (
+    options: Partial<ScrtChain> = {},
+    config = new Config()
+  ): ScrtChain => super.mainnet({
+    id:  config.mainnetChainId,
+    url: config.mainnetUrl,
     ...options||{},
   }) as ScrtChain
   /** Connect to the Secret Network Testnet. */
-  static testnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.testnet({
-    id:  ScrtChain.Config.defaultTestnetChainId,
-    url: ScrtChain.Config.defaultTestnetUrl,
+  static testnet = (
+    options: Partial<ScrtChain> = {},
+    config = new Config()
+  ): ScrtChain => super.testnet({
+    id:  config.testnetChainId,
+    url: config.testnetUrl,
     ...options||{},
   }) as ScrtChain
   /** Connect to a Secret Network devnet. */
@@ -172,7 +178,9 @@ class ScrtAgent extends Agent {
     // If an API instance is already available (e.g. provided to constructor), just use that.
     if (this.api) return Promise.resolve(this as this & { api: SecretJS.SecretNetworkClient })
     // Begin asynchronous init.
-    const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (resolve, reject)=>{
+    const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (
+      resolve, reject
+    )=>{
       try {
         const _SecretJS = this.chain.SecretJS
         let wallet = this.wallet
@@ -352,7 +360,7 @@ class ScrtAgent extends Agent {
           this.log.info(`Mainnet fee grant faucet:`, bold(`https://faucet.secretsaturn.net/`))
         }
         if (this.chain.isTestnet) {
-          this.log.info(`Testnet faucet:`, bold(`https://faucet.starshell.net/`))
+          this.log.info(`Testnet faucet:`, bold(`https://faucet.pulsar.scrttestnet.com/`))
         }
       }
       throw new Error.Failed.Upload(result)

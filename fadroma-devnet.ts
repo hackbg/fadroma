@@ -204,6 +204,20 @@ export class Devnet implements DevnetHandle {
       .as(JSONFile) as JSONFile<Partial<this>>
   }
 
+  /** Emit a warning if devnet state is missing. */
+  async assertPresence () {
+    if (this.containerId) {
+      try {
+        await this.container
+        this.log.info("container id:", bold(this.containerId.slice(0, 8)))
+      } catch (e) {
+        throw new Error(
+          `Failed to connect to devnet "${this.chainId}": ${e.message}`
+        )
+      }
+    }
+  }
+
   create = async (): Promise<this> => {
     // ensure we have image and chain id
     const image = await this.image
@@ -266,7 +280,13 @@ export class Devnet implements DevnetHandle {
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
       this.log.startingContainer(container.id)
-      await container.start()
+      try {
+        await container.start()
+      } catch (e) {
+        // Don't throw if container already started.
+        // TODO: This must be handled in @hackbg/dock
+        if (e.code !== 304) throw e
+      }
       this.running = true
       await this.save()
       await container.waitLog(this.readyPhrase, Devnet.logFilter, true)

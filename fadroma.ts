@@ -510,14 +510,14 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     type: "module",
     version: "0.1.0",
     dependencies: {
-      "@fadroma/agent": "latest",
-      "@fadroma/scrt": "latest",
+      "@fadroma/agent": "^1.1.2",
+      "@fadroma/scrt": "^10.1.6",
       "secretjs": "1.9.3"
     },
     devDependencies: {
-      "@hackbg/fadroma": "latest",
-      "@hackbg/ganesha": "latest",
-      "typescript": "^5",
+      "@hackbg/fadroma": `^1.4.9`,
+      "@hackbg/ganesha": "4.2.0",
+      "typescript": "^5.1.6",
     },
     scripts: {
       "build":   "fadroma build",
@@ -533,12 +533,16 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
       "test:testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma run tes.ts`,
     },
   })
+  let deploymentClassName =
+    (Object.keys(templates).includes(name))
+      ? `${Case.pascal(name)}Deployment`
+      : Case.pascal(name)
   apiIndex.save([
     `import { Client, Deployment } from '@fadroma/agent'`,
     [
-      `export default class ${Case.pascal(name)} extends Deployment {`,
+      `export default class ${deploymentClassName} extends Deployment {`,
       ...Object.keys(templates).map(name => [
-        ``, `  ${name} = this.contract({`,
+        ``, `  ${Case.camel(name)} = this.contract({`,
         `    name: "${name}",`,
         `    crate: "${name}",`,
         `    client: ${Case.pascal(name)},`,
@@ -598,12 +602,13 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
   testIndex.save([
     `import * as assert from 'node:assert'`,
     `import ${Case.pascal(name)} from './api'`,
-    `import { getDeployment } from '@hackbg/fadroma`,
+    `import { getDeployment } from '@hackbg/fadroma'`,
     `const deployment = await getDeployment(${Case.pascal(name)}).deploy()`,
     `// add your assertions here`
   ].join('\n'))
   gitignore.save([
     '.env',
+    '*.swp',
     'node_modules',
     'target',
     'state/*',
@@ -613,12 +618,19 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     '!state/secret-4',
     '!state/pulsar-1',
     '!state/pulsar-2',
+    '!state/pulsar-3',
     'wasm/*',
     '!wasm/*.sha256',
   ].join('\n'))
   envfile.save([
     '# FADROMA_MNEMONIC=your mainnet mnemonic',
-    `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`
+    `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`,
+    ``,
+    `# Just remove these two when pulsar-3 is ready:`,
+    `FADROMA_SCRT_TESTNET_CHAIN_ID=pulsar-2`,
+    `FADROMA_SCRT_TESTNET_URL=https://lcd.testnet.secretsaturn.net`,
+    ``,
+    `# Other settings:`,
   ].join('\n'))
   shellNix.save([
     `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
