@@ -5,28 +5,28 @@ importers:
   .:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:*
+        specifier: workspace:1.1.2
         version: link:agent
       '@fadroma/connect':
         specifier: workspace:3.3.7
         version: link:connect
       '@hackbg/cmds':
-        specifier: workspace:^3.0.7
+        specifier: workspace:3.0.7
         version: link:ensuite/toolbox/cmds
       '@hackbg/dock':
-        specifier: workspace:^2
+        specifier: workspace:2
         version: link:ensuite/toolbox/dock
       '@hackbg/file':
-        specifier: workspace:^1.2.2
+        specifier: workspace:1.2.3
         version: link:ensuite/toolbox/file
       '@hackbg/hide':
-        specifier: workspace:^1
+        specifier: workspace:1
         version: link:ensuite/toolbox/hide
       '@hackbg/logs':
-        specifier: workspace:^2.0.7
+        specifier: workspace:2.0.7
         version: link:ensuite/toolbox/logs
       '@hackbg/port':
-        specifier: workspace:^1
+        specifier: workspace:1
         version: link:ensuite/toolbox/port
       case:
         specifier: ^1.6.3
