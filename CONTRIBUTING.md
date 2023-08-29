@@ -144,7 +144,7 @@ pnpm ubik dry
 To publish an individual package, use:
 
 ```sh
-pnpm ubik wet --otp <OTP>
+pnpm ubik publish --otp <OTP>
 ```
 
 Having made changes to `@hackbg/fadroma` and one or more subpackages,
