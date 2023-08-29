@@ -16,8 +16,5 @@
     "@hackbg/conf":     "workspace:^3.x",
     "secretjs":         "1.x",
     "@cosmjs/stargate": "0.31.x"
-  },
-  "devDependencies": {
-    "@hackbg/ubik": "workspace:./cw/cosmjs-esm/ubik"
   }
 }

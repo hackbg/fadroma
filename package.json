@@ -93,7 +93,7 @@
     "@hackbg/ganesha": "workspace:*",
     "@hackbg/fadroma": "workspace:*",
     "@hackbg/spec": "^1",
-    "@hackbg/ubik": "workspace:^1.6.0",
+    "@hackbg/ubik": "^1.6.0",
     "@types/dockerode": "^3.3.14",
     "@types/js-yaml": "^4.0.5",
     "@types/node": "latest",

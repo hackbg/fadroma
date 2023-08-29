@@ -60,7 +60,7 @@ importers:
         specifier: ^1
         version: link:ensuite/toolbox/spec
       '@hackbg/ubik':
-        specifier: workspace:^1.6.0
+        specifier: ^1.6.0
         version: link:ensuite/toolbox/ubik
       '@types/dockerode':
         specifier: ^3.3.14
@@ -165,10 +165,6 @@ importers:
       secretjs:
         specifier: 1.x
         version: 1.9.0
-    devDependencies:
-      '@hackbg/ubik':
-        specifier: workspace:./cw/cosmjs-esm/ubik
-        version: link:cw/cosmjs-esm/ubik
 
   connect/cw:
     dependencies:
