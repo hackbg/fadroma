@@ -5,28 +5,28 @@ importers:
   .:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:^1.1.2
+        specifier: workspace:1.1.2
         version: link:agent
       '@fadroma/connect':
-        specifier: workspace:^3.4.6
+        specifier: workspace:3.4.7
         version: link:connect
       '@hackbg/cmds':
-        specifier: workspace:^3.0.7
+        specifier: workspace:3.0.7
         version: link:ensuite/toolbox/cmds
       '@hackbg/dock':
-        specifier: workspace:^2
+        specifier: workspace:2
         version: link:ensuite/toolbox/dock
       '@hackbg/file':
-        specifier: workspace:^1.2.2
+        specifier: workspace:1.2.3
         version: link:ensuite/toolbox/file
       '@hackbg/hide':
-        specifier: workspace:^1
+        specifier: workspace:1
         version: link:ensuite/toolbox/hide
       '@hackbg/logs':
-        specifier: workspace:^2.0.7
+        specifier: workspace:2.0.7
         version: link:ensuite/toolbox/logs
       '@hackbg/port':
-        specifier: workspace:^1
+        specifier: workspace:1
         version: link:ensuite/toolbox/port
       case:
         specifier: ^1.6.3
@@ -148,16 +148,16 @@ importers:
   connect:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:^1.1.2
+        specifier: workspace:1.1.2
         version: link:../agent
       '@fadroma/cw':
-        specifier: workspace:^0.2.6
+        specifier: workspace:0.2.8
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:^10.1.3
+        specifier: workspace:10.1.6
         version: link:scrt
       '@hackbg/conf':
-        specifier: workspace:^3.x
+        specifier: workspace:3.x
         version: link:../ensuite/toolbox/conf
       secretjs:
         specifier: 1.x
