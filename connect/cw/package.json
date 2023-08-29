@@ -1,22 +1,19 @@
 {
   "name": "@fadroma/cw",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts" ],
-  "description": "Fadroma support for generic CosmWasm-enabled networks based on @cosmjs/stargate",
+  "description": "Fadroma support for generic CosmWasm-enabled networks based on CosmJS",
   "dependencies": {
-    "@hackbg/conf": "^2"
+    "@hackbg/conf": "^2",
+    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.12"
   },
   "peerDependencies": {
-    "@fadroma/agent": "workspace:1.x",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.11"
+    "@fadroma/agent": "workspace:1.x"
   },
   "devDependencies": {
-    "@hackbg/ensuite": "1.x",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.11",
-    "json-schema-to-typescript": "^13.1.0",
-    "json-schema-to-ts": "2.9.x"
+    "@hackbg/ensuite": "1.x"
   },
   "scripts": {
     "check":  "tsc --noEmit",
