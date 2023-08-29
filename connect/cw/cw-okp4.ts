@@ -17,6 +17,15 @@ class OKP4Config extends Config {
     () => OKP4Config.defaultTestnetUrl)
 }
 
+/** Code IDs for versions of Cognitarium contract. */
+export const cognitariumCodeIds = [6]
+
+/** Code IDs for versions of Objectarium contract. */
+export const objectariumCodeIds = [7]
+
+/** Code IDs for versions of Law Stone contract. */
+export const lawStoneCodeIds = [5]
+
 /** OKP4 chain. */
 class OKP4Chain extends Chain {
   /** Default Agent class to use. */
@@ -42,40 +51,25 @@ class OKP4Chain extends Chain {
     }) as OKP4Chain
   }
 
-  /** Code IDs for versions of Cognitarium contract. */
-  static cognitariumCodeIds = [6]
-
   /** Get clients for all Cognitarium instances,
     * keyed by address. */
   async cognitaria (map = true) {
     const { api } = await this.ready
-    const ids = OKP4Chain.cognitariumCodeIds
-    const $C = Cognitarium
-    return await getContractsById(api, $C, ids, map)
+    return await getContractsById(api, Cognitarium, cognitariumCodeIds, map)
   }
-
-  /** Code IDs for versions of Objectarium contract. */
-  static objectariumCodeIds = [7]
 
   /** Get clients for all Objectarium instances,
     * keyed by address. */
   async objectaria (map = true) {
     const { api } = await this.ready
-    const ids = OKP4Chain.objectariumCodeIds
-    const $C = Objectarium
-    return await getContractsById(api, $C, ids, map)
+    return await getContractsById(api, Objectarium, objectariumCodeIds, map)
   }
-
-  /** Code IDs for versions of Law Stone contract. */
-  static lawStoneCodeIds = [5]
 
   /** Get clients for all Law Stone instances,
     * keyed by address. */
   async lawStones (map = true) {
     const { api } = await this.ready
-    const ids = OKP4Chain.lawStoneCodeIds
-    const $C = LawStone
-    return await getContractsById(api, $C, ids, map)
+    return await getContractsById(api, LawStone, lawStoneCodeIds, map)
   }
 }
 

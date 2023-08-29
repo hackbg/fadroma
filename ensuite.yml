@@ -16,6 +16,7 @@ coverage:
     - fadroma.cli.cjs
     - "*.dist.*"
     - "**/*.dist.*"
+    - connect/cw/cosmjs-esm/**/*
 
 header:
   title: Fadroma

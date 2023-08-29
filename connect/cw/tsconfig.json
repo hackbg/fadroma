@@ -1,4 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
+  "exclude": [ "cosmjs-esm/**/*" ],
   "include": [ "*.ts", "**/*.ts" ]
 }
