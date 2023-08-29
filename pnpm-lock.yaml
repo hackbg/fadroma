@@ -5,10 +5,10 @@ importers:
   .:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:*
+        specifier: workspace:^1.1.2
         version: link:agent
       '@fadroma/connect':
-        specifier: workspace:*
+        specifier: workspace:^3.4.1
         version: link:connect
       '@hackbg/cmds':
         specifier: workspace:^3.0.7
