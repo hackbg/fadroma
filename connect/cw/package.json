@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/cw",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts" ],
@@ -10,14 +10,13 @@
   },
   "peerDependencies": {
     "@fadroma/agent": "workspace:1.x",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.8"
+    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.9"
   },
   "devDependencies": {
     "@hackbg/ensuite": "1.x",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.8",
+    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.9",
     "json-schema-to-typescript": "^13.1.0",
-    "json-schema-to-ts": "2.9.x",
-    "ubik": "workspace:./cosmjs-esm/ubik"
+    "json-schema-to-ts": "2.9.x"
   },
   "scripts": {
     "check":  "tsc --noEmit",

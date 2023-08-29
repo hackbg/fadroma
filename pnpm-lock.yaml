@@ -177,7 +177,7 @@ importers:
         version: 2.0.0
     devDependencies:
       '@hackbg/cosmjs-esm':
-        specifier: workspace:1.0.0-rc.8
+        specifier: workspace:1.0.0-rc.9
         version: link:cosmjs-esm
       '@hackbg/ensuite':
         specifier: 1.x
@@ -188,9 +188,6 @@ importers:
       json-schema-to-typescript:
         specifier: ^13.1.0
         version: 13.1.0
-      ubik:
-        specifier: workspace:./cosmjs-esm/ubik
-        version: link:cosmjs-esm/ubik
 
   connect/cw/cosmjs-esm:
     dependencies:
