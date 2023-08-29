@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -68,7 +68,7 @@
   },
   "dependencies": {
     "@fadroma/agent": "workspace:^1.1.2",
-    "@fadroma/connect": "workspace:^3.4.5",
+    "@fadroma/connect": "workspace:^3.4.6",
     "@hackbg/logs": "workspace:^2.0.7",
     "@hackbg/cmds": "workspace:^3.0.7",
     "@hackbg/dock": "workspace:^2",
