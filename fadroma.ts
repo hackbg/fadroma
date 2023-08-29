@@ -510,14 +510,14 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     type: "module",
     version: "0.1.0",
     dependencies: {
-      "@fadroma/agent": "^1.1.2",
-      "@fadroma/scrt": "^10.1.6",
-      "secretjs": "1.9.3"
+      "@fadroma/agent":  "1.1.2",
+      "@fadroma/scrt":   "10.1.6",
+      "secretjs":        "1.9.3"
     },
     devDependencies: {
-      "@hackbg/fadroma": `^1.4.9`,
+      "@hackbg/fadroma": `1.4.11`,
       "@hackbg/ganesha": "4.2.0",
-      "typescript": "^5.1.6",
+      "typescript":      "^5.1.6",
     },
     scripts: {
       "build":   "fadroma build",
