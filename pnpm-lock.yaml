@@ -8,7 +8,7 @@ importers:
         specifier: workspace:1.1.2
         version: link:agent
       '@fadroma/connect':
-        specifier: workspace:3.4.7
+        specifier: workspace:3.4.8
         version: link:connect
       '@hackbg/cmds':
         specifier: workspace:3.0.7
@@ -151,13 +151,13 @@ importers:
         specifier: workspace:1.1.2
         version: link:../agent
       '@fadroma/cw':
-        specifier: workspace:0.2.8
+        specifier: workspace:0.2.9
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.6
+        specifier: workspace:10.1.7
         version: link:scrt
       '@hackbg/conf':
-        specifier: workspace:3.x
+        specifier: workspace:3.1.5
         version: link:../ensuite/toolbox/conf
       secretjs:
         specifier: 1.x
@@ -166,8 +166,8 @@ importers:
   connect/cw:
     dependencies:
       '@hackbg/conf':
-        specifier: ^2
-        version: 2.0.0
+        specifier: workspace:3.1.5
+        version: link:../../ensuite/toolbox/conf
       '@hackbg/cosmjs-esm':
         specifier: workspace:1.0.0-rc.16
         version: link:cosmjs-esm
@@ -354,8 +354,8 @@ importers:
   connect/scrt:
     dependencies:
       '@hackbg/conf':
-        specifier: ^2
-        version: 2.0.0
+        specifier: workspace:3.1.5
+        version: link:../../ensuite/toolbox/conf
     devDependencies:
       '@hackbg/ensuite':
         specifier: 1.x
@@ -1355,10 +1355,6 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
-
-  /@hackbg/conf@2.0.0:
-    resolution: {integrity: sha512-uHhqHwNWwfoU9dArJOwByujEwZ37ucgIn8gWb3WA8ypDoizwxrzdait4vDNQyT9iMCeZW/crhCXgXoQIp0FVyg==}
-    dev: false
 
   /@hackbg/protobufjs-esm@6.11.4-patch.1:
     resolution: {integrity: sha512-wim0TgIUd7lMkzAm+/pNejIYmQh4FXkAB+ohl1vtB+EOqEYbJWNlFNMTCxIHG8WsIcYRO7hcskmKhiv31GL+vg==}
