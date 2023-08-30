@@ -9,7 +9,7 @@
     "@hackbg/conf": "^2"
   },
   "peerDependencies": {
-    "@fadroma/agent": "workspace:^1.1.2",
+    "@fadroma/agent": "workspace:1.1.2",
     "secretjs": "1.x"
   },
   "devDependencies": {

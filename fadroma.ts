@@ -515,7 +515,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
       "secretjs":        "1.9.3"
     },
     devDependencies: {
-      "@hackbg/fadroma": `1.4.11`,
+      "@hackbg/fadroma": `1.4.12`,
       "@hackbg/ganesha": "4.2.0",
       "typescript":      "^5.1.6",
     },
