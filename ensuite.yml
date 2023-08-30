@@ -17,6 +17,7 @@ coverage:
     - "*.dist.*"
     - "**/*.dist.*"
     - connect/cw/cosmjs-esm/**/*
+    - connect/scrt/secret.js/**/*
 
 header:
   title: Fadroma
