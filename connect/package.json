@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "3.4.11",
+  "version": "3.4.12",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts", "!cw", "!scrt" ],
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@fadroma/agent": "workspace:1.1.2",
-    "@fadroma/scrt":  "workspace:10.1.7",
+    "@fadroma/scrt":  "workspace:10.1.8",
     "@fadroma/cw":    "workspace:0.2.11",
     "@hackbg/conf":   "workspace:3.1.5",
     "secretjs":       "1.x"
