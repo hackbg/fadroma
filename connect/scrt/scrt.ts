@@ -20,7 +20,7 @@ export * from './scrt-base'
 export * from './scrt-chain'
 export * from './scrt-auth'
 export * from './scrt-token'
-export * as SecretJS from 'secretjs'
+export * as SecretJS from '@hackbg/secretjs-esm'
 
 import { Chain } from './scrt-chain'
 export const mainnet = Chain.mainnet

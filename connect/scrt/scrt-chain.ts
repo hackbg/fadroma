@@ -1,4 +1,4 @@
-import * as SecretJS from 'secretjs'
+import * as SecretJS from '@hackbg/secretjs-esm'
 import { Config, Error, Console } from './scrt-base'
 import {
   Agent, Contract, assertAddress, into, base64, bip39, bip39EN, bold,
