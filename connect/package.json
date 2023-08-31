@@ -3,7 +3,7 @@
   "version": "3.4.13",
   "type":    "module",
   "main":    "./connect.ts",
-  "files":   [ "*.ts", "!cw", "!scrt" ],
+  "files":   [ "*.ts", "!cw", "!evm", "!scrt" ],
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
     "check": "tsc --noEmit",

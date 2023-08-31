@@ -358,13 +358,13 @@ importers:
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
         specifier: workspace:1.9.3-patch.3
-        version: link:secret.js
+        version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
         specifier: 1.x
         version: link:../../ensuite
 
-  connect/scrt/secret.js:
+  connect/scrt/secretjs-esm:
     dependencies:
       '@cosmjs/encoding':
         specifier: 0.27.1
@@ -1666,8 +1666,8 @@ packages:
     resolution: {integrity: sha512-5VYDupIWbIXq3ftPV1LkS5Ya/T7Ol/AzWVhNxZ79hPe/mBfv1bGau/LqIYOm2zxGlgm9hBHOTmWGqNYDwr9LNQ==}
     dependencies:
       '@cosmjs/stream': 0.29.5
-      isomorphic-ws: 4.0.1(ws@7.0.0)
-      ws: 7.0.0
+      isomorphic-ws: 4.0.1(ws@7.5.9)
+      ws: 7.5.9
       xstream: 11.14.0
     transitivePeerDependencies:
       - bufferutil
@@ -3398,6 +3398,7 @@ packages:
 
   /async-limiter@1.0.1:
     resolution: {integrity: sha512-csOlWGAcRFJaI6m+F2WKdnMKr4HhdhFVBk0H/QbJFMCr+uO2kwohwXQPxw/9OCxp05r5ghVBFSyioixx3gfkNQ==}
+    dev: false
 
   /async@3.2.4:
     resolution: {integrity: sha512-iAB+JbDEGXhyIUavoDl9WP/Jj106Kz9DEn1DPgYw5ruDn0e3Wgi3sKFm55sASdGBNOQB8F59d9qQ7deqrHA8wQ==}
@@ -6429,6 +6430,15 @@ packages:
       ws: '*'
     dependencies:
       ws: 7.0.0
+    dev: false
+
+  /isomorphic-ws@4.0.1(ws@7.5.9):
+    resolution: {integrity: sha512-BhBvN2MBpWTaSHdWRb/bwdZJ1WaehQ2L1KngkCkfLUGF0mAWAT1sQUQacEmQ0jXkFw/czDXPNQSL5u2/Krsz1w==}
+    peerDependencies:
+      ws: '*'
+    dependencies:
+      ws: 7.5.9
+    dev: true
 
   /istanbul-lib-coverage@3.2.0:
     resolution: {integrity: sha512-eOeJ5BHCmHYvQK7xt9GkdHuzuCGS1Y6g9Gvnx3Ym33fz/HpLRYxiS0wHNr+m/MBC8B647Xt608vCDEvhl9c6Mw==}
@@ -10521,6 +10531,7 @@ packages:
         optional: true
     dependencies:
       async-limiter: 1.0.1
+    dev: false
 
   /ws@7.5.9:
     resolution: {integrity: sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==}

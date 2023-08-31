@@ -14,5 +14,5 @@
 	url    = https://github.com/hackbg/cosmjs-esm.git
 	branch = unified
 [submodule "connect/scrt/secret.js"]
-	path   = connect/scrt/secret.js
+	path = connect/scrt/secretjs-esm
 	url    = https://github.com/hackbg/secret.js.git
