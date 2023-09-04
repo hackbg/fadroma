@@ -225,9 +225,10 @@ export class Devnet implements DevnetHandle {
     if (!this.chainId) throw new DevnetError.Missing.ChainId()
     // if port is unspecified or taken, increment
     while (!this.port || await isPortTaken(Number(this.port))) {
+      const taken = this.port
       this.port = Number(this.port) + 1 || await freePort()
       if (this.port < 1024 || this.port > 65535) Object.assign(this, { port: undefined })
-      if (this.port) this.log.tryingPort(this.port)
+      if (this.port) this.log.tryingPort(this.port, taken)
     }
     // create container
     this.log.creating(this)
@@ -495,26 +496,28 @@ export class Devnet implements DevnetHandle {
 }
 
 class DevnetConsole extends Console {
-  tryingPort = (port: string|number) =>
-    this.log(`trying port`, port)
+  tryingPort = (port: string|number, taken?: string|number) =>
+    taken
+      ? this.log('Port', bold(taken), 'is taken, trying port', bold(port))
+      : this.log(`Trying port`, bold(port))
   creating = ({ chainId, url }: Partial<Devnet>) =>
-    this.log(`creating devnet`, chainId, `on`, String(url))
+    this.log(`Creating devnet`, bold(chainId), `on`, bold(String(url)))
   loadingState = (chainId1: string, chainId2: string) =>
     this.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`)
   loadingFailed = (path: string) =>
     this.warn(`Failed to load devnet state from ${path}. Deleting it.`)
   loadingRejected = (path: string) =>
     this.log(`${path} does not exist.`)
-  createdContainer = (id?: string) =>
-    this.log(`created container`, id?.slice(0, 8))
-  startingContainer = (id?: string) =>
-    this.log(`starting container`, id?.slice(0, 8))
-  stoppingContainer = (id?: string) =>
-    this.log(`stopping container`, id?.slice(0, 8))
-  warnContainerNotFound = (id?: string) =>
-    this.warn(`container ${id} not found`)
-  noContainerToDelete = (id?: string) =>
-    this.log(`no container found`, id?.slice(0, 8))
+  createdContainer = (id: string = '') =>
+    this.log(`Created container`, bold(id.slice(0, 8)))
+  startingContainer = (id: string = '') =>
+    this.log(`Starting container`, bold(id.slice(0, 8)))
+  stoppingContainer = (id: string = '') =>
+    this.log(`Stopping container`, bold(id.slice(0, 8)))
+  warnContainerNotFound = (id: string = '') =>
+    this.warn(`Container ${bold(id.slice(0, 8))} not found`)
+  noContainerToDelete = (id: string = '') =>
+    this.log(`No container found`, bold(id.slice(0, 8)))
   missingValues = ({ chainId, containerId, port }: Partial<Devnet>, path: string) => {
     if (!containerId) console.warn(`${path}: no containerId`)
     if (!chainId)     console.warn(`${path}: no chainId`)
@@ -536,12 +539,22 @@ class DevnetConsole extends Console {
     this.warn('exit handler already set for', chainId)
   isNowRunning = ({ stateDir, chainId, containerId, port }: Partial<Devnet>) => {
     return this
-      .info('running on port', bold(String(port)))
-      .info(`from container`, bold(containerId?.slice(0,8)))
-      .info('manual reset with:').info(`$`,
-        `docker kill`, containerId?.slice(0,8), `&&`,
-        `docker rm`, containerId?.slice(0,8), `&&`,
-        `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
+      .log(
+        'Devnet is running on port', bold(String(port)),
+        `from container`, bold(containerId?.slice(0,8))
+      ).info(
+        'To remove the devnet:'
+      ).info(
+        '  $ npm run devnet reset'
+      ).info(
+        'Or manually:'
+      ).info(
+        `  $ docker kill`, containerId?.slice(0,8),
+      ).info(
+        `  $ docker rm`, containerId?.slice(0,8),
+      ).info(
+        `  $ sudo rm -rf state/${chainId??'fadroma-devnet'}`
+      )
   }
 }
 
