@@ -51,7 +51,21 @@ set through environment variables.
 |**host**|`FADROMA_DEVNET_HOST`|**string**: hostname where the devnet is running|
 |**port**|`FADROMA_DEVNET_PORT`|**string**: port on which to connect to the devnet|
 
-To operate on the thus created devnet, you need the usual **Chain** and **Agent** instances.
+At this point you have prepared a *description* of a devnet.
+To actually launch it, use the `create` then the `start` method:
+
+```typescript
+await devnet.create()
+await devnet.start()
+```
+
+At this point, you should have a devnet container running,
+its state represented by files in your project's `state/` directory.
+
+To operate on the devnet thus created, you will need to wrap it
+in a **Chain** object and obtain the usual **Agent** instance.
+
+For this, the **Devnet** class has the **getChain** method.
 
 ```typescript
 const chain = devnet.getChain()
@@ -75,6 +89,8 @@ assert(chain.isDevnet)
 assert(chain.devnet === devnet)
 ```
 
+### Devnet accounts
+
 Devnet state is independent from the state of mainnet or testnet.
 That means existing wallets and faucets don't exist. Instead, you
 have access to multiple **genesis accounts**, which are provided
@@ -85,14 +101,17 @@ to specify which genesis account to use. Default genesis account
 names are `Admin`, `Alice`, `Bob`, `Charlie`, and `Mallory`.
 
 ```typescript
-const agent = chain.getAgent({ name: 'Alice' })
+const alice = chain.getAgent({ name: 'Alice' })
+await alice.ready
 ```
 
 This will populate the created Agent with the mnemonic for that
 genesis account.
 
 ```typescript
-assert(agent instanceof Agent)
+assert(
+  alice instanceof Agent
+)
 
 assert.equal(
   alice.name,
@@ -110,8 +129,8 @@ assert.equal(
 )
 ```
 
-That's it! Now use the standard Fadroma Agent API to operate
-on the local devnet as the specified identity.
+That's it! You are now set to use the standard Fadroma Agent API
+to operate on the local devnet as the specified identity.
 
 You can also specify custom genesis accounts by passing an array
 of account names to the `accounts` parameter of the **getDevnet**
@@ -124,12 +143,12 @@ const anotherDevnet = getDevnet({
 })
 
 assert.deepEqual(
-  tempDevnet.accounts,
+  anotherDevnet.accounts,
   [ 'Alice', 'Bob' ]
 )
 ```
 
-## Devnet state and lifecycle
+### Devnet state and lifecycle
 
 Each **devnet** is a stateful local instance of a chain node
 (such as `secretd` or `okp4d`), and consists of two things:
@@ -200,20 +219,7 @@ assert.deepEqual(
 )
 ```
 
-### Using genesis accounts
-
-To use the genesis accounts, simply call the **getAgent** method
-of your devnet **Chain** instance with the `name` of the genesis
-account that you want to operate as.
-
-On devnet, Fadroma creates named genesis accounts for you,
-which you can use by passing `name` to `getAgent`:
-
-```typescript
-const alice = chain.getAgent({ name: 'Alice' })
-```
-
-## Exporting a devnet snapshot
+### Exporting a devnet snapshot
 
 An exported devnet deployment is a great way to provide a
 standardized development build of your project. For example,
