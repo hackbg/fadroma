@@ -36,7 +36,7 @@ export type ChainId = string
 export type ChainRegistry = Record<string, (config: any)=>Chain>
 /** Options for connecting to a chain. */
 export interface DevnetHandle {
-  url:     URL
+  url: URL
   running: boolean
   chainId: string
   start: () => Promise<this>
@@ -107,7 +107,7 @@ export abstract class Chain {
   /** Whether this is a testnet. */
   get isTestnet () { return this.mode === ChainMode.Testnet }
   /** Whether this is a devnet. */
-  get isDevnet  () { return this.mode === ChainMode.Devnet  }
+  get isDevnet  () { return this.mode === ChainMode.Devnet }
   /** Whether this is a mocknet. */
   get isMocknet () { return this.mode === ChainMode.Mocknet }
   /** Whether this is a devnet or mocknet. */
