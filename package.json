@@ -39,7 +39,7 @@
     "test": "time ensuite GUIDE.ts.md",
     "test:build":   "time ensuite spec/Build.spec.ts.md",
     "test:deploy":  "time ensuite spec/Deploy.spec.ts.md",
-    "test:devnet":  "time ensuite spec/Devnet.spec.ts.md",
+    "test:devnet":  "time ensuite spec/Devnet.spec.ts",
     "test:factory": "time ensuite spec/Factory.spec.ts.md",
     "test:project": "time ensuite spec/Project.spec.ts.md",
     "test:scrt":    "time ensuite spec/Scrt.spec.ts.md",
@@ -47,6 +47,7 @@
 
     "cov": "time ensuite-cov GUIDE.ts.md",
     "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",
+    "cov:devnet": "time ensuite-cov spec/Devnet.spec.ts",
 
     "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",

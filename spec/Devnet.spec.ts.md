@@ -29,6 +29,8 @@ implementation uses the library [`@hackbg/dock`](https://www.npmjs.com/package/@
 to manage Docker images and containers. There is also experimental
 support for Podman.
 
+### Creating the devnet
+
 When scripting with the Fadroma API outside of the standard CLI/deployment
 context, you can use the `getDevnet` method to configure and obtain a `Devnet`
 instance.
@@ -132,6 +134,8 @@ assert.equal(
 That's it! You are now set to use the standard Fadroma Agent API
 to operate on the local devnet as the specified identity.
 
+#### Custom devnet accounts
+
 You can also specify custom genesis accounts by passing an array
 of account names to the `accounts` parameter of the **getDevnet**
 function.
@@ -139,16 +143,77 @@ function.
 ```typescript
 const anotherDevnet = getDevnet({
   accounts: [ 'Alice', 'Bob' ],
-  deleteOnExit: true, // this is just for the test's sake
 })
 
 assert.deepEqual(
   anotherDevnet.accounts,
   [ 'Alice', 'Bob' ]
 )
+
+await anotherDevnet.delete()
 ```
 
-### Devnet state and lifecycle
+### Pausing the devnet
+
+You can pause the devnet by stopping the container:
+
+```typescript
+await devnet.pause()
+await devnet.start()
+await devnet.pause()
+```
+
+### Exporting a devnet snapshot
+
+An exported devnet snapshot is a great way to provide a
+standardized development build of your project. For example,
+you can use one to test the frontend/contracts stack as a
+step of your integration pipeline.
+
+To create a snapshot, use the **export** method of the **Devnet** class:
+
+```typescript
+await devnet.export()
+```
+
+When the active chain is a devnet, the `export` command,
+which exports a list of contracts in the current deployment,
+also saves the current state of the devnet as **a new container image**.
+
+```sh
+$ npm run devnet export
+```
+
+### Cleaning up
+
+Devnets are local-only and thus temporary.
+
+To delete an individual devnet, the **Devnet** class
+provides the **delete** method. This will stop and remove
+the devnet container, then delete all devnet state in your
+project's state directory.
+
+```typescript
+await devnet.delete()
+```
+
+To delete all devnets in a project, the **Project** class
+provides the **resetDevnets** method:
+
+```typescript
+import Project from '@hackbg/fadroma'
+const project = new Project()
+project.resetDevnets()
+```
+
+The to call **resetDevnets** from the command line, use the
+`reset` command:
+
+```sh
+$ npm run devnet reset
+```
+
+## Devnet state
 
 Each **devnet** is a stateful local instance of a chain node
 (such as `secretd` or `okp4d`), and consists of two things:
@@ -198,6 +263,8 @@ assert.equal(
     and enable reuse of uploads and deployments.
 
 ```typescript
+await devnet.create()
+
 assert.equal(
   $(chain.devnet.stateDir).name,
   chain.id
@@ -217,83 +284,8 @@ assert.deepEqual(
   $(chain.devnet.stateDir, 'wallet').as(JSONDirectory).list(),
   chain.devnet.accounts
 )
-```
 
-### Exporting a devnet snapshot
-
-An exported devnet deployment is a great way to provide a
-standardized development build of your project. For example,
-you can use one to test the frontend/contracts stack as a
-step of your integration pipeline.
-
-To create a snapshot, use the **export** method of the **Devnet** class:
-
-```typescript
-await devnet.export()
-```
-
-When the active chain is a devnet, the `export` command,
-which exports a list of contracts in the current deployment,
-also saves the current state of the devnet as **a new container image**.
-
-```sh
-$ npm run devnet export
-```
-
-The Devnet instance has the following lifecycle methods:
-
-```typescript
-await devnet.create()
-await devnet.start()
-await devnet.save()
-await devnet.pause()
-```
-
-Devnet URL defaults to localhost:
-
-```typescript
-// specifying devnet port:
-assert.equal(
-  getDevnet({ port: '1234' }).url.toString(),
-  'http://localhost:1234/'
-)
-```
-
-Devnet is stateful. It's represented in the project by e.g. `state/fadroma-devnet/devnet.json`.
-
-```typescript
-assert.ok(devnet.stateDir)
-assert.ok(devnet.save())
-assert.ok(await Devnet.load(devnet.stateDir))
-```
-
-## Cleaning up
-
-Devnets are local-only and thus temporary.
-
-To delete an individual devnet, the **Devnet** class
-provides the **delete** method. This will stop and remove
-the devnet container, then delete all devnet state in your
-project's state directory.
-
-```typescript
 await devnet.delete()
-```
-
-To delete all devnets in a project, the **Project** class
-provides the **resetDevnets** method:
-
-```typescript
-import Project from '@hackbg/fadroma'
-const project = new Project()
-project.resetDevnets()
-```
-
-The to call **resetDevnets** from the command line, use the
-`reset` command:
-
-```sh
-$ npm run devnet reset
 ```
 
 ---
