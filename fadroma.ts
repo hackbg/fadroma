@@ -249,7 +249,6 @@ export default class Project extends CommandContext {
     toolVersions()
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
     const agent = this.uploader?.agent ?? chain?.getAgent()
-    this.log.br()
     this.log.info('Project name:           ', bold(this.name))
     this.log.info('Project root:           ', bold(this.root.path))
     this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))

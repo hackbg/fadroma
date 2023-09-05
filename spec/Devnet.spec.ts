@@ -45,5 +45,13 @@ let devnet
   assert.ok((await devnet.container) instanceof Container)
   assert.ok(await devnet.assertPresence() || true)
   assert.ok(await devnet.create())
+  ;(await devnet.container).remove()
+  assert.rejects(devnet.assertPresence())
+  assert.ok(devnet = new Devnet())
+  assert.ok(await devnet.start())
+  assert.ok(await devnet.assertPresence() || true)
+  assert.ok(await devnet.pause())
+  assert.ok(await devnet.export())
+  assert.ok(await devnet.forceDelete() || true)
 
 })()
