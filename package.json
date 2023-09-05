@@ -72,7 +72,7 @@
     "@fadroma/connect": "workspace:3.3.8",
     "@hackbg/logs": "workspace:2.0.7",
     "@hackbg/cmds": "workspace:3.0.7",
-    "@hackbg/dock": "workspace:2",
+    "@hackbg/dock": "workspace:2.0.2",
     "@hackbg/file": "workspace:1.2.3",
     "@hackbg/port": "workspace:1",
     "@hackbg/hide": "workspace:1",
