@@ -2,6 +2,8 @@ import { DeployStore, Deployment } from '@fadroma/agent'
 import { DeployStore_v1 } from '@hackbg/fadroma'
 import * as assert from 'node:assert'
 
+import './Deploy.spec.ts.md'
+
 new class MyDeployStore extends DeployStore {
   list (): string[] { throw 'stub' }
   save () { throw 'stub' }

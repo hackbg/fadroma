@@ -264,6 +264,8 @@ assert.equal(
 
 ```typescript
 await devnet.create()
+await devnet.start()
+await devnet.pause()
 
 assert.equal(
   $(chain.devnet.stateDir).name,

@@ -233,14 +233,16 @@ Mocknet is built into `@fadroma/agent`.
 These imports add the rest of the guides to the test run:*
 
 ```typescript
-await import('./spec/Agent.spec.ts.md')
-await import('./spec/Mocknet.spec.ts.md')
+await import('./spec/Agent.test.ts')
+await import('./spec/Build.test.ts')
+await import('./spec/Deploy.test.ts')
+await import('./spec/Devnet.test.ts')
+await import('./spec/Mocknet.test.ts')
+await import('./spec/Project.test.ts')
+await import('./spec/Scrt.test.ts')
+await import('./spec/Upload.test.ts')
+
 await import('./spec/Connect.spec.ts.md')
-await import('./spec/Build.spec.ts.md')
-await import('./spec/Devnet.spec.ts.md')
-await import('./spec/Upload.spec.ts.md')
-await import('./spec/Deploy.spec.ts.md')
-await import('./spec/Scrt.spec.ts.md')
-await import('./spec/Project.spec.ts.md')
+await import('./spec/CW.spec.ts.md')
 await import('./spec/Factory.spec.ts.md')
 ```

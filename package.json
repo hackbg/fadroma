@@ -46,8 +46,9 @@
     "test:cw":      "time ensuite spec/CW.spec.ts.md",
 
     "cov": "time ensuite-cov GUIDE.ts.md",
+    "cov:build":   "time ensuite-cov spec/Build.spec.ts.md",
     "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",
-    "cov:devnet": "time ensuite-cov spec/Devnet.spec.ts",
+    "cov:devnet":  "time ensuite-cov spec/Devnet.spec.ts",
 
     "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
