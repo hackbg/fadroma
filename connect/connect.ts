@@ -21,6 +21,7 @@ import {
 } from '@fadroma/agent'
 import type { Agent, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
+import * as CW from '@fadroma/cw'
 export * from '@fadroma/cw'
 
 import { Config } from '@hackbg/conf'
@@ -56,30 +57,20 @@ export class ConnectConfig extends Config {
     this.override(options)
     Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
     this.scrt = new Scrt.Config(options?.scrt, environment)
-    this.chainId = this.getString('FADROMA_CHAIN_ID', ()=>{
-      const chainIds = {
-        Mocknet:     'mocknet',
-        ScrtDevnet:  'fadroma-devnet',
-        ScrtTestnet: this.scrt.testnetChainId,
-        ScrtMainnet: this.scrt.mainnetChainId,
-      }
-      return chainIds[this.chain as keyof typeof chainIds]
-    })
+    this.chainId = this.getString('FADROMA_CHAIN_ID', ()=>this.getChainId())
   }
-  /** Logger handle. */
-  log = new ConnectConsole('@fadroma/connect')
-  /** Secret Network configuration. */
-  scrt: Scrt.Config
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  agentName: string
-    = this.getString('FADROMA_AGENT', ()=>'Admin')
-  /** Name of chain to use. */
-  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN',
-    ()=>'Mocknet')
-  /** Override chain id. */
-  chainId?: ChainId
-  /** Override chain mode. */
-  chainMode: ChainMode = this.getString('FADROMA_CHAIN_MODE', () => {
+
+  protected getChainId () {
+    const chainIds = {
+      Mocknet:     'mocknet',
+      ScrtDevnet:  'fadroma-devnet',
+      ScrtTestnet: this.scrt.testnetChainId,
+      ScrtMainnet: this.scrt.mainnetChainId,
+    }
+    return chainIds[this.chain as keyof typeof chainIds]
+  }
+
+  protected getChainMode () {
     const chainModes = {
       Mocknet:     ChainMode.Mocknet,
       ScrtDevnet:  ChainMode.Devnet,
@@ -90,7 +81,20 @@ export class ConnectConfig extends Config {
     const result = chainModes[this.chain as keyof typeof chainModes]
     if (!result) throw new ConnectError.UnknownChainSelected(this.chain, chainModes)
     return result
-  }) as ChainMode
+  }
+
+  /** Logger handle. */
+  log = new ConnectConsole('@fadroma/connect')
+  /** Secret Network configuration. */
+  scrt: Scrt.Config
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  agentName: string = this.getString('FADROMA_AGENT', ()=>'Admin')
+  /** Name of chain to use. */
+  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN', ()=>'Mocknet')
+  /** Override chain id. */
+  chainId?: ChainId
+  /** Override chain mode. */
+  chainMode: ChainMode = this.getString('FADROMA_CHAIN_MODE', () => this.getChainMode())
   /** Mnemonic to use for authentication to testnet. */
   testnetMnemonic?: string
     = this.getString('FADROMA_TESTNET_MNEMONIC', ()=>undefined)
@@ -99,19 +103,19 @@ export class ConnectConfig extends Config {
     = this.getString('FADROMA_MNEMONIC', ()=>undefined)
   /** Create the Chain instance specified by the configuration. */
   getChain <C extends Chain> (
-    getChain: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chain
+    chainToGet: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chain
   ): C {
-    if (!getChain) {
-      getChain = this.chain
-      if (!getChain) throw new Error.Missing.Chain()
+    if (!chainToGet) {
+      chainToGet = this.chain
+      if (!chainToGet) throw new Error.Missing.Chain()
     }
-    if (typeof getChain === 'string') { // allow name to be passed
-      getChain = Chain.variants[getChain]
+    if (typeof chainToGet === 'string') { // allow name to be passed
+      chainToGet = Chain.variants[chainToGet]
     }
-    if (!getChain) { // if still unspecified, throw
+    if (!chainToGet) { // if still unspecified, throw
       throw new ConnectError.UnknownChainSelected(this.chain!, Chain.variants)
     }
-    return getChain({ config: this }) as C // create Chain object
+    return chainToGet({ config: this }) as C // create Chain object
   }
   /** Create the Agent instance identified by the configuration. */
   getAgent <A extends Agent> (options: Partial<A> = {}): A {

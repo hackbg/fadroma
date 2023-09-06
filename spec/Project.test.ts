@@ -3,6 +3,8 @@ import Project from '@hackbg/fadroma'
 import { withTmpDir } from '@hackbg/file'
 import { ProjectWizard } from '../fadroma-wizard'
 
+import './Project.spec.ts.md'
+
 export const tmpDir = () => {
   let x
   withTmpDir(dir=>x=dir)

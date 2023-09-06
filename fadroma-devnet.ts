@@ -105,7 +105,7 @@ export class Devnet implements DevnetHandle {
     // This determines whether generated chain id has random suffix
     this.deleteOnExit = options.deleteOnExit ?? false
     // This determines the state directory path
-    this.chainId = options.chainId ?? (this.deleteOnExit ? randomChainId() : 'fadroma-devnet')
+    this.chainId = options.chainId ?? randomChainId()
     if (!this.chainId) throw new DevnetError.NoChainId()
     // Try to update options from stored state
     this.stateDir = options.stateDir ?? $('state', this.chainId).path
@@ -141,20 +141,24 @@ export class Devnet implements DevnetHandle {
   get log (): DevnetConsole {
     return new DevnetConsole(`${this.chainId} @ ${this.host}:${this.port}`)
   }
+
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL {
     return new URL(`${this.protocol}://${this.host}:${this.port}`)
   }
+
   /** This should point to the standard production docker image for the network. */
   get image () {
     if (this.engine && this.imageTag) {
       return this.engine.image(this.imageTag, this.dockerfile, [this.initScriptMount]).ensure()
     }
   }
+
   /** Virtual path inside the container where the init script is mounted. */
   get initScriptMount (): string {
     return this.initScript ? $('/', $(this.initScript).name).path : '/devnet.init.mjs'
   }
+
   /** Environment variables in the container. */
   get spawnEnv () {
     // Environment variables in devnet container
@@ -173,6 +177,7 @@ export class Devnet implements DevnetHandle {
     }
     return env
   }
+
   /** Options for the container. */
   get spawnOptions () {
     const Binds: string[] = []
@@ -191,24 +196,19 @@ export class Devnet implements DevnetHandle {
     const options = {env: this.spawnEnv, exposed: [`${this.port}/tcp`], extra}
     return options
   }
+
   /** Handle to created devnet container */
   get container () {
     if (this.engine && this.containerId) {
       return this.engine.container(this.containerId)
     }
   }
-  /** This file contains the id of the current devnet container.
-    * TODO store multiple containers */
-  get stateFile (): JSONFile<Partial<this>> {
-    return $(this.stateDir, Devnet.stateFile)
-      .as(JSONFile) as JSONFile<Partial<this>>
-  }
 
   /** Emit a warning if devnet state is missing. */
   async assertPresence () {
     if (this.containerId) {
       try {
-        await this.container
+        await (await this.container!).inspect()
         this.log.info("container id:", bold(this.containerId.slice(0, 8)))
       } catch (e) {
         throw new Error(
@@ -218,26 +218,34 @@ export class Devnet implements DevnetHandle {
     }
   }
 
+  /** Create the devnet container and save state. */
   create = async (): Promise<this> => {
-    // ensure we have image and chain id
-    const image = await this.image
-    if (!this.image) throw new DevnetError.Missing.DevnetImage()
-    if (!this.chainId) throw new DevnetError.Missing.ChainId()
-    // if port is unspecified or taken, increment
-    while (!this.port || await isPortTaken(Number(this.port))) {
-      this.port = Number(this.port) + 1 || await freePort()
-      if (this.port < 1024 || this.port > 65535) Object.assign(this, { port: undefined })
-      if (this.port) this.log.tryingPort(this.port)
+    const exists = await this.container?.catch(()=>null)
+    if (exists) {
+      this.log.alreadyExists(this.containerId)
+    } else {
+      this.log('Creating...')
+      // ensure we have image and chain id
+      const image = await this.image
+      if (!this.image) throw new DevnetError.Missing.DevnetImage()
+      if (!this.chainId) throw new DevnetError.Missing.ChainId()
+      // if port is unspecified or taken, increment
+      while (!this.port || await isPortTaken(Number(this.port))) {
+        const taken = this.port
+        this.port = Number(this.port) + 1 || await freePort()
+        if (this.port < 1024 || this.port > 65535) Object.assign(this, { port: undefined })
+        if (this.port) this.log.tryingPort(this.port, taken)
+      }
+      // create container
+      this.log.creating(this)
+      const init = this.initScript ? [this.initScriptMount] : []
+      const container = image!.container(this.chainId, this.spawnOptions, init)
+      await container.create()
+      this.setExitHandler()
+      // set id and save
+      this.log.createdContainer(container.id)
+      this.containerId = container.id
     }
-    // create container
-    this.log.creating(this)
-    const init = this.initScript ? [this.initScriptMount] : []
-    const container = image!.container(this.chainId, this.spawnOptions, init)
-    await container.create()
-    this.setExitHandler()
-    // set id and save
-    this.log.createdContainer(container.id)
-    this.containerId = container.id
     return await this.save()
   }
 
@@ -253,30 +261,16 @@ export class Devnet implements DevnetHandle {
     return this
   }
 
-  /** Restore a Devnet from the info stored in the state file */
-  static load (dir: string|Path): Devnet {
-    const console = new DevnetConsole('devnet')
-    dir = $(dir)
-    if (!dir.isDirectory()) {
-      throw new DevnetError.NotADirectory(dir.path)
-    }
-    const stateFile = dir.at(Devnet.stateFile)
-    if (!dir.at(Devnet.stateFile).isFile()) {
-      throw new DevnetError.NotAFile(stateFile.path)
-    }
-    let state: Partial<Devnet>
-    try {
-      state = stateFile.as(JSONFile).load() || {}
-    } catch (e) {
-      console.warn(e)
-      throw new DevnetError.LoadingFailed(stateFile.path)
-    }
-    console.missingValues(state, stateFile.path)
-    return new Devnet(state)
+  /** This file contains the id of the current devnet container.
+    * TODO store multiple containers */
+  get stateFile (): JSONFile<Partial<this>> {
+    return $(this.stateDir, Devnet.stateFile)
+      .as(JSONFile) as JSONFile<Partial<this>>
   }
 
   /** Start the container. */
   start = async (): Promise<this> => {
+    this.log('Starting...')
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
       this.log.startingContainer(container.id)
@@ -298,6 +292,7 @@ export class Devnet implements DevnetHandle {
 
   /** Stop the container. */
   pause = async () => {
+    this.log('Pausing...')
     const container = await this.container
     if (container) {
       this.log.stoppingContainer(container.id)
@@ -323,6 +318,7 @@ export class Devnet implements DevnetHandle {
   }
 
   delete = async () => {
+    this.log('Deleting...')
     let container
     try {
       container = await this.container
@@ -334,8 +330,11 @@ export class Devnet implements DevnetHandle {
       }
     }
     if (container && await container?.isRunning) {
-      await this.pause()
+      if (await container.isRunning) {
+        await this.pause()
+      }
       await container.remove()
+      this.containerId = undefined
     }
     const state = $(this.stateDir)
     const path = state.shortPath
@@ -347,21 +346,7 @@ export class Devnet implements DevnetHandle {
     } catch (e: any) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
         this.log.cannotDelete(path, e)
-        const image = await this.image
-        if (image) {
-          this.log.runningCleanupContainer(path)
-          await image.ensure()
-          const name       = `${this.chainId}-cleanup`
-          const AutoRemove = true
-          const HostConfig = { Binds: [`${$(this.stateDir).path}:/state:rw`] }
-          const extra      = { AutoRemove, HostConfig }
-          const cleanupContainer = await image.run(name, { extra }, ['-rvf', '/state'], '/bin/rm')
-          await cleanupContainer.start()
-          this.log.waitingForCleanupContainer()
-          await cleanupContainer.wait()
-          this.log.cleanupContainerDone(path)
-          $(this.stateDir).delete()
-        }
+        await this.forceDelete()
       } else {
         this.log.failedToDelete(path, e)
         throw e
@@ -370,15 +355,23 @@ export class Devnet implements DevnetHandle {
     return this
   }
 
-  static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<Devnet[]> => {
-    const state = $(path).as(OpaqueDirectory)
-    const chains = (state.exists()&&state.list()||[])
-      .map(name => $(state, name))
-      .filter(path => path.isDirectory())
-      .map(path => path.at(Devnet.stateFile).as(JSONFile))
-      .filter(path => path.isFile())
-      .map(path => $(path, '..'))
-    return Promise.all(chains.map(dir=>Devnet.load(dir).delete()))
+  private async forceDelete () {
+    const image = await this.image
+    const path = $(this.stateDir).shortPath
+    if (image) {
+      this.log.runningCleanupContainer(path)
+      await image.ensure()
+      const name       = `${this.chainId}-cleanup`
+      const AutoRemove = true
+      const HostConfig = { Binds: [`${$(this.stateDir).path}:/state:rw`] }
+      const extra      = { AutoRemove, HostConfig }
+      const cleanupContainer = await image.run(name, { extra }, ['-rvf', '/state'], '/bin/rm')
+      await cleanupContainer.start()
+      this.log.waitingForCleanupContainer()
+      await cleanupContainer.wait()
+      this.log.cleanupContainerDone(path)
+      $(this.stateDir).delete()
+    }
   }
 
   /** Get a Chain object corresponding to this devnet. */
@@ -425,6 +418,41 @@ export class Devnet implements DevnetHandle {
     process.once('beforeExit', exitHandler)
     process.once('uncaughtExceptionMonitor', exitHandler)
     this.exitHandlerSet = true
+  }
+
+  static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<Devnet[]> => {
+    const state = $(path).as(OpaqueDirectory)
+    const chains = (state.exists()&&state.list()||[])
+      .map(name => $(state, name))
+      .filter(path => path.isDirectory())
+      .map(path => path.at(Devnet.stateFile).as(JSONFile))
+      .filter(path => path.isFile())
+      .map(path => $(path, '..'))
+    return Promise.all(chains.map(dir=>Devnet.load(dir, true).delete()))
+  }
+
+  /** Restore a Devnet from the info stored in the state file */
+  static load (dir: string|Path, allowInvalid: boolean = false): Devnet {
+    const console = new DevnetConsole('devnet')
+    dir = $(dir)
+    if (!dir.isDirectory()) {
+      throw new DevnetError.NotADirectory(dir.path)
+    }
+    const stateFile = dir.at(Devnet.stateFile)
+    if (!dir.at(Devnet.stateFile).isFile()) {
+      throw new DevnetError.NotAFile(stateFile.path)
+    }
+    let state: Partial<Devnet> = {}
+    try {
+      state = stateFile.as(JSONFile).load() || {}
+    } catch (e) {
+      console.warn(e)
+      if (!allowInvalid) {
+        throw new DevnetError.LoadingFailed(stateFile.path)
+      }
+    }
+    console.missingValues(state, stateFile.path)
+    return new Devnet(state)
   }
 
   static stateFile = 'devnet.json'
@@ -495,53 +523,67 @@ export class Devnet implements DevnetHandle {
 }
 
 class DevnetConsole extends Console {
-  tryingPort = (port: string|number) =>
-    this.log(`trying port`, port)
+  tryingPort = (port: string|number, taken?: string|number) =>
+    taken
+      ? this.log('Port', bold(taken), 'is taken, trying port', bold(port))
+      : this.log(`Trying port`, bold(port))
   creating = ({ chainId, url }: Partial<Devnet>) =>
-    this.log(`creating devnet`, chainId, `on`, String(url))
+    this.log(`Creating devnet`, bold(chainId), `on`, bold(String(url)))
   loadingState = (chainId1: string, chainId2: string) =>
     this.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`)
   loadingFailed = (path: string) =>
     this.warn(`Failed to load devnet state from ${path}. Deleting it.`)
   loadingRejected = (path: string) =>
     this.log(`${path} does not exist.`)
-  createdContainer = (id?: string) =>
-    this.log(`created container`, id?.slice(0, 8))
-  startingContainer = (id?: string) =>
-    this.log(`starting container`, id?.slice(0, 8))
-  stoppingContainer = (id?: string) =>
-    this.log(`stopping container`, id?.slice(0, 8))
-  warnContainerNotFound = (id?: string) =>
-    this.warn(`container ${id} not found`)
-  noContainerToDelete = (id?: string) =>
-    this.log(`no container found`, id?.slice(0, 8))
+  createdContainer = (id: string = '') =>
+    this.log(`Created container`, bold(id.slice(0, 8)))
+  alreadyExists = (id: string = '') =>
+    this.log(`Devnet already exists in container`, bold(id.slice(0, 8)))
+  startingContainer = (id: string = '') =>
+    this.log(`Starting container`, bold(id.slice(0, 8)))
+  stoppingContainer = (id: string = '') =>
+    this.log(`Stopping container`, bold(id.slice(0, 8)))
+  warnContainerNotFound = (id: string = '') =>
+    this.warn(`Container ${bold(id.slice(0, 8))} not found`)
+  noContainerToDelete = (id: string = '') =>
+    this.log(`No container found`, bold(id.slice(0, 8)))
   missingValues = ({ chainId, containerId, port }: Partial<Devnet>, path: string) => {
     if (!containerId) console.warn(`${path}: no containerId`)
     if (!chainId)     console.warn(`${path}: no chainId`)
     if (!port)        console.warn(`${path}: no port`)
   }
   deleting = (path: string) =>
-    this.log(`deleting ${path}...`)
+    this.log(`Deleting ${path}...`)
   cannotDelete = (path: string, error: any) =>
-    this.warn(`failed to delete ${path}: ${error.code}`)
+    this.warn(`Failed to delete ${path}: ${error.code}`)
   runningCleanupContainer = (path: string) =>
-    this.log('running cleanup container for', path)
+    this.log('Running cleanup container for', path)
   waitingForCleanupContainer = () =>
-    this.log('waiting for cleanup container to finish...')
+    this.log('Waiting for cleanup container to finish...')
   cleanupContainerDone = (path: string) =>
-    this.log(`deleted ${path}/* via cleanup container.`)
+    this.log(`Deleted ${path}/* via cleanup container.`)
   failedToDelete = (path: string, error: any) =>
-    this.warn(`failed to delete ${path}:`, error)
+    this.warn(`Failed to delete ${path}:`, error)
   exitHandlerSet = (chainId: string) =>
-    this.warn('exit handler already set for', chainId)
+    this.warn('Exit handler already set for', chainId)
   isNowRunning = ({ stateDir, chainId, containerId, port }: Partial<Devnet>) => {
     return this
-      .info('running on port', bold(String(port)))
-      .info(`from container`, bold(containerId?.slice(0,8)))
-      .info('manual reset with:').info(`$`,
-        `docker kill`, containerId?.slice(0,8), `&&`,
-        `docker rm`, containerId?.slice(0,8), `&&`,
-        `sudo rm -rf state/${chainId??'fadroma-devnet'}`)
+      .log(
+        'Devnet is running on port', bold(String(port)),
+        `from container`, bold(containerId?.slice(0,8))
+      ).info(
+        'To remove the devnet:'
+      ).info(
+        '  $ npm run devnet reset'
+      ).info(
+        'Or manually:'
+      ).info(
+        `  $ docker kill`, containerId?.slice(0,8),
+      ).info(
+        `  $ docker rm`, containerId?.slice(0,8),
+      ).info(
+        `  $ sudo rm -rf state/${chainId??'fadroma-devnet'}`
+      )
   }
 }
 

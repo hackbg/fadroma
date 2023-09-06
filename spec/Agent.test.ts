@@ -1,6 +1,8 @@
 import { Chain, Agent, Bundle } from '@fadroma/agent'
 import assert from 'node:assert'
 
+import './Agent.spec.ts.md'
+
 let chain: Chain = Chain.mocknet()
 let agent: Agent = await chain.getAgent({ address: 'testing1agent0' })
 let bundle: Bundle

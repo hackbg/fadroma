@@ -249,7 +249,6 @@ export default class Project extends CommandContext {
     toolVersions()
     const chain = this.uploader?.agent?.chain ?? this.config.getChain()
     const agent = this.uploader?.agent ?? chain?.getAgent()
-    this.log.br()
     this.log.info('Project name:           ', bold(this.name))
     this.log.info('Project root:           ', bold(this.root.path))
     this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
@@ -510,14 +509,14 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     type: "module",
     version: "0.1.0",
     dependencies: {
-      "@fadroma/agent": "1.1.2",
-      "@fadroma/scrt": "10.1.7",
-      "secretjs": "1.9.3"
+      "@fadroma/agent":  "1.1.2",
+      "@fadroma/scrt":   "10.1.6",
+      "secretjs":        "1.9.3"
     },
     devDependencies: {
       "@hackbg/fadroma": `1.5.9`,
       "@hackbg/ganesha": "4.2.0",
-      "typescript": "^5.1.6",
+      "typescript":      "^5.1.6",
     },
     scripts: {
       "build":   "fadroma build",

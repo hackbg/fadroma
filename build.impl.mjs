@@ -15,8 +15,8 @@ async function main (options = {}) {
 
   let {
     tmpBuild    = env('_TMP_BUILD',  '/tmp/fadroma-build'),
-    tmpTarget   = env('_TMP_TARGET', '/tmp/target'),
-    tmpGit      = env('_TMP_GIT',    '/tmp/git'),
+    tmpTarget   = env('_TMP_TARGET', resolve(tmpBuild, 'target')),
+    tmpGit      = env('_TMP_GIT',    '/tmp/fadroma-git'),
     registry    = env('_REGISTRY',   '/usr/local/cargo/registry'),
     srcSubdir   = env('_SRC_SUBDIR', '.') || '.',
     gitRoot     = env('_GIT_ROOT',   `/src/.git`),
@@ -49,7 +49,7 @@ async function main (options = {}) {
   function lookAround () {
     run(`pwd`)
     run(`ls -al`)
-    run(`ls -al /tmp/target`)
+    run(`ls -al ${tmpTarget}`)
   }
 
   function setupToolchain () {

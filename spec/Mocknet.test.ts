@@ -1,5 +1,8 @@
 import * as assert from 'node:assert'
 import { Mocknet } from '@fadroma/agent'
+
+import './Mocknet.spec.ts.md'
+
 new Mocknet.Console().log('...')
 new Mocknet.Console().trace('...')
 new Mocknet.Console().debug('...')

@@ -2,6 +2,8 @@ import assert from 'node:assert'
 import * as Scrt from '@fadroma/scrt'
 import { Agent, ChainId, Address } from '@fadroma/agent'
 
+import './Scrt.spec.ts.md'
+
 const SecretJS = (Scrt.SecretJS as any).default
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 let chain: any // for mocking
