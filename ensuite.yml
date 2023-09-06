@@ -1,21 +1,22 @@
 coverage:
   exclude:
-    - coverage/**/*
-    - "*/coverage/**/*"
-    - ensuite/**/*
-    - examples/**/*
-    - fixtures/**/*
-    - spec/**/*
-    - shim/**/*
-    - dist/**/*
-    - typedoc-theme.tsx
-    - fadroma.browser.ts
-    - build.impl.mjs
-    - devnets/devnet.init.mjs
-    - devnets/devnet.server.mjs
-    - fadroma.cli.cjs
-    - "*.dist.*"
     - "**/*.dist.*"
+    - "*.dist.*"
+    - "*/coverage/**/*"
+    - "build.impl.mjs"
+    - "coverage/**/*"
+    - "devnets/devnet.init.mjs"
+    - "devnets/devnet.server.mjs"
+    - "dist/**/*"
+    - "ensuite/**/*"
+    - "examples/**/*"
+    - "fadroma.browser.ts"
+    - "fadroma.cli.cjs"
+    - "fixtures/**/*"
+    - "schema"
+    - "shim/**/*"
+    - "spec/**/*"
+    - "typedoc-theme.tsx"
 
 header:
   title: Fadroma

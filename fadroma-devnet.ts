@@ -268,28 +268,6 @@ export class Devnet implements DevnetHandle {
       .as(JSONFile) as JSONFile<Partial<this>>
   }
 
-  /** Restore a Devnet from the info stored in the state file */
-  static load (dir: string|Path): Devnet {
-    const console = new DevnetConsole('devnet')
-    dir = $(dir)
-    if (!dir.isDirectory()) {
-      throw new DevnetError.NotADirectory(dir.path)
-    }
-    const stateFile = dir.at(Devnet.stateFile)
-    if (!dir.at(Devnet.stateFile).isFile()) {
-      throw new DevnetError.NotAFile(stateFile.path)
-    }
-    let state: Partial<Devnet>
-    try {
-      state = stateFile.as(JSONFile).load() || {}
-    } catch (e) {
-      console.warn(e)
-      throw new DevnetError.LoadingFailed(stateFile.path)
-    }
-    console.missingValues(state, stateFile.path)
-    return new Devnet(state)
-  }
-
   /** Start the container. */
   start = async (): Promise<this> => {
     this.log('Starting...')
@@ -396,17 +374,6 @@ export class Devnet implements DevnetHandle {
     }
   }
 
-  static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<Devnet[]> => {
-    const state = $(path).as(OpaqueDirectory)
-    const chains = (state.exists()&&state.list()||[])
-      .map(name => $(state, name))
-      .filter(path => path.isDirectory())
-      .map(path => path.at(Devnet.stateFile).as(JSONFile))
-      .filter(path => path.isFile())
-      .map(path => $(path, '..'))
-    return Promise.all(chains.map(dir=>Devnet.load(dir).delete()))
-  }
-
   /** Get a Chain object corresponding to this devnet. */
   getChain = <C extends Chain, D extends ChainClass<C>> (
     $C: ChainClass<C> = Chain as unknown as ChainClass<C>
@@ -451,6 +418,41 @@ export class Devnet implements DevnetHandle {
     process.once('beforeExit', exitHandler)
     process.once('uncaughtExceptionMonitor', exitHandler)
     this.exitHandlerSet = true
+  }
+
+  static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<Devnet[]> => {
+    const state = $(path).as(OpaqueDirectory)
+    const chains = (state.exists()&&state.list()||[])
+      .map(name => $(state, name))
+      .filter(path => path.isDirectory())
+      .map(path => path.at(Devnet.stateFile).as(JSONFile))
+      .filter(path => path.isFile())
+      .map(path => $(path, '..'))
+    return Promise.all(chains.map(dir=>Devnet.load(dir, true).delete()))
+  }
+
+  /** Restore a Devnet from the info stored in the state file */
+  static load (dir: string|Path, allowInvalid: boolean = false): Devnet {
+    const console = new DevnetConsole('devnet')
+    dir = $(dir)
+    if (!dir.isDirectory()) {
+      throw new DevnetError.NotADirectory(dir.path)
+    }
+    const stateFile = dir.at(Devnet.stateFile)
+    if (!dir.at(Devnet.stateFile).isFile()) {
+      throw new DevnetError.NotAFile(stateFile.path)
+    }
+    let state: Partial<Devnet> = {}
+    try {
+      state = stateFile.as(JSONFile).load() || {}
+    } catch (e) {
+      console.warn(e)
+      if (!allowInvalid) {
+        throw new DevnetError.LoadingFailed(stateFile.path)
+      }
+    }
+    console.missingValues(state, stateFile.path)
+    return new Devnet(state)
   }
 
   static stateFile = 'devnet.json'
