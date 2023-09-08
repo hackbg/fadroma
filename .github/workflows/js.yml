@@ -11,10 +11,10 @@ jobs:
       - name: Setup PNPM
         uses: pnpm/action-setup@v2
         with: { version: 7.29.1 }
-      - name: Setup Node 19
+      - name: Setup Node 18
         uses: actions/setup-node@v3
         with:
-          node-version: "19"
+          node-version: "18"
           check-latest: true
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
