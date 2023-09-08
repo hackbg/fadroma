@@ -182,7 +182,7 @@ class ScrtAgent extends Agent {
       resolve, reject
     )=>{
       try {
-        const _SecretJS = this.chain.SecretJS
+        const _SecretJS = this.chain.SecretJS || SecretJS
         let wallet = this.wallet
         if (!wallet || wallet instanceof _SecretJS.ReadonlySigner) {
           // If this is a named devnet agent
@@ -685,7 +685,7 @@ class ScrtBundle extends Bundle {
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
     await super.submit(memo)
-    const SecretJS = (this.agent?.chain as ScrtChain).SecretJS
+    const _SecretJS = (this.agent?.chain as ScrtChain).SecretJS || SecretJS
     const chainId = assertChain(this).id
     const results: ScrtBundleResult[] = []
     const msgs  = this.conformedMsgs
@@ -705,7 +705,7 @@ class ScrtBundle extends Bundle {
         result.sender  = this.address
         result.tx      = txResult.transactionHash
         result.chainId = chainId
-        if (msg instanceof SecretJS.MsgInstantiateContract) {
+        if (msg instanceof _SecretJS.MsgInstantiateContract) {
           type Log = { msg: number, type: string, key: string }
           const findAddr = ({msg, type, key}: Log) =>
             msg  ==  Number(i) &&
@@ -716,7 +716,7 @@ class ScrtBundle extends Bundle {
           result.label   = msg.label
           result.address = txResult.arrayLog?.find(findAddr)?.value
         }
-        if (msg instanceof SecretJS.MsgExecuteContract) {
+        if (msg instanceof _SecretJS.MsgExecuteContract) {
           result.type    = 'wasm/MsgExecuteContract'
           result.address = msg.contractAddress
         }
@@ -738,9 +738,9 @@ class ScrtBundle extends Bundle {
 
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
-    const SecretJS = (this.agent.chain as ScrtChain).SecretJS
+    const _SecretJS = (this.agent.chain as ScrtChain).SecretJS || SecretJS
     const msgs = this.assertMessages().map(({init, exec}={})=>{
-      if (init) return new SecretJS.MsgInstantiateContract({
+      if (init) return new _SecretJS.MsgInstantiateContract({
         sender:          init.sender,
         code_id:         init.codeId,
         code_hash:       init.codeHash,
@@ -748,7 +748,7 @@ class ScrtBundle extends Bundle {
         init_msg:        init.msg,
         init_funds:      init.funds,
       })
-      if (exec) return new SecretJS.MsgExecuteContract({
+      if (exec) return new _SecretJS.MsgExecuteContract({
         sender:           exec.sender,
         contract_address: exec.contract,
         code_hash:        exec.codeHash,
