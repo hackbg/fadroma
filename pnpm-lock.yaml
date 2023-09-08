@@ -60,8 +60,8 @@ importers:
         specifier: ^1
         version: link:ensuite/toolbox/spec
       '@hackbg/ubik':
-        specifier: ^1.6.0
-        version: link:ensuite/toolbox/ubik
+        specifier: workspace:./connect/scrt/secretjs-esm/ubik
+        version: link:connect/scrt/secretjs-esm/ubik
       '@types/dockerode':
         specifier: ^3.3.14
         version: 3.3.14
