@@ -5,6 +5,8 @@ coverage:
     - "*/coverage/**/*"
     - "build.impl.mjs"
     - "coverage/**/*"
+    - "connect/scrt/secretjs-esm"
+    - "connect/cw/cosmjs-esm"
     - "devnets/devnet.init.mjs"
     - "devnets/devnet.server.mjs"
     - "dist/**/*"
