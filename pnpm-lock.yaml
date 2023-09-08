@@ -8,7 +8,7 @@ importers:
         specifier: workspace:1.1.2
         version: link:agent
       '@fadroma/connect':
-        specifier: workspace:3.4.15-rc.1
+        specifier: workspace:3.4.15-rc.2
         version: link:connect
       '@hackbg/cmds':
         specifier: workspace:3.0.7
@@ -151,10 +151,10 @@ importers:
         specifier: workspace:1.1.2
         version: link:../agent
       '@fadroma/cw':
-        specifier: workspace:0.2.12-rc.1
+        specifier: workspace:0.2.12-rc.2
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.1
+        specifier: workspace:10.1.10-rc.2
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -169,7 +169,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/cosmjs-esm':
-        specifier: workspace:1.0.0-rc.18
+        specifier: workspace:1.0.0-rc.19
         version: link:cosmjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -225,8 +225,8 @@ importers:
         specifier: ^4.2.0
         version: link:../../../ensuite/ganesha
       '@hackbg/ubik':
-        specifier: ^1.6.0
-        version: link:../../../ensuite/toolbox/ubik
+        specifier: workspace:../../scrt/secretjs-esm/ubik
+        version: link:../../scrt/secretjs-esm/ubik
       '@istanbuljs/nyc-config-typescript':
         specifier: ^1.0.1
         version: 1.0.1(nyc@15.1.0)(source-map-support@0.5.20)(ts-node@8.0.0)
@@ -360,7 +360,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.4
+        specifier: workspace:1.9.3-patch.5
         version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
