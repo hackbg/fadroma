@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get the source, no submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           profile:   minimal
@@ -19,7 +19,7 @@ jobs:
     #name: cargo tarpaulin
     #runs-on: ubuntu-latest
     #steps:
-      #- uses: actions/checkout@v2
+      #- uses: actions/checkout@v4
         #with: { submodules: true }
       #- uses: actions-rs/toolchain@v1
         #with:

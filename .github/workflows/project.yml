@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone with submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with: { submodules: recursive }
       - name: Setup PNPM
         uses: pnpm/action-setup@v2
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone with submodules
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with: { submodules: recursive }
       - name: Setup PNPM
         uses: pnpm/action-setup@v2
