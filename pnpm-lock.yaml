@@ -154,7 +154,7 @@ importers:
         specifier: workspace:0.2.12-rc.4
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.8
+        specifier: workspace:10.1.10-rc.9
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -360,7 +360,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.13
+        specifier: workspace:1.9.3-patch.14
         version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -381,9 +381,6 @@ importers:
       '@osmonauts/helpers':
         specifier: 0.3.8
         version: 0.3.8
-      base64-js:
-        specifier: ^1.5.1
-        version: 1.5.1
       big-integer:
         specifier: 1.6.51
         version: 1.6.51
