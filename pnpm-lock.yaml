@@ -154,7 +154,7 @@ importers:
         specifier: workspace:0.2.12-rc.4
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.6
+        specifier: workspace:10.1.10-rc.7
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -360,7 +360,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.10
+        specifier: workspace:1.9.3-patch.11
         version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -399,9 +399,6 @@ importers:
       cross-fetch:
         specifier: 3.1.5
         version: 3.1.5
-      curve25519-js:
-        specifier: 0.0.4
-        version: 0.0.4
       google-protobuf:
         specifier: ^3.14.0
         version: 3.21.2
@@ -4292,10 +4289,6 @@ packages:
   /csstype@3.1.2:
     resolution: {integrity: sha512-I7K1Uu0MBPzaFKg4nI5Q7Vs2t+3gWWW648spaF+Rg7pI9ds18Ugn+lvg4SHczUdKlHI5LWBXyqfS8+DufyBsgQ==}
     dev: true
-
-  /curve25519-js@0.0.4:
-    resolution: {integrity: sha512-axn2UMEnkhyDUPWOwVKBMVIzSQy2ejH2xRGy1wq81dqRwApXfIzfbE3hIX0ZRFBIihf/KDqK158DLwESu4AK1w==}
-    dev: false
 
   /custom-event@1.0.1:
     resolution: {integrity: sha512-GAj5FOq0Hd+RsCGVJxZuKaIDXDf3h6GQoNEjFgbLLI/trgtavwUbSnZ5pVfg27DVCaWjIohryS0JFwIJyT2cMg==}
