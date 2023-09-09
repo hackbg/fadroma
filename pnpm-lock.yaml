@@ -154,7 +154,7 @@ importers:
         specifier: workspace:0.2.12-rc.4
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.7
+        specifier: workspace:10.1.10-rc.8
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -360,7 +360,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.11
+        specifier: workspace:1.9.3-patch.13
         version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -417,9 +417,6 @@ importers:
       readonly-date:
         specifier: ^1.0.0
         version: 1.0.0
-      secure-random:
-        specifier: 1.1.2
-        version: 1.1.2
     devDependencies:
       '@confio/relayer':
         specifier: 0.7.0
@@ -445,9 +442,6 @@ importers:
       '@types/pako':
         specifier: 1.0.3
         version: 1.0.3
-      '@types/secure-random':
-        specifier: 1.1.0
-        version: 1.1.0
       jest:
         specifier: 27.4.7
         version: 27.4.7(ts-node@10.7.0)
