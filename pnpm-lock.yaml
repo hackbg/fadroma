@@ -8,7 +8,7 @@ importers:
         specifier: workspace:1.1.2
         version: link:agent
       '@fadroma/connect':
-        specifier: workspace:3.4.15-rc.6
+        specifier: workspace:3.4.15-rc.7
         version: link:connect
       '@hackbg/cmds':
         specifier: workspace:3.0.7
@@ -154,7 +154,7 @@ importers:
         specifier: workspace:0.2.12-rc.4
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.4
+        specifier: workspace:10.1.10-rc.5
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -360,7 +360,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.7
+        specifier: workspace:1.9.3-patch.9
         version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -369,12 +369,6 @@ importers:
 
   connect/scrt/secretjs-esm:
     dependencies:
-      '@cosmjs/encoding':
-        specifier: 0.27.1
-        version: 0.27.1
-      '@cosmjs/math':
-        specifier: 0.27.1
-        version: 0.27.1
       '@hackbg/protobufjs-esm':
         specifier: 6.11.4-patch.1
         version: 6.11.4-patch.1
@@ -387,6 +381,9 @@ importers:
       '@osmonauts/helpers':
         specifier: 0.3.8
         version: 0.3.8
+      base64-js:
+        specifier: ^1.5.1
+        version: 1.5.1
       bech32:
         specifier: 2.0.0
         version: 2.0.0
@@ -423,6 +420,9 @@ importers:
       protobufjs:
         specifier: 6.11.4
         version: 6.11.4
+      readonly-date:
+        specifier: ^1.0.0
+        version: 1.0.0
       secure-random:
         specifier: 1.1.2
         version: 1.1.2
@@ -1625,14 +1625,6 @@ packages:
       libsodium-wrappers: 0.7.11
     dev: true
 
-  /@cosmjs/encoding@0.27.1:
-    resolution: {integrity: sha512-rayLsA0ojHeniaRfWWcqSsrE/T1rl1gl0OXVNtXlPwLJifKBeLEefGbOUiAQaT0wgJ8VNGBazVtAZBpJidfDhw==}
-    dependencies:
-      base64-js: 1.5.1
-      bech32: 1.1.4
-      readonly-date: 1.0.0
-    dev: false
-
   /@cosmjs/encoding@0.29.5:
     resolution: {integrity: sha512-G4rGl/Jg4dMCw5u6PEZHZcoHnUBlukZODHbm/wcL4Uu91fkn5jVo5cXXZcvs4VCkArVGrEj/52eUgTZCmOBGWQ==}
     dependencies:
@@ -1655,12 +1647,6 @@ packages:
       '@cosmjs/stream': 0.29.5
       xstream: 11.14.0
     dev: true
-
-  /@cosmjs/math@0.27.1:
-    resolution: {integrity: sha512-cHWVjmfIjtRc7f80n7x+J5k8pe+vTVTQ0lA82tIxUgqUvgS6rogPP/TmGtTiZ4+NxWxd11DUISY6gVpr18/VNQ==}
-    dependencies:
-      bn.js: 5.2.0
-    dev: false
 
   /@cosmjs/math@0.29.5:
     resolution: {integrity: sha512-2GjKcv+A9f86MAWYLUkjhw1/WpRl2R1BTb3m9qPG7lzMA7ioYff9jY5SPCfafKdxM4TIQGxXQlYGewQL16O68Q==}
