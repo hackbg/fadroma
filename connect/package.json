@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "3.4.15-rc.4",
+  "version": "3.4.15-rc.5",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "*.ts", "!cw", "!evm", "!scrt" ],
@@ -12,7 +12,7 @@
   "dependencies": {
     "@fadroma/agent": "workspace:1.1.2",
     "@fadroma/scrt":  "workspace:10.1.10-rc.3",
-    "@fadroma/cw":    "workspace:0.2.12-rc.3",
+    "@fadroma/cw":    "workspace:0.2.12-rc.4",
     "@hackbg/conf":   "workspace:3.1.5"
   }
 }
