@@ -154,7 +154,7 @@ importers:
         specifier: workspace:0.2.12-rc.4
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.9
+        specifier: workspace:10.1.10-rc.10
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -360,7 +360,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.14
+        specifier: workspace:1.9.3-patch.19
         version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -402,9 +402,6 @@ importers:
       long:
         specifier: ^5.2.3
         version: 5.2.3
-      miscreant:
-        specifier: 0.3.2
-        version: 0.3.2
       pako:
         specifier: 2.0.4
         version: 2.0.4
@@ -7643,10 +7640,6 @@ packages:
   /minipass@7.0.3:
     resolution: {integrity: sha512-LhbbwCfz3vsb12j/WkWQPZfKTsgqIe1Nf/ti1pKjYESGLHIVjWU96G9/ljLH4F9mWNVhlQOm0VySdAWzf05dpg==}
     engines: {node: '>=16 || 14 >=14.17'}
-    dev: false
-
-  /miscreant@0.3.2:
-    resolution: {integrity: sha512-fL9KxsQz9BJB2KGPMHFrReioywkiomBiuaLk6EuChijK0BsJsIKJXdVomR+/bPj5mvbFD6wM0CM3bZio9g7OHA==}
     dev: false
 
   /mkdirp-classic@0.5.3:
