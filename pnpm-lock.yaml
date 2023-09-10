@@ -154,7 +154,7 @@ importers:
         specifier: workspace:0.2.12-rc.4
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.10
+        specifier: workspace:10.1.10-rc.11
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -360,7 +360,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.19
+        specifier: workspace:1.9.3-patch.20
         version: link:secretjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -373,14 +373,17 @@ importers:
         specifier: 6.11.4-patch.1
         version: 6.11.4-patch.1
       '@noble/hashes':
-        specifier: 1.0.0
-        version: 1.0.0
+        specifier: ^1.2.0
+        version: 1.3.2
       '@noble/secp256k1':
         specifier: 1.7.0
         version: 1.7.0
       '@osmonauts/helpers':
         specifier: 0.3.8
         version: 0.3.8
+      '@scure/base':
+        specifier: ^1.1.1
+        version: 1.1.1
       big-integer:
         specifier: 1.6.51
         version: 1.6.51
@@ -2116,10 +2119,6 @@ packages:
 
   /@noble/ed25519@2.0.0:
     resolution: {integrity: sha512-/extjhkwFupyopDrt80OMWKdLgP429qLZj+z6sYJz90rF2Iz0gjZh2ArMKPImUl13Kx+0EXI2hN9T/KJV0/Zng==}
-    dev: false
-
-  /@noble/hashes@1.0.0:
-    resolution: {integrity: sha512-DZVbtY62kc3kkBtMHqwCOfXrT/hnoORy5BJ4+HU1IR59X0KWAOqsfzQPcUl/lQLlG7qXbe/fZ3r/emxtAl+sqg==}
     dev: false
 
   /@noble/hashes@1.1.5:
