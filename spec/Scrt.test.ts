@@ -9,6 +9,8 @@ const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 let chain: any // for mocking
 let agent: Agent
 
+const mnemonic= 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
+
 /// DEVNET
 
 chain = {
@@ -17,12 +19,12 @@ chain = {
   isDevnet: true,
   devnet: {
     start: () => Promise.resolve(),
-    getAccount: ()=>Promise.resolve({ mnemonic: 'the genesis account mnemonic' } as any)
+    getAccount: ()=>Promise.resolve({ mnemonic } as any)
   } as any,
 }
 
 assert.equal(
-  'the genesis account mnemonic',
+  mnemonic,
   (await new Scrt.Agent({
     name:     'genesis',
     mnemonic: 'if name is passed mnemonic is ignored',

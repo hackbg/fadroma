@@ -72,7 +72,8 @@ The `mnemonic` property of `Agent` will be hidden to prevent leakage.
 ### By mnemonic
 
 ```typescript
-const agent1 = await mainnet.getAgent({ mnemonic: '...' }).ready
+const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
+const agent1 = await mainnet.getAgent({ mnemonic }).ready
 
 ok(agent1 instanceof Scrt.Agent)
 ok(agent1.chain instanceof Scrt.Chain)
