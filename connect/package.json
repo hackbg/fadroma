@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@fadroma/agent": "workspace:1.1.2",
-    "@fadroma/scrt":  "workspace:10.1.10-rc.12",
-    "@fadroma/cw":    "workspace:0.2.12-rc.4",
+    "@fadroma/scrt":  "workspace:10.1.10-rc.13",
+    "@fadroma/cw":    "workspace:0.2.12-rc.5",
     "@hackbg/conf":   "workspace:3.1.5"
   }
 }
