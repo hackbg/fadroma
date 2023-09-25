@@ -151,7 +151,7 @@ importers:
         specifier: workspace:1.1.2
         version: link:../agent
       '@fadroma/cw':
-        specifier: workspace:0.2.12-rc.8
+        specifier: workspace:0.2.12-rc.9
         version: link:cw
       '@fadroma/scrt':
         specifier: workspace:10.1.10-rc.13
@@ -169,7 +169,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/cosmjs-esm':
-        specifier: workspace:1.0.0-rc.26
+        specifier: workspace:1.0.0-rc.27
         version: link:cosmjs-esm
     devDependencies:
       '@hackbg/ensuite':
@@ -181,9 +181,12 @@ importers:
       '@hackbg/protobufjs-esm':
         specifier: 6.11.4-patch.1
         version: 6.11.4-patch.1
+      '@noble/curves':
+        specifier: ^1.2.0
+        version: 1.2.0
       '@noble/hashes':
-        specifier: ^1
-        version: 1.1.5
+        specifier: ^1.3.2
+        version: 1.3.2
       '@scure/base':
         specifier: ^1.1.3
         version: 1.1.3
@@ -191,11 +194,8 @@ importers:
         specifier: ^0.21.2
         version: 0.21.2
       bn.js:
-        specifier: ^5.2.0
-        version: 5.2.0
-      elliptic:
-        specifier: ^6.5.4
-        version: 6.5.4
+        specifier: github:alexandrius/bn.js-bigint#497dee1918cf35f2008ee01394f0164c7bff45e9
+        version: github.com/alexandrius/bn.js-bigint/497dee1918cf35f2008ee01394f0164c7bff45e9
       isomorphic-ws:
         specifier: ^4.0.1
         version: 4.0.1(ws@7.5.9)
@@ -227,9 +227,6 @@ importers:
       '@types/bn.js':
         specifier: ^5
         version: 5.1.0
-      '@types/elliptic':
-        specifier: ^6.4.14
-        version: 6.4.14
       '@types/eslint-plugin-prettier':
         specifier: ^3
         version: 3.1.0
@@ -1600,7 +1597,7 @@ packages:
       '@cosmjs/math': 0.29.5
       '@cosmjs/utils': 0.29.5
       '@noble/hashes': 1.3.2
-      bn.js: 5.2.0
+      bn.js: 5.2.1
       elliptic: 6.5.4
       libsodium-wrappers: 0.7.11
     dev: true
@@ -1612,7 +1609,7 @@ packages:
       '@cosmjs/math': 0.29.5
       '@cosmjs/utils': 0.29.5
       '@noble/hashes': 1.3.2
-      bn.js: 5.2.0
+      bn.js: 5.2.1
       elliptic: 6.5.4
       libsodium-wrappers: 0.7.11
     dev: true
@@ -1643,7 +1640,7 @@ packages:
   /@cosmjs/math@0.29.5:
     resolution: {integrity: sha512-2GjKcv+A9f86MAWYLUkjhw1/WpRl2R1BTb3m9qPG7lzMA7ioYff9jY5SPCfafKdxM4TIQGxXQlYGewQL16O68Q==}
     dependencies:
-      bn.js: 5.2.0
+      bn.js: 5.2.1
     dev: true
 
   /@cosmjs/proto-signing@0.29.5:
@@ -2392,12 +2389,6 @@ packages:
     dependencies:
       '@types/docker-modem': 3.0.3
       '@types/node': 20.5.7
-    dev: true
-
-  /@types/elliptic@6.4.14:
-    resolution: {integrity: sha512-z4OBcDAU0GVwDTuwJzQCiL6188QvZMkvoERgcVjq0/mPM8jCfdwZ3x5zQEVoL9WCAru3aG5wl3Z5Ww5wBWn7ZQ==}
-    dependencies:
-      '@types/bn.js': 5.1.0
     dev: true
 
   /@types/eslint-plugin-prettier@3.1.0:
@@ -3568,8 +3559,9 @@ packages:
   /bn.js@4.12.0:
     resolution: {integrity: sha512-c98Bf3tPniI+scsdk237ku1Dc3ujXQTSgyiPUDEOe7tRkhrqridvh8klBv0HCEso1OLOYcHuCv/cS6DNxKH+ZA==}
 
-  /bn.js@5.2.0:
-    resolution: {integrity: sha512-D7iWRBvnZE8ecXiLj/9wbxH7Tk79fAh8IHaTNq1RWRixsS02W+5qS+iE9yq6RYl0asXx5tw0bLhmT5pIfbSquw==}
+  /bn.js@5.2.1:
+    resolution: {integrity: sha512-eXRvHzWyYPBuB4NBy0cmYQjGitUrtqwbvlzP3G6VFnNRbsZQIxQ10PbKKHt8gZ/HW/D/747aDl+QkDqg3KQLMQ==}
+    dev: true
 
   /body-parser@1.20.0:
     resolution: {integrity: sha512-DfJ+q6EPcGKZD1QWUjSpqp+Q7bDQTsQIF4zfUAtZ6qk+H/3/QRhg9CEp39ss+/T2vw0+HaidC0ecJj/DRLIaKg==}
@@ -3660,14 +3652,14 @@ packages:
   /browserify-rsa@4.1.0:
     resolution: {integrity: sha512-AdEER0Hkspgno2aR97SAf6vi0y0k8NuOpGnVH3O99rcA5Q6sh8QxcngtHuJ6uXwnfAXNM4Gn1Gb7/MV1+Ymbog==}
     dependencies:
-      bn.js: 5.2.0
+      bn.js: 5.2.1
       randombytes: 2.1.0
     dev: true
 
   /browserify-sign@4.2.1:
     resolution: {integrity: sha512-/vrA5fguVAKKAVTNJjgSm1tRQDHUU6DbwO9IROu/0WAzC8PKhucDSh18J0RMvVeHAn5puMd+QHC2erPRNf8lmg==}
     dependencies:
-      bn.js: 5.2.0
+      bn.js: 5.2.1
       browserify-rsa: 4.1.0
       create-hash: 1.2.0
       create-hmac: 1.1.7
@@ -10360,4 +10352,10 @@ packages:
 
   /zen-observable@0.8.15:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
+    dev: false
+
+  github.com/alexandrius/bn.js-bigint/497dee1918cf35f2008ee01394f0164c7bff45e9:
+    resolution: {tarball: https://codeload.github.com/alexandrius/bn.js-bigint/tar.gz/497dee1918cf35f2008ee01394f0164c7bff45e9}
+    name: bn.js
+    version: 5.2.1
     dev: false
