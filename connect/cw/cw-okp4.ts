@@ -100,13 +100,22 @@ async function getContractsById <C extends Client> (
 
 /** Agent for OKP4. */
 class OKP4Agent extends Agent {
-  /** Expected chain class. */
-  declare chain: OKP4Chain
   /** Logging handle. */
   log = new Console('OKP4Agent')
+  /** Chain on which this agent operates. */
+  declare chain: OKP4Chain
+  /** The coin type in the HD derivation path */
+  declare coinType: number
+  /** The bech32 prefix for the account's address  */
+  declare bech32Prefix: string
+  /** The account index in the HD derivation path */
+  declare hdAccountIndex: number
 
   constructor (options: Partial<OKP4Agent> = {}) {
     super(options)
+    this.coinType = 118
+    this.bech32Prefix = 'okp4'
+    this.hdAccountIndex = 0
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
