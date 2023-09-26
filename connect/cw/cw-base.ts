@@ -2,6 +2,7 @@ import { Config } from '@hackbg/conf'
 import {
   bindChainSupport, Chain, Agent, Bundle, Console, Error, bold, bip32, bip39, bip39EN, bech32
 } from '@fadroma/agent'
+import type { Address } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
@@ -74,6 +75,14 @@ class CWAgent extends Agent {
     return SigningCosmWasmClient
       .connect(this.chain.url)
       .then(api=>Object.assign(this, { api }))
+  }
+
+  async getBalance (denom?: string, address?: Address): Promise<string> {
+    const { api } = await this.ready
+    denom ??= this.defaultDenom
+    address ??= this.address
+    const { amount } = await api.getBalance(address!, denom)
+    return amount
   }
 }
 
