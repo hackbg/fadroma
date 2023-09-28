@@ -1,9 +1,11 @@
 import { Config } from '@hackbg/conf'
 import {
-  bindChainSupport, Chain, Agent, Bundle, Console, Error, bold, bip32, bip39, bip39EN, bech32
+  bindChainSupport, Chain, Agent, Bundle, Console, Error, bold, bip32, bip39, bip39EN, bech32,
+  into, assertChain, ICoin
 } from '@fadroma/agent'
-import type { Address } from '@fadroma/agent'
+import type { Address, Client, Contract, Instantiated } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
+import type { logs } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1";
@@ -83,6 +85,51 @@ class CWAgent extends Agent {
     address ??= this.address
     const { amount } = await api.getBalance(address!, denom)
     return amount
+  }
+
+  async instantiate <C extends Client> (
+    instance: Contract<C>,
+    init_funds: ICoin[] = []
+  ): Promise<Instantiated> {
+    const { api } = await this.ready
+    if (!this.address) throw new Error("Agent has no address")
+    if (instance.address) {
+      this.log.warn("Instance already has address, not instantiating.")
+      return instance as Instantiated
+    }
+    const { chainId, codeId, codeHash, label, initMsg } = instance
+    const code_id = Number(instance.codeId)
+    if (isNaN(code_id)) throw new Error.Missing.CodeId()
+    if (!label) throw new Error.Missing.Label()
+    if (!initMsg) throw new Error.Missing.InitMsg()
+    if (chainId && chainId !== assertChain(this).id) throw new Error.Invalid.WrongChain()
+    const parameters = {
+      sender:    this.address,
+      code_id,
+      code_hash: codeHash!,
+      init_msg:  await into(initMsg),
+      label,
+      init_funds
+    }
+    const gasLimit = Number(this.fees?.init?.amount[0].amount) || undefined
+    const result = await api.instantiate(
+      this.address,
+      code_id,
+      await into(initMsg),
+      label,
+      gasLimit || 'auto',
+      { funds: init_funds, admin: this.address, memo: 'https://fadroma.tech' }
+    )
+    this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
+    return {
+      chainId: chainId!,
+      address: result.contractAddress,
+      codeHash: codeHash!,
+      initBy: this.address,
+      initTx: result.transactionHash,
+      initGas: result.gasUsed,
+      label,
+    }
   }
 }
 
