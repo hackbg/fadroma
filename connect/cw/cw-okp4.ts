@@ -53,21 +53,21 @@ class OKP4Chain extends Chain {
 
   /** Get clients for all Cognitarium instances,
     * keyed by address. */
-  async cognitaria (map = true) {
+  async cognitaria ({ map = true } = {}) {
     const { api } = await this.ready
     return await getContractsById(api, Cognitarium, cognitariumCodeIds, map)
   }
 
   /** Get clients for all Objectarium instances,
     * keyed by address. */
-  async objectaria (map = true) {
+  async objectaria ({ map = true } = {}) {
     const { api } = await this.ready
     return await getContractsById(api, Objectarium, objectariumCodeIds, map)
   }
 
   /** Get clients for all Law Stone instances,
     * keyed by address. */
-  async lawStones (map = true) {
+  async lawStones ({ map = true } = {}) {
     const { api } = await this.ready
     return await getContractsById(api, LawStone, lawStoneCodeIds, map)
   }
@@ -121,20 +121,20 @@ class OKP4Agent extends Agent {
 
   /** Get clients for all Cognitarium instances,
     * keyed by address. */
-  async cognitaria (map = true) {
-    return populateAgent(map, await this.chain.cognitaria(map), this)
+  async cognitaria ({ map = true } = {}) {
+    return populateAgent(map, await this.chain.cognitaria({map}), this)
   }
 
   /** Get clients for all Objectarium instances,
     * keyed by address. */
-  async objectaria (map = true) {
-    return populateAgent(map, await this.chain.objectaria(map), this)
+  async objectaria ({ map = true } = {}) {
+    return populateAgent(map, await this.chain.objectaria({map}), this)
   }
 
   /** Get clients for all Law Stone instances,
     * keyed by address. */
-  async lawStones (map = true) {
-    return populateAgent(map, await this.chain.lawStones(map), this)
+  async lawStones ({ map = true } = {}) {
+    return populateAgent(map, await this.chain.lawStones({map}), this)
   }
 }
 
