@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/cw",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts" ],
@@ -8,7 +8,7 @@
   "dependencies": {
     "@fadroma/agent":     "workspace:1.1.2",
     "@hackbg/conf":       "workspace:3.1.5",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.30",
+    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.31",
     "@noble/hashes":      "^1.3.2",
     "@noble/curves":      "^1.2.0"
   },

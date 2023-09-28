@@ -5,7 +5,7 @@ import {
 } from '@fadroma/agent'
 import type { Address, Client, Contract, Instantiated } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
-import type { logs } from '@hackbg/cosmjs-esm'
+import type { logs, OfflineSigner as Signer } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1";
@@ -35,48 +35,68 @@ class CWChain extends Chain {
 
 /** Generic agent for CosmWasm-enabled chains. */
 class CWAgent extends Agent {
+  constructor (options: Partial<CWAgent> = {}) {
+    super(options)
+    this.api = options.api
+    this.coinType = options.coinType
+    this.bech32Prefix = options.bech32Prefix
+    this.hdAccountIndex = options.hdAccountIndex
+    this.signer = options.signer
+  }
+
   /** Signing API handle. */
   declare api?: SigningCosmWasmClient
-  /** The coin type in the HD derivation path */
-  coinType?: number
   /** The bech32 prefix for the account's address  */
   bech32Prefix?: string
+  /** The coin type in the HD derivation path */
+  coinType?: number
   /** The account index in the HD derivation path */
   hdAccountIndex?: number
+  /** The provided signer, which signs the transactions.
+    * TODO: Implement signing transactions without external signer. */
+  signer?: Signer
   /** Async initialization. Populates the `api` property. */
   get ready (): Promise<this & { api: CosmWasmClient }> {
-    if (this.coinType === undefined) {
-      throw new CWError('coinType is not set')
-    }
-    if (this.bech32Prefix === undefined) {
-      throw new CWError('bech32Prefix is not set')
-    }
-    if (this.hdAccountIndex === undefined) {
-      throw new CWError('hdAccountIndex is not set')
-    }
-    if (!this.chain) {
-      throw new CWError('no chain specified')
-    }
-    if (this.api) return Promise.resolve(this) as Promise<this & {
-      api: CosmWasmClient
-    }>
-    if (!this.mnemonic) {
-      this.log.log("No mnemonic provided, generating one.")
-      this.mnemonic = bip39.generateMnemonic(bip39EN)
-    }
-    const seed = bip39.mnemonicToSeedSync(this.mnemonic);
-    const node = bip32.HDKey.fromMasterSeed(seed);
-    const secretHD = node.derive(`m/44'/${this.coinType}'/0'/0/${this.hdAccountIndex}`);
-    const privateKey = secretHD.privateKey;
-    if (!privateKey) {
-      throw new CWError("failed to derive key pair")
-    }
-    const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
-    this.address = bech32.encode(this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
-    this.name ??= this.address
-    return SigningCosmWasmClient
-      .connect(this.chain.url)
-      .then(api=>Object.assign(this, { api }))
+    const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
+      // TODO: Implement own signer
+      if (this.signer === undefined) {
+        throw new CWError('signer is not set')
+      }
+      if (this.coinType === undefined) {
+        throw new CWError('coinType is not set')
+      }
+      if (this.bech32Prefix === undefined) {
+        throw new CWError('bech32Prefix is not set')
+      }
+      if (this.hdAccountIndex === undefined) {
+        throw new CWError('hdAccountIndex is not set')
+      }
+      if (!this.chain) {
+        throw new CWError('no chain specified')
+      }
+      if (this.api) return Promise.resolve(this) as Promise<this & {
+        api: CosmWasmClient
+      }>
+      if (!this.mnemonic) {
+        this.log.log("No mnemonic provided, generating one.")
+        this.mnemonic = bip39.generateMnemonic(bip39EN)
+      }
+      const seed = bip39.mnemonicToSeedSync(this.mnemonic);
+      const node = bip32.HDKey.fromMasterSeed(seed);
+      const secretHD = node.derive(`m/44'/${this.coinType}'/0'/0/${this.hdAccountIndex}`);
+      const privateKey = secretHD.privateKey;
+      if (!privateKey) {
+        throw new CWError("failed to derive key pair")
+      }
+      const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
+      this.address = bech32.encode(this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
+      this.name ??= this.address
+      return SigningCosmWasmClient
+        .connectWithSigner(this.chain.url, this.signer)
+        .then(api=>Object.assign(this, { api }))
+    })
+    Object.defineProperty(this, 'ready', { get () { return init } })
+    return init
   }
 
   async getBalance (denom?: string, address?: Address): Promise<string> {

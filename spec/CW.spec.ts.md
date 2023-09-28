@@ -34,7 +34,8 @@ the `getAgent` method. The returned `OKP4Agent` has the same listing
 methods - only this time the contracts are returned ready to use.
 
 ```typescript
-const agent = await testnet.getAgent().ready
+const signer = { /* get this from keplr */ }
+const agent = await testnet.getAgent({ signer }).ready
 
 console.log(await agent.cognitaria())
 console.log(await agent.objectaria())

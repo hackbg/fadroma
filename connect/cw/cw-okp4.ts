@@ -1,5 +1,5 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
-import type { AgentClass, ClientClass, Uint128, Address } from '@fadroma/agent'
+import type { AgentClass, ClientClass, Uint128, Address, ChainId } from '@fadroma/agent'
 import { Client, bindChainSupport } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
@@ -55,26 +55,30 @@ class OKP4Chain extends Chain {
     * keyed by address. */
   async cognitaria ({ map = true } = {}) {
     const { api } = await this.ready
-    return await getContractsById(api, Cognitarium, cognitariumCodeIds, map)
+    return await getContractsById(this.id, api, Cognitarium, cognitariumCodeIds, map)
   }
 
   /** Get clients for all Objectarium instances,
     * keyed by address. */
   async objectaria ({ map = true } = {}) {
     const { api } = await this.ready
-    return await getContractsById(api, Objectarium, objectariumCodeIds, map)
+    return await getContractsById(this.id, api, Objectarium, objectariumCodeIds, map)
   }
 
   /** Get clients for all Law Stone instances,
     * keyed by address. */
   async lawStones ({ map = true } = {}) {
     const { api } = await this.ready
-    return await getContractsById(api, LawStone, lawStoneCodeIds, map)
+    return await getContractsById(this.id, api, LawStone, lawStoneCodeIds, map)
   }
 }
 
 async function getContractsById <C extends Client> (
-  api: CosmWasmClient, $C: ClientClass<C>, ids: number[], map = true
+  chainId: ChainId,
+  api: CosmWasmClient,
+  $C: ClientClass<C>,
+  ids: number[],
+  map = true
 ): Promise<
   typeof map extends true ? Map<Address, C> : Record<Address, C>
 > {
@@ -88,6 +92,7 @@ async function getContractsById <C extends Client> (
         codeHash: checksum,
         codeId: String(codeId),
       } as Partial<C>)
+      contract.meta.chainId = chainId
       if (map) {
         (contracts as Map<Address, C>).set(address, contract)
       } else {
