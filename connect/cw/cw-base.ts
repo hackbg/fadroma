@@ -172,7 +172,8 @@ class CWAgent extends Agent {
   /** Instantiate a contract. */
   async instantiate <C extends Client> (
     instance: Contract<C>,
-    init_funds: ICoin[] = []
+    init_funds: ICoin[] = [],
+    memo: string = '',
   ): Promise<Instantiated> {
     const { api } = await this.ready
     if (!this.address) throw new Error("Agent has no address")
@@ -200,7 +201,7 @@ class CWAgent extends Agent {
       await into(initMsg),
       label,
       this.fees?.init || 'auto',
-      { funds: init_funds, admin: this.address, memo: 'https://fadroma.tech' }
+      { funds: init_funds, admin: this.address, memo }
     )
     this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
     return {
