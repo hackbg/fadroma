@@ -35,8 +35,8 @@ class OKP4Chain extends Chain {
     new Fee(amount, this.defaultDenom)
   /** Set permissive fees by default. */
   static defaultFees: AgentFees = {
-    upload: this.gas(10000000),
-    init:   this.gas(10000000),
+    upload: this.gas(1000000),
+    init:   this.gas(1000000),
     exec:   this.gas(1000000),
     send:   this.gas(1000000),
   }
