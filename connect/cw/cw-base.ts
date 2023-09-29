@@ -199,7 +199,7 @@ class CWAgent extends Agent {
       code_id,
       await into(initMsg),
       label,
-      Number(this.fees?.init?.amount[0].amount) || 'auto',
+      this.fees?.init || 'auto',
       { funds: init_funds, admin: this.address, memo: 'https://fadroma.tech' }
     )
     this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
