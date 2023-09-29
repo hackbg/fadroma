@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/cw",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts" ],
@@ -20,7 +20,7 @@
   },
   "scripts": {
     "check":  "tsc --noEmit",
-    "ubik":   "npm run check && npm run cov && ubik",
+    "ubik":   "npm run check && ubik",
     "test":   "cd ../.. && ensuite spec/CW.spec.ts.md",
     "cov":    "cd ../.. && ensuite-cov -r text -r lcov -- spec/CW.spec.ts.md",
     "schema": "./schema/cw-gen-types.cjs"

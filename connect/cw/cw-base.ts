@@ -1,14 +1,20 @@
 import { Config } from '@hackbg/conf'
 import {
-  bindChainSupport, Chain, Agent, Bundle, Console, Error, bold, bip32, bip39, bip39EN, bech32,
-  into, assertChain, ICoin
+  Chain, assertChain, bindChainSupport,
+  Agent, Bundle,
+  ICoin,
+  Console, Error, bold,
+  bip32, bip39, bip39EN, bech32, base64,
+  into
 } from '@fadroma/agent'
 import type { Address, Client, Contract, Instantiated } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { logs, OfflineSigner as Signer } from '@hackbg/cosmjs-esm'
+
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
-import { secp256k1 } from "@noble/curves/secp256k1";
+import { secp256k1 } from "@noble/curves/secp256k1"
+import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
 class CWConfig extends Config {}
 
@@ -21,84 +27,140 @@ class CWChain extends Chain {
   defaultDenom = ''
   /** Query-only API handle. */
   api?: CosmWasmClient
-
   /** Async initialization. Populates the `api` property. */
   get ready (): Promise<this & { api: CosmWasmClient }> {
-    if (this.api) return Promise.resolve(this) as Promise<this & {
-      api: CosmWasmClient
-    }>
-    return CosmWasmClient
-      .connect(this.url)
-      .then(api=>Object.assign(this, { api }))
+    const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
+      if (!this.api) {
+        if (!this.chain) {
+          throw new CWError('no chain specified')
+        }
+        const api = await CosmWasmClient.connect(this.url)
+        this.api = api
+      }
+      return this
+    })
+    Object.defineProperty(this, 'ready', { get () { return init } })
+    return init
   }
 }
 
 /** Generic agent for CosmWasm-enabled chains. */
 class CWAgent extends Agent {
+
   constructor (options: Partial<CWAgent> = {}) {
     super(options)
-    this.api = options.api
-    this.coinType = options.coinType
-    this.bech32Prefix = options.bech32Prefix
-    this.hdAccountIndex = options.hdAccountIndex
-    this.signer = options.signer
-  }
 
-  /** Signing API handle. */
-  declare api?: SigningCosmWasmClient
-  /** The bech32 prefix for the account's address  */
-  bech32Prefix?: string
-  /** The coin type in the HD derivation path */
-  coinType?: number
-  /** The account index in the HD derivation path */
-  hdAccountIndex?: number
-  /** The provided signer, which signs the transactions.
-    * TODO: Implement signing transactions without external signer. */
-  signer?: Signer
-  /** Async initialization. Populates the `api` property. */
-  get ready (): Promise<this & { api: CosmWasmClient }> {
-    const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
-      // TODO: Implement own signer
-      if (this.signer === undefined) {
-        throw new CWError('signer is not set')
+    // These must be either defined in a subclass or passed to the constructor.
+    this.coinType = options.coinType || this.coinType
+    if (this.coinType === undefined) {
+      throw new CWError('coinType is not set')
+    }
+    this.bech32Prefix = options.bech32Prefix || this.bech32Prefix
+    if (this.bech32Prefix === undefined) {
+      throw new CWError('bech32Prefix is not set')
+    }
+    this.hdAccountIndex = options.hdAccountIndex || this.hdAccountIndex
+    if (this.hdAccountIndex === undefined) {
+      throw new CWError('hdAccountIndex is not set')
+    }
+
+    if (options.signer) {
+
+      // When passing external signer, ignore the mnemonic.
+      this.signer = options.signer
+      if (options.mnemonic) {
+        this.log.warn('Both signer and mnemonic were provided. Ignoring mnemonic.')
       }
-      if (this.coinType === undefined) {
-        throw new CWError('coinType is not set')
+
+    } else {
+
+      // When not passing external signer, create one from the mnemonic.
+      let mnemonic = options.mnemonic
+      if (!mnemonic) {
+        mnemonic = bip39.generateMnemonic(bip39EN)
+        this.log.warn("No mnemonic provided, generated this one:", mnemonic)
       }
-      if (this.bech32Prefix === undefined) {
-        throw new CWError('bech32Prefix is not set')
-      }
-      if (this.hdAccountIndex === undefined) {
-        throw new CWError('hdAccountIndex is not set')
-      }
-      if (!this.chain) {
-        throw new CWError('no chain specified')
-      }
-      if (this.api) return Promise.resolve(this) as Promise<this & {
-        api: CosmWasmClient
-      }>
-      if (!this.mnemonic) {
-        this.log.log("No mnemonic provided, generating one.")
-        this.mnemonic = bip39.generateMnemonic(bip39EN)
-      }
-      const seed = bip39.mnemonicToSeedSync(this.mnemonic);
-      const node = bip32.HDKey.fromMasterSeed(seed);
-      const secretHD = node.derive(`m/44'/${this.coinType}'/0'/0/${this.hdAccountIndex}`);
-      const privateKey = secretHD.privateKey;
+
+      // Derive keypair and address from mnemonic
+      const seed = bip39.mnemonicToSeedSync(mnemonic)
+      const node = bip32.HDKey.fromMasterSeed(seed)
+      const secretHD = node.derive(`m/44'/${this.coinType}'/0'/0/${this.hdAccountIndex}`)
+      const privateKey = secretHD.privateKey
       if (!privateKey) {
         throw new CWError("failed to derive key pair")
       }
       const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
-      this.address = bech32.encode(this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
+      Object.defineProperty(this, 'publicKey', {
+        enumerable: true, writable: false, value: pubkey
+      })
+      const address = bech32.encode(
+        this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey)))
+      )
+      Object.defineProperty(this, 'address', {
+        enumerable: true, writable: false, value: address
+      })
       this.name ??= this.address
-      return SigningCosmWasmClient
-        .connectWithSigner(this.chain.url, this.signer)
-        .then(api=>Object.assign(this, { api }))
+
+      // Construct signer
+      this.signer = {
+        getAccounts: () => Promise.resolve([
+          { address, algo: 'secp256k1', pubkey }
+        ]),
+        signAmino: async (address, signed) => {
+          const digest = sha256(JSON.stringify(signed))
+          if (digest.length !== 32) {
+            throw new Error(`Invalid length of digest to sign: ${digest.length}`)
+          }
+          const signature = secp256k1.sign(digest, privateKey)
+          return {
+            signed,
+            signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
+              ...numberToBytesBE(signature.r, 32),
+              ...numberToBytesBE(signature.s, 32)
+            ])),
+          }
+        },
+      }
+
+    }
+  }
+
+  /** Public key corresponding to private key derived from mnemonic. */
+  publicKey?: Uint8Array
+
+  /** Signing API handle. */
+  declare api?: SigningCosmWasmClient
+
+  /** The bech32 prefix for the account's address  */
+  bech32Prefix?: string
+
+  /** The coin type in the HD derivation path */
+  coinType?: number
+
+  /** The account index in the HD derivation path */
+  hdAccountIndex?: number
+
+  /** The provided signer, which signs the transactions.
+    * TODO: Implement signing transactions without external signer. */
+  signer: Signer
+
+  /** Async initialization. Populates the `api` property. */
+  get ready (): Promise<this & { api: CosmWasmClient }> {
+    const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
+      if (!this.api) {
+        if (!this.chain) {
+          throw new CWError('no chain specified')
+        }
+        const api =  await SigningCosmWasmClient.connectWithSigner(this.chain.url, this.signer)
+        this.api = api
+      }
+      return this
     })
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
   }
 
+  /** Query native token balance. */
   async getBalance (denom?: string, address?: Address): Promise<string> {
     const { api } = await this.ready
     denom ??= this.defaultDenom
@@ -107,6 +169,7 @@ class CWAgent extends Agent {
     return amount
   }
 
+  /** Instantiate a contract. */
   async instantiate <C extends Client> (
     instance: Contract<C>,
     init_funds: ICoin[] = []
@@ -119,37 +182,58 @@ class CWAgent extends Agent {
     }
     const { chainId, codeId, codeHash, label, initMsg } = instance
     const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) throw new Error.Missing.CodeId()
-    if (!label) throw new Error.Missing.Label()
-    if (!initMsg) throw new Error.Missing.InitMsg()
-    if (chainId && chainId !== assertChain(this).id) throw new Error.Invalid.WrongChain()
-    const parameters = {
-      sender:    this.address,
-      code_id,
-      code_hash: codeHash!,
-      init_msg:  await into(initMsg),
-      label,
-      init_funds
+    if (isNaN(code_id)) {
+      throw new Error.Missing.CodeId()
     }
-    const gasLimit = Number(this.fees?.init?.amount[0].amount) || undefined
+    if (!label) {
+      throw new Error.Missing.Label()
+    }
+    if (!initMsg) {
+      throw new Error.Missing.InitMsg()
+    }
+    if (chainId && chainId !== assertChain(this).id) {
+      throw new Error.Invalid.WrongChain()
+    }
     const result = await api.instantiate(
       this.address,
       code_id,
       await into(initMsg),
       label,
-      gasLimit || 'auto',
+      Number(this.fees?.init?.amount[0].amount) || 'auto',
       { funds: init_funds, admin: this.address, memo: 'https://fadroma.tech' }
     )
     this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
     return {
-      chainId: chainId!,
-      address: result.contractAddress,
+      chainId:  chainId!,
+      address:  result.contractAddress,
       codeHash: codeHash!,
-      initBy: this.address,
-      initTx: result.transactionHash,
-      initGas: result.gasUsed,
+      initBy:   this.address,
+      initTx:   result.transactionHash,
+      initGas:  result.gasUsed,
       label,
     }
+  }
+
+}
+
+function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
+  pub_key: { type: string, value: string },
+  signature: string
+} {
+  if (pubkey.length !== 33 || (pubkey[0] !== 0x02 && pubkey[0] !== 0x03)) {
+    throw new CWError(
+      "Public key must be compressed secp256k1, i.e. 33 bytes starting with 0x02 or 0x03"
+    )
+  }
+  if (signature.length !== 64) {
+    throw new CWError(
+      "Signature must be 64 bytes long. Cosmos SDK uses a 2x32 byte fixed length encoding "+
+      "for the secp256k1 signature integers r and s."
+    )
+  }
+  return {
+    pub_key: { type: "tendermint/PubKeySecp256k1", value: base64.encode(pubkey), },
+    signature: base64.encode(signature)
   }
 }
 
