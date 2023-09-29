@@ -51,15 +51,15 @@ class CWAgent extends Agent {
     super(options)
 
     // These must be either defined in a subclass or passed to the constructor.
-    this.coinType = options.coinType || this.coinType
+    this.coinType = options.coinType ?? this.coinType
     if (this.coinType === undefined) {
       throw new CWError('coinType is not set')
     }
-    this.bech32Prefix = options.bech32Prefix || this.bech32Prefix
+    this.bech32Prefix = options.bech32Prefix ?? this.bech32Prefix
     if (this.bech32Prefix === undefined) {
       throw new CWError('bech32Prefix is not set')
     }
-    this.hdAccountIndex = options.hdAccountIndex || this.hdAccountIndex
+    this.hdAccountIndex = options.hdAccountIndex ?? this.hdAccountIndex
     if (this.hdAccountIndex === undefined) {
       throw new CWError('hdAccountIndex is not set')
     }
