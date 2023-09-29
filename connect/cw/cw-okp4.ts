@@ -117,10 +117,12 @@ class OKP4Agent extends Agent {
   declare hdAccountIndex: number
 
   constructor (options: Partial<OKP4Agent> = {}) {
-    super(options)
-    this.coinType = 118
-    this.bech32Prefix = 'okp4'
-    this.hdAccountIndex = 0
+    super({
+      ...options||{},
+      coinType: 118,
+      bech32Prefix: 'okp4',
+      hdAccountIndex: 0
+    })
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
