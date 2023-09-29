@@ -1,6 +1,6 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
-import type { AgentClass, ClientClass, Uint128, Address, ChainId } from '@fadroma/agent'
-import { Client, bindChainSupport } from '@fadroma/agent'
+import type { AgentClass, ClientClass, Uint128, Address, ChainId, AgentFees } from '@fadroma/agent'
+import { Client, Fee, bindChainSupport } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 class OKP4Config extends Config {
@@ -28,12 +28,24 @@ export const lawStoneCodeIds = [5]
 
 /** OKP4 chain. */
 class OKP4Chain extends Chain {
+  /** Default denomination of gas token. */
+  static defaultDenom = 'uknow'
+  /** @returns Fee in uscrt */
+  static gas = (amount: Uint128|number) =>
+    new Fee(amount, this.defaultDenom)
+  /** Set permissive fees by default. */
+  static defaultFees: AgentFees = {
+    upload: this.gas(10000000),
+    init:   this.gas(10000000),
+    exec:   this.gas(1000000),
+    send:   this.gas(1000000),
+  }
   /** Default Agent class to use. */
   declare Agent: AgentClass<OKP4Agent>
   /** Logging handle. */
   log = new Console('OKP4Chain')
   /** Default denomination of gas token. */
-  defaultDenom = 'uknow'
+  defaultDenom = OKP4Chain.defaultDenom
 
   constructor (options: Partial<OKP4Chain> & { config?: OKP4Config } = {
     config: new OKP4Config()
@@ -115,6 +127,8 @@ class OKP4Agent extends Agent {
   declare bech32Prefix: string
   /** The account index in the HD derivation path */
   declare hdAccountIndex: number
+  /** Transaction fees for this agent. */
+  fees = OKP4Chain.defaultFees
 
   constructor (options: Partial<OKP4Agent> = {}) {
     super({
