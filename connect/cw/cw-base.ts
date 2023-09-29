@@ -37,7 +37,7 @@ class CWChain extends Chain {
         const api = await CosmWasmClient.connect(this.url)
         this.api = api
       }
-      return this
+      return resolve(this as this & { api: CosmWasmClient })
     })
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
@@ -145,16 +145,16 @@ class CWAgent extends Agent {
   signer: Signer
 
   /** Async initialization. Populates the `api` property. */
-  get ready (): Promise<this & { api: CosmWasmClient }> {
-    const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
+  get ready (): Promise<this & { api: SigningCosmWasmClient }> {
+    const init = new Promise<this & { api: SigningCosmWasmClient }>(async (resolve, reject)=>{
       if (!this.api) {
         if (!this.chain) {
           throw new CWError('no chain specified')
         }
-        const api =  await SigningCosmWasmClient.connectWithSigner(this.chain.url, this.signer)
+        const api = await SigningCosmWasmClient.connectWithSigner(this.chain.url, this.signer)
         this.api = api
       }
-      return this
+      return resolve(this as this & { api: SigningCosmWasmClient })
     })
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
