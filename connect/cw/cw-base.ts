@@ -7,7 +7,7 @@ import {
   bip32, bip39, bip39EN, bech32, base64,
   into
 } from '@fadroma/agent'
-import type { Address, Client, Contract, Instantiated } from '@fadroma/agent'
+import type { Address, Client, Contract, Instantiated, Message, ExecOpts } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { logs, OfflineSigner as Signer } from '@hackbg/cosmjs-esm'
 
@@ -213,6 +213,25 @@ class CWAgent extends Agent {
       initGas:  result.gasUsed,
       label,
     }
+  }
+
+  /** Call a transaction method of a contract. */
+  async execute (
+    instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
+  ): Promise<unknown> {
+    const { api } = await this.ready
+    if (!this.address) throw new CWError("No agent address")
+    if (!instance.address) throw new CWError("No contract address")
+    const { address, codeHash } = instance
+    const { send, memo, fee = this.fees?.exec || 'auto' } = opts
+    return await api.execute(this.address, instance.address, msg, fee, memo, send)
+  }
+
+  /** Query a contract. */
+  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
+    const { api } = await this.ready
+    if (!instance.address) throw new CWError('No contract address')
+    return await api.queryContractSmart(instance.address, query) as U
   }
 
 }
