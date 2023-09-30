@@ -18,10 +18,10 @@ class OKP4Config extends Config {
 }
 
 /** Code IDs for versions of Cognitarium contract. */
-export const cognitariumCodeIds = [6]
+export const cognitariumCodeIds = [7]
 
 /** Code IDs for versions of Objectarium contract. */
-export const objectariumCodeIds = [7]
+export const objectariumCodeIds = [4]
 
 /** Code IDs for versions of Law Stone contract. */
 export const lawStoneCodeIds = [5]
