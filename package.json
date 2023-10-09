@@ -32,7 +32,6 @@
     "prepare": "husky install",
 
     "ubik": "pnpm i && pnpm clean && pnpm check && ubik",
-    "ubik:all": "time sh -c 'pnpm ubik wet && cd agent && ubik wet && cd ../connect && ubik wet && cd scrt && ubik wet'",
 
     "check": "time tsc --noEmit",
 
@@ -51,7 +50,7 @@
     "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",
     "cov:devnet":  "time ensuite-cov spec/Devnet.test.ts",
 
-    "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik dry && ls -al",
+    "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik --dry-run compile && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
 
     "build": "./fadroma.cli.cjs build",
