@@ -65,7 +65,7 @@ jobs:
           ls -al
           ls -al ~
           git remote get-url origin
-          git fetch origin gh-pages
+          git fetch --recurse-submodules=no origin gh-pages
           cat .git/config
           echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/refs/heads/gh-pages
           mkdir -p ../page
