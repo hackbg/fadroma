@@ -86,7 +86,7 @@ jobs:
           FORCE_COLOR: 2
         run: |
           pnpm i # install with dev dependencies
-          pnpm exec ubik fix # compile to js, don't typecheck or run tests
+          pnpm exec ubik compile # compile to js, don't typecheck or run tests
           sudo ln -s `which true` /usr/local/bin/husky # stub husky
           pnpm i -P # remove dev dependencies
       - name: Create project
