@@ -72,6 +72,8 @@ jobs:
           mv dist/docs/* ../page
           cp .gitmodules .. || true
           git checkout gh-pages
+          git submodule deinit -f ensuite
+          git rm -rf ensuite
           git clean -fdx
           rm -rf stable unstable js
           cp -rv ../page/* .
