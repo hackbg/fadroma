@@ -540,7 +540,8 @@ assert.<span class="hljs-title function_">ok</span>(agent0.<span class="hljs-pro
 </code></pre>
 <p>The <code>mnemonic</code> property of <code>Agent</code> will be hidden to prevent leakage.</p>
 <h3 id="by-mnemonic" tabindex="-1">By mnemonic</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> mainnet.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">mnemonic</span>: <span class="hljs-string">&#x27;...&#x27;</span> }).<span class="hljs-property">ready</span>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> mnemonic = <span class="hljs-string">&#x27;define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news&#x27;</span>
+<span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> mainnet.<span class="hljs-title function_">getAgent</span>({ mnemonic }).<span class="hljs-property">ready</span>
 
 <span class="hljs-title function_">ok</span>(agent1 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Agent</span>)
 <span class="hljs-title function_">ok</span>(agent1.<span class="hljs-property">chain</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>)
