@@ -6,6 +6,7 @@ packages:
   - 'connect/cw/cosmjs-esm'
   - 'connect/cw/cosmjs-esm/ubik'
   - 'connect/scrt/secretjs-esm'
+  - 'connect/scrt/secretjs-esm/ubik'
 
   - 'ensuite'
   - 'ensuite/toolbox'

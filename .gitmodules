@@ -1,6 +1,3 @@
-[submodule "ensuite"]
-	path = ensuite
-	url = https://github.com/hackbg/ensuite.git
 [submodule "toolbox"]
 	path   = ensuite/toolbox
 	url    = https://github.com/hackbg/toolbox.git
@@ -17,3 +14,6 @@
 	path   = connect/scrt/secretjs-esm
   url    = https://github.com/hackbg/secret.js.git
   branch = fix/esm-nonflat
+[submodule "ensuite"]
+	path = ensuite
+	url = git@github.com:hackbg/ensuite.git
