@@ -61,7 +61,7 @@ sidebar:
       text: Devnets
     - href: /mocknet.html
       text: Mocknets
-    - href: /implementing.html
+    - href: /impl.html
       text: Supporting new chains
 
 routes:
