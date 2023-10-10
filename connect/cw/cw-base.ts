@@ -7,7 +7,10 @@ import {
   bip32, bip39, bip39EN, bech32, base64,
   into
 } from '@fadroma/agent'
-import type { Address, Client, Contract, Instantiated, Message, ExecOpts } from '@fadroma/agent'
+import type {
+  Address, Client, Contract, Message, ExecOpts,
+  Uploadable, Uploaded, Instantiated
+} from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { logs, OfflineSigner as Signer } from '@hackbg/cosmjs-esm'
 
@@ -167,6 +170,36 @@ class CWAgent extends Agent {
     address ??= this.address
     const { amount } = await api.getBalance(address!, denom)
     return amount
+  }
+
+  async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
+    const { api } = await this.ready
+    if (!this.address) throw new Error.Missing.Address()
+    const {
+      checksum,
+      originalSize,
+      compressedSize,
+      codeId,
+      logs,
+      height,
+      transactionHash,
+      events,
+      gasWanted,
+      gasUsed
+    } = await api.upload(
+      this.address,
+      data,
+      this.fees?.upload || 'auto',
+      "Uploaded by Fadroma"
+    )
+    return {
+      chainId:   assertChain(this).id,
+      codeId:    String(codeId),
+      codeHash:  await this.getHash(Number(codeId)),
+      uploadBy:  this.address,
+      uploadTx:  transactionHash,
+      uploadGas: gasUsed
+    }
   }
 
   /** Instantiate a contract. */
