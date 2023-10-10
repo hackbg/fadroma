@@ -41,7 +41,9 @@ const thisPackage = dirname(fileURLToPath(import.meta.url))
 export type DevnetPortMode = 'lcp'|'grpcWeb'
 
 /** Supported devnet variants. */
-export type DevnetPlatform = `scrt_1.${2|3|4|5|6|7|8|9}`
+export type DevnetPlatform = 
+  | `scrt_1.${2|3|4|5|6|7|8|9}`
+  | `okp4_5.0`
 
 /** A private local instance of a network. */
 export class Devnet implements DevnetHandle {
@@ -465,7 +467,8 @@ export class Devnet implements DevnetHandle {
     'scrt_1.6': $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
     'scrt_1.7': $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
     'scrt_1.8': $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path,
-    'scrt_1.9': $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path
+    'scrt_1.9': $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path,
+    'okp4_5.0': $(thisPackage, 'devnets', 'okp4_5_0.Dockerfile').path,
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
@@ -477,6 +480,7 @@ export class Devnet implements DevnetHandle {
     'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
     'scrt_1.8': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
     'scrt_1.9': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
+    'okp4_5.0': 'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
   }
 
   static readyMessage: Record<DevnetPlatform, string> = {
@@ -488,6 +492,7 @@ export class Devnet implements DevnetHandle {
     'scrt_1.7': 'indexed block',
     'scrt_1.8': 'Done verifying block height',
     'scrt_1.9': 'Validating proposal',
+    'okp4_5.0': 'NOT KNOWN YET',
   }
 
   static initScriptMount = 'devnet.init.mjs'
@@ -518,7 +523,8 @@ export class Devnet implements DevnetHandle {
     'scrt_1.6': 'lcp',
     'scrt_1.7': 'lcp',
     'scrt_1.8': 'lcp',
-    'scrt_1.9': 'lcp'
+    'scrt_1.9': 'lcp',
+    'okp4_5.0': 'lcp',
   }
 }
 
