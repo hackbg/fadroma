@@ -10,6 +10,20 @@ let devnet: any
 
 ;(async () => {
 
+  await testDevnetChainId()
+
+  await testDevnetStateFile()
+
+  await testDevnetUrl()
+
+  await testDevnetContainer()
+
+  await testDevnetHighLevel()
+
+})()
+
+async function testDevnetChainId () {
+
   assert.throws(
     () => { devnet = new Devnet({ chainId: false as any }) },
     "construct must fail if passed falsy chainId"
@@ -54,6 +68,10 @@ let devnet: any
     "can save"
   )
 
+}
+
+async function testDevnetStateFile () {
+
   $(devnet.stateFile).as(TextFile).save("invalidjson")
   assert.throws(
     ()=>{ devnet = new Devnet({ chainId: devnet.chainId }) },
@@ -71,6 +89,10 @@ let devnet: any
     "can delete if state is valid json but empty"
   )
 
+}
+
+async function testDevnetUrl () {
+
   assert.ok(
     devnet = new Devnet(),
     "can construct with no options"
@@ -85,6 +107,10 @@ let devnet: any
     (await devnet.image) instanceof Image,
     "devnet has @hackbg/dock image"
   )
+
+}
+
+async function testDevnetContainer () {
 
   assert.equal(
     devnet.initScriptMount, '/devnet.init.mjs',
@@ -153,9 +179,13 @@ let devnet: any
     "devnet assert presence rejects if container is removed"
   )
 
+}
+
+async function testDevnetHighLevel () {
+
   assert.ok(
     devnet = new Devnet(),
-    "creating yet another devnet"
+    "construct devnet"
   )
 
   assert.ok(
@@ -183,4 +213,4 @@ let devnet: any
     "force deleting the devnet works"
   )
 
-})()
+}
