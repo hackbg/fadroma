@@ -219,7 +219,7 @@ export class Devnet implements DevnetHandle {
     if (this.containerId) {
       try {
         await (await this.container!).inspect()
-        this.log.info("container id:", bold(this.containerId.slice(0, 8)))
+        this.log.debug("Container id:", bold(this.containerId.slice(0, 8)))
       } catch (e) {
         throw new Error(
           `Failed to connect to devnet "${this.chainId}": ${e.message}`
@@ -234,7 +234,7 @@ export class Devnet implements DevnetHandle {
     if (exists) {
       this.log.alreadyExists(this.containerId)
     } else {
-      this.log('Creating...')
+      this.log.debug('Creating...')
       // ensure we have image and chain id
       const image = await this.image
       if (!this.image) throw new DevnetError.Missing.DevnetImage()
@@ -280,7 +280,7 @@ export class Devnet implements DevnetHandle {
 
   /** Start the container. */
   start = async (): Promise<this> => {
-    this.log('Starting...')
+    this.log.debug('Starting...')
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
       this.log.startingContainer(container.id)
@@ -302,7 +302,7 @@ export class Devnet implements DevnetHandle {
 
   /** Stop the container. */
   pause = async () => {
-    this.log('Pausing...')
+    this.log('Pausing devnet...')
     const container = await this.container
     if (container) {
       this.log.stoppingContainer(container.id)
@@ -551,8 +551,8 @@ export class Devnet implements DevnetHandle {
 class DevnetConsole extends Console {
   tryingPort = (port: string|number, taken?: string|number) =>
     taken
-      ? this.log('Port', bold(taken), 'is taken, trying port', bold(port))
-      : this.log(`Trying port`, bold(port))
+      ? this.debug('Port', bold(taken), 'is taken, trying port', bold(port))
+      : this.debug(`Trying port`, bold(port))
   creating = ({ chainId, url }: Partial<Devnet>) =>
     this.log(`Creating devnet`, bold(chainId), `on`, bold(String(url)))
   loadingState = (chainId1: string, chainId2: string) =>
@@ -562,13 +562,13 @@ class DevnetConsole extends Console {
   loadingRejected = (path: string) =>
     this.log(`${path} does not exist.`)
   createdContainer = (id: string = '') =>
-    this.log(`Created container`, bold(id.slice(0, 8)))
+    this.debug(`Created container:`, bold(id.slice(0, 8)))
   alreadyExists = (id: string = '') =>
     this.log(`Devnet already exists in container`, bold(id.slice(0, 8)))
   startingContainer = (id: string = '') =>
-    this.log(`Starting container`, bold(id.slice(0, 8)))
+    this.debug(`Starting container:`, bold(id.slice(0, 8)))
   stoppingContainer = (id: string = '') =>
-    this.log(`Stopping container`, bold(id.slice(0, 8)))
+    this.debug(`Stopping container:`, bold(id.slice(0, 8)))
   warnContainerNotFound = (id: string = '') =>
     this.warn(`Container ${bold(id.slice(0, 8))} not found`)
   noContainerToDelete = (id: string = '') =>
