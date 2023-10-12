@@ -1,4 +1,5 @@
 import { Config } from '@hackbg/conf'
+
 import {
   Chain, assertChain, bindChainSupport,
   Agent, Bundle,
@@ -7,10 +8,12 @@ import {
   bip32, bip39, bip39EN, bech32, base64,
   into
 } from '@fadroma/agent'
+
 import type {
   Address, Client, Contract, Message, ExecOpts,
   Uploadable, Uploaded, Instantiated
 } from '@fadroma/agent'
+
 import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { logs, OfflineSigner as Signer } from '@hackbg/cosmjs-esm'
 

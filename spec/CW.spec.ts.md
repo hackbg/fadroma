@@ -11,22 +11,22 @@ unified into a single package, `@hackbg/cosmjs-esm`.
 
 ## OKP4 support
 
-In these tests, we'll connect to the OKP4 testnet.
+In these tests, we'll connect to the OKP4 okp4.
 
 ```typescript
 import { OKP4 } from '@fadroma/connect'
 
-const testnet = await OKP4.testnet().ready
-assert(testnet instanceof OKP4.Chain)
+const okp4 = await OKP4.devnet().ready
+assert(okp4 instanceof OKP4.Chain)
 ```
 
 You can use the `cognitaria`, `objectaria` and `lawStones` methods
 to get lists of the corresponding contracts.
 
 ```typescript
-console.log(await testnet.cognitaria())
-console.log(await testnet.objectaria())
-console.log(await testnet.lawStones())
+console.log(await okp4.cognitaria())
+console.log(await okp4.objectaria())
+console.log(await okp4.lawStones())
 ```
 
 To interact with them, you need to authenticate. This is done with
@@ -35,7 +35,7 @@ methods - only this time the contracts are returned ready to use.
 
 ```typescript
 const signer = { /* get this from keplr */ }
-const agent = await testnet.getAgent({ signer }).ready
+const agent = await okp4.getAgent({ signer }).ready
 
 console.log(await agent.cognitaria())
 console.log(await agent.objectaria())

@@ -101,9 +101,11 @@ class ScrtChain extends Chain {
 
   /** Smallest unit of native token. */
   static defaultDenom: string = 'uscrt'
+
   /** @returns Fee in uscrt */
   static gas = (amount: Uint128|number) =>
     new Fee(amount, this.defaultDenom)
+
   /** Set permissive fees by default. */
   static defaultFees: AgentFees = {
     upload: this.gas(10000000),
@@ -111,10 +113,13 @@ class ScrtChain extends Chain {
     exec:   this.gas(1000000),
     send:   this.gas(1000000),
   }
+
   /** The default Config class for Secret Network. */
   static Config = Config
+
   /** The default Agent class for Secret Network. */
   static Agent: AgentClass<ScrtAgent> // set in index
+
   /** Connect to the Secret Network Mainnet. */
   static mainnet = (
     options: Partial<ScrtChain> = {},
@@ -124,6 +129,7 @@ class ScrtChain extends Chain {
     url: config.mainnetUrl,
     ...options||{},
   }) as ScrtChain
+
   /** Connect to the Secret Network Testnet. */
   static testnet = (
     options: Partial<ScrtChain> = {},
@@ -133,11 +139,13 @@ class ScrtChain extends Chain {
     url: config.testnetUrl,
     ...options||{},
   }) as ScrtChain
+
   /** Connect to a Secret Network devnet. */
   static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.devnet({
     ...options||{},
   }) as ScrtChain
-  /** Create to a Secret Network mocknet. */
+
+  /** Connect to a Secret Network mocknet. */
   static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
     id: 'scrt-mocknet',
     ...options||{}

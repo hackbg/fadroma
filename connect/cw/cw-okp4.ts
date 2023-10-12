@@ -1,4 +1,5 @@
 import { Console, Error, Config, Chain, Agent, Bundle } from './cw-base'
+import type { Environment } from '@hackbg/conf'
 import type { AgentClass, ClientClass, Uint128, Address, ChainId, AgentFees } from '@fadroma/agent'
 import { Client, Fee, bindChainSupport } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
@@ -8,6 +9,15 @@ class OKP4Config extends Config {
     'okp4-nemeton-1'
   static defaultTestnetUrl: string =
     'https://okp4-testnet-rpc.polkachu.com/'
+
+  constructor (
+    options: Partial<OKP4Config> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
+
     //'https://okp4-testnet-api.polkachu.com/'
   testnetChainId: string = this.getString(
     'FADROMA_OKP4_TESTNET_CHAIN_ID',
@@ -62,6 +72,11 @@ class OKP4Chain extends Chain {
       ...options||{},
     }) as OKP4Chain
   }
+
+  /** Connect to OKP4 in testnet mode. */
+  static devnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => super.devnet({
+    ...options||{}
+  }) as OKP4Chain
 
   /** Get clients for all Cognitarium instances,
     * keyed by address. */
@@ -181,6 +196,9 @@ export { OKP4Config as Config, OKP4Chain as Chain, OKP4Agent as Agent, OKP4Bundl
 
 /** Connect to OKP4 testnet. */
 export const testnet = OKP4Chain.testnet
+
+/** Connect to local OKP4 devnet. */
+export const devnet = OKP4Chain.devnet
 
 /** OKP4 triple store. */
 export class Cognitarium extends Client {
