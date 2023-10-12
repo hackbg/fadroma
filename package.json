@@ -27,45 +27,40 @@
   "license": "AGPL-3.0-only",
   "scripts": {
 
-    "start": "cmds-ts ./FadromaCommands.ts",
-
-    "prepare": "husky install",
-
-    "ubik": "pnpm i && pnpm clean && pnpm check && ubik",
-
-    "check": "time tsc --noEmit",
-
-    "test": "time ensuite GUIDE.ts.md",
-    "test:agent":   "time ensuite spec/Agent.test.ts",
-    "test:build":   "time ensuite spec/Build.test.ts",
-    "test:deploy":  "time ensuite spec/Deploy.test.ts",
-    "test:devnet":  "time ensuite spec/Devnet.test.ts",
-    "test:factory": "time ensuite spec/Factory.spec.ts.md",
-    "test:project": "time ensuite spec/Project.test.ts",
-    "test:scrt":    "time ensuite spec/Scrt.test.ts",
-    "test:cw":      "time ensuite spec/CW.spec.ts.md",
-
-    "cov": "time ensuite-cov GUIDE.ts.md",
-    "cov:build":   "time ensuite-cov spec/Build.test.ts",
-    "cov:factory": "time ensuite-cov spec/Factory.spec.ts.md",
-    "cov:devnet":  "time ensuite-cov spec/Devnet.test.ts",
-
-    "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm clean && concurrently npm:check npm:cov && pnpm ubik --dry compile && ls -al",
-    "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
-
-    "build": "./fadroma.cli.cjs build",
+    "prepare":       "husky install",
+    "clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
+    "ubik":          "pnpm i && pnpm clean && pnpm check && ubik",
+    "check":         "time tsc --noEmit",
+    "ci":            "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm cloc && pnpm clean && concurrently npm:check npm:cov && pnpm ubik --dry compile && ls -al",
+    "cloc":          "cloc --fullpath --not-match-d=node_modules --exclude-dir=cosmjs-esm,secretjs-esm .",
+    "build":         "./fadroma.cli.cjs build",
     "build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
-    "mocknet": "FADROMA_CHAIN=Mocknet ./fadroma.cli.cjs",
-    "devnet":  "FADROMA_CHAIN=ScrtDevnet ./fadroma.cli.cjs",
-    "testnet": "FADROMA_CHAIN=ScrtTestnet ./fadroma.cli.cjs",
-    "mainnet": "FADROMA_CHAIN=ScrtMainnet ./fadroma.cli.cjs",
-
     "docs:dev":      "ensuite-dev",
     "docs:render":   "time ensuite/ensuite-render.cli.mjs",
     "docs:typedoc":  "time typedoc --customCss ./typedoc.css --tsconfig ./tsconfig.json --entryPointStrategy legacy-packages --entryPoints agent --entryPoints connect/* --entryPoints connect --entryPoints .",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
-    "docs:vp:serve": "vitepress serve"
+    "docs:vp:serve": "vitepress serve",
+
+    "test":          "time ensuite GUIDE.ts.md",
+    "test:agent":    "time ensuite spec/Agent.test.ts",
+    "test:build":    "time ensuite spec/Build.test.ts",
+    "test:deploy":   "time ensuite spec/Deploy.test.ts",
+    "test:devnet":   "time ensuite spec/Devnet.test.ts",
+    "test:factory":  "time ensuite spec/Factory.spec.ts.md",
+    "test:project":  "time ensuite spec/Project.test.ts",
+    "test:scrt":     "time ensuite spec/Scrt.test.ts",
+    "test:cw":       "time ensuite spec/CW.spec.ts.md",
+    "cov":           "time ensuite-cov GUIDE.ts.md",
+    "cov:build":     "time ensuite-cov spec/Build.test.ts",
+    "cov:factory":   "time ensuite-cov spec/Factory.spec.ts.md",
+    "cov:devnet":    "time ensuite-cov spec/Devnet.test.ts",
+
+    "start":         "./fadroma.cli.cjs",
+    "mocknet":       "FADROMA_CHAIN=Mocknet     ./fadroma.cli.cjs",
+    "devnet":        "FADROMA_CHAIN=ScrtDevnet  ./fadroma.cli.cjs",
+    "testnet":       "FADROMA_CHAIN=ScrtTestnet ./fadroma.cli.cjs",
+    "mainnet":       "FADROMA_CHAIN=ScrtMainnet ./fadroma.cli.cjs"
 
   },
   "dependencies": {
