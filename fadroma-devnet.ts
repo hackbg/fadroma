@@ -500,7 +500,7 @@ export class Devnet implements DevnetHandle {
     'scrt_1.7': 'indexed block',
     'scrt_1.8': 'Done verifying block height',
     'scrt_1.9': 'Validating proposal',
-    'okp4_5.0': 'NOT KNOWN YET',
+    'okp4_5.0': 'indexed block',
   }
 
   static daemonBinary: Record<DevnetPlatform, string> = {
