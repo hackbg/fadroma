@@ -1,10 +1,12 @@
-//import './Devnet.spec.ts.md'
-
 import { Devnet } from '@hackbg/fadroma'
 import * as assert from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import $, { TextFile } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
+
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+const initScript = resolve(dirname(fileURLToPath(import.meta.url)), 'devnet', 'devnet.init.mjs')
 
 let devnet: any
 
@@ -19,6 +21,9 @@ let devnet: any
   await testDevnetContainer()
 
   await testDevnetHighLevel()
+
+  //@ts-ignore
+  await import('./Devnet.spec.ts.md')
 
 })()
 
@@ -94,7 +99,7 @@ async function testDevnetStateFile () {
 async function testDevnetUrl () {
 
   assert.ok(
-    devnet = new Devnet(),
+    devnet = new Devnet({ initScript }),
     "can construct with no options"
   )
 
@@ -112,6 +117,11 @@ async function testDevnetUrl () {
 
 async function testDevnetContainer () {
 
+  assert.ok(
+    devnet = new Devnet({ initScript }),
+    "can construct with explicitly enabled init script"
+  )
+
   assert.equal(
     devnet.initScriptMount, '/devnet.init.mjs',
     "devnet init script mounted at default location"
@@ -119,12 +129,11 @@ async function testDevnetContainer () {
 
   assert.deepEqual(
     devnet.spawnEnv, {
-      Verbose: '',
-      ChainId: devnet.chainId,
-      GenesisAccounts: devnet.accounts.join(' '),
-      _UID: getuid!(),
-      _GID: getgid!(),
-      lcpPort: String(devnet.port)
+      CHAIN_ID:  devnet.chainId,
+      ACCOUNTS:  devnet.accounts.join(' '),
+      STATE_UID: String(getuid!()),
+      STATE_GID: String(getgid!()),
+      LCP_PORT:  String(devnet.port)
     },
     "devnet spawn environment"
   )
