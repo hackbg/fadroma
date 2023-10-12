@@ -165,6 +165,7 @@ export class Devnet implements DevnetHandle {
   /** Environment variables in the container. */
   get spawnEnv () {
     const env: Record<string, string> = {
+      DAEMON:    Devnet.daemonBinary[this.platform],
       CHAIN_ID:  this.chainId,
       ACCOUNTS:  this.accounts.join(' '),
       STATE_UID: String((process.getuid!)()),
@@ -500,6 +501,18 @@ export class Devnet implements DevnetHandle {
     'scrt_1.8': 'Done verifying block height',
     'scrt_1.9': 'Validating proposal',
     'okp4_5.0': 'NOT KNOWN YET',
+  }
+
+  static daemonBinary: Record<DevnetPlatform, string> = {
+    'scrt_1.2': 'secretd',
+    'scrt_1.3': 'secretd',
+    'scrt_1.4': 'secretd',
+    'scrt_1.5': 'secretd',
+    'scrt_1.6': 'secretd',
+    'scrt_1.7': 'secretd',
+    'scrt_1.8': 'secretd',
+    'scrt_1.9': 'secretd',
+    'okp4_5.0': 'okp4d',
   }
 
   static initScriptMount = 'devnet.init.mjs'
