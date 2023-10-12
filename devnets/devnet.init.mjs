@@ -1,96 +1,135 @@
-import { spawn, exec, execSync } from 'child_process'
-import { existsSync, writeFileSync, chmodSync } from 'fs'
+import { env } from 'node:process'
+import { spawn, exec, execSync } from 'node:child_process'
+import { existsSync, writeFileSync, chmodSync } from 'node:fs'
 
-const run = command => {
-  if (process.env.Verbose) console.info('$', command)
-  const result = String(execSync(command)).trim()
-  if (process.env.Verbose) console.info(result)
-  return result
-}
+const {
+  VERBOSE       = false,
+
+  CHAIN_ID      = `local-${DAEMON}`,
+  TOKEN         = 'uscrt',
+  ACCOUNTS      = 'Admin Alice Bob Charlie Mallory',
+  AMOUNT        = `1000000000000000000${TOKEN}`,
+
+  LCP_PORT      = '1317',
+  RPC_ADDR      = 'tcp://0.0.0.0:26657',
+  GRPC_ADDR     = '0.0.0.0:9090',
+  GRPC_WEB_ADDR = '0.0.0.0:9091',
+
+  DAEMON        = 'secretd',
+  STATE_DIR     = `/state/${CHAIN_ID}`,
+  STATE_UID     = null,
+  STATE_GID     = null,
+} = env
+
+const daemonDir = `~/.${DAEMON}`
+const configDir = `${daemonDir}/config`
+const appToml   = `${configDir}/app.toml`
+const genesis   = `${configDir}/genesis.json`
+const nodeKey   = `${configDir}/node_key.json`
+const stateDir  = `/state/${CHAIN_ID}`
+const wallets   = `${stateDir}/wallet`
 
 start()
 
-function start ({
-  lcpPort     = process.env.lcpPort     || '1317',
-  rpcAddr     = process.env.rpcAddr     || 'tcp://0.0.0.0:26657',
-  grpcAddr    = process.env.grpcAddr    || '0.0.0.0:9090',
-  grpcWebAddr = process.env.grpcWebAddr || '0.0.0.0:9091',
-  genesisJSON = '~/.secretd/config/genesis.json',
-} = {}) {
-  if (!existsSync(genesisJSON)) {
-    console.info(`${genesisJSON} missing -> performing genesis`)
-    genesis()
-  } else {
-    console.info(`${genesisJSON} exists -> resuming devnet`)
-  }
-
-  console.info('Configuring the node to support lcp (CORS proxy)...')
-  run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' .secretd/config/app.toml`)
-  run(`perl -i -pe 's/enable-unsafe-cors = false/enable-unsafe-cors = true/' .secretd/config/app.toml`)
-  const lcpArgs = [`--proxyUrl`, 'http://localhost:1316', `--port`, lcpPort, `--proxyPartial`, ``]
-
-  console.info('Spawning lcp (CORS proxy)...')
-  if (process.env.Verbose) console.log(`$ lcp`, ...lcpArgs)
-  const lcp = spawn(`lcp`, lcpArgs, { stdio: 'inherit' })
-
-  console.info('Launching the node...')
-  const command = `source /opt/sgxsdk/environment && RUST_BACKTRACE=1 secretd start --bootstrap`
-    + ` --rpc.laddr ${rpcAddr}`
-    + ` --grpc.address ${grpcAddr}`
-    + ` --grpc-web.address ${grpcWebAddr}`
-  console.info(`$`, command)
-  execSync(command, { shell: '/bin/bash', stdio: 'inherit' })
+function start () {
+  performGenesis()
+  spawnLcp()
+  launchNode()
   console.info('Server exited.')
 }
 
-function genesis ({
-  chainId         = process.env.ChainId || 'fadroma-devnet',
-  stateDir        = `/state/${chainId}`,
-  genesisAccounts = (process.env.GenesisAccounts || 'Admin Alice Bob Charlie Mallory').split(' '),
-  amount          = "1000000000000000000uscrt",
-  uid = process.env._UID,
-  gid = process.env._GID
-} = {}) {
-  console.info('\nEnsuring a clean slate...')
-  run(`rm -rf ~/.secretd ~/.secretcli /opt/secret/.sgx-secrets`)
+function spawnLcp () {
+  console.info('Configuring the node to support lcp (CORS proxy)...')
+  run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' ${appToml}`)
+  run(`perl -i -pe 's/enable-unsafe-cors = false/enable-unsafe-cors = true/' ${appToml}`)
+  const lcpArgs = [
+    `--proxyUrl`, 'http://localhost:1316',
+    `--port`, LCP_PORT,
+    `--proxyPartial`, ``
+  ]
+  console.info(`Spawning lcp (CORS proxy) on port ${LCP_PORT}`)
+  if (VERBOSE) console.log(`$ lcp`, ...lcpArgs)
+  const lcp = spawn(`lcp`, lcpArgs, { stdio: 'inherit' })
+}
 
-  console.info('\nEstablishing initial config...')
-  run(`mkdir -p ${stateDir}/wallet`)
-  if (uid) run(`chown -R ${uid} ${stateDir}`)
-  if (gid) run(`chgrp -R ${gid} ${stateDir}`)
-  run(`secretd config chain-id "${chainId}"`)
-  run(`secretd config keyring-backend test`)
-  run(`secretd init fadroma-devnet --chain-id "${chainId}"`)
-  run(`cp ~/node_key.json ~/.secretd/config/node_key.json`)
-  run(`perl -i -pe 's/"stake"/ "uscrt"/g' ~/.secretd/config/genesis.json`)
+function launchNode () {
+  console.info('Launching the node...')
+  const command = `source /opt/sgxsdk/environment && RUST_BACKTRACE=1 ${DAEMON} start --bootstrap`
+    + ` --rpc.laddr ${RPC_ADDR}`
+    + ` --grpc.address ${GRPC_ADDR}`
+    + ` --grpc-web.address ${GRPC_WEB_ADDR}`
+  console.info(`$`, command)
+  execSync(command, { shell: '/bin/bash', stdio: 'inherit' })
+}
 
-  console.info('\nCreating genesis accounts', genesisAccounts)
-  for (const name of genesisAccounts) {
-    const mnemonic = run(`secretd keys add "${name}" 2>&1 | tail -n1`)
-    const address  = run(`secretd keys show -a "${name}"`)
-    const identity = `${stateDir}/wallet/${name}.json`
-    writeFileSync(identity, JSON.stringify({ address, mnemonic }))
-    if (uid) run(`chown -R ${uid} ${identity}`)
-    if (gid) run(`chgrp -R ${gid} ${identity}`)
+function performGenesis () {
+  if (existsSync(genesis)) {
+    console.info(`Resuming devnet (${genesis} exists).`)
+    return
   }
-  if (uid) run(`chown -R ${uid} ${stateDir}`)
-  if (gid) run(`chgrp -R ${gid} ${stateDir}`)
-
-  console.info('\nAdding genesis accounts...')
-  for (const name of genesisAccounts) {
-    const address = run(`secretd keys show -a "${name}"`)
-    run(`secretd add-genesis-account "${address}" "${amount}"`)
-  }
-
-  console.info('\nCreating genesis transaction...')
-  run(`secretd gentx "${genesisAccounts[0]}" 1000000uscrt --chain-id ${chainId} --keyring-backend test`)
-
-  console.info('\nBootstrapping chain...')
-  run(`secretd collect-gentxs`)
-  run(`secretd validate-genesis`)
-  run(`secretd init-bootstrap`)
-  run(`secretd validate-genesis`)
-
+  console.info(`Performing genesis because ${genesis} is missing.`)
+  preGenesisCleanup()
+  preGenesisConfig()
+  createGenesisTransaction()
+  bootstrapChain()
   console.info('\nSprinkling holy water...')
   console.info()
+}
+
+function preGenesisCleanup () {
+  console.info('\nEnsuring a clean slate...')
+  run(`rm -rf ${daemonDir} ~/.secretcli /opt/secret/.sgx-secrets`)
+}
+
+function preGenesisConfig () {
+  console.info('\nEstablishing initial config...')
+  run(`mkdir -p ${wallets}`)
+  fixPermissions()
+  daemon(`config chain-id "${CHAIN_ID}"`)
+  daemon(`config keyring-backend test`)
+  daemon(`init fadroma-devnet --chain-id "${CHAIN_ID}"`)
+  run(`cp ~/node_key.json ${nodeKey}`)
+  run(`perl -i -pe 's/"stake"/ "${TOKEN}"/g' ${genesis}`)
+}
+
+function createGenesisTransaction () {
+  let accounts = ACCOUNTS.split(' ')
+  if (accounts.length === 0) accounts = ['Admin']
+  console.info('\nCreating genesis accounts:')
+  for (const name of accounts) {
+    const mnemonic = daemon(`keys add "${name}" 2>&1 | tail -n1`)
+    const address  = daemon(`keys show -a "${name}"`)
+    console.info(`\n- ${AMOUNT} ${address} (${name})`)
+    daemon(`add-genesis-account "${address}" "${AMOUNT}"`)
+    const identity = `${wallets}/${name}.json`
+    writeFileSync(identity, JSON.stringify({ address, mnemonic }))
+    fixPermissions(identity)
+  }
+  fixPermissions()
+  console.info('\nCreating genesis transaction...')
+  daemon(`gentx "${accounts[0]}" 1000000${TOKEN} --chain-id ${CHAIN_ID} --keyring-backend test`)
+}
+
+function bootstrapChain () {
+  console.info('\nBootstrapping chain...')
+  daemon(`collect-gentxs`)
+  daemon(`validate-genesis`)
+  daemon(`init-bootstrap`)
+  daemon(`validate-genesis`)
+}
+
+function fixPermissions (path = stateDir) {
+  if (STATE_UID) run(`chown -R ${STATE_UID} ${stateDir}`)
+  if (STATE_GID) run(`chgrp -R ${STATE_GID} ${stateDir}`)
+}
+
+function run (command) {
+  if (VERBOSE) console.info('$', command)
+  const result = String(execSync(command)).trim()
+  if (VERBOSE) console.info(result)
+  return result
+}
+
+function daemon (command) {
+  return run(`${DAEMON} ${command}`)
 }

@@ -28,7 +28,7 @@ import type { Path } from '@hackbg/file'
 import { freePort, Endpoint, waitPort, isPortTaken } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
 
-import { dirname } from 'node:path'
+import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
 
@@ -121,6 +121,8 @@ export class Devnet implements DevnetHandle {
       }
     }
     // Apply the rest of the configuration options
+    const defaultInit   = resolve(dirname(fileURLToPath(import.meta.url)), 'devnets', 'devnet.init.mjs')
+    this.initScript     = options.initScript! ?? defaultInit
     this.keepRunning    = options.keepRunning ?? !this.deleteOnExit
     this.podman         = options.podman ?? false
     this.platform       = options.platform ?? 'scrt_1.9'
@@ -128,7 +130,6 @@ export class Devnet implements DevnetHandle {
     this.launchTimeout  = options.launchTimeout ?? 10
     this.dontMountState = options.dontMountState ?? false
     this.accounts       = options.accounts ?? this.accounts
-    this.initScript     = options.initScript! ?? this.initScript
     this.readyPhrase    = options.readyPhrase ?? Devnet.readyMessage[this.platform]
     this.protocol       = options.protocol ?? 'http'
     this.host           = options.host ?? 'localhost'
@@ -163,19 +164,21 @@ export class Devnet implements DevnetHandle {
 
   /** Environment variables in the container. */
   get spawnEnv () {
-    // Environment variables in devnet container
     const env: Record<string, string> = {
-      Verbose: this.verbose ? 'yes' : '',
-      ChainId: this.chainId,
-      GenesisAccounts: this.accounts.join(' '),
-      _UID: String((process.getuid!)()),
-      _GID: String((process.getgid!)()),
+      CHAIN_ID:  this.chainId,
+      ACCOUNTS:  this.accounts.join(' '),
+      STATE_UID: String((process.getuid!)()),
+      STATE_GID: String((process.getgid!)()),
     }
-    // Which kind of API to expose at the default container port
-    switch (this.portMode) {
-      case 'lcp':     env.lcpPort     = String(this.port);      break
-      case 'grpcWeb': env.grpcWebAddr = `0.0.0.0:${this.port}`; break
-      default: throw new DevnetError.PortMode(this.portMode)
+    if (this.verbose) {
+      env['VERBOSE'] = 'yes'
+    }
+    if (this.portMode === 'lcp') {
+      env['LCP_PORT'] = String(this.port)
+    } else if (this.portMode === 'grpcWeb') {
+      env['GRPC_WEB_ADDR'] = `0.0.0.0:${this.port}`
+    } else {
+      throw new DevnetError.PortMode(this.portMode)
     }
     return env
   }
@@ -183,8 +186,12 @@ export class Devnet implements DevnetHandle {
   /** Options for the container. */
   get spawnOptions () {
     const Binds: string[] = []
-    if (this.initScript) Binds.push(`${this.initScript}:${this.initScriptMount}:ro`)
-    if (!this.dontMountState) Binds.push(`${$(this.stateDir).path}:/state/${this.chainId}:rw`)
+    if (this.initScript) {
+      Binds.push(`${this.initScript}:${this.initScriptMount}:ro`)
+    }
+    if (!this.dontMountState) {
+      Binds.push(`${$(this.stateDir).path}:/state/${this.chainId}:rw`)
+    }
     const NetworkMode  = 'bridge'
     const PortBindings = {[`${this.port}/tcp`]: [{HostPort: `${this.port}`}]}
     const HostConfig   = {Binds, NetworkMode, PortBindings}
