@@ -88,7 +88,9 @@ function preGenesisConfig () {
   daemon(`config chain-id "${CHAIN_ID}"`)
   daemon(`config keyring-backend test`)
   daemon(`init fadroma-devnet --chain-id "${CHAIN_ID}"`)
-  run(`cp ~/node_key.json ${nodeKey}`)
+  if (DAEMON === 'secretd') {
+    run(`cp ~/node_key.json ${nodeKey}`)
+  }
   run(`perl -i -pe 's/"stake"/ "${TOKEN}"/g' ${genesis}`)
 }
 
