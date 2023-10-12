@@ -47,6 +47,11 @@ export default function connect <A extends Agent> (
   return new ConnectConfig(config).getAgent()
 }
 
+export type ConnectMode =
+  |'Mocknet' // FIXME make chain-specific
+  |`Scrt${'Devnet'|'Testnet'|'Mainnet'}`
+  |`OKP4${'Devnet'|'Testnet'}`
+
 /** Connection configuration. Factory for `Chain` and `Agent` objects. */
 export class ConnectConfig extends Config {
   constructor (
@@ -57,25 +62,30 @@ export class ConnectConfig extends Config {
     this.override(options)
     Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
     this.scrt = new Scrt.Config(options?.scrt, environment)
+    this.okp4 = new CW.OKP4.Config(options?.okp4, environment)
     this.chainId = this.getString('FADROMA_CHAIN_ID', ()=>this.getChainId())
   }
 
   protected getChainId () {
-    const chainIds = {
+    const chainIds: Record<ConnectMode, ChainId> = {
       Mocknet:     'mocknet',
       ScrtDevnet:  'fadroma-devnet',
       ScrtTestnet: this.scrt.testnetChainId,
       ScrtMainnet: this.scrt.mainnetChainId,
+      OKP4Devnet:  'fadroma-devnet-okp4',
+      OKP4Testnet: this.okp4.testnetChainId,
     }
     return chainIds[this.chain as keyof typeof chainIds]
   }
 
   protected getChainMode () {
-    const chainModes = {
+    const chainModes: Record<ConnectMode, ChainMode> = {
       Mocknet:     ChainMode.Mocknet,
       ScrtDevnet:  ChainMode.Devnet,
       ScrtTestnet: ChainMode.Testnet,
       ScrtMainnet: ChainMode.Mainnet,
+      OKP4Devnet:  ChainMode.Devnet,
+      OKP4Testnet: ChainMode.Testnet,
     }
     if (!this.chain) throw new ConnectError.NoChainSelected(chainModes)
     const result = chainModes[this.chain as keyof typeof chainModes]
@@ -87,6 +97,8 @@ export class ConnectConfig extends Config {
   log = new ConnectConsole('@fadroma/connect')
   /** Secret Network configuration. */
   scrt: Scrt.Config
+  /** Secret Network configuration. */
+  okp4: CW.OKP4.Config
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName: string = this.getString('FADROMA_AGENT', ()=>'Admin')
   /** Name of chain to use. */

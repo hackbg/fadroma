@@ -79,7 +79,7 @@ class FadromaError_Missing extends FadromaError.define(
   static Artifact = this.define('Artifact', () => "no artifact url")
   static Builder = this.define('Builder', () => `no builder`)
   static Chain = this.define('Chain', () => "no chain")
-  static ChainId = this.define('ChainId', () => "no chain idspecified")
+  static ChainId = this.define('ChainId', () => "no chain id specified")
   static CodeId = this.define('CodeId', (info?: any) => `no code id${info?`: ${info}`:``}`)
   static CodeHash = this.define('CodeHash', () => "no code hash")
   static Crate = this.define('Crate', () => `no crate specified`)
