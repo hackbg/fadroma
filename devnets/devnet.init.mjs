@@ -1,6 +1,6 @@
-import { env } from 'node:process'
+import { env, getuid } from 'node:process'
 import { spawn, exec, execSync } from 'node:child_process'
-import { existsSync, writeFileSync, chmodSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
 
 const {
   VERBOSE       = false,
@@ -40,8 +40,15 @@ function start () {
 
 function spawnLcp () {
   console.info('Configuring the node to support lcp (CORS proxy)...')
-  run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' ${appToml}`)
-  run(`perl -i -pe 's/enable-unsafe-cors = false/enable-unsafe-cors = true/' ${appToml}`)
+  if (DAEMON === 'secretd') {
+    //let appTomlData = readFileSync(appToml)
+    run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' ${appToml}`)
+    run(`perl -i -pe 's/enable-unsafe-cors = false/enable-unsafe-cors = true/' ${appToml}`)
+  }
+  //let appTomlData = readFileSync(appToml)
+  //appTomlData = appTomlData.replace('address = "tcp://0.0.0.0:1317"', 'address = "tcp://0.0.0.0:1316')
+  //appTomlData = appTomlData.replace('enable-unsafe-cors = false', 'enable-unsafe-cors = false')
+  //writeFileSync(appToml, appTomlData)
   const lcpArgs = [
     `--proxyUrl`, 'http://localhost:1316',
     `--port`, LCP_PORT,
@@ -54,12 +61,26 @@ function spawnLcp () {
 
 function launchNode () {
   console.info('Launching the node...')
-  const command = `source /opt/sgxsdk/environment && RUST_BACKTRACE=1 ${DAEMON} start --bootstrap`
+  let command
+  if (DAEMON === 'secretd') {
+    command = `source /opt/sgxsdk/environment && RUST_BACKTRACE=1 ${DAEMON} start --bootstrap`
+      + ` --rpc.laddr ${RPC_ADDR}`
+      + ` --grpc.address ${GRPC_ADDR}`
+      + ` --grpc-web.address ${GRPC_WEB_ADDR}`
+  } else {
+    command = `${DAEMON} start`
+  }
+  command += ''
     + ` --rpc.laddr ${RPC_ADDR}`
     + ` --grpc.address ${GRPC_ADDR}`
     + ` --grpc-web.address ${GRPC_WEB_ADDR}`
   console.info(`$`, command)
-  execSync(command, { shell: '/bin/bash', stdio: 'inherit' })
+  try {
+    execSync(command, { shell: '/bin/bash', stdio: 'inherit' })
+  } catch (e) {
+    console.log('ERROR:', e.message)
+    process.exit(1)
+  }
 }
 
 function performGenesis () {
@@ -78,7 +99,10 @@ function performGenesis () {
 
 function preGenesisCleanup () {
   console.info('\nEnsuring a clean slate...')
-  run(`rm -rf ${daemonDir} ~/.secretcli /opt/secret/.sgx-secrets`)
+  run(`rm -rf ${daemonDir}`)
+  if (DAEMON === 'secretd') {
+    run(`~/.secretcli /opt/secret/.sgx-secrets`)
+  }
 }
 
 function preGenesisConfig () {
@@ -91,6 +115,7 @@ function preGenesisConfig () {
   if (DAEMON === 'secretd') {
     run(`cp ~/node_key.json ${nodeKey}`)
   }
+  console.log('Patching', genesis)
   run(`perl -i -pe 's/"stake"/ "${TOKEN}"/g' ${genesis}`)
 }
 
@@ -116,7 +141,11 @@ function bootstrapChain () {
   console.info('\nBootstrapping chain...')
   daemon(`collect-gentxs`)
   daemon(`validate-genesis`)
-  daemon(`init-bootstrap`)
+  if (DAEMON === 'secretd') {
+    daemon(`init-bootstrap`)
+  }/* else {
+    daemon(`init ${CHAIN_ID}`)
+  }*/
   daemon(`validate-genesis`)
 }
 
