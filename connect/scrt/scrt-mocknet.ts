@@ -1,6 +1,6 @@
 /**
 
-  Fadroma Mocknet
+  Fadroma Mocknet for Secret Network
   Copyright (C) 2023 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
@@ -20,14 +20,14 @@
 
 import type {
   AgentClass, Uint128, BundleClass, ExecOpts, Uploadable, Uploaded,
-  Address, CodeHash, ChainId, CodeId, Message, Client, Label, AnyContract, Instantiated
-} from './agent'
-import { Error as BaseError, Console as BaseConsole, bold, colors, into } from './agent-base'
-import { Chain, ChainMode, Agent, Bundle, assertChain } from './agent-chain'
-import { Contract } from './agent-deploy'
-
-import { randomBech32, sha256, base16, bech32 } from '@hackbg/4mat'
-import { brailleDump } from '@hackbg/dump'
+  Address, CodeHash, ChainId, CodeId, Message, Label, AnyContract, Instantiated,
+} from '@fadroma/agent'
+import {
+  Client, randomBech32, sha256, base16, bech32,
+  brailleDump, Error as BaseError, Console as BaseConsole, bold, colors, into,
+  Chain, ChainMode, Agent, Bundle, assertChain,
+  Contract
+} from '@fadroma/agent'
 
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
@@ -933,3 +933,4 @@ export const Error = (()=>{
   }
   return Object.assign(MocknetError, { Query: MocknetError_Query })
 })() //MocknetError
+

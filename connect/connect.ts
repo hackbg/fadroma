@@ -17,7 +17,7 @@
 **/
 
 import {
-  Console, Error, Chain, ChainMode, ChainId, Mocknet, bold, randomChainId
+  Console, Error, Chain, ChainMode, ChainId, bold, randomChainId
 } from '@fadroma/agent'
 import type { Agent, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
@@ -27,19 +27,11 @@ export * from '@fadroma/cw'
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'
 
-// Populate `Chain.variants` with catalog of possible connections:
-Object.assign(Chain.variants as ChainRegistry, {
-  // Support for Secret Network
-  ScrtMainnet: Scrt.Chain.mainnet,
-  ScrtTestnet: Scrt.Chain.testnet,
-  // Devnet is injected here by @hackbg/fadroma
-})
-
 export * from '@hackbg/conf'
 
 export * from '@fadroma/agent'
 
-export { Scrt, Mocknet }
+export { Scrt }
 
 export default function connect <A extends Agent> (
   config: Partial<ConnectConfig> = new ConnectConfig()
@@ -48,9 +40,20 @@ export default function connect <A extends Agent> (
 }
 
 export type ConnectMode =
-  |'Mocknet' // FIXME make chain-specific
-  |`Scrt${'Devnet'|'Testnet'|'Mainnet'}`
+  |`Scrt${'Mocknet'|'Devnet'|'Testnet'|'Mainnet'}`
   |`OKP4${'Devnet'|'Testnet'}`
+
+export const connectModes: Record<ConnectMode, (...args: any[])=>Chain> = {
+  // Support for Secret Network
+  ScrtMainnet: Scrt.mainnet,
+  ScrtTestnet: Scrt.testnet,
+  ScrtDevnet:  () => { throw new Error('Devnets are only available via @hackbg/fadroma') },
+  ScrtMocknet: Scrt.Chain.mocknet,
+  // Support for OKP4
+  OKP4Testnet: CW.OKP4.testnet,
+  OKP4Devnet:  () => { throw new Error('Devnets are only available via @hackbg/fadroma') },
+  // TODO: Support for custom chain
+}
 
 /** Connection configuration. Factory for `Chain` and `Agent` objects. */
 export class ConnectConfig extends Config {
@@ -68,10 +71,10 @@ export class ConnectConfig extends Config {
 
   protected getChainId () {
     const chainIds: Record<ConnectMode, ChainId> = {
-      Mocknet:     'mocknet',
       ScrtDevnet:  'fadroma-devnet',
       ScrtTestnet: this.scrt.testnetChainId,
       ScrtMainnet: this.scrt.mainnetChainId,
+      ScrtMocknet: 'mocknet',
       OKP4Devnet:  'fadroma-devnet-okp4',
       OKP4Testnet: this.okp4.testnetChainId,
     }
@@ -80,10 +83,10 @@ export class ConnectConfig extends Config {
 
   protected getChainMode () {
     const chainModes: Record<ConnectMode, ChainMode> = {
-      Mocknet:     ChainMode.Mocknet,
       ScrtDevnet:  ChainMode.Devnet,
       ScrtTestnet: ChainMode.Testnet,
       ScrtMainnet: ChainMode.Mainnet,
+      ScrtMocknet: ChainMode.Mocknet,
       OKP4Devnet:  ChainMode.Devnet,
       OKP4Testnet: ChainMode.Testnet,
     }
@@ -102,7 +105,7 @@ export class ConnectConfig extends Config {
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName: string = this.getString('FADROMA_AGENT', ()=>'Admin')
   /** Name of chain to use. */
-  chain?: keyof ChainRegistry = this.getString('FADROMA_CHAIN', ()=>'Mocknet')
+  chain?: ConnectMode = this.getString('FADROMA_CHAIN', ()=>'ScrtMocknet')
   /** Override chain id. */
   chainId?: ChainId
   /** Override chain mode. */
@@ -115,17 +118,17 @@ export class ConnectConfig extends Config {
     = this.getString('FADROMA_MNEMONIC', ()=>undefined)
   /** Create the Chain instance specified by the configuration. */
   getChain <C extends Chain> (
-    chainToGet: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]|undefined = this.chain
+    chainToGet: ConnectMode|((...args: any[])=>Chain)|undefined = this.chain
   ): C {
     if (!chainToGet) {
       chainToGet = this.chain
       if (!chainToGet) throw new Error.Missing.Chain()
     }
     if (typeof chainToGet === 'string') { // allow name to be passed
-      chainToGet = Chain.variants[chainToGet]
+      chainToGet = connectModes[chainToGet as ConnectMode]
     }
     if (!chainToGet) { // if still unspecified, throw
-      throw new ConnectError.UnknownChainSelected(this.chain!, Chain.variants)
+      throw new ConnectError.UnknownChainSelected(this.chain!, connectModes)
     }
     return chainToGet({ config: this }) as C // create Chain object
   }
@@ -150,7 +153,7 @@ export class ConnectConfig extends Config {
 export class ConnectConsole extends Console {
   label = 'Fadroma Connect'
 
-  supportedChains (supportedChains: Record<string, unknown> = Chain.variants) {
+  supportedChains (supportedChains: Record<string, unknown> = connectModes) {
     this.br()
     this.info('Known chain names:')
     for (const chain of Object.keys(supportedChains).sort()) {

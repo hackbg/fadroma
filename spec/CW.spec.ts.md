@@ -11,7 +11,9 @@ unified into a single package, `@hackbg/cosmjs-esm`.
 
 ## OKP4 support
 
-In these tests, we'll connect to the OKP4 okp4.
+In these tests, we'll connect to a local OKP4 devnet
+managed by Fadroma on your local Docker installation.
+(Make sure you can call `docker` without `sudo`!)
 
 ```typescript
 import { OKP4 } from '@fadroma/connect'

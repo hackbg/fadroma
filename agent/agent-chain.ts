@@ -24,7 +24,6 @@ import type {
   Uploadable
 } from './agent'
 import { Error, Console, into, prop, hideProperties as hide, randomBytes } from './agent-base'
-import type * as Mocknet from './agent-mocknet'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -207,22 +206,16 @@ export abstract class Chain {
   }
   /** @returns a devnet instance of this chain. */
   static devnet (options: Partial<Chain> = {}): Chain {
-    return new (this as any)({
-      ...options.devnet ? { id: options.devnet.chainId, url: options.devnet.url.toString() } : {},
-      ...options,
-      mode: Chain.Mode.Devnet
-    })
+    options = { ...options, mode: Chain.Mode.Devnet }
+    if (options.devnet) {
+      options.id = options.devnet.chainId
+      options.url = options.devnet.url.toString()
+    }
+    return new (this as any)(options)
   }
   /** @returns a mocknet instance of this chain. */
-  static mocknet (options?: Partial<Mocknet.Chain>): Mocknet.Chain {
-    // this method is replaced in the root of the package
-    throw new Error('stub. try with `new Mocknet()`')
-  }
-  /** Async functions that return Chain instances in different modes.
-    * Values for `FADROMA_CHAIN` environment variable.
-    * Populated by @fadroma/connect. */
-  static variants: ChainRegistry = {
-    Mocknet: (...args) => this.mocknet(...args)
+  static mocknet (options?: Partial<Chain>): Chain {
+    throw new Error('Mocknet is not enabled for this chain.')
   }
 }
 /** @returns the chain of a thing
