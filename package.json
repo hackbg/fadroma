@@ -26,7 +26,6 @@
   ],
   "license": "AGPL-3.0-only",
   "scripts": {
-
     "prepare":       "husky install",
     "clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
     "ubik":          "pnpm i && pnpm clean && pnpm check && ubik",
@@ -41,7 +40,6 @@
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve",
-
     "test":          "time ensuite GUIDE.ts.md",
     "test:agent":    "time ensuite spec/Agent.test.ts",
     "test:build":    "time ensuite spec/Build.test.ts",
@@ -54,29 +52,22 @@
     "cov":           "time ensuite-cov GUIDE.ts.md",
     "cov:build":     "time ensuite-cov spec/Build.test.ts",
     "cov:factory":   "time ensuite-cov spec/Factory.spec.ts.md",
-    "cov:devnet":    "time ensuite-cov spec/Devnet.test.ts",
-
-    "start":         "./fadroma.cli.cjs",
-    "mocknet":       "FADROMA_CHAIN=Mocknet     ./fadroma.cli.cjs",
-    "devnet":        "FADROMA_CHAIN=ScrtDevnet  ./fadroma.cli.cjs",
-    "testnet":       "FADROMA_CHAIN=ScrtTestnet ./fadroma.cli.cjs",
-    "mainnet":       "FADROMA_CHAIN=ScrtMainnet ./fadroma.cli.cjs"
-
+    "cov:devnet":    "time ensuite-cov spec/Devnet.test.ts"
   },
   "dependencies": {
     "@fadroma/agent":   "workspace:2.0.0-rc.0",
     "@fadroma/connect": "workspace:4.0.0-rc.0",
-    "@hackbg/cmds": "workspace:3.0.7",
-    "@hackbg/dock": "workspace:2",
-    "@hackbg/file": "workspace:1.2.3",
-    "@hackbg/hide": "workspace:1",
-    "@hackbg/logs": "workspace:2.0.7",
-    "@hackbg/port": "workspace:1",
-    "case": "^1.6.3",
-    "dotenv": "^16.0.1",
-    "js-yaml": "^4.1.0",
-    "prompts": "^2.4.2",
-    "simple-git": "^3.7.1"
+    "@hackbg/cmds":     "workspace:3.0.7",
+    "@hackbg/dock":     "workspace:2",
+    "@hackbg/file":     "workspace:1.2.3",
+    "@hackbg/hide":     "workspace:1",
+    "@hackbg/logs":     "workspace:2.0.7",
+    "@hackbg/port":     "workspace:1",
+    "case":             "^1.6.3",
+    "dotenv":           "^16.0.1",
+    "js-yaml":          "^4.1.0",
+    "prompts":          "^2.4.2",
+    "simple-git":       "^3.7.1"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^4"
