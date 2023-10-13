@@ -76,18 +76,14 @@
     "@hackbg/ganesha": { "optional": true }
   },
   "devDependencies": {
-    "@fadroma/scrt": "workspace:*",
+    "@fadroma/scrt":   "workspace:*",
+    "@fadroma/cw":     "workspace:*",
+
     "@hackbg/ensuite": "workspace:*",
     "@hackbg/ganesha": "workspace:*",
     "@hackbg/fadroma": "workspace:*",
-    "@hackbg/spec": "^1",
-    "@hackbg/ubik": "workspace:./connect/scrt/secretjs-esm/ubik",
-    "@types/dockerode": "^3.3.14",
-    "@types/js-yaml": "^4.0.5",
-    "@types/node": "latest",
-    "@types/prettyjson": "^0.0.30",
-    "@types/prompts": "^2.4.2",
-    "@types/secure-random": "^1.1.0",
+    "@hackbg/ubik":    "workspace:*",
+
     "body-parser": "^1.20.0",
     "concurrently": "7.2.2",
     "cross-fetch": "^3.1.5",
@@ -96,7 +92,14 @@
     "husky": "^8.0.3",
     "lint-staged": "^13.1.2",
     "typedoc": "0.24.8",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+
+    "@types/dockerode": "^3.3.14",
+    "@types/js-yaml": "^4.0.5",
+    "@types/node": "latest",
+    "@types/prettyjson": "^0.0.30",
+    "@types/prompts": "^2.4.2",
+    "@types/secure-random": "^1.1.0"
   },
   "pnpm": {
     "peerDependencyRules": {
