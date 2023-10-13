@@ -31,7 +31,7 @@
     "ubik":          "pnpm i && pnpm clean && pnpm check && ubik",
     "check":         "time tsc --noEmit",
     "ci":            "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm cloc && pnpm clean && concurrently npm:check npm:cov && pnpm ubik --dry compile && ls -al",
-    "cloc":          "cloc --fullpath --not-match-d=node_modules --exclude-dir=cosmjs-esm,secretjs-esm .",
+    "cloc":          "cloc --verbose=2 --fullpath --not-match-d=node_modules --not-match-f=pnpm-lock.yaml --exclude-dir=.github,.husky,ensuite,cosmjs-esm,secretjs-esm,coverage,state .",
     "build":         "./fadroma.cli.cjs build",
     "build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
     "docs:dev":      "ensuite-dev",
