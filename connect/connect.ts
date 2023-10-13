@@ -31,7 +31,7 @@ export * from '@hackbg/conf'
 
 export * from '@fadroma/agent'
 
-export { Scrt }
+export { Scrt, CW }
 
 export default function connect <A extends Agent> (
   config: Partial<ConnectConfig> = new ConnectConfig()

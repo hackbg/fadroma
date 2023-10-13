@@ -28,8 +28,8 @@ import { Devnet } from './fadroma-devnet'
 import { ProjectWizard, toolVersions } from './fadroma-wizard'
 
 import {
-  connectModes,
-  Chain, ChainMode, Scrt, Deployment, DeployStore,
+  connectModes, Scrt, CW,
+  Chain, ChainMode, Deployment, DeployStore,
   Agent, AnyContract, Contract, Client, DeploymentState, Template,
   toInstanceReceipt, timestamp, bold, Console, Error,
   bip39, bip39EN
@@ -91,10 +91,14 @@ export function getDevnet (options: Partial<Config["devnet"]> = {}) {
   return new Config({ devnet: options }).getDevnet()
 }
 
-// This installs devnet as a selectable chain:
+// Installs devnets as selectable chains:
 connectModes['ScrtDevnet'] =
   (options: Partial<Devnet> = { platform: 'scrt_1.9' }): Scrt.Chain =>
     new Config().getDevnet(options).getChain(Scrt.Chain as ChainClass<Scrt.Chain>)
+
+connectModes['OKP4Devnet'] =
+  (options: Partial<Devnet> = { platform: 'okp4_5.0' }): CW.OKP4.Chain =>
+    new Config().getDevnet(options).getChain(CW.OKP4.Chain as ChainClass<CW.OKP4.Chain>)
 
 const console = new Console(`@hackbg/fadroma ${version}`)
 
