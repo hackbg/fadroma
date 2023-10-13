@@ -16,8 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 import type {
-  Address, TxHash, ChainId, Agent, ClientClass, Hashed, CodeId, Deployment, Class, CodeHash,
-  Mocknet
+  Address, TxHash, ChainId, Agent, ClientClass, Hashed, CodeId, Deployment, Class, CodeHash, Chain,
 } from './agent'
 import { Error, Console, pluralize, bold, hideProperties } from './agent-base'
 import { Client, fetchCodeHash, getSourceSpecifier } from './agent-client'
@@ -140,12 +139,13 @@ export class Uploader {
   /** Upload an Uploadable (such as a Contract or Template).
     * @returns Promise<Uploaded> */
   async upload (contract: Uploadable & Partial<Uploaded>): Promise<Uploaded> {
+    type Mocknet = Chain & { uploads: Record<CodeId, { codeHash: CodeHash }> }
     if (contract.codeId) {
       this.log.log('found code id', contract.codeId)
       if (this.reupload) {
         this.log.log('reuploading because reupload is set')
       } else if (this.agent?.chain?.isMocknet && contract.codeHash) {
-        const { codeHash } = (this.agent.chain as Mocknet.Chain).uploads[contract.codeId] || {}
+        const { codeHash } = (this.agent.chain as Mocknet).uploads[contract.codeId] || {}
         if (codeHash === contract.codeHash) return contract as Uploaded
         this.log.log('reuploading because mocknet is not stateful yet')
       } else {
@@ -159,7 +159,7 @@ export class Uploader {
       if (this.reupload) {
         this.log.log('reuploading because reupload is set')
       } else if (this.agent?.chain?.isMocknet) {
-        const { codeHash } = (this.agent.chain as Mocknet.Chain).uploads[cached.codeId] || {}
+        const { codeHash } = (this.agent.chain as Mocknet).uploads[cached.codeId] || {}
         if (codeHash === contract.codeHash) return cached
         this.log.log('reuploading because mocknet is not stateful yet')
       } else {

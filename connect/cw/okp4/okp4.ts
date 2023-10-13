@@ -18,39 +18,25 @@ class OKP4Config extends Config {
   static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'
                                     //'https://okp4-testnet-api.polkachu.com/'
 
-  constructor (
-    options: Partial<OKP4Config> = {},
-    environment?: Environment
-  ) {
+  constructor (options: Partial<OKP4Config> = {}, environment?: Environment) {
     super(environment)
     this.override(options)
   }
 
   testnetChainId: string = this.getString(
     'FADROMA_OKP4_TESTNET_CHAIN_ID',
-    () => OKP4Config.defaultTestnetChainId)
+    () => OKP4Config.defaultTestnetChainId
+  )
 
   testnetUrl: string = this.getString(
     'FADROMA_OKP4_TESTNET_URL',
-    () => OKP4Config.defaultTestnetUrl)
+    () => OKP4Config.defaultTestnetUrl
+  )
+
 }
 
 /** OKP4 chain. */
 class OKP4Chain extends Chain {
-
-  /** Default denomination of gas token. */
-  static defaultDenom = 'uknow'
-
-  /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) => new Fee(amount, this.defaultDenom)
-
-  /** Set permissive fees by default. */
-  static defaultFees: AgentFees = {
-    upload: this.gas(1000000),
-    init:   this.gas(1000000),
-    exec:   this.gas(1000000),
-    send:   this.gas(1000000),
-  }
 
   /** Default Agent class to use. */
   declare Agent: AgentClass<OKP4Agent>
@@ -64,6 +50,7 @@ class OKP4Chain extends Chain {
   constructor (options: Partial<OKP4Chain> & { config?: OKP4Config } = {
     config: new OKP4Config()
   }) {
+    console.log({options})
     super(options)
   }
 
@@ -105,6 +92,21 @@ class OKP4Chain extends Chain {
     const ids = Object.values(lawStoneCodeIds)
     return await getContractsById(this.id, api, LawStone, ids, map)
   }
+
+  /** Default denomination of gas token. */
+  static defaultDenom = 'uknow'
+
+  /** @returns Fee in uscrt */
+  static gas = (amount: Uint128|number) => new Fee(amount, this.defaultDenom)
+
+  /** Set permissive fees by default. */
+  static defaultFees: AgentFees = {
+    upload: this.gas(1000000),
+    init:   this.gas(1000000),
+    exec:   this.gas(1000000),
+    send:   this.gas(1000000),
+  }
+
 }
 
 async function getContractsById <C extends Client> (
@@ -128,7 +130,9 @@ async function getContractsById <C extends Client> (
     const addresses = await api.getContracts(codeId)
 
     for (const address of addresses) {
-      const contract = new $C({ address, codeHash, codeId: String(codeId), } as Partial<C>)
+      const contract = new $C(
+        { address, codeHash, codeId: String(codeId) } as Partial<C>
+      )
       contract.meta.chainId = chainId
       if (map) {
         (contracts as Map<Address, C>).set(address, contract)

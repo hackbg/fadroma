@@ -1,8 +1,9 @@
 import * as SecretJS from '@hackbg/secretjs-esm'
 import { Config, Error, Console } from './scrt-base'
+import * as Mocknet from './scrt-mocknet'
 import {
   Agent, Contract, assertAddress, into, base64, bip39, bip39EN, bold,
-  Chain, Fee, Mocknet, Bundle, assertChain
+  Chain, Fee, Bundle, assertChain
 } from '@fadroma/agent'
 import type {
   AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BundleClass, Client,
@@ -12,12 +13,16 @@ import type {
 
 /** Represents a Secret Network API endpoint. */
 class ScrtChain extends Chain {
+
+  /** Logger handle. */
+  log = new Console('Scrt')
+
+  /** Smallest unit of native token. */
+  defaultDenom: string = ScrtChain.defaultDenom
+
   /** The default SecretJS module. */
   static SecretJS: typeof SecretJS
 
-  log = new Console('Scrt')
-  /** Smallest unit of native token. */
-  defaultDenom: string = ScrtChain.defaultDenom
   /** The SecretJS module used by this instance.
     * You can set this to a compatible version of the SecretJS module
     * in order to use it instead of the one bundled with this package.
@@ -25,6 +30,7 @@ class ScrtChain extends Chain {
     * constructed by the configured Scrt instance's getAgent method
     * will use the non-default SecretJS module. */
   SecretJS = ScrtChain.SecretJS
+
   /** The Agent class used by this instance. */
   Agent: AgentClass<ScrtAgent> = ScrtChain.Agent
 
@@ -43,27 +49,33 @@ class ScrtChain extends Chain {
   get api () {
     return this.getApi()
   }
+
   get block () {
     return this.api.then(api=>api.query.tendermint.getLatestBlock({}))
   }
+
   get height () {
     return this.block.then(block=>Number(block.block?.header?.height))
   }
+
   async getBalance (denom = this.defaultDenom, address: Address) {
     const api = await this.api
     const response = await api.query.bank.balance({ address, denom })
     return response.balance!.amount!
   }
+
   async getLabel (contract_address: string): Promise<string> {
     const api = await this.api
     const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.label!
   }
+
   async getCodeId (contract_address: string): Promise<string> {
     const api = await this.api
     const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.code_id!
   }
+
   async getHash (arg: string|number): Promise<string> {
     const api = await this.api
     if (typeof arg === 'number' || !isNaN(Number(arg))) {
@@ -76,9 +88,11 @@ class ScrtChain extends Chain {
       })).code_hash!
     }
   }
+
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
+
   /** @returns a fresh instance of the anonymous read-only API client. */
   async getApi (
     options: Partial<SecretJS.CreateClientOptions> = {}
@@ -87,6 +101,7 @@ class ScrtChain extends Chain {
     if (!options.url) throw new Error.Missing('api url')
     return await new (this.SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
   }
+
   async fetchLimits (): Promise<{ gas: number }> {
     const params = { subspace: "baseapp", key: "BlockParams" }
     const { param } = await (await this.api).query.params.params(params)
@@ -146,9 +161,9 @@ class ScrtChain extends Chain {
   }) as ScrtChain
 
   /** Connect to a Secret Network mocknet. */
-  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => super.mocknet({
-    id: 'scrt-mocknet',
-    ...options||{}
+  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => new Mocknet.Chain({
+    id: 'mocknet',
+    ...options
   })
 
 }

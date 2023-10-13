@@ -30,9 +30,12 @@ class CWConsole extends Console {}
 
 /** Generic CosmWasm-enabled chain. */
 class CWChain extends Chain {
+
   defaultDenom = ''
+
   /** Query-only API handle. */
   api?: CosmWasmClient
+
   /** Async initialization. Populates the `api` property. */
   get ready (): Promise<this & { api: CosmWasmClient }> {
     const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
@@ -48,6 +51,7 @@ class CWChain extends Chain {
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
   }
+
 }
 
 /** Generic agent for CosmWasm-enabled chains. */

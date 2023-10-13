@@ -30,6 +30,7 @@ export * from '@hackbg/into'
 export * from '@hackbg/hide'
 export * from '@hackbg/many'
 export * from '@hackbg/4mat'
+export * from '@hackbg/dump'
 
 export type Name = string
 
