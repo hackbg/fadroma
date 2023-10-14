@@ -50,7 +50,6 @@ class OKP4Chain extends Chain {
   constructor (options: Partial<OKP4Chain> & { config?: OKP4Config } = {
     config: new OKP4Config()
   }) {
-    console.log({options})
     super(options)
   }
 
@@ -65,9 +64,9 @@ class OKP4Chain extends Chain {
   }
 
   /** Connect to OKP4 in testnet mode. */
-  static devnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => super.devnet({
-    ...options||{}
-  }) as OKP4Chain
+  static devnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => {
+    throw new Error('devnet not installed. import @hackbg/fadroma')
+  }
 
   /** Get clients for all Cognitarium instances,
     * keyed by address. */

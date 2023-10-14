@@ -16,6 +16,7 @@ managed by Fadroma on your local Docker installation.
 (Make sure you can call `docker` without `sudo`!)
 
 ```typescript
+import '@hackbg/fadroma' // populates devnet
 import { OKP4 } from '@fadroma/connect'
 
 const okp4 = await OKP4.devnet().ready
