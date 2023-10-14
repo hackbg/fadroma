@@ -32,8 +32,10 @@ export class Objectarium extends Client {
 
   static ['v2.0.0'] = class Objectarium_v2_1_0 extends Objectarium {
     static client = this
-    static codeId = 4
     //static codeHash = ''
+    static codeId = {
+      'okp4-nemeton-1': 4
+    }
   }
 
 }

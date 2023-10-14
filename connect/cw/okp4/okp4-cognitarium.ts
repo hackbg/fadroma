@@ -31,8 +31,10 @@ export class Cognitarium extends Client {
 
   static ['v2.1.0'] = class Cognitarium_v2_1_0 extends Cognitarium {
     static client = this
-    static codeId = 7
     //static codeHash = ''
+    static codeId = {
+      'okp4-nemeton-1': 7
+    }
   }
 
 }
