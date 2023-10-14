@@ -22,8 +22,10 @@ export class LawStone extends Client {
 
   static ['v2.1.0'] = class LawStone_v2_1_0 extends LawStone {
     static client = this
-    static codeId = 5
     //static codeHash = ''
+    static codeId = {
+      'okp4-nemeton-1': 5
+    }
   }
 
 }
