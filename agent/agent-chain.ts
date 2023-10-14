@@ -38,6 +38,7 @@ export interface DevnetHandle {
   url: URL
   running: boolean
   chainId: string
+  platform: string
   start: () => Promise<this>
   getAccount: (name: string) => Promise<Partial<Agent>>
   assertPresence: () => Promise<void>

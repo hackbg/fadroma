@@ -23,7 +23,7 @@ export * from './scrt-token'
 export * as SecretJS from '@hackbg/secretjs-esm'
 
 import { Chain } from './scrt-chain'
-export const mainnet = Chain.mainnet
-export const testnet = Chain.testnet
-export const devnet  = Chain.devnet
-export const mocknet = Chain.mocknet
+export const mainnet = (...args: Parameters<typeof Chain.mainnet>) => Chain.mainnet(...args)
+export const testnet = (...args: Parameters<typeof Chain.testnet>) => Chain.testnet(...args)
+export const devnet  = (...args: Parameters<typeof Chain.devnet>)  => Chain.devnet(...args)
+export const mocknet = (...args: Parameters<typeof Chain.mocknet>) => Chain.mocknet(...args)

@@ -211,7 +211,7 @@ bindChainSupport(OKP4Chain, OKP4Agent, OKP4Bundle)
 export { OKP4Config as Config, OKP4Chain as Chain, OKP4Agent as Agent, OKP4Bundle as Bundle }
 
 /** Connect to OKP4 testnet. */
-export const testnet = OKP4Chain.testnet
+export const testnet = (...args: Parameters<typeof OKP4Chain.testnet>) => OKP4Chain.testnet(...args)
 
 /** Connect to local OKP4 devnet. */
-export const devnet = OKP4Chain.devnet
+export const devnet = (...args: Parameters<typeof OKP4Chain.devnet>) => OKP4Chain.devnet(...args)
