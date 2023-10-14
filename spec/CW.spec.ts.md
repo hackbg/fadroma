@@ -16,10 +16,10 @@ managed by Fadroma on your local Docker installation.
 (Make sure you can call `docker` without `sudo`!)
 
 ```typescript
-import '@hackbg/fadroma' // populates devnet
+import '@hackbg/fadroma' // installs devnet support
 import { OKP4 } from '@fadroma/connect'
 
-const okp4 = await OKP4.devnet().ready
+const okp4 = await OKP4.devnet({ deleteOnExit: true }).ready
 assert(okp4 instanceof OKP4.Chain)
 ```
 

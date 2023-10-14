@@ -38,7 +38,13 @@ class CWChain extends Chain {
 
   /** Async initialization. Populates the `api` property. */
   get ready (): Promise<this & { api: CosmWasmClient }> {
+    if (this.isDevnet && !this.devnet) {
+      throw new Error('Missing devnet handle')
+    }
     const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
+      if (this.isDevnet) {
+        await this.devnet!.start()
+      }
       if (!this.api) {
         if (!this.chain) {
           throw new CWError('no chain specified')
