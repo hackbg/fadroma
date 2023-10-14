@@ -6,8 +6,8 @@ import assert from 'node:assert'
 
 Fadroma supports connecting to any chain that supports CosmWasm.
 
-For this, we currently use our own fork of `@cosmjs/*`,
-unified into a single package, `@hackbg/cosmjs-esm`.
+For this, we currently use our own fork of the `@cosmjs/*` packages,
+unified into a single package, [`@hackbg/cosmjs-esm`](https://www.npmjs.com/package/@hackbg/cosmjs-esm).
 
 ## OKP4 support
 

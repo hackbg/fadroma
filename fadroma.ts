@@ -92,13 +92,17 @@ export function getDevnet (options: Partial<Config["devnet"]> = {}) {
 }
 
 // Installs devnets as selectable chains:
-connectModes['ScrtDevnet'] =
-  (options: Partial<Devnet> = { platform: 'scrt_1.9' }): Scrt.Chain =>
-    new Config().getDevnet(options).getChain(Scrt.Chain as ChainClass<Scrt.Chain>)
+connectModes['ScrtDevnet'] = Scrt.Chain.devnet =
+  (options: Partial<Scrt.Chain>|undefined): Scrt.Chain =>
+    new Config()
+      .getDevnet({ platform: 'scrt_1.9' })
+      .getChain(Scrt.Chain as ChainClass<Scrt.Chain>, options)
 
-connectModes['OKP4Devnet'] =
-  (options: Partial<Devnet> = { platform: 'okp4_5.0' }): CW.OKP4.Chain =>
-    new Config().getDevnet(options).getChain(CW.OKP4.Chain as ChainClass<CW.OKP4.Chain>)
+connectModes['OKP4Devnet'] = CW.OKP4.Chain.devnet = 
+  (options: Partial<CW.OKP4.Chain>|undefined): CW.OKP4.Chain =>
+    new Config()
+      .getDevnet({ platform: 'okp4_5.0' })
+      .getChain(CW.OKP4.Chain as ChainClass<CW.OKP4.Chain>, options)
 
 const console = new Console(`@hackbg/fadroma ${version}`)
 

@@ -43,15 +43,22 @@ export type ConnectMode =
   |`Scrt${'Mocknet'|'Devnet'|'Testnet'|'Mainnet'}`
   |`OKP4${'Devnet'|'Testnet'}`
 
-export const connectModes: Record<ConnectMode, (...args: any[])=>Chain> = {
+export const connectModes = {
+
   // Support for Secret Network
   ScrtMainnet: Scrt.mainnet,
   ScrtTestnet: Scrt.testnet,
-  ScrtDevnet:  () => { throw new Error('Devnets are only available via @hackbg/fadroma') },
+  ScrtDevnet: (...args: Parameters<typeof Scrt.Chain.devnet>): Scrt.Chain => {
+    throw new Error('Devnets are only available via @hackbg/fadroma')
+  },
   ScrtMocknet: Scrt.Chain.mocknet,
+
   // Support for OKP4
   OKP4Testnet: CW.OKP4.testnet,
-  OKP4Devnet:  () => { throw new Error('Devnets are only available via @hackbg/fadroma') },
+  OKP4Devnet: (...args: Parameters<typeof CW.OKP4.Chain.devnet>): CW.OKP4.Chain => {
+    throw new Error('Devnets are only available via @hackbg/fadroma')
+  },
+
   // TODO: Support for custom chain
 }
 

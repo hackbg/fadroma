@@ -384,14 +384,27 @@ export class Devnet implements DevnetHandle {
     }
   }
 
-  /** Get a Chain object corresponding to this devnet. */
+  /** Get a Chain object wrapping this devnet. */
   getChain = <C extends Chain, D extends ChainClass<C>> (
-    $C: ChainClass<C> = Chain as unknown as ChainClass<C>
-  ): C => new $C({
-    id:     this.chainId,
-    mode:   Chain.Mode.Devnet,
-    devnet: this
-  })
+    $C: ChainClass<C> = Chain as unknown as ChainClass<C>,
+    options?: Partial<C>
+  ): C => {
+    if (options?.id && options.id !== this.chainId) {
+      this.log.warn('Devnet#getChain: ignoring passed chain id')
+    }
+    if (options?.mode && options.mode !== Chain.Mode.Devnet) {
+      this.log.warn('Devnet#getChain: ignoring passed chain mode')
+    }
+    if (options?.devnet) {
+      this.log.warn('Devnet#getChain: ignoring passed devnet handle')
+    }
+    return new $C({
+      ...options,
+      id:     this.chainId,
+      mode:   Chain.Mode.Devnet,
+      devnet: this
+    })
+  }
 
   /** Get the info for a genesis account, including the mnemonic */
   getAccount = async (name: string): Promise<Partial<Agent>> => {
