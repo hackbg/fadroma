@@ -38,12 +38,96 @@ import { randomBytes } from 'node:crypto'
 const thisPackage = dirname(fileURLToPath(import.meta.url))
 
 /** Supported connection types. */
-export type DevnetPortMode = 'lcp'|'grpcWeb'
+export const devnetPorts = {
+  http:    1317,
+  rpc:     26657,
+  grpc:    9090,
+  grpcWeb: 9091
+}
 
 /** Supported devnet variants. */
-export type DevnetPlatform = 
+export type DevnetPlatform =
   | `scrt_1.${2|3|4|5|6|7|8|9}`
   | `okp4_5.0`
+
+export type DevnetPlatformInfo = {
+  /** Tag of devnet image to download. */
+  dockerTag:  string
+  /** Path to dockerfile to use to build devnet image if not downloadable. */
+  dockerFile: string
+  /** Log message to wait for before the devnet is ready. */
+  ready:      string
+  /** Name of node daemon binary to run inside the container. */
+  daemon:     string
+  /** Which port is being used. */
+  portMode:   keyof typeof devnetPorts
+}
+
+export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
+  'scrt_1.2': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_2.Dockerfile').path,
+    ready:      'indexed block',
+    daemon:     'secretd',
+    portMode:   'http',
+  },
+  'scrt_1.3': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_3.Dockerfile').path,
+    ready:      'indexed block',
+    daemon:     'secretd',
+    portMode:   'grpcWeb',
+  },
+  'scrt_1.4': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_4.Dockerfile').path,
+    ready:      'indexed block',
+    daemon:     'secretd',
+    portMode:   'grpcWeb',
+  },
+  'scrt_1.5': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_5.Dockerfile').path,
+    ready:      'indexed block',
+    daemon:     'secretd',
+    portMode:   'http',
+  },
+  'scrt_1.6': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
+    ready:      'indexed block',
+    daemon:     'secretd',
+    portMode:   'http',
+  },
+  'scrt_1.7': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
+    ready:      'indexed block',
+    daemon:     'secretd',
+    portMode:   'http',
+  },
+  'scrt_1.8': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path,
+    ready:      'Done verifying block height',
+    daemon:     'secretd',
+    portMode:   'http',
+  },
+  'scrt_1.9': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
+    dockerFile: $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path,
+    ready:      'Validating proposal',
+    daemon:     'secretd',
+    portMode:   'http',
+  },
+  'okp4_5.0': {
+    dockerTag:  'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
+    dockerFile: $(thisPackage, 'devnets', 'okp4_5_0.Dockerfile').path,
+    ready:      'indexed block',
+    daemon:     'okp4d',
+    portMode:   'rpc',
+  },
+}
 
 /** A private local instance of a network. */
 export class Devnet implements DevnetHandle {
@@ -62,7 +146,7 @@ export class Devnet implements DevnetHandle {
   /** Which kind of devnet to launch */
   platform: DevnetPlatform
   /** Which service does the API URL port correspond to. */
-  portMode: DevnetPortMode
+  portMode: keyof typeof devnetPorts
   /** The chain ID that will be passed to the devnet node. */
   chainId: ChainId
   /** Whether to destroy this devnet on exit. */
@@ -130,15 +214,16 @@ export class Devnet implements DevnetHandle {
     this.launchTimeout  = options.launchTimeout ?? 10
     this.dontMountState = options.dontMountState ?? false
     this.accounts       = options.accounts ?? this.accounts
-    this.readyPhrase    = options.readyPhrase ?? Devnet.readyMessage[this.platform]
     this.protocol       = options.protocol ?? 'http'
     this.host           = options.host ?? 'localhost'
-    this.portMode       = Devnet.portModes[this.platform]
-    this.port           = options.port ?? ((this.portMode === 'lcp') ? 1317 : 9091)
     this.engine         = options.engine ?? new Dock[this.podman?'Podman':'Docker'].Engine()
     this.containerId    = options.containerId ?? this.containerId
-    this.imageTag       = options.imageTag ?? this.imageTag ?? Devnet.dockerTags[this.platform]
-    this.dockerfile     = options.dockerfile ?? this.dockerfile ?? Devnet.dockerfiles[this.platform]
+    const { dockerTag, dockerFile, ready, portMode, daemon } = devnetPlatforms[this.platform]
+    this.imageTag       = options.imageTag ?? this.imageTag ?? dockerTag
+    this.dockerfile     = options.dockerfile ?? this.dockerfile ?? dockerFile
+    this.readyPhrase    = options.readyPhrase ?? ready
+    this.portMode       = portMode
+    this.port           = options.port ?? devnetPorts[this.portMode]
   }
 
   get log (): DevnetConsole {
@@ -165,7 +250,7 @@ export class Devnet implements DevnetHandle {
   /** Environment variables in the container. */
   get spawnEnv () {
     const env: Record<string, string> = {
-      DAEMON:    Devnet.daemonBinary[this.platform],
+      DAEMON:    devnetPlatforms[this.platform].daemon,
       CHAIN_ID:  this.chainId,
       ACCOUNTS:  this.accounts.join(' '),
       STATE_UID: String((process.getuid!)()),
@@ -174,7 +259,7 @@ export class Devnet implements DevnetHandle {
     if (this.verbose) {
       env['VERBOSE'] = 'yes'
     }
-    if (this.portMode === 'lcp') {
+    if (this.portMode === 'http') {
       env['LCP_PORT'] = String(this.port)
     } else if (this.portMode === 'grpcWeb') {
       env['GRPC_WEB_ADDR'] = `0.0.0.0:${this.port}`
@@ -480,54 +565,6 @@ export class Devnet implements DevnetHandle {
 
   static stateFile = 'devnet.json'
 
-  static dockerfiles: Record<DevnetPlatform, string> = {
-    'scrt_1.2': $(thisPackage, 'devnets', 'scrt_1_2.Dockerfile').path,
-    'scrt_1.3': $(thisPackage, 'devnets', 'scrt_1_3.Dockerfile').path,
-    'scrt_1.4': $(thisPackage, 'devnets', 'scrt_1_4.Dockerfile').path,
-    'scrt_1.5': $(thisPackage, 'devnets', 'scrt_1_5.Dockerfile').path,
-    'scrt_1.6': $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
-    'scrt_1.7': $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
-    'scrt_1.8': $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path,
-    'scrt_1.9': $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path,
-    'okp4_5.0': $(thisPackage, 'devnets', 'okp4_5_0.Dockerfile').path,
-  }
-
-  static dockerTags: Record<DevnetPlatform, string> = {
-    'scrt_1.2': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
-    'scrt_1.3': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
-    'scrt_1.4': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
-    'scrt_1.5': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
-    'scrt_1.6': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
-    'scrt_1.7': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
-    'scrt_1.8': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
-    'scrt_1.9': 'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
-    'okp4_5.0': 'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
-  }
-
-  static readyMessage: Record<DevnetPlatform, string> = {
-    'scrt_1.2': 'indexed block',
-    'scrt_1.3': 'indexed block',
-    'scrt_1.4': 'indexed block',
-    'scrt_1.5': 'indexed block',
-    'scrt_1.6': 'indexed block',
-    'scrt_1.7': 'indexed block',
-    'scrt_1.8': 'Done verifying block height',
-    'scrt_1.9': 'Validating proposal',
-    'okp4_5.0': 'indexed block',
-  }
-
-  static daemonBinary: Record<DevnetPlatform, string> = {
-    'scrt_1.2': 'secretd',
-    'scrt_1.3': 'secretd',
-    'scrt_1.4': 'secretd',
-    'scrt_1.5': 'secretd',
-    'scrt_1.6': 'secretd',
-    'scrt_1.7': 'secretd',
-    'scrt_1.8': 'secretd',
-    'scrt_1.9': 'secretd',
-    'okp4_5.0': 'okp4d',
-  }
-
   static initScriptMount = 'devnet.init.mjs'
 
   /** Filter logs when waiting for the ready phrase. */
@@ -546,19 +583,6 @@ export class Devnet implements DevnetHandle {
 
   /** Regexp for non-printable characters. */
   static RE_NON_PRINTABLE = /[\x00-\x1F]/
-
-  /** Default connection type to expose on each devnet variant. */
-  static portModes: Record<DevnetPlatform, DevnetPortMode> = {
-    'scrt_1.2': 'lcp',
-    'scrt_1.3': 'grpcWeb',
-    'scrt_1.4': 'grpcWeb',
-    'scrt_1.5': 'lcp',
-    'scrt_1.6': 'lcp',
-    'scrt_1.7': 'lcp',
-    'scrt_1.8': 'lcp',
-    'scrt_1.9': 'lcp',
-    'okp4_5.0': 'lcp',
-  }
 }
 
 class DevnetConsole extends Console {
