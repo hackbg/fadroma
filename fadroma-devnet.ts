@@ -37,19 +37,15 @@ import { randomBytes } from 'node:crypto'
 //@ts-ignore
 const thisPackage = dirname(fileURLToPath(import.meta.url))
 
-/** Supported connection types. */
-export const devnetPorts = {
-  http:    1317,
-  rpc:     26657,
-  grpc:    9090,
-  grpcWeb: 9091
-}
-
-/** Supported devnet variants. */
+/** Supported devnet variants. Add new devnets here first. */
 export type DevnetPlatform =
   | `scrt_1.${2|3|4|5|6|7|8|9}`
   | `okp4_5.0`
 
+/** Ports exposed by the devnet. One of these is used by default. */
+export type DevnetPort = 'http'|'rpc'|'grpc'|'grpcWeb'
+
+/** Parameters that define a supported devnet. */
 export type DevnetPlatformInfo = {
   /** Tag of devnet image to download. */
   dockerTag:  string
@@ -60,9 +56,27 @@ export type DevnetPlatformInfo = {
   /** Name of node daemon binary to run inside the container. */
   daemon:     string
   /** Which port is being used. */
-  portMode:   keyof typeof devnetPorts
+  portMode:   DevnetPort
 }
 
+/** Mapping of connection type to default port number. */
+export const devnetPorts: Record<DevnetPort, number> = {
+  http:    1317,
+  rpc:     26657,
+  grpc:    9090,
+  grpcWeb: 9091
+}
+
+/** Mapping of connection type to environment variable
+  * used by devnet.init.mjs to set port number. */
+export const devnetPortEnvVars: Record<DevnetPort, string> = {
+  http:    'HTTP_PORT',
+  rpc:     'RPC_PORT',
+  grpc:    'GRPC_PORT',
+  grpcWeb: 'GRPC_WEB_PORT'
+}
+
+/** Descriptions of supported devnet variants. */
 export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
   'scrt_1.2': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
@@ -129,7 +143,8 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
   },
 }
 
-/** A private local instance of a network. */
+/** A private local instance of a network,
+  * running in a container managed by @hackbg/dock. */
 export class Devnet implements DevnetHandle {
   /** Is this thing on? */
   running: boolean = false
@@ -146,7 +161,7 @@ export class Devnet implements DevnetHandle {
   /** Which kind of devnet to launch */
   platform: DevnetPlatform
   /** Which service does the API URL port correspond to. */
-  portMode: keyof typeof devnetPorts
+  portMode: DevnetPort
   /** The chain ID that will be passed to the devnet node. */
   chainId: ChainId
   /** Whether to destroy this devnet on exit. */
@@ -175,6 +190,8 @@ export class Devnet implements DevnetHandle {
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
   accounts: Array<string> = [ 'Admin', 'Alice', 'Bob', 'Charlie', 'Mallory' ]
+  /** Name of node binary. */
+  daemon: string
 
   /** Overridable for testing. */
   //@ts-ignore
@@ -214,16 +231,17 @@ export class Devnet implements DevnetHandle {
     this.launchTimeout  = options.launchTimeout ?? 10
     this.dontMountState = options.dontMountState ?? false
     this.accounts       = options.accounts ?? this.accounts
-    this.protocol       = options.protocol ?? 'http'
-    this.host           = options.host ?? 'localhost'
     this.engine         = options.engine ?? new Dock[this.podman?'Podman':'Docker'].Engine()
     this.containerId    = options.containerId ?? this.containerId
     const { dockerTag, dockerFile, ready, portMode, daemon } = devnetPlatforms[this.platform]
     this.imageTag       = options.imageTag ?? this.imageTag ?? dockerTag
     this.dockerfile     = options.dockerfile ?? this.dockerfile ?? dockerFile
     this.readyPhrase    = options.readyPhrase ?? ready
-    this.portMode       = portMode
+    this.daemon         = options.daemon ?? daemon
+    this.portMode       = options.portMode ?? portMode
     this.port           = options.port ?? devnetPorts[this.portMode]
+    this.protocol       = options.protocol ?? 'http'
+    this.host           = options.host ?? 'localhost'
   }
 
   get log (): DevnetConsole {
@@ -259,12 +277,11 @@ export class Devnet implements DevnetHandle {
     if (this.verbose) {
       env['VERBOSE'] = 'yes'
     }
-    if (this.portMode === 'http') {
-      env['LCP_PORT'] = String(this.port)
-    } else if (this.portMode === 'grpcWeb') {
-      env['GRPC_WEB_ADDR'] = `0.0.0.0:${this.port}`
+    const portVar = devnetPortEnvVars[this.portMode]
+    if (portVar) {
+      env[portVar] = String(this.port)
     } else {
-      throw new DevnetError.PortMode(this.portMode)
+      this.log.warn(`Unknown port mode ${this.portMode}, devnet may not be accessible.`)
     }
     return env
   }
@@ -359,8 +376,7 @@ export class Devnet implements DevnetHandle {
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
   get stateFile (): JSONFile<Partial<this>> {
-    return $(this.stateDir, Devnet.stateFile)
-      .as(JSONFile) as JSONFile<Partial<this>>
+    return $(this.stateDir, Devnet.stateFile).as(JSONFile) as JSONFile<Partial<this>>
   }
 
   /** Start the container. */
@@ -412,6 +428,7 @@ export class Devnet implements DevnetHandle {
     return container.export(repository, tag)
   }
 
+  /** Delete the devnet container and state. */
   delete = async () => {
     this.log('Deleting...')
     let container
@@ -450,6 +467,7 @@ export class Devnet implements DevnetHandle {
     return this
   }
 
+  /** Run the cleanup container, deleting devnet state even if emitted as root. */
   private async forceDelete () {
     const image = await this.image
     const path = $(this.stateDir).shortPath
@@ -505,6 +523,8 @@ export class Devnet implements DevnetHandle {
     }
   }
 
+  /** Set an exit handler on the process to let the devnet
+    * stop/remove its container if configured to do so */
   protected setExitHandler () {
     if (this.exitHandlerSet) {
       this.log.exitHandlerSet(this.chainId)
@@ -528,6 +548,7 @@ export class Devnet implements DevnetHandle {
     this.exitHandlerSet = true
   }
 
+  /** Delete multiple devnets. */
   static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<Devnet[]> => {
     const state = $(path).as(OpaqueDirectory)
     const chains = (state.exists()&&state.list()||[])
@@ -563,8 +584,10 @@ export class Devnet implements DevnetHandle {
     return new Devnet(state)
   }
 
+  /** Name of the file containing devnet state. */
   static stateFile = 'devnet.json'
 
+  /** Name under which the devnet init script is mounted in the container. */
   static initScriptMount = 'devnet.init.mjs'
 
   /** Filter logs when waiting for the ready phrase. */
@@ -585,6 +608,7 @@ export class Devnet implements DevnetHandle {
   static RE_NON_PRINTABLE = /[\x00-\x1F]/
 }
 
+/** A logger emitting devnet-related messages. */
 class DevnetConsole extends Console {
   tryingPort = (port: string|number, taken?: string|number) =>
     taken
@@ -650,6 +674,7 @@ class DevnetConsole extends Console {
   }
 }
 
+/** An error emitted by the devnet. */
 export class DevnetError extends BaseError {
   static PortMode = this.define('PortMode',
     (mode?: string) => `devnet.portMode must be either 'lcp' or 'grpcWeb', found: ${mode}`)
