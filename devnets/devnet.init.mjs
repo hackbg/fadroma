@@ -1,6 +1,8 @@
 import { env, getuid } from 'node:process'
 import { spawn, exec, execSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { resolve } from 'node:path'
 
 const {
   VERBOSE       = false,
@@ -21,41 +23,62 @@ const {
   STATE_GID     = null,
 } = env
 
-const daemonDir = `~/.${DAEMON}`
-const configDir = `${daemonDir}/config`
-const appToml   = `${configDir}/app.toml`
-const genesis   = `${configDir}/genesis.json`
-const nodeKey   = `${configDir}/node_key.json`
-const stateDir  = `/state/${CHAIN_ID}`
-const wallets   = `${stateDir}/wallet`
+console.debug = (...args) => {
+  if (VERBOSE) console.log(...args)
+}
+
+const daemonDir = resolve(homedir(), `.${DAEMON}`)
+const configDir = resolve(daemonDir, `config`)
+const appToml   = resolve(configDir, `app.toml`)
+const genesis   = resolve(configDir, `genesis.json`)
+const nodeKey   = resolve(configDir, `node_key.json`)
+const stateDir  = resolve(`/state`, CHAIN_ID)
+const wallets   = resolve(stateDir, `wallet`)
 
 start()
 
 function start () {
   performGenesis()
+  configureNode()
   spawnLcp()
   launchNode()
   console.info('Server exited.')
 }
 
+function configureNode () {
+  console.info('Configuring the node...')
+  let appTomlData = readFileSync(appToml, 'utf8')
+  appTomlData = appTomlData.replace(
+    new RegExp('address = "tcp://(localhost|0\\.0\\.0\\.0):1317"'),
+    'address = "tcp://0.0.0.0:1316"'
+  )
+  //appTomlData = appTomlData.replace(
+    //'enabled-unsafe-cors = false',
+    //'enabled-unsafe-cors = true',
+  //)
+  appTomlData = appTomlData.replace(
+    'enable-unsafe-cors = false',
+    'enable-unsafe-cors = true',
+  )
+  appTomlData = appTomlData.replace(
+    'swagger = false',
+    'swagger = true',
+  )
+  appTomlData = appTomlData.replace(
+    new RegExp('(\\[api\\].+?)(enable = false)', 's'),
+    '$1enable = true'
+  )
+  writeFileSync(appToml, appTomlData)
+}
+
 function spawnLcp () {
-  console.info('Configuring the node to support lcp (CORS proxy)...')
-  if (DAEMON === 'secretd') {
-    //let appTomlData = readFileSync(appToml)
-    run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' ${appToml}`)
-    run(`perl -i -pe 's/enable-unsafe-cors = false/enable-unsafe-cors = true/' ${appToml}`)
-  }
-  //let appTomlData = readFileSync(appToml)
-  //appTomlData = appTomlData.replace('address = "tcp://0.0.0.0:1317"', 'address = "tcp://0.0.0.0:1316')
-  //appTomlData = appTomlData.replace('enable-unsafe-cors = false', 'enable-unsafe-cors = false')
-  //writeFileSync(appToml, appTomlData)
   const lcpArgs = [
     `--proxyUrl`, 'http://localhost:1316',
     `--port`, LCP_PORT,
     `--proxyPartial`, ``
   ]
   console.info(`Spawning lcp (CORS proxy) on port ${LCP_PORT}`)
-  if (VERBOSE) console.log(`$ lcp`, ...lcpArgs)
+  console.debug(`$ lcp`, ...lcpArgs)
   const lcp = spawn(`lcp`, lcpArgs, { stdio: 'inherit' })
 }
 
@@ -101,7 +124,7 @@ function preGenesisCleanup () {
   console.info('\nEnsuring a clean slate...')
   run(`rm -rf ${daemonDir}`)
   if (DAEMON === 'secretd') {
-    run(`~/.secretcli /opt/secret/.sgx-secrets`)
+    run(`rm -rf ~/.secretcli /opt/secret/.sgx-secrets`)
   }
 }
 
@@ -155,9 +178,9 @@ function fixPermissions (path = stateDir) {
 }
 
 function run (command) {
-  if (VERBOSE) console.info('$', command)
+  console.debug('$', command)
   const result = String(execSync(command)).trim()
-  if (VERBOSE) console.info(result)
+  console.debug(result)
   return result
 }
 
