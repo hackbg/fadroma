@@ -12,10 +12,10 @@ const {
   ACCOUNTS      = 'Admin Alice Bob Charlie Mallory',
   AMOUNT        = `1000000000000000000${TOKEN}`,
 
-  LCP_PORT      = '1317',
-  RPC_ADDR      = 'tcp://0.0.0.0:26657',
-  GRPC_ADDR     = '0.0.0.0:9090',
-  GRPC_WEB_ADDR = '0.0.0.0:9091',
+  HTTP_PORT     = '1317',
+  RPC_PORT      = '26657',
+  GRPC_PORT     = '9090',
+  GRPC_WEB_PORT = '9091',
 
   DAEMON        = 'secretd',
   STATE_DIR     = `/state/${CHAIN_ID}`,
@@ -70,7 +70,7 @@ function configureNode () {
     // on other chains, set port number and enable unsafe cors for rest api
     appTomlData = appTomlData.replace(
       new RegExp('address = "tcp://(localhost|0\\.0\\.0\\.0):1317"'),
-      `address = "tcp://0.0.0.0:${LCP_PORT}"`
+      `address = "tcp://0.0.0.0:${HTTP_PORT}"`
     )
     appTomlData = appTomlData.replace(
       'enabled-unsafe-cors = false',
@@ -82,16 +82,19 @@ function configureNode () {
     'enable-unsafe-cors = false',
     'enable-unsafe-cors = true',
   )
+  // save updated config
   writeFileSync(appToml, appTomlData)
 }
 
 function spawnLcp () {
+  // light client proxy is a reverse proxy used by secret network
+  // (presumably to bypass cors?)
   const lcpArgs = [
     `--proxyUrl`, 'http://localhost:1316',
-    `--port`, LCP_PORT,
+    `--port`, HTTP_PORT,
     `--proxyPartial`, ``
   ]
-  console.info(`Spawning lcp (CORS proxy) on port ${LCP_PORT}`)
+  console.info(`Spawning lcp (CORS proxy) on port ${HTTP_PORT}`)
   console.debug(`$ lcp`, ...lcpArgs)
   const lcp = spawn(`lcp`, lcpArgs, { stdio: 'inherit' })
 }
@@ -100,17 +103,16 @@ function launchNode () {
   console.info('Launching the node...')
   let command
   if (DAEMON === 'secretd') {
+    // starting the secret network daemon requires sgx env vars to be set
     command = `source /opt/sgxsdk/environment && RUST_BACKTRACE=1 ${DAEMON} start --bootstrap`
-      + ` --rpc.laddr ${RPC_ADDR}`
-      + ` --grpc.address ${GRPC_ADDR}`
-      + ` --grpc-web.address ${GRPC_WEB_ADDR}`
   } else {
     command = `${DAEMON} start`
   }
+  // add port bindings to the command line
   command += ''
-    + ` --rpc.laddr ${RPC_ADDR}`
-    + ` --grpc.address ${GRPC_ADDR}`
-    + ` --grpc-web.address ${GRPC_WEB_ADDR}`
+    + ` --rpc.laddr tcp://0.0.0.0:${RPC_PORT}`
+    + ` --grpc.address 0.0.0.0:${GRPC_PORT}`
+    + ` --grpc-web.address 0.0.0.0:${GRPC_WEB_PORT}`
   console.info(`$`, command)
   try {
     execSync(command, { shell: '/bin/bash', stdio: 'inherit' })
@@ -180,9 +182,7 @@ function bootstrapChain () {
   daemon(`validate-genesis`)
   if (DAEMON === 'secretd') {
     daemon(`init-bootstrap`)
-  }/* else {
-    daemon(`init ${CHAIN_ID}`)
-  }*/
+  }
   daemon(`validate-genesis`)
 }
 
