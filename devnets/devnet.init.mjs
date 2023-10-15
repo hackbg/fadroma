@@ -40,7 +40,9 @@ start()
 function start () {
   performGenesis()
   configureNode()
-  spawnLcp()
+  if (DAEMON === 'secretd') {
+    spawnLcp()
+  }
   launchNode()
   console.info('Server exited.')
 }
@@ -48,25 +50,37 @@ function start () {
 function configureNode () {
   console.info('Configuring the node...')
   let appTomlData = readFileSync(appToml, 'utf8')
+  // enable rest api if not enabled
   appTomlData = appTomlData.replace(
-    new RegExp('address = "tcp://(localhost|0\\.0\\.0\\.0):1317"'),
-    'address = "tcp://0.0.0.0:1316"'
+    new RegExp('(\\[api\\].+?)(enable = false)', 's'),
+    '$1enable = true'
   )
-  //appTomlData = appTomlData.replace(
-    //'enabled-unsafe-cors = false',
-    //'enabled-unsafe-cors = true',
-  //)
-  appTomlData = appTomlData.replace(
-    'enable-unsafe-cors = false',
-    'enable-unsafe-cors = true',
-  )
+  // enable swagger api docs on rest api endpoint
   appTomlData = appTomlData.replace(
     'swagger = false',
     'swagger = true',
   )
+  if (DAEMON === 'secretd') {
+    // on secret network, prepare api for lcp
+    appTomlData = appTomlData.replace(
+      new RegExp('address = "tcp://(localhost|0\\.0\\.0\\.0):1317"'),
+      'address = "tcp://localhost:1316"'
+    )
+  } else {
+    // on other chains, set port number and enable unsafe cors for rest api
+    appTomlData = appTomlData.replace(
+      new RegExp('address = "tcp://(localhost|0\\.0\\.0\\.0):1317"'),
+      `address = "tcp://0.0.0.0:${LCP_PORT}"`
+    )
+    appTomlData = appTomlData.replace(
+      'enabled-unsafe-cors = false',
+      'enabled-unsafe-cors = true',
+    )
+  }
+  // enable unsafe cors for grpc-web
   appTomlData = appTomlData.replace(
-    new RegExp('(\\[api\\].+?)(enable = false)', 's'),
-    '$1enable = true'
+    'enable-unsafe-cors = false',
+    'enable-unsafe-cors = true',
   )
   writeFileSync(appToml, appTomlData)
 }
