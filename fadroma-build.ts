@@ -174,7 +174,7 @@ export class BuildContainer extends BuildLocal {
     return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}`
   }
   /** Build a single contract. */
-  async build (contract: Buildable): Promise<Built> {
+  async build (contract: string|Buildable): Promise<Built> {
     return (await this.buildMany([contract]))[0]
   }
   /** This implementation groups the passed source by workspace and ref,
