@@ -49,22 +49,27 @@ export interface ChainClass<C> extends Class<C, ConstructorParameters<typeof Cha
 }
 /** Represents a particular chain. */
 export abstract class Chain {
+
   /** Logger. */
   log = new Console('@fadroma/agent: Chain')
+
   /** The unique chain id. */
   id: ChainId
+
   /** The API URL to use. */
   url: string = ''
+
   /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
   mode: ChainMode
+
   /** If this is a devnet, this contains an interface to the devnet container. */
   devnet?: DevnetHandle
+
   /** Whether this chain is stopped. */
   stopped: boolean = false
+
   /** The Agent subclass to use for interacting with this chain. */
   Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
-  /** The default denomination of the chain's native token. */
-  abstract defaultDenom: string
 
   constructor (options: Partial<Chain> = {}) {
     if (!(this.id = options.id!)) throw new Error.Missing.ChainId()
@@ -104,18 +109,22 @@ export abstract class Chain {
 
   /** Whether this is a mainnet. */
   get isMainnet () { return this.mode === ChainMode.Mainnet }
+
   /** Whether this is a testnet. */
   get isTestnet () { return this.mode === ChainMode.Testnet }
+
   /** Whether this is a devnet. */
   get isDevnet  () { return this.mode === ChainMode.Devnet }
+
   /** Whether this is a mocknet. */
   get isMocknet () { return this.mode === ChainMode.Mocknet }
+
   /** Whether this is a devnet or mocknet. */
   get devMode   () { return this.isDevnet || this.isMocknet }
+
   /** Return self. */
   get chain     () { return this }
-  /** Get the current block height. */
-  get height    (): Promise<number> { return Promise.resolve(0) }
+
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
     return this.height.then(async startingHeight=>{
@@ -144,14 +153,24 @@ export abstract class Chain {
     })
   }
 
+  /** The default denomination of the chain's native token. */
+  abstract defaultDenom: string
+
+  /** Get the current block height. */
+  abstract get height (): Promise<number>
+
   /** Get the native balance of an address. */
   abstract getBalance (denom: string, address: Address): Promise<string>
+
   /** Query a smart contract. */
   abstract query <U> (contract: Client, msg: Message): Promise<U>
+
   /** Get the code id of a smart contract. */
   abstract getCodeId (address: Address): Promise<CodeId>
+
   /** Get the code hash of a smart contract. */
   abstract getHash (address: Address|number): Promise<CodeHash>
+
   /** Get the label of a smart contract. */
   abstract getLabel (address: Address): Promise<string>
 
@@ -182,16 +201,20 @@ export abstract class Chain {
 
   /** The default Agent subclass to use for interacting with this chain. */
   static Agent: AgentClass<Agent> // populated below
+
   /** Shorthand for the ChainMode enum. */
   static Mode = ChainMode
+
   /** @returns a mainnet instance of this chain. */
   static mainnet (options: Partial<Chain> = {}): Chain {
     return new (this as any)({ ...options, mode: Chain.Mode.Mainnet })
   }
+
   /** @returns a testnet instance of this chain. */
   static testnet (options: Partial<Chain> = {}): Chain {
     return new (this as any)({ ...options, mode: Chain.Mode.Testnet })
   }
+
   /** @returns a devnet instance of this chain. */
   static devnet (options: Partial<Chain> = {}): Chain {
     options = { ...options, mode: Chain.Mode.Devnet }
@@ -201,43 +224,51 @@ export abstract class Chain {
     }
     return new (this as any)(options)
   }
+
   /** @returns a mocknet instance of this chain. */
   static mocknet (options?: Partial<Chain>): Chain {
     throw new Error('Mocknet is not enabled for this chain.')
   }
+
 }
 
 export class StubChain extends Chain {
 
   defaultDenom = 'stub'
 
+  /** Get the current block height. */
+  get height (): Promise<number> {
+    this.log.warn('chain.height: this getter is stub; use a subclass of Chain')
+    return Promise.resolve(0)
+  }
+
   /** Stub implementation of getting native balance. */
   getBalance (denom: string, address: Address): Promise<string> {
-    this.log.warn('chain.getBalance: this function is stub; use a subclass of Agent')
+    this.log.warn('chain.getBalance: this function is stub; use a subclass of Chain')
     return Promise.resolve('0')
   }
 
   /** Stub implementation of querying a smart contract. */
   query <U> (contract: Client, msg: Message): Promise<U> {
-    this.log.warn('chain.query: this function is stub; use a subclass of Agent')
+    this.log.warn('chain.query: this function is stub; use a subclass of Chain')
     return Promise.resolve({} as U)
   }
 
   /** Stub implementation of getting a code id. */
   getCodeId (address: Address): Promise<CodeId> {
-    this.log.warn('chain.getCodeId: this function is stub; use a subclass of Agent')
+    this.log.warn('chain.getCodeId: this function is stub; use a subclass of Chain')
     return Promise.resolve('code-id-stub')
   }
 
   /** Stub implementation of getting a code hash. */
   getHash (address: Address|number): Promise<CodeHash> {
-    this.log.warn('chain.getHash: this function is stub; use a subclass of Agent')
+    this.log.warn('chain.getHash: this function is stub; use a subclass of Chain')
     return Promise.resolve('code-hash-stub')
   }
 
   /** Stub implementation of getting a contract label. */
   getLabel (address: Address): Promise<string> {
-    this.log.warn('chain.getLabel: this function is stub; use a subclass of Agent')
+    this.log.warn('chain.getLabel: this function is stub; use a subclass of Chain')
     return Promise.resolve('contract-label-stub')
   }
 
@@ -249,26 +280,37 @@ export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): 
   if (!thing.chain) throw new Error.Missing.Chain()
   return thing.chain
 }
+
 /** A constructor for an Agent subclass. */
 export interface AgentClass<A extends Agent> extends Class<A, ConstructorParameters<typeof Agent>>{
   Bundle: BundleClass<Bundle> // static
 }
+
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
+
+  /** Logger. */
   log = new Console('@fadroma/agent: Agent')
+
   /** The friendly name of the agent. */
   name?:     string
+
   /** The chain on which this agent operates. */
   chain?:    Chain
+
   /** The address from which transactions are signed and sent. */
   address?:  Address
+
   /** The wallet's mnemonic. */
   mnemonic?: string
+
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:     AgentFees
+
   /** The Bundle subclass to use. */
   Bundle:    BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
+
   /** The default Bundle class used by this Agent. */
   static Bundle: BundleClass<Bundle> // populated below
 
@@ -284,6 +326,7 @@ export abstract class Agent {
   get [Symbol.toStringTag]() {
     return `${this.address} @ ${this.chain?.id}${this.mnemonic ? ' (*)' : ''}`
   }
+
   /** Complete the asynchronous initialization of this Agent. */
   get ready (): Promise<this> {
     const init = new Promise<this>(async (resolve, reject)=>{
@@ -300,54 +343,68 @@ export abstract class Agent {
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
   }
+
   /** The default denomination in which the agent operates. */
   get defaultDenom () {
     return assertChain(this).defaultDenom
   }
+
   /** This agent's balance in the chain's native token. */
   get balance (): Promise<string> {
     return this.getBalance()
   }
+
   /** The chain's current block height. */
   get height (): Promise<number> {
     return assertChain(this).height
   }
+
   /** Wait until the block height increments. */
   get nextBlock () {
     return assertChain(this).nextBlock
   }
+
   /** Get the balance of this or another address. */
   getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
     assertChain(this)
     if (!address) throw new Error.Missing.Address()
     return this.chain!.getBalance(denom!, address)
   }
+
   /** Get the code ID of a contract. */
   getCodeId (address: Address) {
     return assertChain(this).getCodeId(address)
   }
+
   /** Get the label of a contract. */
   getLabel (address: Address) {
     return assertChain(this).getLabel(address)
   }
+
   /** Get the code hash of a contract or template. */
   getHash (address: Address|number) {
     return assertChain(this).getHash(address)
   }
+
   /** Check the code hash of a contract at an address against an expected value. */
   checkHash (address: Address, codeHash?: CodeHash) {
     return assertChain(this).checkHash(address, codeHash)
   }
+
   /** Send native tokens to 1 recipient. */
   abstract send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown>
+
   /** Send native tokens to multiple recipients. */
   abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
+
   /** Upload code, generating a new code id/hash pair. */
   abstract upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded>
+
   /** Get an uploader instance which performs code uploads and optionally caches them. */
   getUploader <U extends Uploader> ($U: UploaderClass<U>, options?: Partial<U>): U {
     return new $U({ agent: this, ...options||{} }) as U
   }
+
   /** Create a new smart contract from a code id, label and init message.
     * @example
     *   await agent.instantiate(template.define({ label, initMsg })
@@ -355,6 +412,7 @@ export abstract class Agent {
     *   AnyContract with no `address` populated yet.
     *   This will be populated after executing the bundle. */
   abstract instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated>
+
   /** Create multiple smart contracts from a Template (providing code id)
     * and a list or map of label/initmsg pairs.
     * Uses this agent's Bundle class to instantiate them in a single transaction.
@@ -389,39 +447,47 @@ export abstract class Agent {
     }
     return instances
   }
+
   /** Get a client instance for talking to a specific smart contract as this executor. */
   getClient <C extends Client> (
     $C: ClientClass<C>, address?: Address, codeHash?: CodeHash, ...args: unknown[]
   ): C {
     return new $C({ agent: this,  address, codeHash } as any) as C
   }
+
   /** Call a transaction method on a smart contract. */
   abstract execute (
     contract: Partial<Client>, msg: Message, opts?: ExecOpts
   ): Promise<void|unknown>
+
   /** Query a contract on the chain. */
   query <R> (contract: Client, msg: Message): Promise<R> {
     return assertChain(this).query(contract, msg)
   }
+
   /** Execute a transaction bundle.
     * @returns Bundle if called with no arguments
     * @returns Promise<any[]> if called with Bundle#wrap args */
   bundle <B extends Bundle> (cb?: BundleCallback<B>): B {
     return new this.Bundle(this, cb as BundleCallback<Bundle>) as unknown as B
   }
+
 }
 
 export class StubAgent extends Agent {
+
   /** Stub implementation of sending native token. */
   send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
     this.log.warn('Agent#send: this function is stub; use a subclass of Agent')
     return Promise.resolve()
   }
+
   /** Stub implementation of batch send. */
   sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
     this.log.warn('Agent#sendMany: this function is stub; use a subclass of Agent')
     return Promise.resolve()
   }
+
   /** Stub implementation of code upload. */
   upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
     this.log.warn('Agent#upload: this function is stub; use a subclass of Agent')
@@ -431,6 +497,7 @@ export class StubAgent extends Agent {
       codeHash: ''
     })
   }
+
   /** Stub implementation of contract init */
   instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated> {
     this.log.warn('Agent#instantiate: this function is stub; use a subclass of Agent')
@@ -441,6 +508,7 @@ export class StubAgent extends Agent {
       label:    ''
     })
   }
+
   /** Stub implementation of calling a mutating method. */
   execute (
     contract: Partial<Client>, msg: Message, opts?: ExecOpts
@@ -448,6 +516,7 @@ export class StubAgent extends Agent {
     this.log.warn('Agent#execute: this function is stub; use a subclass of Agent')
     return Promise.resolve({})
   }
+
 }
 
 /** @returns the agent of a thing

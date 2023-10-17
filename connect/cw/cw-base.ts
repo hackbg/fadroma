@@ -14,8 +14,8 @@ import type {
   Uploadable, Uploaded, Instantiated
 } from '@fadroma/agent'
 
-import { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
-import type { logs, OfflineSigner as Signer } from '@hackbg/cosmjs-esm'
+import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
+import type { logs, OfflineSigner as Signer, Block } from '@hackbg/cosmjs-esm'
 
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
@@ -36,19 +36,18 @@ class CWChain extends Chain {
   /** Query-only API handle. */
   api?: CosmWasmClient
 
-  /** Async initialization. Populates the `api` property. */
+  /** One-shot async initialization of chain.
+    * Populates the `api` property with a CosmWasmClient. */
   get ready (): Promise<this & { api: CosmWasmClient }> {
     if (this.isDevnet && !this.devnet) {
-      throw new Error('Missing devnet handle')
+      throw new Error("the chain is marked as a devnet but is missing the devnet handle")
     }
     const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
       if (this.isDevnet) {
         await this.devnet!.start()
       }
       if (!this.api) {
-        if (!this.chain) {
-          throw new CWError('no chain specified')
-        }
+        if (!this.url) throw new CWError("the chain's url property is not set")
         const api = await CosmWasmClient.connect(this.url)
         this.api = api
       }
@@ -58,29 +57,61 @@ class CWChain extends Chain {
     return init
   }
 
+  get block (): Promise<Block> {
+    return this.ready.then(({api})=>api.getBlock())
+  }
+
+  get height () {
+    return this.block.then(block=>Number(block.header.height))
+  }
+
   /** Stub implementation of getting native balance. */
-  getBalance (denom: string, address: Address): Promise<string> {
-    throw new Error('not implemented')
+  async getBalance (denom: string, address: Address): Promise<string> {
+    const { api } = await this.ready
+    denom ??= this.defaultDenom
+    if (!address) {
+      throw new Error('getBalance: pass address')
+    }
+    const { amount } = await api.getBalance(address, denom)
+    return amount
   }
 
   /** Stub implementation of querying a smart contract. */
-  query <U> (contract: Client, msg: Message): Promise<U> {
-    throw new Error('not implemented')
+  async query <U> (contract: Client, msg: Message): Promise<U> {
+    const { api } = await this.ready
+    if (!contract.address) throw new CWError('chain.query: no contract address')
+    return await api.queryContractSmart(contract.address, msg) as U
   }
 
   /** Stub implementation of getting a code id. */
-  getCodeId (address: Address): Promise<CodeId> {
-    throw new Error('not implemented')
+  async getCodeId (address: Address): Promise<CodeId> {
+    const { api } = await this.ready
+    if (!address) throw new CWError('chain.getCodeId: no address')
+    const { codeId } = await api.getContract(address)
+    return String(codeId)
   }
 
   /** Stub implementation of getting a code hash. */
-  getHash (address: Address|number): Promise<CodeHash> {
-    throw new Error('not implemented')
+  async getHash (addressOrCodeId: Address|number): Promise<CodeHash> {
+    const { api } = await this.ready
+    if (!addressOrCodeId) 
+    if (typeof addressOrCodeId === 'number') {
+      const { checksum } = await api.getCodeDetails(addressOrCodeId)
+      return checksum
+    } else if (typeof addressOrCodeId === 'string') {
+      const { codeId } = await api.getContract(addressOrCodeId)
+      const { checksum } = await api.getCodeDetails(codeId)
+      return checksum
+    }
+    throw new CWError('chain.getHash: pass address (as string) or code id (as number)')
   }
 
   /** Stub implementation of getting a contract label. */
-  getLabel (address: Address): Promise<string> {
-    throw new Error('not implemented')
+  async getLabel (address: Address): Promise<string> {
+    const { api } = await this.ready
+    if (!address) throw new CWError('chain.getLabel: no address')
+    const { label } = await api.getContract(address)
+    return label
   }
 
 }
@@ -144,22 +175,19 @@ class CWAgent extends Agent {
     * TODO: Implement signing transactions without external signer. */
   signer?: Signer
 
-  /** Async initialization. Populates the `api` property. */
+  /** One-shot async initialization of agent.
+    * Populates the `api` property with a SigningCosmWasmClient. */
   get ready (): Promise<this & { api: SigningCosmWasmClient }> {
     const init = new Promise<this & { api: SigningCosmWasmClient }>(async (resolve, reject)=>{
       if (!this.api) {
-        if (!this.chain) {
-          throw new CWError('no chain specified')
-        }
-        if (!this.signer) {
-          throw new CWError('no signer specified')
-        }
+        if (!this.chain) throw new CWError("the agent's chain property is not set")
         if (this.chain?.devnet) {
           await this.chain?.devnet.start()
-          if (!this.mnemonic && this.name) {
+          if (!this.address && this.name) {
             Object.assign(this, await this.chain?.devnet.getAccount(this.name))
           }
         }
+        if (!this.signer) throw new CWError("the agent's signer property is not set")
         const api = await SigningCosmWasmClient.connectWithSigner(this.chain.url, this.signer)
         this.api = api
       }
@@ -191,30 +219,16 @@ class CWAgent extends Agent {
   async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
     const { api } = await this.ready
     if (!this.address) throw new Error.Missing.Address()
-    const {
-      checksum,
-      originalSize,
-      compressedSize,
-      codeId,
-      logs,
-      height,
-      transactionHash,
-      events,
-      gasWanted,
-      gasUsed
-    } = await api.upload(
-      this.address,
-      data,
-      this.fees?.upload || 'auto',
-      "Uploaded by Fadroma"
+    const result = await api.upload(
+      this.address, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
     )
     return {
       chainId:   assertChain(this).id,
-      codeId:    String(codeId),
-      codeHash:  await this.getHash(Number(codeId)),
+      codeId:    String(result.codeId),
+      codeHash:  result.checksum,
       uploadBy:  this.address,
-      uploadTx:  transactionHash,
-      uploadGas: gasUsed
+      uploadTx:  result.transactionHash,
+      uploadGas: result.gasUsed
     }
   }
 
@@ -269,8 +283,8 @@ class CWAgent extends Agent {
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
   ): Promise<unknown> {
     const { api } = await this.ready
-    if (!this.address) throw new CWError("No agent address")
-    if (!instance.address) throw new CWError("No contract address")
+    if (!this.address) throw new CWError("agent.execute: no agent address")
+    if (!instance.address) throw new CWError("agent.execute: no contract address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees?.exec || 'auto' } = opts
     return await api.execute(this.address, instance.address, msg, fee, memo, send)
@@ -279,7 +293,7 @@ class CWAgent extends Agent {
   /** Query a contract. */
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
     const { api } = await this.ready
-    if (!instance.address) throw new CWError('No contract address')
+    if (!instance.address) throw new CWError('agent.query: no contract address')
     return await api.queryContractSmart(instance.address, query) as U
   }
 
@@ -322,23 +336,24 @@ function setMnemonic (agent: CWAgent, mnemonic: string) {
 
   // Construct signer
   agent.signer = {
-    getAccounts: () => Promise.resolve([
-      { address, algo: 'secp256k1', pubkey }
-    ]),
+
+    // Returns only one account
+    getAccounts: () => Promise.resolve([{ algo: 'secp256k1', address, pubkey }]),
+
+    // Sign a transaction
     signAmino: async (address: string, signed: any) => {
-      const digest = sha256(JSON.stringify(signed))
-      if (digest.length !== 32) {
-        throw new Error(`Invalid length of digest to sign: ${digest.length}`)
+      if (address && (address !== agent.address)) {
+        agent.log.warn(`Passed address ${address} did not match agent address ${agent.address}`)
       }
-      const signature = secp256k1.sign(digest, privateKey)
+      const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
       return {
         signed,
         signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
-          ...numberToBytesBE(signature.r, 32),
-          ...numberToBytesBE(signature.s, 32)
+          ...numberToBytesBE(r, 32), ...numberToBytesBE(s, 32)
         ])),
       }
     },
+
   }
 }
 

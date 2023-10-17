@@ -62,7 +62,7 @@ export type DevnetPlatformInfo = {
   /** Which port is being used. */
   portMode:   DevnetPort
   /** Which Chain subclass to return from devnet.getChain. */
-  chainClass: Function
+  Chain: Function & { defaultDenom: string }
 }
 
 /** Mapping of connection type to default port number. */
@@ -85,76 +85,76 @@ export const devnetPortEnvVars: Record<DevnetPort, string> = {
 /** Descriptions of supported devnet variants. */
 export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
   'scrt_1.2': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_2.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
-    chainClass: Scrt.Chain
   },
   'scrt_1.3': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_3.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'grpcWeb',
-    chainClass: Scrt.Chain
   },
   'scrt_1.4': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_4.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'grpcWeb',
-    chainClass: Scrt.Chain
   },
   'scrt_1.5': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_5.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
-    chainClass: Scrt.Chain
   },
   'scrt_1.6': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
-    chainClass: Scrt.Chain
   },
   'scrt_1.7': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
-    chainClass: Scrt.Chain
   },
   'scrt_1.8': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path,
     ready:      'Done verifying block height',
     daemon:     'secretd',
     portMode:   'http',
-    chainClass: Scrt.Chain
   },
   'scrt_1.9': {
+    Chain:      Scrt.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path,
     ready:      'Validating proposal',
     daemon:     'secretd',
     portMode:   'http',
-    chainClass: Scrt.Chain
   },
   'okp4_5.0': {
+    Chain:      CW.OKP4.Chain,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
     dockerFile: $(thisPackage, 'devnets', 'okp4_5_0.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'okp4d',
     portMode:   'rpc',
-    chainClass: CW.OKP4.Chain
   },
 }
 
@@ -296,6 +296,7 @@ export class Devnet implements DevnetHandle {
   get spawnEnv () {
     const env: Record<string, string> = {
       DAEMON:    devnetPlatforms[this.platform].daemon,
+      TOKEN:     devnetPlatforms[this.platform].Chain.defaultDenom,
       CHAIN_ID:  this.chainId,
       ACCOUNTS:  this.accounts.join(' '),
       STATE_UID: String((process.getuid!)()),
@@ -510,7 +511,7 @@ export class Devnet implements DevnetHandle {
 
   /** Get a Chain object wrapping this devnet. */
   getChain = <C extends Chain, D extends ChainClass<C>> (
-    $C: D = (devnetPlatforms[this.platform].chainClass || Chain) as unknown as D,
+    $C: D = (devnetPlatforms[this.platform].Chain || Chain) as unknown as D,
     options?: Partial<C>
   ): C => {
     if (!this.container) {

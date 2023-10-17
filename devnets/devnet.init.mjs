@@ -8,7 +8,7 @@ const {
   VERBOSE       = false,
 
   CHAIN_ID      = `local-${DAEMON}`,
-  TOKEN         = 'uscrt',
+  TOKEN         = 'unspecified',
   ACCOUNTS      = 'Admin Alice Bob Charlie Mallory',
   AMOUNT        = `1000000000000000000${TOKEN}`,
 
