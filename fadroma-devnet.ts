@@ -237,7 +237,7 @@ export class Devnet implements DevnetHandle {
       }
     }
     // Apply the rest of the configuration options
-    const defaultInit   = resolve(dirname(fileURLToPath(import.meta.url)), 'devnets', 'devnet.init.mjs')
+    const defaultInit   = resolve(thisPackage, 'devnets', 'devnet.init.mjs')
     this.initScript     = options.initScript! ?? defaultInit
     this.keepRunning    = options.keepRunning ?? !this.deleteOnExit
     this.podman         = options.podman ?? false
