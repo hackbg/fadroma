@@ -91,79 +91,38 @@ class CWAgent extends Agent {
   constructor (options: Partial<CWAgent> = {}) {
     super(options)
 
-    // These must be either defined in a subclass or passed to the constructor.
+    // When not using an external signer, these must be
+    // either defined in a subclass or passed to the constructor.
     this.coinType = options.coinType ?? this.coinType
-    if (this.coinType === undefined) {
-      throw new CWError('coinType is not set')
-    }
     this.bech32Prefix = options.bech32Prefix ?? this.bech32Prefix
-    if (this.bech32Prefix === undefined) {
-      throw new CWError('bech32Prefix is not set')
-    }
     this.hdAccountIndex = options.hdAccountIndex ?? this.hdAccountIndex
-    if (this.hdAccountIndex === undefined) {
-      throw new CWError('hdAccountIndex is not set')
-    }
+
+    // When setting mnemonic, construct a signer.
+    Object.defineProperty(this, 'mnemonic', {
+      get () {
+        throw new Error('mnemonic is write-only')
+      },
+      set (mnemonic: string) {
+        setMnemonic(this, mnemonic)
+      }
+    })
 
     if (options.signer) {
-
       // When passing external signer, ignore the mnemonic.
       this.signer = options.signer
       if (options.mnemonic) {
         this.log.warn('Both signer and mnemonic were provided. Ignoring mnemonic.')
       }
-
-    } else {
-
+    } else if (options.mnemonic) {
       // When not passing external signer, create one from the mnemonic.
       let mnemonic = options.mnemonic
       if (!mnemonic) {
         mnemonic = bip39.generateMnemonic(bip39EN)
         this.log.warn("No mnemonic provided, generated this one:", mnemonic)
       }
-
-      // Derive keypair and address from mnemonic
-      const seed = bip39.mnemonicToSeedSync(mnemonic)
-      const node = bip32.HDKey.fromMasterSeed(seed)
-      const secretHD = node.derive(`m/44'/${this.coinType}'/0'/0/${this.hdAccountIndex}`)
-      const privateKey = secretHD.privateKey
-      if (!privateKey) {
-        throw new CWError("failed to derive key pair")
-      }
-      const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
-      Object.defineProperty(this, 'publicKey', {
-        enumerable: true, writable: false, value: pubkey
-      })
-      const address = bech32.encode(
-        this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey)))
-      )
-      Object.defineProperty(this, 'address', {
-        enumerable: true, writable: false, value: address
-      })
-      this.name ??= this.address
-
-      // Construct signer
-      this.signer = {
-        getAccounts: () => Promise.resolve([
-          { address, algo: 'secp256k1', pubkey }
-        ]),
-        signAmino: async (address, signed) => {
-          const digest = sha256(JSON.stringify(signed))
-          if (digest.length !== 32) {
-            throw new Error(`Invalid length of digest to sign: ${digest.length}`)
-          }
-          const signature = secp256k1.sign(digest, privateKey)
-          return {
-            signed,
-            signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
-              ...numberToBytesBE(signature.r, 32),
-              ...numberToBytesBE(signature.s, 32)
-            ])),
-          }
-        },
-      }
-
+      this.mnemonic = mnemonic
     }
+
   }
 
   /** Public key corresponding to private key derived from mnemonic. */
@@ -183,7 +142,7 @@ class CWAgent extends Agent {
 
   /** The provided signer, which signs the transactions.
     * TODO: Implement signing transactions without external signer. */
-  signer: Signer
+  signer?: Signer
 
   /** Async initialization. Populates the `api` property. */
   get ready (): Promise<this & { api: SigningCosmWasmClient }> {
@@ -191,6 +150,15 @@ class CWAgent extends Agent {
       if (!this.api) {
         if (!this.chain) {
           throw new CWError('no chain specified')
+        }
+        if (!this.signer) {
+          throw new CWError('no signer specified')
+        }
+        if (this.chain?.devnet) {
+          await this.chain?.devnet.start()
+          if (!this.mnemonic && this.name) {
+            Object.assign(this, await this.chain?.devnet.getAccount(this.name))
+          }
         }
         const api = await SigningCosmWasmClient.connectWithSigner(this.chain.url, this.signer)
         this.api = api
@@ -316,6 +284,64 @@ class CWAgent extends Agent {
   }
 
 }
+
+function setMnemonic (agent: CWAgent, mnemonic: string) {
+  if (!mnemonic) {
+    throw new CWError("can't set empty mnemonic")
+  }
+  if (agent.coinType === undefined) {
+    throw new CWError('coinType is not set')
+  }
+  if (agent.bech32Prefix === undefined) {
+    throw new CWError('bech32Prefix is not set')
+  }
+  if (agent.hdAccountIndex === undefined) {
+    throw new CWError('hdAccountIndex is not set')
+  }
+  // Derive keypair and address from mnemonic
+  const seed = bip39.mnemonicToSeedSync(mnemonic)
+  const node = bip32.HDKey.fromMasterSeed(seed)
+  const secretHD = node.derive(`m/44'/${agent.coinType}'/0'/0/${agent.hdAccountIndex}`)
+  const privateKey = secretHD.privateKey
+  if (!privateKey) {
+    throw new CWError("failed to derive key pair")
+  }
+  // Compute public key
+  const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
+  Object.defineProperty(agent, 'publicKey', {
+    enumerable: true, writable: false, value: pubkey
+  })
+  // Compute and assign address
+  const address = bech32.encode(
+    agent.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey)))
+  )
+  Object.defineProperty(agent, 'address', {
+    enumerable: true, writable: false, value: address
+  })
+  agent.name ??= agent.address
+
+  // Construct signer
+  agent.signer = {
+    getAccounts: () => Promise.resolve([
+      { address, algo: 'secp256k1', pubkey }
+    ]),
+    signAmino: async (address: string, signed: any) => {
+      const digest = sha256(JSON.stringify(signed))
+      if (digest.length !== 32) {
+        throw new Error(`Invalid length of digest to sign: ${digest.length}`)
+      }
+      const signature = secp256k1.sign(digest, privateKey)
+      return {
+        signed,
+        signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
+          ...numberToBytesBE(signature.r, 32),
+          ...numberToBytesBE(signature.s, 32)
+        ])),
+      }
+    },
+  }
+}
+
 
 function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
   pub_key: { type: string, value: string },
