@@ -1,5 +1,4 @@
-import { resolve, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import testEntrypoint from './testSelector'
 
 import { Devnet } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
@@ -10,45 +9,59 @@ import { getuid, getgid } from 'node:process'
 import $, { TextFile } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
 
-const tests: Record<string, Function> = {
-  'all':        testAll,
-  'docs':       testDevnetDocs,
-  'scrt':       ()=>testDevnetPlatform('scrt_1.9'),
-  'okp4':       ()=>testDevnetPlatform('okp4_5.0'),
-  'chain-id':   testDevnetChainId,
-  'state-file': testDevnetStateFile,
-  'url':        testDevnetUrl,
-  'container':  testDevnetContainer,
-}
-
-if (resolve(process.argv[2]) === resolve(fileURLToPath(import.meta.url))) {
-  await pickDevnetTest()
-} else {
-  await testAll()
-}
-
-export async function pickDevnetTest () {
-  const test = tests[process.argv[3]]
-  if (test) {
-    await test()
-  } else {
-    console.log('\nSpecify suite to run:')
-    for (const test of Object.keys(tests)) {
-      console.log(`  ${test}`)
-    }
-    console.log()
-    process.exit(1)
-  }
-}
-
-export async function testAll () {
-  const runs = Object.values(tests).filter(fn=>fn!==testAll).map(test=>test())
-  await Promise.all(runs)
-}
+testEntrypoint(import.meta.url, {
+  'docs':         testDevnetDocs,
+  'scrt':         ()=>testDevnetPlatform('scrt_1.9'),
+  'okp4':         ()=>testDevnetPlatform('okp4_5.0'),
+  'chain-id':     testDevnetChainId,
+  'state-file':   testDevnetStateFile,
+  'url':          testDevnetUrl,
+  'container':    testDevnetContainer,
+  'copy-uploads': testDevnetCopyUploads,
+})
 
 export async function testDevnetDocs () {
   //@ts-ignore
   await import('./Devnet.spec.ts.md')
+}
+
+export async function testDevnetPlatform (platform: DevnetPlatform) {
+  let devnet: any
+  assert.ok(
+    devnet = new Devnet({ platform }),
+    "construct devnet"
+  )
+  assert.ok(
+    await devnet.start(),
+    "starting the devnet works"
+  )
+  assert.ok(
+    await devnet.assertPresence() || true,
+    "starting the devnet automatically created the container"
+  )
+  assert.ok(
+    await devnet.pause(),
+    "pausing the devnet works"
+  )
+  assert.ok(
+    await devnet.export(),
+    "exporting the devnet works"
+  )
+  assert.ok(
+    await devnet.forceDelete() || true,
+    "force deleting the devnet works"
+  )
+}
+
+export async function testDevnetCopyUploads () {
+  const devnet1 = new Devnet({ platform: 'okp4_5.0' })
+  const chain1 = devnet1.getChain()
+  const agent1 = await chain1.getAgent({ name: 'Admin' }).ready
+  const devnet2 = new Devnet({ platform: 'okp4_5.0' })
+  assert.ok(
+    await devnet2.copyUploads(chain1),
+    "copying uploads"
+  )
 }
 
 export async function testDevnetChainId () {
@@ -140,7 +153,7 @@ export async function testDevnetContainer () {
       ACCOUNTS:  devnet.accounts.join(' '),
       STATE_UID: String(getuid!()),
       STATE_GID: String(getgid!()),
-      LCP_PORT:  String(devnet.port)
+      HTTP_PORT: String(devnet.port)
     },
     "devnet spawn environment"
   )
@@ -181,35 +194,7 @@ export async function testDevnetContainer () {
   )
   ;(await devnet.container).remove()
   assert.rejects(
-    devnet.assertPresence(),
+    devnet.assertPresence,
     "devnet assert presence rejects if container is removed"
-  )
-}
-
-export async function testDevnetPlatform (platform: DevnetPlatform) {
-  let devnet: any
-  assert.ok(
-    devnet = new Devnet({ platform }),
-    "construct devnet"
-  )
-  assert.ok(
-    await devnet.start(),
-    "starting the devnet works"
-  )
-  assert.ok(
-    await devnet.assertPresence() || true,
-    "starting the devnet automatically created the container"
-  )
-  assert.ok(
-    await devnet.pause(),
-    "pausing the devnet works"
-  )
-  assert.ok(
-    await devnet.export(),
-    "exporting the devnet works"
-  )
-  assert.ok(
-    await devnet.forceDelete() || true,
-    "force deleting the devnet works"
   )
 }
