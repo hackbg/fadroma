@@ -22,6 +22,7 @@ import type { Agent, ChainClass, ChainId, DevnetHandle } from './fadroma'
 import Config from './fadroma-config'
 
 import { Error as BaseError, Console, bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/connect'
+import type { CodeId } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -189,7 +190,7 @@ export class Devnet implements DevnetHandle {
   verbose: boolean
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
-  accounts: Array<string> = [ 'Admin', 'Alice', 'Bob', 'Charlie', 'Mallory' ]
+  accounts: Array<string> = [ 'Admin', 'Alice', 'Bob', 'Carol', 'Mallory' ]
   /** Name of node binary. */
   daemon: string
 
@@ -234,14 +235,14 @@ export class Devnet implements DevnetHandle {
     this.engine         = options.engine ?? new Dock[this.podman?'Podman':'Docker'].Engine()
     this.containerId    = options.containerId ?? this.containerId
     const { dockerTag, dockerFile, ready, portMode, daemon } = devnetPlatforms[this.platform]
-    this.imageTag       = options.imageTag ?? this.imageTag ?? dockerTag
-    this.dockerfile     = options.dockerfile ?? this.dockerfile ?? dockerFile
-    this.readyPhrase    = options.readyPhrase ?? ready
-    this.daemon         = options.daemon ?? daemon
-    this.portMode       = options.portMode ?? portMode
-    this.port           = options.port ?? devnetPorts[this.portMode]
-    this.protocol       = options.protocol ?? 'http'
-    this.host           = options.host ?? 'localhost'
+    this.imageTag    = options.imageTag ?? this.imageTag ?? dockerTag
+    this.dockerfile  = options.dockerfile ?? this.dockerfile ?? dockerFile
+    this.readyPhrase = options.readyPhrase ?? ready
+    this.daemon      = options.daemon ?? daemon
+    this.portMode    = options.portMode ?? portMode
+    this.port        = options.port ?? devnetPorts[this.portMode]
+    this.protocol    = options.protocol ?? 'http'
+    this.host        = options.host ?? 'localhost'
   }
 
   get log (): DevnetConsole {
@@ -258,6 +259,18 @@ export class Devnet implements DevnetHandle {
     if (this.engine && this.imageTag) {
       return this.engine.image(this.imageTag, this.dockerfile, [this.initScriptMount]).ensure()
     }
+  }
+
+  /** Handle to created devnet container */
+  get container () {
+    if (this.engine && this.containerId) {
+      return this.engine.container(this.containerId)
+    }
+  }
+
+  /** Build image containing all or some code ids from a given chain id */
+  async copyUploads (chain: Chain, codeIds?: CodeId[]) {
+    const image = await this.image
   }
 
   /** Virtual path inside the container where the init script is mounted. */
@@ -309,18 +322,12 @@ export class Devnet implements DevnetHandle {
     return options
   }
 
-  /** Handle to created devnet container */
-  get container () {
-    if (this.engine && this.containerId) {
-      return this.engine.container(this.containerId)
-    }
-  }
-
   /** Emit a warning if devnet state is missing. */
   async assertPresence () {
     if (this.containerId) {
       try {
-        await (await this.container!).inspect()
+        const container = await this.container!
+        const result = await container.inspect()
         this.log.debug("Container id:", bold(this.containerId.slice(0, 8)))
       } catch (e) {
         throw new Error(
