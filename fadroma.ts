@@ -54,13 +54,13 @@ export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
 }
 
 /** Compile a single contract with default settings. */
-export async function build (source: Buildable): Promise<Built> {
-  return getBuilder().build(source)
+export async function build (...args: Parameters<Builder["build"]>): Promise<Built> {
+  return getBuilder().build(...args)
 }
 
 /** Compile multiple single contracts with default settings. */
-export async function buildMany (sources: Buildable[]): Promise<Built[]> {
-  return getBuilder().buildMany(sources)
+export async function buildMany (...args: Parameters<Builder["buildMany"]>): Promise<Built[]> {
+  return getBuilder().buildMany(...args)
 }
 
 /** @returns Uploader configured as per environment and options */
@@ -69,13 +69,13 @@ export function getUploader (options: Partial<Config["upload"]> = {}): Uploader 
 }
 
 /** Upload a single contract with default settings. */
-export function upload (artifact: Uploadable): Promise<Uploaded> {
-  return getUploader().upload(artifact)
+export function upload (...args: Parameters<Uploader["upload"]>): Promise<Uploaded> {
+  return getUploader().upload(...args)
 }
 
 /** Upload multiple contracts with default settings. */
-export function uploadMany (artifacts: Uploadable[]): Promise<(Uploaded|null)[]> {
-  return getUploader().uploadMany(artifacts)
+export function uploadMany (...args: Parameters<Uploader["uploadMany"]>): Promise<(Uploaded|null)[]> {
+  return getUploader().uploadMany(...args)
 }
 
 /** @returns Deployment configured according to environment and options */
