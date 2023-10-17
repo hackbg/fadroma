@@ -14,30 +14,37 @@ of Fadroma Chain API for Secret Network.
 
 ## Chain
 
-The `Chain` object identifies what chain to connect to -
+The `Chain` object identifies what backend to connect to -
 such as the Secret Network mainnet or testnet.
 
 Since the workflow is request-based, no persistent connection is maintained.
 
 ```typescript
-import { Chain } from '@fadroma/agent'
+import { StubChain as Chain } from '@fadroma/agent'
 let chain: Chain
 ```
 
-**Note:** `Chain` in `@fadroma/agent` is a stub class. If you want to connect
-to Secret Network, you need the `ScrtChain` implementation from `@fadroma/scrt`,
-which is available using either:
+**Note:** `StubChain` in `@fadroma/agent` is a stub class used for testing.
+
+* If you want to connect to Secret Network, you need the `ScrtChain` implementation
+  from `@fadroma/scrt`, which is available using one of the following:
 
 ```typescript
+// On the backend, where the entirety of Fadroma is available
 import { Scrt } from '@hackbg/fadroma'
-chain = Scrt.Chain.mainnet()
-```
-
-or
-
-```typescript
+// In a cross-chain project depending on @fadroma/connect
+import { Scrt } from '@fadroma/connect'
+// In a project that depends on specific connect libraries
 import * as Scrt from '@fadroma/scrt'
+
+// Connect to mainnet:
 chain = Scrt.Chain.mainnet()
+// Connect to testnet:
+chain = Scrt.Chain.testnet()
+// Connect to local devnet:
+// chain = Scrt.Chain.devnet()
+// Connect to mocknet:
+// chain = Scrt.Chain.mocknet()
 ```
 
 ### Chain modes
@@ -69,22 +76,23 @@ assert(!chain.isMainnet)
 a local environment.
 
 ```typescript
-chain = Chain.devnet({ id: 'id', url: 'example.com' })
+//chain = Chain.devnet({ id: 'id', url: 'example.com' })
 
-assert(chain.devMode)
-assert(chain.isDevnet)
-assert(!chain.isMainnet)
+//assert(chain.devMode)
+//assert(chain.isDevnet)
+//assert(!chain.isMainnet)
 ```
 
-[**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of executing contract code
-in the local JS WASM runtime.
+EXPERIMENTAL: [**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of
+executing contract code in the local JS WASM runtime. Currently, Mocknet has partial
+support for Secret Network.
 
 ```typescript
-chain = Chain.mocknet({ id: 'id' url: 'example.com' })
+//chain = Scrt.Chain.mocknet({ id: 'id' url: 'example.com' })
 
-assert(chain.devMode)
-assert(chain.isMocknet)
-assert(!chain.isMainnet)
+//assert(chain.devMode)
+//assert(chain.isMocknet)
+//assert(!chain.isMainnet)
 ```
 
 ### Dev mode
@@ -105,7 +113,7 @@ If you don't pass a mnemonic, a random mnemonic and address will be generated.
 
 ```typescript
 import { Agent } from '@fadroma/agent'
-let agent: Agent = await chain.getAgent({ name: 'testing1' })
+let agent: Agent = await chain.getAgent({ name: 'testing1', address: '...' })
 
 assert.ok(agent instanceof Agent,    'an Agent was returned')
 assert.ok(agent.address,             'agent has address')
