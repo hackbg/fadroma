@@ -63,8 +63,7 @@ export async function testDevnetCopyUploads () {
   const uploader  = new Uploader({ agent: agent1, reupload: true })
   const uploaded1 = await uploader.upload(artifact)
   const uploaded2 = await uploader.upload(artifact)
-  console.log({uploaded1, uploaded2})
-  const devnet2 = new Devnet({ platform: 'okp4_5.0' })
+  const devnet2   = new Devnet({ platform: 'okp4_5.0' })
   assert.ok(
     await devnet2.copyUploads(chain1),
     "copying uploads"

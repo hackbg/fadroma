@@ -5,10 +5,10 @@ importers:
   .:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.0
+        specifier: workspace:2.0.0-rc.1
         version: link:agent
       '@fadroma/connect':
-        specifier: workspace:4.0.0-rc.0
+        specifier: workspace:4.0.0-rc.1
         version: link:connect
       '@hackbg/cmds':
         specifier: workspace:3.0.7
@@ -139,13 +139,13 @@ importers:
   connect:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.0
+        specifier: workspace:2.0.0-rc.1
         version: link:../agent
       '@fadroma/cw':
-        specifier: workspace:0.6.0
+        specifier: workspace:1.0.0-rc.1
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:10.1.10-rc.13
+        specifier: workspace:11.0.0-rc.1
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -154,13 +154,13 @@ importers:
   connect/cw:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.0
+        specifier: workspace:2.0.0-rc.1
         version: link:../../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/cosmjs-esm':
-        specifier: workspace:1.0.0-rc.31
+        specifier: workspace:1.0.0-rc.32
         version: link:cosmjs-esm
       '@noble/curves':
         specifier: ^1.2.0
@@ -216,8 +216,8 @@ importers:
         specifier: ^4.2.0
         version: link:../../../ensuite/ganesha
       '@hackbg/ubik':
-        specifier: workspace:../../scrt/secretjs-esm/ubik
-        version: link:../../scrt/secretjs-esm/ubik
+        specifier: workspace:../../../ensuite/toolbox/ubik
+        version: link:../../../ensuite/toolbox/ubik
       '@istanbuljs/nyc-config-typescript':
         specifier: ^1.0.1
         version: 1.0.1(nyc@15.1.0)(source-map-support@0.5.20)(ts-node@8.0.0)
@@ -339,13 +339,13 @@ importers:
   connect/scrt:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.0
+        specifier: workspace:2.0.0-rc.1
         version: link:../../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5
         version: link:../../ensuite/toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.26
+        specifier: workspace:1.9.3-patch.27
         version: link:secretjs-esm
       '@noble/ed25519':
         specifier: ^2.0.0

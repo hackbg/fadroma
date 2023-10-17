@@ -1,14 +1,14 @@
 {
   "name": "@fadroma/cw",
-  "version": "0.6.0",
+  "version": "1.0.0-rc.1",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts" ],
   "description": "CosmJS Stargate integration for Fadroma, incl. OKP4 support.",
   "dependencies": {
-    "@fadroma/agent":     "workspace:2.0.0-rc.0",
+    "@fadroma/agent":     "workspace:2.0.0-rc.1",
     "@hackbg/conf":       "workspace:3.1.5",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.31",
+    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.32",
     "@noble/hashes":      "^1.3.2",
     "@noble/curves":      "^1.2.0"
   },
