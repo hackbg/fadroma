@@ -755,7 +755,16 @@ export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 // The `any` types here are required because in this case
 // Chain, Agent, and Bundle are abstract classes and TS complains.
 // When implementing chain support, you don't need to use `as any`.
-bindChainSupport(Chain, Agent, Bundle)
+bindChainSupport(
+  Chain,
+  Agent,
+  Bundle
+)
+bindChainSupport(
+  StubChain,
+  StubAgent,
+  Bundle
+)
 
 /** Set the `Chain.Agent` and `Agent.Bundle` static properties.
   * This is how a custom chain implementation knows how to use
