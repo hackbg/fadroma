@@ -21,7 +21,10 @@
 import type { Agent, ChainClass, ChainId, DevnetHandle } from './fadroma'
 import Config from './fadroma-config'
 
-import { Error as BaseError, Console, bold, randomHex, ChainMode, Chain, randomChainId } from '@fadroma/connect'
+import {
+  Error as BaseError, Console, bold, randomHex, ChainMode, Chain, randomChainId,
+  Scrt, CW
+} from '@fadroma/connect'
 import type { CodeId } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
@@ -58,6 +61,8 @@ export type DevnetPlatformInfo = {
   daemon:     string
   /** Which port is being used. */
   portMode:   DevnetPort
+  /** Which Chain subclass to return from devnet.getChain. */
+  chainClass: Function
 }
 
 /** Mapping of connection type to default port number. */
@@ -85,6 +90,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
+    chainClass: Scrt.Chain
   },
   'scrt_1.3': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
@@ -92,6 +98,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'grpcWeb',
+    chainClass: Scrt.Chain
   },
   'scrt_1.4': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
@@ -99,6 +106,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'grpcWeb',
+    chainClass: Scrt.Chain
   },
   'scrt_1.5': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
@@ -106,6 +114,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
+    chainClass: Scrt.Chain
   },
   'scrt_1.6': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
@@ -113,6 +122,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
+    chainClass: Scrt.Chain
   },
   'scrt_1.7': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
@@ -120,6 +130,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
+    chainClass: Scrt.Chain
   },
   'scrt_1.8': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
@@ -127,6 +138,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'Done verifying block height',
     daemon:     'secretd',
     portMode:   'http',
+    chainClass: Scrt.Chain
   },
   'scrt_1.9': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
@@ -134,6 +146,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'Validating proposal',
     daemon:     'secretd',
     portMode:   'http',
+    chainClass: Scrt.Chain
   },
   'okp4_5.0': {
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
@@ -141,6 +154,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     ready:      'indexed block',
     daemon:     'okp4d',
     portMode:   'rpc',
+    chainClass: CW.OKP4.Chain
   },
 }
 
@@ -496,11 +510,19 @@ export class Devnet implements DevnetHandle {
 
   /** Get a Chain object wrapping this devnet. */
   getChain = <C extends Chain, D extends ChainClass<C>> (
-    $C: ChainClass<C> = Chain as unknown as ChainClass<C>,
+    $C: D = (devnetPlatforms[this.platform].chainClass || Chain) as unknown as D,
     options?: Partial<C>
   ): C => {
+    if (!this.container) {
+      throw new Error(
+        "Call the devnet's create() method first"
+      )
+    }
     if (options?.id && options.id !== this.chainId) {
       this.log.warn('Devnet#getChain: ignoring passed chain id')
+    }
+    if (options?.url && options.url.toString() !== this.url.toString()) {
+      this.log.warn('Devnet#getChain: ignoring passed url')
     }
     if (options?.mode && options.mode !== Chain.Mode.Devnet) {
       this.log.warn('Devnet#getChain: ignoring passed chain mode')
@@ -508,12 +530,19 @@ export class Devnet implements DevnetHandle {
     if (options?.devnet) {
       this.log.warn('Devnet#getChain: ignoring passed devnet handle')
     }
-    return new $C({
+    const chain = new $C({
       ...options,
       id:     this.chainId,
+      url:    this.url.toString(),
       mode:   Chain.Mode.Devnet,
       devnet: this
     })
+    Object.defineProperty(chain, 'url', {
+      enumerable: true,
+      configurable: true,
+      get: () => this.url.toString()
+    })
+    return chain
   }
 
   /** Get the info for a genesis account, including the mnemonic */
