@@ -49,7 +49,7 @@
     "test:factory":  "time ensuite spec/Factory.spec.ts.md",
     "test:project":  "time ensuite spec/Project.test.ts",
     "test:scrt":     "time ensuite spec/Scrt.test.ts",
-    "test:cw":       "time ensuite spec/CW.spec.ts.md",
+    "test:cw":       "time ensuite spec/CW.test.ts",
     "cov":           "time ensuite-cov GUIDE.ts.md",
     "cov:build":     "time ensuite-cov spec/Build.test.ts",
     "cov:factory":   "time ensuite-cov spec/Factory.spec.ts.md",
