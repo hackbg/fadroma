@@ -1,6 +1,8 @@
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export const repoRoot = dirname(dirname(resolve(fileURLToPath(import.meta.url))))
+
 export default async function testEntrypoint (url: string, tests: Record<string, Function>) {
 
   if (resolve(process.argv[2]) === resolve(fileURLToPath(url))) {
