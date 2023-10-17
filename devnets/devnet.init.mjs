@@ -155,7 +155,12 @@ function preGenesisConfig () {
     run(`cp ~/node_key.json ${nodeKey}`)
   }
   console.log('Patching', genesis)
-  run(`perl -i -pe 's/"stake"/ "${TOKEN}"/g' ${genesis}`)
+  let genesisData = readFileSync(genesis, 'utf8')
+  genesisData = genesisData.replace(
+    new RegExp('"stake"', 'g'),
+    `"${TOKEN}"`
+  )
+  writeFileSync(genesis, genesisData)
 }
 
 function createGenesisTransaction () {
