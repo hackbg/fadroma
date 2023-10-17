@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "2.0.0-rc.0",
+  "version": "2.0.0-rc.1",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -56,8 +56,8 @@
     "cov:devnet":    "time ensuite-cov spec/Devnet.test.ts"
   },
   "dependencies": {
-    "@fadroma/agent":   "workspace:2.0.0-rc.0",
-    "@fadroma/connect": "workspace:4.0.0-rc.0",
+    "@fadroma/agent":   "workspace:2.0.0-rc.1",
+    "@fadroma/connect": "workspace:4.0.0-rc.1",
     "@hackbg/cmds":     "workspace:3.0.7",
     "@hackbg/dock":     "workspace:2",
     "@hackbg/file":     "workspace:1.2.3",
