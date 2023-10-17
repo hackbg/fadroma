@@ -194,7 +194,15 @@ export class Uploader {
   }
   protected async fetch (path: string|URL): Promise<Uint8Array> {
     if (!global.fetch) throw new Error.Unsupported.Fetch()
-    const file = await fetch(new URL(path, 'file:'))
+    const url = new URL(path, 'file:')
+    if (url.protocol === 'file:') {
+      const readFileSync = await import('node:fs').then(x=>x.readFileSync).catch(()=>null)
+      if (!readFileSync) {
+        throw new Error('Uploading from file:/// URLs is not available in this context.')
+      }
+      return readFileSync(path)
+    }
+    const file = await fetch(url)
     return new Uint8Array(await file.arrayBuffer())
   }
   protected checkCodeHash (
