@@ -61,7 +61,7 @@ export interface Uploadable {
   /** SHA256 checksum of binary. */
   codeHash?: CodeHash
   /** Chain to upload to. */
-  chainId:   ChainId,
+  chainId?:  ChainId,
 }
 /** A constructor for a subclass of Uploader. */
 export interface UploaderClass<U extends Uploader> { new (options?: Partial<Uploader>): U }
@@ -96,10 +96,10 @@ export abstract class Builder {
   /** Up to the implementation.
     * `@hackbg/fadroma` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  abstract build (buildable: Buildable, ...args: any[]): Promise<Built>
+  abstract build (buildable: string|Buildable, ...args: any[]): Promise<Built>
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
-  abstract buildMany (sources: Buildable[], ...args: unknown[]): Promise<Built[]>
+  abstract buildMany (sources: (string|Buildable)[], ...args: unknown[]): Promise<Built[]>
 }
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
