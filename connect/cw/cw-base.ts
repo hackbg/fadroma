@@ -10,7 +10,7 @@ import {
 } from '@fadroma/agent'
 
 import type {
-  Address, Client, Contract, Message, ExecOpts,
+  Address, Client, Contract, Message, ExecOpts, CodeId, CodeHash,
   Uploadable, Uploaded, Instantiated
 } from '@fadroma/agent'
 
@@ -56,6 +56,31 @@ class CWChain extends Chain {
     })
     Object.defineProperty(this, 'ready', { get () { return init } })
     return init
+  }
+
+  /** Stub implementation of getting native balance. */
+  getBalance (denom: string, address: Address): Promise<string> {
+    throw new Error('not implemented')
+  }
+
+  /** Stub implementation of querying a smart contract. */
+  query <U> (contract: Client, msg: Message): Promise<U> {
+    throw new Error('not implemented')
+  }
+
+  /** Stub implementation of getting a code id. */
+  getCodeId (address: Address): Promise<CodeId> {
+    throw new Error('not implemented')
+  }
+
+  /** Stub implementation of getting a code hash. */
+  getHash (address: Address|number): Promise<CodeHash> {
+    throw new Error('not implemented')
+  }
+
+  /** Stub implementation of getting a contract label. */
+  getLabel (address: Address): Promise<string> {
+    throw new Error('not implemented')
   }
 
 }
@@ -183,6 +208,16 @@ class CWAgent extends Agent {
     address ??= this.address
     const { amount } = await api.getBalance(address!, denom)
     return amount
+  }
+
+  /** Stub implementation of sending native token. */
+  send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
+    throw new Error('not implemented')
+  }
+
+  /** Stub implementation of batch send. */
+  sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
+    throw new Error('not implemented')
   }
 
   async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
