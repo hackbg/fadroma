@@ -177,7 +177,7 @@ export class Uploader {
     const { codeId, codeHash, uploadTx } = result
     log(`done, code id`, codeId)
     Object.assign(contract, { codeId, codeHash, uploadTx })
-    const receipt = { ...contract, codeId, codeHash, uploadTx }
+    const receipt = { ...contract, codeId, codeHash, uploadTx, chainId: this.chain!.id }
     this.set(receipt)
     await this.agent.nextBlock
     return receipt
