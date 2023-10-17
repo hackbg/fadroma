@@ -1,10 +1,11 @@
-import testEntrypoint from './testSelector'
+import testEntrypoint, { repoRoot } from './testSelector'
 
-import { Devnet } from '@hackbg/fadroma'
+import { Devnet, Template, build, Uploader } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 
 import * as assert from 'node:assert'
 import { getuid, getgid } from 'node:process'
+import { resolve } from 'node:path'
 
 import $, { TextFile } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
@@ -54,9 +55,15 @@ export async function testDevnetPlatform (platform: DevnetPlatform) {
 }
 
 export async function testDevnetCopyUploads () {
-  const devnet1 = new Devnet({ platform: 'okp4_5.0' })
+  const devnet1 = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain1 = devnet1.getChain()
   const agent1 = await chain1.getAgent({ name: 'Admin' }).ready
+  const crate = resolve(repoRoot, 'examples', 'cw-null')
+  const artifact = await build(crate)
+  const uploader = new Uploader({ agent: agent1, reupload: true })
+  const uploaded = await uploader.upload(artifact)
+  const uploaded2 = await uploader.upload(artifact)
+  console.log({uploaded})
   const devnet2 = new Devnet({ platform: 'okp4_5.0' })
   assert.ok(
     await devnet2.copyUploads(chain1),
