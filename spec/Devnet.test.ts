@@ -1,5 +1,3 @@
-import testEntrypoint, { repoRoot } from './testSelector'
-
 import { Devnet, Template, build, Uploader } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 
@@ -10,6 +8,7 @@ import { resolve } from 'node:path'
 import $, { TextFile } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
 
+import testEntrypoint, { repoRoot } from './testSelector'
 export default testEntrypoint(import.meta.url, {
   'docs':         testDevnetDocs,
   'scrt':         ()=>testDevnetPlatform('scrt_1.9'),
