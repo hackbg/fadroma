@@ -1,23 +1,33 @@
 # Fadroma Agent: Scriptable User Agents for the Blockchain
 
-The **Fadroma Agent API** is Fadroma's imperative API for interacting with smart contract
-platforms. It's specified by the [**@fadroma/agent**](https://www.npmjs.com/package/@fadroma/agent)
-package, and is in effect a reduced and simplified vocabulary that covers the common ground
-between different implementations of smart contract-enabled chains. The Agent API is designed
-to expressing smart contract operations in a concise and readable manner.
+The *Fadroma Agent API* is Fadroma's imperative API for interacting with smart contract
+platforms. It's designed for expressing smart contract operations in a concise and readable manner.
 
-Since different chains provide different connection methods and client libraries,
-the packages under [**@fadroma/connect**](https://www.npmjs.com/package/@fadroma/connect)
-contain the concrete implementations of Fadroma Agent for the given platforms:
+The API is specified by the [**@fadroma/agent**](https://www.npmjs.com/package/@fadroma/agent)
+package. In effect, it's a reduced and simplified vocabulary that covers the common ground
+between different implementations of smart contract-enabled chains. 
 
-* [**@fadroma/scrt**](https://www.npmjs.com/package/@fadroma/scrt) for Secret Network,
-* [**@fadroma/cw**](https://www.npmjs.com/package/@fadroma/cw) for other CosmWasm-enabled chains
+Since different chains provide different client libraries and connection methods,
+the concrete implementations of the Fadroma Agent API are contained in separate
+packages:
+
+* [**@fadroma/scrt**](https://www.npmjs.com/package/@fadroma/scrt) for Secret Network;
+* [**@fadroma/cw**](https://www.npmjs.com/package/@fadroma/cw) for other CosmWasm-enabled chains,
+  such as OKP4.
+
+[**@fadroma/connect**](https://www.npmjs.com/package/@fadroma/connect) reexports all available
+Fadroma Agent API implementations. It's recommended to use **@fadroma/connect** when depending
+on more than one of the above.
+
+The overarching goal of Fadroma Agent is to enable developers to learn only a single client
+library for all supported blockchains and client platforms.
 
 ## Connecting to a chain
 
-An instance of the **Chain** class corresponds to a connection to a given blockchain.
+Instances of the **Chain** class represents blockchains.
 
-A chain exists in one of several modes, represented by the **chain.mode** property
+A chain may exists in one of several modes,
+represented by the **chain.mode** property
 and the **ChainMode** enum:
 
 * ****mainnet**** is a production chain storing real value;
