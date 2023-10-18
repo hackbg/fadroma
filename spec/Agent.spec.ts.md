@@ -43,12 +43,18 @@ or `okp4-nemeton-1` (OKP4 testnet). Chains in different modes usually have disti
 The same chain may be accessible via different URLs. The **chain.url** property
 identifies the URL to which requests are sent.
 
-The **chain.ready** property... TODO
+Since the underlying API classes (e.g. `CosmWasmClient` or `SecretNetworkClient`) are
+initialized asynchronously, and JavaScript does not have async constructors, chains start
+out in an unitialized state, where the **chain.api** property is not populated. Awaiting the
+**chain.ready** one-shot promise returns the same chain object, but with the API client populated.
+Normally, this is done automatically when calling the chain's async methods; but if you want to
+access the API handle directly, you would need to **await chain.ready**. This is useful if you
+want to access a chain-specific feature that is not part of the Fadroma Agent API
 
 Examples:
 
 ```typescript
-// TODO
+const { api } = await chain.ready
 ```
 
 ### Block height
@@ -70,7 +76,8 @@ await chain.nextBlock
 
 ### Native tokens
 
-The **Chain.defaultDenom** and **chain.defaultDenom** properties... TODO
+The **Chain.defaultDenom** and **chain.defaultDenom** properties contain the default
+denomination of the chain's native token.
 
 The **chain.getBalance(denom, address)** async method queries the balance of a given
 address in a given token.
@@ -83,10 +90,11 @@ Examples:
 
 ### Querying contracts
 
-The **chain.query(contract, msg)** method... TODO
+The **chain.query(contract, message)** async method calls a read-only query method of a smart
+contract.
 
-The **chain.getCodeId(address)**, **chain.getHash(addressOrCodeId)** and **chain.getLabel(address)**
-async methods query the corresponding metadata of a smart contract.
+The **chain.getCodeId(address)**, **chain.getHash(addressOrCodeId)** and
+**chain.getLabel(address)** async methods query the corresponding metadata of a smart contract.
 
 The **chain.checkHash(address, codeHash)** method warns if the code hash of a contract
 is not the expected one.
@@ -102,6 +110,9 @@ Examples:
 To transact on a given chain, you need to authorize an **Agent**.
 This is done using the **chain.getAgent(...)** method, which synchonously
 returns a new **Agent** instance for the given chain.
+
+Instantiating multiple agents allows the same program to interact with the chain
+from multiple distinct identities.
 
 This method may be called with one of the following signatures:
 
@@ -128,35 +139,30 @@ The **agent.address** property is the on-chain address that uniquely identifies 
 The **agent.name** property is a user-friendly name for an agent. On devnet, the name is
 also used to access the initial accounts that are created during devnet genesis.
 
-Instantiating multiple agents allows the same program to interact with the chain
-from multiple distinct identities.
-
-Examples:
-
-```typescript
-// TODO
-```
-
 ### Agents and block height
 
-TODO
-
-Examples:
+The **agent.height** and **agent.nextBlock** methods are equivalent to the same methods
+on the chain object, and are replicated on the Agent class purely for convenience.
 
 ```typescript
-// TODO
+const height = await agent.height
+
+await agent.nextBlock
 ```
 
 ### Native token transactions
 
-The **agent.getBalance(...)** async method works the same as **chain.getBalance**... TODO
+The **agent.getBalance(denom, address)** async method works the same as **chain.getBalance(...)**
+but defaults to the agent's address.
 
 The **agent.balance** readonly property is a shorthand for querying the current agent's balance
 in the chain's main native token.
 
-The **agent.send(...)** async method... TODO
+The **agent.send(address, amounts, options)** async method sends one or more amounts of
+native tokens to the specified address.
 
-The **agent.sendMany(...)** async method... TODO
+The **agent.sendMany([[address, coin], [address, coin]...])** async method sends native tokens
+to multiple addresses.
 
 Examples:
 
@@ -204,17 +210,17 @@ await agent.upload(readFileSync(examples['KV'].path), {
 })
 
 // Uploading from a filename
-//await agent.upload('example.wasm')
+await agent.upload('example.wasm') // TODO
 
 // Uploading an Uploadable object
-//await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' })
+await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' }) // TODO
 
 // Uploading multiple pieces of code:
-/*await agent.uploadMany([
+await agent.uploadMany([
   'example.wasm',
   readFileSync('example.wasm'),
   { artifact: './example.wasm', codeHash: 'expectedCodeHash' }
-])*/
+])
 
 const c1 = await agent.instantiate({
   codeId:   '1',
@@ -229,14 +235,13 @@ const [ c2, c3 ] = await agent.instantiateMany([
 ])
 ```
 
-```typescript
-```
-
 ### Executing transactions and performing queries
 
-The **agent.query(...)** async method... TODO
+The **agent.query(contract, message)** async method calls a query method of a smart contract.
+This is equivalent to **chain.query(...)**.
 
-The **agent.execute(...)** async method... TODO
+The **agent.execute(contract, message)** async method calls a transaction method of a smart
+contract, signing the transaction as the given agent.
 
 Examples:
 
@@ -271,7 +276,6 @@ you can use `batch.wrap(async (batch) => { ... })`:
 Examples:
 
 ```typescript
-// TODO
 const results = await agent.batch(async batch=>{
   await batch.execute(c1, { del: { key: '1' } })
   await batch.execute(c2, { set: { key: '3', value: '4' } })
@@ -364,29 +368,13 @@ assert.ok(client.meta instanceof Contract)
 Fetching metadata:
 
 ```typescript
-import { fetchCodeHash, fetchCodeId, fetchLabel } from '@fadroma/agent'
+import { fetchCodeHash, fetchCodeId, fetchLabel, assertCodeHash, codeHashOf } from '@fadroma/agent'
 
-client.address = 'someaddress' // FIXME
-assert.ok(client.codeHash = await fetchCodeHash(client, agent))
-//assert.ok(client.codeId   = await fetchCodeId(client, agent))
-assert.ok(client.label    = await fetchLabel(client, agent))
-
-assert.equal(client.codeHash, await fetchCodeHash(client, agent, client.codeHash))
-//assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))
-assert.equal(client.label,    await fetchLabel(client, agent, client.label))
-
-assert.rejects(fetchCodeHash(client, agent, 'unexpected'))
-assert.rejects(fetchCodeId(client, agent, 'unexpected'))
-assert.rejects(fetchLabel(client, agent, 'unexpected'))
-
-import { assertCodeHash, codeHashOf } from '@fadroma/agent'
-
-assert.ok(assertCodeHash({ codeHash: 'code-hash-stub' }))
-assert.throws(()=>assertCodeHash({}))
-
-assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
-assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
-assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
+await fetchCodeHash(client, agent)
+await fetchCodeId(client, agent)
+await fetchLabel(client, agent)
+codeHashOf({ codeHash: 'hash' })
+codeHashOf({ code_hash: 'hash' })
 ```
 
 The code ID is a unique identifier for compiled code uploaded to a chain.

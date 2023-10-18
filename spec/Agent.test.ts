@@ -19,6 +19,30 @@ export async function testAgentObtain () {
   assert.equal(agent.chain, chain,     'agent.chain assigned')
 }
 
+export async function testAgentMeta () {
+  //client.address = 'someaddress' // FIXME
+  //assert.ok(client.codeHash = await fetchCodeHash(client, agent))
+  ////assert.ok(client.codeId   = await fetchCodeId(client, agent))
+  //assert.ok(client.label    = await fetchLabel(client, agent))
+
+  //assert.equal(client.codeHash, await fetchCodeHash(client, agent, client.codeHash))
+  ////assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))
+  //assert.equal(client.label,    await fetchLabel(client, agent, client.label))
+
+  //assert.rejects(fetchCodeHash(client, agent, 'unexpected'))
+  //assert.rejects(fetchCodeId(client, agent, 'unexpected'))
+  //assert.rejects(fetchLabel(client, agent, 'unexpected'))
+
+  //import { assertCodeHash, codeHashOf } from '@fadroma/agent'
+
+  //assert.ok(assertCodeHash({ codeHash: 'code-hash-stub' }))
+  //assert.throws(()=>assertCodeHash({}))
+
+  //assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
+  //assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
+  //assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
+}
+
 export async function testAgentBatch () {
   //import { Chain, Agent, Batch } from '@fadroma/agent'
   //chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
