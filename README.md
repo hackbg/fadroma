@@ -54,6 +54,229 @@ $ npm exec fadroma build some-contract another-contract a-third-contract
 $ npm exec fadroma build
 ```
 
+When deploying, Fadroma automatically builds the `Contract`s specified in the deployment,
+using a procedure based on [secret-contract-optimizer](https://hub.docker.com/r/enigmampc/secret-contract-optimizer).
+
+This either with your local Rust/WASM toolchain,
+or in a pre-defined [build container](https://github.com/hackbg/fadroma/pkgs/container/fadroma).
+The latter option requires Docker (which you also need for the devnet).
+
+By default, optimized builds are output to the `wasm` subdirectory of your project.
+Checksums of build artifacts are emitted as `wasm/*.wasm.sha256`: these checksums
+should be equal to the code hashes returned by the chain.
+
+We advise you to keep these
+**build receipts** in version control. This gives you a quick way to keep track of the
+correspondence between changes to source and resulting changes to code hashes.
+
+Furthermore, when creating a `Project`, you'll be asked to define one or more `Template`s
+corresponding to the contract crates of your project. You can
+
+Fadroma implements **reproducible compilation** of contracts.
+What to compile is specified using the primitives defined in [Fadroma Core](../client/README.md).
+
+## Build CLI
+
+```shell
+$ fadroma build CONTRACT    # nop if already built
+$ fadroma rebuild CONTRACT  # always rebuilds
+```
+
+  * **`CONTRACT`**: one of the contracts defined in the [project](../project/Project.spec.ts),
+    *or* a path to a crate assumed to contain a single contract.
+
+## Build API
+
+* **BuildRaw**: runs the build in the current environment
+* **BuildContainer**: runs the build in a container for enhanced reproducibility
+
+### Getting a builder
+
+```typescript
+import { getBuilder } from '@hackbg/fadroma'
+const builder = getBuilder(/* { ...options... } */)
+
+import { Builder } from '@hackbg/fadroma'
+assert(builder instanceof Builder)
+```
+
+#### BuildContainer
+
+By default, you get a `BuildContainer`,
+which runs the build procedure in a container
+provided by either Docker or Podman (as selected
+by the `FADROMA_BUILD_PODMAN` environment variable).
+
+```typescript
+import { BuildContainer } from '@hackbg/fadroma'
+assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
+```
+
+`BuildContainer` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
+operate the container engine.
+
+```typescript
+import * as Dokeres from '@hackbg/dock'
+assert.ok(getBuilder({ raw: false }).docker instanceof Dokeres.Engine)
+```
+
+Use `FADROMA_DOCKER` or the `dockerSocket` option to specify a non-default Docker socket path.
+
+```typescript
+getBuilder({ raw: false, dockerSocket: 'test' })
+```
+
+The `BuildContainer` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
+in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
+being output to the `FADROMA_ARTIFACTS` directory.
+
+#### BuildRaw
+
+If you want to execute the build procedure in your
+current environment, you can switch to `BuildRaw`
+by passing `raw: true` or setting `FADROMA_BUILD_RAW`.
+
+```typescript
+const rawBuilder = getBuilder({ raw: true })
+
+import { BuildRaw } from '@hackbg/fadroma'
+assert.ok(rawBuilder instanceof BuildRaw)
+```
+
+### Building a contract
+
+Now that we've obtained a `Builder`, let's compile a contract from source into a WASM binary.
+
+#### Building a named contract from the project
+
+Building asynchronously returns `Template` instances.
+A `Template` is an undeployed contract. You can upload
+it once, and instantiate any number of `Contract`s from it.
+
+```typescript
+for (const raw of [true, false]) {
+  const builder = getBuilder({ raw })
+```
+
+To build a single crate with the builder:
+
+```typescript
+  const contract_0 = await builder.build({ crate: 'examples/kv' })
+```
+
+To build multiple crates in parallel:
+
+```typescript
+  const [contract_1, contract_2] = await builder.buildMany([
+    { crate: 'examples/admin' },
+    { crate: 'examples/killswitch' }
+  ])
+```
+
+For built contracts, the following holds true:
+
+```typescript
+  for (const [contract, index] of [ contract_0, contract_1, contract_2 ].map((c,i)=>[c,i]) {
+```
+
+* Build result will contain code hash and path to binary:
+
+```typescript
+    assert(typeof contract.codeHash === 'string', `contract_${index}.codeHash is set`)
+    assert(contract.artifact instanceof URL,      `contract_${index}.artifact is set`)
+```
+
+* Build result will contain info about build inputs:
+
+```typescript
+    assert(contract.workspace, `contract_${index}.workspace is set`)
+    assert(contract.crate,     `contract_${index}.crate is set`)
+    assert(contract.revision,  `contract_${index}.revision is set`)
+```
+
+The above holds true equally for contracts produced
+by `BuildContainer` and `BuildRaw`.
+
+```typescript
+  }
+}
+```
+
+#### Specifying a contract to build
+
+The `Template` and `Contract` classes have the following properties for specifying the source:
+
+|field|type|description|
+|-|-|-|
+|**`repository`**|Path or URL|Points to the Git repository containing the contract sources. This is all you need if your smart contract is a single crate.|
+|**`workspace`**|Path or URL|Cargo workspace containing the contract sources. May or may not be equal to `contract.repo`. May be empty if the contract is a single crate.|
+|**`crate`**|string|Name of the Cargo crate containing the individual contract source. Required if `contract.workspace` is set.|
+|**`revision`**|string|Git reference (branch or tag). Defaults to `HEAD`, otherwise builds a commit from history.|
+
+The outputs of builds are called **artifact**s, and are represented by two properties:
+
+|field|type|description|
+|-|-|-|
+|**`artifact`**|URL|Canonical location of the compiled binary.|
+|**`codeHash`**|string|SHA256 checksum of artifact. should correspond to **template.codeHash** and **instance.codeHash** properties of uploaded and instantiated contracts|
+
+```typescript
+import { Contract } from '@fadroma/agent'
+const contract: Contract = new Contract({ builder, crate: 'fadroma-example-kv' })
+await contract.compiled
+```
+
+```typescript
+import { Template } from '@fadroma/agent'
+const template = new Template({ builder, crate: 'fadroma-example-kv' })
+await template.compiled
+```
+
+### Building past commits of contracts
+
+* `DotGit`, a helper for finding the contents of Git history
+  where Git submodules are involved. This works in tandem with
+  `build.impl.mjs` to enable:
+  * **building any commit** from a project's history, and therefore
+  * **pinning versions** for predictability during automated one-step deployments.
+
+If `.git` directory is present, builders can check out and build a past commits of the repo,
+as specifier by `contract.revision`.
+
+```typescript
+import { Contract } from '@fadroma/agent'
+import { getGitDir, DotGit } from '@hackbg/fadroma'
+
+assert.throws(()=>getGitDir(new Contract()))
+
+const contractWithSource = new Contract({
+  repository: 'REPO',
+  revision:   'REF',
+  workspace:  'WORKSPACE'
+  crate:      'CRATE'
+})
+
+assert.ok(getGitDir(contractWithSource) instanceof DotGit)
+```
+
+### Build caching
+
+When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
+for a corresponding pre-existing build and reuses it if present.
+
+Setting `FADROMA_REBUILD` disables build caching.
+
+### The build procedure
+
+The ultimate build procedure, i.e. actual calls to `cargo` and such,
+is implemented in the standalone script `FADROMA_BUILD_SCRIPT` (default: `build.impl.mjs`),
+which is launched by the builders.
+
+### Builders
+
+The subclasses of the abstract base class `Builder` in Fadroma Core
+implement the compilation procedure for contracts.
+
 Checksums of compiled contracts by version are stored in the build state
 directory, `wasm/`.
 
@@ -70,6 +293,61 @@ Every successful upload logs the transaction as a file called an **upload receip
 
 The `UploadStore` loads a collection of upload receipts and tells the `Uploader` if a
 binary has already been uploaded, so it can prevent duplicate uploads.
+
+Fadroma takes care of **uploading WASM files to get code IDs**.
+
+Like builds, uploads are *idempotent*: if the same code hash is
+known to already be uploaded to the same chain (as represented by
+an upload receipt in `state/$CHAIN/uploads/$CODE_HASH.json`,
+Fadroma will skip the upload and reues the existing code ID.
+
+### Upload CLI
+
+The `fadroma upload` command (available through `npm run $MODE upload`
+in the default project structure) lets you access Fadroma's `Uploader`
+implementation from the command line.
+
+```shell
+$ fadroma upload CONTRACT   # nil if same contract is already uploaded
+$ fadroma reupload CONTRACT # always reupload
+```
+
+### Upload API
+
+The client package, `@fadroma/agent`, exposes a base `Uploader` class,
+which the global `fetch` method to obtain code from any supported URL
+(`file:///` or otherwise).
+
+This `fetch`-based implementation only supports temporary, in-memory
+upload caching: if you ask it to upload the same contract many times,
+it will upload it only once - but it will forget all about that
+as soon as you refresh the page.
+
+The backend package, `@hackbg/fadroma`, provides `FSUploader`.
+This extension of `Uploader` uses Node's `fs` API instead, and
+writes upload receipts into the upload state directory for the
+given chain (e.g. `state/$CHAIN/uploads/`).
+
+Let's try uploading an example WASM binary:
+
+```typescript
+import { fixture } from './fixtures/Fixtures.ts.md'
+const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
+```
+
+* Uploading with default configuration (from environment variables):
+
+```typescript
+import { upload } from '@hackbg/fadroma'
+await upload({ artifact })
+```
+
+* Passing custom options to the uploader:
+
+```typescript
+import { getUploader } from '@hackbg/fadroma'
+await getUploader({ /* options */ }).upload({ artifact })
+```
 
 ## Deploying the project
 
@@ -306,7 +584,7 @@ await deployment.a.built
 await deployment.a.build()
 ```
 
-## Fadroma Guide: Devnet
+## Devnet
 
 Fadroma enables fully local development of projects - no remote testnet needed!
 This feature is known as **Fadroma Devnet**. 
@@ -587,310 +865,6 @@ assert.deepEqual(
 )
 
 await devnet.delete()
-```
-
----
-
-```typescript
-import { Chain, Agent } from '@fadroma/agent'
-import $, { JSONFile, JSONDirectory } from '@hackbg/file'
-import { Devnet } from '@hackbg/fadroma'
-```
-
----
-
-# Building contracts from source
-
-When deploying, Fadroma automatically builds the `Contract`s specified in the deployment,
-using a procedure based on [secret-contract-optimizer](https://hub.docker.com/r/enigmampc/secret-contract-optimizer).
-
-This either with your local Rust/WASM toolchain,
-or in a pre-defined [build container](https://github.com/hackbg/fadroma/pkgs/container/fadroma).
-The latter option requires Docker (which you also need for the devnet).
-
-By default, optimized builds are output to the `wasm` subdirectory of your project.
-Checksums of build artifacts are emitted as `wasm/*.wasm.sha256`: these checksums
-should be equal to the code hashes returned by the chain.
-
-We advise you to keep these
-**build receipts** in version control. This gives you a quick way to keep track of the
-correspondence between changes to source and resulting changes to code hashes.
-
-Furthermore, when creating a `Project`, you'll be asked to define one or more `Template`s
-corresponding to the contract crates of your project. You can
-
-Fadroma implements **reproducible compilation** of contracts.
-What to compile is specified using the primitives defined in [Fadroma Core](../client/README.md).
-
-## Build CLI
-
-```shell
-$ fadroma build CONTRACT    # nop if already built
-$ fadroma rebuild CONTRACT  # always rebuilds
-```
-
-  * **`CONTRACT`**: one of the contracts defined in the [project](../project/Project.spec.ts),
-    *or* a path to a crate assumed to contain a single contract.
-
-### Builder configuration
-
-## Build API
-
-* **BuildRaw**: runs the build in the current environment
-* **BuildContainer**: runs the build in a container for enhanced reproducibility
-
-### Getting a builder
-
-```typescript
-import { getBuilder } from '@hackbg/fadroma'
-const builder = getBuilder(/* { ...options... } */)
-
-import { Builder } from '@hackbg/fadroma'
-assert(builder instanceof Builder)
-```
-
-#### BuildContainer
-
-By default, you get a `BuildContainer`,
-which runs the build procedure in a container
-provided by either Docker or Podman (as selected
-by the `FADROMA_BUILD_PODMAN` environment variable).
-
-```typescript
-import { BuildContainer } from '@hackbg/fadroma'
-assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
-```
-
-`BuildContainer` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
-operate the container engine.
-
-```typescript
-import * as Dokeres from '@hackbg/dock'
-assert.ok(getBuilder({ raw: false }).docker instanceof Dokeres.Engine)
-```
-
-Use `FADROMA_DOCKER` or the `dockerSocket` option to specify a non-default Docker socket path.
-
-```typescript
-getBuilder({ raw: false, dockerSocket: 'test' })
-```
-
-The `BuildContainer` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
-in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
-being output to the `FADROMA_ARTIFACTS` directory.
-
-#### BuildRaw
-
-If you want to execute the build procedure in your
-current environment, you can switch to `BuildRaw`
-by passing `raw: true` or setting `FADROMA_BUILD_RAW`.
-
-```typescript
-const rawBuilder = getBuilder({ raw: true })
-
-import { BuildRaw } from '@hackbg/fadroma'
-assert.ok(rawBuilder instanceof BuildRaw)
-```
-
-### Building a contract
-
-Now that we've obtained a `Builder`, let's compile a contract from source into a WASM binary.
-
-#### Building a named contract from the project
-
-Building asynchronously returns `Template` instances.
-A `Template` is an undeployed contract. You can upload
-it once, and instantiate any number of `Contract`s from it.
-
-```typescript
-for (const raw of [true, false]) {
-  const builder = getBuilder({ raw })
-```
-
-To build a single crate with the builder:
-
-```typescript
-  const contract_0 = await builder.build({ crate: 'examples/kv' })
-```
-
-To build multiple crates in parallel:
-
-```typescript
-  const [contract_1, contract_2] = await builder.buildMany([
-    { crate: 'examples/admin' },
-    { crate: 'examples/killswitch' }
-  ])
-```
-
-For built contracts, the following holds true:
-
-```typescript
-  for (const [contract, index] of [ contract_0, contract_1, contract_2 ].map((c,i)=>[c,i]) {
-```
-
-* Build result will contain code hash and path to binary:
-
-```typescript
-    assert(typeof contract.codeHash === 'string', `contract_${index}.codeHash is set`)
-    assert(contract.artifact instanceof URL,      `contract_${index}.artifact is set`)
-```
-
-* Build result will contain info about build inputs:
-
-```typescript
-    assert(contract.workspace, `contract_${index}.workspace is set`)
-    assert(contract.crate,     `contract_${index}.crate is set`)
-    assert(contract.revision,  `contract_${index}.revision is set`)
-```
-
-The above holds true equally for contracts produced
-by `BuildContainer` and `BuildRaw`.
-
-```typescript
-  }
-}
-```
-
-#### Specifying a contract to build
-
-The `Template` and `Contract` classes have the following properties for specifying the source:
-
-|field|type|description|
-|-|-|-|
-|**`repository`**|Path or URL|Points to the Git repository containing the contract sources. This is all you need if your smart contract is a single crate.|
-|**`workspace`**|Path or URL|Cargo workspace containing the contract sources. May or may not be equal to `contract.repo`. May be empty if the contract is a single crate.|
-|**`crate`**|string|Name of the Cargo crate containing the individual contract source. Required if `contract.workspace` is set.|
-|**`revision`**|string|Git reference (branch or tag). Defaults to `HEAD`, otherwise builds a commit from history.|
-
-The outputs of builds are called **artifact**s, and are represented by two properties:
-
-|field|type|description|
-|-|-|-|
-|**`artifact`**|URL|Canonical location of the compiled binary.|
-|**`codeHash`**|string|SHA256 checksum of artifact. should correspond to **template.codeHash** and **instance.codeHash** properties of uploaded and instantiated contracts|
-
-```typescript
-import { Contract } from '@fadroma/agent'
-const contract: Contract = new Contract({ builder, crate: 'fadroma-example-kv' })
-await contract.compiled
-```
-
-```typescript
-import { Template } from '@fadroma/agent'
-const template = new Template({ builder, crate: 'fadroma-example-kv' })
-await template.compiled
-```
-
-### Building past commits of contracts
-
-* `DotGit`, a helper for finding the contents of Git history
-  where Git submodules are involved. This works in tandem with
-  `build.impl.mjs` to enable:
-  * **building any commit** from a project's history, and therefore
-  * **pinning versions** for predictability during automated one-step deployments.
-
-If `.git` directory is present, builders can check out and build a past commits of the repo,
-as specifier by `contract.revision`.
-
-```typescript
-import { Contract } from '@fadroma/agent'
-import { getGitDir, DotGit } from '@hackbg/fadroma'
-
-assert.throws(()=>getGitDir(new Contract()))
-
-const contractWithSource = new Contract({
-  repository: 'REPO',
-  revision:   'REF',
-  workspace:  'WORKSPACE'
-  crate:      'CRATE'
-})
-
-assert.ok(getGitDir(contractWithSource) instanceof DotGit)
-```
-
-### Build caching
-
-When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
-for a corresponding pre-existing build and reuses it if present.
-
-Setting `FADROMA_REBUILD` disables build caching.
-
-## Implementation details
-
-### The build procedure
-
-The ultimate build procedure, i.e. actual calls to `cargo` and such,
-is implemented in the standalone script `FADROMA_BUILD_SCRIPT` (default: `build.impl.mjs`),
-which is launched by the builders.
-
-### Builders
-
-The subclasses of the abstract base class `Builder` in Fadroma Core
-implement the compilation procedure for contracts.
-
----
-
-```typescript
-import { fileURLToPath } from 'url'
-```
-
----
-
-# Fadroma Upload
-
-Fadroma takes care of **uploading WASM files to get code IDs**.
-
-Like builds, uploads are *idempotent*: if the same code hash is
-known to already be uploaded to the same chain (as represented by
-an upload receipt in `state/$CHAIN/uploads/$CODE_HASH.json`,
-Fadroma will skip the upload and reues the existing code ID.
-
-## Upload CLI
-
-The `fadroma upload` command (available through `npm run $MODE upload`
-in the default project structure) lets you access Fadroma's `Uploader`
-implementation from the command line.
-
-```shell
-$ fadroma upload CONTRACT   # nil if same contract is already uploaded
-$ fadroma reupload CONTRACT # always reupload
-```
-
-## Upload API
-
-The client package, `@fadroma/agent`, exposes a base `Uploader` class,
-which the global `fetch` method to obtain code from any supported URL
-(`file:///` or otherwise).
-
-This `fetch`-based implementation only supports temporary, in-memory
-upload caching: if you ask it to upload the same contract many times,
-it will upload it only once - but it will forget all about that
-as soon as you refresh the page.
-
-The backend package, `@hackbg/fadroma`, provides `FSUploader`.
-This extension of `Uploader` uses Node's `fs` API instead, and
-writes upload receipts into the upload state directory for the
-given chain (e.g. `state/$CHAIN/uploads/`).
-
-Let's try uploading an example WASM binary:
-
-```typescript
-import { fixture } from './fixtures/Fixtures.ts.md'
-const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
-```
-
-* Uploading with default configuration (from environment variables):
-
-```typescript
-import { upload } from '@hackbg/fadroma'
-await upload({ artifact })
-```
-
-* Passing custom options to the uploader:
-
-```typescript
-import { getUploader } from '@hackbg/fadroma'
-await getUploader({ /* options */ }).upload({ artifact })
 ```
 
 ---
