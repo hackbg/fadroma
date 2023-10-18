@@ -1,182 +1,196 @@
-# Fadroma Agent API
+# Fadroma Agent: Scriptable User Agents for the Blockchain
 
-The **Agent API** is a simple imperative transaction-level API for
-interacting with Cosmos-like networks.
+The **Fadroma Agent API** is Fadroma's imperative API for interacting with smart contract
+platforms. It's specified by the [**@fadroma/agent**](https://www.npmjs.com/package/@fadroma/agent)
+package, and is in effect a reduced and simplified vocabulary that covers the common ground
+between different implementations of smart contract-enabled chains. The Agent API is designed
+to expressing smart contract operations in a concise and readable manner.
 
-Its core primitives are the **`Chain`** and **`Agent`** abstract classes.
-An `Agent` corresponds to your identity (wallet) on a given chain,
-and lets you operate in terms of transactions (sending tokens, calling contracts, etc.)
+Since different chains provide different connection methods and client libraries,
+the packages under [**@fadroma/connect**](https://www.npmjs.com/package/@fadroma/connect)
+contain the concrete implementations of Fadroma Agent for the given platforms:
 
-**Note:** The `Chain` and `Agent` exported from `@fadroma/agent` are stub implementations.
-[The **`@fadroma/scrt`** package](./scrt.html) provides
-**`ScrtChain`** and **`ScrtAgent`**, the concrete implementations
-of Fadroma Chain API for Secret Network.
+* [**@fadroma/scrt**](https://www.npmjs.com/package/@fadroma/scrt) for Secret Network,
+* [**@fadroma/cw**](https://www.npmjs.com/package/@fadroma/cw) for other CosmWasm-enabled chains
 
-## Chain
+## Connecting to a chain
 
-The `Chain` object identifies what backend to connect to -
-such as the Secret Network mainnet or testnet.
+An instance of the **Chain** class corresponds to a connection to a given blockchain.
 
-Since the workflow is request-based, no persistent connection is maintained.
+A chain exists in one of several modes, represented by the **chain.mode** property
+and the **ChainMode** enum:
 
-```typescript
-import { StubChain as Chain } from '@fadroma/agent'
-let chain: Chain
-```
+* ****mainnet**** is a production chain storing real value;
+* ****testnet**** is a persistent remote chain used for testing;
+* ****devnet**** is a locally run chain node in a Docker container;
+* ****mocknet**** is a mock implementation of a chain.
 
-**Note:** `StubChain` in `@fadroma/agent` is a stub class used for testing.
+The **Chain.mainnet**, **Chain.testnet**, **Chain.devnet** and **Chain.mocknet**
+static methods construct a chain in the given mode.
 
-* If you want to connect to Secret Network, you need the `ScrtChain` implementation
-  from `@fadroma/scrt`, which is available using one of the following:
+You can also check whether a chain is in a given mode using the
+**chain.isMainnet**, **chain.isTestnet**, **chain.isDevnet** and **chain.isMocknet**
+read-only boolean properties.
 
-```typescript
-// On the backend, where the entirety of Fadroma is available
-import { Scrt } from '@hackbg/fadroma'
-// In a cross-chain project depending on @fadroma/connect
-import { Scrt } from '@fadroma/connect'
-// In a project that depends on specific connect libraries
-import * as Scrt from '@fadroma/scrt'
+The **chain.devMode** property is true when the chain is a devnet or mocknet.
+Devnets and mocknets are under your control - i.e. you can delete them and
+start over. On the other hand, mainnet and testnet are global and persistent.
 
-// Connect to mainnet:
-chain = Scrt.Chain.mainnet()
-// Connect to testnet:
-chain = Scrt.Chain.testnet()
-// Connect to local devnet:
-// chain = Scrt.Chain.devnet()
-// Connect to mocknet:
-// chain = Scrt.Chain.mocknet()
-```
+The **chain.id** property is a string that uniquely identifies a given blockchain.
+Examples are `secret-4` (Secret Network mainnet), `pulsar-3` (Secret Network testnet),
+or `okp4-nemeton-1` (OKP4 testnet). Chains in different modes usually have distinct IDs.
 
-### Chain modes
+The same chain may be accessible via different URLs. The **chain.url** property
+identifies the URL to which requests are sent.
 
-Chains can be in several `mode`s, enumerated by `ChainMode` a.k.a. `Chain.Mode`.
-To connect to a chain in a specific mode, you can use the corresponding static
-method on the `Chain`
+The **chain.ready** property... TODO
 
-**Mainnet** is the production chain where value is stored.
+Examples:
 
 ```typescript
-chain = Chain.mainnet({ id: 'id', url: 'example.com' })
-
-assert(!chain.devMode)
-assert(chain.isMainnet)
-```
-
-**Testnet** is a persistent remote chain used for testing.
-
-```typescript
-chain = Chain.testnet({ id: 'id', url: 'example.com' })
-
-assert(!chain.devMode)
-assert(chain.isTestnet)
-assert(!chain.isMainnet)
-```
-
-[**Devnet**](../devnet/Devnet.spec.ts.md) uses a real chain node, booted up temporarily in
-a local environment.
-
-```typescript
-//chain = Chain.devnet({ id: 'id', url: 'example.com' })
-
-//assert(chain.devMode)
-//assert(chain.isDevnet)
-//assert(!chain.isMainnet)
-```
-
-EXPERIMENTAL: [**Mocknet**](../mocknet/Mocknet.spec.ts.md) is a fast, nodeless way of
-executing contract code in the local JS WASM runtime. Currently, Mocknet has partial
-support for Secret Network.
-
-```typescript
-//chain = Scrt.Chain.mocknet({ id: 'id' url: 'example.com' })
-
-//assert(chain.devMode)
-//assert(chain.isMocknet)
-//assert(!chain.isMainnet)
-```
-
-### Dev mode
-
-The `chain.devMode` flag is true if you are able to restart
-the chain and start over (i.e. when using a devnet or mocknet).
-
-## Agent
-
-To transact on a [chain](./Chains.ts.md), you need to authenticate
-with your identity (account, wallet). To do that, you obtain an
-`Agent` from the `Chain` using `chain.getAgent({...})`.
-
-Instantiating multiple authenticated agents allows the same program
-to interact with the chain from multiple distinct identities.
-
-If you don't pass a mnemonic, a random mnemonic and address will be generated.
-
-```typescript
-import { Agent } from '@fadroma/agent'
-let agent: Agent = await chain.getAgent({ name: 'testing1', address: '...' })
-
-assert.ok(agent instanceof Agent,    'an Agent was returned')
-assert.ok(agent.address,             'agent has address')
-assert.equal(agent.name, 'testing1', 'agent.name assigned')
-assert.equal(agent.chain, chain,     'agent.chain assigned')
+// TODO
 ```
 
 ### Block height
 
-Having obtained an `Agent`, you are ready to begin performing operations.
-The simplest thing to do is waiting until the block height increments.
-The block height is the heartbeat of the blockchain.
+The **chain.height** getter returns a **Promise** wrapping the current block height.
 
-* On Secret Network, this can be necessary for uploading multiple contracts.
+The **chain.nextBlock** getter returns a **Promise** which resolves when the
+block height increments, and contains the new block height.
+
+Examples:
 
 ```typescript
-const height = await agent.height // Get the current block height
+// Get the current block height
+const height = await chain.height
 
-//await agent.nextBlock             // Wait for the block height to increment
-//assert.equal(await agent.height, height + 1)
+// Wait until the block height increments
+await chain.nextBlock
 ```
 
-### Gas fees
+### Native tokens
 
-Transacting creates load on the network, which incurs costs on node operators.
-Compensations for transactions are represented by the gas metric.
+The **Chain.defaultDenom** and **chain.defaultDenom** properties... TODO
+
+The **chain.getBalance(denom, address)** async method queries the balance of a given
+address in a given token.
+
+Examples:
 
 ```typescript
-import { Fee } from '@fadroma/agent'
+// TODO
+```
+
+### Querying contracts
+
+The **chain.query(contract, msg)** method... TODO
+
+The **chain.getCodeId(address)**, **chain.getHash(addressOrCodeId)** and **chain.getLabel(address)**
+async methods query the corresponding metadata of a smart contract.
+
+The **chain.checkHash(address, codeHash)** method warns if the code hash of a contract
+is not the expected one.
+
+Examples:
+
+```typescript
+// TODO
+```
+
+## Authenticating an agent
+
+To transact on a given chain, you need to authorize an **Agent**.
+This is done using the **chain.getAgent(...)** method, which synchonously
+returns a new **Agent** instance for the given chain.
+
+This method may be called with one of the following signatures:
+
+* **chain.getAgent(options)**
+* **chain.getAgent(CustomAgentClass, options)**
+* **chain.getAgent(CustomAgentClass)**
+
+The returned **Agent** starts out uninitialized. Awaiting the **agent.ready** property makes sure
+the agent is initialized. Usually, agents are initialized the first time you call one of the
+async methods described below.
+
+If you don't pass a mnemonic, a random mnemonic and address will be generated.
+
+Examples:
+
+```typescript
+// TODO
+```
+
+### Agent identity
+
+The **agent.name** property... TODO
+
+The **agent.address** property... TODO
+
+Instantiating multiple agents allows the same program to interact with the chain
+from multiple distinct identities.
+
+Examples:
+
+```typescript
+// TODO
+```
+
+### Agents and block height
+
+TODO
+
+On Secret Network, this can be necessary for uploading multiple contracts... TODO
+
+Examples:
+
+```typescript
+// TODO
 ```
 
 ### Native token transactions
 
-You're not on the chain to wait around, though.
-The simplest operation you can conduct is transact with native tokens.
+The **agent.getBalance(...)** async method works the same as **chain.getBalance**... TODO
 
-#### Query balance
+The **agent.balance** readonly property is a shorthand for querying the current agent's balance
+in the chain's main native token.
+
+The **agent.send(...)** async method... TODO
+
+The **agent.sendMany(...)** async method... TODO
+
+Examples:
 
 ```typescript
-await agent.balance             // In the default native token
-await agent.getBalance()        // In the default native token
+await agent.balance // In the default native token
+
+await agent.getBalance() // In the default native token
+
 await agent.getBalance('token') // In a non-default native token
-```
 
-#### Send default token
-
-```typescript
 await agent.send('recipient-address', 1000)
+
 await agent.send('recipient-address', '1000')
-```
 
-#### Send non-default tokens
-
-```typescript
 await agent.send('recipient-address', [
   {denom:'token1', amount: '1000'}
   {denom:'token2', amount: '2000'}
 ])
 ```
 
-### Compute transactions
+### Uploading and instantiating contracts
 
-#### Uploading code
+The **agent.upload(...)** async method... TODO
+
+The **agent.uploadMany(...)** async method... TODO
+
+The **agent.instantiate(...)** async method... TODO
+
+The **agent.instantiateMany(...)** async method... TODO
+
+The **agent.batch(...)** method...
+
+Examples:
 
 ```typescript
 import { examples } from './fixtures/Fixtures.ts.md'
@@ -200,152 +214,90 @@ await agent.upload(readFileSync(examples['KV'].path), {
   readFileSync('example.wasm'),
   { artifact: './example.wasm', codeHash: 'expectedCodeHash' }
 ])*/
-```
 
-The code ID is a unique identifier for compiled code uploaded to a chain.
-
-The code hash also uniquely identifies for the code that underpins a contract.
-However, unlike the code ID, which is opaque, the code hash corresponds to the
-actual content of the code. Uploading the same code multiple times will give
-you different code IDs, but the same code hash.
-
-```typescript
-import { assertCodeHash, codeHashOf } from '@fadroma/agent'
-
-assert.ok(assertCodeHash({ codeHash: 'code-hash-stub' }))
-assert.throws(()=>assertCodeHash({}))
-
-assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
-assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
-assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
-```
-
-#### Instantiating contracts
-
-* Instantiating a single contract:
-
-```typescript
 const c1 = await agent.instantiate({
   codeId:   '1',
   codeHash: 'verify!',
   label:    'unique1',
   initMsg:  { arg: 'val' }
 })
-```
 
-* Instantiating multiple contracts in a single transaction:
-
-```typescript
 const [ c2, c3 ] = await agent.instantiateMany([
   { codeId: '2', label: 'unique2', initMsg: { arg: 'values' } },
   { codeId: '3', label: 'unique3', initMsg: { arg: 'values' } }
 ])
-```
 
-#### Querying contract state
-
-```typescript
-const response = await agent.query(c1, { get: { key: '1' } })
-assert.rejects(agent.query(c1, { invalid: "query" }))
-```
-
-#### Executing transactions
-
-Executing a single transaction:
-
-```typescript
 const result = await agent.execute(c1, { set: { key: '1', value: '2' } })
 assert.rejects(agent.execute(c1, { invalid: "tx" }))
-```
 
-Broadcasting multiple execute calls as a single transaction message
-(transaction bundling):
-
-```typescript
 const results = await agent.batch(async batch=>{
   await batch.execute(c1, { del: { key: '1' } })
   await batch.execute(c2, { set: { key: '3', value: '4' } })
 }).run()
 ```
 
-#### Batching transactions
+### Executing transactions and performing queries
 
-To submit multiple messages as a single transaction, you can
-use the `Batch` class through `Agent#batch`.
+The **agent.query(...)** async method... TODO
 
-  * A `Batch` is a special kind of `Agent` that
-    does not broadcast messages immediately.
-  * Instead, messages are collected inside the batch until
-    the caller explicitly submits them.
-  * Batches can also be saved for manual signing of multisig
-    transactions
+The **agent.execute(...)** async method... TODO
 
-A `Batch` is designed to serve as a stand-in for its corresponding
-`Agent`, and therefore implements the same API methods.
-  * However, some operations don't make sense in the middle of a Batch.
-  * Most importantly, querying any state from the chain
-    must be done either before or after the batch.
-  * Trying to query state from a `Batch` agent will fail.
+Examples:
 
 ```typescript
-import { Chain, Agent, Batch } from '@fadroma/agent'
-chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
-agent = await chain.getAgent()
-let batch: Batch
+const response = await agent.query(c1, { get: { key: '1' } })
+assert.rejects(agent.query(c1, { invalid: "query" }))
 ```
 
-```typescript
-import { Client } from '@fadroma/agent'
-batch = new Batch(agent)
+### Batching transactions
 
-assert(batch.getClient(Client, '') instanceof Client, 'Batch#getClient')
-assert.equal(await batch.execute({}), batch)
-assert.equal(batch.id, 1)
-//assert(await batch.instantiateMany({}, []))
-//assert(await batch.instantiateMany({}, [['label', 'init']]))
-//assert(await batch.instantiate({}, 'label', 'init'))
-assert.equal(await batch.checkHash(), 'code-hash-stub')
+The **agent.batch(...)** method creates an instance of **Batch**.
 
-assert.rejects(()=>batch.query())
-assert.rejects(()=>batch.upload())
-assert.rejects(()=>batch.uploadMany())
-assert.rejects(()=>batch.sendMany())
-assert.rejects(()=>batch.send())
-assert.rejects(()=>batch.getBalance())
-assert.throws(()=>batch.height)
-assert.throws(()=>batch.nextBlock)
-assert.throws(()=>batch.balance)
-```
+Conceptually, you can view a batch as a kind of agent that does
+not execute transactions immediately - it collects them, and waits
+for the **batch.broadcast()** method.
+
+The other difference between a batch and and agent is that you
+cannot query from a batch. This is to avoid confusion and invalid
+state. If you need to perform queries, use a regular agent before or after
+the batch.
+
+Batches can also be saved for manual signing of multisig
+transactions.
 
 To create and submit a batch in a single expression,
 you can use `batch.wrap(async (batch) => { ... })`:
 
-## Client
-
-Client objects are interfaces to programs deployed in a specific environment, i.e.
-**they represent smart contracts**. Once you know what methods your contract will support,
-you'll want to extend `Client` and implement handles to them there:
-
-By publishing a library of `Client` subclasses corresponding to your contracts,
-you can provide a robust API to users of your project, so that they can in turn
-integrate it into their systems.
+Examples:
 
 ```typescript
-import { Client } from '@fadroma/agent'
-class MyClient extends Client {
-  myMethod = (param) =>
-    this.execute({ my_method: { param } })
-  myQuery = (param) =>
-    this.query({ my_query: { param } }) }
-}
+// TODO
 ```
 
-### Constructing
+## Contract clients
+
+The **Client** class represents a handle to a smart contract deployed to a given chain.
+
+To provide a robust SDK to users of your project, simply publish a NPM package
+containing subclasses of **Client** that correspond to your contracts and invoke
+their methods.
 
 To operate a smart contract through a `Client`,
 you need an `agent`, an `address`, and a `codeHash`:
 
+Example:
+
 ```typescript
+import { Client } from '@fadroma/agent'
+
+class MyClient extends Client {
+
+  myMethod = (param) => this.execute({ my_method: { param } })
+
+  myQuery = (param) => this.query({ my_query: { param } }) }
+
+}
+
 let address  = Symbol('some-addr')
 let codeHash = Symbol('some-hash')
 let client: Client = new MyClient({ agent, address, codeHash })
@@ -353,70 +305,9 @@ let client: Client = new MyClient({ agent, address, codeHash })
 assert.equal(client.agent,    agent)
 assert.equal(client.address,  address)
 assert.equal(client.codeHash, codeHash)
-```
-
-Alternatively you can construct through `agent.getClient`:
-
-```typescript
 client = agent.getClient(MyClient, address, codeHash)
-```
-
-### Querying and transacting
-
-```typescript
 await client.execute({ my_method: {} })
 await client.query({ my_query: {} })
-```
-
-### Per-transaction fees
-
-You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
-property of your client class:
-
-```typescript
-const fee1 = new Fee('100000', 'uscrt')
-client.fees['my_method'] = fee1
-
-assert.deepEqual(client.getFee('my_method'), fee1)
-assert.deepEqual(client.getFee({'my_method':{'parameter':'value'}}), fee1)
-```
-
-You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
-This method works by returning a copy of `client` with fees overridden by the provided value.
-
-```typescript
-const fee2 = new Fee('200000', 'uscrt')
-
-assert.deepEqual(await client.withFee(fee2).getFee('my_method'), fee2)
-```
-
-### Metadata
-
-The original `Contract` object from which the contract
-was deployed can be found on the optional `meta` property of the `Client`.
-
-```typescript
-import { Contract } from '@hackbg/fadroma'
-assert.ok(client.meta instanceof Contract)
-```
-
-Fetching metadata:
-
-```typescript
-import { fetchCodeHash, fetchCodeId, fetchLabel } from '@fadroma/agent'
-
-client.address = 'someaddress' // FIXME
-assert.ok(client.codeHash = await fetchCodeHash(client, agent))
-//assert.ok(client.codeId   = await fetchCodeId(client, agent))
-assert.ok(client.label    = await fetchLabel(client, agent))
-
-assert.equal(client.codeHash, await fetchCodeHash(client, agent, client.codeHash))
-//assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))
-assert.equal(client.label,    await fetchLabel(client, agent, client.label))
-
-assert.rejects(fetchCodeHash(client, agent, 'unexpected'))
-assert.rejects(fetchCodeId(client, agent, 'unexpected'))
-assert.rejects(fetchLabel(client, agent, 'unexpected'))
 ```
 
 ### Client agent
@@ -452,9 +343,72 @@ client.execute({ my_method: {} })
 client.withAgent(agent2).execute({ my_method: {} })
 ```
 
----
+### Client metadata
+
+The original `Contract` object from which the contract
+was deployed can be found on the optional `meta` property of the `Client`.
 
 ```typescript
-import assert from 'node:assert'
-import './Agent.test.ts'
+import { Contract } from '@hackbg/fadroma'
+assert.ok(client.meta instanceof Contract)
+```
+
+Fetching metadata:
+
+```typescript
+import { fetchCodeHash, fetchCodeId, fetchLabel } from '@fadroma/agent'
+
+client.address = 'someaddress' // FIXME
+assert.ok(client.codeHash = await fetchCodeHash(client, agent))
+//assert.ok(client.codeId   = await fetchCodeId(client, agent))
+assert.ok(client.label    = await fetchLabel(client, agent))
+
+assert.equal(client.codeHash, await fetchCodeHash(client, agent, client.codeHash))
+//assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))
+assert.equal(client.label,    await fetchLabel(client, agent, client.label))
+
+assert.rejects(fetchCodeHash(client, agent, 'unexpected'))
+assert.rejects(fetchCodeId(client, agent, 'unexpected'))
+assert.rejects(fetchLabel(client, agent, 'unexpected'))
+
+import { assertCodeHash, codeHashOf } from '@fadroma/agent'
+
+assert.ok(assertCodeHash({ codeHash: 'code-hash-stub' }))
+assert.throws(()=>assertCodeHash({}))
+
+assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
+assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
+assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
+```
+
+The code ID is a unique identifier for compiled code uploaded to a chain.
+
+The code hash also uniquely identifies for the code that underpins a contract.
+However, unlike the code ID, which is opaque, the code hash corresponds to the
+actual content of the code. Uploading the same code multiple times will give
+you different code IDs, but the same code hash.
+
+## Gas fees
+
+Transacting creates load on the network, which incurs costs on node operators.
+Compensations for transactions are represented by the gas metric.
+
+You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
+property of your client class:
+
+```typescript
+const fee1 = new Fee('100000', 'uscrt')
+client.fees['my_method'] = fee1
+
+assert.deepEqual(client.getFee('my_method'), fee1)
+assert.deepEqual(client.getFee({'my_method':{'parameter':'value'}}), fee1)
+```
+
+You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
+This method works by returning a copy of `client` with fees overridden by the provided value.
+
+```typescript
+const fee2 = new Fee('200000', 'uscrt')
+
+assert.deepEqual(await client.withFee(fee2).getFee('my_method'), fee2)
 ```

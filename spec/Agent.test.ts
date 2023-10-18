@@ -1,15 +1,49 @@
-import { Chain, StubAgent as Agent, Batch, Error, Console } from '@fadroma/agent'
+import { StubChain as Chain, StubAgent as Agent, Batch, Error, Console } from '@fadroma/agent'
 import assert from 'node:assert'
 
 import testEntrypoint from './testSelector'
 export default testEntrypoint(import.meta.url, {
   'docs':    () => import('./Agent.spec.ts.md'),
+  'obtain':  testAgentObtain,
   'batch':   testAgentBatch,
   'errors':  testAgentErrors,
   'console': testAgentConsole,
 })
 
+export async function testAgentObtain () {
+  const chain = new Chain()
+  let agent: Agent = await chain.getAgent({ name: 'testing1', address: '...' })
+  assert.ok(agent instanceof Agent,    'an Agent was returned')
+  assert.ok(agent.address,             'agent has address')
+  assert.equal(agent.name, 'testing1', 'agent.name assigned')
+  assert.equal(agent.chain, chain,     'agent.chain assigned')
+}
+
 export async function testAgentBatch () {
+  //import { Chain, Agent, Batch } from '@fadroma/agent'
+  //chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
+  //agent = await chain.getAgent()
+  //let batch: Batch
+  //import { Client } from '@fadroma/agent'
+  //batch = new Batch(agent)
+
+  //assert(batch.getClient(Client, '') instanceof Client, 'Batch#getClient')
+  //assert.equal(await batch.execute({}), batch)
+  //assert.equal(batch.id, 1)
+  ////assert(await batch.instantiateMany({}, []))
+  ////assert(await batch.instantiateMany({}, [['label', 'init']]))
+  ////assert(await batch.instantiate({}, 'label', 'init'))
+  //assert.equal(await batch.checkHash(), 'code-hash-stub')
+
+  //assert.rejects(()=>batch.query())
+  //assert.rejects(()=>batch.upload())
+  //assert.rejects(()=>batch.uploadMany())
+  //assert.rejects(()=>batch.sendMany())
+  //assert.rejects(()=>batch.send())
+  //assert.rejects(()=>batch.getBalance())
+  //assert.throws(()=>batch.height)
+  //assert.throws(()=>batch.nextBlock)
+  //assert.throws(()=>batch.balance)
 
   let chain: Chain = Chain.mocknet()
   let agent: Agent = await chain.getAgent({ address: 'testing1agent0' })
@@ -87,7 +121,7 @@ export async function testAgentErrors () {
 
 export async function testAgentConsole () {
   // Make sure each log message can be created with no arguments:
-  const log = new Console()
+  const log = new Console('(test message)')
   for (const key of Object.keys(log)) {
     const method = log[key as keyof typeof log] as any
     if (typeof method==='function') try { method.bind(log)() } catch (e) { console.warn(e) }
