@@ -3,10 +3,10 @@ import { Config, Error, Console } from './scrt-base'
 import * as Mocknet from './scrt-mocknet'
 import {
   Agent, Contract, assertAddress, into, base64, bip39, bip39EN, bold,
-  Chain, Fee, Bundle, assertChain
+  Chain, Fee, Batch, assertChain
 } from '@fadroma/agent'
 import type {
-  AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BundleClass, Client,
+  AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BatchClass, Client,
   ExecOpts, ICoin, Message, Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label,
   Instantiated
 } from '@fadroma/agent'
@@ -25,7 +25,7 @@ class ScrtChain extends Chain {
 
   /** The SecretJS module used by this instance.
     * You can set this to a compatible version of the SecretJS module
-    * in order to use it instead of the one bundled with this package.
+    * in order to use it instead of the one batchd with this package.
     * This setting is per-chain:,all ScrtAgent instances
     * constructed by the configured Scrt instance's getAgent method
     * will use the non-default SecretJS module. */
@@ -176,8 +176,8 @@ class ScrtAgent extends Agent {
   log = new Console('ScrtAgent')
   /** Downcast chain property to Scrt only. */
   declare chain: ScrtChain
-  /** Bundle class used by this agent. */
-  Bundle: BundleClass<ScrtBundle> = ScrtAgent.Bundle
+  /** Batch class used by this agent. */
+  Batch: BatchClass<ScrtBatch> = ScrtAgent.Batch
   /** Whether to simulate each execution first to get a more accurate gas estimate. */
   simulateForGas: boolean = false
   /** Default fees for this agent. */
@@ -457,9 +457,9 @@ class ScrtAgent extends Agent {
   //instantiateMany (instances: AnyContract[]):
     //Promise<AnyContract[]>
   //async instantiateMany <C> (instances: C): Promise<C> {
-    //// instantiate multiple contracts in a bundle:
-    //const response = await this.bundle().wrap(async bundle=>{
-      //await bundle.instantiateMany(template, configs)
+    //// instantiate multiple contracts in a batch:
+    //const response = await this.batch().wrap(async batch=>{
+      //await batch.instantiateMany(template, configs)
     //})
     //// add code hashes to them:
     //for (const i in configs) {
@@ -537,7 +537,7 @@ class ScrtAgent extends Agent {
     return Object.assign(new Error(error), result)
   }
 
-  static Bundle: BundleClass<ScrtBundle> // populated in index
+  static Batch: BatchClass<ScrtBatch> // populated in index
 
 }
 
@@ -600,11 +600,11 @@ function setEncryptionUtils (agent: ScrtAgent, value: SecretJS.EncryptionUtils|u
   }
 }
 
-export interface ScrtBundleClass <B extends ScrtBundle> {
+export interface ScrtBatchClass <B extends ScrtBatch> {
   new (agent: ScrtAgent): B
 }
 
-export interface ScrtBundleResult {
+export interface ScrtBatchResult {
   sender?:   Address
   tx:        TxHash
   type:      'wasm/MsgInstantiateContract'|'wasm/MsgExecuteContract'
@@ -616,32 +616,32 @@ export interface ScrtBundleResult {
 }
 
 /** Base class for transaction-bundling Agent for both Secret Network implementations. */
-class ScrtBundle extends Bundle {
+class ScrtBatch extends Batch {
 
-  static bundleCounter: number = 0
+  static batchCounter: number = 0
 
-  /** The agent which will sign and/or broadcast the bundle. */
+  /** The agent which will sign and/or broadcast the batch. */
   declare agent: ScrtAgent
 
-  constructor (agent: ScrtAgent, callback?: (bundle: ScrtBundle)=>unknown) {
-    super(agent, callback as (bundle: Bundle)=>unknown)
+  constructor (agent: ScrtAgent, callback?: (batch: ScrtBatch)=>unknown) {
+    super(agent, callback as (batch: Batch)=>unknown)
     // Optional: override SecretJS implementation
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
 
   /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
-    * unsigned transaction bundle; don't execute it, but save it in
+    * unsigned transaction batch; don't execute it, but save it in
     * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
   async save (name?: string) {
     await super.save(name)
-    // Number of bundle, just for identification in console
-    const N = ++ScrtBundle.bundleCounter
+    // Number of batch, just for identification in console
+    const N = ++ScrtBatch.batchCounter
     name ??= name || `TX.${N}.${+new Date()}`
     // Get signer's account number and sequence via the canonical API
     const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
-    // Print the body of the bundle
-    this.log.bundleMessages(this.msgs, N)
-    // The base Bundle class stores messages as (immediately resolved) promises
+    // Print the body of the batch
+    this.log.batchMessages(this.msgs, N)
+    // The base Batch class stores messages as (immediately resolved) promises
     const messages = await Promise.all(this.msgs.map(({init, exec})=>{
       // Encrypt init message
       if (init) return this.encryptInit(init)
@@ -649,12 +649,12 @@ class ScrtBundle extends Bundle {
       if (exec) return this.encryptExec(exec)
       // Anything in the messages array that does not have init or exec key is ignored
     }))
-    // Print the body of the bundle
-    this.log.bundleMessagesEncrypted(messages, N)
+    // Print the body of the batch
+    this.log.batchMessagesEncrypted(messages, N)
     // Compose the plaintext
     const unsigned = this.composeUnsignedTx(messages, name)
     // Output signing instructions to the console
-    new Console(this.log.label).bundleSigningCommand(
+    new Console(this.log.label).batchSigningCommand(
       String(Math.floor(+ new Date()/1000)),
       this.agent.address!, assertChain(this.agent).id,
       accountNumber, sequence, unsigned
@@ -706,11 +706,11 @@ class ScrtBundle extends Bundle {
     return { auth_info, signatures, body }
   }
 
-  async submit (memo = ""): Promise<ScrtBundleResult[]> {
+  async submit (memo = ""): Promise<ScrtBatchResult[]> {
     await super.submit(memo)
     const _SecretJS = (this.agent?.chain as ScrtChain).SecretJS || SecretJS
     const chainId = assertChain(this).id
-    const results: ScrtBundleResult[] = []
+    const results: ScrtBatchResult[] = []
     const msgs  = this.conformedMsgs
     const limit = Number(ScrtChain.defaultFees.exec?.amount[0].amount) || undefined
     const gas   = msgs.length * (limit || 0)
@@ -719,12 +719,12 @@ class ScrtBundle extends Bundle {
       await agent.ready
       const txResult = await agent.api!.tx.broadcast(msgs as any, { gasLimit: gas })
       if (txResult.code !== 0) {
-        const error = `(in bundle): gRPC error ${txResult.code}: ${txResult.rawLog}`
+        const error = `(in batch): gRPC error ${txResult.code}: ${txResult.rawLog}`
         throw Object.assign(new Error(error), txResult)
       }
       for (const i in msgs) {
         const msg = msgs[i]
-        const result: Partial<ScrtBundleResult> = {}
+        const result: Partial<ScrtBatchResult> = {}
         result.sender  = this.address
         result.tx      = txResult.transactionHash
         result.chainId = chainId
@@ -743,11 +743,11 @@ class ScrtBundle extends Bundle {
           result.type    = 'wasm/MsgExecuteContract'
           result.address = msg.contractAddress
         }
-        results[Number(i)] = result as ScrtBundleResult
+        results[Number(i)] = result as ScrtBatchResult
       }
     } catch (err) {
       new Console(this.log.label)
-        .submittingBundleFailed(err as Error)
+        .submittingBatchFailed(err as Error)
       throw err
     }
     return results
@@ -784,10 +784,10 @@ class ScrtBundle extends Bundle {
 
 }
 
-Object.assign(ScrtChain, { SecretJS, Agent: Object.assign(ScrtAgent, { Bundle: ScrtBundle }) })
+Object.assign(ScrtChain, { SecretJS, Agent: Object.assign(ScrtAgent, { Batch: ScrtBatch }) })
 
 export {
   ScrtChain as Chain,
   ScrtAgent as Agent,
-  ScrtBundle as Bundle,
+  ScrtBatch as Batch,
 }

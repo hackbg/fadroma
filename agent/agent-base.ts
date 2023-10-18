@@ -133,7 +133,7 @@ class AgentConsole extends Console {
     this.label = label
   }
 
-  emptyBundle = () => this.warn('tried to submit bundle with no messages')
+  emptyBatch = () => this.warn('Tried to submit batch with no messages')
 
   devnetIdOverride = (a: any, b: any) =>
     this.warn(`node.chainId "${a}" overrides chain.id "${b}"`)
@@ -159,13 +159,13 @@ class AgentConsole extends Console {
   confirmCodeHash = (address: string, codeHash: string) =>
     this.info(`confirmed code hash of ${address}: ${codeHash}`)
 
-  bundleMessages = (msgs: any, N: number) => {
-    this.info(`Messages in bundle`, `#${N}:`)
+  batchMessages = (msgs: any, N: number) => {
+    this.info(`Messages in batch`, `#${N}:`)
     for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
   }
 
-  bundleMessagesEncrypted = (msgs: any, N: number) => {
-    this.info(`Encrypted messages in bundle`, `#${N}:`)
+  batchMessagesEncrypted = (msgs: any, N: number) => {
+    this.info(`Encrypted messages in batch`, `#${N}:`)
     for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
   }
 

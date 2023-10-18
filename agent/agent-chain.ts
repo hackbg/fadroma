@@ -283,7 +283,7 @@ export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): 
 
 /** A constructor for an Agent subclass. */
 export interface AgentClass<A extends Agent> extends Class<A, ConstructorParameters<typeof Agent>>{
-  Bundle: BundleClass<Bundle> // static
+  Batch: BatchClass<Batch> // static
 }
 
 /** By authenticating to a network you obtain an Agent,
@@ -308,18 +308,18 @@ export abstract class Agent {
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:     AgentFees
 
-  /** The Bundle subclass to use. */
-  Bundle:    BundleClass<Bundle> = (this.constructor as AgentClass<typeof this>).Bundle
+  /** The Batch subclass to use. */
+  Batch:     BatchClass<Batch> = (this.constructor as AgentClass<typeof this>).Batch
 
-  /** The default Bundle class used by this Agent. */
-  static Bundle: BundleClass<Bundle> // populated below
+  /** The default Batch class used by this Agent. */
+  static Batch: BatchClass<Batch> // populated below
 
   constructor (options: Partial<Agent> = {}) {
     this.chain   = options.chain ?? this.chain
     this.name    = options.name  ?? this.name
     this.fees    = options.fees  ?? this.fees
     this.address = options.address  ?? this.address
-    hide(this, 'chain', 'address', 'log', 'Bundle')
+    hide(this, 'chain', 'address', 'log', 'Batch')
     prop(this, 'mnemonic', options.mnemonic)
   }
 
@@ -410,12 +410,12 @@ export abstract class Agent {
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
     *   AnyContract with no `address` populated yet.
-    *   This will be populated after executing the bundle. */
+    *   This will be populated after executing the batch. */
   abstract instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated>
 
   /** Create multiple smart contracts from a Template (providing code id)
     * and a list or map of label/initmsg pairs.
-    * Uses this agent's Bundle class to instantiate them in a single transaction.
+    * Uses this agent's Batch class to instantiate them in a single transaction.
     * @example
     *   await agent.instantiateMany(template.instances({
     *     One: { label, initMsg },
@@ -430,8 +430,8 @@ export abstract class Agent {
     *   depending on what is passed as inputs. */
   async instantiateMany <C extends Many<AnyContract>> (instances: C): Promise<C> {
     // Returns an array of TX results.
-    const bundle = this.bundle((bundle: any)=>bundle.instantiateMany(instances))
-    const response = await bundle.run()
+    const batch = this.batch((batch: any)=>batch.instantiateMany(instances))
+    const response = await batch.run()
     // Populate instances with resulting addresses
     for (const instance of Object.values(instances)) {
       if (instance.address) continue
@@ -465,11 +465,11 @@ export abstract class Agent {
     return assertChain(this).query(contract, msg)
   }
 
-  /** Execute a transaction bundle.
-    * @returns Bundle if called with no arguments
-    * @returns Promise<any[]> if called with Bundle#wrap args */
-  bundle <B extends Bundle> (cb?: BundleCallback<B>): B {
-    return new this.Bundle(this, cb as BundleCallback<Bundle>) as unknown as B
+  /** Execute a transaction batch.
+    * @returns Batch if called with no arguments
+    * @returns Promise<any[]> if called with Batch#wrap args */
+  batch <B extends Batch> (cb?: BatchCallback<B>): B {
+    return new this.Batch(this, cb as BatchCallback<Batch>) as unknown as B
   }
 
 }
@@ -526,29 +526,29 @@ export function assertAgent <A extends Agent> (thing: { agent?: A|null } = {}): 
   return thing.agent
 }
 
-/** A constructor for a Bundle subclass. */
-export interface BundleClass<B extends Bundle> extends Class<B, ConstructorParameters<typeof Bundle>>{}
+/** A constructor for a Batch subclass. */
+export interface BatchClass<B extends Batch> extends Class<B, ConstructorParameters<typeof Batch>>{}
 
-/** Bundle is an alternate executor that collects collects messages to broadcast
+/** Batch is an alternate executor that collects collects messages to broadcast
   * as a single transaction in order to execute them simultaneously. For that, it
   * uses the API of its parent Agent. You can use it in scripts with:
-  *   await agent.bundle().wrap(async bundle=>{ client.as(bundle).exec(...) })
+  *   await agent.batch().wrap(async batch=>{ client.as(batch).exec(...) })
   * */
-export abstract class Bundle implements Agent {
-  /** Messages in this bundle, unencrypted. */
+export abstract class Batch implements Agent {
+  /** Messages in this batch, unencrypted. */
   msgs: any[] = []
   /** Next message id. */
   id = 0
-  /** Nested bundles are flattened, this counts the depth. */
+  /** Nested batches are flattened, this counts the depth. */
   depth = 0
 
   constructor (
     /** The agent that will execute the batched transaction. */
     public agent: Agent,
-    /** Evaluating this defines the contents of the bundle. */
-    public callback?: (bundle: Bundle)=>unknown
+    /** Evaluating this defines the contents of the batch. */
+    public callback?: (batch: Batch)=>unknown
   ) {
-    if (!agent) throw new Error.Missing.Agent('for bundle')
+    if (!agent) throw new Error.Missing.Agent('for batch')
   }
 
   get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
@@ -573,20 +573,20 @@ export abstract class Bundle implements Agent {
 
   get getClient () { return this.agent.getClient.bind(this) }
 
-  /** Add a message to the bundle. */
+  /** Add a message to the batch. */
   add (msg: Message) {
     const id = this.id++
     this.msgs[id] = msg
     return id
   }
 
-  /** Either submit or save the bundle. */
+  /** Either submit or save the batch. */
   async run (opts: ExecOpts|string = "", save: boolean = false): Promise<any> {
     this.log(save ? 'Saving' : 'Submitting')
     if (typeof opts === 'string') opts = { memo: opts }
     const { memo = '' } = opts ?? {}
     if (this.depth > 0) {
-      this.log.warn('Unnesting bundle. Depth:', --this.depth)
+      this.log.warn('Unnesting batch. Depth:', --this.depth)
       this.depth--
       return null as any // result ignored
     } else if (save) {
@@ -596,9 +596,9 @@ export abstract class Bundle implements Agent {
     }
   }
 
-  /** Broadcast a bundle to the chain. */
+  /** Broadcast a batch to the chain. */
   async submit (memo?: string): Promise<unknown> {
-    this.log.warn('Bundle#submit: this function is stub; use a subclass of Bundle')
+    this.log.warn('Batch#submit: this function is stub; use a subclass of Batch')
     if (memo) this.log.info('Memo:', memo)
     await this.agent.ready
     if (this.callback) await Promise.resolve(this.callback(this))
@@ -606,9 +606,9 @@ export abstract class Bundle implements Agent {
     return this.msgs.map(()=>({}))
   }
 
-  /** Save a bundle for manual broadcast. */
+  /** Save a batch for manual broadcast. */
   async save (name?: string): Promise<unknown> {
-    this.log.warn('Bundle#save: this function is stub; use a subclass of Bundle')
+    this.log.warn('Batch#save: this function is stub; use a subclass of Batch')
     if (name) this.log.info('Name:', name)
     await this.agent.ready
     if (this.callback) await Promise.resolve(this.callback(this))
@@ -616,16 +616,16 @@ export abstract class Bundle implements Agent {
     return this.msgs.map(()=>({}))
   }
 
-  /** Throws if the bundle is invalid. */
+  /** Throws if the batch is invalid. */
   assertMessages (): any[] {
     if (this.msgs.length < 1) {
-      this.log.emptyBundle()
-      throw new Error('Bundle contained no messages.')
+      this.log.emptyBatch()
+      throw new Error('Batch contained no messages.')
     }
     return this.msgs
   }
 
-  /** Add an init message to the bundle.
+  /** Add an init message to the batch.
     * @example
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
@@ -640,16 +640,16 @@ export abstract class Bundle implements Agent {
     this.log('added instantiate message')
     return {
       chainId:  this.agent.chain!.id,
-      address:  '(bundle not submitted)',
+      address:  '(batch not submitted)',
       codeHash: codeHash!,
       label:    label!,
       initBy:   this.address,
     }
   }
-  /** Add multiple init messages to the bundle.
+  /** Add multiple init messages to the batch.
     * @example
-    *   await agent.bundle().wrap(async bundle=>{
-    *     await bundle.instantiateMany(template.instances({
+    *   await agent.batch().wrap(async batch=>{
+    *     await batch.instantiateMany(template.instances({
     *       One: { label, initMsg },
     *       Two: { label, initMsg },
     *     }))
@@ -668,7 +668,7 @@ export abstract class Bundle implements Agent {
     }))
     return outputs
   }
-  /** Add an exec message to the bundle. */
+  /** Add an exec message to the batch. */
   async execute (
     { address, codeHash }: Partial<Client>,
     msg: Message,
@@ -678,100 +678,92 @@ export abstract class Bundle implements Agent {
     this.log(`added execute message`)
     return this
   }
-  /** Queries are disallowed in the middle of a bundle because
-    * even though the bundle API is structured as multiple function calls,
-    * the bundle is ultimately submitted as a single transaction and
+  /** Queries are disallowed in the middle of a batch because
+    * even though the batch API is structured as multiple function calls,
+    * the batch is ultimately submitted as a single transaction and
     * it doesn't make sense to query state in the middle of that. */
   async query <U> (contract: Client, msg: Message): Promise<never> {
     throw new Error.Invalid.Batching("query")
   }
-  /** Uploads are disallowed in the middle of a bundle because
+  /** Uploads are disallowed in the middle of a batch because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
-  /** Uploads are disallowed in the middle of a bundle because
+  /** Uploads are disallowed in the middle of a batch because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async uploadMany (uploadables: Uploadable[] = []): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
-  /** Disallowed in bundle - do it beforehand or afterwards. */
+  /** Disallowed in batch - do it beforehand or afterwards. */
   get balance (): Promise<string> {
     throw new Error.Invalid.Batching("query balance")
   }
-  /** Disallowed in bundle - do it beforehand or afterwards. */
+  /** Disallowed in batch - do it beforehand or afterwards. */
   get height (): Promise<number> {
-    throw new Error.Invalid.Batching("query block height inside bundle")
+    throw new Error.Invalid.Batching("query block height inside batch")
   }
-  /** Disallowed in bundle - do it beforehand or afterwards. */
+  /** Disallowed in batch - do it beforehand or afterwards. */
   get nextBlock (): Promise<number> {
     throw new Error.Invalid.Batching("wait for next block")
   }
-  /** This doesnt change over time so it's allowed when building bundles. */
+  /** This doesnt change over time so it's allowed when building batches. */
   getCodeId (address: Address) {
     return this.agent.getCodeId(address)
   }
-  /** This doesnt change over time so it's allowed when building bundles. */
+  /** This doesnt change over time so it's allowed when building batches. */
   getLabel (address: Address) {
     return this.agent.getLabel(address)
   }
-  /** This doesnt change over time so it's allowed when building bundles. */
+  /** This doesnt change over time so it's allowed when building batches. */
   getHash (address: Address|number) {
     return this.agent.getHash(address)
   }
-  /** This doesnt change over time so it's allowed when building bundles. */
+  /** This doesnt change over time so it's allowed when building batches. */
   checkHash (address: Address, codeHash?: CodeHash) {
     return this.agent.checkHash(address, codeHash)
   }
-  /** Disallowed in bundle - do it beforehand or afterwards. */
+  /** Disallowed in batch - do it beforehand or afterwards. */
   async getBalance (denom: string): Promise<string> {
     throw new Error.Invalid.Batching("query balance")
   }
-  /** Disallowed in bundle - do it beforehand or afterwards. */
+  /** Disallowed in batch - do it beforehand or afterwards. */
   async send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
     throw new Error.Invalid.Batching("send")
   }
-  /** Disallowed in bundle - do it beforehand or afterwards. */
+  /** Disallowed in batch - do it beforehand or afterwards. */
   async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
     throw new Error.Invalid.Batching("send")
   }
-  /** Nested bundles are "flattened": trying to create a bundle
-    * from inside a bundle returns the same bundle. */
-  bundle <B extends Bundle> (cb?: BundleCallback<B>): B {
-    if (cb) this.log.warn('Nested bundle callback ignored.')
-    this.log.warn('Nest bundles with care. Depth:', ++this.depth)
+  /** Nested batches are "flattened": trying to create a batch
+    * from inside a batch returns the same batch. */
+  batch <B extends Batch> (cb?: BatchCallback<B>): B {
+    if (cb) this.log.warn('Nested batch callback ignored.')
+    this.log.warn('Nest batches with care. Depth:', ++this.depth)
     return this as unknown as B
   }
-  /** Bundle class to use when creating a bundle inside a bundle.
+  /** Batch class to use when creating a batch inside a batch.
     * @default self */
-  Bundle = this.constructor as { new (agent: Agent): Bundle }
+  Batch = this.constructor as { new (agent: Agent): Batch }
 }
 
-/** Function passed to Bundle#wrap */
-export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
+/** Function passed to Batch#wrap */
+export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>
 
 // The `any` types here are required because in this case
-// Chain, Agent, and Bundle are abstract classes and TS complains.
+// Chain, Agent, and Batch are abstract classes and TS complains.
 // When implementing chain support, you don't need to use `as any`.
-bindChainSupport(
-  Chain,
-  Agent,
-  Bundle
-)
-bindChainSupport(
-  StubChain,
-  StubAgent,
-  Bundle
-)
+bindChainSupport(Chain, Agent, Batch)
+bindChainSupport(StubChain, StubAgent, Batch)
 
-/** Set the `Chain.Agent` and `Agent.Bundle` static properties.
+/** Set the `Chain.Agent` and `Agent.Batch` static properties.
   * This is how a custom chain implementation knows how to use
-  * the corresponding agent implementation, and likewise for bundles. */
-export function bindChainSupport (Chain: Function, Agent: Function, Bundle: Function) {
-  Object.assign(Chain, { Agent: Object.assign(Agent, { Bundle }) })
-  return { Chain, Agent, Bundle }
+  * the corresponding agent implementation, and likewise for batches. */
+export function bindChainSupport (Chain: Function, Agent: Function, Batch: Function) {
+  Object.assign(Chain, { Agent: Object.assign(Agent, { Batch }) })
+  return { Chain, Agent, Batch }
 }
 
 /** Generate a random chain ID with a given prefix.

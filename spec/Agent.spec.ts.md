@@ -262,63 +262,63 @@ Broadcasting multiple execute calls as a single transaction message
 (transaction bundling):
 
 ```typescript
-const results = await agent.bundle(async bundle=>{
-  await bundle.execute(c1, { del: { key: '1' } })
-  await bundle.execute(c2, { set: { key: '3', value: '4' } })
+const results = await agent.batch(async batch=>{
+  await batch.execute(c1, { del: { key: '1' } })
+  await batch.execute(c2, { set: { key: '3', value: '4' } })
 }).run()
 ```
 
 #### Batching transactions
 
 To submit multiple messages as a single transaction, you can
-use the `Bundle` class through `Agent#bundle`.
+use the `Batch` class through `Agent#batch`.
 
-  * A `Bundle` is a special kind of `Agent` that
+  * A `Batch` is a special kind of `Agent` that
     does not broadcast messages immediately.
-  * Instead, messages are collected inside the bundle until
+  * Instead, messages are collected inside the batch until
     the caller explicitly submits them.
-  * Bundles can also be saved for manual signing of multisig
+  * Batches can also be saved for manual signing of multisig
     transactions
 
-A `Bundle` is designed to serve as a stand-in for its corresponding
+A `Batch` is designed to serve as a stand-in for its corresponding
 `Agent`, and therefore implements the same API methods.
-  * However, some operations don't make sense in the middle of a Bundle.
+  * However, some operations don't make sense in the middle of a Batch.
   * Most importantly, querying any state from the chain
-    must be done either before or after the bundle.
-  * Trying to query state from a `Bundle` agent will fail.
+    must be done either before or after the batch.
+  * Trying to query state from a `Batch` agent will fail.
 
 ```typescript
-import { Chain, Agent, Bundle } from '@fadroma/agent'
+import { Chain, Agent, Batch } from '@fadroma/agent'
 chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
 agent = await chain.getAgent()
-let bundle: Bundle
+let batch: Batch
 ```
 
 ```typescript
 import { Client } from '@fadroma/agent'
-bundle = new Bundle(agent)
+batch = new Batch(agent)
 
-assert(bundle.getClient(Client, '') instanceof Client, 'Bundle#getClient')
-assert.equal(await bundle.execute({}), bundle)
-assert.equal(bundle.id, 1)
-//assert(await bundle.instantiateMany({}, []))
-//assert(await bundle.instantiateMany({}, [['label', 'init']]))
-//assert(await bundle.instantiate({}, 'label', 'init'))
-assert.equal(await bundle.checkHash(), 'code-hash-stub')
+assert(batch.getClient(Client, '') instanceof Client, 'Batch#getClient')
+assert.equal(await batch.execute({}), batch)
+assert.equal(batch.id, 1)
+//assert(await batch.instantiateMany({}, []))
+//assert(await batch.instantiateMany({}, [['label', 'init']]))
+//assert(await batch.instantiate({}, 'label', 'init'))
+assert.equal(await batch.checkHash(), 'code-hash-stub')
 
-assert.rejects(()=>bundle.query())
-assert.rejects(()=>bundle.upload())
-assert.rejects(()=>bundle.uploadMany())
-assert.rejects(()=>bundle.sendMany())
-assert.rejects(()=>bundle.send())
-assert.rejects(()=>bundle.getBalance())
-assert.throws(()=>bundle.height)
-assert.throws(()=>bundle.nextBlock)
-assert.throws(()=>bundle.balance)
+assert.rejects(()=>batch.query())
+assert.rejects(()=>batch.upload())
+assert.rejects(()=>batch.uploadMany())
+assert.rejects(()=>batch.sendMany())
+assert.rejects(()=>batch.send())
+assert.rejects(()=>batch.getBalance())
+assert.throws(()=>batch.height)
+assert.throws(()=>batch.nextBlock)
+assert.throws(()=>batch.balance)
 ```
 
-To create and submit a bundle in a single expression,
-you can use `bundle.wrap(async (bundle) => { ... })`:
+To create and submit a batch in a single expression,
+you can use `batch.wrap(async (batch) => { ... })`:
 
 ## Client
 

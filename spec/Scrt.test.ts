@@ -17,7 +17,7 @@ const mnemonic = 'define abandon palace resource estate elevator relief stock or
 
   await testScrtFees()
 
-  await testScrtBundles()
+  await testScrtBatches()
 
   await testScrtPermits()
 
@@ -72,9 +72,9 @@ async function testScrtFees () {
 
 }
 
-async function testScrtBundles () {
+async function testScrtBatches () {
 
-  const someBundle = () => new Scrt.Agent({
+  const someBatch = () => new Scrt.Agent({
     chain: {
       SecretJS,
       getApi: () => ({
@@ -90,24 +90,24 @@ async function testScrtBundles () {
         }
       })
     } as any
-  }).bundle(async (bundle)=>{
-    assert(bundle instanceof Scrt.Bundle)
-    await bundle.instantiate({ codeId: 'id', codeHash: 'hash', msg: {} } as any)
-    await bundle.execute({ address: 'addr', codeHash: 'hash', msg: {} } as any, {})
+  }).batch(async (batch)=>{
+    assert(batch instanceof Scrt.Batch)
+    await batch.instantiate({ codeId: 'id', codeHash: 'hash', msg: {} } as any)
+    await batch.execute({ address: 'addr', codeHash: 'hash', msg: {} } as any, {})
   })
 
   assert.ok(
-    await someBundle().save('test'),
-    [ '"saving" a bundle outputs it to the console in the format ',
+    await someBatch().save('test'),
+    [ '"saving" a batch outputs it to the console in the format ',
     , 'of a multisig message' ].join()
   )
   assert.ok(
-    await someBundle().submit('test'),
-    'submitting a bundle',
+    await someBatch().submit('test'),
+    'submitting a batch',
   )
   assert(
-    someBundle() instanceof Scrt.Bundle,
-    'ScrtBundle is returned'
+    someBatch() instanceof Scrt.Batch,
+    'ScrtBatch is returned'
   )
 
 }
@@ -143,6 +143,6 @@ async function testScrtConsole () {
     .noMemos()
     .ignoringMnemonic()
     .defaultGas([])
-    .submittingBundleFailed(new Error())
+    .submittingBatchFailed(new Error())
 
 }

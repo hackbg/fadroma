@@ -19,13 +19,13 @@
 **/
 
 import type {
-  AgentClass, Uint128, BundleClass, ExecOpts, Uploadable, Uploaded,
+  AgentClass, Uint128, BatchClass, ExecOpts, Uploadable, Uploaded,
   Address, CodeHash, ChainId, CodeId, Message, Label, AnyContract, Instantiated,
 } from '@fadroma/agent'
 import {
   Client, randomBech32, sha256, base16, bech32,
   brailleDump, Error as BaseError, Console as BaseConsole, bold, colors, into,
-  Chain, ChainMode, Agent, Bundle, assertChain,
+  Chain, ChainMode, Agent, Batch, assertChain,
   Contract
 } from '@fadroma/agent'
 
@@ -292,17 +292,17 @@ class MocknetAgent extends Agent {
     return Promise.resolve()
   }
 
-  /** Message bundle that warns about unsupported messages. */
-  static Bundle: BundleClass<MocknetBundle>
+  /** Message batch that warns about unsupported messages. */
+  static Batch: BatchClass<MocknetBatch>
 }
 
-class MocknetBundle extends Bundle {
+class MocknetBatch extends Batch {
   declare agent: MocknetAgent
   get log () {
-    return this.agent.log.sub('(bundle)')
+    return this.agent.log.sub('(batch)')
   }
   async submit (memo = "") {
-    this.log.info('Submitting mocknet bundle...')
+    this.log.info('Submitting mocknet batch...')
     const results = []
     for (const { init, instantiate = init, exec, execute = exec } of this.msgs) {
       if (!!init) {
@@ -314,27 +314,27 @@ class MocknetBundle extends Bundle {
         const { sender, contract: address, codeHash, msg, funds: send } = exec
         results.push(await this.agent.execute({ address, codeHash }, msg, { send }))
       } else {
-        this.log.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
+        this.log.warn('MocknetBatch#submit: found unknown message in batch, ignoring')
         results.push(null)
       }
     }
     return results
   }
   save (name: string): Promise<unknown> {
-    throw new Error('MocknetBundle#save: not implemented')
+    throw new Error('MocknetBatch#save: not implemented')
   }
 }
 
 Object.assign(Mocknet, {
   Agent: Object.assign(MocknetAgent, {
-    Bundle: MocknetBundle
+    Batch: MocknetBatch
   })
 })
 
 export {
   Mocknet       as Chain,
   MocknetAgent  as Agent,
-  MocknetBundle as Bundle
+  MocknetBatch as Batch
 }
 
 export type CW = '0.x' | '1.x'

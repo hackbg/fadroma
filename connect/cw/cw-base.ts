@@ -2,7 +2,7 @@ import { Config } from '@hackbg/conf'
 
 import {
   Chain, assertChain, bindChainSupport,
-  Agent, Bundle,
+  Agent, Batch,
   ICoin,
   Console, Error, bold,
   bip32, bip39, bip39EN, bech32, base64,
@@ -379,8 +379,8 @@ function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
   }
 }
 
-/** Generic transaction bundle for CosmWasm-enabled chains. */
-class CWBundle extends Bundle {}
+/** Transaction batch for CosmWasm-enabled chains. */
+class CWBatch extends Batch {}
 
 export {
   CWConfig  as Config,
@@ -388,7 +388,7 @@ export {
   CWConsole as Console,
   CWChain   as Chain,
   CWAgent   as Agent,
-  CWBundle  as Bundle
+  CWBatch   as Batch
 }
 
-bindChainSupport(CWChain, CWAgent, CWBundle)
+bindChainSupport(CWChain, CWAgent, CWBatch)
