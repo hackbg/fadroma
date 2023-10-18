@@ -29,10 +29,13 @@ import { Error, Console, into, prop, hideProperties as hide, randomBytes } from 
 export enum ChainMode {
   Mainnet = 'Mainnet', Testnet = 'Testnet', Devnet = 'Devnet', Mocknet = 'Mocknet'
 }
+
 /** The unique ID of a chain. */
 export type ChainId = string
+
 /** A collection of functions that return Chain instances. */
 export type ChainRegistry = Record<string, (config: any)=>Chain>
+
 /** Options for connecting to a chain. */
 export interface DevnetHandle {
   url: URL
@@ -43,24 +46,102 @@ export interface DevnetHandle {
   getAccount: (name: string) => Promise<Partial<Agent>>
   assertPresence: () => Promise<void>
 }
+
 /** A constructor for a Chain subclass. */
 export interface ChainClass<C> extends Class<C, ConstructorParameters<typeof Chain>> {
   Agent: AgentClass<Agent> // static
 }
-/** Represents a particular chain. */
+
+/** Represents a particular chain, identified by chain ID and connected by URL.
+  * The chain can be in one of several modes (mainnet or other), can optionally
+  * hold a reference to the managed devnet container, can query state, and can
+  * construct authorized agents. */
 export abstract class Chain {
+
+  constructor ({ id, url, mode, devnet }: Partial<Chain> = {}) {
+
+    if (devnet) {
+      Object.defineProperties(this, {
+        id: {
+          enumerable: true,
+          configurable: true,
+          get: () => devnet.chainId,
+          set: () => { throw new Error("can't override chain id of devnet") }
+        },
+        url: {
+          enumerable: true,
+          configurable: true,
+          get: () => devnet.url.toString(),
+          set: () => { throw new Error("can't override url of devnet") }
+        },
+        'mode': {
+          enumerable: true,
+          configurable: true,
+          get: () => Chain.Mode.Devnet,
+          set: () => { throw new Error("chain.mode: can't override") }
+        },
+        'devnet': {
+          enumerable: true,
+          configurable: true,
+          get: () => devnet,
+          set: () => { throw new Error("chain.devnet: can't override") }
+        },
+        'stopped': {
+          enumerable: true,
+          configurable: true,
+          get: () => !this.devnet!.running,
+          set: () => { throw new Error("chain.stopped: can't override") }
+        }
+      })
+      if (id && id !== devnet.chainId) {
+        this.log.warn('chain.id: ignoring override (devnet)')
+      }
+      if (url && url.toString() !== devnet.url.toString()) {
+        this.log.warn('chain.url: ignoring override (devnet)')
+      }
+      if (mode && mode !== Chain.Mode.Devnet) {
+        this.log.warn('chain.mode: ignoring override (devnet)')
+      }
+    } else {
+      if (id) {
+        Object.defineProperty(this, 'id', {
+          enumerable: true,
+          writable:   false,
+          value:      id
+        })
+      }
+      if (mode) {
+        Object.defineProperty(this, 'mode', {
+          enumerable: true,
+          writable:   false,
+          value:      mode
+        })
+      }
+      this.url = url ?? this.url
+    }
+
+    Object.defineProperty(this, 'log', {
+      enumerable: false,
+      writable: true,
+    })
+
+    Object.defineProperty(this.log, 'label', {
+      enumerable: true,
+      get: () => `${this.id} @ ${this.url}`
+    })
+
+    Object.defineProperty(this, 'Agent', {
+      enumerable: false,
+      writable: true
+    })
+
+  }
 
   /** Logger. */
   log = new Console('@fadroma/agent: Chain')
 
-  /** The unique chain id. */
-  id: ChainId
-
   /** The API URL to use. */
   url: string = ''
-
-  /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
-  mode: ChainMode
 
   /** If this is a devnet, this contains an interface to the devnet container. */
   devnet?: DevnetHandle
@@ -71,41 +152,15 @@ export abstract class Chain {
   /** The Agent subclass to use for interacting with this chain. */
   Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
 
-  constructor (options: Partial<Chain> = {}) {
-    if (!(this.id = options.id!)) throw new Error.Missing.ChainId()
-    this.log.label = this.id ?? `(no chain id)`
-    this.url  = options.url ?? this.url
-    this.mode = options.mode!
-    if (options.devnet) {
-      if (options.mode === Chain.Mode.Devnet) {
-        this.devnet = options.devnet
-        if (this.url !== String(this.devnet.url)) {
-          if (!!this.url) this.log.devnetUrlOverride(this.devnet.url, this.url)
-          this.url = String(this.devnet.url)
-        }
-        if (this.id !== this.devnet.chainId) {
-          if (!!this.url) this.log.devnetIdOverride(this.devnet.chainId, this.id)
-          this.id = this.devnet.chainId
-        }
-      } else {
-        this.log.devnetModeInvalid()
-      }
-    }
-    this.log.label = this.id ?? `(no chain id)` // again
-    if (this.devnet) {
-      this.log.label = `${this.log.label} @ ${this.devnet.url}`
-      Object.defineProperty(this, 'stopped', { get () { return !this.devnet.running } })
-    }
-    Object.defineProperties(this, {
-      'id':    { enumerable: false, writable: true },
-      'url':   { enumerable: false, writable: true },
-      'mode':  { enumerable: false, writable: true },
-      'log':   { enumerable: false, writable: true },
-      'Agent': { enumerable: false, writable: true },
-    })
-  }
-
+  /** Compact string tag for console representation. */
   get [Symbol.toStringTag]() { return `${this.mode}: ${this.id} @ ${this.url}` }
+
+  /** The unique chain id. */
+  get id (): ChainId { throw new Error("chain.id: not set") }
+  set id (id: string) { throw new Error("chain.id: can't override") } 
+
+  /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
+  get mode (): ChainMode { throw new Error('chain.mode: not set') }
 
   /** Whether this is a mainnet. */
   get isMainnet () { return this.mode === ChainMode.Mainnet }
@@ -120,10 +175,10 @@ export abstract class Chain {
   get isMocknet () { return this.mode === ChainMode.Mocknet }
 
   /** Whether this is a devnet or mocknet. */
-  get devMode   () { return this.isDevnet || this.isMocknet }
+  get devMode () { return this.isDevnet || this.isMocknet }
 
   /** Return self. */
-  get chain     () { return this }
+  get chain () { return this }
 
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
