@@ -2,7 +2,7 @@ import { Devnet, CW } from '@hackbg/fadroma'
 
 import testEntrypoint from './testSelector'
 
-testEntrypoint(import.meta.url, {
+export default testEntrypoint(import.meta.url, {
   'docs':   testCWDocs,
   'signer': testCWSigner
 })
