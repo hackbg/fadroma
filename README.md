@@ -12,6 +12,7 @@ Distributed application framework developed at [**Hack.bg**](https://hack.bg).
 |`@fadroma/agent`|[![](https://img.shields.io/npm/v/@fadroma/agent?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/agent)|[View docs](https://fadroma.tech/ts/modules/_fadroma_agent.html)|
 |`@fadroma/connect`|[![](https://img.shields.io/npm/v/@fadroma/connect?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)|[View docs](https://fadroma.tech/ts/modules/_fadroma_connect.html)|
 |`@fadroma/scrt`|[![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_scrt.html)|
+|`@fadroma/cw`|[![](https://img.shields.io/npm/v/@fadroma/cw?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_cw.html)|
 
 See [**https://fadroma.tech**](https://fadroma.tech) for overview or try the
 [**getting started guide**](https://fadroma.tech/guide.html).
