@@ -2,28 +2,22 @@ import assert from 'node:assert'
 import * as Scrt from '@fadroma/scrt'
 import { Agent, ChainId, Address } from '@fadroma/agent'
 
-import './Scrt.spec.ts.md'
-
 const SecretJS = (Scrt.SecretJS as any).default
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 let chain: any // for mocking
 let agent: Agent
-
 const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
 
-;(async () => {
-
-  await testScrtDevnet()
-
-  await testScrtFees()
-
-  await testScrtBatches()
-
-  await testScrtPermits()
-
-  await testScrtConsole()
-
-})()
+import testEntrypoint from './testSelector'
+export default testEntrypoint(import.meta.url, {
+  'docs':    () => import('./Scrt.spec.ts.md'),
+  'snip20':  () => import('./Snip20.spec.ts.md'),
+  'devnet':  testScrtDevnet,
+  'fees':    testScrtFees,
+  'batches': testScrtBatches,
+  'permits': testScrtPermits,
+  'console': testScrtConsole,
+})
 
 async function testScrtDevnet () {
 
