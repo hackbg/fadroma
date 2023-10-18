@@ -1,4 +1,4 @@
-import { Console, Error, Config, Chain, Agent, Bundle } from '../cw-base'
+import { Console, Error, Config, Chain, Agent, Batch } from '../cw-base'
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
@@ -203,11 +203,11 @@ function populateAgent <C extends Client> (
   return contracts
 }
 
-/** Transaction bundle for OKP4. */
-class OKP4Bundle extends Bundle {}
+/** Transaction batch for OKP4. */
+class OKP4Batch extends Batch {}
 
-bindChainSupport(OKP4Chain, OKP4Agent, OKP4Bundle)
-export { OKP4Config as Config, OKP4Chain as Chain, OKP4Agent as Agent, OKP4Bundle as Bundle }
+bindChainSupport(OKP4Chain, OKP4Agent, OKP4Batch)
+export { OKP4Config as Config, OKP4Chain as Chain, OKP4Agent as Agent, OKP4Batch as Batch }
 
 /** Connect to OKP4 testnet. */
 export const testnet = (...args: Parameters<typeof OKP4Chain.testnet>) => OKP4Chain.testnet(...args)

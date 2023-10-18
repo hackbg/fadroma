@@ -93,12 +93,12 @@ that would be 1 or 3 connector modules is an open-ended question.
 ## Implementing the Fadroma Agent API
 
 Having set up your connector package, you should now implement the
-`Chain`, `Agent`, and `Bundle` classes defined by `@fadroma/agent`:
+`Chain`, `Agent`, and `Batch` classes defined by `@fadroma/agent`:
 
 ```typescript
 // in connect/newchain/newchain.ts
 // (or e.g. connect/cw/cw-newchain.ts if using @cosmjs/stargate)
-import { Chain, Agent, Bundle, bindChainSupport } from '@fadroma/agent'
+import { Chain, Agent, Batch, bindChainSupport } from '@fadroma/agent'
 ```
 
 `Chain` should be a stateless representation for the whole chain
@@ -123,13 +123,13 @@ class NewAgent extends Agent {
 }
 ```
 
-`Bundle` may be implemented if client-side transaction batching
+`Batch` may be implemented if client-side transaction batching
 is to be supported. This is the basis for exporting things like
 multisig transactions to be manually signed and broadcast.
 
 ```typescript
 // in connect/newchain/newchain.ts etc.
-class NewBundle extends Bundle {
+class NewBatch extends Batch {
   // TODO add example
 }
 ```
@@ -141,7 +141,7 @@ This line must go after the class definitions:
 
 ```typescript
 // in connect/newchain/newchain.ts etc.
-bindChainSupport(NewChain, NewAgent, NewBundle)
+bindChainSupport(NewChain, NewAgent, NewBatch)
 ```
 
 And that's it! You can now transact, deploy, and use smart contracts on this chain.

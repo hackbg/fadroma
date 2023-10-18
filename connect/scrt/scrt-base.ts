@@ -54,7 +54,7 @@ class ScrtConsole extends Console {
     this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
     return this
   }
-  bundleSigningCommand = (
+  batchSigningCommand = (
     name: string, multisig: Address, chainId: ChainId, accountNumber: number, sequence: number,
     unsigned: any
   ) => {
@@ -62,21 +62,21 @@ class ScrtConsole extends Console {
     const string = JSON.stringify(unsigned)
     const txdata = shellescape([string])
     this.br()
-    this.log('Multisig bundle ready.')
-    this.log(`Run the following command to sign the bundle:
+    this.log('Multisig batch ready.')
+    this.log(`Run the following command to sign the batch:
 \nsecretcli tx sign /dev/stdin --output-document=${output} \\
 --offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${multisig} \\
 --chain-id=${chainId} --account-number=${accountNumber} --sequence=${sequence} \\
 <<< ${txdata}`)
     this.br()
-    this.log(`Bundle contents:`, JSON.stringify(unsigned, null, 2))
+    this.log(`Batch contents:`, JSON.stringify(unsigned, null, 2))
     this.br()
   }
-  submittingBundleFailed = ({ message }: Error) => {
+  submittingBatchFailed = ({ message }: Error) => {
     this.br()
-    this.error('submitting bundle failed:')
+    this.error('submitting batch failed:')
     this.error(bold(message))
-    this.warn('(decrypting bundle errors is not implemented)')
+    this.warn('(decrypting batch errors is not implemented)')
   }
 }
 
