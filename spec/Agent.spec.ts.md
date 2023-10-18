@@ -123,9 +123,10 @@ Examples:
 
 ### Agent identity
 
-The **agent.name** property... TODO
+The **agent.address** property is the on-chain address that uniquely identifies the agent.
 
-The **agent.address** property... TODO
+The **agent.name** property is a user-friendly name for an agent. On devnet, the name is
+also used to access the initial accounts that are created during devnet genesis.
 
 Instantiating multiple agents allows the same program to interact with the chain
 from multiple distinct identities.
@@ -139,8 +140,6 @@ Examples:
 ### Agents and block height
 
 TODO
-
-On Secret Network, this can be necessary for uploading multiple contracts... TODO
 
 Examples:
 
@@ -180,15 +179,17 @@ await agent.send('recipient-address', [
 
 ### Uploading and instantiating contracts
 
-The **agent.upload(...)** async method... TODO
+The **agent.upload(...)** uploads a contract binary to the chain.
 
-The **agent.uploadMany(...)** async method... TODO
+The **agent.instantiate(...)** async method takes a code ID and returns a contract
+instance.
 
-The **agent.instantiate(...)** async method... TODO
+The **agent.instantiateMany(...)** async method instantiates multiple contracts within
+the same transaction.
 
-The **agent.instantiateMany(...)** async method... TODO
-
-The **agent.batch(...)** method...
+On Secret Network, it's not possible to send multiple separate upload transactions
+within the same block. Therefore, when uploading multiple contracts, **agent.nextBlock**
+needs to be awaited between them. **agent.uploadMany(...)** does this automatically.
 
 Examples:
 
@@ -226,14 +227,9 @@ const [ c2, c3 ] = await agent.instantiateMany([
   { codeId: '2', label: 'unique2', initMsg: { arg: 'values' } },
   { codeId: '3', label: 'unique3', initMsg: { arg: 'values' } }
 ])
+```
 
-const result = await agent.execute(c1, { set: { key: '1', value: '2' } })
-assert.rejects(agent.execute(c1, { invalid: "tx" }))
-
-const results = await agent.batch(async batch=>{
-  await batch.execute(c1, { del: { key: '1' } })
-  await batch.execute(c2, { set: { key: '3', value: '4' } })
-}).run()
+```typescript
 ```
 
 ### Executing transactions and performing queries
@@ -247,23 +243,27 @@ Examples:
 ```typescript
 const response = await agent.query(c1, { get: { key: '1' } })
 assert.rejects(agent.query(c1, { invalid: "query" }))
+
+const result = await agent.execute(c1, { set: { key: '1', value: '2' } })
+assert.rejects(agent.execute(c1, { invalid: "tx" }))
 ```
 
 ### Batching transactions
 
 The **agent.batch(...)** method creates an instance of **Batch**.
 
-Conceptually, you can view a batch as a kind of agent that does
-not execute transactions immediately - it collects them, and waits
-for the **batch.broadcast()** method.
+Conceptually, you can view a batch as a kind of agent that does not execute transactions
+immediately - it collects them, and waits for the **batch.broadcast()** method. You can
+pass a batch anywhere you can pass an agent.
 
-The other difference between a batch and and agent is that you
-cannot query from a batch. This is to avoid confusion and invalid
-state. If you need to perform queries, use a regular agent before or after
-the batch.
+The main difference between a batch and and agent is that *you cannot query from a batch*.
+This is because a batch is an atomic action, and queries made inbetween individual transactions
+of a batch would return the state as it was before *all* the transactions. Therefore, to avoid
+confusion and outdated state, the query methods of the batch "agent" throw errors.
+If you need to perform queries, use a regular agent before or after the batch.
 
-Batches can also be saved for manual signing of multisig
-transactions.
+Instead of broadcasting, you can also export an unsigned batch, and pass it around manually
+as part of a multisig transaction.
 
 To create and submit a batch in a single expression,
 you can use `batch.wrap(async (batch) => { ... })`:
@@ -272,6 +272,10 @@ Examples:
 
 ```typescript
 // TODO
+const results = await agent.batch(async batch=>{
+  await batch.execute(c1, { del: { key: '1' } })
+  await batch.execute(c2, { set: { key: '3', value: '4' } })
+}).run()
 ```
 
 ## Contract clients
@@ -292,9 +296,13 @@ import { Client } from '@fadroma/agent'
 
 class MyClient extends Client {
 
-  myMethod = (param) => this.execute({ my_method: { param } })
+  myMethod = (param) => this.execute({
+    my_method: { param }
+  })
 
-  myQuery = (param) => this.query({ my_query: { param } }) }
+  myQuery = (param) => this.query({
+    my_query: { param }
+  })
 
 }
 
