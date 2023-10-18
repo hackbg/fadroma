@@ -1,9 +1,8 @@
-import { StubChain as Chain, StubAgent as Agent, Batch, Error, Console } from '@fadroma/agent'
+import { StubChain as Chain, StubAgent as Agent, Batch, Error, Console } from './agent'
 import assert from 'node:assert'
 
-import testEntrypoint from './testSelector'
+import { testEntrypoint, testSuite } from '@hackbg/ensuite'
 export default testEntrypoint(import.meta.url, {
-  'docs':    () => import('./Agent.spec.ts.md'),
   'obtain':  testAgentObtain,
   'batch':   testAgentBatch,
   'errors':  testAgentErrors,
@@ -69,7 +68,7 @@ export async function testAgentBatch () {
   //assert.throws(()=>batch.nextBlock)
   //assert.throws(()=>batch.balance)
 
-  let chain: Chain = Chain.mocknet()
+  let chain: Chain = new Chain({ id: 'stub' })
   let agent: Agent = await chain.getAgent({ address: 'testing1agent0' })
   let batch: Batch
 
@@ -151,3 +150,4 @@ export async function testAgentConsole () {
     if (typeof method==='function') try { method.bind(log)() } catch (e) { console.warn(e) }
   }
 }
+

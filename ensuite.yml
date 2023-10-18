@@ -1,6 +1,7 @@
 coverage:
   exclude:
     - "**/*.dist.*"
+    - "**/*.test.*"
     - "*.dist.*"
     - "*/coverage/**/*"
     - "build.impl.mjs"
