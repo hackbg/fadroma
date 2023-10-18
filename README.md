@@ -233,6 +233,101 @@ implementation uses the library [`@hackbg/dock`](https://www.npmjs.com/package/@
 to manage Docker images and containers. There is also experimental
 support for Podman.
 
+# Configuration
+
+|Env var|Default path|Description|
+|-|-|-|
+|`FADROMA_ROOT`        |current working directory |Root directory of project|
+|`FADROMA_PROJECT`     |`@/ops.ts`                |Project command entrypoint|
+|`FADROMA_BUILD_STATE` |`@/wasm`                  |Checksums of compiled contracts by version|
+|`FADROMA_UPLOAD_STATE`|`@/state/uploads.csv`     |Receipts of uploaded contracts|
+|`FADROMA_DEPLOY_STATE`|`@/state/deployments.csv` |Receipts of instantiated (deployed) contracts|
+
+|name|env var|description|
+|-|-|-|
+|**chainId**|`FADROMA_DEVNET_CHAIN_ID`|**string**: chain ID (set to reconnect to existing devnet)|
+|**platform**|`FADROMA_DEVNET_PLATFORM`|**string**: what kind of devnet to instantiate (e.g. `scrt_1.9`)|
+|**deleteOnExit**|`FADROMA_DEVNET_REMOVE_ON_EXIT`|**boolean**: automatically remove the container and state when your script exits|
+|**keepRunning**|`FADROMA_DEVNET_KEEP_RUNNING`|**boolean**: don't pause the container when your script exits|
+|**host**|`FADROMA_DEVNET_HOST`|**string**: hostname where the devnet is running|
+|**port**|`FADROMA_DEVNET_PORT`|**string**: port on which to connect to the devnet|
+
+|env var|type|description|
+|-|-|-|
+|**`FADROMA_BUILD_VERBOSE`**|flag|more log output
+|**`FADROMA_BUILD_QUIET`**|flag|less log output
+|**`FADROMA_BUILD_SCRIPT`**|path to script|build implementation
+|**`FADROMA_BUILD_RAW`**|flag|run the build script in the current environment instead of container
+|**`FADROMA_DOCKER`**|host:port or socket|non-default docker socket address
+|**`FADROMA_BUILD_IMAGE`**|docker image tag|image to run
+|**`FADROMA_BUILD_DOCKERFILE`**|path to dockerfile|dockerfile to build image if missing
+|**`FADROMA_BUILD_PODMAN`**|flag|whether to use podman instead of docker
+|**`FADROMA_PROJECT`**|path|root of project
+|**`FADROMA_ARTIFACTS`**|path|project artifact cache
+|**`FADROMA_REBUILD`**|flag|builds always run, artifact cache is ignored
+
+# State
+
+## Build cache
+
+When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
+for a corresponding pre-existing build and reuses it if present.
+
+Setting `FADROMA_REBUILD` disables build caching.
+
+## Upload cache
+
+## Deploy receipts
+
+## Devnet state
+
+Each **devnet** is a stateful local instance of a chain node
+(such as `secretd` or `okp4d`), and consists of two things:
+
+1. A container named `fadroma-KIND-ID`, where:
+
+  * `KIND` is what kind of devnet it is. For now, the only valid
+    value is `devnet`. In future releases, this will be changed to
+    contain the chain name and maybe the chain version.
+
+  * `ID` is a random 8-digit hex number. This way, when you have
+    multiple devnets of the same kind, you can distinguish them
+    from one another.
+
+  * The name of the container corresponds to the chain ID of the
+    contained devnet.
+
+```typescript
+assert.ok(
+  chain.id.match(/fadroma-devnet-[0-9a-f]{8}/)
+)
+
+assert.equal(
+  chain.id,
+  chain.devnet.chainId
+)
+
+assert.equal(
+  (await chain.devnet.container).name,
+  `/${chain.id}`
+)
+```
+
+2. State files under `your-project/state/fadroma-KIND-ID/`:
+
+  * `devnet.json` contains metadata about the devnet, such as
+    the chain ID, container ID, connection port, and container
+    image to use.
+
+  * `wallet/` contains JSON files with the addresses and mnemonics
+    of the **genesis accounts** that are created when the devnet
+    is initialized. These are the initial holders of the devnet's
+    native token, and you can use them to execute transactions.
+
+  * `upload/` and `deploy/` contain **upload and deploy receipts**.
+    These work the same as for remote testnets and mainnets,
+    and enable reuse of uploads and deployments.
+
 # Scripting
 
 See: [Fadroma Agent API](./agent/README.md)
@@ -410,13 +505,6 @@ const contractWithSource = new Contract({
 
 assert.ok(getGitDir(contractWithSource) instanceof DotGit)
 ```
-
-### Build caching
-
-When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
-for a corresponding pre-existing build and reuses it if present.
-
-Setting `FADROMA_REBUILD` disables build caching.
 
 ### The build procedure
 
@@ -657,55 +745,6 @@ The to call **resetDevnets** from the command line, use the
 $ npm run devnet reset
 ```
 
-## Devnet state
-
-Each **devnet** is a stateful local instance of a chain node
-(such as `secretd` or `okp4d`), and consists of two things:
-
-1. A container named `fadroma-KIND-ID`, where:
-
-  * `KIND` is what kind of devnet it is. For now, the only valid
-    value is `devnet`. In future releases, this will be changed to
-    contain the chain name and maybe the chain version.
-
-  * `ID` is a random 8-digit hex number. This way, when you have
-    multiple devnets of the same kind, you can distinguish them
-    from one another.
-
-  * The name of the container corresponds to the chain ID of the
-    contained devnet.
-
-```typescript
-assert.ok(
-  chain.id.match(/fadroma-devnet-[0-9a-f]{8}/)
-)
-
-assert.equal(
-  chain.id,
-  chain.devnet.chainId
-)
-
-assert.equal(
-  (await chain.devnet.container).name,
-  `/${chain.id}`
-)
-```
-
-2. State files under `your-project/state/fadroma-KIND-ID/`:
-
-  * `devnet.json` contains metadata about the devnet, such as
-    the chain ID, container ID, connection port, and container
-    image to use.
-
-  * `wallet/` contains JSON files with the addresses and mnemonics
-    of the **genesis accounts** that are created when the devnet
-    is initialized. These are the initial holders of the devnet's
-    native token, and you can use them to execute transactions.
-
-  * `upload/` and `deploy/` contain **upload and deploy receipts**.
-    These work the same as for remote testnets and mainnets,
-    and enable reuse of uploads and deployments.
-
 ```typescript
 await devnet.create()
 await devnet.start()
@@ -733,36 +772,3 @@ assert.deepEqual(
 
 await devnet.delete()
 ```
-
-# Configuration
-
-|Env var|Default path|Description|
-|-|-|-|
-|`FADROMA_ROOT`        |current working directory |Root directory of project|
-|`FADROMA_PROJECT`     |`@/ops.ts`                |Project command entrypoint|
-|`FADROMA_BUILD_STATE` |`@/wasm`                  |Checksums of compiled contracts by version|
-|`FADROMA_UPLOAD_STATE`|`@/state/uploads.csv`     |Receipts of uploaded contracts|
-|`FADROMA_DEPLOY_STATE`|`@/state/deployments.csv` |Receipts of instantiated (deployed) contracts|
-
-|name|env var|description|
-|-|-|-|
-|**chainId**|`FADROMA_DEVNET_CHAIN_ID`|**string**: chain ID (set to reconnect to existing devnet)|
-|**platform**|`FADROMA_DEVNET_PLATFORM`|**string**: what kind of devnet to instantiate (e.g. `scrt_1.9`)|
-|**deleteOnExit**|`FADROMA_DEVNET_REMOVE_ON_EXIT`|**boolean**: automatically remove the container and state when your script exits|
-|**keepRunning**|`FADROMA_DEVNET_KEEP_RUNNING`|**boolean**: don't pause the container when your script exits|
-|**host**|`FADROMA_DEVNET_HOST`|**string**: hostname where the devnet is running|
-|**port**|`FADROMA_DEVNET_PORT`|**string**: port on which to connect to the devnet|
-
-|env var|type|description|
-|-|-|-|
-|**`FADROMA_BUILD_VERBOSE`**|flag|more log output
-|**`FADROMA_BUILD_QUIET`**|flag|less log output
-|**`FADROMA_BUILD_SCRIPT`**|path to script|build implementation
-|**`FADROMA_BUILD_RAW`**|flag|run the build script in the current environment instead of container
-|**`FADROMA_DOCKER`**|host:port or socket|non-default docker socket address
-|**`FADROMA_BUILD_IMAGE`**|docker image tag|image to run
-|**`FADROMA_BUILD_DOCKERFILE`**|path to dockerfile|dockerfile to build image if missing
-|**`FADROMA_BUILD_PODMAN`**|flag|whether to use podman instead of docker
-|**`FADROMA_PROJECT`**|path|root of project
-|**`FADROMA_ARTIFACTS`**|path|project artifact cache
-|**`FADROMA_REBUILD`**|flag|builds always run, artifact cache is ignored
