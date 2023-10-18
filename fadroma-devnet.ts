@@ -514,36 +514,7 @@ export class Devnet implements DevnetHandle {
     $C: D = (devnetPlatforms[this.platform].Chain || Chain) as unknown as D,
     options?: Partial<C>
   ): C => {
-    if (!this.container) {
-      throw new Error(
-        "Call the devnet's create() method first"
-      )
-    }
-    if (options?.id && options.id !== this.chainId) {
-      this.log.warn('Devnet#getChain: ignoring passed chain id')
-    }
-    if (options?.url && options.url.toString() !== this.url.toString()) {
-      this.log.warn('Devnet#getChain: ignoring passed url')
-    }
-    if (options?.mode && options.mode !== Chain.Mode.Devnet) {
-      this.log.warn('Devnet#getChain: ignoring passed chain mode')
-    }
-    if (options?.devnet) {
-      this.log.warn('Devnet#getChain: ignoring passed devnet handle')
-    }
-    const chain = new $C({
-      ...options,
-      id:     this.chainId,
-      url:    this.url.toString(),
-      mode:   Chain.Mode.Devnet,
-      devnet: this
-    })
-    Object.defineProperty(chain, 'url', {
-      enumerable: true,
-      configurable: true,
-      get: () => this.url.toString()
-    })
-    return chain
+    return new $C({ ...options, devnet: this })
   }
 
   /** Get the info for a genesis account, including the mnemonic */
