@@ -1,24 +1,25 @@
-import { Devnet, Template, build, Uploader } from '@hackbg/fadroma'
+import Project, {
+  packageRoot, getDevnet, Devnet, Template, build, Uploader, Agent
+} from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 
 import * as assert from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { resolve } from 'node:path'
 
-import $, { TextFile } from '@hackbg/file'
+import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
 
-import testEntrypoint, { repoRoot } from './testSelector'
-export default testEntrypoint(import.meta.url, {
-  'docs':         testDevnetDocs,
-  'scrt':         ()=>testDevnetPlatform('scrt_1.9'),
-  'okp4':         ()=>testDevnetPlatform('okp4_5.0'),
-  'chain-id':     testDevnetChainId,
-  'state-file':   testDevnetStateFile,
-  'url':          testDevnetUrl,
-  'container':    testDevnetContainer,
-  'copy-uploads': testDevnetCopyUploads,
-})
+import { TestSuite } from '@hackbg/ensuite'
+export default new TestSuite(import.meta.url, [
+  ['scrt',         ()=>testDevnetPlatform('scrt_1.9')],
+  ['okp4',         ()=>testDevnetPlatform('okp4_5.0')],
+  ['chain-id',     testDevnetChainId],
+  ['state-file',   testDevnetStateFile],
+  ['url',          testDevnetUrl],
+  ['container',    testDevnetContainer],
+  ['copy-uploads', testDevnetCopyUploads],
+])
 
 export async function testDevnetDocs () {
   //@ts-ignore
@@ -38,9 +39,7 @@ export async function testDevnetPlatform (platform: DevnetPlatform) {
 export async function testDevnetChain () {
   const devnet = new Devnet({ platform: 'okp4_5.0' })
   const chain  = devnet.getChain()
-  assert.ok(
-    chain.id.match(/fadroma-devnet-[0-9a-f]{8}/)
-  )
+  assert.ok(chain.id.match(/fadroma-devnet-[0-9a-f]{8}/))
   assert.equal(chain.id, chain.devnet.chainId)
   assert.equal((await devnet.container).name, `/${chain.id}`)
 }
@@ -49,16 +48,13 @@ export async function testDevnetCopyUploads () {
   const devnet1   = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain1    = devnet1.getChain()
   const agent1    = await chain1.getAgent({ name: 'Admin' }).ready
-  const crate     = resolve(repoRoot, 'examples', 'cw-null')
+  const crate     = resolve(packageRoot, 'examples', 'cw-null')
   const artifact  = await build(crate)
   const uploader  = new Uploader({ agent: agent1, reupload: true })
   const uploaded1 = await uploader.upload(artifact)
   const uploaded2 = await uploader.upload(artifact)
   const devnet2   = new Devnet({ platform: 'okp4_5.0' })
-  assert.ok(
-    await devnet2.copyUploads(chain1),
-    "copying uploads"
-  )
+  assert.ok(await devnet2.copyUploads(chain1), "copying uploads")
 }
 
 export async function testDevnetChainId () {
@@ -67,36 +63,21 @@ export async function testDevnetChainId () {
     () => { devnet = new Devnet({ chainId: false as any }) },
     "construct must fail if passed falsy chainId"
   )
-  assert.ok(
-    devnet = new Devnet(),
-    "construct must work with no options"
-  )
-  assert.ok(
-    typeof devnet.chainId === 'string',
-    "chain id must be auto populated when not passed"
-  )
-  // TODO: can't delete
-  assert.ok(
-    await devnet.save(),
-    "can save"
-  )
+  assert.ok(devnet = new Devnet(), "construct must work with no options")
+  assert.ok(typeof devnet.chainId === 'string', "chain id must be auto populated when not passed")
+  // TODO: can't delete before creating
+  assert.ok(await devnet.save(), "can save")
   assert.ok(
     devnet = new Devnet({ chainId: devnet.chainId }),
     "can construct when passing chainId"
   )
-  // TODO: devnet with same chainid points to same resource
-  assert.ok(
-    await devnet.delete(),
-    "can delete"
-  )
+  assert.ok(await devnet.delete(), "can delete")
   assert.ok(
     devnet = new Devnet({ chainId: devnet.chainId }),
     "after deletion, can construct new devnet with same chainId"
   )
-  assert.ok(
-    await devnet.save(),
-    "can save"
-  )
+  // TODO: devnet with same chainid points to same resource
+  assert.ok(await devnet.save(), "can save")
 }
 
 export async function testDevnetStateFile () {
@@ -111,72 +92,48 @@ export async function testDevnetStateFile () {
     devnet = new Devnet({ chainId: devnet.chainId }),
     "can construct if state is valid json but empty"
   )
-  assert.ok(
-    await devnet.delete(),
-    "can delete if state is valid json but empty"
-  )
+  assert.ok(await devnet.delete(), "can delete if state is valid json but empty")
 }
 
 export async function testDevnetUrl () {
   let devnet: Devnet
-  assert.ok(
-    devnet = new Devnet(),
-    "can construct"
-  )
+  assert.ok(devnet = new Devnet(), "can construct")
   assert.equal(
     devnet.url.toString(), `http://${devnet.host}:${devnet.port}/`,
     "devnet url generated from host and port properties"
   )
-  assert.ok(
-    (await devnet.image) instanceof Image,
-    "devnet has @hackbg/dock image"
-  )
+  assert.ok((await devnet.image) instanceof Image, "devnet has @hackbg/dock image")
 }
 
 export async function testDevnetContainer () {
   let devnet: any
-  assert.ok(
-    devnet = new Devnet(),
-    "can construct"
-  )
+  assert.ok(devnet = new Devnet(), "can construct")
   assert.equal(
     devnet.initScriptMount, '/devnet.init.mjs',
     "devnet init script mounted at default location"
   )
-  assert.deepEqual(
-    devnet.spawnEnv, {
-      DAEMON:    'secretd',
-      CHAIN_ID:  devnet.chainId,
-      ACCOUNTS:  devnet.accounts.join(' '),
-      STATE_UID: String(getuid!()),
-      STATE_GID: String(getgid!()),
-      HTTP_PORT: String(devnet.port)
-    },
-    "devnet spawn environment"
-  )
+  const spawnEnv = {
+    DAEMON:    'secretd',
+    CHAIN_ID:  devnet.chainId,
+    ACCOUNTS:  devnet.accounts.join(' '),
+    STATE_UID: String(getuid!()),
+    STATE_GID: String(getgid!()),
+    HTTP_PORT: String(devnet.port)
+  }
+  assert.deepEqual(devnet.spawnEnv, spawnEnv, "devnet spawn environment")
   assert.deepEqual(
     devnet.spawnOptions.env, devnet.spawnEnv,
     "devnet spawn environment is passed to container options"
   )
   const spawnPort = `${String(devnet.port)}/tcp`
+  assert.deepEqual(devnet.spawnOptions.exposed, [ spawnPort ], "devnet port is exposed")
+  const portBindings = { [spawnPort]: [ { HostPort: String(devnet.port) } ] }
   assert.deepEqual(
-    devnet.spawnOptions.exposed, [ spawnPort ],
-    "devnet port is exposed"
-  )
-  assert.deepEqual(
-    devnet.spawnOptions.extra.HostConfig.PortBindings, {
-      [spawnPort]: [ { HostPort: String(devnet.port) } ]
-    },
+    devnet.spawnOptions.extra.HostConfig.PortBindings, portBindings,
     "devnet port binding is present"
   )
-  assert.equal(
-    await devnet.container, undefined,
-    "devnet starts with no container"
-  )
-  assert.ok(
-    await devnet.create(),
-    "devnet creates container"
-  )
+  assert.equal(await devnet.container, undefined, "devnet starts with no container")
+  assert.ok(await devnet.create(), "devnet creates container")
   assert.ok(
     (await devnet.container) instanceof Container,
     "devnet container property is populated after container is created"
@@ -185,100 +142,51 @@ export async function testDevnetContainer () {
     await devnet.assertPresence() || true,
     "devnet assert presence is ok after container is created"
   )
-  assert.ok(
-    await devnet.create(),
-    "devnet creation is idempotent"
-  )
+  assert.ok(await devnet.create(), "devnet creation is idempotent")
   ;(await devnet.container).remove()
-  assert.rejects(
-    devnet.assertPresence,
-    "devnet assert presence rejects if container is removed"
-  )
+  assert.rejects(devnet.assertPresence, "devnet assert presence rejects if container is removed")
 }
 
 export async function testDevnetFurther () {
-
-  import { getDevnet } from '@hackbg/fadroma'
-
   const devnet = getDevnet(/* { options } */)
-
   await devnet.create()
   await devnet.start()
-
   const chain = devnet.getChain()
-
   assert(chain.mode === 'Devnet')
   assert(chain.isDevnet)
   assert(chain.devnet === devnet)
-
   const alice = chain.getAgent({ name: 'Alice' })
   await alice.ready
-
-  assert(
-    alice instanceof Agent
-  )
-
-  assert.equal(
-    alice.name,
-    'Alice'
-  )
-
-  assert.equal(
-    alice.address,
-    $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load().address,
-  )
-
-  assert.equal(
-    alice.mnemonic,
-    $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load().mnemonic,
-  )
-
-  const anotherDevnet = getDevnet({
-    accounts: [ 'Alice', 'Bob' ],
-  })
-
-  assert.deepEqual(
-    anotherDevnet.accounts,
-    [ 'Alice', 'Bob' ]
-  )
-
+  assert(alice instanceof Agent)
+  assert.equal(alice.name, 'Alice')
+  const wallet = $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load() as {
+    address:  string,
+    mnemonic: string
+  }
+  assert.equal(alice.address, wallet.address)
+  assert.equal(alice.mnemonic, wallet.mnemonic)
+  const anotherDevnet = getDevnet({ accounts: [ 'Alice', 'Bob' ], })
+  assert.deepEqual(anotherDevnet.accounts, [ 'Alice', 'Bob' ])
   await anotherDevnet.delete()
-
   await devnet.pause()
   await devnet.start()
   await devnet.pause()
-
   await devnet.export()
-
   await devnet.delete()
-
-  import Project from '@hackbg/fadroma'
   const project = new Project()
   project.resetDevnets()
-
   await devnet.create()
   await devnet.start()
   await devnet.pause()
-
-  assert.equal(
-    $(chain.devnet.stateDir).name,
-    chain.id
-  )
-
-  assert.deepEqual(
-    $(chain.devnet.stateDir, 'devnet.json').as(JSONFile).load(),
-    {
-      chainId:     chain.id,
-      containerId: chain.devnet.containerId,
-      port:        chain.devnet.port,
-      imageTag:    chain.devnet.imageTag
-    }
-  )
-
-  assert.deepEqual(
-    $(chain.devnet.stateDir, 'wallet').as(JSONDirectory).list(),
-    chain.devnet.accounts
-  )
-
+  assert.equal($(chain.devnet.stateDir).name, chain.id)
+  const devnetState = $(chain.devnet.stateDir, 'devnet.json').as(JSONFile).load()
+  assert.deepEqual(devnetState, {
+    chainId:     chain.id,
+    containerId: chain.devnet.containerId,
+    port:        chain.devnet.port,
+    imageTag:    chain.devnet.imageTag
+  })
+  const accounts = $(chain.devnet.stateDir, 'wallet').as(JSONDirectory).list()
+  assert.deepEqual(accounts, chain.devnet.accounts)
   await devnet.delete()
 }

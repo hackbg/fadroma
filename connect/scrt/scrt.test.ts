@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import * as Scrt from '@fadroma/scrt'
-import { Agent, ChainId, Address } from '@fadroma/agent'
+import { Agent, ChainId, Address, randomBech32 } from '@fadroma/agent'
+import * as Mocknet from './scrt-mocknet'
 
 const SecretJS = (Scrt.SecretJS as any).default
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
@@ -8,16 +9,15 @@ let chain: any // for mocking
 let agent: Agent
 const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
 
-import testEntrypoint from './testSelector'
-export default testEntrypoint(import.meta.url, {
-  'docs':    () => import('./Scrt.spec.ts.md'),
-  'snip20':  () => import('./Snip20.spec.ts.md'),
-  'devnet':  testScrtDevnet,
-  'fees':    testScrtFees,
-  'batches': testScrtBatches,
-  'permits': testScrtPermits,
-  'console': testScrtConsole,
-})
+import { TestSuite } from '@hackbg/ensuite'
+export default new TestSuite(import.meta.url, [
+  ['devnet',  testScrtDevnet],
+  ['fees',    testScrtFees],
+  ['batches', testScrtBatches],
+  ['permits', testScrtPermits],
+  ['console', testScrtConsole],
+  ['mocknet', testMocknet],
+])
 
 async function testScrtDevnet () {
 
@@ -140,16 +140,6 @@ async function testScrtConsole () {
     .submittingBatchFailed(new Error())
 
 }
-
-import * as assert from 'node:assert'
-import { Mocknet } from '@fadroma/scrt'
-import { randomBech32 } from '@fadroma/agent'
-
-import testEntrypoint from './testSelector'
-export default testEntrypoint(import.meta.url, {
-  'docs': () => import('./Mocknet.spec.ts.md'),
-  'other': testMocknet()
-})
 
 export async function testMocknet () {
   new Mocknet.Console().log('...')
