@@ -504,20 +504,32 @@ export * from './fadroma-config'
 export { default as Config } from './fadroma-config'
 
 export function writeProject ({ name, templates, root, dirs, files, crates }: Project) {
+
+  // Create project root 
   root.make()
+
+  // Create project directories
   Object.values(dirs).forEach(dir=>dir.make())
+
+  // Project files that we will populate:
   const {
     readme, packageJson, cargoToml,
     gitignore, envfile, shellNix,
     fadromaYaml, apiIndex, opsIndex, testIndex,
   } = files
+
+  // Populate readme
   readme.save([
     `# ${name}\n---\n`,
     `Powered by [Fadroma](https://fadroma.tech) `,
     `by [Hack.bg](https://hack.bg) `,
     `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
   ].join(''))
+
+  // Populate Fadroma config
   fadromaYaml.save({ templates })
+
+  // Populate NPM dependencies
   packageJson.save({
     name: `${name}`,
     main: `api.ts`,
@@ -547,6 +559,8 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
       "test:testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma run tes.ts`,
     },
   })
+
+  // Define api module
   let deploymentClassName =
     (Object.keys(templates).includes(name))
       ? `${Case.pascal(name)}Deployment`
@@ -581,6 +595,8 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
       `}\n`
     ].join('\n'))
   ].join('\n\n'))
+
+  // Define ops module
   opsIndex.save([
     [
       `import ${Case.pascal(name)} from './api'`,
@@ -613,6 +629,8 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
       ``, `}`
     ].join('\n')
   ].join('\n\n'))
+
+  // Define test module
   testIndex.save([
     `import * as assert from 'node:assert'`,
     `import ${Case.pascal(name)} from './api'`,
@@ -620,6 +638,8 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     `const deployment = await getDeployment(${Case.pascal(name)}).deploy()`,
     `// add your assertions here`
   ].join('\n'))
+
+  // Populate gitignore
   gitignore.save([
     '.env',
     '*.swp',
@@ -633,9 +653,12 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     '!state/pulsar-1',
     '!state/pulsar-2',
     '!state/pulsar-3',
+    '!state/okp4-nemeton-1',
     'wasm/*',
     '!wasm/*.sha256',
   ].join('\n'))
+
+  // Populate env config
   envfile.save([
     '# FADROMA_MNEMONIC=your mainnet mnemonic',
     `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`,
@@ -646,6 +669,8 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     ``,
     `# Other settings:`,
   ].join('\n'))
+
+  // Populate Nix shell
   shellNix.save([
     `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${name}"; in pkgs.mkShell {`,
     `  inherit name;`,
@@ -659,15 +684,20 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     `  '';`,
     `}`,
   ].join('\n'))
+
+  // Populate root Cargo.toml
   cargoToml.as(TextFile).save([
     `[workspace]`, `resolver = "2"`, `members = [`,
     Object.values(crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
     `]`
   ].join('\n'))
+
+  // Create each crate and store a null checksum for it
   const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
   Object.values(crates).forEach(crate=>{
     crate.create()
     const name = `${crate.name}@HEAD.wasm`
     dirs.wasm.at(`${name}.sha256`).as(TextFile).save(`${sha256}  *${name}`)
   })
+
 }
