@@ -36,15 +36,25 @@ export type ChainId = string
 /** A collection of functions that return Chain instances. */
 export type ChainRegistry = Record<string, (config: any)=>Chain>
 
-/** Options for connecting to a chain. */
+/** Interface for Devnet (implementation is in @hackbg/fadroma). */
 export interface DevnetHandle {
-  url: URL
-  running: boolean
-  chainId: string
-  platform: string
-  start: () => Promise<this>
-  getAccount: (name: string) => Promise<Partial<Agent>>
-  assertPresence: () => Promise<void>
+  accounts:     string[]
+  chainId:      string
+  platform:     string
+  running:      boolean
+  stateDir:     string
+  url:          URL
+
+  containerId?: string
+  imageTag?:    string
+  port?:        string|number
+
+  start ():
+    Promise<this>
+  getAccount (name: string):
+    Promise<Partial<Agent>>
+  assertPresence ():
+    Promise<void>
 }
 
 /** A constructor for a Chain subclass. */
