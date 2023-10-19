@@ -17,24 +17,6 @@ import { fixture } from './fixtures/fixtures'
 
 import { TestSuite } from '@hackbg/ensuite'
 
-export default new TestSuite(import.meta.url, [
-  ['agent',        () => import('./agent/agent.test')],
-  ['connect',      () => import('./connect/connect.test')],
-  ['cw',           () => import('./connect/cw/cw.test')],
-  ['scrt',         () => import('./connect/scrt/scrt.test')],
-  ['devnet',       () => import('./fadroma-devnet.test')],
-  ['wizard',       testProjectWizard],
-  ['collections',  testCollections],
-  ['project',      testProject],
-  ['deployment',   testDeployment],
-  ['deploy-store', testDeployStore],
-  ['build',        testBuild],
-  ['upload',       testUpload],
-  ['upload-store', testUploadStore],
-  //'factory': () => import ('./Factory.spec.ts.md'),
-  //'impl':    () => import('./Implementing.spec.ts.md'),
-])
-
 export async function testCollections () {
 
   assert.equal(await into(1), 1)
@@ -79,10 +61,10 @@ export async function testProject () {
     .cargoUpdate()
 
   const test1 = project.getTemplate('test1')
-  assert(test1 instanceof Template)
+  assert.ok(test1 instanceof Template)
 
   const test3 = project.setTemplate('test3', { crate: 'test2' })
-  assert(test3 instanceof Template)
+  assert.ok(test3 instanceof Template)
   await project.build()
   await project.build('test1')
   await project.upload()
@@ -105,8 +87,8 @@ class MyDeployment extends Deployment {
 
 export async function testDeployment () {
   let deployment = await getDeployment(MyDeployment).deploy()
-  assert(deployment.t instanceof Template)
-  assert([
+  assert.ok(deployment.t instanceof Template)
+  assert.ok([
     deployment.a,
     ...Object.values(deployment.b),
     ...Object.values(deployment.c),
@@ -117,13 +99,13 @@ export async function testDeployment () {
 
 export async function testBuild () {
   const deployment = new MyDeployment()
-  assert(deployment.t.builder instanceof Builder)
+  assert.ok(deployment.t.builder instanceof Builder)
   assert.equal(deployment.t.builder, deployment.builder)
   await deployment.t.built
   // -or-
   await deployment.t.build()
   const builder = getBuilder(/* { ...options... } */)
-  assert(builder instanceof Builder)
+  assert.ok(builder instanceof Builder)
   assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
   assert.ok(getBuilder({ raw: false }).docker instanceof Dock.Engine)
   getBuilder({ raw: false, dockerSocket: 'test' })
@@ -137,11 +119,11 @@ export async function testBuild () {
       { crate: 'examples/killswitch' }
     ])
     for (const [contract, index] of [ contract_0, contract_1, contract_2 ].map((c,i)=>[c,i]) {
-      assert(typeof contract.codeHash === 'string', `contract_${index}.codeHash is set`)
-      assert(contract.artifact instanceof URL,      `contract_${index}.artifact is set`)
-      assert(contract.workspace, `contract_${index}.workspace is set`)
-      assert(contract.crate,     `contract_${index}.crate is set`)
-      assert(contract.revision,  `contract_${index}.revision is set`)
+      assert.ok(typeof contract.codeHash === 'string', `contract_${index}.codeHash is set`)
+      assert.ok(contract.artifact instanceof URL,      `contract_${index}.artifact is set`)
+      assert.ok(contract.workspace, `contract_${index}.workspace is set`)
+      assert.ok(contract.crate,     `contract_${index}.crate is set`)
+      assert.ok(contract.revision,  `contract_${index}.revision is set`)
     }
   }
   const contract: Contract<any> = new Contract({ builder, crate: 'fadroma-example-kv' })
@@ -159,7 +141,7 @@ export async function testBuild () {
 
 export async function testUpload () {
   const deployment = new MyDeployment()
-  assert(deployment.t.uploader instanceof Uploader)
+  assert.ok(deployment.t.uploader instanceof Uploader)
   assert.equal(deployment.t.uploader, deployment.uploader)
   await deployment.t.uploaded
   // -or-
@@ -199,14 +181,14 @@ export async function testDeploymentUpgrade () {
   const testnetAgent: any = { chain: { isTestnet: true } } // mock
   const onMainnet = MyDeployment_v1.connect(mainnetAgent)
   const onTestnet = MyDeployment_v1.connect(testnetAgent)
-  assert(onMainnet.isMainnet)
-  assert(onTestnet.isTestnet)
+  assert.ok(onMainnet.isMainnet)
+  assert.ok(onTestnet.isTestnet)
   assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
   assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
   const kv1 = MyDeployment_v1.connect(mainnetAgent).kv1.expect()
-  assert(kv1 instanceof Client)
+  assert.ok(kv1 instanceof Client)
   const kv2 = MyDeployment_v1.connect(testnetAgent).kv2.expect()
-  assert(kv2 instanceof Client)
+  assert.ok(kv2 instanceof Client)
   // simplest chain-side migration is to just call default deploy,
   // which should reuse kv1 and kv2 and only deploy kv3.
   deployment = await MyDeployment_v2.upgrade(deployment).deploy()
@@ -267,17 +249,35 @@ export async function testUploadStore () {
   //})
 }
 
-export const tmpDir = () => {
+export function tmpDir () {
   let x
   withTmpDir(dir=>x=dir)
   return x
 }
 
 export async function testProjectWizard () {
-  assert(await new ProjectWizard({ interactive: false, cwd: tmpDir() }).createProject(
+  assert.ok(await new ProjectWizard({ interactive: false, cwd: tmpDir() }).createProject(
     Project,
     'test-project-2',
     'test3',
     'test4'
   ) instanceof Project)
 }
+
+export default new TestSuite(import.meta.url, [
+  ['agent',        () => import('./agent/agent.test')],
+  ['connect',      () => import('./connect/connect.test')],
+  ['cw',           () => import('./connect/cw/cw.test')],
+  ['scrt',         () => import('./connect/scrt/scrt.test')],
+  ['devnet',       () => import('./fadroma-devnet.test')],
+  ['wizard',       testProjectWizard],
+  ['collections',  testCollections],
+  ['project',      testProject],
+  ['deployment',   testDeployment],
+  ['deploy-store', testDeployStore],
+  ['build',        testBuild],
+  ['upload',       testUpload],
+  ['upload-store', testUploadStore],
+  //'factory': () => import ('./Factory.spec.ts.md'),
+  //'impl':    () => import('./Implementing.spec.ts.md'),
+])
