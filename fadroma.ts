@@ -21,12 +21,7 @@
 import type {
   ChainRegistry, ChainClass, DeploymentClass, Builder, Buildable, Built,
   Uploader, Uploadable, Uploaded, CodeId, CodeHash, ChainId, DeployStoreClass,
-} from './fadroma'
-import Config, { version } from './fadroma-config'
-import { ContractCrate } from './fadroma-build'
-import { Devnet } from './fadroma-devnet'
-import { ProjectWizard, toolVersions } from './fadroma-wizard'
-
+} from '@fadroma/connect'
 import {
   connectModes, Scrt, CW,
   Chain, ChainMode, Deployment, DeployStore,
@@ -34,6 +29,11 @@ import {
   toInstanceReceipt, timestamp, bold, Console, Error,
   bip39, bip39EN
 } from '@fadroma/connect'
+
+import Config, { version } from './fadroma-config'
+import { ContractCrate } from './fadroma-build'
+import { Devnet } from './fadroma-devnet'
+import { ProjectWizard, toolVersions } from './fadroma-wizard'
 
 import * as Dock from '@hackbg/dock'
 import { CommandContext } from '@hackbg/cmds'
@@ -45,8 +45,12 @@ import $, {
 import Case from 'case'
 import prompts from 'prompts'
 
-import { basename } from 'node:path'
+import { basename, resolve, dirname } from 'node:path'
 import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+
+/** Root of installed Fadroma package. */
+export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
 
 /** @returns Builder configured as per environment and options */
 export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
