@@ -106,6 +106,11 @@ connectModes['OKP4Devnet'] = CW.OKP4.Chain.devnet =
 
 const console = new Console(`@hackbg/fadroma ${version}`)
 
+export type ProjectOptions = Omit<Partial<Project>, 'root'|'templates'> & {
+  root:      OpaqueDirectory|string,
+  templates: Record<string, Template<any>|(Buildable & Partial<Built>)>
+}
+
 export default class Project extends CommandContext {
   log = new Console(`Fadroma ${version}`) as any
   /** Fadroma settings. */
@@ -128,15 +133,13 @@ export default class Project extends CommandContext {
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
     const configFile = $(path, 'fadroma.yml').as(YAMLFile)
     if (configFile.exists()) {
-      return new Project(configFile.load() as Partial<Project>)
+      return new Project(configFile.load() as ProjectOptions)
     } else {
       return null
     }
   }
 
-  constructor (options?: Partial<Project & {
-    templates: Record<string, Template<any>|(Buildable & Partial<Built>)>
-  }>) {
+  constructor (options?: ProjectOptions) {
     super()
 
     // Configure
