@@ -2,8 +2,9 @@ import * as assert from 'node:assert'
 import {
   Template, Contract, Client, Deployment, Builder, Uploader, into, intoArray, intoRecord
 } from '@fadroma/agent'
-import Project from '@hackbg/fadroma'
+import Project, { getDeployment } from '@hackbg/fadroma'
 import type { Agent } from '@fadroma/agent'
+import $, { OpaqueDirectory } from '@hackbg/file'
 
 import { testEntrypoint, testSuite } from '@hackbg/ensuite'
 
@@ -82,50 +83,31 @@ export async function testProject () {
   await project.exportDeployment('state')
 }
 
+class MyDeployment extends Deployment {
+  t = this.template({ crate: 'examples/kv' })
+  a = this.t.instance({ name: 'a', initMsg: {} })
+  b = this.t.instances([
+    {name:'b1',initMsg:{}}, {name:'b2',initMsg:{}}, {name:'b3',initMsg:{}}
+  ])
+  c = this.t.instances({
+    c1:{name:'c1',initMsg:{}}, c2:{name:'c2',initMsg:{}}, c3:{name:'c3',initMsg:{}}
+  })
+}
+
 export async function testDeployment () {
-  assert.deepEqual(
-    Object.keys(deployment.snapshot.contracts),
-    ['kv1', 'kv2']
-  )
-  // you would load snapshots as JSON, e.g.:
-  // const testnet = await (await fetch('./testnet_v4.json')).json()
-  export const mainnet = deployment.snapshot
-  export const testnet = deployment.snapshot
-
-  const mainnetAgent: any = { chain: { isMainnet: true } } // mock
-  const testnetAgent: any = { chain: { isTestnet: true } } // mock
-  const onMainnet = DeploymentC.connect(mainnetAgent)
-  const onTestnet = DeploymentC.connect(testnetAgent)
-
-  assert(onMainnet.isMainnet)
-  assert(onTestnet.isTestnet)
-  assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
-  assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
-
-  const kv1 = DeploymentC.connect(mainnetAgent).kv1.expect()
-  assert(kv1 instanceof Client)
-
-  const kv2 = DeploymentC.connect(testnetAgent).kv2.expect()
-  assert(kv2 instanceof Client)
-  // simplest chain-side migration is to just call default deploy,
-  // which should reuse kv1 and kv2 and only deploy kv3.
-  deployment = await DeploymentD.upgrade(deployment).deploy()
-
-  deployment = await getDeployment(Deployment4).deploy()
+  let deployment = await getDeployment(MyDeployment).deploy()
   assert(deployment.t instanceof Template)
-
   assert([
     deployment.a,
-    ...Object.values(deployment.b)
-    ...Object.values(deployment.c)
+    ...Object.values(deployment.b),
+    ...Object.values(deployment.c),
   ].every(
     c=>(c instanceof Contract) && (c.expect() instanceof Client)
   ))
 }
 
-
 export async function testBuild () {
-  const deployment = new Deployment4()
+  const deployment = new MyDeployment()
   assert(deployment.t.builder instanceof Builder)
   assert.equal(deployment.t.builder, deployment.builder)
   await deployment.t.built
@@ -134,7 +116,7 @@ export async function testBuild () {
 }
 
 export async function testUpload () {
-  const deployment = new Deployment4()
+  const deployment = new MyDeployment()
   assert(deployment.t.uploader instanceof Uploader)
   assert.equal(deployment.t.uploader, deployment.uploader)
   await deployment.t.uploaded
@@ -142,46 +124,46 @@ export async function testUpload () {
   await deployment.t.upload()
 }
 
-class Deployment4 extends Deployment {
-
-  t = this.template({ crate: 'examples/kv' })
-
-  a = this.t.instance({ name: 'a', initMsg: {} })
-
-  b = this.t.instances([
-    {name:'b1',initMsg:{}},
-    {name:'b2',initMsg:{}},
-    {name:'b3',initMsg:{}}
-  ])
-
-  c = this.t.instances({
-    c1:{name:'c1',initMsg:{}},
-    c2:{name:'c2',initMsg:{}},
-    c3:{name:'c3',initMsg:{}}
-  })
-
-}
-
-// and create instances of your deployment with preloaded
-// "address books" of contracts. for example here we restore
-// a different snapshot depending on whether we're passed a
-// mainnet or testnet connection.
-class DeploymentC extends Deployment {
-  kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
-  kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
-
-  static connect = (agent: Agent) => {
-    if (agent?.chain?.isMainnet) return new this({ ...mainnet, agent })
-    if (agent?.chain?.isTestnet) return new this({ ...testnet, agent })
-    return new this({ agent })
+export async function testDeploymentUpgrade () {
+  // and create instances of your deployment with preloaded
+  // "address books" of contracts. for example here we restore
+  // a different snapshot depending on whether we're passed a
+  // mainnet or testnet connection.
+  class MyDeployment_v1 extends Deployment {
+    kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
+    kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
+    static connect = (agent: Agent) => {
+      if (agent?.chain?.isMainnet) return new this({ ...mainnet, agent })
+      if (agent?.chain?.isTestnet) return new this({ ...testnet, agent })
+      return new this({ agent })
+    }
   }
-}
+  class MyDeployment_v2 extends MyDeployment_v1 {
+    kv3 = this.contract({ crate: 'examples/kv', name: 'kv3', initMsg: {} })
+    // simplest client-side migration is to just instantiate
+    // a new deployment with the data from the old deployment.
+    static upgrade = (previous: MyDeployment_v1) => new this({ ...previous })
+  }
+  let deployment = new MyDeployment_v1()
+  assert.deepEqual(Object.keys(deployment.snapshot.contracts), ['kv1', 'kv2'])
+  // you would load snapshots as JSON, e.g.:
+  // const testnet = await (await fetch('./testnet_v4.json')).json()
+  const mainnet = deployment.snapshot
+  const testnet = deployment.snapshot
+  const mainnetAgent: any = { chain: { isMainnet: true } } // mock
+  const testnetAgent: any = { chain: { isTestnet: true } } // mock
+  const onMainnet = MyDeployment_v1.connect(mainnetAgent)
+  const onTestnet = MyDeployment_v1.connect(testnetAgent)
+  assert(onMainnet.isMainnet)
+  assert(onTestnet.isTestnet)
+  assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
+  assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
+  const kv1 = MyDeployment_v1.connect(mainnetAgent).kv1.expect()
+  assert(kv1 instanceof Client)
+  const kv2 = MyDeployment_v1.connect(testnetAgent).kv2.expect()
+  assert(kv2 instanceof Client)
+  // simplest chain-side migration is to just call default deploy,
+  // which should reuse kv1 and kv2 and only deploy kv3.
+  deployment = await MyDeployment_v2.upgrade(deployment).deploy()
 
-class DeploymentD extends DeploymentC {
-  kv3 = this.contract({ crate: 'examples/kv', name: 'kv3', initMsg: {} })
-
-  // simplest client-side migration is to just instantiate
-  // a new deployment with the data from the old deployment.
-  static upgrade = (previous: DeploymentC) =>
-    new this({ ...previous })
 }
