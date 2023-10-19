@@ -1,6 +1,12 @@
 import * as assert from 'node:assert'
-import { into, intoArray, intoRecord } from '@fadroma/agent'
+import {
+  Template, Contract, Client, Deployment, Builder, Uploader, into, intoArray, intoRecord
+} from '@fadroma/agent'
+import Project from '@hackbg/fadroma'
+import type { Agent } from '@fadroma/agent'
+
 import { testEntrypoint, testSuite } from '@hackbg/ensuite'
+
 export default testEntrypoint(import.meta.url, {
 
   'agent':   testSuite('./agent/agent.test'),
@@ -46,7 +52,7 @@ export async function testCollections () {
 
 export async function testProject () {
   const { default: Project } = await import('@hackbg/fadroma')
-  const { tmpDir } = await import('./fixtures/Fixtures.ts.md')
+  const { tmpDir } = await import('./fixtures/fixtures')
 
   const root = tmpDir()
 
@@ -77,66 +83,65 @@ export async function testProject () {
 }
 
 export async function testDeployment () {
-assert.deepEqual(
-  Object.keys(deployment.snapshot.contracts),
-  ['kv1', 'kv2']
-)
-// in your project's api.ts:
+  assert.deepEqual(
+    Object.keys(deployment.snapshot.contracts),
+    ['kv1', 'kv2']
+  )
+  // you would load snapshots as JSON, e.g.:
+  // const testnet = await (await fetch('./testnet_v4.json')).json()
+  export const mainnet = deployment.snapshot
+  export const testnet = deployment.snapshot
 
-import { Deployment } from '@fadroma/agent'
+  const mainnetAgent: any = { chain: { isMainnet: true } } // mock
+  const testnetAgent: any = { chain: { isTestnet: true } } // mock
+  const onMainnet = DeploymentC.connect(mainnetAgent)
+  const onTestnet = DeploymentC.connect(testnetAgent)
 
-// you would load snapshots as JSON, e.g.:
-// const testnet = await (await fetch('./testnet_v4.json')).json()
-export const mainnet = deployment.snapshot
-export const testnet = deployment.snapshot
+  assert(onMainnet.isMainnet)
+  assert(onTestnet.isTestnet)
+  assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
+  assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
 
-// and create instances of your deployment with preloaded
-// "address books" of contracts. for example here we restore
-// a different snapshot depending on whether we're passed a
-// mainnet or testnet connection.
-class DeploymentC extends Deployment {
-  kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
-  kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
+  const kv1 = DeploymentC.connect(mainnetAgent).kv1.expect()
+  assert(kv1 instanceof Client)
 
-  static connect = (agent: Agent) => {
-    if (agent?.chain?.isMainnet) return new this({ ...mainnet, agent })
-    if (agent?.chain?.isTestnet) return new this({ ...testnet, agent })
-    return new this({ agent })
-  }
-}
-const mainnetAgent = { chain: { isMainnet: true } } // mock
-const testnetAgent = { chain: { isTestnet: true } } // mock
+  const kv2 = DeploymentC.connect(testnetAgent).kv2.expect()
+  assert(kv2 instanceof Client)
+  // simplest chain-side migration is to just call default deploy,
+  // which should reuse kv1 and kv2 and only deploy kv3.
+  deployment = await DeploymentD.upgrade(deployment).deploy()
 
-const onMainnet = DeploymentC.connect(mainnetAgent)
+  deployment = await getDeployment(Deployment4).deploy()
+  assert(deployment.t instanceof Template)
 
-const onTestnet = DeploymentC.connect(testnetAgent)
-
-assert(onMainnet.isMainnet)
-assert(onTestnet.isTestnet)
-assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
-assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
-
-const kv1 = DeploymentC.connect(mainnetAgent).kv1.expect()
-assert(kv1 instanceof Client)
-
-const kv2 = DeploymentC.connect(testnetAgent).kv2.expect()
-assert(kv2 instanceof Client)
-// in your project's api.ts:
-
-import { Deployment } from '@fadroma/agent'
-
-class DeploymentD extends DeploymentC {
-  kv3 = this.contract({ crate: 'examples/kv', name: 'kv3', initMsg: {} })
-
-  // simplest client-side migration is to just instantiate
-  // a new deployment with the data from the old deployment.
-  static upgrade = (previous: DeploymentC) =>
-    new this({ ...previous })
+  assert([
+    deployment.a,
+    ...Object.values(deployment.b)
+    ...Object.values(deployment.c)
+  ].every(
+    c=>(c instanceof Contract) && (c.expect() instanceof Client)
+  ))
 }
 
-// simplest chain-side migration is to just call default deploy,
-// which should reuse kv1 and kv2 and only deploy kv3.
-deployment = await DeploymentD.upgrade(deployment).deploy()
+
+export async function testBuild () {
+  const deployment = new Deployment4()
+  assert(deployment.t.builder instanceof Builder)
+  assert.equal(deployment.t.builder, deployment.builder)
+  await deployment.t.built
+  // -or-
+  await deployment.t.build()
+}
+
+export async function testUpload () {
+  const deployment = new Deployment4()
+  assert(deployment.t.uploader instanceof Uploader)
+  assert.equal(deployment.t.uploader, deployment.uploader)
+  await deployment.t.uploaded
+  // -or-
+  await deployment.t.upload()
+}
+
 class Deployment4 extends Deployment {
 
   t = this.template({ crate: 'examples/kv' })
@@ -156,32 +161,27 @@ class Deployment4 extends Deployment {
   })
 
 }
-deployment = await getDeployment(Deployment4).deploy()
-assert(deployment.t instanceof Template)
 
-assert([
-  deployment.a,
-  ...Object.values(deployment.b)
-  ...Object.values(deployment.c)
-].every(
-  c=>(c instanceof Contract) && (c.expect() instanceof Client)
-))
+// and create instances of your deployment with preloaded
+// "address books" of contracts. for example here we restore
+// a different snapshot depending on whether we're passed a
+// mainnet or testnet connection.
+class DeploymentC extends Deployment {
+  kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
+  kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
+
+  static connect = (agent: Agent) => {
+    if (agent?.chain?.isMainnet) return new this({ ...mainnet, agent })
+    if (agent?.chain?.isTestnet) return new this({ ...testnet, agent })
+    return new this({ agent })
+  }
 }
 
-export async function testBuild () {
-import { Builder } from '@fadroma/agent'
-assert(deployment.t.builder instanceof Builder)
-assert.equal(deployment.t.builder, deployment.builder)
-await deployment.t.built
-// -or-
-await deployment.t.build()
-}
+class DeploymentD extends DeploymentC {
+  kv3 = this.contract({ crate: 'examples/kv', name: 'kv3', initMsg: {} })
 
-export async function testUpload () {
-import { Uploader } from '@fadroma/agent'
-assert(deployment.t.uploader instanceof Uploader)
-assert.equal(deployment.t.uploader, deployment.uploader)
-await deployment.t.uploaded
-// -or-
-await deployment.t.upload()
+  // simplest client-side migration is to just instantiate
+  // a new deployment with the data from the old deployment.
+  static upgrade = (previous: DeploymentC) =>
+    new this({ ...previous })
 }
