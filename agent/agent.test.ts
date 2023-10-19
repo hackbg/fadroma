@@ -1,13 +1,13 @@
 import { StubChain as Chain, StubAgent as Agent, Batch, Error, Console } from './agent'
 import assert from 'node:assert'
 
-import { testEntrypoint, testSuite } from '@hackbg/ensuite'
-export default testEntrypoint(import.meta.url, {
-  'obtain':  testAgentObtain,
-  'batch':   testAgentBatch,
-  'errors':  testAgentErrors,
-  'console': testAgentConsole,
-})
+import { TestSuite } from '@hackbg/ensuite'
+export default new TestSuite(import.meta.url, [
+  ['obtain',  testAgentObtain],
+  ['batch',   testAgentBatch],
+  ['errors',  testAgentErrors],
+  ['console', testAgentConsole],
+])
 
 export async function testAgentObtain () {
   const chain = new Chain()

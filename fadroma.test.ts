@@ -3,10 +3,17 @@ import {
   Template, Contract, Client, Deployment, DeployStore, Builder, Uploader,
   into, intoArray, intoRecord
 } from '@fadroma/agent'
-import Project, { getDeployment, DeployStore_v1, FSUploader } from '@hackbg/fadroma'
+import Project, {
+  getDeployment, DeployStore_v1,
+  getBuilder, BuildContainer, BuildRaw,
+  FSUploader, upload, getUploader,
+  getGitDir, DotGit,
+} from '@hackbg/fadroma'
 import { ProjectWizard } from './fadroma-wizard'
 import type { Agent } from '@fadroma/agent'
 import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
+import * as Dock from '@hackbg/dock'
+import { fixture } from './fixtures/fixtures'
 
 import { TestSuite } from '@hackbg/ensuite'
 
@@ -115,26 +122,13 @@ export async function testBuild () {
   await deployment.t.built
   // -or-
   await deployment.t.build()
-
-  import { getBuilder } from '@hackbg/fadroma'
   const builder = getBuilder(/* { ...options... } */)
-
-  import { Builder } from '@hackbg/fadroma'
   assert(builder instanceof Builder)
-
-  import { BuildContainer } from '@hackbg/fadroma'
   assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
-
-  import * as Dokeres from '@hackbg/dock'
-  assert.ok(getBuilder({ raw: false }).docker instanceof Dokeres.Engine)
-
+  assert.ok(getBuilder({ raw: false }).docker instanceof Dock.Engine)
   getBuilder({ raw: false, dockerSocket: 'test' })
-
   const rawBuilder = getBuilder({ raw: true })
-
-  import { BuildRaw } from '@hackbg/fadroma'
   assert.ok(rawBuilder instanceof BuildRaw)
-
   for (const raw of [true, false]) {
     const builder = getBuilder({ raw })
     const contract_0 = await builder.build({ crate: 'examples/kv' })
@@ -150,27 +144,17 @@ export async function testBuild () {
       assert(contract.revision,  `contract_${index}.revision is set`)
     }
   }
-
-  const contract: Contract = new Contract({ builder, crate: 'fadroma-example-kv' })
-  await contract.compiled
-
+  const contract: Contract<any> = new Contract({ builder, crate: 'fadroma-example-kv' })
   const template = new Template({ builder, crate: 'fadroma-example-kv' })
   await template.compiled
-
-  import { Contract } from '@fadroma/agent'
-  import { getGitDir, DotGit } from '@hackbg/fadroma'
-
   assert.throws(()=>getGitDir(new Contract()))
-
   const contractWithSource = new Contract({
     repository: 'REPO',
     revision:   'REF',
     workspace:  'WORKSPACE',
     crate:      'CRATE'
   })
-
   assert.ok(getGitDir(contractWithSource) instanceof DotGit)
-
 }
 
 export async function testUpload () {
@@ -180,14 +164,8 @@ export async function testUpload () {
   await deployment.t.uploaded
   // -or-
   await deployment.t.upload()
-
-  import { fixture } from './fixtures/Fixtures.ts.md'
   const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
-
-  import { upload } from '@hackbg/fadroma'
   await upload({ artifact })
-
-  import { getUploader } from '@hackbg/fadroma'
   await getUploader({ /* options */ }).upload({ artifact })
 }
 
