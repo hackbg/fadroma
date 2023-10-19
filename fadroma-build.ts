@@ -640,7 +640,7 @@ export class ContractCrate {
       `authors = []`, `keywords = ["fadroma"]`, `description = ""`, `readme = "README.md"`, ``,
       `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
       `[dependencies]`,
-      `fadroma = { version = "^0.8.7", features = ${JSON.stringify(this.fadromaFeatures)} }`,
+      `fadroma = { version = "0.8.7", features = ${JSON.stringify(this.fadromaFeatures)} }`,
       `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
     ].join('\n'))
     this.src.make()
