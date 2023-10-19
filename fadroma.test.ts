@@ -1,30 +1,32 @@
 import * as assert from 'node:assert'
 import {
-  Template, Contract, Client, Deployment, Builder, Uploader, into, intoArray, intoRecord
+  Template, Contract, Client, Deployment, DeployStore, Builder, Uploader,
+  into, intoArray, intoRecord
 } from '@fadroma/agent'
-import Project, { getDeployment } from '@hackbg/fadroma'
+import Project, { getDeployment, DeployStore_v1, FSUploader } from '@hackbg/fadroma'
+import { ProjectWizard } from './fadroma-wizard'
 import type { Agent } from '@fadroma/agent'
-import $, { OpaqueDirectory } from '@hackbg/file'
+import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
 
-import { testEntrypoint, testSuite } from '@hackbg/ensuite'
+import { TestSuite } from '@hackbg/ensuite'
 
-export default testEntrypoint(import.meta.url, {
-
-  'agent':   testSuite('./agent/agent.test'),
-
-  'connect': testSuite('./connect/connect.test'),
-  'cw':      testSuite('./connect/cw/cw.test'),
-  'scrt':    testSuite('./connect/scrt/scrt.test'),
-
-  'build':   testSuite('./fadroma-build.test'),
-  'deploy':  testSuite('./fadroma-deploy.test'),
-  'devnet':  testSuite('./fadroma-devnet.test'),
-  'upload':  testSuite('./fadroma-upload.test'),
-  'wizard':  testSuite('./fadroma-wizard.test'),
-
+export default new TestSuite(import.meta.url, [
+  ['agent',        () => import('./agent/agent.test')],
+  ['connect',      () => import('./connect/connect.test')],
+  ['cw',           () => import('./connect/cw/cw.test')],
+  ['scrt',         () => import('./connect/scrt/scrt.test')],
+  ['devnet',       () => import('./fadroma-devnet.test')],
+  ['wizard',       testProjectWizard],
+  ['collections',  testCollections],
+  ['project',      testProject],
+  ['deployment',   testDeployment],
+  ['deploy-store', testDeployStore],
+  ['build',        testBuild],
+  ['upload',       testUpload],
+  ['upload-store', testUploadStore],
   //'factory': () => import ('./Factory.spec.ts.md'),
   //'impl':    () => import('./Implementing.spec.ts.md'),
-})
+])
 
 export async function testCollections () {
 
@@ -165,5 +167,74 @@ export async function testDeploymentUpgrade () {
   // simplest chain-side migration is to just call default deploy,
   // which should reuse kv1 and kv2 and only deploy kv3.
   deployment = await MyDeployment_v2.upgrade(deployment).deploy()
+}
 
+export async function testDeployStore () {
+  new class MyDeployStore extends DeployStore {
+    list (): string[] { throw 'stub' }
+    save () { throw 'stub' }
+    create (x: any): any { throw 'stub' }
+    select (x: any): any { throw 'stub' }
+    get active (): any { throw 'stub' }
+    get activeName (): any { throw 'stub' }
+
+    load () { return { foo: {}, bar: {} } }
+  }().getDeployment(class extends Deployment {
+    foo = this.contract({ name: 'foo' })
+    bar = this.contract({ name: 'bar' })
+  })
+
+  let result = ''
+  const store = new DeployStore_v1('', {})
+  Object.defineProperty(store, 'root', { // mock
+    value: {
+      exists: () => false,
+      make: () => ({}),
+      at: () => ({
+        real: { name: 'foobar' },
+        exists: () => false,
+        as: () => ({
+          save: (output: any)=>{result=output},
+          loadAll: () => [ {name: 'foo'}, {name: 'bar'} ],
+        }),
+        makeParent: () => ({
+          exists: () => false,
+          as: () => ({ save: (output: any)=>{result=output} })
+        }),
+      })
+    }
+  })
+  await store.create()
+  store.list()
+  store.save('foo', { contract1: { deployment: true }, contract2: { deployment: true } } as any)
+  assert.equal(result, '---\n{}\n---\n{}\n')
+  assert.ok(store[Symbol.toStringTag])
+}
+
+export async function testUploadStore () {
+  let uploader: FSUploader
+  let agent:    Agent = { chain: { id: 'testing' }, upload: async (x: any) => x } as any // mock
+
+  //await withTmpDir(async store=>{
+    //uploader = new FSUploader({ agent, store })
+    //assert.ok(uploader.agent === agent)
+    //assert.ok(await uploader.upload(template))
+    //assert.ok(await uploader.upload(template))
+    //assert.ok(await uploader.uploadMany([template]))
+  //})
+}
+
+export const tmpDir = () => {
+  let x
+  withTmpDir(dir=>x=dir)
+  return x
+}
+
+export async function testProjectWizard () {
+  assert(await new ProjectWizard({ interactive: false, cwd: tmpDir() }).createProject(
+    Project,
+    'test-project-2',
+    'test3',
+    'test4'
+  ) instanceof Project)
 }
