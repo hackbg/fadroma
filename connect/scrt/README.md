@@ -767,9 +767,3 @@ chain = new Mocknet.Chain({
 
 assert.equal(chain.lastCodeId, 567)
 ```
-
----
-
-```typescript
-import assert from 'node:assert'
-```
