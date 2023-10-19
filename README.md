@@ -40,34 +40,53 @@ $ npx @hackbg/fadroma@1.5.6 create
 
 This will create a new project repository with the required dependencies.
 
-```
+```shell
 # Add a contract to the project:
 $ npm exec fadroma add
 ```
 
 ## Deploy your project
 
-```shell
-# Deploy the project, or update the current deployment:
-$ npm exec fadroma deploy [...ARGS]
+Use the `deploy` command to deploy your project:
 
-# Deploy everything anew:
-$ npm exec fadroma redeploy [...ARGS]
+```shell
+# Deploy your project to a local container:
+$ npm exec devnet deploy [...ARGS]
+
+# Deploy your project to testnet:
+$ npm exec testnet deploy [...ARGS]
+
+# Deploy your project to mainnet:
+$ npm exec mainnet deploy [...ARGS]
 ```
 
 If deploying fails, you should be able to re-run `deploy` and continue where you left off.
-Correspondingly, running `deploy` on a completed deployment will do nothing unless you've
-changed the description of the deployment.
+
+Running `deploy` on a completed deployment will do nothing (unless you've updated the
+description of the deployment, in which case it will try to apply the updates).
+To deploy everything anew, use `redeploy`:
+
+```shell
+# Deploy everything anew:
+$ npm exec mainnet redeploy [...ARGS]
+```
 
 Deploying a project results in a [deploy receipt](#deploy-receipts) being created -
-a simple file containing the state of the deployment.
-
-Since you can have more than one deployment of a project per chain, the newly created deployment
-will also be marked as active.
+a simple file containing the state of the deployment. You can have more than one of
+these, corresponding to multiple independent deployments of the same code. To see
+a list of them, use the `list` command:
 
 ```shell
 # Select another deployment
-$ npm exec fadroma select my-deployment
+$ npm exec mainnet list
+```
+
+After a deploy, the newly created deployment will be marked as *active*. To switch
+to another deployment, use the `select` command:
+
+```shell
+# Select another deployment
+$ npm exec mainnet select my-deployment
 ```
 
 Deployments in YAML multi-document format are human-readable and version control-friendly.
