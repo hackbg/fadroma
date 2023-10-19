@@ -27,30 +27,22 @@ export async function testDevnetDocs () {
 
 export async function testDevnetPlatform (platform: DevnetPlatform) {
   let devnet: any
+  assert.ok(devnet = new Devnet({ platform }), "construct devnet")
+  assert.ok(await devnet.start(), "starting the devnet works")
+  assert.ok(await devnet.assertPresence() || true, "devnet start automatically created container")
+  assert.ok(await devnet.pause(), "pausing the devnet works")
+  assert.ok(await devnet.export(), "exporting the devnet works")
+  assert.ok(await devnet.forceDelete() || true, "force deleting the devnet works")
+}
+
+export async function testDevnetChain () {
+  const devnet = new Devnet({ platform: 'okp4_5.0' })
+  const chain  = devnet.getChain()
   assert.ok(
-    devnet = new Devnet({ platform }),
-    "construct devnet"
+    chain.id.match(/fadroma-devnet-[0-9a-f]{8}/)
   )
-  assert.ok(
-    await devnet.start(),
-    "starting the devnet works"
-  )
-  assert.ok(
-    await devnet.assertPresence() || true,
-    "starting the devnet automatically created the container"
-  )
-  assert.ok(
-    await devnet.pause(),
-    "pausing the devnet works"
-  )
-  assert.ok(
-    await devnet.export(),
-    "exporting the devnet works"
-  )
-  assert.ok(
-    await devnet.forceDelete() || true,
-    "force deleting the devnet works"
-  )
+  assert.equal(chain.id, chain.devnet.chainId)
+  assert.equal((await devnet.container).name, `/${chain.id}`)
 }
 
 export async function testDevnetCopyUploads () {
@@ -204,3 +196,89 @@ export async function testDevnetContainer () {
   )
 }
 
+export async function testDevnetFurther () {
+
+  import { getDevnet } from '@hackbg/fadroma'
+
+  const devnet = getDevnet(/* { options } */)
+
+  await devnet.create()
+  await devnet.start()
+
+  const chain = devnet.getChain()
+
+  assert(chain.mode === 'Devnet')
+  assert(chain.isDevnet)
+  assert(chain.devnet === devnet)
+
+  const alice = chain.getAgent({ name: 'Alice' })
+  await alice.ready
+
+  assert(
+    alice instanceof Agent
+  )
+
+  assert.equal(
+    alice.name,
+    'Alice'
+  )
+
+  assert.equal(
+    alice.address,
+    $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load().address,
+  )
+
+  assert.equal(
+    alice.mnemonic,
+    $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load().mnemonic,
+  )
+
+  const anotherDevnet = getDevnet({
+    accounts: [ 'Alice', 'Bob' ],
+  })
+
+  assert.deepEqual(
+    anotherDevnet.accounts,
+    [ 'Alice', 'Bob' ]
+  )
+
+  await anotherDevnet.delete()
+
+  await devnet.pause()
+  await devnet.start()
+  await devnet.pause()
+
+  await devnet.export()
+
+  await devnet.delete()
+
+  import Project from '@hackbg/fadroma'
+  const project = new Project()
+  project.resetDevnets()
+
+  await devnet.create()
+  await devnet.start()
+  await devnet.pause()
+
+  assert.equal(
+    $(chain.devnet.stateDir).name,
+    chain.id
+  )
+
+  assert.deepEqual(
+    $(chain.devnet.stateDir, 'devnet.json').as(JSONFile).load(),
+    {
+      chainId:     chain.id,
+      containerId: chain.devnet.containerId,
+      port:        chain.devnet.port,
+      imageTag:    chain.devnet.imageTag
+    }
+  )
+
+  assert.deepEqual(
+    $(chain.devnet.stateDir, 'wallet').as(JSONDirectory).list(),
+    chain.devnet.accounts
+  )
+
+  await devnet.delete()
+}
