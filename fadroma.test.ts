@@ -115,6 +115,62 @@ export async function testBuild () {
   await deployment.t.built
   // -or-
   await deployment.t.build()
+
+  import { getBuilder } from '@hackbg/fadroma'
+  const builder = getBuilder(/* { ...options... } */)
+
+  import { Builder } from '@hackbg/fadroma'
+  assert(builder instanceof Builder)
+
+  import { BuildContainer } from '@hackbg/fadroma'
+  assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
+
+  import * as Dokeres from '@hackbg/dock'
+  assert.ok(getBuilder({ raw: false }).docker instanceof Dokeres.Engine)
+
+  getBuilder({ raw: false, dockerSocket: 'test' })
+
+  const rawBuilder = getBuilder({ raw: true })
+
+  import { BuildRaw } from '@hackbg/fadroma'
+  assert.ok(rawBuilder instanceof BuildRaw)
+
+  for (const raw of [true, false]) {
+    const builder = getBuilder({ raw })
+    const contract_0 = await builder.build({ crate: 'examples/kv' })
+    const [contract_1, contract_2] = await builder.buildMany([
+      { crate: 'examples/admin' },
+      { crate: 'examples/killswitch' }
+    ])
+    for (const [contract, index] of [ contract_0, contract_1, contract_2 ].map((c,i)=>[c,i]) {
+      assert(typeof contract.codeHash === 'string', `contract_${index}.codeHash is set`)
+      assert(contract.artifact instanceof URL,      `contract_${index}.artifact is set`)
+      assert(contract.workspace, `contract_${index}.workspace is set`)
+      assert(contract.crate,     `contract_${index}.crate is set`)
+      assert(contract.revision,  `contract_${index}.revision is set`)
+    }
+  }
+
+  const contract: Contract = new Contract({ builder, crate: 'fadroma-example-kv' })
+  await contract.compiled
+
+  const template = new Template({ builder, crate: 'fadroma-example-kv' })
+  await template.compiled
+
+  import { Contract } from '@fadroma/agent'
+  import { getGitDir, DotGit } from '@hackbg/fadroma'
+
+  assert.throws(()=>getGitDir(new Contract()))
+
+  const contractWithSource = new Contract({
+    repository: 'REPO',
+    revision:   'REF',
+    workspace:  'WORKSPACE',
+    crate:      'CRATE'
+  })
+
+  assert.ok(getGitDir(contractWithSource) instanceof DotGit)
+
 }
 
 export async function testUpload () {
@@ -124,6 +180,15 @@ export async function testUpload () {
   await deployment.t.uploaded
   // -or-
   await deployment.t.upload()
+
+  import { fixture } from './fixtures/Fixtures.ts.md'
+  const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
+
+  import { upload } from '@hackbg/fadroma'
+  await upload({ artifact })
+
+  import { getUploader } from '@hackbg/fadroma'
+  await getUploader({ /* options */ }).upload({ artifact })
 }
 
 export async function testDeploymentUpgrade () {

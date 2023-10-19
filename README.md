@@ -294,22 +294,6 @@ Each **devnet** is a stateful local instance of a chain node
   * The name of the container corresponds to the chain ID of the
     contained devnet.
 
-```typescript
-assert.ok(
-  chain.id.match(/fadroma-devnet-[0-9a-f]{8}/)
-)
-
-assert.equal(
-  chain.id,
-  chain.devnet.chainId
-)
-
-assert.equal(
-  (await chain.devnet.container).name,
-  `/${chain.id}`
-)
-```
-
 2. State files under `your-project/state/fadroma-KIND-ID/`:
 
   * `devnet.json` contains metadata about the devnet, such as
@@ -336,14 +320,6 @@ See: [Fadroma Agent API](./agent/README.md)
 
 ### Getting a builder
 
-```typescript
-import { getBuilder } from '@hackbg/fadroma'
-const builder = getBuilder(/* { ...options... } */)
-
-import { Builder } from '@hackbg/fadroma'
-assert(builder instanceof Builder)
-```
-
 #### BuildContainer
 
 By default, you get a `BuildContainer`,
@@ -351,24 +327,10 @@ which runs the build procedure in a container
 provided by either Docker or Podman (as selected
 by the `FADROMA_BUILD_PODMAN` environment variable).
 
-```typescript
-import { BuildContainer } from '@hackbg/fadroma'
-assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
-```
-
 `BuildContainer` uses [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock) to
 operate the container engine.
 
-```typescript
-import * as Dokeres from '@hackbg/dock'
-assert.ok(getBuilder({ raw: false }).docker instanceof Dokeres.Engine)
-```
-
 Use `FADROMA_DOCKER` or the `dockerSocket` option to specify a non-default Docker socket path.
-
-```typescript
-getBuilder({ raw: false, dockerSocket: 'test' })
-```
 
 The `BuildContainer` runs the build procedure defined by the `FADROMA_BUILD_SCRIPT`
 in a container based on the `FADROMA_BUILD_IMAGE`, resulting in optimized WASM build artifacts
@@ -380,13 +342,6 @@ If you want to execute the build procedure in your
 current environment, you can switch to `BuildRaw`
 by passing `raw: true` or setting `FADROMA_BUILD_RAW`.
 
-```typescript
-const rawBuilder = getBuilder({ raw: true })
-
-import { BuildRaw } from '@hackbg/fadroma'
-assert.ok(rawBuilder instanceof BuildRaw)
-```
-
 ### Building a contract
 
 Now that we've obtained a `Builder`, let's compile a contract from source into a WASM binary.
@@ -397,54 +352,18 @@ Building asynchronously returns `Template` instances.
 A `Template` is an undeployed contract. You can upload
 it once, and instantiate any number of `Contract`s from it.
 
-```typescript
-for (const raw of [true, false]) {
-  const builder = getBuilder({ raw })
-```
-
 To build a single crate with the builder:
-
-```typescript
-  const contract_0 = await builder.build({ crate: 'examples/kv' })
-```
 
 To build multiple crates in parallel:
 
-```typescript
-  const [contract_1, contract_2] = await builder.buildMany([
-    { crate: 'examples/admin' },
-    { crate: 'examples/killswitch' }
-  ])
-```
-
 For built contracts, the following holds true:
-
-```typescript
-  for (const [contract, index] of [ contract_0, contract_1, contract_2 ].map((c,i)=>[c,i]) {
-```
 
 * Build result will contain code hash and path to binary:
 
-```typescript
-    assert(typeof contract.codeHash === 'string', `contract_${index}.codeHash is set`)
-    assert(contract.artifact instanceof URL,      `contract_${index}.artifact is set`)
-```
-
 * Build result will contain info about build inputs:
-
-```typescript
-    assert(contract.workspace, `contract_${index}.workspace is set`)
-    assert(contract.crate,     `contract_${index}.crate is set`)
-    assert(contract.revision,  `contract_${index}.revision is set`)
-```
 
 The above holds true equally for contracts produced
 by `BuildContainer` and `BuildRaw`.
-
-```typescript
-  }
-}
-```
 
 #### Specifying a contract to build
 
@@ -464,18 +383,6 @@ The outputs of builds are called **artifact**s, and are represented by two prope
 |**`artifact`**|URL|Canonical location of the compiled binary.|
 |**`codeHash`**|string|SHA256 checksum of artifact. should correspond to **template.codeHash** and **instance.codeHash** properties of uploaded and instantiated contracts|
 
-```typescript
-import { Contract } from '@fadroma/agent'
-const contract: Contract = new Contract({ builder, crate: 'fadroma-example-kv' })
-await contract.compiled
-```
-
-```typescript
-import { Template } from '@fadroma/agent'
-const template = new Template({ builder, crate: 'fadroma-example-kv' })
-await template.compiled
-```
-
 ### Building past commits of contracts
 
 * `DotGit`, a helper for finding the contents of Git history
@@ -486,22 +393,6 @@ await template.compiled
 
 If `.git` directory is present, builders can check out and build a past commits of the repo,
 as specifier by `contract.revision`.
-
-```typescript
-import { Contract } from '@fadroma/agent'
-import { getGitDir, DotGit } from '@hackbg/fadroma'
-
-assert.throws(()=>getGitDir(new Contract()))
-
-const contractWithSource = new Contract({
-  repository: 'REPO',
-  revision:   'REF',
-  workspace:  'WORKSPACE'
-  crate:      'CRATE'
-})
-
-assert.ok(getGitDir(contractWithSource) instanceof DotGit)
-```
 
 ### The build procedure
 
@@ -535,24 +426,9 @@ given chain (e.g. `state/$CHAIN/uploads/`).
 
 Let's try uploading an example WASM binary:
 
-```typescript
-import { fixture } from './fixtures/Fixtures.ts.md'
-const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
-```
-
 * Uploading with default configuration (from environment variables):
 
-```typescript
-import { upload } from '@hackbg/fadroma'
-await upload({ artifact })
-```
-
 * Passing custom options to the uploader:
-
-```typescript
-import { getUploader } from '@hackbg/fadroma'
-await getUploader({ /* options */ }).upload({ artifact })
-```
 
 ## Devnet API
 
@@ -562,22 +438,11 @@ When scripting with the Fadroma API outside of the standard CLI/deployment
 context, you can use the `getDevnet` method to configure and obtain a `Devnet`
 instance.
 
-```typescript
-import { getDevnet } from '@hackbg/fadroma'
-
-const devnet = getDevnet(/* { options } */)
-```
-
 `getDevnet` supports the following options; their default values can be
 set through environment variables.
 
 At this point you have prepared a *description* of a devnet.
 To actually launch it, use the `create` then the `start` method:
-
-```typescript
-await devnet.create()
-await devnet.start()
-```
 
 At this point, you should have a devnet container running,
 its state represented by files in your project's `state/` directory.
@@ -586,10 +451,6 @@ To operate on the devnet thus created, you will need to wrap it
 in a **Chain** object and obtain the usual **Agent** instance.
 
 For this, the **Devnet** class has the **getChain** method.
-
-```typescript
-const chain = devnet.getChain()
-```
 
 A `Chain` object which represents a devnet has the following additional API:
 
@@ -603,12 +464,6 @@ A `Chain` object which represents a devnet has the following additional API:
 |**chain.devnet.getAccount(name)**|**(string)⇒Promise\<Partial\<Agent\>\>**: returns info about a genesis account|
 |**chain.devnet.assertPresence()**|**()⇒Promise\<void\>**: throws if the devnet container ID is known, but the container itself is not found|
 
-```typescript
-assert(chain.mode === 'Devnet')
-assert(chain.isDevnet)
-assert(chain.devnet === devnet)
-```
-
 ### Devnet accounts
 
 Devnet state is independent from the state of mainnet or testnet.
@@ -620,34 +475,8 @@ When getting an **Agent** on the devnet, use the `name` property
 to specify which genesis account to use. Default genesis account
 names are `Admin`, `Alice`, `Bob`, `Charlie`, and `Mallory`.
 
-```typescript
-const alice = chain.getAgent({ name: 'Alice' })
-await alice.ready
-```
-
 This will populate the created Agent with the mnemonic for that
 genesis account.
-
-```typescript
-assert(
-  alice instanceof Agent
-)
-
-assert.equal(
-  alice.name,
-  'Alice'
-)
-
-assert.equal(
-  alice.address,
-  $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load().address,
-)
-
-assert.equal(
-  alice.mnemonic,
-  $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load().mnemonic,
-)
-```
 
 That's it! You are now set to use the standard Fadroma Agent API
 to operate on the local devnet as the specified identity.
@@ -658,28 +487,9 @@ You can also specify custom genesis accounts by passing an array
 of account names to the `accounts` parameter of the **getDevnet**
 function.
 
-```typescript
-const anotherDevnet = getDevnet({
-  accounts: [ 'Alice', 'Bob' ],
-})
-
-assert.deepEqual(
-  anotherDevnet.accounts,
-  [ 'Alice', 'Bob' ]
-)
-
-await anotherDevnet.delete()
-```
-
 ### Pausing the devnet
 
 You can pause the devnet by stopping the container:
-
-```typescript
-await devnet.pause()
-await devnet.start()
-await devnet.pause()
-```
 
 ### Exporting a devnet snapshot
 
@@ -689,10 +499,6 @@ you can use one to test the frontend/contracts stack as a
 step of your integration pipeline.
 
 To create a snapshot, use the **export** method of the **Devnet** class:
-
-```typescript
-await devnet.export()
-```
 
 When the active chain is a devnet, the `export` command,
 which exports a list of contracts in the current deployment,
@@ -711,50 +517,12 @@ provides the **delete** method. This will stop and remove
 the devnet container, then delete all devnet state in your
 project's state directory.
 
-```typescript
-await devnet.delete()
-```
-
 To delete all devnets in a project, the **Project** class
 provides the **resetDevnets** method:
-
-```typescript
-import Project from '@hackbg/fadroma'
-const project = new Project()
-project.resetDevnets()
-```
 
 The to call **resetDevnets** from the command line, use the
 `reset` command:
 
 ```sh
 $ npm run devnet reset
-```
-
-```typescript
-await devnet.create()
-await devnet.start()
-await devnet.pause()
-
-assert.equal(
-  $(chain.devnet.stateDir).name,
-  chain.id
-)
-
-assert.deepEqual(
-  $(chain.devnet.stateDir, 'devnet.json').as(JSONFile).load(),
-  {
-    chainId:     chain.id,
-    containerId: chain.devnet.containerId,
-    port:        chain.devnet.port,
-    imageTag:    chain.devnet.imageTag
-  }
-)
-
-assert.deepEqual(
-  $(chain.devnet.stateDir, 'wallet').as(JSONDirectory).list(),
-  chain.devnet.accounts
-)
-
-await devnet.delete()
 ```
