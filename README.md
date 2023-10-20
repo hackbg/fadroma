@@ -2,7 +2,8 @@
 
 [![Fadroma](./banner2.svg)](https://fadroma.tech)
 
-Distributed application framework developed at [**Hack.bg**](https://hack.bg).
+[Distributed application framework](https://fadroma.tech) developed at
+[**Hack.bg**](https://hack.bg).
 
 |Component|Package|Docs|
 |-|-|-|
@@ -13,14 +14,6 @@ Distributed application framework developed at [**Hack.bg**](https://hack.bg).
 |`@fadroma/connect`|[![](https://img.shields.io/npm/v/@fadroma/connect?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)|[View docs](https://fadroma.tech/ts/modules/_fadroma_connect.html)|
 |`@fadroma/scrt`|[![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_scrt.html)|
 |`@fadroma/cw`|[![](https://img.shields.io/npm/v/@fadroma/cw?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_cw.html)|
-
-See [**https://fadroma.tech**](https://fadroma.tech) for overview or try the
-[**getting started guide**](https://fadroma.tech/guide.html).
-
-See the [**Fadroma Workshop**](https://github.com/hackbg/fadroma-workshop) repo
-for a real-world example, which includes a step-by-step guide on how to build smart
-contracts using the Fadroma Rust crate, and the [**Fadroma Factory Example**](https://fadroma.tech/factory.html)
-for a guide to deploying your Rust contracts using the Fadroma TypeScript package.
 
 </div>
 
@@ -240,3 +233,12 @@ of `Deployment` classes.
 ```typescript
 // TODO
 ```
+
+## Further reading
+
+* [**Fadroma Workshop**](https://github.com/hackbg/fadroma-workshop) repo,
+  a step-by-step guide on how to build smart contracts using the Fadroma Rust crate.
+
+* [**Fadroma Factory**](https://fadroma.tech/factory.html),
+  a guide to deploying your Rust contracts using the Fadroma TypeScript package,
+  via a factory pattern that enables your users to instantiate contracts in a controlled way.
