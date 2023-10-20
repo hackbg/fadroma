@@ -156,6 +156,39 @@ A `Chain` object which represents a devnet has the following additional API:
 |**chain.devnet.getAccount(name)**|**(string)⇒Promise\<Partial\<Agent\>\>**: returns info about a genesis account|
 |**chain.devnet.assertPresence()**|**()⇒Promise\<void\>**: throws if the devnet container ID is known, but the container itself is not found|
 
+### Devnet state
+
+Each **devnet** is a stateful local instance of a chain node
+(such as `secretd` or `okp4d`), and consists of two things:
+
+1. A container named `fadroma-KIND-ID`, where:
+
+  * `KIND` is what kind of devnet it is. For now, the only valid
+    value is `devnet`. In future releases, this will be changed to
+    contain the chain name and maybe the chain version.
+
+  * `ID` is a random 8-digit hex number. This way, when you have
+    multiple devnets of the same kind, you can distinguish them
+    from one another.
+
+  * The name of the container corresponds to the chain ID of the
+    contained devnet.
+
+2. State files under `your-project/state/fadroma-KIND-ID/`:
+
+  * `devnet.json` contains metadata about the devnet, such as
+    the chain ID, container ID, connection port, and container
+    image to use.
+
+  * `wallet/` contains JSON files with the addresses and mnemonics
+    of the **genesis accounts** that are created when the devnet
+    is initialized. These are the initial holders of the devnet's
+    native token, and you can use them to execute transactions.
+
+  * `upload/` and `deploy/` contain **upload and deploy receipts**.
+    These work the same as for remote testnets and mainnets,
+    and enable reuse of uploads and deployments.
+
 ### Devnet accounts
 
 Devnet state is independent from the state of mainnet or testnet.
@@ -190,3 +223,12 @@ project's state directory.
 
 To delete all devnets in a project, the **Project** class
 provides the **resetDevnets** method:
+
+## Deploy receipts
+
+By default, the list of contracts in each deployment created by Fadroma
+is stored in `state/${CHAIN_ID}/deploy/${DEPLOYMENT}.yml`.
+
+The deployment currently selected as "active" by the CLI
+(usually, the latest created deployment) is symlinked at
+`state/${CHAIN_ID}/deploy/.active.yml`.
