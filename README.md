@@ -28,7 +28,7 @@ for a guide to deploying your Rust contracts using the Fadroma TypeScript packag
 
 # Getting started
 
-## Create a project and define contracts
+## Create a project
 
 ```shell
 # Create a project:
@@ -40,25 +40,24 @@ $ npx @hackbg/fadroma@1.5.6 create
 
 This will create a new project repository with the required dependencies.
 
-```shell
-# Add a contract to the project:
-$ npm exec fadroma add
-```
-
 ## Deploy your project
 
 Use the `deploy` command to deploy your project:
 
 ```shell
-# Deploy your project to a local container:
-$ npm exec devnet deploy [...ARGS]
+# Deploy your project to a local container
+$ npm run devnet deploy [...ARGS]
 
-# Deploy your project to testnet:
-$ npm exec testnet deploy [...ARGS]
+# Deploy your project to testnet
+$ npm run testnet deploy [...ARGS]
 
-# Deploy your project to mainnet:
-$ npm exec mainnet deploy [...ARGS]
+# Deploy your project to mainnet
+$ npm run mainnet deploy [...ARGS]
 ```
+
+When deploying, Fadroma will automatically build and upload the contracts specified
+in the deployment. To do these tasks manually, see the [Build contracts](#build-contracts)
+and [Upload contracts](#upload-contracts) sections.
 
 If deploying fails, you should be able to re-run `deploy` and continue where you left off.
 
@@ -67,8 +66,8 @@ description of the deployment, in which case it will try to apply the updates).
 To deploy everything anew, use `redeploy`:
 
 ```shell
-# Deploy everything anew:
-$ npm exec mainnet redeploy [...ARGS]
+# Deploy everything anew
+$ npm run mainnet redeploy [...ARGS]
 ```
 
 Deploying a project results in a [deploy receipt](#deploy-receipts) being created -
@@ -77,8 +76,8 @@ these, corresponding to multiple independent deployments of the same code. To se
 a list of them, use the `list` command:
 
 ```shell
-# Select another deployment
-$ npm exec mainnet list
+# List deployments in this project
+$ npm run mainnet list
 ```
 
 After a deploy, the newly created deployment will be marked as *active*. To switch
@@ -86,7 +85,7 @@ to another deployment, use the `select` command:
 
 ```shell
 # Select another deployment
-$ npm exec mainnet select my-deployment
+$ npm run mainnet select my-deployment
 ```
 
 Deployments in YAML multi-document format are human-readable and version control-friendly.
@@ -95,10 +94,10 @@ snapshot of the active deployment.
 
 ```shell
 # Export deployment state to ./my-deployment_@_timestamp.json
-$ npm exec fadroma export
+$ npm run fadroma export
 
 # Export deployment state to ./some-directory/my-deployment_@_timestamp.json
-$ npm exec fadroma export ./some-directory
+$ npm run fadroma export ./some-directory
 ```
 
 ## Connect to a deployed project
@@ -149,57 +148,59 @@ of `Deployment` classes.
 // TODO
 ```
 
-## Build individual contracts
+## Build contracts
 
 ```shell
-# Build a contract from the project:
-$ npm exec fadroma build some-contract
-
-# Build multiple contracts from the project in parallel:
-$ npm exec fadroma build some-contract another-contract a-third-contract
-
 # Build all contracts in the project:
-$ npm exec fadroma build
+$ npm run fadroma build
+
+# Build a single contract:
+$ npm run fadroma build some-contract
+
+# Build multiple contracts:
+$ npm run fadroma build some-contract another-contract a-third-contract
 
 # Build contract by path:
-$ npm exec fadroma /path/to/crate
+$ npm run fadroma /path/to/crate
 ```
 
-When deploying, Fadroma automatically builds the `Contract`s specified in the deployment,
-using a procedure based on [secret-contract-optimizer](https://hub.docker.com/r/enigmampc/secret-contract-optimizer).
+By default, builds happen in a Docker container. Set `FADROMA_BUILD_RAW=1` to instead use
+your local Rust toolchain.
 
-This either with your local Rust/WASM toolchain,
-or in a pre-defined [build container](https://github.com/hackbg/fadroma/pkgs/container/fadroma).
-The latter option requires Docker (which you also need for the devnet).
+The production builds of your contracts are stored as `.wasm` binaries in your project's
+`wasm/` directory. Every binary has a corresponding `.wasm.sha256` checksum file whose contents
+correspond to the on-chain code hash.
 
-By default, optimized builds are output to the `wasm` subdirectory of your project.
-Checksums of build artifacts are emitted as `wasm/*.wasm.sha256`: these checksums
-should be equal to the code hashes returned by the chain.
-
-We advise you to keep these
-**build receipts** in version control. This gives you a quick way to keep track of the
-correspondence between changes to source and resulting changes to code hashes.
-
-Furthermore, when creating a `Project`, you'll be asked to define one or more `Template`s
-corresponding to the contract crates of your project. You can
-
-Fadroma implements **reproducible compilation** of contracts.
-What to compile is specified using the primitives defined in [Fadroma Core](../client/README.md).
-
-## Upload individual contracts
+To rebuild a contract, do one of the following:
+* delete the contract and its checksum from `wasm/`;
+* use the `rebuild` command instead of `build`;
+* set the `FADROMA_REBUILD=1` when calling `build`, `upload` or `deploy`.
 
 ```shell
-# Upload a contract:
-$ npm exec fadroma upload CONTRACT [...CONTRACT]
-
-# Reupload a contract:
-$ fadroma reupload CONTRACT # always reupload
+# Rebuild all contracts:
+$ npm run fadroma rebuild
 ```
 
-Fadroma takes care of **uploading WASM files to get code IDs**. If the same code hash is
-known to already be uploaded to the same chain (as represented by
-an upload receipt in `state/$CHAIN/uploads/$CODE_HASH.json`,
-Fadroma will skip the upload and reuse the existing code ID.
+## Upload contracts
+
+```shell
+# Build and upload all contracts in the project
+$ npm testnet upload
+
+# Build and upload a single contract
+$ npm testnet upload some-contract
+
+# Build and upload multiple contracts
+$ npm testnet upload some-contract another-contract a-third-contract
+```
+
+Uploading a contract adds an **upload receipt** in `state/$CHAIN_ID/uploads/$CODE_ID.json`.
+This prevents duplicate uploads.
+
+```shell
+# Reupload all contracts, getting new code ids:
+$ npm testnet reupload
+```
 
 ## Deploying to the local devnet
 
