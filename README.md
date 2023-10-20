@@ -66,6 +66,27 @@ To rebuild a contract, do one of the following:
 $ npm run fadroma rebuild
 ```
 
+## Selecting deploy targets
+
+The supported deploy targets are `mainnet`, `testnet`, and `devnet`. Projects created by Fadroma
+define NPM scripts to select them:
+
+```sh
+# Deploy to mainnet
+$ npm run mainnet deploy
+
+# Deploy to testnet
+$ npm run testnet deploy
+
+# Deploy to devnet
+$ npm run devnet deploy
+```
+
+In the examples below, we will use those interchangeably.
+
+Alternatively, use the `FADROMA_CHAIN` environment variable with `npm run fadroma`.
+See [Fadroma Connect](./connect/README.md) for a list of supported values.
+
 ## Using the local devnet
 
 Fadroma allows you to easily run local instances of the supported chains,
@@ -87,27 +108,6 @@ $ npm run devnet reset
 
 An exported **devnet snapshot** is a great way to provide a standardized dev build
 of your project that can be run locally by frontend devs, by your CI pipeline, etc.
-
-## Selecting deploy targets
-
-The supported deploy targets are `mainnet`, `testnet`, and `devnet`. Projects created by Fadroma
-define NPM scripts to select them:
-
-```sh
-# Deploy to mainnet
-$ npm run mainnet deploy
-
-# Deploy to testnet
-$ npm run testnet deploy
-
-# Deploy to devnet
-$ npm run devnet deploy
-```
-
-In the examples below, we will use those interchangeably.
-
-Alternatively, use the `FADROMA_CHAIN` environment variable with `npm run fadroma`.
-See [Fadroma Connect](./connect/README.md) for a list of supported values.
 
 ## Uploading contracts
 
