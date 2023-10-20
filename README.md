@@ -30,7 +30,7 @@ for a guide to deploying your Rust contracts using the Fadroma TypeScript packag
 
 ## Create a project
 
-```shell
+```sh
 # Create a project:
 $ npx @hackbg/fadroma@latest create
 
@@ -40,19 +40,113 @@ $ npx @hackbg/fadroma@1.5.6 create
 
 This will create a new project repository with the required dependencies.
 
+## Build contracts
+
+```sh
+# Build all contracts in the project:
+$ npm run fadroma build
+
+# Build a single contract:
+$ npm run fadroma build some-contract
+
+# Build multiple contracts:
+$ npm run fadroma build some-contract another-contract a-third-contract
+
+# Build contract by path:
+$ npm run fadroma /path/to/crate
+```
+
+By default, builds happen in a Docker container. Set `FADROMA_BUILD_RAW=1` to instead use
+your local Rust toolchain.
+
+The production builds of your contracts are stored as `.wasm` binaries in your project's
+`wasm/` directory. Every binary has a corresponding `.wasm.sha256` checksum file whose contents
+correspond to the on-chain code hash.
+
+To rebuild a contract, do one of the following:
+* delete the contract and its checksum from `wasm/`;
+* use the `rebuild` command instead of `build`;
+* set the `FADROMA_REBUILD=1` when calling `build`, `upload` or `deploy`.
+
+```sh
+# Rebuild all contracts:
+$ npm run fadroma rebuild
+```
+
+## The local devnet
+
+Fadroma allows you to easily run local instances of the supported chains,
+in order to test your contracts without uploading them to testnet.
+
+```sh
+# Pause the devnet
+$ npm run devnet pause
+
+# Export the devnet
+$ npm run devnet export
+
+# Resume the devnet
+$ npm run devnet resume
+
+# Stop the devnet and erase all state
+$ npm run devnet reset
+```
+
+The devnet runs in a Docker container, and writes state to `state/$CHAIN_ID/`.
+
+## Select target chain
+
+Projects created by Fadroma include define NPM scripts for the supported modes:
+
+```sh
+# Deploy to mainnet
+$ npm run mainnet deploy
+
+# Deploy to testnet
+$ npm run testnet deploy
+
+# Deploy to devnet
+$ npm run devnet deploy
+```
+
+In the examples below, we will use these interchangeably.
+
+## Upload contracts
+
+```sh
+# Build and upload all contracts in the project
+$ npm testnet upload
+
+# Build and upload a single contract
+$ npm testnet upload some-contract
+
+# Build and upload multiple contracts
+$ npm testnet upload some-contract another-contract a-third-contract
+```
+
+If contract binaries are not present, the upload command will try to build them first.
+
+Uploading a contract adds an **upload receipt** in `state/$CHAIN_ID/uploads/$CODE_ID.json`.
+This prevents duplicate uploads. To reupload, do one of the following:
+
+* use the `reupload` command in place of `upload`.
+* set `FADROMA_REUPLOAD=1` when invoking `upload` or `deploy`
+
+```sh
+# Reupload all contracts, getting new code ids:
+$ npm testnet reupload
+
+# Redeploy with new code ids
+$ FADROMA_REUPLOAD=1 npm testnet redeploy
+```
+
 ## Deploy your project
 
 Use the `deploy` command to deploy your project:
 
-```shell
-# Deploy your project to a local container
-$ npm run devnet deploy [...ARGS]
-
+```sh
 # Deploy your project to testnet
 $ npm run testnet deploy [...ARGS]
-
-# Deploy your project to mainnet
-$ npm run mainnet deploy [...ARGS]
 ```
 
 When deploying, Fadroma will automatically build and upload the contracts specified
@@ -65,49 +159,44 @@ Running `deploy` on a completed deployment will do nothing (unless you've update
 description of the deployment, in which case it will try to apply the updates).
 To deploy everything anew, use `redeploy`:
 
-```shell
+```sh
 # Deploy everything anew
-$ npm run mainnet redeploy [...ARGS]
+$ npm run testnet redeploy [...ARGS]
 ```
+
+## Managing deployments
 
 Deploying a project results in a [deploy receipt](#deploy-receipts) being created -
 a simple file containing the state of the deployment. You can have more than one of
 these, corresponding to multiple independent deployments of the same code. To see
 a list of them, use the `list` command:
 
-```shell
+```sh
 # List deployments in this project
-$ npm run mainnet list
+$ npm run testnet list
 ```
 
 After a deploy, the newly created deployment will be marked as *active*. To switch
 to another deployment, use the `select` command:
 
-```shell
+```sh
 # Select another deployment
-$ npm run mainnet select my-deployment
+$ npm run testnet select my-deployment
 ```
 
 Deployments in YAML multi-document format are human-readable and version control-friendly.
 When a list of contracts in JSON is desired, you can use the `export` command to export a JSON
 snapshot of the active deployment.
 
-```shell
-# Export deployment state to ./my-deployment_@_timestamp.json
-$ npm run fadroma export
+```sh
+# Export the state of the active testnet deployment to ./my-deployment_@_timestamp.json
+$ npm run testnet export
 
-# Export deployment state to ./some-directory/my-deployment_@_timestamp.json
-$ npm run fadroma export ./some-directory
+# Export state to ./some-directory/my-deployment_@_timestamp.json
+$ npm run testnet export ./some-directory
 ```
 
-## Connect to a deployed project
-
-Internally, the data for the export is generated by the
-`deployment.snapshot` getter:
-
-```typescript
-// TODO
-```
+## Connect to deployment
 
 In a standard Fadroma project, where the Rust contracts
 and TypeScript API client live in the same repo, by `export`ing
@@ -139,7 +228,7 @@ Or, to connect to individual contracts from the stored deployment:
 // TODO
 ```
 
-## Define custom migrations in a deployment
+## Upgrade a deployment
 
 Migrations can be implemented as static or regular methods
 of `Deployment` classes.
@@ -147,93 +236,6 @@ of `Deployment` classes.
 ```typescript
 // TODO
 ```
-
-## Build contracts
-
-```shell
-# Build all contracts in the project:
-$ npm run fadroma build
-
-# Build a single contract:
-$ npm run fadroma build some-contract
-
-# Build multiple contracts:
-$ npm run fadroma build some-contract another-contract a-third-contract
-
-# Build contract by path:
-$ npm run fadroma /path/to/crate
-```
-
-By default, builds happen in a Docker container. Set `FADROMA_BUILD_RAW=1` to instead use
-your local Rust toolchain.
-
-The production builds of your contracts are stored as `.wasm` binaries in your project's
-`wasm/` directory. Every binary has a corresponding `.wasm.sha256` checksum file whose contents
-correspond to the on-chain code hash.
-
-To rebuild a contract, do one of the following:
-* delete the contract and its checksum from `wasm/`;
-* use the `rebuild` command instead of `build`;
-* set the `FADROMA_REBUILD=1` when calling `build`, `upload` or `deploy`.
-
-```shell
-# Rebuild all contracts:
-$ npm run fadroma rebuild
-```
-
-## Upload contracts
-
-```shell
-# Build and upload all contracts in the project
-$ npm testnet upload
-
-# Build and upload a single contract
-$ npm testnet upload some-contract
-
-# Build and upload multiple contracts
-$ npm testnet upload some-contract another-contract a-third-contract
-```
-
-Uploading a contract adds an **upload receipt** in `state/$CHAIN_ID/uploads/$CODE_ID.json`.
-This prevents duplicate uploads.
-
-```shell
-# Reupload all contracts, getting new code ids:
-$ npm testnet reupload
-```
-
-## Deploying to the local devnet
-
-```sh
-# Deploy to devnet
-$ npm run devnet deploy
-
-# Nuke the devnet
-$ npm run devnet reset
-```
-
-Fadroma enables fully local development of projects - no remote testnet needed!
-This feature is known as **Fadroma Devnet**. 
-
-Normally, you would interact with a devnet no different than any other
-`Chain`: through your `Deployment` subclass.
-
-When using the Fadroma CLI, `Chain` instances are provided automatically
-to instances `Deployment` subclasses.
-
-So, when `FADROMA_CHAIN` is set to `ScrtDevnet`, your deployment will
-be instantiated alongside a local devnet, ready to operate!
-
-As a shortcut, projects created via the Fadroma CLI contain the `devnet`
-NPM script, which is an alias to `FADROMA_CHAIN=ScrtDevnet fadroma`.
-
-So, to deploy your project to a local devnet, you would just run:
-
-Fadroma Devnet includes container images based on `localsecret`,
-for versions of Secret Network 1.2 to 1.9. Under the hood, the
-implementation uses the library [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock)
-to manage Docker images and containers. There is also experimental
-support for Podman.
 
 # Configuration
 
@@ -263,22 +265,6 @@ support for Podman.
 |**`FADROMA_UPLOAD_STATE`**         |**Path to directory.** Receipts of uploaded contracts (default: `state/uploads.csv`)|
 
 # State
-
-## Build cache
-
-When build caching is enabled, each build call first checks in `FADROMA_ARTIFACTS`
-for a corresponding pre-existing build and reuses it if present.
-
-Setting `FADROMA_REBUILD` disables build caching.
-
-## Upload receipts
-
-If contract binaries are not present, the upload command will try to build them first.
-Every successful upload logs the transaction as a file called an **upload receipt** under
-`state/$CHAIN_ID/upload.`. This contains info about the upload transaction.
-
-The `UploadStore` loads a collection of upload receipts and tells the `Uploader` if a
-binary has already been uploaded, so it can prevent duplicate uploads.
 
 ## Deploy receipts
 
@@ -513,10 +499,6 @@ to operate on the local devnet as the specified identity.
 You can also specify custom genesis accounts by passing an array
 of account names to the `accounts` parameter of the **getDevnet**
 function.
-
-### Pausing the devnet
-
-You can pause the devnet by stopping the container:
 
 ### Exporting a devnet snapshot
 
