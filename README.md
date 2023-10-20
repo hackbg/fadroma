@@ -2,8 +2,11 @@
 
 [![Fadroma](./banner2.svg)](https://fadroma.tech)
 
-[Distributed application framework](https://fadroma.tech) developed at
+[Distributed application groundwork](https://fadroma.tech) developed at
 [**Hack.bg**](https://hack.bg).
+
+Fadroma is a scriptable equivalent to Docker Compose
+for building innovative dApps on CosmWasm-enabled backends.
 
 |Component|Package|Docs|
 |-|-|-|
@@ -235,6 +238,11 @@ of `Deployment` classes.
 ```
 
 ## Further reading
+
+* [**Fadroma Agent API**](./agent/README.md), our core API defining portable user agents
+  for smart contract-based backends.
+
+* [**Fadroma Connect**](./connect/README.md), our catalog of supported platforms.
 
 * [**Fadroma Workshop**](https://github.com/hackbg/fadroma-workshop) repo,
   a step-by-step guide on how to build smart contracts using the Fadroma Rust crate.
