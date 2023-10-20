@@ -28,7 +28,7 @@ for a guide to deploying your Rust contracts using the Fadroma TypeScript packag
 
 # Getting started
 
-## Create a project
+## Creating a a project
 
 ```sh
 # Create a project:
@@ -40,7 +40,7 @@ $ npx @hackbg/fadroma@2.0.0 create
 
 This will create a new project repository with the required dependencies.
 
-## Build contracts
+## Building contracts
 
 ```sh
 # Build all contracts in the project:
@@ -73,7 +73,7 @@ To rebuild a contract, do one of the following:
 $ npm run fadroma rebuild
 ```
 
-## The local devnet
+## Using the local devnet
 
 Fadroma allows you to easily run local instances of the supported chains,
 in order to test your contracts without uploading them to testnet.
@@ -95,9 +95,10 @@ $ npm run devnet reset
 An exported **devnet snapshot** is a great way to provide a standardized dev build
 of your project that can be run locally by frontend devs, by your CI pipeline, etc.
 
-## Select target chain
+## Selecting deploy targets
 
-Projects created by Fadroma include define NPM scripts for the supported modes:
+The supported deploy targets are `mainnet`, `testnet`, and `devnet`. Projects created by Fadroma
+define NPM scripts to select them:
 
 ```sh
 # Deploy to mainnet
@@ -110,9 +111,12 @@ $ npm run testnet deploy
 $ npm run devnet deploy
 ```
 
-In the examples below, we will use these interchangeably.
+In the examples below, we will use those interchangeably.
 
-## Upload contracts
+Alternatively, use the `FADROMA_CHAIN` environment variable with `npm run fadroma`.
+See [Fadroma Connect](./connect/README.md) for a list of supported values.
+
+## Uploading contracts
 
 ```sh
 # Build and upload all contracts in the project
@@ -141,7 +145,7 @@ $ npm testnet reupload
 $ FADROMA_REUPLOAD=1 npm testnet redeploy
 ```
 
-## Deploy your project
+## Deploying your project
 
 Use the `deploy` command to deploy your project:
 
@@ -196,7 +200,7 @@ $ npm run testnet export
 $ npm run testnet export ./some-directory
 ```
 
-## Connect to deployment
+## Connecting to a deployment
 
 In a standard Fadroma project, where the Rust contracts
 and TypeScript API client live in the same repo, by `export`ing
@@ -228,7 +232,7 @@ Or, to connect to individual contracts from the stored deployment:
 // TODO
 ```
 
-## Upgrade a deployment
+## Upgrading a deployment
 
 Migrations can be implemented as static or regular methods
 of `Deployment` classes.
@@ -265,45 +269,3 @@ of `Deployment` classes.
 |**`FADROMA_UPLOAD_STATE`**         |**Path to directory.** Receipts of uploaded contracts (default: `state/uploads.csv`)|
 
 # State
-
-## Deploy receipts
-
-By default, the list of contracts in each deployment created by Fadroma
-is stored in `state/${CHAIN_ID}/deploy/${DEPLOYMENT}.yml`.
-
-The deployment currently selected as "active" by the CLI
-(usually, the latest created deployment) is symlinked at
-`state/${CHAIN_ID}/deploy/.active.yml`.
-
-## Devnet state
-
-Each **devnet** is a stateful local instance of a chain node
-(such as `secretd` or `okp4d`), and consists of two things:
-
-1. A container named `fadroma-KIND-ID`, where:
-
-  * `KIND` is what kind of devnet it is. For now, the only valid
-    value is `devnet`. In future releases, this will be changed to
-    contain the chain name and maybe the chain version.
-
-  * `ID` is a random 8-digit hex number. This way, when you have
-    multiple devnets of the same kind, you can distinguish them
-    from one another.
-
-  * The name of the container corresponds to the chain ID of the
-    contained devnet.
-
-2. State files under `your-project/state/fadroma-KIND-ID/`:
-
-  * `devnet.json` contains metadata about the devnet, such as
-    the chain ID, container ID, connection port, and container
-    image to use.
-
-  * `wallet/` contains JSON files with the addresses and mnemonics
-    of the **genesis accounts** that are created when the devnet
-    is initialized. These are the initial holders of the devnet's
-    native token, and you can use them to execute transactions.
-
-  * `upload/` and `deploy/` contain **upload and deploy receipts**.
-    These work the same as for remote testnets and mainnets,
-    and enable reuse of uploads and deployments.
