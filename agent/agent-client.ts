@@ -301,8 +301,8 @@ export class StructuredLabel {
 }
 
 /** Fetch the label from the chain. */
-export async function fetchLabel <C extends AnyContract> (
-  contract: C, agent: Agent, expected?: Label
+export async function fetchLabel (
+  contract: { address: Address }, agent: Agent, expected?: Label
 ): Promise<Label> {
   const label = await agent.getLabel(assertAddress(contract))
   if (!!expected) validated('label', label, expected)

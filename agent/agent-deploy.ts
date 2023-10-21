@@ -456,7 +456,7 @@ export class Template<C extends Client> {
     map(contracts, contract=>this.instance(contract))
   /** @returns a copy of this object with a changed agent.
     * @warning overriding constructor signature is discouraged. */
-  asAgent = (agent: Agent): this =>
+  withAgent = (agent: Agent): this =>
     new (this.constructor as any)({ ...this, agent })
   /** Provide parameters for an existing instance.
     * @returns mutated self */

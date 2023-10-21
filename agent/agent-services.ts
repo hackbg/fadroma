@@ -23,6 +23,7 @@ import { Client, fetchCodeHash, getSourceSpecifier } from './agent-client'
 import { assertAgent } from './agent-chain'
 import { sha256, base16 } from '@hackbg/4mat'
 import { override } from '@hackbg/over'
+
 /** Parameters involved in building a contract. */
 export interface Buildable {
   /** Path or URL to source repository for crate/workspace. */
@@ -40,9 +41,11 @@ export interface Buildable {
   /** Builder class to use for build. */
   builder?:    Builder
 }
+
 /** Builders can be specified as ids, class names, or objects. */
 /** A constructor for a Builder subclass. */
 export type BuilderClass<B extends Builder> = Class<Builder, any>
+
 /** Result of building a contract. */
 export interface Built extends Partial<Buildable> {
   /** Path or URL to binary. */
@@ -54,6 +57,7 @@ export interface Built extends Partial<Buildable> {
   /** ID of builder that produced binary. */
   builderId?: string
 }
+
 /** Parameters involved in uploading a contract */
 export interface Uploadable {
   /** Path or URL to binary. */
@@ -63,8 +67,10 @@ export interface Uploadable {
   /** Chain to upload to. */
   chainId?:  ChainId,
 }
+
 /** A constructor for a subclass of Uploader. */
 export interface UploaderClass<U extends Uploader> { new (options?: Partial<Uploader>): U }
+
 /** Result of uploading a contract */
 export interface Uploaded extends Partial<Uploadable> {
   /** Chain to which the contract was uploaded. */
@@ -82,6 +88,7 @@ export interface Uploaded extends Partial<Uploadable> {
   /** Gas used by upload tx. */
   uploadGas?: string|number
 }
+
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder {
   log = new Console(this.constructor.name)
@@ -101,6 +108,7 @@ export abstract class Builder {
     * Builder implementations override this, though. */
   abstract buildMany (sources: (string|Buildable)[], ...args: unknown[]): Promise<Built[]>
 }
+
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
 export class Uploader {
