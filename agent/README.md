@@ -294,7 +294,34 @@ const results = await agent.batch(async batch=>{
 }).run()
 ```
 
-## Contract clients
+## Gas fees
+
+Transacting creates load on the network, which incurs costs on node operators.
+Compensations for transactions are represented by the gas metric.
+
+You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
+property of your client class:
+
+```typescript
+const fee1 = new Fee('100000', 'uscrt')
+client.fees['my_method'] = fee1
+
+assert.deepEqual(client.getFee('my_method'), fee1)
+assert.deepEqual(client.getFee({'my_method':{'parameter':'value'}}), fee1)
+```
+
+You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
+This method works by returning a copy of `client` with fees overridden by the provided value.
+
+```typescript
+const fee2 = new Fee('200000', 'uscrt')
+
+assert.deepEqual(await client.withFee(fee2).getFee('my_method'), fee2)
+```
+
+## Contracts
+
+### Contract clients
 
 The **Client** class represents a handle to a smart contract deployed to a given chain.
 
@@ -334,7 +361,7 @@ await client.execute({ my_method: {} })
 await client.query({ my_query: {} })
 ```
 
-### Client agent
+#### Client agent
 
 By default, the `Client`'s `agent` property is equal to the `agent`
 which deployed the contract. This property determines the address from
@@ -367,7 +394,7 @@ client.execute({ my_method: {} })
 client.withAgent(agent2).execute({ my_method: {} })
 ```
 
-### Client metadata
+#### Client metadata
 
 The original `Contract` object from which the contract
 was deployed can be found on the optional `meta` property of the `Client`.
@@ -396,52 +423,12 @@ However, unlike the code ID, which is opaque, the code hash corresponds to the
 actual content of the code. Uploading the same code multiple times will give
 you different code IDs, but the same code hash.
 
-## Gas fees
-
-Transacting creates load on the network, which incurs costs on node operators.
-Compensations for transactions are represented by the gas metric.
-
-You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
-property of your client class:
-
-```typescript
-const fee1 = new Fee('100000', 'uscrt')
-client.fees['my_method'] = fee1
-
-assert.deepEqual(client.getFee('my_method'), fee1)
-assert.deepEqual(client.getFee({'my_method':{'parameter':'value'}}), fee1)
-```
-
-You can also specify one fee for all transactions, using `client.withFee({ gas, amount: [...] })`.
-This method works by returning a copy of `client` with fees overridden by the provided value.
-
-```typescript
-const fee2 = new Fee('200000', 'uscrt')
-
-assert.deepEqual(await client.withFee(fee2).getFee('my_method'), fee2)
-```
-
-## Declarative deployments
-
-# Fadroma Deploy API
-
-The **Deploy API** revolves around the `Deployment` class,
-the `Template` and `Contract` classes, and the associated
-implementations of `Client`, `Builder`, `Uploader`, and `DeployStore`.
-
-```typescript
-import { Deployment, Template, Contract, Client } from '@fadroma/agent'
-let deployment: Deployment
-let template:   Template
-let contract:   Contract
-```
+### Contract deployments
 
 These classes are used for describing systems consisting of multiple smart contracts,
 such as when deploying them from source. By defining such a system as one or more
 subclasses of `Deployment`, Fadroma enables declarative, idempotent, and reproducible
 smart contract deployments.
-
-## Deployment
 
 The `Deployment` class represents a set of interrelated contracts.
 To define your deployment, extend the `Deployment` class, and use the
@@ -470,7 +457,7 @@ export class DeploymentA extends Deployment {
 }
 ```
 
-### Preparing
+#### Preparing
 
 To prepare a deployment for deploying, use `getDeployment`.
 This will provide a populated instance of your deployment class.
@@ -480,7 +467,7 @@ import { getDeployment } from '@hackbg/fadroma'
 deployment = getDeployment(DeploymentA, /* ...constructor args */)
 ```
 
-### Deploying everything
+#### Deploying everything
 
 Then, call its `deploy` method:
 
@@ -494,7 +481,7 @@ For each contract defined in the deployment, this will do the following:
 * If it's not uploaded yet, it will **upload** it.
 * If it's not instantiated yet, it will **instantiate** it.
 
-### Expecting contracts to be deployed
+#### Expecting contracts to be deployed
 
 Having deployed a contract, you want to obtain a `Client` instance
 that points to it, so you can call the contract's methods.
@@ -515,7 +502,7 @@ to your UI code after deploying or connecting to a stored deployment
 If the address of the request contract is not available,
 this will throw an error.
 
-### Deploying individual contracts with dependencies
+#### Deploying individual contracts with dependencies
 
 By `await`ing a `Contract`'s `deployed` property, you say:
 "give me a handle to this contract; if it's not deployed,
@@ -530,7 +517,7 @@ Since this does not call the deployment's `deploy` method,
 it *only* deploys the requested contract and its dependencies
 but not any other contracts defined in the deployment.
 
-### Deploying with custom logic
+#### Deploying with custom logic
 
 The `deployment.deploy` method simply instantiates
 all contracts in order. You are free to override it
@@ -550,7 +537,7 @@ class DeploymentB extends Deployment {
 }
 ```
 
-## Contract
+### Contract instances
 
 The `Contract` class describes an individual smart contract instance and uniquely identifies it
 within the `Deployment`.
@@ -575,18 +562,18 @@ new Contract({
 })
 ```
 
-### Naming and labels
+#### Naming and labels
 
 The chain requires labels to be unique.
 Labels generated by Fadroma are of the format `${deployment.name}/${contract.name}`.
 
-### Lazy init
+#### Lazy init
 
 The `initMsg` property of `Contract` can be a function returning the actual message.
 This function is only called during instantiation, and can be used to generate init
 messages on the fly, such as when passing the address of one contract to another.
 
-### Deploying contract instances
+#### Deploying contract instances
 
 To instantiate a `Contract`, its `agent` property must be set to a valid `Agent`.
 When obtaining instances from a `Deployment`, their `agent` property is provided
@@ -619,7 +606,7 @@ await deployment.a.built
 await deployment.a.build()
 ```
 
-## Template
+### Contract templates
 
 The `Template` class represents a smart contract's source, compilation,
 binary, and upload. It can have a `codeHash` and `codeId` but not an
@@ -630,7 +617,7 @@ method (or its plural, `template.instances`), which returns `Contract`,
 which represents a particular smart contract instance, which can have
 an `address`.
 
-### Deploying multiple contracts from a template
+#### Deploying multiple contracts from a template
 
 The `deployment.template` method adds a `Template` to the `Deployment`.
 
@@ -644,7 +631,7 @@ You can pass either an array or an object to `template.instances`.
 // TODO
 ```
 
-### Building from source code
+#### Building from source code
 
 To build, the `builder` property must be set to a valid `Builder`.
 When obtaining instances from a `Deployment`, the `builder` property
@@ -661,7 +648,7 @@ You can build a `Template` (or its subclass, `Contract`) by awaiting the
 // TODO
 ```
 
-### Uploading binaries
+#### Uploading binaries
 
 To upload, the `uploader` property must be set to a valid `Uploader`.
 When obtaining instances from a `Deployment`, the `uploader` property
@@ -680,3 +667,9 @@ but a source and a builder are present, this will also try to build the contract
 ```typescript
 // TODO
 ```
+
+## Services
+
+### Builder
+
+### Uploader
