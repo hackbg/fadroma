@@ -43,7 +43,7 @@ impl ContractCode {
             label: label.into(),
             msg: to_binary(msg)?,
             funds,
-            admin: None
+            //admin: None
         })
     }
 }
