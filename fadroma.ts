@@ -49,9 +49,6 @@ import { basename, resolve, dirname } from 'node:path'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
-/** Root of installed Fadroma package. */
-export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
-
 /** @returns Builder configured as per environment and options */
 export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
   return new Config({ build: options }).getBuilder()
