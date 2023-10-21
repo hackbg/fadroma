@@ -7,12 +7,17 @@
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
     "check": "tsc --noEmit",
-    "ubik":  "pnpm check && ubik"
+    "ubik":  "pnpm check && ubik",
+    "test":  "ensuite connect.test.ts",
+    "cov":   "ensuite-cov -r text -r lcov -- connect.test.ts"
   },
   "dependencies": {
     "@fadroma/agent": "workspace:2.0.0-rc.1",
     "@fadroma/scrt":  "workspace:11.0.0-rc.1",
     "@fadroma/cw":    "workspace:1.0.0-rc.1",
     "@hackbg/conf":   "workspace:3.1.5"
+  },
+  "devDependencies": {
+    "@hackbg/ensuite": "workspace:../ensuite"
   }
 }
