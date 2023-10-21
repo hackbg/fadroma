@@ -7,12 +7,15 @@ jobs:
     steps:
       - name: Get the source, no submodules
         uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile:   minimal
           toolchain: stable
           target:    wasm32-unknown-unknown
           override:  true
+      - name: Setup Rust cache
+        uses: mozilla-actions/sccache-action@v0.0.3
       - name: Try building for WASM
         run: cargo build --all-features --target wasm32-unknown-unknown
   #rs-coverage:
