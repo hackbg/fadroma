@@ -4,6 +4,10 @@ jobs:
   site:
     name: build website
     runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
 
       - name: Get the source with submodules
