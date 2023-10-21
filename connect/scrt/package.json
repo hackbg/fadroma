@@ -13,12 +13,12 @@
     "@noble/ed25519":       "^2.0.0"
   },
   "devDependencies": {
-    "@hackbg/ensuite": "1.x"
+    "@hackbg/ensuite": "workspace:../../ensuite"
   },
   "scripts": {
     "check": "tsc --noEmit",
     "ubik":  "npm run check && npm run cov && ubik",
-    "test":  "cd ../.. && ensuite spec/Scrt.spec.ts.md",
-    "cov":   "cd ../.. && ensuite-cov -r text -r lcov -- spec/Scrt.spec.ts.md"
+    "test":  "ensuite scrt.test.ts",
+    "cov":   "ensuite-cov -r text -r lcov -- scrt.test.ts"
   }
 }
