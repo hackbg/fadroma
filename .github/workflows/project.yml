@@ -9,6 +9,10 @@ jobs:
   project-gh:
     name: pnpm ci
     runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - name: Clone with submodules
         uses: actions/checkout@v4
@@ -62,6 +66,10 @@ jobs:
   project-gh-compiled:
     name: Create and build a project by compiled checkout
     runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - name: Clone with submodules
         uses: actions/checkout@v4
@@ -83,6 +91,8 @@ jobs:
           toolchain: 1.69.0
           target: wasm32-unknown-unknown
           override: true
+      - name: Setup Rust cache
+        uses: mozilla-actions/sccache-action@v0.0.3
       - name: Build Fadroma to NPM equivalent
         env:
           FORCE_COLOR: 2
