@@ -34,7 +34,18 @@ $ npx @hackbg/fadroma@latest create
 $ npx @hackbg/fadroma@2.0.0 create
 ```
 
-This will create a new project repository with the required dependencies.
+The newly created project will contain the following modules:
+
+* **api.ts** is the root module of your project's TypeScript SDK. It contains `Client` subclasses
+  that correspond to your contracts, and a `Deployment` subclass which describes how the
+  contracts relate to each other. See the [Fadroma Agent API](./agent/README.md) documentation
+  for details.
+
+* **config.ts** is your project's deploy configuration. Here, you can customize the
+  build/upload/deploy procedures and define project-specific commands that you can then
+  access from the Fadroma CLI.
+
+* **test.ts** is where you can write integration tests for your project.
 
 ## Building contracts
 

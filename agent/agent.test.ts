@@ -1,21 +1,104 @@
-import { StubChain as Chain, StubAgent as Agent, Batch, Error, Console } from './agent'
+import {
+  StubChain as Chain, StubAgent as Agent, Batch, Client, Error, Console,
+  assertChain, assertAgent
+} from './agent'
 import assert from 'node:assert'
 
 import { TestSuite } from '@hackbg/ensuite'
 export default new TestSuite(import.meta.url, [
-  ['obtain',  testAgentObtain],
-  ['batch',   testAgentBatch],
+  ['chain',   testChain],
+  ['devnet',  testChainDevnet],
+  ['agent',   testAgent],
+  ['batch',   testBatch],
   ['errors',  testAgentErrors],
   ['console', testAgentConsole],
 ])
 
-export async function testAgentObtain () {
-  const chain = new Chain()
+export async function testChain () {
+  let chain = new Chain()
+  assert.throws(()=>chain.id)
+  assert.throws(()=>chain.id='foo')
+  assert.throws(()=>chain.mode)
+  assert.equal(chain.chain, chain)
+  assert.equal(assertChain({ chain }), chain)
+  chain = new Chain({ id: 'foo' })
+  await chain.height
+  await chain.getBalance('','')
+  await chain.query(new Client(), {})
+  await chain.getCodeId('')
+  await chain.getHash('')
+  await chain.getHash(0)
+  await chain.getLabel('')
+
+  assert.ok(Chain.mainnet().isMainnet)
+  assert.ok(!(new Chain({ mode: Chain.Mode.Mainnet }).devMode))
+
+  assert.ok(Chain.testnet().isTestnet)
+  assert.ok(!(new Chain({ mode: Chain.Mode.Testnet }).devMode))
+
+  assert.ok(Chain.devnet().isDevnet)
+  assert.ok(Chain.devnet().devMode)
+
+  assert.ok(new Chain({ mode: Chain.Mode.Mocknet }).isMocknet)
+  assert.ok(new Chain({ mode: Chain.Mode.Mocknet }).devMode)
+}
+
+export async function testChainDevnet () {
+  const devnet = {
+    accounts: [],
+    chainId: 'foo',
+    platform: 'bar',
+    running: false,
+    stateDir: '/tmp/foo',
+    url: new URL('http://example.com'),
+    async start () { return this },
+    async getAccount () { return {} },
+    async assertPresence () {}
+  }
+  const chain = new Chain({ devnet, id: 'bar', url: 'http://asdf.com', mode: Chain.Mode.Mainnet })
+  assert.equal(chain.id, 'foo')
+  assert.equal(chain.url, 'http://example.com/')
+  assert.equal(chain.mode, Chain.Mode.Devnet)
+  assert.equal(chain.devnet, devnet)
+  assert.equal(chain.stopped, true)
+  devnet.running = true
+  assert.equal(chain.stopped, false)
+  assert.throws(()=>chain.id='asdf')
+  assert.throws(()=>chain.url='asdf')
+  assert.throws(()=>{
+    //@ts-ignore
+    chain.mode='asdf'
+  })
+  assert.throws(()=>chain.devnet=devnet)
+  assert.throws(()=>chain.stopped=true)
+  assert.equal(chain.log.label, 'foo @ http://example.com/')
+}
+
+export async function testAgent () {
+  const chain = new Chain({ id: 'stub' })
   let agent: Agent = await chain.getAgent({ name: 'testing1', address: '...' })
   assert.ok(agent instanceof Agent,    'an Agent was returned')
   assert.ok(agent.address,             'agent has address')
   assert.equal(agent.name, 'testing1', 'agent.name assigned')
   assert.equal(agent.chain, chain,     'agent.chain assigned')
+
+  await agent.ready
+  agent.defaultDenom
+  agent.balance
+  agent.height
+  //agent.nextBlock
+  await agent.getBalance('a','b')
+  await agent.query(new Client(), {})
+  await agent.getCodeId('')
+  await agent.getHash('')
+  await agent.getHash(0)
+  await agent.getLabel('')
+  await agent.send('', [], {})
+  await agent.sendMany([], {})
+  await agent.upload(new Uint8Array(), {})
+  await agent.instantiate({} as any)
+  await agent.execute({}, {}, {})
+  assert.equal(assertAgent({agent}), agent)
 }
 
 export async function testAgentMeta () {
@@ -42,7 +125,7 @@ export async function testAgentMeta () {
   //assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
 }
 
-export async function testAgentBatch () {
+export async function testBatch () {
   //import { Chain, Agent, Batch } from '@fadroma/agent'
   //chain = new Chain({ id: 'id', url: 'example.com', mode: 'mainnet' })
   //agent = await chain.getAgent()
@@ -57,16 +140,6 @@ export async function testAgentBatch () {
   ////assert(await batch.instantiateMany({}, [['label', 'init']]))
   ////assert(await batch.instantiate({}, 'label', 'init'))
   //assert.equal(await batch.checkHash(), 'code-hash-stub')
-
-  //assert.rejects(()=>batch.query())
-  //assert.rejects(()=>batch.upload())
-  //assert.rejects(()=>batch.uploadMany())
-  //assert.rejects(()=>batch.sendMany())
-  //assert.rejects(()=>batch.send())
-  //assert.rejects(()=>batch.getBalance())
-  //assert.throws(()=>batch.height)
-  //assert.throws(()=>batch.nextBlock)
-  //assert.throws(()=>batch.balance)
 
   let chain: Chain = new Chain({ id: 'stub' })
   let agent: Agent = await chain.getAgent({ address: 'testing1agent0' })
@@ -84,6 +157,17 @@ export async function testAgentBatch () {
   assert.equal(await new TestBatch(agent, async batch=>{
     assert(batch instanceof TestBatch)
   }).save(), 'saved')
+
+  batch = new TestBatch(agent)
+  assert.rejects(()=>batch.query({} as any, {}))
+  assert.rejects(()=>batch.upload({} as any))
+  assert.rejects(()=>batch.uploadMany())
+  assert.rejects(()=>batch.sendMany([]))
+  assert.rejects(()=>batch.send('', []))
+  assert.rejects(()=>batch.getBalance(''))
+  assert.throws(()=>batch.height)
+  assert.throws(()=>batch.nextBlock)
+  assert.throws(()=>batch.balance)
 
   batch = new TestBatch(agent)
   assert.deepEqual(batch.msgs, [])

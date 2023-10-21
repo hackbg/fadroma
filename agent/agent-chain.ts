@@ -282,12 +282,7 @@ export abstract class Chain {
 
   /** @returns a devnet instance of this chain. */
   static devnet (options: Partial<Chain> = {}): Chain {
-    options = { ...options, mode: Chain.Mode.Devnet }
-    if (options.devnet) {
-      options.id = options.devnet.chainId
-      options.url = options.devnet.url.toString()
-    }
-    return new (this as any)(options)
+    return new (this as any)({ ...options, mode: Chain.Mode.Devnet })
   }
 
   /** @returns a mocknet instance of this chain. */
