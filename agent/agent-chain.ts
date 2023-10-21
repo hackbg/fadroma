@@ -299,7 +299,7 @@ export class StubChain extends Chain {
   /** Get the current block height. */
   get height (): Promise<number> {
     this.log.warn('chain.height: this getter is stub; use a subclass of Chain')
-    return Promise.resolve(0)
+    return Promise.resolve(+ new Date())
   }
 
   /** Stub implementation of getting native balance. */
@@ -554,7 +554,7 @@ export class StubAgent extends Agent {
     return Promise.resolve({
       chainId:  this.chain!.id,
       codeId:   '0',
-      codeHash: ''
+      codeHash: 'stub-code-hash'
     })
   }
 

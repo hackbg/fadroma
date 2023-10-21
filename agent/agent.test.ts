@@ -1,17 +1,28 @@
 import {
   StubChain as Chain, StubAgent as Agent, Batch, Client, Error, Console,
-  assertChain, assertAgent
+  DeployStore, Deployment, Template, Contract,
+  assertChain, assertAgent, linkStruct,
+  fetchLabel, parseLabel, writeLabel,
+  toBuildReceipt, toUploadReceipt, toInstanceReceipt,
+  Builder, Uploader,
+  Token, TokenFungible, TokenNonFungible, Swap
 } from './agent'
 import assert from 'node:assert'
+import { fixture } from '../fixtures/fixtures'
 
 import { TestSuite } from '@hackbg/ensuite'
 export default new TestSuite(import.meta.url, [
-  ['chain',   testChain],
-  ['devnet',  testChainDevnet],
-  ['agent',   testAgent],
-  ['batch',   testBatch],
-  ['errors',  testAgentErrors],
-  ['console', testAgentConsole],
+  ['errors',     testAgentErrors],
+  ['console',    testAgentConsole],
+  ['chain',      testChain],
+  ['devnet',     testChainDevnet],
+  ['agent',      testAgent],
+  ['batch',      testBatch],
+  ['client',     testClient],
+  ['labels',     testLabels],
+  ['deployment', testDeployment],
+  ['receipts',   testReceipts],
+  ['services',   testServices],
 ])
 
 export async function testChain () {
@@ -31,10 +42,10 @@ export async function testChain () {
   await chain.getLabel('')
 
   assert.ok(Chain.mainnet().isMainnet)
-  assert.ok(!(new Chain({ mode: Chain.Mode.Mainnet }).devMode))
+  assert.ok(!(Chain.mainnet().devMode))
 
   assert.ok(Chain.testnet().isTestnet)
-  assert.ok(!(new Chain({ mode: Chain.Mode.Testnet }).devMode))
+  assert.ok(!(Chain.testnet().devMode))
 
   assert.ok(Chain.devnet().isDevnet)
   assert.ok(Chain.devnet().devMode)
@@ -235,3 +246,149 @@ export async function testAgentConsole () {
   }
 }
 
+export async function testLabels () {
+  assert.equal(writeLabel({ prefix: 'foo', name: 'bar', suffix: 'baz' }), 'foo/bar+baz')
+  assert.deepEqual(parseLabel('foo/bar+baz'), {
+    label: 'foo/bar+baz', prefix: 'foo', name: 'bar', suffix: 'baz'
+  })
+
+  await fetchLabel(
+    { address: 'foo' },
+    new Chain({ id: 'foo', mode: Chain.Mode.Testnet }).getAgent(),
+    'contract-label-stub'
+  )
+}
+
+export async function testClient () {
+  const chain = new Chain({ id: 'foo', mode: Chain.Mode.Testnet })
+  const agent = new Agent({ chain })
+  const client = new Client({ agent, address: 'addr', codeHash: 'code-hash-stub', codeId: '100' })
+  assert.equal(client.chain, chain)
+  assert.deepEqual(client.asContractLink, { address: 'addr', code_hash: 'code-hash-stub' })
+  assert.deepEqual(client.asContractLink, linkStruct(client as any))
+  //assert.deepEqual(client.asContractCode, { code_id: 100, code_hash: 'hash' })
+  assert.deepEqual(await client.fetchCodeHash(), client)
+  await client.query({foo: 'bar'})
+  await client.execute({foo: 'bar'})
+  assert.deepEqual(client.withFee({ amount: [], gas: '123' }), client)
+  assert.deepEqual(client.withFees({}), client)
+  assert.deepEqual(client.withAgent(), client)
+}
+
+export async function testDeployment () {
+  class TestDeployStore extends DeployStore {
+    list () { return [] }
+    load () { return { foo: {} } }
+    save () {}
+    async create () { return {} }
+    async select () { return {} }
+    get activeName () { return null }
+  }
+  const store = new TestDeployStore()
+  const deployment = store.getDeployment()
+  assert.ok(deployment instanceof Deployment)
+  assert.equal(await deployment.save(), deployment)
+  assert.equal(deployment.size, 0)
+  assert.equal(new Deployment({ chain: Chain.mainnet() }).isMainnet, true)
+  assert.equal(new Deployment({ chain: Chain.testnet() }).isTestnet, true)
+  assert.equal(new Deployment({ chain: Chain.devnet() }).isDevnet, true)
+  assert.equal(new Deployment({ chain: Chain.devnet() }).devMode, true)
+  assert.deepEqual(new Deployment().snapshot, {contracts:{}})
+  new Deployment().showStatus()
+  assert.ok(new Deployment().template() instanceof Template)
+  assert.ok(new Deployment().contract() instanceof Contract)
+  await new Deployment().deploy()
+  assert.equal(new Deployment().hasContract('foo'), false)
+  new Deployment().getContract('foo')
+  new Deployment().findContract()
+  new Deployment().findContracts()
+  new Deployment({ builder: { build () {}, buildMany () {} } }).buildContracts([])
+  new Deployment({
+    builder: { build () {}, buildMany () {} },
+    uploader: { upload () {}, uploadMany () {}, agent: Chain.testnet().getAgent() },
+  }).uploadContracts([])
+  new Deployment().template().asContractCode
+  new Deployment().template().description
+  new Deployment().template().withAgent()
+  new Deployment().template().instance()
+  new Deployment().template().instances([])
+  await (new Deployment({ builder: { build () {} } })
+    .template({ crate: 'foo' })
+    .built)
+  await (new Deployment({
+    builder: { build () {} },
+    uploader: { upload () {}, agent: Chain.testnet().getAgent() },
+  })
+    .template({ crate: 'foo' })
+    .uploaded)
+
+  const d = new Deployment({
+    builder: { build () {}, buildMany () {} },
+    uploader: { upload () {}, uploadMany () {}, agent: Chain.testnet().getAgent() },
+  })
+  //d.contract({
+    //name: 'foo', agent: Chain.testnet({ id: 'foo' }).getAgent(), initMsg: {}, crate: 'foo', codeId: '123'
+  //})
+  d.snapshot
+  await d.deploy()
+}
+
+export async function testReceipts () {
+  toBuildReceipt({})
+  toUploadReceipt({})
+  toInstanceReceipt({
+    crate: 'asdf',
+    artifact: 'asdf',
+    chainId: 'asdf',
+    codeId: 'asdf',
+    codeHash: 'asdf',
+    initMsg: {},
+    address: 'asdf',
+    label: 'asdf'
+  })
+}
+
+export async function testServices () {
+  class TestBuilder extends Builder {
+    async build (...args: any[]) {
+      return { artifact: 'asdf' }
+    }
+    async buildMany (...args: any[]) {
+      return [{ artifact: 'asdf' }]
+    }
+    id = 'test-builder'
+  }
+
+  new TestBuilder()
+
+  const agent = Chain.testnet({id:'foo'}).getAgent()
+
+  await new Uploader({ agent }).upload({
+    artifact: fixture('null.wasm'),
+    codeHash: 'stub-code-hash'
+  })
+
+  //await new Uploader({ agent }).uploadMany([])
+  //await new Uploader({ agent }).uploadMany([{ artifact: 'asdf' }])
+}
+
+export async function testToken () {
+
+  new (class extends Token {
+    get id () { return 'token' }
+    isFungible () { return true }
+  })()
+
+  new (class extends TokenFungible {
+    get id () { return 'token' }
+    isNative () { return true }
+    isCustom () { return false }
+  })()
+
+  new (class extends TokenNonFungible {
+    get id () { return 'token' }
+    isNative () { return true }
+    isCustom () { return false }
+  })()
+
+}
