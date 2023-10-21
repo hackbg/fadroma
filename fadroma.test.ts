@@ -14,8 +14,13 @@ import type { Agent } from '@fadroma/agent'
 import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
 import * as Dock from '@hackbg/dock'
 import { fixture } from './fixtures/fixtures'
-
 import { TestSuite } from '@hackbg/ensuite'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** Root of installed Fadroma package. */
+//@ts-ignore
+export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
 
 export async function testCollections () {
 
