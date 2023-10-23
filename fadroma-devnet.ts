@@ -29,7 +29,7 @@ import type { CodeId } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
-import { freePort, Endpoint, waitPort, isPortTaken } from '@hackbg/port'
+import ports, { waitPort } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
 
 import { resolve, dirname } from 'node:path'
@@ -364,12 +364,7 @@ export class Devnet implements DevnetHandle {
       if (!this.image) throw new DevnetError.Missing.DevnetImage()
       if (!this.chainId) throw new DevnetError.Missing.ChainId()
       // if port is unspecified or taken, increment
-      while (!this.port || await isPortTaken(Number(this.port))) {
-        const taken = this.port
-        this.port = Number(this.port) + 1 || await freePort()
-        if (this.port < 1024 || this.port > 65535) Object.assign(this, { port: undefined })
-        if (this.port) this.log.tryingPort(this.port, taken)
-      }
+      this.port = await ports.getFreePort(this.port)
       // create container
       this.log.creating(this)
       const init = this.initScript ? [this.initScriptMount] : []
