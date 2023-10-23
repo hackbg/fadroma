@@ -1,9 +1,10 @@
+import * as SecretJS from '@hackbg/secretjs-esm'
 import assert from 'node:assert'
+import { Devnet } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
 import { Agent, ChainId, Address, randomBech32 } from '@fadroma/agent'
 import * as Mocknet from './scrt-mocknet'
 
-const SecretJS = (Scrt.SecretJS as any).default
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 let chain: any // for mocking
 let agent: Agent
@@ -12,6 +13,7 @@ const mnemonic = 'define abandon palace resource estate elevator relief stock or
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['devnet',  testScrtDevnet],
+  ['chain',   testScrtChain],
   ['fees',    testScrtFees],
   ['batches', testScrtBatches],
   ['permits', testScrtPermits],
@@ -43,6 +45,27 @@ async function testScrtDevnet () {
       'to get a devnet genesis account')
   )
 
+}
+
+async function testScrtChain () {
+  Scrt.mainnet()
+  const devnet = await new Devnet({ platform: 'scrt_1.9' }).create()
+  const chain = devnet.getChain() as Scrt.Chain
+
+  // TODO: ScrtChain#ready instead of getApi() "memoize yourself"
+  assert(await chain.api instanceof SecretJS.SecretNetworkClient)
+  await chain.block
+  await chain.height
+
+  const alice = await chain.getAgent({ name: 'Alice' }).ready as Scrt.Agent
+  assert(alice.wallet instanceof SecretJS.Wallet)
+  assert(alice.api instanceof SecretJS.SecretNetworkClient)
+  assert(alice.encryptionUtils instanceof SecretJS.EncryptionUtilsImpl)
+  await chain.getBalance(chain.defaultDenom, alice.address!)
+  await alice.getBalance(chain.defaultDenom, alice.address!)
+  await alice.balance
+  const bob = await chain.getAgent({ name: 'Bob' }).ready as Scrt.Agent
+  await alice.getBalance(chain.defaultDenom, bob.address!)
 }
 
 async function testScrtFees () {
