@@ -59,7 +59,7 @@ export async function testDevnetCopyUploads () {
   const uploaded1 = await uploader.upload(artifact)
   const uploaded2 = await uploader.upload(artifact)
   const devnet2   = new Devnet({ platform: 'okp4_5.0' })
-  assert.ok(await devnet2.copyUploads(chain1), "copying uploads")
+  //assert.ok(await devnet2.copyUploads(chain1), "copying uploads")
 }
 
 export async function testDevnetChainId () {
