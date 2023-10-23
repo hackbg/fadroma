@@ -1,4 +1,15 @@
-import * as SecretJS from '@hackbg/secretjs-esm'
+import {
+  MsgExecuteContract,
+  MsgInstantiateContract,
+  ReadonlySigner,
+  SecretNetworkClient,
+  Wallet,
+} from '@hackbg/secretjs-esm'
+import type {
+  CreateClientOptions,
+  EncryptionUtils,
+  TxResponse
+} from '@hackbg/secretjs-esm'
 import { Config, Error, Console } from './scrt-base'
 import * as Mocknet from './scrt-mocknet'
 import {
@@ -23,49 +34,70 @@ class ScrtChain extends Chain {
   /** The Agent class used by this instance. */
   Agent: AgentClass<ScrtAgent> = ScrtChain.Agent
 
+  /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
+  api?: SecretNetworkClient
+
   constructor (options: Partial<ScrtChain> = {
     url:  ScrtChain.Config.defaultMainnetUrl,
     mode: Chain.Mode.Mainnet
   }) {
     super(options)
     this.log.label = `${this.id}`
-    // Optional: Allow a different API-compatible version of SecretJS to be passed
-    Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
 
-  /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
-  get api () {
-    return this.getApi()
+  get ready (): Promise<this & { api: SecretNetworkClient }> {
+    if (this.isDevnet && !this.devnet) {
+      throw new Error("the chain is marked as a devnet but is missing the devnet handle")
+    }
+    const init = new Promise<this & { api: SecretNetworkClient }>(async (resolve, reject)=>{
+      if (this.isDevnet) {
+        await this.devnet!.start()
+      }
+      if (!this.api) {
+        if (!this.url) throw new Error("the chain's url property is not set")
+        this.api = this.getApi()
+      }
+      return resolve(this as this & { api: SecretNetworkClient })
+    })
+    Object.defineProperty(this, 'ready', { get () { return init } })
+    return init
   }
 
-  get block () {
-    return this.api.then(api=>api.query.tendermint.getLatestBlock({}))
+  /** @returns a fresh instance of the anonymous read-only API client. */
+  getApi (options: Partial<CreateClientOptions> = {}): SecretNetworkClient {
+    options = { chainId: this.id, url: this.url, ...options }
+    if (!options.url) throw new Error.Missing('api url')
+    return new SecretNetworkClient(options as CreateClientOptions)
+  }
+
+  get block (): any {
+    return this.ready.then(({api})=>api.query.tendermint.getLatestBlock({}))
   }
 
   get height () {
-    return this.block.then(block=>Number(block.block?.header?.height))
+    return this.block.then((block: any)=>Number(block.block?.header?.height))
   }
 
   async getBalance (denom = this.defaultDenom, address: Address) {
-    const api = await this.api
+    const {api} = await this.ready
     const response = await api.query.bank.balance({ address, denom })
     return response.balance!.amount!
   }
 
   async getLabel (contract_address: string): Promise<string> {
-    const api = await this.api
+    const {api} = await this.ready
     const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.label!
   }
 
   async getCodeId (contract_address: string): Promise<string> {
-    const api = await this.api
+    const {api} = await this.ready
     const response = await api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.code_id!
   }
 
   async getHash (arg: string|number): Promise<string> {
-    const api = await this.api
+    const {api} = await this.ready
     if (typeof arg === 'number' || !isNaN(Number(arg))) {
       return (await api.query.compute.codeHashByCodeId({
         code_id: String(arg)
@@ -81,18 +113,10 @@ class ScrtChain extends Chain {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
 
-  /** @returns a fresh instance of the anonymous read-only API client. */
-  async getApi (
-    options: Partial<SecretJS.CreateClientOptions> = {}
-  ): Promise<SecretJS.SecretNetworkClient> {
-    options = { chainId: this.id, url: this.url, ...options }
-    if (!options.url) throw new Error.Missing('api url')
-    return await new (SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
-  }
-
   async fetchLimits (): Promise<{ gas: number }> {
+    const {api} = await this.ready
     const params = { subspace: "baseapp", key: "BlockParams" }
-    const { param } = await (await this.api).query.params.params(params)
+    const { param } = await api.query.params.params(params)
     let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
     this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
     if (max_gas < 0) {
@@ -156,7 +180,7 @@ class ScrtChain extends Chain {
 
 }
 
-export type TxResponse = SecretJS.TxResponse
+export type { TxResponse }
 
 /** Represents a connection to the Secret Network,
   * authenticated as a specific address. */
@@ -183,18 +207,18 @@ class ScrtAgent extends Agent {
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
-  get ready (): Promise<this & { api: SecretJS.SecretNetworkClient }> {
+  get ready (): Promise<this & { api: SecretNetworkClient }> {
     // Require chain reference to be populated.
     if (!this.chain) throw new Error.Missing.Chain()
     // If an API instance is already available (e.g. provided to constructor), just use that.
-    if (this.api) return Promise.resolve(this as this & { api: SecretJS.SecretNetworkClient })
+    if (this.api) return Promise.resolve(this as this & { api: SecretNetworkClient })
     // Begin asynchronous init.
-    const init = new Promise<this & { api: SecretJS.SecretNetworkClient }>(async (
+    const init = new Promise<this & { api: SecretNetworkClient }>(async (
       resolve, reject
     )=>{
       try {
         let wallet = this.wallet
-        if (!wallet || wallet instanceof SecretJS.ReadonlySigner) {
+        if (!wallet || wallet instanceof ReadonlySigner) {
           // If this is a named devnet agent
           if (this.name && this.chain.isDevnet && this.chain.devnet) {
             // Provide mnemonic from devnet genesis accounts
@@ -207,7 +231,7 @@ class ScrtAgent extends Agent {
             this.mnemonic = bip39.generateMnemonic(bip39EN)
             this.log.generatedMnemonic(this.mnemonic!)
           }
-          wallet = new SecretJS.Wallet(this.mnemonic)
+          wallet = new Wallet(this.mnemonic)
         } else if (this.mnemonic) {
           this.log.ignoringMnemonic()
         }
@@ -237,7 +261,7 @@ class ScrtAgent extends Agent {
         this.log.label = `${this.address??'(no address)'} @ ${this.chain.id??'(no chain id)'}`
         this.log.log('authenticated')
         // Done.
-        resolve(this as this & { api: SecretJS.SecretNetworkClient })
+        resolve(this as this & { api: SecretNetworkClient })
       } catch (e) {
         reject(e)
       }
@@ -248,26 +272,26 @@ class ScrtAgent extends Agent {
   }
 
   /** Instance of the underlying platform API provided by `secretjs`. */
-  get api (): SecretJS.SecretNetworkClient|undefined {
+  get api (): SecretNetworkClient|undefined {
     return undefined
   }
-  set api (value: SecretJS.SecretNetworkClient|undefined) {
+  set api (value: SecretNetworkClient|undefined) {
     setApi(this, value)
   }
 
   /** This agent's identity on the chain. */
-  get wallet (): SecretJS.Wallet|undefined {
+  get wallet (): Wallet|undefined {
     return (this.api as any)?.wallet
   }
-  set wallet (value: SecretJS.Wallet|undefined) {
+  set wallet (value: Wallet|undefined) {
     setWallet(this, value)
   }
 
   /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
-  get encryptionUtils (): SecretJS.EncryptionUtils|undefined {
+  get encryptionUtils (): EncryptionUtils|undefined {
     return (this.api as any)?.encryptionUtils
   }
-  set encryptionUtils (value: SecretJS.EncryptionUtils|undefined) {
+  set encryptionUtils (value: EncryptionUtils|undefined) {
     setEncryptionUtils(this, value)
   }
 
@@ -548,10 +572,10 @@ function removeTrailingSlash (url: string) {
   return url
 }
 
-function setApi (agent: ScrtAgent, value: SecretJS.SecretNetworkClient|undefined) {
+function setApi (agent: ScrtAgent, value: SecretNetworkClient|undefined) {
   Object.defineProperty(agent, 'api', {
     get () { return value },
-    set (value: SecretJS.SecretNetworkClient|undefined) { setApi(agent, value) },
+    set (value: SecretNetworkClient|undefined) { setApi(agent, value) },
     enumerable: true,
     configurable: true
   })
@@ -563,10 +587,10 @@ function setApi (agent: ScrtAgent, value: SecretJS.SecretNetworkClient|undefined
   }
 }
 
-function setWallet (agent: ScrtAgent, value: SecretJS.Wallet|undefined) {
+function setWallet (agent: ScrtAgent, value: Wallet|undefined) {
   Object.defineProperty(agent, 'wallet', {
     get () { return value },
-    set (value: SecretJS.Wallet|undefined) { setWallet(agent, value) },
+    set (value: Wallet|undefined) { setWallet(agent, value) },
     enumerable: true,
     configurable: true
   })
@@ -575,10 +599,10 @@ function setWallet (agent: ScrtAgent, value: SecretJS.Wallet|undefined) {
   }
 }
 
-function setEncryptionUtils (agent: ScrtAgent, value: SecretJS.EncryptionUtils|undefined) {
+function setEncryptionUtils (agent: ScrtAgent, value: EncryptionUtils|undefined) {
   Object.defineProperty(agent, 'encryptionUtils', {
     get () { return value },
-    set (value: SecretJS.EncryptionUtils|undefined) { setEncryptionUtils(agent, value) },
+    set (value: EncryptionUtils|undefined) { setEncryptionUtils(agent, value) },
     enumerable: true,
     configurable: true
   })
@@ -612,8 +636,6 @@ class ScrtBatch extends Batch {
 
   constructor (agent: ScrtAgent, callback?: (batch: ScrtBatch)=>unknown) {
     super(agent, callback as (batch: Batch)=>unknown)
-    // Optional: override SecretJS implementation
-    Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
 
   /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
@@ -714,7 +736,7 @@ class ScrtBatch extends Batch {
         result.sender  = this.address
         result.tx      = txResult.transactionHash
         result.chainId = chainId
-        if (msg instanceof SecretJS.MsgInstantiateContract) {
+        if (msg instanceof MsgInstantiateContract) {
           type Log = { msg: number, type: string, key: string }
           const findAddr = ({msg, type, key}: Log) =>
             msg  ==  Number(i) &&
@@ -725,7 +747,7 @@ class ScrtBatch extends Batch {
           result.label   = msg.label
           result.address = txResult.arrayLog?.find(findAddr)?.value
         }
-        if (msg instanceof SecretJS.MsgExecuteContract) {
+        if (msg instanceof MsgExecuteContract) {
           result.type    = 'wasm/MsgExecuteContract'
           result.address = msg.contractAddress
         }
@@ -748,7 +770,7 @@ class ScrtBatch extends Batch {
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
     const msgs = this.assertMessages().map(({init, exec}={})=>{
-      if (init) return new SecretJS.MsgInstantiateContract({
+      if (init) return new MsgInstantiateContract({
         sender:          init.sender,
         code_id:         init.codeId,
         code_hash:       init.codeHash,
@@ -756,7 +778,7 @@ class ScrtBatch extends Batch {
         init_msg:        init.msg,
         init_funds:      init.funds,
       })
-      if (exec) return new SecretJS.MsgExecuteContract({
+      if (exec) return new MsgExecuteContract({
         sender:           exec.sender,
         contract_address: exec.contract,
         code_hash:        exec.codeHash,
@@ -769,7 +791,7 @@ class ScrtBatch extends Batch {
 
 }
 
-Object.assign(ScrtChain, { SecretJS, Agent: Object.assign(ScrtAgent, { Batch: ScrtBatch }) })
+Object.assign(ScrtChain, { Agent: Object.assign(ScrtAgent, { Batch: ScrtBatch }) })
 
 export {
   ScrtChain as Chain,
