@@ -1,12 +1,14 @@
 import connect, { ConnectConfig, ConnectError, ConnectConsole } from './connect'
 import * as assert from 'node:assert'
 
-import { TestSuite } from '@hackbg/ensuite'
-export default new TestSuite(import.meta.url, [
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
   ['chains',  testConnectChains],
   ['config',  testConnectConfig],
   ['errors',  testConnectErrors],
   ['console', testConnectConsole],
+  ['scrt',    () => import('./scrt/scrt.test')],
+  ['cw',      () => import('./cw/cw.test')]
 ])
 
 export async function testConnectChains () {

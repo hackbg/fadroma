@@ -1,7 +1,6 @@
 import { Devnet, CW } from '@hackbg/fadroma'
-import { TestSuite } from '@hackbg/ensuite'
-export default new TestSuite(import.meta.url, [
-  ['docs',   testCWDocs],
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
   ['signer', testCWSigner]
 ])
 
@@ -11,11 +10,6 @@ const mnemonic = [
   'brush element immense task rapid habit',
   'angry tiny foil prosper water news'
 ].join(' ')
-
-export async function testCWDocs () {
-  //@ts-ignore
-  await import('./CW.spec.ts.md')
-}
 
 export async function testCWSigner () {
   const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()

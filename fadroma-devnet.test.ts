@@ -1,17 +1,22 @@
 import Project, {
-  packageRoot, getDevnet, Devnet, Template, build, Uploader, Agent
+  getDevnet, Devnet, Template, build, Uploader, Agent
 } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 
 import * as assert from 'node:assert'
 import { getuid, getgid } from 'node:process'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
 
-import { TestSuite } from '@hackbg/ensuite'
-export default new TestSuite(import.meta.url, [
+/** Root of installed Fadroma package. */
+//@ts-ignore
+export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
+
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
   ['scrt',         ()=>testDevnetPlatform('scrt_1.9')],
   ['okp4',         ()=>testDevnetPlatform('okp4_5.0')],
   ['chain-id',     testDevnetChainId],
@@ -114,6 +119,7 @@ export async function testDevnetContainer () {
   )
   const spawnEnv = {
     DAEMON:    'secretd',
+    TOKEN:     'uscrt',
     CHAIN_ID:  devnet.chainId,
     ACCOUNTS:  devnet.accounts.join(' '),
     STATE_UID: String(getuid!()),

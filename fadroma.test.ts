@@ -14,13 +14,23 @@ import type { Agent } from '@fadroma/agent'
 import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
 import * as Dock from '@hackbg/dock'
 import { fixture } from './fixtures/fixtures'
-import { TestSuite } from '@hackbg/ensuite'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-/** Root of installed Fadroma package. */
-//@ts-ignore
-export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
+  ['agent',        () => import('./agent/agent.test')],
+  ['connect',      () => import('./connect/connect.test')],
+  ['devnet',       () => import('./fadroma-devnet.test')],
+  ['wizard',       testProjectWizard],
+  ['collections',  testCollections],
+  //['project',      testProject],
+  ['deployment',   testDeployment],
+  ['deploy-store', testDeployStore],
+  ['build',        testBuild],
+  ['upload',       testUpload],
+  ['upload-store', testUploadStore],
+  //['factory', () => import ('./Factory.spec.ts.md')],
+  //['impl',    () => import('./Implementing.spec.ts.md')],
+])
 
 export async function testCollections () {
 
@@ -271,21 +281,3 @@ export async function testProjectWizard () {
     'test4'
   ) instanceof Project)
 }
-
-export default new TestSuite(import.meta.url, [
-  ['agent',        () => import('./agent/agent.test')],
-  ['connect',      () => import('./connect/connect.test')],
-  ['cw',           () => import('./connect/cw/cw.test')],
-  ['scrt',         () => import('./connect/scrt/scrt.test')],
-  ['devnet',       () => import('./fadroma-devnet.test')],
-  ['wizard',       testProjectWizard],
-  ['collections',  testCollections],
-  //['project',      testProject],
-  ['deployment',   testDeployment],
-  ['deploy-store', testDeployStore],
-  ['build',        testBuild],
-  ['upload',       testUpload],
-  ['upload-store', testUploadStore],
-  //['factory', () => import ('./Factory.spec.ts.md')],
-  //['impl',    () => import('./Implementing.spec.ts.md')],
-])
