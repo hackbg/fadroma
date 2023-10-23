@@ -190,6 +190,30 @@ export abstract class Chain {
   /** Return self. */
   get chain () { return this }
 
+  api?: unknown
+
+  abstract getApi (): unknown
+
+  get ready () {
+    if (this.isDevnet && !this.devnet) {
+      throw new Error("the chain is marked as a devnet but is missing the devnet handle")
+    }
+    type This = this
+    type ThisWithApi = This & { api: NonNullable<This["api"]> }
+    const init = new Promise<ThisWithApi>(async (resolve, reject)=>{
+      if (this.isDevnet) {
+        await this.devnet!.start()
+      }
+      if (!this.api) {
+        if (!this.url) throw new Error("the chain's url property is not set")
+        this.api = await Promise.resolve(this.getApi())
+      }
+      return resolve(this as ThisWithApi)
+    })
+    Object.defineProperty(this, 'ready', { get () { return init } })
+    return init
+  }
+
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
     return this.height.then(async startingHeight=>{
@@ -295,6 +319,11 @@ export abstract class Chain {
 export class StubChain extends Chain {
 
   defaultDenom = 'stub'
+
+  getApi (): {} {
+    this.log.warn('chain.getApi: this function is stub; use a subclass of Chain')
+    return Promise.resolve({})
+  }
 
   /** Get the current block height. */
   get height (): Promise<number> {

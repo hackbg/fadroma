@@ -34,27 +34,10 @@ class CWChain extends Chain {
   defaultDenom = ''
 
   /** Query-only API handle. */
-  api?: CosmWasmClient
+  declare api?: CosmWasmClient
 
-  /** One-shot async initialization of chain.
-    * Populates the `api` property with a CosmWasmClient. */
-  get ready (): Promise<this & { api: CosmWasmClient }> {
-    if (this.isDevnet && !this.devnet) {
-      throw new Error("the chain is marked as a devnet but is missing the devnet handle")
-    }
-    const init = new Promise<this & { api: CosmWasmClient }>(async (resolve, reject)=>{
-      if (this.isDevnet) {
-        await this.devnet!.start()
-      }
-      if (!this.api) {
-        if (!this.url) throw new CWError("the chain's url property is not set")
-        const api = await CosmWasmClient.connect(this.url)
-        this.api = api
-      }
-      return resolve(this as this & { api: CosmWasmClient })
-    })
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
+  async getApi (): Promise<CosmWasmClient> {
+    return await CosmWasmClient.connect(this.url)
   }
 
   get block (): Promise<Block> {
