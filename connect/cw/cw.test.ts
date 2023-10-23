@@ -24,6 +24,24 @@ export async function testCWSigner () {
 export async function testCWChain () {
   // Throws because devnet instance is not passed:
   assert.throws(()=>new CW.Base.Chain({ mode: CW.Base.Chain.Mode.Devnet }).ready)
+
+  const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
+  const chain = await (devnet.getChain() as CW.OKP4.Chain).ready
+  const alice = await chain.getAgent({ name: 'Alice' }).ready as CW.OKP4.Agent
+  const bob = await chain.getAgent({ name: 'Bob' }).ready as CW.OKP4.Agent
+
+  assert.throws(()=>alice.mnemonic)
+  assert.throws(()=>alice.mnemonic = undefined)
+
+  assert.rejects(()=>chain.getBalance(CW.OKP4.Chain.defaultDenom, undefined as any))
+  await chain.getBalance(CW.OKP4.Chain.defaultDenom, alice.address!)
+  await alice.getBalance()
+  await alice.getBalance(CW.OKP4.Chain.defaultDenom)
+  await alice.getBalance(CW.OKP4.Chain.defaultDenom, alice.address!)
+  await alice.getBalance(CW.OKP4.Chain.defaultDenom, bob.address!)
+
+  assert.throws(()=>alice.mnemonic)
+  assert.throws(()=>alice.mnemonic = undefined)
 }
 
 export async function testCWOKP4 () {
