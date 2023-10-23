@@ -9,8 +9,8 @@ let chain: any // for mocking
 let agent: Agent
 const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
 
-import { TestSuite } from '@hackbg/ensuite'
-export default new TestSuite(import.meta.url, [
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
   ['devnet',  testScrtDevnet],
   ['fees',    testScrtFees],
   ['batches', testScrtBatches],

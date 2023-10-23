@@ -10,8 +10,8 @@ import {
 import assert from 'node:assert'
 import { fixture } from '../fixtures/fixtures'
 
-import { TestSuite } from '@hackbg/ensuite'
-export default new TestSuite(import.meta.url, [
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
   ['errors',     testAgentErrors],
   ['console',    testAgentConsole],
   ['chain',      testChain],
