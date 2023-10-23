@@ -35,33 +35,7 @@ class ScrtChain extends Chain {
   Agent: AgentClass<ScrtAgent> = ScrtChain.Agent
 
   /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
-  api?: SecretNetworkClient
-
-  constructor (options: Partial<ScrtChain> = {
-    url:  ScrtChain.Config.defaultMainnetUrl,
-    mode: Chain.Mode.Mainnet
-  }) {
-    super(options)
-    this.log.label = `${this.id}`
-  }
-
-  get ready (): Promise<this & { api: SecretNetworkClient }> {
-    if (this.isDevnet && !this.devnet) {
-      throw new Error("the chain is marked as a devnet but is missing the devnet handle")
-    }
-    const init = new Promise<this & { api: SecretNetworkClient }>(async (resolve, reject)=>{
-      if (this.isDevnet) {
-        await this.devnet!.start()
-      }
-      if (!this.api) {
-        if (!this.url) throw new Error("the chain's url property is not set")
-        this.api = this.getApi()
-      }
-      return resolve(this as this & { api: SecretNetworkClient })
-    })
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
-  }
+  declare api?: SecretNetworkClient
 
   /** @returns a fresh instance of the anonymous read-only API client. */
   getApi (options: Partial<CreateClientOptions> = {}): SecretNetworkClient {
@@ -185,13 +159,18 @@ export type { TxResponse }
 /** Represents a connection to the Secret Network,
   * authenticated as a specific address. */
 class ScrtAgent extends Agent {
+
   log = new Console('ScrtAgent')
+
   /** Downcast chain property to Scrt only. */
   declare chain: ScrtChain
+
   /** Batch class used by this agent. */
   Batch: BatchClass<ScrtBatch> = ScrtAgent.Batch
+
   /** Whether to simulate each execution first to get a more accurate gas estimate. */
   simulateForGas: boolean = false
+
   /** Default fees for this agent. */
   fees = ScrtChain.defaultFees
 
@@ -208,10 +187,10 @@ class ScrtAgent extends Agent {
   }
 
   get ready (): Promise<this & { api: SecretNetworkClient }> {
-    // Require chain reference to be populated.
-    if (!this.chain) throw new Error.Missing.Chain()
     // If an API instance is already available (e.g. provided to constructor), just use that.
     if (this.api) return Promise.resolve(this as this & { api: SecretNetworkClient })
+    // Require chain reference to be populated.
+    if (!this.chain) throw new Error.Missing.Chain()
     // Begin asynchronous init.
     const init = new Promise<this & { api: SecretNetworkClient }>(async (
       resolve, reject

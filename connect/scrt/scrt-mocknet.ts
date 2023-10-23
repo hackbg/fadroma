@@ -234,6 +234,10 @@ export class Mocknet extends Chain {
       )
     }
   }
+
+  getApi () {
+    return Promise.resolve({})
+  }
 }
 
 class MocknetAgent extends Agent {
