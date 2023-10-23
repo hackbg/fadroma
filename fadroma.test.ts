@@ -1,6 +1,7 @@
 import * as assert from 'node:assert'
 import {
-  Template, Contract, Client, Deployment, DeployStore, Builder, Uploader,
+  Template, Contract, Client,
+  Deployment, DeployStore, Builder, Uploader,
   into, intoArray, intoRecord
 } from '@fadroma/agent'
 import Project, {
@@ -8,6 +9,7 @@ import Project, {
   getBuilder, BuildContainer, BuildRaw,
   FSUploader, upload, getUploader,
   getGitDir, DotGit,
+  DeployConsole
 } from '@hackbg/fadroma'
 import { ProjectWizard } from './fadroma-wizard'
 import type { Agent } from '@fadroma/agent'
@@ -252,6 +254,10 @@ export async function testDeployStore () {
   store.save('foo', { contract1: { deployment: true }, contract2: { deployment: true } } as any)
   assert.equal(result, '---\n{}\n---\n{}\n')
   assert.ok(store[Symbol.toStringTag])
+
+  new DeployConsole('test message').activating('asdf')
+  new DeployConsole('test message').noAgent('name')
+  new DeployConsole('test message').list('asdf', store)
 }
 
 export async function testUploadStore () {

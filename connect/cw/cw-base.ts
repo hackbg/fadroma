@@ -65,7 +65,7 @@ class CWChain extends Chain {
     return this.block.then(block=>Number(block.header.height))
   }
 
-  /** Stub implementation of getting native balance. */
+  /** Stargate implementation of getting native balance. */
   async getBalance (denom: string, address: Address): Promise<string> {
     const { api } = await this.ready
     denom ??= this.defaultDenom
@@ -76,14 +76,14 @@ class CWChain extends Chain {
     return amount
   }
 
-  /** Stub implementation of querying a smart contract. */
+  /** Stargate implementation of querying a smart contract. */
   async query <U> (contract: Client, msg: Message): Promise<U> {
     const { api } = await this.ready
     if (!contract.address) throw new CWError('chain.query: no contract address')
     return await api.queryContractSmart(contract.address, msg) as U
   }
 
-  /** Stub implementation of getting a code id. */
+  /** Stargate implementation of getting a code id. */
   async getCodeId (address: Address): Promise<CodeId> {
     const { api } = await this.ready
     if (!address) throw new CWError('chain.getCodeId: no address')
@@ -91,7 +91,7 @@ class CWChain extends Chain {
     return String(codeId)
   }
 
-  /** Stub implementation of getting a code hash. */
+  /** Stargate implementation of getting a code hash. */
   async getHash (addressOrCodeId: Address|number): Promise<CodeHash> {
     const { api } = await this.ready
     if (!addressOrCodeId) 
@@ -106,7 +106,7 @@ class CWChain extends Chain {
     throw new CWError('chain.getHash: pass address (as string) or code id (as number)')
   }
 
-  /** Stub implementation of getting a contract label. */
+  /** Stargate implementation of getting a contract label. */
   async getLabel (address: Address): Promise<string> {
     const { api } = await this.ready
     if (!address) throw new CWError('chain.getLabel: no address')
@@ -206,12 +206,12 @@ class CWAgent extends Agent {
     return amount
   }
 
-  /** Stub implementation of sending native token. */
+  /** Stargate implementation of sending native token. */
   send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
     throw new Error('not implemented')
   }
 
-  /** Stub implementation of batch send. */
+  /** Stargate implementation of batch send. */
   sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
     throw new Error('not implemented')
   }

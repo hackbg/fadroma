@@ -155,7 +155,7 @@ export class DeployStore_v1 extends DeployStore {
 
 Object.assign(DeployStore.variants, { v1: DeployStore_v1 })
 
-class DeployConsole extends Console {
+export class DeployConsole extends Console {
   creating = (name: string) =>
     this.log('creating', bold(name))
   location = (path: string) =>
@@ -187,10 +187,6 @@ class DeployConsole extends Console {
 
   storeDoesNotExist = (path: string) =>
     this.warn(`deployment store does not exist`)
-  overridingStore = (x: string) =>
-    this.warn(`overriding store for ${x}`)
-  noAgent = (name?: string) =>
-    this.warn('no agent. authenticate by exporting FADROMA_MNEMONIC in your shell')
 }
 
 export class DeployError extends BaseError {

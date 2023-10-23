@@ -214,3 +214,7 @@ export const testnet = (...args: Parameters<typeof OKP4Chain.testnet>) => OKP4Ch
 
 /** Connect to local OKP4 devnet. */
 export const devnet = (...args: Parameters<typeof OKP4Chain.devnet>) => OKP4Chain.devnet(...args)
+
+export * from './okp4-cognitarium'
+export * from './okp4-objectarium'
+export * from './okp4-law-stone'
