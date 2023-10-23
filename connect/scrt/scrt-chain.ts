@@ -20,17 +20,6 @@ class ScrtChain extends Chain {
   /** Smallest unit of native token. */
   defaultDenom: string = ScrtChain.defaultDenom
 
-  /** The default SecretJS module. */
-  static SecretJS: typeof SecretJS
-
-  /** The SecretJS module used by this instance.
-    * You can set this to a compatible version of the SecretJS module
-    * in order to use it instead of the one batchd with this package.
-    * This setting is per-chain:,all ScrtAgent instances
-    * constructed by the configured Scrt instance's getAgent method
-    * will use the non-default SecretJS module. */
-  SecretJS = ScrtChain.SecretJS
-
   /** The Agent class used by this instance. */
   Agent: AgentClass<ScrtAgent> = ScrtChain.Agent
 
@@ -41,7 +30,6 @@ class ScrtChain extends Chain {
     super(options)
     this.log.label = `${this.id}`
     // Optional: Allow a different API-compatible version of SecretJS to be passed
-    this.SecretJS = options.SecretJS ?? this.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
 
@@ -99,7 +87,7 @@ class ScrtChain extends Chain {
   ): Promise<SecretJS.SecretNetworkClient> {
     options = { chainId: this.id, url: this.url, ...options }
     if (!options.url) throw new Error.Missing('api url')
-    return await new (this.SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
+    return await new (SecretJS.SecretNetworkClient)(options as SecretJS.CreateClientOptions)
   }
 
   async fetchLimits (): Promise<{ gas: number }> {
@@ -205,9 +193,8 @@ class ScrtAgent extends Agent {
       resolve, reject
     )=>{
       try {
-        const _SecretJS = this.chain.SecretJS || SecretJS
         let wallet = this.wallet
-        if (!wallet || wallet instanceof _SecretJS.ReadonlySigner) {
+        if (!wallet || wallet instanceof SecretJS.ReadonlySigner) {
           // If this is a named devnet agent
           if (this.name && this.chain.isDevnet && this.chain.devnet) {
             // Provide mnemonic from devnet genesis accounts
@@ -220,7 +207,7 @@ class ScrtAgent extends Agent {
             this.mnemonic = bip39.generateMnemonic(bip39EN)
             this.log.generatedMnemonic(this.mnemonic!)
           }
-          wallet = new _SecretJS.Wallet(this.mnemonic)
+          wallet = new SecretJS.Wallet(this.mnemonic)
         } else if (this.mnemonic) {
           this.log.ignoringMnemonic()
         }
@@ -708,7 +695,6 @@ class ScrtBatch extends Batch {
 
   async submit (memo = ""): Promise<ScrtBatchResult[]> {
     await super.submit(memo)
-    const _SecretJS = (this.agent?.chain as ScrtChain).SecretJS || SecretJS
     const chainId = assertChain(this).id
     const results: ScrtBatchResult[] = []
     const msgs  = this.conformedMsgs
@@ -728,7 +714,7 @@ class ScrtBatch extends Batch {
         result.sender  = this.address
         result.tx      = txResult.transactionHash
         result.chainId = chainId
-        if (msg instanceof _SecretJS.MsgInstantiateContract) {
+        if (msg instanceof SecretJS.MsgInstantiateContract) {
           type Log = { msg: number, type: string, key: string }
           const findAddr = ({msg, type, key}: Log) =>
             msg  ==  Number(i) &&
@@ -739,7 +725,7 @@ class ScrtBatch extends Batch {
           result.label   = msg.label
           result.address = txResult.arrayLog?.find(findAddr)?.value
         }
-        if (msg instanceof _SecretJS.MsgExecuteContract) {
+        if (msg instanceof SecretJS.MsgExecuteContract) {
           result.type    = 'wasm/MsgExecuteContract'
           result.address = msg.contractAddress
         }
@@ -761,9 +747,8 @@ class ScrtBatch extends Batch {
 
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
-    const _SecretJS = (this.agent.chain as ScrtChain).SecretJS || SecretJS
     const msgs = this.assertMessages().map(({init, exec}={})=>{
-      if (init) return new _SecretJS.MsgInstantiateContract({
+      if (init) return new SecretJS.MsgInstantiateContract({
         sender:          init.sender,
         code_id:         init.codeId,
         code_hash:       init.codeHash,
@@ -771,7 +756,7 @@ class ScrtBatch extends Batch {
         init_msg:        init.msg,
         init_funds:      init.funds,
       })
-      if (exec) return new _SecretJS.MsgExecuteContract({
+      if (exec) return new SecretJS.MsgExecuteContract({
         sender:           exec.sender,
         contract_address: exec.contract,
         code_hash:        exec.codeHash,
