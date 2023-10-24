@@ -108,7 +108,6 @@ export abstract class Builder {
     * Builder implementations override this, though. */
   abstract buildMany (sources: (string|Buildable)[], ...args: unknown[]): Promise<Built[]>
 }
-
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
 export class Uploader {
@@ -180,7 +179,7 @@ export class Uploader {
     const log = new Console(`${contract.codeHash} -> ${this.agent.chain?.id??'(unknown chain id)'}`)
     log(`from ${bold(contract.artifact)}`)
     log(`${bold(String(data.length))} bytes (uncompressed)`)
-    const result = await this.agent.upload(data, contract)
+    const result = await this.agent.upload(contract)
     this.checkCodeHash(contract, result)
     const { codeId, codeHash, uploadTx } = result
     log(`done, code id`, codeId)
