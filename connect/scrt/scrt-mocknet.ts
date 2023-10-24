@@ -260,8 +260,8 @@ class MocknetAgent extends Agent {
   }
 
   /** Upload a binary to the mocknet. */
-  async upload (wasm: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
-    return new Contract(await this.chain.upload(wasm, meta)) as unknown as Uploaded
+  protected async doUpload (wasm: Uint8Array): Promise<Uploaded> {
+    return new Contract(await this.chain.upload(wasm)) as unknown as Uploaded
   }
   /** Instantiate a contract on the mocknet. */
   async instantiate <C extends Client> (instance: Contract<C>): Promise<Instantiated> {

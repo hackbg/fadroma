@@ -486,8 +486,44 @@ export abstract class Agent {
   /** Send native tokens to multiple recipients. */
   abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
 
-  /** Upload code, generating a new code id/hash pair. */
-  abstract upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded>
+  /** Upload a contract's code, generating a new code id/hash pair. */
+  async upload (uploadable: string|URL|Uint8Array|Partial<Uploadable>): Promise<Uploaded> {
+    const fromPath = async (path: string) => {
+      const { readFile } = await import('node:fs/promises')
+      return await readFile(path)
+    }
+    const fromURL = async (url: URL) => {
+      if (url.protocol === 'file:') {
+        const { fileURLToPath } = await import('node:url')
+        return await fromPath(fileURLToPath(url))
+      } else {
+        return new Uint8Array(await (await fetch(url)).arrayBuffer())
+      }
+    }
+    let data: Uint8Array
+    const t0 = + new Date()
+    if (typeof uploadable === 'string') {
+      data = await fromPath(uploadable)
+    } else if (uploadable instanceof URL) {
+      data = await fromURL(uploadable)
+    } else if (uploadable instanceof Uint8Array) {
+      data = uploadable
+    } else if (uploadable.artifact) {
+      uploadable = uploadable.artifact
+      if (typeof uploadable === 'string') {
+        data = await fromPath(uploadable)
+      } else if (uploadable instanceof URL) {
+        data = await fromURL(uploadable)
+      }
+    } else {
+      throw new Error('Invalid argument passed to Agent#upload')
+    }
+    const result = this.doUpload(data!)
+    this.log.debug(`Uploaded in ${t0}msec:`, result)
+    return result
+  }
+
+  protected abstract doUpload (data: Uint8Array): Promise<Uploaded>
 
   /** Get an uploader instance which performs code uploads and optionally caches them. */
   getUploader <U extends Uploader> ($U: UploaderClass<U>, options?: Partial<U>): U {
@@ -578,7 +614,7 @@ export class StubAgent extends Agent {
   }
 
   /** Stub implementation of code upload. */
-  upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
+  protected doUpload (data: Uint8Array): Promise<Uploaded> {
     this.log.warn('Agent#upload: this function is stub; use a subclass of Agent')
     return Promise.resolve({
       chainId:  this.chain!.id,
@@ -618,12 +654,13 @@ export function assertAgent <A extends Agent> (thing: { agent?: A|null } = {}): 
 /** A constructor for a Batch subclass. */
 export interface BatchClass<B extends Batch> extends Class<B, ConstructorParameters<typeof Batch>>{}
 
-/** Batch is an alternate executor that collects collects messages to broadcast
-  * as a single transaction in order to execute them simultaneously. For that, it
-  * uses the API of its parent Agent. You can use it in scripts with:
-  *   await agent.batch().wrap(async batch=>{ client.as(batch).exec(...) })
-  * */
-export abstract class Batch implements Agent {
+type BatchAgent = Omit<Agent, 'doUpload'|'ready'> & { ready: Promise<Batch> }
+
+/** Batch is an alternate executor that collects messages to broadcast
+  * as a single transaction in order to execute them simultaneously.
+  * For that, it uses the API of its parent Agent. You can use it in scripts with:
+  *   await agent.batch().wrap(async batch=>{ client.as(batch).exec(...) }) */
+export abstract class Batch implements BatchAgent {
   /** Messages in this batch, unencrypted. */
   msgs: any[] = []
   /** Next message id. */
@@ -777,7 +814,10 @@ export abstract class Batch implements Agent {
   /** Uploads are disallowed in the middle of a batch because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
-  async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<never> {
+  async upload (data: Uint8Array): Promise<never> {
+    throw new Error.Invalid.Batching("upload")
+  }
+  async doUpload (data: Uint8Array): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
   /** Uploads are disallowed in the middle of a batch because

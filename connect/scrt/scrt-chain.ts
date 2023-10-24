@@ -19,7 +19,7 @@ import {
 import type {
   AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BatchClass, Client,
   ExecOpts, ICoin, Message, Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label,
-  Instantiated
+  Instantiated, Uploadable
 } from '@fadroma/agent'
 
 /** Represents a Secret Network API endpoint. */
@@ -141,10 +141,10 @@ class ScrtChain extends Chain {
     ...options||{},
   }) as ScrtChain
 
-  /** Connect to a Secret Network devnet. */
-  static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => super.devnet({
-    ...options||{},
-  }) as ScrtChain
+  /** Connect to Secret Network in testnet mode. */
+  static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => {
+    throw new Error('Devnet not installed. Import @hackbg/fadroma')
+  }
 
   /** Connect to a Secret Network mocknet. */
   static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => new Mocknet.Chain({
@@ -357,7 +357,7 @@ class ScrtAgent extends Agent {
   }
 
   /** Upload a WASM binary. */
-  async upload (data: Uint8Array): Promise<Uploaded> {
+  protected async doUpload (data: Uint8Array): Promise<Uploaded> {
     const { api } = await this.ready
     type Log = { type: string, key: string }
     if (!this.address) throw new Error.Missing.Address()
@@ -385,7 +385,6 @@ class ScrtAgent extends Agent {
       this.log.error(`Code id not found in result.`)
       throw new Error.Failed.Upload({ ...result, noCodeId: true })
     }
-    this.log.debug(`gas used for upload of ${data.length} bytes:`, result.gasUsed)
     return {
       chainId:  assertChain(this).id,
       codeId,

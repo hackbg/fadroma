@@ -199,7 +199,7 @@ class CWAgent extends Agent {
     throw new Error('not implemented')
   }
 
-  async upload (data: Uint8Array, meta?: Partial<Uploadable>): Promise<Uploaded> {
+  protected async doUpload (data: Uint8Array): Promise<Uploaded> {
     const { api } = await this.ready
     if (!this.address) throw new Error.Missing.Address()
     const result = await api.upload(
