@@ -16,7 +16,7 @@ import type {
 } from '@fadroma/agent'
 
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
-import type { logs, OfflineSigner as Signer, Block } from '@hackbg/cosmjs-esm'
+import type { logs, OfflineSigner as Signer, Block, StdFee } from '@hackbg/cosmjs-esm'
 
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
@@ -105,7 +105,7 @@ class CWChain extends Chain {
 class CWAgent extends Agent {
 
   constructor (options: Partial<CWAgent> = {}) {
-    super(options)
+    super(options as Partial<Agent>)
 
     // When not using an external signer, these must be
     // either defined in a subclass or passed to the constructor.
@@ -223,35 +223,38 @@ class CWAgent extends Agent {
     options: {
       label:      Label,
       initMsg:    Message,
-      initFee?:   ICoin[]|'auto',
+      initFee?:   StdFee|'auto',
       initFunds?: ICoin[],
       initMemo?:  string,
+      codeHash?:  CodeHash
     }
   ): Promise<Partial<ContractInstance>> {
     const { api } = await this.ready
     const { initFee, initFunds, initMemo } = options
+
     const result = await api.instantiate(
       this.address!,
       Number(codeId),
       options.initMsg,
       options.label,
-      options.initFee,
+      options.initFee || 'auto',
       {
         funds: initFunds,
         admin: this.address,
         memo:  options.initMemo
       }
     )
+
     return {
       codeId,
-      codeHash,
-      label:   options.label,
-      initMsg: options.initMsg,
-      chainId: assertChain(this).id,
-      address: result.contractAddress,
-      initTx:  result.transactionHash,
-      initGas: result.gasUsed,
-      initBy:  this.address,
+      codeHash: options.codeHash,
+      label:    options.label,
+      initMsg:  options.initMsg,
+      chainId:  assertChain(this).id,
+      address:  result.contractAddress,
+      initTx:   result.transactionHash,
+      initGas:  result.gasUsed,
+      initBy:   this.address,
       initFee,
       initFunds,
       initMemo
@@ -341,7 +344,7 @@ function setMnemonic (agent: CWAgent, mnemonic: string) {
   }
 }
 
-function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
+export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
   pub_key: { type: string, value: string },
   signature: string
 } {

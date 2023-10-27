@@ -14,7 +14,11 @@ export default new Suite([
 export async function testConnectChains () {
   for (const platform of ['secretjs', 'secretcli']) {
     for (const mode of ['mainnet', 'testnet', 'devnet', 'mocknet']) {
-      const agent = connect({ platform, mode, mnemonic: '...' })
+      const agent = connect({
+        platform,
+        mode,
+        mnemonic: '...'
+      })
     }
   }
 }

@@ -8,8 +8,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "ubik":  "pnpm check && ubik",
-    "test":  "ensuite connect.test.ts",
-    "cov":   "ensuite-cov -r text -r lcov -- connect.test.ts"
+    "test":  "time ensuite connect.test.ts",
+    "cov":   "time ensuite-cov -r text -r lcov -- connect.test.ts"
   },
   "dependencies": {
     "@fadroma/agent": "workspace:2.0.0-rc.1",

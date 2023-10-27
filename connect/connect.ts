@@ -16,19 +16,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import {
-  Console, Error, Chain, ChainMode, ChainId, bold,
-} from '@fadroma/agent'
+import { Console, Error, Chain, ChainMode, ChainId, bold } from '@fadroma/agent'
 import type { Agent, ChainRegistry } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
 import * as CW from '@fadroma/cw'
-export * from '@fadroma/cw'
 
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'
 
 export * from '@hackbg/conf'
-
 export * from '@fadroma/agent'
 
 export { Scrt, CW }

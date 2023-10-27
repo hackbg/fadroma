@@ -21,6 +21,7 @@
 import type {
   AgentClass, Uint128, BatchClass, ExecOpts,
   Address, CodeHash, ChainId, CodeId, Message, Label,
+  Into
 } from '@fadroma/agent'
 import {
   bindChainSupport,
@@ -308,9 +309,7 @@ class MocknetAgent extends Agent {
   ): Promise<Partial<ContractInstance>> {
     options = { ...options }
     options.initMsg = await into(options.initMsg)
-    const { address, codeHash, label } = await this.chain.instantiate(
-      this.address, instance
-    )
+    const { address, codeHash, label } = await this.chain.instantiate(this.address, options)
     return {
       chainId:  this.chain.id,
       address:  address!,
@@ -322,7 +321,7 @@ class MocknetAgent extends Agent {
   }
 
   protected async doExecute (
-    contract: Address|Partial<ContractInstance>,
+    contract: { address: Address },
     message:  Message,
     options:  ExecOpts = {}
   ): Promise<unknown> {
@@ -336,8 +335,11 @@ class MocknetAgent extends Agent {
     )
   }
 
-  protected async doQuery <R> (instance: Client, msg: Message): Promise<R> {
-    return await assertChain(this).query(instance, msg)
+  protected async doQuery <Q> (
+    contract: Address|Partial<ContractInstance>,
+    message:  Message
+  ): Promise<Q> {
+    return await assertChain(this).query(contract, message)
   }
 
   send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
@@ -992,4 +994,3 @@ export const Error = (()=>{
   }
   return Object.assign(MocknetError, { Query: MocknetError_Query })
 })() //MocknetError
-

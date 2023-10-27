@@ -23,7 +23,7 @@ export async function testCWSigner () {
 
 export async function testCWChain () {
   // Throws because devnet instance is not passed:
-  assert.throws(()=>new CW.Base.Chain({ mode: CW.Base.Chain.Mode.Devnet }).ready)
+  assert.throws(()=>new CW.Chain({ mode: CW.Chain.Mode.Devnet }).ready)
 
   const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain = await (devnet.getChain() as CW.OKP4.Chain).ready
@@ -46,8 +46,9 @@ export async function testCWChain () {
 }
 
 export async function testCWOKP4 () {
-  new CW.OKP4.Cognitarium()
-  new CW.OKP4.Objectarium()
-  new CW.OKP4.LawStone()
+  const agent = new CW.Agent()
+  new CW.OKP4.Cognitarium({}, agent)
+  new CW.OKP4.Objectarium({}, agent)
+  new CW.OKP4.LawStone({}, agent)
   CW.OKP4.testnet()
 }

@@ -564,7 +564,7 @@ export abstract class Agent {
     options: {
       label:      Label,
       initMsg:    Message,
-      initFee?:   ICoin[]|'auto',
+      initFee?:   unknown,
       initFunds?: ICoin[],
       initMemo?:  string,
     }

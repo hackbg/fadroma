@@ -228,6 +228,7 @@ class ScrtAgent extends Agent {
         const { encryptionUtils } = this
         const apiOptions = { chainId, url, wallet, walletAddress, encryptionUtils }
         this.api = await this.chain.getApi(apiOptions)
+        console.log({thisChain:this.chain, thisApi:this.api})
         // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
         if (encryptionUtils) Object.assign(this.api, { encryptionUtils })
         // If fees are not specified, get default fees from API.
@@ -317,7 +318,7 @@ class ScrtAgent extends Agent {
     }
   }
 
-  get account () {
+  get account (): ReturnType<SecretNetworkClient['query']['auth']['account']> {
     return this.ready.then(({ api, address })=>{
       return api.query.auth.account({ address })
     })
@@ -372,12 +373,10 @@ class ScrtAgent extends Agent {
   }
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
-    const { api } = await this.ready
-    if (!this.address) throw new Error("No address")
-    const failed = ()=>{
+    const { api, address } = await this.ready
+    const result = await api.query.auth.account({ address: this.address }) ?? (() => {
       throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
-    }
-    const result = await api.query.auth.account({ address: this.address }) ?? failed()
+    })
     const { account_number, sequence } = result.account as any
     return { accountNumber: Number(account_number), sequence: Number(sequence) }
   }
@@ -409,10 +408,9 @@ class ScrtAgent extends Agent {
 
   /** Upload a WASM binary. */
   protected async doUpload (data: Uint8Array): Promise<Partial<ContractTemplate>> {
-    const { api } = await this.ready
-    if (!this.address) throw new Error.Missing.Address()
+    const { api, address } = await this.ready
 
-    const request  = { sender: this.address, wasm_byte_code: data, source: "", builder: "" }
+    const request  = { sender: address, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
     const result   = await api.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
     const { code, message, details = [], rawLog } = result

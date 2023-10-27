@@ -1,2 +1,2 @@
-export * as Base from './cw-base'
+export * from './cw-base'
 export * as OKP4 from './okp4/okp4'

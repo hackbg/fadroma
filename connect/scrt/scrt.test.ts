@@ -23,7 +23,7 @@ export default new Suite([
   ['batches', testScrtBatches],
   ['permits', testScrtPermits],
   ['console', testScrtConsole],
-  ['mocknet', testMocknet],
+  ['mocknet', testScrtMocknet],
 ])
 
 async function testScrtDevnet () {
@@ -99,40 +99,47 @@ async function testScrtFees () {
 
 async function testScrtBatches () {
 
-  const someBatch = () => new Scrt.Agent({
-    chain: {
-      SecretJS,
-      getApi: () => ({
-        encryptionUtils: {
-          encrypt: () => Promise.resolve(new Uint8Array())
-        },
-        query: { auth: { account: () => Promise.resolve({
-          account: { account_number: 0, sequence: 0 }
-        }) } },
-        tx: {
-          broadcast: () => Promise.resolve({ code: 0 }),
-          simulate: () => Promise.resolve({ code: 0 })
-        }
-      })
-    } as any
-  }).batch(async (batch)=>{
-    assert(batch instanceof Scrt.Batch)
-    await batch.instantiate({ codeId: 'id', codeHash: 'hash', msg: {} } as any)
-    await batch.execute({ address: 'addr', codeHash: 'hash', msg: {} } as any, {})
+  const chain = Object.assign(Scrt.testnet({ id: 'stub' }), {
+    getApi: () => ({
+      encryptionUtils: {
+        encrypt: () => Promise.resolve(new Uint8Array())
+      },
+      query: { auth: { account: () => Promise.resolve({
+        account: { account_number: 0, sequence: 0 }
+      }) } },
+      tx: {
+        broadcast: () => Promise.resolve({ code: 0 }),
+        simulate: () => Promise.resolve({ code: 0 })
+      }
+    })
   })
 
+  const batch = () => new Scrt.Agent({ chain }).batch(async (batch)=>{
+    assert(batch instanceof Scrt.Batch)
+
+    await batch.instantiate('id', {
+      label:    'label',
+      initMsg:  {},
+      codeHash: 'hash',
+    } as any)
+
+    await batch.execute('addr', {
+      address:  'addr',
+      codeHash: 'hash',
+      message:  {}
+    } as any, {})
+  })
+
+  assert(batch() instanceof Scrt.Batch, 'ScrtBatch is returned')
+
   assert.ok(
-    await someBatch().save('test'),
+    await batch().save('test'),
     [ '"saving" a batch outputs it to the console in the format ',
     , 'of a multisig message' ].join()
   )
   assert.ok(
-    await someBatch().submit('test'),
+    await batch().submit('test'),
     'submitting a batch',
-  )
-  assert(
-    someBatch() instanceof Scrt.Batch,
-    'ScrtBatch is returned'
   )
 
 }
@@ -172,7 +179,7 @@ async function testScrtConsole () {
 
 }
 
-export async function testMocknet () {
+export async function testScrtMocknet () {
   new Mocknet.Console().log('...')
   new Mocknet.Console().trace('...')
   new Mocknet.Console().debug('...')
