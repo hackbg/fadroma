@@ -1,8 +1,13 @@
+/**
+  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
 import * as assert from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import Project, { getDevnet, Devnet, build, Agent } from '@hackbg/fadroma'
+import { Project, getDevnet, Devnet, build, Agent } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
@@ -191,3 +196,4 @@ export async function testDevnetFurther () {
   assert.deepEqual(accounts, chain.devnet.accounts)
   await devnet.delete()
 }
+

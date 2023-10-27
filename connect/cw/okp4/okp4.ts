@@ -93,7 +93,7 @@ class OKP4Chain extends Chain {
   }
 
   protected async getContractsById <C extends ContractClient> (
-    $C: ContractClientClass<C>,
+    Client: ContractClientClass<C> = ContractClient as ContractClientClass<C>,
     ids: CodeId[],
     map = true
   ): Promise<
@@ -108,10 +108,10 @@ class OKP4Chain extends Chain {
       const { checksum: codeHash } = await api.getCodeDetails(codeId)
       const addresses = await api.getContracts(codeId)
       for (const address of addresses) {
-        const contract = new $C(
-          { address, codeHash, codeId: String(codeId) } as Partial<C>
+        const contract = new Client(
+          { address, codeHash, chainId, codeId: String(codeId) },
+          undefined
         )
-        contract.chainId = chainId
         if (map) {
           (contracts as Map<Address, C>).set(address, contract)
         } else {

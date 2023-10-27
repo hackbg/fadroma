@@ -1,28 +1,15 @@
 /**
-
-  Fadroma Devnet
-  Copyright (C) 2023 Hack.bg
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
+  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 **/
+import { Config } from './config'
 
-import type { Agent, ChainClass, ChainId, DevnetHandle } from './fadroma'
-import Config from './fadroma-config'
-
-import { Error as BaseError, Console, bold, randomHex, ChainMode, Chain, Scrt, CW } from '@fadroma/connect'
-import type { CodeId } from '@fadroma/connect'
+import {
+  Error as BaseError, Console, bold, randomHex, ChainMode, Chain, Scrt, CW,
+  connectModes
+} from '@fadroma/connect'
+import type { CodeId, Agent, ChainClass, ChainId, DevnetHandle } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -36,7 +23,20 @@ import { randomBytes } from 'node:crypto'
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 //@ts-ignore
-const thisPackage = dirname(fileURLToPath(import.meta.url))
+const thisPackage = dirname(dirname(fileURLToPath(import.meta.url)))
+
+// Installs devnets as selectable chains:
+connectModes['ScrtDevnet'] = Scrt.Chain.devnet =
+  (options: Partial<Scrt.Chain>|undefined): Scrt.Chain =>
+    new Config()
+      .getDevnet({ platform: 'scrt_1.9' })
+      .getChain(Scrt.Chain as ChainClass<Scrt.Chain>, options)
+
+connectModes['OKP4Devnet'] = CW.OKP4.Chain.devnet = 
+  (options: Partial<CW.OKP4.Chain>|undefined): CW.OKP4.Chain =>
+    new Config()
+      .getDevnet({ platform: 'okp4_5.0' })
+      .getChain(CW.OKP4.Chain as ChainClass<CW.OKP4.Chain>, options)
 
 /** Supported devnet variants. Add new devnets here first. */
 export type DevnetPlatform =
@@ -220,7 +220,7 @@ export class Devnet implements DevnetHandle {
     // This determines whether generated chain id has random suffix
     this.deleteOnExit = options.deleteOnExit ?? false
     // This determines the state directory path
-    this.chainId = options.chainId || `fadroma-local-${options.platform}`
+    this.chainId = options.chainId || `fadroma-local-${options.platform}-${randomBytes(4).toString('hex')}`
     // Try to update options from stored state
     this.stateDir = options.stateDir ?? $('state', this.chainId).path
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
@@ -699,3 +699,4 @@ export class DevnetError extends BaseError {
     (error: any, path: string, cause?: Error) =>
       Object.assign(error, { path, cause }))
 }
+

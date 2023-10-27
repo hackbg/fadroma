@@ -1,46 +1,28 @@
 /**
-
-  Fadroma Deploy Store
-  Copyright (C) 2023 Hack.bg
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
+  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 **/
-
-import type {
-  ChainId, CodeHash, CodeId, DeploymentState
-} from './fadroma'
-
 import {
-  DeployStore, Deployment, timestamp,
-  ContractInstance,
-  Error as BaseError, Console, bold
+  Console, bold, Error, timestamp, 
+  DeployStore, ContractInstance
 } from '@fadroma/connect'
-
+import type { Deployment, DeploymentState } from '@fadroma/connect'
 import $, {
-  Path, OpaqueDirectory, TextFile, JSONDirectory, JSONFile, YAMLDirectory, YAMLFile, alignYAML
+  OpaqueDirectory, YAMLDirectory, YAMLFile, TextFile, alignYAML
 } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
+import { basename } from 'node:path'
 
 import YAML, { loadAll, dump } from 'js-yaml'
 
-import { basename } from 'node:path'
+export { DeployStore }
 
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class DeployStore_v1 extends DeployStore {
+export class FSDeployStore extends DeployStore {
   log = new DeployConsole('DeployStore_v1')
   /** Root directory of deploy store. */
   root: YAMLDirectory<unknown>
@@ -64,7 +46,7 @@ export class DeployStore_v1 extends DeployStore {
     return `${this.root?.shortPath??'-'}`
   }
 
-  /** @returns the name of the active deployment */
+  /** Get name of the active deployment, or null if there isn't one. */
   get activeName (): string|null {
     let file = this.root.at(`${this.KEY}.yml`)
     if (!file.exists()) return null
@@ -85,7 +67,7 @@ export class DeployStore_v1 extends DeployStore {
     return this.load(name)
   }
 
-  /** Make the specified deployment be the active deployment. */
+  /** Activate the named deployment, or throw if such doesn't exist. */
   async select (name: string|null = this.activeName): Promise<DeploymentState> {
     if (!name) throw new DeployError('no deployment selected')
     let selected = this.root.at(`${name}.yml`)
@@ -100,7 +82,7 @@ export class DeployStore_v1 extends DeployStore {
     throw new DeployError.DeploymentDoesNotExist(name)
   }
 
-  /** List the deployments in the deployments directory. */
+  /** Get the names of all stored deployments. */
   list (): string[] {
     if (this.root.exists()) {
       const list = this.root.as(OpaqueDirectory).list() ?? []
@@ -128,13 +110,12 @@ export class DeployStore_v1 extends DeployStore {
     return state
   }
 
-  /** Save a deployment's state to this store. */
+  /** Update a deployment's stored data. */
   save (name: string, state: DeploymentState = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
     let output = ''
-    console.log({state})
     for (let [name, data] of Object.entries(state.contracts!)) {
       output += '---\n'
       name ??= data.name!
@@ -157,23 +138,18 @@ export class DeployStore_v1 extends DeployStore {
     file.as(TextFile).save(output)
     return this
   }
-
 }
 
 export class DeployConsole extends Console {
-
   creating (name: string) {
     return this.log('creating', bold(name))
   }
-
   location (path: string) {
     return this.log('location', bold(path))
   }
-
   activating (name: string) {
     return this.log('activate', bold(name))
   }
-
   list (chainId: string, deployments: DeployStore) {
     const list = deployments.list()
     if (list.length > 0) {
@@ -195,17 +171,13 @@ export class DeployConsole extends Console {
       this.info(`no deployments on ${bold(chainId)}`)
     }
   }
-
 }
 
-export class DeployError extends BaseError {
-
+export class DeployError extends Error {
   static DeploymentAlreadyExists = this.define(
     'DeploymentAlreadyExists', (name: string)=>`deployment "${name}" already exists`
   )
-
   static DeploymentDoesNotExist = this.define(
     'DeploymentDoesNotExist', (name: string)=> `deployment "${name}" does not exist`
   )
-
 }

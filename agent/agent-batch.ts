@@ -156,20 +156,30 @@ export abstract class Batch implements BatchAgent {
     *   })
     * @returns
     *   the unmodified inputs. */
-  async instantiateMany <C extends Many<ContractInstance>> (
-    inputs: C,
-    options: any
-  ): Promise<C> {
-    if (!inputs) {
+  async instantiateMany <M extends Many<ContractInstance>> (
+    contracts: M,
+    options: {
+      initFee?:   ICoin[]|'auto',
+      initFunds?: ICoin[],
+      initMemo?:  string,
+    } = {}
+  ): Promise<M> {
+    if (!contracts) {
       throw new Error('no contracts passed to instantiateMany')
     }
-    this.log(`adding ${Object.values(inputs).length} instantiate messages`)
-    const outputs: any = (inputs instanceof Array) ? [] : {}
-    await Promise.all(Object.entries(inputs).map(async ([key, instance]: [Name, ContractInstance])=>{
-      if (instance.address) {
-        outputs[key] = instance.address
+    this.log(`adding ${Object.values(contracts).length} instantiate messages`)
+    const outputs: any = (contracts instanceof Array) ? [] : {}
+    await Promise.all(Object.entries(contracts).map(async ([key, contract]: [Name, ContractInstance])=>{
+      if (contract.address) {
+        outputs[key] = contract.address
       } else {
-        outputs[key] = await this.instantiate(instance, options)
+        outputs[key] = await this.instantiate(contract, {
+          label:     contract.label!,
+          initMsg:   contract.initMsg!,
+          initFee:   contract.initFee   || options.initFee,
+          initFunds: contract.initFunds || options.initFunds,
+          initMemo:  contract.initMemo  || options.initMemo
+        })
       }
     }))
     return outputs

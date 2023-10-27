@@ -1,41 +1,16 @@
 /**
-
-  Fadroma: Configuration
-  Copyright (C) 2023 Hack.bg
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
+  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 **/
-
-import type {
-  Environment,
-  Class,
-  DeployStoreClass, DeploymentClass,
-  DevnetPlatform
-} from './fadroma'
-
-import { Devnet } from './fadroma-devnet'
+import { Devnet } from './devnet'
+import type { DevnetPlatform } from './devnet'
 
 import {
-  Config as BaseConfig,
   Deployment as BaseDeployment,
-  Error,
-  Builder,
-  ConnectConfig,
-  UploadStore,
-  DeployStore,
+  Error, Builder, ConnectConfig, UploadStore, DeployStore,
 } from '@fadroma/connect'
+import type { Environment, Class, DeployStoreClass, DeploymentClass } from '@fadroma/connect'
 
 import $, { JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -47,13 +22,13 @@ import { fileURLToPath } from 'node:url'
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 export const thisPackage =
   //@ts-ignore
-  dirname(fileURLToPath(import.meta.url))
+  dirname(dirname(fileURLToPath(import.meta.url)))
 
 export const { version } =
   $(thisPackage, 'package.json').as(JSONFile)
     .load() as { version: string }
 
-export default class Config extends ConnectConfig {
+export class Config extends ConnectConfig {
 
   /** License token. */
   license?: string = this.getString(
@@ -261,3 +236,4 @@ export default class Config extends ConnectConfig {
     new Devnet({ ...this.devnet, ...options })
 
 }
+
