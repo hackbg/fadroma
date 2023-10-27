@@ -61,6 +61,21 @@ export * from './fadroma-config'
 export { default as Config } from './fadroma-config'
 
 /** @returns Builder configured as per environment and options */
+export function getAgent (options: Partial<Config> = {}): Agent {
+  return new Config().getAgent()
+}
+
+/** Upload a single contract with default settings. */
+export function upload (...args: Parameters<Agent["upload"]>) {
+  return getAgent().upload(...args)
+}
+
+/** Upload multiple contracts with default settings. */
+export function uploadMany (...args: Parameters<Agent["uploadMany"]>) {
+  return getAgent().uploadMany(...args)
+}
+
+/** @returns Builder configured as per environment and options */
 export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
   return new Config({ build: options }).getBuilder()
 }
@@ -73,16 +88,6 @@ export async function build (...args: Parameters<Builder["build"]>): Promise<Com
 /** Compile multiple single contracts with default settings. */
 export async function buildMany (...args: Parameters<Builder["buildMany"]>): Promise<CompiledCode[]> {
   return getBuilder().buildMany(...args)
-}
-
-/** Upload a single contract with default settings. */
-export function upload (...args: Parameters<Agent["upload"]>) {
-  return getAgent().upload(...args)
-}
-
-/** Upload multiple contracts with default settings. */
-export function uploadMany (...args: Parameters<Agent["uploadMany"]>) {
-  return getAgent().uploadMany(...args)
 }
 
 /** @returns Deployment configured according to environment and options */
@@ -372,7 +377,7 @@ export default class Project extends CommandContext {
       names = Object.keys(this.templates)
       if (names.length > 0) {
         this.log.log('Uploading all:', names.join(', '))
-        return await this.upload(...names)
+        return await this.upload({ names, store: options.store })
       }
       this.log.warn('Uploading 0 contracts.')
       return []
@@ -416,16 +421,14 @@ export default class Project extends CommandContext {
     * @returns Deployment|null */
   getDeployment (
     name?: string,
-    contracts: Record<string, Partial<ContractInstance>> = {}
+    templates: Record<string, Partial<ContractTemplate>> = {},
+    contracts: Record<string, Partial<ContractInstance>> = {},
   ): InstanceType<typeof this.Deployment> {
     const agent = this.config.getAgent()
     return this.config.getDeployment(this.Deployment, {
-      agent,
-      chain:     this.config.getChain(),
-      builder:   this.builder,
-      workspace: this.root.path,
-      store:     this.deployStore,
-      contracts
+      name,
+      templates: new Map(Object.entries(templates).map(([k,v])=>[k, new ContractTemplate(v)])),
+      contracts: new Map(Object.entries(contracts).map(([k,v])=>[k, new ContractInstance(v)])),
     })
   }
 
@@ -797,22 +800,18 @@ export class FSUploadStore extends UploadStore {
 export class UploadReceipt_v1 extends JSONFile<UploadReceiptData> {
   /** Create a Template object with the data from the receipt. */
   toTemplate (defaultChainId?: string) {
-    let {
-      chainId, codeId, codeHash, uploadTx, codePath
-    } = this.load()
+    let { chainId, codeId, codeHash, uploadTx, codePath } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
-    return new ContractTemplate({
-      codePath, codeHash, chainId, codeId, uploadTx
-    })
+    return new ContractTemplate({ codePath, codeHash, chainId, codeId, uploadTx })
   }
 }
 
 export interface UploadReceiptData {
-  artifact?:          any
   chainId?:           string
   codeHash:           string
   codeId:             number|string
+  codePath?:          any
   compressedChecksum: string
   compressedSize:     string
   logs:               any[]

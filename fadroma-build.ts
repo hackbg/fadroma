@@ -15,30 +15,41 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import type Project from './fadroma'
-import type { Class, ContractTemplate } from './fadroma'
-import { SourceCode, CompiledCode } from './fadroma'
-import type { Container } from '@hackbg/dock'
+import type Project from '.'
+
+import type { Class, ContractTemplate } from '@fadroma/connect'
+import {
+  SourceCode, CompiledCode,
+  Builder, HEAD, Error as BaseError, Console, bold, colors
+} from '@fadroma/connect'
+
 import Config from './fadroma-config'
-import { Builder, HEAD, Error as BaseError, Console, bold, colors } from '@fadroma/connect'
+
+import type { Container } from '@hackbg/dock'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
+
 import { hideProperties } from '@hackbg/hide'
 import $, {
   Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile
 } from '@hackbg/file'
-import { default as simpleGit } from 'simple-git'
+
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, sep } from 'node:path'
 import { homedir } from 'node:os'
 import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
+
+import { default as simpleGit } from 'simple-git'
+
 /** The parts of Cargo.toml which the builder needs to be aware of. */
 export type CargoTOML = {
   package: { name: string },
   dependencies: Record<string, { path?: string }>
 }
+
 export { Builder }
+
 /** Can perform builds.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class BuildLocal extends Builder {
@@ -76,6 +87,7 @@ export abstract class BuildLocal extends Builder {
     this.outputDir = $(options.outputDir!).as(OpaqueDirectory)
     if (options.script) this.script = options.script
   }
+
   /** Check if codePath exists in local artifacts cache directory.
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (outputDir: string, crate?: string, revision: string = HEAD): CompiledCode|null {
@@ -92,6 +104,7 @@ export abstract class BuildLocal extends Builder {
     }
     return null
   }
+
   protected populatePrebuilt (buildable: Partial<CompiledCode>): boolean {
     const { workspace, revision, crate } = buildable
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
@@ -103,10 +116,12 @@ export abstract class BuildLocal extends Builder {
     }
     return false
   }
+
   /** @returns the SHA256 hash of the file at the specified location */
   protected hashPath (location: string|Path) {
     return $(location).as(BinaryFile).sha256
   }
+
   /** @returns a fully populated Partial<SourceCode> from the original */
   protected resolveSource (buildable: string|Partial<SourceCode>): Partial<SourceCode> {
     if (typeof buildable === 'string') buildable = { crate: buildable }
@@ -122,15 +137,19 @@ export abstract class BuildLocal extends Builder {
     return buildable
   }
 }
+
 /** @returns an codePath filename name in the format CRATE@REF.wasm */
 export const codePathName = (crate: string, ref: string) =>
   `${crate}@${sanitize(ref)}.wasm`
+
 /** @returns a filename-friendly version of a Git ref */
 export const sanitize = (ref: string) =>
   ref.replace(/\//g, '_')
+
 /** @returns an array with duplicate elements removed */
 export const distinct = <T> (x: T[]): T[] =>
   [...new Set(x) as any]
+
 /** This builder launches a one-off build container using Dockerode. */
 export class BuildContainer extends BuildLocal {
   readonly id = 'Container'
@@ -174,13 +193,16 @@ export class BuildContainer extends BuildLocal {
       'commandTree', 'currentCommand',
       'args', 'task', 'before')
   }
+
   get [Symbol.toStringTag]() {
     return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}`
   }
+
   /** Build a single contract. */
   async build (contract: string|Partial<SourceCode>): Promise<CompiledCode> {
     return (await this.buildMany([contract]))[0]
   }
+
   /** This implementation groups the passed source by workspace and ref,
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
@@ -196,6 +218,7 @@ export class BuildContainer extends BuildLocal {
         await this.buildBatch(inputs as Partial<SourceCode>[], path, revision)
     return inputs as CompiledCode[]
   }
+
   /** Go over the list of inputs, filtering out the ones that are already built,
     * and collecting the source repositories and revisions. This will allow for
     * multiple crates from the same source checkout to be passed to a single build command. */
@@ -219,6 +242,7 @@ export class BuildContainer extends BuildLocal {
     }
     return [workspaces, revisions]
   }
+
   protected async buildBatch (inputs: Partial<SourceCode>[], path: string, rev: string = HEAD) {
     this.log.log('Building from', path, '@', rev)
     let root = $(path)
@@ -255,6 +279,7 @@ export class BuildContainer extends BuildLocal {
       input.codeHash = results[index]!.codeHash
     }
   }
+
   protected getPathDependencies (input: Partial<SourceCode>): Set<string> {
     const paths = new Set<string>()
     const cargoTOML = $(input.workspace!, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
@@ -263,6 +288,7 @@ export class BuildContainer extends BuildLocal {
     }
     return paths
   }
+
   protected getSrcSubDir (paths: Set<string>, root: Path): [Path, string] {
     const allPathFragments  = [...paths].sort().map(path=>path.split(sep))
     const basePathFragments = []
@@ -279,9 +305,11 @@ export class BuildContainer extends BuildLocal {
     const basePath = $(basePathFragments.join(sep))
     return [basePath, basePath.relative($('.', ...root.path.split(sep).slice(i)))]
   }
+
   protected async fetch (gitDir: Path, remote: string) {
     await simpleGit(gitDir.path).fetch(remote)
   }
+
   /** Match each crate from the current repo/ref pair
       with its index in the originally passed list of inputs. */
   protected matchBatch (inputs: Partial<SourceCode>[], path: string, rev: string): [number, string][] {
@@ -293,6 +321,7 @@ export class BuildContainer extends BuildLocal {
     }
     return crates
   }
+
   /** Build the crates from each same workspace/revision pair and collect the results. */
   protected async runContainer (
     root: string, subdir: string, rev: string,
@@ -337,6 +366,7 @@ export class BuildContainer extends BuildLocal {
     // Return a sparse array of the resulting artifacts
     return outputs.map(x=>this.locationToContract(x) as CompiledCode)
   }
+
   protected getMounts (buildScript: string, root: string, outputDir: string, safeRef: string) {
     if (!this.script) throw new BuildError.ScriptNotSet()
     const readonly: Record<string, string> = {}
@@ -359,6 +389,7 @@ export class BuildContainer extends BuildLocal {
     writable[`cargo_cache_${safeRef}`] = `/usr/local/cargo`
     return { readonly, writable }
   }
+
   protected collectCrates (outputDir: string, revision: string, crates: [number, string][]) {
     // Output slots. Indices should correspond to those of the input to buildMany
     const templates: Array<CompiledCode|null> = crates.map(()=>null)
@@ -377,6 +408,7 @@ export class BuildContainer extends BuildLocal {
     }
     return [ templates, shouldBuild ]
   }
+
   protected getOptions (
     subdir: string, gitSubdir: string, ro: Record<string, string>, rw: Record<string, string>,
   ) {
@@ -386,6 +418,7 @@ export class BuildContainer extends BuildLocal {
     const extra  = { Tty: true, AttachStdin: true }
     return { remove, readonly: ro, writable: rw, cwd, env, extra }
   }
+
   protected getEnv (subdir: string, gitSubdir: string): Record<string, string> {
     const buildEnv = {
       // Vars used by the build script itself are prefixed with underscore:
@@ -413,6 +446,7 @@ export class BuildContainer extends BuildLocal {
     }
     return buildEnv as Record<string, string>
   }
+
   protected getLogStream (revision: string, cb: (data: string)=>void) {
     const log = new Console(`building from ${revision}`)
     // This stream collects the output from the build container, i.e. the build logs.
@@ -428,6 +462,7 @@ export class BuildContainer extends BuildLocal {
     if (this.quiet) buildLogStream.on('data', cb)
     return buildLogStream
   }
+
   protected buildFailed (crates: string[], code: string|number, logs: string) {
     const crateList = crates.join(' ')
     this.log
@@ -435,12 +470,14 @@ export class BuildContainer extends BuildLocal {
       .error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
     throw new BuildError(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
   }
+
   protected locationToContract (location: any) {
     if (location === null) return null
     const codePath = $(location).url
     const codeHash = this.hashPath(location)
-    return new Contract({ codePath, codeHash })
+    return new ContractInstance({ codePath, codeHash })
   }
+
   protected async killBuildContainer (buildContainer: Container) {
     if (this.verbose) this.log.log('killing build container', bold(buildContainer.id))
     try {
@@ -455,21 +492,26 @@ export class BuildContainer extends BuildLocal {
     }
   }
 }
+
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
 export class BuildRaw extends BuildLocal {
   readonly id = 'Raw'
+
   /** Logging handle. */
   log = new BuildConsole('build (raw)')
+
   /** Node.js runtime that runs the build subprocess.
     * Defaults to the same one that is running this script. */
   runtime = process.argv[0]
+
   /** Build multiple Sources. */
   async buildMany (inputs: Partial<SourceCode>[]): Promise<CompiledCode[]> {
     const templates: CompiledCode[] = []
     for (const buildable of inputs) templates.push(await this.build(buildable))
     return templates
   }
+
   /** Build a Source into a Template */
   async build (buildable: Partial<SourceCode>): Promise<CompiledCode> {
     buildable.workspace ??= this.workspace
@@ -488,6 +530,7 @@ export class BuildRaw extends BuildLocal {
     const codeHash = this.hashPath(location.path)
     return Object.assign(buildable, { codePath, codeHash })
   }
+
   protected getEnvAndTemp (buildable: Partial<SourceCode>, workspace?: string, revision?: string) {
     // Temporary dirs used for checkouts of non-HEAD builds
     let tmpGit:   Path|null = null
@@ -520,14 +563,17 @@ export class BuildRaw extends BuildLocal {
     }
     return {env, tmpGit, tmpBuild}
   }
+
   /** Overridable. */
   protected spawn (...args: Parameters<typeof spawn>) {
     return spawn(...args)
   }
+
   /** Overridable. */
   protected getGitDir (...args: Parameters<typeof getGitDir>) {
     return getGitDir(...args)
   }
+
   protected runBuild (buildable: Partial<SourceCode>, env: { _OUTPUT: string }): Promise<Path> {
     buildable = this.resolveSource(buildable)
     const { crate, workspace, revision = 'HEAD' } = buildable
@@ -551,11 +597,17 @@ export class BuildRaw extends BuildLocal {
     }))
   }
 }
+
 // Expose builder implementations via the Builder.variants static property
 Object.assign(Builder.variants, {
+  'container': BuildContainer,
+  'Container': BuildContainer,
+  'raw': BuildRaw,
+  'Raw': BuildRaw
 })
+
 // Try to determine where the .git directory is located
-export function getGitDir (template: Partial<ContractTemplate<any>> = {}): DotGit {
+export function getGitDir (template: Partial<ContractTemplate> = {}): DotGit {
   const { workspace } = template || {}
   if (!workspace) throw new BuildError("No workspace specified; can't find gitDir")
   return new DotGit(workspace)
@@ -566,9 +618,12 @@ export function getGitDir (template: Partial<ContractTemplate<any>> = {}): DotGi
   * - If the contracts workspace repository is a submodule,
   *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
 export class DotGit extends Path {
+
   log = new Console('@hackbg/fadroma: DotGit')
+
   /** Whether a .git is present */
   readonly present: boolean
+
   /** Whether the workspace's repository is a submodule and
     * its .git is a pointer to the parent's .git/modules */
   readonly isSubmodule: boolean = false
@@ -609,18 +664,23 @@ export class DotGit extends Path {
       this.present = false
     }
   }
+
   get rootRepo (): Path {
     return $(this.path.split(DotGit.rootRepoRE)[0])
   }
+
   get submoduleDir (): string {
     return this.path.split(DotGit.rootRepoRE)[1]
   }
+
   /* Matches "/.git" or "/.git/" */
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
+
 }
 
 /** Represents a crate containing a contract. */
 export class ContractCrate {
+
   constructor (
     readonly project: Project,
     /** Name of crate */
@@ -636,7 +696,9 @@ export class ContractCrate {
     /** Root module of Rust crate. */
     readonly libRs: TextFile = src.at('lib.rs').as(TextFile)
   ) {}
+
   create () {
+
     this.cargoToml.save([
       `[package]`, `name = "${this.name}"`, `version = "0.0.0"`, `edition = "2021"`,
       `authors = []`, `keywords = ["fadroma"]`, `description = ""`, `readme = "README.md"`, ``,
@@ -645,7 +707,9 @@ export class ContractCrate {
       `fadroma = { version = "0.8.7", features = ${JSON.stringify(this.fadromaFeatures)} }`,
       `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
     ].join('\n'))
+
     this.src.make()
+
     this.libRs.save([
       `//! Created by [Fadroma](https://fadroma.tech).`, ``,
       `#[fadroma::dsl::contract] pub mod contract {`,
@@ -674,38 +738,67 @@ export class ContractCrate {
       `    }`,
       `}`,
     ].join('\n'))
+
   }
+
 }
 
 /** Build console. */
 class BuildConsole extends Console {
-  one = ({ crate = '(unknown)', revision = 'HEAD' }: Partial<Template<any>>) => this.log(
-    'Building', bold(crate), ...(revision === 'HEAD')
+
+  one ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractTemplate>) {
+    return this.log('Building', bold(crate), ...(revision === 'HEAD')
       ? ['from working tree']
       : ['from Git reference', bold(revision)])
-  many = (inputs: ContractTemplate<any>[]) =>
-    inputs.forEach(buildable=>this.one(buildable))
-  found = ({ codePath }: CompiledCode) =>
-    this.log(`found at ${bold($(codePath!).shortPath)}`)
-  workspace = (mounted: Path|string, ref: string = HEAD) => this.log(
-    `building from workspace:`, bold(`${$(mounted).shortPath}/`),
-    `@`, bold(ref))
-  container = (root: string|Path, revision: string, cratesToBuild: string[]) => this.log(
-    `started building from ${bold($(root).shortPath)} @ ${bold(revision)}:`,
-    cratesToBuild.map(x=>bold(x)).join(', ')
-  )
-  fetchFailed = (remote: string, e: any) => this.warn(
-    `Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`
-  ).warn(e)
+  }
+
+  many (inputs: ContractTemplate[]) {
+    return inputs.forEach(buildable=>this.one(buildable))
+  }
+
+  found ({ codePath }: CompiledCode) {
+    return this.log(`found at ${bold($(codePath!).shortPath)}`)
+  }
+
+  workspace (mounted: Path|string, ref: string = HEAD) {
+    return this.log(
+      `building from workspace:`, bold(`${$(mounted).shortPath}/`),
+      `@`, bold(ref)
+    )
+  }
+
+  container (root: string|Path, revision: string, cratesToBuild: string[]) {
+    return this.log(
+      `started building from ${bold($(root).shortPath)} @ ${bold(revision)}:`,
+      cratesToBuild.map(x=>bold(x)).join(', ')
+    )
+  }
+
+  fetchFailed (remote: string, e: any) {
+    return this.warn(
+      `Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`
+    ).warn(e)
+  }
+
 }
 
 /** Build error. */
 export class BuildError extends BaseError {
-  static ScriptNotSet = this.define('ScriptNotSet',
-    ()=>'build script not set')
-  static NoHistoricalManifest = this.define('NoHistoricalManifest',
-    ()=>'the workspace manifest option can only be used when building from working tree')
-  static NoGitDir = this.define('NoGitDir',
+
+  static ScriptNotSet = this.define(
+    'ScriptNotSet',
+    ()=>'build script not set'
+  )
+
+  static NoHistoricalManifest = this.define(
+    'NoHistoricalManifest',
+    ()=>'the workspace manifest option can only be used when building from working tree'
+  )
+
+  static NoGitDir = this.define(
+    'NoGitDir',
     (args)=>'could not find .git directory',
-    (err, args)=>Object.assign(err, args||{}))
+    (err, args)=>Object.assign(err, args||{})
+  )
+
 }

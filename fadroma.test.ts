@@ -1,28 +1,35 @@
 import * as assert from 'node:assert'
+
+import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
+import * as Dock from '@hackbg/dock'
+
+import type { Agent } from '@fadroma/agent'
 import {
   Deployment, DeployStore, Builder,
-  into, intoArray, intoRecord
+  into, intoArray, intoRecord,
+  StubAgent, UploadStore
 } from '@fadroma/agent'
+
 import Project, {
   getDeployment, DeployStore_v1,
   getBuilder, BuildContainer, BuildRaw,
-  FSUploader, upload,
+  upload,
   getGitDir, DotGit,
-  DeployConsole
+  DeployConsole,
+  ContractTemplate,
+  ContractInstance,
+  ContractClient
 } from '@hackbg/fadroma'
-import { ProjectWizard } from './fadroma-wizard'
-import type { Agent } from '@fadroma/agent'
-import $, { OpaqueDirectory, withTmpDir } from '@hackbg/file'
-import * as Dock from '@hackbg/dock'
-import { fixture } from './fixtures/fixtures'
 
+import { ProjectWizard } from './fadroma-wizard'
+
+import { fixture } from './fixtures/fixtures'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['agent',        () => import('./agent/agent.test')],
   ['connect',      () => import('./connect/connect.test')],
   ['devnet',       () => import('./fadroma-devnet.test')],
   ['wizard',       testProjectWizard],
-  ['collections',  testCollections],
   //['project',      testProject],
   ['deployment',   testDeployment],
   ['deploy-store', testDeployStore],
@@ -31,32 +38,9 @@ export default new Suite([
   ['upload-store', testUploadStore],
   //['factory', () => import ('./Factory.spec.ts.md')],
   //['impl',    () => import('./Implementing.spec.ts.md')],
+  ['collections',  testCollections],
+  ['consoles',     testConsoles]
 ])
-
-export async function testCollections () {
-
-  assert.equal(await into(1), 1)
-  assert.equal(await into(Promise.resolve(1)), 1)
-  assert.equal(await into(()=>1), 1)
-  assert.equal(await into(async ()=>1), 1)
-
-  assert.deepEqual(
-    await intoArray([1, ()=>1, Promise.resolve(1), async () => 1]),
-    [1, 1, 1, 1]
-  )
-
-  assert.deepEqual(await intoRecord({
-    ready:   1,
-    getter:  () => 2,
-    promise: Promise.resolve(3),
-    asyncFn: async () => 4
-  }), {
-    ready:   1,
-    getter:  2,
-    promise: 3,
-    asyncFn: 4
-  })
-}
 
 export async function testProject () {
   const { default: Project } = await import('@hackbg/fadroma')
@@ -77,51 +61,68 @@ export async function testProject () {
     .cargoUpdate()
 
   const test1 = project.getTemplate('test1')
-  assert.ok(test1 instanceof Template)
+  assert.ok(test1 instanceof ContractTemplate)
 
   const test3 = project.setTemplate('test3', { crate: 'test2' })
-  assert.ok(test3 instanceof Template)
+  assert.ok(test3 instanceof ContractTemplate)
   await project.build()
   await project.build('test1')
-  await project.upload()
-  await project.upload('test2')
+  await project.upload({ agent })
+  await project.upload({ agent, templates: [], contracts: ['test2'] })
   await project.deploy(/* any deploy arguments, if you've overridden the deploy procedure */)
   await project.redeploy(/* ... */)
   await project.exportDeployment('state')
 }
 
 class MyDeployment extends Deployment {
-  t = this.template({ crate: 'examples/kv' })
-  a = this.t.instance({ name: 'a', initMsg: {} })
+  t = this.template({
+    crate: 'examples/kv'
+  })
+
+  a = this.t.instance({
+    name: 'a',
+    initMsg: {}
+  })
+
   b = this.t.instances([
-    {name:'b1',initMsg:{}}, {name:'b2',initMsg:{}}, {name:'b3',initMsg:{}}
+    {name:'b1',initMsg:{}},
+    {name:'b2',initMsg:{}},
+    {name:'b3',initMsg:{}}
   ])
+
   c = this.t.instances({
-    c1:{name:'c1',initMsg:{}}, c2:{name:'c2',initMsg:{}}, c3:{name:'c3',initMsg:{}}
+    c1:{name:'c1',initMsg:{}},
+    c2:{name:'c2',initMsg:{}},
+    c3:{name:'c3',initMsg:{}}
   })
 }
 
 export async function testDeployment () {
+
   let deployment = await getDeployment(MyDeployment).deploy()
-  assert.ok(deployment.t instanceof Template)
+
+  assert.ok(deployment.t instanceof ContractTemplate)
+
   assert.ok([
     deployment.a,
     ...Object.values(deployment.b),
     ...Object.values(deployment.c),
   ].every(
-    c=>(c instanceof Contract) && (c.expect() instanceof Client)
+    c=>(c instanceof ContractInstance) && (c.expect() instanceof Client)
   ))
+
 }
 
 export async function testBuild () {
-  const deployment = getDeployment(MyDeployment)
-  assert.ok(deployment.t.builder instanceof Builder)
-  assert.equal(deployment.t.builder, deployment.builder)
-  await deployment.t.built
-  // -or-
-  await deployment.t.build()
+
+  const deployment = new MyDeployment()
+
+  await deployment.build({ builder: getBuilder() })
+
   const builder = getBuilder(/* { ...options... } */)
+
   assert.ok(builder instanceof Builder)
+
   //assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
   //assert.ok(getBuilder({ raw: false }).docker instanceof Dock.Engine)
   //getBuilder({ raw: false, dockerSocket: 'test' })
@@ -148,33 +149,33 @@ export async function testBuild () {
 }
 
 export async function testBuildHistory () {
+
   assert.throws(()=>getGitDir(new Contract()))
+
   const contractWithSource = new Contract({
     repository: 'REPO',
     revision:   'REF',
     workspace:  'WORKSPACE',
     crate:      'CRATE'
   })
+
   assert.ok(getGitDir(contractWithSource) instanceof DotGit)
+
 }
 
 export async function testUpload () {
-  const deployment = getDeployment(MyDeployment)
-  assert.ok(deployment.t.uploader instanceof Uploader)
-  assert.equal(deployment.t.uploader, deployment.uploader)
-  await deployment.t.uploaded
-  // -or-
-  await deployment.t.upload()
-  const artifact = fixture('fadroma-example-kv@HEAD.wasm') // replace with path to your binary
-  await upload({ artifact })
-  await getUploader({ /* options */ }).upload({ artifact })
+
+  const deployment = new MyDeployment()
+
+  await deployment.upload({
+    agent: new StubAgent(),
+    store: new UploadStore('')
+  })
+
 }
 
 export async function testDeploymentUpgrade () {
-  // and create instances of your deployment with preloaded
-  // "address books" of contracts. for example here we restore
-  // a different snapshot depending on whether we're passed a
-  // mainnet or testnet connection.
+
   class MyDeployment_v1 extends Deployment {
     kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
     kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
@@ -184,36 +185,49 @@ export async function testDeploymentUpgrade () {
       return new this({ agent })
     }
   }
+
   class MyDeployment_v2 extends MyDeployment_v1 {
     kv3 = this.contract({ crate: 'examples/kv', name: 'kv3', initMsg: {} })
     // simplest client-side migration is to just instantiate
     // a new deployment with the data from the old deployment.
-    static upgrade = (previous: MyDeployment_v1) => new this({ ...previous })
+    static upgrade = (previous: MyDeployment_v1) => new this({
+      ...previous
+    })
   }
+
   let deployment = new MyDeployment_v1()
   assert.deepEqual(Object.keys(deployment.snapshot.contracts), ['kv1', 'kv2'])
+
   // you would load snapshots as JSON, e.g.:
   // const testnet = await (await fetch('./testnet_v4.json')).json()
   const mainnet = deployment.snapshot
   const testnet = deployment.snapshot
+
   const mainnetAgent: any = { chain: { isMainnet: true } } // mock
   const testnetAgent: any = { chain: { isTestnet: true } } // mock
+
   const onMainnet = MyDeployment_v1.connect(mainnetAgent)
   const onTestnet = MyDeployment_v1.connect(testnetAgent)
+
   assert.ok(onMainnet.isMainnet)
   assert.ok(onTestnet.isTestnet)
+
   assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
   assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
+
   const kv1 = MyDeployment_v1.connect(mainnetAgent).kv1.expect()
-  assert.ok(kv1 instanceof Client)
+  assert.ok(kv1 instanceof ContractClient)
+
   const kv2 = MyDeployment_v1.connect(testnetAgent).kv2.expect()
-  assert.ok(kv2 instanceof Client)
+  assert.ok(kv2 instanceof ContractClient)
+
   // simplest chain-side migration is to just call default deploy,
   // which should reuse kv1 and kv2 and only deploy kv3.
   deployment = await MyDeployment_v2.upgrade(deployment).deploy()
 }
 
 export async function testDeployStore () {
+
   new class MyDeployStore extends DeployStore {
     list (): string[] { throw 'stub' }
     save () { throw 'stub' }
@@ -230,6 +244,7 @@ export async function testDeployStore () {
 
   let result = ''
   const store = new DeployStore_v1('', {})
+
   Object.defineProperty(store, 'root', { // mock
     value: {
       exists: () => false,
@@ -248,15 +263,15 @@ export async function testDeployStore () {
       })
     }
   })
-  await store.create()
-  store.list()
-  store.save('foo', { contract1: { deployment: true }, contract2: { deployment: true } } as any)
-  assert.equal(result, '---\n{}\n---\n{}\n')
-  assert.ok(store[Symbol.toStringTag])
 
-  new DeployConsole('test message').activating('asdf')
-  new DeployConsole('test message').noAgent('name')
-  new DeployConsole('test message').list('asdf', store)
+  await store.create()
+
+  store.list()
+
+  //store.save('foo', { contract1: { deployment: true }, contract2: { deployment: true } } as any)
+
+  //assert.equal(result, '---\n{}\n---\n{}\n')
+  assert.ok(store[Symbol.toStringTag])
 }
 
 export async function testUploadStore () {
@@ -279,10 +294,51 @@ export function tmpDir () {
 }
 
 export async function testProjectWizard () {
-  assert.ok(await new ProjectWizard({ interactive: false, cwd: tmpDir() }).createProject(
+
+  const wizard = new ProjectWizard({
+    interactive: false,
+    cwd: tmpDir()
+  })
+
+  assert.ok(await wizard.createProject(
     Project,
     'test-project-2',
     'test3',
     'test4'
   ) instanceof Project)
+
+}
+
+export async function testCollections () {
+
+  assert.equal(await into(1), 1)
+  assert.equal(await into(Promise.resolve(1)), 1)
+  assert.equal(await into(()=>1), 1)
+  assert.equal(await into(async ()=>1), 1)
+
+  assert.deepEqual(
+    await intoArray([1, ()=>1, Promise.resolve(1), async () => 1]),
+    [1, 1, 1, 1]
+  )
+
+  assert.deepEqual(await intoRecord({
+    ready:   1,
+    getter:  () => 2,
+    promise: Promise.resolve(3),
+    asyncFn: async () => 4
+  }), {
+    ready:   1,
+    getter:  2,
+    promise: 3,
+    asyncFn: 4
+  })
+}
+
+export function testConsoles () {
+
+  new DeployConsole('test message')
+    .activating('asdf')
+    .noAgent('name')
+    .list('asdf', new DeployStore_v1('', {}))
+
 }

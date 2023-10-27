@@ -33,6 +33,8 @@ import { hideProperties } from '@hackbg/hide'
 import { validated, defineDefault, override } from '@hackbg/over'
 import { into } from '@hackbg/into'
 import { timestamp } from '@hackbg/logs'
+import type { Many } from '@hackbg/many'
+import { map } from '@hackbg/many'
 
 const console = new Console()
 
@@ -70,6 +72,10 @@ export class SourceCode extends ValueObject {
     this.overrideAll(properties, [
       'repository', 'revision', 'dirty', 'workspace', 'crate', 'features'
     ])
+  }
+
+  get [Symbol.toStringTag] () {
+    return this.specifier
   }
 
   toSourceReceipt () {
@@ -166,6 +172,10 @@ export class CompiledCode extends SourceCode {
     this.overrideAll(properties, [
       'buildInfo', 'codeHash', 'codePath', 'codeData'
     ])
+  }
+
+  get [Symbol.toStringTag] () {
+    return `${this.codeHash}`
   }
 
   toBuildReceipt () {
@@ -295,8 +305,14 @@ export class ContractTemplate extends CompiledCode {
     return agent.instantiate(this, options)
   }
 
-  instance (options: any): ContractInstance {
+  instance (options: Partial<ContractInstance>): ContractInstance {
     return new ContractInstance({ ...options, ...this })
+  }
+
+  /** Get a collection of multiple contracts from this template.
+    * @returns task for deploying multiple contracts, resolving to their clients */
+  instances (contracts: Many<Partial<ContractInstance>>): Many<ContractInstance> {
+    return map(contracts, contract=>this.instance(contract))
   }
 }
 
@@ -313,7 +329,7 @@ export class ContractInstance extends ContractTemplate {
   initMsg?: Message
 
   constructor (properties: Partial<ContractInstance> = {}) {
-    super(properties)
+    super(properties as Partial<ContractTemplate>)
     this.overrideAll(properties, [
       'initBy', 'initMsg', 'initTx', 'address', 'label'
     ])
@@ -331,12 +347,19 @@ export class ContractInstance extends ContractTemplate {
     }
   }
 
-  async instantiate (agent: Agent, options: any): Promise<ContractInstance> {
-    return this
+  async instantiate (agent: Agent, options: any): Promise<ContractInstance & {
+    address: Address
+  }> {
+    if (this.address) {
+      return this as this & { address: Address }
+    } else {
+      return super.instantiate(agent, options)
+    }
   }
 
   connect <C extends ContractClient> (agent: Agent, $C?: ContractClientClass<C>) {
-    return new ($C||ContractClient)(agent, this)
+    $C ??= ContractClient as ContractClientClass<C>
+    return new $C(agent, this)
   }
 
 }

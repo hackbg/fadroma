@@ -21,16 +21,20 @@
 import type {
   Environment,
   Class,
-  DeploymentFormat, DeployStoreClass, DeploymentClass,
+  DeployStoreClass, DeploymentClass,
   DevnetPlatform
 } from './fadroma'
+
 import { Devnet } from './fadroma-devnet'
 
 import {
-  Builder, ConnectConfig, DeployStore,
   Config as BaseConfig,
   Deployment as BaseDeployment,
-  Error
+  Error,
+  Builder,
+  ConnectConfig,
+  UploadStore,
+  DeployStore,
 } from '@fadroma/connect'
 
 import $, { JSONFile } from '@hackbg/file'
@@ -155,60 +159,59 @@ export default class Config extends ConnectConfig {
 
   /** Upload options. */
   upload = {
+
     /** Whether to always upload contracts, ignoring upload receipts that match. */
     reupload: this.getFlag(
       'FADROMA_REUPLOAD', () => false),
+
     /** Directory to store the receipts for the deployed contracts. */
     uploadState: this.getString(
       'FADROMA_UPLOAD_STATE', () => this.chainId
         ? $(this.root).in('state').in(this.chainId).in('upload').path
         : null),
+
     /** Variant of uploader to use */
     uploader: this.getString(
       'FADROMA_UPLOADER', () => 'FS')
+
   }
 
-  /** @returns the Uploader class exposed by the config */
-  get Uploader () {
-    return Uploader.variants[this.upload.uploader]
-  }
-
-  /** @returns a configured uploader. */
-  getUploader <T extends Uploader, U extends UploaderClass<T>> (
-    Uploader?: U, ...args: ConstructorParameters<U>
-  ): T {
-    Uploader ??= this.Uploader as U
-    args[0] ??= { agent: this.getAgent() }
-    const uploader = new Uploader(...args)
-    return uploader
+  getUploadStore () {
+    return new UploadStore({})
   }
 
   /** Deploy options. */
   deploy = {
+
     /** Whether to generate unsigned transactions for manual multisig signing. */
-    multisig: this.getFlag(
-      'FADROMA_MULTISIG', () => false),
+    multisig: this.getFlag('FADROMA_MULTISIG',
+      () => false),
+
     /** Directory to store the receipts for the deployed contracts. */
-    storePath: this.getString(
-      'FADROMA_DEPLOY_STATE', () =>
-      this.chainId ? $(this.root).in('state').in(this.chainId).in('deploy').path : null),
+    storePath: this.getString('FADROMA_DEPLOY_STATE',
+      () => this.chainId
+        ? $(this.root).in('state').in(this.chainId).in('deploy').path
+        : null),
+
     /** Which implementation of the receipt store to use. */
-    format: this.getString(
-      'FADROMA_DEPLOY_FORMAT', () => 'v1') as DeploymentFormat
+    format: this.getString('FADROMA_DEPLOY_FORMAT',
+      () => 'v1') as DeploymentFormat
+
   }
 
   /** @returns DeployStoreClass selected by `this.deploy.format` (`FADROMA_DEPLOY_FORMAT`). */
   get DeployStore (): DeployStoreClass<DeployStore>|undefined {
-    return DeployStore.variants[this.deploy.format]
+    return DeployStore
   }
 
   /** @returns DeployStore or subclass instance */
   getDeployStore <T extends DeployStore> (
-    DeployStore?: DeployStoreClass<T>
+    DeployStore?: DeployStoreClass<T> = this.DeployStore
   ): T {
-    DeployStore ??= this.DeployStore as DeployStoreClass<T>
-    if (!DeployStore) throw new Error.Missing.DeployStoreClass()
-    return new DeployStore(this.deploy.storePath)
+    return new DeployStore({})
+    //DeployStore ??= this.DeployStore as DeployStoreClass<T>
+    //if (!DeployStore) throw new Error.Missing.DeployStoreClass()
+    //return new DeployStore(this.deploy.storePath)
   }
 
   /** Create a new Deployment.
@@ -225,7 +228,6 @@ export default class Config extends ConnectConfig {
     if (!args[0].chain) throw new Error.Missing.Chain()
     args[0].agent     ||= this.getAgent()
     args[0].builder   ||= this.getBuilder()
-    args[0].uploader  ||= args[0].agent.getUploader(this.Uploader)
     args[0].workspace ||= process.cwd()
     args[0].store     ||= this.getDeployStore()
     args[0].name      ||= args[0].store.activeName || undefined

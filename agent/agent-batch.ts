@@ -157,7 +157,8 @@ export abstract class Batch implements BatchAgent {
     * @returns
     *   the unmodified inputs. */
   async instantiateMany <C extends Many<ContractInstance>> (
-    inputs: C
+    inputs: C,
+    options: any
   ): Promise<C> {
     if (!inputs) {
       throw new Error('no contracts passed to instantiateMany')
@@ -168,7 +169,7 @@ export abstract class Batch implements BatchAgent {
       if (instance.address) {
         outputs[key] = instance.address
       } else {
-        outputs[key] = await this.instantiate(instance, {})
+        outputs[key] = await this.instantiate(instance, options)
       }
     }))
     return outputs
