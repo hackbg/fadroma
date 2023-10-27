@@ -1,14 +1,12 @@
-/**
-  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Console, Error, ContractTemplate, ContractInstance, Deployment,
   bold, timestamp,
 } from '@fadroma/connect'
 import type {
-  Builder, CompiledCode, ChainId,
+  CompiledCode, ChainId,
 } from '@fadroma/connect'
 
 import $, {
@@ -19,7 +17,7 @@ import $, {
 } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 
-import { getBuilder, ContractCrate } from './build'
+import { getBuilder, Builder, ContractCrate } from './build'
 import { Config, version } from './config'
 import { Devnet } from './devnet'
 import { ProjectWizard, toolVersions } from './wizard'
@@ -31,25 +29,35 @@ import { execSync } from 'node:child_process'
 
 const console = new Console(`@hackbg/fadroma ${version}`)
 
-export type ProjectOptions = Omit<Partial<Project>, 'root'|'templates'> & {
-  root:      OpaqueDirectory|string,
-  templates: Record<string, Partial<ContractTemplate>>
+export type ProjectOptions = Omit<Partial<Project>, 'root'|'templates'|'uploadStore'|'deployStore'> & {
+  root?:        OpaqueDirectory|string,
+  templates?:   Record<string, Partial<ContractTemplate>>
+  uploadStore?: string|UploadStore
+  deployStore?: string|DeployStore
 }
 
 export class Project extends CommandContext {
+
   log = new Console(`Fadroma ${version}`) as any
+
   /** Fadroma settings. */
   config: Config
+
   /** Name of the project. */
   name: string
+
   /** Root directory of the project. */
   root: OpaqueDirectory
+
   /** Default deployment class. */
   Deployment = Deployment
+
   /** Builder to compile the contracts. */
   builder: Builder
+
   /** Stores the upload receipts. */
   uploadStore: UploadStore
+
   /** Stores the deploy receipts. */
   deployStore: DeployStore
 
@@ -77,22 +85,29 @@ export class Project extends CommandContext {
       .info('at', bold(this.root.path))
       .info(`on`, bold(this.config.chainId))
 
-    this.builder = getBuilder({
-      outputDir: this.dirs.wasm.path
-    })
+    if (options?.builder instanceof Builder) {
+      this.builder = options.builder
+    } else {
+      this.builder = getBuilder({
+        outputDir: this.dirs.wasm.path
+      })
+    }
 
-    this.uploadStore = this.config.chainId
-      ? new FSUploadStore(
-          this.config.chainId,
-          this.dirs.state.in(this.config.chainId).at('uploads').as(JSONDirectory)
-        )
-      : new UploadStore('')
+    if (options?.uploadStore instanceof UploadStore) {
+      this.uploadStore = options.uploadStore
+    } else if (typeof options?.uploadStore === 'string') {
+      this.uploadStore = new FSUploadStore(options.uploadStore)
+    } else {
+      this.uploadStore = new UploadStore()
+    }
 
-    this.deployStore = this.config.chainId
-      ? new FSDeployStore(
-          this.dirs.state.in(this.config.chainId).at('deploys').as(JSONDirectory)
-        )
-      : new DeployStore()
+    if (options?.deployStore instanceof DeployStore) {
+      this.deployStore = options.deployStore
+    } else if (typeof options?.deployStore === 'string') {
+      this.deployStore = new FSDeployStore(options.deployStore)
+    } else {
+      this.deployStore = new DeployStore()
+    }
   }
 
   /** Load and execute the default export of an ES module,
@@ -267,21 +282,21 @@ export class Project extends CommandContext {
         this.log.error('No deployments.')
         return
       }
-      if (store.list().length < 1) {
+      if ([...store.keys()].length < 1) {
         throw new Error('No deployments in this store')
       }
       let deployment: Deployment
       if (name) {
-        return this.getDeployment(name, { contracts: await store.select(name) })
+        return store.get(name, this.Deployment)
       } else if (process.stdout.isTTY) {
         name = await ProjectWizard.selectDeploymentFromStore(store)
         if (name) {
-          return this.getDeployment(name, { contracts: await store.select(name) })
+          return store.get(name, this.Deployment)
         } else {
           throw new Error(`No such deployment: ${name}`)
         }
       } else if (store.activeName) {
-        return this.getDeployment(store.activeName, await store.load(store.activeName)!)
+        return store.get(store.activeName, this.Deployment)
       } else {
         throw new Error('No active deployment in this store and no name passed')
       }

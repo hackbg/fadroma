@@ -322,12 +322,17 @@ export async function testAgentConsole () {
 
 export async function testLabels () {
   assert.equal(
-    new DeploymentContractLabel('foo', 'bar', 'baz').toString(), 'foo/bar+baz'
+    new DeploymentContractLabel('foo', 'bar', 'baz').toString(),
+    'foo/bar+baz'
   )
-  assert.deepEqual(DeploymentContractLabel.parse('foo/bar+baz'), {
-    prefix: 'foo', name: 'bar', suffix: 'baz'
-  })
-  assert.deepEqual(DeploymentContractLabel.parse('foo/bar+baz').toString(), 'foo/bar+baz')
+  assert.deepEqual(
+    DeploymentContractLabel.parse('foo/bar+baz'),
+    { prefix: 'foo', name: 'bar', suffix: 'baz' }
+  )
+  assert.deepEqual(
+    DeploymentContractLabel.parse('foo/bar+baz').toString(),
+    'foo/bar+baz'
+  )
 }
 
 export async function testClient () {
@@ -361,46 +366,20 @@ export async function testDeployment () {
   //assert.equal(deployment.size, 0)
 
   for (const mode of [Chain.Mode.Mainnet, Chain.Mode.Testnet]) {
-
     const deployment = new Deployment({
-      name: 'foo',
-      mode
+      name: 'foo', mode
     })
-
     assert.deepEqual(deployment.toReceipt(), {
-      contracts: {},
-      templates: {},
-      name: 'foo',
-      mode,
+      contracts: {}, templates: {}, name: 'foo', mode,
     })
-
-    let foo
-    assert.ok(
-      (foo = deployment.template({ codeData: new Uint8Array() })) instanceof ContractTemplate
-    )
-
-    assert.ok(
-      deployment.contract('bar', {}) instanceof ContractInstance
-    )
-
-    assert.ok(
-      foo.instance('baz') instanceof ContractInstance
-    )
-
-    await deployment.build({
-      builder: new StubBuilder()
-    })
-
-    await deployment.upload({
-      agent: new StubAgent()
-    })
-
-    await deployment.deploy({
-      agent: new StubAgent()
-    })
-
+    const foo = deployment.template({ codeData: new Uint8Array() })
+    assert.ok(foo instanceof ContractTemplate)
+    assert.ok(deployment.contract('bar', {}) instanceof ContractInstance)
+    assert.ok(foo.instance({ name: 'baz' }) instanceof ContractInstance)
+    await deployment.build({ builder: new StubBuilder() })
+    await deployment.upload({ agent: new StubAgent() })
+    await deployment.deploy({ agent: new StubAgent() })
     new Console().deployment(deployment)
-
   }
 
   //new Deployment().showStatus()

@@ -1,8 +1,6 @@
-/**
-  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Error as BaseError, Console, Config,
   bold, randomHex, ChainMode, Chain, Scrt, CW,
@@ -25,6 +23,11 @@ import { randomBytes } from 'node:crypto'
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 //@ts-ignore
 const thisPackage = dirname(dirname(fileURLToPath(import.meta.url)))
+
+/** @returns Devnet configured as per environment and options. */
+export function getDevnet (options: Partial<DevnetConfig> = {}) {
+  return new DevnetConfig(options).getDevnet()
+}
 
 /** Supported devnet variants. Add new devnets here first. */
 export type DevnetPlatform =
@@ -630,7 +633,7 @@ export class DevnetConfig extends Config {
 
   /** @returns Devnet */
   getDevnet (options: Partial<Devnet> = {}) {
-    return new Devnet({ ...this.devnet, ...options })
+    return new Devnet({...this})
   }
 }
 
