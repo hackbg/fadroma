@@ -25,6 +25,9 @@ import type {
 import type {
   Agent, Chain, ChainId, ChainMode, ExecOpts
 } from './agent-chain'
+import type {
+  DeployStore
+} from './agent-store'
 
 import { hideProperties } from '@hackbg/hide'
 import { validated, defineDefault, override } from '@hackbg/over'
@@ -126,7 +129,7 @@ export abstract class Builder {
   ): Promise<CompiledCode[]>
 }
 
-export class StubBuilder {
+export class StubBuilder extends Builder {
   id = 'stub'
   log = new Console(this.constructor.name)
   caching = false
@@ -288,7 +291,7 @@ export class ContractTemplate extends CompiledCode {
 
   async instantiate (
     agent: Agent, options: Parameters<typeof agent["instantiate"]>[1]
-  ): Promise<ContractInstance> {
+  ): Promise<ContractInstance & { address: Address }> {
     return agent.instantiate(this, options)
   }
 
@@ -335,46 +338,6 @@ export class ContractInstance extends ContractTemplate {
   connect <C extends ContractClient> (agent: Agent, $C?: ContractClientClass<C>) {
     return new ($C||ContractClient)(agent, this)
   }
-
-}
-
-/** A deploy store collects receipts corresponding to individual instances of Deployment,
-  * and can create Deployment objects with the data from the receipts. */
-export abstract class DeployStore {
-
-  /** Default values for Deployments created from this store. */
-  defaults: Partial<Deployment> = {}
-
-  /** Create a new Deployment, and populate with stored data.
-    * @returns Deployer */
-  getDeployment <D extends Deployment> (
-    $D: DeploymentClass<D> = Deployment as unknown as DeploymentClass<D>,
-    ...args: ConstructorParameters<typeof $D>
-  ): D {
-    const { name } = args[0] ??= {}
-    const deployment: D = $D.fromReceipt((name && this.load(name)) || {})
-    deployment.store = this
-    return deployment
-  }
-
-  /** Get the names of all stored deployments. */
-  abstract list (): string[]
-
-  /** Get a deployment by name, or the active deployment if none is passed. 
-    * @returns Deployment, or null if such doesn't exist. */
-  abstract load (name: string|null|undefined): DeploymentState|null
-
-  /** Update a deployment's data. */
-  abstract save (name: string, state?: DeploymentState): void
-
-  /** Create a new deployment. */
-  abstract create (name?: string): Promise<DeploymentState>
-
-  /** Activate a new deployment, or throw if such doesn't exist. */
-  abstract select (name: string): Promise<DeploymentState>
-
-  /** Get name of the active deployment, or null if there isn't one. */
-  abstract get activeName (): string|null
 
 }
 
@@ -520,18 +483,6 @@ export class DeploymentContractLabel {
     return DeploymentContractLabel.parse(await agent.getLabel(address))
   }
 }
-
-/** Constructor for the different varieties of DeployStore. */
-export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
-  /** Defaults when hydrating Deployment instances from the store. */
-  unknown,
-  (Partial<Deployment>|undefined)?,
-]> {}
-
-export type DeploymentFormat = 'v1'
-
-/** Mapping from deployment format ids to deployment store constructors. */
-export type DeployStores = Partial<Record<DeploymentFormat, DeployStoreClass<DeployStore>>>
 
 /** A constructor for a ContractClient subclass. */
 export interface ContractClientClass<C extends ContractClient> extends

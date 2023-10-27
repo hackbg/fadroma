@@ -28,7 +28,10 @@ import {
   Chain, ChainMode, Deployment, DeployStore, DeploymentState,
   Agent, ContractInstance, ContractClient, ContractTemplate,
   timestamp, bold, Console, Error,
-  bip39, bip39EN
+  bip39, bip39EN,
+  base16, sha256,
+  hideProperties as hide, Error as BaseError, colors,
+  UploadStore
 } from '@fadroma/connect'
 
 import Config, { version } from './fadroma-config'
@@ -40,7 +43,7 @@ import * as Dock from '@hackbg/dock'
 import { CommandContext } from '@hackbg/cmds'
 import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, OpaqueDirectory,
-  OpaqueFile, TOMLFile, JSONFile, JSONDirectory
+  OpaqueFile, TOMLFile, JSONFile, BinaryFile, JSONDirectory
 } from '@hackbg/file'
 
 import Case from 'case'
@@ -49,6 +52,13 @@ import prompts from 'prompts'
 import { basename, resolve, dirname } from 'node:path'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+
+export * from '@fadroma/connect'
+export * from './fadroma-build'
+export * from './fadroma-deploy'
+export * from './fadroma-devnet'
+export * from './fadroma-config'
+export { default as Config } from './fadroma-config'
 
 /** @returns Builder configured as per environment and options */
 export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
@@ -66,13 +76,13 @@ export async function buildMany (...args: Parameters<Builder["buildMany"]>): Pro
 }
 
 /** Upload a single contract with default settings. */
-export function upload (...args: Parameters<Uploader["upload"]>): Promise<Uploaded> {
-  return getUploader().upload(...args)
+export function upload (...args: Parameters<Agent["upload"]>) {
+  return getAgent().upload(...args)
 }
 
 /** Upload multiple contracts with default settings. */
-export function uploadMany (...args: Parameters<Uploader["uploadMany"]>): Promise<(Uploaded|null)[]> {
-  return getUploader().uploadMany(...args)
+export function uploadMany (...args: Parameters<Agent["uploadMany"]>) {
+  return getAgent().uploadMany(...args)
 }
 
 /** @returns Deployment configured according to environment and options */
@@ -524,16 +534,6 @@ export default class Project extends CommandContext {
 
 }
 
-export * from '@fadroma/connect'
-
-export * from './fadroma-build'
-export * from './fadroma-upload'
-export * from './fadroma-deploy'
-export * from './fadroma-devnet'
-
-export * from './fadroma-config'
-export { default as Config } from './fadroma-config'
-
 export function writeProject ({ name, templates, root, dirs, files, crates }: Project) {
 
   // Create project root 
@@ -732,4 +732,100 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     dirs.wasm.at(`${name}.sha256`).as(TextFile).save(`${sha256}  *${name}`)
   })
 
+}
+
+export class FSUploadStore extends UploadStore {
+  log = new UploadConsole('FSUploadStore')
+
+  constructor (
+    chainId: ChainId,
+    readonly rootDir: JSONDirectory<any>
+  ) {
+    super(chainId)
+  }
+
+  get (codeHash: CodeHash|{ codeHash: CodeHash }): ContractTemplate|undefined {
+    if (typeof codeHash === 'object') codeHash = codeHash.codeHash
+    if (!codeHash) throw new BaseError.Missing.CodeHash()
+    const receipt = this.rootDir.in('state').in(this.chainId)
+      .in('upload').at(`${codeHash!.toLowerCase()}.json`)
+      .as(JSONFile<any>)
+    if (receipt.exists()) {
+      const uploaded = receipt.load()
+      this.log.receiptCodeId(receipt, uploaded.codeId)
+      if (uploaded.codeId) {
+        super.set(codeHash, uploaded)
+      }
+    }
+    return super.get(codeHash)
+  }
+
+  set (codeHash: CodeHash|{ codeHash: CodeHash }, value: Partial<ContractTemplate>): this {
+    if (typeof codeHash === 'object') codeHash = codeHash.codeHash
+    if (!codeHash) throw new BaseError.Missing.CodeHash()
+    super.set(codeHash, value)
+    const receipt = this.rootDir.in('state').in(this.chainId)
+      .in('upload').at(`${codeHash.toLowerCase()}.json`)
+      .as(JSONFile<any>)
+    this.log('writing', receipt.shortPath)
+    receipt.save(super.get(codeHash)!.toUploadReceipt())
+    return this
+  }
+
+  protected addCodeHash (uploadable: Partial<ContractTemplate> & { name: string }) {
+    if (!uploadable.codeHash) {
+      if (uploadable.codePath) {
+        uploadable.codeHash = base16.encode(sha256(this.fetchSync(uploadable.codePath)))
+        this.log(`hashed ${String(uploadable.codePath)}:`, uploadable.codeHash)
+      } else {
+        this.log(`no artifact, can't compute code hash for: ${uploadable?.name||'(unnamed)'}`)
+      }
+    }
+  }
+
+  protected async fetch (path: string|URL): Promise<Uint8Array> {
+    return await Promise.resolve(this.fetchSync(path))
+  }
+
+  protected fetchSync (path: string|URL): Uint8Array {
+    return $(fileURLToPath(new URL(path, 'file:'))).as(BinaryFile).load()
+  }
+}
+
+/** Class that convert itself to a `Template`,
+  * from which `Contract`s can subsequently be instantiated. */
+export class UploadReceipt_v1 extends JSONFile<UploadReceiptData> {
+  /** Create a Template object with the data from the receipt. */
+  toTemplate (defaultChainId?: string) {
+    let {
+      chainId, codeId, codeHash, uploadTx, codePath
+    } = this.load()
+    chainId ??= defaultChainId
+    codeId  = String(codeId)
+    return new ContractTemplate({
+      codePath, codeHash, chainId, codeId, uploadTx
+    })
+  }
+}
+
+export interface UploadReceiptData {
+  artifact?:          any
+  chainId?:           string
+  codeHash:           string
+  codeId:             number|string
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               any[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+  uploadTx?:          string
+}
+
+export class UploadError extends BaseError {}
+
+class UploadConsole extends Console {
+  receiptCodeId = (receipt: Path, id?: CodeId) => id
+    ? this.log('found code id', id, 'at', receipt.shortPath)
+    : this.warn(receipt.shortPath, 'contained no "codeId"')
 }
