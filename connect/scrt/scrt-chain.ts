@@ -407,12 +407,10 @@ class ScrtAgent extends Agent {
   /** Upload a WASM binary. */
   protected async doUpload (data: Uint8Array): Promise<Partial<ContractTemplate>> {
     const { api, address } = await this.ready
-
-    const request  = { sender: address, wasm_byte_code: data, source: "", builder: "" }
+    const request  = { sender: address!, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
     const result   = await api!.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
     const { code, message, details = [], rawLog } = result
-
     if (code !== 0) {
       this.log.error(`Upload failed with code ${bold(code)}:`, bold(message ?? rawLog ?? ''), ...details)
       if (message === `account ${this.address} not found`) {
@@ -426,17 +424,14 @@ class ScrtAgent extends Agent {
       }
       throw new Error.Failed.Upload(result)
     }
-
     type Log = { type: string, key: string }
     const codeId = result.arrayLog
       ?.find((log: Log) => log.type === "message" && log.key === "code_id")
       ?.value
-
     if (!codeId) {
       this.log.error(`Code id not found in result.`)
       throw new Error.Failed.Upload({ ...result, noCodeId: true })
     }
-
     return {
       chainId:  this.chain.id,
       codeId,

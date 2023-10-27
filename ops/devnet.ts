@@ -3,13 +3,14 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import { Config } from './config'
-
 import {
-  Error as BaseError, Console, bold, randomHex, ChainMode, Chain, Scrt, CW,
+  Error as BaseError, Console, Config,
+  bold, randomHex, ChainMode, Chain, Scrt, CW,
   connectModes
 } from '@fadroma/connect'
-import type { CodeId, Agent, ChainClass, ChainId, DevnetHandle } from '@fadroma/connect'
+import type {
+  CodeId, Agent, ChainClass, ChainId, DevnetHandle, Environment
+} from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -24,19 +25,6 @@ import { randomBytes } from 'node:crypto'
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 //@ts-ignore
 const thisPackage = dirname(dirname(fileURLToPath(import.meta.url)))
-
-// Installs devnets as selectable chains:
-connectModes['ScrtDevnet'] = Scrt.Chain.devnet =
-  (options: Partial<Scrt.Chain>|undefined): Scrt.Chain =>
-    new Config()
-      .getDevnet({ platform: 'scrt_1.9' })
-      .getChain(Scrt.Chain as ChainClass<Scrt.Chain>, options)
-
-connectModes['OKP4Devnet'] = CW.OKP4.Chain.devnet = 
-  (options: Partial<CW.OKP4.Chain>|undefined): CW.OKP4.Chain =>
-    new Config()
-      .getDevnet({ platform: 'okp4_5.0' })
-      .getChain(CW.OKP4.Chain as ChainClass<CW.OKP4.Chain>, options)
 
 /** Supported devnet variants. Add new devnets here first. */
 export type DevnetPlatform =
@@ -605,6 +593,45 @@ export class Devnet implements DevnetHandle {
 
   /** Regexp for non-printable characters. */
   static RE_NON_PRINTABLE = /[\x00-\x1F]/
+}
+
+export class DevnetConfig extends Config {
+  constructor (
+    options: Partial<DevnetConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
+  chainId = this.getString(
+    'FADROMA_DEVNET_CHAIN_ID', ()=>undefined
+  )
+  platform = this.getString(
+    'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.9'
+  )
+  deleteOnExit = this.getFlag(
+    'FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false
+  )
+  keepRunning = this.getFlag(
+    'FADROMA_DEVNET_KEEP_RUNNING', ()=>true
+  )
+  host = this.getString(
+    'FADROMA_DEVNET_HOST', ()=>undefined
+  )
+  port = this.getString(
+    'FADROMA_DEVNET_PORT', ()=>undefined
+  )
+  podman = this.getFlag(
+    'FADROMA_DEVNET_PODMAN', ()=> this.getFlag('FADROMA_PODMAN', ()=>false)
+  )
+  dontMountState = this.getFlag(
+    'FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false
+  )
+
+  /** @returns Devnet */
+  getDevnet (options: Partial<Devnet> = {}) {
+    return new Devnet({ ...this.devnet, ...options })
+  }
 }
 
 /** A logger emitting devnet-related messages. */

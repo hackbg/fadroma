@@ -45,8 +45,8 @@ export async function testDevnetChain () {
   const devnet = new Devnet({ platform: 'okp4_5.0' })
   const chain  = devnet.getChain()
   assert.ok(chain.id.match(/fadroma-devnet-[0-9a-f]{8}/))
-  assert.equal(chain.id, chain.devnet.chainId)
-  assert.equal((await devnet.container).name, `/${chain.id}`)
+  assert.equal(chain.id, chain.devnet!.chainId)
+  assert.equal((await devnet.container)!.name, `/${chain.id}`)
 }
 
 export async function testDevnetCopyUploads () {
@@ -55,9 +55,8 @@ export async function testDevnetCopyUploads () {
   const agent1    = await chain1.getAgent({ name: 'Admin' }).ready
   const crate     = resolve(packageRoot, 'examples', 'cw-null')
   const artifact  = await build(crate)
-  const uploader  = new Uploader({ agent: agent1, reupload: true })
-  const uploaded1 = await uploader.upload(artifact)
-  const uploaded2 = await uploader.upload(artifact)
+  const uploaded1 = await agent1.upload(artifact)
+  const uploaded2 = await agent1.upload(artifact)
   const devnet2   = new Devnet({ platform: 'okp4_5.0' })
   //assert.ok(await devnet2.copyUploads(chain1), "copying uploads")
 }
@@ -158,12 +157,12 @@ export async function testDevnetFurther () {
   await devnet.create()
   await devnet.start()
   const chain = devnet.getChain()
-  assert(chain.mode === 'Devnet')
-  assert(chain.isDevnet)
-  assert(chain.devnet === devnet)
+  assert.ok(chain.mode === 'Devnet')
+  assert.ok(chain.isDevnet)
+  assert.ok(chain.devnet === devnet)
   const alice = chain.getAgent({ name: 'Alice' })
   await alice.ready
-  assert(alice instanceof Agent)
+  assert.ok(alice instanceof Agent)
   assert.equal(alice.name, 'Alice')
   const wallet = $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load() as {
     address:  string,
@@ -171,7 +170,9 @@ export async function testDevnetFurther () {
   }
   assert.equal(alice.address, wallet.address)
   assert.equal(alice.mnemonic, wallet.mnemonic)
-  const anotherDevnet = getDevnet({ accounts: [ 'Alice', 'Bob' ], })
+  const anotherDevnet = getDevnet({
+    accounts: [ 'Alice', 'Bob' ]
+  })
   assert.deepEqual(anotherDevnet.accounts, [ 'Alice', 'Bob' ])
   await anotherDevnet.delete()
   await devnet.pause()

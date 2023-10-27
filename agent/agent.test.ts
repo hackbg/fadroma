@@ -8,7 +8,8 @@ import {
   assertChain,
   Builder, StubBuilder,
   Token, TokenFungible, TokenNonFungible, Swap,
-  addZeros, Coin, Fee
+  addZeros, Coin, Fee,
+  into, intoArray, intoRecord,
 } from './agent'
 import assert from 'node:assert'
 import { fixture } from '../fixtures/fixtures'
@@ -28,6 +29,7 @@ export default new Suite([
   ['services',     testServices],
   ['decimals',     testDecimals],
   ['token',        testToken],
+  ['collections',  testCollections]
 ])
 
 export async function testChain () {
@@ -349,8 +351,9 @@ export async function testDeployStore () {
     get activeName () { return null }
   }
   const store = new TestDeployStore()
-  const deployment = store.getDeployment()
-  assert.ok(deployment instanceof Deployment)
+  assert.equal(store.get('name'), undefined)
+  assert.equal(store.set('name', {}), store)
+  assert.ok(store.get('name') instanceof Deployment)
 }
 
 export async function testDeployment () {
@@ -481,4 +484,31 @@ export async function testToken () {
 
 export async function testDecimals () {
   assert.equal(addZeros('1', 18), '1000000000000000000')
+}
+
+export async function testCollections () {
+  assert.equal(await into(1), 1)
+
+  assert.equal(await into(Promise.resolve(1)), 1)
+
+  assert.equal(await into(()=>1), 1)
+
+  assert.equal(await into(async ()=>1), 1)
+
+  assert.deepEqual(
+    await intoArray([1, ()=>1, Promise.resolve(1), async () => 1]),
+    [1, 1, 1, 1]
+  )
+
+  assert.deepEqual(await intoRecord({
+    ready:   1,
+    getter:  () => 2,
+    promise: Promise.resolve(3),
+    asyncFn: async () => 4
+  }), {
+    ready:   1,
+    getter:  2,
+    promise: 3,
+    asyncFn: 4
+  })
 }

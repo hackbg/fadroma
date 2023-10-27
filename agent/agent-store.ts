@@ -7,6 +7,10 @@ import type { DeploymentClass, DeploymentState } from './agent-contract'
 export class UploadStore extends Map<CodeHash, ContractTemplate> {
   log = new Console('UploadStore')
 
+  constructor () {
+    super()
+  }
+
   get (codeHash: CodeHash): ContractTemplate|undefined {
     return super.get(codeHash)
   }
@@ -22,6 +26,10 @@ export class UploadStore extends Map<CodeHash, ContractTemplate> {
   * and can create Deployment objects with the data from the receipts. */
 export class DeployStore extends Map<Name, Deployment> {
   log = new Console('DeployStore')
+
+  constructor () {
+    super()
+  }
 
   get (name: Name): Deployment|undefined {
     return super.get(name)

@@ -296,11 +296,10 @@ export class ProjectWizard {
       ? `Select a deployment from ${store.root.shortPath}:`
       : `Select a deployment:`
     return await askSelect(label, [
-      ...store.list().map(title=>({ title, value: title })),
+      [...store.keys()].map(title=>({ title, value: title })),
       { title: '(cancel)', value: undefined }
     ])
   }
-
 }
 
 const NOT_INSTALLED = 'not installed'

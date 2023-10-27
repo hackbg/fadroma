@@ -5,9 +5,10 @@
 **/
 import {
   Console, bold, Error, timestamp, 
-  DeployStore, ContractInstance
+  DeployStore, ContractInstance,
+  Config
 } from '@fadroma/connect'
-import type { Deployment, DeploymentState } from '@fadroma/connect'
+import type { Deployment, DeploymentState, Environment } from '@fadroma/connect'
 import $, {
   OpaqueDirectory, YAMLDirectory, YAMLFile, TextFile, alignYAML
 } from '@hackbg/file'
@@ -140,6 +141,63 @@ export class FSDeployStore extends DeployStore {
   }
 }
 
+export class DeployConfig extends Config {
+  constructor (
+    options: Partial<DeployConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
+
+  multisig = this.getFlag('FADROMA_MULTISIG',
+    () => false
+  )
+  /** Directory to store the receipts for the deployed contracts. */
+  storePath = this.getString('FADROMA_DEPLOY_STATE',
+    () => this.chainId
+      ? $(this.root).in('state').in(this.chainId).in('deploy').path
+      : null
+  )
+  /** Which implementation of the receipt store to use. */
+  format = this.getString('FADROMA_DEPLOY_FORMAT',
+    () => 'v1'
+  ) as DeploymentFormat
+  /** @returns DeployStoreClass selected by `this.deploy.format` (`FADROMA_DEPLOY_FORMAT`). */
+  get DeployStore (): DeployStoreClass<DeployStore>|undefined {
+    return DeployStore
+  }
+  /** @returns DeployStore or subclass instance */
+  getDeployStore <T extends DeployStore> (
+    DeployStore?: DeployStoreClass<T> = this.DeployStore
+  ): T {
+    return new DeployStore({})
+    //DeployStore ??= this.DeployStore as DeployStoreClass<T>
+    //if (!DeployStore) throw new Error.Missing.DeployStoreClass()
+    //return new DeployStore(this.deploy.storePath)
+  }
+  /** Create a new Deployment.
+    * If a deploy store is specified, populate it with stored data (if present).
+    * @returns Deployment or subclass */
+  getDeployment <T extends BaseDeployment> (
+    Deployment: DeploymentClass<T>,
+    ...args: ConstructorParameters<typeof Deployment>
+  ): T {
+    Deployment ??= BaseDeployment as DeploymentClass<T>
+    args = [...args]
+    args[0] = ({ ...args[0] ?? {} })
+    args[0].chain     ||= this.getChain()
+    if (!args[0].chain) throw new Error.Missing.Chain()
+    args[0].agent     ||= this.getAgent()
+    args[0].builder   ||= this.getBuilder()
+    args[0].workspace ||= process.cwd()
+    args[0].store     ||= this.getDeployStore()
+    args[0].name      ||= args[0].store.activeName || undefined
+    const deployment = args[0].store.getDeployment(Deployment, ...args)
+    return deployment
+  }
+}
+
 export class DeployConsole extends Console {
   creating (name: string) {
     return this.log('creating', bold(name))
@@ -151,7 +209,7 @@ export class DeployConsole extends Console {
     return this.log('activate', bold(name))
   }
   list (chainId: string, deployments: DeployStore) {
-    const list = deployments.list()
+    const list = [...deployments.keys()]
     if (list.length > 0) {
       this.info(`deployments on ${bold(chainId)}:`)
       let maxLength = 0
@@ -161,7 +219,7 @@ export class DeployConsole extends Console {
       }
       for (let name of list) {
         if (name === (deployments as any).KEY) continue
-        const deployment = deployments.load(name)!
+        const deployment = deployments.get(name)!
         let info = `${bold(name.padEnd(maxLength))}`
         info = `${info} (${deployment.contracts.size()} contracts)`
         if (deployments.activeName === name) info = `${info} ${bold('selected')}`

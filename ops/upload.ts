@@ -4,10 +4,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 import {
-  Console, ContractTemplate, Error, UploadStore,
+  Config, Console, Error,
+  ContractTemplate, UploadStore,
   base16, sha256
 } from '@fadroma/connect'
-import type { CodeId, ChainId, CodeHash } from '@fadroma/connect'
+import type { CodeId, ChainId, CodeHash, Environment } from '@fadroma/connect'
 import $, { JSONDirectory, JSONFile, BinaryFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
@@ -96,6 +97,37 @@ export interface UploadReceiptData {
   originalSize:       number
   transactionHash:    string
   uploadTx?:          string
+}
+
+export class UploadConfig extends Config {
+  constructor (
+    options: Partial<UploadConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
+  /** Whether to always upload contracts, ignoring upload receipts that match. */
+  reupload = this.getFlag(
+    'FADROMA_REUPLOAD',
+    () => false
+  )
+  /** Directory to store the receipts for the deployed contracts. */
+  uploadState = this.getString(
+    'FADROMA_UPLOAD_STATE',
+    () => this.chainId
+      ? $(this.root).in('state').in(this.chainId).in('upload').path
+      : null
+  )
+  /** Variant of uploader to use */
+  uploader = this.getString(
+    'FADROMA_UPLOADER',
+    () => 'FS'
+  )
+
+  getUploadStore () {
+    return new UploadStore()
+  }
 }
 
 export class UploadError extends Error {}

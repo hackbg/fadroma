@@ -22,14 +22,19 @@ import type {
   Agent,
   Builder,
   CompiledCode,
-  DeploymentClass
+  DeploymentClass,
+  ChainClass
 } from '@fadroma/connect'
 import {
+  connectModes,
   Deployment,
   Error,
+  CW,
+  Scrt
 } from '@fadroma/connect'
 import {
-  Config
+  Config,
+  DevnetConfig
 } from './ops/config'
 
 /** @returns Agent configured as per environment and options */
@@ -56,9 +61,22 @@ export function getDeployment <D extends Deployment> (
 }
 
 /** @returns Devnet configured as per environment and options. */
-export function getDevnet (options: Partial<Config["devnet"]> = {}) {
-  return new Config({ devnet: options }).getDevnet()
+export function getDevnet (options: Partial<DevnetConfig> = {}) {
+  return new DevnetConfig({ devnet: options }).getDevnet()
 }
+
+// Installs devnets as selectable chains:
+connectModes['ScrtDevnet'] = Scrt.Chain.devnet =
+  (options: Partial<Scrt.Chain>|undefined): Scrt.Chain =>
+    new Config().devnet
+      .getDevnet({ platform: 'scrt_1.9' })
+      .getChain(Scrt.Chain as ChainClass<Scrt.Chain>, options)
+
+connectModes['OKP4Devnet'] = CW.OKP4.Chain.devnet = 
+  (options: Partial<CW.OKP4.Chain>|undefined): CW.OKP4.Chain =>
+    new Config().devnet
+      .getDevnet({ platform: 'okp4_5.0' })
+      .getChain(CW.OKP4.Chain as ChainClass<CW.OKP4.Chain>, options)
 
 export * from '@fadroma/connect'
 export * from './ops/build'

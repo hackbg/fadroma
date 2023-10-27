@@ -455,7 +455,7 @@ export class Deployment extends ValueObject {
 
   async build (options: {
     builder?: Builder
-  }): Promise<Record<CodeHash, CompiledCode>> {
+  } = {}): Promise<Record<CodeHash, CompiledCode>> {
     if (!options.builder) {
       throw new Error.Missing.Builder()
     }
@@ -474,7 +474,7 @@ export class Deployment extends ValueObject {
     agent?: Agent,
     builder?: Builder,
     uploadStore?: UploadStore,
-  }): Promise<Record<CodeId, ContractTemplate>> {
+  } = {}): Promise<Record<CodeId, ContractTemplate>> {
     if (!options.agent) {
       throw new Error.Missing.Agent()
     }
@@ -494,7 +494,7 @@ export class Deployment extends ValueObject {
     builder?: Builder,
     uploadStore?: UploadStore,
     deployStore?: DeployStore,
-  }): Promise<Record<Address, ContractInstance>> {
+  } = {}): Promise<Record<Address, ContractInstance>> {
     if (!options.agent) {
       throw new Error.Missing.Agent()
     }
