@@ -3,7 +3,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { DevnetConfig, Devnet } from './devnet'
 import type { DevnetPlatform } from './devnet'
-import { DeployConfig } from './deploy'
 import { UploadConfig } from './upload'
 import { BuildConfig } from './build'
 
@@ -59,8 +58,6 @@ export class Config extends ConnectConfig {
   connect: ConnectConfig
   /** Upload options. */
   upload:  UploadConfig
-  /** Deploy options. */
-  deploy:  DeployConfig
   /** Devnet options. */
   devnet:  DevnetConfig
 
@@ -69,18 +66,16 @@ export class Config extends ConnectConfig {
       build:   Partial<BuildConfig>,
       connect: Partial<ConnectConfig>
       upload:  Partial<UploadConfig>,
-      deploy:  Partial<DeployConfig>,
       devnet:  Partial<DevnetConfig>
     }> = {},
     environment?: Environment
   ) {
     super({}, environment)
-    const { build, connect, upload, deploy, devnet, ...rest } = options
+    const { build, connect, upload, devnet, ...rest } = options
     this.override(rest)
     this.build = new BuildConfig(build, environment)
     this.connect = new ConnectConfig(connect, environment)
     this.upload = new UploadConfig(upload, environment)
-    this.deploy = new DeployConfig(deploy, environment)
     this.devnet = new DevnetConfig(devnet, environment)
   }
 }
@@ -90,5 +85,4 @@ export {
   DevnetConfig,
   BuildConfig,
   UploadConfig,
-  DeployConfig,
 }

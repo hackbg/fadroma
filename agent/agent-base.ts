@@ -25,6 +25,8 @@ import type {
   Deployment, ContractInstance, ContractClient
 } from './agent-contract'
 
+const { red, green, gray } = colors
+
 export { bold, colors, timestamp } from '@hackbg/logs'
 export * from '@hackbg/into'
 export * from '@hackbg/hide'
@@ -118,16 +120,18 @@ class FadromaError extends BaseError {
   /** Thrown when an operation fails. */
   static Failed: typeof FadromaError_Failed
   /** Thrown when the control flow reaches unimplemented areas. */
-  static Unimplemented = this.define('Unimplemented', (info: string) =>
-    'Not implemented' + (info ? `: ${info}` : ''))
+  static Unimplemented = this.define('Unimplemented', (info: string) => {
+    return 'Not implemented' + (info ? `: ${info}` : '')
+  })
 }
 
 class FadromaError_Unsupported extends FadromaError.define(
   'Unsupported', (msg='unsupported feature') => msg as string
 ) {
   /** When global Fetch API is not available, Fadroma must switch to node:fs API. */
-  static Fetch = this.define('Fetch', () =>
-    'global fetch is unavailable, use FSUploader instead of Uploader')
+  static Fetch = this.define('Fetch', () => {
+    return 'global fetch is unavailable, use FSUploader instead of Uploader'
+  })
 }
 
 class FadromaError_Missing extends FadromaError.define(
@@ -157,24 +161,36 @@ class FadromaError_Missing extends FadromaError.define(
 class FadromaError_Invalid extends FadromaError.define(
   'Invalid', (msg='an invalid value was provided') => msg as string
 ) {
-  static Message = this.define('Message', () => 'messages must have exactly 1 root key')
-  static Label = this.define('Label', (label: string) => `can't set invalid label: ${label}`)
-  static Batching = this.define('Batching', (op: string) => `invalid when batching: ${op}`)
-  static Hashes = this.define('Hashes', () =>
-    'passed both codeHash and code_hash and they were different')
-  static Value = this.define('Value', (x: string, y: string, a: any, b: any) =>
-    `wrong ${x}: ${y} was passed ${a} but fetched ${b}`)
-  static WrongChain = this.define('WrongChain', () =>
-    'tried to instantiate a contract that is uploaded to another chain')
+  static Message = this.define('Message', () => {
+    return 'messages must have exactly 1 root key'
+  })
+  static Label = this.define('Label', (label: string) => {
+    return `can't set invalid label: ${label}`
+  })
+  static Batching = this.define('Batching', (op: string) => {
+    return `invalid when batching: ${op}`
+  })
+  static Hashes = this.define('Hashes', () => {
+    return 'passed both codeHash and code_hash and they were different'
+  })
+  static Value = this.define('Value', (x: string, y: string, a: any, b: any) => {
+    return `wrong ${x}: ${y} was passed ${a} but fetched ${b}`
+  })
+  static WrongChain = this.define('WrongChain', () => {
+    return 'tried to instantiate a contract that is uploaded to another chain'
+  })
 }
 
 class FadromaError_Failed extends FadromaError.define(
   'Failed', (msg='an action failed') => msg as string
 ) {
-  static Upload = this.define('Upload', (args) =>
-    'upload failed.', (err, args) => Object.assign(err, args||{}))
-  static Init = this.define('Init', (id: any) =>
-    `instantiation of code id ${id} failed.`)
+  static Upload = this.define('Upload',
+    (args) => 'upload failed.',
+    (err, args) => Object.assign(err, args||{})
+  )
+  static Init = this.define('Init', (id: any) => {
+    return `instantiation of code id ${id} failed.`
+  })
 }
 
 export const Error = Object.assign(FadromaError, {
@@ -185,55 +201,60 @@ export const Error = Object.assign(FadromaError, {
 })
 
 class AgentConsole extends Console {
-
   constructor (label: string = 'Fadroma') {
     super(label)
     this.label = label
   }
-
-  emptyBatch = () => this.warn('Tried to submit batch with no messages')
-
-  devnetIdOverride = (a: any, b: any) =>
-    this.warn(`node.chainId "${a}" overrides chain.id "${b}"`)
-  devnetUrlOverride = (a: any, b: any) =>
-    this.warn(`node.url "${a}" overrides chain.url "${b}"`)
-  devnetModeInvalid = () =>
-    this.warn(`chain.devnet: only applicable in devnet chain mode`)
-
-  noAgent = (name: string) =>
-    this.warn(`${name}: no agent; actions will fail until agent is set`)
-  noAddress = (name: string) =>
-    this.warn(`${name}: no address; actions will fail until address is set`)
-  noCodeHash = (name: string) =>
-    this.warn(`${name}: no codeHash; actions may be slow until code hash is set`)
-  fetchedCodeHash = (address: string, realCodeHash: string) =>
-    this.warn(`code hash not provided for ${address}; fetched: ${realCodeHash}`)
-  codeHashMismatch = (address: string, expected: string|undefined, fetched: string) =>
-    this.warn(`code hash mismatch for ${address}: expected ${expected}, fetched ${fetched}`)
-
-  waitingForBlock = (height: number, elapsed?: number) =>
-    this.log(`waiting for block > ${height}...`, elapsed ? `${elapsed}ms elapsed` : '')
-
-  confirmCodeHash = (address: string, codeHash: string) =>
-    this.info(`confirmed code hash of ${address}: ${codeHash}`)
-
-  batchMessages = (msgs: any, N: number) => {
+  emptyBatch () {
+    return this.warn('Tried to submit batch with no messages')
+  }
+  devnetIdOverride (a: any, b: any) {
+    return this.warn(`node.chainId "${a}" overrides chain.id "${b}"`)
+  }
+  devnetUrlOverride (a: any, b: any) {
+    return this.warn(`node.url "${a}" overrides chain.url "${b}"`)
+  }
+  devnetModeInvalid () {
+    return this.warn(`chain.devnet: only applicable in devnet chain mode`)
+  }
+  noAgent (name: string) {
+    return this.warn(`${name}: no agent; actions will fail until agent is set`)
+  }
+  noAddress (name: string) {
+    return this.warn(`${name}: no address; actions will fail until address is set`)
+  }
+  noCodeHash (name: string) {
+    return this.warn(`${name}: no codeHash; actions may be slow until code hash is set`)
+  }
+  fetchedCodeHash (address: string, realCodeHash: string) {
+    return this.warn(`code hash not provided for ${address}; fetched: ${realCodeHash}`)
+  }
+  codeHashMismatch (address: string, expected: string|undefined, fetched: string) {
+    return this.warn(`code hash mismatch for ${address}: expected ${expected}, fetched ${fetched}`)
+  }
+  waitingForBlock (height: number, elapsed?: number) {
+    return this.log(`waiting for block > ${height}...`, elapsed ? `${elapsed}ms elapsed` : '')
+  }
+  confirmCodeHash (address: string, codeHash: string) {
+    return this.info(`confirmed code hash of ${address}: ${codeHash}`)
+  }
+  batchMessages (msgs: any, N: number) {
     this.info(`Messages in batch`, `#${N}:`)
     for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
+    return this
   }
-
-  batchMessagesEncrypted = (msgs: any, N: number) => {
+  batchMessagesEncrypted (msgs: any, N: number) {
     this.info(`Encrypted messages in batch`, `#${N}:`)
     for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
+    return this
   }
-
-  foundDeployedContract = (address: Address, name: Name) =>
-    this.sub(name).log('found at', bold(address))
-
-  beforeDeploy = (
+  foundDeployedContract (address: Address, name: Name) {
+    return this.sub(name).log('found at', bold(address))
+  }
+  beforeDeploy (
     template: ContractInstance,
     label?: Label, codeId?: CodeId, codeHash?: CodeHash, crate?: string, revision?: string
-  ) => {
+  ) {
     codeId ??= template?.codeId ? bold(String(template.codeId)) : colors.red('(no code id!)')
     codeHash ??= template?.codeHash ? bold(template.codeHash) : colors.red('(no code hash!)')
     label = label ? bold(label) : colors.red('(missing label!)')
@@ -241,31 +262,28 @@ class AgentConsole extends Console {
     revision ??= template.revision ?? 'HEAD'
     let info = `${bold(label)} from code id ${bold(codeId)}`
     if (crate) info += ` (${bold(crate)} @ ${bold(revision)})`
-    this.log(`init: ${info}`)
+    return this.log(`init: ${info}`)
   }
-
-  deployFailed = (e: Error, template: Partial<ContractInstance>, name: Label, msg: Message) => {
+  deployFailed (e: Error, template: Partial<ContractInstance>, name: Label, msg: Message) {
     this.error(`deploy of ${bold(name)} failed:`)
     this.error(`${e?.message}`)
     this.deployFailedContract(template)
-    this.error(`init message:`, JSON.stringify(msg))
+    return this.error(`init message:`, JSON.stringify(msg))
   }
-
-  deployManyFailed = (template: Partial<ContractInstance>, contracts: any[] = [], e: Error) => {
+  deployManyFailed (template: Partial<ContractInstance>, contracts: any[] = [], e: Error) {
     this.error(`Deploy of multiple contracts failed:`)
     this.error(bold(e?.message))
     this.deployFailedContract(template)
     for (const [name, init] of contracts) this.error(`${bold(name)}:`, JSON.stringify(init))
+    return this
   }
-
-  deployFailedContract = (template?: Partial<ContractInstance>) => {
+  deployFailedContract (template?: Partial<ContractInstance>) {
     if (!template) return this.error(`No template was provided`)
     this.error(`Code hash:`, bold(template.codeHash||''))
     this.error(`Chain ID: `, bold(template.chainId ||''))
-    this.error(`Code ID:  `, bold(template.codeId  ||''))
+    return this.error(`Code ID:  `, bold(template.codeId  ||''))
   }
-
-  afterDeploy = (contract: Partial<ContractInstance>) => {
+  afterDeploy (contract: Partial<ContractInstance>) {
     let { name, prefix, address, codeHash } = (contract || {}) as any
     name = name
       ? bold(green(name))
@@ -280,18 +298,21 @@ class AgentConsole extends Console {
     this.info('hash:', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.info('added to', prefix)
     this.br()
+    return this
   }
-
-  saveNoStore = (name: string) =>
-    this.warn(`not saving: store not set`)
-  saveNoChain = (name: string) =>
-    this.warn(`not saving: chain not set`)
-  notSavingMocknet = (name: string) =>
-    this.warn(`not saving: mocknet is not stateful (yet)`)
-  saving = (name: string, state: object) =>
-    this.log('saving')
-
-  deployment = (deployment: Deployment, name = deployment?.name) => {
+  saveNoStore (name: string) {
+    return this.warn(`not saving: store not set`)
+  }
+  saveNoChain (name: string) {
+    return this.warn(`not saving: chain not set`)
+  }
+  notSavingMocknet (name: string) {
+    return this.warn(`not saving: mocknet is not stateful (yet)`)
+  }
+  saving (name: string, state: object) {
+    return this.log('saving')
+  }
+  deployment (deployment: Deployment, name = deployment?.name) {
     if (!deployment) return this.info('(no deployment)')
     const contracts = Object.fromEntries(deployment.contracts.entries())
     const len = Math.max(40, Object.keys(contracts).reduce((x,r)=>Math.max(x,r.length),0))
@@ -303,9 +324,9 @@ class AgentConsole extends Console {
       this.receipt(name, contracts[name], len)
       this.br()
     }
+    return this
   }
-
-  receipt = (name: string, receipt?: any, len?: number) => {
+  receipt (name: string, receipt?: any, len?: number) {
     let { address, codeHash, codeId, crate, repository } = receipt || {}
     this.info(`name: ${bold(name       || gray('(no name)'))     }`)
     this.info(`addr: ${bold(address    || gray('(no address)'))  }`)
@@ -313,11 +334,8 @@ class AgentConsole extends Console {
     this.info(`code: ${bold(codeId)    || gray('(no code id)')   }`)
     this.info(`repo: ${bold(repository || gray('(no repo)'))     }`)
     this.info(`crate: ${bold(crate     || gray('(no crate)'))    }`)
+    return this
   }
-
-
 }
-
-const { red, green, gray } = colors
 
 export { AgentConsole as Console }
