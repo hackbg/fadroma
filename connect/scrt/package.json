@@ -16,9 +16,9 @@
     "@hackbg/ensuite": "workspace:../../ensuite"
   },
   "scripts": {
-    "check": "tsc --noEmit",
-    "ubik":  "npm run check && npm run cov && ubik",
-    "test":  "ensuite scrt.test.ts",
-    "cov":   "ensuite-cov -r text -r lcov -- scrt.test.ts"
+    "check": "time tsc --noEmit",
+    "test":  "time ensuite scrt.test.ts",
+    "cov":   "time ensuite-cov -r text -r lcov -- scrt.test.ts",
+    "ubik":  "npm run check && npm run cov && ubik"
   }
 }

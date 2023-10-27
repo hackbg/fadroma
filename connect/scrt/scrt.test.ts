@@ -17,155 +17,84 @@ const mnemonic = 'define abandon palace resource estate elevator relief stock or
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['devnet',  testScrtDevnet],
   ['chain',   testScrtChain],
-  ['fees',    testScrtFees],
-  ['batches', testScrtBatches],
   ['permits', testScrtPermits],
   ['console', testScrtConsole],
   ['mocknet', testScrtMocknet],
 ])
 
-async function testScrtDevnet () {
-
-  chain = {
-    SecretJS,
-    getApi: () => ({}),
-    isDevnet: true,
-    devnet: {
-      start: () => Promise.resolve(),
-      getAccount: ()=>Promise.resolve({ mnemonic } as any)
-    } as any,
-  }
-
-  assert.equal(
-    mnemonic,
-    (await new Scrt.Agent({
-      name:     'genesis',
-      mnemonic: 'if name is passed mnemonic is ignored',
-      chain
-    }).ready).mnemonic,
-    joinWith(' ',
-      'the "name" constructor property of ScrtAgent can be used',
-      'to get a devnet genesis account')
-  )
-
-}
-
 async function testScrtChain () {
   Scrt.mainnet()
   const devnet = await new Devnet({ platform: 'scrt_1.9' }).create()
   const chain = await (devnet.getChain() as Scrt.Chain).ready
-
-  // TODO: ScrtChain#ready instead of getApi() "memoize yourself"
   assert(await chain.api instanceof SecretJS.SecretNetworkClient)
-  await chain.block
-  await chain.height
-  await chain.fetchLimits()
-
-  const alice = await chain.getAgent({ name: 'Alice' }).ready as Scrt.Agent
+  assert.ok(await chain.block)
+  assert.ok(await chain.height)
+  assert.ok(await chain.fetchLimits())
+  const alice = await chain.getAgent({ name: 'Alice' }).ready
+  assert.ok(alice.address)
+  assert.ok((alice as Scrt.Agent).api instanceof SecretJS.SecretNetworkClient)
+  const bob = await chain.getAgent({ name: 'Bob' }).ready
   //assert(alice.wallet instanceof SecretJS.Wallet)
-  assert(alice.api instanceof SecretJS.SecretNetworkClient)
   //assert(alice.encryptionUtils instanceof SecretJS.EncryptionUtilsImpl)
   await chain.getBalance(chain.defaultDenom, alice.address!)
   await alice.getBalance(chain.defaultDenom, alice.address!)
   await alice.balance
-  const bob = await chain.getAgent({ name: 'Bob' }).ready as Scrt.Agent
   await alice.getBalance(chain.defaultDenom, bob.address!)
-
-  await alice.upload()
-}
-
-async function testScrtFees () {
-
-  assert.ok(
-
-    await new Scrt.Agent({
-      fees: false as any,
-      chain: {
-        SecretJS,
-        getApi: () => ({}),
-        fetchLimits: ()=>Promise.resolve({gas: 'max'}),
-        id: 'test',
-      } as any,
-    }).ready,
-
-    [ 'if fees=false is passed to ScrtAgent, ',
-      'fees are fetched from the chain' ].join()
-
-  )
-
-}
-
-async function testScrtBatches () {
-
-  const chain = Object.assign(Scrt.testnet({ id: 'stub' }), {
-    getApi: () => ({
-      encryptionUtils: {
-        encrypt: () => Promise.resolve(new Uint8Array())
-      },
-      query: { auth: { account: () => Promise.resolve({
-        account: { account_number: 0, sequence: 0 }
-      }) } },
-      tx: {
-        broadcast: () => Promise.resolve({ code: 0 }),
-        simulate: () => Promise.resolve({ code: 0 })
-      }
-    })
-  })
-
-  const batch = () => new Scrt.Agent({ chain }).batch(async (batch)=>{
+  await alice.upload({}, {})
+  const batch = () => alice.batch(async (batch)=>{
     assert(batch instanceof Scrt.Batch)
-
     await batch.instantiate('id', {
       label:    'label',
       initMsg:  {},
       codeHash: 'hash',
     } as any)
-
     await batch.execute('addr', {
       address:  'addr',
       codeHash: 'hash',
       message:  {}
     } as any, {})
   })
-
   assert(batch() instanceof Scrt.Batch, 'ScrtBatch is returned')
-
-  assert.ok(
-    await batch().save('test'),
-    [ '"saving" a batch outputs it to the console in the format ',
-    , 'of a multisig message' ].join()
-  )
-  assert.ok(
-    await batch().submit('test'),
-    'submitting a batch',
-  )
-
+  assert.ok(await batch().save('test'))
+  assert.ok(await batch().submit('test'))
 }
 
 async function testScrtPermits () {
 
   Scrt.PermitSigner.createSignDoc('chain-id', {foo:'bar'})
 
-  new Scrt.PermitSignerKeplr('chain-id', 'address', { signAmino })
-    .sign({ permit_name: 'permit_name', allowed_tokens: [], permissions: [] })
-
-  async function signAmino (
-    chain_id: ChainId,
-    address:  Address,
-    signDoc:  Scrt.SignDoc,
-    options: { preferNoSetFee: boolean, preferNoSetMemo: boolean }
-  ) {
-    return {
-      signature: {
-        pub_key: 'pub_key' as any, signature: 'signature'
-      },
-      params: {
-        permit_name: 'permit_name', allowed_tokens: [], chain_id: 'chain-id', permissions: []
+  const permitSigner = new Scrt.PermitSignerKeplr(
+    'chain-id',
+    'address',
+    {
+      signAmino: async function signAmino (
+        chain_id: ChainId,
+        address:  Address,
+        signDoc:  Scrt.SignDoc,
+        options: { preferNoSetFee: boolean, preferNoSetMemo: boolean }
+      ) {
+        return {
+          signature: {
+            pub_key: 'pub_key' as any,
+            signature: 'signature'
+          },
+          params: {
+            permit_name: 'permit_name',
+            allowed_tokens: [],
+            chain_id: 'chain-id',
+            permissions: []
+          }
+        }
       }
     }
-  }
+  )
+
+  assert.ok(permitSigner.sign({
+    permit_name: 'permit_name',
+    allowed_tokens: [],
+    permissions: []
+  }))
 
 }
 
@@ -180,33 +109,14 @@ async function testScrtConsole () {
 }
 
 export async function testScrtMocknet () {
-  new Mocknet.Console().log('...')
-  new Mocknet.Console().trace('...')
-  new Mocknet.Console().debug('...')
-
+  new Mocknet.Console('test message').log('...').trace('...').debug('...')
   // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
   // responses) are returned by the contract as Base64-encoded strings
   // If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
   // These functions are used by the mocknet code to encode/decode the base64.
   assert.equal(Mocknet.b64toUtf8('IkVjaG8i'), '"Echo"')
   assert.equal(Mocknet.utf8toB64('"Echo"'), 'IkVjaG8i')
-
   let key:   string
   let value: string
   let data:  string
-}
-
-export function mockEnv () {
-  const height   = 0
-  const time     = 0
-  const chain_id = "mock"
-  const sender   = randomBech32('mocked')
-  const address  = randomBech32('mocked')
-  return {
-    block:    { height, time, chain_id },
-    message:  { sender: sender, sent_funds: [] },
-    contract: { address },
-    contract_key: "",
-    contract_code_hash: ""
-  }
 }

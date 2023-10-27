@@ -191,71 +191,69 @@ class ScrtAgent extends Agent {
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
-  get ready (): Promise<this & { api: SecretNetworkClient, address: Address }> {
-    // If an API instance is already available (e.g. provided to constructor), just use that.
-    if (this.api) {
-      return Promise.resolve(this as this & { api: SecretNetworkClient, address: Address })
-    }
-    // Require chain reference to be populated.
-    if (!this.chain) throw new Error.Missing.Chain()
-    // Begin asynchronous init.
-    const init = new Promise<this & { api: SecretNetworkClient, address: Address }>(async (
-      resolve, reject
-    )=>{
-      try {
-        let wallet = this.wallet
-        if (!wallet || wallet instanceof ReadonlySigner) {
-          // If this is a named devnet agent
-          if (this.name && this.chain.isDevnet && this.chain.devnet) {
-            // Provide mnemonic from devnet genesis accounts
-            await this.chain.devnet.start()
-            this.mnemonic = (await this.chain.devnet.getAccount(this.name)).mnemonic!
-          }
-          // If there is still no mnemonic
-          if (!this.mnemonic) {
-            // Generate fresh mnemonic
-            this.mnemonic = bip39.generateMnemonic(bip39EN)
-            this.log.generatedMnemonic(this.mnemonic!)
-          }
-          wallet = new Wallet(this.mnemonic)
-        } else if (this.mnemonic) {
-          this.log.ignoringMnemonic()
-        }
-        // Construct the API client
-        const url = this.chain.url && removeTrailingSlash(this.chain.url)
-        const chainId = this.chain.id
-        const walletAddress = wallet?.address || this.address
-        const { encryptionUtils } = this
-        const apiOptions = { chainId, url, wallet, walletAddress, encryptionUtils }
-        this.api = await this.chain.getApi(apiOptions)
-        console.log({thisChain:this.chain, thisApi:this.api})
-        // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
-        if (encryptionUtils) Object.assign(this.api, { encryptionUtils })
-        // If fees are not specified, get default fees from API.
-        if (!this.fees) {
-          this.fees = ScrtChain.defaultFees
-          try {
-            const max = ScrtChain.gas((await this.chain.fetchLimits()).gas)
-            this.fees = { upload: max, init: max, exec: max, send: max }
-          } catch (e) {
-            this.log.warn(e)
-            this.log.defaultGas(Object.values(this.fees))
-          }
-        }
-        // Override address and set name if missing.
-        this.address = wallet.address
-        this.name ??= this.address
-        this.log.label = `${this.address??'(no address)'} @ ${this.chain.id??'(no chain id)'}`
-        this.log.log('authenticated')
-        // Done.
-        resolve(this as this & { api: SecretNetworkClient, address: Address })
-      } catch (e) {
-        reject(e)
+  async getApi (): Promise<this & {
+    address: Address
+    api:     SecretNetworkClient,
+    wallet:  Wallet,
+  }> {
+    if (!this.wallet || this.wallet instanceof ReadonlySigner) {
+      // If this is a named devnet agent
+      if (this.name && this.chain.isDevnet && this.chain.devnet) {
+        // Provide mnemonic from devnet genesis accounts
+        await this.chain.devnet.start()
+        const account = await this.chain.devnet.getAccount(this.name)
+        this.mnemonic = account.mnemonic!
       }
+      // If there is still no mnemonic
+      if (!this.mnemonic) {
+        // Generate fresh mnemonic
+        this.mnemonic = bip39.generateMnemonic(bip39EN)
+        this.log.generatedMnemonic(this.mnemonic!)
+      }
+      this.wallet = new Wallet(this.mnemonic)
+    } else if (this.mnemonic) {
+      this.log.ignoringMnemonic()
+    }
+
+    // Construct the API client
+    this.api = await this.chain.getApi({
+      chainId:         this.chain.id,
+      url:             this.chain.url && removeTrailingSlash(this.chain.url),
+      wallet:          this.wallet,
+      walletAddress:   this.wallet?.address || this.address,
+      encryptionUtils: this.encryptionUtils
     })
-    // Memoize the init procedure.
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
+
+    // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
+    if (this.encryptionUtils) {
+      Object.assign(this.api, {
+        encryptionUtils: this.encryptionUtils
+      })
+    }
+
+    // If fees are not specified, get default fees from API.
+    if (!this.fees) {
+      this.fees = ScrtChain.defaultFees
+      try {
+        const max = ScrtChain.gas((await this.chain.fetchLimits()).gas)
+        this.fees = { upload: max, init: max, exec: max, send: max }
+      } catch (e) {
+        this.log.warn(e)
+        this.log.defaultGas(Object.values(this.fees))
+      }
+    }
+
+    // Override address and set name if missing.
+    this.address = this.wallet.address
+    this.name ??= this.address
+    this.log.label = `${this.address??'(no address)'} @ ${this.chain.id??'(no chain id)'}`
+    this.log.log('authenticated')
+
+    return this as this & {
+      address: Address,
+      api:     SecretNetworkClient,
+      wallet:  Wallet
+    }
   }
 
   /** Instance of the underlying platform API provided by `secretjs`. */
@@ -320,7 +318,7 @@ class ScrtAgent extends Agent {
 
   get account (): ReturnType<SecretNetworkClient['query']['auth']['account']> {
     return this.ready.then(({ api, address })=>{
-      return api.query.auth.account({ address })
+      return api!.query.auth.account({ address })
     })
   }
 
@@ -330,7 +328,7 @@ class ScrtAgent extends Agent {
 
   async getBalance (denom = this.defaultDenom, address: Address): Promise<string> {
     const { api } = await this.ready
-    const response = await api.query.bank.balance({ address, denom })
+    const response = await api!.query.bank.balance({ address, denom })
     return response.balance!.amount!
   }
 
@@ -340,7 +338,7 @@ class ScrtAgent extends Agent {
     const to_address = to
     const amount = amounts
     const msg = { from_address, to_address, amount }
-    return api.tx.bank.send(msg, { gasLimit: opts?.gas?.gas })
+    return api!.tx.bank.send(msg, { gasLimit: opts?.gas?.gas })
   }
 
   async sendMany (outputs: never, opts: never) {
@@ -349,24 +347,24 @@ class ScrtAgent extends Agent {
 
   async getLabel (contract_address: string): Promise<string> {
     const { api } = await this.ready
-    const response = await api.query.compute.contractInfo({ contract_address })
+    const response = await api!.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.label!
   }
 
   async getCodeId (contract_address: string): Promise<string> {
     const { api } = await this.ready
-    const response = await api.query.compute.contractInfo({ contract_address })
+    const response = await api!.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.code_id!
   }
 
   async getHash (arg: string|number): Promise<string> {
     const { api } = await this.ready
     if (typeof arg === 'number' || !isNaN(Number(arg))) {
-      return (await api.query.compute.codeHashByCodeId({
+      return (await api!.query.compute.codeHashByCodeId({
         code_id: String(arg)
       })).code_hash!
     } else {
-      return (await api.query.compute.codeHashByContractAddress({
+      return (await api!.query.compute.codeHashByContractAddress({
         contract_address: arg
       })).code_hash!
     }
@@ -374,7 +372,7 @@ class ScrtAgent extends Agent {
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
     const { api, address } = await this.ready
-    const result = await api.query.auth.account({ address: this.address }) ?? (() => {
+    const result = await api!.query.auth.account({ address: this.address }) ?? (() => {
       throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
     })
     const { account_number, sequence } = result.account as any
@@ -384,7 +382,7 @@ class ScrtAgent extends Agent {
   async encrypt (codeHash: CodeHash, msg: Message) {
     if (!codeHash) throw new Error.Missing.CodeHash()
     const { api } = await this.ready
-    const { encryptionUtils } = await this.api as any
+    const { encryptionUtils } = await this.api! as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return base64.encode(encrypted)
   }
@@ -399,7 +397,7 @@ class ScrtAgent extends Agent {
     if (typeof contract === 'string') {
       contract = new ContractInstance({ address: contract })
     }
-    return await api.query.compute.queryContract({
+    return await api!.query.compute.queryContract({
       contract_address: contract.address!,
       code_hash:        contract.codeHash,
       query: query as Record<string, unknown>
@@ -412,7 +410,7 @@ class ScrtAgent extends Agent {
 
     const request  = { sender: address, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
-    const result   = await api.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
+    const result   = await api!.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
     const { code, message, details = [], rawLog } = result
 
     if (code !== 0) {
@@ -473,7 +471,7 @@ class ScrtAgent extends Agent {
       memo:       options.initMemo
     }
 
-    const result = await api.tx.compute.instantiateContract(parameters, {
+    const result = await api!.tx.compute.instantiateContract(parameters, {
       gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
     })
 
@@ -518,7 +516,7 @@ class ScrtAgent extends Agent {
       this.log.info('Simulating transaction...')
       let simResult
       try {
-        simResult = await api.tx.compute.executeContract.simulate(tx, txOpts)
+        simResult = await api!.tx.compute.executeContract.simulate(tx, txOpts)
       } catch (e) {
         this.log.error(e)
         this.log.warn('TX simulation failed:', tx, 'from', this)
@@ -532,7 +530,7 @@ class ScrtAgent extends Agent {
         txOpts.gasLimit = gas
       }
     }
-    const result = await api.tx.compute.executeContract(tx, txOpts)
+    const result = await api!.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
     if (result.code !== 0) throw this.decryptError(result)
     return result as TxResponse

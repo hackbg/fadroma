@@ -1,37 +1,23 @@
 /**
-  Fadroma Build
-  Copyright (C) 2023 Hack.bg
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
+  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import type Project from '.'
-
-import type { Class, ContractTemplate } from '@fadroma/connect'
 import {
-  SourceCode, CompiledCode,
-  Builder, HEAD, Error as BaseError, Console, bold, colors
+  Builder, CompiledCode, Console, ContractInstance, Error, HEAD, SourceCode,
+  bold, colors,
 } from '@fadroma/connect'
+import type { Class, ContractTemplate } from '@fadroma/connect'
 
-import Config from './fadroma-config'
+import { Config } from './config'
+import type { Project } from './project'
 
 import type { Container } from '@hackbg/dock'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
-
 import { hideProperties } from '@hackbg/hide'
-import $, {
-  Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile
-} from '@hackbg/file'
+import $, { Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile } from '@hackbg/file'
+
+import { default as simpleGit } from 'simple-git'
 
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -40,12 +26,19 @@ import { homedir } from 'node:os'
 import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 
-import { default as simpleGit } from 'simple-git'
+/** @returns Builder configured as per environment and options */
+export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
+  return new Config({ build: options }).getBuilder()
+}
 
-/** The parts of Cargo.toml which the builder needs to be aware of. */
-export type CargoTOML = {
-  package: { name: string },
-  dependencies: Record<string, { path?: string }>
+/** Compile a single contract with default settings. */
+export async function build (...args: Parameters<Builder["build"]>): Promise<CompiledCode> {
+  return getBuilder().build(...args)
+}
+
+/** Compile multiple single contracts with default settings. */
+export async function buildMany (...args: Parameters<Builder["buildMany"]>): Promise<CompiledCode[]> {
+  return getBuilder().buildMany(...args)
 }
 
 export { Builder }
@@ -126,7 +119,7 @@ export abstract class BuildLocal extends Builder {
   protected resolveSource (buildable: string|Partial<SourceCode>): Partial<SourceCode> {
     if (typeof buildable === 'string') buildable = { crate: buildable }
     let { crate, workspace = this.workspace, revision = 'HEAD' } = buildable
-    if (!crate) throw new BaseError.Missing.Crate()
+    if (!crate) throw new BuildError.Missing.Crate()
     // If the `crate` field contains a slash, this is a crate path and not a crate name.
     // Add the crate path to the workspace path, and set the real crate name.
     if (buildable.crate && buildable.crate.includes(sep)) {
@@ -136,6 +129,12 @@ export abstract class BuildLocal extends Builder {
     }
     return buildable
   }
+}
+
+/** The parts of Cargo.toml which the builder needs to be aware of. */
+export type CargoTOML = {
+  package: { name: string },
+  dependencies: Record<string, { path?: string }>
 }
 
 /** @returns an codePath filename name in the format CRATE@REF.wasm */
@@ -783,7 +782,7 @@ class BuildConsole extends Console {
 }
 
 /** Build error. */
-export class BuildError extends BaseError {
+export class BuildError extends Error {
 
   static ScriptNotSet = this.define(
     'ScriptNotSet',

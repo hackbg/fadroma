@@ -101,10 +101,12 @@ export class Mocknet extends Chain {
   }
 
   async query <Q> (
-    contract: Address|Partial<ContractInstance>,
+    contract: Address|{address: Address},
     message: Message
   ): Promise<Q> {
-    return this.getContract(address).query({ msg })
+    return this
+      .getContract((contract as any).address||contract)
+      .query({ msg: message })
   }
 
   async getHash (arg: Address) {
@@ -176,7 +178,13 @@ export class Mocknet extends Chain {
     this.codeIdOfAddress[address] = instance.codeId!
     this.labelOfAddress[address] = label!
     await this.passCallbacks(cwVersion, address, messages)
-    return { chainId: this.id, address: contract.address, codeId, codeHash, label }
+    return {
+      chainId: this.id,
+      address: contract.address,
+      codeId,
+      codeHash,
+      label
+    }
   }
 
   checkVersion (exports: string[]): CW|null {

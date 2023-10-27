@@ -67,11 +67,11 @@ export class CustomToken extends TokenFungible {
   /** @returns false */
   isNative = () => false
   /** @returns Client */
+  asClient (agent: Agent): ContractClient
   asClient <C extends ContractClientClass<ContractClient>> (
     agent: Agent, $C: C = ContractClient as unknown as C
   ): InstanceType<C> {
-    const options = { address: this.addr, codeHash: this.hash }
-    return new $C(agent, options) as InstanceType<C>
+    return new $C({ address: this.addr, codeHash: this.hash }, agent) as InstanceType<C>
   }
 }
 

@@ -1,0 +1,8 @@
+coverage:
+  exclude:
+    - "**/*.dist.*"
+    - "**/*.test.*"
+    - "*.dist.*"
+    - "coverage/**/*"
+    - "*/coverage/**/*"
+    - "cosmjs-esm"

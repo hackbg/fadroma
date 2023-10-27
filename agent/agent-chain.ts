@@ -586,27 +586,32 @@ export abstract class Agent {
     *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
     *   depending on what is passed as inputs. */
   async instantiateMany <M extends Many<ContractInstance>> (
-    instances: M
+    contracts: M,
+    options: {
+      initFee?:   ICoin[]|'auto',
+      initFunds?: ICoin[],
+      initMemo?:  string,
+    } = {}
   ): Promise<M> {
     // Returns an array of TX results.
-    const batch = this.batch((batch: any)=>batch.instantiateMany(instances))
+    const batch = this.batch((batch: any)=>batch.instantiateMany(contracts))
     const response = await batch.run()
-    // Populate instances with resulting addresses
-    for (const instance of Object.values(instances)) {
-      if (instance.address) continue
-      // Find result corresponding to instance
-      const found = response.find(({ label }:any)=>label===instance.label)
+    // Populate contracts with resulting addresses
+    for (const contract of Object.values(contracts)) {
+      if (contract.address) continue
+      // Find result corresponding to contract
+      const found = response.find(({ label }:any)=>label===contract.label)
       if (found) {
         const { address, tx, sender } = found // FIXME: implementation dependent
-        instance.address = address
-        instance.initTx = tx
-        instance.initBy = sender
+        contract.address = address
+        contract.initTx = tx
+        contract.initBy = sender
       } else {
-        this.log.warn(`Failed to find address for ${instance.label}.`)
+        this.log.warn(`Failed to find address for ${contract.label}.`)
         continue
       }
     }
-    return instances
+    return contracts
   }
 
   /** Get a client instance for talking to a specific smart contract as this executor. */
@@ -616,7 +621,7 @@ export abstract class Agent {
     codeHash?: CodeHash,
     ...args: unknown[]
   ): C {
-    return new $C(this, { address, codeHash }) as C
+    return new $C({ address, codeHash }, this) as C
   }
 
   /** Call a transaction method on a smart contract. */

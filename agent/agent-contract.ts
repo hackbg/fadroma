@@ -26,7 +26,7 @@ import type {
   Agent, Chain, ChainId, ChainMode, ExecOpts
 } from './agent-chain'
 import type {
-  DeployStore
+  UploadStore, DeployStore
 } from './agent-store'
 
 import { hideProperties } from '@hackbg/hide'
@@ -374,7 +374,7 @@ export class ContractInstance extends ContractTemplate {
 
   connect <C extends ContractClient> (agent: Agent, $C?: ContractClientClass<C>) {
     $C ??= ContractClient as ContractClientClass<C>
-    return new $C(agent, this)
+    return new $C(this, agent)
   }
 
 }
@@ -456,6 +456,9 @@ export class Deployment extends ValueObject {
   async build (options: {
     builder?: Builder
   }): Promise<Record<CodeHash, CompiledCode>> {
+    if (!options.builder) {
+      throw new Error.Missing.Builder()
+    }
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
     for (const [name, contract] of this.templates.entries()) {
       building.push(contract.compile(options.builder))
@@ -472,6 +475,9 @@ export class Deployment extends ValueObject {
     builder?: Builder,
     uploadStore?: UploadStore,
   }): Promise<Record<CodeId, ContractTemplate>> {
+    if (!options.agent) {
+      throw new Error.Missing.Agent()
+    }
     const uploading: Array<Promise<ContractTemplate & { codeId: CodeId }>> = []
     for (const [name, contract] of this.templates.entries()) {
       uploading.push(contract.upload(options.agent, {}))
@@ -489,6 +495,9 @@ export class Deployment extends ValueObject {
     uploadStore?: UploadStore,
     deployStore?: DeployStore,
   }): Promise<Record<Address, ContractInstance>> {
+    if (!options.agent) {
+      throw new Error.Missing.Agent()
+    }
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
     for (const [name, contract] of this.contracts.entries()) {
       deploying.push(contract.instantiate(options.agent, {}))
@@ -540,7 +549,7 @@ export class DeploymentContractLabel {
 
 /** A constructor for a ContractClient subclass. */
 export interface ContractClientClass<C extends ContractClient> extends
-  Class<C, [Agent, Address|Partial<ContractInstance>]> {}
+  Class<C, [Address|Partial<ContractInstance>, Agent|undefined]> {}
 
 /** ContractClient: interface to the API of a particular contract instance.
   * Has an `address` on a specific `chain`, usually also an `agent`.
@@ -552,10 +561,7 @@ export class ContractClient {
 
   agent?: Agent
 
-  constructor (
-    contract: Address|Partial<ContractInstance>,
-    agent?: Agent
-  ) {
+  constructor (contract: Address|Partial<ContractInstance>, agent?: Agent) {
     this.agent = agent
     if (typeof contract === 'string') {
       this.contract = new ContractInstance({ address: contract })

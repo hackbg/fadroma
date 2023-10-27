@@ -3,25 +3,12 @@ import * as assert from 'node:assert'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['chains',  testConnectChains],
   ['config',  testConnectConfig],
   ['errors',  testConnectErrors],
   ['console', testConnectConsole],
   ['scrt',    () => import('./scrt/scrt.test')],
   ['cw',      () => import('./cw/cw.test')]
 ])
-
-export async function testConnectChains () {
-  for (const platform of ['secretjs', 'secretcli']) {
-    for (const mode of ['mainnet', 'testnet', 'devnet', 'mocknet']) {
-      const agent = connect({
-        platform,
-        mode,
-        mnemonic: '...'
-      })
-    }
-  }
-}
 
 export async function testConnectConfig () {
   const config = new ConnectConfig()

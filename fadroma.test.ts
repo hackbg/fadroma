@@ -10,8 +10,10 @@ import {
   StubAgent, UploadStore
 } from '@fadroma/agent'
 
-import Project, {
-  getDeployment, DeployStore_v1,
+import {
+  Project,
+  getAgent,
+  getDeployment, FSDeployStore,
   getBuilder, BuildContainer, BuildRaw,
   upload,
   getGitDir, DotGit,
@@ -21,14 +23,14 @@ import Project, {
   ContractClient
 } from '@hackbg/fadroma'
 
-import { ProjectWizard } from './fadroma-wizard'
+import { ProjectWizard } from './ops/wizard'
 
 import { fixture } from './fixtures/fixtures'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['agent',        () => import('./agent/agent.test')],
   ['connect',      () => import('./connect/connect.test')],
-  ['devnet',       () => import('./fadroma-devnet.test')],
+  ['devnet',       () => import('./ops/devnet.test')],
   ['wizard',       testProjectWizard],
   //['project',      testProject],
   ['deployment',   testDeployment],
@@ -43,11 +45,9 @@ export default new Suite([
 ])
 
 export async function testProject () {
-  const { default: Project } = await import('@hackbg/fadroma')
+  const { Project } = await import('@hackbg/fadroma')
   const { tmpDir } = await import('./fixtures/fixtures')
-
   const root = tmpDir()
-
   let project: Project = new Project({
     root: `${root}/test-project-1`,
     name: 'test-project-1',
@@ -59,16 +59,14 @@ export async function testProject () {
     .create()
     .status()
     .cargoUpdate()
-
   const test1 = project.getTemplate('test1')
   assert.ok(test1 instanceof ContractTemplate)
-
   const test3 = project.setTemplate('test3', { crate: 'test2' })
   assert.ok(test3 instanceof ContractTemplate)
   await project.build()
   await project.build('test1')
-  await project.upload({ agent })
-  await project.upload({ agent, templates: [], contracts: ['test2'] })
+  await project.upload()
+  await project.upload('test1')
   await project.deploy(/* any deploy arguments, if you've overridden the deploy procedure */)
   await project.redeploy(/* ... */)
   await project.exportDeployment('state')
@@ -179,7 +177,9 @@ export async function testDeploymentUpgrade () {
   const testnetAgent: any = { chain: { isTestnet: true } } // mock
   // simplest chain-side migration is to just call default deploy,
   // which should reuse kv1 and kv2 and only deploy kv3.
-  let deployment2 = await V2Deployment.upgrade(deployment).deploy({ agent })
+  let deployment2 = await V2Deployment.upgrade(deployment).deploy({
+    agent: new StubAgent()
+  })
 }
 
 export async function testDeployStore () {
@@ -198,7 +198,7 @@ export async function testDeployStore () {
   })
 
   let result = ''
-  const store = new DeployStore_v1('', {})
+  const store = new FSDeployStore('', {})
 
   Object.defineProperty(store, 'root', { // mock
     value: {
@@ -294,6 +294,6 @@ export function testConsoles () {
   new DeployConsole('test message')
     .activating('asdf')
     .noAgent('name')
-    .list('asdf', new DeployStore_v1('', {}))
+    .list('asdf', new FSDeployStore('', {}))
 
 }
