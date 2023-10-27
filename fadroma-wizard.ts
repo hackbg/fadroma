@@ -19,7 +19,7 @@
 **/
 
 import type Project from './fadroma'
-import type { Class, Template, Buildable, DeployStore, Built } from './fadroma'
+import type { Class, DeployStore, ContractTemplate } from './fadroma'
 import { version } from './fadroma-config'
 
 import { Console, bold, colors, Scrt } from '@fadroma/connect'
@@ -243,7 +243,7 @@ export class ProjectWizard {
     return askSelect(`Create project ${name} in current directory or subdirectory?`, choice)
   }
   askTemplates (name: string):
-    Promise<Record<string, Template<any>|(Buildable & Partial<Built>)>>
+    Promise<Record<string, Partial<ContractTemplate>>>
   {
     return askUntilDone({}, (state) => askSelect([
       `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,

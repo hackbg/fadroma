@@ -19,15 +19,27 @@
 **/
 
 import type {
-  Class, Address, Message, ExecOpts, AgentFees, ICoin, IFee, CodeHash, Client, ClientClass,
-  Uploaded, Instantiated, AnyContract, Contract, Uploader, UploaderClass, Name, Many, CodeId,
-  Uploadable
+  Address, Message, ICoin, IFee, CodeHash,
+  Class, Name, Many, CodeId,
+  Into, TxHash, Label,
+  Batch, BatchClass, BatchCallback
 } from './agent'
-import { Error, Console, into, prop, hideProperties as hide, randomBytes } from './agent-base'
+import {
+  ContractTemplate,
+  ContractInstance,
+  ContractClient,
+  ContractClientClass
+} from './agent-contract'
+import {
+  Error, Console, into, mapAsync, hideProperties, randomBytes
+} from './agent-base'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
-  Mainnet = 'Mainnet', Testnet = 'Testnet', Devnet = 'Devnet', Mocknet = 'Mocknet'
+  Mainnet = 'Mainnet',
+  Testnet = 'Testnet',
+  Devnet  = 'Devnet',
+  Mocknet = 'Mocknet'
 }
 
 /** The unique ID of a chain. */
@@ -252,7 +264,8 @@ export abstract class Chain {
   abstract getBalance (denom: string, address: Address): Promise<string>
 
   /** Query a smart contract. */
-  abstract query <U> (contract: Client, msg: Message): Promise<U>
+  abstract query <Q> (contract: Address|{ address: Address, codeHash?: CodeHash }, msg: Message):
+    Promise<Q>
 
   /** Get the code id of a smart contract. */
   abstract getCodeId (address: Address): Promise<CodeId>
@@ -316,55 +329,9 @@ export abstract class Chain {
 
 }
 
-export class StubChain extends Chain {
-
-  defaultDenom = 'stub'
-
-  getApi (): {} {
-    this.log.warn('chain.getApi: this function is stub; use a subclass of Chain')
-    return Promise.resolve({})
-  }
-
-  /** Get the current block height. */
-  get height (): Promise<number> {
-    this.log.warn('chain.height: this getter is stub; use a subclass of Chain')
-    return Promise.resolve(+ new Date())
-  }
-
-  /** Stub implementation of getting native balance. */
-  getBalance (denom: string, address: Address): Promise<string> {
-    this.log.warn('chain.getBalance: this function is stub; use a subclass of Chain')
-    return Promise.resolve('0')
-  }
-
-  /** Stub implementation of querying a smart contract. */
-  query <U> (contract: Client, msg: Message): Promise<U> {
-    this.log.warn('chain.query: this function is stub; use a subclass of Chain')
-    return Promise.resolve({} as U)
-  }
-
-  /** Stub implementation of getting a code id. */
-  getCodeId (address: Address): Promise<CodeId> {
-    this.log.warn('chain.getCodeId: this function is stub; use a subclass of Chain')
-    return Promise.resolve('code-id-stub')
-  }
-
-  /** Stub implementation of getting a code hash. */
-  getHash (address: Address|number): Promise<CodeHash> {
-    this.log.warn('chain.getHash: this function is stub; use a subclass of Chain')
-    return Promise.resolve('code-hash-stub')
-  }
-
-  /** Stub implementation of getting a contract label. */
-  getLabel (address: Address): Promise<string> {
-    this.log.warn('chain.getLabel: this function is stub; use a subclass of Chain')
-    return Promise.resolve('contract-label-stub')
-  }
-
-}
 
 /** @returns the chain of a thing
-  * @throws  ExpectedChain if missing. */
+  * @throws if missing. */
 export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): C {
   if (!thing.chain) throw new Error.Missing.Chain()
   return thing.chain
@@ -404,12 +371,11 @@ export abstract class Agent {
   static Batch: BatchClass<Batch> // populated below
 
   constructor (options: Partial<Agent> = {}) {
-    this.chain   = options.chain ?? this.chain
-    this.name    = options.name  ?? this.name
-    this.fees    = options.fees  ?? this.fees
+    this.chain = options.chain ?? this.chain
+    this.name = options.name  ?? this.name
+    this.fees = options.fees  ?? this.fees
     this.address = options.address  ?? this.address
-    hide(this, 'chain', 'address', 'log', 'Batch')
-    prop(this, 'mnemonic', options.mnemonic)
+    hideProperties(this, 'chain', 'address', 'log', 'Batch')
   }
 
   get [Symbol.toStringTag]() {
@@ -487,56 +453,123 @@ export abstract class Agent {
   abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
 
   /** Upload a contract's code, generating a new code id/hash pair. */
-  async upload (uploadable: string|URL|Uint8Array|Partial<Uploadable>): Promise<Uploaded> {
-    const fromPath = async (path: string) => {
-      const { readFile } = await import('node:fs/promises')
-      return await readFile(path)
-    }
-    const fromURL = async (url: URL) => {
-      if (url.protocol === 'file:') {
-        const { fileURLToPath } = await import('node:url')
-        return await fromPath(fileURLToPath(url))
-      } else {
-        return new Uint8Array(await (await fetch(url)).arrayBuffer())
-      }
-    }
-    let data: Uint8Array
-    const t0 = + new Date()
-    if (typeof uploadable === 'string') {
-      data = await fromPath(uploadable)
-    } else if (uploadable instanceof URL) {
-      data = await fromURL(uploadable)
-    } else if (uploadable instanceof Uint8Array) {
-      data = uploadable
-    } else if (uploadable.artifact) {
-      uploadable = uploadable.artifact
-      if (typeof uploadable === 'string') {
-        data = await fromPath(uploadable)
-      } else if (uploadable instanceof URL) {
-        data = await fromURL(uploadable)
-      }
+  async upload (
+    code: string|URL|Uint8Array|Partial<ContractTemplate>,
+    options: {
+      uploadFee?:  ICoin[]|'auto',
+      uploadMemo?: string
+    },
+  ): Promise<ContractTemplate & {
+    chainId: ChainId,
+    codeId:  CodeId,
+  }> {
+    let template: Uint8Array
+    if (code instanceof Uint8Array) {
+      template = code
     } else {
-      throw new Error('Invalid argument passed to Agent#upload')
+      if (typeof code === 'string' || code instanceof URL) {
+        code = new ContractTemplate({ codePath: code })
+      } else {
+        code = new ContractTemplate(code)
+      }
+      const t0 = performance.now()
+      template = await (code as ContractTemplate).fetchCode()
+      const t1 = performance.now() - t0
+      this.log.debug(`Fetched in ${t1}msec:`, code)
     }
-    const result = this.doUpload(data!)
-    this.log.debug(`Uploaded in ${t0}msec:`, result)
-    return result
+    const t0 = performance.now()
+    const result = await this.doUpload(template, options)
+    const t1 = performance.now() - t0
+    this.log.debug(`Uploaded in ${t1}msec:`, result)
+    return new ContractTemplate({ ...template, ...result }) as ContractTemplate & {
+      chainId: ChainId,
+      codeId:  CodeId,
+    }
   }
 
-  protected abstract doUpload (data: Uint8Array): Promise<Uploaded>
-
-  /** Get an uploader instance which performs code uploads and optionally caches them. */
-  getUploader <U extends Uploader> ($U: UploaderClass<U>, options?: Partial<U>): U {
-    return new $U({ agent: this, ...options||{} }) as U
+  /** Upload multiple contracts. */
+  async uploadMany (
+    codes: Many<string|URL|Uint8Array|Partial<ContractTemplate>>,
+    options: Parameters<typeof this["upload"]>[1]
+  ) {
+    return mapAsync(codes, async code => {
+      await this.upload(code, options)
+    })
   }
+
+  protected abstract doUpload (
+    data: Uint8Array, options: Parameters<typeof this["upload"]>[1]
+  ): Promise<Partial<ContractTemplate>>
 
   /** Create a new smart contract from a code id, label and init message.
     * @example
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
-    *   AnyContract with no `address` populated yet.
+    *   ContractInstance with no `address` populated yet.
     *   This will be populated after executing the batch. */
-  abstract instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated>
+  async instantiate (
+    contract: CodeId|Partial<ContractInstance>,
+    options: {
+      label:      Name,
+      initMsg:    Into<Message>,
+      initFee?:   ICoin[]|'auto',
+      initFunds?: ICoin[],
+      initMemo?:  string,
+    }
+  ): Promise<ContractInstance & {
+    address: Address,
+  }> {
+    let template: ContractTemplate
+    if (typeof contract === 'string') {
+      template = new ContractTemplate({ codeId: contract })
+    } else {
+      if (contract.address) {
+        this.log.warn("Contract already has address, not instantiating.")
+        if (contract instanceof ContractInstance) {
+          return contract as ContractInstance & { address: Address }
+        } else {
+          return new ContractInstance(contract) as ContractInstance & { address: Address }
+        }
+      }
+      if (contract.chainId && contract.chainId !== assertChain(this).id) {
+        throw new Error.Invalid.WrongChain()
+      }
+      template = new ContractTemplate(contract)
+    }
+    if (isNaN(Number(template.codeId))) {
+      throw new Error.Invalid('code id')
+    }
+    if (!template.codeId) {
+      throw new Error.Missing.CodeId()
+    }
+    if (!options.label) {
+      throw new Error.Missing.Label()
+    }
+    if (!options.initMsg) {
+      throw new Error.Missing.InitMsg()
+    }
+    const t0 = performance.now()
+    const result = await this.doInstantiate(template.codeId, {
+      ...options,
+      initMsg: await into(options.initMsg)
+    })
+    const t1 = performance.now() - t0
+    this.log.debug(`Instantiated in ${t1}msec:`, result)
+    return new ContractInstance({ ...template, ...result }) as ContractInstance & {
+      address: Address,
+    }
+  }
+
+  protected abstract doInstantiate (
+    codeId:  CodeId,
+    options: {
+      label:      Label,
+      initMsg:    Message,
+      initFee?:   ICoin[]|'auto',
+      initFunds?: ICoin[],
+      initMemo?:  string,
+    }
+  ): Promise<Partial<ContractInstance>>
 
   /** Create multiple smart contracts from a Template (providing code id)
     * and a list or map of label/initmsg pairs.
@@ -551,9 +584,11 @@ export abstract class Agent {
     *     Two: template2.instance({ label, initMsg }),
     *   }))
     * @returns
-    *   either an Array<AnyContract> or a Record<string, AnyContract>,
+    *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
     *   depending on what is passed as inputs. */
-  async instantiateMany <C extends Many<AnyContract>> (instances: C): Promise<C> {
+  async instantiateMany <M extends Many<ContractInstance>> (
+    instances: M
+  ): Promise<M> {
     // Returns an array of TX results.
     const batch = this.batch((batch: any)=>batch.instantiateMany(instances))
     const response = await batch.run()
@@ -564,7 +599,9 @@ export abstract class Agent {
       const found = response.find(({ label }:any)=>label===instance.label)
       if (found) {
         const { address, tx, sender } = found // FIXME: implementation dependent
-        instance.define({ address, initTx: tx, initBy: sender } as any)
+        instance.address = address
+        instance.initTx = tx
+        instance.initBy = sender
       } else {
         this.log.warn(`Failed to find address for ${instance.label}.`)
         continue
@@ -574,19 +611,37 @@ export abstract class Agent {
   }
 
   /** Get a client instance for talking to a specific smart contract as this executor. */
-  getClient <C extends Client> (
-    $C: ClientClass<C>, address?: Address, codeHash?: CodeHash, ...args: unknown[]
+  getClient <C extends ContractClient> (
+    $C: ContractClientClass<C>,
+    address?: Address,
+    codeHash?: CodeHash,
+    ...args: unknown[]
   ): C {
-    return new $C({ agent: this,  address, codeHash } as any) as C
+    return new $C(this, { address, codeHash }) as C
   }
 
   /** Call a transaction method on a smart contract. */
-  abstract execute (
-    contract: Partial<Client>, msg: Message, opts?: ExecOpts
-  ): Promise<void|unknown>
+  execute (
+    contract: Address|Partial<ContractInstance>,
+    message:  Message,
+    options?: ExecOpts
+  ): Promise<unknown> {
+    if (typeof contract === 'string') contract = new ContractInstance({ address: contract })
+    if (!contract.address) throw new Error("agent.execute: no contract address")
+    return this.doExecute(contract as { address: Address }, message, options)
+  }
+
+  protected abstract doExecute (
+    contract: { address: Address },
+    message:  Message,
+    options?: ExecOpts
+  ): Promise<unknown>
 
   /** Query a contract on the chain. */
-  query <R> (contract: Client, msg: Message): Promise<R> {
+  query <Q> (
+    contract: Address|{ address: Address, codeHash?: CodeHash },
+    msg: Message
+  ): Promise<Q> {
     return assertChain(this).query(contract, msg)
   }
 
@@ -599,303 +654,22 @@ export abstract class Agent {
 
 }
 
-export class StubAgent extends Agent {
-
-  /** Stub implementation of sending native token. */
-  send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
-    this.log.warn('Agent#send: this function is stub; use a subclass of Agent')
-    return Promise.resolve()
-  }
-
-  /** Stub implementation of batch send. */
-  sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
-    this.log.warn('Agent#sendMany: this function is stub; use a subclass of Agent')
-    return Promise.resolve()
-  }
-
-  /** Stub implementation of code upload. */
-  protected doUpload (data: Uint8Array): Promise<Uploaded> {
-    this.log.warn('Agent#upload: this function is stub; use a subclass of Agent')
-    return Promise.resolve({
-      chainId:  this.chain!.id,
-      codeId:   '0',
-      codeHash: 'stub-code-hash'
-    })
-  }
-
-  /** Stub implementation of contract init */
-  instantiate <C extends Client> (instance: Contract<C>): PromiseLike<Instantiated> {
-    this.log.warn('Agent#instantiate: this function is stub; use a subclass of Agent')
-    return Promise.resolve({
-      chainId:  this.chain!.id,
-      address:  '',
-      codeHash: '',
-      label:    ''
-    })
-  }
-
-  /** Stub implementation of calling a mutating method. */
-  execute (
-    contract: Partial<Client>, msg: Message, opts?: ExecOpts
-  ): Promise<void|unknown> {
-    this.log.warn('Agent#execute: this function is stub; use a subclass of Agent')
-    return Promise.resolve({})
-  }
-
+/** Default fees for the main operations that an Agent can perform. */
+export interface AgentFees {
+  send?:   IFee
+  upload?: IFee
+  init?:   IFee
+  exec?:   IFee
 }
 
-/** @returns the agent of a thing
-  * @throws  FadromaError.Missing.Agent */
-export function assertAgent <A extends Agent> (thing: { agent?: A|null } = {}): A {
-  if (!thing.agent) throw new Error.Missing.Agent(thing.constructor?.name)
-  return thing.agent
+/** Options for a compute transaction. */
+export interface ExecOpts {
+  /** The maximum fee. */
+  fee?:  IFee
+  /** A list of native tokens to send alongside the transaction. */
+  send?: ICoin[]
+  /** A transaction memo. */
+  memo?: string
+  /** Allow extra options. */
+  [k: string]: unknown
 }
-
-/** A constructor for a Batch subclass. */
-export interface BatchClass<B extends Batch> extends Class<B, ConstructorParameters<typeof Batch>>{}
-
-type BatchAgent = Omit<Agent, 'doUpload'|'ready'> & { ready: Promise<Batch> }
-
-/** Batch is an alternate executor that collects messages to broadcast
-  * as a single transaction in order to execute them simultaneously.
-  * For that, it uses the API of its parent Agent. You can use it in scripts with:
-  *   await agent.batch().wrap(async batch=>{ client.as(batch).exec(...) }) */
-export abstract class Batch implements BatchAgent {
-  /** Messages in this batch, unencrypted. */
-  msgs: any[] = []
-  /** Next message id. */
-  id = 0
-  /** Nested batches are flattened, this counts the depth. */
-  depth = 0
-
-  constructor (
-    /** The agent that will execute the batched transaction. */
-    public agent: Agent,
-    /** Evaluating this defines the contents of the batch. */
-    public callback?: (batch: Batch)=>unknown
-  ) {
-    if (!agent) throw new Error.Missing.Agent('for batch')
-  }
-
-  get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
-
-  get log () {
-    return new Console(`${this.address} @ ${this.chain?.id} (batched: ${this.msgs.length})`)
-  }
-
-  get ready () { return this.agent.ready.then(()=>this) }
-
-  get chain () { return this.agent.chain }
-
-  get address () { return this.agent.address }
-
-  get name () { return `${this.agent.name} (batched)` }
-
-  get fees () { return this.agent.fees }
-
-  get defaultDenom () { return this.agent.defaultDenom }
-
-  get getUploader () { return this.agent.getUploader.bind(this) }
-
-  get getClient () { return this.agent.getClient.bind(this) }
-
-  /** Add a message to the batch. */
-  add (msg: Message) {
-    const id = this.id++
-    this.msgs[id] = msg
-    return id
-  }
-
-  /** Either submit or save the batch. */
-  async run (opts: ExecOpts|string = "", save: boolean = false): Promise<any> {
-    this.log(save ? 'Saving' : 'Submitting')
-    if (typeof opts === 'string') opts = { memo: opts }
-    const { memo = '' } = opts ?? {}
-    if (this.depth > 0) {
-      this.log.warn('Unnesting batch. Depth:', --this.depth)
-      this.depth--
-      return null as any // result ignored
-    } else if (save) {
-      return this.save(memo)
-    } else {
-      return this.submit(memo)
-    }
-  }
-
-  /** Broadcast a batch to the chain. */
-  async submit (memo?: string): Promise<unknown> {
-    this.log.warn('Batch#submit: this function is stub; use a subclass of Batch')
-    if (memo) this.log.info('Memo:', memo)
-    await this.agent.ready
-    if (this.callback) await Promise.resolve(this.callback(this))
-    this.callback = undefined
-    return this.msgs.map(()=>({}))
-  }
-
-  /** Save a batch for manual broadcast. */
-  async save (name?: string): Promise<unknown> {
-    this.log.warn('Batch#save: this function is stub; use a subclass of Batch')
-    if (name) this.log.info('Name:', name)
-    await this.agent.ready
-    if (this.callback) await Promise.resolve(this.callback(this))
-    this.callback = undefined
-    return this.msgs.map(()=>({}))
-  }
-
-  /** Throws if the batch is invalid. */
-  assertMessages (): any[] {
-    if (this.msgs.length < 1) {
-      this.log.emptyBatch()
-      throw new Error('Batch contained no messages.')
-    }
-    return this.msgs
-  }
-
-  /** Add an init message to the batch.
-    * @example
-    *   await agent.instantiate(template.define({ label, initMsg })
-    * @returns
-    *   the unmodified input. */
-  async instantiate <C extends Client> (instance: Contract<C>) {
-    const label    = instance.label
-    const codeId   = String(instance.codeId)
-    const codeHash = instance.codeHash
-    const sender   = this.address
-    const msg = instance.initMsg = await into(instance.initMsg)
-    this.add({ init: { codeId, codeHash, label, msg, sender, funds: [] } })
-    this.log('added instantiate message')
-    return {
-      chainId:  this.agent.chain!.id,
-      address:  '(batch not submitted)',
-      codeHash: codeHash!,
-      label:    label!,
-      initBy:   this.address,
-    }
-  }
-  /** Add multiple init messages to the batch.
-    * @example
-    *   await agent.batch().wrap(async batch=>{
-    *     await batch.instantiateMany(template.instances({
-    *       One: { label, initMsg },
-    *       Two: { label, initMsg },
-    *     }))
-    *     await agent.instantiateMany({
-    *       One: template1.instance({ label, initMsg }),
-    *       Two: template2.instance({ label, initMsg }),
-    *     })
-    *   })
-    * @returns
-    *   the unmodified inputs. */
-  async instantiateMany <C extends Many<AnyContract>> (inputs: C): Promise<C> {
-    this.log(`adding ${Object.values(inputs).length} instantiate messages`)
-    const outputs: any = (inputs instanceof Array) ? [] : {}
-    await Promise.all(Object.entries(inputs).map(async ([key, instance]: [Name, AnyContract])=>{
-      outputs[key] = instance.address ? instance : await this.instantiate(instance)
-    }))
-    return outputs
-  }
-  /** Add an exec message to the batch. */
-  async execute (
-    { address, codeHash }: Partial<Client>,
-    msg: Message,
-    { send }: ExecOpts = {}
-  ): Promise<this> {
-    this.add({ exec: { sender: this.address, contract: address, codeHash, msg, funds: send } })
-    this.log(`added execute message`)
-    return this
-  }
-  /** Queries are disallowed in the middle of a batch because
-    * even though the batch API is structured as multiple function calls,
-    * the batch is ultimately submitted as a single transaction and
-    * it doesn't make sense to query state in the middle of that. */
-  async query <U> (contract: Client, msg: Message): Promise<never> {
-    throw new Error.Invalid.Batching("query")
-  }
-  /** Uploads are disallowed in the middle of a batch because
-    * it's easy to go over the max request size, and
-    * difficult to know what that is in advance. */
-  async upload (data: Uint8Array): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
-  }
-  async doUpload (data: Uint8Array): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
-  }
-  /** Uploads are disallowed in the middle of a batch because
-    * it's easy to go over the max request size, and
-    * difficult to know what that is in advance. */
-  async uploadMany (uploadables: Uploadable[] = []): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  get balance (): Promise<string> {
-    throw new Error.Invalid.Batching("query balance")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  get height (): Promise<number> {
-    throw new Error.Invalid.Batching("query block height inside batch")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  get nextBlock (): Promise<number> {
-    throw new Error.Invalid.Batching("wait for next block")
-  }
-  /** This doesnt change over time so it's allowed when building batches. */
-  getCodeId (address: Address) {
-    return this.agent.getCodeId(address)
-  }
-  /** This doesnt change over time so it's allowed when building batches. */
-  getLabel (address: Address) {
-    return this.agent.getLabel(address)
-  }
-  /** This doesnt change over time so it's allowed when building batches. */
-  getHash (address: Address|number) {
-    return this.agent.getHash(address)
-  }
-  /** This doesnt change over time so it's allowed when building batches. */
-  checkHash (address: Address, codeHash?: CodeHash) {
-    return this.agent.checkHash(address, codeHash)
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  async getBalance (denom: string): Promise<string> {
-    throw new Error.Invalid.Batching("query balance")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  async send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
-    throw new Error.Invalid.Batching("send")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
-    throw new Error.Invalid.Batching("send")
-  }
-  /** Nested batches are "flattened": trying to create a batch
-    * from inside a batch returns the same batch. */
-  batch <B extends Batch> (cb?: BatchCallback<B>): B {
-    if (cb) this.log.warn('Nested batch callback ignored.')
-    this.log.warn('Nest batches with care. Depth:', ++this.depth)
-    return this as unknown as B
-  }
-  /** Batch class to use when creating a batch inside a batch.
-    * @default self */
-  Batch = this.constructor as { new (agent: Agent): Batch }
-}
-
-/** Function passed to Batch#wrap */
-export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>
-
-// The `any` types here are required because in this case
-// Chain, Agent, and Batch are abstract classes and TS complains.
-// When implementing chain support, you don't need to use `as any`.
-bindChainSupport(Chain, Agent, Batch)
-bindChainSupport(StubChain, StubAgent, Batch)
-
-/** Set the `Chain.Agent` and `Agent.Batch` static properties.
-  * This is how a custom chain implementation knows how to use
-  * the corresponding agent implementation, and likewise for batches. */
-export function bindChainSupport (Chain: Function, Agent: Function, Batch: Function) {
-  Object.assign(Chain, { Agent: Object.assign(Agent, { Batch }) })
-  return { Chain, Agent, Batch }
-}
-
-/** Generate a random chain ID with a given prefix.
-  * The default prefix is `fadroma-devnet-`. */
-export const randomChainId = (prefix = `fadroma-devnet-`) =>
-  `${prefix}${randomBytes(4).toString('hex')}`

@@ -1,17 +1,18 @@
 import { Config } from '@hackbg/conf'
 
 import {
-  Chain, assertChain, bindChainSupport,
+  Chain, ChainId, assertChain, bindChainSupport,
   Agent, Batch,
   ICoin,
   Console, Error, bold,
   bip32, bip39, bip39EN, bech32, base64,
-  into
+  into,
+  ContractInstance
 } from '@fadroma/agent'
 
 import type {
-  Address, Client, Contract, Message, ExecOpts, CodeId, CodeHash,
-  Uploadable, Uploaded, Instantiated
+  Address, Message, ExecOpts, CodeId, CodeHash,
+  ContractTemplate, Label
 } from '@fadroma/agent'
 
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
@@ -60,9 +61,10 @@ class CWChain extends Chain {
   }
 
   /** Stargate implementation of querying a smart contract. */
-  async query <U> (contract: Client, msg: Message): Promise<U> {
-    const { api } = await this.ready
+  async query <U> (contract: Address|Partial<ContractInstance>, msg: Message): Promise<U> {
+    if (typeof contract === 'string') contract = { address: contract }
     if (!contract.address) throw new CWError('chain.query: no contract address')
+    const { api } = await this.ready
     return await api.queryContractSmart(contract.address, msg) as U
   }
 
@@ -199,7 +201,7 @@ class CWAgent extends Agent {
     throw new Error('not implemented')
   }
 
-  protected async doUpload (data: Uint8Array): Promise<Uploaded> {
+  protected async doUpload (data: Uint8Array): Promise<Partial<ContractTemplate>> {
     const { api } = await this.ready
     if (!this.address) throw new Error.Missing.Address()
     const result = await api.upload(
@@ -215,69 +217,68 @@ class CWAgent extends Agent {
     }
   }
 
-  /** Instantiate a contract. */
-  async instantiate <C extends Client> (
-    instance: Contract<C>,
-    init_funds: ICoin[] = [],
-    memo: string = '',
-  ): Promise<Instantiated> {
+  /** Instantiate a contract via CosmJS Stargate. */
+  protected async doInstantiate (
+    codeId: CodeId,
+    options: {
+      label:      Label,
+      initMsg:    Message,
+      initFee?:   ICoin[]|'auto',
+      initFunds?: ICoin[],
+      initMemo?:  string,
+    }
+  ): Promise<Partial<ContractInstance>> {
     const { api } = await this.ready
-    if (!this.address) throw new Error("Agent has no address")
-    if (instance.address) {
-      this.log.warn("Instance already has address, not instantiating.")
-      return instance as Instantiated
-    }
-    const { chainId, codeId, codeHash, label, initMsg } = instance
-    const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) {
-      throw new Error.Missing.CodeId()
-    }
-    if (!label) {
-      throw new Error.Missing.Label()
-    }
-    if (!initMsg) {
-      throw new Error.Missing.InitMsg()
-    }
-    if (chainId && chainId !== assertChain(this).id) {
-      throw new Error.Invalid.WrongChain()
-    }
+    const { initFee, initFunds, initMemo } = options
     const result = await api.instantiate(
-      this.address,
-      code_id,
-      await into(initMsg),
-      label,
-      this.fees?.init || 'auto',
-      { funds: init_funds, admin: this.address, memo }
+      this.address!,
+      Number(codeId),
+      options.initMsg,
+      options.label,
+      options.initFee,
+      {
+        funds: initFunds,
+        admin: this.address,
+        memo:  options.initMemo
+      }
     )
-    this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
     return {
-      chainId:  chainId!,
-      address:  result.contractAddress,
-      codeHash: codeHash!,
-      initBy:   this.address,
-      initTx:   result.transactionHash,
-      initGas:  result.gasUsed,
+      codeId,
+      codeHash,
       label,
+      initMsg,
+      chainId: assertChain(this).id,
+      address: result.contractAddress,
+      initTx:  result.transactionHash,
+      initGas: result.gasUsed,
+      initBy:  this.address,
+      initFee,
+      initFunds,
+      initMemo
     }
   }
 
   /** Call a transaction method of a contract. */
-  async execute (
-    instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
+  protected async doExecute (
+    contract: { address: Address },
+    message:  Message,
+    options:  ExecOpts = {}
   ): Promise<unknown> {
     const { api } = await this.ready
     if (!this.address) throw new CWError("agent.execute: no agent address")
-    if (!instance.address) throw new CWError("agent.execute: no contract address")
-    const { address, codeHash } = instance
-    const { send, memo, fee = this.fees?.exec || 'auto' } = opts
-    return await api.execute(this.address, instance.address, msg, fee, memo, send)
+    const { send, memo, fee = this.fees?.exec || 'auto' } = options
+    return await api.execute(this.address, contract.address, message, fee, memo, send)
   }
 
   /** Query a contract. */
-  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
+  async query <U> (
+    contract: Address|Partial<ContractInstance>,
+    message:  Message
+  ): Promise<U> {
+    if (typeof contract === 'string') contract = new ContractInstance({ address: contract })
+    if (!contract.address) throw new CWError('agent.query: no contract address')
     const { api } = await this.ready
-    if (!instance.address) throw new CWError('agent.query: no contract address')
-    return await api.queryContractSmart(instance.address, query) as U
+    return await api.queryContractSmart(contract.address, message) as U
   }
 
 }

@@ -1,20 +1,24 @@
-import type { Agent, Address, CodeHash, Uint128, ICoin, ClientClass } from '@fadroma/agent'
+import type { Agent, Address, CodeHash, Uint128, ICoin } from '@fadroma/agent'
 import {
-  Token, TokenFungible, TokenNonFungible, CustomToken, Client, Coin,
+  Token, TokenFungible, TokenNonFungible, CustomToken, Coin,
   randomBytes, randomBase64, bold, colors,
+  ContractClient
 } from '@fadroma/agent'
 import type { Permit } from './scrt-auth'
 import { Console } from './scrt-base'
 
 /** Client to a specific SNIP-721 non-fungible token contract. */
-export class Snip721 extends Client implements TokenNonFungible {
+export class Snip721 extends ContractClient implements TokenNonFungible {
+
   /** The token contract's address. */
-  get id () { return this.address! }
+  get id () { return this.contract.address! }
+
   /** @returns false */
   isFungible = () => false
+
 }
 
-export class Snip20 extends Client implements TokenFungible {
+export class Snip20 extends ContractClient implements TokenFungible {
   log = new Console('@fadroma/tokens: Snip20')
   /** The full name of the token. */
   name: string|null = null
@@ -28,6 +32,7 @@ export class Snip20 extends Client implements TokenFungible {
   /** Create a SNIP20 token client from a CustomToken descriptor. */
   static fromDescriptor = (descriptor: CustomToken, agent?: Agent): Snip20 =>
     descriptor.asClient(agent, this)
+
   /** Create a SNIP20 init message. */
   static init = (
     name:     string,
@@ -44,12 +49,20 @@ export class Snip20 extends Client implements TokenFungible {
   }
 
   /** Get a comparable token ID. */
-  get id () { return this.address! }
+  get id () {
+    return this.contract.address!
+  }
+
   /** Get a client to the Viewing Key API. */
-  get vk (): ViewingKeyClient { return new ViewingKeyClient(this) }
+  get vk (): ViewingKeyClient {
+    return new ViewingKeyClient(this.contract, this.agent)
+  }
+
   /** @returns self as plain CustomToken with a *hidden (from serialization!)*
     * `client` property pointing to `this`. */
-  get asDescriptor (): CustomToken { return new CustomToken(this.address!, this.codeHash) }
+  get asDescriptor (): CustomToken {
+    return new CustomToken(this.contract.address!, this.contract.codeHash)
+  }
 
   /** @returns true */
   isFungible = () => true
@@ -81,15 +94,19 @@ export class Snip20 extends Client implements TokenFungible {
       throw new Error(JSON.stringify(response))
     }
   }
+
   /** Change the admin of the token, who can set the minters */
   changeAdmin = (address: string) =>
     this.execute({ change_admin: { address } })
+
   /** Set specific addresses to be minters, remove all others */
   setMinters = (minters: Array<string>) =>
     this.execute({ set_minters: { minters } })
+
   /** Add addresses to be minters */
   addMinters = (minters: Array<string>) =>
     this.execute({ add_minters: { minters } })
+
   /** Mint SNIP20 tokens */
   mint = (
     amount: string|number|bigint, recipient: string|undefined = this.agent?.address
@@ -99,24 +116,30 @@ export class Snip20 extends Client implements TokenFungible {
     }
     return this.execute({ mint: { amount: String(amount), recipient } })
   }
+
   /** Burn SNIP20 tokens */
   burn = (amount: string|number|bigint, memo?: string) =>
     this.execute({ burn: { amount: String(amount), memo } })
+
   /** Deposit native tokens into the contract. */
   deposit = (nativeTokens: ICoin[],) =>
     this.execute({ deposit: {} }, { send: nativeTokens })
+
   /** Redeem an amount of a native token from the contract. */
   redeem = (amount: string|number|bigint, denom?: string) =>
     this.execute({ redeem: { amount: String(amount), denom } })
+
   /** Get the current allowance from `owner` to `spender` */
   getAllowance = async (owner: Address, spender: Address, key: string): Promise<Allowance> => {
     const msg = { allowance: { owner, spender, key } }
     const response: { allowance: Allowance } = await this.query(msg)
     return response.allowance
   }
+
   /** Check the current allowance from `owner` to `spender`. */
   checkAllowance = (spender: string, owner: string, key: string) =>
     this.query({ check_allowance: { owner, spender, key } })
+
   /** Increase allowance to spender */
   increaseAllowance = (amount:  string|number|bigint, spender: Address) => {
     this.log.debug(
@@ -125,14 +148,18 @@ export class Snip20 extends Client implements TokenFungible {
     )
     return this.execute({ increase_allowance: { amount: String(amount), spender } })
   }
+
   /** Decrease allowance to spender */
   decreaseAllowance = (amount: string|number|bigint, spender: Address) =>
     this.execute({ decrease_allowance: { amount: String(amount), spender } })
+
   /** Transfer tokens to address */
   transfer = (amount: string|number|bigint, recipient: Address) =>
     this.execute({ transfer: { amount, recipient } })
+
   transferFrom = (owner: Address, recipient: Address, amount: Uint128, memo?: string) =>
     this.execute({ transfer_from: { owner, recipient, amount, memo } })
+
   /** Send tokens to address.
     * Same as transfer but allows for receive callback. */
   send = (
@@ -143,18 +170,23 @@ export class Snip20 extends Client implements TokenFungible {
       msg: callback ? Buffer.from(JSON.stringify(callback)).toString('base64') : undefined
     }
   })
+
   sendFrom = (
     owner: Address, amount: Uint128, recipient: String,
     hash?: CodeHash, msg?: string, memo?: string
   ) => this.execute({
     send_from: { owner, recipient, recipient_code_hash: hash, amount, msg, memo }
   })
+
   batchTransfer = (actions: TransferAction[]) =>
     this.execute({ batch_transfer: { actions } })
+
   batchTransferFrom = (actions: TransferFromAction[]) =>
     this.execute({ batch_transfer_from: { actions } })
+
   batchSend = (actions: SendAction[]) =>
     this.execute({ batch_transfer: { actions } })
+
   batchSendFrom = (actions: SendFromAction[]) =>
     this.execute({ batch_send_from: { actions } })
 }
@@ -247,7 +279,8 @@ export interface SendFromAction {
 export type ViewingKey = string
 
 /** A contract's viewing key methods. */
-export class ViewingKeyClient extends Client {
+export class ViewingKeyClient extends ContractClient {
+
   /** Create a random viewing key. */
   async create (entropy = randomBytes(32).toString("hex")) {
     const msg = { create_viewing_key: { entropy, padding: null } }
@@ -258,8 +291,10 @@ export class ViewingKeyClient extends Client {
       return data[0]
     }
   }
+
   /** Set a user-specified viewing key. */
   async set (key: ViewingKey) {
     return this.execute({ set_viewing_key: { key } })
   }
+
 }

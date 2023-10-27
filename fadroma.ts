@@ -19,14 +19,15 @@
 **/
 
 import type {
-  ChainRegistry, ChainClass, DeploymentClass, Builder, Buildable, Built,
-  Uploader, Uploadable, Uploaded, CodeId, CodeHash, ChainId, DeployStoreClass,
+  ChainRegistry, ChainClass, DeploymentClass, Builder,
+  CodeId, CodeHash, ChainId, DeployStoreClass,
+  CompiledCode,
 } from '@fadroma/connect'
 import {
   connectModes, Scrt, CW,
-  Chain, ChainMode, Deployment, DeployStore,
-  Agent, AnyContract, Contract, Client, DeploymentState, Template,
-  toInstanceReceipt, timestamp, bold, Console, Error,
+  Chain, ChainMode, Deployment, DeployStore, DeploymentState,
+  Agent, ContractInstance, ContractClient, ContractTemplate,
+  timestamp, bold, Console, Error,
   bip39, bip39EN
 } from '@fadroma/connect'
 
@@ -55,18 +56,13 @@ export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
 }
 
 /** Compile a single contract with default settings. */
-export async function build (...args: Parameters<Builder["build"]>): Promise<Built> {
+export async function build (...args: Parameters<Builder["build"]>): Promise<CompiledCode> {
   return getBuilder().build(...args)
 }
 
 /** Compile multiple single contracts with default settings. */
-export async function buildMany (...args: Parameters<Builder["buildMany"]>): Promise<Built[]> {
+export async function buildMany (...args: Parameters<Builder["buildMany"]>): Promise<CompiledCode[]> {
   return getBuilder().buildMany(...args)
-}
-
-/** @returns Uploader configured as per environment and options */
-export function getUploader (options: Partial<Config["upload"]> = {}): Uploader {
-  return new Config({ upload: options }).getUploader()
 }
 
 /** Upload a single contract with default settings. */
@@ -109,7 +105,7 @@ const console = new Console(`@hackbg/fadroma ${version}`)
 
 export type ProjectOptions = Omit<Partial<Project>, 'root'|'templates'> & {
   root:      OpaqueDirectory|string,
-  templates: Record<string, Template<any>|(Buildable & Partial<Built>)>
+  templates: Record<string, Partial<ContractTemplate>>
 }
 
 export default class Project extends CommandContext {
@@ -121,11 +117,9 @@ export default class Project extends CommandContext {
   /** Root directory of the project. */
   root:      OpaqueDirectory
   /** Contract definitions. */
-  templates: Record<string, Template<any>>
+  templates: Record<string, ContractTemplate>
   /** Default builder. */
   builder:   Builder
-  /** Default uploader. */
-  uploader:  Uploader
   /** Default deployment class. */
   Deployment = Deployment
 
@@ -154,13 +148,11 @@ export default class Project extends CommandContext {
     if (this.exists()) this.log.info(`on`, bold(this.config.chainId))
     this.builder = getBuilder({ outputDir: this.dirs.wasm.path })
     const uploadState = this.config.chainId ? this.dirs.state.in(this.config.chainId).path : null
-    this.uploader = getUploader({ uploadState })
-
     // Populate templates
     this.templates = {}
     const templates = options?.templates || (this.exists()
       ? ((this.files.fadromaYaml.load()||{}) as any).templates||{}
-      : {}) as Record<string, Template<any>|(Buildable & Partial<Built>)>
+      : {}) as Record<string, Partial<ContractTemplate>>
     for (const [key, val] of Object.entries(templates)) this.setTemplate(key, val)
 
     this.command('run',      'execute a script',
@@ -191,6 +183,22 @@ export default class Project extends CommandContext {
                  this.resetDevnets)
   }
 
+  /** Load and execute the default export of an ES module,
+    * passing this Project instance as first argument. */
+  async runScript (script?: string, ...args: string[]) {
+    if (!script) throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
+    if (!$(script).exists()) throw new Error(`${script} doesn't exist`)
+    this.log.log(`Running ${script}`)
+    const path = $(script).path
+    //@ts-ignore
+    const { default: main } = await import(path)
+    if (typeof main === 'function') {
+      return main(this, ...args)
+    } else {
+      this.log.info(`${$(script).shortPath} does not have a default export.`)
+    }
+  }
+
   /** @returns stateless handles for the subdirectories of the project. */
   get dirs () {
     return {
@@ -199,6 +207,7 @@ export default class Project extends CommandContext {
       state: this.root.in('state').as(OpaqueDirectory)
     }
   }
+
   /** @returns stateless handles for various config files that are part of the project. */
   get files () {
     const { src, wasm, state } = this.dirs
@@ -211,13 +220,14 @@ export default class Project extends CommandContext {
       githubWorkflow: null,
       gitignore:      this.root.at('.gitignore').as(TextFile),
       packageJson:    this.root.at('package.json').as(JSONFile),
-      apiIndex:       this.root.at('api.ts').as(TextFile),
-      opsIndex:       this.root.at('ops.ts').as(TextFile),
-      testIndex:      this.root.at('tes.ts').as(TextFile),
+      apiIndex:       this.root.at('index.ts').as(TextFile),
+      projectIndex:   this.root.at('fadroma.config.ts').as(TextFile),
+      testIndex:      this.root.at('test.ts').as(TextFile),
       readme:         this.root.at('README.md').as(TextFile),
       shellNix:       this.root.at('shell.nix').as(TextFile),
     }
   }
+
   /** @returns stateless handles for the contract crates
     * corresponding to templates in fadroma.yml */
   get crates () {
@@ -227,59 +237,66 @@ export default class Project extends CommandContext {
     }
     return crates
   }
+
   /** @returns the active deployment */
   get deployment () {
     return this.getDeployment()
   }
+
   /** The deploy receipt store implementation selected by `format`. */
   get DeployStore (): DeployStoreClass<DeployStore> {
     const variant = DeployStore.variants[this.config.deploy.format]
     if (!variant) throw new Error.Missing.DeployFormat()
     return variant
   }
+
   /** @returns an up-to-date DeployStore */
   get deployStore () {
     return new (this.DeployStore)(this.config.deploy.storePath)
   }
 
-  addCrate = () => {
+  async addCrate () {
     throw new Error('unimplemented')
   }
-  getTemplate = (name: string): (Template<any> & Buildable)|undefined =>
-    this.templates[name] as Template<any> & Buildable
-  setTemplate = (
-    name: string, value: string|Template<any>|(Buildable & Partial<Built>)
-  ): Template<any> => {
+
+  getTemplate (name: string): ContractTemplate {
+    return this.templates[name] as ContractTemplate
+  }
+
+  setTemplate (
+    name: string, value: string|Partial<ContractTemplate>
+  ): ContractTemplate {
     const defaults = { workspace: this.root.path, revision: 'HEAD' }
     return this.templates[name] =
-      (typeof value === 'string') ? new Template({ ...defaults, crate: value }) :
-      (value instanceof Template) ? value : new Template({ ...defaults, ...value })
+      (typeof value === 'string') ? new ContractTemplate({ ...defaults, crate: value }) :
+      (value instanceof ContractTemplate) ? value : new ContractTemplate({ ...defaults, ...value })
   }
+
   /** Print the current status of Fadroma, the active devnet, project, and deployment.
     * @returns this */
-  status = () => {
+  status () {
     toolVersions()
-    const chain = this.uploader?.agent?.chain ?? this.config.getChain()
-    const agent = this.uploader?.agent ?? chain?.getAgent()
+    const agent = this.config.getAgent()
+    const chain = agent.chain
     this.log.info('Project name:           ', bold(this.name))
     this.log.info('Project root:           ', bold(this.root.path))
     this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
     this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
     const templates = Object.entries(this.templates??{})
     if (templates.length > 0) {
-      this.log.info('Templates in project:')
+      this.log.info('ContractTemplates in project:')
       for (const [name, {repository,revision,workspace,crate,features}] of templates) {
         this.log.info('-', name)//, repository, revision, workspace, crate, features)
       }
     } else {
-      this.log.info('Templates in project:   (none)')
+      this.log.info('ContractTemplates in project:   (none)')
     }
     this.log.br()
-    this.log.info('Chain type:    ', bold(chain.constructor.name))
-    this.log.info('Chain mode:    ', bold(chain.mode))
-    this.log.info('Chain ID:      ', bold(chain.id))
-    if (!chain.isMocknet) {
-      this.log.info('Chain URL:     ', bold(chain.url.toString()))
+    this.log.info('Chain type:    ', bold(chain?.constructor.name))
+    this.log.info('Chain mode:    ', bold(chain?.mode))
+    this.log.info('Chain ID:      ', bold(chain?.id))
+    if (!chain?.isMocknet) {
+      this.log.info('Chain URL:     ', bold(chain?.url.toString()))
     }
     this.log.info('Agent address: ', bold(agent.address))
     this.log.br()
@@ -306,10 +323,12 @@ export default class Project extends CommandContext {
   }
 
   /** @returns Boolean whether the project (as defined by fadroma.yml in root) exists */
-  exists = () =>
-    this.files.fadromaYaml.exists()
+  exists () {
+    return this.files.fadromaYaml.exists()
+  }
+
   /** Builds one or more named templates, or all templates if no arguments are passed. */
-  build = async (...names: string[]): Promise<Built[]> => {
+  async build (...names: string[]): Promise<CompiledCode[]> {
     if (names.length < 1) {
       names = Object.keys(this.templates)
       if (names.length > 0) {
@@ -327,70 +346,88 @@ export default class Project extends CommandContext {
       this.log.warn('Nothing to build.')
       return []
     }
-    return await this.builder.buildMany(sources as (Template<any> & Buildable)[])
+    return await this.builder.buildMany(sources)
   }
-  rebuild = async (...names: string[]): Promise<Built[]> => {
+
+  async rebuild (...names: string[]): Promise<CompiledCode[]> {
     this.builder.caching = false
     return this.build(...names)
   }
+
   /** Uploads one or more named templates, or all templates if no arguments are passed.
     * Builds templates with missing artifacts if sources are available. */
-  upload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
+  async upload (options: { names: string[], store?: UploadStore|false }): Promise<ContractTemplate[]> {
+    let names = options.names
     if (names.length < 1) {
       names = Object.keys(this.templates)
       if (names.length > 0) {
         this.log.log('Uploading all:', names.join(', '))
         return await this.upload(...names)
       }
-      this.log.warn('This would upload all contracts, but no contracts are defined.')
+      this.log.warn('Uploading 0 contracts.')
       return []
     }
     const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
       if (!template) this.log.warn(`No such template in project: ${names[i]}`)
       return !!template
-    }) as (Template<any> & Buildable & Partial<Built>)[]
+    }) as ContractTemplate[]
     if (sources.length < 1) {
       this.log.warn('Nothing to upload.')
       return []
     }
-    // Build templates if builder is available
     const templates = this.builder ? await this.builder.buildMany(sources) : sources
-    return await this.uploader.uploadMany(templates as Uploadable[])
+    const agent = await this.config.getAgent()
+    const store = options.store ?? this.config.getUploadStore()
+    return await agent.uploadMany(templates, { store: options.store })
   }
-  reupload = async (...names: string[]): Promise<(Uploaded|null)[]> => {
-    this.uploader.reupload = true
-    return this.upload(...names)
+
+  async reupload (...names: string[]): Promise<ContractTemplate[]> {
+    return this.upload({ names, store: false })
   }
-  deploy = async (...args: string[]) => {
+
+  async deploy (...args: string[]) {
     const deployment: Deployment = this.deployment || await this.createDeployment()
     this.log.info(`deployment:`, bold(deployment.name), `(${deployment.constructor?.name})`)
-    await deployment.deploy()
+    const agent = this.config.getAgent()
+    await deployment.deploy({ agent })
     await this.log.deployment(deployment)
-    if (!deployment.chain!.isMocknet) await this.selectDeployment(deployment.name)
+    if (!agent.chain!.isMocknet) {
+      await this.selectDeployment(deployment.name)
+    }
     return deployment
   }
-  redeploy = async (...args: string[]) => {
+
+  async redeploy (...args: string[]) {
     await this.createDeployment()
     return await this.deploy(...args)
   }
+
   /** Get the active deployment or a named deployment.
     * @returns Deployment|null */
-  getDeployment = (name?: string, contracts: Record<string, Partial<AnyContract>> = {}): InstanceType<typeof this.Deployment> => {
+  getDeployment (
+    name?: string,
+    contracts: Record<string, Partial<ContractInstance>> = {}
+  ): InstanceType<typeof this.Deployment> {
+    const agent = this.config.getAgent()
     return this.config.getDeployment(this.Deployment, {
-      agent:     this.uploader.agent ??= this.config.getAgent(),
-      chain:     this.uploader.agent.chain,
+      agent,
+      chain:     this.config.getChain(),
       builder:   this.builder,
-      uploader:  this.uploader,
       workspace: this.root.path,
       store:     this.deployStore,
       contracts
     })
   }
-  listDeployments = () =>
-    this.log.deploy.deploymentList(this.config.chainId??'(unspecified)', this.deployStore)
-  createDeployment = (name: string = timestamp()) =>
-    this.deployStore.create(name).then(()=>this.selectDeployment(name))
-  selectDeployment = async (name?: string): Promise<Deployment> => {
+
+  listDeployments () {
+    return this.log.deploy.deploymentList(this.config.chainId??'(unspecified)', this.deployStore)
+  }
+
+  createDeployment (name: string = timestamp()) {
+    return this.deployStore.create(name).then(()=>this.selectDeployment(name))
+  }
+
+  async selectDeployment (name?: string): Promise<Deployment> {
     const store = this.deployStore
     if (store.list().length < 1) throw new Error('No deployments in this store')
     let deployment: Deployment
@@ -409,7 +446,8 @@ export default class Project extends CommandContext {
       throw new Error('No active deployment in this store and no name passed')
     }
   }
-  exportDeployment = async (path?: string) => {
+
+  exportDeployment (path?: string) {
     const store = this.deployStore
     const name = this.deployStore.activeName
     if (!name) throw new Error.Missing.Deployment()
@@ -422,11 +460,14 @@ export default class Project extends CommandContext {
     let file = $(path)
     if (file.isDirectory()) file = file.in(`${name}_@_${timestamp()}.json`)
     // Serialize and write the deployment.
-    file.as(JSONFile).makeParent().save(deployment.snapshot)
+    file.as(JSONFile).makeParent().save(deployment.toReceipt())
     this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
   }
-  resetDevnets = async (...ids: ChainId[]) =>
-    Devnet.deleteMany(this.root.in('state'), ids)
+
+  resetDevnets (...ids: ChainId[]) {
+    return Devnet.deleteMany(this.root.in('state'), ids)
+  }
+
   /** Write the files representing the described project to the root directory.
     * @returns this */
   create = () => {
@@ -434,6 +475,7 @@ export default class Project extends CommandContext {
     this.log("created at", this.root.shortPath)
     return this
   }
+
   /** Create a Git repository in the project directory and make an initial commit.
     * @returns this */
   gitSetup = () => {
@@ -446,8 +488,9 @@ export default class Project extends CommandContext {
     )
     return this
   }
+
   /** @returns this */
-  gitCommit = (message: string = "") => {
+  gitCommit (message: string = "") {
     this.runShellCommands(
       'git --no-pager add .',
       'git --no-pager status',
@@ -455,8 +498,9 @@ export default class Project extends CommandContext {
     )
     return this
   }
+
   /** @returns this */
-  npmInstall = ({ npm, yarn, pnpm }: any = toolVersions()) => {
+  npmInstall ({ npm, yarn, pnpm }: any = toolVersions()) {
     if (pnpm) {
       this.runShellCommands('pnpm i')
     } else if (yarn) {
@@ -466,28 +510,18 @@ export default class Project extends CommandContext {
     }
     return this
   }
+
   /** @returns this */
-  cargoUpdate = () => {
+  cargoUpdate () {
     this.runShellCommands('cargo update')
     return this
   }
+
   /** Run one or more external commands in the project root. */
-  runShellCommands = (...cmds: string[]) =>
+  runShellCommands (...cmds: string[]) {
     cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
-  /** Load and execute the default export of an ES module. */
-  runScript = async (script?: string, ...args: string[]) => {
-    if (!script) throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
-    if (!$(script).exists()) throw new Error(`${script} doesn't exist`)
-    this.log.log(`Running ${script}`)
-    const path = $(script).path
-    //@ts-ignore
-    const { default: main } = await import(path)
-    if (typeof main === 'function') {
-      return main(this, ...args)
-    } else {
-      this.log.info(`${$(script).shortPath} does not have a default export.`)
-    }
   }
+
 }
 
 export * from '@fadroma/connect'
@@ -512,7 +546,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
   const {
     readme, packageJson, cargoToml,
     gitignore, envfile, shellNix,
-    fadromaYaml, apiIndex, opsIndex, testIndex,
+    fadromaYaml, apiIndex, projectIndex, testIndex,
   } = files
 
   // Populate readme
@@ -529,7 +563,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
   // Populate NPM dependencies
   packageJson.save({
     name: `${name}`,
-    main: `api.ts`,
+    main: `index.ts`,
     type: "module",
     version: "0.1.0",
     dependencies: {
@@ -540,20 +574,21 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
     devDependencies: {
       "@hackbg/fadroma": `1.5.9`,
       "@hackbg/ganesha": "4.2.0",
+      //"@hackbg/ubik":    "^2.0.0",
       "typescript":      "^5.1.6",
     },
     scripts: {
       "build":   "fadroma build",
       "rebuild": "fadroma rebuild",
       "status":  "fadroma status",
-      "mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma`,
-      "devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
-      "testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
-      "mainnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
-      "test":         `FADROMA_PROJECT=./ops.ts fadroma run tes.ts`,
-      "test:mocknet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=Mocknet fadroma run tes.ts`,
-      "test:devnet":  `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtDevnet fadroma run tes.ts`,
-      "test:testnet": `FADROMA_PROJECT=./ops.ts FADROMA_CHAIN=ScrtTestnet fadroma run tes.ts`,
+      "mocknet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=Mocknet fadroma`,
+      "devnet":  `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
+      "testnet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
+      "mainnet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
+      "test":         `FADROMA_PROJECT=./fadroma.config.ts fadroma run test.ts`,
+      "test:mocknet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=Mocknet fadroma run test.ts`,
+      "test:devnet":  `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtDevnet fadroma run test.ts`,
+      "test:testnet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtTestnet fadroma run test.ts`,
     },
   })
 
@@ -594,7 +629,7 @@ export function writeProject ({ name, templates, root, dirs, files, crates }: Pr
   ].join('\n\n'))
 
   // Define ops module
-  opsIndex.save([
+  projectIndex.save([
     [
       `import ${Case.pascal(name)} from './api'`,
       `import Project from '@hackbg/fadroma'`,

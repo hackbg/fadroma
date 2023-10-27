@@ -19,14 +19,15 @@
 **/
 
 import type {
-  Environment, BuilderClass, UploaderClass,
+  Environment,
+  Class,
   DeploymentFormat, DeployStoreClass, DeploymentClass,
   DevnetPlatform
 } from './fadroma'
 import { Devnet } from './fadroma-devnet'
 
 import {
-  Builder, ConnectConfig, Uploader, DeployStore,
+  Builder, ConnectConfig, DeployStore,
   Config as BaseConfig,
   Deployment as BaseDeployment,
   Error
@@ -148,10 +149,8 @@ export default class Config extends ConnectConfig {
   }
 
   /** @returns a configured builder. */
-  getBuilder <T extends Builder> (Builder?: BuilderClass<T>): T {
-    Builder ??= this.Builder
-    const builder = new Builder(this.build) as T
-    return builder
+  getBuilder (Builder?: Class<Builder, any>): Builder {
+    return new (Builder ??= this.Builder)(this.build)
   }
 
   /** Upload options. */

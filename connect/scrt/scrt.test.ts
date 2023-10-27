@@ -1,9 +1,14 @@
-import * as SecretJS from '@hackbg/secretjs-esm'
 import assert from 'node:assert'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import * as SecretJS from '@hackbg/secretjs-esm'
 import { Devnet } from '@hackbg/fadroma'
 import * as Scrt from '@fadroma/scrt'
 import { Agent, ChainId, Address, randomBech32 } from '@fadroma/agent'
 import * as Mocknet from './scrt-mocknet'
+
+//@ts-ignore
+export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
 
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 let chain: any // for mocking
@@ -67,6 +72,8 @@ async function testScrtChain () {
   await alice.balance
   const bob = await chain.getAgent({ name: 'Bob' }).ready as Scrt.Agent
   await alice.getBalance(chain.defaultDenom, bob.address!)
+
+  await alice.upload()
 }
 
 async function testScrtFees () {
