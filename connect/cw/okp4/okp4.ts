@@ -111,7 +111,7 @@ class OKP4Chain extends Chain {
         const contract = new $C(
           { address, codeHash, codeId: String(codeId) } as Partial<C>
         )
-        contract.meta.chainId = chainId
+        contract.chainId = chainId
         if (map) {
           (contracts as Map<Address, C>).set(address, contract)
         } else {

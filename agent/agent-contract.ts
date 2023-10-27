@@ -317,16 +317,30 @@ export class ContractTemplate extends CompiledCode {
 }
 
 export class ContractInstance extends ContractTemplate {
+  /** Part of label. */
+  name?:      Name
+  /** Part of label. */
+  prefix?:    Name
+  /** Part of label. */
+  suffix?:    Name
   /** Full label of the instance. Unique for a given Chain. */
-  label?:   Label
+  label?:     Label
   /** Address of this contract instance. Unique per chain. */
-  address?: Address
-  /** Address of agent that performed the init tx. */
-  initBy?:  Address
-  /** TXID of transaction that performed the init. */
-  initTx?:  TxHash
+  address?:   Address
   /** Contents of init message. */
-  initMsg?: Message
+  initMsg?:   Into<Message>
+  /** Address of agent that performed the init tx. */
+  initBy?:    Address
+  /** Native tokens to send to the new contract. */
+  initFunds?: ICoin[]
+  /** Fee to use for init. */
+  initFee?:   unknown
+  /** Instantiation memo. */
+  initMemo?:  string
+  /** TXID of transaction that performed the init. */
+  initTx?:    TxHash
+  /** Contents of init message. */
+  initGas?:   unknown
 
   constructor (properties: Partial<ContractInstance> = {}) {
     super(properties as Partial<ContractTemplate>)
@@ -339,9 +353,10 @@ export class ContractInstance extends ContractTemplate {
   toInstanceReceipt () {
     return {
       ...this.toUploadReceipt(),
-      initBy:  this.initBy,
       initMsg: this.initMsg,
+      initBy:  this.initBy,
       initTx:  this.initTx,
+      initGas: this.initGas,
       address: this.address,
       label:   this.label,
     }
@@ -384,6 +399,31 @@ export class Deployment extends ValueObject {
 
   contracts: Map<string, ContractInstance> = new Map()
 
+  static fromReceipt (receipt: DeploymentState) {
+    const name = receipt.name
+    const deployment = new this({ name })
+    const templates = new Map()
+    for (const [name, template] of Object.entries(receipt.templates || {})) {
+      deployment.templates.set(name, deployment.template(template))
+    }
+    const contracts = new Map()
+    for (const [name, contract] of Object.entries(receipt.contracts || {})) {
+      deployment.contracts.set(name, deployment.contract(name, contract))
+    }
+    return deployment
+  }
+
+  constructor (properties: Partial<Deployment> = {}) {
+    super()
+    this.overrideAll({ name: timestamp(), ...properties } as Partial<this>, [
+      'name',
+      'mode',
+      'store',
+      'templates',
+      'contracts'
+    ])
+  }
+
   toReceipt () {
     const templates: Record<string, ContractTemplate> = {}
     const contracts: Record<string, ContractInstance> = {}
@@ -401,26 +441,6 @@ export class Deployment extends ValueObject {
     }
   }
 
-  static fromReceipt (receipt: DeploymentState) {
-    const name = receipt.name
-    const deployment = new this({ name })
-    const templates = new Map()
-    for (const [name, template] of Object.entries(receipt.templates || {})) {
-      deployment.templates.set(name, deployment.template(template))
-    }
-    const contracts = new Map()
-    for (const [name, contract] of Object.entries(receipt.contracts || {})) {
-      deployment.contracts.set(name, deployment.contract(name, contract))
-    }
-    return deployment
-  }
-
-  constructor (properties: Partial<Deployment> = {}) {
-    super()
-    properties = { name: timestamp(), ...properties }
-    this.overrideAll(properties, [ 'name', 'mode', 'store', 'templates', 'contracts' ])
-  }
-
   template (options?: Partial<ContractTemplate>): ContractTemplate {
     const template = new ContractTemplate({ deployment: this, ...options })
     this.templates.set(template.specifier, template)
@@ -433,7 +453,9 @@ export class Deployment extends ValueObject {
     return contract
   }
 
-  async build (options: { builder: Builder }): Promise<Record<CodeHash, CompiledCode>> {
+  async build (options: {
+    builder?: Builder
+  }): Promise<Record<CodeHash, CompiledCode>> {
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
     for (const [name, contract] of this.templates.entries()) {
       building.push(contract.compile(options.builder))
@@ -445,7 +467,11 @@ export class Deployment extends ValueObject {
     return built
   }
 
-  async upload (options: { agent: Agent }): Promise<Record<CodeId, ContractTemplate>> {
+  async upload (options: {
+    agent?: Agent,
+    builder?: Builder,
+    uploadStore?: UploadStore,
+  }): Promise<Record<CodeId, ContractTemplate>> {
     const uploading: Array<Promise<ContractTemplate & { codeId: CodeId }>> = []
     for (const [name, contract] of this.templates.entries()) {
       uploading.push(contract.upload(options.agent, {}))
@@ -457,7 +483,12 @@ export class Deployment extends ValueObject {
     return uploaded
   }
 
-  async deploy (options: { agent: Agent }): Promise<Record<Address, ContractInstance>> {
+  async deploy (options: {
+    agent?: Agent,
+    builder?: Builder,
+    uploadStore?: UploadStore,
+    deployStore?: DeployStore,
+  }): Promise<Record<Address, ContractInstance>> {
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
     for (const [name, contract] of this.contracts.entries()) {
       deploying.push(contract.instantiate(options.agent, {}))

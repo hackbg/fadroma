@@ -220,8 +220,7 @@ export class Devnet implements DevnetHandle {
     // This determines whether generated chain id has random suffix
     this.deleteOnExit = options.deleteOnExit ?? false
     // This determines the state directory path
-    this.chainId = options.chainId ?? randomChainId()
-    if (!this.chainId) throw new DevnetError.NoChainId()
+    this.chainId = options.chainId || `fadroma-local-${options.platform}`
     // Try to update options from stored state
     this.stateDir = options.stateDir ?? $('state', this.chainId).path
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {

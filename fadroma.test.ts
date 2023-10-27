@@ -75,34 +75,32 @@ export async function testProject () {
 }
 
 class MyDeployment extends Deployment {
-  t = this.template({
-    crate: 'examples/kv'
-  })
-
-  a = this.t.instance({
-    name: 'a',
-    initMsg: {}
-  })
-
+  t = this.template({ crate: 'examples/kv' })
+  // Single template instance with eager and lazy initMsg
+  a1 = this.t.instance({ name: 'a1', initMsg: {} })
+  a2 = this.t.instance({ name: 'a2', initMsg: () => {} })
+  a3 = this.t.instance({ name: 'a3', initMsg: async () => {} })
+  // Multiple template instances as array
+  // with varying initMsg eagerness
   b = this.t.instances([
-    {name:'b1',initMsg:{}},
-    {name:'b2',initMsg:{}},
-    {name:'b3',initMsg:{}}
+    { name: 'b1', initMsg: {} },
+    { name: 'b2', initMsg: ()=>{} },
+    { name: 'b3', initMsg: async ()=>{} }
   ])
-
+  // Multiple template instances as object
+  // with varying initMsg eagerness
+  // (named automatically)
   c = this.t.instances({
-    c1:{name:'c1',initMsg:{}},
-    c2:{name:'c2',initMsg:{}},
-    c3:{name:'c3',initMsg:{}}
+    c1: { initMsg: {} },
+    c2: { initMsg: () => {} },
+    c3: { initMsg: async () => {} }
   })
 }
 
 export async function testDeployment () {
-
-  let deployment = await getDeployment(MyDeployment).deploy()
-
+  const deployment = new MyDeployment()
   assert.ok(deployment.t instanceof ContractTemplate)
-
+  await deployment.deploy()
   assert.ok([
     deployment.a,
     ...Object.values(deployment.b),
@@ -110,17 +108,12 @@ export async function testDeployment () {
   ].every(
     c=>(c instanceof ContractInstance) && (c.expect() instanceof Client)
   ))
-
 }
 
 export async function testBuild () {
-
   const deployment = new MyDeployment()
-
   await deployment.build({ builder: getBuilder() })
-
   const builder = getBuilder(/* { ...options... } */)
-
   assert.ok(builder instanceof Builder)
 
   //assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
@@ -149,81 +142,44 @@ export async function testBuild () {
 }
 
 export async function testBuildHistory () {
-
-  assert.throws(()=>getGitDir(new Contract()))
-
-  const contractWithSource = new Contract({
+  assert.throws(()=>getGitDir(new ContractInstance()))
+  const contractWithSource = new ContractInstance({
     repository: 'REPO',
     revision:   'REF',
     workspace:  'WORKSPACE',
     crate:      'CRATE'
   })
-
   assert.ok(getGitDir(contractWithSource) instanceof DotGit)
-
 }
 
 export async function testUpload () {
-
   const deployment = new MyDeployment()
-
   await deployment.upload({
     agent: new StubAgent(),
-    store: new UploadStore('')
+    uploadStore: new UploadStore('')
   })
-
 }
 
 export async function testDeploymentUpgrade () {
-
-  class MyDeployment_v1 extends Deployment {
-    kv1 = this.contract({ crate: 'examples/kv', name: 'kv1', initMsg: {} })
-    kv2 = this.contract({ crate: 'examples/kv', name: 'kv2', initMsg: {} })
-    static connect = (agent: Agent) => {
-      if (agent?.chain?.isMainnet) return new this({ ...mainnet, agent })
-      if (agent?.chain?.isTestnet) return new this({ ...testnet, agent })
-      return new this({ agent })
-    }
+  class V1Deployment extends Deployment {
+    kv1 = this.contract('kv1', { crate: 'examples/kv', initMsg: {} })
+    kv2 = this.contract('kv2', { crate: 'examples/kv', initMsg: {} })
   }
-
-  class MyDeployment_v2 extends MyDeployment_v1 {
-    kv3 = this.contract({ crate: 'examples/kv', name: 'kv3', initMsg: {} })
+  class V2Deployment extends V1Deployment {
+    kv3 = this.contract('kv3', { crate: 'examples/kv', initMsg: {} })
     // simplest client-side migration is to just instantiate
     // a new deployment with the data from the old deployment.
-    static upgrade = (previous: MyDeployment_v1) => new this({
+    static upgrade = (previous: V1Deployment) => new this({
       ...previous
     })
   }
-
-  let deployment = new MyDeployment_v1()
-  assert.deepEqual(Object.keys(deployment.snapshot.contracts), ['kv1', 'kv2'])
-
-  // you would load snapshots as JSON, e.g.:
-  // const testnet = await (await fetch('./testnet_v4.json')).json()
-  const mainnet = deployment.snapshot
-  const testnet = deployment.snapshot
-
+  let deployment = new V1Deployment()
+  assert.deepEqual(deployment.contracts.keys(), ['kv1', 'kv2'])
   const mainnetAgent: any = { chain: { isMainnet: true } } // mock
   const testnetAgent: any = { chain: { isTestnet: true } } // mock
-
-  const onMainnet = MyDeployment_v1.connect(mainnetAgent)
-  const onTestnet = MyDeployment_v1.connect(testnetAgent)
-
-  assert.ok(onMainnet.isMainnet)
-  assert.ok(onTestnet.isTestnet)
-
-  assert.deepEqual(Object.keys(onMainnet.contracts), ['kv1', 'kv2'])
-  assert.deepEqual(Object.keys(onTestnet.contracts), ['kv1', 'kv2'])
-
-  const kv1 = MyDeployment_v1.connect(mainnetAgent).kv1.expect()
-  assert.ok(kv1 instanceof ContractClient)
-
-  const kv2 = MyDeployment_v1.connect(testnetAgent).kv2.expect()
-  assert.ok(kv2 instanceof ContractClient)
-
   // simplest chain-side migration is to just call default deploy,
   // which should reuse kv1 and kv2 and only deploy kv3.
-  deployment = await MyDeployment_v2.upgrade(deployment).deploy()
+  let deployment2 = await V2Deployment.upgrade(deployment).deploy({ agent })
 }
 
 export async function testDeployStore () {
@@ -231,12 +187,11 @@ export async function testDeployStore () {
   new class MyDeployStore extends DeployStore {
     list (): string[] { throw 'stub' }
     save () { throw 'stub' }
+    load () { return { foo: {}, bar: {} } }
     create (x: any): any { throw 'stub' }
     select (x: any): any { throw 'stub' }
     get active (): any { throw 'stub' }
     get activeName (): any { throw 'stub' }
-
-    load () { return { foo: {}, bar: {} } }
   }().getDeployment(class extends Deployment {
     foo = this.contract({ name: 'foo' })
     bar = this.contract({ name: 'bar' })

@@ -5,7 +5,6 @@
     "**/*.mjs",
     "**/*.spec.ts",
     "**/dist/**/*",
-    "*.test.*",
     "spec/*",
     "agent",
     "connect",
