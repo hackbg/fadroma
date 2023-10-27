@@ -1,13 +1,12 @@
 import * as assert from 'node:assert'
 import {
-  Template, Contract, Client,
-  Deployment, DeployStore, Builder, Uploader,
+  Deployment, DeployStore, Builder,
   into, intoArray, intoRecord
 } from '@fadroma/agent'
 import Project, {
   getDeployment, DeployStore_v1,
   getBuilder, BuildContainer, BuildRaw,
-  FSUploader, upload, getUploader,
+  FSUploader, upload,
   getGitDir, DotGit,
   DeployConsole
 } from '@hackbg/fadroma'

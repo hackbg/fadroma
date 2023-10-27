@@ -18,9 +18,24 @@
 
 **/
 
+import { Batch } from './agent-batch'
+import { StubChain, StubAgent } from './agent-stub'
+import { Chain, Agent } from './agent-chain'
+
+bindChainSupport(Chain, Agent, Batch)
+bindChainSupport(StubChain, StubAgent, Batch)
+
+/** Set the `Chain.Agent` and `Agent.Batch` static properties.
+  * This is how a custom Chain implementation knows how to use
+  * the corresponding Agent implementation, etc. */
+export function bindChainSupport (Chain: Function, Agent: Function, Batch: Function) {
+  Object.assign(Chain, { Agent: Object.assign(Agent, { Batch }) })
+  return { Chain, Agent, Batch }
+}
+
 export * from './agent-base'
 export * from './agent-chain'
+export * from './agent-batch'
+export * from './agent-stub'
+export * from './agent-contract'
 export * from './agent-token'
-export * from './agent-client'
-export * from './agent-deploy'
-export * from './agent-services'

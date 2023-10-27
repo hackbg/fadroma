@@ -19,12 +19,14 @@
 **/
 
 import type {
-  Agent, CodeHash, ChainId, CodeId, Uploadable, Uploaded, AnyContract,
+  Agent, CodeHash, ChainId, CodeId,
 } from './fadroma'
+
 import Config from './fadroma-config'
 
 import {
-  Template, Uploader, assertAgent, toUploadReceipt, base16, sha256,
+  ContractTemplate,
+  base16, sha256,
   hideProperties as hide, Error as BaseError, Console, colors, bold
 } from '@fadroma/connect'
 
@@ -113,7 +115,7 @@ export class UploadReceipt_v1 extends JSONFile<UploadReceiptData> {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
-    return new Template({ artifact, codeHash, chainId, codeId, uploadTx })
+    return new ContractTemplate({ artifact, codeHash, chainId, codeId, uploadTx })
   }
 }
 

@@ -407,13 +407,10 @@ assert.ok(client.meta instanceof Contract)
 Fetching metadata:
 
 ```typescript
-import { fetchCodeHash, fetchCodeId, fetchLabel, assertCodeHash, codeHashOf } from '@fadroma/agent'
+import { fetchLabel } from '@fadroma/agent'
 
-await fetchCodeHash(client, agent)
 await fetchCodeId(client, agent)
 await fetchLabel(client, agent)
-codeHashOf({ codeHash: 'hash' })
-codeHashOf({ code_hash: 'hash' })
 ```
 
 The code ID is a unique identifier for compiled code uploaded to a chain.

@@ -18,8 +18,9 @@
 
 **/
 
-import type { Agent, Address, ClientClass, Uint128, ICoin } from './agent'
-import { Coin, Client } from './agent-client'
+import { Coin } from './agent-base'
+import type { Agent, Address, ContractClientClass, Uint128, ICoin } from './agent'
+import { ContractClient } from './agent-contract'
 
 /** An identifiable token on a network. */
 export abstract class Token {
@@ -66,11 +67,11 @@ export class CustomToken extends TokenFungible {
   /** @returns false */
   isNative = () => false
   /** @returns Client */
-  asClient <C extends ClientClass<Client>> (
-    agent?: Agent, $C: C = Client as unknown as C
+  asClient <C extends ContractClientClass<ContractClient>> (
+    agent: Agent, $C: C = ContractClient as unknown as C
   ): InstanceType<C> {
-    const options = { agent, address: this.addr, codeHash: this.hash }
-    return new $C(options) as InstanceType<C>
+    const options = { address: this.addr, codeHash: this.hash }
+    return new $C(agent, options) as InstanceType<C>
   }
 }
 

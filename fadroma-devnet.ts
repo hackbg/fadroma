@@ -21,10 +21,7 @@
 import type { Agent, ChainClass, ChainId, DevnetHandle } from './fadroma'
 import Config from './fadroma-config'
 
-import {
-  Error as BaseError, Console, bold, randomHex, ChainMode, Chain, randomChainId,
-  Scrt, CW
-} from '@fadroma/connect'
+import { Error as BaseError, Console, bold, randomHex, ChainMode, Chain, Scrt, CW } from '@fadroma/connect'
 import type { CodeId } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'

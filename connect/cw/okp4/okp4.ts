@@ -5,9 +5,9 @@ import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Environment } from '@hackbg/conf'
 import type {
-  AgentClass, ClientClass, Uint128, Address, ChainId, AgentFees, CodeId
+  AgentClass, ContractClientClass, Uint128, Address, ChainId, AgentFees, CodeId
 } from '@fadroma/agent'
-import { Client, Fee, bindChainSupport } from '@fadroma/agent'
+import { ContractClient, Fee, bindChainSupport } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 /** Configuration for OKP4 */
@@ -65,7 +65,7 @@ class OKP4Chain extends Chain {
 
   /** Connect to OKP4 in testnet mode. */
   static devnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => {
-    throw new Error('devnet not installed. import @hackbg/fadroma')
+    throw new Error('Devnet not installed. Import @hackbg/fadroma')
   }
 
   /** Get clients for all Cognitarium instances,
@@ -73,7 +73,7 @@ class OKP4Chain extends Chain {
   async cognitaria ({ map = true } = {}) {
     const { api } = await this.ready
     const ids = Object.values(cognitariumCodeIds)
-    return await getContractsById(this.id, api, Cognitarium, ids, map)
+    return await this.getContractsById(Cognitarium, ids, map)
   }
 
   /** Get clients for all Objectarium instances,
@@ -81,7 +81,7 @@ class OKP4Chain extends Chain {
   async objectaria ({ map = true } = {}) {
     const { api } = await this.ready
     const ids = Object.values(objectariumCodeIds)
-    return await getContractsById(this.id, api, Objectarium, ids, map)
+    return await this.getContractsById(Objectarium, ids, map)
   }
 
   /** Get clients for all Law Stone instances,
@@ -89,7 +89,37 @@ class OKP4Chain extends Chain {
   async lawStones ({ map = true } = {}) {
     const { api } = await this.ready
     const ids = Object.values(lawStoneCodeIds)
-    return await getContractsById(this.id, api, LawStone, ids, map)
+    return await this.getContractsById(LawStone, ids, map)
+  }
+
+  protected async getContractsById <C extends ContractClient> (
+    $C: ContractClientClass<C>,
+    ids: CodeId[],
+    map = true
+  ): Promise<
+    typeof map extends true ? Map<Address, C> : Record<Address, C>
+  > {
+    const { api } = await this.ready
+    const chainId = this.id
+    const contracts = map ? new Map() : {}
+    for (const id of ids) {
+      const codeId = Number(id)
+      if (isNaN(codeId)) throw new Error('non-number code ID encountered')
+      const { checksum: codeHash } = await api.getCodeDetails(codeId)
+      const addresses = await api.getContracts(codeId)
+      for (const address of addresses) {
+        const contract = new $C(
+          { address, codeHash, codeId: String(codeId) } as Partial<C>
+        )
+        contract.meta.chainId = chainId
+        if (map) {
+          (contracts as Map<Address, C>).set(address, contract)
+        } else {
+          (contracts as Record<Address, C>)[address] = contract
+        }
+      }
+    }
+    return contracts
   }
 
   /** Default denomination of gas token. */
@@ -106,43 +136,6 @@ class OKP4Chain extends Chain {
     send:   this.gas(1000000),
   }
 
-}
-
-async function getContractsById <C extends Client> (
-  chainId: ChainId,
-  api: CosmWasmClient,
-  $C: ClientClass<C>,
-  ids: CodeId[],
-  map = true
-): Promise<
-  typeof map extends true ? Map<Address, C> : Record<Address, C>
-> {
-  const contracts = map ? new Map() : {}
-
-  for (const id of ids) {
-
-    const codeId = Number(id)
-    if (isNaN(codeId)) throw new Error('non-number code ID encountered')
-
-    const { checksum: codeHash } = await api.getCodeDetails(codeId)
-
-    const addresses = await api.getContracts(codeId)
-
-    for (const address of addresses) {
-      const contract = new $C(
-        { address, codeHash, codeId: String(codeId) } as Partial<C>
-      )
-      contract.meta.chainId = chainId
-      if (map) {
-        (contracts as Map<Address, C>).set(address, contract)
-      } else {
-        (contracts as Record<Address, C>)[address] = contract
-      }
-    }
-
-  }
-
-  return contracts
 }
 
 /** Agent for OKP4. */
@@ -173,34 +166,33 @@ class OKP4Agent extends Agent {
   /** Get clients for all Cognitarium instances,
     * keyed by address. */
   async cognitaria ({ map = true } = {}) {
-    return populateAgent(map, await this.chain.cognitaria({map}), this)
+    return this.populateAgentOf(map, await this.chain.cognitaria({map}))
   }
 
   /** Get clients for all Objectarium instances,
     * keyed by address. */
   async objectaria ({ map = true } = {}) {
-    return populateAgent(map, await this.chain.objectaria({map}), this)
+    return this.populateAgentOf(map, await this.chain.objectaria({map}))
   }
 
   /** Get clients for all Law Stone instances,
     * keyed by address. */
   async lawStones ({ map = true } = {}) {
-    return populateAgent(map, await this.chain.lawStones({map}), this)
+    return this.populateAgentOf(map, await this.chain.lawStones({map}))
   }
-}
 
-function populateAgent <C extends Client> (
-  map: boolean,
-  contracts: typeof map extends true ? Map<Address, C> : Record<Address, C>,
-  agent: OKP4Agent
-) {
-  const values = map
-    ? (contracts as unknown as Map<Address, Cognitarium>).values()
-    : Object.values(contracts)
-  for (const contract of values) {
-    contract.agent = agent
+  protected populateAgentOf <C extends ContractClient> (
+    map: boolean,
+    contracts: typeof map extends true ? Map<Address, C> : Record<Address, C>,
+  ) {
+    const values = map
+      ? (contracts as unknown as Map<Address, Cognitarium>).values()
+      : Object.values(contracts)
+    for (const contract of values) {
+      contract.agent = this
+    }
+    return contracts
   }
-  return contracts
 }
 
 /** Transaction batch for OKP4. */

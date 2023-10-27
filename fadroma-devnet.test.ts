@@ -1,17 +1,12 @@
-import Project, {
-  getDevnet, Devnet, Template, build, Uploader, Agent
-} from '@hackbg/fadroma'
-import type { DevnetPlatform } from '@hackbg/fadroma'
-
 import * as assert from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
+import Project, { getDevnet, Devnet, build, Agent } from '@hackbg/fadroma'
+import type { DevnetPlatform } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
 
-/** Root of installed Fadroma package. */
 //@ts-ignore
 export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
 

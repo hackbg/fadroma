@@ -20,10 +20,10 @@
 
 import { Error as BaseError } from '@hackbg/oops'
 import { Console, bold, colors } from '@hackbg/logs'
+import type { Chain } from './agent-chain'
 import type {
-  Address, Message, Label, CodeId, CodeHash, Chain, Deployment,
-  Contract, Instantiable, Instantiated, Client
-} from './agent'
+  Deployment, ContractInstance, ContractClient
+} from './agent-contract'
 
 export { bold, colors, timestamp } from '@hackbg/logs'
 export * from '@hackbg/into'
@@ -32,21 +32,79 @@ export * from '@hackbg/many'
 export * from '@hackbg/4mat'
 export * from '@hackbg/dump'
 
+/** A class constructor. */
+export interface Class<T, U extends unknown[]> { new (...args: U): T }
+
+/** A 128-bit integer. */
+export type Uint128 = string
+
+/** A 256-bit integer. */
+export type Uint256 = string
+
+/** A 128-bit decimal fraction. */
+export type Decimal = string
+
+/** A 256-bit decimal fraction. */
+export type Decimal256 = string
+
+/** A moment in time. */
+export type Moment = number
+
+/** A period of time. */
+export type Duration = number
+
+/** A contract's full unique on-chain label. */
+export type Label = string
+
+/** Part of a Label */
 export type Name = string
+
+/** A code hash, uniquely identifying a particular smart contract implementation. */
+export type CodeHash = string
+
+/** A code ID, identifying uploaded code on a chain. */
+export type CodeId = string
+
+/** A transaction message that can be sent to a contract. */
+export type Message = string|Record<string, unknown>
+
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash = string
+
+/** An address on a chain. */
+export type Address = string
+
+export function addZeros (n: number|Uint128, z: number): Uint128 {
+  return `${n}${[...Array(z)].map(() => '0').join('')}`
+}
 
 /** The default Git ref when not specified. */
 export const HEAD = 'HEAD'
 
-/** A class constructor. */
-export interface Class<T, U extends unknown[]> { new (...args: U): T }
+/** A gas fee, payable in native tokens. */
+export interface IFee { amount: readonly ICoin[], gas: Uint128 }
 
-export function prop <T> (host: object, property: string, value: T) {
-  Object.defineProperty(host, property, {
-    get () { return value },
-    set (value) { return prop(host, property, value) },
-    enumerable: true,
-    configurable: true,
-  })
+/** Represents some amount of native token. */
+export interface ICoin { amount: Uint128, denom: string }
+
+/** A constructable gas fee in native tokens. */
+export class Fee implements IFee {
+  amount: ICoin[] = []
+  constructor (
+    amount: Uint128|number, denom: string, public gas: string = String(amount)
+  ) {
+    this.add(amount, denom)
+  }
+  add = (amount: Uint128|number, denom: string) =>
+    this.amount.push({ amount: String(amount), denom })
+}
+
+/** Represents some amount of native token. */
+export class Coin implements ICoin {
+  readonly amount: string
+  constructor (amount: number|string, readonly denom: string) {
+    this.amount = String(amount)
+  }
 }
 
 /** Error kinds. */
@@ -172,8 +230,8 @@ class AgentConsole extends Console {
   foundDeployedContract = (address: Address, name: Name) =>
     this.sub(name).log('found at', bold(address))
 
-  beforeDeploy = <C extends Client> (
-    template: Contract<C>,
+  beforeDeploy = (
+    template: ContractInstance,
     label?: Label, codeId?: CodeId, codeHash?: CodeHash, crate?: string, revision?: string
   ) => {
     codeId ??= template?.codeId ? bold(String(template.codeId)) : colors.red('(no code id!)')
@@ -186,32 +244,38 @@ class AgentConsole extends Console {
     this.log(`init: ${info}`)
   }
 
-  deployFailed = (e: Error, template: Instantiable, name: Label, msg: Message) => {
+  deployFailed = (e: Error, template: Partial<ContractInstance>, name: Label, msg: Message) => {
     this.error(`deploy of ${bold(name)} failed:`)
     this.error(`${e?.message}`)
     this.deployFailedContract(template)
     this.error(`init message:`, JSON.stringify(msg))
   }
 
-  deployManyFailed = (template: Instantiable, contracts: any[] = [], e: Error) => {
+  deployManyFailed = (template: Partial<ContractInstance>, contracts: any[] = [], e: Error) => {
     this.error(`Deploy of multiple contracts failed:`)
     this.error(bold(e?.message))
     this.deployFailedContract(template)
     for (const [name, init] of contracts) this.error(`${bold(name)}:`, JSON.stringify(init))
   }
 
-  deployFailedContract = (template?: Instantiable) => {
+  deployFailedContract = (template?: Partial<ContractInstance>) => {
     if (!template) return this.error(`No template was provided`)
     this.error(`Code hash:`, bold(template.codeHash||''))
     this.error(`Chain ID: `, bold(template.chainId ||''))
     this.error(`Code ID:  `, bold(template.codeId  ||''))
   }
 
-  afterDeploy = <C extends Client> (contract: Partial<Contract<C>>) => {
-    let { name, prefix, address, codeHash } = contract || {}
-    name    = name ? bold(green(name)) : bold(red('(no name)'))
-    prefix  = contract?.prefix ? bold(green(contract.prefix)) : bold(red('(no deployment)'))
-    address = address ? bold(colors.green(address)) : bold(red('(no address)'))
+  afterDeploy = (contract: Partial<ContractInstance>) => {
+    let { name, prefix, address, codeHash } = (contract || {}) as any
+    name = name
+      ? bold(green(name))
+      : bold(red('(no name)'))
+    prefix = prefix
+      ? bold(green(prefix))
+      : bold(red('(no deployment)'))
+    address = address
+      ? bold(colors.green(address))
+      : bold(red('(no address)'))
     this.info('addr:', address)
     this.info('hash:', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.info('added to', prefix)
@@ -229,7 +293,7 @@ class AgentConsole extends Console {
 
   deployment = (deployment: Deployment, name = deployment?.name) => {
     if (!deployment) return this.info('(no deployment)')
-    const { contracts = {} } = deployment
+    const contracts = Object.fromEntries(deployment.contracts.entries())
     const len = Math.max(40, Object.keys(contracts).reduce((x,r)=>Math.max(x,r.length),0))
     const count = Object.values(contracts).length
     if (count <= 0) return this.info(`${name} is an empty deployment`)

@@ -33,6 +33,7 @@ export async function testCWChain () {
   assert.throws(()=>alice.mnemonic)
   assert.throws(()=>alice.mnemonic = undefined)
 
+  // FIXME: getBalance signatures (getBalanceIn?)
   assert.rejects(()=>chain.getBalance(CW.OKP4.Chain.defaultDenom, undefined as any))
   await chain.getBalance(CW.OKP4.Chain.defaultDenom, alice.address!)
   await alice.getBalance()

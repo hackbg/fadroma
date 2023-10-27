@@ -13,13 +13,14 @@ import type {
 import { Config, Error, Console } from './scrt-base'
 import * as Mocknet from './scrt-mocknet'
 import {
-  Agent, Contract, assertAddress, into, base64, bip39, bip39EN, bold,
-  Chain, Fee, Batch, assertChain
+  Agent, into, base64, bip39, bip39EN, bold,
+  Chain, Fee, Batch, assertChain,
+  ContractTemplate, ContractInstance,
 } from '@fadroma/agent'
 import type {
-  AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BatchClass, Client,
-  ExecOpts, ICoin, Message, Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label,
-  Instantiated, Uploadable
+  AgentClass, AgentFees, ChainClass, Uint128, BatchClass,
+  ContractClient,
+  ExecOpts, ICoin, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
 
 /** Represents a Secret Network API endpoint. */
@@ -83,7 +84,10 @@ class ScrtChain extends Chain {
     }
   }
 
-  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
+  async query <U> (
+    instance: Address|Partial<ContractInstance>,
+    message:  Message
+  ): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
 
@@ -347,24 +351,31 @@ class ScrtAgent extends Agent {
 
   /** Query a Client.
     * @returns the result of the query */
-  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
+  async query <U> (
+    contract: Address|Partial<ContractInstance>,
+    query:    Message
+  ): Promise<U> {
     const { api } = await this.ready
+    if (typeof contract === 'string') {
+      contract = new ContractInstance({ address: contract })
+    }
     return await api.query.compute.queryContract({
-      contract_address: instance.address!,
-      code_hash:        instance.codeHash,
+      contract_address: contract.address!,
+      code_hash:        contract.codeHash,
       query: query as Record<string, unknown>
     }) as U
   }
 
   /** Upload a WASM binary. */
-  protected async doUpload (data: Uint8Array): Promise<Uploaded> {
+  protected async doUpload (data: Uint8Array): Promise<Partial<ContractTemplate>> {
     const { api } = await this.ready
-    type Log = { type: string, key: string }
     if (!this.address) throw new Error.Missing.Address()
+
     const request  = { sender: this.address, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
     const result   = await api.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
     const { code, message, details = [], rawLog } = result
+
     if (code !== 0) {
       this.log.error(`Upload failed with code ${bold(code)}:`, bold(message ?? rawLog ?? ''), ...details)
       if (message === `account ${this.address} not found`) {
@@ -378,15 +389,19 @@ class ScrtAgent extends Agent {
       }
       throw new Error.Failed.Upload(result)
     }
+
+    type Log = { type: string, key: string }
     const codeId = result.arrayLog
       ?.find((log: Log) => log.type === "message" && log.key === "code_id")
       ?.value
+
     if (!codeId) {
       this.log.error(`Code id not found in result.`)
       throw new Error.Failed.Upload({ ...result, noCodeId: true })
     }
+
     return {
-      chainId:  assertChain(this).id,
+      chainId:  this.chain.id,
       codeId,
       codeHash: await this.getHash(Number(codeId)),
       uploadBy: this.address,
@@ -395,86 +410,72 @@ class ScrtAgent extends Agent {
     }
   }
 
-  async instantiate <C extends Client> (
-    instance: Contract<C>,
-    init_funds: ICoin[] = []
-  ): Promise<Instantiated> {
+  protected async doInstantiate (
+    codeId: CodeId,
+    options: {
+      codeHash:   CodeHash,
+      label:      Label,
+      initMsg:    Message,
+      initFee?:   ICoin[]|'auto',
+      initFunds?: ICoin[],
+      initMemo?:  string,
+    }
+  ): Promise<Partial<ContractInstance>> {
     const { api } = await this.ready
     if (!this.address) throw new Error("Agent has no address")
-    if (instance.address) {
-      this.log.warn("Instance already has address, not instantiating.")
-      return instance as Instantiated
-    }
-    const { chainId, codeId, codeHash, label, initMsg } = instance
-    const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) throw new Error.Missing.CodeId()
-    if (!label) throw new Error.Missing.Label()
-    if (!initMsg) throw new Error.Missing.InitMsg()
-    if (chainId && chainId !== assertChain(this).id) throw new Error.Invalid.WrongChain()
+
     const parameters = {
-      sender:    this.address,
-      code_id,
-      code_hash: codeHash!,
-      init_msg:  await into(initMsg),
-      label,
-      init_funds
+      sender:     this.address,
+      code_id:    Number(codeId),
+      code_hash:  options.codeHash,
+      label:      options.label,
+      init_msg:   options.initMsg,
+      init_funds: options.initFunds,
+      memo:       options.initMemo
     }
-    const gasLimit = Number(this.fees.init?.amount[0].amount) || undefined
-    const result = await api.tx.compute.instantiateContract(parameters, { gasLimit })
+
+    const result = await api.tx.compute.instantiateContract(parameters, {
+      gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
+    })
+
     if (result.code !== 0) {
-      this.log.error('Init failed:', { initMsg, result })
-      throw Object.assign(new Error.Failed.Init(code_id), { result })
+      this.log.error('Init failed:', { parameters, result })
+      throw Object.assign(new Error.Failed.Init(codeId), { parameters, result })
     }
+
     type Log = { type: string, key: string }
-    const address  = result.arrayLog!
+    const address = result.arrayLog!
       .find((log: Log) => log.type === "message" && log.key === "contract_address")
       ?.value!
-    this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
+
     return {
-      chainId: chainId!,
+      chainId:  this.chain.id,
       address,
-      codeHash: codeHash!,
-      initBy: this.address,
-      initTx: result.transactionHash,
-      initGas: result.gasUsed,
-      label,
+      codeHash: options.codeHash,
+      initBy:   this.address,
+      initTx:   result.transactionHash,
+      initGas:  result.gasUsed,
+      label:    options.label,
     }
   }
 
-  //instantiateMany (instances: Record<Name, AnyContract>):
-    //Promise<Record<Name, AnyContract>>
-  //instantiateMany (instances: AnyContract[]):
-    //Promise<AnyContract[]>
-  //async instantiateMany <C> (instances: C): Promise<C> {
-    //// instantiate multiple contracts in a batch:
-    //const response = await this.batch().wrap(async batch=>{
-      //await batch.instantiateMany(template, configs)
-    //})
-    //// add code hashes to them:
-    //for (const i in configs) {
-      //const instance = instances[i]
-      //if (instance) {
-        //instance.codeId   = template.codeId
-        //instance.codeHash = template.codeHash
-        //instance.label    = configs[i][0]
-      //}
-    //}
-    //return instances
-  //}
-
   async execute (
-    instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
+    contract: Address|Partial<ContractInstance>,
+    message:  Message,
+    options:  ExecOpts = {}
   ): Promise<TxResponse> {
+    if (typeof contract === 'string') {
+      contract = new ContractInstance({ address: contract })
+    }
     const { api } = await this.ready
     if (!this.address) throw new Error("No address")
-    const { address, codeHash } = instance
-    const { send, memo, fee = this.fees.exec } = opts
+    const { send, memo, fee = this.fees.exec } = options
     if (memo) this.log.noMemos()
     const tx = {
       sender:           this.address,
-      contract_address: instance.address!,
-      code_hash:        instance.codeHash,
-      msg:              msg as Record<string, unknown>,
+      contract_address: contract.address,
+      code_hash:        contract.codeHash,
+      msg:              message as Record<string, unknown>,
       sentFunds:        send
     }
     const txOpts = {

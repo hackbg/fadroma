@@ -19,11 +19,12 @@
 **/
 
 import type {
-  AnyContract, Uploadable, Uploaded, ChainId, CodeHash, CodeId, DeploymentState
+  ChainId, CodeHash, CodeId, DeploymentState
 } from './fadroma'
 
 import {
-  Contract, Template, toUploadReceipt, DeployStore, Deployment, toInstanceReceipt, timestamp,
+  DeployStore, Deployment, timestamp,
+  ContractInstance,
   Error as BaseError, Console, bold
 } from '@fadroma/connect'
 
@@ -128,11 +129,11 @@ export class DeployStore_v1 extends DeployStore {
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
     let output = ''
-    for (let [name, data] of Object.entries(state)) {
+    for (let [name, data] of Object.entries(state.contracts!)) {
       output += '---\n'
       name ??= data.name!
       if (!name) throw new DeployError('Deployment: no name')
-      const receipt: any = toInstanceReceipt(new Contract(data as Partial<AnyContract>) as any)
+      const receipt: any = new ContractInstance(data).toInstanceReceipt()
       data = JSON.parse(JSON.stringify({
         name,
         label:    receipt.label,
