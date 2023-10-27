@@ -457,7 +457,7 @@ export abstract class Agent {
     options: {
       uploadFee?:  ICoin[]|'auto',
       uploadMemo?: string
-    },
+    } = {},
   ): Promise<ContractTemplate & {
     chainId: ChainId,
     codeId:  CodeId,

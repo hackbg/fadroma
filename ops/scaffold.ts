@@ -2,7 +2,7 @@ import { bip39, bip39EN } from '@fadroma/connect'
 
 import $, { TextFile } from '@hackbg/file'
 
-import * as Case from 'case'
+import Case from 'case'
 
 import type { Project } from './project'
 

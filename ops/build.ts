@@ -4,12 +4,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 import {
-  Builder, CompiledCode, Console, ContractInstance, Error, HEAD, SourceCode,
+  Config, Console, Error,
+  Builder, CompiledCode, ContractInstance, HEAD, SourceCode,
   bold, colors,
 } from '@fadroma/connect'
-import type { Class, ContractTemplate } from '@fadroma/connect'
+import type { Class, ContractTemplate, Environment } from '@fadroma/connect'
 
-import { Config } from './config'
 import type { Project } from './project'
 
 import type { Container } from '@hackbg/dock'
@@ -26,19 +26,126 @@ import { homedir } from 'node:os'
 import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 
+/** Path to this package. Used to find the build script, dockerfile, etc.
+  * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
+export const thisPackage =
+  //@ts-ignore
+  dirname(dirname(fileURLToPath(import.meta.url)))
+
 /** @returns Builder configured as per environment and options */
-export function getBuilder (options: Partial<Config["build"]> = {}): Builder {
-  return new Config({ build: options }).getBuilder()
+export function getBuilder (options: Partial<BuildConfig> = {}): Builder {
+  return new BuildConfig(options).getBuilder()
 }
 
-/** Compile a single contract with default settings. */
-export async function build (...args: Parameters<Builder["build"]>): Promise<CompiledCode> {
-  return getBuilder().build(...args)
-}
+export class BuildConfig extends Config {
+  constructor (
+    options: Partial<BuildConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
+  /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
+    * Defaults to parent directory of FADROMA_PROJECT. */
+  workspace = this.getString(
+    'FADROMA_WORKSPACE',
+    ()=>this.root
+  )
+  /** Builder to use */
+  builder = this.getString(
+    'FADROMA_BUILDER',
+    ()=>Object.keys(Builder.variants)[0]
+  )
+  /** Whether the build process should print more detail to the console. */
+  verbose = this.getFlag(
+    'FADROMA_BUILD_VERBOSE',
+    ()=>false
+  )
+  /** Whether the build log should be printed only on error, or always */
+  quiet = this.getFlag(
+    'FADROMA_BUILD_QUIET',
+    ()=>false
+  )
+  /** Whether to enable caching and reuse contracts from artifacts directory. */
+  caching = !this.getFlag(
+    'FADROMA_REBUILD',
+    ()=>false
+  )
+  /** Name of output directory. */
+  outputDir = this.getString(
+    'FADROMA_ARTIFACTS',
+    ()=>$(this.root).in('wasm').path
+  )
+  /** Script that runs inside the build container, e.g. build.impl.mjs */
+  script = this.getString(
+    'FADROMA_BUILD_SCRIPT',
+    ()=>$(thisPackage).at('build.impl.mjs').path
+  )
+  /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
+  toolchain = this.getString(
+    'FADROMA_RUST',
+    ()=>''
+  )
+  /** Don't run "git fetch" during build. */
+  noFetch = this.getFlag(
+    'FADROMA_NO_FETCH',
+    ()=>false
+  )
+  /** Whether to bypass Docker and use the toolchain from the environment. */
+  raw = this.getFlag(
+    'FADROMA_BUILD_RAW',
+    ()=>false
+  )
+  /** Whether to use Podman instead of Docker to run the build container. */
+  podman = this.getFlag(
+    'FADROMA_BUILD_PODMAN',
+    () => this.getFlag('FADROMA_PODMAN', ()=>false)
+  )
+  /** Path to Docker API endpoint. */
+  dockerSocket = this.getString(
+    'FADROMA_DOCKER',
+    ()=>'/var/run/docker.sock'
+  )
+  /** Docker image to use for dockerized builds. */
+  dockerImage = this.getString(
+    'FADROMA_BUILD_IMAGE',
+    ()=>'ghcr.io/hackbg/fadroma:master'
+  )
+  /** Dockerfile to build the build image if not downloadable. */
+  dockerfile = this.getString(
+    'FADROMA_BUILD_DOCKERFILE',
+    ()=>$(thisPackage).at('Dockerfile').path
+  )
+  /** Owner uid that is set on build artifacts. */
+  outputUid = this.getString(
+    'FADROMA_BUILD_UID',
+    () => undefined
+  )
+  /** Owner gid that is set on build artifacts. */
+  outputGid = this.getString(
+    'FADROMA_BUILD_GID',
+    () => undefined
+  )
+  /** Used for historical builds. */
+  preferredRemote = this.getString(
+    'FADROMA_PREFERRED_REMOTE',
+    () => undefined
+  )
+  /** Used to authenticate Git in build container. */
+  sshAuthSocket = this.getString(
+    'SSH_AUTH_SOCK',
+    () => undefined
+  )
 
-/** Compile multiple single contracts with default settings. */
-export async function buildMany (...args: Parameters<Builder["buildMany"]>): Promise<CompiledCode[]> {
-  return getBuilder().buildMany(...args)
+  /** @returns the Builder class exposed by the config */
+  get Builder () {
+    return Builder.variants[this.raw ? 'Raw' : 'Container']
+  }
+
+  /** @returns a configured builder. */
+  getBuilder (Builder?: Class<Builder, any>): Builder {
+    return new (Builder ??= this.Builder)(this)
+  }
 }
 
 export { Builder }
@@ -70,7 +177,7 @@ export abstract class BuildLocal extends Builder {
   /** Owner gid that is set on build artifacts. */
   buildGid?:  number = (process.getgid ? process.getgid() : undefined) // process.env.FADROMA_BUILD_GID
 
-  constructor (options: Partial<Config["build"]>) {
+  constructor (options: Partial<BuildConfig> = {}) {
     super()
     this.workspace = options.workspace ?? this.workspace
     this.noFetch   = options.noFetch   ?? this.noFetch
@@ -165,7 +272,7 @@ export class BuildContainer extends BuildLocal {
   /** Used for historical builds. */
   preferredRemote: string = 'origin' // process.env.FADROMA_PREFERRED_REMOTE
 
-  constructor (opts: Partial<Config["build"] & { docker?: Engine }> = {}) {
+  constructor (opts: Partial<BuildConfig & { docker?: Engine }> = {}) {
     super(opts)
     const { docker, dockerSocket, dockerImage } = opts
     // Set up Docker API handle

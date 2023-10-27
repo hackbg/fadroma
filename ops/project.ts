@@ -155,7 +155,7 @@ export class Project extends CommandContext {
         } else {
           this.log.info('No transactions recorded.')
         }
-        const deployment = this.deployment
+        const deployment = this.getDeployment()
         if (deployment) {
           this.log.br()
           this.log.deployment(deployment)
@@ -241,7 +241,7 @@ export class Project extends CommandContext {
   deploy = this.command(
     'deploy', 'deploy this project or continue an interrupted deployment',
     async (...args: string[]) => {
-      const deployment: Deployment = this.deployment || await this.createDeployment()
+      const deployment: Deployment = this.getDeployment() || await this.createDeployment()
       this.log.info(`deployment:`, bold(deployment.name), `(${deployment.constructor?.name})`)
       const agent = this.config.getAgent()
       await deployment.deploy({ agent })
@@ -288,7 +288,7 @@ export class Project extends CommandContext {
     })
 
   exportDeployment = this.command(
-    'export', `export current deployment to ${name}.json`,
+    'export', `export current deployment to JSON`,
     (path?: string) => {
       if (!this.deployStore) {
         this.log.error('No deployments.')
@@ -394,7 +394,9 @@ export class Project extends CommandContext {
   }
 
   createDeployment (name: string = timestamp()) {
-    return this.deployStore.create(name).then(()=>this.selectDeployment(name))
+    const deployment = new this.Deployment({ name })
+    this.deployStore.set(name, deployment)
+    return this.selectDeployment(name)
   }
 
   /** Write the files representing the described project to the root directory.
