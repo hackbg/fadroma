@@ -1,8 +1,6 @@
-/**
-  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Config, Console, Error,
   ContractTemplate, UploadStore,
@@ -13,24 +11,34 @@ import $, { JSONDirectory, JSONFile, BinaryFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
 
+/** Upload a single contract with default settings. */
+export function upload (...args: Parameters<Agent["upload"]>) {
+  return getAgent().upload(...args)
+}
+
+/** Upload multiple contracts with default settings. */
+export function uploadMany (...args: Parameters<Agent["uploadMany"]>) {
+  return getAgent().uploadMany(...args)
+}
+
 export { UploadStore }
 
 export class FSUploadStore extends UploadStore {
   log = new UploadConsole('FSUploadStore')
 
+  rootDir: JSONDirectory<unknown>
+
   constructor (
-    readonly chainId: ChainId,
-    readonly rootDir: JSONDirectory<any>
+    rootDir: string
   ) {
     super()
+    this.rootDir = $(rootDir).as(JSONDirectory)
   }
 
   get (codeHash: CodeHash|{ codeHash: CodeHash }): ContractTemplate|undefined {
     if (typeof codeHash === 'object') codeHash = codeHash.codeHash
     if (!codeHash) throw new UploadError.Missing.CodeHash()
-    const receipt = this.rootDir.in('state').in(this.chainId)
-      .in('upload').at(`${codeHash!.toLowerCase()}.json`)
-      .as(JSONFile<any>)
+    const receipt = this.rootDir.at(`${codeHash!.toLowerCase()}.json`).as(JSONFile<any>)
     if (receipt.exists()) {
       const uploaded = receipt.load()
       this.log.receiptCodeId(receipt, uploaded.codeId)
@@ -45,9 +53,7 @@ export class FSUploadStore extends UploadStore {
     if (typeof codeHash === 'object') codeHash = codeHash.codeHash
     if (!codeHash) throw new UploadError.Missing.CodeHash()
     super.set(codeHash, value)
-    const receipt = this.rootDir.in('state').in(this.chainId)
-      .in('upload').at(`${codeHash.toLowerCase()}.json`)
-      .as(JSONFile<any>)
+    const receipt = this.rootDir.at(`${codeHash.toLowerCase()}.json`).as(JSONFile<any>)
     this.log('writing', receipt.shortPath)
     receipt.save(super.get(codeHash)!.toUploadReceipt())
     return this
@@ -73,32 +79,6 @@ export class FSUploadStore extends UploadStore {
   }
 }
 
-/** Class that convert itself to a `Template`,
-  * from which `Contract`s can subsequently be instantiated. */
-export class UploadReceipt_v1 extends JSONFile<UploadReceiptData> {
-  /** Create a Template object with the data from the receipt. */
-  toTemplate (defaultChainId?: string) {
-    let { chainId, codeId, codeHash, uploadTx, codePath } = this.load()
-    chainId ??= defaultChainId
-    codeId  = String(codeId)
-    return new ContractTemplate({ codePath, codeHash, chainId, codeId, uploadTx })
-  }
-}
-
-export interface UploadReceiptData {
-  chainId?:           string
-  codeHash:           string
-  codeId:             number|string
-  codePath?:          any
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               any[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-  uploadTx?:          string
-}
-
 export class UploadConfig extends Config {
   constructor (
     options: Partial<UploadConfig> = {},
@@ -112,19 +92,11 @@ export class UploadConfig extends Config {
     'FADROMA_REUPLOAD',
     () => false
   )
-  /** Directory to store the receipts for the deployed contracts. */
-  uploadState = this.getString(
-    'FADROMA_UPLOAD_STATE',
-    () => this.chainId
-      ? $(this.root).in('state').in(this.chainId).in('upload').path
-      : null
-  )
   /** Variant of uploader to use */
   uploader = this.getString(
     'FADROMA_UPLOADER',
     () => 'FS'
   )
-
   getUploadStore () {
     return new UploadStore()
   }

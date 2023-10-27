@@ -1,9 +1,9 @@
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { bip39, bip39EN } from '@fadroma/connect'
-
 import $, { TextFile } from '@hackbg/file'
-
 import Case from 'case'
-
 import type { Project } from './project'
 
 export function writeProject ({

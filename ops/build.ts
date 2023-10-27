@@ -1,8 +1,6 @@
-/**
-  Fadroma: copyright (C) 2023 Hack.bg, licensed under GNU AGPLv3 or exception.
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Config, Console, Error,
   Builder, CompiledCode, ContractInstance, HEAD, SourceCode,
@@ -28,7 +26,7 @@ import { randomBytes } from 'node:crypto'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
-export const thisPackage =
+const thisPackage =
   //@ts-ignore
   dirname(dirname(fileURLToPath(import.meta.url)))
 
