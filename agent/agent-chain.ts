@@ -329,7 +329,6 @@ export abstract class Chain {
 
 }
 
-
 /** @returns the chain of a thing
   * @throws if missing. */
 export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): C {
@@ -534,7 +533,7 @@ export abstract class Agent {
       if (contract.chainId && contract.chainId !== assertChain(this).id) {
         throw new Error.Invalid.WrongChain()
       }
-      template = new ContractTemplate(contract)
+      template = new ContractTemplate(contract as Partial<ContractTemplate>)
     }
     if (isNaN(Number(template.codeId))) {
       throw new Error.Invalid('code id')
@@ -621,14 +620,17 @@ export abstract class Agent {
   }
 
   /** Call a transaction method on a smart contract. */
-  execute (
+  async execute (
     contract: Address|Partial<ContractInstance>,
     message:  Message,
     options?: ExecOpts
   ): Promise<unknown> {
     if (typeof contract === 'string') contract = new ContractInstance({ address: contract })
     if (!contract.address) throw new Error("agent.execute: no contract address")
-    return this.doExecute(contract as { address: Address }, message, options)
+    const t0 = performance.now()
+    const result = await this.doExecute(contract as { address: Address }, message, options)
+    const t1 = performance.now() - t0
+    return result
   }
 
   protected abstract doExecute (

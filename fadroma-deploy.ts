@@ -63,6 +63,7 @@ export class DeployStore_v1 extends DeployStore {
   get [Symbol.toStringTag]() {
     return `${this.root?.shortPath??'-'}`
   }
+
   /** @returns the name of the active deployment */
   get activeName (): string|null {
     let file = this.root.at(`${this.KEY}.yml`)
@@ -83,6 +84,7 @@ export class DeployStore_v1 extends DeployStore {
     path.makeParent().as(YAMLFile).save('')
     return this.load(name)
   }
+
   /** Make the specified deployment be the active deployment. */
   async select (name: string|null = this.activeName): Promise<DeploymentState> {
     if (!name) throw new DeployError('no deployment selected')
@@ -97,6 +99,7 @@ export class DeployStore_v1 extends DeployStore {
     }
     throw new DeployError.DeploymentDoesNotExist(name)
   }
+
   /** List the deployments in the deployments directory. */
   list (): string[] {
     if (this.root.exists()) {
@@ -106,10 +109,11 @@ export class DeployStore_v1 extends DeployStore {
         .map(x=>basename(x, '.yml'))
         .filter(x=>x!=this.KEY)
     } else {
-      this.log.storeDoesNotExist(this.root.shortPath)
+      this.log.warn(`deployment store does not exist`)
       return []
     }
   }
+
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   load (name: string|null|undefined = this.activeName): DeploymentState {
     if (!name) throw new DeployError('pass deployment name')
@@ -117,18 +121,20 @@ export class DeployStore_v1 extends DeployStore {
     this.log.log('loading', name)
     name = basename(file.real.name, '.yml')
     const state: DeploymentState = {}
-    for (const receipt of file.as(YAMLFile).loadAll() as Partial<AnyContract>[]) {
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<ContractInstance>[]) {
       if (!receipt.name) continue
       state[receipt.name] = receipt
     }
     return state
   }
+
   /** Save a deployment's state to this store. */
   save (name: string, state: DeploymentState = {}) {
     this.root.make()
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
     let output = ''
+    console.log({state})
     for (let [name, data] of Object.entries(state.contracts!)) {
       output += '---\n'
       name ??= data.name!
@@ -155,13 +161,20 @@ export class DeployStore_v1 extends DeployStore {
 }
 
 export class DeployConsole extends Console {
-  creating = (name: string) =>
-    this.log('creating', bold(name))
-  location = (path: string) =>
-    this.log('location', bold(path))
-  activating = (name: string) =>
-    this.log('activate', bold(name))
-  list = (chainId: string, deployments: DeployStore) => {
+
+  creating (name: string) {
+    return this.log('creating', bold(name))
+  }
+
+  location (path: string) {
+    return this.log('location', bold(path))
+  }
+
+  activating (name: string) {
+    return this.log('activate', bold(name))
+  }
+
+  list (chainId: string, deployments: DeployStore) {
     const list = deployments.list()
     if (list.length > 0) {
       this.info(`deployments on ${bold(chainId)}:`)
@@ -173,9 +186,8 @@ export class DeployConsole extends Console {
       for (let name of list) {
         if (name === (deployments as any).KEY) continue
         const deployment = deployments.load(name)!
-        const count = Object.keys(deployment.state).length
         let info = `${bold(name.padEnd(maxLength))}`
-        info = `${info} (${deployment.size} contracts)`
+        info = `${info} (${deployment.contracts.size()} contracts)`
         if (deployments.activeName === name) info = `${info} ${bold('selected')}`
         this.info(` `, info)
       }
@@ -184,13 +196,16 @@ export class DeployConsole extends Console {
     }
   }
 
-  storeDoesNotExist = (path: string) =>
-    this.warn(`deployment store does not exist`)
 }
 
 export class DeployError extends BaseError {
-  static DeploymentAlreadyExists = this.define('DeploymentAlreadyExists', (name: string)=>
-    `deployment "${name}" already exists`)
-  static DeploymentDoesNotExist = this.define('DeploymentDoesNotExist', (name: string)=>
-    `deployment "${name}" does not exist`)
+
+  static DeploymentAlreadyExists = this.define(
+    'DeploymentAlreadyExists', (name: string)=>`deployment "${name}" already exists`
+  )
+
+  static DeploymentDoesNotExist = this.define(
+    'DeploymentDoesNotExist', (name: string)=> `deployment "${name}" does not exist`
+  )
+
 }

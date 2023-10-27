@@ -245,8 +245,8 @@ class CWAgent extends Agent {
     return {
       codeId,
       codeHash,
-      label,
-      initMsg,
+      label:   options.label,
+      initMsg: options.initMsg,
       chainId: assertChain(this).id,
       address: result.contractAddress,
       initTx:  result.transactionHash,
@@ -340,7 +340,6 @@ function setMnemonic (agent: CWAgent, mnemonic: string) {
 
   }
 }
-
 
 function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
   pub_key: { type: string, value: string },

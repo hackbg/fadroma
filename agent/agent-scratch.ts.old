@@ -106,6 +106,7 @@ export class Template<C extends Client> {
       })
     }).built
   }
+
   /** Upload compiled source code to the selected chain.
     * @returns task performing the upload */
   upload = (uploader: Uploader|undefined = this.uploader): Promise<this & Uploaded> => {
@@ -120,6 +121,7 @@ export class Template<C extends Client> {
       })
     }).uploaded
   }
+
   /** @returns a Contract representing a specific instance of this Template. */
   instance = (options?: Partial<Contract<C>>): Contract<C> => {
     // Use values from Template as defaults for Contract
@@ -130,10 +132,12 @@ export class Template<C extends Client> {
       : new Contract(options)
     return instance
   }
+
   /** Get a collection of multiple contracts from this template.
     * @returns task for deploying multiple contracts, resolving to their clients */
   instances = (contracts: Many<Partial<Contract<C>>>): Many<Contract<C>> =>
     map(contracts, contract=>this.instance(contract))
+
 }
 
 /** Callable object: contract.

@@ -165,14 +165,17 @@ export async function testAgent () {
     label: 'foo',
     initMsg: 'bar'
   })
+
   await agent.instantiate({
     codeId: '1'
   }, {
     label: 'foo',
     initMsg: 'bar'
   })
-  // TODO: await agent.instantiateMany([])
-  // TODO: await agent.instantiateMany({})
+
+  await agent.instantiateMany([])
+
+  await agent.instantiateMany({})
 
   await agent.execute('stub', {}, {})
 }
@@ -328,15 +331,12 @@ export async function testLabels () {
 export async function testClient () {
   const chain = new StubChain({ id: 'foo', mode: Chain.Mode.Testnet })
   const agent = new StubAgent({ chain })
-  const client = new ContractClient(agent, { address: 'addr', codeHash: 'code-hash-stub', codeId: '100' })
-  assert.equal(client.agent.chain, chain)
-  //assert.deepEqual(client.asContractLink, { address: 'addr', code_hash: 'code-hash-stub' })
-  //assert.deepEqual(client.asContractCode, { code_id: 100, code_hash: 'hash' })
-  //assert.deepEqual(await client.fetchCodeHash(), client)
+  const client = new ContractClient({
+    address: 'addr', codeHash: 'code-hash-stub', codeId: '100'
+  }, agent)
+  assert.equal(client.agent, agent)
   await client.query({foo: 'bar'})
   await client.execute({foo: 'bar'})
-  //assert.deepEqual(client.withFee({ amount: [], gas: '123' }), client)
-  //assert.deepEqual(client.withFees({}), client)
 }
 
 export async function testDeployStore () {

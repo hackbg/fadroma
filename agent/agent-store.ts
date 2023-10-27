@@ -1,5 +1,5 @@
 import { Console, Error } from './agent-base'
-import type { Class, CodeHash } from './agent-base'
+import type { Class, CodeHash, Name } from './agent-base'
 import type { ChainId } from './agent-chain'
 import { Deployment, ContractTemplate } from './agent-contract'
 import type { DeploymentClass, DeploymentState } from './agent-contract'
@@ -27,6 +27,10 @@ export class UploadStore extends Map<CodeHash, ContractTemplate> {
     if (value.codeHash && (value.codeHash !== codeHash)) throw new Error.Invalid('code hash mismatch')
     return super.set(toCodeHash(codeHash), value as ContractTemplate)
   }
+
+  delete (name: Name): boolean {
+    return true
+  }
 }
 
 export type DeployStoreFormat = 'v1'
@@ -43,7 +47,12 @@ export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
 
 /** A deploy store collects receipts corresponding to individual instances of Deployment,
   * and can create Deployment objects with the data from the receipts. */
-export abstract class DeployStore {
+export abstract class DeployStore extends Map<Name, Deployment> {
+  log = new Console('DeployStore')
+
+  constructor () {
+    super()
+  }
 
   /** Default values for Deployments created from this store. */
   defaults: Partial<Deployment> = {}
@@ -58,6 +67,18 @@ export abstract class DeployStore {
     const deployment: D = $D.fromReceipt((name && this.load(name)) || {})
     deployment.store = this
     return deployment
+  }
+
+  get (name: Name): Deployment|undefined {
+    return undefined
+  }
+
+  set (name: Name, deployment: Partial<Deployment>): this {
+    return this
+  }
+
+  delete (name: Name): boolean {
+    return true
   }
 
   /** Get the names of all stored deployments. */

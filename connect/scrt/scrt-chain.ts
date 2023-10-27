@@ -16,6 +16,7 @@ import {
   Agent, into, base64, bip39, bip39EN, bold,
   Chain, Fee, Batch, assertChain,
   ContractTemplate, ContractInstance,
+  bindChainSupport
 } from '@fadroma/agent'
 import type {
   AgentClass, AgentFees, ChainClass, Uint128, BatchClass,
@@ -190,13 +191,15 @@ class ScrtAgent extends Agent {
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
   }
 
-  get ready (): Promise<this & { api: SecretNetworkClient }> {
+  get ready (): Promise<this & { api: SecretNetworkClient, address: Address }> {
     // If an API instance is already available (e.g. provided to constructor), just use that.
-    if (this.api) return Promise.resolve(this as this & { api: SecretNetworkClient })
+    if (this.api) {
+      return Promise.resolve(this as this & { api: SecretNetworkClient, address: Address })
+    }
     // Require chain reference to be populated.
     if (!this.chain) throw new Error.Missing.Chain()
     // Begin asynchronous init.
-    const init = new Promise<this & { api: SecretNetworkClient }>(async (
+    const init = new Promise<this & { api: SecretNetworkClient, address: Address }>(async (
       resolve, reject
     )=>{
       try {
@@ -244,7 +247,7 @@ class ScrtAgent extends Agent {
         this.log.label = `${this.address??'(no address)'} @ ${this.chain.id??'(no chain id)'}`
         this.log.log('authenticated')
         // Done.
-        resolve(this as this & { api: SecretNetworkClient })
+        resolve(this as this & { api: SecretNetworkClient, address: Address })
       } catch (e) {
         reject(e)
       }
@@ -259,7 +262,21 @@ class ScrtAgent extends Agent {
     return undefined
   }
   set api (value: SecretNetworkClient|undefined) {
-    setApi(this, value)
+    this.setApi(value)
+  }
+  protected setApi (value: SecretNetworkClient|undefined) {
+    Object.defineProperty(this, 'api', {
+      get () { return value },
+      set (value: SecretNetworkClient|undefined) { this.setApi(this, value) },
+      enumerable: true,
+      configurable: true
+    })
+    if (value && this.wallet) {
+      Object.assign(value, { wallet: this.wallet })
+    }
+    if (value && this.encryptionUtils) {
+      Object.assign(value, { encryptionUtils: this.encryptionUtils })
+    }
   }
 
   /** This agent's identity on the chain. */
@@ -267,7 +284,18 @@ class ScrtAgent extends Agent {
     return (this.api as any)?.wallet
   }
   set wallet (value: Wallet|undefined) {
-    setWallet(this, value)
+    this.setWallet(value)
+  }
+  protected setWallet (value: Wallet|undefined) {
+    Object.defineProperty(this, 'wallet', {
+      get () { return value },
+      set (value: Wallet|undefined) { this.setWallet(this, value) },
+      enumerable: true,
+      configurable: true
+    })
+    if (this.api) {
+      Object.assign(this.api, { wallet: value })
+    }
   }
 
   /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
@@ -275,15 +303,28 @@ class ScrtAgent extends Agent {
     return (this.api as any)?.encryptionUtils
   }
   set encryptionUtils (value: EncryptionUtils|undefined) {
-    setEncryptionUtils(this, value)
+    this.setEncryptionUtils(value)
+  }
+  protected setEncryptionUtils (value: EncryptionUtils|undefined) {
+    Object.defineProperty(this, 'encryptionUtils', {
+      get () { return value },
+      set (value: EncryptionUtils|undefined) { this.setEncryptionUtils(value) },
+      enumerable: true,
+      configurable: true
+    })
+    if (this.api) {
+      Object.assign(this.api, { encryptionUtils: value })
+    }
   }
 
   get account () {
-    return this.ready.then(()=>this.api!.query.auth.account({ address: assertAddress(this) }))
+    return this.ready.then(({ api, address })=>{
+      return api.query.auth.account({ address })
+    })
   }
 
   get balance () {
-    return this.ready.then(()=>this.getBalance(this.defaultDenom, assertAddress(this)))
+    return this.ready.then(()=>this.getBalance(this.defaultDenom, this.address!))
   }
 
   async getBalance (denom = this.defaultDenom, address: Address): Promise<string> {
@@ -294,7 +335,7 @@ class ScrtAgent extends Agent {
 
   async send (to: Address, amounts: ICoin[], opts?: any) {
     const { api } = await this.ready
-    const from_address = assertAddress(this)
+    const from_address = this.address!
     const to_address = to
     const amount = amounts
     const msg = { from_address, to_address, amount }
@@ -459,27 +500,21 @@ class ScrtAgent extends Agent {
     }
   }
 
-  async execute (
-    contract: Address|Partial<ContractInstance>,
+  protected async doExecute (
+    contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options:  ExecOpts = {}
+    options?: ExecOpts
   ): Promise<TxResponse> {
-    if (typeof contract === 'string') {
-      contract = new ContractInstance({ address: contract })
-    }
-    const { api } = await this.ready
-    if (!this.address) throw new Error("No address")
-    const { send, memo, fee = this.fees.exec } = options
-    if (memo) this.log.noMemos()
+    const { api, address } = await this.ready
     const tx = {
-      sender:           this.address,
+      sender:           address,
       contract_address: contract.address,
       code_hash:        contract.codeHash,
       msg:              message as Record<string, unknown>,
-      sentFunds:        send
+      sentFunds:        options?.send
     }
     const txOpts = {
-      gasLimit: Number(fee?.gas) || undefined
+      gasLimit: Number(options?.fee?.gas) || undefined
     }
     if (this.simulateForGas) {
       this.log.info('Simulating transaction...')
@@ -549,45 +584,6 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
 function removeTrailingSlash (url: string) {
   while (url.endsWith('/')) { url = url.slice(0, url.length - 1) }
   return url
-}
-
-function setApi (agent: ScrtAgent, value: SecretNetworkClient|undefined) {
-  Object.defineProperty(agent, 'api', {
-    get () { return value },
-    set (value: SecretNetworkClient|undefined) { setApi(agent, value) },
-    enumerable: true,
-    configurable: true
-  })
-  if (value && agent.wallet) {
-    Object.assign(value, { wallet: agent.wallet })
-  }
-  if (value && agent.encryptionUtils) {
-    Object.assign(value, { encryptionUtils: agent.encryptionUtils })
-  }
-}
-
-function setWallet (agent: ScrtAgent, value: Wallet|undefined) {
-  Object.defineProperty(agent, 'wallet', {
-    get () { return value },
-    set (value: Wallet|undefined) { setWallet(agent, value) },
-    enumerable: true,
-    configurable: true
-  })
-  if (agent.api) {
-    Object.assign(agent.api, { wallet: value })
-  }
-}
-
-function setEncryptionUtils (agent: ScrtAgent, value: EncryptionUtils|undefined) {
-  Object.defineProperty(agent, 'encryptionUtils', {
-    get () { return value },
-    set (value: EncryptionUtils|undefined) { setEncryptionUtils(agent, value) },
-    enumerable: true,
-    configurable: true
-  })
-  if (agent.api) {
-    Object.assign(agent.api, { encryptionUtils: value })
-  }
 }
 
 export interface ScrtBatchClass <B extends ScrtBatch> {
@@ -770,10 +766,6 @@ class ScrtBatch extends Batch {
 
 }
 
-Object.assign(ScrtChain, { Agent: Object.assign(ScrtAgent, { Batch: ScrtBatch }) })
+bindChainSupport(ScrtChain, ScrtAgent, ScrtBatch)
 
-export {
-  ScrtChain as Chain,
-  ScrtAgent as Agent,
-  ScrtBatch as Batch,
-}
+export { ScrtChain as Chain, ScrtAgent as Agent, ScrtBatch as Batch }

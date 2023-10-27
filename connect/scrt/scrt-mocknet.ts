@@ -150,7 +150,10 @@ export class Mocknet extends Chain {
     return code
   }
 
-  async instantiate (sender: Address, instance: AnyContract): Promise<Partial<AnyContract>> {
+  async instantiate (
+    sender: Address,
+    instance: Partial<ContractInstance>
+  ): Promise<ContractInstance> {
     const { label, initMsg, codeId, codeHash } = instance
     if (!codeId) throw new Error('missing code id')
     // Check code hash
@@ -293,18 +296,21 @@ class MocknetAgent extends Agent {
 
   /** Upload a binary to the mocknet. */
   protected async doUpload (wasm: Uint8Array): Promise<ContractTemplate> {
-    return new ContractTemplate(await this.chain.upload(wasm)) as unknown as Uploaded
+    return new ContractTemplate(await this.chain.upload(wasm))
   }
 
   /** Instantiate a contract on the mocknet. */
   protected async doInstantiate (
     codeId: CodeId|Partial<ContractTemplate>,
     options: {
+      initMsg: Into<Message>
     }
-  ): Promise<Instantiated> {
-    instance.initMsg = await into(instance.initMsg)
-    const { address, codeHash, label } =
-      await this.chain.instantiate(this.address, instance as unknown as AnyContract)
+  ): Promise<Partial<ContractInstance>> {
+    options = { ...options }
+    options.initMsg = await into(options.initMsg)
+    const { address, codeHash, label } = await this.chain.instantiate(
+      this.address, instance
+    )
     return {
       chainId:  this.chain.id,
       address:  address!,
@@ -316,11 +322,18 @@ class MocknetAgent extends Agent {
   }
 
   protected async doExecute (
-    instance: Address|Partial<ContractInstance>,
-    msg:      Message,
-    opts:     ExecOpts = {}
+    contract: Address|Partial<ContractInstance>,
+    message:  Message,
+    options:  ExecOpts = {}
   ): Promise<unknown> {
-    return await this.chain.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
+    return await this.chain.execute(
+      this.address,
+      contract,
+      message,
+      options.send,
+      options.memo,
+      options.fee
+    )
   }
 
   protected async doQuery <R> (instance: Client, msg: Message): Promise<R> {

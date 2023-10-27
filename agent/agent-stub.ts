@@ -104,8 +104,8 @@ export class StubAgent extends Agent {
   }
 
   /** Stub implementation of calling a mutating method. */
-  execute (
-    contract: Address|{ address: Address, codeHash: CodeHash },
+  protected doExecute (
+    contract: { address: Address, codeHash: CodeHash },
     msg:      Message,
     opts?:    ExecOpts
   ): Promise<void|unknown> {
