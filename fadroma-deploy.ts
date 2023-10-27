@@ -154,8 +154,6 @@ export class DeployStore_v1 extends DeployStore {
 
 }
 
-Object.assign(DeployStore.variants, { v1: DeployStore_v1 })
-
 export class DeployConsole extends Console {
   creating = (name: string) =>
     this.log('creating', bold(name))
