@@ -25,8 +25,6 @@ export default new Suite([
   ['client',       testClient],
   ['labels',       testLabels],
   ['deployment',   testDeployment],
-  ['deploy-store', testDeployStore],
-  ['services',     testServices],
   ['decimals',     testDecimals],
   ['token',        testToken],
   ['collections',  testCollections]
@@ -277,30 +275,6 @@ export async function testBatch () {
   assert.equal(await batch3a.run(), null)
 
   agent = new class TestAgent extends StubAgent { Batch = class TestBatch extends Batch {} }
-
-  //await agent.instantiateMany(new Contract(), [])
-  //await agent.instantiateMany(new Contract(), [], 'prefix')
-
-  /***
-  ## Introductory example
-
-  FIXME: add to spec (fix imports)
-
-  ```typescript
-  import { Scrt } from '@hackbg/fadroma'
-  import { ExampleContract } from '@example/project'
-
-  export default async function main () {
-    const chain    = new Scrt()
-    const agent    = await chain.getAgent().ready
-    const address  = "secret1..."
-    const contract = new ContractClient({ agent, address: "secret1..." })
-    const response = await contract.myQuery()
-    const result   = await contract.myTransaction()
-    return result
-  }
-  ```
-  *///
 }
 
 export async function testAgentErrors () {
@@ -339,99 +313,58 @@ export async function testClient () {
   const chain = new StubChain({ id: 'foo', mode: Chain.Mode.Testnet })
   const agent = new StubAgent({ chain })
   const client = new ContractClient({
-    address: 'addr', codeHash: 'code-hash-stub', codeId: '100'
+    address:  'addr',
+    codeHash: 'code-hash-stub',
+    codeId:   '100'
   }, agent)
   assert.equal(client.agent, agent)
   await client.query({foo: 'bar'})
   await client.execute({foo: 'bar'})
 }
 
-export async function testDeployStore () {
-  class TestDeployStore extends DeployStore {
-    list () { return [] }
-    load () { return { foo: {} } as any }
-    save () {}
-    async create () { return {} }
-    async select () { return {} }
-    get activeName () { return null }
-  }
-  const store = new TestDeployStore()
+export async function testDeployment () {
+  const store = new DeployStore()
   assert.equal(store.get('name'), undefined)
   assert.equal(store.set('name', {}), store)
   assert.ok(store.get('name') instanceof Deployment)
-}
-
-export async function testDeployment () {
-  //assert.equal(await deployment.save(), deployment)
-  //assert.equal(deployment.size, 0)
 
   for (const mode of [Chain.Mode.Mainnet, Chain.Mode.Testnet]) {
+
     const deployment = new Deployment({
       name: 'foo', mode
     })
     assert.deepEqual(deployment.toReceipt(), {
       contracts: {}, templates: {}, name: 'foo', mode,
     })
-    const foo = deployment.template({ codeData: new Uint8Array() })
-    assert.ok(foo instanceof ContractTemplate)
-    assert.ok(deployment.contract('bar', {}) instanceof ContractInstance)
-    assert.ok(foo.instance({ name: 'baz' }) instanceof ContractInstance)
-    await deployment.build({ builder: new StubBuilder() })
-    await deployment.upload({ agent: new StubAgent() })
-    await deployment.deploy({ agent: new StubAgent() })
+
+    const foo = deployment.template({
+      codeData: new Uint8Array()
+    })
+    assert.ok(
+      foo instanceof ContractTemplate
+    )
+
+    await deployment.build({
+      builder: new StubBuilder()
+    })
+    await deployment.upload({
+      agent: new StubAgent()
+    })
+
+    assert.ok(
+      deployment.contract('bar', {}) instanceof ContractInstance
+    )
+    assert.ok(
+      foo.instance({ name: 'baz' }) instanceof ContractInstance
+    )
+
+    await deployment.deploy({
+      agent: new StubAgent()
+    })
+
     new Console().deployment(deployment)
+
   }
-
-  //new Deployment().showStatus()
-
-  //assert.equal(new Deployment().hasContract('foo'), false)
-  //new Deployment().getContract('foo')
-  //new Deployment().findContract()
-  //new Deployment().findContracts()
-  //new Deployment({ builder: { build () {}, buildMany () {} } }).buildContracts([])
-  //new Deployment({
-    //builder: { build () {}, buildMany () {} },
-    //uploader: { upload () {}, uploadMany () {}, agent: Chain.testnet().getAgent() },
-  //}).uploadContracts([])
-  //new Deployment().template().asContractCode
-  //new Deployment().template().description
-  //new Deployment().template().withAgent()
-  //new Deployment().template().instance()
-  //new Deployment().template().instances([])
-  //await (new Deployment({ builder: { build () {} } })
-    //.template({ crate: 'foo' })
-    //.built)
-  //await (new Deployment({
-    //builder: { build () {} },
-    //uploader: { upload () {}, agent: Chain.testnet().getAgent() },
-  //})
-    //.template({ crate: 'foo' })
-    //.uploaded)
-
-  //const d = new Deployment({
-    //builder: { build () {}, buildMany () {} },
-    //uploader: { upload () {}, uploadMany () {}, agent: Chain.testnet().getAgent() },
-  //})
-  ////d.contract({
-    ////name: 'foo', agent: Chain.testnet({ id: 'foo' }).getAgent(), initMsg: {}, crate: 'foo', codeId: '123'
-  ////})
-  //d.snapshot
-  //await d.deploy()
-}
-
-export async function testServices () {
-
-  new StubBuilder()
-
-  const agent = StubChain.testnet({id:'foo'}).getAgent()
-
-  //await new Uploader({ agent }).upload({
-    //artifact: fixture('null.wasm'),
-    //codeHash: 'stub-code-hash'
-  //})
-
-  //await new Uploader({ agent }).uploadMany([])
-  //await new Uploader({ agent }).uploadMany([{ artifact: 'asdf' }])
 }
 
 export async function testToken () {

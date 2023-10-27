@@ -279,7 +279,7 @@ export class Project extends CommandContext {
     async (name?: string): Promise<Deployment|undefined> => {
       const store = this.deployStore
       if (!store) {
-        this.log.error('No deployments.')
+        this.log.error('No deployment store.')
         return
       }
       if ([...store.keys()].length < 1) {
@@ -287,16 +287,16 @@ export class Project extends CommandContext {
       }
       let deployment: Deployment
       if (name) {
-        return store.get(name, this.Deployment)
+        return new this.Deployment(store.get(name))
       } else if (process.stdout.isTTY) {
         name = await ProjectWizard.selectDeploymentFromStore(store)
         if (name) {
-          return store.get(name, this.Deployment)
+          return new this.Deployment(store.get(name))
         } else {
           throw new Error(`No such deployment: ${name}`)
         }
       } else if (store.activeName) {
-        return store.get(store.activeName, this.Deployment)
+        return new this.Deployment(store.get(store.activeName))
       } else {
         throw new Error('No active deployment in this store and no name passed')
       }
@@ -305,13 +305,14 @@ export class Project extends CommandContext {
   exportDeployment = this.command(
     'export', `export current deployment to JSON`,
     (path?: string) => {
-      if (!this.deployStore) {
-        this.log.error('No deployments.')
+      const store = this.deployStore
+      if (!store) {
+        this.log.error('No deployment store.')
         return
       }
-      const name = this.deployStore.activeName
+      const name = store.activeName
       if (!name) throw new Error.Missing.Deployment()
-      const state = this.deployStore.load(name)
+      const state = store.get(name)
       if (!state) throw new Error.Missing.Deployment()
       const deployment = this.getDeployment()
       if (!deployment) throw new Error.Missing.Deployment()

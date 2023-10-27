@@ -474,12 +474,12 @@ export abstract class Agent {
       const t0 = performance.now()
       template = await (code as ContractTemplate).fetchCode()
       const t1 = performance.now() - t0
-      this.log.debug(`Fetched in ${t1}msec:`, code)
+      this.log.debug(`Fetched in ${t1.toFixed(3)}msec:`, code)
     }
     const t0 = performance.now()
     const result = await this.doUpload(template, options)
     const t1 = performance.now() - t0
-    this.log.debug(`Uploaded in ${t1}msec:`, result)
+    this.log.debug(`Uploaded in ${t1.toFixed(3)}msec:`, result)
     return new ContractTemplate({ ...template, ...result }) as ContractTemplate & {
       chainId: ChainId,
       codeId:  CodeId,
@@ -553,7 +553,7 @@ export abstract class Agent {
       initMsg: await into(options.initMsg)
     })
     const t1 = performance.now() - t0
-    this.log.debug(`Instantiated in ${t1}msec:`, result)
+    this.log.debug(`Instantiated in ${t1.toFixed(3)}msec:`, result)
     return new ContractInstance({ ...template, ...result }) as ContractInstance & {
       address: Address,
     }

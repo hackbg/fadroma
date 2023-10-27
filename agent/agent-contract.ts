@@ -26,7 +26,7 @@ import type {
   Agent, Chain, ChainId, ChainMode, ExecOpts
 } from './agent-chain'
 import type {
-  UploadStore, DeployStore
+  Builder, UploadStore, DeployStore
 } from './agent-store'
 
 import { hideProperties } from '@hackbg/hide'
@@ -38,22 +38,7 @@ import { map } from '@hackbg/many'
 
 const console = new Console()
 
-export class ValueObject {
-  protected override (key: keyof typeof this, value: typeof this[keyof typeof this]) {
-    this[key] = value ?? this[key]
-  }
-  protected overrideAll <T extends ValueObject> (this: T, options: Partial<T>, names: (keyof T)[]) {
-    for (const key in options) {
-      if (names.includes(key)) {
-        this[key] = options[key] ?? this[key]
-      } else {
-        console.warn(`ignoring property: ${key}`)
-      }
-    }
-  }
-}
-
-export class SourceCode extends ValueObject {
+export class SourceCode {
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL
   /** Branch/tag pointing to the source commit. */
@@ -68,10 +53,12 @@ export class SourceCode extends ValueObject {
   features?: string[]
 
   constructor (properties: Partial<SourceCode> = {}) {
-    super()
-    this.overrideAll(properties, [
-      'repository', 'revision', 'dirty', 'workspace', 'crate', 'features'
-    ])
+    this.repository = properties.repository ?? this.repository
+    this.revision   = properties.revision   ?? this.revision
+    this.dirty      = properties.dirty      ?? this.dirty
+    this.workspace  = properties.workspace  ?? this.workspace
+    this.crate      = properties.crate      ?? this.crate
+    this.features   = properties.features   ?? this.features
   }
 
   get [Symbol.toStringTag] () {
@@ -105,59 +92,6 @@ export class SourceCode extends ValueObject {
   }
 }
 
-export abstract class Builder {
-
-  static variants: Record<string, Class<Builder, any>> = {}
-
-  log = new Console(this.constructor.name)
-
-  /** Whether to enable build caching.
-    * When set to false, this builder will rebuild even when
-    * binary and checksum are both present in wasm/ directory */
-  caching: boolean = true
-
-  /** Unique identifier of this builder implementation. */
-  abstract id: string
-
-  /** Up to the implementation.
-    * `@hackbg/fadroma` implements dockerized and non-dockerized
-    * variants on top of the `build.impl.mjs` script. */
-  abstract build (
-    buildable: string|Partial<CompiledCode>,
-    ...args: any[]
-  ): Promise<CompiledCode>
-
-  /** Default implementation of buildMany is parallel.
-    * Builder implementations override this, though. */
-  abstract buildMany (
-    sources: (string|Partial<CompiledCode>)[],
-    ...args: unknown[]
-  ): Promise<CompiledCode[]>
-}
-
-export class StubBuilder extends Builder {
-  id = 'stub'
-  log = new Console(this.constructor.name)
-  caching = false
-  async build (
-    source: string|Partial<CompiledCode>,
-    ...args: any[]
-  ): Promise<CompiledCode> {
-    if (typeof source === 'string') {
-      source = new CompiledCode({ repository: source })
-    } else {
-      source = new CompiledCode(source)
-    }
-    return source as CompiledCode
-  }
-  async buildMany (
-    sources: (string|Partial<CompiledCode>)[],
-    ...args: unknown[]
-  ): Promise<CompiledCode[]> {
-    return Promise.all(sources.map(source=>this.build(source, ...args)))
-  }
-}
-
 export class CompiledCode extends SourceCode {
   buildInfo?: string
   /** Code hash uniquely identifying the compiled code. */
@@ -169,9 +103,10 @@ export class CompiledCode extends SourceCode {
 
   constructor (properties: Partial<CompiledCode> = {}) {
     super(properties)
-    this.overrideAll(properties, [
-      'buildInfo', 'codeHash', 'codePath', 'codeData'
-    ])
+    this.buildInfo = properties.buildInfo ?? this.buildInfo
+    this.codeHash  = properties.codeHash  ?? this.codeHash
+    this.codePath  = properties.codePath  ?? this.codePath
+    this.codeData  = properties.codeData  ?? this.codeData
   }
 
   get [Symbol.toStringTag] () {
@@ -262,9 +197,13 @@ export class ContractTemplate extends CompiledCode {
 
   constructor (properties: Partial<ContractTemplate> = {}) {
     super(properties)
-    this.overrideAll(properties, [
-      'deployment', 'uploadInfo', 'chainId', 'uploadBy', 'uploadTx', 'codeId'
-    ])
+    this.deployment = properties.deployment ?? this.deployment
+    this.chainId    = properties.chainId    ?? this.chainId
+    this.codeId     = properties.codeId     ?? this.codeId
+    this.uploadTx   = properties.uploadTx   ?? this.uploadTx
+    this.uploadBy   = properties.uploadBy   ?? this.uploadBy
+    this.uploadGas  = properties.uploadGas  ?? this.uploadGas
+    this.uploadInfo = properties.uploadInfo ?? this.uploadInfo
   }
 
   toUploadReceipt () {
@@ -302,6 +241,7 @@ export class ContractTemplate extends CompiledCode {
   async instantiate (
     agent: Agent, options: Parameters<typeof agent["instantiate"]>[1]
   ): Promise<ContractInstance & { address: Address }> {
+    await this.upload(agent, {})
     return agent.instantiate(this, options)
   }
 
@@ -344,9 +284,18 @@ export class ContractInstance extends ContractTemplate {
 
   constructor (properties: Partial<ContractInstance> = {}) {
     super(properties as Partial<ContractTemplate>)
-    this.overrideAll(properties, [
-      'initBy', 'initMsg', 'initTx', 'address', 'label'
-    ])
+    this.name      = properties.name      ?? this.name
+    this.prefix    = properties.prefix    ?? this.prefix
+    this.suffix    = properties.suffix    ?? this.suffix
+    this.label     = properties.label     ?? this.label
+    this.address   = properties.address   ?? this.address
+    this.initMsg   = properties.initMsg   ?? this.initMsg
+    this.initBy    = properties.initBy    ?? this.initBy
+    this.initFunds = properties.initFunds ?? this.initFunds
+    this.initFee   = properties.initFee   ?? this.initFee
+    this.initMemo  = properties.initMemo  ?? this.initMemo
+    this.initTx    = properties.initTx    ?? this.initTx
+    this.initGas   = properties.initGas   ?? this.initGas
   }
 
   /** @returns the data for a deploy receipt */
@@ -387,9 +336,9 @@ export interface DeploymentClass<D extends Deployment> extends Class<
 >{ fromReceipt (receipt: DeploymentState): D }
 
 /** A collection of contracts. */
-export class Deployment extends ValueObject {
+export class Deployment {
 
-  name?: string
+  name: string = timestamp()
 
   mode?: ChainMode
 
@@ -414,14 +363,11 @@ export class Deployment extends ValueObject {
   }
 
   constructor (properties: Partial<Deployment> = {}) {
-    super()
-    this.overrideAll({ name: timestamp(), ...properties } as Partial<this>, [
-      'name',
-      'mode',
-      'store',
-      'templates',
-      'contracts'
-    ])
+    this.name = properties.name ?? this.name ?? timestamp()
+    this.mode = properties.mode ?? this.mode
+    this.store = properties.store ?? this.store
+    this.templates = properties.templates ?? this.templates
+    this.contracts = properties.contracts ?? this.contracts
   }
 
   toReceipt () {
@@ -498,6 +444,8 @@ export class Deployment extends ValueObject {
     if (!options.agent) {
       throw new Error.Missing.Agent()
     }
+    console.log({deployment:this})
+    console.log({contracts:this.contracts})
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
     for (const [name, contract] of this.contracts.entries()) {
       deploying.push(contract.instantiate(options.agent, {}))

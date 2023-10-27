@@ -4,9 +4,9 @@
 import {
   Config, Console, Error,
   ContractTemplate, UploadStore,
-  base16, sha256
+  base16, sha256, getAgent
 } from '@fadroma/connect'
-import type { CodeId, ChainId, CodeHash, Environment } from '@fadroma/connect'
+import type { Agent, CodeId, ChainId, CodeHash, Environment } from '@fadroma/connect'
 import $, { JSONDirectory, JSONFile, BinaryFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'

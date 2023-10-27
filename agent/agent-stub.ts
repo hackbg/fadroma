@@ -71,12 +71,14 @@ export class StubAgent extends Agent {
     return Promise.resolve()
   }
 
+  protected lastCodeHash = 0
+
   /** Stub implementation of code upload. */
   protected doUpload (data: Uint8Array): Promise<ContractTemplate> {
     this.log.warn('Agent#upload: this function is stub; use a subclass of Agent')
     return Promise.resolve(new ContractTemplate({
       chainId:  this.chain!.id,
-      codeId:   '0',
+      codeId:   String(++this.lastCodeHash),
       codeHash: 'stub-code-hash'
     }))
   }

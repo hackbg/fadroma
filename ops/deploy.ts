@@ -15,15 +15,6 @@ import { basename } from 'node:path'
 
 import YAML, { loadAll, dump } from 'js-yaml'
 
-/** @returns Deployment configured according to environment and options */
-export function getDeployment <D extends Deployment> (
-  name: string,
-  $D: DeploymentClass<D> = Deployment as DeploymentClass<D>,
-  ...args: ConstructorParameters<typeof $D>
-): D {
-  return new DeployConfig().getDeployment(name, $D)
-}
-
 export { DeployStore }
 
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
@@ -145,63 +136,6 @@ export class FSDeployStore extends DeployStore {
     }
     file.as(TextFile).save(output)
     return this
-  }
-}
-
-export class DeployConfig extends Config {
-  constructor (
-    options: Partial<DeployConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-  }
-
-  multisig = this.getFlag('FADROMA_MULTISIG',
-    () => false
-  )
-  /** Directory to store the receipts for the deployed contracts. */
-  storePath = this.getString('FADROMA_DEPLOY_STATE',
-    () => this.chainId
-      ? $(this.root).in('state').in(this.chainId).in('deploy').path
-      : null
-  )
-  /** Which implementation of the receipt store to use. */
-  format = this.getString('FADROMA_DEPLOY_FORMAT',
-    () => 'v1'
-  ) as DeploymentFormat
-  /** @returns DeployStoreClass selected by `this.deploy.format` (`FADROMA_DEPLOY_FORMAT`). */
-  get DeployStore (): DeployStoreClass<DeployStore>|undefined {
-    return DeployStore
-  }
-  /** @returns DeployStore or subclass instance */
-  getDeployStore <T extends DeployStore> (
-    DeployStore?: DeployStoreClass<T> = this.DeployStore
-  ): T {
-    return new DeployStore({})
-    //DeployStore ??= this.DeployStore as DeployStoreClass<T>
-    //if (!DeployStore) throw new Error.Missing.DeployStoreClass()
-    //return new DeployStore(this.deploy.storePath)
-  }
-  /** Create a new Deployment.
-    * If a deploy store is specified, populate it with stored data (if present).
-    * @returns Deployment or subclass */
-  getDeployment <T extends BaseDeployment> (
-    Deployment: DeploymentClass<T>,
-    ...args: ConstructorParameters<typeof Deployment>
-  ): T {
-    Deployment ??= BaseDeployment as DeploymentClass<T>
-    args = [...args]
-    args[0] = ({ ...args[0] ?? {} })
-    args[0].chain     ||= this.getChain()
-    if (!args[0].chain) throw new Error.Missing.Chain()
-    args[0].agent     ||= this.getAgent()
-    args[0].builder   ||= this.getBuilder()
-    args[0].workspace ||= process.cwd()
-    args[0].store     ||= this.getDeployStore()
-    args[0].name      ||= args[0].store.activeName || undefined
-    const deployment = args[0].store.getDeployment(Deployment, ...args)
-    return deployment
   }
 }
 
