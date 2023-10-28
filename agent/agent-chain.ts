@@ -26,7 +26,8 @@ import type {
   UploadStore
 } from './agent'
 import {
-  ContractTemplate,
+  CompiledCode,
+  ContractUpload,
   ContractInstance,
   ContractClient,
   ContractClientClass
@@ -449,14 +450,14 @@ export abstract class Agent {
 
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
-    code: string|URL|Uint8Array|Partial<ContractTemplate>,
+    code: string|URL|Uint8Array|Partial<CompiledCode>,
     options: {
       reupload?:    boolean,
       uploadStore?: UploadStore,
       uploadFee?:   ICoin[]|'auto',
       uploadMemo?:  string
     } = {},
-  ): Promise<ContractTemplate & {
+  ): Promise<ContractUpload & {
     chainId: ChainId,
     codeId:  CodeId,
   }> {
@@ -465,12 +466,12 @@ export abstract class Agent {
       template = code
     } else {
       if (typeof code === 'string' || code instanceof URL) {
-        code = new ContractTemplate({ codePath: code })
+        code = new CompiledCode({ codePath: code })
       } else {
-        code = new ContractTemplate(code)
+        code = new CompiledCode(code)
       }
       const t0 = performance.now()
-      template = await (code as ContractTemplate).fetchCode()
+      template = await (code as CompiledCode).fetch()
       const t1 = performance.now() - t0
       this.log.log(
         `Fetched in`,
@@ -491,7 +492,7 @@ export abstract class Agent {
       `on chain`,
       bold(result.chainId)
     )
-    return new ContractTemplate({ ...template, ...result }) as ContractTemplate & {
+    return new ContractUpload({ ...template, ...result }) as ContractUpload & {
       chainId: ChainId,
       codeId:  CodeId,
     }
@@ -499,7 +500,7 @@ export abstract class Agent {
 
   /** Upload multiple contracts. */
   async uploadMany (
-    codes: Many<string|URL|Uint8Array|Partial<ContractTemplate>>,
+    codes: Many<string|URL|Uint8Array|Partial<ContractUpload>>,
     options: Parameters<typeof this["upload"]>[1]
   ) {
     return mapAsync(codes, code => this.upload(code, options))
@@ -507,7 +508,7 @@ export abstract class Agent {
 
   protected abstract doUpload (
     data: Uint8Array, options: Parameters<typeof this["upload"]>[1]
-  ): Promise<Partial<ContractTemplate>>
+  ): Promise<Partial<ContractUpload>>
 
   /** Create a new smart contract from a code id, label and init message.
     * @example
@@ -516,38 +517,18 @@ export abstract class Agent {
     *   ContractInstance with no `address` populated yet.
     *   This will be populated after executing the batch. */
   async instantiate (
-    contract: CodeId|Partial<ContractInstance>,
-    options: {
-      label:      Name,
-      initMsg:    Into<Message>,
-      initFee?:   ICoin[]|'auto',
-      initFunds?: ICoin[],
-      initMemo?:  string,
-    }
+    contract: CodeId|Partial<ContractUpload>,
+    options:  Partial<ContractInstance>
   ): Promise<ContractInstance & {
     address: Address,
   }> {
-    let template: ContractTemplate
     if (typeof contract === 'string') {
-      template = new ContractTemplate({ codeId: contract })
-    } else {
-      if (contract.address) {
-        this.log.warn("Contract already has address, not instantiating.")
-        if (contract instanceof ContractInstance) {
-          return contract as ContractInstance & { address: Address }
-        } else {
-          return new ContractInstance(contract) as ContractInstance & { address: Address }
-        }
-      }
-      if (contract.chainId && contract.chainId !== assertChain(this).id) {
-        throw new Error.Invalid.WrongChain()
-      }
-      template = new ContractTemplate(contract as Partial<ContractTemplate>)
+      contract = new ContractUpload({ codeId: contract })
     }
-    if (isNaN(Number(template.codeId))) {
+    if (isNaN(Number(contract.codeId))) {
       throw new Error.Invalid('code id')
     }
-    if (!template.codeId) {
+    if (!contract.codeId) {
       throw new Error.Missing.CodeId()
     }
     if (!options.label) {
@@ -557,26 +538,30 @@ export abstract class Agent {
       throw new Error.Missing.InitMsg()
     }
     const t0 = performance.now()
-    const result = await this.doInstantiate(template.codeId, {
+    const result = await this.doInstantiate(contract.codeId, {
       ...options,
       initMsg: await into(options.initMsg)
     })
     const t1 = performance.now() - t0
-    this.log.debug(`Instantiated in ${t1.toFixed(3)} msec:`, result)
-    return new ContractInstance({ ...template, ...result }) as ContractInstance & {
-      address: Address,
+    this.log.debug(
+      `Instantiated in`,
+      bold(t1.toFixed(3)),
+      `msec: code id`,
+      bold(String(contract.codeId)),
+      `address`,
+      bold(result.address)
+    )
+    return new ContractInstance({
+      ...options,
+      ...result
+    }) as ContractInstance & {
+      address: Address
     }
   }
 
   protected abstract doInstantiate (
     codeId:  CodeId,
-    options: {
-      label:      Label,
-      initMsg:    Message,
-      initFee?:   unknown,
-      initFunds?: ICoin[],
-      initMemo?:  string,
-    }
+    options: Partial<ContractInstance>
   ): Promise<Partial<ContractInstance>>
 
   /** Create multiple smart contracts from a Template (providing code id)
