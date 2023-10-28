@@ -1,3 +1,6 @@
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Console, Error } from './agent-base'
 import type { Class, CodeHash, Name } from './agent-base'
 import type { ChainId } from './agent-chain'
@@ -5,7 +8,6 @@ import { Deployment, ContractUpload, SourceCode, CompiledCode } from './agent-co
 import type { DeploymentClass, DeploymentState } from './agent-contract'
 
 export abstract class Builder {
-
   static variants: Record<string, Class<Builder, any>> = {}
 
   log = new Console(this.constructor.name)

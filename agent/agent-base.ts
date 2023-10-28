@@ -1,23 +1,6 @@
-/**
-
-  Fadroma: Base Console and Error Types
-  Copyright (C) 2023 Hack.bg
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-**/
-
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error as BaseError } from '@hackbg/oops'
 import { Console, bold, colors } from '@hackbg/logs'
 import type { Chain } from './agent-chain'
@@ -232,11 +215,11 @@ class AgentConsole extends Console {
   codeHashMismatch (address: string, expected: string|undefined, fetched: string) {
     return this.warn(`code hash mismatch for ${address}: expected ${expected}, fetched ${fetched}`)
   }
-  waitingForBlock (height: number, elapsed?: number) {
-    return this.log(`waiting for block > ${height}...`, elapsed ? `${elapsed}ms elapsed` : '')
-  }
   confirmCodeHash (address: string, codeHash: string) {
-    return this.info(`confirmed code hash of ${address}: ${codeHash}`)
+    return this.info(`Confirmed code hash of ${address}: ${codeHash}`)
+  }
+  waitingForBlock (height: number, elapsed?: number) {
+    return this.log(`Waiting for block > ${bold(String(height))}...`, elapsed ? `${elapsed}ms elapsed` : '')
   }
   batchMessages (msgs: any, N: number) {
     this.info(`Messages in batch`, `#${N}:`)

@@ -1,3 +1,6 @@
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error, Console, into } from './agent-base'
 import type {
   Class, Message, CodeId, Address, Name, Into, ICoin, Many, CodeHash
@@ -62,14 +65,15 @@ export abstract class Batch implements BatchAgent {
     memo: string,
     save: boolean
   }> = {}): Promise<unknown> {
-    this.log(options.save ? 'Saving' : 'Submitting')
     if (this.depth > 0) {
       this.log.warn('Unnesting batch. Depth:', --this.depth)
       this.depth--
       return null as any // result ignored
     } else if (options.save) {
+      this.log('Saving batch')
       return this.save(options.memo)
     } else {
+      this.log('Submitting batch')
       return this.submit(options.memo)
     }
   }
@@ -111,11 +115,11 @@ export abstract class Batch implements BatchAgent {
   async instantiate (
     contract: CodeId|Partial<ContractInstance>,
     options: {
-      label:      Name,
-      initMsg:    Into<Message>,
-      initFee?:   unknown,
-      initFunds?: ICoin[],
-      initMemo?:  string,
+      label:     Name,
+      initMsg:   Into<Message>,
+      initFee?:  unknown,
+      initSend?: ICoin[],
+      initMemo?: string,
     }
   ): Promise<ContractInstance & {
     address: Address,
@@ -129,7 +133,7 @@ export abstract class Batch implements BatchAgent {
       label:    options.label,
       msg:      await into(options.initMsg),
       sender:   this.address,
-      funds:    options.initFunds || [],
+      funds:    options.initSend || [],
       memo:     options.initMemo  || ''
     } })
     return new ContractInstance({
@@ -158,7 +162,7 @@ export abstract class Batch implements BatchAgent {
     contracts: M,
     options: {
       initFee?:   ICoin[]|'auto',
-      initFunds?: ICoin[],
+      initSend?: ICoin[],
       initMemo?:  string,
     } = {}
   ): Promise<M> {
@@ -171,11 +175,11 @@ export abstract class Batch implements BatchAgent {
         outputs[key] = contract.address
       } else {
         outputs[key] = await this.instantiate(contract, {
-          label:     contract.label!,
-          initMsg:   contract.initMsg!,
-          initFee:   contract.initFee   || options.initFee,
-          initFunds: contract.initFunds || options.initFunds,
-          initMemo:  contract.initMemo  || options.initMemo
+          label:    contract.label!,
+          initMsg:  contract.initMsg!,
+          initFee:  contract.initFee   || options.initFee,
+          initSend: contract.initSend || options.initSend,
+          initMemo: contract.initMemo  || options.initMemo
         })
       }
     }))

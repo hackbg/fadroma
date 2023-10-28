@@ -1,6 +1,6 @@
 /**
 
-  Fadroma: Core Agent Library
+  Fadroma Agent
   Copyright (C) 2023 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
