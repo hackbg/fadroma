@@ -84,7 +84,7 @@ export class Pair {
 /** An amount of a fungible token. */
 export class Amount {
   constructor (public token: TokenFungible, public amount: Uint128) {}
-  /** Pass this to 'send' field of ExecOpts. */
+  /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
     if (this.token.isNative()) return [new Coin(this.amount, this.token.denom)]
     return []
@@ -94,11 +94,15 @@ export class Amount {
 /** A pair of token amounts. */
 export class Swap {
   constructor (readonly a: Amount, readonly b: Amount) {}
-  /** Pass this to 'send' field of ExecOpts */
+  /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
     let result: ICoin[] = []
-    if (this.a.token.isNative()) result = [...result, ...this.a.asNativeBalance]
-    if (this.b.token.isNative()) result = [...result, ...this.b.asNativeBalance]
+    if (this.a.token.isNative()) {
+      result = [...result, ...this.a.asNativeBalance]
+    }
+    if (this.b.token.isNative()) {
+      result = [...result, ...this.b.asNativeBalance]
+    }
     return result
   }
 }

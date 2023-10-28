@@ -19,7 +19,7 @@
 **/
 
 import type {
-  AgentClass, Uint128, BatchClass, ExecOpts,
+  AgentClass, Uint128, BatchClass,
   Address, CodeHash, ChainId, CodeId, Message, Label,
   Into
 } from '@fadroma/agent'
@@ -28,7 +28,7 @@ import {
   randomBech32, sha256, base16, bech32,
   brailleDump, Error as BaseError, Console as BaseConsole, bold, colors, into,
   Chain, ChainMode, Agent, Batch, assertChain,
-  ContractInstance, ContractTemplate
+  ContractInstance, ContractUpload
 } from '@fadroma/agent'
 
 import * as secp256k1 from '@noble/secp256k1'
@@ -304,13 +304,13 @@ class MocknetAgent extends Agent {
   }
 
   /** Upload a binary to the mocknet. */
-  protected async doUpload (wasm: Uint8Array): Promise<ContractTemplate> {
-    return new ContractTemplate(await this.chain.upload(wasm))
+  protected async doUpload (wasm: Uint8Array): Promise<ContractUpload> {
+    return new ContractUpload(await this.chain.upload(wasm))
   }
 
   /** Instantiate a contract on the mocknet. */
   protected async doInstantiate (
-    codeId: CodeId|Partial<ContractTemplate>,
+    codeId: CodeId|Partial<ContractUpload>,
     options: {
       initMsg: Into<Message>
     }
@@ -331,7 +331,7 @@ class MocknetAgent extends Agent {
   protected async doExecute (
     contract: { address: Address },
     message:  Message,
-    options:  ExecOpts = {}
+    options?: Parameters<Agent["doExecute"]>[2]
   ): Promise<unknown> {
     return await this.chain.execute(
       this.address,

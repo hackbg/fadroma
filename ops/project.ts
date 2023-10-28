@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Console, Error, ContractTemplate, ContractInstance, Deployment,
+  Console, Error, ContractUpload, ContractInstance, Deployment,
   bold, timestamp,
 } from '@fadroma/connect'
 import type {
@@ -31,7 +31,7 @@ const console = new Console(`@hackbg/fadroma ${version}`)
 
 export type ProjectOptions = Omit<Partial<Project>, 'root'|'templates'|'uploadStore'|'deployStore'> & {
   root?:        OpaqueDirectory|string,
-  templates?:   Record<string, Partial<ContractTemplate>>
+  templates?:   Record<string, Partial<ContractUpload>>
   uploadStore?: string|UploadStore
   deployStore?: string|DeployStore
 }
@@ -146,12 +146,12 @@ export class Project extends CommandContext {
       this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
       const templates = Object.entries(this.templates??{})
       if (templates.length > 0) {
-        this.log.info('ContractTemplates in project:')
+        this.log.info('ContractUploads in project:')
         for (const [name, {repository,revision,workspace,crate,features}] of templates) {
           this.log.info('-', name)//, repository, revision, workspace, crate, features)
         }
       } else {
-        this.log.info('ContractTemplates in project:   (none)')
+        this.log.info('ContractUploads in project:   (none)')
       }
       this.log.br()
       this.log.info('Chain type:    ', bold(chain?.constructor.name))
@@ -231,7 +231,7 @@ export class Project extends CommandContext {
     * Build templates with missing artifacts if sources are available. */
   upload = this.command(
     'upload', 'upload the project or specific contracts from it',
-    async (...names: string[]): Promise<ContractTemplate[]> => {
+    async (...names: string[]): Promise<ContractUpload[]> => {
       let sources: Partial<CompiledCode>[] = await this.getSources(names)
       if (this.builder) sources = await this.builder.buildMany(sources)
       const options = { uploadStore: this.uploadStore, reupload: false }
@@ -240,7 +240,7 @@ export class Project extends CommandContext {
 
   reupload = this.command(
     'reupload', 'reupload the project or specific contracts from it',
-    async (...names: string[]): Promise<ContractTemplate[]> => {
+    async (...names: string[]): Promise<ContractUpload[]> => {
       let sources: Partial<CompiledCode>[] = await this.getSources(names)
       if (this.builder) sources = await this.builder.buildMany(sources)
       const options = { uploadStore: this.uploadStore, reupload: true }
@@ -260,7 +260,7 @@ export class Project extends CommandContext {
     const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
       if (!template) this.log.warn(`No such template in project: ${names[i]}`)
       return !!template
-    }) as ContractTemplate[]
+    }) as ContractUpload[]
     if (sources.length < 1) {
       this.log.warn('Nothing to upload.')
       return []
@@ -343,7 +343,7 @@ export class Project extends CommandContext {
     * @returns Deployment|null */
   getDeployment (
     name?: string,
-    templates: Record<string, Partial<ContractTemplate>> = {},
+    templates: Record<string, Partial<ContractUpload>> = {},
     contracts: Record<string, Partial<ContractInstance>> = {},
   ): InstanceType<typeof this.Deployment> {
     if (!name) {
@@ -395,17 +395,17 @@ export class Project extends CommandContext {
     return crates
   }
 
-  getTemplate (name: string): ContractTemplate {
-    return this.templates[name] as ContractTemplate
+  getTemplate (name: string): ContractUpload {
+    return this.templates[name] as ContractUpload
   }
 
   setTemplate (
-    name: string, value: string|Partial<ContractTemplate>
-  ): ContractTemplate {
+    name: string, value: string|Partial<ContractUpload>
+  ): ContractUpload {
     const defaults = { workspace: this.root.path, revision: 'HEAD' }
     return this.templates[name] =
-      (typeof value === 'string') ? new ContractTemplate({ ...defaults, crate: value }) :
-      (value instanceof ContractTemplate) ? value : new ContractTemplate({ ...defaults, ...value })
+      (typeof value === 'string') ? new ContractUpload({ ...defaults, crate: value }) :
+      (value instanceof ContractUpload) ? value : new ContractUpload({ ...defaults, ...value })
   }
 
   /** @returns Boolean whether the project (as defined by fadroma.yml in root) exists */

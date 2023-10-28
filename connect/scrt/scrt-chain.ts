@@ -15,13 +15,13 @@ import * as Mocknet from './scrt-mocknet'
 import {
   Agent, into, base64, bip39, bip39EN, bold,
   Chain, Fee, Batch, assertChain,
-  ContractTemplate, ContractInstance,
+  ContractUpload, ContractInstance,
   bindChainSupport
 } from '@fadroma/agent'
 import type {
   AgentClass, AgentFees, ChainClass, Uint128, BatchClass,
   ContractClient,
-  ExecOpts, ICoin, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
+  ICoin, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
 
 /** Represents a Secret Network API endpoint. */
@@ -405,7 +405,7 @@ class ScrtAgent extends Agent {
   }
 
   /** Upload a WASM binary. */
-  protected async doUpload (data: Uint8Array): Promise<Partial<ContractTemplate>> {
+  protected async doUpload (data: Uint8Array): Promise<Partial<ContractUpload>> {
     const { api, address } = await this.ready
     const request  = { sender: address!, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
@@ -444,14 +444,7 @@ class ScrtAgent extends Agent {
 
   protected async doInstantiate (
     codeId: CodeId,
-    options: {
-      codeHash:   CodeHash,
-      label:      Label,
-      initMsg:    Message,
-      initFee?:   ICoin[]|'auto',
-      initFunds?: ICoin[],
-      initMemo?:  string,
-    }
+    options: Parameters<Agent["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
     const { api } = await this.ready
     if (!this.address) throw new Error("Agent has no address")
@@ -494,7 +487,7 @@ class ScrtAgent extends Agent {
   protected async doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: ExecOpts
+    options?: Parameters<Agent["doExecute"]>[2]
   ): Promise<TxResponse> {
     const { api, address } = await this.ready
     const tx = {
@@ -502,10 +495,10 @@ class ScrtAgent extends Agent {
       contract_address: contract.address,
       code_hash:        contract.codeHash,
       msg:              message as Record<string, unknown>,
-      sentFunds:        options?.send
+      sentFunds:        options?.execSend
     }
     const txOpts = {
-      gasLimit: Number(options?.fee?.gas) || undefined
+      gasLimit: Number(options?.execFee?.gas) || undefined
     }
     if (this.simulateForGas) {
       this.log.info('Simulating transaction...')

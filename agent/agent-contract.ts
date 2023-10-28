@@ -23,7 +23,7 @@ import type {
   Into, Name, ICoin, IFee, Label, Class, Address, CodeId, CodeHash, TxHash, Message
 } from './agent-base'
 import type {
-  Agent, Chain, ChainId, ChainMode, ExecOpts
+  Agent, Chain, ChainId, ChainMode,
 } from './agent-chain'
 import type {
   Builder, UploadStore, DeployStore
@@ -59,11 +59,12 @@ assign.allowed = {
     'buildInfo', 'codeHash', 'codePath', 'codeData'
   ] as Array<keyof CompiledCode>,
   ContractUpload: [
-    'deployment', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
+    'deployment', 'chainId',
+    'codeId', 'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
   ] as Array<keyof ContractUpload>,
   ContractInstance: [
-    'name', 'prefix', 'suffix', 'label', 'address',
-    'initMsg', 'initBy', 'initFunds', 'initFee', 'initMemo', 'initTx', 'initGas'
+    'codeId', 'codeHash', 'label', 'address', 'initMsg',
+    'initBy', 'initFunds', 'initFee', 'initMemo', 'initTx', 'initGas'
   ] as Array<keyof ContractInstance>,
   Deployment: [
     'name'
@@ -123,11 +124,11 @@ export class SourceCode {
 export class CompiledCode {
   buildInfo?: string
   /** Code hash uniquely identifying the compiled code. */
-  codeHash?: CodeHash
+  codeHash?:  CodeHash
   /** Location of the compiled code. */
-  codePath?: string|URL
+  codePath?:  string|URL
   /** The compiled code. */
-  codeData?: Uint8Array
+  codeData?:  Uint8Array
 
   constructor (properties: Partial<CompiledCode> = {}) {
     assign(this, properties, assign.allowed['CompiledCode'])
@@ -199,6 +200,8 @@ export class ContractUpload {
   uploadGas?:  string|number
   /** extra info */
   uploadInfo?: string
+  /** Code hash uniquely identifying the compiled code. */
+  codeHash?:   CodeHash
 
   constructor (properties: Partial<ContractUpload> = {}) {
     assign(this, properties, assign.allowed['ContractUpload'])
@@ -244,12 +247,10 @@ export class ContractUpload {
 }
 
 export class ContractInstance {
-  /** Part of label. */
-  name?:      Name
-  /** Part of label. */
-  prefix?:    Name
-  /** Part of label. */
-  suffix?:    Name
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:     CodeId
+  /** Code hash uniquely identifying the compiled code. */
+  codeHash?:  CodeHash
   /** Full label of the instance. Unique for a given Chain. */
   label?:     Label
   /** Address of this contract instance. Unique per chain. */
@@ -588,14 +589,18 @@ export class ContractClient {
   }
 
   /** Execute a transaction on the specified contract as the specified Agent. */
-  execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
+  execute (message: Message, options: Parameters<Agent["execute"]>[2] = {}): Promise<void|unknown> {
     if (!this.agent) {
       throw new Error.Missing.Agent(this.constructor?.name)
     }
     if (!this.contract.address) {
       throw new Error.Missing.Address()
     }
-    return this.agent.execute(this.contract as ContractInstance & { address: Address }, msg, opt)
+    return this.agent.execute(
+      this.contract as ContractInstance & { address: Address },
+      message,
+      options
+    )
   }
 
 }
