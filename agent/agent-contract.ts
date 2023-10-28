@@ -38,52 +38,54 @@ import { map } from '@hackbg/many'
 
 const console = new Console()
 
-/** Represents the lifecycle of a smart contract.
-  * Can deploy itself from source to a given chain,
-  * if provided with the necessary properties. */
+export type PartialContract = {
+  source?:   Partial<SourceCode>,
+  builder?:  Builder,
+  binary?:   Partial<CompiledCode>,
+  uploader?: Agent|Address,
+  template?: Partial<ContractUpload>,
+  deployer?: Agent|Address,
+  instance?: Partial<ContractInstance>
+}
+
 export class Contract {
   source?:   SourceCode
   builder?:  Builder
   binary?:   CompiledCode
   uploader?: Agent|Address
-  template?: ContractTemplate
+  template?: ContractUpload
   deployer?: Agent|Address
   instance?: ContractInstance
-  constructor (properties: {
-    source?:   Partial<SourceCode>,
-    builder?:  Builder,
-    binary?:   Partial<CompiledCode>,
-    uploader?: Agent,
-    template?: Partial<ContractTemplate>,
-    deployer?: Agent,
-    instance?: Partial<ContractInstance>
-  } = {}) {
-    if (properties.source) this.source = new SourceCode(properties.source)
-    this.builder = properties.builder
-    if (properties.binary) this.binary = new CompiledCode(properties.binary)
-    this.uploader = properties.uploader
-    if (properties.template) this.template = new ContractTemplate(properties.template)
-    this.deployer = properties.deployer
-    if (properties.instance) this.instance = new ContractInstance(properties.instance)
+  constructor (properties?: PartialContract) {
+    if (properties?.source)   this.source = new SourceCode(properties.source)
+    if (properties?.builder)  this.builder = properties?.builder
+    if (properties?.binary)   this.binary = new CompiledCode(properties.binary)
+    if (properties?.uploader) this.uploader = properties?.uploader
+    if (properties?.template) this.template = new ContractUpload(properties.template)
+    if (properties?.deployer) this.deployer = properties?.deployer
+    if (properties?.instance) this.instance = new ContractInstance(properties.instance)
   }
   async compile ({
     builder = this.builder,
     rebuild = false,
+    ...buildOptions
   }: {
-    builder: Builder|undefined
-    rebuild: boolean
-  }): Promise<CompiledCode> {
-    if (this.binary?.valid && !rebuild) {
+    builder?: Builder
+    rebuild?: boolean
+  } = {}): Promise<CompiledCode & Parameters<Builder["build"]>[1] & {
+    codeHash: CodeHash
+  }> {
+    if (this.binary?.isValid() && !rebuild) {
       return this.binary
     }
     if (!builder) {
       throw new Error("can't compile: no builder")
     }
-    if (!this.source?.valid) {
+    if (!this.source?.isValid()) {
       throw new Error("can't compile: no source")
     }
-    this.binary = await builder.build(this.source)
-    if (!this.binary?.valid) {
+    this.binary = await builder.build(this.source, buildOptions)
+    if (!this.binary?.isValid()) {
       throw new Error("build failed")
     }
     return this.binary
@@ -92,20 +94,23 @@ export class Contract {
     builder  = this.builder,
     rebuild  = false,
     uploader = this.uploader,
-    reupload = rebuild
-  }: Parameters<this["compile"]>[0] & {
-    uploader: Agent|Address|undefined,
-    reupload: boolean,
-  }) {
-    if (this.template?.valid && !reupload && !rebuild) {
+    reupload = rebuild,
+    ...uploadOptions
+  }: Parameters<this["compile"]>[0] & Parameters<Agent["upload"]>[1] & {
+    uploader?: Agent|Address
+    reupload?: boolean,
+  } = {}): Promise<ContractUpload & {
+    codeId: CodeId
+  }> {
+    if (this.template?.isValid() && !reupload && !rebuild) {
       return this.template
     }
     if (!uploader || (typeof uploader === 'string')) {
       throw new Error("can't upload: no uploader agent")
     }
     const binary = await this.compile({ builder, rebuild })
-    this.template = await uploader.upload(binary)
-    if (!this.template?.valid) {
+    this.template = await uploader.upload(binary, uploadOptions)
+    if (!this.template?.isValid()) {
       throw new Error("upload failed")
     }
     return this.template
@@ -117,20 +122,22 @@ export class Contract {
     reupload = rebuild,
     deployer = this.deployer,
     redeploy = reupload,
-    ...init
-  }: Parameters<this["upload"]>[0] & {
-    deployer: Agent|Address|undefined,
-    redeploy: boolean,
-  } & Parameters<Agent["instantiate"]>[1]) {
-    if (this.instance?.valid && !redeploy && !reupload && !rebuild) {
+    ...initOptions
+  }: Parameters<this["upload"]>[0] & Parameters<Agent["instantiate"]>[1] & {
+    deployer?: Agent|Address
+    redeploy?: boolean
+  } = {}): Promise<ContractInstance & {
+    address: Address
+  }> {
+    if (this.instance?.isValid() && !redeploy && !reupload && !rebuild) {
       return this.instance
     }
     if (!deployer || (typeof deployer === 'string')) {
       throw new Error("can't deploy: no deployer agent")
     }
     const template = await this.upload({ builder, rebuild, uploader, reupload })
-    this.instance = await deployer.instantiate(template, init)
-    if (!this.instance.valid) {
+    this.instance = await deployer.instantiate(template, initOptions)
+    if (!this.instance.isValid()) {
       throw new Error("init failed")
     }
     return this.instance
@@ -142,36 +149,52 @@ export class Contract {
   * - no need to state property name thrice
   * - doesn't leave `undefined`s */
 export function assign <T extends {}> (
-  object: T, properties: Partial<T> = {}, allowed: (keyof T)[] = []
+  object: T, properties: Partial<T> & any = {}, allowed: (keyof T)[] = []
 ) {
   for (const property of allowed) {
-    if (property in properties) (object[property] as unknown) = properties[property]
+    if (property in properties) object[property] = properties[property]
   }
 }
 
 /** Allowlist for the value objects below. */
 assign.allowed = {
-  source: [
+  SourceCode: [
     'repository', 'revision', 'dirty', 'workspace', 'crate', 'features',
   ] as Array<keyof SourceCode>,
-  compiled: [
+  CompiledCode: [
     'buildInfo', 'codeHash', 'codePath', 'codeData'
   ] as Array<keyof CompiledCode>,
-  template: [
+  ContractUpload: [
     'deployment', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
-  ] as Array<keyof ContractTemplate>,
-  instance: [
+  ] as Array<keyof ContractUpload>,
+  ContractInstance: [
     'name', 'prefix', 'suffix', 'label', 'address',
     'initMsg', 'initBy', 'initFunds', 'initFee', 'initMemo', 'initTx', 'initGas'
   ] as Array<keyof ContractInstance>,
+  Deployment: [
+    'name'
+  ] as Array<keyof Deployment>,
+  DeploymentUnit: [
+    'deployment', 'isTemplate', 'contract'
+  ] as Array<keyof DeploymentUnit>
 }
 
 /** A contract that is part of a deploment.
   * - needed for deployment-wide deduplication
   * - generates structured label */
-export class DeploymentUnit extends Contract {
+export class DeploymentUnit {
+  name?:       string
   deployment?: Deployment
-  // TODO
+  isTemplate?: boolean
+  contract?:   Contract
+  constructor (properties: Partial<DeploymentUnit> & {
+    contract?: Partial<Contract>
+  } = {}) {
+    assign(this, properties, assign.allowed['DeploymentUnit'])
+    if (this.contract && !(this.contract instanceof Contract)) {
+      this.contract = new Contract(this.contract)
+    }
+  }
 }
 
 export class SourceCode {
@@ -189,14 +212,14 @@ export class SourceCode {
   features?: string[]
 
   constructor (properties: Partial<SourceCode> = {}) {
-    assign(this, properties, assign.allowed.source)
+    assign(this, properties, assign.allowed['SourceCode'])
   }
 
   get [Symbol.toStringTag] () {
     return this.specifier
   }
 
-  toSourceReceipt () {
+  get receipt () {
     return {
       repository: this.repository,
       revision:   this.revision,
@@ -204,12 +227,6 @@ export class SourceCode {
       workspace:  this.workspace,
       crate:      this.crate,
       features:   this.features?.join(', '),
-    }
-  }
-
-  async compile (builder: Builder): Promise<CompiledCode & { codeHash: CodeHash }> {
-    return new CompiledCode({ ...this, ...await builder.build({...this}) }) as CompiledCode & {
-      codeHash: CodeHash
     }
   }
 
@@ -222,11 +239,12 @@ export class SourceCode {
     return result
   }
 
-  get valid () { return false }
+  isValid () {
+    return false
+  }
 }
 
-export class CompiledCode extends SourceCode {
-
+export class CompiledCode {
   buildInfo?: string
   /** Code hash uniquely identifying the compiled code. */
   codeHash?: CodeHash
@@ -236,24 +254,31 @@ export class CompiledCode extends SourceCode {
   codeData?: Uint8Array
 
   constructor (properties: Partial<CompiledCode> = {}) {
-    super(properties)
-    assign(this, properties, assign.allowed.compiled)
+    assign(this, properties, assign.allowed['CompiledCode'])
   }
 
   get [Symbol.toStringTag] () {
-    return `${this.codeHash}`
+    let tags = [
+      this.codePath && `${this.codePath}`,
+      this.codeHash && `${this.codeHash}`,
+      this.codeData && `(${this.codeData.length} bytes)`
+    ]
+    return tags.filter(Boolean).join(' ')
   }
 
-  toBuildReceipt () {
+  isValid (): this is CompiledCode & { codeHash: CodeHash } {
+    return !!this.codeHash
+  }
+
+  get receipt () {
     return {
-      ...super.toSourceReceipt(),
       buildInfo: this.buildInfo,
       codePath:  this.codePath,
       codeHash:  this.codeHash
     }
   }
 
-  async fetchCode (): Promise<Uint8Array> {
+  async fetch (): Promise<Uint8Array> {
     if (this.codeData) {
       return this.codeData
     }
@@ -261,60 +286,31 @@ export class CompiledCode extends SourceCode {
       throw new Error('Missing codePath')
     }
     if (typeof this.codePath === 'string') {
-      return this.fetchCodeFromPath(this.codePath)
+      return this.fetchFromPath(this.codePath)
     } else if (this.codePath instanceof URL) {
-      return this.fetchCodeFromURL(this.codePath)
+      return this.fetchFromURL(this.codePath)
     } else {
       throw new Error('Invalid codePath')
     }
   }
 
-  private async fetchCodeFromPath (path: string) {
+  protected async fetchFromPath (path: string) {
     const { readFile } = await import('node:fs/promises')
     return await readFile(path)
   }
 
-  private async fetchCodeFromURL (url: URL) {
+  protected async fetchFromURL (url: URL) {
     if (url.protocol === 'file:') {
       const { fileURLToPath } = await import('node:url')
-      return await this.fetchCodeFromPath(fileURLToPath(url))
+      return await this.fetchFromPath(fileURLToPath(url))
     } else {
       return new Uint8Array(await (await fetch(url)).arrayBuffer())
     }
   }
 
-  async compile (builder: Builder): Promise<CompiledCode & { codeHash: CodeHash }> {
-    if (this.codeHash) {
-      return this as CompiledCode & { codeHash: CodeHash }
-    } else {
-      return super.compile(builder)
-    }
-  }
-
-  async recompile (builder: Builder): Promise<CompiledCode> {
-    return super.compile(builder)
-  }
-
-  async upload (
-    agent: Agent, options: Parameters<typeof agent["upload"]>[1]
-  ): Promise<ContractTemplate & {
-    chainId: ChainId,
-    codeId:  CodeId
-  }> {
-    return new ContractTemplate({
-      ...this, ...await agent.upload(this, options)
-    }) as ContractTemplate & {
-      chainId: ChainId,
-      codeId:  CodeId
-    }
-  }
-
-  get valid () { return false }
 }
 
-export class ContractTemplate extends CompiledCode {
-  /** Whether this object belongs to a deployment. */
-  deployment?: Deployment
+export class ContractUpload {
   /** ID of chain on which this contract is uploaded. */
   chainId?:    ChainId
   /** Code ID representing the identity of the contract's code on a specific chain. */
@@ -328,15 +324,12 @@ export class ContractTemplate extends CompiledCode {
   /** extra info */
   uploadInfo?: string
 
-  constructor (properties: Partial<ContractTemplate> = {}) {
-    super(properties)
-    assign(this, properties, assign.allowed.template)
-    Object.defineProperty(this, 'deployment', { enumerable: false, configurable: true })
+  constructor (properties: Partial<ContractUpload> = {}) {
+    assign(this, properties, assign.allowed['ContractUpload'])
   }
 
-  toUploadReceipt () {
+  get receipt () {
     return {
-      ...super.toBuildReceipt(),
       chainId:  this.chainId,
       uploadBy: this.uploadBy,
       uploadTx: this.uploadTx,
@@ -344,48 +337,26 @@ export class ContractTemplate extends CompiledCode {
     }
   }
 
-  async upload (
-    agent: Agent, options: Parameters<typeof agent["upload"]>[1]
-  ): Promise<ContractTemplate & {
-    chainId: ChainId,
-    codeId:  CodeId
-  }> {
-    if (this.codeId && this.chainId) {
-      return this as ContractTemplate & {
-        chainId: ChainId,
-        codeId: CodeId
-      }
-    } else {
-      return super.upload(agent, options)
-    }
-  }
-
-  async reupload (
-    agent: Agent, options: Parameters<typeof agent["upload"]>[1]
-  ): Promise<ContractTemplate> {
-    return super.upload(agent, options)
-  }
-
-  async instantiate (
-    agent: Agent, options: Parameters<typeof agent["instantiate"]>[1]
-  ): Promise<ContractInstance & { address: Address }> {
-    await this.upload(agent, {})
-    return agent.instantiate(this, options)
+  isValid (): this is ContractUpload & { codeId: CodeId } {
+    return !!this.codeId
   }
 
   instance (options: Partial<ContractInstance>): ContractInstance {
-    const instance = new ContractInstance(options)
-    Object.setPrototypeOf(instance, this)
-    for (const property of [
-      ...assign.allowed.source,
-      ...assign.allowed.compiled,
-      ...assign.allowed.template,
-    ]) {
-      Object.defineProperty(this, property, { enumerable: true })
-    }
-    if (!instance.name) throw new Error.Missing.Name()
-    if (this.deployment) this.deployment.contracts.set(instance.name, instance)
-    return instance
+    throw new Error('not implemented')
+    //const instance = new ContractInstance(options)
+    //Object.setPrototypeOf(instance, this)
+    //for (const property of [
+      //...assign.allowed['SourceCode'],
+      //...assign.allowed['CompiledCode'],
+      //...assign.allowed['ContractUpload'],
+    //]) {
+      //Object.defineProperty(this, property, { enumerable: true })
+    //}
+    //if (!instance.name) throw new Error.Missing.Name()
+    //if (this.deployment) {
+      //this.deployment.contracts.set(instance.name, instance)
+    //}
+    //return instance
   }
 
   /** Get a collection of multiple contracts from this template.
@@ -394,10 +365,9 @@ export class ContractTemplate extends CompiledCode {
     return map(contracts, contract=>this.instance(contract))
   }
 
-  get valid () { return false }
 }
 
-export class ContractInstance extends ContractTemplate {
+export class ContractInstance {
   /** Part of label. */
   name?:      Name
   /** Part of label. */
@@ -424,14 +394,12 @@ export class ContractInstance extends ContractTemplate {
   initGas?:   unknown
 
   constructor (properties: Partial<ContractInstance> = {}) {
-    super(properties as Partial<ContractTemplate>)
-    assign(this, properties, assign.allowed.instance)
+    assign(this, properties, assign.allowed['ContractInstance'])
   }
 
   /** @returns the data for a deploy receipt */
-  toInstanceReceipt () {
+  get receipt () {
     return {
-      ...this.toUploadReceipt(),
       initMsg: this.initMsg,
       initBy:  this.initBy,
       initTx:  this.initTx,
@@ -441,25 +409,17 @@ export class ContractInstance extends ContractTemplate {
     }
   }
 
-  async instantiate (agent: Agent, options: any): Promise<ContractInstance & {
-    address: Address
-  }> {
-    if (this.address) {
-      return this as this & { address: Address }
-    } else {
-      return super.instantiate(agent, options)
-    }
-  }
-
   connect <C extends ContractClient> (agent: Agent, $C?: ContractClientClass<C>) {
     $C ??= ContractClient as ContractClientClass<C>
     return new $C(this, agent)
   }
 
-  get valid () { return false }
+  isValid (): this is ContractInstance & { address: Address } {
+    return !!this.address
+  }
 }
 
-export type DeploymentState = Partial<ReturnType<InstanceType<typeof Deployment>["toReceipt"]>>
+export type DeploymentState = Partial<Deployment["receipt"]>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -467,116 +427,83 @@ export interface DeploymentClass<D extends Deployment> extends Class<
 >{ fromReceipt (receipt: DeploymentState): D }
 
 /** A collection of contracts. */
-export class Deployment {
-
+export class Deployment extends Map<Name, DeploymentUnit> {
   name: string = timestamp()
 
-  mode?: ChainMode
-
-  store?: DeployStore
-
-  templates: Map<string, ContractTemplate> = new Map()
-
-  contracts: Map<string, ContractInstance> = new Map()
-
-  static fromReceipt (receipt: DeploymentState) {
-    const name = receipt.name
+  static fromReceipt ({ name, units = {} }: DeploymentState) {
     const deployment = new this({ name })
-    const templates = new Map()
-    for (const [name, template] of Object.entries(receipt.templates || {})) {
-      deployment.templates.set(name, deployment.template(template))
-    }
-    const contracts = new Map()
-    for (const [name, contract] of Object.entries(receipt.contracts || {})) {
-      deployment.contracts.set(name, deployment.contract(name, contract))
+    for (const [key, value] of Object.entries(units)) {
+      deployment.set(key, value)
     }
     return deployment
   }
 
   constructor (properties: Partial<Deployment> = {}) {
-    assign(this, properties, [ 'name', 'mode', 'store', 'templates', 'contracts' ])
+    super()
+    assign(this, properties, assign.allowed['Deployment'])
     this.name ??= timestamp()
   }
 
-  toReceipt () {
-    const templates: Record<string, ContractTemplate> = {}
-    const contracts: Record<string, ContractInstance> = {}
-    for (const [name, template] of this.templates.entries()) {
-      templates[name] = template
-    }
-    for (const [name, contract] of this.contracts.entries()) {
-      contracts[name] = contract
-    }
+  get receipt () {
     return {
       name: this.name,
-      mode: this.mode,
-      templates,
-      contracts
+      units: Object.fromEntries(this.entries())
     }
   }
 
-  template (options?: Partial<ContractTemplate>): ContractTemplate {
-    const template = new ContractTemplate({ deployment: this, ...options })
-    this.templates.set(template.specifier, template)
-    return template
+  set (name: string, unit: DeploymentUnit): this {
+    if (!(unit instanceof DeploymentUnit)) unit = new DeploymentUnit(unit)
+    return super.set(name, unit)
   }
 
-  contract (name: string, options?: Partial<ContractInstance>): ContractInstance {
-    const contract = new ContractInstance({ deployment: this, ...options })
-    this.contracts.set(name, contract)
+  template (name: string, properties?: PartialContract): Contract {
+    const contract = new Contract(properties)
+    this.set(name, { name, isTemplate: true, contract })
     return contract
   }
 
-  async build (options: {
-    builder?: Builder
-  } = {}): Promise<Record<CodeHash, CompiledCode>> {
-    if (!options.builder) {
-      throw new Error.Missing.Builder()
-    }
+  contract (name: string, properties?: PartialContract): Contract {
+    const contract = new Contract(properties)
+    this.set(name, { name, isTemplate: false, contract })
+    return contract
+  }
+
+  async build (
+    options: Parameters<Contract["compile"]>[0]
+  ): Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>> {
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
-    for (const [name, contract] of this.templates.entries()) {
-      building.push(contract.compile(options.builder))
+    for (const [name, contract] of this.entries()) {
+      building.push(contract.contract!.compile(options))
     }
-    const built: Record<CodeHash, CompiledCode> = {}
+    const built: Record<CodeHash, CompiledCode & { codeHash: CodeHash }> = {}
     for (const output of await Promise.all(building)) {
       built[output.codeHash] = output
     }
     return built
   }
 
-  async upload (options: {
-    agent?: Agent,
-    builder?: Builder,
-    uploadStore?: UploadStore,
-  } = {}): Promise<Record<CodeId, ContractTemplate>> {
-    if (!options.agent) {
-      throw new Error.Missing.Agent()
+  async upload (
+    options: Parameters<Contract["upload"]>[0]
+  ): Promise<Record<CodeId, ContractUpload & { codeId: CodeId }>> {
+    const uploading: Array<Promise<ContractUpload & { codeId: CodeId }>> = []
+    for (const [name, contract] of this.entries()) {
+      uploading.push(contract.contract!.upload(options))
     }
-    const uploading: Array<Promise<ContractTemplate & { codeId: CodeId }>> = []
-    for (const [name, contract] of this.templates.entries()) {
-      uploading.push(contract.upload(options.agent, {}))
-    }
-    const uploaded: Record<CodeId, ContractTemplate> = {}
+    const uploaded: Record<CodeId, ContractUpload & { codeId: CodeId }> = {}
     for (const output of await Promise.all(uploading)) {
       uploaded[output.codeId] = output
     }
     return uploaded
   }
 
-  async deploy (options: {
-    agent?: Agent,
-    builder?: Builder,
-    uploadStore?: UploadStore,
-    deployStore?: DeployStore,
-  } = {}): Promise<Record<Address, ContractInstance>> {
-    if (!options.agent) {
-      throw new Error.Missing.Agent()
-    }
+  async deploy (
+    options: Parameters<Contract["deploy"]>[0]
+  ): Promise<Record<Address, ContractInstance & { address: Address }>> {
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
-    for (const [name, contract] of this.contracts.entries()) {
-      deploying.push(contract.instantiate(options.agent, {}))
+    for (const [name, contract] of this.entries()) {
+      deploying.push(contract.contract!.deploy(options))
     }
-    const deployed: Record<Address, ContractInstance> = {}
+    const deployed: Record<Address, ContractInstance & { address: Address }> = {}
     for (const output of await Promise.all(deploying)) {
       deployed[output.address] = output
     }

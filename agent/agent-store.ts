@@ -1,7 +1,7 @@
 import { Console, Error } from './agent-base'
 import type { Class, CodeHash, Name } from './agent-base'
 import type { ChainId } from './agent-chain'
-import { Deployment, ContractTemplate, CompiledCode } from './agent-contract'
+import { Deployment, ContractUpload, SourceCode, CompiledCode } from './agent-contract'
 import type { DeploymentClass, DeploymentState } from './agent-contract'
 
 export abstract class Builder {
@@ -22,7 +22,7 @@ export abstract class Builder {
     * `@hackbg/fadroma` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
   abstract build (
-    buildable: string|Partial<CompiledCode>,
+    source: string|Partial<SourceCode>|Partial<CompiledCode>,
     ...args: any[]
   ): Promise<CompiledCode>
 
@@ -40,7 +40,7 @@ export class StubBuilder extends Builder {
   id = 'stub'
 
   async build (
-    source: string|Partial<CompiledCode>,
+    source: string|Partial<SourceCode>|Partial<CompiledCode>,
     ...args: any[]
   ): Promise<CompiledCode> {
     if (typeof source === 'string') {
@@ -59,21 +59,21 @@ export class StubBuilder extends Builder {
   }
 }
 
-export class UploadStore extends Map<CodeHash, ContractTemplate> {
+export class UploadStore extends Map<CodeHash, ContractUpload> {
   log = new Console('UploadStore')
 
   constructor () {
     super()
   }
 
-  get (codeHash: CodeHash): ContractTemplate|undefined {
+  get (codeHash: CodeHash): ContractUpload|undefined {
     return super.get(codeHash)
   }
 
-  set (codeHash: CodeHash, value: Partial<ContractTemplate>): this {
-    if (!(value instanceof ContractTemplate)) value = new ContractTemplate(value)
+  set (codeHash: CodeHash, value: Partial<ContractUpload>): this {
+    if (!(value instanceof ContractUpload)) value = new ContractUpload(value)
     if (value.codeHash && (value.codeHash !== codeHash)) throw new Error.Invalid('code hash mismatch')
-    return super.set(codeHash, value as ContractTemplate)
+    return super.set(codeHash, value as ContractUpload)
   }
 }
 

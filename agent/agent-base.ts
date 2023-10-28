@@ -251,55 +251,55 @@ class AgentConsole extends Console {
   foundDeployedContract (address: Address, name: Name) {
     return this.sub(name).log('found at', bold(address))
   }
-  beforeDeploy (
-    template: ContractInstance,
-    label?: Label, codeId?: CodeId, codeHash?: CodeHash, crate?: string, revision?: string
-  ) {
-    codeId ??= template?.codeId ? bold(String(template.codeId)) : colors.red('(no code id!)')
-    codeHash ??= template?.codeHash ? bold(template.codeHash) : colors.red('(no code hash!)')
-    label = label ? bold(label) : colors.red('(missing label!)')
-    crate ??= template?.crate
-    revision ??= template.revision ?? 'HEAD'
-    let info = `${bold(label)} from code id ${bold(codeId)}`
-    if (crate) info += ` (${bold(crate)} @ ${bold(revision)})`
-    return this.log(`init: ${info}`)
-  }
-  deployFailed (e: Error, template: Partial<ContractInstance>, name: Label, msg: Message) {
-    this.error(`deploy of ${bold(name)} failed:`)
-    this.error(`${e?.message}`)
-    this.deployFailedContract(template)
-    return this.error(`init message:`, JSON.stringify(msg))
-  }
-  deployManyFailed (template: Partial<ContractInstance>, contracts: any[] = [], e: Error) {
-    this.error(`Deploy of multiple contracts failed:`)
-    this.error(bold(e?.message))
-    this.deployFailedContract(template)
-    for (const [name, init] of contracts) this.error(`${bold(name)}:`, JSON.stringify(init))
-    return this
-  }
-  deployFailedContract (template?: Partial<ContractInstance>) {
-    if (!template) return this.error(`No template was provided`)
-    this.error(`Code hash:`, bold(template.codeHash||''))
-    this.error(`Chain ID: `, bold(template.chainId ||''))
-    return this.error(`Code ID:  `, bold(template.codeId  ||''))
-  }
-  afterDeploy (contract: Partial<ContractInstance>) {
-    let { name, prefix, address, codeHash } = (contract || {}) as any
-    name = name
-      ? bold(green(name))
-      : bold(red('(no name)'))
-    prefix = prefix
-      ? bold(green(prefix))
-      : bold(red('(no deployment)'))
-    address = address
-      ? bold(colors.green(address))
-      : bold(red('(no address)'))
-    this.info('addr:', address)
-    this.info('hash:', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
-    this.info('added to', prefix)
-    this.br()
-    return this
-  }
+  //beforeDeploy (
+    //template: ContractInstance,
+    //label?: Label, codeId?: CodeId, codeHash?: CodeHash, crate?: string, revision?: string
+  //) {
+    //codeId ??= template?.codeId ? bold(String(template.codeId)) : colors.red('(no code id!)')
+    //codeHash ??= template?.codeHash ? bold(template.codeHash) : colors.red('(no code hash!)')
+    //label = label ? bold(label) : colors.red('(missing label!)')
+    //crate ??= template?.crate
+    //revision ??= template.revision ?? 'HEAD'
+    //let info = `${bold(label)} from code id ${bold(codeId)}`
+    //if (crate) info += ` (${bold(crate)} @ ${bold(revision)})`
+    //return this.log(`init: ${info}`)
+  //}
+  //deployFailed (e: Error, template: Partial<ContractInstance>, name: Label, msg: Message) {
+    //this.error(`deploy of ${bold(name)} failed:`)
+    //this.error(`${e?.message}`)
+    //this.deployFailedContract(template)
+    //return this.error(`init message:`, JSON.stringify(msg))
+  //}
+  //deployManyFailed (template: Partial<ContractInstance>, contracts: any[] = [], e: Error) {
+    //this.error(`Deploy of multiple contracts failed:`)
+    //this.error(bold(e?.message))
+    //this.deployFailedContract(template)
+    //for (const [name, init] of contracts) this.error(`${bold(name)}:`, JSON.stringify(init))
+    //return this
+  //}
+  //deployFailedContract (template?: Partial<ContractInstance>) {
+    //if (!template) return this.error(`No template was provided`)
+    //this.error(`Code hash:`, bold(template.codeHash||''))
+    //this.error(`Chain ID: `, bold(template.chainId ||''))
+    //return this.error(`Code ID:  `, bold(template.codeId  ||''))
+  //}
+  //afterDeploy (contract: Partial<ContractInstance>) {
+    //let { name, prefix, address, codeHash } = (contract || {}) as any
+    //name = name
+      //? bold(green(name))
+      //: bold(red('(no name)'))
+    //prefix = prefix
+      //? bold(green(prefix))
+      //: bold(red('(no deployment)'))
+    //address = address
+      //? bold(colors.green(address))
+      //: bold(red('(no address)'))
+    //this.info('addr:', address)
+    //this.info('hash:', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
+    //this.info('added to', prefix)
+    //this.br()
+    //return this
+  //}
   saveNoStore (name: string) {
     return this.warn(`not saving: store not set`)
   }

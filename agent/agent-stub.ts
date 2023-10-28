@@ -2,7 +2,7 @@ import type { Address, CodeHash, Message, CodeId, ICoin, Label } from './agent-b
 import { Chain, Agent } from './agent-chain'
 import { Batch } from './agent-batch'
 import type { ExecOpts } from './agent-chain'
-import { ContractTemplate, ContractInstance } from './agent-contract'
+import { ContractUpload, ContractInstance } from './agent-contract'
 
 export class StubChain extends Chain {
 
@@ -66,9 +66,9 @@ export class StubAgent extends Agent {
   protected lastCodeHash = 0
 
   /** Stub implementation of code upload. */
-  protected doUpload (data: Uint8Array): Promise<ContractTemplate> {
+  protected doUpload (data: Uint8Array): Promise<ContractUpload> {
     this.lastCodeHash = this.lastCodeHash + 1
-    return Promise.resolve(new ContractTemplate({
+    return Promise.resolve(new ContractUpload({
       chainId:  this.chain!.id,
       codeId:   String(this.lastCodeHash),
       codeHash: 'stub-code-hash'

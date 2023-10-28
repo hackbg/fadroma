@@ -4,7 +4,7 @@ import {
   Agent, StubAgent,
   Batch, StubBatch,
   ContractClient,
-  DeployStore, Deployment, ContractTemplate, ContractInstance, DeploymentContractLabel,
+  DeployStore, Deployment, ContractUpload, ContractInstance, DeploymentContractLabel,
   assertChain,
   Builder, StubBuilder,
   Token, TokenFungible, TokenNonFungible, Swap,
@@ -326,29 +326,26 @@ export async function testDeployment () {
 
   for (const mode of [Chain.Mode.Mainnet, Chain.Mode.Testnet]) {
 
-    const deployment = new Deployment({
-      name: 'foo', mode
-    })
-    assert.deepEqual(deployment.toReceipt(), {
-      contracts: {}, templates: {}, name: 'foo', mode,
-    })
+    const deployment = new Deployment({ name: 'deployment' })
 
-    const foo = deployment.template({
-      codeData: new Uint8Array()
-    })
-    assert.ok(
-      foo instanceof ContractTemplate
-    )
+    assert.deepEqual(deployment.receipt, { name: 'deployment', units: {} })
 
-    console.log(deployment)
-    await deployment.build({
-      builder: new StubBuilder()
+    const template1 = deployment.template('template1', {
+      binary: { codeData: new Uint8Array([1]), codeHash: "asdf" }
     })
     console.log(deployment)
     await deployment.upload({
-      agent: new StubAgent()
+      builder:  new StubBuilder(),
+      uploader: new StubAgent()
     })
     console.log(deployment)
+    const contract1 = deployment.contract('contract1', {
+      template: { codeId: '2' }
+    })
+    await deployment.deploy({
+      uploader: new StubAgent(),
+      deployer: new StubAgent()
+    })
 
     assert.ok(
       deployment.contract('bar', {
