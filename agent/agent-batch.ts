@@ -3,10 +3,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error, Console, into } from './agent-base'
 import type {
-  Class, Message, CodeId, Address, Name, Into, ICoin, Many, CodeHash
+  Class, Message, CodeId, Address, Name, Into, ICoin, Many, CodeHash,
 } from './agent-base'
 import type { Agent } from './agent-chain'
-import { ContractInstance } from './agent-contract'
+import {
+  ContractUpload,
+  ContractInstance,
+  ContractClient
+} from './agent-contract'
 
 /** A constructor for a Batch subclass. */
 export interface BatchClass<B extends Batch> extends
@@ -51,7 +55,9 @@ export abstract class Batch implements BatchAgent {
 
   get defaultDenom () { return this.agent.defaultDenom }
 
-  get getClient () { return this.agent.getClient.bind(this) }
+  getClient <C extends ContractClient> (...args: Parameters<Agent["getClient"]>): C {
+    return this.agent.getClient(...args) as C
+  }
 
   /** Add a message to the batch. */
   add (msg: Message) {
@@ -107,13 +113,9 @@ export abstract class Batch implements BatchAgent {
     return this.msgs
   }
 
-  /** Add an init message to the batch.
-    * @example
-    *   await agent.instantiate(template.define({ label, initMsg })
-    * @returns
-    *   the unmodified input. */
+  /** Add an init message to the batch. */
   async instantiate (
-    contract: CodeId|Partial<ContractInstance>,
+    contract: CodeId|Partial<ContractUpload>,
     options: {
       label:     Name,
       initMsg:   Into<Message>,
@@ -125,7 +127,7 @@ export abstract class Batch implements BatchAgent {
     address: Address,
   }> {
     if (typeof contract === 'string') {
-      contract = new ContractInstance({ codeId: contract })
+      contract = new ContractUpload({ codeId: contract })
     }
     this.add({ init: {
       codeId:   contract.codeId,
@@ -144,47 +146,7 @@ export abstract class Batch implements BatchAgent {
       initBy:   this.address,
     }) as ContractInstance & { address: Address }
   }
-  /** Add multiple init messages to the batch.
-    * @example
-    *   await agent.batch().wrap(async batch=>{
-    *     await batch.instantiateMany(template.instances({
-    *       One: { label, initMsg },
-    *       Two: { label, initMsg },
-    *     }))
-    *     await agent.instantiateMany({
-    *       One: template1.instance({ label, initMsg }),
-    *       Two: template2.instance({ label, initMsg }),
-    *     })
-    *   })
-    * @returns
-    *   the unmodified inputs. */
-  async instantiateMany <M extends Many<ContractInstance>> (
-    contracts: M,
-    options: {
-      initFee?:   ICoin[]|'auto',
-      initSend?: ICoin[],
-      initMemo?:  string,
-    } = {}
-  ): Promise<M> {
-    if (!contracts) {
-      throw new Error('no contracts passed to instantiateMany')
-    }
-    const outputs: any = (contracts instanceof Array) ? [] : {}
-    await Promise.all(Object.entries(contracts).map(async ([key, contract]: [Name, ContractInstance])=>{
-      if (contract.address) {
-        outputs[key] = contract.address
-      } else {
-        outputs[key] = await this.instantiate(contract, {
-          label:    contract.label!,
-          initMsg:  contract.initMsg!,
-          initFee:  contract.initFee   || options.initFee,
-          initSend: contract.initSend || options.initSend,
-          initMemo: contract.initMemo  || options.initMemo
-        })
-      }
-    }))
-    return outputs
-  }
+
   /** Add an exec message to the batch. */
   async execute (
     contract: Address|{ address: Address, codeHash?: CodeHash },
@@ -210,6 +172,7 @@ export abstract class Batch implements BatchAgent {
     })
     return this
   }
+
   /** Queries are disallowed in the middle of a batch because
     * even though the batch API is structured as multiple function calls,
     * the batch is ultimately submitted as a single transaction and
@@ -220,21 +183,25 @@ export abstract class Batch implements BatchAgent {
   ): Promise<never> {
     throw new Error.Invalid.Batching("query")
   }
+
   /** Uploads are disallowed in the middle of a batch because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async upload (data: unknown): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
+
   async doUpload (data: unknown): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
+
   /** Uploads are disallowed in the middle of a batch because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async uploadMany (uploadables: Many<unknown> = {}): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
+
   /** Disallowed in batch - do it beforehand or afterwards. */
   get balance (): Promise<string> {
     throw new Error.Invalid.Batching("query balance")
@@ -247,21 +214,17 @@ export abstract class Batch implements BatchAgent {
   get nextBlock (): Promise<number> {
     throw new Error.Invalid.Batching("wait for next block")
   }
-  /** This doesnt change over time so it's allowed when building batches. */
+  /** This doesn't change over time so it's allowed when building batches. */
   getCodeId (address: Address) {
     return this.agent.getCodeId(address)
   }
-  /** This doesnt change over time so it's allowed when building batches. */
+  /** This doesn't change over time so it's allowed when building batches. */
   getLabel (address: Address) {
     return this.agent.getLabel(address)
   }
-  /** This doesnt change over time so it's allowed when building batches. */
+  /** This doesn't change over time so it's allowed when building batches. */
   getHash (address: Address|number) {
     return this.agent.getHash(address)
-  }
-  /** This doesnt change over time so it's allowed when building batches. */
-  checkHash (address: Address, codeHash?: CodeHash) {
-    return this.agent.checkHash(address, codeHash)
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
   async getBalance (denom: string): Promise<string> {

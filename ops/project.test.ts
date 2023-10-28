@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import * as assert from 'node:assert'
 import type { Project } from './project'
-import { ContractTemplate } from '@fadroma/connect'
+import { ContractUpload } from '@fadroma/connect'
 
 export default async function testProject () {
   const { Project } = await import('@hackbg/fadroma')
@@ -21,9 +21,9 @@ export default async function testProject () {
     .status()
     .cargoUpdate()
   const test1 = project.getTemplate('test1')
-  assert.ok(test1 instanceof ContractTemplate)
+  assert.ok(test1 instanceof ContractUpload)
   const test3 = project.setTemplate('test3', { crate: 'test2' })
-  assert.ok(test3 instanceof ContractTemplate)
+  assert.ok(test3 instanceof ContractUpload)
   await project.build()
   await project.build('test1')
   await project.upload()
