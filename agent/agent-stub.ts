@@ -1,3 +1,6 @@
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, CodeHash, Message, CodeId, ICoin, Label } from './agent-base'
 import { Chain, Agent } from './agent-chain'
 import { Batch } from './agent-batch'
@@ -76,13 +79,7 @@ export class StubAgent extends Agent {
   /** Stub implementation of contract init */
   protected doInstantiate (
     codeId:  CodeId,
-    options: {
-      label:      Label,
-      initMsg:    Message,
-      initFee?:   ICoin[]|'auto',
-      initFunds?: ICoin[],
-      initMemo?:  string,
-    }
+    options: Parameters<Agent["doInstantiate"]>[1]
   ): Promise<ContractInstance & {
     address: Address
   }> {
@@ -96,7 +93,7 @@ export class StubAgent extends Agent {
   protected doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: never
+    options?: Parameters<Agent["doExecute"]>[2]
   ): Promise<void|unknown> {
     return Promise.resolve({})
   }

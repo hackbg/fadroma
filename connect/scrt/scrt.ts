@@ -1,6 +1,6 @@
-/*
-  Fadroma Platform Package for Secret Network
-  Copyright (C) 2022 Hack.bg
+/**
+  Fadroma SCRT
+  Copyright (C) 2023 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -9,7 +9,7 @@
 
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU Affero General Public License for more details.
 
   You should have received a copy of the GNU Affero General Public License

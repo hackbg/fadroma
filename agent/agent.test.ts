@@ -1,10 +1,15 @@
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Error, Console,
   Chain, StubChain,
   Agent, StubAgent,
   Batch, StubBatch,
   ContractClient,
-  DeployStore, Deployment, ContractUpload, ContractInstance, DeploymentContractLabel,
+  UploadStore, DeployStore,
+  Contract, SourceCode, CompiledCode, ContractUpload, ContractInstance,
+  Deployment, DeploymentContractLabel,
   assertChain,
   Builder, StubBuilder,
   Token, TokenFungible, TokenNonFungible, Swap,
@@ -13,43 +18,17 @@ import {
 } from './agent'
 import assert from 'node:assert'
 import { fixture } from '../fixtures/fixtures'
-
 import { Suite } from '@hackbg/ensuite'
-export default new Suite([
-  ['errors',       testAgentErrors],
-  ['console',      testAgentConsole],
-  ['chain',        testChain],
-  ['devnet',       testChainDevnet],
-  ['agent',        testAgent],
-  ['batch',        testBatch],
-  ['client',       testClient],
-  ['labels',       testLabels],
-  ['deployment',   testDeployment],
-  ['decimals',     testDecimals],
-  ['token',        testToken],
-  ['collections',  testCollections]
-])
 
 export async function testChain () {
   let chain = new StubChain()
   assert.throws(()=>chain.id)
   assert.throws(()=>chain.id='foo')
   assert.throws(()=>chain.mode)
-
-  assert.throws(()=>new StubChain({
-    mode: StubChain.Mode.Devnet,
-    id:   'stub',
-    url:  'stub'
-  }).ready)
-
+  assert.throws(()=>new StubChain({ mode: StubChain.Mode.Devnet, id: 'stub', url: 'stub' }).ready)
   assert.equal(chain.chain, chain)
   assert.equal(assertChain({ chain }), chain)
-
-  chain = new StubChain({
-    mode: StubChain.Mode.Testnet,
-    id:   'stub',
-    url:  'stub'
-  })
+  chain = new StubChain({ mode: StubChain.Mode.Testnet, id: 'stub', url: 'stub' })
   assert.ok((await chain.ready).api)
   await chain.height
   await chain.nextBlock
@@ -59,28 +38,21 @@ export async function testChain () {
   await chain.getHash('')
   await chain.getHash(0)
   await chain.getLabel('')
-
   Object.defineProperty(chain, 'height', {
     get () { return Promise.resolve('NaN') }
   })
   assert.equal(await chain.nextBlock, NaN)
-
   assert.ok(StubChain.mainnet().isMainnet)
   assert.ok(!(StubChain.mainnet().devMode))
-
   assert.ok(StubChain.testnet().isTestnet)
   assert.ok(!(StubChain.testnet().devMode))
-
   assert.ok(StubChain.devnet().isDevnet)
   assert.ok(StubChain.devnet().devMode)
-
   assert.ok(new StubChain({ mode: Chain.Mode.Mocknet }).isMocknet)
   assert.ok(new StubChain({ mode: Chain.Mode.Mocknet }).devMode)
-
 }
 
-export async function testChainDevnet () {
-
+export async function testDevnet () {
   const devnet = {
     accounts: [],
     chainId: 'foo',
@@ -92,28 +64,23 @@ export async function testChainDevnet () {
     async getAccount () { return {} },
     async assertPresence () {}
   }
-
   const chain = new StubChain({
     mode: Chain.Mode.Mainnet,
     devnet,
     id: 'bar',
     url: 'http://asdf.com',
   })
-
   const ready = chain.ready
   assert.ok(await ready)
   assert.ok(chain.ready === ready)
-
   // Properties from Devnet are passed onto Chain
   assert.equal(chain.devnet, devnet)
   assert.equal(chain.id, 'foo')
   assert.equal(chain.url, 'http://example.com/')
   assert.equal(chain.mode, StubChain.Mode.Devnet)
-
   assert.equal(chain.stopped, true)
   devnet.running = true
   assert.equal(chain.stopped, false)
-
   assert.throws(()=>chain.id='asdf')
   assert.throws(()=>chain.url='asdf')
   assert.throws(()=>{
@@ -131,100 +98,37 @@ export async function testAgent () {
   assert.ok(agent.address,             'agent has address')
   assert.equal(agent.name, 'testing1', 'agent.name assigned')
   assert.equal(agent.chain, chain,     'agent.chain assigned')
-
   const ready = agent.ready
   assert.ok(await ready)
   assert.ok(agent.ready === ready)
-
   agent.defaultDenom
   agent.balance
   agent.height
   agent.nextBlock
-
   await agent.getBalance('a','b')
-
   await agent.query('', {})
-
   await agent.getCodeId('')
-
   await agent.getHash('')
   await agent.getHash(0)
-
   await agent.getLabel('')
-
-  await agent.send('', [], {})
-  await agent.sendMany([], {})
-
+  await agent.send('', [])
+  await agent.sendMany([])
   await agent.upload(fixture('null.wasm'), {})
   await agent.upload(new Uint8Array(), {})
   await agent.uploadMany([], {})
   await agent.uploadMany({}, {})
-
-  await agent.instantiate('1', {
-    label: 'foo',
-    initMsg: 'bar'
-  })
-
-  await agent.instantiate({
-    codeId: '1'
-  }, {
-    label: 'foo',
-    initMsg: 'bar'
-  })
-
+  await agent.instantiate('1', { label: 'foo', initMsg: 'bar' })
+  await agent.instantiate({ codeId: '1' }, { label: 'foo', initMsg: 'bar' })
   await agent.instantiateMany([])
-
   await agent.instantiateMany({})
-
   await agent.execute('stub', {}, {})
 }
 
-export async function testAgentMeta () {
-  //client.address = 'someaddress' // FIXME
-  //assert.ok(client.codeHash = await fetchCodeHash(client, agent))
-  ////assert.ok(client.codeId   = await fetchCodeId(client, agent))
-  //assert.ok(client.label    = await fetchLabel(client, agent))
-
-  //assert.equal(client.codeHash, await fetchCodeHash(client, agent, client.codeHash))
-  ////assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))
-  //assert.equal(client.label,    await fetchLabel(client, agent, client.label))
-
-  //assert.rejects(fetchCodeHash(client, agent, 'unexpected'))
-  //assert.rejects(fetchCodeId(client, agent, 'unexpected'))
-  //assert.rejects(fetchLabel(client, agent, 'unexpected'))
-
-  //import { assertCodeHash, codeHashOf } from '@fadroma/agent'
-
-  //assert.ok(assertCodeHash({ codeHash: 'code-hash-stub' }))
-  //assert.throws(()=>assertCodeHash({}))
-
-  //assert.equal(codeHashOf({ codeHash: 'hash' }), 'hash')
-  //assert.equal(codeHashOf({ code_hash: 'hash' }), 'hash')
-  //assert.throws(()=>codeHashOf({ code_hash: 'hash1', codeHash: 'hash2' }))
-}
-
 export async function testBatch () {
-  //import { Chain, Agent, Batch } from '@fadroma/agent'
-  //chain = new StubChain({ id: 'id', url: 'example.com', mode: 'mainnet' })
-  //agent = await chain.getAgent()
-  //let batch: Batch
-  //import { Client } from '@fadroma/agent'
-  //batch = new Batch(agent)
-
-  //assert(batch.getClient(Client, '') instanceof Client, 'Batch#getClient')
-  //assert.equal(await batch.execute({}), batch)
-  //assert.equal(batch.id, 1)
-  ////assert(await batch.instantiateMany({}, []))
-  ////assert(await batch.instantiateMany({}, [['label', 'init']]))
-  ////assert(await batch.instantiate({}, 'label', 'init'))
-  //assert.equal(await batch.checkHash(), 'code-hash-stub')
-
-  let chain: Chain = new StubChain({ id: 'stub' })
-  let agent: Agent = await chain.getAgent({ name: 'job', address: 'testing1agent0' })
-  let batch: Batch
-
+  let agent: Agent = await new StubChain({ id: 'stub' })
+    .getAgent({ name: 'test-batch', address: 'stub1testbatch' })
+    .ready
   assert(agent.batch() instanceof Batch)
-
   const batchedOperations = async (batch: Batch) => {
     assert(batch instanceof Batch)
     assert.rejects(()=>batch.query({} as any, {}))
@@ -247,13 +151,11 @@ export async function testBatch () {
     assert.ok(await batch.getHash('addr'))
     assert.ok(await batch.checkHash('addr'))
   }
-
   const batch1 = new StubBatch(agent, batchedOperations)
   assert.equal(await batch1.ready, batch1)
-  assert.equal(batch1.name, `job (batched)`)
+  assert.equal(batch1.name, `test-batch (batched)`)
   assert.equal(batch1.fees, agent.fees)
   assert.equal(batch1.defaultDenom, agent.defaultDenom)
-
   const batch2 = new StubBatch(agent)
   assert.deepEqual(batch2.msgs, [])
   assert.equal(batch2.id, 0)
@@ -262,46 +164,13 @@ export async function testBatch () {
   assert.deepEqual(batch2.msgs, [{}])
   assert.equal(batch2.id, 1)
   assert.ok(batch2.assertMessages())
-
   const batch3 = new StubBatch(agent, batchedOperations)
-  assert.ok(await batch3.run(""))
-  assert.ok(await batch3.run("", true))
+  assert.ok(await batch3.run())
+  assert.ok(await batch3.run({ memo: "", save: true }))
   assert.equal(batch3.depth, 0)
   const batch3a = batch3.batch()
   assert.equal(batch3a.depth, 1)
   assert.equal(await batch3a.run(), null)
-}
-
-export async function testAgentErrors () {
-  // Make sure each error subclass can be created with no arguments:
-  for (const key of Object.keys(Error)) {
-    const subtype = Error[key as keyof typeof Error] as any
-    if (typeof subtype ==='function') assert(new subtype() instanceof Error, `error ${key}`)
-  }
-}
-
-export async function testAgentConsole () {
-  // Make sure each log message can be created with no arguments:
-  const log = new Console('(test message)')
-  for (const key of Object.keys(log)) {
-    const method = log[key as keyof typeof log] as any
-    if (typeof method==='function') try { method.bind(log)() } catch (e) { console.warn(e) }
-  }
-}
-
-export async function testLabels () {
-  assert.equal(
-    new DeploymentContractLabel('foo', 'bar', 'baz').toString(),
-    'foo/bar+baz'
-  )
-  assert.deepEqual(
-    DeploymentContractLabel.parse('foo/bar+baz'),
-    { prefix: 'foo', name: 'bar', suffix: 'baz' }
-  )
-  assert.deepEqual(
-    DeploymentContractLabel.parse('foo/bar+baz').toString(),
-    'foo/bar+baz'
-  )
 }
 
 export async function testClient () {
@@ -317,32 +186,128 @@ export async function testClient () {
   await client.execute({foo: 'bar'})
 }
 
+export async function testContracts () {
+  const contract = new Contract({
+    source:   {},
+    binary:   {},
+    uploaded: {},
+    instance: {},
+  })
+
+  assert.rejects(()=>contract.compile())
+  assert.rejects(()=>contract.upload())
+  assert.rejects(()=>contract.deploy())
+
+  assert(contract.source instanceof SourceCode)
+  assert(contract.binary instanceof CompiledCode)
+  assert(contract.uploaded instanceof ContractUpload)
+  assert(contract.instance instanceof ContractInstance)
+
+  assert(!(contract.source.isValid()))
+  assert(!(contract.binary.isValid()))
+  assert(!(contract.uploaded.isValid()))
+  assert(!(contract.instance.isValid()))
+
+  assert.deepEqual(contract.source.toReceipt(), {
+    crate:      undefined,
+    dirty:      undefined,
+    features:   undefined,
+    repository: undefined,
+    revision:   undefined,
+    workspace:  undefined,
+  })
+  assert.deepEqual(contract.binary.toReceipt(), {
+    codeHash:  undefined,
+    codePath:  undefined,
+    buildInfo: undefined,
+  })
+  assert.deepEqual(contract.uploaded.toReceipt(), {
+    codeHash:  undefined,
+    chainId:   undefined,
+    codeId:    undefined,
+    uploadBy:  undefined,
+    uploadTx:  undefined
+  })
+  assert.deepEqual(contract.instance.toReceipt(), {
+    codeHash:  undefined,
+    chainId:   undefined,
+    codeId:    undefined,
+    label:     undefined,
+    initMsg:   undefined,
+    initBy:    undefined,
+    initTx:    undefined,
+    initGas:   undefined,
+    address:   undefined,
+  })
+}
+
 export async function testDeployment () {
-  const store = new DeployStore()
-  assert.equal(store.get('name'), undefined)
-  assert.equal(store.set('name', {}), store)
-  assert.ok(store.get('name') instanceof Deployment)
-  for (const mode of [Chain.Mode.Mainnet, Chain.Mode.Testnet]) {
-    const deployment = new Deployment({ name: 'deployment' })
+  // deploy store converts inputs to ContractUpload instances
+  const uploadStore = new UploadStore()
+  assert.equal(uploadStore.get('name'), undefined)
+  assert.equal(uploadStore.set('name', {}), uploadStore)
+  console.log(uploadStore.get('name'))
+  assert.ok(uploadStore.get('name') instanceof ContractUpload)
+  // deploy store converts inputs to Deployment instances
+  const deployStore = new DeployStore()
+  assert.equal(deployStore.get('name'), undefined)
+  assert.equal(deployStore.set('name', {}), deployStore)
+  assert.ok(deployStore.get('name') instanceof Deployment)
+  // deployment can define contracts and templates
+  const deployment = new Deployment({ name: 'deployment' })
+  assert.deepEqual(deployment.toReceipt(), { name: 'deployment', units: {} })
+  const template1 = deployment.template('template1', {
+    codeData: new Uint8Array([1]),
+    codeHash: "asdf"
+  })
+  await deployment.upload({ builder: new StubBuilder(), uploader: new StubAgent() })
+  const contract1 = deployment.contract('contract1', {
+    codeId: '2',
+    label: "contract1",
+    initMsg: {}
+  })
+  await deployment.deploy({ uploader: new StubAgent(), deployer: new StubAgent() })
+  // pretty print deployment 
+  new Console().deployment(deployment)
+  // deployment label format
+  const label1 = new DeploymentContractLabel('foo', 'bar', 'baz')
+  assert.equal(label1.toString(), 'foo/bar+baz')
+  const label2 = DeploymentContractLabel.parse('foo/bar+baz')
+  assert(label2 instanceof DeploymentContractLabel)
+  assert.deepEqual(label2, { prefix: 'foo', name: 'bar', suffix: 'baz' })
+  assert.deepEqual(label2.toString(), 'foo/bar+baz')
+}
 
-    assert.deepEqual(deployment.toReceipt(), { name: 'deployment', units: {} })
+export default new Suite([
+  ['agent',        testAgent],
+  ['batch',        testBatch],
+  ['chain',        testChain],
+  ['client',       testClient],
+  ['collections',  testCollections],
+  ['console',      testConsole],
+  ['contract',     testContracts],
+  ['decimals',     testDecimals],
+  ['deploy',       testDeployment],
+  ['devnet',       testDevnet],
+  ['errors',       testErrors],
+  ['labels',       testLabels],
+  ['token',        testToken],
+])
 
-    const template1 = deployment.template('template1', {
-      binary: { codeData: new Uint8Array([1]), codeHash: "asdf" }
-    })
-    await deployment.upload({
-      builder:  new StubBuilder(),
-      uploader: new StubAgent()
-    })
-    const contract1 = deployment.contract('contract1', {
-      template: { codeId: '2' },
-      instance: { label: "contract1", initMsg: {} }
-    })
-    await deployment.deploy({
-      uploader: new StubAgent(),
-      deployer: new StubAgent()
-    })
-    new Console().deployment(deployment)
+export async function testErrors () {
+  // Make sure each error subclass can be created with no arguments:
+  for (const key of Object.keys(Error)) {
+    const subtype = Error[key as keyof typeof Error] as any
+    if (typeof subtype ==='function') assert(new subtype() instanceof Error, `error ${key}`)
+  }
+}
+
+export async function testConsole () {
+  // Make sure each log message can be created with no arguments:
+  const log = new Console('(test message)')
+  for (const key of Object.keys(log)) {
+    const method = log[key as keyof typeof log] as any
+    if (typeof method==='function') try { method.bind(log)() } catch (e) { console.warn(e) }
   }
 }
 
@@ -402,4 +367,7 @@ export async function testCollections () {
     promise: 3,
     asyncFn: 4
   })
+}
+
+export async function testLabels () {
 }

@@ -1,21 +1,6 @@
-/**
-  Fadroma: Contract Deployment API
-  Copyright (C) 2023 Hack.bg
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Affero General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Affero General Public License for more details.
-
-  You should have received a copy of the GNU Affero General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Console, Error, HEAD
 } from './agent-base'
@@ -56,15 +41,16 @@ assign.allowed = {
     'repository', 'revision', 'dirty', 'workspace', 'crate', 'features',
   ] as Array<keyof SourceCode>,
   CompiledCode: [
-    'buildInfo', 'codeHash', 'codePath', 'codeData'
+    'codeHash',
+    'buildInfo', 'codePath', 'codeData'
   ] as Array<keyof CompiledCode>,
   ContractUpload: [
-    'deployment', 'chainId',
-    'codeId', 'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
+    'codeHash', 'chainId', 'codeId',
+    'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
   ] as Array<keyof ContractUpload>,
   ContractInstance: [
-    'codeId', 'codeHash', 'label', 'address', 'initMsg',
-    'initBy', 'initFunds', 'initFee', 'initMemo', 'initTx', 'initGas'
+    'codeHash', 'chainId', 'codeId', 'label', 'address', 'initMsg',
+    'initBy', 'initSend', 'initFee', 'initMemo', 'initTx', 'initGas'
   ] as Array<keyof ContractInstance>,
   Deployment: [
     'name'
@@ -149,9 +135,9 @@ export class CompiledCode {
 
   toReceipt () {
     return {
-      buildInfo: this.buildInfo,
+      codeHash:  this.codeHash,
       codePath:  this.codePath,
-      codeHash:  this.codeHash
+      buildInfo: this.buildInfo,
     }
   }
 
@@ -188,6 +174,8 @@ export class CompiledCode {
 }
 
 export class ContractUpload {
+  /** Code hash uniquely identifying the compiled code. */
+  codeHash?:   CodeHash
   /** ID of chain on which this contract is uploaded. */
   chainId?:    ChainId
   /** Code ID representing the identity of the contract's code on a specific chain. */
@@ -200,8 +188,6 @@ export class ContractUpload {
   uploadGas?:  string|number
   /** extra info */
   uploadInfo?: string
-  /** Code hash uniquely identifying the compiled code. */
-  codeHash?:   CodeHash
 
   constructor (properties: Partial<ContractUpload> = {}) {
     assign(this, properties, assign.allowed['ContractUpload'])
@@ -209,10 +195,11 @@ export class ContractUpload {
 
   toReceipt () {
     return {
+      codeHash: this.codeHash,
       chainId:  this.chainId,
+      codeId:   this.codeId,
       uploadBy: this.uploadBy,
       uploadTx: this.uploadTx,
-      codeId:   this.codeId
     }
   }
 
@@ -247,10 +234,12 @@ export class ContractUpload {
 }
 
 export class ContractInstance {
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:     CodeId
   /** Code hash uniquely identifying the compiled code. */
   codeHash?:  CodeHash
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  chainId?:   ChainId
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:    CodeId
   /** Full label of the instance. Unique for a given Chain. */
   label?:     Label
   /** Address of this contract instance. Unique per chain. */
@@ -260,7 +249,7 @@ export class ContractInstance {
   /** Address of agent that performed the init tx. */
   initBy?:    Address|Agent
   /** Native tokens to send to the new contract. */
-  initFunds?: ICoin[]
+  initSend?:  ICoin[]
   /** Fee to use for init. */
   initFee?:   unknown
   /** Instantiation memo. */
@@ -277,12 +266,15 @@ export class ContractInstance {
   /** @returns the data for a deploy receipt */
   toReceipt () {
     return {
-      initMsg: this.initMsg,
-      initBy:  this.initBy,
-      initTx:  this.initTx,
-      initGas: this.initGas,
-      address: this.address,
-      label:   this.label,
+      codeHash: this.codeHash,
+      chainId:  this.chainId,
+      codeId:   this.codeId,
+      label:    this.label,
+      address:  this.address,
+      initMsg:  this.initMsg,
+      initBy:   this.initBy,
+      initTx:   this.initTx,
+      initGas:  this.initGas,
     }
   }
 
@@ -309,7 +301,7 @@ export class Contract {
     if (properties?.builder)  this.builder = properties?.builder
     if (properties?.binary)   this.binary = new CompiledCode(properties.binary)
     if (properties?.uploader) this.uploader = properties?.uploader
-    if (properties?.template) this.uploaded = new ContractUpload(properties.template)
+    if (properties?.uploaded) this.uploaded = new ContractUpload(properties.uploaded)
     if (properties?.deployer) this.deployer = properties?.deployer
     if (properties?.instance) this.instance = new ContractInstance(properties.instance)
   }
@@ -397,7 +389,7 @@ export type PartialContract = {
   builder?:  Builder,
   binary?:   Partial<CompiledCode>,
   uploader?: Agent|Address,
-  template?: Partial<ContractUpload>,
+  uploaded?: Partial<ContractUpload>,
   deployer?: Agent|Address,
   instance?: Partial<ContractInstance>
 }
@@ -415,7 +407,7 @@ export class DeploymentUnit extends Contract {
   }
 }
 
-export type DeploymentState = Partial<Returned<Deployment["toReceipt"]>>
+export type DeploymentState = Partial<ReturnType<Deployment["toReceipt"]>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
@@ -449,17 +441,48 @@ export class Deployment extends Map<Name, DeploymentUnit> {
 
   set (name: string, unit: Partial<DeploymentUnit>): this {
     if (!(unit instanceof DeploymentUnit)) unit = new DeploymentUnit(unit)
-    return super.set(name, unit)
+    return super.set(name, unit as DeploymentUnit)
   }
 
-  template (name: string, properties?: PartialContract): Contract {
-    this.set(name, { ...properties, name, isTemplate: true })
-    return this.get(name)!
+  /** Define a template, representing code that can be compiled
+    * and uploaded, but will not be automatically instantiated.
+    * This can then be used to define multiple instances of
+    * the same code. */
+  template (name: string, properties?:
+    Partial<SourceCode> &
+    Partial<CompiledCode> &
+    Partial<ContractUpload>
+  ): DeploymentUnit {
+    const template = new DeploymentUnit({
+      name,
+      deployment: this,
+      isTemplate: true,
+      source:   new SourceCode(properties),
+      binary:   new CompiledCode(properties),
+      uploaded: new ContractUpload(properties)
+    })
+    this.set(name, template)
+    return template
   }
 
-  contract (name: string, properties?: PartialContract): Contract {
-    this.set(name, { ...properties, name, isTemplate: false })
-    return this.get(name)!
+  /** Define a contract that will be automatically compiled, uploaded,
+    * and instantiated as part of this deployment. */ 
+  contract (name: string, properties?:
+    Partial<SourceCode> &
+    Partial<CompiledCode> &
+    Partial<ContractUpload> &
+    Partial<ContractInstance>
+  ): DeploymentUnit {
+    const contract = new DeploymentUnit({
+      name,
+      deployment: this,
+      isTemplate: true,
+      source:   new SourceCode(properties),
+      binary:   new CompiledCode(properties),
+      uploaded: new ContractUpload(properties)
+    })
+    this.set(name, contract)
+    return contract
   }
 
   async build (
@@ -495,12 +518,12 @@ export class Deployment extends Map<Name, DeploymentUnit> {
   ): Promise<Record<Address, ContractInstance & { address: Address }>> {
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
     for (const [name, contract] of this.entries()) {
-      console.log({name, contract})
-      if (contract.isTemplate) continue
-      deploying.push(contract.deploy({
-        ...contract.instance,
-        ...options,
-      }))
+      if (!contract.isTemplate) {
+        deploying.push(contract.deploy({
+          ...contract.instance,
+          ...options,
+        }))
+      }
     }
     const deployed: Record<Address, ContractInstance & { address: Address }> = {}
     for (const output of await Promise.all(deploying)) {
