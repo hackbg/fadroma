@@ -498,7 +498,7 @@ class ScrtAgent extends Agent {
   ): Promise<TxResponse> {
     const { api, address } = await this.ready
     const tx = {
-      sender:           address,
+      sender:           address!,
       contract_address: contract.address,
       code_hash:        contract.codeHash,
       msg:              message as Record<string, unknown>,

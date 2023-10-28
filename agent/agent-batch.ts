@@ -34,9 +34,7 @@ export abstract class Batch implements BatchAgent {
 
   get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
 
-  get log () {
-    return new Console(`${this.address} @ ${this.chain?.id} (batched: ${this.msgs.length})`)
-  }
+  log = new Console(this.constructor.name)
 
   get ready () { return this.agent.ready.then(()=>this) }
 
@@ -114,7 +112,7 @@ export abstract class Batch implements BatchAgent {
     options: {
       label:      Name,
       initMsg:    Into<Message>,
-      initFee?:   ICoin[]|'auto',
+      initFee?:   unknown,
       initFunds?: ICoin[],
       initMemo?:  string,
     }
@@ -133,7 +131,6 @@ export abstract class Batch implements BatchAgent {
       funds:    options.initFunds || [],
       memo:     options.initMemo  || ''
     } })
-    this.log('added instantiate message')
     return new ContractInstance({
       chainId:  this.agent.chain!.id,
       address:  '(batch not submitted)',
@@ -167,7 +164,6 @@ export abstract class Batch implements BatchAgent {
     if (!contracts) {
       throw new Error('no contracts passed to instantiateMany')
     }
-    this.log(`adding ${Object.values(contracts).length} instantiate messages`)
     const outputs: any = (contracts instanceof Array) ? [] : {}
     await Promise.all(Object.entries(contracts).map(async ([key, contract]: [Name, ContractInstance])=>{
       if (contract.address) {
@@ -199,7 +195,6 @@ export abstract class Batch implements BatchAgent {
       codeHash = contract.codeHash
     }
     this.add({ exec: { sender: this.address, contract: address, codeHash, msg, funds: send } })
-    this.log(`added execute message`)
     return this
   }
   /** Queries are disallowed in the middle of a batch because

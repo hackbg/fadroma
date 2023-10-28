@@ -5,7 +5,7 @@ import type { ChainClass } from '@fadroma/connect'
 import { connectModes, CW, Scrt } from '@fadroma/connect'
 import { Config } from './ops/config'
 
-// Installs devnets as selectable chains:
+// Install devnets as selectable chains:
 Object.assign(connectModes, {
 
   'ScrtDevnet': Scrt.Chain.devnet =

@@ -25,8 +25,8 @@ import { randomBytes } from 'node:crypto'
 const thisPackage = dirname(dirname(fileURLToPath(import.meta.url)))
 
 /** @returns Devnet configured as per environment and options. */
-export function getDevnet (options: Partial<DevnetConfig> = {}) {
-  return new DevnetConfig(options).getDevnet()
+export function getDevnet (options: Partial<Devnet> = {}) {
+  return new DevnetConfig().getDevnet(options)
 }
 
 /** Supported devnet variants. Add new devnets here first. */

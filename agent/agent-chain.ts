@@ -22,7 +22,8 @@ import type {
   Address, Message, ICoin, IFee, CodeHash,
   Class, Name, Many, CodeId,
   Into, TxHash, Label,
-  Batch, BatchClass, BatchCallback
+  Batch, BatchClass, BatchCallback,
+  UploadStore
 } from './agent'
 import {
   ContractTemplate,
@@ -31,7 +32,7 @@ import {
   ContractClientClass
 } from './agent-contract'
 import {
-  Error, Console, into, mapAsync, hideProperties, randomBytes
+  Error, Console, bold, into, mapAsync, hideProperties, randomBytes
 } from './agent-base'
 
 /** A chain can be in one of the following modes: */
@@ -147,11 +148,6 @@ export abstract class Chain {
       writable: true,
     })
 
-    Object.defineProperty(this.log, 'label', {
-      enumerable: true,
-      get: () => `${this.id} @ ${this.url}`
-    })
-
     Object.defineProperty(this, 'Agent', {
       enumerable: false,
       writable: true
@@ -160,7 +156,7 @@ export abstract class Chain {
   }
 
   /** Logger. */
-  log = new Console('@fadroma/agent: Chain')
+  log = new Console(this.constructor.name)
 
   /** The API URL to use. */
   url: string = ''
@@ -346,7 +342,7 @@ export interface AgentClass<A extends Agent> extends Class<A, ConstructorParamet
 export abstract class Agent {
 
   /** Logger. */
-  log = new Console('@fadroma/agent: Agent')
+  log = new Console(this.constructor.name)
 
   /** The friendly name of the agent. */
   name?:     string
@@ -455,8 +451,10 @@ export abstract class Agent {
   async upload (
     code: string|URL|Uint8Array|Partial<ContractTemplate>,
     options: {
-      uploadFee?:  ICoin[]|'auto',
-      uploadMemo?: string
+      reupload?:    boolean,
+      uploadStore?: UploadStore,
+      uploadFee?:   ICoin[]|'auto',
+      uploadMemo?:  string
     } = {},
   ): Promise<ContractTemplate & {
     chainId: ChainId,
@@ -474,12 +472,25 @@ export abstract class Agent {
       const t0 = performance.now()
       template = await (code as ContractTemplate).fetchCode()
       const t1 = performance.now() - t0
-      this.log.debug(`Fetched in ${t1.toFixed(3)}msec:`, code)
+      this.log.log(
+        `Fetched in`,
+        bold(t1.toFixed(3)),
+        `msec:`,
+        bold(String(code.codeData?.length)),
+        `bytes`
+      )
     }
     const t0 = performance.now()
     const result = await this.doUpload(template, options)
     const t1 = performance.now() - t0
-    this.log.debug(`Uploaded in ${t1.toFixed(3)}msec:`, result)
+    this.log.log(
+      `Uploaded in`,
+      bold(t1.toFixed(3)),
+      `msec: code id`,
+      bold(String(result.codeId)),
+      `on chain`,
+      bold(result.chainId)
+    )
     return new ContractTemplate({ ...template, ...result }) as ContractTemplate & {
       chainId: ChainId,
       codeId:  CodeId,
@@ -491,9 +502,7 @@ export abstract class Agent {
     codes: Many<string|URL|Uint8Array|Partial<ContractTemplate>>,
     options: Parameters<typeof this["upload"]>[1]
   ) {
-    return mapAsync(codes, async code => {
-      await this.upload(code, options)
-    })
+    return mapAsync(codes, code => this.upload(code, options))
   }
 
   protected abstract doUpload (
@@ -553,7 +562,7 @@ export abstract class Agent {
       initMsg: await into(options.initMsg)
     })
     const t1 = performance.now() - t0
-    this.log.debug(`Instantiated in ${t1.toFixed(3)}msec:`, result)
+    this.log.debug(`Instantiated in ${t1.toFixed(3)} msec:`, result)
     return new ContractInstance({ ...template, ...result }) as ContractInstance & {
       address: Address,
     }

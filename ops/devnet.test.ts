@@ -9,6 +9,7 @@ import { Project, getDevnet, Devnet, Agent } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
+import { getBuilder } from './build'
 
 //@ts-ignore
 export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
@@ -52,7 +53,7 @@ export async function testDevnetCopyUploads () {
   const chain1    = devnet1.getChain()
   const agent1    = await chain1.getAgent({ name: 'Admin' }).ready
   const crate     = resolve(packageRoot, 'examples', 'cw-null')
-  const artifact  = await build(crate)
+  const artifact  = await getBuilder().build(crate)
   const uploaded1 = await agent1.upload(artifact)
   const uploaded2 = await agent1.upload(artifact)
   const devnet2   = new Devnet({ platform: 'okp4_5.0' })

@@ -188,6 +188,14 @@ export class Project extends CommandContext {
     'create', 'create a new project',
     Project.wizard)
 
+  /** Write the files representing the described project to the root directory.
+    * @returns this */
+  create () {
+    writeProject(this)
+    this.log("created at", this.root.shortPath)
+    return this
+  }
+
   /** Builds one or more named templates, or all templates if no arguments are passed. */
   build = this.command(
     'build', 'build the project or specific contracts from it',
@@ -224,34 +232,41 @@ export class Project extends CommandContext {
   upload = this.command(
     'upload', 'upload the project or specific contracts from it',
     async (...names: string[]): Promise<ContractTemplate[]> => {
-      if (names.length < 1) {
-        names = Object.keys(this.templates)
-        if (names.length > 0) {
-          this.log.log('Uploading all:', names.join(', '))
-          return await this.upload(...names)
-        }
-        this.log.warn('Uploading 0 contracts.')
-        return []
-      }
-      const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
-        if (!template) this.log.warn(`No such template in project: ${names[i]}`)
-        return !!template
-      }) as ContractTemplate[]
-      if (sources.length < 1) {
-        this.log.warn('Nothing to upload.')
-        return []
-      }
-      return Object.values(await this.config.getAgent().uploadMany(
-        this.builder ? await this.builder.buildMany(sources) : sources,
-        { store: this.uploadStore }
-      ))
+      let sources: Partial<CompiledCode>[] = await this.getSources(names)
+      if (this.builder) sources = await this.builder.buildMany(sources)
+      const options = { uploadStore: this.uploadStore, reupload: false }
+      return Object.values(await this.config.getAgent().uploadMany(sources, options))
     })
 
   reupload = this.command(
     'reupload', 'reupload the project or specific contracts from it',
-    (...names: string[]): Promise<ContractTemplate[]> => {
-      return this.upload({ names, store: false })
+    async (...names: string[]): Promise<ContractTemplate[]> => {
+      let sources: Partial<CompiledCode>[] = await this.getSources(names)
+      if (this.builder) sources = await this.builder.buildMany(sources)
+      const options = { uploadStore: this.uploadStore, reupload: true }
+      return Object.values(await this.config.getAgent().uploadMany(sources, options))
     })
+
+  protected async getSources (names: string[]) {
+    if (names.length < 1) {
+      names = Object.keys(this.templates)
+      if (names.length > 0) {
+        this.log.log('Uploading all:', names.join(', '))
+        return await this.upload(...names)
+      }
+      this.log.warn('Uploading 0 contracts.')
+      return []
+    }
+    const sources = names.map(name=>this.getTemplate(name)).filter((template, i)=>{
+      if (!template) this.log.warn(`No such template in project: ${names[i]}`)
+      return !!template
+    }) as ContractTemplate[]
+    if (sources.length < 1) {
+      this.log.warn('Nothing to upload.')
+      return []
+    }
+    return sources
+  }
     
   deploy = this.command(
     'deploy', 'deploy this project or continue an interrupted deployment',
@@ -274,6 +289,12 @@ export class Project extends CommandContext {
       return await this.deploy(...args)
     })
 
+  createDeployment (name: string = timestamp()) {
+    const deployment = new this.Deployment({ name })
+    this.deployStore.set(name, deployment)
+    return this.selectDeployment(name)
+  }
+
   selectDeployment = this.command(
     'select', `activate another deployment`, 
     async (name?: string): Promise<Deployment|undefined> => {
@@ -295,26 +316,13 @@ export class Project extends CommandContext {
         } else {
           throw new Error(`No such deployment: ${name}`)
         }
-      } else if (store.activeName) {
-        return new this.Deployment(store.get(store.activeName))
-      } else {
-        throw new Error('No active deployment in this store and no name passed')
       }
     })
 
   exportDeployment = this.command(
     'export', `export current deployment to JSON`,
-    (path?: string) => {
-      const store = this.deployStore
-      if (!store) {
-        this.log.error('No deployment store.')
-        return
-      }
-      const name = store.activeName
-      if (!name) throw new Error.Missing.Deployment()
-      const state = store.get(name)
-      if (!state) throw new Error.Missing.Deployment()
-      const deployment = this.getDeployment()
+    async (path?: string) => {
+      const deployment = await this.selectDeployment()
       if (!deployment) throw new Error.Missing.Deployment()
       if (!path) path = process.cwd()
       // If passed a directory, generate file name
@@ -407,20 +415,6 @@ export class Project extends CommandContext {
 
   listDeployments () {
     return this.log.deploy.deploymentList(this.config.chainId??'(unspecified)', this.deployStore)
-  }
-
-  createDeployment (name: string = timestamp()) {
-    const deployment = new this.Deployment({ name })
-    this.deployStore.set(name, deployment)
-    return this.selectDeployment(name)
-  }
-
-  /** Write the files representing the described project to the root directory.
-    * @returns this */
-  create () {
-    writeProject(this)
-    this.log("created at", this.root.shortPath)
-    return this
   }
 
   /** Create a Git repository in the project directory and make an initial commit.
