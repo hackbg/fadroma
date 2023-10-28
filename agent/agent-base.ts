@@ -314,7 +314,7 @@ class AgentConsole extends Console {
   }
   deployment (deployment: Deployment, name = deployment?.name) {
     if (!deployment) return this.info('(no deployment)')
-    const contracts = Object.fromEntries(deployment.contracts.entries())
+    const contracts = Object.fromEntries(deployment.entries())
     const len = Math.max(40, Object.keys(contracts).reduce((x,r)=>Math.max(x,r.length),0))
     const count = Object.values(contracts).length
     if (count <= 0) return this.info(`${name} is an empty deployment`)

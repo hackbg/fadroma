@@ -71,7 +71,6 @@ export class StubAgent extends Agent {
     return Promise.resolve(new ContractUpload({
       chainId:  this.chain!.id,
       codeId:   String(this.lastCodeHash),
-      codeHash: 'stub-code-hash'
     }))
   }
 
@@ -89,10 +88,8 @@ export class StubAgent extends Agent {
     address: Address
   }> {
     return Promise.resolve(new ContractInstance({
-      chainId:  this.chain!.id,
-      address:  'stub',
-      codeHash: '',
-      label:    ''
+      address: 'stub',
+      label: ''
     }) as ContractInstance & { address: Address })
   }
 
