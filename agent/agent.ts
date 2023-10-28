@@ -19,11 +19,11 @@
 **/
 
 import { Batch } from './agent-batch'
-import { StubChain, StubAgent } from './agent-stub'
 import { Chain, Agent } from './agent-chain'
+import { StubChain, StubAgent, StubBatch } from './agent-stub'
 
 bindChainSupport(Chain, Agent, Batch)
-bindChainSupport(StubChain, StubAgent, Batch)
+bindChainSupport(StubChain, StubAgent, StubBatch)
 
 /** Set the `Chain.Agent` and `Agent.Batch` static properties.
   * This is how a custom Chain implementation knows how to use

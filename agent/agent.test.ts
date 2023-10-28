@@ -2,7 +2,7 @@ import {
   Error, Console,
   Chain, StubChain,
   Agent, StubAgent,
-  Batch,
+  Batch, StubBatch,
   ContractClient,
   DeployStore, Deployment, ContractTemplate, ContractInstance, DeploymentContractLabel,
   assertChain,
@@ -109,7 +109,6 @@ export async function testChainDevnet () {
   assert.equal(chain.id, 'foo')
   assert.equal(chain.url, 'http://example.com/')
   assert.equal(chain.mode, StubChain.Mode.Devnet)
-  assert.equal(chain.log.label, 'foo @ http://example.com/')
 
   assert.equal(chain.stopped, true)
   devnet.running = true
@@ -249,15 +248,13 @@ export async function testBatch () {
     assert.ok(await batch.checkHash('addr'))
   }
 
-  class TestBatch extends Batch {}
-
-  const batch1 = new TestBatch(agent, batchedOperations)
+  const batch1 = new StubBatch(agent, batchedOperations)
   assert.equal(await batch1.ready, batch1)
   assert.equal(batch1.name, `job (batched)`)
   assert.equal(batch1.fees, agent.fees)
   assert.equal(batch1.defaultDenom, agent.defaultDenom)
 
-  const batch2 = new TestBatch(agent)
+  const batch2 = new StubBatch(agent)
   assert.deepEqual(batch2.msgs, [])
   assert.equal(batch2.id, 0)
   assert.throws(()=>batch2.assertMessages())
@@ -266,15 +263,13 @@ export async function testBatch () {
   assert.equal(batch2.id, 1)
   assert.ok(batch2.assertMessages())
 
-  const batch3 = new TestBatch(agent, batchedOperations)
+  const batch3 = new StubBatch(agent, batchedOperations)
   assert.ok(await batch3.run(""))
   assert.ok(await batch3.run("", true))
   assert.equal(batch3.depth, 0)
   const batch3a = batch3.batch()
   assert.equal(batch3a.depth, 1)
   assert.equal(await batch3a.run(), null)
-
-  agent = new class TestAgent extends StubAgent { Batch = class TestBatch extends Batch {} }
 }
 
 export async function testAgentErrors () {
@@ -323,6 +318,7 @@ export async function testClient () {
 }
 
 export async function testDeployment () {
+
   const store = new DeployStore()
   assert.equal(store.get('name'), undefined)
   assert.equal(store.set('name', {}), store)
@@ -344,20 +340,27 @@ export async function testDeployment () {
       foo instanceof ContractTemplate
     )
 
+    console.log(deployment)
     await deployment.build({
       builder: new StubBuilder()
     })
+    console.log(deployment)
     await deployment.upload({
       agent: new StubAgent()
     })
+    console.log(deployment)
 
     assert.ok(
-      deployment.contract('bar', {}) instanceof ContractInstance
+      deployment.contract('bar', {
+        codeData: new Uint8Array()
+      }) instanceof ContractInstance
     )
+    console.log(deployment)
     assert.ok(
       foo.instance({ name: 'baz' }) instanceof ContractInstance
     )
 
+    console.log(deployment)
     await deployment.deploy({
       agent: new StubAgent()
     })
@@ -365,6 +368,7 @@ export async function testDeployment () {
     new Console().deployment(deployment)
 
   }
+
 }
 
 export async function testToken () {

@@ -65,15 +65,15 @@ export class MyDeployment extends Deployment {
 
   // Single template instance with eager and lazy initMsg
   a1 = this.t.instance({ name: 'a1', initMsg: {} })
-  a2 = this.t.instance({ name: 'a2', initMsg: () => {} })
-  a3 = this.t.instance({ name: 'a3', initMsg: async () => {} })
+  a2 = this.t.instance({ name: 'a2', initMsg: () => ({}) })
+  a3 = this.t.instance({ name: 'a3', initMsg: async () => ({}) })
 
   // Multiple template instances as array
   // with varying initMsg eagerness
   b = this.t.instances([
     { name: 'b1', initMsg: {} },
-    { name: 'b2', initMsg: ()=>{} },
-    { name: 'b3', initMsg: async ()=>{} }
+    { name: 'b2', initMsg: () => ({}) },
+    { name: 'b3', initMsg: async () => ({}) }
   ])
 
   // Multiple template instances as object
@@ -81,7 +81,7 @@ export class MyDeployment extends Deployment {
   // (named automatically)
   c = this.t.instances({
     c1: { initMsg: {} },
-    c2: { initMsg: () => {} },
-    c3: { initMsg: async () => {} }
+    c2: { initMsg: () => ({}) },
+    c3: { initMsg: async () => ({}) }
   })
 }

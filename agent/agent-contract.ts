@@ -38,6 +38,142 @@ import { map } from '@hackbg/many'
 
 const console = new Console()
 
+/** Represents the lifecycle of a smart contract.
+  * Can deploy itself from source to a given chain,
+  * if provided with the necessary properties. */
+export class Contract {
+  source?:   SourceCode
+  builder?:  Builder
+  binary?:   CompiledCode
+  uploader?: Agent|Address
+  template?: ContractTemplate
+  deployer?: Agent|Address
+  instance?: ContractInstance
+  constructor (properties: {
+    source?:   Partial<SourceCode>,
+    builder?:  Builder,
+    binary?:   Partial<CompiledCode>,
+    uploader?: Agent,
+    template?: Partial<ContractTemplate>,
+    deployer?: Agent,
+    instance?: Partial<ContractInstance>
+  } = {}) {
+    if (properties.source) this.source = new SourceCode(properties.source)
+    this.builder = properties.builder
+    if (properties.binary) this.binary = new CompiledCode(properties.binary)
+    this.uploader = properties.uploader
+    if (properties.template) this.template = new ContractTemplate(properties.template)
+    this.deployer = properties.deployer
+    if (properties.instance) this.instance = new ContractInstance(properties.instance)
+  }
+  async compile ({
+    builder = this.builder,
+    rebuild = false,
+  }: {
+    builder: Builder|undefined
+    rebuild: boolean
+  }): Promise<CompiledCode> {
+    if (this.binary?.valid && !rebuild) {
+      return this.binary
+    }
+    if (!builder) {
+      throw new Error("can't compile: no builder")
+    }
+    if (!this.source?.valid) {
+      throw new Error("can't compile: no source")
+    }
+    this.binary = await builder.build(this.source)
+    if (!this.binary?.valid) {
+      throw new Error("build failed")
+    }
+    return this.binary
+  }
+  async upload ({
+    builder  = this.builder,
+    rebuild  = false,
+    uploader = this.uploader,
+    reupload = rebuild
+  }: Parameters<this["compile"]>[0] & {
+    uploader: Agent|Address|undefined,
+    reupload: boolean,
+  }) {
+    if (this.template?.valid && !reupload && !rebuild) {
+      return this.template
+    }
+    if (!uploader || (typeof uploader === 'string')) {
+      throw new Error("can't upload: no uploader agent")
+    }
+    const binary = await this.compile({ builder, rebuild })
+    this.template = await uploader.upload(binary)
+    if (!this.template?.valid) {
+      throw new Error("upload failed")
+    }
+    return this.template
+  }
+  async deploy ({
+    builder  = this.builder,
+    rebuild  = false,
+    uploader = this.uploader,
+    reupload = rebuild,
+    deployer = this.deployer,
+    redeploy = reupload,
+    ...init
+  }: Parameters<this["upload"]>[0] & {
+    deployer: Agent|Address|undefined,
+    redeploy: boolean,
+  } & Parameters<Agent["instantiate"]>[1]) {
+    if (this.instance?.valid && !redeploy && !reupload && !rebuild) {
+      return this.instance
+    }
+    if (!deployer || (typeof deployer === 'string')) {
+      throw new Error("can't deploy: no deployer agent")
+    }
+    const template = await this.upload({ builder, rebuild, uploader, reupload })
+    this.instance = await deployer.instantiate(template, init)
+    if (!this.instance.valid) {
+      throw new Error("init failed")
+    }
+    return this.instance
+  }
+}
+
+/** Helper for assigning only allowed properties of value object:
+  * - safe, can't set unsupported properties 
+  * - no need to state property name thrice
+  * - doesn't leave `undefined`s */
+export function assign <T extends {}> (
+  object: T, properties: Partial<T> = {}, allowed: (keyof T)[] = []
+) {
+  for (const property of allowed) {
+    if (property in properties) (object[property] as unknown) = properties[property]
+  }
+}
+
+/** Allowlist for the value objects below. */
+assign.allowed = {
+  source: [
+    'repository', 'revision', 'dirty', 'workspace', 'crate', 'features',
+  ] as Array<keyof SourceCode>,
+  compiled: [
+    'buildInfo', 'codeHash', 'codePath', 'codeData'
+  ] as Array<keyof CompiledCode>,
+  template: [
+    'deployment', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
+  ] as Array<keyof ContractTemplate>,
+  instance: [
+    'name', 'prefix', 'suffix', 'label', 'address',
+    'initMsg', 'initBy', 'initFunds', 'initFee', 'initMemo', 'initTx', 'initGas'
+  ] as Array<keyof ContractInstance>,
+}
+
+/** A contract that is part of a deploment.
+  * - needed for deployment-wide deduplication
+  * - generates structured label */
+export class DeploymentUnit extends Contract {
+  deployment?: Deployment
+  // TODO
+}
+
 export class SourceCode {
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL
@@ -53,12 +189,7 @@ export class SourceCode {
   features?: string[]
 
   constructor (properties: Partial<SourceCode> = {}) {
-    this.repository = properties.repository ?? this.repository
-    this.revision   = properties.revision   ?? this.revision
-    this.dirty      = properties.dirty      ?? this.dirty
-    this.workspace  = properties.workspace  ?? this.workspace
-    this.crate      = properties.crate      ?? this.crate
-    this.features   = properties.features   ?? this.features
+    assign(this, properties, assign.allowed.source)
   }
 
   get [Symbol.toStringTag] () {
@@ -90,9 +221,12 @@ export class SourceCode {
     if (dirty) result = `(*)${result}`
     return result
   }
+
+  get valid () { return false }
 }
 
 export class CompiledCode extends SourceCode {
+
   buildInfo?: string
   /** Code hash uniquely identifying the compiled code. */
   codeHash?: CodeHash
@@ -103,10 +237,7 @@ export class CompiledCode extends SourceCode {
 
   constructor (properties: Partial<CompiledCode> = {}) {
     super(properties)
-    this.buildInfo = properties.buildInfo ?? this.buildInfo
-    this.codeHash  = properties.codeHash  ?? this.codeHash
-    this.codePath  = properties.codePath  ?? this.codePath
-    this.codeData  = properties.codeData  ?? this.codeData
+    assign(this, properties, assign.allowed.compiled)
   }
 
   get [Symbol.toStringTag] () {
@@ -177,6 +308,8 @@ export class CompiledCode extends SourceCode {
       codeId:  CodeId
     }
   }
+
+  get valid () { return false }
 }
 
 export class ContractTemplate extends CompiledCode {
@@ -189,7 +322,7 @@ export class ContractTemplate extends CompiledCode {
   /** TXID of transaction that performed the upload. */
   uploadTx?:   TxHash
   /** address of agent that performed the upload. */
-  uploadBy?:   Address
+  uploadBy?:   Address|Agent
   /** address of agent that performed the upload. */
   uploadGas?:  string|number
   /** extra info */
@@ -197,13 +330,8 @@ export class ContractTemplate extends CompiledCode {
 
   constructor (properties: Partial<ContractTemplate> = {}) {
     super(properties)
-    this.deployment = properties.deployment ?? this.deployment
-    this.chainId    = properties.chainId    ?? this.chainId
-    this.codeId     = properties.codeId     ?? this.codeId
-    this.uploadTx   = properties.uploadTx   ?? this.uploadTx
-    this.uploadBy   = properties.uploadBy   ?? this.uploadBy
-    this.uploadGas  = properties.uploadGas  ?? this.uploadGas
-    this.uploadInfo = properties.uploadInfo ?? this.uploadInfo
+    assign(this, properties, assign.allowed.template)
+    Object.defineProperty(this, 'deployment', { enumerable: false, configurable: true })
   }
 
   toUploadReceipt () {
@@ -246,7 +374,18 @@ export class ContractTemplate extends CompiledCode {
   }
 
   instance (options: Partial<ContractInstance>): ContractInstance {
-    return new ContractInstance({ ...options, ...this })
+    const instance = new ContractInstance(options)
+    Object.setPrototypeOf(instance, this)
+    for (const property of [
+      ...assign.allowed.source,
+      ...assign.allowed.compiled,
+      ...assign.allowed.template,
+    ]) {
+      Object.defineProperty(this, property, { enumerable: true })
+    }
+    if (!instance.name) throw new Error.Missing.Name()
+    if (this.deployment) this.deployment.contracts.set(instance.name, instance)
+    return instance
   }
 
   /** Get a collection of multiple contracts from this template.
@@ -254,6 +393,8 @@ export class ContractTemplate extends CompiledCode {
   instances (contracts: Many<Partial<ContractInstance>>): Many<ContractInstance> {
     return map(contracts, contract=>this.instance(contract))
   }
+
+  get valid () { return false }
 }
 
 export class ContractInstance extends ContractTemplate {
@@ -270,7 +411,7 @@ export class ContractInstance extends ContractTemplate {
   /** Contents of init message. */
   initMsg?:   Into<Message>
   /** Address of agent that performed the init tx. */
-  initBy?:    Address
+  initBy?:    Address|Agent
   /** Native tokens to send to the new contract. */
   initFunds?: ICoin[]
   /** Fee to use for init. */
@@ -284,18 +425,7 @@ export class ContractInstance extends ContractTemplate {
 
   constructor (properties: Partial<ContractInstance> = {}) {
     super(properties as Partial<ContractTemplate>)
-    this.name      = properties.name      ?? this.name
-    this.prefix    = properties.prefix    ?? this.prefix
-    this.suffix    = properties.suffix    ?? this.suffix
-    this.label     = properties.label     ?? this.label
-    this.address   = properties.address   ?? this.address
-    this.initMsg   = properties.initMsg   ?? this.initMsg
-    this.initBy    = properties.initBy    ?? this.initBy
-    this.initFunds = properties.initFunds ?? this.initFunds
-    this.initFee   = properties.initFee   ?? this.initFee
-    this.initMemo  = properties.initMemo  ?? this.initMemo
-    this.initTx    = properties.initTx    ?? this.initTx
-    this.initGas   = properties.initGas   ?? this.initGas
+    assign(this, properties, assign.allowed.instance)
   }
 
   /** @returns the data for a deploy receipt */
@@ -326,6 +456,7 @@ export class ContractInstance extends ContractTemplate {
     return new $C(this, agent)
   }
 
+  get valid () { return false }
 }
 
 export type DeploymentState = Partial<ReturnType<InstanceType<typeof Deployment>["toReceipt"]>>
@@ -363,11 +494,8 @@ export class Deployment {
   }
 
   constructor (properties: Partial<Deployment> = {}) {
-    this.name = properties.name ?? this.name ?? timestamp()
-    this.mode = properties.mode ?? this.mode
-    this.store = properties.store ?? this.store
-    this.templates = properties.templates ?? this.templates
-    this.contracts = properties.contracts ?? this.contracts
+    assign(this, properties, [ 'name', 'mode', 'store', 'templates', 'contracts' ])
+    this.name ??= timestamp()
   }
 
   toReceipt () {
@@ -444,8 +572,6 @@ export class Deployment {
     if (!options.agent) {
       throw new Error.Missing.Agent()
     }
-    console.log({deployment:this})
-    console.log({contracts:this.contracts})
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
     for (const [name, contract] of this.contracts.entries()) {
       deploying.push(contract.instantiate(options.agent, {}))
