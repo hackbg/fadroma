@@ -1,7 +1,6 @@
 import type { Address, CodeHash, Message, CodeId, ICoin, Label } from './agent-base'
 import { Chain, Agent } from './agent-chain'
 import { Batch } from './agent-batch'
-import type { ExecOpts } from './agent-chain'
 import { ContractUpload, ContractInstance } from './agent-contract'
 
 export class StubChain extends Chain {
@@ -54,12 +53,12 @@ export class StubAgent extends Agent {
   }
 
   /** Stub implementation of sending native token. */
-  send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
+  send (to: Address, amounts: ICoin[], opts?: never): Promise<void|unknown> {
     return Promise.resolve()
   }
 
   /** Stub implementation of batch send. */
-  sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
+  sendMany (outputs: [Address, ICoin[]][], opts?: never): Promise<void|unknown> {
     return Promise.resolve()
   }
 
@@ -97,7 +96,7 @@ export class StubAgent extends Agent {
   protected doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: ExecOpts
+    options?: never
   ): Promise<void|unknown> {
     return Promise.resolve({})
   }

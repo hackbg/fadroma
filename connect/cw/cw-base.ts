@@ -10,10 +10,7 @@ import {
   ContractInstance
 } from '@fadroma/agent'
 
-import type {
-  Address, Message, ExecOpts, CodeId, CodeHash,
-  ContractTemplate, Label
-} from '@fadroma/agent'
+import type { Address, Message, CodeId, CodeHash, ContractUpload, Label } from '@fadroma/agent'
 
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
 import type { logs, OfflineSigner as Signer, Block, StdFee } from '@hackbg/cosmjs-esm'
@@ -192,16 +189,23 @@ class CWAgent extends Agent {
   }
 
   /** Stargate implementation of sending native token. */
-  send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
+  send (
+    recipient: Address,
+    amounts:   ICoin[],
+    options?:  Parameters<Agent["send"]>[2]
+  ): Promise<void|unknown> {
     throw new Error('not implemented')
   }
 
   /** Stargate implementation of batch send. */
-  sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
+  sendMany (
+    outputs:  [Address, ICoin[]][],
+    options?: Parameters<Agent["sendMany"]>[1]
+  ): Promise<void|unknown> {
     throw new Error('not implemented')
   }
 
-  protected async doUpload (data: Uint8Array): Promise<Partial<ContractTemplate>> {
+  protected async doUpload (data: Uint8Array): Promise<Partial<ContractUpload>> {
     const { api } = await this.ready
     if (!this.address) throw new Error.Missing.Address()
     const result = await api.upload(
@@ -219,45 +223,31 @@ class CWAgent extends Agent {
 
   /** Instantiate a contract via CosmJS Stargate. */
   protected async doInstantiate (
-    codeId: CodeId,
-    options: {
-      label:      Label,
-      initMsg:    Message,
-      initFee?:   StdFee|'auto',
-      initFunds?: ICoin[],
-      initMemo?:  string,
-      codeHash?:  CodeHash
-    }
+    codeId:  CodeId,
+    options: Parameters<Agent["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
     const { api } = await this.ready
-    const { initFee, initFunds, initMemo } = options
-
     const result = await api.instantiate(
       this.address!,
       Number(codeId),
       options.initMsg,
       options.label,
       options.initFee || 'auto',
-      {
-        funds: initFunds,
-        admin: this.address,
-        memo:  options.initMemo
-      }
+      { admin: this.address, funds: options.initFunds, memo: options.initMemo }
     )
-
     return {
       codeId,
-      codeHash: options.codeHash,
-      label:    options.label,
-      initMsg:  options.initMsg,
-      chainId:  assertChain(this).id,
-      address:  result.contractAddress,
-      initTx:   result.transactionHash,
-      initGas:  result.gasUsed,
-      initBy:   this.address,
-      initFee,
-      initFunds,
-      initMemo
+      codeHash:  options.codeHash,
+      label:     options.label,
+      initMsg:   options.initMsg,
+      chainId:   assertChain(this).id,
+      address:   result.contractAddress,
+      initTx:    result.transactionHash,
+      initGas:   result.gasUsed,
+      initBy:    this.address,
+      initFee:   options.initFee || 'auto',
+      initFunds: options.initFunds,
+      initMemo:  options.initMemo
     }
   }
 
@@ -265,12 +255,23 @@ class CWAgent extends Agent {
   protected async doExecute (
     contract: { address: Address },
     message:  Message,
-    options:  ExecOpts = {}
+    options:  Parameters<Agent["execute"]>[2] = {}
   ): Promise<unknown> {
     const { api } = await this.ready
     if (!this.address) throw new CWError("agent.execute: no agent address")
-    const { send, memo, fee = this.fees?.exec || 'auto' } = options
-    return await api.execute(this.address, contract.address, message, fee, memo, send)
+    const {
+      execSend,
+      execMemo,
+      execFee = this.fees?.exec || 'auto'
+    } = options
+    return await api.execute(
+      this.address,
+      contract.address,
+      message,
+      execFee,
+      execMemo,
+      execSend
+    )
   }
 
   /** Query a contract. */

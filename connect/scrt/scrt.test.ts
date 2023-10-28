@@ -33,6 +33,7 @@ async function testScrtChain () {
   assert.ok(await chain.fetchLimits())
   const alice = await chain.getAgent({ name: 'Alice' }).ready
   assert.ok(alice.address)
+  console.log({alice})
   assert.ok((alice as Scrt.Agent).api instanceof SecretJS.SecretNetworkClient)
   const bob = await chain.getAgent({ name: 'Bob' }).ready
   //assert(alice.wallet instanceof SecretJS.Wallet)

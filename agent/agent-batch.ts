@@ -2,7 +2,7 @@ import { Error, Console, into } from './agent-base'
 import type {
   Class, Message, CodeId, Address, Name, Into, ICoin, Many, CodeHash
 } from './agent-base'
-import type { Agent, ExecOpts } from './agent-chain'
+import type { Agent } from './agent-chain'
 import { ContractInstance } from './agent-contract'
 
 /** A constructor for a Batch subclass. */
@@ -58,18 +58,19 @@ export abstract class Batch implements BatchAgent {
   }
 
   /** Either submit or save the batch. */
-  async run (opts: ExecOpts|string = "", save: boolean = false): Promise<any> {
-    this.log(save ? 'Saving' : 'Submitting')
-    if (typeof opts === 'string') opts = { memo: opts }
-    const { memo = '' } = opts ?? {}
+  async run (options: Partial<{
+    memo: string,
+    save: boolean
+  }> = {}): Promise<unknown> {
+    this.log(options.save ? 'Saving' : 'Submitting')
     if (this.depth > 0) {
       this.log.warn('Unnesting batch. Depth:', --this.depth)
       this.depth--
       return null as any // result ignored
-    } else if (save) {
-      return this.save(memo)
+    } else if (options.save) {
+      return this.save(options.memo)
     } else {
-      return this.submit(memo)
+      return this.submit(options.memo)
     }
   }
 
@@ -183,8 +184,8 @@ export abstract class Batch implements BatchAgent {
   /** Add an exec message to the batch. */
   async execute (
     contract: Address|{ address: Address, codeHash?: CodeHash },
-    msg: Message,
-    { send }: ExecOpts = {}
+    message:  Message,
+    options:  Parameters<Agent["execute"]>[2] = {}
   ): Promise<this> {
     let address: Address
     let codeHash: CodeHash|undefined = undefined
@@ -194,7 +195,15 @@ export abstract class Batch implements BatchAgent {
       address = contract.address
       codeHash = contract.codeHash
     }
-    this.add({ exec: { sender: this.address, contract: address, codeHash, msg, funds: send } })
+    this.add({
+      exec: {
+        sender:   this.address,
+        contract: address,
+        codeHash,
+        msg:      message,
+        funds:    options.execSend
+      }
+    })
     return this
   }
   /** Queries are disallowed in the middle of a batch because
@@ -255,11 +264,15 @@ export abstract class Batch implements BatchAgent {
     throw new Error.Invalid.Batching("query balance")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
-  async send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
+  async send (
+    recipient: Address, amounts: ICoin[], options?: Parameters<Agent["send"]>[2]
+  ): Promise<void|unknown> {
     throw new Error.Invalid.Batching("send")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
-  async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
+  async sendMany (
+    outputs: [Address, ICoin[]][], options?: Parameters<Agent["sendMany"]>[1]
+  ): Promise<void|unknown> {
     throw new Error.Invalid.Batching("send")
   }
   /** Nested batches are "flattened": trying to create a batch

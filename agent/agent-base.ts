@@ -318,22 +318,23 @@ class AgentConsole extends Console {
     const len = Math.max(40, Object.keys(contracts).reduce((x,r)=>Math.max(x,r.length),0))
     const count = Object.values(contracts).length
     if (count <= 0) return this.info(`${name} is an empty deployment`)
-    this.info(`${bold(String(count))} contract(s) in deployment ${bold(name)}:`)
-    this.br()
+    this.info()
+    this.info(`${bold(String(count))} unit(s) in deployment ${bold(name)}:`)
     for (const name of Object.keys(contracts).sort()) {
+      this.info()
       this.receipt(name, contracts[name], len)
-      this.br()
     }
+    this.info()
     return this
   }
   receipt (name: string, receipt?: any, len?: number) {
     let { address, codeHash, codeId, crate, repository } = receipt || {}
-    this.info(`name: ${bold(name       || gray('(no name)'))     }`)
-    this.info(`addr: ${bold(address    || gray('(no address)'))  }`)
-    this.info(`hash: ${bold(codeHash   || gray('(no code hash)'))}`)
-    this.info(`code: ${bold(codeId)    || gray('(no code id)')   }`)
-    this.info(`repo: ${bold(repository || gray('(no repo)'))     }`)
-    this.info(`crate: ${bold(crate     || gray('(no crate)'))    }`)
+    this.info(`  ${bold(name       || gray('(no name)'))     }`)
+    this.info(`  addr: ${bold(address    || gray('(no address)'))  }`)
+    this.info(`  hash: ${bold(codeHash   || gray('(no code hash)'))}`)
+    this.info(`  code: ${bold(codeId)    || gray('(no code id)')   }`)
+    this.info(`  repo: ${bold(repository || gray('(no repo)'))     }`)
+    this.info(`  crate: ${bold(crate     || gray('(no crate)'))    }`)
     return this
   }
 }

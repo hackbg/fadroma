@@ -341,41 +341,39 @@ export interface AgentClass<A extends Agent> extends Class<A, ConstructorParamet
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
-
   /** Logger. */
   log = new Console(this.constructor.name)
-
   /** The friendly name of the agent. */
   name?:     string
-
   /** The chain on which this agent operates. */
   chain?:    Chain
-
   /** The address from which transactions are signed and sent. */
   address?:  Address
-
-  /** The wallet's mnemonic. */
-  mnemonic?: string
-
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:     AgentFees
-
   /** The Batch subclass to use. */
   Batch:     BatchClass<Batch> = (this.constructor as AgentClass<typeof this>).Batch
-
   /** The default Batch class used by this Agent. */
   static Batch: BatchClass<Batch> // populated below
 
   constructor (options: Partial<Agent> = {}) {
     this.chain = options.chain ?? this.chain
-    this.name = options.name  ?? this.name
-    this.fees = options.fees  ?? this.fees
-    this.address = options.address  ?? this.address
+    this.name = options.name ?? this.name
+    this.fees = options.fees ?? this.fees
+    this.address = options.address ?? this.address
     hideProperties(this, 'chain', 'address', 'log', 'Batch')
   }
 
   get [Symbol.toStringTag]() {
-    return `${this.address} @ ${this.chain?.id}${this.mnemonic ? ' (*)' : ''}`
+    return `${this.address} @ ${this.chain?.id}`
+  }
+
+  /** The wallet's mnemonic (write-only). */
+  get mnemonic (): Promise<string> {
+    throw new Error('mnemonic is write-only')
+  }
+
+  set mnemonic (mnemonic: string) {
   }
 
   /** Complete the asynchronous initialization of this Agent. */
@@ -443,10 +441,10 @@ export abstract class Agent {
   }
 
   /** Send native tokens to 1 recipient. */
-  abstract send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown>
+  abstract send (to: Address, amounts: ICoin[], opts?: unknown): Promise<void|unknown>
 
   /** Send native tokens to multiple recipients. */
-  abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
+  abstract sendMany (outputs: [Address, ICoin[]][], opts?: unknown): Promise<void|unknown>
 
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
@@ -500,14 +498,15 @@ export abstract class Agent {
 
   /** Upload multiple contracts. */
   async uploadMany (
-    codes: Many<string|URL|Uint8Array|Partial<ContractUpload>>,
+    codes: Many<string|URL|Uint8Array|Partial<CompiledCode>>,
     options: Parameters<typeof this["upload"]>[1]
   ) {
     return mapAsync(codes, code => this.upload(code, options))
   }
 
   protected abstract doUpload (
-    data: Uint8Array, options: Parameters<typeof this["upload"]>[1]
+    data: Uint8Array,
+    options: Parameters<typeof this["upload"]>[1]
   ): Promise<Partial<ContractUpload>>
 
   /** Create a new smart contract from a code id, label and init message.
@@ -531,7 +530,6 @@ export abstract class Agent {
     if (!contract.codeId) {
       throw new Error.Missing.CodeId()
     }
-    console.log({contract, options}, !!options.label)
     if (!options.label) {
       throw new Error.Missing.Label()
     }
@@ -623,7 +621,11 @@ export abstract class Agent {
   async execute (
     contract: Address|Partial<ContractInstance>,
     message:  Message,
-    options?: ExecOpts
+    options?: {
+      execFee?:  IFee
+      execSend?: ICoin[]
+      execMemo?: string
+    }
   ): Promise<unknown> {
     if (typeof contract === 'string') contract = new ContractInstance({ address: contract })
     if (!contract.address) throw new Error("agent.execute: no contract address")
@@ -636,15 +638,15 @@ export abstract class Agent {
   protected abstract doExecute (
     contract: { address: Address },
     message:  Message,
-    options?: ExecOpts
+    options:  Parameters<this["execute"]>[2]
   ): Promise<unknown>
 
   /** Query a contract on the chain. */
   query <Q> (
     contract: Address|{ address: Address, codeHash?: CodeHash },
-    msg: Message
+    message: Message
   ): Promise<Q> {
-    return assertChain(this).query(contract, msg)
+    return assertChain(this).query(contract, message)
   }
 
   /** Execute a transaction batch.
@@ -653,7 +655,6 @@ export abstract class Agent {
   batch <B extends Batch> (cb?: BatchCallback<B>): B {
     return new this.Batch(this, cb as BatchCallback<Batch>) as unknown as B
   }
-
 }
 
 /** Default fees for the main operations that an Agent can perform. */
@@ -662,16 +663,4 @@ export interface AgentFees {
   upload?: IFee
   init?:   IFee
   exec?:   IFee
-}
-
-/** Options for a compute transaction. */
-export interface ExecOpts {
-  /** The maximum fee. */
-  fee?:  IFee
-  /** A list of native tokens to send alongside the transaction. */
-  send?: ICoin[]
-  /** A transaction memo. */
-  memo?: string
-  /** Allow extra options. */
-  [k: string]: unknown
 }
