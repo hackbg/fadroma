@@ -318,54 +318,32 @@ export async function testClient () {
 }
 
 export async function testDeployment () {
-
   const store = new DeployStore()
   assert.equal(store.get('name'), undefined)
   assert.equal(store.set('name', {}), store)
   assert.ok(store.get('name') instanceof Deployment)
-
   for (const mode of [Chain.Mode.Mainnet, Chain.Mode.Testnet]) {
-
     const deployment = new Deployment({ name: 'deployment' })
 
-    assert.deepEqual(deployment.receipt, { name: 'deployment', units: {} })
+    assert.deepEqual(deployment.toReceipt(), { name: 'deployment', units: {} })
 
     const template1 = deployment.template('template1', {
       binary: { codeData: new Uint8Array([1]), codeHash: "asdf" }
     })
-    console.log(deployment)
     await deployment.upload({
       builder:  new StubBuilder(),
       uploader: new StubAgent()
     })
-    console.log(deployment)
     const contract1 = deployment.contract('contract1', {
-      template: { codeId: '2' }
+      template: { codeId: '2' },
+      instance: { label: "contract1", initMsg: {} }
     })
     await deployment.deploy({
       uploader: new StubAgent(),
       deployer: new StubAgent()
     })
-
-    assert.ok(
-      deployment.contract('bar', {
-        codeData: new Uint8Array()
-      }) instanceof ContractInstance
-    )
-    console.log(deployment)
-    assert.ok(
-      foo.instance({ name: 'baz' }) instanceof ContractInstance
-    )
-
-    console.log(deployment)
-    await deployment.deploy({
-      agent: new StubAgent()
-    })
-
     new Console().deployment(deployment)
-
   }
-
 }
 
 export async function testToken () {

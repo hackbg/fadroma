@@ -531,6 +531,7 @@ export abstract class Agent {
     if (!contract.codeId) {
       throw new Error.Missing.CodeId()
     }
+    console.log({contract, options}, !!options.label)
     if (!options.label) {
       throw new Error.Missing.Label()
     }
