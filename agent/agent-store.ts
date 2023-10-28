@@ -42,22 +42,21 @@ export class StubBuilder extends Builder {
   id = 'stub'
 
   async build (
-    source: string|Partial<SourceCode>|Partial<CompiledCode>,
-    ...args: any[]
+    source: string|Partial<SourceCode>, ...args: any[]
   ): Promise<CompiledCode> {
-    if (typeof source === 'string') {
-      source = new CompiledCode({ repository: source })
-    } else {
-      source = new CompiledCode(source)
-    }
-    return source as CompiledCode
+    return new CompiledCode({
+      codePath: 'stub',
+      codeHash: 'stub',
+    })
   }
 
   async buildMany (
-    sources: (string|Partial<CompiledCode>)[],
-    ...args: unknown[]
+    sources: (string|Partial<CompiledCode>)[], ...args: unknown[]
   ): Promise<CompiledCode[]> {
-    return Promise.all(sources.map(source=>this.build(source, ...args)))
+    return Promise.all(sources.map(source=>new CompiledCode({
+      codePath: 'stub',
+      codeHash: 'stub',
+    })))
   }
 }
 

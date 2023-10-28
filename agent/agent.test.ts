@@ -117,11 +117,16 @@ export async function testAgent () {
   await agent.upload(new Uint8Array(), {})
   await agent.uploadMany([], {})
   await agent.uploadMany({}, {})
+
   await agent.instantiate('1', { label: 'foo', initMsg: 'bar' })
-  await agent.instantiate({ codeId: '1' }, { label: 'foo', initMsg: 'bar' })
-  await agent.instantiateMany([])
-  await agent.instantiateMany({})
+  await agent.instantiate({ codeId: '1' }, { label: 'foo', initMsg: {} })
+  assert.rejects(()=>agent.instantiate('foo', {}))
+  assert.rejects(()=>agent.instantiate('', {}))
+  assert.rejects(()=>agent.instantiate('1', { label: 'foo' }))
+  assert.rejects(()=>agent.instantiate('1', { initMsg: {} }))
+
   await agent.execute('stub', {}, {})
+  await agent.execute({ address: 'stub' }, {}, {})
 }
 
 export async function testBatch () {
@@ -141,21 +146,21 @@ export async function testBatch () {
     assert.throws(()=>batch.nextBlock)
     assert.throws(()=>batch.balance)
     assert.rejects(()=>batch.doUpload(undefined as any))
+    await batch.instantiate('1', {} as any)
     await batch.instantiate({} as any, {} as any)
-    assert.rejects(()=>batch.instantiateMany(undefined as any))
-    assert.deepEqual(await batch.instantiateMany({}), {})
-    assert.deepEqual(await batch.instantiateMany([]), [])
     await batch.execute('addr', {}, {})
+    await batch.execute({ address: 'addr' }, {}, {})
     assert.ok(await batch.getCodeId('addr'))
     assert.ok(await batch.getLabel('addr'))
     assert.ok(await batch.getHash('addr'))
-    assert.ok(await batch.checkHash('addr'))
   }
   const batch1 = new StubBatch(agent, batchedOperations)
   assert.equal(await batch1.ready, batch1)
-  assert.equal(batch1.name, `test-batch (batched)`)
-  assert.equal(batch1.fees, agent.fees)
+  assert.equal(batch1.name,  `test-batch (batched)`)
+  assert.equal(batch1.fees,  agent.fees)
+  assert.equal(batch1.chain, agent.chain)
   assert.equal(batch1.defaultDenom, agent.defaultDenom)
+  assert.ok(batch1.getClient() instanceof ContractClient)
   const batch2 = new StubBatch(agent)
   assert.deepEqual(batch2.msgs, [])
   assert.equal(batch2.id, 0)
@@ -195,8 +200,11 @@ export async function testContracts () {
   })
 
   assert.rejects(()=>contract.compile())
+  assert.rejects(()=>contract.compile({ builder: new StubBuilder() }))
   assert.rejects(()=>contract.upload())
+  assert.rejects(()=>contract.upload({ uploader: new StubAgent() }))
   assert.rejects(()=>contract.deploy())
+  assert.rejects(()=>contract.deploy({ deployer: new StubAgent() }))
 
   assert(contract.source instanceof SourceCode)
   assert(contract.binary instanceof CompiledCode)
@@ -257,14 +265,11 @@ export async function testDeployment () {
   const deployment = new Deployment({ name: 'deployment' })
   assert.deepEqual(deployment.toReceipt(), { name: 'deployment', units: {} })
   const template1 = deployment.template('template1', {
-    codeData: new Uint8Array([1]),
-    codeHash: "asdf"
+    codeHash: "asdf", codeData: new Uint8Array([1]),
   })
   await deployment.upload({ builder: new StubBuilder(), uploader: new StubAgent() })
   const contract1 = deployment.contract('contract1', {
-    codeId: '2',
-    label: "contract1",
-    initMsg: {}
+    codeId: '2', label: "contract1", initMsg: {}
   })
   await deployment.deploy({ uploader: new StubAgent(), deployer: new StubAgent() })
   // pretty print deployment 
@@ -276,6 +281,9 @@ export async function testDeployment () {
   assert(label2 instanceof DeploymentContractLabel)
   assert.deepEqual(label2, { prefix: 'foo', name: 'bar', suffix: 'baz' })
   assert.deepEqual(label2.toString(), 'foo/bar+baz')
+
+  assert.ok((await new StubBuilder().build('')) instanceof CompiledCode)
+  assert.ok((await new StubBuilder().buildMany([{}]))[0] instanceof CompiledCode)
 }
 
 export default new Suite([

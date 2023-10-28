@@ -486,7 +486,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
   }
 
   async build (
-    options: Parameters<Contract["compile"]>[0]
+    options: Parameters<Contract["compile"]>[0] = {}
   ): Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>> {
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
     for (const [name, contract] of this.entries()) {
@@ -500,7 +500,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
   }
 
   async upload (
-    options: Parameters<Contract["upload"]>[0]
+    options: Parameters<Contract["upload"]>[0] = {}
   ): Promise<Record<CodeId, ContractUpload & { codeId: CodeId }>> {
     const uploading: Array<Promise<ContractUpload & { codeId: CodeId }>> = []
     for (const [name, contract] of this.entries()) {
@@ -514,7 +514,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
   }
 
   async deploy (
-    options: Parameters<Contract["deploy"]>[0]
+    options: Parameters<Contract["deploy"]>[0] = {}
   ): Promise<Record<Address, ContractInstance & { address: Address }>> {
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
     for (const [name, contract] of this.entries()) {

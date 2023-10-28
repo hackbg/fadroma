@@ -337,9 +337,9 @@ class MocknetAgent extends Agent {
       this.address,
       contract,
       message,
-      options.send,
-      options.memo,
-      options.fee
+      options?.execSend,
+      options?.execMemo,
+      options?.execFee
     )
   }
 
@@ -378,12 +378,12 @@ class MocknetBatch extends Batch {
     for (const { init, instantiate = init, exec, execute = exec } of this.msgs) {
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        results.push(await this.agent.instantiate(new ContractInstance({
-          codeId: String(codeId), initMsg: msg, codeHash, label,
-        })))
+        results.push(await this.agent.instantiate(codeId, {
+          initMsg: msg, codeHash, label,
+        }))
       } else if (!!exec) {
-        const { sender, contract: address, codeHash, msg, funds: send } = exec
-        results.push(await this.agent.execute({ address, codeHash }, msg, { send }))
+        const { sender, contract: address, codeHash, msg, funds: execSend } = exec
+        results.push(await this.agent.execute({ address, codeHash }, msg, { execSend }))
       } else {
         this.log.warn('MocknetBatch#submit: found unknown message in batch, ignoring')
         results.push(null)

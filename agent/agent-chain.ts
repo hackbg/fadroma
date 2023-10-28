@@ -256,20 +256,6 @@ export abstract class Chain {
   /** Get the label of a smart contract. */
   abstract getLabel (address: Address): Promise<string>
 
-  /** Get the code hash of a smart contract. */
-  async checkHash (address: Address, expectedCodeHash?: CodeHash) {
-    // Soft code hash checking for now
-    const fetchedCodeHash = await this.getHash(address)
-    if (!expectedCodeHash) {
-      this.log.noCodeHash(address)
-    } if (expectedCodeHash !== fetchedCodeHash) {
-      this.log.codeHashMismatch(address, expectedCodeHash, fetchedCodeHash)
-    } else {
-      this.log.confirmCodeHash(address, fetchedCodeHash)
-    }
-    return fetchedCodeHash
-  }
-
   /** Get a new instance of the appropriate Agent subclass. */
   getAgent (options?: Partial<Agent>): Agent
   getAgent ($A: AgentClass<Agent>, options?: Partial<Agent>): InstanceType<typeof $A>
@@ -418,11 +404,6 @@ export abstract class Agent {
     return assertChain(this).getHash(address)
   }
 
-  /** Check the code hash of a contract at an address against an expected value. */
-  checkHash (address: Address, codeHash?: CodeHash) {
-    return assertChain(this).checkHash(address, codeHash)
-  }
-
   /** Send native tokens to 1 recipient. */
   abstract send (to: Address, amounts: ICoin[], opts?: unknown): Promise<void|unknown>
 
@@ -546,58 +527,12 @@ export abstract class Agent {
     options: Partial<ContractInstance>
   ): Promise<Partial<ContractInstance>>
 
-  /** Create multiple smart contracts from a Template (providing code id)
-    * and a list or map of label/initmsg pairs.
-    * Uses this agent's Batch class to instantiate them in a single transaction.
-    * @example
-    *   await agent.instantiateMany(template.instances({
-    *     One: { label, initMsg },
-    *     Two: { label, initMsg },
-    *   }))
-    *   await agent.instantiateMany({
-    *     One: template1.instance({ label, initMsg }),
-    *     Two: template2.instance({ label, initMsg }),
-    *   }))
-    * @returns
-    *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
-    *   depending on what is passed as inputs. */
-  async instantiateMany <M extends Many<ContractInstance>> (
-    contracts: M,
-    options: {
-      initFee?:  ICoin[]|'auto',
-      initSend?: ICoin[],
-      initMemo?: string,
-    } = {}
-  ): Promise<M> {
-    // Returns an array of TX results.
-    const batch = this.batch((batch: any)=>batch.instantiateMany(contracts))
-    const response = await batch.run()
-    // Populate contracts with resulting addresses
-    for (const contract of Object.values(contracts)) {
-      if (contract.address) continue
-      // Find result corresponding to contract
-      const found = response.find(({ label }:any)=>label===contract.label)
-      if (found) {
-        const { address, tx, sender } = found // FIXME: implementation dependent
-        contract.address = address
-        contract.initTx = tx
-        contract.initBy = sender
-      } else {
-        this.log.warn(`Failed to find address for ${contract.label}.`)
-        continue
-      }
-    }
-    return contracts
-  }
-
   /** Get a client instance for talking to a specific smart contract as this executor. */
   getClient <C extends ContractClient> (
-    $C: ContractClientClass<C>,
-    address?: Address,
-    codeHash?: CodeHash,
-    ...args: unknown[]
+    options?: Address|Partial<ContractInstance>,
+    $C: ContractClientClass<C> = ContractClient as ContractClientClass<C>, 
   ): C {
-    return new $C({ address, codeHash }, this) as C
+    return new $C(options!, this) as C
   }
 
   /** Call a transaction method on a smart contract. */

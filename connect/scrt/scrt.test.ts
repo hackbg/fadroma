@@ -25,6 +25,7 @@ export default new Suite([
 
 async function testScrtChain () {
   Scrt.mainnet()
+  Scrt.testnet()
   const devnet = await new Devnet({ platform: 'scrt_1.9' }).create()
   const chain = await (devnet.getChain() as Scrt.Chain).ready
   assert(await chain.api instanceof SecretJS.SecretNetworkClient)
@@ -32,10 +33,9 @@ async function testScrtChain () {
   assert.ok(await chain.height)
   assert.ok(await chain.fetchLimits())
   const alice = await chain.getAgent({ name: 'Alice' }).ready
-  assert.ok(alice.address)
-  console.log({alice})
-  assert.ok((alice as Scrt.Agent).api instanceof SecretJS.SecretNetworkClient)
   const bob = await chain.getAgent({ name: 'Bob' }).ready
+  assert.ok(alice.address)
+  assert.ok((alice as Scrt.Agent).api instanceof SecretJS.SecretNetworkClient)
   //assert(alice.wallet instanceof SecretJS.Wallet)
   //assert(alice.encryptionUtils instanceof SecretJS.EncryptionUtilsImpl)
   await chain.getBalance(chain.defaultDenom, alice.address!)
