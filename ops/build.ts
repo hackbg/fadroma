@@ -6,7 +6,7 @@ import {
   Builder, CompiledCode, ContractInstance, HEAD, SourceCode,
   bold, colors,
 } from '@fadroma/connect'
-import type { Class, ContractUpload, Environment } from '@fadroma/connect'
+import type { Class, UploadedCode, Environment } from '@fadroma/connect'
 
 import type { Project } from './project'
 
@@ -711,7 +711,7 @@ Object.assign(Builder.variants, {
 })
 
 // Try to determine where the .git directory is located
-export function getGitDir (template: Partial<ContractUpload> = {}): DotGit {
+export function getGitDir (template: Partial<UploadedCode> = {}): DotGit {
   const { workspace } = template || {}
   if (!workspace) throw new BuildError("No workspace specified; can't find gitDir")
   return new DotGit(workspace)
@@ -850,13 +850,13 @@ export class ContractCrate {
 /** Build console. */
 class BuildConsole extends Console {
 
-  one ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractUpload>) {
+  one ({ crate = '(unknown)', revision = 'HEAD' }: Partial<UploadedCode>) {
     return this.log('Building', bold(crate), ...(revision === 'HEAD')
       ? ['from working tree']
       : ['from Git reference', bold(revision)])
   }
 
-  many (inputs: ContractUpload[]) {
+  many (inputs: UploadedCode[]) {
     return inputs.forEach(buildable=>this.one(buildable))
   }
 

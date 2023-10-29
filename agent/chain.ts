@@ -1,23 +1,15 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type {
-  Address, Message, ICoin, IFee, CodeHash,
-  Class, Name, Many, CodeId,
-  Into, TxHash, Label,
-  Batch, BatchClass, BatchCallback,
-  UploadStore
-} from './agent'
-import {
-  CompiledCode,
-  ContractUpload,
-  ContractInstance,
-  ContractClient,
-  ContractClientClass
-} from './agent-contract'
-import {
-  Error, Console, bold, into, mapAsync, hideProperties, randomBytes
-} from './agent-base'
+import type { Name, Address, Class, Into, Many, TxHash, Label, Message } from './base'
+import { Error, Console, bold, into } from './base'
+import type { ICoin, IFee } from './token'
+import type { Batch, BatchClass, BatchCallback } from './batch'
+import type { UploadStore } from './store'
+import type { CodeHash, CodeId } from './code'
+import { CompiledCode, UploadedCode } from './code'
+import { ContractInstance, } from './deploy'
+import { ContractClient, ContractClientClass } from './client'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -330,7 +322,12 @@ export abstract class Agent {
     this.name = options.name ?? this.name
     this.fees = options.fees ?? this.fees
     this.address = options.address ?? this.address
-    hideProperties(this, 'chain', 'address', 'log', 'Batch')
+    Object.defineProperties(this, {
+      chain:   { enumerable: false, writable: true, configurable: true },
+      address: { enumerable: false, writable: true, configurable: true },
+      log:     { enumerable: false, writable: true, configurable: true },
+      Batch:   { enumerable: false, writable: true, configurable: true },
+    })
   }
 
   get [Symbol.toStringTag]() {
@@ -419,7 +416,7 @@ export abstract class Agent {
       uploadFee?:   ICoin[]|'auto',
       uploadMemo?:  string
     } = {},
-  ): Promise<ContractUpload & {
+  ): Promise<UploadedCode & {
     chainId: ChainId,
     codeId:  CodeId,
   }> {
@@ -454,7 +451,7 @@ export abstract class Agent {
       `on chain`,
       bold(result.chainId)
     )
-    return new ContractUpload({ ...template, ...result }) as ContractUpload & {
+    return new UploadedCode({ ...template, ...result }) as UploadedCode & {
       chainId: ChainId,
       codeId:  CodeId,
     }
@@ -463,7 +460,7 @@ export abstract class Agent {
   protected abstract doUpload (
     data: Uint8Array,
     options: Parameters<typeof this["upload"]>[1]
-  ): Promise<Partial<ContractUpload>>
+  ): Promise<Partial<UploadedCode>>
 
   /** Create a new smart contract from a code id, label and init message.
     * @example
@@ -472,13 +469,13 @@ export abstract class Agent {
     *   ContractInstance with no `address` populated yet.
     *   This will be populated after executing the batch. */
   async instantiate (
-    contract: CodeId|Partial<ContractUpload>,
+    contract: CodeId|Partial<UploadedCode>,
     options:  Partial<ContractInstance>
   ): Promise<ContractInstance & {
     address: Address,
   }> {
     if (typeof contract === 'string') {
-      contract = new ContractUpload({ codeId: contract })
+      contract = new UploadedCode({ codeId: contract })
     }
     if (isNaN(Number(contract.codeId))) {
       throw new Error.Invalid('code id')

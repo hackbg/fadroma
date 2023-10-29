@@ -10,7 +10,7 @@ import {
   ContractInstance
 } from '@fadroma/agent'
 
-import type { Address, Message, CodeId, CodeHash, ContractUpload, Label } from '@fadroma/agent'
+import type { Address, Message, CodeId, CodeHash, UploadedCode, Label } from '@fadroma/agent'
 
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
 import type { logs, OfflineSigner as Signer, Block, StdFee } from '@hackbg/cosmjs-esm'
@@ -205,7 +205,7 @@ class CWAgent extends Agent {
     throw new Error('not implemented')
   }
 
-  protected async doUpload (data: Uint8Array): Promise<Partial<ContractUpload>> {
+  protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
     const { api } = await this.ready
     if (!this.address) throw new Error.Missing.Address()
     const result = await api.upload(

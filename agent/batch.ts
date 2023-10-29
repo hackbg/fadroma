@@ -1,14 +1,14 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Error, Console, into } from './agent-base'
-import type { Class, Message, Address, Name, Into, Many } from './agent-base'
-import type { CodeHash, CodeId } from './agent-code'
-import { UploadedCode } from './agent-code'
-import type { ICoin } from './agent-token'
-import type { Agent } from './agent-chain'
-import { ContractInstance } from './agent-deploy'
-import { ContractClient } from './agent-client'
+import { Error, Console, into } from './base'
+import type { Class, Message, Address, Name, Into, Many } from './base'
+import type { CodeHash, CodeId } from './code'
+import { UploadedCode } from './code'
+import type { ICoin } from './token'
+import type { Agent } from './chain'
+import { ContractInstance } from './deploy'
+import { ContractClient } from './client'
 
 /** Function passed to Batch#wrap */
 export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>
@@ -191,7 +191,7 @@ export abstract class Batch implements BatchAgent {
   async upload (data: unknown): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
-  protected async doUpload (data: unknown): Promise<never> {
+  async doUpload (data: unknown): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */

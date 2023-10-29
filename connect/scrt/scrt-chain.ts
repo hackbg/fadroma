@@ -15,7 +15,7 @@ import * as Mocknet from './scrt-mocknet'
 import {
   Agent, into, base64, bip39, bip39EN, bold,
   Chain, Fee, Batch, assertChain,
-  ContractUpload, ContractInstance,
+  UploadedCode, ContractInstance,
   bindChainSupport
 } from '@fadroma/agent'
 import type {
@@ -405,7 +405,7 @@ class ScrtAgent extends Agent {
   }
 
   /** Upload a WASM binary. */
-  protected async doUpload (data: Uint8Array): Promise<Partial<ContractUpload>> {
+  protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
     const { api, address } = await this.ready
     const request  = { sender: address!, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined

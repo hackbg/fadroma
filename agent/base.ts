@@ -3,8 +3,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error as BaseError } from '@hackbg/oops'
 import { Console, bold, colors } from '@hackbg/logs'
-import type { Chain } from './agent-chain'
-import type { Deployment } from './agent-deploy'
+import type { Chain } from './chain'
+import type { Deployment } from './deploy'
 
 const { red, green, gray } = colors
 
@@ -23,7 +23,7 @@ export interface Class<T, U extends unknown[]> { new (...args: U): T }
   * - no need to state property name thrice
   * - doesn't leave `undefined`s */
 export function assign <T extends {}> (
-  object: T, properties: Partial<T> & any = {}, allowed?: string|Array<keyof T>|Set<keyof T>
+  object: T, properties: Partial<T> & any = {}, allowed: string|Array<keyof T>|Set<keyof T>
 ) {
   if (typeof allowed === 'string') {
     allowed = assign.allowed.get(allowed) as Set<keyof T>

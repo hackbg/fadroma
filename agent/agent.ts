@@ -18,9 +18,9 @@
 
 **/
 
-import { Batch } from './agent-batch'
-import { Chain, Agent } from './agent-chain'
-import { StubChain, StubAgent, StubBatch } from './agent-stub'
+import { Batch } from './batch'
+import { Chain, Agent } from './chain'
+import { StubChain, StubAgent, StubBatch } from './stub'
 
 bindChainSupport(Chain, Agent, Batch)
 bindChainSupport(StubChain, StubAgent, StubBatch)
@@ -33,12 +33,12 @@ export function bindChainSupport (Chain: Function, Agent: Function, Batch: Funct
   return { Chain, Agent, Batch }
 }
 
-export * from './agent-base'
-export * from './agent-batch'
-export * from './agent-chain'
-export * from './agent-client'
-export * from './agent-code'
-export * from './agent-deploy'
-export * from './agent-store'
-export * from './agent-stub'
-export * from './agent-token'
+export * from './base'
+export * from './batch'
+export * from './chain'
+export * from './client'
+export * from './code'
+export * from './deploy'
+export * from './store'
+export * from './stub'
+export * from './token'
