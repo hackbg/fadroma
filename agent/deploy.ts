@@ -1,15 +1,15 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Console, Error, assign, timestamp, into, map } from './agent-base'
-import type { Into, Name, Label, Class, Address, TxHash, Message, Many } from './agent-base'
-import type { Agent, Chain, ChainId, ChainMode, } from './agent-chain'
-import type { UploadStore, DeployStore } from './agent-store'
-import type { Builder, CodeId, CodeHash } from './agent-code'
-import type { ICoin, IFee } from './agent-token'
-import { ContractCode, SourceCode, CompiledCode, UploadedCode } from './agent-code'
-import { ContractClient } from './agent-client'
-import type { ContractClientClass } from './agent-client'
+import { Console, Error, assign, timestamp, into, map } from './base'
+import type { Into, Name, Label, Class, Address, TxHash, Message, Many } from './base'
+import type { Agent, Chain, ChainId, ChainMode, } from './chain'
+import type { UploadStore, DeployStore } from './store'
+import type { Builder, CodeId, CodeHash } from './code'
+import type { ICoin, IFee } from './token'
+import { ContractCode, SourceCode, CompiledCode, UploadedCode } from './code'
+import { ContractClient } from './client'
+import type { ContractClientClass } from './client'
 
 assign.allow('DeploymentUnit', [
   'name', 'deployment', 'isTemplate', 'codeHash', 'chainId', 'codeId', 
@@ -71,7 +71,7 @@ export class ContractInstance extends DeploymentUnit {
   initGas?:  unknown
 
   constructor (
-    properties?: ConstructorParameters<typeof DeploymentUnit>[0] & Partial<ContractInstance> = {}
+    properties?: ConstructorParameters<typeof DeploymentUnit>[0] & Partial<ContractInstance>
   ) {
     super(properties)
     assign(this, properties, 'ContractInstance')
@@ -98,11 +98,11 @@ export class ContractInstance extends DeploymentUnit {
       throw new Error("can't deploy: no deployer agent")
     }
     const uploaded = await this.upload({ builder, rebuild, uploader, reupload })
-    this.instance = await deployer.instantiate(uploaded, initOptions)
-    if (!this.instance.isValid()) {
+    const instance = await deployer.instantiate(uploaded, initOptions)
+    if (!instance.isValid()) {
       throw new Error("init failed")
     }
-    return this.instance
+    return this
   }
 
   /** @returns the data for a deploy receipt */

@@ -1,0 +1,74 @@
+import assert from 'node:assert'
+import { Chain, assertChain } from './chain'
+import { StubChain } from './stub'
+
+export async function testChain () {
+  let chain = new StubChain()
+  assert.throws(()=>chain.id)
+  assert.throws(()=>chain.id='foo')
+  assert.throws(()=>chain.mode)
+  assert.throws(()=>new StubChain({ mode: StubChain.Mode.Devnet, id: 'stub', url: 'stub' }).ready)
+  assert.equal(chain.chain, chain)
+  assert.equal(assertChain({ chain }), chain)
+  chain = new StubChain({ mode: StubChain.Mode.Testnet, id: 'stub', url: 'stub' })
+  assert((await chain.ready).api)
+  await chain.height
+  await chain.nextBlock
+  await chain.getBalance('','')
+  await chain.query('', {})
+  await chain.getCodeId('')
+  await chain.getHash('')
+  await chain.getHash(0)
+  await chain.getLabel('')
+  Object.defineProperty(chain, 'height', {
+    get () { return Promise.resolve('NaN') }
+  })
+  assert.equal(await chain.nextBlock, NaN)
+  assert(StubChain.mainnet().isMainnet)
+  assert(!(StubChain.mainnet().devMode))
+  assert(StubChain.testnet().isTestnet)
+  assert(!(StubChain.testnet().devMode))
+  assert(StubChain.devnet().isDevnet)
+  assert(StubChain.devnet().devMode)
+  assert(new StubChain({ mode: Chain.Mode.Mocknet }).isMocknet)
+  assert(new StubChain({ mode: Chain.Mode.Mocknet }).devMode)
+}
+
+export async function testDevnet () {
+  const devnet = {
+    accounts: [],
+    chainId: 'foo',
+    platform: 'bar',
+    running: false,
+    stateDir: '/tmp/foo',
+    url: new URL('http://example.com'),
+    async start () { return this },
+    async getAccount () { return {} },
+    async assertPresence () {}
+  }
+  const chain = new StubChain({
+    mode: Chain.Mode.Mainnet,
+    devnet,
+    id: 'bar',
+    url: 'http://asdf.com',
+  })
+  const ready = chain.ready
+  assert(await ready)
+  assert(chain.ready === ready)
+  // Properties from Devnet are passed onto Chain
+  assert.equal(chain.devnet, devnet)
+  assert.equal(chain.id, 'foo')
+  assert.equal(chain.url, 'http://example.com/')
+  assert.equal(chain.mode, StubChain.Mode.Devnet)
+  assert.equal(chain.stopped, true)
+  devnet.running = true
+  assert.equal(chain.stopped, false)
+  assert.throws(()=>chain.id='asdf')
+  assert.throws(()=>chain.url='asdf')
+  assert.throws(()=>{
+    //@ts-ignore
+    chain.mode='asdf'
+  })
+  assert.throws(()=>chain.devnet=devnet)
+  assert.throws(()=>chain.stopped=true)
+}

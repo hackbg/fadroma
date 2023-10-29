@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import * as assert from 'node:assert'
-import { Deployment, ContractUpload, ContractInstance, StubAgent } from '@fadroma/connect'
+import { Deployment, UploadedCode, ContractInstance, StubAgent } from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
 import { DeployConsole, FSDeployStore } from './deploy'
 
@@ -38,7 +38,7 @@ export class MyDeployment extends Deployment {
 export async function testDeployment () {
   const deployment = new MyDeployment()
   assert.ok(
-    deployment.t instanceof ContractUpload
+    deployment.t instanceof UploadedCode
   )
   await deployment.deploy({
     uploader: new StubAgent(),

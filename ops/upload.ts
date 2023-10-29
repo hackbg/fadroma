@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Config, Console, Error,
-  ContractUpload, UploadStore,
+  UploadedCode, UploadStore,
   base16, sha256, getAgent
 } from '@fadroma/connect'
 import type { Agent, CodeId, ChainId, CodeHash, Environment } from '@fadroma/connect'
@@ -35,7 +35,7 @@ export class FSUploadStore extends UploadStore {
     this.rootDir = $(rootDir).as(JSONDirectory)
   }
 
-  get (codeHash: CodeHash|{ codeHash: CodeHash }): ContractUpload|undefined {
+  get (codeHash: CodeHash|{ codeHash: CodeHash }): UploadedCode|undefined {
     if (typeof codeHash === 'object') codeHash = codeHash.codeHash
     if (!codeHash) throw new UploadError.Missing.CodeHash()
     const receipt = this.rootDir.at(`${codeHash!.toLowerCase()}.json`).as(JSONFile<any>)
@@ -49,7 +49,7 @@ export class FSUploadStore extends UploadStore {
     return super.get(codeHash)
   }
 
-  set (codeHash: CodeHash|{ codeHash: CodeHash }, value: Partial<ContractUpload>): this {
+  set (codeHash: CodeHash|{ codeHash: CodeHash }, value: Partial<UploadedCode>): this {
     if (typeof codeHash === 'object') codeHash = codeHash.codeHash
     if (!codeHash) throw new UploadError.Missing.CodeHash()
     super.set(codeHash, value)
@@ -59,7 +59,7 @@ export class FSUploadStore extends UploadStore {
     return this
   }
 
-  protected addCodeHash (uploadable: Partial<ContractUpload> & { name: string }) {
+  protected addCodeHash (uploadable: Partial<UploadedCode> & { name: string }) {
     if (!uploadable.codeHash) {
       if (uploadable.codePath) {
         uploadable.codeHash = base16.encode(sha256(this.fetchSync(uploadable.codePath)))

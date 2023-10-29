@@ -28,7 +28,7 @@ import {
   randomBech32, sha256, base16, bech32,
   brailleDump, Error as BaseError, Console as BaseConsole, bold, colors, into,
   Chain, ChainMode, Agent, Batch, assertChain,
-  ContractInstance, ContractUpload
+  ContractInstance, UploadedCode
 } from '@fadroma/agent'
 
 import * as secp256k1 from '@noble/secp256k1'
@@ -304,13 +304,13 @@ class MocknetAgent extends Agent {
   }
 
   /** Upload a binary to the mocknet. */
-  protected async doUpload (wasm: Uint8Array): Promise<ContractUpload> {
-    return new ContractUpload(await this.chain.upload(wasm))
+  protected async doUpload (wasm: Uint8Array): Promise<UploadedCode> {
+    return new UploadedCode(await this.chain.upload(wasm))
   }
 
   /** Instantiate a contract on the mocknet. */
   protected async doInstantiate (
-    codeId: CodeId|Partial<ContractUpload>,
+    codeId: CodeId|Partial<UploadedCode>,
     options: {
       initMsg: Into<Message>
     }

@@ -1,6 +1,6 @@
-import { Console, assign } from './agent-base'
-import type { Class, Address, TxHash } from './agent-base'
-import type { ChainId, Agent } from './agent-chain'
+import { Console, assign } from './base'
+import type { Class, Address, TxHash } from './base'
+import type { ChainId, Agent } from './chain'
 
 /** The default Git ref when not specified. */
 export const HEAD = 'HEAD'
@@ -163,7 +163,7 @@ export class CompiledCode {
   codeData?:  Uint8Array
 
   constructor (properties: Partial<CompiledCode> = {}) {
-    assign(this, properties)
+    assign(this, properties, 'CompiledCode')
   }
 
   get [Symbol.toStringTag] () {
@@ -213,7 +213,9 @@ export class CompiledCode {
       const { fileURLToPath } = await import('node:url')
       return await this.fetchFromPath(fileURLToPath(url))
     } else {
-      return new Uint8Array(await (await fetch(url)).arrayBuffer())
+      const request = await fetch(url)
+      const response = await request.arrayBuffer()
+      return new Uint8Array(response)
     }
   }
 
@@ -237,7 +239,7 @@ export class UploadedCode {
   uploadInfo?: string
 
   constructor (properties: Partial<UploadedCode> = {}) {
-    assign(this, properties)
+    assign(this, properties, 'UploadedCode')
   }
 
   toReceipt () {
@@ -283,29 +285,4 @@ export abstract class Builder {
     sources: (string|Partial<CompiledCode>)[],
     ...args: unknown[]
   ): Promise<CompiledCode[]>
-}
-
-/** A builder that does nothing. Used for testing. */
-export class StubBuilder extends Builder {
-  caching = false
-
-  id = 'stub'
-
-  async build (
-    source: string|Partial<SourceCode>, ...args: any[]
-  ): Promise<CompiledCode> {
-    return new CompiledCode({
-      codePath: 'stub',
-      codeHash: 'stub',
-    })
-  }
-
-  async buildMany (
-    sources: (string|Partial<CompiledCode>)[], ...args: unknown[]
-  ): Promise<CompiledCode[]> {
-    return Promise.all(sources.map(source=>new CompiledCode({
-      codePath: 'stub',
-      codeHash: 'stub',
-    })))
-  }
 }

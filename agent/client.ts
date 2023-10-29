@@ -1,7 +1,7 @@
-import { Console, Error } from './agent-base'
-import type { Class, Address, Message } from './agent-base'
-import type { Agent, Chain } from './agent-chain'
-import { ContractInstance } from './agent-deploy'
+import { Console, Error } from './base'
+import type { Class, Address, Message } from './base'
+import type { Agent, Chain } from './chain'
+import { ContractInstance } from './deploy'
 
 /** A constructor for a ContractClient subclass. */
 export interface ContractClientClass<C extends ContractClient> extends

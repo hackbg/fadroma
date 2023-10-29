@@ -1,13 +1,13 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Console, Error } from './agent-base'
-import type { Class, Name } from './agent-base'
-import type { CodeHash } from './agent-code'
-import type { ChainId } from './agent-chain'
-import { SourceCode, CompiledCode, UploadedCode } from './agent-code'
-import { Deployment } from './agent-deploy'
-import type { DeploymentClass, DeploymentState } from './agent-deploy'
+import { Console, Error } from './base'
+import type { Class, Name } from './base'
+import type { CodeHash } from './code'
+import type { ChainId } from './chain'
+import { SourceCode, CompiledCode, UploadedCode } from './code'
+import { Deployment } from './deploy'
+import type { DeploymentClass, DeploymentState } from './deploy'
 
 export class UploadStore extends Map<CodeHash, UploadedCode> {
   log = new Console('UploadStore')
