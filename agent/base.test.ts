@@ -1,11 +1,12 @@
 import assert from 'node:assert'
-import { Console, Error, into, intoArray, intoRecord } from './base'
+import { Console, Error, assign, into, intoArray, intoRecord } from './base'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['errors',      testErrors],
   ['console',     testConsole],
   ['collections', testCollections],
+  ['assign',      testAssign],
 ])
 
 export async function testErrors () {
@@ -50,4 +51,9 @@ export async function testCollections () {
     promise: 3,
     asyncFn: 4
   })
+}
+
+export async function testAssign () {
+  assert.throws(()=>assign({}, {}, ''))
+  assert.ok(()=>assign({}, {}, []))
 }

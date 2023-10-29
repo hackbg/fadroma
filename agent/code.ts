@@ -70,11 +70,11 @@ export class ContractCode {
     if (!this.source?.isValid()) {
       throw new Error("can't compile: no source")
     }
-    this.compiled = await builder.build(this.source, buildOptions)
-    if (!this.compiled?.isValid()) {
+    const compiled = await builder.build(this.source, buildOptions)
+    if (!compiled.isValid()) {
       throw new Error("build failed")
     }
-    return this.compiled
+    return this.compiled = compiled
   }
 
   /** Upload this contract, unless a valid upload is present and a rebuild is not requested. */
@@ -97,11 +97,11 @@ export class ContractCode {
       throw new Error("can't upload: no uploader agent")
     }
     const compiled = await this.compile({ builder, rebuild })
-    this.uploaded = await uploader.upload(compiled, uploadOptions)
-    if (!this.uploaded?.isValid()) {
+    const uploaded = await uploader.upload(compiled, uploadOptions)
+    if (!uploaded.isValid()) {
       throw new Error("upload failed")
     }
-    return this.uploaded
+    return this.uploaded = uploaded
   }
 }
 

@@ -61,7 +61,7 @@ export class ContractTemplate extends DeploymentUnit {
 
   /** Create multiple instances of this contract. */
   contracts (
-    instanceParameters: Record<Name, Parameters<ContractTemplate["contract"]>[0]> = {}
+    instanceParameters: Record<Name, Parameters<ContractTemplate["contract"]>[1]> = {}
   ): Record<keyof typeof instanceParameters, ContractInstance> {
     const instances: Record<keyof typeof instanceParameters, ContractInstance> = {}
     for (const [name, parameters] of Object.entries(instanceParameters)) {
@@ -119,7 +119,7 @@ export class ContractInstance extends DeploymentUnit {
       throw new Error("can't deploy: no deployer agent")
     }
     const uploaded = await this.upload({ builder, rebuild, uploader, reupload })
-    const instance = await deployer.instantiate(uploaded, initOptions)
+    const instance = await deployer.instantiate(this, this)
     if (!instance.isValid()) {
       throw new Error("init failed")
     }
@@ -198,7 +198,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     Partial<SourceCode> &
     Partial<CompiledCode> &
     Partial<UploadedCode>
-  ): DeploymentUnit {
+  ): ContractTemplate {
     const template = new ContractTemplate({
       name,
       deployment: this,
@@ -218,7 +218,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     Partial<CompiledCode> &
     Partial<UploadedCode> &
     Partial<ContractInstance>
-  ): DeploymentUnit {
+  ): ContractInstance {
     const contract = new ContractInstance({
       name,
       deployment: this,

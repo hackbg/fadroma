@@ -10,9 +10,20 @@ export default async function testContracts () {
   })
 
   assert.rejects(()=>contract.compile())
-  assert.rejects(()=>contract.compile({ builder: new StubBuilder() }))
+  assert.rejects(()=>contract.compile({
+    builder: new StubBuilder()
+  }))
+  assert.rejects(()=>contract.compile({
+    builder: { build: () => Promise.resolve({ isValid: () => false }) }
+  }))
+
   assert.rejects(()=>contract.upload())
-  assert.rejects(()=>contract.upload({ uploader: new StubAgent() }))
+  assert.rejects(()=>contract.upload({
+    uploader: new StubAgent()
+  }))
+  assert.rejects(()=>contract.upload({
+    uploader: { upload: () => Promise.resolve({ isValid: () => false }) }
+  }))
 
   assert(contract.source instanceof SourceCode)
   assert(contract.compiled instanceof CompiledCode)
@@ -60,8 +71,21 @@ export default async function testContracts () {
   //assert(contract.instance[Symbol.toStringTag])
 
   assert.rejects(()=>new CompiledCode().fetch())
-  assert.rejects(()=>new CompiledCode({ codePath: '' }).fetch())
-  assert.rejects(()=>new CompiledCode({ codePath: new URL('', 'file:') }).fetch())
-  assert.rejects(()=>new CompiledCode({ codePath: new URL('http://foo.bar') }).fetch())
-  assert.rejects(()=>new CompiledCode({ codePath: 0 as any }).fetch())
+
+  assert.rejects(()=>new CompiledCode({
+    codePath: ''
+  }).fetch())
+
+  assert.rejects(()=>new CompiledCode({
+    codePath: new URL('', 'file:')
+  }).fetch())
+
+  assert.rejects(()=>new CompiledCode({
+    codePath: new URL('http://foo.bar')
+  }).fetch())
+
+  assert.rejects(()=>new CompiledCode({
+    codePath: 0 as any
+  }).fetch())
+
 }

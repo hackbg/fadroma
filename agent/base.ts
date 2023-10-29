@@ -128,16 +128,6 @@ class AgentConsole extends Console {
   waitingForBlock (height: number, elapsed?: number) {
     return this.log(`Waiting for block > ${bold(String(height))}...`, elapsed ? `${elapsed}ms elapsed` : '')
   }
-  batchMessages (msgs: any, N: number) {
-    this.info(`Messages in batch`, `#${N}:`)
-    for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
-    return this
-  }
-  batchMessagesEncrypted (msgs: any, N: number) {
-    this.info(`Encrypted messages in batch`, `#${N}:`)
-    for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
-    return this
-  }
   deployment (deployment: Deployment, name = deployment?.name) {
     if (!deployment) return this.info('(no deployment)')
     const contracts = Object.fromEntries(deployment.entries())

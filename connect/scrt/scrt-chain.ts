@@ -28,7 +28,7 @@ import type {
 class ScrtChain extends Chain {
 
   /** Logger handle. */
-  log = new Console('Scrt')
+  log = new Console('ScrtChain')
 
   /** Smallest unit of native token. */
   defaultDenom: string = ScrtChain.defaultDenom
@@ -587,6 +587,9 @@ export interface ScrtBatchResult {
 
 /** Base class for transaction-bundling Agent for both Secret Network implementations. */
 class ScrtBatch extends Batch {
+
+  /** Logger handle. */
+  log = new Console('ScrtBatch')
 
   static batchCounter: number = 0
 

@@ -13,6 +13,8 @@ export default new Suite([
 ])
 
 export async function testChain () {
+  assert.throws(()=>Chain.mocknet())
+
   let chain = new StubChain()
   assert.throws(()=>chain.id)
   assert.throws(()=>chain.id='foo')
@@ -47,6 +49,7 @@ export async function testChain () {
 export async function testAgent () {
   const chain = new StubChain({ id: 'stub' })
   let agent: Agent = await chain.getAgent({ name: 'testing1', address: '...' })
+  assert.equal(agent[Symbol.toStringTag], '... @ stub')
   assert(agent instanceof StubAgent,    'an Agent was returned')
   assert(agent.address,                 'agent has address')
   assert.equal(agent.name, 'testing1',  'agent.name assigned')

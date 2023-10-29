@@ -54,6 +54,16 @@ class ScrtConsole extends Console {
     this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
     return this
   }
+  batchMessages (msgs: any, N: number) {
+    this.info(`Messages in batch`, `#${N}:`)
+    for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
+    return this
+  }
+  batchMessagesEncrypted (msgs: any, N: number) {
+    this.info(`Encrypted messages in batch`, `#${N}:`)
+    for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
+    return this
+  }
   batchSigningCommand = (
     name: string, multisig: Address, chainId: ChainId, accountNumber: number, sequence: number,
     unsigned: any
