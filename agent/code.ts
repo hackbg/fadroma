@@ -192,14 +192,14 @@ export class CompiledCode {
       return this.codeData
     }
     if (!this.codePath) {
-      throw new Error('Missing codePath')
+      throw new Error('missing codePath')
     }
     if (typeof this.codePath === 'string') {
       return this.fetchFromPath(this.codePath)
     } else if (this.codePath instanceof URL) {
       return this.fetchFromURL(this.codePath)
     } else {
-      throw new Error('Invalid codePath')
+      throw new Error('invalid codePath')
     }
   }
 

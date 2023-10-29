@@ -83,10 +83,6 @@ export type Address = string
 class FadromaError extends BaseError {
   /** Thrown when a required parameter is missing. */
   static Missing: typeof FadromaError_Missing
-  /** Thrown when an invalid value or operation is at hand. */
-  static Invalid: typeof FadromaError_Invalid
-  /** Thrown when an operation fails. */
-  static Failed: typeof FadromaError_Failed
   /** Thrown when the control flow reaches unimplemented areas. */
   static Unimplemented = this.define('Unimplemented', (info: string) => {
     return 'Not implemented' + (info ? `: ${info}` : '')
@@ -117,45 +113,8 @@ class FadromaError_Missing extends FadromaError.define(
   static Workspace = this.define('Workspace', () => "no workspace")
 }
 
-class FadromaError_Invalid extends FadromaError.define(
-  'Invalid', (msg='an invalid value was provided') => msg as string
-) {
-  static Message = this.define('Message', () => {
-    return 'messages must have exactly 1 root key'
-  })
-  static Label = this.define('Label', (label: string) => {
-    return `can't set invalid label: ${label}`
-  })
-  static Batching = this.define('Batching', (op: string) => {
-    return `invalid when batching: ${op}`
-  })
-  static Hashes = this.define('Hashes', () => {
-    return 'passed both codeHash and code_hash and they were different'
-  })
-  static Value = this.define('Value', (x: string, y: string, a: any, b: any) => {
-    return `wrong ${x}: ${y} was passed ${a} but fetched ${b}`
-  })
-  static WrongChain = this.define('WrongChain', () => {
-    return 'tried to instantiate a contract that is uploaded to another chain'
-  })
-}
-
-class FadromaError_Failed extends FadromaError.define(
-  'Failed', (msg='an action failed') => msg as string
-) {
-  static Upload = this.define('Upload',
-    (args) => 'upload failed.',
-    (err, args) => Object.assign(err, args||{})
-  )
-  static Init = this.define('Init', (id: any) => {
-    return `instantiation of code id ${id} failed.`
-  })
-}
-
 export const Error = Object.assign(FadromaError, {
   Missing: FadromaError_Missing,
-  Invalid: FadromaError_Invalid,
-  Failed:  FadromaError_Failed
 })
 
 class AgentConsole extends Console {

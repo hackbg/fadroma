@@ -1,6 +1,13 @@
 import assert from 'node:assert'
 import { Console, Error, into, intoArray, intoRecord } from './base'
 
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
+  ['errors',      testErrors],
+  ['console',     testConsole],
+  ['collections', testCollections],
+])
+
 export async function testErrors () {
   // Make sure each error subclass can be created with no arguments:
   for (const key of Object.keys(Error)) {
@@ -43,7 +50,4 @@ export async function testCollections () {
     promise: 3,
     asyncFn: 4
   })
-}
-
-export async function testLabels () {
 }

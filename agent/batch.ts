@@ -182,29 +182,29 @@ export abstract class Batch implements BatchAgent {
     contract: Address|{ address: Address, codeHash?: CodeHash },
     msg: Message
   ): Promise<never> {
-    throw new Error.Invalid.Batching("query")
+    throw new Error('operation not allowed in batch: query')
   }
 
   /** Uploads are disallowed in the middle of a batch because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async upload (data: unknown): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
+    throw new Error("operation not allowed in batch: upload")
   }
   async doUpload (data: unknown): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
+    throw new Error("operation not allowed in batch: upload")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
   get balance (): Promise<string> {
-    throw new Error.Invalid.Batching("query balance")
+    throw new Error("operation not allowed in batch: query balance")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
   get height (): Promise<number> {
-    throw new Error.Invalid.Batching("query block height inside batch")
+    throw new Error("operation not allowed in batch: query block height inside batch")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
   get nextBlock (): Promise<number> {
-    throw new Error.Invalid.Batching("wait for next block")
+    throw new Error("operation not allowed in batch: wait for next block")
   }
   /** This doesn't change over time so it's allowed when building batches. */
   getCodeId (address: Address) {
@@ -220,19 +220,19 @@ export abstract class Batch implements BatchAgent {
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
   async getBalance (denom: string): Promise<string> {
-    throw new Error.Invalid.Batching("query balance")
+    throw new Error("operation not allowed in batch: query balance")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
   async send (
     recipient: Address, amounts: ICoin[], options?: Parameters<Agent["send"]>[2]
   ): Promise<void|unknown> {
-    throw new Error.Invalid.Batching("send")
+    throw new Error("operation not allowed in batch: send")
   }
   /** Disallowed in batch - do it beforehand or afterwards. */
   async sendMany (
     outputs: [Address, ICoin[]][], options?: Parameters<Agent["sendMany"]>[1]
   ): Promise<void|unknown> {
-    throw new Error.Invalid.Batching("send")
+    throw new Error("operation not allowed in batch: send")
   }
   /** Nested batches are "flattened": trying to create a batch
     * from inside a batch returns the same batch. */

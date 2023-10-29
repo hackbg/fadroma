@@ -303,9 +303,13 @@ export class DeploymentContractLabel {
   /** Parse a label into prefix, name, and suffix. */
   static parse (label: string): DeploymentContractLabel {
     const matches = label.match(DeploymentContractLabel.RE_LABEL)
-    if (!matches || !matches.groups) throw new Error.Invalid.Label(label)
+    if (!matches || !matches.groups) {
+      throw new Error(`label does not match format: ${label}`)
+    }
     const { name, prefix, suffix } = matches.groups
-    if (!name) throw new Error.Invalid.Label(label)
+    if (!name) {
+      throw new Error(`label does not match format: ${label}`)
+    }
     return new DeploymentContractLabel(prefix, name, suffix)
   }
 

@@ -1,6 +1,16 @@
 import assert from 'node:assert'
+import { fixture } from '../fixtures/fixtures'
+
 import { Chain, assertChain } from './chain'
-import { StubChain } from './stub'
+import type { Agent } from './agent'
+import { StubChain, StubAgent } from './stub'
+
+import { Suite } from '@hackbg/ensuite'
+export default new Suite([
+  ['chain',  testChain],
+  ['agent',  testAgent],
+  ['devnet', testDevnet],
+])
 
 export async function testChain () {
   let chain = new StubChain()
@@ -32,6 +42,42 @@ export async function testChain () {
   assert(StubChain.devnet().devMode)
   assert(new StubChain({ mode: Chain.Mode.Mocknet }).isMocknet)
   assert(new StubChain({ mode: Chain.Mode.Mocknet }).devMode)
+}
+
+export async function testAgent () {
+  const chain = new StubChain({ id: 'stub' })
+  let agent: Agent = await chain.getAgent({ name: 'testing1', address: '...' })
+  assert(agent instanceof StubAgent,    'an Agent was returned')
+  assert(agent.address,                 'agent has address')
+  assert.equal(agent.name, 'testing1',  'agent.name assigned')
+  assert.equal(agent.chain, chain,      'agent.chain assigned')
+  const ready = agent.ready
+  assert(await ready)
+  assert(agent.ready === ready)
+  agent.defaultDenom
+  agent.balance
+  agent.height
+  agent.nextBlock
+  await agent.getBalance('a','b')
+  await agent.query('', {})
+  await agent.getCodeId('')
+  await agent.getHash('')
+  await agent.getHash(0)
+  await agent.getLabel('')
+  await agent.send('', [])
+  await agent.sendMany([])
+  await agent.upload(fixture('null.wasm'), {})
+  await agent.upload(new Uint8Array(), {})
+
+  await agent.instantiate('1', { label: 'foo', initMsg: 'bar' })
+  await agent.instantiate({ codeId: '1' }, { label: 'foo', initMsg: {} })
+  assert.rejects(()=>agent.instantiate('foo', {}))
+  assert.rejects(()=>agent.instantiate('', {}))
+  assert.rejects(()=>agent.instantiate('1', { label: 'foo' }))
+  assert.rejects(()=>agent.instantiate('1', { initMsg: {} }))
+
+  await agent.execute('stub', {}, {})
+  await agent.execute({ address: 'stub' }, {}, {})
 }
 
 export async function testDevnet () {

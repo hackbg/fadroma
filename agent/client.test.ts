@@ -4,7 +4,7 @@ import { StubChain, StubAgent } from './stub'
 import { ContractClient } from './client'
 import { ContractInstance } from './deploy'
 
-export async function testClient () {
+export default async function testClient () {
   const chain = new StubChain({ id: 'foo', mode: Chain.Mode.Testnet })
   const agent = new StubAgent({ chain })
   const client = new ContractClient({

@@ -21,8 +21,12 @@ export class UploadStore extends Map<CodeHash, UploadedCode> {
   }
 
   set (codeHash: CodeHash, value: Partial<UploadedCode>): this {
-    if (!(value instanceof UploadedCode)) value = new UploadedCode(value)
-    if (value.codeHash && (value.codeHash !== codeHash)) throw new Error.Invalid('code hash mismatch')
+    if (!(value instanceof UploadedCode)) {
+      value = new UploadedCode(value)
+    }
+    if (value.codeHash && (value.codeHash !== codeHash)) {
+      throw new Error('tried to store upload under different code hash')
+    }
     return super.set(codeHash, value as UploadedCode)
   }
 }

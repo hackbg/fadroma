@@ -2,7 +2,7 @@ import assert from 'node:assert'
 import { ContractCode, SourceCode, CompiledCode, UploadedCode } from './code'
 import { StubAgent, StubBuilder } from './stub'
 
-export async function testContracts () {
+export default async function testContracts () {
   const contract = new ContractCode({
     source:   {},
     compiled: {},
