@@ -34,9 +34,11 @@ export function bindChainSupport (Chain: Function, Agent: Function, Batch: Funct
 }
 
 export * from './agent-base'
-export * from './agent-chain'
 export * from './agent-batch'
-export * from './agent-stub'
-export * from './agent-contract'
-export * from './agent-token'
+export * from './agent-chain'
+export * from './agent-client'
+export * from './agent-code'
+export * from './agent-deploy'
 export * from './agent-store'
+export * from './agent-stub'
+export * from './agent-token'
