@@ -478,7 +478,7 @@ export abstract class Agent {
       contract = new UploadedCode({ codeId: contract })
     }
     if (isNaN(Number(contract.codeId))) {
-      throw new Error.Invalid('code id')
+      throw new Error(`invalid code id: ${contract.codeId}`)
     }
     if (!contract.codeId) {
       throw new Error.Missing.CodeId()

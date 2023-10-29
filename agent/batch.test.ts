@@ -4,7 +4,7 @@ import { Batch } from './batch'
 import { StubChain, StubBatch } from './stub'
 import { ContractClient } from './client'
 
-export async function testBatch () {
+export default async function testBatch () {
   let agent: Agent = await new StubChain({ id: 'stub' })
     .getAgent({ name: 'test-batch', address: 'stub1testbatch' })
     .ready

@@ -41,17 +41,17 @@ export abstract class Token {
   /** The token's unique id. */
   abstract get id (): string
   /** Whether this token is fungible. */
-  abstract isFungible (): this is TokenFungible
+  abstract isFungible (): this is Fungible
 }
 
 /** An abstract non-fungible token. */
-export abstract class TokenNonFungible extends Token {
+export abstract class NonFungible extends Token {
   /** @returns false */
   isFungible = () => false
 }
 
 /** An abstract fungible token. */
-export abstract class TokenFungible extends Token {
+export abstract class Fungible extends Token {
   /** @returns true */
   isFungible = () => true
   /** Whether this token is natively supported by the chain. */
@@ -61,7 +61,7 @@ export abstract class TokenFungible extends Token {
 }
 
 /** The chain's natively implemented token (such as SCRT on Secret Network). */
-export class NativeToken extends TokenFungible {
+export class NativeToken extends Fungible {
   constructor (readonly denom: string) { super() }
   /** The token's unique id. */
   get id () { return this.denom }
@@ -72,7 +72,7 @@ export class NativeToken extends TokenFungible {
 }
 
 /** A contract-based token. */
-export class CustomToken extends TokenFungible {
+export class CustomToken extends Fungible {
   constructor (readonly addr: Address, readonly hash?: string) { super() }
   /** The token contract's address. */
   get id () { return this.addr }
@@ -97,7 +97,7 @@ export class Pair {
 
 /** An amount of a fungible token. */
 export class Amount {
-  constructor (public token: TokenFungible, public amount: Uint128) {}
+  constructor (public token: Fungible, public amount: Uint128) {}
   /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
     if (this.token.isNative()) return [new Coin(this.amount, this.token.denom)]
