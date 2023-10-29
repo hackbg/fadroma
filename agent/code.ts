@@ -66,6 +66,7 @@ export class ContractCode {
     if (!builder) {
       throw new Error("can't compile: no builder")
     }
+    console.log(this)
     if (!this.source?.isValid()) {
       throw new Error("can't compile: no source")
     }
@@ -148,7 +149,7 @@ export class SourceCode {
   }
 
   isValid () {
-    return false
+    return this.repository || this.workspace
   }
 }
 

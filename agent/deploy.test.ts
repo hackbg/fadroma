@@ -12,6 +12,20 @@ export default new Suite([
 
 export async function testDeployment () {
 
+  class MyBuildableDeployment extends Deployment {
+    template1 = this.template('template1', {
+      codeHash: "asdf",
+      codeData: new Uint8Array([1]),
+    })
+    contract1 = this.template('template1', {
+      repository: "foo",
+    })
+  }
+
+  await new MyBuildableDeployment().build({
+    builder: new StubBuilder()
+  })
+
   class MyDeployment extends Deployment {
     template1 = this.template('template1', {
       codeHash: "asdf",
@@ -27,10 +41,6 @@ export async function testDeployment () {
       //initMsg: {}
     //})
   }
-
-  await new MyDeployment().build({
-    builder: new StubBuilder()
-  })
 
   await new MyDeployment().upload({
     builder:  new StubBuilder(),

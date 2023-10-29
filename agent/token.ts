@@ -63,10 +63,13 @@ export abstract class Fungible extends Token {
 /** The chain's natively implemented token (such as SCRT on Secret Network). */
 export class NativeToken extends Fungible {
   constructor (readonly denom: string) { super() }
+
   /** The token's unique id. */
   get id () { return this.denom }
+
   /** @returns false */
   isCustom = () => false
+
   /** @returns true */
   isNative = () => true
 }
@@ -74,49 +77,74 @@ export class NativeToken extends Fungible {
 /** A contract-based token. */
 export class CustomToken extends Fungible {
   constructor (readonly addr: Address, readonly hash?: string) { super() }
+
   /** The token contract's address. */
   get id () { return this.addr }
+
   /** @returns true */
   isCustom = () => true
+
   /** @returns false */
   isNative = () => false
-  /** @returns Client */
-  asClient (agent: Agent): ContractClient
-  asClient <C extends ContractClientClass<ContractClient>> (
-    agent: Agent, $C: C = ContractClient as unknown as C
-  ): InstanceType<C> {
-    return new $C({ address: this.addr, codeHash: this.hash }, agent) as InstanceType<C>
+
+  connect <C extends ContractClient> (
+    agent?: Agent, $C: ContractClientClass<C> = ContractClient as unknown as ContractClientClass<C>
+  ): C {
+    return new $C({ address: this.addr, codeHash: this.hash }, agent)
   }
 }
 
 /** A pair of tokens. */
 export class Pair {
-  constructor (readonly a: Token, readonly b: Token) {}
-  get reverse (): Pair { return new Pair(this.b, this.a) }
+  constructor (
+    readonly a: Token,
+    readonly b: Token
+  ) {}
+  /** Reverse the pair. */
+  get reverse (): Pair {
+    return new Pair(this.b, this.a)
+  }
 }
 
 /** An amount of a fungible token. */
 export class Amount {
-  constructor (public token: Fungible, public amount: Uint128) {}
+
+  constructor (
+    public amount: Uint128,
+    public token:  Fungible,
+  ) {}
+
   /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
-    if (this.token.isNative()) return [new Coin(this.amount, this.token.denom)]
+    if (this.token.isNative()) {
+      return [new Coin(this.amount, this.token.denom)]
+    }
     return []
   }
+
 }
 
 /** A pair of token amounts. */
 export class Swap {
-  constructor (readonly a: Amount, readonly b: Amount) {}
+  constructor (
+    readonly a: Amount|NonFungible,
+    readonly b: Amount|NonFungible
+  ) {}
+
   /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
     let result: ICoin[] = []
-    if (this.a.token.isNative()) {
+    if (this.a.token?.isNative()) {
       result = [...result, ...this.a.asNativeBalance]
     }
-    if (this.b.token.isNative()) {
+    if (this.b.token?.isNative()) {
       result = [...result, ...this.b.asNativeBalance]
     }
     return result
+  }
+
+  /** Reverse the pair. */
+  get reverse (): Swap {
+    return new Swap(this.b, this.a)
   }
 }
