@@ -218,7 +218,7 @@ import { readFileSync } from 'node:fs'
 // uploading from a Buffer
 await agent.upload(readFileSync(examples['KV'].path), {
   // optional metadata
-  artifact: examples['KV'].path
+  codePath: examples['KV'].path
 })
 
 // Uploading from a filename
@@ -226,13 +226,6 @@ await agent.upload('example.wasm') // TODO
 
 // Uploading an Uploadable object
 await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' }) // TODO
-
-// Uploading multiple pieces of code:
-await agent.uploadMany([
-  'example.wasm',
-  readFileSync('example.wasm'),
-  { artifact: './example.wasm', codeHash: 'expectedCodeHash' }
-])
 
 const c1 = await agent.instantiate({
   codeId:   '1',

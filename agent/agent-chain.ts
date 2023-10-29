@@ -460,14 +460,6 @@ export abstract class Agent {
     }
   }
 
-  /** Upload multiple contracts. */
-  async uploadMany (
-    codes: Many<string|URL|Uint8Array|Partial<CompiledCode>>,
-    options: Parameters<typeof this["upload"]>[1]
-  ) {
-    return mapAsync(codes, code => this.upload(code, options))
-  }
-
   protected abstract doUpload (
     data: Uint8Array,
     options: Parameters<typeof this["upload"]>[1]

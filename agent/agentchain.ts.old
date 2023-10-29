@@ -2,7 +2,6 @@ import type {
   Address, Message, ICoin, IFee, CodeHash,
   Class, Name, Many, CodeId,
   Into, TxHash, Label,
-  Batch, BatchClass, BatchCallback,
   UploadStore
 } from './agent'
 import {
@@ -44,7 +43,7 @@ export interface DevnetHandle {
   port?:        string|number
 
   start (): Promise<this>
-  getAccount (name: string): Promise<Partial<Agent>>
+  getAccount (name: string): Promise<Partial<Chain>>
   assertPresence (): Promise<void>
 }
 
@@ -71,11 +70,6 @@ export abstract class Chain {
   static mocknet (options?: Partial<Chain>): Chain & { mode: ChainMode.Mocknet } {
     throw new Error('Mocknet is not enabled for this chain.')
   }
-  /** The default Batch class used by this Agent. */
-  static Batch: BatchClass<Batch> // populated by bindChainSupport
-
-  /** The Batch subclass to use. */
-  Batch:    BatchClass<Batch> = (this.constructor as unknown as { Batch: BatchClass<Batch> }).Batch
   /** Logger. */
   log:      Console = new Console(this.constructor.name)
   /** The API URL to use. */
@@ -165,7 +159,7 @@ export abstract class Chain {
       writable: true,
     })
 
-    Object.defineProperty(this, 'Agent', {
+    Object.defineProperty(this, 'Chain', {
       enumerable: false,
       writable: true
     })
@@ -214,6 +208,9 @@ export abstract class Chain {
     return this.isDevnet || this.isMocknet
   }
 
+  abstract getApi ():
+    unknown
+
   get ready () {
     if (this.isDevnet && !this.devnet) {
       throw new Error("the chain is marked as a devnet but is missing the devnet handle")
@@ -221,12 +218,17 @@ export abstract class Chain {
     type This = this
     type ThisWithApi = This & { api: NonNullable<This["api"]> }
     const init = new Promise<ThisWithApi>(async (resolve, reject)=>{
-      if (this.isDevnet) {
-        await this.devnet!.start()
+      if (this.devnet) {
+        await this.devnet.start()
       }
       if (!this.api) {
-        if (!this.url) throw new Error("the chain's url property is not set")
+        if (!this.url) {
+          throw new Error("the chain's url property is not set")
+        }
         this.api = await Promise.resolve(this.getApi())
+        //if (!this.mnemonic && this.name && this.devnet) {
+          //Object.assign(this, await this.devnet.getAccount(this.name))
+        //}
       }
       return resolve(this as ThisWithApi)
     })
@@ -234,22 +236,13 @@ export abstract class Chain {
     return init
   }
 
-  /** Complete the asynchronous initialization of this Agent. */
-  get ready (): Promise<this> {
-    const init = new Promise<this>(async (resolve, reject)=>{
-      try {
-        if (this.chain?.devnet) await this.chain?.devnet.start()
-        if (!this.mnemonic && this.name && this.chain?.devnet) {
-          Object.assign(this, await this.chain?.devnet.getAccount(this.name))
-        }
-        resolve(this)
-      } catch (e) {
-        reject(e)
-      }
-    })
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
-  }
+  /** Get info about a block. */
+  abstract getBlockInfo (block?: number):
+    Promise<unknown>
+
+  /** Get the current block height. */
+  abstract get height ():
+    Promise<number>
 
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
@@ -279,43 +272,25 @@ export abstract class Chain {
     })
   }
 
-  abstract getApi (): unknown
-
   /** The default denomination of the chain's native token. */
-  abstract defaultDenom: string
+  abstract defaultDenom:
+    string
 
-  /** Get the current block height. */
-  abstract get height (): Promise<number>
-
-  abstract getAccountInfo (address?: Address|{ address?: Address }): Promise<unknown>
-
-  abstract getCodeInfo (id: CodeId|{ codeId?: CodeId }): Promise<unknown>
-
-  abstract getContractInfo (address: Address|{ address?: Address }): Promise<unknown>
-
-  /** Get the native balance of an address. */
-  abstract getBalance (denom?: string): Promise<string>
-
-  /** Get the native balance of an address. */
-  abstract getBalanceOf (address: Address, denom?: string): Promise<string>
-
-  /** Get the code id of a smart contract. */
-  abstract getCodeId (address: Address): Promise<CodeId>
-
-  /** Get the code hash of a smart contract. */
-  abstract getCodeHash (hash: CodeHash): Promise<CodeHash>
-
-  /** Get the code hash of a smart contract. */
-  abstract getContractHash (address: Address): Promise<CodeHash>
-
-  /** Get the label of a smart contract. */
-  abstract getContractLabel (address: Address): Promise<string>
+  /** Get info about a specific account (such as balance). */
+  abstract getAccountInfo (address?: Address|{ address?: Address }):
+    Promise<unknown>
 
   /** Send native tokens to 1 recipient. */
-  abstract send (to: Address, amounts: ICoin[], opts?: unknown): Promise<void|unknown>
+  abstract send (to: Address, amounts: ICoin[], options?: unknown):
+    Promise<void|unknown>
 
   /** Send native tokens to multiple recipients. */
-  abstract sendMany (outputs: [Address, ICoin[]][], opts?: unknown): Promise<void|unknown>
+  abstract sendMany (outputs: [Address, ICoin[]][], options?: unknown):
+    Promise<void|unknown>
+
+  /** Get info about a specific code. */
+  abstract getCodeInfo (id: CodeId|{ codeId?: CodeId }):
+    Promise<ContractUpload>
 
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
@@ -367,19 +342,14 @@ export abstract class Chain {
     }
   }
 
-  /** Upload multiple contracts. */
-  async uploadMany (
-    codes: Many<string|URL|Uint8Array|Partial<CompiledCode>>,
-    options: Parameters<typeof this["upload"]>[1]
-  ) {
-    return mapAsync(codes, code => this.upload(code, options))
-  }
-
   /** Chain-specific upload logic. */
   protected abstract doUpload (
     data: Uint8Array,
     options: Parameters<typeof this["upload"]>[1]
   ): Promise<Partial<ContractUpload>>
+
+  abstract getContractInfo (address: Address|{ address?: Address }):
+    Promise<ContractInstance>
 
   /** Create a new smart contract from a code id, label and init message.
     * @example
@@ -390,9 +360,7 @@ export abstract class Chain {
   async instantiate (
     contract: CodeId|Partial<ContractUpload>,
     options:  Partial<ContractInstance>
-  ): Promise<ContractInstance & {
-    address: Address,
-  }> {
+  ): Promise<ContractInstance & { address: Address, }> {
     if (typeof contract === 'string') {
       contract = new ContractUpload({ codeId: contract })
     }
@@ -432,74 +400,15 @@ export abstract class Chain {
 
   /** Chain-specific instantiate logic. */
   protected abstract doInstantiate (
-    codeId:  CodeId,
-    options: Partial<ContractInstance>
+    contract: CodeId,
+    options:  Partial<ContractInstance>
   ): Promise<Partial<ContractInstance>>
-
-  /** Create multiple smart contracts from a Template (providing code id)
-    * and a list or map of label/initmsg pairs.
-    * Uses this agent's Batch class to instantiate them in a single transaction.
-    * @example
-    *   await agent.instantiateMany(template.instances({
-    *     One: { label, initMsg },
-    *     Two: { label, initMsg },
-    *   }))
-    *   await agent.instantiateMany({
-    *     One: template1.instance({ label, initMsg }),
-    *     Two: template2.instance({ label, initMsg }),
-    *   }))
-    * @returns
-    *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
-    *   depending on what is passed as inputs. */
-  async instantiateMany <M extends Many<ContractInstance>> (
-    contracts: M,
-    options: {
-      initFee?:  ICoin[]|'auto',
-      initSend?: ICoin[],
-      initMemo?: string,
-    } = {}
-  ): Promise<M> {
-    // Returns an array of TX results.
-    const batch = this.batch((batch: any)=>batch.instantiateMany(contracts))
-    const response = await batch.run()
-    // Populate contracts with resulting addresses
-    for (const contract of Object.values(contracts)) {
-      if (contract.address) continue
-      // Find result corresponding to contract
-      const found = response.find(({ label }:any)=>label===contract.label)
-      if (found) {
-        const { address, tx, sender } = found // FIXME: implementation dependent
-        contract.address = address
-        contract.initTx = tx
-        contract.initBy = sender
-      } else {
-        this.log.warn(`Failed to find address for ${contract.label}.`)
-        continue
-      }
-    }
-    return contracts
-  }
-
-  /** Get a client instance for talking to a specific smart contract as this executor. */
-  getClient <C extends ContractClient> (
-    $C: ContractClientClass<C> = ContractClient as unknown as ContractClientClass<C>,
-    contract: Partial<ContractInstance> = {}
-  ): C {
-    return new $C(
-      contract,
-      this
-    ) as C
-  }
 
   /** Call a transaction method on a smart contract. */
   async execute (
     contract: Address|Partial<ContractInstance>,
     message:  Message,
-    options?: {
-      execFee?:  IFee
-      execSend?: ICoin[]
-      execMemo?: string
-    }
+    options?: { execFee?: IFee, execSend?: ICoin[], execMemo?: string }
   ): Promise<unknown> {
     if (typeof contract === 'string') contract = new ContractInstance({ address: contract })
     if (!contract.address) throw new Error("agent.execute: no contract address")
@@ -511,15 +420,12 @@ export abstract class Chain {
 
   /** Chain-specific execute logic. */
   protected abstract doExecute (
-    contract: Partial<ContractInstance>,
-    message:  Message,
-    options:  Parameters<this["execute"]>[2]
+    contract: Partial<ContractInstance>, message: Message, options?: Parameters<this["execute"]>[2]
   ): Promise<unknown>
 
   /** Query a contract on the chain. */
   query <Q> (
-    contract: Address|Partial<ContractInstance>,
-    message: Message
+    contract: Address|Partial<ContractInstance>, message: Message
   ): Promise<Q> {
     if (typeof contract === 'string') contract = { address: contract }
     return this.doQuery(contract, message)
@@ -527,17 +433,235 @@ export abstract class Chain {
 
   /** Chain-specific query logic. */
   protected abstract doQuery <Q> (
-    contract: Partial<ContractInstance>,
-    message:  Message
+    contract: Partial<ContractInstance>, message: Message
   ): Promise<Q>
 
-  /** Execute a transaction batch.
-    * @returns Batch if called with no arguments
-    * @returns Promise<any[]> if called with Batch#wrap args */
-  batch <B extends Batch> (cb?: BatchCallback<B>): B {
-    return new this.Batch(
-      this,
-      cb as BatchCallback<Batch>
-    ) as unknown as B
+  batch (callback?: (batch: Batch)=>unknown): Batch {
+    return new Batch(this, callback)
+  }
+
+  /** Get a client instance for talking to a specific smart contract as this executor. */
+  getClient <C extends ContractClient> (
+    contract: Partial<ContractInstance> = {},
+    $C: ContractClientClass<C> = ContractClient as unknown as ContractClientClass<C>,
+  ): C {
+    return new $C(contract, this) as C
   }
 }
+
+/** Batches transactions and broadcasts them as a single message.
+  * - TODO: Break down into multiple batches accorting to fetchLimits */
+export abstract class Batch {
+  chain:    Chain
+  callback: (batch: this) => unknown
+  messages: any[]  = []
+
+  constructor (chain: Chain, messages: any[]|Batch["callback"]) {
+    this.chain = chain
+    if (typeof messages === 'function') {
+      this.callback = messages
+    } else if (messages instanceof Array) {
+      this.messages = messages
+    } else if (messages) {
+      throw new Error('invalid argument passed to batch')
+    }
+  }
+
+  log = new Console(this.constructor.name)
+
+  getClient <C extends ContractClient> (...args: Parameters<Chain["getClient"]>): C {
+    return this.chain.getClient(...args) as C
+  }
+
+  /** Add a message to the batch. */
+  add (msg: Message) {
+    this.messages.push(msg)
+  }
+
+  /** Add an init message to the batch. */
+  async instantiate (
+    contract: CodeId|Partial<ContractUpload>,
+    options: {
+      label:     Name,
+      initMsg:   Into<Message>,
+      initFee?:  unknown,
+      initSend?: ICoin[],
+      initMemo?: string,
+    }
+  ): Promise<ContractInstance & {
+    address: Address,
+  }> {
+    if (typeof contract === 'string') {
+      contract = new ContractUpload({ codeId: contract })
+    }
+    this.add({ init: {
+      codeId:   contract.codeId,
+      codeHash: contract.codeHash,
+      label:    options.label,
+      msg:      await into(options.initMsg),
+      sender:   this.address,
+      funds:    options.initSend || [],
+      memo:     options.initMemo  || ''
+    } })
+    return new ContractInstance({
+      chainId:  this.agent.chain!.id,
+      address:  '(batch not submitted)',
+      codeHash: contract.codeHash,
+      label:    options.label,
+      initBy:   this.address,
+    }) as ContractInstance & { address: Address }
+  }
+
+  /** Add an exec message to the batch. */
+  async execute (
+    contract: Address|{ address: Address, codeHash?: CodeHash },
+    message:  Message,
+    options:  Parameters<Chain["execute"]>[2] = {}
+  ): Promise<this> {
+    let address: Address
+    let codeHash: CodeHash|undefined = undefined
+    if (typeof contract === 'string') {
+      address = contract
+    } else {
+      address = contract.address
+      codeHash = contract.codeHash
+    }
+    this.add({
+      exec: {
+        sender:   this.address,
+        contract: address,
+        codeHash,
+        msg:      message,
+        funds:    options.execSend
+      }
+    })
+    return this
+  }
+
+  /** Queries are disallowed in the middle of a batch because
+    * even though the batch API is structured as multiple function calls,
+    * the batch is ultimately submitted as a single transaction and
+    * it doesn't make sense to query state in the middle of that. */
+  async query <U> (
+    contract: Address|{ address: Address, codeHash?: CodeHash },
+    msg: Message
+  ): Promise<never> {
+    throw new Error.Invalid.Batching("query")
+  }
+
+  /** Uploads are disallowed in the middle of a batch because
+    * it's easy to go over the max request size, and
+    * difficult to know what that is in advance. */
+  async upload (data: unknown): Promise<never> {
+    throw new Error.Invalid.Batching("upload")
+  }
+
+  async doUpload (data: unknown): Promise<never> {
+    throw new Error.Invalid.Batching("upload")
+  }
+
+  /** Uploads are disallowed in the middle of a batch because
+    * it's easy to go over the max request size, and
+    * difficult to know what that is in advance. */
+  async uploadMany (uploadables: Many<unknown> = {}): Promise<never> {
+    throw new Error.Invalid.Batching("upload")
+  }
+
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  get balance (): Promise<string> {
+    throw new Error.Invalid.Batching("query balance")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  get height (): Promise<number> {
+    throw new Error.Invalid.Batching("query block height inside batch")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  get nextBlock (): Promise<number> {
+    throw new Error.Invalid.Batching("wait for next block")
+  }
+  /** This doesn't change over time so it's allowed when building batches. */
+  getCodeId (address: Address) {
+    return this.agent.getCodeId(address)
+  }
+  /** This doesn't change over time so it's allowed when building batches. */
+  getLabel (address: Address) {
+    return this.agent.getLabel(address)
+  }
+  /** This doesn't change over time so it's allowed when building batches. */
+  getHash (address: Address|number) {
+    return this.agent.getHash(address)
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  async getBalance (denom: string): Promise<string> {
+    throw new Error.Invalid.Batching("query balance")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  async send (
+    recipient: Address, amounts: ICoin[], options?: Parameters<Chain["send"]>[2]
+  ): Promise<void|unknown> {
+    throw new Error.Invalid.Batching("send")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  async sendMany (
+    outputs: [Address, ICoin[]][], options?: Parameters<Chain["sendMany"]>[1]
+  ): Promise<void|unknown> {
+    throw new Error.Invalid.Batching("send")
+  }
+  /** Nested batches are "flattened": trying to create a batch
+    * from inside a batch returns the same batch. */
+  batch <B extends Batch> (cb?: BatchCallback<B>): B {
+    if (cb) this.log.warn('Nested batch callback ignored.')
+    this.log.warn('Nest batches with care. Depth:', ++this.depth)
+    return this as unknown as B
+  }
+
+  /** Either submit or save the batch. */
+  async run (options: Partial<{
+    memo: string,
+    save: boolean
+  }> = {}): Promise<unknown> {
+    if (this.depth > 0) {
+      this.log.warn('Unnesting batch. Depth:', --this.depth)
+      this.depth--
+      return null as any // result ignored
+    } else if (options.save) {
+      this.log('Saving batch')
+      return this.save(options.memo)
+    } else {
+      this.log('Submitting batch')
+      return this.submit(options.memo)
+    }
+  }
+
+  /** Broadcast a batch to the chain. */
+  async submit (memo?: string): Promise<unknown> {
+    this.log.warn('Batch#submit: this function is stub; use a subclass of Batch')
+    if (memo) this.log.info('Memo:', memo)
+    await this.chain.ready
+    if (this.callback) await Promise.resolve(this.callback(this))
+    this.callback = undefined
+    return this.messages.map(()=>({}))
+  }
+
+  /** Save a batch for manual broadcast. */
+  async save (name?: string): Promise<unknown> {
+    this.log.warn('Batch#save: this function is stub; use a subclass of Batch')
+    if (name) this.log.info('Name:', name)
+    await this.chain.ready
+    if (this.callback) await Promise.resolve(this.callback(this))
+    this.callback = undefined
+    return this.messages.map(()=>({}))
+  }
+
+  /** Throws if the batch is invalid. */
+  assertMessages (): any[] {
+    if (this.messages.length < 1) {
+      this.log.emptyBatch()
+      throw new Error('Batch contained no messages.')
+    }
+    return this.messages
+  }
+}
+
+/** Function passed to Batch#wrap */
+export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>

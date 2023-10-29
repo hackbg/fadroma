@@ -2,21 +2,22 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error, Console, into } from './agent-base'
-import type {
-  Class, Message, CodeId, Address, Name, Into, ICoin, Many, CodeHash,
-} from './agent-base'
+import type { Class, Message, Address, Name, Into, Many } from './agent-base'
+import type { CodeHash, CodeId } from './agent-code'
+import { UploadedCode } from './agent-code'
+import type { ICoin } from './agent-token'
 import type { Agent } from './agent-chain'
-import {
-  ContractUpload,
-  ContractInstance,
-  ContractClient
-} from './agent-contract'
+import { ContractInstance } from './agent-deploy'
+import { ContractClient } from './agent-client'
+
+/** Function passed to Batch#wrap */
+export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>
 
 /** A constructor for a Batch subclass. */
 export interface BatchClass<B extends Batch> extends
   Class<B, ConstructorParameters<typeof Batch>>{}
 
-type BatchAgent = Omit<Agent, 'doUpload'|'ready'> & { ready: Promise<Batch> }
+type BatchAgent = Omit<Agent, 'doUpload'|'ready'|'mnemonic'> & { ready: Promise<Batch> }
 
 /** Batch is an alternate executor that collects messages to broadcast
   * as a single transaction in order to execute them simultaneously.
@@ -115,7 +116,7 @@ export abstract class Batch implements BatchAgent {
 
   /** Add an init message to the batch. */
   async instantiate (
-    contract: CodeId|Partial<ContractUpload>,
+    contract: CodeId|Partial<UploadedCode>,
     options: {
       label:     Name,
       initMsg:   Into<Message>,
@@ -127,7 +128,7 @@ export abstract class Batch implements BatchAgent {
     address: Address,
   }> {
     if (typeof contract === 'string') {
-      contract = new ContractUpload({ codeId: contract })
+      contract = new UploadedCode({ codeId: contract })
     }
     this.add({ init: {
       codeId:   contract.codeId,
@@ -190,18 +191,9 @@ export abstract class Batch implements BatchAgent {
   async upload (data: unknown): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
-
-  async doUpload (data: unknown): Promise<never> {
+  protected async doUpload (data: unknown): Promise<never> {
     throw new Error.Invalid.Batching("upload")
   }
-
-  /** Uploads are disallowed in the middle of a batch because
-    * it's easy to go over the max request size, and
-    * difficult to know what that is in advance. */
-  async uploadMany (uploadables: Many<unknown> = {}): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
-  }
-
   /** Disallowed in batch - do it beforehand or afterwards. */
   get balance (): Promise<string> {
     throw new Error.Invalid.Batching("query balance")
@@ -253,6 +245,3 @@ export abstract class Batch implements BatchAgent {
     * @default self */
   Batch = this.constructor as { new (agent: Agent): Batch }
 }
-
-/** Function passed to Batch#wrap */
-export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>

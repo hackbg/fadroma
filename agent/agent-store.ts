@@ -2,79 +2,28 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Console, Error } from './agent-base'
-import type { Class, CodeHash, Name } from './agent-base'
+import type { Class, Name } from './agent-base'
+import type { CodeHash } from './agent-code'
 import type { ChainId } from './agent-chain'
-import { Deployment, ContractUpload, SourceCode, CompiledCode } from './agent-contract'
-import type { DeploymentClass, DeploymentState } from './agent-contract'
+import { SourceCode, CompiledCode, UploadedCode } from './agent-code'
+import { Deployment } from './agent-deploy'
+import type { DeploymentClass, DeploymentState } from './agent-deploy'
 
-export abstract class Builder {
-  static variants: Record<string, Class<Builder, any>> = {}
-
-  log = new Console(this.constructor.name)
-
-  /** Whether to enable build caching.
-    * When set to false, this builder will rebuild even when
-    * binary and checksum are both present in wasm/ directory */
-  caching: boolean = true
-
-  /** Unique identifier of this builder implementation. */
-  abstract id: string
-
-  /** Up to the implementation.
-    * `@hackbg/fadroma` implements dockerized and non-dockerized
-    * variants on top of the `build.impl.mjs` script. */
-  abstract build (
-    source: string|Partial<SourceCode>|Partial<CompiledCode>,
-    ...args: any[]
-  ): Promise<CompiledCode>
-
-  /** Default implementation of buildMany is parallel.
-    * Builder implementations override this, though. */
-  abstract buildMany (
-    sources: (string|Partial<CompiledCode>)[],
-    ...args: unknown[]
-  ): Promise<CompiledCode[]>
-}
-
-export class StubBuilder extends Builder {
-  caching = false
-
-  id = 'stub'
-
-  async build (
-    source: string|Partial<SourceCode>, ...args: any[]
-  ): Promise<CompiledCode> {
-    return new CompiledCode({
-      codePath: 'stub',
-      codeHash: 'stub',
-    })
-  }
-
-  async buildMany (
-    sources: (string|Partial<CompiledCode>)[], ...args: unknown[]
-  ): Promise<CompiledCode[]> {
-    return Promise.all(sources.map(source=>new CompiledCode({
-      codePath: 'stub',
-      codeHash: 'stub',
-    })))
-  }
-}
-
-export class UploadStore extends Map<CodeHash, ContractUpload> {
+export class UploadStore extends Map<CodeHash, UploadedCode> {
   log = new Console('UploadStore')
 
   constructor () {
     super()
   }
 
-  get (codeHash: CodeHash): ContractUpload|undefined {
+  get (codeHash: CodeHash): UploadedCode|undefined {
     return super.get(codeHash)
   }
 
-  set (codeHash: CodeHash, value: Partial<ContractUpload>): this {
-    if (!(value instanceof ContractUpload)) value = new ContractUpload(value)
+  set (codeHash: CodeHash, value: Partial<UploadedCode>): this {
+    if (!(value instanceof UploadedCode)) value = new UploadedCode(value)
     if (value.codeHash && (value.codeHash !== codeHash)) throw new Error.Invalid('code hash mismatch')
-    return super.set(codeHash, value as ContractUpload)
+    return super.set(codeHash, value as UploadedCode)
   }
 }
 

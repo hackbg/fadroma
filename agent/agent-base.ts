@@ -4,9 +4,7 @@
 import { Error as BaseError } from '@hackbg/oops'
 import { Console, bold, colors } from '@hackbg/logs'
 import type { Chain } from './agent-chain'
-import type {
-  Deployment, ContractInstance, ContractClient
-} from './agent-contract'
+import type { Deployment } from './agent-deploy'
 
 const { red, green, gray } = colors
 
@@ -19,6 +17,34 @@ export * from '@hackbg/dump'
 
 /** A class constructor. */
 export interface Class<T, U extends unknown[]> { new (...args: U): T }
+
+/** Helper for assigning only allowed properties of value object:
+  * - safe, can't set unsupported properties 
+  * - no need to state property name thrice
+  * - doesn't leave `undefined`s */
+export function assign <T extends {}> (
+  object: T, properties: Partial<T> & any = {}, allowed?: string|Array<keyof T>|Set<keyof T>
+) {
+  if (typeof allowed === 'string') {
+    allowed = assign.allowed.get(allowed) as Set<keyof T>
+  }
+  if (!allowed) {
+    throw new Error(`no list of allowed properties when constructing ${object.constructor.name}`)
+  }
+  for (const property of allowed) {
+    if (property in properties) object[property] = properties[property]
+  }
+}
+
+/** Allowlist for value object below. */
+assign.allowed = new Map<string, Set<string|number|symbol>>()
+
+/** Add properties to the allow list for a given value object class. */
+assign.allow = <T>(name: string, props: Array<keyof T>) => {
+  const allowedProperties = assign.allowed.get(name) || new Set()
+  for (const prop of props) allowedProperties.add(prop)
+  assign.allowed.set(name, allowedProperties)
+}
 
 /** A 128-bit integer. */
 export type Uint128 = string
@@ -44,12 +70,6 @@ export type Label = string
 /** Part of a Label */
 export type Name = string
 
-/** A code hash, uniquely identifying a particular smart contract implementation. */
-export type CodeHash = string
-
-/** A code ID, identifying uploaded code on a chain. */
-export type CodeId = string
-
 /** A transaction message that can be sent to a contract. */
 export type Message = string|Record<string, unknown>
 
@@ -58,39 +78,6 @@ export type TxHash = string
 
 /** An address on a chain. */
 export type Address = string
-
-export function addZeros (n: number|Uint128, z: number): Uint128 {
-  return `${n}${[...Array(z)].map(() => '0').join('')}`
-}
-
-/** The default Git ref when not specified. */
-export const HEAD = 'HEAD'
-
-/** A gas fee, payable in native tokens. */
-export interface IFee { amount: readonly ICoin[], gas: Uint128 }
-
-/** Represents some amount of native token. */
-export interface ICoin { amount: Uint128, denom: string }
-
-/** A constructable gas fee in native tokens. */
-export class Fee implements IFee {
-  amount: ICoin[] = []
-  constructor (
-    amount: Uint128|number, denom: string, public gas: string = String(amount)
-  ) {
-    this.add(amount, denom)
-  }
-  add = (amount: Uint128|number, denom: string) =>
-    this.amount.push({ amount: String(amount), denom })
-}
-
-/** Represents some amount of native token. */
-export class Coin implements ICoin {
-  readonly amount: string
-  constructor (amount: number|string, readonly denom: string) {
-    this.amount = String(amount)
-  }
-}
 
 /** Error kinds. */
 class FadromaError extends BaseError {

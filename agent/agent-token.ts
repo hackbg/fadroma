@@ -1,9 +1,40 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Coin } from './agent-base'
-import type { Agent, Address, ContractClientClass, Uint128, ICoin } from './agent'
-import { ContractClient } from './agent-contract'
+import type { Address, Uint128 } from './agent-base'
+import type { Agent } from './agent-chain'
+import type { ContractClientClass } from './agent-client'
+import { ContractClient } from './agent-client'
+
+export function addZeros (n: number|Uint128, z: number): Uint128 {
+  return `${n}${[...Array(z)].map(() => '0').join('')}`
+}
+
+/** A gas fee, payable in native tokens. */
+export interface IFee { amount: readonly ICoin[], gas: Uint128 }
+
+/** Represents some amount of native token. */
+export interface ICoin { amount: Uint128, denom: string }
+
+/** A constructable gas fee in native tokens. */
+export class Fee implements IFee {
+  amount: ICoin[] = []
+  constructor (
+    amount: Uint128|number, denom: string, public gas: string = String(amount)
+  ) {
+    this.add(amount, denom)
+  }
+  add = (amount: Uint128|number, denom: string) =>
+    this.amount.push({ amount: String(amount), denom })
+}
+
+/** Represents some amount of native token. */
+export class Coin implements ICoin {
+  readonly amount: string
+  constructor (amount: number|string, readonly denom: string) {
+    this.amount = String(amount)
+  }
+}
 
 /** An identifiable token on a network. */
 export abstract class Token {

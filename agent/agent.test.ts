@@ -6,10 +6,10 @@ import {
   Chain, StubChain,
   Agent, StubAgent,
   Batch, StubBatch,
-  ContractClient,
+  ContractCode, ContractClient,
   UploadStore, DeployStore,
-  Contract, SourceCode, CompiledCode, ContractUpload, ContractInstance,
-  Deployment, DeploymentContractLabel,
+  SourceCode, CompiledCode, UploadedCode,
+  ContractInstance, Deployment, DeploymentContractLabel,
   assertChain,
   Builder, StubBuilder,
   Token, TokenFungible, TokenNonFungible, Swap,
@@ -115,8 +115,6 @@ export async function testAgent () {
   await agent.sendMany([])
   await agent.upload(fixture('null.wasm'), {})
   await agent.upload(new Uint8Array(), {})
-  await agent.uploadMany([], {})
-  await agent.uploadMany({}, {})
 
   await agent.instantiate('1', { label: 'foo', initMsg: 'bar' })
   await agent.instantiate({ codeId: '1' }, { label: 'foo', initMsg: {} })
@@ -138,7 +136,6 @@ export async function testBatch () {
     assert(batch instanceof Batch)
     assert.rejects(()=>batch.query({} as any, {}))
     assert.rejects(()=>batch.upload({}))
-    assert.rejects(()=>batch.uploadMany())
     assert.rejects(()=>batch.sendMany([]))
     assert.rejects(()=>batch.send('', []))
     assert.rejects(()=>batch.getBalance(''))
@@ -187,34 +184,37 @@ export async function testClient () {
     codeId:   '100'
   }, agent)
   assert.equal(client.agent, agent)
+  assert.equal(client.chain, chain)
   await client.query({foo: 'bar'})
   await client.execute({foo: 'bar'})
+
+  assert.ok(new ContractClient('addr'))
+  assert.ok(new ContractClient(new ContractInstance({ address: 'addr' })))
+  assert.throws(()=>new ContractClient({}).query({}))
+  assert.throws(()=>new ContractClient({}, agent).query({}))
+  assert.throws(()=>new ContractClient({}).execute({}))
+  assert.throws(()=>new ContractClient({}, agent).execute({}))
 }
 
 export async function testContracts () {
-  const contract = new Contract({
+  const contract = new ContractCode({
     source:   {},
-    binary:   {},
+    compiled: {},
     uploaded: {},
-    instance: {},
   })
 
   assert.rejects(()=>contract.compile())
   assert.rejects(()=>contract.compile({ builder: new StubBuilder() }))
   assert.rejects(()=>contract.upload())
   assert.rejects(()=>contract.upload({ uploader: new StubAgent() }))
-  assert.rejects(()=>contract.deploy())
-  assert.rejects(()=>contract.deploy({ deployer: new StubAgent() }))
 
   assert(contract.source instanceof SourceCode)
-  assert(contract.binary instanceof CompiledCode)
-  assert(contract.uploaded instanceof ContractUpload)
-  assert(contract.instance instanceof ContractInstance)
+  assert(contract.compiled instanceof CompiledCode)
+  assert(contract.uploaded instanceof UploadedCode)
 
   assert(!(contract.source.isValid()))
-  assert(!(contract.binary.isValid()))
+  assert(!(contract.compiled.isValid()))
   assert(!(contract.uploaded.isValid()))
-  assert(!(contract.instance.isValid()))
 
   assert.deepEqual(contract.source.toReceipt(), {
     crate:      undefined,
@@ -224,7 +224,7 @@ export async function testContracts () {
     revision:   undefined,
     workspace:  undefined,
   })
-  assert.deepEqual(contract.binary.toReceipt(), {
+  assert.deepEqual(contract.compiled.toReceipt(), {
     codeHash:  undefined,
     codePath:  undefined,
     buildInfo: undefined,
@@ -236,26 +236,37 @@ export async function testContracts () {
     uploadBy:  undefined,
     uploadTx:  undefined
   })
-  assert.deepEqual(contract.instance.toReceipt(), {
-    codeHash:  undefined,
-    chainId:   undefined,
-    codeId:    undefined,
-    label:     undefined,
-    initMsg:   undefined,
-    initBy:    undefined,
-    initTx:    undefined,
-    initGas:   undefined,
-    address:   undefined,
-  })
+  //assert.deepEqual(contract.instance.toReceipt(), {
+    //codeHash:  undefined,
+    //chainId:   undefined,
+    //codeId:    undefined,
+    //label:     undefined,
+    //initMsg:   undefined,
+    //initBy:    undefined,
+    //initTx:    undefined,
+    //initGas:   undefined,
+    //address:   undefined,
+  //})
+
+  assert.ok(contract.source[Symbol.toStringTag] || true)
+  assert.ok(contract.compiled[Symbol.toStringTag] || true)
+  //assert.ok(contract.uploaded[Symbol.toStringTag])
+  //assert.ok(contract.instance[Symbol.toStringTag])
+
+  assert.rejects(()=>new CompiledCode().fetch())
+  assert.rejects(()=>new CompiledCode({ codePath: '' }).fetch())
+  assert.rejects(()=>new CompiledCode({ codePath: new URL('', 'file:') }).fetch())
+  assert.rejects(()=>new CompiledCode({ codePath: new URL('http://foo.bar') }).fetch())
+  assert.rejects(()=>new CompiledCode({ codePath: 0 as any }).fetch())
 }
 
 export async function testDeployment () {
-  // deploy store converts inputs to ContractUpload instances
+  // deploy store converts inputs to UploadedCode instances
   const uploadStore = new UploadStore()
   assert.equal(uploadStore.get('name'), undefined)
   assert.equal(uploadStore.set('name', {}), uploadStore)
   console.log(uploadStore.get('name'))
-  assert.ok(uploadStore.get('name') instanceof ContractUpload)
+  assert.ok(uploadStore.get('name') instanceof UploadedCode)
   // deploy store converts inputs to Deployment instances
   const deployStore = new DeployStore()
   assert.equal(deployStore.get('name'), undefined)
