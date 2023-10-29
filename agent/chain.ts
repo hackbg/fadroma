@@ -334,14 +334,6 @@ export abstract class Agent {
     return `${this.address} @ ${this.chain?.id}`
   }
 
-  /** The wallet's mnemonic (write-only). */
-  get mnemonic (): boolean {
-    return false
-  }
-
-  set mnemonic (mnemonic: string) {
-  }
-
   /** Complete the asynchronous initialization of this Agent. */
   get ready (): Promise<this> {
     const init = new Promise<this>(async (resolve, reject)=>{

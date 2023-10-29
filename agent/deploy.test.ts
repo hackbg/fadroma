@@ -36,11 +36,25 @@ export async function testDeployment () {
       label:   "contract1",
       initMsg: {}
     })
-    //contract2 = this.template1('contract2', {
-      //label:   "contract2",
-      //initMsg: {}
-    //})
+    contract2 = this.template1.contract('contract2', {
+      label:   "contract2",
+      initMsg: {}
+    })
+    contracts3 = this.template1.contracts({
+      contract3a: { label: 'contract3a', initMsg: {} },
+      contract3b: { label: 'contract3b', initMsg: {} },
+    })
   }
+
+  await new MyDeployment().contract1.deploy({
+    deployer: new StubAgent()
+  })
+
+  new MyDeployment().contract1.toReceipt()
+
+  new MyDeployment().toReceipt()
+
+  assert.throws(()=>new MyDeployment().set('foo', {} as any))
 
   await new MyDeployment().upload({
     builder:  new StubBuilder(),
