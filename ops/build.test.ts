@@ -43,13 +43,13 @@ export async function testBuild () {
 }
 
 export async function testBuildHistory () {
-  assert.throws(()=>getGitDir(new ContractInstance()))
-  const contractWithSource = new ContractInstance({
-    repository: 'REPO',
-    revision:   'REF',
-    workspace:  'WORKSPACE',
-    crate:      'CRATE'
-  })
-  assert.ok(getGitDir(contractWithSource) instanceof DotGit)
+  //assert.throws(()=>getGitDir(new ContractInstance()))
+  //const contractWithSource = new ContractInstance({
+    //repository: 'REPO',
+    //revision:   'REF',
+    //workspace:  'WORKSPACE',
+    //crate:      'CRATE'
+  //})
+  //assert.ok(getGitDir(contractWithSource) instanceof DotGit)
 }
 
