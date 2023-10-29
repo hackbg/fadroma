@@ -1,5 +1,10 @@
 import assert from 'node:assert'
-import { addZeros, Token, Fungible, NonFungible, Coin, Fee, Pair, Amount, Swap } from './token'
+import {
+  addZeros,
+  Token, Fungible, NonFungible,
+  NativeToken, CustomToken,
+  Coin, Fee, Pair, Amount, Swap
+} from './token'
 
 class MyFungible extends Fungible {
   get id () {
@@ -51,6 +56,17 @@ export async function testFees () {
 
 export async function testFungible () {
   assert(new MyFungible().isFungible())
+
+  assert(new NativeToken('foo').isFungible())
+  assert(new NativeToken('foo').id === 'foo')
+  assert(new NativeToken('foo').isNative())
+  assert(!(new NativeToken('foo').isCustom()))
+
+  assert(new CustomToken('foo').isFungible())
+  assert(new CustomToken('foo').id === 'foo')
+  assert(!(new CustomToken('foo').isNative()))
+  assert(new CustomToken('foo').isCustom())
+  assert(new CustomToken('foo').connect())
 }
 
 export async function testNonFungible () {
@@ -58,18 +74,22 @@ export async function testNonFungible () {
 }
 
 export async function testSwaps () {
-  assert(new Pair(
-    new MyFungible(),
-    new MyNonFungible()
-  ).reverse instanceof Pair)
 
-  assert(new Amount(
-    new MyFungible(),
-    '1000000000000'
-  ).asNativeBalance instanceof Array)
+  const MYFT = new MyFungible()
+  const MYNFT = new MyNonFungible()
+  const MYFT_MYNFT = new Pair(MYFT, MYNFT)
+  assert(MYFT_MYNFT.reverse instanceof Pair)
+  assert(MYFT_MYNFT.reverse.a === MYNFT)
+  assert(MYFT_MYNFT.reverse.b === MYFT)
 
-  assert(new Swap(
-    new Amount(new MyFungible(), '1000000000000'),
-    new Amount(new MyFungible(), '1000000000000'),
-  ).asNativeBalance instanceof Array)
+  const amount = new Amount('1000000000000', MYFT)
+  assert(amount.asNativeBalance instanceof Array)
+  assert(new Amount('1000000000000', new CustomToken('MYCFT')).asNativeBalance instanceof Array)
+
+  const swap = new Swap(
+    new Amount('1000000000000', MYFT),
+    new Amount('1000000000000', MYFT),
+  )
+  assert(swap.asNativeBalance instanceof Array)
+  assert(swap.reverse instanceof Swap)
 }
