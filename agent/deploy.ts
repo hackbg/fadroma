@@ -50,6 +50,27 @@ export class DeploymentUnit extends ContractCode {
   }
 }
 
+export class ContractTemplate extends DeploymentUnit {
+
+  /** Create a new instance of this contract. */
+  contract (
+    name: Name, parameters: Partial<ContractInstance> = {}
+  ): ContractInstance {
+    return new ContractInstance({ ...this, name, parameters })
+  }
+
+  /** Create multiple instances of this contract. */
+  contracts (
+    instanceParameters: Record<Name, Parameters<ContractTemplate["contract"]>[0]> = {}
+  ): Record<keyof typeof instanceParameters, ContractInstance> {
+    const instances: Record<keyof typeof instanceParameters, ContractInstance> = {}
+    for (const [name, parameters] of Object.entries(instanceParameters)) {
+      instances[name] = this.contract(parameters)
+    }
+    return instances
+  }
+}
+
 export class ContractInstance extends DeploymentUnit {
   /** Full label of the instance. Unique for a given Chain. */
   label?:    Label
@@ -130,27 +151,6 @@ export class ContractInstance extends DeploymentUnit {
   }
 }
 
-export class ContractTemplate extends DeploymentUnit {
-
-  /** Create a new instance of this contract. */
-  contract (
-    name: Name, parameters: Partial<ContractInstance> = {}
-  ): ContractInstance {
-    return new ContractInstance({ ...this, name, parameters })
-  }
-
-  /** Create multiple instances of this contract. */
-  contracts (
-    instanceParameters: Record<Name, Parameters<ContractTemplate["contract"]>[0]> = {}
-  ): Record<keyof typeof instanceParameters, ContractInstance> {
-    const instances: Record<keyof typeof instanceParameters, ContractInstance> = {}
-    for (const [name, parameters] of Object.entries(instanceParameters)) {
-      instances[name] = this.contract(parameters)
-    }
-    return instances
-  }
-}
-
 export type DeploymentState = Partial<ReturnType<Deployment["toReceipt"]>>
 
 /** A constructor for a Deployment subclass. */
@@ -199,7 +199,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     Partial<CompiledCode> &
     Partial<UploadedCode>
   ): DeploymentUnit {
-    const template = new DeploymentUnit({
+    const template = new ContractTemplate({
       name,
       deployment: this,
       isTemplate: true,
@@ -219,13 +219,14 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     Partial<UploadedCode> &
     Partial<ContractInstance>
   ): DeploymentUnit {
-    const contract = new DeploymentUnit({
+    const contract = new ContractInstance({
       name,
       deployment: this,
       isTemplate: true,
       source:   new SourceCode(properties),
       compiled: new CompiledCode(properties),
-      uploaded: new UploadedCode(properties)
+      uploaded: new UploadedCode(properties),
+      ...properties
     })
     this.set(name, contract)
     return contract

@@ -2,9 +2,25 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import * as assert from 'node:assert'
-import { Deployment, UploadedCode, ContractInstance, StubAgent } from '@fadroma/connect'
+import {
+  Deployment, UploadedCode, ContractTemplate, ContractInstance, StubAgent
+} from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
 import { DeployConsole, FSDeployStore } from './deploy'
+
+//export new DeploymentBuilder('mydeployment')
+  //.template('swapPool', { codeId: '1', crate: 'examples/kv' })
+  //.contract('swapFactory', {
+    //codeId: '2', crate: 'examples/kv', label: 'swap factory', async initMsg () {
+      //const pool = await this('swapPool').upload()
+      //return { pool: { id: pool.codeId, hash: pool.codeHash } }
+    //}
+  //})
+  //.contracts('swap/', { codeId: '2', crate: 'examples/kv' }, {
+    //'a': { label: 'foo', initMsg: {} },
+    //'b': { label: 'foo', initMsg: {} },
+  //})
+  //.command()
 
 export class MyDeployment extends Deployment {
   t = this.template('t', {
@@ -13,22 +29,30 @@ export class MyDeployment extends Deployment {
   })
 
   // Single template instance with eager and lazy initMsg
-  a1 = this.t.instance({ name: 'a1', initMsg: {} })
-  a2 = this.t.instance({ name: 'a2', initMsg: () => ({}) })
-  a3 = this.t.instance({ name: 'a3', initMsg: async () => ({}) })
+  a1 = this.t.contract({
+    name: 'a1', initMsg: {}
+  })
 
-  // Multiple template instances as array
+  a2 = this.t.contract({
+    name: 'a2', initMsg: () => ({})
+  })
+
+  a3 = this.t.contract({
+    name: 'a3', initMsg: async () => ({})
+  })
+
+  // Multiple template contracts as array
   // with varying initMsg eagerness
-  b = this.t.instances([
+  b = this.t.contracts([
     { name: 'b1', initMsg: {} },
     { name: 'b2', initMsg: () => ({}) },
     { name: 'b3', initMsg: async () => ({}) }
   ])
 
-  // Multiple template instances as object
+  // Multiple template contracts as object
   // with varying initMsg eagerness
   // (named automatically)
-  c = this.t.instances({
+  c = this.t.contracts({
     c1: { initMsg: {} },
     c2: { initMsg: () => ({}) },
     c3: { initMsg: async () => ({}) }
@@ -37,13 +61,8 @@ export class MyDeployment extends Deployment {
 
 export async function testDeployment () {
   const deployment = new MyDeployment()
-  assert.ok(
-    deployment.t instanceof UploadedCode
-  )
-  await deployment.deploy({
-    uploader: new StubAgent(),
-    deployer: new StubAgent()
-  })
+  assert.ok(deployment.t instanceof ContractTemplate)
+  await deployment.deploy({ uploader: new StubAgent(), deployer: new StubAgent() })
   assert.ok([
     deployment.a1,
     deployment.a2,
@@ -72,7 +91,7 @@ class V2Deployment extends V1Deployment {
 export async function testDeploymentUpgrade () {
 
   let deployment = new V1Deployment()
-  assert.deepEqual(deployment.keys(), ['kv1', 'kv2'])
+  assert.deepEqual([...deployment.keys()], ['kv1', 'kv2'])
   const mainnetAgent: any = { chain: { isMainnet: true } } // mock
   const testnetAgent: any = { chain: { isTestnet: true } } // mock
   // simplest chain-side migration is to just call default deploy,
