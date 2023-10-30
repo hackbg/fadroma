@@ -1,19 +1,11 @@
-import type {
-  Address, Message, ICoin, IFee, CodeHash,
-  Class, Name, Many, CodeId,
-  Into, TxHash, Label,
-  UploadStore
-} from './agent'
-import {
-  CompiledCode,
-  ContractUpload,
-  ContractInstance,
-  ContractClient,
-  ContractClientClass
-} from './agent-contract'
-import {
-  Error, Console, bold, into, mapAsync, hideProperties, randomBytes
-} from './agent-base'
+import type { Class, Name, Many, Into, Label } from './base'
+import { Error, Console, bold, into, mapAsync, hideProperties, randomBytes } from './base'
+import type { CodeHash, CodeId } from './code'
+import { CompiledCode, UploadedCode,} from './code'
+import { ContractClient, ContractClientClass } from './client'
+import { ContractInstance } from './deploy'
+import type { ICoin, IFee } from './token'
+import type { UploadStore } from './store'
 
 /** A chain can be in one of the following modes: */
 export enum ChainMode {
@@ -26,98 +18,82 @@ export enum ChainMode {
 /** The unique ID of a chain. */
 export type ChainId = string
 
-/** A collection of functions that return Chain instances. */
-export type ChainRegistry = Record<string, (config: any)=>Chain>
+export type Address = string
+
+export type TxHash = string
+
+export type Message = string|Record<string, unknown>
 
 /** Interface for Devnet (implementation is in @hackbg/fadroma). */
 export interface DevnetHandle {
-  accounts:     string[]
-  chainId:      string
-  platform:     string
-  running:      boolean
-  stateDir:     string
-  url:          URL
+  accounts: string[]
+  chainId:  string
+  platform: string
+  running:  boolean
+  stateDir: string
+  url:      URL
 
   containerId?: string
   imageTag?:    string
   port?:        string|number
 
   start (): Promise<this>
-  getAccount (name: string): Promise<Partial<Chain>>
+  getAccount (name: string): Promise<Partial<ChainClient>>
   assertPresence (): Promise<void>
+}
+
+export class Identity {
+  name?:    string
+  address?: Address
 }
 
 /** Represents a particular chain, identified by chain ID and connected by URL.
   * The chain can be in one of several modes (mainnet or other), can optionally
   * hold a reference to the managed devnet container, can query state, and can
   * construct authorized agents. */
-export abstract class Chain {
-  /** The ChainMode enum. */
-  static Mode = ChainMode
-  /** Create a mainnet instance of this chain. */
-  static mainnet (options: Partial<Chain> = {}): Chain & { mode: ChainMode.Mainnet } {
-    return new (this as any)({ ...options, mode: Chain.Mode.Mainnet })
-  }
-  /** Create a testnet instance of this chain. */
-  static testnet (options: Partial<Chain> = {}): Chain & { mode: ChainMode.Testnet } {
-    return new (this as any)({ ...options, mode: Chain.Mode.Testnet })
-  }
-  /** Create a devnet instance of this chain. */
-  static devnet (options: Partial<Chain> = {}): Chain & { mode: ChainMode.Devnet } {
-    return new (this as any)({ ...options, mode: Chain.Mode.Devnet })
-  }
-  /** Create a mocknet instance of this chain. */
-  static mocknet (options?: Partial<Chain>): Chain & { mode: ChainMode.Mocknet } {
-    throw new Error('Mocknet is not enabled for this chain.')
-  }
+export abstract class ChainClient {
   /** Logger. */
-  log:      Console = new Console(this.constructor.name)
+  log: Console = new Console(this.constructor.name)
+
+  chainId?: ChainId
+
+  identity?: Identity
   /** The API URL to use. */
-  url:      string = ''
+  url?: string = ''
   /** Instance of the underlying platform API (secretjs, cosmjs, etc.). */
-  api?:     unknown
+  api?: unknown
   /** If this is a devnet, this contains an interface to the devnet container. */
-  devnet?:  DevnetHandle
+  devnet?: DevnetHandle
   /** Whether this chain is stopped. */
-  stopped:  boolean = false
-  /** The friendly name of the agent. */
-  name?:    string
-  /** The address from which transactions are signed and sent. */
-  address?: Address
+  stopped: boolean = false
   /** Default fee maximums for send, upload, init, and execute. */
-  fees?:    { send?: IFee, upload?: IFee, init?: IFee, exec?: IFee }
+  fees?: { send?: IFee, upload?: IFee, init?: IFee, exec?: IFee }
 
-  constructor ({ id, url, mode, devnet }: Partial<Chain> = {}) {
-
-    this.name = options.name ?? this.name
-    this.fees = options.fees ?? this.fees
-    this.address = options.address ?? this.address
-    hideProperties(this, 'chain', 'address', 'log', 'Batch')
-
-    if (devnet) {
+  constructor (properties: Partial<ChainClient> = {}) {
+    if (properties.devnet) {
       Object.defineProperties(this, {
         id: {
           enumerable: true,
           configurable: true,
-          get: () => devnet.chainId,
+          get: () => properties.devnet.chainId,
           set: () => { throw new Error("can't override chain id of devnet") }
         },
         url: {
           enumerable: true,
           configurable: true,
-          get: () => devnet.url.toString(),
+          get: () => properties.devnet.url.toString(),
           set: () => { throw new Error("can't override url of devnet") }
         },
         'mode': {
           enumerable: true,
           configurable: true,
-          get: () => Chain.Mode.Devnet,
+          get: () => ChainMode.Devnet,
           set: () => { throw new Error("chain.mode: can't override") }
         },
         'devnet': {
           enumerable: true,
           configurable: true,
-          get: () => devnet,
+          get: () => properties.devnet,
           set: () => { throw new Error("chain.devnet: can't override") }
         },
         'stopped': {
@@ -127,50 +103,38 @@ export abstract class Chain {
           set: () => { throw new Error("chain.stopped: can't override") }
         }
       })
-      if (id && id !== devnet.chainId) {
+      if (properties.id && properties.id !== properties.devnet.chainId) {
         this.log.warn('chain.id: ignoring override (devnet)')
       }
-      if (url && url.toString() !== devnet.url.toString()) {
+      if (properties.url && properties.url.toString() !== properties.devnet.url.toString()) {
         this.log.warn('chain.url: ignoring override (devnet)')
       }
-      if (mode && mode !== Chain.Mode.Devnet) {
+      if (properties.mode && properties.mode !== ChainMode.Devnet) {
         this.log.warn('chain.mode: ignoring override (devnet)')
       }
     } else {
-      if (id) {
+      if (properties.id) {
         Object.defineProperty(this, 'id', {
           enumerable: true,
           writable:   false,
-          value:      id
+          value:      properties.id
         })
       }
-      if (mode) {
+      if (properties.mode) {
         Object.defineProperty(this, 'mode', {
           enumerable: true,
           writable:   false,
-          value:      mode
+          value:      properties.mode
         })
       }
-      this.url = url ?? this.url
+
+      this.url = properties.url ?? this.url
     }
-
-    Object.defineProperty(this, 'log', {
-      enumerable: false,
-      writable: true,
-    })
-
-    Object.defineProperty(this, 'Chain', {
-      enumerable: false,
-      writable: true
-    })
-
   }
 
   /** Compact string tag for console representation. */
   get [Symbol.toStringTag]() {
-    return this.address
-      ? `${this.id}: ${this.address}`
-      : `${this.id} (unauthenticated)`
+    return this.identity.address ? `${this.id}: ${this.identity.address}` : `${this.id} (unauthenticated)`
   }
 
   /** The unique chain id. */
@@ -290,7 +254,7 @@ export abstract class Chain {
 
   /** Get info about a specific code. */
   abstract getCodeInfo (id: CodeId|{ codeId?: CodeId }):
-    Promise<ContractUpload>
+    Promise<UploadedCode>
 
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
@@ -301,7 +265,7 @@ export abstract class Chain {
       uploadFee?:   ICoin[]|'auto',
       uploadMemo?:  string
     } = {},
-  ): Promise<ContractUpload & {
+  ): Promise<UploadedCode & {
     chainId: ChainId,
     codeId:  CodeId,
   }> {
@@ -336,7 +300,7 @@ export abstract class Chain {
       `on chain`,
       bold(result.chainId)
     )
-    return new ContractUpload({ ...template, ...result }) as ContractUpload & {
+    return new UploadedCode({ ...template, ...result }) as UploadedCode & {
       chainId: ChainId,
       codeId:  CodeId,
     }
@@ -346,7 +310,7 @@ export abstract class Chain {
   protected abstract doUpload (
     data: Uint8Array,
     options: Parameters<typeof this["upload"]>[1]
-  ): Promise<Partial<ContractUpload>>
+  ): Promise<Partial<UploadedCode>>
 
   abstract getContractInfo (address: Address|{ address?: Address }):
     Promise<ContractInstance>
@@ -358,14 +322,14 @@ export abstract class Chain {
     *   ContractInstance with no `address` populated yet.
     *   This will be populated after executing the batch. */
   async instantiate (
-    contract: CodeId|Partial<ContractUpload>,
+    contract: CodeId|Partial<UploadedCode>,
     options:  Partial<ContractInstance>
   ): Promise<ContractInstance & { address: Address, }> {
     if (typeof contract === 'string') {
-      contract = new ContractUpload({ codeId: contract })
+      contract = new UploadedCode({ codeId: contract })
     }
     if (isNaN(Number(contract.codeId))) {
-      throw new Error.Invalid('code id')
+      throw new Error('invalid code id')
     }
     if (!contract.codeId) {
       throw new Error.Missing.CodeId()
@@ -448,220 +412,3 @@ export abstract class Chain {
     return new $C(contract, this) as C
   }
 }
-
-/** Batches transactions and broadcasts them as a single message.
-  * - TODO: Break down into multiple batches accorting to fetchLimits */
-export abstract class Batch {
-  chain:    Chain
-  callback: (batch: this) => unknown
-  messages: any[]  = []
-
-  constructor (chain: Chain, messages: any[]|Batch["callback"]) {
-    this.chain = chain
-    if (typeof messages === 'function') {
-      this.callback = messages
-    } else if (messages instanceof Array) {
-      this.messages = messages
-    } else if (messages) {
-      throw new Error('invalid argument passed to batch')
-    }
-  }
-
-  log = new Console(this.constructor.name)
-
-  getClient <C extends ContractClient> (...args: Parameters<Chain["getClient"]>): C {
-    return this.chain.getClient(...args) as C
-  }
-
-  /** Add a message to the batch. */
-  add (msg: Message) {
-    this.messages.push(msg)
-  }
-
-  /** Add an init message to the batch. */
-  async instantiate (
-    contract: CodeId|Partial<ContractUpload>,
-    options: {
-      label:     Name,
-      initMsg:   Into<Message>,
-      initFee?:  unknown,
-      initSend?: ICoin[],
-      initMemo?: string,
-    }
-  ): Promise<ContractInstance & {
-    address: Address,
-  }> {
-    if (typeof contract === 'string') {
-      contract = new ContractUpload({ codeId: contract })
-    }
-    this.add({ init: {
-      codeId:   contract.codeId,
-      codeHash: contract.codeHash,
-      label:    options.label,
-      msg:      await into(options.initMsg),
-      sender:   this.address,
-      funds:    options.initSend || [],
-      memo:     options.initMemo  || ''
-    } })
-    return new ContractInstance({
-      chainId:  this.agent.chain!.id,
-      address:  '(batch not submitted)',
-      codeHash: contract.codeHash,
-      label:    options.label,
-      initBy:   this.address,
-    }) as ContractInstance & { address: Address }
-  }
-
-  /** Add an exec message to the batch. */
-  async execute (
-    contract: Address|{ address: Address, codeHash?: CodeHash },
-    message:  Message,
-    options:  Parameters<Chain["execute"]>[2] = {}
-  ): Promise<this> {
-    let address: Address
-    let codeHash: CodeHash|undefined = undefined
-    if (typeof contract === 'string') {
-      address = contract
-    } else {
-      address = contract.address
-      codeHash = contract.codeHash
-    }
-    this.add({
-      exec: {
-        sender:   this.address,
-        contract: address,
-        codeHash,
-        msg:      message,
-        funds:    options.execSend
-      }
-    })
-    return this
-  }
-
-  /** Queries are disallowed in the middle of a batch because
-    * even though the batch API is structured as multiple function calls,
-    * the batch is ultimately submitted as a single transaction and
-    * it doesn't make sense to query state in the middle of that. */
-  async query <U> (
-    contract: Address|{ address: Address, codeHash?: CodeHash },
-    msg: Message
-  ): Promise<never> {
-    throw new Error.Invalid.Batching("query")
-  }
-
-  /** Uploads are disallowed in the middle of a batch because
-    * it's easy to go over the max request size, and
-    * difficult to know what that is in advance. */
-  async upload (data: unknown): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
-  }
-
-  async doUpload (data: unknown): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
-  }
-
-  /** Uploads are disallowed in the middle of a batch because
-    * it's easy to go over the max request size, and
-    * difficult to know what that is in advance. */
-  async uploadMany (uploadables: Many<unknown> = {}): Promise<never> {
-    throw new Error.Invalid.Batching("upload")
-  }
-
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  get balance (): Promise<string> {
-    throw new Error.Invalid.Batching("query balance")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  get height (): Promise<number> {
-    throw new Error.Invalid.Batching("query block height inside batch")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  get nextBlock (): Promise<number> {
-    throw new Error.Invalid.Batching("wait for next block")
-  }
-  /** This doesn't change over time so it's allowed when building batches. */
-  getCodeId (address: Address) {
-    return this.agent.getCodeId(address)
-  }
-  /** This doesn't change over time so it's allowed when building batches. */
-  getLabel (address: Address) {
-    return this.agent.getLabel(address)
-  }
-  /** This doesn't change over time so it's allowed when building batches. */
-  getHash (address: Address|number) {
-    return this.agent.getHash(address)
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  async getBalance (denom: string): Promise<string> {
-    throw new Error.Invalid.Batching("query balance")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  async send (
-    recipient: Address, amounts: ICoin[], options?: Parameters<Chain["send"]>[2]
-  ): Promise<void|unknown> {
-    throw new Error.Invalid.Batching("send")
-  }
-  /** Disallowed in batch - do it beforehand or afterwards. */
-  async sendMany (
-    outputs: [Address, ICoin[]][], options?: Parameters<Chain["sendMany"]>[1]
-  ): Promise<void|unknown> {
-    throw new Error.Invalid.Batching("send")
-  }
-  /** Nested batches are "flattened": trying to create a batch
-    * from inside a batch returns the same batch. */
-  batch <B extends Batch> (cb?: BatchCallback<B>): B {
-    if (cb) this.log.warn('Nested batch callback ignored.')
-    this.log.warn('Nest batches with care. Depth:', ++this.depth)
-    return this as unknown as B
-  }
-
-  /** Either submit or save the batch. */
-  async run (options: Partial<{
-    memo: string,
-    save: boolean
-  }> = {}): Promise<unknown> {
-    if (this.depth > 0) {
-      this.log.warn('Unnesting batch. Depth:', --this.depth)
-      this.depth--
-      return null as any // result ignored
-    } else if (options.save) {
-      this.log('Saving batch')
-      return this.save(options.memo)
-    } else {
-      this.log('Submitting batch')
-      return this.submit(options.memo)
-    }
-  }
-
-  /** Broadcast a batch to the chain. */
-  async submit (memo?: string): Promise<unknown> {
-    this.log.warn('Batch#submit: this function is stub; use a subclass of Batch')
-    if (memo) this.log.info('Memo:', memo)
-    await this.chain.ready
-    if (this.callback) await Promise.resolve(this.callback(this))
-    this.callback = undefined
-    return this.messages.map(()=>({}))
-  }
-
-  /** Save a batch for manual broadcast. */
-  async save (name?: string): Promise<unknown> {
-    this.log.warn('Batch#save: this function is stub; use a subclass of Batch')
-    if (name) this.log.info('Name:', name)
-    await this.chain.ready
-    if (this.callback) await Promise.resolve(this.callback(this))
-    this.callback = undefined
-    return this.messages.map(()=>({}))
-  }
-
-  /** Throws if the batch is invalid. */
-  assertMessages (): any[] {
-    if (this.messages.length < 1) {
-      this.log.emptyBatch()
-      throw new Error('Batch contained no messages.')
-    }
-    return this.messages
-  }
-}
-
-/** Function passed to Batch#wrap */
-export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>

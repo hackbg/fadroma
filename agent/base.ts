@@ -73,11 +73,11 @@ export type Name = string
 /** A transaction message that can be sent to a contract. */
 export type Message = string|Record<string, unknown>
 
-/** A transaction hash, uniquely identifying an executed transaction on a chain. */
-export type TxHash = string
-
 /** An address on a chain. */
 export type Address = string
+
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash = string
 
 /** Error kinds. */
 class FadromaError extends BaseError {

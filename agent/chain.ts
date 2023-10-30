@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Name, Address, Class, Into, Many, TxHash, Label, Message } from './base'
-import { Error, Console, bold, into } from './base'
+import { Error, Console, bold, into, assign } from './base'
 import type { ICoin, IFee } from './token'
 import type { Batch, BatchClass, BatchCallback } from './batch'
 import type { UploadStore } from './store'
@@ -21,9 +21,6 @@ export enum ChainMode {
 
 /** The unique ID of a chain. */
 export type ChainId = string
-
-/** A collection of functions that return Chain instances. */
-export type ChainRegistry = Record<string, (config: any)=>Chain>
 
 /** Interface for Devnet (implementation is in @hackbg/fadroma). */
 export interface DevnetHandle {
@@ -62,34 +59,34 @@ export abstract class Chain {
     if (devnet) {
       Object.defineProperties(this, {
         id: {
-          enumerable: true,
-          configurable: true,
-          get: () => devnet.chainId,
-          set: () => { throw new Error("can't override chain id of devnet") }
+          enumerable: true, configurable: true,
+          get: () => devnet.chainId, set: () => {
+            throw new Error("can't override chain id of devnet")
+          }
         },
         url: {
-          enumerable: true,
-          configurable: true,
-          get: () => devnet.url.toString(),
-          set: () => { throw new Error("can't override url of devnet") }
+          enumerable: true, configurable: true,
+          get: () => devnet.url.toString(), set: () => {
+            throw new Error("can't override url of devnet")
+          }
         },
         'mode': {
-          enumerable: true,
-          configurable: true,
-          get: () => Chain.Mode.Devnet,
-          set: () => { throw new Error("chain.mode: can't override") }
+          enumerable: true, configurable: true,
+          get: () => Chain.Mode.Devnet, set: () => {
+            throw new Error("chain.mode: can't override")
+          }
         },
         'devnet': {
-          enumerable: true,
-          configurable: true,
-          get: () => devnet,
-          set: () => { throw new Error("chain.devnet: can't override") }
+          enumerable: true, configurable: true,
+          get: () => devnet, set: () => {
+            throw new Error("chain.devnet: can't override")
+          }
         },
         'stopped': {
-          enumerable: true,
-          configurable: true,
-          get: () => !this.devnet!.running,
-          set: () => { throw new Error("chain.stopped: can't override") }
+          enumerable: true, configurable: true,
+          get: () => !this.devnet!.running, set: () => {
+            throw new Error("chain.stopped: can't override")
+          }
         }
       })
       if (id && id !== devnet.chainId) {
@@ -102,21 +99,23 @@ export abstract class Chain {
         this.log.warn('chain.mode: ignoring override (devnet)')
       }
     } else {
-      if (id) {
-        Object.defineProperty(this, 'id', {
-          enumerable: true,
-          writable:   false,
-          value:      id
-        })
-      }
-      if (mode) {
-        Object.defineProperty(this, 'mode', {
-          enumerable: true,
-          writable:   false,
-          value:      mode
-        })
-      }
+      Object.defineProperties(this, {
+        id: {
+          enumerable: true, writable: false, value: id
+        },
+        mode: {
+          enumerable: true, writable: false, value: mode || Chain.Mode.Mocknet
+        }
+      })
       this.url = url ?? this.url
+    }
+
+    if (this.mode === Chain.Mode.Mocknet) {
+      Object.defineProperty(this, 'url', {
+        enumerable: true,
+        writable:   false,
+        value:      `fadroma://mocknet-${this.id}`
+      })
     }
 
     Object.defineProperty(this, 'log', {
@@ -147,54 +146,76 @@ export abstract class Chain {
   Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
 
   /** Compact string tag for console representation. */
-  get [Symbol.toStringTag]() { return `${this.mode}: ${this.id} @ ${this.url}` }
+  get [Symbol.toStringTag]() {
+    return this.mode || '(unspecified mode)'
+  }
 
   /** The unique chain id. */
-  get id (): ChainId { throw new Error("chain.id: not set") }
-  set id (id: string) { throw new Error("chain.id: can't override") } 
+  get id (): ChainId {
+    throw new Error("chain.id: not set")
+  }
+  set id (id: string) {
+    throw new Error("chain.id: can't override")
+  }
 
   /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
-  get mode (): ChainMode { throw new Error('chain.mode: not set') }
+  get mode (): ChainMode {
+    throw new Error('chain.mode: not set')
+  }
 
   /** Whether this is a mainnet. */
-  get isMainnet () { return this.mode === ChainMode.Mainnet }
+  get isMainnet () {
+    return this.mode === ChainMode.Mainnet
+  }
 
   /** Whether this is a testnet. */
-  get isTestnet () { return this.mode === ChainMode.Testnet }
+  get isTestnet () {
+    return this.mode === ChainMode.Testnet
+  }
 
   /** Whether this is a devnet. */
-  get isDevnet  () { return this.mode === ChainMode.Devnet }
+  get isDevnet  () {
+    return this.mode === ChainMode.Devnet
+  }
 
   /** Whether this is a mocknet. */
-  get isMocknet () { return this.mode === ChainMode.Mocknet }
+  get isMocknet () {
+    return this.mode === ChainMode.Mocknet
+  }
 
   /** Whether this is a devnet or mocknet. */
-  get devMode () { return this.isDevnet || this.isMocknet }
+  get devMode () {
+    return this.isDevnet || this.isMocknet
+  }
 
   /** Return self. */
-  get chain () { return this }
+  get chain () {
+    return this
+  }
 
-  api?: unknown
+  /** One-time asynchronous initialization
+    * (async stuff that would go in the constructor
+    * if it was possible for constructors to be async.) */
+  protected abstract init (): Promise<this>
 
-  abstract getApi (): unknown
-
-  get ready () {
+  get ready (): Promise<this> {
     if (this.isDevnet && !this.devnet) {
       throw new Error("the chain is marked as a devnet but is missing the devnet handle")
     }
-    type This = this
-    type ThisWithApi = This & { api: NonNullable<This["api"]> }
-    const init = new Promise<ThisWithApi>(async (resolve, reject)=>{
+    const init = new Promise<this>(async (resolve, reject)=>{
       if (this.isDevnet) {
         await this.devnet!.start()
       }
-      if (!this.api) {
-        if (!this.url) throw new Error("the chain's url property is not set")
-        this.api = await Promise.resolve(this.getApi())
+      if (!this.url && !this.isMocknet) {
+        throw new Error("the chain's url property is not set")
       }
-      return resolve(this as ThisWithApi)
+      return resolve(this.init())
     })
-    Object.defineProperty(this, 'ready', { get () { return init } })
+    Object.defineProperty(this, 'ready', {
+      get () {
+        return init
+      }
+    })
     return init
   }
 
@@ -305,44 +326,45 @@ export abstract class Agent {
   /** Logger. */
   log = new Console(this.constructor.name)
   /** The friendly name of the agent. */
-  name?:     string
+  name?: string
   /** The chain on which this agent operates. */
-  chain?:    Chain
+  chain?: Chain
   /** The address from which transactions are signed and sent. */
-  address?:  Address
+  address?: Address
   /** Default fee maximums for send, upload, init, and execute. */
-  fees?:     AgentFees
+  fees?: AgentFees
   /** The Batch subclass to use. */
-  Batch:     BatchClass<Batch> = (this.constructor as AgentClass<typeof this>).Batch
+  Batch: BatchClass<Batch> = (this.constructor as AgentClass<typeof this>).Batch
   /** The default Batch class used by this Agent. */
   static Batch: BatchClass<Batch> // populated below
 
   constructor (options: Partial<Agent> = {}) {
-    this.chain = options.chain ?? this.chain
-    this.name = options.name ?? this.name
-    this.fees = options.fees ?? this.fees
-    this.address = options.address ?? this.address
-    Object.defineProperties(this, {
-      chain:   { enumerable: false, writable: true, configurable: true },
-      address: { enumerable: false, writable: true, configurable: true },
-      log:     { enumerable: false, writable: true, configurable: true },
-      Batch:   { enumerable: false, writable: true, configurable: true },
+    assign(this, options, ['name', 'chain', 'address', 'fees'])
+    Object.defineProperty(this, 'log', {
+      enumerable: false, configurable: true, writable: true,
     })
   }
 
   get [Symbol.toStringTag]() {
-    return `${this.address} @ ${this.chain?.id}`
+    return `${this.name||this.address} @ ${this.chain?.id}`
   }
+
+  /** One-time asynchronous initialization
+    * (async stuff that would go in the constructor
+    * if it was possible for constructors to be async.) */
+  protected abstract init (): Promise<this>
 
   /** Complete the asynchronous initialization of this Agent. */
   get ready (): Promise<this> {
     const init = new Promise<this>(async (resolve, reject)=>{
       try {
-        if (this.chain?.devnet) await this.chain?.devnet.start()
+        if (this.chain?.devnet) {
+          await this.chain?.devnet.start()
+        }
         if (!this.mnemonic && this.name && this.chain?.devnet) {
           Object.assign(this, await this.chain?.devnet.getAccount(this.name))
         }
-        resolve(this)
+        resolve(this.init())
       } catch (e) {
         reject(e)
       }

@@ -1,18 +1,21 @@
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'
 import { Console, Error, bold } from '@fadroma/agent'
-import type { Address, ChainId, Fee } from '@fadroma/agent'
+import type { Address, ChainId, IFee } from '@fadroma/agent'
 
 /** Environment settings for Secret Network. */
 class ScrtConfig extends Config {
   /** The mainnet chain ID. */
   static defaultMainnetChainId: string = 'secret-4'
   /** The mainnet URL. */
-  static defaultMainnetUrl:     string = 'https://lcd.mainnet.secretsaturn.net'
+  static defaultMainnetUrl: string = 'https://lcd.mainnet.secretsaturn.net'
   /** The testnet chain ID. */
   static defaultTestnetChainId: string = 'pulsar-3'
   /** The testnet URL. */
-  static defaultTestnetUrl:     string = 'https://api.pulsar3.scrttestnet.com/'
+  static defaultTestnetUrl: string = 'https://api.pulsar3.scrttestnet.com/'
 
   constructor (
     options: Partial<ScrtConfig> = {},
@@ -39,16 +42,23 @@ class ScrtConfig extends Config {
 class ScrtError extends Error {}
 
 class ScrtConsole extends Console {
+
   label = '@fadroma/scrt'
 
-  noMemos = () => this.warn(
-    "transaction memos are not supported.")
-  defaultGas = (fees: Fee[]) => this.warn(
-    "could not fetch block gas limit, defaulting to:",
-    fees.map(fee=>fee.gas).join('/'))
-  ignoringMnemonic = () => this.warn(
-    'created agent from passed wallet, ignoring mnemonic')
-  generatedMnemonic = (mnemonic: string, address?: string) => {
+  noMemos () {
+    this.warn(
+      "transaction memos are not supported."
+    )
+  }
+  defaultGas (fees: IFee[]) {
+    this.warn(
+      "could not fetch block gas limit, defaulting to:",
+      fees.map(fee=>fee.gas).join('/'))
+  }
+  ignoringMnemonic () {
+    this.warn('created agent from passed wallet, ignoring mnemonic')
+  }
+  generatedMnemonic (mnemonic: string, address?: string) {
     this.warn("No mnemonic passed, generated this one:", bold(mnemonic))
     if (address) this.warn("The corresponding address is:", bold(address))
     this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
@@ -64,10 +74,10 @@ class ScrtConsole extends Console {
     for (const msg of msgs??[]) this.info(' ', JSON.stringify(msg))
     return this
   }
-  batchSigningCommand = (
+  batchSigningCommand (
     name: string, multisig: Address, chainId: ChainId, accountNumber: number, sequence: number,
     unsigned: any
-  ) => {
+  ) {
     const output = `${name}.signed.json`
     const string = JSON.stringify(unsigned)
     const txdata = shellescape([string])
@@ -82,7 +92,7 @@ class ScrtConsole extends Console {
     this.log(`Batch contents:`, JSON.stringify(unsigned, null, 2))
     this.br()
   }
-  submittingBatchFailed = ({ message }: Error) => {
+  submittingBatchFailed ({ message }: Error) {
     this.br()
     this.error('submitting batch failed:')
     this.error(bold(message))
@@ -90,7 +100,11 @@ class ScrtConsole extends Console {
   }
 }
 
-export { ScrtConfig as Config, ScrtError as Error, ScrtConsole as Console, }
+export {
+  ScrtConfig  as Config,
+  ScrtError   as Error,
+  ScrtConsole as Console
+}
 
 function shellescape (a: string[]) {
   const ret: string[] = [];

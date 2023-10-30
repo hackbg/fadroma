@@ -1,24 +1,12 @@
-import type { Agent, Address, CodeHash, Uint128, ICoin } from '@fadroma/agent'
-import {
-  Token, TokenFungible, TokenNonFungible, CustomToken, Coin,
-  randomBytes, randomBase64, bold, colors,
-  ContractClient
-} from '@fadroma/agent'
-import type { Permit } from './scrt-auth'
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+import { ContractClient, Token, Coin, randomBytes, randomBase64, bold, colors } from '@fadroma/agent'
+import type { CodeHash, ICoin, Uint128, Fungible, CustomToken, Agent, Address } from '@fadroma/agent'
 import { Console } from './scrt-base'
+import type { Permit } from './snip-24'
 
-/** Client to a specific SNIP-721 non-fungible token contract. */
-export class Snip721 extends ContractClient implements TokenNonFungible {
-
-  /** The token contract's address. */
-  get id () { return this.contract.address! }
-
-  /** @returns false */
-  isFungible = () => false
-
-}
-
-export class Snip20 extends ContractClient implements TokenFungible {
+export class Snip20 extends ContractClient implements Fungible {
   log = new Console('@fadroma/tokens: Snip20')
   /** The full name of the token. */
   name: string|null = null
@@ -30,18 +18,19 @@ export class Snip20 extends ContractClient implements TokenFungible {
   totalSupply: Uint128|null = null
 
   /** Create a SNIP20 token client from a CustomToken descriptor. */
-  static fromDescriptor = (descriptor: CustomToken, agent?: Agent): Snip20 =>
-    descriptor.asClient(agent, this)
+  static fromDescriptor (descriptor: CustomToken, agent?: Agent): Snip20 {
+    return descriptor.connect(agent, this)
+  }
 
   /** Create a SNIP20 init message. */
-  static init = (
+  static init (
     name:     string,
     symbol:   string,
     decimals: number,
     admin:    Address|{ address: Address },
     config:   Partial<Snip20InitConfig> = {},
     balances: Array<{address: Address, amount: Uint128}> = []
-  ): Snip20InitMsg => {
+  ): Snip20InitMsg {
     if (typeof admin === 'object') admin = admin.address
     return {
       name, symbol, decimals, admin, config, initial_balances: balances, prng_seed: randomBase64(),
@@ -223,14 +212,14 @@ export interface Snip20InitConfig {
   [name: string]: unknown
 }
 
-export interface Allowance {
+export interface Snip20Allowance {
   spender: Address
   owner: Address
   allowance: Uint128
   expiration?: number|null
 }
 
-export interface TokenInfo {
+export interface Snip20TokenInfo {
   name: string
   symbol: string
   decimals: number
@@ -243,7 +232,6 @@ export type QueryWithPermit <Q, P> = { with_permit: { query: Q, permit: P } }
 
 export const createPermitMsg = <Q> (query: Q, permit: Snip20Permit) =>
   ({ with_permit: { query, permit } })
-
 
 export interface TransferAction {
   recipient: Address

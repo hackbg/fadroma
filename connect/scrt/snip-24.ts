@@ -5,45 +5,35 @@ import type { IFee, ChainId, Address } from '@fadroma/agent'
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc
   * This type is case sensitive! */
 export interface SignDoc {
-  readonly chain_id:       string;
+  readonly chain_id: string;
   /** Always 0. */
   readonly account_number: string;
   /** Always 0. */
-  readonly sequence:       string;
+  readonly sequence: string;
   /** Always 0 uscrt + 1 gas */
-  readonly fee:            IFee;
+  readonly fee: IFee;
   /** Always 1 message of type query_permit */
-  readonly msgs:           readonly AminoMsg[];
+  readonly msgs: readonly AminoMsg[];
   /** Always empty. */
-  readonly memo:           string;
+  readonly memo: string;
 }
 
 export interface Permit <T> {
   params: {
-    permit_name:    string,
+    permit_name: string,
     allowed_tokens: Address[]
-    chain_id:       string,
-    permissions:    T[]
+    chain_id: string,
+    permissions: T[]
   },
   signature: Signature
 }
 
 // This type is case sensitive!
-export interface Signature {
-  readonly pub_key: Pubkey
-  readonly signature: string
-}
+export interface Signature { readonly pub_key: Pubkey, readonly signature: string }
 
-export interface Pubkey {
-  /** Must be: `tendermint/PubKeySecp256k1` */
-  readonly type: string
-  readonly value: any
-}
+export interface Pubkey { readonly type: 'tendermint/PubKeySecp256k1', readonly value: any }
 
-export interface AminoMsg {
-  readonly type: string;
-  readonly value: any;
-}
+export interface AminoMsg { readonly type: string, readonly value: any }
 
 /** Used as the `value` field of the {@link AminoMsg} type. */
 export interface PermitAminoMsg<T> {

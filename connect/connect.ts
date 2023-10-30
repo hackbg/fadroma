@@ -17,7 +17,7 @@
 **/
 
 import { Console, Error, Chain, ChainMode, ChainId, bold } from '@fadroma/agent'
-import type { Agent, ChainRegistry } from '@fadroma/agent'
+import type { Agent } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
 import * as CW from '@fadroma/cw'
 

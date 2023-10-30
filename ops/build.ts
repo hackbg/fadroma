@@ -45,95 +45,41 @@ export class BuildConfig extends Config {
   }
   /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
     * Defaults to parent directory of FADROMA_PROJECT. */
-  workspace = this.getString(
-    'FADROMA_WORKSPACE',
-    ()=>this.root
-  )
+  workspace = this.getString('FADROMA_WORKSPACE', ()=>this.root)
   /** Builder to use */
-  builder = this.getString(
-    'FADROMA_BUILDER',
-    ()=>Object.keys(Builder.variants)[0]
-  )
+  builder = this.getString('FADROMA_BUILDER', ()=>Object.keys(Builder.variants)[0])
   /** Whether the build process should print more detail to the console. */
-  verbose = this.getFlag(
-    'FADROMA_BUILD_VERBOSE',
-    ()=>false
-  )
+  verbose = this.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
   /** Whether the build log should be printed only on error, or always */
-  quiet = this.getFlag(
-    'FADROMA_BUILD_QUIET',
-    ()=>false
-  )
+  quiet = this.getFlag('FADROMA_BUILD_QUIET', ()=>false)
   /** Whether to enable caching and reuse contracts from artifacts directory. */
-  caching = !this.getFlag(
-    'FADROMA_REBUILD',
-    ()=>false
-  )
+  caching = !this.getFlag('FADROMA_REBUILD', ()=>false)
   /** Name of output directory. */
-  outputDir = this.getString(
-    'FADROMA_ARTIFACTS',
-    ()=>$(this.root).in('wasm').path
-  )
+  outputDir = this.getString('FADROMA_ARTIFACTS', ()=>$(this.root).in('wasm').path)
   /** Script that runs inside the build container, e.g. build.impl.mjs */
-  script = this.getString(
-    'FADROMA_BUILD_SCRIPT',
-    ()=>$(thisPackage).at('build.impl.mjs').path
-  )
+  script = this.getString('FADROMA_BUILD_SCRIPT', ()=>$(thisPackage).at('build.impl.mjs').path)
   /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
-  toolchain = this.getString(
-    'FADROMA_RUST',
-    ()=>''
-  )
+  toolchain = this.getString('FADROMA_RUST', ()=>'')
   /** Don't run "git fetch" during build. */
-  noFetch = this.getFlag(
-    'FADROMA_NO_FETCH',
-    ()=>false
-  )
+  noFetch = this.getFlag('FADROMA_NO_FETCH', ()=>false)
   /** Whether to bypass Docker and use the toolchain from the environment. */
-  raw = this.getFlag(
-    'FADROMA_BUILD_RAW',
-    ()=>false
-  )
+  raw = this.getFlag('FADROMA_BUILD_RAW', ()=>false)
   /** Whether to use Podman instead of Docker to run the build container. */
-  podman = this.getFlag(
-    'FADROMA_BUILD_PODMAN',
-    () => this.getFlag('FADROMA_PODMAN', ()=>false)
-  )
+  podman = this.getFlag('FADROMA_BUILD_PODMAN', () => this.getFlag('FADROMA_PODMAN', ()=>false))
   /** Path to Docker API endpoint. */
-  dockerSocket = this.getString(
-    'FADROMA_DOCKER',
-    ()=>'/var/run/docker.sock'
-  )
+  dockerSocket = this.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
   /** Docker image to use for dockerized builds. */
-  dockerImage = this.getString(
-    'FADROMA_BUILD_IMAGE',
-    ()=>'ghcr.io/hackbg/fadroma:master'
-  )
+  dockerImage = this.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
   /** Dockerfile to build the build image if not downloadable. */
-  dockerfile = this.getString(
-    'FADROMA_BUILD_DOCKERFILE',
-    ()=>$(thisPackage).at('Dockerfile').path
-  )
+  dockerfile = this.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(thisPackage).at('Dockerfile').path)
   /** Owner uid that is set on build artifacts. */
-  outputUid = this.getString(
-    'FADROMA_BUILD_UID',
-    () => undefined
-  )
+  outputUid = this.getString('FADROMA_BUILD_UID', () => undefined)
   /** Owner gid that is set on build artifacts. */
-  outputGid = this.getString(
-    'FADROMA_BUILD_GID',
-    () => undefined
-  )
+  outputGid = this.getString('FADROMA_BUILD_GID', () => undefined)
   /** Used for historical builds. */
-  preferredRemote = this.getString(
-    'FADROMA_PREFERRED_REMOTE',
-    () => undefined
-  )
+  preferredRemote = this.getString('FADROMA_PREFERRED_REMOTE', () => undefined)
   /** Used to authenticate Git in build container. */
-  sshAuthSocket = this.getString(
-    'SSH_AUTH_SOCK',
-    () => undefined
-  )
+  sshAuthSocket = this.getString('SSH_AUTH_SOCK', () => undefined)
 
   /** @returns the Builder class exposed by the config */
   get Builder () {

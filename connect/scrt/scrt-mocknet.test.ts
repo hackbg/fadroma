@@ -1,0 +1,13 @@
+export default async function testScrtMocknet () {
+  new Mocknet.Console('test message').log('...').trace('...').debug('...')
+  // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
+  // responses) are returned by the contract as Base64-encoded strings
+  // If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
+  // These functions are used by the mocknet code to encode/decode the base64.
+  assert.equal(Mocknet.b64toUtf8('IkVjaG8i'), '"Echo"')
+  assert.equal(Mocknet.utf8toB64('"Echo"'), 'IkVjaG8i')
+  let key:   string
+  let value: string
+  let data:  string
+}
+
