@@ -10,7 +10,7 @@ import {
   bindChainSupport,
   randomBech32, sha256, base16, bech32,
   brailleDump, Error as BaseError, Console as BaseConsole, bold, colors, into,
-  Chain, ChainMode, Agent, Batch, assertChain,
+  Mode, Agent, Batch,
   ContractInstance, UploadedCode
 } from '@fadroma/agent'
 
@@ -18,7 +18,7 @@ import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
 /** Chain instance containing a local mocknet. */
-export class Mocknet extends Chain {
+export class Mocknet extends Agent {
   log = new Console('mocknet')
 
   /** Agent class. */
@@ -263,9 +263,7 @@ export class Mocknet extends Chain {
   getApi () {
     return Promise.resolve({})
   }
-}
 
-class MocknetAgent extends Agent {
   declare chain: Mocknet
 
   /** The address of this agent. */

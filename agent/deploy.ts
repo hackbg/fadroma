@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Console, Error, assign, timestamp, into, map } from './base'
 import type { Into, Name, Label, Class, Address, TxHash, Message, Many } from './base'
-import type { Agent, Chain, ChainId, ChainMode, } from './chain'
+import type { Agent, ChainId } from './chain'
 import type { UploadStore, DeployStore } from './store'
 import type { Builder, CodeId, CodeHash } from './code'
 import type { ICoin, IFee } from './token'
@@ -70,7 +70,7 @@ export class ContractTemplate extends DeploymentUnit {
 }
 
 export class ContractInstance extends DeploymentUnit {
-  /** Full label of the instance. Unique for a given Chain. */
+  /** Full label of the instance. Unique for a given chain. */
   label?:    Label
   /** Address of this contract instance. Unique per chain. */
   address?:  Address
@@ -310,11 +310,5 @@ export class DeploymentContractLabel {
       throw new Error(`label does not match format: ${label}`)
     }
     return new DeploymentContractLabel(prefix, name, suffix)
-  }
-
-  static async fetch (
-    address: Address, agent: Agent, expected?: Label
-  ): Promise<DeploymentContractLabel> {
-    return DeploymentContractLabel.parse(await agent.getLabel(address))
   }
 }

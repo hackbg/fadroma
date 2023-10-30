@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
 import { ContractCode, SourceCode, CompiledCode, UploadedCode } from './code'
-import { StubAgent, StubBuilder } from './stub'
+import * as Stub from './stub'
 
 export default async function testContracts () {
   const contract = new ContractCode({
@@ -14,18 +14,18 @@ export default async function testContracts () {
 
   assert.rejects(()=>contract.compile())
   assert.rejects(()=>contract.compile({
-    builder: new StubBuilder()
+    builder: new Stub.Builder()
   }))
   assert.rejects(()=>contract.compile({
-    builder: { build: () => Promise.resolve({ isValid: () => false }) }
+    builder: { build: () => Promise.resolve({ isValid: () => false }) } as any
   }))
 
   assert.rejects(()=>contract.upload())
   assert.rejects(()=>contract.upload({
-    uploader: new StubAgent()
+    uploader: new Stub.Agent()
   }))
   assert.rejects(()=>contract.upload({
-    uploader: { upload: () => Promise.resolve({ isValid: () => false }) }
+    uploader: { upload: () => Promise.resolve({ isValid: () => false }) } as any
   }))
 
   assert(contract.source instanceof SourceCode)
