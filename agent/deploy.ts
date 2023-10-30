@@ -51,14 +51,12 @@ export class DeploymentUnit extends ContractCode {
 }
 
 export class ContractTemplate extends DeploymentUnit {
-
   /** Create a new instance of this contract. */
   contract (
     name: Name, parameters: Partial<ContractInstance> = {}
   ): ContractInstance {
     return new ContractInstance({ ...this, name, parameters })
   }
-
   /** Create multiple instances of this contract. */
   contracts (
     instanceParameters: Record<Name, Parameters<ContractTemplate["contract"]>[1]> = {}

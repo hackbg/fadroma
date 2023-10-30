@@ -3,12 +3,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { DevnetConfig, Devnet } from './devnet'
 import type { DevnetPlatform } from './devnet'
-import { UploadConfig } from './upload'
 import { BuildConfig } from './build'
 
 import {
-  Deployment as BaseDeployment,
-  Error, Builder, ConnectConfig, UploadStore, DeployStore,
+  Config as BaseConfig, Error, Builder, ConnectConfig, UploadStore, DeployStore,
 } from '@fadroma/connect'
 import type { Environment, Class, DeploymentClass } from '@fadroma/connect'
 
@@ -28,7 +26,7 @@ export const { version } = $(thisPackage, 'package.json')
   .as(JSONFile)
   .load() as { version: string }
 
-export class Config extends ConnectConfig {
+export class Config extends BaseConfig {
 
   /** License token. */
   license?: string = this.getString(
@@ -70,7 +68,7 @@ export class Config extends ConnectConfig {
     }> = {},
     environment?: Environment
   ) {
-    super({}, environment)
+    super(environment)
     const { build, connect, upload, devnet, ...rest } = options
     this.override(rest)
     this.build = new BuildConfig(build, environment)
@@ -80,9 +78,31 @@ export class Config extends ConnectConfig {
   }
 }
 
+export class UploadConfig extends BaseConfig {
+  constructor (
+    options: Partial<UploadConfig> = {},
+    environment?: Environment
+  ) {
+    super(environment)
+    this.override(options)
+  }
+  /** Whether to always upload contracts, ignoring upload receipts that match. */
+  reupload = this.getFlag(
+    'FADROMA_REUPLOAD',
+    () => false
+  )
+  /** Variant of uploader to use */
+  uploader = this.getString(
+    'FADROMA_UPLOADER',
+    () => 'FS'
+  )
+  getUploadStore () {
+    return new UploadStore()
+  }
+}
+
 export {
   ConnectConfig,
   DevnetConfig,
   BuildConfig,
-  UploadConfig,
 }

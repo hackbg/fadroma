@@ -2,7 +2,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Console, Error, UploadedCode, ContractInstance, Deployment,
+  Console, Error,
+  UploadedCode, ContractInstance, Deployment,
+  UploadStore, DeployStore,
   bold, timestamp,
 } from '@fadroma/connect'
 import type {
@@ -22,8 +24,7 @@ import { Config, version } from './config'
 import { Devnet } from './devnet'
 import { ProjectWizard, toolVersions } from './wizard'
 import { writeProject } from './scaffold'
-import { UploadStore, FSUploadStore } from './upload'
-import { DeployStore, FSDeployStore } from './deploy'
+import { JSONFileUploadStore, YAMLFileDeployStore } from './stores'
 
 import { execSync } from 'node:child_process'
 

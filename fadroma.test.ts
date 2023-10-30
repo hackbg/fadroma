@@ -9,7 +9,7 @@ export default new Suite([
   ['deploy',  () => import('./ops/deploy.test')],
   ['devnet',  () => import('./ops/devnet.test')],
   ['project', () => import('./ops/project.test')],
-  ['upload',  () => import('./ops/upload.test')],
+  ['stores',  () => import('./ops/stores.test')],
   ['wizard',  () => import('./ops/wizard.test')],
   //['project',      testProject],
   //['deploy-store', testDeployStore],

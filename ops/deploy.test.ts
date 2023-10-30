@@ -6,7 +6,7 @@ import {
   Deployment, UploadedCode, ContractTemplate, ContractInstance, StubAgent
 } from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
-import { DeployConsole, FSDeployStore } from './deploy'
+import { YAMLFileDeployStore } from './stores'
 
 //export new DeploymentBuilder('mydeployment')
   //.template('swapPool', { codeId: '1', crate: 'examples/kv' })
@@ -102,14 +102,7 @@ export async function testDeploymentUpgrade () {
   })
 }
 
-export function testDeployConsole () {
-  new DeployConsole('test message')
-    .activating('asdf')
-    .list('asdf', new FSDeployStore('', {}))
-}
-
 export default new Suite([
   ['basic',   testDeployment],
   ['upgrade', testDeploymentUpgrade],
-  ['console', testDeployConsole]
 ])

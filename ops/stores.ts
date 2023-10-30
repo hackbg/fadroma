@@ -2,27 +2,90 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Console, bold, Error, timestamp, 
-  DeployStore, ContractInstance,
-  Config
+  Console, Error, bold, UploadStore, DeployStore, ContractInstance
 } from '@fadroma/connect'
-import type { Deployment, DeploymentState, Environment } from '@fadroma/connect'
+import type {
+  CodeHash, UploadedCode, Deployment, DeploymentState
+} from '@fadroma/connect'
 import $, {
-  OpaqueDirectory, YAMLDirectory, YAMLFile, TextFile, alignYAML
+  OpaqueDirectory, BinaryFile, TextFile,
+  JSONDirectory, JSONFile,
+  YAMLDirectory, YAMLFile, alignYAML
 } from '@hackbg/file'
-import type { Path } from '@hackbg/file'
-import { basename } from 'node:path'
+import type {
+  Path
+} from '@hackbg/file'
+import {
+  fileURLToPath
+} from 'node:url'
+import {
+  basename
+} from 'node:path'
 
-import YAML, { loadAll, dump } from 'js-yaml'
+export class JSONFileUploadStore extends UploadStore {
+  log = new Console('FSUploadStore')
 
-export { DeployStore }
+  rootDir: JSONDirectory<unknown>
+
+  constructor (
+    rootDir: string
+  ) {
+    super()
+    this.rootDir = $(rootDir).as(JSONDirectory)
+  }
+
+  get (codeHash: CodeHash|{ codeHash: CodeHash }): UploadedCode|undefined {
+    if (typeof codeHash === 'object') codeHash = codeHash.codeHash
+    if (!codeHash) throw new Error.Missing.CodeHash()
+    const receipt = this.rootDir.at(`${codeHash!.toLowerCase()}.json`).as(JSONFile<any>)
+    if (receipt.exists()) {
+      const uploaded = receipt.load()
+      if (uploaded.codeId) {
+        this.log('loading code id', bold(String(uploaded.codeId)), 'from', bold(receipt.shortPath))
+        super.set(codeHash, uploaded)
+      } else {
+        this.log.warn('no codeId field found in', bold(receipt.shortPath))
+      }
+    }
+    return super.get(codeHash)
+  }
+
+  set (codeHash: CodeHash|{ codeHash: CodeHash }, value: Partial<UploadedCode>): this {
+    if (typeof codeHash === 'object') codeHash = codeHash.codeHash
+    if (!codeHash) throw new Error.Missing.CodeHash()
+    super.set(codeHash, value)
+    const receipt = this.rootDir.at(`${codeHash.toLowerCase()}.json`).as(JSONFile<any>)
+    this.log('writing', receipt.shortPath)
+    receipt.save(super.get(codeHash)!.toReceipt())
+    return this
+  }
+
+  protected addCodeHash (uploadable: Partial<UploadedCode> & { name: string }) {
+    if (!uploadable.codeHash) {
+      if (uploadable.codePath) {
+        uploadable.codeHash = base16.encode(sha256(this.fetchSync(uploadable.codePath)))
+        this.log(`hashed ${String(uploadable.codePath)}:`, uploadable.codeHash)
+      } else {
+        this.log(`no artifact, can't compute code hash for: ${uploadable?.name||'(unnamed)'}`)
+      }
+    }
+  }
+
+  protected async fetch (path: string|URL): Promise<Uint8Array> {
+    return await Promise.resolve(this.fetchSync(path))
+  }
+
+  protected fetchSync (path: string|URL): Uint8Array {
+    return $(fileURLToPath(new URL(path, 'file:'))).as(BinaryFile).load()
+  }
+}
 
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class FSDeployStore extends DeployStore {
-  log = new DeployConsole('DeployStore_v1')
+export class YAMLFileDeployStore extends DeployStore {
+  log = new Console('DeployStore_v1')
   /** Root directory of deploy store. */
   root: YAMLDirectory<unknown>
   /** Name of symlink pointing to active deployment, without extension. */
@@ -58,27 +121,28 @@ export class FSDeployStore extends DeployStore {
       this.log('creating', this.root.shortPath)
       this.root.make()
     }
-    this.log.creating(name)
     const path = this.root.at(`${name}.yml`)
-    if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.location(path.shortPath)
+    if (path.exists()) {
+      throw new Error(`deployment already exists at ${path.shortPath}`)
+    }
+    this.log.log('creating deployment at', bold(path.shortPath))
     path.makeParent().as(YAMLFile).save('')
     return this.load(name)
   }
 
   /** Activate the named deployment, or throw if such doesn't exist. */
   async select (name: string|null = this.activeName): Promise<DeploymentState> {
-    if (!name) throw new DeployError('no deployment selected')
+    if (!name) throw new Error('no deployment selected')
     let selected = this.root.at(`${name}.yml`)
     if (selected.exists()) {
-      this.log.activating(selected.real.name)
+      this.log.log('activating deployment at', bold(selected.shortPath))
       const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
       if (name === this.KEY) name = active.real.name
       name = basename(name, '.yml')
       active.relLink(`${name}.yml`)
       return this.load(name)!
     }
-    throw new DeployError.DeploymentDoesNotExist(name)
+    throw new Error(`deployment ${name} does not exist`)
   }
 
   /** Get the names of all stored deployments. */
@@ -97,7 +161,7 @@ export class FSDeployStore extends DeployStore {
 
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   load (name: string|null|undefined = this.activeName): DeploymentState {
-    if (!name) throw new DeployError('pass deployment name')
+    if (!name) throw new Error('pass deployment name')
     const file = this.root.at(`${name}.yml`)
     this.log.log('loading', name)
     name = basename(file.real.name, '.yml')
@@ -115,11 +179,11 @@ export class FSDeployStore extends DeployStore {
     const file = this.root.at(`${name}.yml`)
     // Serialize data to multi-document YAML
     let output = ''
-    for (let [name, data] of Object.entries(state.contracts!)) {
+    for (let [name, data] of Object.entries(state.units!)) {
       output += '---\n'
       name ??= data.name!
-      if (!name) throw new DeployError('Deployment: no name')
-      const receipt: any = new ContractInstance(data).toInstanceReceipt()
+      if (!name) throw new Error("can't save a deployment with no name")
+      const receipt: any = new ContractInstance(data).toReceipt()
       data = JSON.parse(JSON.stringify({
         name,
         label:    receipt.label,
@@ -137,46 +201,4 @@ export class FSDeployStore extends DeployStore {
     file.as(TextFile).save(output)
     return this
   }
-}
-
-export class DeployConsole extends Console {
-  creating (name: string) {
-    return this.log('creating', bold(name))
-  }
-  location (path: string) {
-    return this.log('location', bold(path))
-  }
-  activating (name: string) {
-    return this.log('activate', bold(name))
-  }
-  list (chainId: string, deployments: DeployStore) {
-    const list = [...deployments.keys()]
-    if (list.length > 0) {
-      this.info(`deployments on ${bold(chainId)}:`)
-      let maxLength = 0
-      for (let name of list) {
-        if (name === (deployments as any).KEY) continue
-        maxLength = Math.max(name.length, maxLength)
-      }
-      for (let name of list) {
-        if (name === (deployments as any).KEY) continue
-        const deployment = deployments.get(name)!
-        let info = `${bold(name.padEnd(maxLength))}`
-        info = `${info} (${deployment.contracts.size()} contracts)`
-        if (deployments.activeName === name) info = `${info} ${bold('selected')}`
-        this.info(` `, info)
-      }
-    } else {
-      this.info(`no deployments on ${bold(chainId)}`)
-    }
-  }
-}
-
-export class DeployError extends Error {
-  static DeploymentAlreadyExists = this.define(
-    'DeploymentAlreadyExists', (name: string)=>`deployment "${name}" already exists`
-  )
-  static DeploymentDoesNotExist = this.define(
-    'DeploymentDoesNotExist', (name: string)=> `deployment "${name}" does not exist`
-  )
 }

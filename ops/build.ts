@@ -336,7 +336,11 @@ export class BuildContainer extends BuildLocal {
       buildable.revision  ??= 'HEAD'
       // If the buildable is already built, don't build it again
       if (!this.populatePrebuilt(buildable)) {
-        this.log.one(buildable)
+        if (!buildable.revision || (buildable.revision === HEAD)) {
+          this.log(`Building ${bold(buildable.crate)} from working tree`)
+        } else {
+          this.log(`Building ${bold(buildable.crate)} from revision ${bold(buildable.revision)}`)
+        }
         // Set ourselves as the buildable's builder
         buildable.builder = this as unknown as Builder
         // Add the source repository of the contract to the list of inputs to build
@@ -353,6 +357,7 @@ export class BuildContainer extends BuildLocal {
     let gitSubDir = ''
     let srcSubDir = ''
     const paths = new Set([ root.path ])
+
     // If building from history, make sure that full source is mounted, and fetch history
     if (rev !== HEAD) {
       const gitDir = getGitDir({ workspace: path })
@@ -362,19 +367,28 @@ export class BuildContainer extends BuildLocal {
       try {
         await this.fetch(gitDir, remote)
       } catch (e) {
-        this.log.fetchFailed(remote, e)
+        this.log
+          .warn(`Git fetch from remote ${remote} failed.`)
+          .warn(`The build may fail or produce an outdated result.`)
+          .warn(e)
       }
     }
+
     // If inputs contain path dependencies pointing to parent dirs
     // (e.g. fadroma/examples/foo pointing to ../../), make sure
     // those are mounted into the container.
-    for (const input of inputs)
-      for (const path of this.getPathDependencies(input))
+    for (const input of inputs) {
+      for (const path of this.getPathDependencies(input)) {
         paths.add(path)
+      }
+    }
+
     ;([root, srcSubDir] = this.getSrcSubDir(paths, root))
-    if (this.verbose) this.log.workspace(root.path, rev)
+
+    this.log.debug(`building from workspace:`, bold(`${$(root.path).shortPath}/`), `@`, bold(rev))
     const matched = this.matchBatch(inputs, path, rev)
     const results = await this.runContainer(root.path, root.relative(path), rev, matched, gitSubDir)
+
     // Using the previously collected indices, populate the values in each of the passed inputs.
     for (const index in results) {
       if (!results[index]) continue
@@ -431,7 +445,7 @@ export class BuildContainer extends BuildLocal {
     root: string, subdir: string, rev: string,
     crates: [number, string][], gitSubDir: string = '', outputDir: string = this.outputDir.path
   ): Promise<(CompiledCode|null)[]> {
-    if (!this.script) throw new BuildError.ScriptNotSet()
+    if (!this.script) throw new BuildError('missing build script')
     // Default to building from working tree.
     rev ??= HEAD
     // Collect crates to build
@@ -457,7 +471,10 @@ export class BuildContainer extends BuildLocal {
     // Create output directory as user if it does not exist
     $(outputDir).as(OpaqueDirectory).make()
     // Run the build container
-    this.log.container(root, rev, cratesToBuild)
+    this.log(
+      `started building from ${bold($(root).shortPath)} @ ${bold(rev)}:`,
+      cratesToBuild.map(x=>bold(x)).join(', ')
+    )
     const name = `fadroma-build-${randomBytes(3).toString('hex')}`
     const buildContainer = await this.image.run(name, options, command, '/usr/bin/env', logs)
     // If this process is terminated, the build container should be killed
@@ -472,7 +489,7 @@ export class BuildContainer extends BuildLocal {
   }
 
   protected getMounts (buildScript: string, root: string, outputDir: string, safeRef: string) {
-    if (!this.script) throw new BuildError.ScriptNotSet()
+    throw new BuildError('missing build script')
     const readonly: Record<string, string> = {}
     const writable: Record<string, string> = {}
     // Script that will run in the container
@@ -652,7 +669,9 @@ export class BuildRaw extends BuildLocal {
       const gitDir = getGitDir(buildable)
       // Provide the build script with the config values that ar
       // needed to make a temporary checkout of another commit
-      if (!gitDir?.present) throw new BuildError.NoGitDir({ source: buildable })
+      if (!gitDir?.present) {
+        throw new Error('.git dir not found')
+      }
       // Create a temporary Git directory. The build script will copy the Git history
       // and modify the refs in order to be able to do a fresh checkout with submodules
       tmpGit   = $.tmpDir('fadroma-git-')
@@ -844,65 +863,5 @@ export class ContractCrate {
     ].join('\n'))
 
   }
-
-}
-
-/** Build console. */
-class BuildConsole extends Console {
-
-  one ({ crate = '(unknown)', revision = 'HEAD' }: Partial<UploadedCode>) {
-    return this.log('Building', bold(crate), ...(revision === 'HEAD')
-      ? ['from working tree']
-      : ['from Git reference', bold(revision)])
-  }
-
-  many (inputs: UploadedCode[]) {
-    return inputs.forEach(buildable=>this.one(buildable))
-  }
-
-  found ({ codePath }: CompiledCode) {
-    return this.log(`found at ${bold($(codePath!).shortPath)}`)
-  }
-
-  workspace (mounted: Path|string, ref: string = HEAD) {
-    return this.log(
-      `building from workspace:`, bold(`${$(mounted).shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
-
-  container (root: string|Path, revision: string, cratesToBuild: string[]) {
-    return this.log(
-      `started building from ${bold($(root).shortPath)} @ ${bold(revision)}:`,
-      cratesToBuild.map(x=>bold(x)).join(', ')
-    )
-  }
-
-  fetchFailed (remote: string, e: any) {
-    return this.warn(
-      `Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`
-    ).warn(e)
-  }
-
-}
-
-/** Build error. */
-export class BuildError extends Error {
-
-  static ScriptNotSet = this.define(
-    'ScriptNotSet',
-    ()=>'build script not set'
-  )
-
-  static NoHistoricalManifest = this.define(
-    'NoHistoricalManifest',
-    ()=>'the workspace manifest option can only be used when building from working tree'
-  )
-
-  static NoGitDir = this.define(
-    'NoGitDir',
-    (args)=>'could not find .git directory',
-    (err, args)=>Object.assign(err, args||{})
-  )
 
 }
