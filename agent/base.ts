@@ -3,7 +3,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error as BaseError } from '@hackbg/oops'
 import { Console, bold, colors } from '@hackbg/logs'
-import type { Chain } from './chain'
 import type { Deployment } from './deploy'
 
 const { red, green, gray } = colors

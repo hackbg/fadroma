@@ -93,6 +93,5 @@ export async function testSwaps () {
     new Amount('1000000000000', MYFT),
     new Amount('1000000000000', MYFT),
   )
-  assert(swap.asNativeBalance instanceof Array)
   assert(swap.reverse instanceof Swap)
 }

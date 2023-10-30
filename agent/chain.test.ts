@@ -4,9 +4,8 @@
 import assert from 'node:assert'
 import { fixture } from '../fixtures/fixtures'
 
-import { Chain, assertChain } from './chain'
-import type { Agent } from './agent'
-import { StubChain, StubAgent } from './stub'
+import { Agent, Mode } from './chain'
+import * as Stub from './stub'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
@@ -16,60 +15,39 @@ export default new Suite([
 ])
 
 export async function testChain () {
-  assert.throws(()=>Chain.mocknet())
-
-  let chain = new StubChain()
-  assert.throws(()=>chain.id)
-  assert.throws(()=>chain.id='foo')
+  let chain = new Stub.Agent()
+  assert.throws(()=>chain.chainId)
+  assert.throws(()=>chain.chainId='foo')
   assert.throws(()=>chain.mode)
-  assert.throws(()=>new StubChain({ mode: StubChain.Mode.Devnet, id: 'stub', url: 'stub' }).ready)
-  assert.equal(chain.chain, chain)
-  assert.equal(assertChain({ chain }), chain)
-  chain = new StubChain({ mode: StubChain.Mode.Testnet, id: 'stub', url: 'stub' })
-  assert((await chain.ready).api)
+  chain = new Stub.Agent({ mode: Mode.Testnet, chainId: 'stub', url: 'stub' })
   await chain.height
   await chain.nextBlock
-  await chain.getBalance('','')
   await chain.query('', {})
-  await chain.getCodeId('')
-  await chain.getHash('')
-  await chain.getHash(0)
-  await chain.getLabel('')
   Object.defineProperty(chain, 'height', {
     get () { return Promise.resolve('NaN') }
   })
   assert.equal(await chain.nextBlock, NaN)
-  assert(StubChain.mainnet().isMainnet)
-  assert(!(StubChain.mainnet().devMode))
-  assert(StubChain.testnet().isTestnet)
-  assert(!(StubChain.testnet().devMode))
-  assert(StubChain.devnet().isDevnet)
-  assert(StubChain.devnet().devMode)
-  assert(new StubChain({ mode: Chain.Mode.Mocknet }).isMocknet)
-  assert(new StubChain({ mode: Chain.Mode.Mocknet }).devMode)
+  assert(Stub.Agent.mainnet().isMainnet)
+  assert(!(Stub.Agent.mainnet().devMode))
+  assert(Stub.Agent.testnet().isTestnet)
+  assert(!(Stub.Agent.testnet().devMode))
+  assert(Stub.Agent.devnet().isDevnet)
+  assert(Stub.Agent.devnet().devMode)
+  assert(new Stub.Agent({ mode: Mode.Mocknet }).isMocknet)
+  assert(new Stub.Agent({ mode: Mode.Mocknet }).devMode)
 }
 
 export async function testAgent () {
-  const chain = new StubChain({ id: 'stub' })
-  let agent: Agent = await chain.getAgent({ name: 'testing1', address: '...' })
+  const chain = new Stub.Agent({ chainId: 'stub' })
+  let agent: Agent = await chain.authenticate({ name: 'testing1', address: '...' })
   assert.equal(agent[Symbol.toStringTag], '... @ stub')
-  assert(agent instanceof StubAgent,    'an Agent was returned')
-  assert(agent.address,                 'agent has address')
-  assert.equal(agent.name, 'testing1',  'agent.name assigned')
-  assert.equal(agent.chain, chain,      'agent.chain assigned')
-  const ready = agent.ready
-  assert(await ready)
-  assert(agent.ready === ready)
+  assert(agent instanceof Stub.Agent,  'an Agent was returned')
+  assert(agent.address,                'agent has address')
+  assert.equal(agent.name, 'testing1', 'agent.name assigned')
   agent.defaultDenom
-  agent.balance
   agent.height
   agent.nextBlock
-  await agent.getBalance('a','b')
   await agent.query('', {})
-  await agent.getCodeId('')
-  await agent.getHash('')
-  await agent.getHash(0)
-  await agent.getLabel('')
   await agent.send('', [])
   await agent.sendMany([])
   await agent.upload(fixture('null.wasm'), {})
@@ -98,24 +76,21 @@ export async function testDevnet () {
     async getAccount () { return {} },
     async assertPresence () {}
   }
-  const chain = new StubChain({
-    mode: Chain.Mode.Mainnet,
-    devnet,
-    id: 'bar',
+  const chain = new Stub.Agent({
+    mode: Mode.Mainnet,
+    chainId: 'bar',
     url: 'http://asdf.com',
+    devnet,
   })
-  const ready = chain.ready
-  assert(await ready)
-  assert(chain.ready === ready)
   // Properties from Devnet are passed onto Chain
   assert.equal(chain.devnet, devnet)
-  assert.equal(chain.id, 'foo')
+  assert.equal(chain.chainId, 'foo')
   assert.equal(chain.url, 'http://example.com/')
-  assert.equal(chain.mode, StubChain.Mode.Devnet)
+  assert.equal(chain.mode, Mode.Devnet)
   assert.equal(chain.stopped, true)
   devnet.running = true
   assert.equal(chain.stopped, false)
-  assert.throws(()=>chain.id='asdf')
+  assert.throws(()=>chain.chainId='asdf')
   assert.throws(()=>chain.url='asdf')
   assert.throws(()=>{
     //@ts-ignore

@@ -96,10 +96,7 @@ export class CustomToken extends Fungible {
 
 /** A pair of tokens. */
 export class Pair {
-  constructor (
-    readonly a: Token,
-    readonly b: Token
-  ) {}
+  constructor (readonly a: Token, readonly b: Token) {}
   /** Reverse the pair. */
   get reverse (): Pair {
     return new Pair(this.b, this.a)
@@ -108,12 +105,7 @@ export class Pair {
 
 /** An amount of a fungible token. */
 export class Amount {
-
-  constructor (
-    public amount: Uint128,
-    public token:  Fungible,
-  ) {}
-
+  constructor (public amount: Uint128, public token: Fungible,) {}
   /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
     if (this.token.isNative()) {
@@ -121,28 +113,11 @@ export class Amount {
     }
     return []
   }
-
 }
 
 /** A pair of token amounts. */
 export class Swap {
-  constructor (
-    readonly a: Amount|NonFungible,
-    readonly b: Amount|NonFungible
-  ) {}
-
-  /** Pass this to send, initSend, execSend */
-  get asNativeBalance (): ICoin[] {
-    let result: ICoin[] = []
-    if (this.a.token?.isNative()) {
-      result = [...result, ...this.a.asNativeBalance]
-    }
-    if (this.b.token?.isNative()) {
-      result = [...result, ...this.b.asNativeBalance]
-    }
-    return result
-  }
-
+  constructor (readonly a: Amount|NonFungible, readonly b: Amount|NonFungible) {}
   /** Reverse the pair. */
   get reverse (): Swap {
     return new Swap(this.b, this.a)

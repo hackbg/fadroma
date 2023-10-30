@@ -4,7 +4,7 @@
 import assert from 'node:assert'
 import { Console } from './base'
 import { Deployment, DeploymentContractLabel } from './deploy'
-import { StubAgent, StubBuilder } from './stub'
+import * as Stub from './stub'
 import { CompiledCode } from './code'
 
 import { Suite } from '@hackbg/ensuite'
@@ -26,7 +26,7 @@ export async function testDeployment () {
   }
 
   await new MyBuildableDeployment().build({
-    builder: new StubBuilder()
+    builder: new Stub.Builder()
   })
 
   class MyDeployment extends Deployment {
@@ -50,7 +50,7 @@ export async function testDeployment () {
   }
 
   await new MyDeployment().contract1.deploy({
-    deployer: new StubAgent()
+    deployer: new Stub.Agent()
   })
 
   new MyDeployment().contract1.toReceipt()
@@ -60,20 +60,20 @@ export async function testDeployment () {
   assert.throws(()=>new MyDeployment().set('foo', {} as any))
 
   await new MyDeployment().upload({
-    builder:  new StubBuilder(),
-    uploader: new StubAgent(),
+    builder:  new Stub.Builder(),
+    uploader: new Stub.Agent(),
   })
 
   await new MyDeployment().deploy({
-    builder:  new StubBuilder(),
-    uploader: new StubAgent(),
-    deployer: new StubAgent(),
+    builder:  new Stub.Builder(),
+    uploader: new Stub.Agent(),
+    deployer: new Stub.Agent(),
   })
 
   new Console().deployment(new MyDeployment())
 
-  assert((await new StubBuilder().build('')) instanceof CompiledCode)
-  assert((await new StubBuilder().buildMany([{}]))[0] instanceof CompiledCode)
+  assert((await new Stub.Builder().build('')) instanceof CompiledCode)
+  assert((await new Stub.Builder().buildMany([{}]))[0] instanceof CompiledCode)
 }
 
 export async function testDeploymentLabels () {

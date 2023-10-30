@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Console, Error } from './base'
 import type { Class, Address, Message } from './base'
-import type { Agent, Chain } from './chain'
+import type { Agent } from './chain'
 import { ContractInstance } from './deploy'
 
 /** A constructor for a ContractClient subclass. */
@@ -31,13 +31,8 @@ export class ContractClient {
     }
   }
 
-  /** The chain on which this contract exists. */
-  get chain (): Chain|undefined {
-    return this.agent?.chain
-  }
-
   /** Execute a query on the specified contract as the specified Agent. */
-  query <U> (msg: Message): Promise<U> {
+  query (msg: Message): Promise<unknown> {
     if (!this.agent) {
       throw new Error.Missing.Agent(this.constructor?.name)
     }

@@ -4,7 +4,6 @@
 import type { Name, Address, Class, Into, Many, TxHash, Label, Message } from './base'
 import { Error, Console, bold, into, assign } from './base'
 import type { ICoin, IFee } from './token'
-import type { Batch, BatchClass, BatchCallback } from './batch'
 import type { UploadStore } from './store'
 import type { CodeHash, CodeId } from './code'
 import { CompiledCode, UploadedCode } from './code'
@@ -12,7 +11,7 @@ import { ContractInstance, } from './deploy'
 import { ContractClient, ContractClientClass } from './client'
 
 /** A chain can be in one of the following modes: */
-export enum ChainMode {
+export enum Mode {
   Mainnet = 'Mainnet',
   Testnet = 'Testnet',
   Devnet  = 'Devnet',
@@ -24,12 +23,12 @@ export type ChainId = string
 
 /** Interface for Devnet (implementation is in @hackbg/fadroma). */
 export interface DevnetHandle {
-  accounts:     string[]
-  chainId:      string
-  platform:     string
-  running:      boolean
-  stateDir:     string
-  url:          URL
+  accounts: string[]
+  chainId:  string
+  platform: string
+  running:  boolean
+  stateDir: string
+  url:      URL
 
   containerId?: string
   imageTag?:    string
@@ -43,180 +42,158 @@ export interface DevnetHandle {
     Promise<void>
 }
 
-/** A constructor for a Chain subclass. */
-export interface ChainClass<C> extends Class<C, ConstructorParameters<typeof Chain>> {
-  Agent: AgentClass<Agent> // static
-}
+/** A constructor for an Agent subclass. */
+export interface AgentClass<A extends Agent>
+  extends Class<A, ConstructorParameters<typeof Agent>> { Batch: BatchClass<Batch> }
 
-/** Represents a particular chain, identified by chain ID and connected by URL.
-  * The chain can be in one of several modes (mainnet or other), can optionally
-  * hold a reference to the managed devnet container, can query state, and can
-  * construct authorized agents. */
-export abstract class Chain {
+/** A constructor for a Batch subclass. */
+export interface BatchClass<B extends Batch>
+  extends Class<B, ConstructorParameters<typeof Batch>>{}
 
-  constructor ({ id, url, mode, devnet }: Partial<Chain> = {}) {
+/** A connection to a chain. */
+export abstract class Agent {
 
-    if (devnet) {
-      Object.defineProperties(this, {
-        id: {
-          enumerable: true, configurable: true,
-          get: () => devnet.chainId, set: () => {
-            throw new Error("can't override chain id of devnet")
-          }
-        },
-        url: {
-          enumerable: true, configurable: true,
-          get: () => devnet.url.toString(), set: () => {
-            throw new Error("can't override url of devnet")
-          }
-        },
-        'mode': {
-          enumerable: true, configurable: true,
-          get: () => Chain.Mode.Devnet, set: () => {
-            throw new Error("chain.mode: can't override")
-          }
-        },
-        'devnet': {
-          enumerable: true, configurable: true,
-          get: () => devnet, set: () => {
-            throw new Error("chain.devnet: can't override")
-          }
-        },
-        'stopped': {
-          enumerable: true, configurable: true,
-          get: () => !this.devnet!.running, set: () => {
-            throw new Error("chain.stopped: can't override")
-          }
-        }
-      })
-      if (id && id !== devnet.chainId) {
-        this.log.warn('chain.id: ignoring override (devnet)')
-      }
-      if (url && url.toString() !== devnet.url.toString()) {
-        this.log.warn('chain.url: ignoring override (devnet)')
-      }
-      if (mode && mode !== Chain.Mode.Devnet) {
-        this.log.warn('chain.mode: ignoring override (devnet)')
-      }
-    } else {
-      Object.defineProperties(this, {
-        id: {
-          enumerable: true, writable: false, value: id
-        },
-        mode: {
-          enumerable: true, writable: false, value: mode || Chain.Mode.Mocknet
-        }
-      })
-      this.url = url ?? this.url
-    }
-
-    if (this.mode === Chain.Mode.Mocknet) {
-      Object.defineProperty(this, 'url', {
-        enumerable: true,
-        writable:   false,
-        value:      `fadroma://mocknet-${this.id}`
-      })
-    }
-
-    Object.defineProperty(this, 'log', {
-      enumerable: false,
-      writable: true,
-    })
-
-    Object.defineProperty(this, 'Agent', {
-      enumerable: false,
-      writable: true
-    })
-
+  /** @returns a mainnet instance of this chain. */
+  static mainnet (options: Partial<Agent> = {}): Agent {
+    return new (this as any)({ ...options, mode: Mode.Mainnet })
   }
+
+  /** @returns a testnet instance of this chain. */
+  static testnet (options: Partial<Agent> = {}): Agent {
+    return new (this as any)({ ...options, mode: Mode.Testnet })
+  }
+
+  /** @returns a devnet instance of this chain. */
+  static devnet (options: Partial<Agent> = {}): Agent {
+    return new (this as any)({ ...options, mode: Mode.Devnet })
+  }
+
+  /** @returns a mocknet instance of this chain. */
+  static mocknet (options?: Partial<Agent>): Agent {
+    throw new Error('Mocknet is not enabled for this chain.')
+  }
+
+  /** The default Batch class used by this Agent. */
+  static Batch: BatchClass<Batch> // populated below
 
   /** Logger. */
   log = new Console(this.constructor.name)
 
   /** The API URL to use. */
-  url: string = ''
+  url:      string = ''
+
+  /** An instance of the underlying implementation-specific SDK. */
+  api?:     unknown
+
+  /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
+  mode?:    Mode
+
+  /** The unique id of the chain. */
+  chainId?: ChainId
+
+  /** Default fee maximums for send, upload, init, and execute. */
+  fees?:    { send?: IFee, upload?: IFee, init?: IFee, exec?: IFee }
 
   /** If this is a devnet, this contains an interface to the devnet container. */
-  devnet?: DevnetHandle
+  devnet?:  DevnetHandle
 
   /** Whether this chain is stopped. */
-  stopped: boolean = false
+  stopped?: boolean
 
-  /** The Agent subclass to use for interacting with this chain. */
-  Agent: AgentClass<Agent> = (this.constructor as ChainClass<unknown>).Agent
+  authenticated: boolean = false
+
+  /** The friendly name of the agent. */
+  name?:    string
+
+  /** The address from which transactions are signed and sent. */
+  address?: Address
+
+  /** The Batch subclass to use. */
+  Batch:    BatchClass<Batch> = (this.constructor as AgentClass<typeof this>).Batch
+
+  constructor (properties?: Partial<Agent>) {
+    assign(this, properties, [
+      'url', 'mode', 'chainId', 'fees', 'devnet', 'stopped', 'name', 'address', 'api'
+    ])
+    if (this.devnet) {
+      assignDevnet(this, this.devnet)
+      if (properties?.chainId && properties?.chainId !== properties?.devnet?.chainId) {
+        this.log.warn('chain.id: ignoring override (devnet)')
+      }
+      if (properties?.url && properties?.url.toString() !== properties?.devnet?.url.toString()) {
+        this.log.warn('chain.url: ignoring override (devnet)')
+      }
+      if (properties?.mode && properties?.mode !== Mode.Devnet) {
+        this.log.warn('chain.mode: ignoring override (devnet)')
+      }
+    } else {
+      Object.defineProperties(this, {
+        id: {
+          enumerable: true, writable: false, value: properties?.chainId
+        },
+        mode: {
+          enumerable: true, writable: false, value: properties?.mode || Mode.Mocknet
+        }
+      })
+      this.url = properties?.url ?? this.url
+    }
+
+    if (this.mode === Mode.Mocknet) {
+      Object.defineProperty(this, 'url', {
+        enumerable: true,
+        writable: false,
+        value: `fadroma://mocknet-${this.chainId}`
+      })
+    }
+
+    Object.defineProperties(this, {
+      log: {
+        configurable: true,
+        enumerable: false,
+        writable: true,
+      },
+    })
+
+  }
 
   /** Compact string tag for console representation. */
   get [Symbol.toStringTag]() {
-    return this.mode || '(unspecified mode)'
+    return `${this.mode||'(unspecified mode)'} `
+         + `${this.chainId||'(unidentified chain)'}: `
+         + `${this.name||this.address||'(unauthenticated)'}`
   }
 
-  /** The unique chain id. */
-  get id (): ChainId {
-    throw new Error("chain.id: not set")
-  }
-  set id (id: string) {
-    throw new Error("chain.id: can't override")
-  }
-
-  /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
-  get mode (): ChainMode {
-    throw new Error('chain.mode: not set')
+  /** Get a client instance for talking to a specific smart contract as this executor. */
+  contract <C extends ContractClient> (
+    options?: Address|Partial<ContractInstance>,
+    $C: ContractClientClass<C> = ContractClient as ContractClientClass<C>, 
+  ): C {
+    return new $C(options!, this) as C
   }
 
   /** Whether this is a mainnet. */
   get isMainnet () {
-    return this.mode === ChainMode.Mainnet
+    return this.mode === Mode.Mainnet
   }
 
   /** Whether this is a testnet. */
   get isTestnet () {
-    return this.mode === ChainMode.Testnet
+    return this.mode === Mode.Testnet
   }
 
   /** Whether this is a devnet. */
   get isDevnet  () {
-    return this.mode === ChainMode.Devnet
+    return this.mode === Mode.Devnet
   }
 
   /** Whether this is a mocknet. */
   get isMocknet () {
-    return this.mode === ChainMode.Mocknet
+    return this.mode === Mode.Mocknet
   }
 
   /** Whether this is a devnet or mocknet. */
   get devMode () {
     return this.isDevnet || this.isMocknet
-  }
-
-  /** Return self. */
-  get chain () {
-    return this
-  }
-
-  /** One-time asynchronous initialization
-    * (async stuff that would go in the constructor
-    * if it was possible for constructors to be async.) */
-  protected abstract init (): Promise<this>
-
-  get ready (): Promise<this> {
-    if (this.isDevnet && !this.devnet) {
-      throw new Error("the chain is marked as a devnet but is missing the devnet handle")
-    }
-    const init = new Promise<this>(async (resolve, reject)=>{
-      if (this.isDevnet) {
-        await this.devnet!.start()
-      }
-      if (!this.url && !this.isMocknet) {
-        throw new Error("the chain's url property is not set")
-      }
-      return resolve(this.init())
-    })
-    Object.defineProperty(this, 'ready', {
-      get () {
-        return init
-      }
-    })
-    return init
   }
 
   /** Wait for the block height to increment. */
@@ -231,7 +208,7 @@ export abstract class Chain {
       const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
-          while (true && !this.chain.stopped) {
+          while (true && !this.stopped) {
             await new Promise(ok=>setTimeout(ok, 250))
             this.log.waitingForBlock(startingHeight, + new Date() - t)
             const height = await this.height
@@ -247,179 +224,36 @@ export abstract class Chain {
     })
   }
 
-  /** The default denomination of the chain's native token. */
-  abstract defaultDenom: string
-
-  /** Get the current block height. */
-  abstract get height (): Promise<number>
-
-  /** Get the native balance of an address. */
-  abstract getBalance (denom: string, address: Address): Promise<string>
-
-  /** Query a smart contract. */
-  abstract query <Q> (contract: Address|{ address: Address, codeHash?: CodeHash }, msg: Message):
-    Promise<Q>
-
-  /** Get the code id of a smart contract. */
-  abstract getCodeId (address: Address): Promise<CodeId>
-
-  /** Get the code hash of a smart contract. */
-  abstract getHash (address: Address|number): Promise<CodeHash>
-
-  /** Get the label of a smart contract. */
-  abstract getLabel (address: Address): Promise<string>
-
-  /** Get a new instance of the appropriate Agent subclass. */
-  getAgent (options?: Partial<Agent>): Agent
-  getAgent ($A: AgentClass<Agent>, options?: Partial<Agent>): InstanceType<typeof $A>
-  getAgent (...args: any) {
-    const $A = (typeof args[0] === 'function') ? args[0] : this.Agent
-    let options = (typeof args[0] === 'function') ? args[1] : args[0]
-    options = { ...options||{}, chain: this }
-    const agent = new $A(options)
-    return agent
+  async query (contract: Address|{ address: Address }, message: Message): Promise<unknown> {
+    if (typeof contract === 'string') contract = { address: contract }
+    const t0 = performance.now()
+    const result = this.doQuery(contract, message)
+    const t1 = performance.now() - t0
+    this.log.debug(
+      `Queried in`,
+      bold(t1.toFixed(3)),
+      `msec: address`,
+      bold(contract.address)
+    )
+    return result
   }
 
-  /** The default Agent subclass to use for interacting with this chain. */
-  static Agent: AgentClass<Agent> // populated below
-
-  /** Shorthand for the ChainMode enum. */
-  static Mode = ChainMode
-
-  /** @returns a mainnet instance of this chain. */
-  static mainnet (options: Partial<Chain> = {}): Chain {
-    return new (this as any)({ ...options, mode: Chain.Mode.Mainnet })
-  }
-
-  /** @returns a testnet instance of this chain. */
-  static testnet (options: Partial<Chain> = {}): Chain {
-    return new (this as any)({ ...options, mode: Chain.Mode.Testnet })
-  }
-
-  /** @returns a devnet instance of this chain. */
-  static devnet (options: Partial<Chain> = {}): Chain {
-    return new (this as any)({ ...options, mode: Chain.Mode.Devnet })
-  }
-
-  /** @returns a mocknet instance of this chain. */
-  static mocknet (options?: Partial<Chain>): Chain {
-    throw new Error('Mocknet is not enabled for this chain.')
-  }
-
-}
-
-/** @returns the chain of a thing
-  * @throws if missing. */
-export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): C {
-  if (!thing.chain) throw new Error.Missing.Chain()
-  return thing.chain
-}
-
-/** A constructor for an Agent subclass. */
-export interface AgentClass<A extends Agent> extends Class<A, ConstructorParameters<typeof Agent>>{
-  Batch: BatchClass<Batch> // static
-}
-
-/** By authenticating to a network you obtain an Agent,
-  * which can perform transactions as the authenticated identity. */
-export abstract class Agent {
-  /** Logger. */
-  log = new Console(this.constructor.name)
-  /** The friendly name of the agent. */
-  name?: string
-  /** The chain on which this agent operates. */
-  chain?: Chain
-  /** The address from which transactions are signed and sent. */
-  address?: Address
-  /** Default fee maximums for send, upload, init, and execute. */
-  fees?: AgentFees
-  /** The Batch subclass to use. */
-  Batch: BatchClass<Batch> = (this.constructor as AgentClass<typeof this>).Batch
-  /** The default Batch class used by this Agent. */
-  static Batch: BatchClass<Batch> // populated below
-
-  constructor (options: Partial<Agent> = {}) {
-    assign(this, options, ['name', 'chain', 'address', 'fees'])
-    Object.defineProperty(this, 'log', {
-      enumerable: false, configurable: true, writable: true,
+  /** Create a new, authenticated Agent. */
+  async authenticate (options?: {
+    name?:     Name,
+    address?:  Address,
+    mnemonic?: string
+  }): Promise<this> {
+    if (!options?.mnemonic && options?.name && this.devnet) {
+      await this.devnet.start()
+      const account = await this.devnet.getAccount(options.name)
+      options = { ...options, ...account }
+    }
+    return new (this.constructor as any)({
+      ...this,
+      ...options
     })
   }
-
-  get [Symbol.toStringTag]() {
-    return `${this.name||this.address} @ ${this.chain?.id}`
-  }
-
-  /** One-time asynchronous initialization
-    * (async stuff that would go in the constructor
-    * if it was possible for constructors to be async.) */
-  protected abstract init (): Promise<this>
-
-  /** Complete the asynchronous initialization of this Agent. */
-  get ready (): Promise<this> {
-    const init = new Promise<this>(async (resolve, reject)=>{
-      try {
-        if (this.chain?.devnet) {
-          await this.chain?.devnet.start()
-        }
-        if (!this.mnemonic && this.name && this.chain?.devnet) {
-          Object.assign(this, await this.chain?.devnet.getAccount(this.name))
-        }
-        resolve(this.init())
-      } catch (e) {
-        reject(e)
-      }
-    })
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
-  }
-
-  /** The default denomination in which the agent operates. */
-  get defaultDenom () {
-    return assertChain(this).defaultDenom
-  }
-
-  /** This agent's balance in the chain's native token. */
-  get balance (): Promise<string> {
-    return this.getBalance()
-  }
-
-  /** The chain's current block height. */
-  get height (): Promise<number> {
-    return assertChain(this).height
-  }
-
-  /** Wait until the block height increments. */
-  get nextBlock () {
-    return assertChain(this).nextBlock
-  }
-
-  /** Get the balance of this or another address. */
-  getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
-    assertChain(this)
-    if (!address) throw new Error.Missing.Address()
-    return this.chain!.getBalance(denom!, address)
-  }
-
-  /** Get the code ID of a contract. */
-  getCodeId (address: Address) {
-    return assertChain(this).getCodeId(address)
-  }
-
-  /** Get the label of a contract. */
-  getLabel (address: Address) {
-    return assertChain(this).getLabel(address)
-  }
-
-  /** Get the code hash of a contract or template. */
-  getHash (address: Address|number) {
-    return assertChain(this).getHash(address)
-  }
-
-  /** Send native tokens to 1 recipient. */
-  abstract send (to: Address, amounts: ICoin[], opts?: unknown): Promise<void|unknown>
-
-  /** Send native tokens to multiple recipients. */
-  abstract sendMany (outputs: [Address, ICoin[]][], opts?: unknown): Promise<void|unknown>
 
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
@@ -430,10 +264,7 @@ export abstract class Agent {
       uploadFee?:   ICoin[]|'auto',
       uploadMemo?:  string
     } = {},
-  ): Promise<UploadedCode & {
-    chainId: ChainId,
-    codeId:  CodeId,
-  }> {
+  ): Promise<UploadedCode & { chainId: ChainId, codeId: CodeId }> {
     let template: Uint8Array
     if (code instanceof Uint8Array) {
       template = code
@@ -465,16 +296,12 @@ export abstract class Agent {
       `on chain`,
       bold(result.chainId)
     )
-    return new UploadedCode({ ...template, ...result }) as UploadedCode & {
-      chainId: ChainId,
-      codeId:  CodeId,
+    return new UploadedCode({
+      ...template, ...result
+    }) as UploadedCode & {
+      chainId: ChainId, codeId: CodeId,
     }
   }
-
-  protected abstract doUpload (
-    data: Uint8Array,
-    options: Parameters<typeof this["upload"]>[1]
-  ): Promise<Partial<UploadedCode>>
 
   /** Create a new smart contract from a code id, label and init message.
     * @example
@@ -518,56 +345,30 @@ export abstract class Agent {
       bold(result.address)
     )
     return new ContractInstance({
-      ...options,
-      ...result
+      ...options, ...result
     }) as ContractInstance & {
       address: Address
     }
-  }
-
-  protected abstract doInstantiate (
-    codeId:  CodeId,
-    options: Partial<ContractInstance>
-  ): Promise<Partial<ContractInstance>>
-
-  /** Get a client instance for talking to a specific smart contract as this executor. */
-  getClient <C extends ContractClient> (
-    options?: Address|Partial<ContractInstance>,
-    $C: ContractClientClass<C> = ContractClient as ContractClientClass<C>, 
-  ): C {
-    return new $C(options!, this) as C
   }
 
   /** Call a transaction method on a smart contract. */
   async execute (
     contract: Address|Partial<ContractInstance>,
     message:  Message,
-    options?: {
-      execFee?:  IFee
-      execSend?: ICoin[]
-      execMemo?: string
-    }
+    options?: { execFee?: IFee, execSend?: ICoin[], execMemo?: string }
   ): Promise<unknown> {
     if (typeof contract === 'string') contract = new ContractInstance({ address: contract })
     if (!contract.address) throw new Error("agent.execute: no contract address")
     const t0 = performance.now()
     const result = await this.doExecute(contract as { address: Address }, message, options)
     const t1 = performance.now() - t0
+    this.log.debug(
+      `Executed in`,
+      bold(t1.toFixed(3)),
+      `msec: address`,
+      bold(contract.address)
+    )
     return result
-  }
-
-  protected abstract doExecute (
-    contract: { address: Address },
-    message:  Message,
-    options:  Parameters<this["execute"]>[2]
-  ): Promise<unknown>
-
-  /** Query a contract on the chain. */
-  query <Q> (
-    contract: Address|{ address: Address, codeHash?: CodeHash },
-    message: Message
-  ): Promise<Q> {
-    return assertChain(this).query(contract, message)
   }
 
   /** Execute a transaction batch.
@@ -576,12 +377,301 @@ export abstract class Agent {
   batch <B extends Batch> (cb?: BatchCallback<B>): B {
     return new this.Batch(this, cb as BatchCallback<Batch>) as unknown as B
   }
+
+  /** The default denomination of the chain's native token. */
+  abstract defaultDenom:
+    string
+
+  abstract getBlockInfo ():
+    Promise<unknown>
+
+  abstract get height ():
+    Promise<number>
+
+  abstract getContractCodeId (contract: Address):
+    Promise<CodeId>
+
+  abstract getContractCodeHash (contract: Address):
+    Promise<CodeHash>
+
+  abstract getCodeHash (codeId: CodeId):
+    Promise<CodeHash>
+
+  abstract doQuery (contract: { address: Address }, message: Message):
+    Promise<unknown>
+
+  /** Send native tokens to 1 recipient. */
+  abstract send (to: Address, amounts: ICoin[], opts?: unknown):
+    Promise<unknown>
+
+  /** Send native tokens to multiple recipients. */
+  abstract sendMany (outputs: [Address, ICoin[]][], opts?: unknown):
+    Promise<unknown>
+
+  protected abstract doUpload (
+    data: Uint8Array, options: Parameters<typeof this["upload"]>[1]
+  ): Promise<Partial<UploadedCode>>
+
+  protected abstract doInstantiate (
+    codeId: CodeId, options: Partial<ContractInstance>
+  ): Promise<Partial<ContractInstance>>
+
+  protected abstract doExecute (
+    contract: { address: Address }, message: Message, options: Parameters<this["execute"]>[2]
+  ): Promise<unknown>
+
 }
 
-/** Default fees for the main operations that an Agent can perform. */
-export interface AgentFees {
-  send?:   IFee
-  upload?: IFee
-  init?:   IFee
-  exec?:   IFee
+/** Function passed to Batch#wrap */
+export type BatchCallback<B extends Batch> = (batch: B)=>Promise<void>
+
+/** Batch is an alternate executor that collects messages to broadcast
+  * as a single transaction in order to execute them simultaneously.
+  * For that, it uses the API of its parent Agent. You can use it in scripts with:
+  *   await agent.batch().wrap(async batch=>{ client.as(batch).exec(...) }) */
+export abstract class Batch implements Agent {
+  /** Messages in this batch, unencrypted. */
+  msgs: any[] = []
+  /** Next message id. */
+  id = 0
+  /** Nested batches are flattened, this counts the depth. */
+  depth = 0
+
+  constructor (
+    /** The agent that will execute the batched transaction. */
+    public agent: Agent,
+    /** Evaluating this defines the contents of the batch. */
+    public callback?: (batch: Batch)=>unknown
+  ) {
+    super()
+    if (!agent) throw new Error.Missing.Agent('for batch')
+  }
+
+  get [Symbol.toStringTag]() { return `(${this.msgs.length}) ${this.address}` }
+
+  log = new Console(this.constructor.name)
+
+  get ready () { return this.agent.ready.then(()=>this) }
+
+  get chain () { return this.agent.chain }
+
+  get address () { return this.agent.address }
+
+  get name () { return `${this.agent.name} (batched)` }
+
+  get fees () { return this.agent.fees }
+
+  get defaultDenom () { return this.agent.defaultDenom }
+
+  getClient <C extends ContractClient> (...args: Parameters<Agent["getClient"]>): C {
+    return this.agent.getClient(...args) as C
+  }
+
+  /** Add a message to the batch. */
+  add (msg: Message) {
+    const id = this.id++
+    this.msgs[id] = msg
+    return id
+  }
+
+  /** Either submit or save the batch. */
+  async run (options: Partial<{
+    memo: string,
+    save: boolean
+  }> = {}): Promise<unknown> {
+    if (this.depth > 0) {
+      this.log.warn('Unnesting batch. Depth:', --this.depth)
+      this.depth--
+      return null as any // result ignored
+    } else if (options.save) {
+      this.log('Saving batch')
+      return this.save(options.memo)
+    } else {
+      this.log('Submitting batch')
+      return this.submit(options.memo)
+    }
+  }
+
+  /** Broadcast a batch to the chain. */
+  async submit (memo?: string): Promise<unknown> {
+    this.log.warn('Batch#submit: this function is stub; use a subclass of Batch')
+    if (memo) this.log.info('Memo:', memo)
+    await this.agent.ready
+    if (this.callback) await Promise.resolve(this.callback(this))
+    this.callback = undefined
+    return this.msgs.map(()=>({}))
+  }
+
+  /** Save a batch for manual broadcast. */
+  async save (name?: string): Promise<unknown> {
+    this.log.warn('Batch#save: this function is stub; use a subclass of Batch')
+    if (name) this.log.info('Name:', name)
+    await this.agent.ready
+    if (this.callback) await Promise.resolve(this.callback(this))
+    this.callback = undefined
+    return this.msgs.map(()=>({}))
+  }
+
+  /** Throws if the batch is invalid. */
+  assertMessages (): any[] {
+    if (this.msgs.length < 1) {
+      this.log.emptyBatch()
+      throw new Error('Batch contained no messages.')
+    }
+    return this.msgs
+  }
+
+  /** Add an init message to the batch. */
+  async instantiate (
+    contract: CodeId|Partial<UploadedCode>,
+    options: {
+      label:     Name,
+      initMsg:   Into<Message>,
+      initFee?:  unknown,
+      initSend?: ICoin[],
+      initMemo?: string,
+    }
+  ): Promise<ContractInstance & {
+    address: Address,
+  }> {
+    if (typeof contract === 'string') {
+      contract = new UploadedCode({ codeId: contract })
+    }
+    this.add({ init: {
+      codeId:   contract.codeId,
+      codeHash: contract.codeHash,
+      label:    options.label,
+      msg:      await into(options.initMsg),
+      sender:   this.address,
+      funds:    options.initSend || [],
+      memo:     options.initMemo  || ''
+    } })
+    return new ContractInstance({
+      chainId:  this.agent.chain!.id,
+      address:  '(batch not submitted)',
+      codeHash: contract.codeHash,
+      label:    options.label,
+      initBy:   this.address,
+    }) as ContractInstance & { address: Address }
+  }
+
+  /** Add an exec message to the batch. */
+  async execute (
+    contract: Address|{ address: Address, codeHash?: CodeHash },
+    message:  Message,
+    options:  Parameters<Agent["execute"]>[2] = {}
+  ): Promise<this> {
+    let address: Address
+    let codeHash: CodeHash|undefined = undefined
+    if (typeof contract === 'string') {
+      address = contract
+    } else {
+      address = contract.address
+      codeHash = contract.codeHash
+    }
+    this.add({
+      exec: {
+        sender:   this.address,
+        contract: address,
+        codeHash,
+        msg:      message,
+        funds:    options.execSend
+      }
+    })
+    return this
+  }
+
+  /** Queries are disallowed in the middle of a batch because
+    * even though the batch API is structured as multiple function calls,
+    * the batch is ultimately submitted as a single transaction and
+    * it doesn't make sense to query state in the middle of that. */
+  async query <U> (
+    contract: Address|{ address: Address, codeHash?: CodeHash },
+    msg: Message
+  ): Promise<never> {
+    throw new Error('operation not allowed in batch: query')
+  }
+
+  /** Uploads are disallowed in the middle of a batch because
+    * it's easy to go over the max request size, and
+    * difficult to know what that is in advance. */
+  async upload (data: unknown): Promise<never> {
+    throw new Error("operation not allowed in batch: upload")
+  }
+  async doUpload (data: unknown): Promise<never> {
+    throw new Error("operation not allowed in batch: upload")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  get balance (): Promise<string> {
+    throw new Error("operation not allowed in batch: query balance")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  get height (): Promise<number> {
+    throw new Error("operation not allowed in batch: query block height inside batch")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  get nextBlock (): Promise<number> {
+    throw new Error("operation not allowed in batch: wait for next block")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  async getBalance (denom: string): Promise<string> {
+    throw new Error("operation not allowed in batch: query balance")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  async send (
+    recipient: Address, amounts: ICoin[], options?: Parameters<Agent["send"]>[2]
+  ): Promise<void|unknown> {
+    throw new Error("operation not allowed in batch: send")
+  }
+  /** Disallowed in batch - do it beforehand or afterwards. */
+  async sendMany (
+    outputs: [Address, ICoin[]][], options?: Parameters<Agent["sendMany"]>[1]
+  ): Promise<void|unknown> {
+    throw new Error("operation not allowed in batch: send")
+  }
+  /** Nested batches are "flattened": trying to create a batch
+    * from inside a batch returns the same batch. */
+  batch <B extends Batch> (cb?: BatchCallback<B>): B {
+    if (cb) this.log.warn('Nested batch callback ignored.')
+    this.log.warn('Nest batches with care. Depth:', ++this.depth)
+    return this as unknown as B
+  }
+  /** Batch class to use when creating a batch inside a batch.
+    * @default self */
+  Batch = this.constructor as { new (agent: Agent): Batch }
+}
+
+function assignDevnet (agent: Agent, devnet: DevnetHandle) {
+  Object.defineProperties(agent, {
+    id: {
+      enumerable: true, configurable: true,
+      get: () => devnet.chainId, set: () => {
+        throw new Error("can't override chain id of devnet")
+      }
+    },
+    url: {
+      enumerable: true, configurable: true,
+      get: () => devnet.url.toString(), set: () => {
+        throw new Error("can't override url of devnet")
+      }
+    },
+    'mode': {
+      enumerable: true, configurable: true,
+      get: () => Mode.Devnet, set: () => {
+        throw new Error("chain.mode: can't override")
+      }
+    },
+    'devnet': {
+      enumerable: true, configurable: true,
+      get: () => devnet, set: () => {
+        throw new Error("chain.devnet: can't override")
+      }
+    },
+    'stopped': {
+      enumerable: true, configurable: true,
+      get: () => !(devnet.running), set: () => {
+        throw new Error("chain.stopped: can't override")
+      }
+    }
+  })
 }

@@ -18,13 +18,6 @@
 
 **/
 
-import { Batch } from './batch'
-import { Chain, Agent } from './chain'
-import { StubChain, StubAgent, StubBatch } from './stub'
-
-bindChainSupport(Chain, Agent, Batch)
-bindChainSupport(StubChain, StubAgent, StubBatch)
-
 /** Set the `Chain.Agent` and `Agent.Batch` static properties.
   * This is how a custom Chain implementation knows how to use
   * the corresponding Agent implementation, etc. */
@@ -34,11 +27,10 @@ export function bindChainSupport (Chain: Function, Agent: Function, Batch: Funct
 }
 
 export * from './base'
-export * from './batch'
 export * from './chain'
 export * from './client'
 export * from './code'
 export * from './deploy'
 export * from './store'
-export * from './stub'
 export * from './token'
+export * as Stub from './stub'
