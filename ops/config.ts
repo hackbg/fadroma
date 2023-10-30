@@ -54,8 +54,6 @@ export class Config extends BaseConfig {
   build:   BuildConfig
   /** Connect options */
   connect: ConnectConfig
-  /** Upload options. */
-  upload:  UploadConfig
   /** Devnet options. */
   devnet:  DevnetConfig
 
@@ -63,41 +61,16 @@ export class Config extends BaseConfig {
     options:  Partial<{
       build:   Partial<BuildConfig>,
       connect: Partial<ConnectConfig>
-      upload:  Partial<UploadConfig>,
       devnet:  Partial<DevnetConfig>
     }> = {},
     environment?: Environment
   ) {
     super(environment)
-    const { build, connect, upload, devnet, ...rest } = options
+    const { build, connect, devnet, ...rest } = options
     this.override(rest)
     this.build = new BuildConfig(build, environment)
     this.connect = new ConnectConfig(connect, environment)
-    this.upload = new UploadConfig(upload, environment)
     this.devnet = new DevnetConfig(devnet, environment)
-  }
-}
-
-export class UploadConfig extends BaseConfig {
-  constructor (
-    options: Partial<UploadConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-  }
-  /** Whether to always upload contracts, ignoring upload receipts that match. */
-  reupload = this.getFlag(
-    'FADROMA_REUPLOAD',
-    () => false
-  )
-  /** Variant of uploader to use */
-  uploader = this.getString(
-    'FADROMA_UPLOADER',
-    () => 'FS'
-  )
-  getUploadStore () {
-    return new UploadStore()
   }
 }
 

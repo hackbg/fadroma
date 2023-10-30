@@ -18,11 +18,16 @@
 
 export * from './scrt-base'
 export * from './scrt-chain'
-export * from './scrt-auth'
-export * from './scrt-token'
+export * as Snip20 from './snip-20'
+export * as Snip24 from './snip-24'
 export * as SecretJS from '@hackbg/secretjs-esm'
 
-import { Chain } from './scrt-chain'
+import { bindChainSupport } from '@fadroma/agent'
+import { Chain, Agent } from './scrt-chain'
+import { Batch } from './scrt-batch'
+bindChainSupport(Chain, Agent, Batch)
+export { Batch }
+
 export const mainnet = (...args: Parameters<typeof Chain.mainnet>) => Chain.mainnet(...args)
 export const testnet = (...args: Parameters<typeof Chain.testnet>) => Chain.testnet(...args)
 export const devnet  = (...args: Parameters<typeof Chain.devnet>)  => Chain.devnet(...args)
