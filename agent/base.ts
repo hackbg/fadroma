@@ -80,12 +80,12 @@ export type TxHash = string
 
 /** Error kinds. */
 class FadromaError extends BaseError {
-  /** Thrown when a required parameter is missing. */
-  static Missing: typeof FadromaError_Missing
   /** Thrown when the control flow reaches unimplemented areas. */
   static Unimplemented = this.define('Unimplemented', (info: string) => {
     return 'Not implemented' + (info ? `: ${info}` : '')
   })
+  /** Thrown when a required parameter is missing. */
+  static Missing: typeof FadromaError_Missing
 }
 
 class FadromaError_Missing extends FadromaError.define(
@@ -116,42 +116,4 @@ export const Error = Object.assign(FadromaError, {
   Missing: FadromaError_Missing,
 })
 
-class AgentConsole extends Console {
-  constructor (label: string = 'Fadroma') {
-    super(label)
-    this.label = label
-  }
-  emptyBatch () {
-    return this.warn('Tried to submit batch with no messages')
-  }
-  waitingForBlock (height: number, elapsed?: number) {
-    return this.log(`Waiting for block > ${bold(String(height))}...`, elapsed ? `${elapsed}ms elapsed` : '')
-  }
-  deployment (deployment: Deployment, name = deployment?.name) {
-    if (!deployment) return this.info('(no deployment)')
-    const contracts = Object.fromEntries(deployment.entries())
-    const len = Math.max(40, Object.keys(contracts).reduce((x,r)=>Math.max(x,r.length),0))
-    const count = Object.values(contracts).length
-    if (count <= 0) return this.info(`${name} is an empty deployment`)
-    this.info()
-    this.info(`${bold(String(count))} unit(s) in deployment ${bold(name)}:`)
-    for (const name of Object.keys(contracts).sort()) {
-      this.info()
-      this.receipt(name, contracts[name], len)
-    }
-    this.info()
-    return this
-  }
-  receipt (name: string, receipt?: any, len?: number) {
-    let { address, codeHash, codeId, crate, repository } = receipt || {}
-    this.info(`  ${bold(name       || gray('(no name)'))     }`)
-    this.info(`  addr: ${bold(address    || gray('(no address)'))  }`)
-    this.info(`  hash: ${bold(codeHash   || gray('(no code hash)'))}`)
-    this.info(`  code: ${bold(codeId)    || gray('(no code id)')   }`)
-    this.info(`  repo: ${bold(repository || gray('(no repo)'))     }`)
-    this.info(`  crate: ${bold(crate     || gray('(no crate)'))    }`)
-    return this
-  }
-}
-
-export { AgentConsole as Console }
+export { Console }

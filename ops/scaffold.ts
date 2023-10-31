@@ -68,6 +68,7 @@ export function writeProject ({
     (Object.keys(templates).includes(name))
       ? `${Case.pascal(name)}Deployment`
       : Case.pascal(name)
+
   apiIndex.save([
     `import { Client, Deployment } from '@fadroma/agent'`,
     [
