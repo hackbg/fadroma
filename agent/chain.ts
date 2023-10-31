@@ -292,16 +292,16 @@ export abstract class Agent {
       contract = new UploadedCode({ codeId: contract })
     }
     if (isNaN(Number(contract.codeId))) {
-      throw new Error(`invalid code id: ${contract.codeId}`)
+      throw new Error(`can't instantiate contract with missing code id: ${contract.codeId}`)
     }
     if (!contract.codeId) {
-      throw new Error.Missing.CodeId()
+      throw new Error("can't instantiate contract without code id")
     }
     if (!options.label) {
-      throw new Error.Missing.Label()
+      throw new Error("can't instantiate contract without label")
     }
     if (!options.initMsg) {
-      throw new Error.Missing.InitMsg()
+      throw new Error("can't instantiate contract without init message")
     }
     const t0 = performance.now()
     const result = await this.doInstantiate(contract.codeId, {
@@ -363,7 +363,7 @@ export abstract class Agent {
   abstract getCodeHashOfCodeId (codeId: CodeId):
     Promise<CodeHash>
 
-  abstract doQuery (contract: { address: Address }, message: Message):
+  protected abstract doQuery (contract: { address: Address }, message: Message):
     Promise<unknown>
 
   /** Send native tokens to 1 recipient. */

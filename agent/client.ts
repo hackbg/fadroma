@@ -31,10 +31,10 @@ export class ContractClient {
   /** Execute a query on the specified contract as the specified Agent. */
   query <Q> (message: Message): Promise<Q> {
     if (!this.agent) {
-      throw new Error.Missing.Agent(this.constructor?.name)
+      throw new Error("can't query contract without agent")
     }
     if (!this.contract.address) {
-      throw new Error.Missing.Address()
+      throw new Error("can't query contract without address")
     }
     return this.agent.query<Q>(
       this.contract as ContractInstance & { address: Address }, message
@@ -44,10 +44,13 @@ export class ContractClient {
   /** Execute a transaction on the specified contract as the specified Agent. */
   execute (message: Message, options: Parameters<Agent["execute"]>[2] = {}): Promise<unknown> {
     if (!this.agent) {
-      throw new Error.Missing.Agent(this.constructor?.name)
+      throw new Error("can't transact with contract without agent")
+    }
+    if (!this.agent.execute) {
+      throw new Error("can't transact with contract without authorizing the agent")
     }
     if (!this.contract.address) {
-      throw new Error.Missing.Address()
+      throw new Error("can't transact with contract without address")
     }
     return this.agent.execute(
       this.contract as ContractInstance & { address: Address }, message, options

@@ -319,7 +319,9 @@ export class Project extends CommandContext {
     'export', `export current deployment to JSON`,
     async (path?: string) => {
       const deployment = await this.selectDeployment()
-      if (!deployment) throw new Error.Missing.Deployment()
+      if (!deployment) {
+        throw new Error("deployment not found")
+      }
       if (!path) path = process.cwd()
       // If passed a directory, generate file name
       let file = $(path)
@@ -344,12 +346,12 @@ export class Project extends CommandContext {
     contracts: Record<string, Partial<ContractInstance>> = {},
   ): InstanceType<typeof this.Deployment> {
     if (!name) {
-      throw new Error.Missing.Name()
+      throw new Error("missing deployment name")
     }
     if (this.deployStore.has(name)) {
       return this.Deployment.fromReceipt(this.deployStore.get(name)!)
     } else {
-      throw new Error.Missing.Deployment()
+      throw new Error(`deployment not found: ${name}`)
     }
   }
 

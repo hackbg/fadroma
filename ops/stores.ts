@@ -37,8 +37,12 @@ export class JSONFileUploadStore extends UploadStore {
   }
 
   get (codeHash: CodeHash|{ codeHash: CodeHash }): UploadedCode|undefined {
-    if (typeof codeHash === 'object') codeHash = codeHash.codeHash
-    if (!codeHash) throw new Error.Missing.CodeHash()
+    if (typeof codeHash === 'object') {
+      codeHash = codeHash.codeHash
+    }
+    if (!codeHash) {
+      throw new Error("can't get upload info: missing code hash")
+    }
     const receipt = this.dir.at(`${codeHash!.toLowerCase()}.json`).as(JSONFile<any>)
     if (receipt.exists()) {
       const uploaded = receipt.load()
@@ -53,8 +57,12 @@ export class JSONFileUploadStore extends UploadStore {
   }
 
   set (codeHash: CodeHash|{ codeHash: CodeHash }, value: Partial<UploadedCode>): this {
-    if (typeof codeHash === 'object') codeHash = codeHash.codeHash
-    if (!codeHash) throw new Error.Missing.CodeHash()
+    if (typeof codeHash === 'object') {
+      codeHash = codeHash.codeHash
+    }
+    if (!codeHash) {
+      throw new Error("can't set upload info: missing code hash")
+    }
     const receipt = this.dir.at(`${codeHash.toLowerCase()}.json`).as(JSONFile<any>)
     this.log('writing', receipt.shortPath)
     receipt.save(super.get(codeHash)!.toReceipt())

@@ -43,7 +43,7 @@ export const connectModes = {
 
   // Support for OKP4:
   OKP4Testnet: CW.OKP4.testnet,
-  OKP4Devnet: (...args: Parameters<typeof CW.OKP4.Agent.devnet>): CW.OKP4.Chain => {
+  OKP4Devnet: (...args: Parameters<typeof CW.OKP4.Agent.devnet>): CW.OKP4.Agent => {
     throw new Error('Devnets are only available through @hackbg/fadroma')
   },
 

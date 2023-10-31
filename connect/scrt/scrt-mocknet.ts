@@ -556,8 +556,12 @@ export class MocknetContract<V extends CW> {
     const height = Math.floor(now/5000)
     const time = Math.floor(now/1000)
     const sent_funds: any[] = []
-    if (!this.address) throw new Error.Missing.Address()
-    if (!this.codeHash) throw new Error.Missing.CodeHash()
+    if (!this.address) {
+      throw new Error("can't run contract without address")
+    }
+    if (!this.codeHash) {
+      throw new Error("can't run contract without code hash")
+    }
     const { address, codeHash } = this
     if (this.cwVersion === '0.x') {
       const block = { height, time, chain_id }

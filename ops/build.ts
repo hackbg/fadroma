@@ -133,7 +133,9 @@ export abstract class LocalRustCompiler extends Compiler {
   protected resolveSource (source: string|Partial<SourceCode>): Partial<SourceCode> {
     if (typeof source === 'string') source = { crate: source }
     let { crate, workspace = this.workspace, revision = 'HEAD' } = source
-    if (!crate) throw new Error.Missing.Crate()
+    if (!crate) {
+      throw new Error("missing crate name")
+    }
     // If the `crate` field contains a slash, this is a crate path and not a crate name.
     // Add the crate path to the workspace path, and set the real crate name.
     if (source.crate && source.crate.includes(sep)) {
@@ -581,7 +583,9 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     source.workspace ??= this.workspace
     source.revision  ??= HEAD
     const { workspace, revision, crate } = source
-    if (!crate && !workspace) throw new Error.Missing.Crate()
+    if (!(crate || workspace)) {
+      throw new Error("missing crate name or workspace path")
+    }
     const { env, tmpGit, tmpBuild } = this.getEnvAndTemp(source, workspace, revision)
     // Run the build script as a subprocess
     const location = await this.runBuild(source, env)

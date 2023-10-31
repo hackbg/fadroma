@@ -329,7 +329,9 @@ class ScrtAgent extends Agent {
   }
 
   async encrypt (codeHash: CodeHash, msg: Message) {
-    if (!codeHash) throw new Error.Missing.CodeHash()
+    if (!codeHash) {
+      throw new Error("can't encrypt message without code hash")
+    }
     const { encryptionUtils } = this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return base64.encode(encrypted)
