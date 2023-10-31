@@ -14,10 +14,10 @@ import { assignDevnet } from './devnet'
 
 /** A chain can be in one of the following modes: */
 export enum Mode {
-  Mainnet = 'Mainnet',
-  Testnet = 'Testnet',
-  Devnet  = 'Devnet',
-  Mocknet = 'Mocknet'
+  Mainnet = 'mainnet',
+  Testnet = 'testnet',
+  Devnet  = 'devnet',
+  Mocknet = 'mocknet'
 }
 
 /** The unique ID of a chain. */
@@ -127,8 +127,8 @@ export abstract class Agent {
 
   /** Compact string tag for console representation. */
   get [Symbol.toStringTag]() {
-    return `${this.mode||'(unspecified mode)'} `
-         + `${this.chainId||'(unidentified chain)'}: `
+    return `${this.chainId||'(unidentified chain)'} `
+         + `(${this.mode||'unspecified mode'}): `
          + `${this.name||this.address||'(unauthenticated)'}`
   }
 
@@ -173,13 +173,16 @@ export abstract class Agent {
         this.log.warn('Current block height undetermined. not waiting for next block')
         return Promise.resolve(NaN)
       }
-      this.log.waitingForBlock(startingHeight)
+      this.log(`Waiting for block > ${bold(String(startingHeight))}`)
       const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
           while (true && !this.stopped) {
             await new Promise(ok=>setTimeout(ok, 250))
-            this.log.waitingForBlock(startingHeight, + new Date() - t)
+            this.log(
+              `Waiting for block > ${bold(String(startingHeight))} ` +
+              `(${((+ new Date() - t)/1000).toFixed(3)}s elapsed)`
+            )
             const height = await this.height
             if (height > startingHeight) {
               this.log.info(`Block height incremented to ${bold(String(height))}, continuing`)

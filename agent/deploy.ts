@@ -48,7 +48,8 @@ export class DeploymentUnit extends ContractCode {
   }
 
   toReceipt () {
-    return JSON.parse(JSON.stringify(this))
+    const { name, codeHash, chainId, codeId } = this
+    return { name, codeHash, chainId, codeId }
   }
 }
 
@@ -111,7 +112,7 @@ export class ContractInstance extends DeploymentUnit {
     redeploy = reupload,
     ...initOptions
   }: Parameters<this["upload"]>[0] & Parameters<Agent["instantiate"]>[1] & {
-    deployer?: Agent|Address
+    deployer?: Address|{ instantiate: Agent["instantiate"] }
     redeploy?: boolean
   } = {}): Promise<ContractInstance & {
     address: Address
@@ -132,16 +133,10 @@ export class ContractInstance extends DeploymentUnit {
 
   /** @returns the data for a deploy receipt */
   toReceipt () {
+    const { label, address, initMsg, initBy, initSend, initFee, initMemo, initTx, initGas } = this
     return {
-      codeHash: this.codeHash,
-      chainId:  this.chainId,
-      codeId:   this.codeId,
-      label:    this.label,
-      address:  this.address,
-      initMsg:  this.initMsg,
-      initBy:   this.initBy,
-      initTx:   this.initTx,
-      initGas:  this.initGas,
+      ...super.toReceipt(),
+      label, address, initMsg, initBy, initSend, initFee, initMemo, initTx, initGas
     }
   }
 

@@ -5,27 +5,17 @@ import assert from 'node:assert'
 import { fixture } from '../fixtures/fixtures'
 
 import { Agent, BatchBuilder, Mode } from './chain'
+import { ContractClient } from './client'
 import * as Stub from './stub'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
+  ['modes',           testModes],
   ['unauthenticated', testUnauthenticated],
   ['authenticated',   testAuthenticated],
 ])
 
-export async function testUnauthenticated () {
-  let chain = new Stub.Agent()
-  assert.throws(()=>chain.chainId)
-  assert.throws(()=>chain.chainId='foo')
-  assert.throws(()=>chain.mode)
-  chain = new Stub.Agent({ mode: Mode.Testnet, chainId: 'stub', url: 'stub' })
-  await chain.height
-  await chain.nextBlock
-  await chain.query('', {})
-  Object.defineProperty(chain, 'height', {
-    get () { return Promise.resolve('NaN') }
-  })
-  assert.equal(await chain.nextBlock, NaN)
+export async function testModes () {
   assert(Stub.Agent.mainnet().isMainnet)
   assert(!(Stub.Agent.mainnet().devMode))
   assert(Stub.Agent.testnet().isTestnet)
@@ -36,10 +26,30 @@ export async function testUnauthenticated () {
   assert(new Stub.Agent({ mode: Mode.Mocknet }).devMode)
 }
 
+export async function testUnauthenticated () {
+  let chain: Agent
+  assert.throws(()=>Stub.Agent.mocknet())
+  assert(chain = new Stub.Agent())
+  assert(chain = new Stub.Agent({ mode: Mode.Testnet, chainId: 'stub', url: 'stub' }))
+
+  assert(await chain.height)
+  assert(await chain.nextBlock)
+  Object.defineProperty(chain, 'height', { configurable: true, get () { return Promise.resolve('NaN') } })
+  assert.equal(await chain.nextBlock, NaN)
+
+  assert(await chain.query('', {}))
+
+  assert(chain.contract() instanceof ContractClient)
+
+  assert(await chain.getContractCodeId(''))
+  assert(await chain.getContractCodeHash(''))
+  assert(await chain.getCodeHash(''))
+}
+
 export async function testAuthenticated () {
   const chain = new Stub.Agent({ chainId: 'stub' })
   let agent: Agent = await chain.authenticate({ name: 'testing1', address: '...' })
-  assert.equal(agent[Symbol.toStringTag], '... @ stub')
+  assert.equal(agent[Symbol.toStringTag], 'stub (mocknet): testing1')
   assert(agent instanceof Stub.Agent,  'an Agent was returned')
   assert(agent.address,                'agent has address')
   assert.equal(agent.name, 'testing1', 'agent.name assigned')

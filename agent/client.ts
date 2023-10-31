@@ -16,19 +16,16 @@ export interface ContractClientClass<C extends ContractClient> extends
 export class ContractClient {
   log = new Console(this.constructor.name)
 
-  contract: ContractInstance
+  contract: Partial<ContractInstance>
 
   agent?: Agent
 
   constructor (contract: Address|Partial<ContractInstance>, agent?: ContractClient["agent"]) {
-    this.agent = agent
     if (typeof contract === 'string') {
-      this.contract = new ContractInstance({ address: contract })
-    } else if (contract instanceof ContractInstance) {
-      this.contract = contract
-    } else {
-      this.contract = new ContractInstance(contract)
+      this.contract = { address: contract }
     }
+    this.contract = contract as Partial<ContractInstance>
+    this.agent = agent
   }
 
   /** Execute a query on the specified contract as the specified Agent. */

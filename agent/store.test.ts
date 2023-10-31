@@ -23,6 +23,7 @@ export async function testUploadStore () {
 export async function testDeployStore () {
   const deployStore = new DeployStore()
   assert.equal(deployStore.get('name'), undefined)
-  assert.equal(deployStore.set('name', {}), deployStore)
-  assert(deployStore.get('name') instanceof Deployment)
+  const deployment = new Deployment({ name: 'foo' })
+  assert.equal(deployStore.set('name', deployment), deployStore)
+  assert.deepEqual(deployStore.get('name'), deployment.toReceipt())
 }

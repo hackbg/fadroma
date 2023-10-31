@@ -74,7 +74,7 @@ export class ContractCode {
     deployer?: Agent|Address,
   }) {
     if (properties?.source)   this.source = new SourceCode(properties.source)
-    if (properties?.compiler)  this.compiler = properties?.compiler
+    if (properties?.compiler) this.compiler = properties?.compiler
     if (properties?.compiled) this.compiled = new CompiledCode(properties.compiled)
     if (properties?.uploader) this.uploader = properties?.uploader
     if (properties?.uploaded) this.uploaded = new UploadedCode(properties.uploaded)
@@ -117,11 +117,12 @@ export class ContractCode {
     reupload = rebuild,
     ...uploadOptions
   }: Parameters<this["compile"]>[0] & Parameters<Agent["upload"]>[1] & {
-    uploader?: Agent|Address
+    uploader?: Address|{ upload: Agent["upload"] }
     reupload?: boolean,
   } = {}): Promise<UploadedCode & {
     codeId: CodeId
   }> {
+    console.log({ uploaded: this.uploaded })
     if (this.uploaded?.isValid() && !reupload && !rebuild) {
       return this.uploaded
     }

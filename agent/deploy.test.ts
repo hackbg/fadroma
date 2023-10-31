@@ -3,15 +3,37 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
 import { Console } from './base'
-import { Deployment, DeploymentContractLabel } from './deploy'
+import { Deployment, DeploymentContractLabel, ContractInstance } from './deploy'
+import { ContractClient } from './client'
 import * as Stub from './stub'
 import { CompiledCode } from './code'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
+  ['units',      testDeploymentUnits],
   ['deployment', testDeployment],
   ['labels',     testDeploymentLabels],
 ])
+
+export async function testDeploymentUnits () {
+  const contract = new ContractInstance({ address: 'present' })
+  assert.equal(await contract.deploy(), contract)
+  assert(contract.connect(new Stub.Agent()) instanceof ContractClient)
+
+  assert.rejects(()=>new ContractInstance({
+    uploaded: { codeId: 123 } as any,
+  }).deploy())
+
+  assert.rejects(()=>new ContractInstance({
+    uploaded: { codeId: 123 } as any,
+    deployer: 'onlyaddress'
+  }).deploy())
+
+  assert.rejects(()=>new ContractInstance({
+    uploaded: { codeId: 123 } as any,
+    deployer: { instantiate: ((...args: any) => Promise.resolve({ isValid: () => false })) } as any
+  }).deploy())
+}
 
 export async function testDeployment () {
 
@@ -69,8 +91,6 @@ export async function testDeployment () {
     uploader: new Stub.Agent(),
     deployer: new Stub.Agent(),
   })
-
-  new Console().deployment(new MyDeployment())
 
   assert((await new Stub.Compiler().build('')) instanceof CompiledCode)
   assert((await new Stub.Compiler().buildMany([{}]))[0] instanceof CompiledCode)

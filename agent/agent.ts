@@ -18,14 +18,6 @@
 
 **/
 
-/** Set the `Chain.Agent` and `Agent.Batch` static properties.
-  * This is how a custom Chain implementation knows how to use
-  * the corresponding Agent implementation, etc. */
-export function bindChainSupport (Chain: Function, Agent: Function, Batch: Function) {
-  Object.assign(Chain, { Agent: Object.assign(Agent, { Batch }) })
-  return { Chain, Agent, Batch }
-}
-
 export * from './base'
 export * from './chain'
 export * from './client'
