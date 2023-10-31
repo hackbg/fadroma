@@ -34,16 +34,25 @@ export async function testUnauthenticated () {
 
   assert(await chain.height)
   assert(await chain.nextBlock)
-  Object.defineProperty(chain, 'height', { configurable: true, get () { return Promise.resolve('NaN') } })
+  Object.defineProperty(chain, 'height', { configurable: true, get () {
+    return Promise.resolve('NaN')
+  } })
   assert.equal(await chain.nextBlock, NaN)
+  Object.defineProperty(chain, 'height', { configurable: true, get () {
+    Object.defineProperty(chain, 'height', { configurable: true, get () {
+      throw new Error('yeet')
+    } })
+    return Promise.resolve(0)
+  } })
+  assert.rejects(()=>chain.nextBlock)
 
   assert(await chain.query('', {}))
 
   assert(chain.contract() instanceof ContractClient)
 
-  assert(await chain.getContractCodeId(''))
-  assert(await chain.getContractCodeHash(''))
-  assert(await chain.getCodeHash(''))
+  assert(await chain.getCodeId(''))
+  assert(await chain.getCodeHashOfAddress(''))
+  assert(await chain.getCodeHashOfCodeId(''))
 }
 
 export async function testAuthenticated () {
