@@ -106,8 +106,8 @@ class ScrtAgent extends Agent {
     }
     let wallet = mnemonic ? new Wallet(mnemonic) : undefined
     let walletAddress = wallet ? wallet.address : options?.address
-    if (walletAddress && walletAddress !== options?.address) {
-      throw new Error('wrong wallet/address')
+    if (walletAddress && options?.address && walletAddress !== options?.address) {
+      throw new Error('computed address did not match passed one')
     }
     let encryptionUtils = options?.encryptionUtils
     agent.api = new SecretNetworkClient({ chainId, url, wallet, walletAddress, encryptionUtils })
