@@ -2,30 +2,32 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type {
-  AgentClass, Uint128, BatchClass,
+  AgentClass, Uint128,
   Address, CodeHash, ChainId, CodeId, Message, Label,
   Into
 } from '@fadroma/agent'
 import {
-  bindChainSupport,
   randomBech32, sha256, base16, bech32,
   brailleDump, Error as BaseError, Console as BaseConsole, bold, colors, into,
-  Mode, Agent, Batch,
+  Mode, Agent, BatchBuilder,
   ContractInstance, UploadedCode
 } from '@fadroma/agent'
 
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
+type MocknetUpload = {
+  codeId: CodeId,
+  codeHash: CodeHash,
+  wasm: Uint8Array,
+  module: WebAssembly.Module,
+  cwVersion: CW,
+  meta?: any,
+}
+
 /** Chain instance containing a local mocknet. */
 export class Mocknet extends Agent {
   log = new Console('mocknet')
-
-  /** Agent class. */
-  static Agent: AgentClass<MocknetAgent> // populated below
-
-  /** Agent class. */
-  Agent: AgentClass<MocknetAgent> = Mocknet.Agent
 
   /** Current block height. Increments when accessing nextBlock */
   _height = 0
@@ -49,20 +51,20 @@ export class Mocknet extends Agent {
   labelOfAddress: Record<Address, Label> = {}
 
   /** Map of code ID to WASM code blobs. */
-  uploads: Record<CodeId, {
-    codeId: CodeId,
-    codeHash: CodeHash,
-    wasm: Uint8Array,
-    module: WebAssembly.Module,
-    cwVersion: CW,
-    meta?: any,
-  }> = {}
+  uploads: Record<CodeId, MocknetUpload> = {}
+
+  /** The address of this agent. */
+  address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
 
   /** Map of addresses to WASM instances. */
   contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
 
   constructor (options: Partial<Mocknet> = {}) {
-    super({ id: 'mocknet', ...options, mode: ChainMode.Mocknet })
+    super({
+      chainId: 'mocknet',
+      ...options,
+      mode: Mode.Mocknet
+    })
     this.log.label = this.id
     this.uploads = options.uploads ?? this.uploads
     if (Object.keys(this.uploads).length > 0) {
@@ -81,15 +83,6 @@ export class Mocknet extends Agent {
   get nextBlock () {
     this._height++
     return Promise.resolve(this._height)
-  }
-
-  async query <Q> (
-    contract: Address|{address: Address},
-    message: Message
-  ): Promise<Q> {
-    return this
-      .getContract((contract as any).address||contract)
-      .query({ msg: message })
   }
 
   async getHash (arg: Address) {
@@ -136,7 +129,108 @@ export class Mocknet extends Agent {
     return code
   }
 
-  async instantiate (
+  checkVersion (exports: string[]): CW|null {
+    switch (true) {
+      case !!(exports.indexOf('instantiate') > -1): return '1.x'
+      case !!(exports.indexOf('init')        > -1): return '0.x'
+    }
+    return null
+  }
+
+  async passCallbacks (
+    cwVersion: CW,
+    sender:    Address,
+    messages:  Array<any>
+  ) {
+    if (!sender) throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
+    switch (cwVersion) {
+      case '0.x': for (const message of messages) {
+        const { wasm } = message || {}
+        if (!wasm) { this.log.warnNonWasm(message); continue }
+        const { instantiate, execute } = wasm
+        if (instantiate) {
+          const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
+          const instance = await this.instantiate(sender, new ContractInstance({
+            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
+          }))
+          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
+        } else if (execute) {
+          const { contract_addr, callback_code_hash, msg, send } = execute
+          const response = await this.mocknetExecute(
+            sender,
+            { address: contract_addr, codeHash: callback_code_hash },
+            JSON.parse(b64toUtf8(msg)),
+            { execSend: send }
+          )
+          this.log.execCallback(sender, contract_addr, callback_code_hash)
+        } else {
+          this.log.warnNonInitExec(message)
+        }
+      }; break
+      case '1.x': for (const message of messages) {
+        const { msg: { wasm = {} } = {} } = message||{}
+        if (!wasm) { this.log.warnNonWasm(message); continue }
+        const { instantiate, execute } = wasm
+        if (instantiate) {
+          const { code_id: codeId, code_hash: codeHash, label, msg, send } = instantiate
+          const instance = await this.instantiate(sender, new ContractInstance({
+            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
+          }))
+          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
+        } else if (execute) {
+          const { contract_addr, callback_code_hash, msg, send } = execute
+          const response = await this.mocknetExecute(
+            sender,
+            { address: contract_addr, codeHash: callback_code_hash },
+            JSON.parse(b64toUtf8(msg)),
+            { execSend: send }
+          )
+          this.log.execCallback(sender, contract_addr, callback_code_hash)
+        } else {
+          this.log.warnNonInitExec(message)
+        }
+      }; break
+      default: throw Object.assign(
+        new Error('passCallback: unknown CW version'), { sender, messages }
+      )
+    }
+  }
+
+  getApi () {
+    return Promise.resolve({})
+  }
+
+  get account () {
+    this.log.warn('account: stub')
+    return Promise.resolve({})
+  }
+
+  /** Upload a binary to the mocknet. */
+  protected async doUpload (wasm: Uint8Array): Promise<UploadedCode> {
+    return new UploadedCode(await this.chain.upload(wasm))
+  }
+
+  /** Instantiate a contract on the mocknet. */
+  protected async doInstantiate (
+    codeId: CodeId|Partial<UploadedCode>,
+    options: {
+      initMsg: Into<Message>
+    }
+  ): Promise<Partial<ContractInstance>> {
+    options = { ...options }
+    options.initMsg = await into(options.initMsg)
+    const { address, codeHash, label } = await this.mocknetInstantiate(this.address, options)
+    return {
+      chainId:  this.chainId,
+      address:  address!,
+      codeHash: codeHash!,
+      label:    label!,
+      initBy:   this.address,
+      initTx:   ''
+    }
+  }
+
+  async mocknetInstantiate (
     sender: Address,
     instance: Partial<ContractInstance>
   ): Promise<ContractInstance> {
@@ -170,165 +264,42 @@ export class Mocknet extends Agent {
     }
   }
 
-  checkVersion (exports: string[]): CW|null {
-    switch (true) {
-      case !!(exports.indexOf('instantiate') > -1): return '1.x'
-      case !!(exports.indexOf('init')        > -1): return '0.x'
-    }
-    return null
+  protected async doExecute (
+    contract: { address: Address },
+    message:  Message,
+    options?: Parameters<Agent["doExecute"]>[2]
+  ): Promise<unknown> {
+    return await this.mocknetExecute(this.address, contract, message, options)
   }
 
-  getContract (address?: Address) {
-    if (!address) throw new Error.NoAddress()
-    const instance = this.contracts[address]
-    if (!instance) throw new Error.WrongAddress(address)
-    return instance
-  }
-
-  async execute (
+  async mocknetExecute (
     sender: Address,
-    { address, codeHash }: Partial<ContractInstance>,
-    msg:   Message,
-    funds: unknown,
-    memo?: unknown,
-    fee?:  unknown
+    { address }: Partial<ContractInstance>,
+    message: Message,
+    options?: {
+      execSend?: unknown,
+      execMemo?: unknown,
+      execFee?:  unknown
+    }
   ) {
     const contract = this.getContract(address)
-    const result   = contract.execute({ sender, msg })
+    const result   = contract.execute({ sender, msg: message })
     const response = parseResult(result, 'execute', address)
     if (response.data !== null) response.data = b64toUtf8(response.data)
     await this.passCallbacks(contract.cwVersion!, address!, response.messages)
     return response
   }
 
-  async passCallbacks (
-    cwVersion: CW,
-    sender:    Address,
-    messages:  Array<any>
-  ) {
-    if (!sender) throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
-    switch (cwVersion) {
-      case '0.x': for (const message of messages) {
-        const { wasm } = message || {}
-        if (!wasm) { this.log.warnNonWasm(message); continue }
-        const { instantiate, execute } = wasm
-        if (instantiate) {
-          const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
-          const instance = await this.instantiate(sender, new ContractInstance({
-            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
-          }))
-          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
-        } else if (execute) {
-          const { contract_addr, callback_code_hash, msg, send } = execute
-          const response = await this.execute(
-            sender,
-            { address: contract_addr, codeHash: callback_code_hash },
-            JSON.parse(b64toUtf8(msg)),
-            send
-          )
-          this.log.execCallback(sender, contract_addr, callback_code_hash)
-        } else {
-          this.log.warnNonInitExec(message)
-        }
-      }; break
-      case '1.x': for (const message of messages) {
-        const { msg: { wasm = {} } = {} } = message||{}
-        if (!wasm) { this.log.warnNonWasm(message); continue }
-        const { instantiate, execute } = wasm
-        if (instantiate) {
-          const { code_id: codeId, code_hash: codeHash, label, msg, send } = instantiate
-          const instance = await this.instantiate(sender, new ContractInstance({
-            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
-          }))
-          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
-        } else if (execute) {
-          const { contract_addr, callback_code_hash, msg, send } = execute
-          const response = await this.execute(
-            sender,
-            { address: contract_addr, codeHash: callback_code_hash },
-            JSON.parse(b64toUtf8(msg)),
-            send
-          )
-          this.log.execCallback(sender, contract_addr, callback_code_hash)
-        } else {
-          this.log.warnNonInitExec(message)
-        }
-      }; break
-      default: throw Object.assign(
-        new Error('passCallback: unknown CW version'), { sender, messages }
-      )
-    }
-  }
-
-  getApi () {
-    return Promise.resolve({})
-  }
-
-  declare chain: Mocknet
-
-  /** The address of this agent. */
-  address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
-
-  constructor (options: Partial<Agent> & { chain: Mocknet }) {
-    super({ name: 'MocknetAgent', ...options||{}})
-    this.chain = options.chain
-    this.log.label = `${this.address} @ ${this.chain.id}`
-  }
-
-  get defaultDenom (): string {
-    return assertChain(this).defaultDenom
-  }
-
-  get account () {
-    this.log.warn('account: stub')
-    return Promise.resolve({})
-  }
-
-  /** Upload a binary to the mocknet. */
-  protected async doUpload (wasm: Uint8Array): Promise<UploadedCode> {
-    return new UploadedCode(await this.chain.upload(wasm))
-  }
-
-  /** Instantiate a contract on the mocknet. */
-  protected async doInstantiate (
-    codeId: CodeId|Partial<UploadedCode>,
-    options: {
-      initMsg: Into<Message>
-    }
-  ): Promise<Partial<ContractInstance>> {
-    options = { ...options }
-    options.initMsg = await into(options.initMsg)
-    const { address, codeHash, label } = await this.chain.instantiate(this.address, options)
-    return {
-      chainId:  this.chain.id,
-      address:  address!,
-      codeHash: codeHash!,
-      label:    label!,
-      initBy:   this.address,
-      initTx:   ''
-    }
-  }
-
-  protected async doExecute (
-    contract: { address: Address },
-    message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2]
-  ): Promise<unknown> {
-    return await this.chain.execute(
-      this.address,
-      contract,
-      message,
-      options?.execSend,
-      options?.execMemo,
-      options?.execFee
-    )
-  }
-
   protected async doQuery <Q> (
-    contract: Address|Partial<ContractInstance>,
+    contract: Address|{address: Address},
     message:  Message
   ): Promise<Q> {
-    return await assertChain(this).query(contract, message)
+    return await this.mocknetQuery(contract, message)
+  }
+
+  async mocknetQuery <Q> (queried: Address|{address: Address}, message: Message): Promise<Q> {
+    const contract = this.getContract(queried)
+    return contract.query({ msg: message })
   }
 
   send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
@@ -341,13 +312,26 @@ export class Mocknet extends Agent {
     return Promise.resolve()
   }
 
-  /** Message batch that warns about unsupported messages. */
-  static Batch: BatchClass<MocknetBatch>
+  getContract (address?: Address|{ address: Address }) {
+    if (typeof address === 'object') {
+      address = address.address
+    }
+    if (!address) {
+      throw new Error.NoAddress()
+    }
+    const instance = this.contracts[address]
+    if (!instance) {
+      throw new Error.WrongAddress(address)
+    }
+    return instance
+  }
+
 }
 
-class MocknetBatch extends Batch {
+class MocknetBatch extends BatchBuilder<Mocknet> {
+  messages: object[] = []
 
-  declare agent: MocknetAgent
+  declare agent: Mocknet
 
   get log () {
     return this.agent.log.sub('(batch)')
@@ -356,7 +340,12 @@ class MocknetBatch extends Batch {
   async submit (memo = "") {
     this.log.info('Submitting mocknet batch...')
     const results = []
-    for (const { init, instantiate = init, exec, execute = exec } of this.msgs) {
+    for (const {
+      init,
+      instantiate = init,
+      exec,
+      execute = exec
+    } of this.messages) {
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         results.push(await this.agent.instantiate(codeId, {
@@ -379,13 +368,7 @@ class MocknetBatch extends Batch {
 
 }
 
-bindChainSupport(Mocknet, MocknetAgent, MocknetBatch)
-
-export {
-  Mocknet      as Chain,
-  MocknetAgent as Agent,
-  MocknetBatch as Batch
-}
+export { Mocknet as Agent }
 
 export type CW = '0.x' | '1.x'
 
@@ -569,7 +552,7 @@ export class MocknetContract<V extends CW> {
 
   makeContext = (sender: Address, now: number = + new Date()) => {
     if (!this.mocknet) throw new Error.NoChain()
-    const chain_id = this.mocknet.id
+    const chain_id = this.mocknet.chainId
     const height = Math.floor(now/5000)
     const time = Math.floor(now/1000)
     const sent_funds: any[] = []

@@ -29,8 +29,6 @@ assign.allow('UploadedCode', [
 const console = new Console()
 
 export abstract class Compiler {
-  static variants: Record<string, Class<Compiler, any>> = {}
-
   log = new Console(this.constructor.name)
 
   /** Whether to enable build caching.
@@ -44,17 +42,13 @@ export abstract class Compiler {
   /** Up to the implementation.
     * `@hackbg/fadroma` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  abstract build (
-    source: string|Partial<SourceCode>|Partial<CompiledCode>,
-    ...args: any[]
-  ): Promise<CompiledCode>
+  abstract build (source: string|Partial<SourceCode>, ...args: unknown[]):
+    Promise<CompiledCode>
 
   /** Default implementation of buildMany is parallel.
     * Compiler implementations override this, though. */
-  abstract buildMany (
-    sources: (string|Partial<CompiledCode>)[],
-    ...args: unknown[]
-  ): Promise<CompiledCode[]>
+  abstract buildMany (sources: (string|Partial<CompiledCode>)[], ...args: unknown[]):
+    Promise<CompiledCode[]>
 }
 
 export class ContractCode {
@@ -122,7 +116,6 @@ export class ContractCode {
   } = {}): Promise<UploadedCode & {
     codeId: CodeId
   }> {
-    console.log({ uploaded: this.uploaded })
     if (this.uploaded?.isValid() && !reupload && !rebuild) {
       return this.uploaded
     }

@@ -3,8 +3,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error, Console } from './scrt-base'
 import { MsgExecuteContract, MsgInstantiateContract } from '@hackbg/secretjs-esm'
-import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/agent'
-import { Batch } from '@fadroma/agent'
+import type { Agent, Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/agent'
+import { BatchBuilder } from '@fadroma/agent'
 import * as Scrt from './scrt-chain'
 
 export interface ScrtBatchClass <B extends ScrtBatch> {
@@ -22,55 +22,23 @@ export interface ScrtBatchResult {
   label?:    Label
 }
 
-/** Base class for transaction-bundling Agent for both Secret Network implementations. */
-class ScrtBatch extends Batch {
+export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
 
   /** Logger handle. */
   log = new Console('ScrtBatch')
 
   static batchCounter: number = 0
 
-  /** The agent which will sign and/or broadcast the batch. */
-  declare agent: Scrt.Agent
-
-  constructor (agent: Scrt.Agent, callback?: (batch: ScrtBatch)=>unknown) {
-    super(agent, callback as (batch: Batch)=>unknown)
+  upload (
+    code:    Parameters<BatchBuilder<Agent>>["upload"][0],
+    options: Parameters<BatchBuilder<Agent>>["upload"][1]
+  ) {
   }
 
-  /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
-    * unsigned transaction batch; don't execute it, but save it in
-    * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
-  async save (name?: string) {
-    await super.save(name)
-    // Number of batch, just for identification in console
-    const N = ++ScrtBatch.batchCounter
-    name ??= name || `TX.${N}.${+new Date()}`
-    // Get signer's account number and sequence via the canonical API
-    const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
-    // Print the body of the batch
-    this.log.batchMessages(this.msgs, N)
-    // The base Batch class stores messages as (immediately resolved) promises
-    const messages = await Promise.all(this.msgs.map(({init, exec})=>{
-      // Encrypt init message
-      if (init) return this.encryptInit(init)
-      // Encrypt exec/handle message
-      if (exec) return this.encryptExec(exec)
-      // Anything in the messages array that does not have init or exec key is ignored
-    }))
-    // Print the body of the batch
-    this.log.batchMessagesEncrypted(messages, N)
-    // Compose the plaintext
-    const unsigned = this.composeUnsignedTx(messages, name)
-    // Output signing instructions to the console
-    new Console(this.log.label).batchSigningCommand(
-      String(Math.floor(+ new Date()/1000)),
-      this.agent.address!,
-      this.agent.chainId!,
-      accountNumber,
-      sequence,
-      unsigned
-    )
-    return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
+  instantiate (
+    code:    Parameters<BatchBuilder<Agent>>["instantiate"][0],
+    options: Parameters<BatchBuilder<Agent>>["instantiate"][1]
+  ) {
   }
 
   private async encryptInit (init: any): Promise<any> {
@@ -87,6 +55,12 @@ class ScrtBatch extends Batch {
     }
   }
 
+  execute (
+    contract: Parameters<BatchBuilder<Agent>>["execute"][0],
+    options:  Parameters<BatchBuilder<Agent>>["execute"][1]
+  ) {
+  }
+
   private async encryptExec (exec: any): Promise<any> {
     const encrypted = await this.agent.encrypt(exec.codeHash, exec.msg)
     return {
@@ -100,25 +74,7 @@ class ScrtBatch extends Batch {
     }
   }
 
-  private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
-    const fee = Scrt.Chain.gas(10000000)
-    const gas = fee.gas
-    const payer = ""
-    const granter = ""
-    const auth_info = { signer_infos: [], fee: { ...fee, gas, payer, granter }, }
-    const signatures: any[] = []
-    const body = {
-      memo,
-      messages:                       encryptedMessages,
-      timeout_height:                 "0",
-      extension_options:              [],
-      non_critical_extension_options: []
-    }
-    return { auth_info, signatures, body }
-  }
-
-  async submit (memo = ""): Promise<ScrtBatchResult[]> {
-    await super.submit(memo)
+  async submit ({ memo = "" }: { memo: string }): Promise<ScrtBatchResult[]> {
     const chainId = this.agent.chainId!
     const results: ScrtBatchResult[] = []
     const msgs  = this.conformedMsgs
@@ -163,15 +119,66 @@ class ScrtBatch extends Batch {
     return results
   }
 
+  /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
+    * unsigned transaction batch; don't execute it, but save it in
+    * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
+  async save (name?: string) {
+    // Number of batch, just for identification in console
+    const N = ++ScrtBatch.batchCounter
+    name ??= name || `TX.${N}.${+new Date()}`
+    // Get signer's account number and sequence via the canonical API
+    const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
+    // Print the body of the batch
+    this.log.batchMessages(this.msgs, N)
+    // The base Batch class stores messages as (immediately resolved) promises
+    const messages = await Promise.all(this.msgs.map(({init, exec})=>{
+      // Encrypt init message
+      if (init) return this.encryptInit(init)
+      // Encrypt exec/handle message
+      if (exec) return this.encryptExec(exec)
+      // Anything in the messages array that does not have init or exec key is ignored
+    }))
+    // Print the body of the batch
+    this.log.batchMessagesEncrypted(messages, N)
+    // Compose the plaintext
+    const unsigned = this.composeUnsignedTx(messages, name)
+    // Output signing instructions to the console
+    new Console(this.log.label).batchSigningCommand(
+      String(Math.floor(+ new Date()/1000)),
+      this.agent.address!,
+      this.agent.chainId!,
+      accountNumber,
+      sequence,
+      unsigned
+    )
+    return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
+  }
+
+  private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
+    const fee = Scrt.Chain.gas(10000000)
+    const gas = fee.gas
+    const payer = ""
+    const granter = ""
+    const auth_info = { signer_infos: [], fee: { ...fee, gas, payer, granter }, }
+    const signatures: any[] = []
+    const body = {
+      memo,
+      messages:                       encryptedMessages,
+      timeout_height:                 "0",
+      extension_options:              [],
+      non_critical_extension_options: []
+    }
+    return { auth_info, signatures, body }
+  }
+
   async simulateForGas () {
-    const { api } = await this.agent.ready
     const msgs = this.conformedMsgs
-    return await api!.tx.simulate(msgs as any)
+    return await this.agent.api.tx.simulate(msgs as any)
   }
 
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
-    const msgs = this.assertMessages().map(({init, exec}={})=>{
+    const msgs = this.messages.map(({init, exec}={})=>{
       if (init) return new MsgInstantiateContract({
         sender:          init.sender,
         code_id:         init.codeId,
@@ -192,5 +199,3 @@ class ScrtBatch extends Batch {
   }
 
 }
-
-export { ScrtBatch as Batch }

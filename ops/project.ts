@@ -143,15 +143,6 @@ export class Project extends CommandContext {
       this.log.info('Project root:           ', bold(this.root.path))
       this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
       this.log.info('Contract checksums at:  ', bold(this.dirs.wasm.shortPath))
-      const templates = Object.entries(this.templates??{})
-      if (templates.length > 0) {
-        this.log.info('UploadedCodes in project:')
-        for (const [name, {repository,revision,workspace,crate,features}] of templates) {
-          this.log.info('-', name)//, repository, revision, workspace, crate, features)
-        }
-      } else {
-        this.log.info('UploadedCodes in project:   (none)')
-      }
       this.log.br()
       this.log.info('Chain type:    ', bold(agent?.constructor.name))
       this.log.info('Chain mode:    ', bold(agent?.mode))

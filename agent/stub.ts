@@ -23,15 +23,15 @@ class StubAgent extends Agent {
     return this.getBlockInfo().then(({height})=>height)
   }
 
-  async getContractCodeId (txhash: TxHash) {
+  async getCodeId (address: Address) {
     return 'stub-code-id'
   }
 
-  async getContractCodeHash (address: Address) {
+  async getCodeHashOfAddress (address: Address) {
     return 'stub-code-hash'
   }
 
-  async getCodeHash (id: CodeId) {
+  async getCodeHashOfCodeId (id: CodeId) {
     return 'stub-code-hash'
   }
 

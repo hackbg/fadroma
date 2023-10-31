@@ -353,13 +353,13 @@ export abstract class Agent {
   abstract get height ():
     Promise<number>
 
-  abstract getContractCodeId (contract: Address):
+  abstract getCodeId (contract: Address):
     Promise<CodeId>
 
-  abstract getContractCodeHash (contract: Address):
+  abstract getCodeHashOfAddress (contract: Address):
     Promise<CodeHash>
 
-  abstract getCodeHash (codeId: CodeId):
+  abstract getCodeHashOfCodeId (codeId: CodeId):
     Promise<CodeHash>
 
   abstract doQuery (contract: { address: Address }, message: Message):

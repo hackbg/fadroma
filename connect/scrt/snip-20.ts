@@ -66,18 +66,17 @@ export class Snip20 extends ContractClient implements Fungible {
     if (!this.agent) {
       throw new Error("can't fetch metadata without agent")
     }
+    if (!this.contract || !this.contract.address) {
+      throw new Error("can't fetch metadata without contract address")
+    }
     return Promise.all([
-      this.agent.getCodeHashForAddress(this.contract.address)
-        .then((codeHash: CodeHash) => this.contract.codeHash = codeHash)
-    ])
-    await this.fetchCodeHash()
-    const { name, symbol, decimals, total_supply } = await this.getTokenInfo()
-    this.name        = name
-    this.symbol      = symbol
-    this.decimals    = decimals
-    this.totalSupply = total_supply || null
-    return this
+      this.agent.getCodeHashOfAddress(this.contract.address).then((codeHash: CodeHash) =>
+        this.contract.codeHash = codeHash),
+      this.getTokenInfo().then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) =>
+        Object.assign(this, { name, symbol, decimals, total_supply }))
+    ]).then(()=>this)
   }
+
   async getTokenInfo () {
     const msg = { token_info: {} }
     const { token_info }: { token_info: Snip20TokenInfo } = await this.query(msg)
@@ -121,7 +120,7 @@ export class Snip20 extends ContractClient implements Fungible {
 
   /** Deposit native tokens into the contract. */
   deposit = (nativeTokens: ICoin[],) =>
-    this.execute({ deposit: {} }, { send: nativeTokens })
+    this.execute({ deposit: {} }, { execSend: nativeTokens })
 
   /** Redeem an amount of a native token from the contract. */
   redeem = (amount: string|number|bigint, denom?: string) =>
@@ -142,7 +141,7 @@ export class Snip20 extends ContractClient implements Fungible {
   increaseAllowance = (amount:  string|number|bigint, spender: Address) => {
     this.log.debug(
       `${bold(this.agent?.address||'(missing address)')}: increasing allowance of`,
-      bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.address))
+      bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.contract.address))
     )
     return this.execute({ increase_allowance: { amount: String(amount), spender } })
   }

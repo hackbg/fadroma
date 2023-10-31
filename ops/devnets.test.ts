@@ -9,7 +9,7 @@ import { Project, getDevnet, Devnet, Agent } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
-import { getBuilder } from './build'
+import { getCompiler } from './build'
 
 //@ts-ignore
 export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
@@ -43,17 +43,17 @@ export async function testDevnetPlatform (platform: DevnetPlatform) {
 export async function testDevnetChain () {
   const devnet = new Devnet({ platform: 'okp4_5.0' })
   const chain  = devnet.getChain()
-  assert.ok(chain.id.match(/fadroma-devnet-[0-9a-f]{8}/))
-  assert.equal(chain.id, chain.devnet!.chainId)
-  assert.equal((await devnet.container)!.name, `/${chain.id}`)
+  assert.ok((chain.chainId||'').match(/fadroma-devnet-[0-9a-f]{8}/))
+  assert.equal(chain.chainId, chain.devnet!.chainId)
+  assert.equal((await devnet.container)!.name, `/${chain.chainId}`)
 }
 
 export async function testDevnetCopyUploads () {
   const devnet1   = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain1    = devnet1.getChain()
-  const agent1    = await chain1.authenticate({ name: 'Admin' }).ready
+  const agent1    = await chain1.authenticate({ name: 'Admin' })
   const crate     = resolve(packageRoot, 'examples', 'cw-null')
-  const artifact  = await getBuilder().build(crate)
+  const artifact  = await getCompiler().build(crate)
   const uploaded1 = await agent1.upload(artifact)
   const uploaded2 = await agent1.upload(artifact)
   const devnet2   = new Devnet({ platform: 'okp4_5.0' })
@@ -156,11 +156,10 @@ export async function testDevnetFurther () {
   await devnet.create()
   await devnet.start()
   const chain = devnet.getChain()
-  assert.ok(chain.mode === 'Devnet')
+  assert.ok(chain.mode === 'devnet')
   assert.ok(chain.isDevnet)
   assert.ok(chain.devnet === devnet)
   const alice = chain.authenticate({ name: 'Alice' })
-  await alice.ready
   assert.ok(alice instanceof Agent)
   assert.equal(alice.name, 'Alice')
   const wallet = $(chain.devnet.stateDir, 'wallet', 'Alice.json').as(JSONFile).load() as {
@@ -183,10 +182,10 @@ export async function testDevnetFurther () {
   await devnet.create()
   await devnet.start()
   await devnet.pause()
-  assert.equal($(chain.devnet.stateDir).name, chain.id)
+  assert.equal($(chain.devnet.stateDir).name, chain.chainId)
   const devnetState = $(chain.devnet.stateDir, 'devnet.json').as(JSONFile).load()
   assert.deepEqual(devnetState, {
-    chainId:     chain.id,
+    chainId:     chain.chainId,
     containerId: chain.devnet.containerId,
     port:        chain.devnet.port,
     imageTag:    chain.devnet.imageTag
@@ -195,4 +194,3 @@ export async function testDevnetFurther () {
   assert.deepEqual(accounts, chain.devnet.accounts)
   await devnet.delete()
 }
-

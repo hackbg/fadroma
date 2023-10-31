@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import * as Scrt from './scrt'
-import type { ChainId, Address } from '@fadroma/connect'
+import type { ChainId, Address } from '@fadroma/agent'
 
 export default async function testSnip24 () {
 

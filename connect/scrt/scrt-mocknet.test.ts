@@ -1,3 +1,6 @@
+import assert from 'node:assert'
+import * as Mocknet from './scrt-mocknet'
+
 export default async function testScrtMocknet () {
   new Mocknet.Console('test message').log('...').trace('...').debug('...')
   // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle

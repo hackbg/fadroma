@@ -1,5 +1,7 @@
 import * as assert from 'node:assert'
-import { Devnet, CW } from '@hackbg/fadroma'
+import { Devnet } from '../../ops/devnet'
+import * as CW from '.'
+import { Mode } from '@fadroma/agent'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['signer', testCWSigner],
@@ -17,33 +19,27 @@ const mnemonic = [
 export async function testCWSigner () {
   const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain = devnet.getChain()
-  const agent = await chain.authenticate({ mnemonic }).ready as CW.OKP4.Agent
+  const agent = await chain.authenticate({ mnemonic })
   //@ts-ignore
   const signed = await agent.signer!.signAmino("", { test: 1 })
 }
 
 export async function testCWChain () {
   // Throws because devnet instance is not passed:
-  assert.throws(()=>new CW.Chain({ mode: CW.Chain.Mode.Devnet }).ready)
+  assert.throws(()=>new CW.Agent({ mode: Mode.Devnet }).ready)
 
   const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
-  const chain = await (devnet.getChain() as CW.OKP4.Chain).ready
-  const alice = await chain.authenticate({ name: 'Alice' }).ready as CW.OKP4.Agent
-  const bob = await chain.authenticate({ name: 'Bob' }).ready as CW.OKP4.Agent
-
-  assert.throws(()=>alice.mnemonic)
-  assert.throws(()=>alice.mnemonic = undefined)
+  const chain = await (devnet.getChain() as CW.OKP4.Agent)
+  const alice = await chain.authenticate({ name: 'Alice' }) as CW.OKP4.Agent
+  const bob = await chain.authenticate({ name: 'Bob' }) as CW.OKP4.Agent
 
   // FIXME: getBalance signatures (getBalanceIn?)
-  assert.rejects(()=>chain.getBalance(CW.OKP4.Chain.defaultDenom, undefined as any))
-  await chain.getBalance(CW.OKP4.Chain.defaultDenom, alice.address!)
+  assert.rejects(()=>chain.getBalance(CW.OKP4.Agent.defaultDenom, undefined as any))
+  await chain.getBalance(CW.OKP4.Agent.defaultDenom, alice.address!)
   await alice.getBalance()
-  await alice.getBalance(CW.OKP4.Chain.defaultDenom)
-  await alice.getBalance(CW.OKP4.Chain.defaultDenom, alice.address!)
-  await alice.getBalance(CW.OKP4.Chain.defaultDenom, bob.address!)
-
-  assert.throws(()=>alice.mnemonic)
-  assert.throws(()=>alice.mnemonic = undefined)
+  await alice.getBalance(CW.OKP4.Agent.defaultDenom)
+  await alice.getBalance(CW.OKP4.Agent.defaultDenom, alice.address!)
+  await alice.getBalance(CW.OKP4.Agent.defaultDenom, bob.address!)
 }
 
 export async function testCWOKP4 () {
