@@ -15,10 +15,7 @@ export default async function testDevnet () {
     async assertPresence () {}
   }
   const chain = new Stub.Agent({
-    mode:    Mode.Devnet,
-    chainId: 'bar',
-    url:     'http://asdf.com',
-    devnet,
+    mode: Mode.Devnet, chainId: 'bar', url: 'http://asdf.com', devnet,
   })
   // Properties from Devnet are passed onto Chain
   assert.equal(chain.devnet, devnet)
@@ -30,4 +27,7 @@ export default async function testDevnet () {
   assert.equal(chain.stopped, false)
   assert.throws(()=>chain.devnet=devnet)
   assert.throws(()=>chain.stopped=true)
+  await chain.authenticate({ name: 'Alice' })
+
+  const chain2 = new Stub.Agent({ mode: Mode.Mainnet, devnet })
 }

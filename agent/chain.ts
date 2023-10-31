@@ -184,6 +184,7 @@ export abstract class Agent {
               `(${((+ new Date() - t)/1000).toFixed(3)}s elapsed)`
             )
             const height = await this.height
+            console.log({height})
             if (height > startingHeight) {
               this.log.info(`Block height incremented to ${bold(String(height))}, continuing`)
               return resolve(height)

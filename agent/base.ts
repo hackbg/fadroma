@@ -80,10 +80,6 @@ export type TxHash = string
 
 /** Error kinds. */
 class FadromaError extends BaseError {
-  /** Thrown when the control flow reaches unimplemented areas. */
-  static Unimplemented = this.define('Unimplemented', (info: string) => {
-    return 'Not implemented' + (info ? `: ${info}` : '')
-  })
   /** Thrown when a required parameter is missing. */
   static Missing: typeof FadromaError_Missing
 }
@@ -92,21 +88,6 @@ class FadromaError_Missing extends FadromaError.define(
   'Missing', (msg='a required parameter was missing') => msg as string
 ) {
   static Address = this.define('Address', () => 'no address')
-  static Agent = this.define('Agent', (info?: any) => `no agent${info?`: ${info}`:``}`)
-  static Artifact = this.define('Artifact', () => "no artifact url")
-  static Compiler = this.define('Compiler', () => `no compiler`)
-  static Chain = this.define('Chain', () => "no chain")
-  static ChainId = this.define('ChainId', () => "no chain id specified")
-  static CodeId = this.define('CodeId', (info?: any) => `no code id${info?`: ${info}`:``}`)
-  static CodeHash = this.define('CodeHash', () => "no code hash")
-  static Crate = this.define('Crate', () => `no crate specified`)
-  static DeployFormat = this.define("DeployFormat", () => `no deployment format`)
-  static DeployStore = this.define("DeployStore", () => `no deployment store`)
-  static DeployStoreClass = this.define("DeployStoreClass", () => `no deployment store class`)
-  static Deployment = this.define("Deployment", () => `no deployment`)
-  static DevnetImage = this.define("DevnetImage", () => `no devnet image`)
-  static InitMsg = this.define('InitMsg', (info?: any) => `no init message${info?`: ${info}`:``}`)
-  static Label = this.define('Label', (info?: any) => `no label${info?`: ${info}`:``}`)
   static Name = this.define("Name", () => "no name")
   static Uploader = this.define('Uploader', () => "no uploader")
   static Workspace = this.define('Workspace', () => "no workspace")
