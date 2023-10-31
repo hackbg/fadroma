@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import * as Stub from './stub'
 import { Mode } from './chain'
+
 export default async function testDevnet () {
   const devnet = {
     accounts: [],

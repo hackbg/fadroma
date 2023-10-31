@@ -7,7 +7,7 @@ export default new Suite([
   ['build',   () => import('./ops/build.test')],
   ['connect', () => import('./connect/connect.test')],
   ['deploy',  () => import('./ops/deploy.test')],
-  ['devnet',  () => import('./ops/devnet.test')],
+  ['devnet',  () => import('./ops/devnets.test')],
   ['project', () => import('./ops/project.test')],
   ['stores',  () => import('./ops/stores.test')],
   ['wizard',  () => import('./ops/wizard.test')],

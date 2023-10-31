@@ -2,10 +2,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Error as BaseError, Console, Config, bold, randomHex, Scrt, CW,
+  Error as BaseError, Console, Config, bold, randomHex, Scrt, CW, Agent
 } from '@fadroma/connect'
 import type {
-  CodeId, Agent, ChainId, DevnetHandle, Environment
+  CodeId, ChainId, DevnetHandle, Environment, AgentClass
 } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
@@ -53,19 +53,13 @@ export type DevnetPlatformInfo = {
 
 /** Mapping of connection type to default port number. */
 export const devnetPorts: Record<DevnetPort, number> = {
-  http:    1317,
-  rpc:     26657,
-  grpc:    9090,
-  grpcWeb: 9091
+  http: 1317, rpc: 26657, grpc: 9090, grpcWeb: 9091
 }
 
 /** Mapping of connection type to environment variable
   * used by devnet.init.mjs to set port number. */
 export const devnetPortEnvVars: Record<DevnetPort, string> = {
-  http:    'HTTP_PORT',
-  rpc:     'RPC_PORT',
-  grpc:    'GRPC_PORT',
-  grpcWeb: 'GRPC_WEB_PORT'
+  http: 'HTTP_PORT', rpc: 'RPC_PORT', grpc: 'GRPC_PORT', grpcWeb: 'GRPC_WEB_PORT'
 }
 
 /** Descriptions of supported devnet variants. */
@@ -135,7 +129,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'http',
   },
   'okp4_5.0': {
-    Chain:      CW.OKP4.Chain,
+    Chain:      CW.OKP4.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
     dockerFile: $(thisPackage, 'devnets', 'okp4_5_0.Dockerfile').path,
     ready:      'indexed block',
@@ -490,10 +484,10 @@ export class Devnet implements DevnetHandle {
   }
 
   /** Get a Chain object wrapping this devnet. */
-  getChain = <C extends Chain, D extends ChainClass<C>> (
-    $C: D = (devnetPlatforms[this.platform].Chain || Chain) as unknown as D,
-    options?: Partial<C>
-  ): C => {
+  getChain = <A extends Agent, C extends AgentClass<A>> (
+    $C: C = (devnetPlatforms[this.platform].Chain || Agent) as unknown as C,
+    options?: Partial<A>
+  ): A => {
     return new $C({ ...options, devnet: this })
   }
 
@@ -727,4 +721,3 @@ export class DevnetError extends BaseError {
     (error: any, path: string, cause?: Error) =>
       Object.assign(error, { path, cause }))
 }
-

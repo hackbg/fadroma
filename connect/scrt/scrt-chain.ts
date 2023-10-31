@@ -5,7 +5,7 @@ import { ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-es
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
 import { Config, Error, Console } from './scrt-base'
 import * as Mocknet from './scrt-mocknet'
-import type { Batch as ScrtBatch } from './scrt-batch'
+import type { ScrtBatchBuilder } from './scrt-batch'
 import type {
   AgentClass, Uint128, BatchClass, ContractClient,
   ICoin, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
@@ -72,6 +72,8 @@ class ScrtAgent extends Agent {
   /** Whether to simulate each execution first to get a more accurate gas estimate. */
   simulateForGas: boolean = false
 
+  defaultDenom = 'uscrt'
+
   constructor (options: Partial<ScrtAgent> = {}) {
     super(options)
     this.fees = options.fees ?? this.fees
@@ -113,12 +115,12 @@ class ScrtAgent extends Agent {
     return agent as this & { address: Address, api: SecretNetworkClient, wallet: Wallet }
   }
 
-  get block (): any {
-    return this.api.query.tendermint.getLatestBlock({})
+  async getBlockInfo () {
+    return await this.api.query.tendermint.getLatestBlock({})
   }
 
   get height () {
-    return this.block.then((block: any)=>Number(block.block?.header?.height))
+    return this.getBlockInfo().then((block: any)=>Number(block.block?.header?.height))
   }
 
   get balance () {
@@ -136,33 +138,30 @@ class ScrtAgent extends Agent {
     return response.ContractInfo!.label!
   }
 
-  async getCodeIdOfContract (contract_address: Address): Promise<CodeId> {
+  async getCodeId (contract_address: Address): Promise<CodeId> {
     const response = await this.api.query.compute.contractInfo({ contract_address })
     return response.ContractInfo!.code_id!
   }
 
-  async getCodeHashOfContract (contract_address: Address): Promise<CodeHash> {
+  async getCodeHashOfCodeId (contract_address: Address): Promise<CodeHash> {
     const response = await this.api.query.compute.codeHashByContractAddress({ contract_address })
     return response.code_hash!
   }
 
-  async getCodeHashOfCodeId (code_id: CodeId): Promise<CodeHash> {
+  async getCodeHashOfAddress (code_id: CodeId): Promise<CodeHash> {
     const response = await this.api.query.compute.codeHashByCodeId({ code_id })
     return response.code_hash!
   }
 
   /** Query a contract.
     * @returns the result of the query */
-  async query <U> (
-    contract: Address|Partial<ContractInstance>, message: Message
+  async doQuery <U> (
+    contract: { address: Address, codeHash: CodeHash }, message: Message
   ): Promise<U> {
-    if (typeof contract === 'string') {
-      contract = new ContractInstance({ address: contract })
-    }
+    const { address: contract_address, codeHash: code_hash } = contract
+    const query = message as Record<string, unknown>
     return await this.api.query.compute.queryContract({
-      contract_address: contract.address!,
-      code_hash:        contract.codeHash,
-      query: message as Record<string, unknown>
+      contract_address, code_hash, query
     }) as U
   }
 
@@ -358,7 +357,9 @@ class ScrtAgent extends Agent {
     return Object.assign(new Error(error), result)
   }
 
-  static Batch: BatchClass<ScrtBatch> // populated in index
+  batch (): ScrtBatchBuilder {
+    return new ScrtBatchBuilder(this)
+  }
 
 }
 

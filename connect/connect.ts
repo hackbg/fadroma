@@ -16,8 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Console, Error, Chain, ChainMode, ChainId, bold } from '@fadroma/agent'
-import type { Agent } from '@fadroma/agent'
+import { Console, Error, Agent, Mode, ChainId, bold } from '@fadroma/agent'
 import * as Scrt from '@fadroma/scrt'
 import * as CW from '@fadroma/cw'
 
@@ -29,35 +28,23 @@ export * from '@fadroma/agent'
 
 export { Scrt, CW }
 
-export default function connect <A extends Agent> (
-  config: Partial<ConnectConfig> = new ConnectConfig()
-): A {
-  return new ConnectConfig(config).authenticate()
-}
-
-/** @returns Agent configured as per environment and options */
-export function authenticate (options: Partial<ConnectConfig> = {}): Agent {
-  return new ConnectConfig(options).authenticate()
-}
-
 export type ConnectMode =
   |`Scrt${'Mocknet'|'Devnet'|'Testnet'|'Mainnet'}`
   |`OKP4${'Devnet'|'Testnet'}`
 
 export const connectModes = {
-
   // Support for Secret Network
   ScrtMainnet: Scrt.mainnet,
   ScrtTestnet: Scrt.testnet,
-  ScrtDevnet: (...args: Parameters<typeof Scrt.Chain.devnet>): Scrt.Chain => {
-    throw new Error('Devnets are only available via @hackbg/fadroma')
+  ScrtDevnet: (...args: Parameters<typeof Scrt.Agent.devnet>): Scrt.Agent => {
+    throw new Error('Devnets are only available through @hackbg/fadroma')
   },
-  ScrtMocknet: Scrt.Chain.mocknet,
+  ScrtMocknet: Scrt.mocknet,
 
-  // Support for OKP4
+  // Support for OKP4:
   OKP4Testnet: CW.OKP4.testnet,
-  OKP4Devnet: (...args: Parameters<typeof CW.OKP4.Chain.devnet>): CW.OKP4.Chain => {
-    throw new Error('Devnets are only available via @hackbg/fadroma')
+  OKP4Devnet: (...args: Parameters<typeof CW.OKP4.Agent.devnet>): CW.OKP4.Chain => {
+    throw new Error('Devnets are only available through @hackbg/fadroma')
   },
 
   // TODO: Support for custom chain
@@ -89,23 +76,27 @@ export class ConnectConfig extends Config {
     return chainIds[this.chain as keyof typeof chainIds]
   }
 
-  protected getChainMode () {
-    const chainModes: Record<ConnectMode, ChainMode> = {
-      ScrtDevnet:  ChainMode.Devnet,
-      ScrtTestnet: ChainMode.Testnet,
-      ScrtMainnet: ChainMode.Mainnet,
-      ScrtMocknet: ChainMode.Mocknet,
-      OKP4Devnet:  ChainMode.Devnet,
-      OKP4Testnet: ChainMode.Testnet,
+  protected getMode () {
+    const chainModes: Record<ConnectMode, Mode> = {
+      ScrtDevnet:  Mode.Devnet,
+      ScrtTestnet: Mode.Testnet,
+      ScrtMainnet: Mode.Mainnet,
+      ScrtMocknet: Mode.Mocknet,
+      OKP4Devnet:  Mode.Devnet,
+      OKP4Testnet: Mode.Testnet,
     }
-    if (!this.chain) throw new ConnectError.NoChainSelected(chainModes)
+    if (!this.chain) {
+      throw new Error('no chain selected')
+    }
     const result = chainModes[this.chain as keyof typeof chainModes]
-    if (!result) throw new ConnectError.UnknownChainSelected(this.chain, chainModes)
+    if (!result) {
+      throw new Error(`unknown chain '${name}'`)
+    }
     return result
   }
 
   /** Logger handle. */
-  log = new ConnectConsole('@fadroma/connect')
+  log = new Console('@fadroma/connect')
   /** Secret Network configuration. */
   scrt: Scrt.Config
   /** Secret Network configuration. */
@@ -117,87 +108,27 @@ export class ConnectConfig extends Config {
   /** Override chain id. */
   chainId?: ChainId
   /** Override chain mode. */
-  chainMode: ChainMode = this.getString('FADROMA_CHAIN_MODE', () => this.getChainMode())
+  chainMode: Mode = this.getString('FADROMA_CHAIN_MODE', () => this.getMode())
   /** Mnemonic to use for authentication to testnet. */
   testnetMnemonic?: string
     = this.getString('FADROMA_TESTNET_MNEMONIC', ()=>undefined)
   /** Mnemonic to use for authentication. Hidden from logs by default. */
   mnemonic?: string
     = this.getString('FADROMA_MNEMONIC', ()=>undefined)
-  /** Create the Chain instance specified by the configuration. */
-  getChain <C extends Chain> (
-    chainToGet: ConnectMode|((...args: any[])=>Chain)|undefined = this.chain
-  ): C {
-    if (!chainToGet) {
-      chainToGet = this.chain
-      if (!chainToGet) throw new Error.Missing.Chain()
-    }
-    if (typeof chainToGet === 'string') { // allow name to be passed
-      chainToGet = connectModes[chainToGet as ConnectMode]
-    }
-    if (!chainToGet) { // if still unspecified, throw
-      throw new ConnectError.UnknownChainSelected(this.chain!, connectModes)
-    }
-    return chainToGet({ config: this }) as C // create Chain object
-  }
-  /** Create the Agent instance identified by the configuration. */
-  authenticate <A extends Agent> (options: Partial<A> = {}): A {
-    options.chain ??= this.getChain()
-    options.name ??= this.agentName
-    if (this.chainMode === ChainMode.Testnet) {
-      options.mnemonic ??= this.testnetMnemonic
-    } else {
-      options.mnemonic ??= this.mnemonic
-    }
-    return options.chain.authenticate(options) as A
-  }
   /** List all known chains. */
   listChains () {
-    this.log.supportedChains()
-    this.log.selectedChain(this.chain as string)
-  }
-}
-
-export class ConnectConsole extends Console {
-
-  label = 'Fadroma Connect'
-
-  supportedChains (supportedChains: Record<string, unknown> = connectModes) {
-    this.br()
-    this.info('Known chain names:')
-    for (const chain of Object.keys(supportedChains).sort()) {
-      this.info(`  ${bold(chain)}`)
+    this.log.br()
+    this.log.info('Known chain names:')
+    for (const chain of Object.keys(connectModes).sort()) {
+      this.log.info(`  ${bold(chain)}`)
     }
-  }
-
-  selectedChain (chain?: string) {
-    this.br()
-    if (chain) {
-      this.info('Selected chain:')
-      this.info(`  ${bold(chain)}`)
+    this.log.br()
+    if (this.chain) {
+      this.log.info('Selected chain:')
+      this.log.info(`  ${bold(this.chain)}`)
     } else {
-      this.info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
+      this.log.info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
     }
-    this.br()
+    this.log.br()
   }
-
-}
-
-export class ConnectError extends Error {
-
-  static SelectChainHint =
-    `Try setting the FADROMA_CHAIN env var to one of the supported values.`
-
-  static UnknownChainSelected = this.define('UnknownChainSelected',
-    (name: string, chains?: Record<string, unknown>)=>{
-      //chains && log.supportedChains(chains)
-      return `Unknown chain "${name}". ${this.SelectChainHint}`
-    })
-
-  static NoChainSelected = this.define('NoChainSelected',
-    (chains?: Record<string, unknown>)=>{
-      //chains && log.supportedChains(chains)
-      return `No chain selected. ${this.SelectChainHint}`
-    })
-
 }

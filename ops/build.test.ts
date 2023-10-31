@@ -3,8 +3,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import * as assert from 'node:assert'
 import { MyDeployment } from './deploy.test'
-import { getBuilder, getGitDir, DotGit } from './build'
-import { Builder, ContractInstance } from '@fadroma/connect'
+import { getCompiler, getGitDir, DotGit } from './build'
+import { Compiler, ContractInstance } from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['basic',   testBuild],
@@ -13,19 +13,19 @@ export default new Suite([
 
 export async function testBuild () {
   const deployment = new MyDeployment()
-  await deployment.build({ builder: getBuilder() })
-  const builder = getBuilder(/* { ...options... } */)
-  assert.ok(builder instanceof Builder)
+  await deployment.build({ compiler: getCompiler() })
+  const compiler = getCompiler(/* { ...options... } */)
+  assert.ok(compiler instanceof Compiler)
 
-  //assert.ok(getBuilder({ raw: false }) instanceof BuildContainer)
-  //assert.ok(getBuilder({ raw: false }).docker instanceof Dock.Engine)
-  //getBuilder({ raw: false, dockerSocket: 'test' })
-  //const rawBuilder = getBuilder({ raw: true })
-  //assert.ok(rawBuilder instanceof BuildRaw)
+  //assert.ok(getCompiler({ raw: false }) instanceof BuildContainer)
+  //assert.ok(getCompiler({ raw: false }).docker instanceof Dock.Engine)
+  //getCompiler({ raw: false, dockerSocket: 'test' })
+  //const rawCompiler = getCompiler({ raw: true })
+  //assert.ok(rawCompiler instanceof BuildRaw)
   //for (const raw of [true, false]) {
-    //const builder = getBuilder({ raw })
-    //const contract_0 = await builder.build({ crate: 'examples/kv' })
-    //const [contract_1, contract_2] = await builder.buildMany([
+    //const compiler = getCompiler({ raw })
+    //const contract_0 = await compiler.build({ crate: 'examples/kv' })
+    //const [contract_1, contract_2] = await compiler.buildMany([
       //{ crate: 'examples/admin' },
       //{ crate: 'examples/killswitch' }
     //])
@@ -37,8 +37,8 @@ export async function testBuild () {
       //assert.ok(contract.revision,  `contract_${index}.revision is set`)
     //}
   //}
-  //const contract: Contract<any> = new Contract({ builder, crate: 'fadroma-example-kv' })
-  //const template = new Template({ builder, crate: 'fadroma-example-kv' })
+  //const contract: Contract<any> = new Contract({ compiler, crate: 'fadroma-example-kv' })
+  //const template = new Template({ compiler, crate: 'fadroma-example-kv' })
   //await template.compiled
 }
 

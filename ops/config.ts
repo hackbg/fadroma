@@ -1,10 +1,10 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { DevnetConfig, Devnet } from './devnet'
-import type { DevnetPlatform } from './devnet'
+import { DevnetConfig, Devnet } from './devnets'
+import type { DevnetPlatform } from './devnets'
 import { BuildConfig } from './build'
-import { Config, Error, Builder, ConnectConfig, UploadStore, DeployStore } from '@fadroma/connect'
+import { Config, Error, ConnectConfig, UploadStore, DeployStore } from '@fadroma/connect'
 import type { Environment, Class, DeploymentClass } from '@fadroma/connect'
 import $, { JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'

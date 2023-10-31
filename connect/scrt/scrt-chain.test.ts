@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import * as Scrt from './scrt'
-import { Devnet, Mode, Batch } from '../../fadroma'
+import { Devnet } from '../../ops/devnet'
+import { Mode } from '@fadroma/agent'
 
 export async function testScrtChain () {
   Scrt.mainnet()

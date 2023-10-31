@@ -21,27 +21,23 @@ import { connectModes, CW, Scrt } from '@fadroma/connect'
 import { Config } from './ops/config'
 
 // Install devnets as selectable chains:
-Object.assign(connectModes, {
+connectModes['ScrtDevnet'] = Scrt.Agent.devnet = (options: Partial<Scrt.Agent>|undefined) => {
+  return new Config().devnet
+    .getDevnet({ platform: 'scrt_1.9' })
+    .getChain(Scrt.Agent, options)
+}
 
-  'ScrtDevnet': Scrt.Agent.devnet =
-    (options: Partial<Scrt.Agent>|undefined): Scrt.Agent =>
-      new Config().devnet
-        .getDevnet({ platform: 'scrt_1.9' })
-        .getChain(Scrt.Agent as AgentClass<Scrt.Agent>, options),
-
-  'OKP4Devnet': CW.OKP4.Agent.devnet = 
-    (options: Partial<CW.OKP4.Agent>|undefined): CW.OKP4.Agent =>
-      new Config().devnet
-        .getDevnet({ platform: 'okp4_5.0' })
-        .getChain(CW.OKP4.Agent as AgentClass<CW.OKP4.Agent>, options)
-
-})
+connectModes['OKP4Devnet'] = CW.OKP4.Agent.devnet = (options: Partial<Scrt.Agent>|undefined) => {
+  return new Config().devnet
+    .getDevnet({ platform: 'okp4_5.0' })
+    .getChain(CW.OKP4.Agent, options)
+}
 
 export * from '@fadroma/connect'
 export * from './ops/build'
 export * from './ops/config'
 export * from './ops/stores'
-export * from './ops/devnet'
+export * from './ops/devnets'
 export * from './ops/project'
 export * from './ops/wizard'
 export { Config } from './ops/config'
