@@ -4,11 +4,11 @@
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['base',     ()=>import('./base.test')],
-  ['batch',    ()=>import('./batch.test')],
   ['chain',    ()=>import('./chain.test')],
   ['client',   ()=>import('./client.test')],
   ['contract', ()=>import('./code.test')],
   ['deploy',   ()=>import('./deploy.test')],
+  ['devnet',   ()=>import('./devnet.test')],
   ['store',    ()=>import('./store.test')],
   ['token',    ()=>import('./token.test')]
 ])

@@ -17,7 +17,7 @@ const mnemonic = [
 export async function testCWSigner () {
   const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain = devnet.getChain()
-  const agent = await chain.getAgent({ mnemonic }).ready as CW.OKP4.Agent
+  const agent = await chain.authenticate({ mnemonic }).ready as CW.OKP4.Agent
   //@ts-ignore
   const signed = await agent.signer!.signAmino("", { test: 1 })
 }
@@ -28,8 +28,8 @@ export async function testCWChain () {
 
   const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain = await (devnet.getChain() as CW.OKP4.Chain).ready
-  const alice = await chain.getAgent({ name: 'Alice' }).ready as CW.OKP4.Agent
-  const bob = await chain.getAgent({ name: 'Bob' }).ready as CW.OKP4.Agent
+  const alice = await chain.authenticate({ name: 'Alice' }).ready as CW.OKP4.Agent
+  const bob = await chain.authenticate({ name: 'Bob' }).ready as CW.OKP4.Agent
 
   assert.throws(()=>alice.mnemonic)
   assert.throws(()=>alice.mnemonic = undefined)

@@ -3,12 +3,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { MyDeployment } from './deploy.test'
 import { JSONFileUploadStore } from './stores'
-import { StubAgent } from '@fadroma/connect'
+import { Stub } from '@fadroma/connect'
+import { withTmpDir } from '@hackbg/file'
 
 export default async function testJSONFileUploadStore () {
-  const deployment = new MyDeployment()
-  await deployment.upload({
-    uploader: new StubAgent(),
-    uploadStore: new JSONFileUploadStore()
+  await withTmpDir(async dir=>{
+    const deployment = new MyDeployment()
+    await deployment.upload({
+      uploader:    new Stub.Agent(),
+      uploadStore: new JSONFileUploadStore(dir)
+    })
   })
 }

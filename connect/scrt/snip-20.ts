@@ -1,8 +1,10 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { ContractClient, Token, Coin, randomBytes, randomBase64, bold, colors } from '@fadroma/agent'
-import type { CodeHash, ICoin, Uint128, Fungible, CustomToken, Agent, Address } from '@fadroma/agent'
+import {
+  CustomToken, ContractClient, Token, Coin, randomBytes, randomBase64, bold, colors
+} from '@fadroma/agent'
+import type { CodeHash, ICoin, Uint128, Fungible, Agent, Address } from '@fadroma/agent'
 import { Console } from './scrt-base'
 import type { Permit } from './snip-24'
 
@@ -61,6 +63,13 @@ export class Snip20 extends ContractClient implements Fungible {
   isNative = () => false
 
   async fetchMetadata (): Promise<this> {
+    if (!this.agent) {
+      throw new Error("can't fetch metadata without agent")
+    }
+    return Promise.all([
+      this.agent.getCodeHashForAddress(this.contract.address)
+        .then((codeHash: CodeHash) => this.contract.codeHash = codeHash)
+    ])
     await this.fetchCodeHash()
     const { name, symbol, decimals, total_supply } = await this.getTokenInfo()
     this.name        = name
@@ -71,7 +80,7 @@ export class Snip20 extends ContractClient implements Fungible {
   }
   async getTokenInfo () {
     const msg = { token_info: {} }
-    const { token_info }: { token_info: TokenInfo } = await this.query(msg)
+    const { token_info }: { token_info: Snip20TokenInfo } = await this.query(msg)
     return token_info
   }
   async getBalance (address: Address, key: string) {
@@ -119,9 +128,9 @@ export class Snip20 extends ContractClient implements Fungible {
     this.execute({ redeem: { amount: String(amount), denom } })
 
   /** Get the current allowance from `owner` to `spender` */
-  getAllowance = async (owner: Address, spender: Address, key: string): Promise<Allowance> => {
+  getAllowance = async (owner: Address, spender: Address, key: string): Promise<Snip20Allowance> => {
     const msg = { allowance: { owner, spender, key } }
-    const response: { allowance: Allowance } = await this.query(msg)
+    const response: { allowance: Snip20Allowance } = await this.query(msg)
     return response.allowance
   }
 

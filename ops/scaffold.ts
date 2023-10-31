@@ -7,12 +7,7 @@ import Case from 'case'
 import type { Project } from './project'
 
 export function writeProject ({
-  name,
-  templates,
-  root,
-  dirs,
-  files,
-  crates
+  name, root, dirs, files, crates
 }: Project) {
 
   // Create project root 
@@ -25,7 +20,7 @@ export function writeProject ({
   const {
     readme, packageJson, cargoToml,
     gitignore, envfile, shellNix,
-    fadromaYaml, apiIndex, projectIndex, testIndex,
+    apiIndex, projectIndex, testIndex,
   } = files
 
   // Populate readme
@@ -35,9 +30,6 @@ export function writeProject ({
     `by [Hack.bg](https://hack.bg) `,
     `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
   ].join(''))
-
-  // Populate Fadroma config
-  fadromaYaml.save({ templates })
 
   // Populate NPM dependencies
   packageJson.save({

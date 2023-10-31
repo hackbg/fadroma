@@ -17,14 +17,15 @@ import $, {
   TOMLFile,
   JSONFile, JSONDirectory
 } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 
-import { getBuilder, Builder, ContractCrate } from './build'
+import { getBuilder, Builder } from './build'
 import { Config, version } from './config'
 import { Devnet } from './devnet'
 import { ProjectWizard, toolVersions } from './wizard'
 import { writeProject } from './scaffold'
-import { JSONFileUploadStore, YAMLFileDeployStore } from './stores'
+import { JSONFileUploadStore, JSONFileDeployStore } from './stores'
 
 import { execSync } from 'node:child_process'
 
@@ -62,8 +63,6 @@ export class Project extends CommandContext {
   /** Stores the deploy receipts. */
   deployStore: DeployStore
 
-  templates: Record<any, any> = {}
-
   static wizard = (...args: any[]) => new ProjectWizard().createProject(this, ...args)
 
   static load = (path: string|OpaqueDirectory = process.cwd()): Project|null => {
@@ -84,7 +83,7 @@ export class Project extends CommandContext {
 
     if (this.exists()) this.log
       .info('at', bold(this.root.path))
-      .info(`on`, bold(this.config.chainId))
+      .info(`on`, bold(this.config.connect.chainId))
 
     if (options?.builder instanceof Builder) {
       this.builder = options.builder
@@ -97,7 +96,7 @@ export class Project extends CommandContext {
     if (options?.uploadStore instanceof UploadStore) {
       this.uploadStore = options.uploadStore
     } else if (typeof options?.uploadStore === 'string') {
-      this.uploadStore = new FSUploadStore(options.uploadStore)
+      this.uploadStore = new JSONFileUploadStore(options.uploadStore)
     } else {
       this.uploadStore = new UploadStore()
     }
@@ -105,7 +104,7 @@ export class Project extends CommandContext {
     if (options?.deployStore instanceof DeployStore) {
       this.deployStore = options.deployStore
     } else if (typeof options?.deployStore === 'string') {
-      this.deployStore = new FSDeployStore(options.deployStore)
+      this.deployStore = new JSONFileDeployStore(options.deployStore)
     } else {
       this.deployStore = new DeployStore()
     }
@@ -139,8 +138,7 @@ export class Project extends CommandContext {
     'status', 'show the status of the project',
     () => {
       toolVersions()
-      const agent = this.config.getAgent()
-      const chain = agent.chain
+      const agent = this.config.connect.authenticate()
       this.log.info('Project name:           ', bold(this.name))
       this.log.info('Project root:           ', bold(this.root.path))
       this.log.info('Optimized contracts at: ', bold(this.dirs.wasm.shortPath))
@@ -155,11 +153,11 @@ export class Project extends CommandContext {
         this.log.info('UploadedCodes in project:   (none)')
       }
       this.log.br()
-      this.log.info('Chain type:    ', bold(chain?.constructor.name))
-      this.log.info('Chain mode:    ', bold(chain?.mode))
-      this.log.info('Chain ID:      ', bold(chain?.id))
-      if (!chain?.isMocknet) {
-        this.log.info('Chain URL:     ', bold(chain?.url.toString()))
+      this.log.info('Chain type:    ', bold(agent?.constructor.name))
+      this.log.info('Chain mode:    ', bold(agent?.mode))
+      this.log.info('Chain ID:      ', bold(agent?.chainId))
+      if (!agent?.isMocknet) {
+        this.log.info('Chain URL:     ', bold(agent?.url.toString()))
       }
       this.log.info('Agent address: ', bold(agent.address))
       this.log.br()
@@ -236,7 +234,8 @@ export class Project extends CommandContext {
       let sources: Partial<CompiledCode>[] = await this.getSources(names)
       if (this.builder) sources = await this.builder.buildMany(sources)
       const options = { uploadStore: this.uploadStore, reupload: false }
-      return Object.values(await this.config.getAgent().uploadMany(sources, options))
+      const agent = this.config.connect.authenticate()
+      return Object.values(await agent.uploadMany(sources, options))
     })
 
   reupload = this.command(
@@ -245,7 +244,8 @@ export class Project extends CommandContext {
       let sources: Partial<CompiledCode>[] = await this.getSources(names)
       if (this.builder) sources = await this.builder.buildMany(sources)
       const options = { uploadStore: this.uploadStore, reupload: true }
-      return Object.values(await this.config.getAgent().uploadMany(sources, options))
+      const agent = this.config.connect.authenticate()
+      return Object.values(await agent.uploadMany(sources, options))
     })
 
   protected async getSources (names: string[]) {
@@ -274,10 +274,14 @@ export class Project extends CommandContext {
     async (...args: string[]) => {
       const deployment: Deployment = this.getDeployment() || await this.createDeployment()
       this.log.info(`deployment:`, bold(deployment.name), `(${deployment.constructor?.name})`)
-      const agent = this.config.getAgent()
-      await deployment.deploy({ agent })
+      const agent = this.config.connect.authenticate()
+      await deployment.deploy({
+        builder: this.config.build.getBuilder(),
+        uploader: agent,
+        deployer: agent,
+      })
       await this.log.deployment(deployment)
-      if (!agent.chain!.isMocknet) {
+      if (!agent.isMocknet) {
         await this.selectDeployment(deployment.name)
       }
       return deployment
@@ -330,7 +334,8 @@ export class Project extends CommandContext {
       let file = $(path)
       if (file.isDirectory()) file = file.in(`${name}_@_${timestamp()}.json`)
       // Serialize and write the deployment.
-      file.as(JSONFile).makeParent().save(deployment.toReceipt())
+      const state = deployment.toReceipt()
+      file.as(JSONFile).makeParent().save(state)
       this.log.info('saved', Object.keys(state).length, 'contracts to', bold(file.shortPath))
     })
 
@@ -351,7 +356,7 @@ export class Project extends CommandContext {
       throw new Error.Missing.Name()
     }
     if (this.deployStore.has(name)) {
-      return this.deployStore.get(name)!
+      return this.Deployment.fromReceipt(this.deployStore.get(name)!)
     } else {
       throw new Error.Missing.Deployment()
     }
@@ -389,24 +394,11 @@ export class Project extends CommandContext {
   /** @returns stateless handles for the contract crates
     * corresponding to templates in fadroma.yml */
   get crates () {
-    const crates: Record<string, ContractCrate> = {}
+    const crates: Record<string, ProjectCrate> = {}
     for (const [name, template] of Object.entries(this.templates)) {
-      if (template.crate) crates[name] = new ContractCrate(this, template.crate)
+      if (template.crate) crates[name] = new ProjectCrate(this, template.crate)
     }
     return crates
-  }
-
-  getTemplate (name: string): UploadedCode {
-    return this.templates[name] as UploadedCode
-  }
-
-  setTemplate (
-    name: string, value: string|Partial<UploadedCode>
-  ): UploadedCode {
-    const defaults = { workspace: this.root.path, revision: 'HEAD' }
-    return this.templates[name] =
-      (typeof value === 'string') ? new UploadedCode({ ...defaults, crate: value }) :
-      (value instanceof UploadedCode) ? value : new UploadedCode({ ...defaults, ...value })
   }
 
   /** @returns Boolean whether the project (as defined by fadroma.yml in root) exists */
@@ -415,7 +407,9 @@ export class Project extends CommandContext {
   }
 
   listDeployments () {
-    return this.log.deploy.deploymentList(this.config.chainId??'(unspecified)', this.deployStore)
+    return this.log.deploy.deploymentList(
+      this.config.connect.chainId??'(unspecified)', this.deployStore
+    )
   }
 
   /** Create a Git repository in the project directory and make an initial commit.
@@ -462,6 +456,76 @@ export class Project extends CommandContext {
   /** Run one or more external commands in the project root. */
   runShellCommands (...cmds: string[]) {
     cmds.map(cmd=>execSync(cmd, { cwd: this.root.path, stdio: 'inherit' }))
+  }
+
+}
+
+/** Represents a crate containing a contract. */
+export class ProjectCrate {
+  /** Root directory of crate. */
+  readonly dir:       OpaqueDirectory
+  /** Crate manifest. */
+  readonly cargoToml: TextFile
+  /** Directory containing crate sources. */
+  readonly srcDir:    OpaqueDirectory
+  /** Root module of Rust crate. */
+  readonly libRs:     TextFile
+
+  constructor (
+    project: { dirs: { src: Path } },
+    /** Name of crate */
+    readonly name: string,
+    /** Features of the 'fadroma' dependency to enable. */
+    readonly features: string[] = ['scrt']
+  ) {
+    this.dir = project.dirs.src.in(name).as(OpaqueDirectory)
+    this.cargoToml = this.dir.at('Cargo.toml').as(TextFile)
+    this.srcDir = this.dir.in('src').as(OpaqueDirectory)
+    this.libRs  = this.srcDir.at('lib.rs').as(TextFile)
+  }
+
+  create () {
+
+    this.cargoToml.save([
+      `[package]`, `name = "${this.name}"`, `version = "0.0.0"`, `edition = "2021"`,
+      `authors = []`, `keywords = ["fadroma"]`, `description = ""`, `readme = "README.md"`, ``,
+      `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
+      `[dependencies]`,
+      `fadroma = { version = "0.8.7", features = ${JSON.stringify(this.features)} }`,
+      `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
+    ].join('\n'))
+
+    this.srcDir.make()
+
+    this.libRs.save([
+      `//! Created by [Fadroma](https://fadroma.tech).`, ``,
+      `#[fadroma::dsl::contract] pub mod contract {`,
+      `    use fadroma::{*, dsl::*, prelude::*};`,
+      `    impl Contract {`,
+      `        #[init(entry_wasm)]`,
+      `        pub fn new () -> Result<Response, StdError> {`,
+      `            Ok(Response::default())`,
+      `        }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[execute]`,
+      `        // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+      `        //     Ok(Response::default())`,
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
+      `        // #[query]`,
+      `        // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+      `        //     Ok(())`, '',
+      `        // }`,
+      `    }`,
+      `}`,
+    ].join('\n'))
+
   }
 
 }

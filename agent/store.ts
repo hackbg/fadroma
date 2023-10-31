@@ -33,19 +33,19 @@ export class UploadStore extends Map<CodeHash, UploadedCode> {
 
 /** A deploy store collects receipts corresponding to individual instances of Deployment,
   * and can create Deployment objects with the data from the receipts. */
-export class DeployStore extends Map<Name, Deployment> {
+export class DeployStore extends Map<Name, DeploymentState> {
   log = new Console('DeployStore')
 
   constructor () {
     super()
   }
 
-  get (name: Name): Deployment|undefined {
+  get (name: Name): DeploymentState|undefined {
     return super.get(name)
   }
 
-  set (name: Name, deployment: Partial<Deployment>): this {
-    if (!(deployment instanceof Deployment)) deployment = new Deployment(deployment)
-    return super.set(name, deployment as Deployment)
+  set (name: Name, state: Partial<Deployment>|DeploymentState): this {
+    if (state instanceof Deployment) state = state.toReceipt()
+    return super.set(name, state)
   }
 }

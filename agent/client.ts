@@ -3,12 +3,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Console, Error } from './base'
 import type { Class, Address, Message } from './base'
-import type { Agent } from './chain'
+import type { Agent, ChainId } from './chain'
 import { ContractInstance } from './deploy'
 
 /** A constructor for a ContractClient subclass. */
 export interface ContractClientClass<C extends ContractClient> extends
-  Class<C, [Address|Partial<ContractInstance>, Agent|undefined]> {}
+  Class<C, [ ...ConstructorParameters<typeof ContractClient>, ...unknown[] ]> {}
 
 /** ContractClient: interface to the API of a particular contract instance.
   * Has an `address` on a specific `chain`, usually also an `agent`.
@@ -20,7 +20,7 @@ export class ContractClient {
 
   agent?: Agent
 
-  constructor (contract: Address|Partial<ContractInstance>, agent?: Agent) {
+  constructor (contract: Address|Partial<ContractInstance>, agent?: ContractClient["agent"]) {
     this.agent = agent
     if (typeof contract === 'string') {
       this.contract = new ContractInstance({ address: contract })
@@ -32,18 +32,20 @@ export class ContractClient {
   }
 
   /** Execute a query on the specified contract as the specified Agent. */
-  query (msg: Message): Promise<unknown> {
+  query <Q> (message: Message): Promise<Q> {
     if (!this.agent) {
       throw new Error.Missing.Agent(this.constructor?.name)
     }
     if (!this.contract.address) {
       throw new Error.Missing.Address()
     }
-    return this.agent.query(this.contract as ContractInstance & { address: Address }, msg)
+    return this.agent.query<Q>(
+      this.contract as ContractInstance & { address: Address }, message
+    )
   }
 
   /** Execute a transaction on the specified contract as the specified Agent. */
-  execute (message: Message, options: Parameters<Agent["execute"]>[2] = {}): Promise<void|unknown> {
+  execute (message: Message, options: Parameters<Agent["execute"]>[2] = {}): Promise<unknown> {
     if (!this.agent) {
       throw new Error.Missing.Agent(this.constructor?.name)
     }
@@ -51,9 +53,7 @@ export class ContractClient {
       throw new Error.Missing.Address()
     }
     return this.agent.execute(
-      this.contract as ContractInstance & { address: Address },
-      message,
-      options
+      this.contract as ContractInstance & { address: Address }, message, options
     )
   }
 

@@ -2,12 +2,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Error as BaseError, Console, Config,
-  bold, randomHex, ChainMode, Chain, Scrt, CW,
-  connectModes
+  Error as BaseError, Console, Config, bold, randomHex, Scrt, CW,
 } from '@fadroma/connect'
 import type {
-  CodeId, Agent, ChainClass, ChainId, DevnetHandle, Environment
+  CodeId, Agent, ChainId, DevnetHandle, Environment
 } from '@fadroma/connect'
 
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
@@ -73,7 +71,7 @@ export const devnetPortEnvVars: Record<DevnetPort, string> = {
 /** Descriptions of supported devnet variants. */
 export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
   'scrt_1.2': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_2.Dockerfile').path,
     ready:      'indexed block',
@@ -81,7 +79,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'http',
   },
   'scrt_1.3': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_3.Dockerfile').path,
     ready:      'indexed block',
@@ -89,7 +87,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'grpcWeb',
   },
   'scrt_1.4': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_4.Dockerfile').path,
     ready:      'indexed block',
@@ -97,7 +95,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'grpcWeb',
   },
   'scrt_1.5': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_5.Dockerfile').path,
     ready:      'indexed block',
@@ -105,7 +103,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'http',
   },
   'scrt_1.6': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
     ready:      'indexed block',
@@ -113,7 +111,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'http',
   },
   'scrt_1.7': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
     ready:      'indexed block',
@@ -121,7 +119,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'http',
   },
   'scrt_1.8': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path,
     ready:      'Done verifying block height',
@@ -129,7 +127,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
     portMode:   'http',
   },
   'scrt_1.9': {
-    Chain:      Scrt.Chain,
+    Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
     dockerFile: $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path,
     ready:      'Validating proposal',
@@ -270,7 +268,7 @@ export class Devnet implements DevnetHandle {
   }
 
   /** Build image containing all or some code ids from a given chain id */
-  async copyUploads (chain: Chain, codeIds?: CodeId[]) {
+  async copyUploads (from: Agent, codeIds?: CodeId[]) {
     const image = await this.image
   }
 

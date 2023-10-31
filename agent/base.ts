@@ -94,7 +94,7 @@ class FadromaError_Missing extends FadromaError.define(
   static Address = this.define('Address', () => 'no address')
   static Agent = this.define('Agent', (info?: any) => `no agent${info?`: ${info}`:``}`)
   static Artifact = this.define('Artifact', () => "no artifact url")
-  static Builder = this.define('Builder', () => `no builder`)
+  static Compiler = this.define('Compiler', () => `no compiler`)
   static Chain = this.define('Chain', () => "no chain")
   static ChainId = this.define('ChainId', () => "no chain id specified")
   static CodeId = this.define('CodeId', (info?: any) => `no code id${info?`: ${info}`:``}`)

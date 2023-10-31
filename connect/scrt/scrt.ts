@@ -22,13 +22,11 @@ export * as Snip20 from './snip-20'
 export * as Snip24 from './snip-24'
 export * as SecretJS from '@hackbg/secretjs-esm'
 
-import { bindChainSupport } from '@fadroma/agent'
-import { Chain, Agent } from './scrt-chain'
+import { Agent } from './scrt-chain'
 import { Batch } from './scrt-batch'
-bindChainSupport(Chain, Agent, Batch)
 export { Batch }
 
-export const mainnet = (...args: Parameters<typeof Chain.mainnet>) => Chain.mainnet(...args)
-export const testnet = (...args: Parameters<typeof Chain.testnet>) => Chain.testnet(...args)
-export const devnet  = (...args: Parameters<typeof Chain.devnet>)  => Chain.devnet(...args)
-export const mocknet = (...args: Parameters<typeof Chain.mocknet>) => Chain.mocknet(...args)
+export const mainnet = (...args: Parameters<typeof Agent.mainnet>) => Agent.mainnet(...args)
+export const testnet = (...args: Parameters<typeof Agent.testnet>) => Agent.testnet(...args)
+export const devnet  = (...args: Parameters<typeof Agent.devnet>)  => Agent.devnet(...args)
+export const mocknet = (...args: Parameters<typeof Agent.mocknet>) => Agent.mocknet(...args)

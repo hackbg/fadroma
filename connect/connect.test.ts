@@ -20,7 +20,7 @@ export async function testConnectConfig () {
   config.getChain()
   config.getChain(null as any)
   assert.throws(()=>config.getChain('NoSuchChain' as any))
-  config.getAgent()
+  config.authenticate()
   config.listChains()
 }
 

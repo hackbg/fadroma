@@ -12,18 +12,11 @@ export default async function testProject () {
   let project: Project = new Project({
     root: `${root}/test-project-1`,
     name: 'test-project-1',
-    templates: {
-      test1: { crate: 'test1' },
-      test2: { crate: 'test2' },
-    }
   })
     .create()
     .status()
     .cargoUpdate()
-  const test1 = project.getTemplate('test1')
-  assert.ok(test1 instanceof UploadedCode)
-  const test3 = project.setTemplate('test3', { crate: 'test2' })
-  assert.ok(test3 instanceof UploadedCode)
+
   await project.build()
   await project.build('test1')
   await project.upload()

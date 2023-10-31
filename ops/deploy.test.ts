@@ -3,10 +3,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import * as assert from 'node:assert'
 import {
-  Deployment, UploadedCode, ContractTemplate, ContractInstance, StubAgent
+  Deployment, UploadedCode, ContractTemplate, ContractInstance, Stub
 } from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
-import { YAMLFileDeployStore } from './stores'
+import { JSONFileDeployStore } from './stores'
 
 //export new DeploymentBuilder('mydeployment')
   //.template('swapPool', { codeId: '1', crate: 'examples/kv' })
@@ -29,47 +29,32 @@ export class MyDeployment extends Deployment {
   })
 
   // Single template instance with eager and lazy initMsg
-  a1 = this.t.contract({
-    name: 'a1', initMsg: {}
+  a1 = this.t.contract('a1', {
+    initMsg: {}
+  })
+  a2 = this.t.contract('a2', {
+    initMsg: () => ({})
+  })
+  a3 = this.t.contract('a3', {
+    initMsg: async () => ({})
   })
 
-  a2 = this.t.contract({
-    name: 'a2', initMsg: () => ({})
-  })
-
-  a3 = this.t.contract({
-    name: 'a3', initMsg: async () => ({})
-  })
-
-  // Multiple template contracts as array
-  // with varying initMsg eagerness
-  b = this.t.contracts([
-    { name: 'b1', initMsg: {} },
-    { name: 'b2', initMsg: () => ({}) },
-    { name: 'b3', initMsg: async () => ({}) }
-  ])
-
-  // Multiple template contracts as object
-  // with varying initMsg eagerness
-  // (named automatically)
-  c = this.t.contracts({
-    c1: { initMsg: {} },
-    c2: { initMsg: () => ({}) },
-    c3: { initMsg: async () => ({}) }
+  // Multiple contracts from the same template
+  b = this.t.contracts({
+    b1: { initMsg: {} },
+    b2: { initMsg: () => ({}) },
+    b3: { initMsg: async () => ({}) }
   })
 }
 
 export async function testDeployment () {
   const deployment = new MyDeployment()
   assert.ok(deployment.t instanceof ContractTemplate)
-  await deployment.deploy({ uploader: new StubAgent(), deployer: new StubAgent() })
-  assert.ok([
-    deployment.a1,
-    deployment.a2,
-    deployment.a3,
-    ...Object.values(deployment.b),
-    ...Object.values(deployment.c),
-  ].every(
+  await deployment.deploy({
+    uploader: new Stub.Agent(),
+    deployer: new Stub.Agent(),
+  })
+  assert.ok([deployment.a1, deployment.a2, deployment.a3, ...Object.values(deployment.b)].every(
     c=>c instanceof ContractInstance
   ))
 }
@@ -89,7 +74,6 @@ class V2Deployment extends V1Deployment {
 }
 
 export async function testDeploymentUpgrade () {
-
   let deployment = new V1Deployment()
   assert.deepEqual([...deployment.keys()], ['kv1', 'kv2'])
   const mainnetAgent: any = { chain: { isMainnet: true } } // mock
@@ -97,8 +81,8 @@ export async function testDeploymentUpgrade () {
   // simplest chain-side migration is to just call default deploy,
   // which should reuse kv1 and kv2 and only deploy kv3.
   let deployment2 = await V2Deployment.upgrade(deployment).deploy({
-    uploader: new StubAgent(),
-    deployer: new StubAgent()
+    uploader: new Stub.Agent(),
+    deployer: new Stub.Agent()
   })
 }
 

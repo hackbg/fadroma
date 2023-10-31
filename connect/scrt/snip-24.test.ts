@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import * as Scrt from './scrt'
-import type { ChainId, Address } from '@
+import type { ChainId, Address } from '@fadroma/connect'
 
 export default async function testSnip24 () {
 
@@ -12,7 +12,7 @@ export default async function testSnip24 () {
     signAmino: async function signAmino (
       chain_id: ChainId,
       address:  Address,
-      signDoc:  Scrt.SignDoc,
+      signDoc:  Scrt.Snip24.SignDoc,
       options: { preferNoSetFee: boolean, preferNoSetMemo: boolean }
     ) {
       return {

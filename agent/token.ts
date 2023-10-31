@@ -76,10 +76,10 @@ export class NativeToken extends Fungible {
 
 /** A contract-based token. */
 export class CustomToken extends Fungible {
-  constructor (readonly addr: Address, readonly hash?: string) { super() }
+  constructor (readonly address: Address, readonly codeHash?: string) { super() }
 
   /** The token contract's address. */
-  get id () { return this.addr }
+  get id () { return this.address }
 
   /** @returns true */
   isCustom = () => true
@@ -90,7 +90,7 @@ export class CustomToken extends Fungible {
   connect <C extends ContractClient> (
     agent?: Agent, $C: ContractClientClass<C> = ContractClient as unknown as ContractClientClass<C>
   ): C {
-    return new $C({ address: this.addr, codeHash: this.hash }, agent)
+    return new $C({ address: this.address, codeHash: this.codeHash }, agent)
   }
 }
 

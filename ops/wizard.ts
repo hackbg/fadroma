@@ -168,35 +168,22 @@ export class ProjectWizard {
 
     console.log("Project created at", bold(project.root.shortPath))
     console.info()
-
     console.info(`To compile your contracts:`)
     console.info(`  $ ${bold('npm run build')}`)
-
     console.info(`To spin up a local deployment:`)
     console.info(`  $ ${bold('npm run devnet deploy')}`)
-
     console.info(`To deploy to testnet:`)
     console.info(`  $ ${bold('npm run testnet deploy')}`)
-
-    const { FADROMA_TESTNET_MNEMONIC: mnemonic } = dotenv.parse(
-      project.root.at('.env').as(TextFile).load()
-    )
+    const envFile = project.root.at('.env').as(TextFile).load()
+    const { FADROMA_TESTNET_MNEMONIC: mnemonic } = dotenv.parse(envFile)
     console.info(`Your testnet mnemonic:`)
     console.info(`  ${bold(mnemonic)}`)
-    const testnetAgent = Scrt.Chain.testnet().getAgent({ mnemonic })
-
-    //@ts-ignore
-    testnetAgent.log = { log () {} }
-    await testnetAgent.ready
-
+    const testnetAgent = await Scrt.testnet().authenticate({ mnemonic })
+    Object.assign(testnetAgent, { log: { log () {} } })
     console.info(`Your testnet address:`)
     console.info(`  ${bold(testnetAgent.address)}`)
-
     console.info(`Fund your testnet wallet at:`)
     console.info(`  ${bold('https://faucet.pulsar.scrttestnet.com')}`)
-
-    //console.info(`View documentation at ${root.in('target').in('doc').in(name).at('index.html').url}`)
-
     return project
   }
 

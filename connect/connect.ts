@@ -32,12 +32,12 @@ export { Scrt, CW }
 export default function connect <A extends Agent> (
   config: Partial<ConnectConfig> = new ConnectConfig()
 ): A {
-  return new ConnectConfig(config).getAgent()
+  return new ConnectConfig(config).authenticate()
 }
 
 /** @returns Agent configured as per environment and options */
-export function getAgent (options: Partial<ConnectConfig> = {}): Agent {
-  return new ConnectConfig(options).getAgent()
+export function authenticate (options: Partial<ConnectConfig> = {}): Agent {
+  return new ConnectConfig(options).authenticate()
 }
 
 export type ConnectMode =
@@ -141,7 +141,7 @@ export class ConnectConfig extends Config {
     return chainToGet({ config: this }) as C // create Chain object
   }
   /** Create the Agent instance identified by the configuration. */
-  getAgent <A extends Agent> (options: Partial<A> = {}): A {
+  authenticate <A extends Agent> (options: Partial<A> = {}): A {
     options.chain ??= this.getChain()
     options.name ??= this.agentName
     if (this.chainMode === ChainMode.Testnet) {
@@ -149,7 +149,7 @@ export class ConnectConfig extends Config {
     } else {
       options.mnemonic ??= this.mnemonic
     }
-    return options.chain.getAgent(options) as A
+    return options.chain.authenticate(options) as A
   }
   /** List all known chains. */
   listChains () {

@@ -19,20 +19,20 @@ See https://fadroma.tech for more info.
 import { Scrt } from '@fadroma/scrt'
 
 /// with the default API URL (defined in scrt-config.ts):
-const a = await Scrt.Mainnet().getAgent({ mnemonic: '...' })
-const b = await Scrt.Testnet().getAgent({ mnemonic: '...' })
+const a = await Scrt.Mainnet().authenticate({ mnemonic: '...' })
+const b = await Scrt.Testnet().authenticate({ mnemonic: '...' })
 
 // with custom API URL:
-const c = await Scrt.Mainnet({ url: '...' }).getAgent({ mnemonic: '...' })
-const d = await Scrt.Testnet({ url: '...' }).getAgent({ mnemonic: '...' })
+const c = await Scrt.Mainnet({ url: '...' }).authenticate({ mnemonic: '...' })
+const d = await Scrt.Testnet({ url: '...' }).authenticate({ mnemonic: '...' })
 
 // multiple identities:
 const e = Scrt.Mainnet()
-const f = await e.getAgent({ mnemonic: '...' })
-const g = await e.getAgent({ mnemonic: '...' })
+const f = await e.authenticate({ mnemonic: '...' })
+const g = await e.authenticate({ mnemonic: '...' })
 
 // identity from Keplr:
-const h = await e.getAgent({ encryptionUtils: window.getEnigmaUtils(e.chainId) })
+const h = await e.authenticate({ encryptionUtils: window.getEnigmaUtils(e.chainId) })
 ```
 
 ## Overriding the SecretJS implementation
@@ -78,11 +78,11 @@ assert.notEqual(mod.SecretJS, raw.SecretJS)
 ```
 
 The used `SecretJS` module will provide the `Wallet` and `SecretNetworkClient` classes,
-whose instances are provided to `ScrtAgent` by `Scrt#getAgent`, so that the agent
+whose instances are provided to `ScrtAgent` by `Scrt#authenticate`, so that the agent
 can interact with the chain by signing and broadcasting transactions.
 
 ```typescript
-const agent = await mod.getAgent()
+const agent = await mod.authenticate()
 
 assert.ok(agent.wallet instanceof SecretJS.Wallet)
 assert.ok(agent.api    instanceof SecretJS.SecretNetworkClient)
@@ -99,16 +99,16 @@ import { ScrtAgent } from '@fadroma/scrt'
 const encryptionUtils = Symbol() // use window.getEnigmaUtils(chainId) to get this
 ```
 
-* **Preferred:** override from `Scrt#getAgent`.
+* **Preferred:** override from `Scrt#authenticate`.
 
 ```typescript
-const agent1 = await raw.getAgent({ encryptionUtils })
+const agent1 = await raw.authenticate({ encryptionUtils })
 
 assert.equal(agent1.api.encryptionUtils, encryptionUtils)
 ```
 
 * **Fallback:** override through `ScrtAgent` constructor.
-  You shouldn't need to do this. Just use `Scrt#getAgent` to pass
+  You shouldn't need to do this. Just use `Scrt#authenticate` to pass
   `encryptionUtils` to `new SecretNetworkClient` at construction time
   like the SecretJS API expects.
 
@@ -135,11 +135,11 @@ assert.equal(Scrt.defaultFees.init.gas,   1000000)
 assert.equal(Scrt.defaultFees.exec.gas,   1000000)
 ```
 
-When constructing a `ScrtAgent` using `Scrt#getAgent`,
+When constructing a `ScrtAgent` using `Scrt#authenticate`,
 Fadroma tries to fetch the block limit from the chain:
 
 ```typescript
-console.log((await new Scrt().getAgent()).fees)
+console.log((await new Scrt().authenticate()).fees)
 ```
 
 ---
@@ -206,7 +206,7 @@ To interact with Secret Network, you need to authenticate as an `Agent`:
 This gives you a randomly generated mnemonic.
 
 ```typescript
-const agent0 = await mainnet.getAgent().ready
+const agent0 = await mainnet.authenticate().ready
 assert.ok(agent0 instanceof Scrt.Agent)
 assert.ok(agent0.chain instanceof Scrt.Chain)
 assert.ok(agent0.mnemonic)
@@ -219,7 +219,7 @@ The `mnemonic` property of `Agent` will be hidden to prevent leakage.
 
 ```typescript
 const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
-const agent1 = await mainnet.getAgent({ mnemonic }).ready
+const agent1 = await mainnet.authenticate({ mnemonic }).ready
 
 ok(agent1 instanceof Scrt.Agent)
 ok(agent1.chain instanceof Scrt.Chain)
@@ -671,7 +671,7 @@ through the Fadroma Client API.
 ```typescript
 import { Mocknet } from '@fadroma/agent'
 let chain = new Mocknet.Chain()
-let agent = await chain.getAgent()
+let agent = await chain.authenticate()
 
 import { Chain, Agent, Mocknet } from '@fadroma/agent'
 assert.ok(chain instanceof Chain)
