@@ -132,7 +132,12 @@ class CWAgent extends Agent {
   }
 
   protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
-    if (!this.address) throw new Error.Missing.Address()
+    if (!this.address) {
+      throw new CWError("can't upload contract without sender address")
+    }
+    if (!(this.api as SigningCosmWasmClient)?.instantiate) {
+      throw new CWError("can't upload contract without authorizing the agent")
+    } 
     const result = await this.api.upload(
       this.address, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
     )
@@ -151,12 +156,6 @@ class CWAgent extends Agent {
     codeId:  CodeId,
     options: Parameters<Agent["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
-    if (!options.label) {
-      throw new CWError("can't instantiate contract without label")
-    }
-    if (!options.initMsg) {
-      throw new CWError("can't instantiate contract without init message")
-    }
     if (!this.address) {
       throw new CWError("can't instantiate contract without sender address")
     }
@@ -167,7 +166,7 @@ class CWAgent extends Agent {
       this.address!,
       Number(codeId),
       options.initMsg,
-      options.label,
+      options.label!,
       options.initFee || 'auto',
       { admin: this.address, funds: options.initSend, memo: options.initMemo }
     )

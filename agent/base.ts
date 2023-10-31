@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Error as BaseError } from '@hackbg/oops'
+import { Error } from '@hackbg/oops'
 import { Console, bold, colors } from '@hackbg/logs'
 import type { Deployment } from './deploy'
 
@@ -79,22 +79,9 @@ export type Address = string
 export type TxHash = string
 
 /** Error kinds. */
-class FadromaError extends BaseError {
-  /** Thrown when a required parameter is missing. */
-  static Missing: typeof FadromaError_Missing
+class FadromaError extends Error {}
+
+export {
+  Console,
+  FadromaError as Error
 }
-
-class FadromaError_Missing extends FadromaError.define(
-  'Missing', (msg='a required parameter was missing') => msg as string
-) {
-  static Address = this.define('Address', () => 'no address')
-  static Name = this.define("Name", () => "no name")
-  static Uploader = this.define('Uploader', () => "no uploader")
-  static Workspace = this.define('Workspace', () => "no workspace")
-}
-
-export const Error = Object.assign(FadromaError, {
-  Missing: FadromaError_Missing,
-})
-
-export { Console }

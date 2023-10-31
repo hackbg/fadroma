@@ -340,8 +340,12 @@ export class Devnet implements DevnetHandle {
       this.log.debug('Creating...')
       // ensure we have image and chain id
       const image = await this.image
-      if (!this.image) throw new DevnetError.Missing.DevnetImage()
-      if (!this.chainId) throw new DevnetError.Missing.ChainId()
+      if (!this.image) {
+        throw new DevnetError("missing devnet container image")
+      }
+      if (!this.chainId) {
+        throw new DevnetError("can't create devnet without chain ID")
+      }
       // if port is unspecified or taken, increment
       this.port = await ports.getFreePort(this.port)
       // create container
