@@ -1,5 +1,5 @@
 import * as assert from 'node:assert'
-import { Devnet } from '../../ops/devnet'
+import { Devnet } from '../../ops/devnets'
 import * as CW from '.'
 import { Mode } from '@fadroma/agent'
 import { Suite } from '@hackbg/ensuite'
@@ -26,8 +26,6 @@ export async function testCWSigner () {
 
 export async function testCWChain () {
   // Throws because devnet instance is not passed:
-  assert.throws(()=>new CW.Agent({ mode: Mode.Devnet }).ready)
-
   const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain = await (devnet.getChain() as CW.OKP4.Agent)
   const alice = await chain.authenticate({ name: 'Alice' }) as CW.OKP4.Agent

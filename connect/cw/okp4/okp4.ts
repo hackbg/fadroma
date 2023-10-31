@@ -61,10 +61,10 @@ class OKP4Agent extends Agent {
   declare hdAccountIndex: number
   /** Transaction fees for this agent. */
   fees = {
-    upload: this.gas(10000000),
-    init: this.gas(1000000),
-    exec: this.gas(1000000),
-    send: this.gas(1000000),
+    upload: OKP4Agent.gas(10000000),
+    init:   OKP4Agent.gas(1000000),
+    exec:   OKP4Agent.gas(1000000),
+    send:   OKP4Agent.gas(1000000),
   }
 
   constructor (options: Partial<OKP4Agent> & { config?: OKP4Config } = {
@@ -134,11 +134,7 @@ class OKP4Agent extends Agent {
   }
 }
 
-export {
-  OKP4Config as Config,
-  OKP4Agent as Agent,
-  OKP4BatchBuilder as BatchBuilder
-}
+export { OKP4Config as Config, OKP4Agent as Agent, }
 
 /** Connect to OKP4 testnet. */
 export const testnet = (...args: Parameters<typeof OKP4Agent.testnet>) => OKP4Agent.testnet(...args)

@@ -77,44 +77,21 @@ class CWAgent extends Agent {
     return this.getBlockInfo().then(({ header: { height } })=>height)
   }
 
-  /** One-shot async initialization of agent.
-    * Populates the `api` property with a SigningCosmWasmClient. */
-  get ready (): Promise<this & { api: SigningCosmWasmClient }> {
-    const init = new Promise<this & { api: SigningCosmWasmClient }>(async (resolve, reject)=>{
-      if (!this.api) {
-        if (this.devnet) {
-          await this.devnet.start()
-          if (!this.address && this.name) {
-            Object.assign(this, await this.devnet.getAccount(this.name))
-          }
-        }
-        if (!this.signer) throw new CWError("the agent's signer property is not set")
-        const api = await SigningCosmWasmClient.connectWithSigner(this.url, this.signer)
-        this.api = api
-      }
-      return resolve(this as this & { api: SigningCosmWasmClient })
-    })
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
-  }
-
   /** Query native token balance. */
   async getBalance (denom?: string, address?: Address): Promise<string> {
-    const { api } = await this.ready
     denom ??= this.defaultDenom
     address ??= this.address
     if (!address) {
       throw new Error('getBalance: pass address')
     }
-    const { amount } = await api.getBalance(address!, denom)
+    const { amount } = await this.api.getBalance(address!, denom)
     return amount
   }
 
   /** Stargate implementation of getting a code id. */
   async getCodeId (address: Address): Promise<CodeId> {
-    const { api } = await this.ready
     if (!address) throw new CWError('chain.getCodeId: no address')
-    const { codeId } = await api.getContract(address)
+    const { codeId } = await this.api.getContract(address)
     return String(codeId)
   }
 
@@ -132,9 +109,8 @@ class CWAgent extends Agent {
 
   /** Stargate implementation of getting a contract label. */
   async getLabel (address: Address): Promise<string> {
-    const { api } = await this.ready
     if (!address) throw new CWError('chain.getLabel: no address')
-    const { label } = await api.getContract(address)
+    const { label } = await this.api.getContract(address)
     return label
   }
 
@@ -156,9 +132,8 @@ class CWAgent extends Agent {
   }
 
   protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
-    const { api } = await this.ready
     if (!this.address) throw new Error.Missing.Address()
-    const result = await api.upload(
+    const result = await this.api.upload(
       this.address, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
     )
     return {
@@ -176,11 +151,19 @@ class CWAgent extends Agent {
     codeId:  CodeId,
     options: Parameters<Agent["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
-    const { api } = await this.ready
     if (!options.label) {
-      throw new CWError("can't instantiate without label")
+      throw new CWError("can't instantiate contract without label")
     }
-    const result = await api.instantiate(
+    if (!options.initMsg) {
+      throw new CWError("can't instantiate contract without init message")
+    }
+    if (!this.address) {
+      throw new CWError("can't instantiate contract without sender address")
+    }
+    if (!(this.api as SigningCosmWasmClient)?.instantiate) {
+      throw new CWError("can't instantiate contract without authorizing the agent")
+    } 
+    const result = await (this.api as SigningCosmWasmClient).instantiate(
       this.address!,
       Number(codeId),
       options.initMsg,
@@ -210,14 +193,18 @@ class CWAgent extends Agent {
     message:  Message,
     options:  Parameters<Agent["execute"]>[2] = {}
   ): Promise<unknown> {
-    const { api } = await this.ready
-    if (!this.address) throw new CWError("agent.execute: no agent address")
+    if (!this.address) {
+      throw new CWError("can't execute transaction without sender address")
+    }
+    if (!(this.api as SigningCosmWasmClient)?.execute) {
+      throw new CWError("can't execute transaction without authorizing the agent")
+    } 
     const {
       execSend,
       execMemo,
       execFee = this.fees?.exec || 'auto'
     } = options
-    return await api.execute(
+    return await (this.api as SigningCosmWasmClient).execute(
       this.address,
       contract.address,
       message,
@@ -231,8 +218,7 @@ class CWAgent extends Agent {
   protected async doQuery <U> (contract: Address|Partial<ContractInstance>, msg: Message): Promise<U> {
     if (typeof contract === 'string') contract = { address: contract }
     if (!contract.address) throw new CWError('no contract address')
-    const { api } = await this.ready
-    return await api.queryContractSmart(contract.address, msg) as U
+    return await this.api.queryContractSmart(contract.address, msg) as U
   }
 
   batch (): CWBatchBuilder {

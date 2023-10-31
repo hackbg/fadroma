@@ -35,7 +35,7 @@ export function getCompiler (options: Partial<BuildConfig> = {}): Compiler {
   return new BuildConfig(options).getCompiler()
 }
 
-/** Configuration for builder. */
+/** Configuration for compiler. */
 export class BuildConfig extends Config {
   constructor (options: Partial<BuildConfig> = {}, environment?: Environment) {
     super(environment)
@@ -44,8 +44,6 @@ export class BuildConfig extends Config {
   /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
     * Defaults to parent directory of FADROMA_PROJECT. */
   workspace = this.getString('FADROMA_WORKSPACE', ()=>this.root)
-  /** Compiler to use */
-  builder = this.getString('FADROMA_BUILDER', ()=>Object.keys(Compiler.variants)[0])
   /** Whether the build process should print more detail to the console. */
   verbose = this.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
   /** Whether the build log should be printed only on error, or always */
@@ -79,8 +77,10 @@ export class BuildConfig extends Config {
   /** Used to authenticate Git in build container. */
   sshAuthSocket = this.getString('SSH_AUTH_SOCK', () => undefined)
   /** @returns the Compiler class exposed by the config */
-  get Compiler () { return Compiler.variants[this.raw ? 'Raw' : 'Container'] }
-  /** @returns a configured builder. */
+  get Compiler () {
+    return this.raw ? RawLocalRustCompiler : ContainerizedLocalRustCompiler
+  }
+  /** @returns a configured compiler. */
   getCompiler = (Compiler?: Class<Compiler, any>): Compiler =>new (Compiler ??= this.Compiler)(this)
 }
 
@@ -145,7 +145,7 @@ export abstract class LocalRustCompiler extends Compiler {
   }
 }
 
-/** The parts of Cargo.toml which the builder needs to be aware of. */
+/** The parts of Cargo.toml which the compiler needs to be aware of. */
 export type CargoTOML = {
   package: { name: string },
   dependencies: Record<string, { path?: string }>
@@ -163,7 +163,7 @@ export const sanitize = (ref: string) =>
 export const distinct = <T> (x: T[]): T[] =>
   [...new Set(x) as any]
 
-/** This builder launches a one-off build container using Dockerode. */
+/** This compiler launches a one-off build container using Dockerode. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   readonly id = 'Container'
   /** Logger */
@@ -252,8 +252,8 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
         } else {
           this.log(`Building ${bold(source.crate)} from revision ${bold(source.revision)}`)
         }
-        // Set ourselves as the source's builder
-        source.builder = this as unknown as Compiler
+        // Set ourselves as the source's compiler
+        source.compiler = this as unknown as Compiler
         // Add the source repository of the contract to the list of inputs to build
         workspaces.add(source.workspace!)
         revisions.add(source.revision!)

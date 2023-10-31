@@ -6,9 +6,9 @@ import { Mode } from '@fadroma/agent'
 export async function testScrtChain () {
   Scrt.mainnet()
   Scrt.testnet()
-  const chain = Scrt.mocknet()
+  const chain = new Scrt.Agent({ chainId: 'scrt' })
   assert(chain.api instanceof Scrt.SecretJS.SecretNetworkClient)
-  const agent = chain.authenticate({})
+  const agent = await chain.authenticate({})
   assert(agent.api instanceof Scrt.SecretJS.SecretNetworkClient)
 }
 

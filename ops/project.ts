@@ -20,9 +20,9 @@ import $, {
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 
-import { getBuilder, Builder } from './build'
+import { getCompiler, Compiler } from './build'
 import { Config, version } from './config'
-import { Devnet } from './devnet'
+import { Devnet } from './devnets'
 import { ProjectWizard, toolVersions } from './wizard'
 import { writeProject } from './scaffold'
 import { JSONFileUploadStore, JSONFileDeployStore } from './stores'
@@ -54,8 +54,8 @@ export class Project extends CommandContext {
   /** Default deployment class. */
   Deployment = Deployment
 
-  /** Builder to compile the contracts. */
-  builder: Builder
+  /** Compiler to compile the contracts. */
+  compiler: Compiler
 
   /** Stores the upload receipts. */
   uploadStore: UploadStore
@@ -85,10 +85,10 @@ export class Project extends CommandContext {
       .info('at', bold(this.root.path))
       .info(`on`, bold(this.config.connect.chainId))
 
-    if (options?.builder instanceof Builder) {
-      this.builder = options.builder
+    if (options?.compiler instanceof Compiler) {
+      this.compiler = options.compiler
     } else {
-      this.builder = getBuilder({
+      this.compiler = getCompiler({
         outputDir: this.dirs.wasm.path
       })
     }
@@ -207,13 +207,13 @@ export class Project extends CommandContext {
         this.log.warn('Nothing to build.')
         return []
       }
-      return await this.builder.buildMany(sources)
+      return await this.compiler.buildMany(sources)
     })
 
   rebuild = this.command(
     'rebuild', 'rebuild the project or specific contracts from it',
     (...names: string[]): Promise<CompiledCode[]> => {
-      this.builder.caching = false
+      this.compiler.caching = false
       return this.build(...names)
     })
 
@@ -223,7 +223,7 @@ export class Project extends CommandContext {
     'upload', 'upload the project or specific contracts from it',
     async (...names: string[]): Promise<UploadedCode[]> => {
       let sources: Partial<CompiledCode>[] = await this.getSources(names)
-      if (this.builder) sources = await this.builder.buildMany(sources)
+      if (this.compiler) sources = await this.compiler.buildMany(sources)
       const options = { uploadStore: this.uploadStore, reupload: false }
       const agent = this.config.connect.authenticate()
       return Object.values(await agent.uploadMany(sources, options))
@@ -233,7 +233,7 @@ export class Project extends CommandContext {
     'reupload', 'reupload the project or specific contracts from it',
     async (...names: string[]): Promise<UploadedCode[]> => {
       let sources: Partial<CompiledCode>[] = await this.getSources(names)
-      if (this.builder) sources = await this.builder.buildMany(sources)
+      if (this.compiler) sources = await this.compiler.buildMany(sources)
       const options = { uploadStore: this.uploadStore, reupload: true }
       const agent = this.config.connect.authenticate()
       return Object.values(await agent.uploadMany(sources, options))
@@ -267,7 +267,7 @@ export class Project extends CommandContext {
       this.log.info(`deployment:`, bold(deployment.name), `(${deployment.constructor?.name})`)
       const agent = this.config.connect.authenticate()
       await deployment.deploy({
-        builder: this.config.build.getBuilder(),
+        compiler: this.config.build.getCompiler(),
         uploader: agent,
         deployer: agent,
       })
