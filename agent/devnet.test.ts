@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import * as Stub from './stub'
 import { Mode } from './chain'
+import { assignDevnet } from './devnet'
 
 export default async function testDevnet () {
   const devnet = {
@@ -30,4 +31,18 @@ export default async function testDevnet () {
   await chain.authenticate({ name: 'Alice' })
 
   const chain2 = new Stub.Agent({ mode: Mode.Mainnet, devnet })
+
+  const agent: any = {}
+  assignDevnet(agent as any, devnet)
+  agent.id
+  agent.url
+  agent.mode
+  agent.devnet
+  agent.stopped
+  assert.throws(()=>agent.id = "")
+  assert.throws(()=>agent.url = "")
+  assert.throws(()=>agent.mode = "")
+  assert.throws(()=>agent.devnet = "")
+  assert.throws(()=>agent.stopped = "")
+
 }

@@ -67,12 +67,34 @@ export class ContractCode {
     uploaded?: Partial<UploadedCode>,
     deployer?: Agent|Address,
   }) {
-    if (properties?.source)   this.source = new SourceCode(properties.source)
-    if (properties?.compiler) this.compiler = properties?.compiler
-    if (properties?.compiled) this.compiled = new CompiledCode(properties.compiled)
-    if (properties?.uploader) this.uploader = properties?.uploader
-    if (properties?.uploaded) this.uploaded = new UploadedCode(properties.uploaded)
-    if (properties?.deployer) this.deployer = properties?.deployer
+    let { source, compiler, compiled, uploader, uploaded, deployer } = properties || {}
+    if (source) {
+      if (!(source instanceof SourceCode)) {
+        source = new SourceCode(source)
+      }
+      this.source = source as SourceCode
+    }
+    if (compiler) {
+      this.compiler = compiler
+    }
+    if (properties?.compiled) {
+      if (!(compiled instanceof CompiledCode)) {
+        compiled = new CompiledCode(compiled)
+      }
+      this.compiled = compiled as CompiledCode
+    }
+    if (uploader) {
+      this.uploader = uploader
+    }
+    if (properties?.uploaded) {
+      if (!(uploaded instanceof UploadedCode)) {
+        uploaded = new UploadedCode(uploaded)
+      }
+      this.uploaded = uploaded as UploadedCode
+    }
+    if (deployer) {
+      this.deployer = deployer
+    }
   }
 
   /** Compile this contract, unless a valid binary is present and a rebuild is not requested. */
@@ -92,7 +114,6 @@ export class ContractCode {
     if (!compiler) {
       throw new Error("can't compile: no compiler")
     }
-    console.log(this)
     if (!this.source?.isValid()) {
       throw new Error("can't compile: no source")
     }
@@ -175,7 +196,7 @@ export class SourceCode {
   }
 
   isValid () {
-    return this.repository || this.workspace
+    return !!(this.repository || this.workspace)
   }
 }
 

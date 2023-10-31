@@ -6,39 +6,49 @@ import { ContractCode, SourceCode, CompiledCode, UploadedCode } from './code'
 import * as Stub from './stub'
 
 export default async function testContracts () {
-  const contract = new ContractCode({
-    source:   {},
-    compiled: {},
-    uploaded: {},
+  const contract1 = new ContractCode({
+    source: {}, compiler: {} as any, compiled: {}, uploader: {} as any, uploaded: {},
   })
 
-  assert(contract.source instanceof SourceCode)
-  assert(contract.compiled instanceof CompiledCode)
-  assert(contract.uploaded instanceof UploadedCode)
+  const contract2 = new ContractCode({
+    source: {}, compiled: {}, uploaded: {},
+  })
 
-  assert(!(contract.source.isValid()))
-  assert(!(contract.compiled.isValid()))
-  assert(!(contract.uploaded.isValid()))
+  assert(contract2.source instanceof SourceCode)
+  assert(contract2.compiled instanceof CompiledCode)
+  assert(contract2.uploaded instanceof UploadedCode)
+
+  assert(!(contract2.source.isValid()))
+  assert(!(contract2.compiled.isValid()))
+  assert(!(contract2.uploaded.isValid()))
 
   // can't compile missing code
-  assert.rejects(()=>contract.compile())
-  assert.rejects(()=>contract.compile({
-    compiler: new Stub.Compiler()
-  }))
-  assert.rejects(()=>contract.compile({
-    compiler: { build: () => Promise.resolve({ isValid: () => false }) } as any
-  }))
+  assert.rejects(()=>contract2.compile())
+  const validSource = new class extends SourceCode { isValid () { return true } }
+  const invalidSource = new class extends SourceCode { isValid () { return false } }
+  const brokenCompiler = { build: () => Promise.resolve({ isValid: () => false }) }
+  assert.rejects(
+    ()=>new ContractCode({ source: validSource }).compile({ compiler: brokenCompiler as any })
+  )
+  assert.rejects(
+    ()=>new ContractCode({ source: invalidSource }).compile({ compiler: new Stub.Compiler() })
+  )
+  assert.ok(
+    new ContractCode({ source: validSource }).compile({ compiler: new Stub.Compiler() })
+  )
 
   // can't upload missing code
-  assert.rejects(()=>contract.upload())
-  assert.rejects(()=>contract.upload({
+  assert.rejects(
+    ()=>contract2.upload()
+  )
+  assert.rejects(()=>contract2.upload({
     uploader: new Stub.Agent()
   }))
-  assert.rejects(()=>contract.upload({
+  assert.rejects(()=>contract2.upload({
     uploader: { upload: () => Promise.resolve({ isValid: () => false }) } as any
   }))
 
-  assert.deepEqual(contract.source.toReceipt(), {
+  assert.deepEqual(contract2.source.toReceipt(), {
     crate:      undefined,
     dirty:      undefined,
     features:   undefined,
@@ -46,34 +56,23 @@ export default async function testContracts () {
     revision:   undefined,
     workspace:  undefined,
   })
-  assert.deepEqual(contract.compiled.toReceipt(), {
+  assert.deepEqual(contract2.compiled.toReceipt(), {
     codeHash:  undefined,
     codePath:  undefined,
     buildInfo: undefined,
   })
-  assert.deepEqual(contract.uploaded.toReceipt(), {
+  assert.deepEqual(contract2.uploaded.toReceipt(), {
     codeHash:  undefined,
     chainId:   undefined,
     codeId:    undefined,
     uploadBy:  undefined,
     uploadTx:  undefined
   })
-  //assert.deepEqual(contract.instance.toReceipt(), {
-    //codeHash:  undefined,
-    //chainId:   undefined,
-    //codeId:    undefined,
-    //label:     undefined,
-    //initMsg:   undefined,
-    //initBy:    undefined,
-    //initTx:    undefined,
-    //initGas:   undefined,
-    //address:   undefined,
-  //})
 
-  assert(contract.source[Symbol.toStringTag] || true)
-  assert(contract.compiled[Symbol.toStringTag] || true)
-  //assert(contract.uploaded[Symbol.toStringTag])
-  //assert(contract.instance[Symbol.toStringTag])
+  assert(contract2.source[Symbol.toStringTag] || true)
+  assert(contract2.compiled[Symbol.toStringTag] || true)
+  //assert(contract2.uploaded[Symbol.toStringTag])
+  //assert(contract2.instance[Symbol.toStringTag])
 
   assert.rejects(()=>new CompiledCode().fetch())
 
