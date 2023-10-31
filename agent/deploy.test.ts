@@ -79,6 +79,8 @@ export async function testDeployment () {
 
   new MyDeployment().toReceipt()
 
+  MyDeployment.fromReceipt(new MyDeployment().toReceipt())
+
   assert.throws(()=>new MyDeployment().set('foo', {} as any))
 
   await new MyDeployment().upload({
