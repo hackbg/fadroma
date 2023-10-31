@@ -28,9 +28,38 @@ assign.allow('UploadedCode', [
 
 const console = new Console()
 
+export abstract class Compiler {
+  static variants: Record<string, Class<Compiler, any>> = {}
+
+  log = new Console(this.constructor.name)
+
+  /** Whether to enable build caching.
+    * When set to false, this compiler will rebuild even when
+    * binary and checksum are both present in wasm/ directory */
+  caching: boolean = true
+
+  /** Unique identifier of this compiler implementation. */
+  abstract id: string
+
+  /** Up to the implementation.
+    * `@hackbg/fadroma` implements dockerized and non-dockerized
+    * variants on top of the `build.impl.mjs` script. */
+  abstract build (
+    source: string|Partial<SourceCode>|Partial<CompiledCode>,
+    ...args: any[]
+  ): Promise<CompiledCode>
+
+  /** Default implementation of buildMany is parallel.
+    * Compiler implementations override this, though. */
+  abstract buildMany (
+    sources: (string|Partial<CompiledCode>)[],
+    ...args: unknown[]
+  ): Promise<CompiledCode[]>
+}
+
 export class ContractCode {
   source?:   SourceCode
-  builder?:  Builder
+  compiler?: Compiler
   compiled?: CompiledCode
   uploader?: Agent|Address
   uploaded?: UploadedCode
@@ -38,14 +67,14 @@ export class ContractCode {
 
   constructor (properties?: {
     source?:   Partial<SourceCode>,
-    builder?:  Builder,
+    compiler?: Compiler,
     compiled?: Partial<CompiledCode>,
     uploader?: Agent|Address,
     uploaded?: Partial<UploadedCode>,
     deployer?: Agent|Address,
   }) {
     if (properties?.source)   this.source = new SourceCode(properties.source)
-    if (properties?.builder)  this.builder = properties?.builder
+    if (properties?.compiler)  this.compiler = properties?.compiler
     if (properties?.compiled) this.compiled = new CompiledCode(properties.compiled)
     if (properties?.uploader) this.uploader = properties?.uploader
     if (properties?.uploaded) this.uploaded = new UploadedCode(properties.uploaded)
@@ -54,26 +83,26 @@ export class ContractCode {
 
   /** Compile this contract, unless a valid binary is present and a rebuild is not requested. */
   async compile ({
-    builder = this.builder,
+    compiler = this.compiler,
     rebuild = false,
     ...buildOptions
   }: {
-    builder?: Builder
+    compiler?: Compiler
     rebuild?: boolean
-  } = {}): Promise<CompiledCode & Parameters<Builder["build"]>[1] & {
+  } = {}): Promise<CompiledCode & Parameters<Compiler["build"]>[1] & {
     codeHash: CodeHash
   }> {
     if (this.compiled?.isValid() && !rebuild) {
       return this.compiled
     }
-    if (!builder) {
-      throw new Error("can't compile: no builder")
+    if (!compiler) {
+      throw new Error("can't compile: no compiler")
     }
     console.log(this)
     if (!this.source?.isValid()) {
       throw new Error("can't compile: no source")
     }
-    const compiled = await builder.build(this.source, buildOptions)
+    const compiled = await compiler.build(this.source, buildOptions)
     if (!compiled.isValid()) {
       throw new Error("build failed")
     }
@@ -82,7 +111,7 @@ export class ContractCode {
 
   /** Upload this contract, unless a valid upload is present and a rebuild is not requested. */
   async upload ({
-    builder  = this.builder,
+    compiler  = this.compiler,
     rebuild  = false,
     uploader = this.uploader,
     reupload = rebuild,
@@ -99,7 +128,7 @@ export class ContractCode {
     if (!uploader || (typeof uploader === 'string')) {
       throw new Error("can't upload: no uploader agent")
     }
-    const compiled = await this.compile({ builder, rebuild })
+    const compiled = await this.compile({ compiler, rebuild })
     const uploaded = await uploader.upload(compiled, uploadOptions)
     if (!uploaded.isValid()) {
       throw new Error("upload failed")
@@ -225,6 +254,28 @@ export class CompiledCode {
 
 }
 
+  //protected addCodeHash (uploadable: Partial<UploadedCode> & {
+    //name: string,
+    //codePath?: string|URL
+  //}) {
+    //if (!uploadable.codeHash) {
+      //if (uploadable.codePath) {
+        //uploadable.codeHash = base16.encode(sha256(this.fetchSync(uploadable.codePath)))
+        //this.log(`hashed ${String(uploadable.codePath)}:`, uploadable.codeHash)
+      //} else {
+        //this.log(`no artifact, can't compute code hash for: ${uploadable?.name||'(unnamed)'}`)
+      //}
+    //}
+  //}
+
+  //protected async fetch (path: string|URL): Promise<Uint8Array> {
+    //return await Promise.resolve(this.fetchSync(path))
+  //}
+
+  //protected fetchSync (path: string|URL): Uint8Array {
+    //return $(fileURLToPath(new URL(path, 'file:'))).as(BinaryFile).load()
+  //}
+
 /** An object representing the contract's binary uploaded to a given chain. */
 export class UploadedCode {
   /** Code hash uniquely identifying the compiled code. */
@@ -259,34 +310,4 @@ export class UploadedCode {
   isValid (): this is UploadedCode & { codeId: CodeId } {
     return !!this.codeId
   }
-
-}
-
-export abstract class Builder {
-  static variants: Record<string, Class<Builder, any>> = {}
-
-  log = new Console(this.constructor.name)
-
-  /** Whether to enable build caching.
-    * When set to false, this builder will rebuild even when
-    * binary and checksum are both present in wasm/ directory */
-  caching: boolean = true
-
-  /** Unique identifier of this builder implementation. */
-  abstract id: string
-
-  /** Up to the implementation.
-    * `@hackbg/fadroma` implements dockerized and non-dockerized
-    * variants on top of the `build.impl.mjs` script. */
-  abstract build (
-    source: string|Partial<SourceCode>|Partial<CompiledCode>,
-    ...args: any[]
-  ): Promise<CompiledCode>
-
-  /** Default implementation of buildMany is parallel.
-    * Builder implementations override this, though. */
-  abstract buildMany (
-    sources: (string|Partial<CompiledCode>)[],
-    ...args: unknown[]
-  ): Promise<CompiledCode[]>
 }

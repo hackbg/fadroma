@@ -12,22 +12,6 @@ export default async function testContracts () {
     uploaded: {},
   })
 
-  assert.rejects(()=>contract.compile())
-  assert.rejects(()=>contract.compile({
-    builder: new Stub.Builder()
-  }))
-  assert.rejects(()=>contract.compile({
-    builder: { build: () => Promise.resolve({ isValid: () => false }) } as any
-  }))
-
-  assert.rejects(()=>contract.upload())
-  assert.rejects(()=>contract.upload({
-    uploader: new Stub.Agent()
-  }))
-  assert.rejects(()=>contract.upload({
-    uploader: { upload: () => Promise.resolve({ isValid: () => false }) } as any
-  }))
-
   assert(contract.source instanceof SourceCode)
   assert(contract.compiled instanceof CompiledCode)
   assert(contract.uploaded instanceof UploadedCode)
@@ -35,6 +19,24 @@ export default async function testContracts () {
   assert(!(contract.source.isValid()))
   assert(!(contract.compiled.isValid()))
   assert(!(contract.uploaded.isValid()))
+
+  // can't compile missing code
+  assert.rejects(()=>contract.compile())
+  assert.rejects(()=>contract.compile({
+    compiler: new Stub.Compiler()
+  }))
+  assert.rejects(()=>contract.compile({
+    compiler: { build: () => Promise.resolve({ isValid: () => false }) } as any
+  }))
+
+  // can't upload missing code
+  assert.rejects(()=>contract.upload())
+  assert.rejects(()=>contract.upload({
+    uploader: new Stub.Agent()
+  }))
+  assert.rejects(()=>contract.upload({
+    uploader: { upload: () => Promise.resolve({ isValid: () => false }) } as any
+  }))
 
   assert.deepEqual(contract.source.toReceipt(), {
     crate:      undefined,

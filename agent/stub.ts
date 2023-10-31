@@ -4,8 +4,8 @@
 import type { Address, Message, Label, TxHash } from './base'
 import { Console } from './base'
 import type { ICoin } from './token'
-import { Agent, Batch } from './chain'
-import { Builder, CompiledCode, UploadedCode } from './code'
+import { Agent, BatchBuilder } from './chain'
+import { Compiler, CompiledCode, UploadedCode } from './code'
 import type { CodeHash, CodeId, SourceCode } from './code'
 import { ContractInstance } from './deploy'
 
@@ -75,23 +75,49 @@ class StubAgent extends Agent {
     return Promise.resolve({})
   }
 
+  batch (): StubBatchBuilder {
+    return new StubBatchBuilder(this)
+  }
+
 }
 
-class StubBatch extends Batch {}
+class StubBatchBuilder extends BatchBuilder<StubAgent> {
+  messages: object[] = []
+
+  upload (...args: Parameters<StubAgent["upload"]>) {
+    this.messages.push({ instantiate: args })
+    return this
+  }
+
+  instantiate (...args: Parameters<StubAgent["instantiate"]>) {
+    this.messages.push({ instantiate: args })
+    return this
+  }
+
+  execute (...args: Parameters<StubAgent["execute"]>) {
+    this.messages.push({ execute: args })
+    return this
+  }
+
+  async submit () {
+    this.agent.log.debug('Submited batch:', this.messages)
+    return this.messages
+  }
+}
 
 export {
-  StubAgent   as Agent,
-  StubBatch   as Batch,
-  StubBuilder as Builder,
+  StubAgent as Agent,
+  StubBatchBuilder as BatchBuilder,
+  StubCompiler as Compiler,
 }
 
-/** A builder that does nothing. Used for testing. */
-export class StubBuilder extends Builder {
+/** A compiler that does nothing. Used for testing. */
+export class StubCompiler extends Compiler {
   caching = false
 
   id = 'stub'
 
-  log = new Console('StubBuilder')
+  log = new Console('StubCompiler')
 
   async build (
     source: string|Partial<SourceCode>, ...args: any[]

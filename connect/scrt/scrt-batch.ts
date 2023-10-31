@@ -4,7 +4,7 @@
 import { Error, Console } from './scrt-base'
 import { MsgExecuteContract, MsgInstantiateContract } from '@hackbg/secretjs-esm'
 import type { Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/agent'
-import { Batch, assertChain } from '@fadroma/agent'
+import { Batch } from '@fadroma/agent'
 import * as Scrt from './scrt-chain'
 
 export interface ScrtBatchClass <B extends ScrtBatch> {
@@ -64,8 +64,11 @@ class ScrtBatch extends Batch {
     // Output signing instructions to the console
     new Console(this.log.label).batchSigningCommand(
       String(Math.floor(+ new Date()/1000)),
-      this.agent.address!, assertChain(this.agent).id,
-      accountNumber, sequence, unsigned
+      this.agent.address!,
+      this.agent.chainId!,
+      accountNumber,
+      sequence,
+      unsigned
     )
     return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
   }
@@ -116,10 +119,10 @@ class ScrtBatch extends Batch {
 
   async submit (memo = ""): Promise<ScrtBatchResult[]> {
     await super.submit(memo)
-    const chainId = assertChain(this).id
+    const chainId = this.agent.chainId!
     const results: ScrtBatchResult[] = []
     const msgs  = this.conformedMsgs
-    const limit = Number(Scrt.Chain.defaultFees.exec?.amount[0].amount) || undefined
+    const limit = Number(this.agent.fees.exec?.amount[0].amount) || undefined
     const gas   = msgs.length * (limit || 0)
     try {
       const agent = this.agent as unknown as Scrt.Agent

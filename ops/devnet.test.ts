@@ -51,7 +51,7 @@ export async function testDevnetChain () {
 export async function testDevnetCopyUploads () {
   const devnet1   = await new Devnet({ platform: 'okp4_5.0' }).create()
   const chain1    = devnet1.getChain()
-  const agent1    = await chain1.getAgent({ name: 'Admin' }).ready
+  const agent1    = await chain1.authenticate({ name: 'Admin' }).ready
   const crate     = resolve(packageRoot, 'examples', 'cw-null')
   const artifact  = await getBuilder().build(crate)
   const uploaded1 = await agent1.upload(artifact)
@@ -159,7 +159,7 @@ export async function testDevnetFurther () {
   assert.ok(chain.mode === 'Devnet')
   assert.ok(chain.isDevnet)
   assert.ok(chain.devnet === devnet)
-  const alice = chain.getAgent({ name: 'Alice' })
+  const alice = chain.authenticate({ name: 'Alice' })
   await alice.ready
   assert.ok(alice instanceof Agent)
   assert.equal(alice.name, 'Alice')
@@ -168,7 +168,6 @@ export async function testDevnetFurther () {
     mnemonic: string
   }
   assert.equal(alice.address, wallet.address)
-  assert.equal(alice.mnemonic, wallet.mnemonic)
   const anotherDevnet = getDevnet({
     accounts: [ 'Alice', 'Bob' ]
   })

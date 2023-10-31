@@ -5,7 +5,7 @@ import { Console, Error, assign, timestamp, into, map } from './base'
 import type { Into, Name, Label, Class, Address, TxHash, Message, Many } from './base'
 import type { Agent, ChainId } from './chain'
 import type { UploadStore, DeployStore } from './store'
-import type { Builder, CodeId, CodeHash } from './code'
+import type { Compiler, CodeId, CodeHash } from './code'
 import type { ICoin, IFee } from './token'
 import { ContractCode, SourceCode, CompiledCode, UploadedCode } from './code'
 import { ContractClient } from './client'
@@ -33,8 +33,6 @@ export class DeploymentUnit extends ContractCode {
   name?:       string
   /** Deployment to which this unit belongs. */
   deployment?: Deployment
-  /** If true, instantiation. */
-  isTemplate?: boolean
   /** Code hash uniquely identifying the compiled code. */
   codeHash?:   CodeHash
   /** Code ID representing the identity of the contract's code on a specific chain. */
@@ -48,14 +46,20 @@ export class DeploymentUnit extends ContractCode {
     super(properties)
     assign(this, properties, 'DeploymentUnit')
   }
+
+  toReceipt () {
+    return JSON.parse(JSON.stringify(this))
+  }
 }
 
 export class ContractTemplate extends DeploymentUnit {
+  readonly isTemplate = true
+
   /** Create a new instance of this contract. */
   contract (
-    name: Name, parameters: Partial<ContractInstance> = {}
+    name: Name, parameters?: Partial<ContractInstance>
   ): ContractInstance {
-    return new ContractInstance({ ...this, name, parameters })
+    return new ContractInstance({ ...this, name, ...parameters||{} })
   }
   /** Create multiple instances of this contract. */
   contracts (
@@ -63,13 +67,15 @@ export class ContractTemplate extends DeploymentUnit {
   ): Record<keyof typeof instanceParameters, ContractInstance> {
     const instances: Record<keyof typeof instanceParameters, ContractInstance> = {}
     for (const [name, parameters] of Object.entries(instanceParameters)) {
-      instances[name] = this.contract(parameters)
+      instances[name] = this.contract(name, parameters)
     }
     return instances
   }
 }
 
 export class ContractInstance extends DeploymentUnit {
+  readonly isTemplate = false
+
   /** Full label of the instance. Unique for a given chain. */
   label?:    Label
   /** Address of this contract instance. Unique per chain. */
@@ -97,7 +103,7 @@ export class ContractInstance extends DeploymentUnit {
   }
 
   async deploy ({
-    builder  = this.builder,
+    compiler = this.compiler,
     rebuild  = false,
     uploader = this.uploader,
     reupload = rebuild,
@@ -116,12 +122,12 @@ export class ContractInstance extends DeploymentUnit {
     if (!deployer || (typeof deployer === 'string')) {
       throw new Error("can't deploy: no deployer agent")
     }
-    const uploaded = await this.upload({ builder, rebuild, uploader, reupload })
-    const instance = await deployer.instantiate(this, this)
+    const uploaded = await this.upload({ compiler, rebuild, uploader, reupload })
+    const instance = await deployer.instantiate(uploaded, this)
     if (!instance.isValid()) {
       throw new Error("init failed")
     }
-    return this
+    return instance
   }
 
   /** @returns the data for a deploy receipt */
@@ -175,10 +181,11 @@ export class Deployment extends Map<Name, DeploymentUnit> {
   }
 
   toReceipt () {
-    return {
-      name: this.name,
-      units: Object.fromEntries(this.entries())
+    const units: Record<Name, ReturnType<DeploymentUnit["toReceipt"]>> = {}
+    for (const [key, value] of this.entries()) {
+      units[key] = value.toReceipt()
     }
+    return { name: this.name, units: Object.fromEntries(this.entries()) }
   }
 
   set (name: string, unit: DeploymentUnit): this {
@@ -192,50 +199,47 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     * and uploaded, but will not be automatically instantiated.
     * This can then be used to define multiple instances of
     * the same code. */
-  template (name: string, properties?:
-    Partial<SourceCode> &
-    Partial<CompiledCode> &
-    Partial<UploadedCode>
+  template (
+    name: string,
+    properties?: Partial<SourceCode> &
+      Partial<CompiledCode> &
+      Partial<UploadedCode>
   ): ContractTemplate {
-    const template = new ContractTemplate({
-      name,
-      deployment: this,
-      isTemplate: true,
-      source:   new SourceCode(properties),
-      compiled: new CompiledCode(properties),
-      uploaded: new UploadedCode(properties)
+    const source = new SourceCode(properties)
+    const compiled = new CompiledCode(properties)
+    const uploaded = new UploadedCode(properties)
+    const unit = new ContractTemplate({
+      deployment: this, name, source, compiled, uploaded
     })
-    this.set(name, template)
-    return template
+    this.set(name, unit)
+    return unit
   }
 
   /** Define a contract that will be automatically compiled, uploaded,
     * and instantiated as part of this deployment. */ 
-  contract (name: string, properties?:
-    Partial<SourceCode> &
-    Partial<CompiledCode> &
-    Partial<UploadedCode> &
-    Partial<ContractInstance>
+  contract (
+    name: string,
+    properties?: Partial<SourceCode> &
+      Partial<CompiledCode> &
+      Partial<UploadedCode> &
+      Partial<ContractInstance>
   ): ContractInstance {
-    const contract = new ContractInstance({
-      name,
-      deployment: this,
-      isTemplate: true,
-      source:   new SourceCode(properties),
-      compiled: new CompiledCode(properties),
-      uploaded: new UploadedCode(properties),
-      ...properties
+    const source = new SourceCode(properties)
+    const compiled = new CompiledCode(properties)
+    const uploaded = new UploadedCode(properties)
+    const unit = new ContractInstance({
+      deployment: this, name, source, compiled, uploaded, ...properties
     })
-    this.set(name, contract)
-    return contract
+    this.set(name, unit)
+    return unit
   }
 
   async build (
     options: Parameters<ContractCode["compile"]>[0] = {}
   ): Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>> {
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
-    for (const [name, contract] of this.entries()) {
-      building.push(contract.compile(options))
+    for (const [name, unit] of this.entries()) {
+      building.push(unit.compile(options))
     }
     const built: Record<CodeHash, CompiledCode & { codeHash: CodeHash }> = {}
     for (const output of await Promise.all(building)) {
@@ -248,8 +252,8 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     options: Parameters<ContractCode["upload"]>[0] = {}
   ): Promise<Record<CodeId, UploadedCode & { codeId: CodeId }>> {
     const uploading: Array<Promise<UploadedCode & { codeId: CodeId }>> = []
-    for (const [name, contract] of this.entries()) {
-      uploading.push(contract.upload(options))
+    for (const [name, unit] of this.entries()) {
+      uploading.push(unit.upload(options))
     }
     const uploaded: Record<CodeId, UploadedCode & { codeId: CodeId }> = {}
     for (const output of await Promise.all(uploading)) {
@@ -262,12 +266,9 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     options: Parameters<ContractInstance["deploy"]>[0] = {}
   ): Promise<Record<Address, ContractInstance & { address: Address }>> {
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
-    for (const [name, contract] of this.entries()) {
-      if (!contract.isTemplate) {
-        deploying.push(contract.deploy({
-          ...contract.instance,
-          ...options,
-        }))
+    for (const [name, unit] of this.entries()) {
+      if (unit instanceof ContractInstance) {
+        deploying.push(unit.deploy(options))
       }
     }
     const deployed: Record<Address, ContractInstance & { address: Address }> = {}
@@ -276,7 +277,6 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     }
     return deployed
   }
-
 }
 
 /** A contract name with optional prefix and suffix, implementing namespacing

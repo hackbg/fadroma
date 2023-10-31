@@ -4,17 +4,16 @@
 import assert from 'node:assert'
 import { fixture } from '../fixtures/fixtures'
 
-import { Agent, Mode } from './chain'
+import { Agent, BatchBuilder, Mode } from './chain'
 import * as Stub from './stub'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['chain',  testChain],
-  ['agent',  testAgent],
-  ['devnet', testDevnet],
+  ['unauthenticated', testUnauthenticated],
+  ['authenticated',   testAuthenticated],
 ])
 
-export async function testChain () {
+export async function testUnauthenticated () {
   let chain = new Stub.Agent()
   assert.throws(()=>chain.chainId)
   assert.throws(()=>chain.chainId='foo')
@@ -37,7 +36,7 @@ export async function testChain () {
   assert(new Stub.Agent({ mode: Mode.Mocknet }).devMode)
 }
 
-export async function testAgent () {
+export async function testAuthenticated () {
   const chain = new Stub.Agent({ chainId: 'stub' })
   let agent: Agent = await chain.authenticate({ name: 'testing1', address: '...' })
   assert.equal(agent[Symbol.toStringTag], '... @ stub')
@@ -62,40 +61,15 @@ export async function testAgent () {
 
   await agent.execute('stub', {}, {})
   await agent.execute({ address: 'stub' }, {}, {})
-}
 
-export async function testDevnet () {
-  const devnet = {
-    accounts: [],
-    chainId: 'foo',
-    platform: 'bar',
-    running: false,
-    stateDir: '/tmp/foo',
-    url: new URL('http://example.com'),
-    async start () { return this },
-    async getAccount () { return {} },
-    async assertPresence () {}
-  }
-  const chain = new Stub.Agent({
-    mode: Mode.Mainnet,
-    chainId: 'bar',
-    url: 'http://asdf.com',
-    devnet,
-  })
-  // Properties from Devnet are passed onto Chain
-  assert.equal(chain.devnet, devnet)
-  assert.equal(chain.chainId, 'foo')
-  assert.equal(chain.url, 'http://example.com/')
-  assert.equal(chain.mode, Mode.Devnet)
-  assert.equal(chain.stopped, true)
-  devnet.running = true
-  assert.equal(chain.stopped, false)
-  assert.throws(()=>chain.chainId='asdf')
-  assert.throws(()=>chain.url='asdf')
-  assert.throws(()=>{
-    //@ts-ignore
-    chain.mode='asdf'
-  })
-  assert.throws(()=>chain.devnet=devnet)
-  assert.throws(()=>chain.stopped=true)
+  const batch = agent.batch()
+    .upload({})
+    .upload({})
+    .instantiate({}, {})
+    .instantiate({}, {})
+    .execute({}, {})
+    .execute({}, {})
+
+  assert(batch instanceof BatchBuilder)
+  await batch.submit()
 }

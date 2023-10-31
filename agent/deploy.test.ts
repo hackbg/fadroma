@@ -26,7 +26,7 @@ export async function testDeployment () {
   }
 
   await new MyBuildableDeployment().build({
-    builder: new Stub.Builder()
+    compiler: new Stub.Compiler()
   })
 
   class MyDeployment extends Deployment {
@@ -60,20 +60,20 @@ export async function testDeployment () {
   assert.throws(()=>new MyDeployment().set('foo', {} as any))
 
   await new MyDeployment().upload({
-    builder:  new Stub.Builder(),
+    compiler: new Stub.Compiler(),
     uploader: new Stub.Agent(),
   })
 
   await new MyDeployment().deploy({
-    builder:  new Stub.Builder(),
+    compiler: new Stub.Compiler(),
     uploader: new Stub.Agent(),
     deployer: new Stub.Agent(),
   })
 
   new Console().deployment(new MyDeployment())
 
-  assert((await new Stub.Builder().build('')) instanceof CompiledCode)
-  assert((await new Stub.Builder().buildMany([{}]))[0] instanceof CompiledCode)
+  assert((await new Stub.Compiler().build('')) instanceof CompiledCode)
+  assert((await new Stub.Compiler().buildMany([{}]))[0] instanceof CompiledCode)
 }
 
 export async function testDeploymentLabels () {

@@ -16,24 +16,24 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import type { ChainClass } from '@fadroma/connect'
+import type { AgentClass } from '@fadroma/connect'
 import { connectModes, CW, Scrt } from '@fadroma/connect'
 import { Config } from './ops/config'
 
 // Install devnets as selectable chains:
 Object.assign(connectModes, {
 
-  'ScrtDevnet': Scrt.Chain.devnet =
-    (options: Partial<Scrt.Chain>|undefined): Scrt.Chain =>
+  'ScrtDevnet': Scrt.Agent.devnet =
+    (options: Partial<Scrt.Agent>|undefined): Scrt.Agent =>
       new Config().devnet
         .getDevnet({ platform: 'scrt_1.9' })
-        .getChain(Scrt.Chain as ChainClass<Scrt.Chain>, options),
+        .getChain(Scrt.Agent as AgentClass<Scrt.Agent>, options),
 
-  'OKP4Devnet': CW.OKP4.Chain.devnet = 
-    (options: Partial<CW.OKP4.Chain>|undefined): CW.OKP4.Chain =>
+  'OKP4Devnet': CW.OKP4.Agent.devnet = 
+    (options: Partial<CW.OKP4.Agent>|undefined): CW.OKP4.Agent =>
       new Config().devnet
         .getDevnet({ platform: 'okp4_5.0' })
-        .getChain(CW.OKP4.Chain as ChainClass<CW.OKP4.Chain>, options)
+        .getChain(CW.OKP4.Agent as AgentClass<CW.OKP4.Agent>, options)
 
 })
 
