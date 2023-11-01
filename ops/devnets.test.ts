@@ -9,7 +9,6 @@ import { Project, getDevnet, Devnet, Agent } from '@hackbg/fadroma'
 import type { DevnetPlatform } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import { Image, Container } from '@hackbg/dock'
-import { getCompiler } from './build'
 
 //@ts-ignore
 export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))

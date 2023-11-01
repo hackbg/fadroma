@@ -23,11 +23,11 @@ assign.allow<RustSourceCode>('RustSourceCode', [
 ])
 
 assign.allow<CompiledCode>('CompiledCode', [
-  'codeHash', 'buildInfo', 'codePath', 'codeData'
+  'codeHash', 'codePath', 'codeData'
 ])
 
 assign.allow<UploadedCode>('UploadedCode', [
-  'codeHash', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
+  'codeHash', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas',
 ])
 
 const console = new Console()
@@ -151,9 +151,15 @@ export class SourceCode {
     ].filter(Boolean).join(' ')
   }
 
-  toReceipt () {
+  toReceipt (): {
+    sourcePath?:   string
+    sourceRepo?:   string
+    sourceRef?:    string
+    sourceDirty?:  boolean
+    [key: string]: unknown
+  } {
     const { sourcePath, sourceRepo, sourceRef, sourceDirty } = this
-    return { sourcePath, sourceRepo, sourceRef, sourceDirty }
+    return { sourcePath, sourceRepo: sourceRepo?.toString(), sourceRef, sourceDirty }
   }
 
   /** Minimum required data to compile: path. */
@@ -184,9 +190,19 @@ export class RustSourceCode extends SourceCode {
     ].filter(Boolean).join(' ')
   }
 
-  toReceipt () {
+  toReceipt (): ReturnType<SourceCode["toReceipt"]> & {
+    cargoWorkspace?: string
+    cargoCrate?:     string
+    cargoFeatures?:  string[]
+    [key: string]:   unknown
+  } {
     const { cargoWorkspace, cargoCrate, cargoFeatures } = this
-    return { ...super.toReceipt(), cargoWorkspace, cargoCrate, cargoFeatures }
+    return {
+      ...super.toReceipt(),
+      cargoWorkspace,
+      cargoCrate,
+      cargoFeatures: cargoFeatures ? [...cargoFeatures] : undefined
+    }
   }
 
   /** Minimum required data to compile: path + crate name if workspace. */
@@ -197,7 +213,6 @@ export class RustSourceCode extends SourceCode {
 
 /** An object representing a given compiled binary. */
 export class CompiledCode {
-  buildInfo?: string
   /** Code hash uniquely identifying the compiled code. */
   codeHash?:  CodeHash
   /** Location of the compiled code. */
@@ -217,9 +232,13 @@ export class CompiledCode {
     ].filter(Boolean).join(' ')
   }
 
-  toReceipt () {
-    const { codeHash, codePath, buildInfo } = this
-    return { codeHash, codePath, buildInfo }
+  toReceipt (): {
+    codeHash?: CodeHash
+    codePath?: string
+    [key: string]: unknown
+  } {
+    const { codeHash, codePath } = this
+    return { codeHash, codePath: codePath?.toString() }
   }
 
   /** Minimum required data to upload: path or data */
@@ -274,28 +293,6 @@ export class CompiledCode {
 
 }
 
-  //protected addCodeHash (uploadable: Partial<UploadedCode> & {
-    //name: string,
-    //codePath?: string|URL
-  //}) {
-    //if (!uploadable.codeHash) {
-      //if (uploadable.codePath) {
-        //uploadable.codeHash = base16.encode(sha256(this.fetchSync(uploadable.codePath)))
-        //this.log(`hashed ${String(uploadable.codePath)}:`, uploadable.codeHash)
-      //} else {
-        //this.log(`no artifact, can't compute code hash for: ${uploadable?.name||'(unnamed)'}`)
-      //}
-    //}
-  //}
-
-  //protected async fetch (path: string|URL): Promise<Uint8Array> {
-    //return await Promise.resolve(this.fetchSync(path))
-  //}
-
-  //protected fetchSync (path: string|URL): Uint8Array {
-    //return $(fileURLToPath(new URL(path, 'file:'))).as(BinaryFile).load()
-  //}
-
 /** An object representing the contract's binary uploaded to a given chain. */
 export class UploadedCode {
   /** Code hash uniquely identifying the compiled code. */
@@ -310,21 +307,26 @@ export class UploadedCode {
   uploadBy?:   Address|Agent
   /** address of agent that performed the upload. */
   uploadGas?:  string|number
-  /** extra info */
-  uploadInfo?: string
 
   constructor (properties: Partial<UploadedCode> = {}) {
     assign(this, properties, 'UploadedCode')
   }
 
-  toReceipt () {
-    return {
-      codeHash: this.codeHash,
-      chainId:  this.chainId,
-      codeId:   this.codeId,
-      uploadBy: this.uploadBy,
-      uploadTx: this.uploadTx,
+  toReceipt (): {
+    codeHash?:     CodeHash
+    chainId?:      ChainId
+    codeId?:       CodeId
+    uploadTx?:     TxHash
+    uploadBy?:     Address
+    uploadGas?:    string|number
+    uploadInfo?:   string
+    [key: string]: unknown
+  } {
+    let { codeHash, chainId, codeId, uploadTx, uploadBy, uploadGas } = this
+    if ((typeof this.uploadBy === 'object')) {
+      uploadBy = (uploadBy as Agent).address
     }
+    return { codeHash, chainId, codeId, uploadTx, uploadBy: uploadBy as string, uploadGas }
   }
 
   isValid (): this is UploadedCode & { codeId: CodeId } {

@@ -2,14 +2,32 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
-import { MyDeployment } from './deploy.test'
 import { RawLocalRustCompiler, ContainerizedLocalRustCompiler, DotGit } from './build'
-import { Compiler, ContractInstance } from '@fadroma/connect'
+import { Compiler, ContractInstance, Deployment } from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
+import { fixture } from '../fixtures/fixtures'
 export default new Suite([
   ['basic',   testBuild],
   ['history', testBuildHistory]
 ])
+
+export class MyDeploymentFromSource extends Deployment {
+  t = this.template('t', {
+    sourcePath: fixture("../examples/kv")
+  })
+
+  // Single template instance with eager and lazy initMsg
+  a1 = this.t.contract('a1', { initMsg: {} })
+  a2 = this.t.contract('a2', { initMsg: () => ({}) })
+  a3 = this.t.contract('a3', { initMsg: async () => ({}) })
+
+  // Multiple contracts from the same template
+  b = this.t.contracts({
+    b1: { initMsg: {} },
+    b2: { initMsg: () => ({}) },
+    b3: { initMsg: async () => ({}) }
+  })
+}
 
 export async function testBuild () {
   for (const CompilerVariant of [
@@ -18,7 +36,7 @@ export async function testBuild () {
   ]) {
     const compiler = new CompilerVariant()
     assert.ok(compiler instanceof Compiler)
-    const deployment = new MyDeployment()
+    const deployment = new MyDeploymentFromSource()
     await deployment.build({ compiler })
   }
 

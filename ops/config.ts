@@ -56,8 +56,4 @@ export class FadromaConfig extends Config {
   }
 }
 
-export {
-  FadromaConfig as Config,
-  ConnectConfig,
-  DevnetConfig,
-}
+export { FadromaConfig as Config, ConnectConfig, DevnetConfig }

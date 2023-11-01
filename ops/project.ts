@@ -20,7 +20,7 @@ import $, {
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 
-import { getCompiler, Compiler } from './build'
+import { Compiler } from './build'
 import { Config, version } from './config'
 import { Devnet } from './devnets'
 import { ProjectWizard, toolVersions } from './wizard'
@@ -39,29 +39,21 @@ export type ProjectOptions = Omit<Partial<Project>, 'root'|'templates'|'uploadSt
 }
 
 export class Project extends CommandContext {
-
   log = new Console(`Fadroma ${version}`) as any
-
   /** Fadroma settings. */
-  config: Config
-
+  config:      Config
   /** Name of the project. */
-  name: string
-
+  name:        string
   /** Root directory of the project. */
-  root: OpaqueDirectory
-
-  /** Default deployment class. */
-  Deployment = Deployment
-
+  root:        OpaqueDirectory
   /** Compiler to compile the contracts. */
-  compiler: Compiler
-
+  compiler:    Compiler
   /** Stores the upload receipts. */
   uploadStore: UploadStore
-
   /** Stores the deploy receipts. */
   deployStore: DeployStore
+  /** Default deployment class. */
+  Deployment = Deployment
 
   static wizard = (...args: any[]) => new ProjectWizard().createProject(this, ...args)
 
