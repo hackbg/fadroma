@@ -22,5 +22,6 @@ export default async function testClient () {
   assert.throws(()=>new ContractClient({}, agent).query({}))
   assert.throws(()=>new ContractClient({}).execute({}))
   assert.throws(()=>new ContractClient({}, agent).execute({}))
+  assert.throws(()=>new ContractClient({}, {} as any).execute({}))
 }
 

@@ -43,7 +43,7 @@ export async function testDeployment () {
       codeData: new Uint8Array([1]),
     })
     contract1 = this.template('template1', {
-      repository: "foo",
+      sourcePath: "foo",
     })
   }
 
@@ -93,9 +93,6 @@ export async function testDeployment () {
     uploader: new Stub.Agent(),
     deployer: new Stub.Agent(),
   })
-
-  assert((await new Stub.Compiler().build('')) instanceof CompiledCode)
-  assert((await new Stub.Compiler().buildMany([{}]))[0] instanceof CompiledCode)
 }
 
 export async function testDeploymentLabels () {

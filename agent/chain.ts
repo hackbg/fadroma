@@ -267,7 +267,9 @@ export abstract class Agent {
       `msec: code id`,
       bold(String(result.codeId)),
       `on chain`,
-      bold(result.chainId)
+      bold(result.chainId),
+      `from code hash`,
+      bold(result.codeHash)
     )
     return new UploadedCode({
       ...template, ...result
@@ -309,13 +311,14 @@ export abstract class Agent {
       initMsg: await into(options.initMsg)
     })
     const t1 = performance.now() - t0
-    this.log.debug(
+    this.log.log(
       `Instantiated in`,
       bold(t1.toFixed(3)),
-      `msec: code id`,
+      `msec:`,
+      bold(String(options.label)),
+      `(${bold(result.address)})`,
+      `from code id`,
       bold(String(contract.codeId)),
-      `address`,
-      bold(result.address)
     )
     return new ContractInstance({
       ...options, ...result
@@ -335,7 +338,7 @@ export abstract class Agent {
     const t0 = performance.now()
     const result = await this.doExecute(contract as { address: Address }, message, options)
     const t1 = performance.now() - t0
-    this.log.debug(
+    this.log.log(
       `Executed in`,
       bold(t1.toFixed(3)),
       `msec: address`,

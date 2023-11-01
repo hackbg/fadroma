@@ -159,6 +159,8 @@ export interface DeploymentClass<D extends Deployment> extends Class<
 
 /** A collection of contracts. */
 export class Deployment extends Map<Name, DeploymentUnit> {
+  log = new Console('Deployment')
+
   name: string = timestamp()
 
   static fromReceipt ({ name, units = {} }: DeploymentState) {
@@ -173,6 +175,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     super()
     assign(this, properties, 'Deployment')
     this.name ??= timestamp()
+    this.log.label = `Deployment ${this.name}`
   }
 
   toReceipt () {
@@ -234,7 +237,12 @@ export class Deployment extends Map<Name, DeploymentUnit> {
   ): Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>> {
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
     for (const [name, unit] of this.entries()) {
-      building.push(unit.compile(options))
+      console.log({unit})
+      if (!unit.source?.isValid() && unit.compiled?.isValid()) {
+        this.log.warn(`Missing source for ${unit.compiled.codeHash}`)
+      } else {
+        building.push(unit.compile(options))
+      }
     }
     const built: Record<CodeHash, CompiledCode & { codeHash: CodeHash }> = {}
     for (const output of await Promise.all(building)) {

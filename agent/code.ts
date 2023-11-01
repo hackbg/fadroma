@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Console, assign } from './base'
+import { Console, assign, base16, sha256 } from './base'
 import type { Class, Address, TxHash } from './base'
 import type { ChainId, Agent } from './chain'
 
@@ -14,17 +14,21 @@ export type CodeHash = string
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string
 
-assign.allow('SourceCode', [
-  'repository', 'revision', 'dirty', 'workspace', 'crate', 'features'
-] as Array<keyof Omit<SourceCode, symbol>>)
+assign.allow<SourceCode>('SourceCode', [
+  'sourcePath', 'sourceRepo', 'sourceRef', 'sourceDirty'
+])
 
-assign.allow('CompiledCode', [
+assign.allow<RustSourceCode>('RustSourceCode', [
+  'cargoWorkspace', 'cargoCrate', 'cargoFeatures'
+])
+
+assign.allow<CompiledCode>('CompiledCode', [
   'codeHash', 'buildInfo', 'codePath', 'codeData'
-] as Array<keyof Omit<CompiledCode, symbol>>)
+])
 
-assign.allow('UploadedCode', [
+assign.allow<UploadedCode>('UploadedCode', [
   'codeHash', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas', 'uploadInfo',
-] as Array<keyof Omit<UploadedCode, symbol>>)
+])
 
 const console = new Console()
 
@@ -59,42 +63,10 @@ export class ContractCode {
   uploaded?: UploadedCode
   deployer?: Agent|Address
 
-  constructor (properties?: {
-    source?:   Partial<SourceCode>,
-    compiler?: Compiler,
-    compiled?: Partial<CompiledCode>,
-    uploader?: Agent|Address,
-    uploaded?: Partial<UploadedCode>,
-    deployer?: Agent|Address,
-  }) {
-    let { source, compiler, compiled, uploader, uploaded, deployer } = properties || {}
-    if (source) {
-      if (!(source instanceof SourceCode)) {
-        source = new SourceCode(source)
-      }
-      this.source = source as SourceCode
-    }
-    if (compiler) {
-      this.compiler = compiler
-    }
-    if (properties?.compiled) {
-      if (!(compiled instanceof CompiledCode)) {
-        compiled = new CompiledCode(compiled)
-      }
-      this.compiled = compiled as CompiledCode
-    }
-    if (uploader) {
-      this.uploader = uploader
-    }
-    if (properties?.uploaded) {
-      if (!(uploaded instanceof UploadedCode)) {
-        uploaded = new UploadedCode(uploaded)
-      }
-      this.uploaded = uploaded as UploadedCode
-    }
-    if (deployer) {
-      this.deployer = deployer
-    }
+  constructor (properties?: Partial<ContractCode>) {
+    assign(this, properties, [
+      'source', 'compiler', 'compiled', 'uploader', 'uploaded', 'deployer'
+    ])
   }
 
   /** Compile this contract, unless a valid binary is present and a rebuild is not requested. */
@@ -154,49 +126,68 @@ export class ContractCode {
 
 /** An object representing a given source code. */
 export class SourceCode {
+  sourcePath?:  string
   /** URL pointing to Git repository containing the source code. */
-  repository?: string|URL
+  sourceRepo?:  string|URL
   /** Branch/tag pointing to the source commit. */
-  revision?:   string
-  /** Whether there were any uncommitted changes at build time. */
-  dirty?:      boolean
-  /** Path to root directory of crate or workspace. */
-  workspace?:  string
-  /** Name of crate in workspace. */
-  crate?:      string
-  /** List of crate features to enable during build. */
-  features?:   string[]
+  sourceRef?:   string
+  /** Whether the code contains uncommitted changes. */
+  sourceDirty?: boolean
 
   constructor (properties: Partial<SourceCode> = {}) {
     assign(this, properties, 'SourceCode')
   }
 
   get [Symbol.toStringTag] () {
-    return this.specifier
+    return [
+      this.sourcePath ? this.sourcePath : `(missing source)`,
+      this.sourceRepo  && `(from ${this.sourceRepo})`,
+      this.sourceRef   && `(at ${this.sourceRef})`,
+      this.sourceDirty && `(modified)`
+    ].filter(Boolean).join(' ')
   }
 
   toReceipt () {
-    return {
-      repository: this.repository,
-      revision:   this.revision,
-      dirty:      this.dirty,
-      workspace:  this.workspace,
-      crate:      this.crate,
-      features:   this.features?.join(', '),
-    }
+    const { sourcePath, sourceRepo, sourceRef, sourceDirty } = this
+    return { sourcePath, sourceRepo, sourceRef, sourceDirty }
   }
 
-  /** @returns a string in the format `repo@ref|crate[+flag][+flag]...` */
-  get specifier (): string {
-    const { repository, revision, crate, features, dirty } = this
-    let result = `${repository}@${revision}|${crate}`
-    if (features && features.length > 0) result = `${result}+${features.join('+')}`
-    if (dirty) result = `(*)${result}`
-    return result
-  }
-
+  /** Minimum required data to compile: path. */
   isValid () {
-    return !!(this.repository || this.workspace)
+    return !!(this.sourcePath)
+  }
+}
+
+export class RustSourceCode extends SourceCode {
+  /** Path to root directory of crate or workspace. */
+  cargoWorkspace?: string
+  /** Name of crate in workspace. */
+  cargoCrate?:     string
+  /** List of crate features to enable during build. */
+  cargoFeatures?:  string[]|Set<string>
+
+  constructor (properties?: Partial<RustSourceCode>) {
+    super(properties)
+    assign(this, properties, 'RustSourceCode')
+  }
+
+  get [Symbol.toStringTag] () {
+    return [
+      this.cargoWorkspace
+        ? (this.cargoCrate ? `crate ${this.cargoCrate} from` : 'unknown crate from')
+        : undefined,
+      super[Symbol.toStringTag],
+    ].filter(Boolean).join(' ')
+  }
+
+  toReceipt () {
+    const { cargoWorkspace, cargoCrate, cargoFeatures } = this
+    return { ...super.toReceipt(), cargoWorkspace, cargoCrate, cargoFeatures }
+  }
+
+  /** Minimum required data to compile: path + crate name if workspace. */
+  isValid () {
+    return super.isValid() && (this.cargoWorkspace ? !!(this.cargoCrate) : true)
   }
 }
 
@@ -215,24 +206,21 @@ export class CompiledCode {
   }
 
   get [Symbol.toStringTag] () {
-    let tags = [
+    return [
       this.codePath && `${this.codePath}`,
       this.codeHash && `${this.codeHash}`,
       this.codeData && `(${this.codeData.length} bytes)`
-    ]
-    return tags.filter(Boolean).join(' ')
-  }
-
-  isValid (): this is CompiledCode & { codeHash: CodeHash } {
-    return !!this.codeHash
+    ].filter(Boolean).join(' ')
   }
 
   toReceipt () {
-    return {
-      codeHash:  this.codeHash,
-      codePath:  this.codePath,
-      buildInfo: this.buildInfo,
-    }
+    const { codeHash, codePath, buildInfo } = this
+    return { codeHash, codePath, buildInfo }
+  }
+
+  /** Minimum required data to upload: path or data */
+  isValid (): this is CompiledCode & { codeHash: CodeHash } {
+    return !!(this.codePath || this.codeData)
   }
 
   async fetch (): Promise<Uint8Array> {
@@ -265,6 +253,19 @@ export class CompiledCode {
       const response = await request.arrayBuffer()
       return new Uint8Array(response)
     }
+  }
+
+  /** Compute the code hash if missing; throw if different. */
+  async computeHash (): Promise<CodeHash> {
+    const hash = base16.encode(sha256(await this.fetch()))
+    if (this.codeHash) {
+      if (this.codeHash.toLowerCase() !== hash.toLowerCase()) {
+        throw new Error(`computed code hash ${hash} did not match preexisting ${this.codeHash}`)
+      }
+    } else {
+      this.codeHash = hash
+    }
+    return hash
   }
 
 }
