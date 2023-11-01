@@ -83,7 +83,7 @@
     "husky": "^8.0.3",
     "lint-staged": "^13.1.2",
     "typedoc": "0.24.8",
-    "typescript": "^5.1.6",
+    "typescript": "^5.2.2",
 
     "@types/dockerode": "^3.3.14",
     "@types/js-yaml": "^4.0.5",

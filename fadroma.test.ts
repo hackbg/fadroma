@@ -6,7 +6,7 @@ export default new Suite([
   ['agent',   () => import('./agent/agent.test')],
   ['build',   () => import('./ops/build.test')],
   ['deploy',  () => import('./ops/deploy.test')],
-  ['devnet',  () => import('./ops/devnets.test')],
+  ['devnets', () => import('./ops/devnets.test')],
   ['project', () => import('./ops/project.test')],
   ['stores',  () => import('./ops/stores.test')],
   ['connect', () => import('./connect/connect.test')],
