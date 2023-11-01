@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Config, Console, Error,
-  Compiler, CompiledCode, ContractInstance, HEAD, SourceCode,
+  Compiler, CompiledCode, ContractInstance, HEAD, RustSourceCode,
   bold, colors,
 } from '@fadroma/connect'
 import type { Class, UploadedCode, Environment } from '@fadroma/connect'
@@ -129,8 +129,8 @@ export abstract class LocalRustCompiler extends Compiler {
     return $(location).as(BinaryFile).sha256
   }
 
-  /** @returns a fully populated Partial<SourceCode> from the original */
-  protected resolveSource (source: string|Partial<SourceCode>): Partial<SourceCode> {
+  /** @returns a fully populated Partial<RustSourceCode> from the original */
+  protected resolveSource (source: string|Partial<RustSourceCode>): Partial<RustSourceCode> {
     if (typeof source === 'string') source = { crate: source }
     let { crate, workspace = this.workspace, revision = 'HEAD' } = source
     if (!crate) {
@@ -214,7 +214,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   }
 
   /** Build a single contract. */
-  async build (contract: string|Partial<SourceCode>): Promise<CompiledCode> {
+  async build (contract: string|Partial<RustSourceCode>): Promise<CompiledCode> {
     return (await this.buildMany([contract]))[0]
   }
 
@@ -222,15 +222,15 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: (string|(Partial<SourceCode>))[]): Promise<CompiledCode[]> {
+  async buildMany (inputs: (string|(Partial<RustSourceCode>))[]): Promise<CompiledCode[]> {
     // This copies the argument because we'll mutate its contents anyway
     inputs = inputs.map(source=>this.resolveSource(source))
     // Batch together inputs from the same repo+commit
-    const [workspaces, revisions] = this.collectBatches(inputs as Partial<SourceCode>[])
+    const [workspaces, revisions] = this.collectBatches(inputs as Partial<RustSourceCode>[])
     // For each repository/revision pair, build the inputs from it.
     for (const path of workspaces) {
       for (const revision of revisions) {
-        await this.buildBatch(inputs as Partial<SourceCode>[], path, revision)
+        await this.buildBatch(inputs as Partial<RustSourceCode>[], path, revision)
       }
     }
     return inputs as CompiledCode[]
@@ -239,7 +239,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Go over the list of inputs, filtering out the ones that are already built,
     * and collecting the source repositories and revisions. This will allow for
     * multiple crates from the same source checkout to be passed to a single build command. */
-  protected collectBatches (inputs: Partial<SourceCode>[]) {
+  protected collectBatches (inputs: Partial<RustSourceCode>[]) {
     const workspaces = new Set<string>()
     const revisions  = new Set<string>()
     for (let id in inputs) {
@@ -276,7 +276,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     return false
   }
 
-  protected async buildBatch (inputs: Partial<SourceCode>[], path: string, rev: string = HEAD) {
+  protected async buildBatch (inputs: Partial<RustSourceCode>[], path: string, rev: string = HEAD) {
     this.log.log('Building from', path, '@', rev)
     let root = $(path)
     let gitSubDir = ''
@@ -323,7 +323,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     }
   }
 
-  protected getPathDependencies (input: Partial<SourceCode>): Set<string> {
+  protected getPathDependencies (input: Partial<RustSourceCode>): Set<string> {
     const paths = new Set<string>()
     const cargoTOML = $(input.workspace!, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
     for (const [dep, ver] of Object.entries(cargoTOML.dependencies||[])) {
@@ -355,7 +355,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
 
   /** Match each crate from the current repo/ref pair
       with its index in the originally passed list of inputs. */
-  protected matchBatch (inputs: Partial<SourceCode>[], path: string, rev: string): [number, string][] {
+  protected matchBatch (inputs: Partial<RustSourceCode>[], path: string, rev: string): [number, string][] {
     const crates: [number, string][] = []
     for (let index = 0; index < inputs.length; index++) {
       const source = inputs[index]
@@ -572,14 +572,14 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
   runtime = process.argv[0]
 
   /** Build multiple Sources. */
-  async buildMany (inputs: Partial<SourceCode>[]): Promise<CompiledCode[]> {
+  async buildMany (inputs: Partial<RustSourceCode>[]): Promise<CompiledCode[]> {
     const templates: CompiledCode[] = []
     for (const source of inputs) templates.push(await this.build(source))
     return templates
   }
 
   /** Build a Source into a Template */
-  async build (source: Partial<SourceCode>): Promise<CompiledCode> {
+  async build (source: Partial<RustSourceCode>): Promise<CompiledCode> {
     source.workspace ??= this.workspace
     source.revision  ??= HEAD
     const { workspace, revision, crate } = source
@@ -599,7 +599,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     return new CompiledCode({ codePath, codeHash })
   }
 
-  protected getEnvAndTemp (source: Partial<SourceCode>, workspace?: string, revision?: string) {
+  protected getEnvAndTemp (source: Partial<RustSourceCode>, workspace?: string, revision?: string) {
     // Temporary dirs used for checkouts of non-HEAD builds
     let tmpGit:   Path|null = null
     let tmpBuild: Path|null = null
@@ -644,7 +644,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     return getGitDir(...args)
   }
 
-  protected runBuild (source: Partial<SourceCode>, env: { _OUTPUT: string }): Promise<Path> {
+  protected runBuild (source: Partial<RustSourceCode>, env: { _OUTPUT: string }): Promise<Path> {
     source = this.resolveSource(source)
     const { crate, workspace, revision = 'HEAD' } = source
     if (!crate) {
@@ -672,7 +672,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
 }
 
 // Try to determine where the .git directory is located
-export function getGitDir (template: Partial<SourceCode> = {}): DotGit {
+export function getGitDir (template: Partial<RustSourceCode> = {}): DotGit {
   const { workspace } = template || {}
   if (!workspace) throw new Error("No workspace specified; can't find gitDir")
   return new DotGit(workspace)

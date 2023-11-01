@@ -4,17 +4,16 @@
 import { ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
 import { Config, Error, Console } from './scrt-base'
-import * as Mocknet from './scrt-mocknet'
+//import * as Mocknet from './scrt-mocknet'
 import type { ScrtBatchBuilder } from './scrt-batch'
 import type {
-  AgentClass, Uint128, BatchClass, ContractClient,
+  AgentClass, Uint128, ContractClient,
   ICoin, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
 import {
   Agent, into, base64, bip39, bip39EN, bold,
-  Fee, Batch,
+  Fee, BatchBuilder,
   UploadedCode, ContractInstance,
-  bindChainSupport
 } from '@fadroma/agent'
 
 /** Represents a Secret Network API endpoint. */
@@ -38,9 +37,9 @@ class ScrtAgent extends Agent {
   }
 
   /** Connect to a Secret Network mocknet. */
-  static mocknet (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain {
-    return new Mocknet.Chain({ chainId: 'mocknet', ...options })
-  }
+  //static mocknet (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain {
+    //return new Mocknet.Chain({ chainId: 'mocknet', ...options })
+  //}
 
   /** Smallest unit of native token. */
   static defaultDenom: string = 'uscrt'
@@ -65,9 +64,6 @@ class ScrtAgent extends Agent {
 
   /** Downcast chain property to Scrt only. */
   declare chain: ScrtAgent
-
-  /** Batch class used by this agent. */
-  Batch: BatchClass<ScrtBatch> = ScrtAgent.Batch
 
   /** Whether to simulate each execution first to get a more accurate gas estimate. */
   simulateForGas: boolean = false

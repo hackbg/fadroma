@@ -7,6 +7,7 @@ import {
 } from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
 import { JSONFileDeployStore } from './stores'
+import { fixture } from '../fixtures/fixtures'
 
 //export new DeploymentBuilder('mydeployment')
   //.template('swapPool', { codeId: '1', crate: 'examples/kv' })
@@ -23,21 +24,12 @@ import { JSONFileDeployStore } from './stores'
   //.command()
 
 export class MyDeployment extends Deployment {
-  t = this.template('t', {
-    codeId: '1',
-    crate:  'examples/kv'
-  })
+  t = this.template('t', { codeId: '1', sourcePath: fixture("empty.wasm") })
 
   // Single template instance with eager and lazy initMsg
-  a1 = this.t.contract('a1', {
-    initMsg: {}
-  })
-  a2 = this.t.contract('a2', {
-    initMsg: () => ({})
-  })
-  a3 = this.t.contract('a3', {
-    initMsg: async () => ({})
-  })
+  a1 = this.t.contract('a1', { initMsg: {} })
+  a2 = this.t.contract('a2', { initMsg: () => ({}) })
+  a3 = this.t.contract('a3', { initMsg: async () => ({}) })
 
   // Multiple contracts from the same template
   b = this.t.contracts({

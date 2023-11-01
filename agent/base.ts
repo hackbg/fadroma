@@ -39,7 +39,7 @@ export function assign <T extends {}> (
 assign.allowed = new Map<string, Set<string|number|symbol>>()
 
 /** Add properties to the allow list for a given value object class. */
-assign.allow = <T>(name: string, props: Array<keyof T>) => {
+assign.allow = <T>(name: string, props: Array<keyof Omit<T, symbol>>) => {
   const allowedProperties = assign.allowed.get(name) || new Set()
   for (const prop of props) allowedProperties.add(prop)
   assign.allowed.set(name, allowedProperties)

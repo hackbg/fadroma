@@ -20,7 +20,7 @@ import { Agent } from './scrt-chain'
 export const mainnet = (...args: Parameters<typeof Agent.mainnet>) => Agent.mainnet(...args)
 export const testnet = (...args: Parameters<typeof Agent.testnet>) => Agent.testnet(...args)
 export const devnet  = (...args: Parameters<typeof Agent.devnet>)  => Agent.devnet(...args)
-export const mocknet = (...args: Parameters<typeof Agent.mocknet>) => Agent.mocknet(...args)
+//export const mocknet = (...args: Parameters<typeof Agent.mocknet>) => Agent.mocknet(...args)
 export * from './scrt-base'
 export * from './scrt-chain'
 export * as Snip20 from './snip-20'
