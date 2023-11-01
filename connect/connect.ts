@@ -39,7 +39,7 @@ export const connectModes = {
   ScrtDevnet: (...args: Parameters<typeof Scrt.Agent.devnet>): Scrt.Agent => {
     throw new Error('Devnets are only available through @hackbg/fadroma')
   },
-  ScrtMocknet: Scrt.mocknet,
+  //ScrtMocknet: Scrt.mocknet,
 
   // Support for OKP4:
   OKP4Testnet: CW.OKP4.testnet,

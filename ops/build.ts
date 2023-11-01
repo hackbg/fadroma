@@ -2,26 +2,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Config, Console, Error,
-  Compiler, CompiledCode, ContractInstance, HEAD, RustSourceCode,
-  bold, colors,
+  Config, Console, Error, Compiler, CompiledCode, HEAD, RustSourceCode, bold, assign,
 } from '@fadroma/connect'
-import type { Class, UploadedCode, Environment } from '@fadroma/connect'
-
-import type { Project } from './project'
-
 import type { Container } from '@hackbg/dock'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
-import { hideProperties } from '@hackbg/hide'
-import $, { Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile, OpaqueFile } from '@hackbg/file'
-
+import $, { Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile } from '@hackbg/file'
 import { default as simpleGit } from 'simple-git'
-
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, sep } from 'node:path'
 import { homedir } from 'node:os'
-import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
@@ -30,98 +20,65 @@ const thisPackage =
   //@ts-ignore
   dirname(dirname(fileURLToPath(import.meta.url)))
 
-/** @returns Compiler configured as per environment and options */
-export function getCompiler (options: Partial<BuildConfig> = {}): Compiler {
-  return new BuildConfig(options).getCompiler()
-}
-
-/** Configuration for compiler. */
-export class BuildConfig extends Config {
-  constructor (options: Partial<BuildConfig> = {}, environment?: Environment) {
-    super(environment)
-    this.override(options)
-  }
-  /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
-    * Defaults to parent directory of FADROMA_PROJECT. */
-  workspace = this.getString('FADROMA_WORKSPACE', ()=>this.root)
-  /** Whether the build process should print more detail to the console. */
-  verbose = this.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
-  /** Whether the build log should be printed only on error, or always */
-  quiet = this.getFlag('FADROMA_BUILD_QUIET', ()=>false)
-  /** Whether to enable caching and reuse contracts from artifacts directory. */
-  caching = !this.getFlag('FADROMA_REBUILD', ()=>false)
-  /** Name of output directory. */
-  outputDir = this.getString('FADROMA_ARTIFACTS', ()=>$(this.root).in('wasm').path)
-  /** Script that runs inside the build container, e.g. build.impl.mjs */
-  script = this.getString('FADROMA_BUILD_SCRIPT', ()=>$(thisPackage).at('build.impl.mjs').path)
-  /** Which version of the Rust toolchain to use, e.g. `1.61.0` */
-  toolchain = this.getString('FADROMA_RUST', ()=>'')
-  /** Don't run "git fetch" during build. */
-  noFetch = this.getFlag('FADROMA_NO_FETCH', ()=>false)
-  /** Whether to bypass Docker and use the toolchain from the environment. */
-  raw = this.getFlag('FADROMA_BUILD_RAW', ()=>false)
-  /** Whether to use Podman instead of Docker to run the build container. */
-  podman = this.getFlag('FADROMA_BUILD_PODMAN', () => this.getFlag('FADROMA_PODMAN', ()=>false))
-  /** Path to Docker API endpoint. */
-  dockerSocket = this.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
-  /** Docker image to use for dockerized builds. */
-  dockerImage = this.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
-  /** Dockerfile to build the build image if not downloadable. */
-  dockerfile = this.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(thisPackage).at('Dockerfile').path)
-  /** Owner uid that is set on build artifacts. */
-  outputUid = this.getString('FADROMA_BUILD_UID', () => undefined)
-  /** Owner gid that is set on build artifacts. */
-  outputGid = this.getString('FADROMA_BUILD_GID', () => undefined)
-  /** Used for historical builds. */
-  preferredRemote = this.getString('FADROMA_PREFERRED_REMOTE', () => undefined)
-  /** Used to authenticate Git in build container. */
-  sshAuthSocket = this.getString('SSH_AUTH_SOCK', () => undefined)
-  /** @returns the Compiler class exposed by the config */
-  get Compiler () {
-    return this.raw ? RawLocalRustCompiler : ContainerizedLocalRustCompiler
-  }
-  /** @returns a configured compiler. */
-  getCompiler = (Compiler?: Class<Compiler, any>): Compiler =>new (Compiler ??= this.Compiler)(this)
-}
-
 export { Compiler }
+
+export abstract class ConfiguredCompiler extends Compiler {
+  config: Config
+  constructor (options?: Partial<{ config: Config }>) {
+    super()
+    this.config = options?.config || new Config()
+  }
+}
 
 /** Can perform builds.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
-export abstract class LocalRustCompiler extends Compiler {
+export abstract class LocalRustCompiler extends ConfiguredCompiler {
   readonly id: string = 'local'
   /** Logger. */
   log = new Console('build (local)')
-  /** The build script. */
-  script?:    string
-  /** The project workspace. */
-  workspace?: string
-  /** Whether to skip any `git fetch` calls in the build script. */
-  noFetch:    boolean = false
-  /** Name of directory where build artifacts are collected. */
-  outputDir:  OpaqueDirectory
-  /** Version of Rust toolchain to use. */
-  toolchain:  string|null = null
   /** Whether the build process should print more detail to the console. */
-  verbose:    boolean = false
+  verbose: boolean =
+    this.config.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
   /** Whether the build log should be printed only on error, or always */
-  quiet:      boolean = false
+  quiet: boolean =
+    this.config.getFlag('FADROMA_BUILD_QUIET', ()=>false)
+  /** The build script. */
+  script?: string =
+    this.config.getString('FADROMA_BUILD_SCRIPT', ()=>{
+      return $(thisPackage).in('ops').at('build.impl.mjs').path
+    })
+  /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
+    * Defaults to parent directory of FADROMA_PROJECT. */
+  workspace?: string =
+    this.config.getString('FADROMA_WORKSPACE', ()=>process.cwd())
+  /** Whether to skip any `git fetch` calls in the build script. */
+  noFetch: boolean =
+    this.config.getFlag('FADROMA_NO_FETCH', ()=>false)
+  /** Name of directory where build artifacts are collected. */
+  outputDir: OpaqueDirectory = new OpaqueDirectory(
+    this.config.getString('FADROMA_ARTIFACTS', ()=>$(process.cwd()).in('wasm').path)
+  )
+  /** Version of Rust toolchain to use. */
+  toolchain: string|null =
+    this.config.getString('FADROMA_RUST', ()=>'')
   /** Default Git reference from which to build sources. */
-  revision:   string = HEAD
+  revision: string =
+    HEAD
   /** Owner uid that is set on build artifacts. */
-  buildUid?:  number = (process.getuid ? process.getuid() : undefined) // process.env.FADROMA_BUILD_UID
+  buildUid?: number =
+    (process.getuid ? process.getuid() : undefined) // process.env.FADROMA_BUILD_UID
   /** Owner gid that is set on build artifacts. */
-  buildGid?:  number = (process.getgid ? process.getgid() : undefined) // process.env.FADROMA_BUILD_GID
+  buildGid?: number =
+    (process.getgid ? process.getgid() : undefined) // process.env.FADROMA_BUILD_GID
+  /** Whether to enable caching and reuse contracts from artifacts directory. */
+  caching: boolean =
+    !this.config.getFlag('FADROMA_REBUILD', ()=>false)
 
-  constructor (options: Partial<BuildConfig> = {}) {
+  constructor (options?: Partial<LocalRustCompiler>) {
     super()
-    this.workspace = options.workspace ?? this.workspace
-    this.noFetch   = options.noFetch   ?? this.noFetch
-    this.toolchain = options.toolchain ?? this.toolchain
-    this.verbose   = options.verbose   ?? this.verbose
-    this.quiet     = options.quiet     ?? this.quiet
-    this.outputDir = $(options.outputDir!).as(OpaqueDirectory)
-    if (options.script) this.script = options.script
+    assign(this, options, [
+      'workspace', 'noFetch', 'toolchain', 'verbose', 'quiet', 'outputDir', 'script'
+    ])
   }
 
   /** @returns the SHA256 hash of the file at the specified location */
@@ -129,43 +86,127 @@ export abstract class LocalRustCompiler extends Compiler {
     return $(location).as(BinaryFile).sha256
   }
 
-  /** @returns a fully populated Partial<RustSourceCode> from the original */
+  /** @returns a fully populated RustSourceCode from the original. */
   protected resolveSource (source: string|Partial<RustSourceCode>): Partial<RustSourceCode> {
-    if (typeof source === 'string') source = { crate: source }
-    let { crate, workspace = this.workspace, revision = 'HEAD' } = source
-    if (!crate) {
-      throw new Error("missing crate name")
+    if (typeof source === 'string') {
+      source = { cargoCrate: source }
     }
-    // If the `crate` field contains a slash, this is a crate path and not a crate name.
-    // Add the crate path to the workspace path, and set the real crate name.
-    if (source.crate && source.crate.includes(sep)) {
-      source.workspace = $(source.workspace||'', source.crate).shortPath
-      const cargoTOML = $(source.workspace, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
-      source.crate = cargoTOML.package.name
+    let {
+      sourceRef = 'HEAD',
+      cargoWorkspace = this.workspace,
+      cargoCrate,
+    } = source
+    if (cargoWorkspace && cargoCrate) {
+      throw new Error("missing crate name")
     }
     return source
   }
 }
 
-/** The parts of Cargo.toml which the compiler needs to be aware of. */
-export type CargoTOML = {
-  package: { name: string },
-  dependencies: Record<string, { path?: string }>
+/** Runs the build script in the current envionment. */
+export class RawLocalRustCompiler extends LocalRustCompiler {
+  readonly id = 'Raw'
+
+  /** Logging handle. */
+  log = new Console('build (raw)')
+
+  /** Node.js runtime that runs the build subprocess.
+    * Defaults to the same one that is running this script. */
+  runtime = process.argv[0]
+
+  /** Build a Source into a Template */
+  async build (source: Partial<RustSourceCode>): Promise<CompiledCode> {
+    const { sourcePath, sourceRef = HEAD, cargoWorkspace, cargoCrate } = source
+    const env = {
+      FADROMA_BUILD_GID: String(this.buildGid),
+      FADROMA_BUILD_UID: String(this.buildUid),
+      FADROMA_OUTPUT:    $(sourcePath||process.cwd()).in('wasm').path,
+      FADROMA_REGISTRY:  '',
+      FADROMA_TOOLCHAIN: this.toolchain,
+    }
+    let location: Path
+    if (sourceRef && (sourceRef !== HEAD)) {
+      // Check out commit in temp directory
+      const gitDir = new DotGit(sourcePath!)
+      if (!gitDir?.present) {
+        throw new Error('.git dir not found')
+      }
+      const tmpGit = $.tmpDir('fadroma-git-')
+      const tmpBuild = $.tmpDir('fadroma-build-')
+      location = await this.runBuild(source, Object.assign(env, {
+        FADROMA_GIT_ROOT:   gitDir.path,
+        FADROMA_GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
+        FADROMA_NO_FETCH:   this.noFetch,
+        FADROMA_TMP_BUILD:  tmpBuild.path,
+        FADROMA_TMP_GIT:    tmpGit.path,
+      }))
+      if (tmpGit.exists()) tmpGit.delete()
+      if (tmpBuild.exists()) tmpBuild.delete()
+    } else {
+      // Build from available source
+      location = await this.runBuild(source, env)
+    }
+    // Create an codePath for the build result
+    const codePath = pathToFileURL(location.path)
+    const codeHash = this.hashPath(location.path)
+    return new CompiledCode({ codePath, codeHash })
+  }
+
+  protected runBuild (
+    source: Partial<RustSourceCode>, env: { FADROMA_OUTPUT: string }
+  ): Promise<Path> {
+    source = this.resolveSource(source)
+    const { sourcePath, sourceRef = HEAD, cargoWorkspace, } = source
+    let { cargoCrate } = source
+    if (!sourcePath) {
+      throw new Error("can't build: no source path specified")
+    }
+    if (!cargoCrate) {
+      if (cargoWorkspace) {
+        throw new Error("can't build: no crate selected from workspace")
+      } else {
+        cargoCrate = $(sourcePath).at('Cargo.toml').as(TOMLFile<CargoTOML>).load()!.package.name
+      }
+    }
+    return new Promise((resolve)=>{
+      const args = [ this.script!, 'phase1', sourceRef ]
+      if (cargoCrate) {
+        args.push(cargoCrate)
+      }
+      const spawned = this.spawn(this.runtime!, args, {
+        cwd: sourcePath, env: { ...process.env, ...env }, stdio: 'inherit'
+      })
+      spawned.on('exit', (code: number, signal: any) => {
+        const build = `Build of ${cargoCrate} from ${$(sourcePath!).shortPath} @ ${sourceRef}`
+        if (code === 0) {
+          resolve($(env.FADROMA_OUTPUT, codePathName(cargoCrate!, sanitize(sourceRef||'HEAD'))))
+        } else if (code !== null) {
+          const message = `${build} exited with code ${code}`
+          this.log.error(message)
+          throw Object.assign(new Error(message), { source: source, code })
+        } else if (signal !== null) {
+          const message = `${build} exited by signal ${signal}`
+          this.log.warn(message)
+        } else {
+          throw new Error('Unreachable')
+        }
+      })
+    })
+  }
+
+  /** Overridable. */
+  protected spawn (...args: Parameters<typeof spawn>) {
+    return spawn(...args)
+  }
+
+  /** Overridable. */
+  protected getGitDir (...args: ConstructorParameters<typeof DotGit>): DotGit {
+    return new DotGit(...args)
+  }
 }
 
-/** @returns an codePath filename name in the format CRATE@REF.wasm */
-export const codePathName = (crate: string, ref: string) =>
-  `${crate}@${sanitize(ref)}.wasm`
 
-/** @returns a filename-friendly version of a Git ref */
-export const sanitize = (ref: string) =>
-  ref.replace(/\//g, '_')
-
-/** @returns an array with duplicate elements removed */
-export const distinct = <T> (x: T[]): T[] =>
-  [...new Set(x) as any]
-
-/** This compiler launches a one-off build container using Dockerode. */
+/** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   readonly id = 'Container'
   /** Logger */
@@ -174,39 +215,46 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   docker: Engine
   /** Tag of the docker image for the build container. */
   image: Image
-  /** Path to the dockerfile to build the build container if missing. */
-  dockerfile: string
-  /** Used to authenticate Git in build container. */
-  sshAuthSocket?: string // process.env.SSH_AUTH_SOCK
+  /** Whether to use Podman instead of Docker to run the build container. */
+  podman = this.config.getFlag('FADROMA_BUILD_PODMAN', () => {
+    return this.config.getFlag('FADROMA_PODMAN', ()=>false)
+  })
+  /** Path to Docker API endpoint. */
+  dockerSocket = this.config.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
+  /** Docker image to use for dockerized builds. */
+  dockerImage = this.config.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
+  /** Path to the dockerfile for the build container if missing. */
+  dockerfile = this.config.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(thisPackage).at('Dockerfile').path)
+  /** Owner uid that is set on build artifacts. */
+  outputUid = this.config.getString('FADROMA_BUILD_UID', () => undefined)
+  /** Owner gid that is set on build artifacts. */
+  outputGid = this.config.getString('FADROMA_BUILD_GID', () => undefined)
   /** Used for historical builds. */
-  preferredRemote: string = 'origin' // process.env.FADROMA_PREFERRED_REMOTE
+  preferredRemote = this.config.getString('FADROMA_PREFERRED_REMOTE', () => 'origin')
+  /** Used to authenticate Git in build container. */
+  sshAuthSocket = this.config.getString('SSH_AUTH_SOCK', () => undefined)
 
-  constructor (opts: Partial<BuildConfig & { docker?: Engine }> = {}) {
-    super(opts)
-    const { docker, dockerSocket, dockerImage } = opts
+  constructor (options?: Partial<ContainerizedLocalRustCompiler>) {
+    super(options as Partial<LocalRustCompiler>)
     // Set up Docker API handle
-    const Containers = opts.podman ? Podman : Docker
-    if (dockerSocket) {
-      this.docker = new Containers.Engine(dockerSocket)
-    } else if (docker) {
-      this.docker = docker
+    const Containers = options?.podman ? Podman : Docker
+    if (options?.dockerSocket) {
+      this.docker = new Containers.Engine(options.dockerSocket)
+    } else if (options?.docker) {
+      this.docker = options.docker
     } else {
       this.docker = new Containers.Engine()
     }
-    if ((dockerImage as unknown) instanceof Containers.Image) {
-      this.image = opts.dockerImage as unknown as Image
-    } else if (opts.dockerImage) {
-      this.image = this.docker.image(opts.dockerImage)
+    if ((options?.dockerImage as unknown) instanceof Containers.Image) {
+      this.image = options?.dockerImage as unknown as Image
+    } else if (options?.dockerImage) {
+      this.image = this.docker.image(options.dockerImage)
     } else {
       this.image = this.docker.image('ghcr.io/hackbg/fadroma:master')
     }
     // Set up Docker image
-    this.dockerfile ??= opts.dockerfile!
-    this.script ??= opts.script!
-    hideProperties(this,
-      'log', 'name', 'description', 'timestamp',
-      'commandTree', 'currentCommand',
-      'args', 'task', 'before')
+    this.dockerfile ??= options?.dockerfile!
+    this.script ??= options?.script!
   }
 
   get [Symbol.toStringTag]() {
@@ -245,28 +293,26 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     for (let id in inputs) {
       // Contracts passed as strins are converted to object here
       const source = inputs[id]
-      source.workspace ??= this.workspace
-      source.revision  ??= 'HEAD'
+      source.cargoWorkspace ??= this.workspace
+      source.sourceRef ??= 'HEAD'
       // If the source is already built, don't build it again
       if (!this.populatePrebuilt(source)) {
-        if (!source.revision || (source.revision === HEAD)) {
-          this.log(`Building ${bold(source.crate)} from working tree`)
+        if (!source.sourceRef || (source.sourceRef === HEAD)) {
+          this.log(`Building ${bold(source.cargoCrate)} from working tree`)
         } else {
-          this.log(`Building ${bold(source.crate)} from revision ${bold(source.revision)}`)
+          this.log(`Building ${bold(source.cargoCrate)} from revision ${bold(source.sourceRef)}`)
         }
-        // Set ourselves as the source's compiler
-        source.compiler = this as unknown as Compiler
         // Add the source repository of the contract to the list of inputs to build
-        workspaces.add(source.workspace!)
-        revisions.add(source.revision!)
+        workspaces.add(source.cargoWorkspace!)
+        revisions.add(source.sourceRef!)
       }
     }
     return [workspaces, revisions]
   }
 
-  protected populatePrebuilt (source: Partial<CompiledCode>): boolean {
-    const { workspace, revision, crate } = source
-    const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
+  protected populatePrebuilt (source: Partial<RustSourceCode>): boolean {
+    const { cargoWorkspace, sourceRef, cargoCrate } = source
+    const prebuilt = this.prebuild(this.outputDir.path, cargoCrate, sourceRef)
     if (prebuilt) {
       new Console(`build ${crate}`).found(prebuilt)
       source.codePath = prebuilt.codePath
@@ -285,7 +331,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
 
     // If building from history, make sure that full source is mounted, and fetch history
     if (rev !== HEAD) {
-      const gitDir = getGitDir({ workspace: path })
+      const gitDir = new DotGit(path)
       root = gitDir.rootRepo
       if (gitDir.isSubmodule) gitSubDir = gitDir.submoduleDir
       const remote = this.preferredRemote || 'origin'
@@ -388,7 +434,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     // Rest of container config:
     const buildScript = $(`/`, $(this.script).name).path
     const command = [ 'node', buildScript, 'phase1', rev, ...cratesToBuild ]
-    const buildEnv = this.getEnv(subdir, gitSubDir)
     const {readonly, writable} = this.getMounts(buildScript, root, outputDir, safeRef)
     const options = this.getOptions(subdir, gitSubDir, readonly, writable)
     let buildLogs = ''
@@ -461,53 +506,47 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     if (this.caching && crate) {
       const location = $(outputDir, codePathName(crate, revision))
       if (location.exists()) {
-        return new CompiledCode({
-          crate,
-          revision,
-          codePath: location.url,
-          codeHash: this.hashPath(location)
-        })
+        const codePath = location.url
+        const codeHash = this.hashPath(location)
+        return new CompiledCode({ codePath, codeHash })
       }
     }
     return null
   }
 
-  protected getOptions (
+  protected getOptions (options?: Partial<{
     subdir: string, gitSubdir: string, ro: Record<string, string>, rw: Record<string, string>,
-  ) {
+  }>) {
     const remove = true
     const cwd = '/src'
-    const env = this.getEnv(subdir, gitSubdir)
-    const extra = { Tty: true, AttachStdin: true }
-    return { remove, readonly: ro, writable: rw, cwd, env, extra }
-  }
-
-  protected getEnv (subdir: string, gitSubdir: string): Record<string, string> {
-    const buildEnv = {
-      // Vars used by the build script itself are prefixed with underscore:
-      _BUILD_UID:  String(this.buildUid),
-      _BUILD_GID:  String(this.buildGid),
-      _GIT_REMOTE: this.preferredRemote,
-      _GIT_SUBDIR: gitSubdir,
-      _SRC_SUBDIR:     subdir,
-      _NO_FETCH:   String(this.noFetch),
-      _VERBOSE:    String(this.verbose),
-      // Vars used by the tools invoked by the build script are left as is:
-      LOCKED: '',/*'--locked'*/
-      CARGO_HTTP_TIMEOUT: '240',
+    const env = {
+      // Used by the build script itself:
+      FADROMA_BUILD_UID:  String(this.buildUid),
+      FADROMA_BUILD_GID:  String(this.buildGid),
+      FADROMA_GIT_REMOTE: this.preferredRemote,
+      FADROMA_GIT_SUBDIR: options?.gitSubdir,
+      FADROMA_SRC_SUBDIR: options?.subdir,
+      FADROMA_NO_FETCH:   String(this.noFetch),
+      FADROMA_VERBOSE:    String(this.verbose),
+      // Used by tools invoked by the build script:
+      LOCKED:                       '',/*'--locked'*/
+      CARGO_HTTP_TIMEOUT:           '240',
       CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-      GIT_PAGER: 'cat',
-      GIT_TERMINAL_PROMPT: '0',
-      SSH_AUTH_SOCK: '/ssh_agent_socket',
-      TERM: process?.env?.TERM,
+      GIT_PAGER:                    'cat',
+      GIT_TERMINAL_PROMPT:          '0',
+      SSH_AUTH_SOCK:                '/ssh_agent_socket',
+      TERM:                         process?.env?.TERM,
     }
     // Remove keys whose value is `undefined` from `buildEnv`
-    for (const key of Object.keys(buildEnv)) {
-      if (buildEnv[key as keyof typeof buildEnv] === undefined) {
-        delete buildEnv[key as keyof typeof buildEnv]
+    for (const key of Object.keys(env)) {
+      if (env[key as keyof typeof env] === undefined) {
+        delete env[key as keyof typeof env]
       }
     }
-    return buildEnv as Record<string, string>
+    const extra = { Tty: true, AttachStdin: true }
+    return {
+      remove, readonly: options?.ro, writable: options?.rw, cwd, env, extra
+    }
   }
 
   protected getLogStream (revision: string, cb: (data: string)=>void) {
@@ -559,125 +598,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   }
 }
 
-/** This build mode looks for a Rust toolchain in the same environment
-  * as the one in which the script is running, i.e. no build container. */
-export class RawLocalRustCompiler extends LocalRustCompiler {
-  readonly id = 'Raw'
-
-  /** Logging handle. */
-  log = new Console('build (raw)')
-
-  /** Node.js runtime that runs the build subprocess.
-    * Defaults to the same one that is running this script. */
-  runtime = process.argv[0]
-
-  /** Build multiple Sources. */
-  async buildMany (inputs: Partial<RustSourceCode>[]): Promise<CompiledCode[]> {
-    const templates: CompiledCode[] = []
-    for (const source of inputs) templates.push(await this.build(source))
-    return templates
-  }
-
-  /** Build a Source into a Template */
-  async build (source: Partial<RustSourceCode>): Promise<CompiledCode> {
-    source.workspace ??= this.workspace
-    source.revision  ??= HEAD
-    const { workspace, revision, crate } = source
-    if (!(crate || workspace)) {
-      throw new Error("missing crate name or workspace path")
-    }
-    const { env, tmpGit, tmpBuild } = this.getEnvAndTemp(source, workspace, revision)
-    // Run the build script as a subprocess
-    const location = await this.runBuild(source, env)
-    // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
-    if (tmpGit && tmpGit.exists()) tmpGit.delete()
-    if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
-    // Create an codePath for the build result
-    this.log.sub((crate||workspace)!).log('built', bold(location.shortPath))
-    const codePath = pathToFileURL(location.path)
-    const codeHash = this.hashPath(location.path)
-    return new CompiledCode({ codePath, codeHash })
-  }
-
-  protected getEnvAndTemp (source: Partial<RustSourceCode>, workspace?: string, revision?: string) {
-    // Temporary dirs used for checkouts of non-HEAD builds
-    let tmpGit:   Path|null = null
-    let tmpBuild: Path|null = null
-    // Most of the parameters are passed to the build script
-    // by way of environment variables.
-    const env = {
-      _BUILD_UID: String(this.buildUid),
-      _BUILD_GID: String(this.buildGid),
-      _OUTPUT:    $(workspace||process.cwd()).in('wasm').path,
-      _REGISTRY:  '',
-      _TOOLCHAIN: this.toolchain,
-    }
-    if ((revision ?? HEAD) !== HEAD) {
-      const gitDir = getGitDir(source)
-      // Provide the build script with the config values that ar
-      // needed to make a temporary checkout of another commit
-      if (!gitDir?.present) {
-        throw new Error('.git dir not found')
-      }
-      // Create a temporary Git directory. The build script will copy the Git history
-      // and modify the refs in order to be able to do a fresh checkout with submodules
-      tmpGit   = $.tmpDir('fadroma-git-')
-      tmpBuild = $.tmpDir('fadroma-build-')
-      Object.assign(env, {
-        _GIT_ROOT:   gitDir.path,
-        _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
-        _NO_FETCH:   this.noFetch,
-        _TMP_BUILD:  tmpBuild.path,
-        _TMP_GIT:    tmpGit.path,
-      })
-    }
-    return {env, tmpGit, tmpBuild}
-  }
-
-  /** Overridable. */
-  protected spawn (...args: Parameters<typeof spawn>) {
-    return spawn(...args)
-  }
-
-  /** Overridable. */
-  protected getGitDir (...args: Parameters<typeof getGitDir>) {
-    return getGitDir(...args)
-  }
-
-  protected runBuild (source: Partial<RustSourceCode>, env: { _OUTPUT: string }): Promise<Path> {
-    source = this.resolveSource(source)
-    const { crate, workspace, revision = 'HEAD' } = source
-    if (!crate) {
-      throw new Error("can't build: no crate specified")
-    }
-    return new Promise((resolve, reject)=>this.spawn(
-      this.runtime!, [ this.script!, 'phase1', revision, crate ],
-      { cwd: workspace, env: { ...process.env, ...env }, stdio: 'inherit' } as any
-    ).on('exit', (code: number, signal: any) => {
-      const build = `Build of ${crate} from ${$(workspace!).shortPath} @ ${revision}`
-      if (code === 0) {
-        resolve($(env._OUTPUT, codePathName(crate, sanitize(revision||'HEAD'))))
-      } else if (code !== null) {
-        const message = `${build} exited with code ${code}`
-        this.log.error(message)
-        throw Object.assign(new Error(message), { source: source, code })
-      } else if (signal !== null) {
-        const message = `${build} exited by signal ${signal}`
-        this.log.warn(message)
-      } else {
-        throw new Error('Unreachable')
-      }
-    }))
-  }
-}
-
-// Try to determine where the .git directory is located
-export function getGitDir (template: Partial<RustSourceCode> = {}): DotGit {
-  const { workspace } = template || {}
-  if (!workspace) throw new Error("No workspace specified; can't find gitDir")
-  return new DotGit(workspace)
-}
-
 /** Represents the real location of the Git data directory.
   * - In standalone repos this is `.git/`
   * - If the contracts workspace repository is a submodule,
@@ -694,7 +614,15 @@ export class DotGit extends Path {
   readonly isSubmodule: boolean = false
 
   constructor (base: string|URL, ...fragments: string[]) {
-    if (base instanceof URL) base = fileURLToPath(base)
+    if (!base) {
+      throw new Error(
+        'you need to pass a base directory in order to '+
+        'compute the path of the corresponding.git datastore'
+      )
+    }
+    if (base instanceof URL) {
+      base = fileURLToPath(base)
+    }
     super(base, ...fragments, '.git')
     if (!this.exists()) {
       // If .git does not exist, it is not possible to build past commits
@@ -742,3 +670,21 @@ export class DotGit extends Path {
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 
 }
+
+/** The parts of Cargo.toml which the compiler needs to be aware of. */
+export type CargoTOML = {
+  package: { name: string },
+  dependencies: Record<string, { path?: string }>
+}
+
+/** @returns an codePath filename name in the format CRATE@REF.wasm */
+export const codePathName = (crate: string, ref: string) =>
+  `${crate}@${sanitize(ref)}.wasm`
+
+/** @returns a filename-friendly version of a Git ref */
+export const sanitize = (ref: string) =>
+  ref.replace(/\//g, '_')
+
+/** @returns an array with duplicate elements removed */
+export const distinct = <T> (x: T[]): T[] =>
+  [...new Set(x) as any]

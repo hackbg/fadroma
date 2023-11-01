@@ -26,11 +26,9 @@ export async function testCWSigner () {
 
 export async function testCWChain () {
   // Throws because devnet instance is not passed:
-  const devnet = await new Devnet({ platform: 'okp4_5.0' }).create()
-  const chain = await (devnet.getChain() as CW.OKP4.Agent)
+  const chain = new CW.OKP4.Agent({ devnet: new Devnet({ platform: 'okp4_5.0' }) })
   const alice = await chain.authenticate({ name: 'Alice' }) as CW.OKP4.Agent
   const bob = await chain.authenticate({ name: 'Bob' }) as CW.OKP4.Agent
-
   // FIXME: getBalance signatures (getBalanceIn?)
   assert.rejects(()=>chain.getBalance(CW.OKP4.Agent.defaultDenom, undefined as any))
   await chain.getBalance(CW.OKP4.Agent.defaultDenom, alice.address!)

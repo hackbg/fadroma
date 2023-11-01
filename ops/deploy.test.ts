@@ -24,7 +24,7 @@ import { fixture } from '../fixtures/fixtures'
   //.command()
 
 export class MyDeployment extends Deployment {
-  t = this.template('t', { codeId: '1', sourcePath: fixture("empty.wasm") })
+  t = this.template('t', { codeId: '1', sourcePath: fixture("../examples/kv") })
 
   // Single template instance with eager and lazy initMsg
   a1 = this.t.contract('a1', { initMsg: {} })
@@ -52,12 +52,12 @@ export async function testDeployment () {
 }
 
 class V1Deployment extends Deployment {
-  kv1 = this.contract('kv1', { crate: 'examples/kv', initMsg: {} })
-  kv2 = this.contract('kv2', { crate: 'examples/kv', initMsg: {} })
+  kv1 = this.contract('kv1', { sourcePath: fixture("empty.wasm"), initMsg: {} })
+  kv2 = this.contract('kv2', { sourcePath: fixture("empty.wasm"), initMsg: {} })
 }
 
 class V2Deployment extends V1Deployment {
-  kv3 = this.contract('kv3', { crate: 'examples/kv', initMsg: {} })
+  kv3 = this.contract('kv3', { sourcePath: fixture("empty.wasm"), initMsg: {} })
   // simplest client-side migration is to just instantiate
   // a new deployment with the data from the old deployment.
   static upgrade = (previous: V1Deployment) => new this({

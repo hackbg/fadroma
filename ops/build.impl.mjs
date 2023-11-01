@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 const { argv, umask, chdir, cwd, exit } = process
 const slashes = new RegExp("/", "g")
 const dashes = new RegExp("-", "g")
-const verbose = Boolean(env('_VERBOSE', Boolean(env('FADROMA_BUILD_VERBOSE', false))))
+const verbose = Boolean(env('FADROMA_VERBOSE', Boolean(env('FADROMA_BUILD_VERBOSE', false))))
 await main()
 
 /** As the initial user, set up the container and the source workspace,
@@ -17,26 +17,26 @@ await main()
 async function main (options = {}) {
 
   let {
-    tmpBuild    = env('_TMP_BUILD',  '/tmp/fadroma-build'),
-    tmpTarget   = env('_TMP_TARGET', resolve(tmpBuild, 'target')),
-    tmpGit      = env('_TMP_GIT',    '/tmp/fadroma-git'),
-    registry    = env('_REGISTRY',   '/usr/local/cargo/registry'),
-    srcSubdir   = env('_SRC_SUBDIR', '.') || '.',
-    gitRoot     = env('_GIT_ROOT',   `/src/.git`),
-    gitSubdir   = env('_GIT_SUBDIR', ''),
-    gitRemote   = env('_GIT_REMOTE', 'origin'),
-    noFetch     = env('_NO_FETCH',   false),
-    outputDir   = env('_OUTPUT', '/output'),
-    docker      = env('RUNNING_IN_DOCKER', false), // are we running in a container?
-    uid         = env('_BUILD_UID',  process.getuid()),
-    gid         = env('_BUILD_GID',  process.getgid()),
+    tmpBuild    = env('FADROMA_TMP_BUILD',  '/tmp/fadroma-build'),
+    tmpTarget   = env('FADROMA_TMP_TARGET', resolve(tmpBuild, 'target')),
+    tmpGit      = env('FADROMA_TMP_GIT',    '/tmp/fadroma-git'),
+    registry    = env('FADROMA_REGISTRY',   '/usr/local/cargo/registry'),
+    srcSubdir   = env('FADROMA_SRC_SUBDIR', '.') || '.',
+    gitRoot     = env('FADROMA_GIT_ROOT',   `/src/.git`),
+    gitSubdir   = env('FADROMA_GIT_SUBDIR', ''),
+    gitRemote   = env('FADROMA_GIT_REMOTE', 'origin'),
+    noFetch     = env('FADROMA_NO_FETCH',   false),
+    outputDir   = env('FADROMA_OUTPUT',     '/output'),
+    docker      = env('RUNNING_IN_DOCKER',  false), // are we running in a container?
+    uid         = env('FADROMA_BUILD_UID',  process.getuid()),
+    gid         = env('FADROMA_BUILD_GID',  process.getgid()),
     interpreter = argv[0], // e.g. /usr/bin/node
     script      = argv[1], // this file
     ref         = argv[3], // "HEAD" | <git ref>
     crates      = argv.slice(4), // all crates to build
     buildRoot   = resolve(tmpBuild, sanitize(ref)),
     gitDir      = resolve(gitRoot, gitSubdir),
-    toolchain   = env('_TOOLCHAIN'),
+    toolchain   = env('FADROMA_TOOLCHAIN'),
     platform    = 'wasm32-unknown-unknown',
     locked      = '',
   } = options

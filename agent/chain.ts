@@ -409,5 +409,5 @@ export abstract class BatchBuilder<A extends Agent> {
   abstract execute (...args: Parameters<A["execute"]>):
     this
 
-  abstract submit (): Promise<unknown>
+  abstract submit (...args: unknown[]): Promise<unknown>
 }

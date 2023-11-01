@@ -1,9 +1,9 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import * as assert from 'node:assert'
+import assert from 'node:assert'
 import { MyDeployment } from './deploy.test'
-import { getCompiler, getGitDir, DotGit } from './build'
+import { RawLocalRustCompiler, ContainerizedLocalRustCompiler, DotGit } from './build'
 import { Compiler, ContractInstance } from '@fadroma/connect'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
@@ -12,10 +12,15 @@ export default new Suite([
 ])
 
 export async function testBuild () {
-  const deployment = new MyDeployment()
-  await deployment.build({ compiler: getCompiler() })
-  const compiler = getCompiler(/* { ...options... } */)
-  assert.ok(compiler instanceof Compiler)
+  for (const CompilerVariant of [
+    RawLocalRustCompiler,
+    ContainerizedLocalRustCompiler
+  ]) {
+    const compiler = new CompilerVariant()
+    assert.ok(compiler instanceof Compiler)
+    const deployment = new MyDeployment()
+    await deployment.build({ compiler })
+  }
 
   //assert.ok(getCompiler({ raw: false }) instanceof BuildContainer)
   //assert.ok(getCompiler({ raw: false }).docker instanceof Dock.Engine)
@@ -43,13 +48,6 @@ export async function testBuild () {
 }
 
 export async function testBuildHistory () {
-  //assert.throws(()=>getGitDir(new ContractInstance()))
-  //const contractWithSource = new ContractInstance({
-    //repository: 'REPO',
-    //revision:   'REF',
-    //workspace:  'WORKSPACE',
-    //crate:      'CRATE'
-  //})
-  //assert.ok(getGitDir(contractWithSource) instanceof DotGit)
+  let gitDir
+  assert(new DotGit(process.cwd()))
 }
-
