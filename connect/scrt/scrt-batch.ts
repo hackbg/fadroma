@@ -30,15 +30,17 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
   static batchCounter: number = 0
 
   upload (
-    code:    Parameters<BatchBuilder<Agent>>["upload"][0],
-    options: Parameters<BatchBuilder<Agent>>["upload"][1]
+    code:    Parameters<BatchBuilder<Agent>["upload"]>[0],
+    options: Parameters<BatchBuilder<Agent>["upload"]>[1]
   ) {
+    return this
   }
 
   instantiate (
-    code:    Parameters<BatchBuilder<Agent>>["instantiate"][0],
-    options: Parameters<BatchBuilder<Agent>>["instantiate"][1]
+    code:    Parameters<BatchBuilder<Agent>["instantiate"]>[0],
+    options: Parameters<BatchBuilder<Agent>["instantiate"]>[1]
   ) {
+    return this
   }
 
   private async encryptInit (init: any): Promise<any> {
@@ -56,9 +58,10 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
   }
 
   execute (
-    contract: Parameters<BatchBuilder<Agent>>["execute"][0],
-    options:  Parameters<BatchBuilder<Agent>>["execute"][1]
+    contract: Parameters<BatchBuilder<Agent>["execute"]>[0],
+    options:  Parameters<BatchBuilder<Agent>["execute"]>[1]
   ) {
+    return this
   }
 
   private async encryptExec (exec: any): Promise<any> {
@@ -81,8 +84,7 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
     const limit = Number(this.agent.fees.exec?.amount[0].amount) || undefined
     const gas   = msgs.length * (limit || 0)
     try {
-      const agent = this.agent as unknown as Scrt.Agent
-      await agent.ready
+      const agent = this.agent
       const txResult = await agent.api!.tx.broadcast(msgs as any, { gasLimit: gas })
       if (txResult.code !== 0) {
         const error = `(in batch): gRPC error ${txResult.code}: ${txResult.rawLog}`
@@ -91,8 +93,8 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
       for (const i in msgs) {
         const msg = msgs[i]
         const result: Partial<ScrtBatchResult> = {}
-        result.sender  = this.address
-        result.tx      = txResult.transactionHash
+        result.sender = this.agent.address
+        result.tx = txResult.transactionHash
         result.chainId = chainId
         if (msg instanceof MsgInstantiateContract) {
           type Log = { msg: number, type: string, key: string }
@@ -112,8 +114,7 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
         results[Number(i)] = result as ScrtBatchResult
       }
     } catch (err) {
-      new Console(this.log.label)
-        .submittingBatchFailed(err as Error)
+      new Console(this.log.label).submittingBatchFailed(err as Error)
       throw err
     }
     return results

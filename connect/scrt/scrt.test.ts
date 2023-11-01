@@ -8,7 +8,7 @@ import * as SecretJS from '@hackbg/secretjs-esm'
 import { Devnet } from '../../ops/devnets'
 import * as Scrt from '@fadroma/scrt'
 import { Agent, ChainId, Address, randomBech32 } from '@fadroma/agent'
-import * as Mocknet from './scrt-mocknet'
+//import * as Mocknet from './scrt-mocknet'
 
 //@ts-ignore
 export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))

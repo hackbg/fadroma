@@ -135,10 +135,10 @@ class CWAgent extends Agent {
     if (!this.address) {
       throw new CWError("can't upload contract without sender address")
     }
-    if (!(this.api as SigningCosmWasmClient)?.instantiate) {
+    if (!(this.api as SigningCosmWasmClient)?.upload) {
       throw new CWError("can't upload contract without authorizing the agent")
     } 
-    const result = await this.api.upload(
+    const result = await (this.api as SigningCosmWasmClient).upload(
       this.address, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
     )
     return {
@@ -303,22 +303,24 @@ export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Ar
 class CWBatchBuilder extends BatchBuilder<CWAgent> {
 
   upload (
-    code:    Parameters<BatchBuilder<Agent>>["upload"][0],
-    options: Parameters<BatchBuilder<Agent>>["upload"][1]
+    code:    Parameters<BatchBuilder<Agent>["upload"]>[0],
+    options: Parameters<BatchBuilder<Agent>["upload"]>[1]
   ) {
   }
 
   instantiate (
-    code:    Parameters<BatchBuilder<Agent>>["instantiate"][0],
-    options: Parameters<BatchBuilder<Agent>>["instantiate"][1]
+    code:    Parameters<BatchBuilder<Agent>["instantiate"]>[0],
+    options: Parameters<BatchBuilder<Agent>["instantiate"]>[1]
   ) {
   }
 
   execute (
-    contract: Parameters<BatchBuilder<Agent>>["execute"][0],
-    options:  Parameters<BatchBuilder<Agent>>["execute"][1]
+    contract: Parameters<BatchBuilder<Agent>["execute"]>[0],
+    options:  Parameters<BatchBuilder<Agent>["execute"]>[1]
   ) {
   }
+
+  async submit () {}
 
 }
 

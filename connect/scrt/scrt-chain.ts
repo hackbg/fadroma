@@ -5,7 +5,7 @@ import { ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-es
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
 import { Config, Error, Console } from './scrt-base'
 //import * as Mocknet from './scrt-mocknet'
-import type { ScrtBatchBuilder } from './scrt-batch'
+import { ScrtBatchBuilder } from './scrt-batch'
 import type {
   AgentClass, Uint128, ContractClient,
   ICoin, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,

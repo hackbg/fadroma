@@ -3,7 +3,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { DevnetConfig, Devnet } from './devnets'
 import type { DevnetPlatform } from './devnets'
-import { BuildConfig } from './build'
 import { Config, Error, ConnectConfig, UploadStore, DeployStore } from '@fadroma/connect'
 import type { Environment, Class, DeploymentClass } from '@fadroma/connect'
 import $, { JSONFile } from '@hackbg/file'
@@ -34,11 +33,9 @@ export class FadromaConfig extends Config {
     * and can create a project. Projects are expected to set this var to their own root file,
     * which does `export default class MyProject extends Fadroma.Project { ... }` and points to
     * the Deployment class. */
-  project: string = $(this.root, this.getString(
-    'FADROMA_PROJECT', ()=>$(thisPackage, 'fadroma.ts').path
-  )).path
-  /** Upload options. */
-  build:   BuildConfig
+  project: string = $(this.root, this.getString('FADROMA_PROJECT', ()=>{
+    return $(thisPackage, 'fadroma.ts').path
+  })).path
   /** Connect options */
   connect: ConnectConfig
   /** Devnet options. */
@@ -46,16 +43,14 @@ export class FadromaConfig extends Config {
 
   constructor (
     options: Partial<Config> & Partial<{
-      build:   Partial<BuildConfig>,
       connect: Partial<ConnectConfig>,
       devnet:  Partial<DevnetConfig>
     }> = {},
     environment?: Environment
   ) {
     super(environment)
-    const { build, connect, devnet, ...rest } = options
+    const { connect, devnet, ...rest } = options
     this.override(rest)
-    this.build = new BuildConfig(build, environment)
     this.connect = new ConnectConfig(connect, environment)
     this.devnet = new DevnetConfig(devnet, environment)
   }
@@ -65,5 +60,4 @@ export {
   FadromaConfig as Config,
   ConnectConfig,
   DevnetConfig,
-  BuildConfig
 }

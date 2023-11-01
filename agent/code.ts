@@ -43,16 +43,20 @@ export abstract class Compiler {
   /** Unique identifier of this compiler implementation. */
   abstract id: string
 
-  /** Up to the implementation.
+  /** Compile a source.
     * `@hackbg/fadroma` implements dockerized and non-dockerized
-    * variants on top of the `build.impl.mjs` script. */
+    * variants using its `build.impl.mjs` script. */
   abstract build (source: string|Partial<SourceCode>, ...args: unknown[]):
     Promise<CompiledCode>
 
-  /** Default implementation of buildMany is parallel.
-    * Compiler implementations override this, though. */
-  abstract buildMany (sources: (string|Partial<CompiledCode>)[], ...args: unknown[]):
-    Promise<CompiledCode[]>
+  /** Build multiple sources.
+    * Default implementation of buildMany is sequential.
+    * Compiler classes may override this to optimize. */
+  async buildMany (inputs: Partial<SourceCode>[]): Promise<CompiledCode[]> {
+    const templates: CompiledCode[] = []
+    for (const source of inputs) templates.push(await this.build(source))
+    return templates
+  }
 }
 
 export class ContractCode {
