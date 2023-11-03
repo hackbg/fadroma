@@ -13,22 +13,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, sep } from 'node:path'
 import { homedir } from 'node:os'
 import { randomBytes } from 'node:crypto'
-import { thisPackage } from './config'
+
+import { packageRoot, console } from './config'
 
 export function getCompiler ({
-  config = new Config(), useContainer = config.getFlag('FADROMA_BUILD_RAW', ()=>false),
+  config = new Config(),
+  useContainer = config.getFlag('FADROMA_BUILD_RAW', ()=>false),
   ...options
 }: |({ useContainer?: false } & Partial<RawLocalRustCompiler>)
    |({ useContainer:  true  } & Partial<ContainerizedLocalRustCompiler>) = {}
-) {
+): Compiler {
   if (useContainer) {
     return new ContainerizedLocalRustCompiler({ config, ...options })
   } else {
     return new RawLocalRustCompiler({ config, ...options })
   }
 }
-
-export { Compiler }
 
 export abstract class ConfiguredCompiler extends Compiler {
   config: Config
@@ -53,7 +53,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   /** The build script. */
   script?: string =
     this.config.getString('FADROMA_BUILD_SCRIPT', ()=>{
-      return $(thisPackage).in('ops').at('build.impl.mjs').path
+      return $(packageRoot).in('ops').at('build.impl.mjs').path
     })
   /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
     * Defaults to parent directory of FADROMA_PROJECT. */
@@ -230,7 +230,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Docker image to use for dockerized builds. */
   dockerImage = this.config.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
   /** Path to the dockerfile for the build container if missing. */
-  dockerfile = this.config.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(thisPackage).at('Dockerfile').path)
+  dockerfile = this.config.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(packageRoot).at('Dockerfile').path)
   /** Owner uid that is set on build artifacts. */
   outputUid = this.config.getString('FADROMA_BUILD_UID', () => undefined)
   /** Owner gid that is set on build artifacts. */
@@ -399,8 +399,10 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     const crates: [number, string][] = []
     for (let index = 0; index < inputs.length; index++) {
       const source = inputs[index]
-      const { crate, workspace, revision = 'HEAD' } = source
-      if (workspace === path && revision === rev) crates.push([index, crate!])
+      const { sourcePath, sourceRef = 'HEAD', cargoCrate, cargoWorkspace } = source
+      if (sourcePath === path && sourceRef === rev) {
+        crates.push([index, cargoCrate!, cargoWorkspace])
+      }
     }
     return crates
   }

@@ -11,7 +11,4 @@ export default new Suite([
   ['stores',  () => import('./ops/stores.test')],
   ['tools',   () => import('./ops/tools.test')],
   ['connect', () => import('./connect/connect.test')],
-  //['wizard',  () => import('./ops/wizard.test')],
-  //['factory', () => import ('./Factory.spec.ts.md')],
-  //['impl',    () => import('./Implementing.spec.ts.md')],
 ])

@@ -19,23 +19,13 @@ import $, {
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 import * as Compilers from './build'
-import { Config, version } from './config'
+import { console } from './config'
 import * as Stores from './stores'
 import * as Devnets from './devnets'
 import * as Prompts from './prompts'
 import * as Tools from './tools'
 import { execSync } from 'node:child_process'
 import Case from 'case'
-
-const console = new Console(`@hackbg/fadroma ${version}`)
-
-export function getProject (
-  root: string|Path = 
-): Project {
-  return 
-}
-
-
 
 export class ProjectRoot {
 
@@ -57,24 +47,28 @@ export class ProjectRoot {
       .info('Project root: ', bold(this.root.path))
   }
 
-  getDeployment (): Deployment {
-  }
-
-  createDeployment (): Deployment {
-  }
-
-  static async create ( // do not convert to arrow function
-    tools = new Tools.SystemTools(),
-    name: string|Path|Promise<string|Path>|undefined,
-    root: string|Path|Promise<string|Path>|undefined,
-  ) {
-    tools ??= new Tools.SystemTools()
-    name = await Promise.resolve(tools.interactive ? this.askName() : undefined)
-    root = await Promise.resolve(tools.interactive ? this.askRoot(name) : $(tools.cwd, name as string))
-    const project = new this(name!, root)
-    console.log(`Creating project`, bold(name), `in`, bold(project.root.path))
-    project.root.make()
-    Tools.createGitRepo(project.root.path, tools)
+  static async create (properties: Partial<{
+    tools?: Tools.SystemTools,
+    interactive?: boolean,
+    name?: string
+    root?: string|Path
+  }>) {
+    const { tools = new Tools.SystemTools(), interactive = tools.interactive } =
+      properties
+    const { name = await Promise.resolve(interactive ? this.askName() : undefined) } =
+      properties
+    if (!name) {
+      throw new Error('missing project name')
+    }
+    let { root = await Promise.resolve(interactive ? this.askRoot(name) : undefined) } =
+      properties
+    if (!root) {
+      root = $(tools.cwd, name as string)
+    }
+    root = $(root).as(OpaqueDirectory)
+    console.log(`Creating project`, bold(name), `in`, bold(root.path))
+    const project = new this(name!, root.make())
+    Tools.createGitRepo(root.path, tools)
     return project
   }
 
@@ -95,14 +89,15 @@ export class ProjectRoot {
     name = await Promise.resolve(name) as string
     const cwd    = $(process.cwd()).as(OpaqueDirectory)
     const exists = cwd.in(name).exists()
-    const empty  = (cwd.list()?.length||0) === 0
     const inSub  = `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
     const inCwd  = `Current directory (${cwd.name})`
     const choice = [
       { title: inSub, value: cwd.in(name) },
       { title: inCwd, value: cwd },
     ]
-    if (empty) choice.reverse()
+    if ((cwd.list()?.length||0) === 0) {
+      choice.reverse()
+    }
     return Prompts.askSelect(
       `Create project ${name} in current directory or subdirectory?`, choice
     )
@@ -140,12 +135,27 @@ export class Project extends ProjectRoot {
       .warn('(TODO)')
   }
 
+  createDeployment (): Deployment {
+  }
+
+  getDeployment (): Deployment {
+  }
+
   static async create ({ // do not convert to arrow function
-    tools = new Tools.SystemTools(), name, root
+    tools = new Tools.SystemTools(),
+    interactive = tools.interactive,
+    name,
+    root
   }: {
-    tools?: Tools.SystemTools, name: string, root: string|Path
+    tools?: Tools.SystemTools,
+    interactive?: boolean,
+    name?: string,
+    root?: string|Path|Promise<string|Path>|undefined,
   }) {
-    const project = await super.create(tools, name, root) as Project
+    const project = await super.create({ tools, name, root }) as Project
+    if (!name) {
+      throw new Error("missing project name")
+    }
     project.readme.save(
       Tools.generateReadme(name)
     )
@@ -170,7 +180,9 @@ export class Project extends ProjectRoot {
     project.testIndex.save(
       Tools.generateTestIndex(name)
     )
-    Tools.runNPMInstall(project, tools)
+    Tools.runNPMInstall(
+      project, tools
+    )
     return project
   }
 
@@ -232,10 +244,12 @@ export class ScriptProject extends Project {
 
 export class CargoProject extends Project {
 
-  static async create ( // do not convert to arrow function
-    tools = new Tools.SystemTools(), name: string, root: string|Path
-  ) {
-    const project = await super.create(tools, name, root) as Project
+  static async create ({ // do not convert to arrow function
+    tools = new Tools.SystemTools(), name, root
+  }: {
+    tools?: Tools.SystemTools, name?: string, root?: string|Path
+  }) {
+    const project = await super.create({ tools, name, root }) as Project
     if (tools.interactive) {
       switch (await this.askCompiler(tools)) {
         case 'podman':
@@ -289,6 +303,7 @@ export class CargoProject extends Project {
       ].join('\n'))
 
     $(path, 'src')
+      .as(OpaqueDirectory)
       .make()
 
     $(path, 'src/lib.rs')
@@ -325,39 +340,10 @@ export class CargoProject extends Project {
 
 }
 
-//[>* Represents a crate containing a contract. <]
-//export class ProjectCrate {
-  //[>* Root directory of crate. <]
-  //readonly dir: OpaqueDirectory
-  //[>* Crate manifest. <]
-  //readonly cargoToml: TextFile
-  //[>* Directory containing crate sources. <]
-  //readonly srcDir: OpaqueDirectory
-  //[>* Root module of Rust crate. <]
-  //readonly libRs: TextFile
-
-  //constructor (
-    //project: { dirs: { src: Path } },
-    //[>* Name of crate <]
-    //readonly name: string,
-    //[>* Features of the 'fadroma' dependency to enable. <]
-    //readonly features: string[] = ['scrt']
-  //) {
-    //this.dir = project.dirs.src.in(name).as(OpaqueDirectory)
-    //this.cargoToml = this.dir.at('Cargo.toml').as(TextFile)
-    //this.srcDir = this.dir.in('src').as(OpaqueDirectory)
-    //this.libRs  = this.srcDir.at('lib.rs').as(TextFile)
-  //}
-
-  //create () {
-  //}
-
-//}
-
 export class CrateProject extends CargoProject {
   cargoToml = $(this.root, 'Cargo.toml')
     .as(TOMLFile)
-  srcDir    = $(this.root, 'lib')
+  srcDir = $(this.root, 'lib')
     .as(TOMLFile)
 
   logStatus () {
@@ -366,17 +352,19 @@ export class CrateProject extends CargoProject {
       .warn('TODO')
   }
 
-  static async create ( // do not convert to arrow function
-    tools = new Tools.SystemTools(), name: string, root: string|Path
-  ) {
-    const project = await super.create(tools, name, root) as CrateProject
+  static async create ({ // do not convert to arrow function
+    tools = new Tools.SystemTools(), name, root
+  }: {
+    tools?: Tools.SystemTools, name?: string, root?: string|Path
+  }) {
+    const project = await super.create({ tools, name, root }) as CrateProject
     this.writeCrate(root, name)
     return project
   }
 }
 
 export class WorkspaceProject extends CargoProject {
-  cargoToml    = $(this.root, 'Cargo.toml')
+  cargoToml = $(this.root, 'Cargo.toml')
     .as(TOMLFile)
   contractsDir = $(this.root, 'contracts')
     .as(OpaqueDirectory)
@@ -389,9 +377,11 @@ export class WorkspaceProject extends CargoProject {
       .warn('TODO')
   }
 
-  static async create ( // do not convert to arrow function
-    tools = new Tools.SystemTools(), name: string, root: string|Path
-  ) {
+  static async create ({ // do not convert to arrow function
+    tools = new Tools.SystemTools(), name, root
+  }: {
+    tools?: Tools.SystemTools, name?: string, root?: string|Path
+  }) {
     const project = await super.create(tools, name, root) as Project
     return project
   }

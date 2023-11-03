@@ -10,17 +10,7 @@ import * as Dock from '@hackbg/dock'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
-
-export { Devnet }
-
-/** Path to this package. Used to find the build script, dockerfile, etc.
-  * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
-//@ts-ignore
-const thisPackage = dirname(dirname(fileURLToPath(import.meta.url)))
-
-export function resetAll (cwd: string|Path, ids: ChainId[]) {
-  return ContainerDevnet.deleteMany($(cwd).in('state'), ids)
-}
+import { console, packageRoot } from './config'
 
 /** Supported devnet variants. Add new devnets here first. */
 export type Platform =
@@ -62,7 +52,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.2': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_2.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_2.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
@@ -70,7 +60,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.3': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_3.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_3.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'grpcWeb',
@@ -78,7 +68,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.4': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_4.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_4.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'grpcWeb',
@@ -86,7 +76,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.5': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_5.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_5.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
@@ -94,7 +84,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.6': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_6.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_6.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
@@ -102,7 +92,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.7': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_7.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_7.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'secretd',
     portMode:   'http',
@@ -110,7 +100,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.8': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_8.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_8.Dockerfile').path,
     ready:      'Done verifying block height',
     daemon:     'secretd',
     portMode:   'http',
@@ -118,7 +108,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.9': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
-    dockerFile: $(thisPackage, 'devnets', 'scrt_1_9.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'scrt_1_9.Dockerfile').path,
     ready:      'Validating proposal',
     daemon:     'secretd',
     portMode:   'http',
@@ -126,7 +116,7 @@ export const platforms: Record<Platform, PlatformInfo> = {
   'okp4_5.0': {
     Chain:      CW.OKP4.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
-    dockerFile: $(thisPackage, 'devnets', 'okp4_5_0.Dockerfile').path,
+    dockerFile: $(packageRoot, 'devnets', 'okp4_5_0.Dockerfile').path,
     ready:      'indexed block',
     daemon:     'okp4d',
     portMode:   'rpc',
@@ -136,6 +126,53 @@ export const platforms: Record<Platform, PlatformInfo> = {
 /** A private local instance of a network,
   * running in a container managed by @hackbg/dock. */
 class ContainerDevnet extends Devnet {
+
+  static resetAll (cwd: string|Path, ids: ChainId[]) {
+    return ContainerDevnet.deleteMany($(cwd).in('state'), ids)
+  }
+
+  /** Delete multiple devnets. */
+  static deleteMany (path: string|Path, ids?: ChainId[]): Promise<ContainerDevnet[]> {
+    const state = $(path).as(OpaqueDirectory)
+    const chains = (state.exists()&&state.list()||[])
+      .map(name => $(state, name))
+      .filter(path => path.isDirectory())
+      .map(path => path.at(ContainerDevnet.stateFile).as(JSONFile))
+      .filter(path => path.isFile())
+      .map(path => $(path, '..'))
+    return Promise.all(chains.map(dir=>ContainerDevnet.fromFile(dir, true).delete()))
+  }
+
+  /** Restore a Devnet from the info stored in the state file */
+  static fromFile (dir: string|Path, allowInvalid: boolean = false): ContainerDevnet {
+    dir = $(dir)
+    if (!dir.isDirectory()) {
+      throw new Error(`not a directory: ${dir.path}`)
+    }
+    const stateFile = dir.at(ContainerDevnet.stateFile)
+    if (!dir.at(ContainerDevnet.stateFile).isFile()) {
+      throw new Error(`not a file: ${stateFile.path}`)
+    }
+    let state: Partial<ContainerDevnet> = {}
+    try {
+      state = stateFile.as(JSONFile).load() || {}
+    } catch (e) {
+      console.warn(e)
+      if (!allowInvalid) {
+        throw new Error(`failed to load devnet state from ${stateFile.path}`)
+      }
+    }
+    if (!state.containerId) {
+      console.warn(`${stateFile.path}: no containerId`)
+    }
+    if (!state.chainId) {
+      console.warn(`${stateFile.path}: no chainId`)
+    }
+    if (!state.port) {
+      console.warn(`${stateFile.path}: no port`)
+    }
+    return new ContainerDevnet(state)
+  }
 
   static fromEnvironment (properties?: Partial<ContainerDevnet>) {
     const config = new Config()
@@ -160,6 +197,32 @@ class ContainerDevnet extends Devnet {
     })
   }
 
+  /** Name of the file containing devnet state. */
+  static stateFile = 'devnet.json'
+
+  /** Name under which the devnet init script is mounted in the container. */
+  static initScriptMount = 'devnet.init.mjs'
+
+  /** Filter logs when waiting for the ready phrase. */
+  static logFilter = (data: string) => {
+    return ((data.length > 0 && data.length <= 1024)
+      && !data.startsWith('TRACE ')
+      && !data.startsWith('DEBUG ')
+      && !data.startsWith('INFO ')
+      && !data.startsWith('I[')
+      && !data.startsWith('Storing key:')
+      && !this.RE_NON_PRINTABLE.test(data)
+      && !data.startsWith('{"app_message":')
+      && !data.startsWith('configuration saved to')
+    )
+  }
+
+  /** Regexp for non-printable characters. */
+  static RE_NON_PRINTABLE = /[\x00-\x1F]/
+
+  /** Whether more detailed output is preferred. */
+  verbose: boolean
+
   /** Containerization engine (Docker or Podman). */
   engine?: Dock.Engine
   /** Path to Dockerfile to build image */
@@ -169,47 +232,52 @@ class ContainerDevnet extends Devnet {
   /** ID of container if exists */
   containerId?: string
   /** Whether to use Podman instead of Docker to run the devnet container. */
-  podman: boolean
-  /** Which service does the API URL port correspond to. */
-  portMode: Port
+  podman?: boolean
+
   /** Whether to destroy this devnet on exit. */
   autoDelete: boolean
   /** Whether the devnet should remain running after the command ends. */
   autoStop: boolean
+  /** Kludge. */
+  private exitHandlerSet = false
+
+  /** Name of binary in container to start. */
+  daemon: string
+  /** Which service does the API URL port correspond to. */
+  portMode: Port
   /** The protocol of the API URL without the trailing colon. */
   protocol: string
   /** The hostname of the API URL. */
   host: string
   /** The port of the API URL. */
   port?: string|number
+
   /** This directory is created to remember the state of the devnet setup. */
   stateDir: string
-  /** If set, overrides the script that launches the devnet in the container. */
-  initScript?: string
   /** Whether to skip mounting a local state directory into/out of the container. */
   dontMountState: boolean
+
+  /** Initial accounts. */
+  genesisAccounts?: Record<Address, Token.Amount[]>
+  /** Initial uploads. */
+  genesisUploads?: Record<CodeId, Partial<{ codeData: Uint8Array }>>
+  /** If set, overrides the script that launches the devnet in the container. */
+  initScript?: string
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyPhrase: string
   /** After how many seconds to throw if container is not ready. */
   launchTimeout: number
-  /** Whether more detailed output is preferred. */
-  verbose: boolean
-  /** Name of node binary. */
-  daemon: string
-  /** Initial accounts. */
-  genesisAccounts?: Record<Address, Token.Amount[]>
-  /** Initial uploads. */
-  genesisUploads?: Record<CodeId, Partial<{ codeData: Uint8Array }>>
 
-  /** Overridable for testing. */
+  // Overridable for testing:
+
+  /** Function that waits for port to open after launching container.
+    * Tests override this to save time. */
   //@ts-ignore
   protected waitPort = waitPort
   /** Seconds to wait after first block.
-    * Overridable for testing. */
+    * Tests override this to save time. */
   protected postLaunchWait = 7
-  /** Kludge. */
-  private exitHandlerSet = false
 
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
@@ -221,45 +289,49 @@ class ContainerDevnet extends Devnet {
       throw new Error("can't create devnet without specifying at least platform")
     }
     super(options)
-
     this.platform = options.platform
-
+    const { dockerTag, dockerFile, ready, portMode, daemon } =
+      platforms[this.platform as Platform]
     this.verbose = options.verbose
       ?? false
-
     this.autoStop = options.autoStop
       ?? true
-
     this.autoDelete = options.autoDelete
       ?? true
-
+    this.imageTag = options.imageTag
+      ?? this.imageTag ?? dockerTag
+    this.dockerfile = options.dockerfile
+      ?? this.dockerfile ?? dockerFile
     this.initScript = options.initScript!
-      ?? resolve(thisPackage, 'devnets', 'devnet.init.mjs')
-
+      ?? resolve(packageRoot, 'devnets', 'devnet.init.mjs')
+    this.readyPhrase = options.readyPhrase
+      ?? ready
+    this.daemon = options.daemon
+      ?? daemon
+    this.portMode = options.portMode
+      ?? portMode
+    this.port = options.port
+      ?? ports[this.portMode]
+    this.protocol = options.protocol
+      ?? 'http'
+    this.host = options.host
+      ?? 'localhost'
     this.launchTimeout = options.launchTimeout
       ?? 10
-
     this.dontMountState = options.dontMountState
       ?? false
-
     this.accounts = options.accounts
       ?? this.accounts
-
     this.podman = options.podman
       ?? false
-
     this.engine = options.engine
       ?? new Dock[this.podman?'Podman':'Docker'].Engine()
-
     this.containerId = options.containerId
       ?? this.containerId
-
     this.chainId = options.chainId
       || `fadroma-local-${options.platform}-${randomBytes(4).toString('hex')}`
-
     this.stateDir = options.stateDir
       ?? $('state', this.chainId).path
-
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
       try {
         const state = this.stateFile.as(JSONFile).load() || {}
@@ -272,38 +344,10 @@ class ContainerDevnet extends Devnet {
         )
       }
     }
-
-    const {
-      dockerTag, dockerFile, ready, portMode, daemon
-    } = platforms[this.platform as Platform]
-    this.imageTag = options.imageTag
-      ?? this.imageTag ?? dockerTag
-
-    this.dockerfile = options.dockerfile
-      ?? this.dockerfile ?? dockerFile
-
-    this.readyPhrase = options.readyPhrase
-      ?? ready
-
-    this.daemon = options.daemon
-      ?? daemon
-
-    this.portMode = options.portMode
-      ?? portMode
-
-    this.port = options.port
-      ?? ports[this.portMode]
-
-    this.protocol = options.protocol
-      ?? 'http'
-
-    this.host = options.host
-      ?? 'localhost'
-
   }
 
-  get log (): DevnetConsole {
-    return new DevnetConsole(`${this.chainId} @ ${this.host}:${this.port}`)
+  get log (): Console {
+    return new Console(`${this.chainId} @ ${this.host}:${this.port}`)
   }
 
   /** The API URL that can be used to talk to the devnet. */
@@ -616,68 +660,6 @@ class ContainerDevnet extends Devnet {
     process.once('uncaughtExceptionMonitor', exitHandler)
     this.exitHandlerSet = true
   }
-
-  /** Delete multiple devnets. */
-  static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<ContainerDevnet[]> => {
-    const state = $(path).as(OpaqueDirectory)
-    const chains = (state.exists()&&state.list()||[])
-      .map(name => $(state, name))
-      .filter(path => path.isDirectory())
-      .map(path => path.at(ContainerDevnet.stateFile).as(JSONFile))
-      .filter(path => path.isFile())
-      .map(path => $(path, '..'))
-    return Promise.all(chains.map(dir=>ContainerDevnet.load(dir, true).delete()))
-  }
-
-  /** Restore a Devnet from the info stored in the state file */
-  static load (dir: string|Path, allowInvalid: boolean = false): ContainerDevnet {
-    const console = new DevnetConsole('devnet')
-    dir = $(dir)
-    if (!dir.isDirectory()) {
-      throw new Error(`not a directory: ${dir.path}`)
-    }
-    const stateFile = dir.at(ContainerDevnet.stateFile)
-    if (!dir.at(ContainerDevnet.stateFile).isFile()) {
-      throw new Error(`not a file: ${stateFile.path}`)
-    }
-    let state: Partial<ContainerDevnet> = {}
-    try {
-      state = stateFile.as(JSONFile).load() || {}
-    } catch (e) {
-      console.warn(e)
-      if (!allowInvalid) {
-        throw new Error(`failed to load devnet state from ${stateFile.path}`)
-      }
-    }
-    console.missingValues(state, stateFile.path)
-    if (!state.containerId) console.warn(`${stateFile.path}: no containerId`)
-    if (!state.chainId)     console.warn(`${stateFile.path}: no chainId`)
-    if (!state.port)        console.warn(`${stateFile.path}: no port`)
-    return new ContainerDevnet(state)
-  }
-
-  /** Name of the file containing devnet state. */
-  static stateFile = 'devnet.json'
-
-  /** Name under which the devnet init script is mounted in the container. */
-  static initScriptMount = 'devnet.init.mjs'
-
-  /** Filter logs when waiting for the ready phrase. */
-  static logFilter = (data: string) => {
-    return ((data.length > 0 && data.length <= 1024)
-      && !data.startsWith('TRACE ')
-      && !data.startsWith('DEBUG ')
-      && !data.startsWith('INFO ')
-      && !data.startsWith('I[')
-      && !data.startsWith('Storing key:')
-      && !this.RE_NON_PRINTABLE.test(data)
-      && !data.startsWith('{"app_message":')
-      && !data.startsWith('configuration saved to')
-    )
-  }
-
-  /** Regexp for non-printable characters. */
-  static RE_NON_PRINTABLE = /[\x00-\x1F]/
 }
 
 export {

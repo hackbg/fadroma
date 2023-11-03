@@ -21,23 +21,8 @@ import { connectModes, CW, Scrt } from '@fadroma/connect'
 import { Config } from './ops/config'
 
 // Install devnets as selectable chains:
-connectModes['ScrtDevnet'] = Scrt.Agent.devnet = (options: Partial<Scrt.Agent>|undefined) => {
-  return new Config().devnet
-    .getDevnet({ platform: 'scrt_1.9' })
-    .getChain(Scrt.Agent, options)
-}
-
-connectModes['OKP4Devnet'] = CW.OKP4.Agent.devnet = (options: Partial<Scrt.Agent>|undefined) => {
-  return new Config().devnet
-    .getDevnet({ platform: 'okp4_5.0' })
-    .getChain(CW.OKP4.Agent, options)
-}
-
 export * from '@fadroma/connect'
-export * from './ops/config'
 export * from './ops/project'
-export { Config } from './ops/config'
-
 import * as Compilers from './ops/build'
 import * as Stores from './ops/stores'
 import * as Devnets from './ops/devnets'
@@ -47,6 +32,44 @@ export { Compilers, Stores, Devnets, Tools }
 import { CommandContext } from '@hackbg/cmds'
 import { Project } from './ops/project'
 import $ from '@hackbg/file'
+
+export async function runScript ({
+  project, script, args
+}: {
+  project?: Project, script?: string, args: string[]
+}) {
+  if (!script) {
+    throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
+  }
+  if (!$(script).exists()) {
+    throw new Error(`${script} doesn't exist`)
+  }
+  console.log(`Running ${script}`)
+  const path = $(script).path
+  //@ts-ignore
+  const { default: main } = await import(path)
+  if (typeof main === 'function') {
+    return main(project, ...args)
+  } else {
+    console.error(`${$(script).shortPath}'s default export is not a function`)
+  }
+}
+
+export async function runRepl ({
+  project, script, args
+}: {
+  project?: Project, script?: string, args: string[]
+}) {
+  let start
+  try {
+    const repl = await import('node:repl')
+    start = repl.start
+  } catch (e) {
+    console.error('Node REPL unavailable.')
+    throw e
+  }
+  const context = start() || project?.getDeployment()
+}
 
 export class ProjectCommands extends CommandContext {
   constructor (
@@ -62,7 +85,7 @@ export class ProjectCommands extends CommandContext {
         (script: string, ...args: string[]) => runRepl({ project: this.project, script, args }))
       .addCommand(
         'status', 'show the status of the project',
-        () => Tools.logProjectStatus(this.getProject()))
+        () => Prompts.logProjectStatus(this.getProject()))
       .addCommand(
         'create', 'create a new project',
         Project.create)
@@ -114,42 +137,4 @@ export class ProjectCommands extends CommandContext {
 
   getAgent (): Agent {
   }
-}
-
-export async function runScript ({
-  project, script, args
-}: {
-  project?: Project, script?: string, args: string[]
-}) {
-  if (!script) {
-    throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
-  }
-  if (!$(script).exists()) {
-    throw new Error(`${script} doesn't exist`)
-  }
-  console.log(`Running ${script}`)
-  const path = $(script).path
-  //@ts-ignore
-  const { default: main } = await import(path)
-  if (typeof main === 'function') {
-    return main(project, ...args)
-  } else {
-    console.info(`${$(script).shortPath} does not have a default export.`)
-  }
-}
-
-export async function runRepl ({
-  project, script, args
-}: {
-  project?: Project, script?: string, args: string[]
-}) {
-  let start
-  try {
-    const repl = await import('node:repl')
-    start = repl.start
-  } catch (e) {
-    console.error('Node REPL unavailable.')
-    throw e
-  }
-  const context = start() || project?.getDeployment()
 }

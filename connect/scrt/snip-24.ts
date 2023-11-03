@@ -1,5 +1,5 @@
 import { randomBytes } from '@fadroma/agent'
-import type { IFee, ChainId, Address } from '@fadroma/agent'
+import type { Token, ChainId, Address } from '@fadroma/agent'
 
 /** Data used for creating a signature as per the SNIP-24 spec:
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc
@@ -11,7 +11,7 @@ export interface SignDoc {
   /** Always 0. */
   readonly sequence: string;
   /** Always 0 uscrt + 1 gas */
-  readonly fee: IFee;
+  readonly fee: Token.IFee;
   /** Always 1 message of type query_permit */
   readonly msgs: readonly AminoMsg[];
   /** Always empty. */
