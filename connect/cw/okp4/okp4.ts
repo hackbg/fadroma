@@ -5,16 +5,15 @@ import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Environment } from '@hackbg/conf'
 import type {
-  AgentClass, ContractClientClass, Uint128, Address, ChainId, AgentFees, CodeId
+  AgentClass, ContractClientClass, Uint128, Address, ChainId, CodeId
 } from '@fadroma/agent'
-import { ContractClient, Fee, bindAgentSupport } from '@fadroma/agent'
+import { ContractClient, Token, bindAgentSupport } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 /** Configuration for OKP4 */
 class OKP4Config extends Config {
   static defaultTestnetChainId: string = 'okp4-nemeton-1'
-  static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'
-                                    //'https://okp4-testnet-api.polkachu.com/'
+  static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'//'https://okp4-testnet-api.polkachu.com/'
   constructor (options: Partial<OKP4Config> = {}, environment?: Environment) {
     super(environment)
     this.override(options)
@@ -27,7 +26,6 @@ class OKP4Config extends Config {
 
 /** Agent for OKP4. */
 class OKP4Agent extends Agent {
-
   /** Connect to OKP4 in testnet mode. */
   static testnet = (options: Partial<OKP4Agent> = {}): OKP4Agent => {
     const config = new OKP4Config()
@@ -37,7 +35,6 @@ class OKP4Agent extends Agent {
       ...options||{},
     }) as OKP4Agent
   }
-
   /** Connect to OKP4 in testnet mode. */
   static devnet = (options: Partial<OKP4Agent> = {}): OKP4Agent => {
     throw new Error('Devnet not installed. Import @hackbg/fadroma')
@@ -45,13 +42,11 @@ class OKP4Agent extends Agent {
   /** Logging handle. */
   log = new Console('OKP4')
   /** Default denomination of gas token. */
-  defaultDenom = 'uknow'
-
-  /** Default denomination of gas token. */
   static defaultDenom = 'uknow'
-
-  /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) => new Fee(amount, this.defaultDenom)
+  /** Default denomination of gas token. */
+  defaultDenom = OKP4Agent.defaultDenom
+  /** @returns Token.Fee in uknow */
+  static gas = (amount: Uint128|number) => new Token.Fee(amount, this.defaultDenom)
 
   /** The coin type in the HD derivation path */
   declare coinType: number

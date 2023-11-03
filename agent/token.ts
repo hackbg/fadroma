@@ -6,9 +6,6 @@ import type { Agent } from './chain'
 import type { ContractClientClass } from './client'
 import { ContractClient } from './client'
 
-export function addZeros (n: number|Uint128, z: number): Uint128 {
-  return `${n}${[...Array(z)].map(() => '0').join('')}`
-}
 
 /** A gas fee, payable in native tokens. */
 export interface IFee { amount: readonly ICoin[], gas: Uint128 }
@@ -37,31 +34,35 @@ export class Coin implements ICoin {
 }
 
 /** An identifiable token on a network. */
-export abstract class Token {
+abstract class Token {
   /** The token's unique id. */
   abstract get id (): string
   /** Whether this token is fungible. */
-  abstract isFungible (): this is Fungible
+  abstract isFungible (): this is FungibleToken
 }
 
 /** An abstract non-fungible token. */
-export abstract class NonFungible extends Token {
+abstract class NonFungibleToken extends Token {
   /** @returns false */
   isFungible = () => false
 }
 
 /** An abstract fungible token. */
-export abstract class Fungible extends Token {
+abstract class FungibleToken extends Token {
   /** @returns true */
   isFungible = () => true
   /** Whether this token is natively supported by the chain. */
   abstract isNative (): this is NativeToken
   /** Whether this token is implemented by a smart contract. */
   abstract isCustom (): this is CustomToken
+
+  static readonly addZeros = (n: number|Uint128, z: number): Uint128 => {
+    return `${n}${[...Array(z)].map(() => '0').join('')}`
+  }
 }
 
 /** The chain's natively implemented token (such as SCRT on Secret Network). */
-export class NativeToken extends Fungible {
+class NativeToken extends FungibleToken {
   constructor (readonly denom: string) { super() }
 
   /** The token's unique id. */
@@ -75,7 +76,7 @@ export class NativeToken extends Fungible {
 }
 
 /** A contract-based token. */
-export class CustomToken extends Fungible {
+class CustomToken extends FungibleToken {
   constructor (readonly address: Address, readonly codeHash?: string) { super() }
 
   /** The token contract's address. */
@@ -95,17 +96,17 @@ export class CustomToken extends Fungible {
 }
 
 /** A pair of tokens. */
-export class Pair {
+class TokenPair {
   constructor (readonly a: Token, readonly b: Token) {}
   /** Reverse the pair. */
-  get reverse (): Pair {
-    return new Pair(this.b, this.a)
+  get reverse (): TokenPair {
+    return new TokenPair(this.b, this.a)
   }
 }
 
 /** An amount of a fungible token. */
-export class Amount {
-  constructor (public amount: Uint128, public token: Fungible,) {}
+class TokenAmount {
+  constructor (public amount: Uint128, public token: FungibleToken,) {}
   /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
     if (this.token.isNative()) {
@@ -116,10 +117,24 @@ export class Amount {
 }
 
 /** A pair of token amounts. */
-export class Swap {
-  constructor (readonly a: Amount|NonFungible, readonly b: Amount|NonFungible) {}
+class TokenSwap {
+  constructor (
+    readonly a: TokenAmount|NonFungibleToken,
+    readonly b: TokenAmount|NonFungibleToken
+  ) {}
   /** Reverse the pair. */
-  get reverse (): Swap {
-    return new Swap(this.b, this.a)
+  get reverse (): TokenSwap {
+    return new TokenSwap(this.b, this.a)
   }
+}
+
+export {
+  Token,
+  FungibleToken    as Fungible,
+  NonFungibleToken as NonFungible,
+  NativeToken      as Native,
+  CustomToken      as Custom,
+  TokenPair        as Pair,
+  TokenAmount      as Amount,
+  TokenSwap        as Swap,
 }

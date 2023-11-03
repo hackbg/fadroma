@@ -8,7 +8,7 @@ import {
 import { JSONFileDeployStore } from './stores'
 import { getCompiler } from './build'
 import { fixture, tmpDir } from '../fixtures/fixtures'
-import { Project, ProjectCommands } from './project'
+import * as Projects from './project'
 import { withTmpDir } from '@hackbg/file'
 
 import { Suite } from '@hackbg/ensuite'
@@ -20,10 +20,35 @@ export default new Suite([
 ])
 
 export async function testProjectCommands () {
+  const scriptProject =
+    await Projects.ScriptProject.create({
+      name: 'test-script-project',
+      root: `${tmpDir()}/test-script-project`
+    })
+
+  const crateProject =
+    await Projects.CrateProject.create({
+      name: 'test-crate-project',
+      root: `${tmpDir()}/test-crate-project`
+    })
+
+  const workspaceProject =
+    await Projects.WorkspaceProject.create({
+      name: 'test-workspace-project',,
+      root: `${tmpDir()}/test-workspace-project`
+    })
+
+  for (const project of [scriptProject, crateProject, workspaceProject]) {
+    const commands = new Projects.ProjectCommands(project)
+  }
+
+  for (const [name, Project] of [
+    [],
+    [],
+  ]) {
   const root = `${tmpDir()}/test-project-1`
   const name = 'test-project-1'
-  const project = createProject({ root, name })
-  const commands = new ProjectCommands(project)
+  const project = Project.create({ root, name })
 
   project.status()
   project.cargoUpdate()
@@ -37,6 +62,7 @@ export async function testProjectCommands () {
   await project.deploy(/* any deploy arguments, if you've overridden the deploy procedure */)
   await project.redeploy(/* ... */)
   await project.exportDeployment('state')
+  }
 }
 
 export async function testProjectWizard () {

@@ -5,11 +5,12 @@ import * as assert from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Agent, Project, Compilers, Devnets } from '@hackbg/fadroma'
+import { Agent, Project, Compilers, Devnets, CW, Token } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
+import * as Dock from '@hackbg/dock'
 
 //@ts-ignore
-export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
+export const packageRoot = dirname(dirname(resolve(fileURLToPath(import.meta.url))))
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
@@ -19,7 +20,7 @@ export default new Suite([
   ['state-file',   testDevnetStateFile],
   ['url',          testDevnetUrl],
   ['container',    testDevnetContainer],
-  ['copy-uploads', testDevnetCopyUploads],
+  ['genesis',      testDevnetGenesis],
 ])
 
 export async function testDevnetDocs () {
@@ -45,16 +46,37 @@ export async function testDevnetChain () {
   assert.equal((await devnet.container)!.name, `/${chain.chainId}`)
 }
 
-export async function testDevnetCopyUploads () {
-  const devnet1   = await new Devnets.Container({ platform: 'okp4_5.0' }).create()
-  const chain1    = devnet1.getChain()
-  const agent1    = await chain1.authenticate({ name: 'Admin' })
-  const crate     = resolve(packageRoot, 'examples', 'cw-null')
-  const artifact  = await Compilers.getCompiler().build(crate)
-  const uploaded1 = await agent1.upload(artifact)
-  const uploaded2 = await agent1.upload(artifact)
-  const devnet2   = new Devnets.Container({ platform: 'okp4_5.0' })
-  //assert.ok(await devnet2.copyUploads(chain1), "copying uploads")
+export async function testDevnetGenesis () {
+
+  const compiled = await Compilers.getCompiler().build(
+    resolve(packageRoot, 'examples', 'cw-null')
+  )
+  
+  const devnet = await new Devnets.Container({
+    platform: 'okp4_5.0',
+    genesis: {
+      codes: {
+        7: compiled,
+        8: compiled,
+      },
+      accounts: {
+        User1: [
+          new Token.Amount('1000000000000', new Token.Native('uknow'))
+        ],
+        User2: [
+          new Token.Amount('1000000000000', new Token.Native('uknow'))
+        ]
+      }
+    }
+  })
+
+  const agent1 = await devnet.authenticate('User1')
+
+  await agent1.instantiate(7, 'test-7', {})
+
+  const agent2 = await devnet.authenticate('User2')
+
+  await agent2.instantiate(8, 'test-8', {})
 }
 
 export async function testDevnetChainId () {
@@ -63,25 +85,46 @@ export async function testDevnetChainId () {
     //() => { devnet = new Devnets.Container({ chainId: false as any }) },
     //"construct must fail if passed falsy chainId"
   //)
-  assert.ok(devnet = new Devnets.Container(), "construct must work with no options")
-  assert.ok(typeof devnet.chainId === 'string', "chain id must be auto populated when not passed")
-  // TODO: can't delete before creating
-  assert.ok(await devnet.save(), "can save")
-  assert.ok(
-    devnet = new Devnets.Container({ chainId: devnet.chainId }),
-    "can construct when passing chainId"
+  assert.throws(
+    ()=>{devnet = new Devnets.Container()},
+    "construct must work with no options"
   )
-  assert.ok(await devnet.delete(), "can delete")
+
   assert.ok(
-    devnet = new Devnets.Container({ chainId: devnet.chainId }),
+    devnet = new Devnets.Container({ platform: 'scrt_1.9', chainId: 'some-chain-id' }),
+    "can construct when passing platform and chainId"
+  )
+
+  assert.ok(
+    typeof devnet.chainId === 'string',
+    "chain id must be auto populated when not passed"
+  )
+
+  // TODO: can't delete before creating
+  assert.ok(
+    await devnet.save(),
+    "can save"
+  )
+
+  assert.ok(
+    await devnet.delete(),
+    "can delete"
+  )
+
+  assert.ok(
+    devnet = new Devnets.Container({ platform: 'scrt_1.9', chainId: devnet.chainId }),
     "after deletion, can construct new devnet with same chainId"
   )
+
   // TODO: devnet with same chainid points to same resource
-  assert.ok(await devnet.save(), "can save")
+  assert.ok(
+    await devnet.save(),
+    "can save"
+  )
 }
 
 export async function testDevnetStateFile () {
-  let devnet = new Devnets.Container()
+  let devnet = new Devnets.Container({ platform: 'scrt_1.9' })
   $(devnet.stateFile).as(TextFile).save("invalidjson")
   assert.throws(
     ()=>{ devnet = new Devnets.Container({ chainId: devnet.chainId }) },
@@ -89,25 +132,24 @@ export async function testDevnetStateFile () {
   )
   $(devnet.stateFile).as(TextFile).save("null")
   assert.ok(
-    devnet = new Devnets.Container({ chainId: devnet.chainId }),
+    devnet = new Devnets.Container({ platform: 'scrt_1.9', chainId: 'some-chain-id' }),
     "can construct if state is valid json but empty"
   )
   assert.ok(await devnet.delete(), "can delete if state is valid json but empty")
 }
 
 export async function testDevnetUrl () {
-  let devnet: Devnets.Container
-  assert.ok(devnet = new Devnets.Container(), "can construct")
+  let devnet = new Devnets.Container({ platform: 'scrt_1.9', chainId: 'some-chain-id' })
   assert.equal(
     devnet.url.toString(), `http://${devnet.host}:${devnet.port}/`,
     "devnet url generated from host and port properties"
   )
-  assert.ok((await devnet.image) instanceof Image, "devnet has @hackbg/dock image")
+  assert.ok((await devnet.image) instanceof Dock.Image, "devnet has @hackbg/dock image")
 }
 
 export async function testDevnetContainer () {
-  let devnet: Devnets.Container
-  assert.ok(devnet = new Devnets.Container(), "can construct")
+  let devnet = new Devnets.Container({ platform: 'scrt_1.9', chainId: 'some-chain-id' })
+  assert.ok(devnet = new Devnets.Container({ platform: 'scrt_1.9', chainId: 'some-chain-id' }), "can construct")
   assert.equal(
     devnet.initScriptMount, '/devnet.init.mjs',
     "devnet init script mounted at default location"
@@ -136,7 +178,7 @@ export async function testDevnetContainer () {
   assert.equal(await devnet.container, undefined, "devnet starts with no container")
   assert.ok(await devnet.create(), "devnet creates container")
   assert.ok(
-    (await devnet.container) instanceof Container,
+    (await devnet.container) instanceof Dock.Container,
     "devnet container property is populated after container is created"
   )
   assert.ok(
@@ -149,7 +191,7 @@ export async function testDevnetContainer () {
 }
 
 export async function testDevnetFurther () {
-  const devnet = getDevnet(/* { options } */)
+  let devnet = new Devnets.Container({ platform: 'scrt_1.9', chainId: 'some-chain-id' })
   await devnet.create()
   await devnet.start()
   const chain = devnet.getChain()

@@ -154,9 +154,9 @@ class ContainerDevnet extends Devnet {
   /** Which service does the API URL port correspond to. */
   portMode: Port
   /** Whether to destroy this devnet on exit. */
-  deleteOnExit: boolean
+  autoDelete: boolean
   /** Whether the devnet should remain running after the command ends. */
-  keepRunning: boolean
+  autoStop: boolean
   /** The protocol of the API URL without the trailing colon. */
   protocol: string
   /** The hostname of the API URL. */
@@ -190,14 +190,53 @@ class ContainerDevnet extends Devnet {
 
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
-  constructor (options: Partial<Devnet> = {}) {
+  constructor (options: Platform|Partial<ContainerDevnet> = {}) {
+    if (typeof options === 'string') options = {
+      platform: options
+    }
+    if (!options || !options.platform) {
+      throw new Error("can't create devnet without specifying at least platform")
+    }
     super(options)
-    // This determines whether generated chain id has random suffix
-    this.deleteOnExit = options.deleteOnExit ?? false
-    // This determines the state directory path
-    this.chainId = options.chainId || `fadroma-local-${options.platform}-${randomBytes(4).toString('hex')}`
-    // Try to update options from stored state
-    this.stateDir = options.stateDir ?? $('state', this.chainId).path
+
+    this.platform = options.platform
+
+    this.verbose = options.verbose
+      ?? false
+
+    this.autoStop = options.autoStop
+      ?? true
+
+    this.autoDelete = options.autoDelete
+      ?? true
+
+    this.initScript = options.initScript!
+      ?? resolve(thisPackage, 'devnets', 'devnet.init.mjs')
+
+    this.launchTimeout = options.launchTimeout
+      ?? 10
+
+    this.dontMountState = options.dontMountState
+      ?? false
+
+    this.accounts = options.accounts
+      ?? this.accounts
+
+    this.podman = options.podman
+      ?? false
+
+    this.engine = options.engine
+      ?? new Dock[this.podman?'Podman':'Docker'].Engine()
+
+    this.containerId = options.containerId
+      ?? this.containerId
+
+    this.chainId = options.chainId
+      || `fadroma-local-${options.platform}-${randomBytes(4).toString('hex')}`
+
+    this.stateDir = options.stateDir
+      ?? $('state', this.chainId).path
+
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
       try {
         const state = this.stateFile.as(JSONFile).load() || {}
@@ -210,27 +249,34 @@ class ContainerDevnet extends Devnet {
         )
       }
     }
-    // Apply the rest of the configuration options
-    const defaultInit   = resolve(thisPackage, 'devnets', 'devnet.init.mjs')
-    this.initScript     = options.initScript! ?? defaultInit
-    this.keepRunning    = options.keepRunning ?? !this.deleteOnExit
-    this.podman         = options.podman ?? false
-    this.platform       = options.platform ?? 'scrt_1.9'
-    this.verbose        = options.verbose ?? false
-    this.launchTimeout  = options.launchTimeout ?? 10
-    this.dontMountState = options.dontMountState ?? false
-    this.accounts       = options.accounts ?? this.accounts
-    this.engine         = options.engine ?? new Dock[this.podman?'Podman':'Docker'].Engine()
-    this.containerId    = options.containerId ?? this.containerId
-    const { dockerTag, dockerFile, ready, portMode, daemon } = platforms[this.platform]
-    this.imageTag    = options.imageTag ?? this.imageTag ?? dockerTag
-    this.dockerfile  = options.dockerfile ?? this.dockerfile ?? dockerFile
-    this.readyPhrase = options.readyPhrase ?? ready
-    this.daemon      = options.daemon ?? daemon
-    this.portMode    = options.portMode ?? portMode
-    this.port        = options.port ?? ports[this.portMode]
-    this.protocol    = options.protocol ?? 'http'
-    this.host        = options.host ?? 'localhost'
+
+    const {
+      dockerTag, dockerFile, ready, portMode, daemon
+    } = platforms[this.platform as Platform]
+    this.imageTag = options.imageTag
+      ?? this.imageTag ?? dockerTag
+
+    this.dockerfile = options.dockerfile
+      ?? this.dockerfile ?? dockerFile
+
+    this.readyPhrase = options.readyPhrase
+      ?? ready
+
+    this.daemon = options.daemon
+      ?? daemon
+
+    this.portMode = options.portMode
+      ?? portMode
+
+    this.port = options.port
+      ?? ports[this.portMode]
+
+    this.protocol = options.protocol
+      ?? 'http'
+
+    this.host = options.host
+      ?? 'localhost'
+
   }
 
   get log (): DevnetConsole {
@@ -269,9 +315,9 @@ class ContainerDevnet extends Devnet {
   /** Environment variables in the container. */
   get spawnEnv () {
     const env: Record<string, string> = {
-      DAEMON:    platforms[this.platform].daemon,
-      TOKEN:     platforms[this.platform].Chain.defaultDenom,
-      CHAIN_ID:  this.chainId,
+      DAEMON:    platforms[this.platform as Platform].daemon,
+      TOKEN:     platforms[this.platform as Platform].Chain.defaultDenom,
+      CHAIN_ID:  this.chainId!,
       ACCOUNTS:  this.accounts.join(' '),
       STATE_UID: String((process.getuid!)()),
       STATE_GID: String((process.getgid!)()),
@@ -371,7 +417,7 @@ class ContainerDevnet extends Devnet {
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
   get stateFile (): JSONFile<Partial<this>> {
-    return $(this.stateDir, Devnet.stateFile).as(JSONFile) as JSONFile<Partial<this>>
+    return $(this.stateDir, ContainerDevnet.stateFile).as(JSONFile) as JSONFile<Partial<this>>
   }
 
   /** Start the container. */
@@ -492,8 +538,16 @@ class ContainerDevnet extends Devnet {
     return new $C({ ...options, devnet: this })
   }
 
+  /** Authenticate with named genesis account. */
+  async authenticate <A extends Agent> (name: string) {
+    const account = await this.getGenesisAccount(name)
+    const { Chain } = platforms[this.platform as Platform]
+    return new (Chain as unknown as AgentClass<A>)({ devnet: this }).authenticate(account)
+  }
+
   /** Get the info for a genesis account, including the mnemonic */
-  getAccount = async (name: string): Promise<Partial<Agent>> => {
+  async getGenesisAccount (name: string): Promise<Partial<Agent>> {
+    this.log.debug('get genesis account', bold(name))
     if (this.dontMountState) {
       if (!this.container) {
         throw new Error('missing devnet container')
@@ -518,10 +572,10 @@ class ContainerDevnet extends Devnet {
     let exitHandlerCalled = false
     const exitHandler = async () => {
       if (exitHandlerCalled) return
-      if (this.deleteOnExit) {
+      if (this.autoDelete) {
         await this.pause()
         await this.delete()
-      } else if (!this.keepRunning) {
+      } else if (!this.autoStop) {
         await this.pause()
       } else {
         this.log.br()
@@ -607,10 +661,10 @@ class DevnetConfig extends Config {
   platform = this.getString(
     'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.9'
   )
-  deleteOnExit = this.getFlag(
+  autoDelete = this.getFlag(
     'FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false
   )
-  keepRunning = this.getFlag(
+  autoStop = this.getFlag(
     'FADROMA_DEVNET_KEEP_RUNNING', ()=>true
   )
   host = this.getString(
