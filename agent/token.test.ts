@@ -2,12 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
-import {
-  addZeros,
-  Token, Fungible, NonFungible,
-  NativeToken, CustomToken,
-  Coin, Fee, Pair, Amount, Swap
-} from './token'
+import { Token, Fungible, NonFungible, Native, Custom, Coin, Fee, Pair, Amount, Swap } from './token'
 
 class MyFungible extends Fungible {
   get id () {
@@ -44,7 +39,7 @@ export default new Suite([
 ])
 
 export async function testDecimals () {
-  assert.equal(addZeros('1', 18), '1000000000000000000')
+  assert.equal(Fungible.addZeros('1', 18), '1000000000000000000')
 }
 
 export async function testCoins () {
@@ -60,16 +55,16 @@ export async function testFees () {
 export async function testFungible () {
   assert(new MyFungible().isFungible())
 
-  assert(new NativeToken('foo').isFungible())
-  assert(new NativeToken('foo').id === 'foo')
-  assert(new NativeToken('foo').isNative())
-  assert(!(new NativeToken('foo').isCustom()))
+  assert(new Native('foo').isFungible())
+  assert(new Native('foo').id === 'foo')
+  assert(new Native('foo').isNative())
+  assert(!(new Native('foo').isCustom()))
 
-  assert(new CustomToken('foo').isFungible())
-  assert(new CustomToken('foo').id === 'foo')
-  assert(!(new CustomToken('foo').isNative()))
-  assert(new CustomToken('foo').isCustom())
-  assert(new CustomToken('foo').connect())
+  assert(new Custom('foo').isFungible())
+  assert(new Custom('foo').id === 'foo')
+  assert(!(new Custom('foo').isNative()))
+  assert(new Custom('foo').isCustom())
+  assert(new Custom('foo').connect())
 }
 
 export async function testNonFungible () {
@@ -87,7 +82,7 @@ export async function testSwaps () {
 
   const amount = new Amount('1000000000000', MYFT)
   assert(amount.asNativeBalance instanceof Array)
-  assert(new Amount('1000000000000', new CustomToken('MYCFT')).asNativeBalance instanceof Array)
+  assert(new Amount('1000000000000', new Custom('MYCFT')).asNativeBalance instanceof Array)
 
   const swap = new Swap(
     new Amount('1000000000000', MYFT),

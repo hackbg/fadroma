@@ -30,76 +30,12 @@ import Case from 'case'
 const console = new Console(`@hackbg/fadroma ${version}`)
 
 export function getProject (
-  root: string|Path = process.env.FADROMA_PROJECT || process.cwd()
+  root: string|Path = 
 ): Project {
-  return new Project('project', root)
+  return 
 }
 
-export class ProjectCommands extends CommandContext {
-  constructor (readonly project: Project = getProject()) {
-    super()
-    this
-      .addCommand(
-        'run', 'execute a script',
-        (...args: string[]) => runScript(this.getProject(), ...args))
-      .addCommand(
-        'repl', 'open a project REPL (optionally executing a script first)',
-        (...args: string[]) => runRepl(this.getProject(), ...args))
-      .addCommand(
-        'status', 'show the status of the project',
-        () => Tools.logProjectStatus(this.getProject()))
-      .addCommand(
-        'create', 'create a new project',
-        Project.create)
 
-    if (this.project) {
-      this
-        .addCommand('build', 'build the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().build({
-            compiler: Compilers.getCompiler(), }))
-        .addCommand('rebuild', 'rebuild the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().build({
-            rebuild: true,
-            compiler: Compilers.getCompiler(), }))
-        .addCommand('upload', 'upload the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().upload({
-            compiler: Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), }))
-        .addCommand('reupload', 'reupload the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().upload({
-            compiler: Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), reupload: true }))
-        .addCommand('deploy', 'deploy this project or continue an interrupted deployment',
-          (...args: string[]) => this.getProject().getDeployment().deploy({
-            compiler: Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
-            deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
-            deployment:  this.getProject().getDeployment() }))
-        .addCommand('redeploy', 'redeploy this project from scratch',
-          (...args: string[]) => this.getProject().getDeployment().deploy({
-            compiler:    Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
-            deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
-            deployment:  this.getProject().createDeployment() }))
-        .addCommand('select', `activate another deployment`, 
-          async (name?: string): Promise<Deployment|undefined> => selectDeployment(
-            this.project.root, name))
-        .addCommand('export', `export current deployment to JSON`,
-          async (path?: string) => exportDeployment(
-            this.project.root, await this.getProject().getDeployment(), path))
-        .addCommand('reset', 'stop and erase running devnets',
-          (...ids: ChainId[]) => Devnets.resetAll(
-            this.project.root, ids))
-    }
-  }
-
-  getProject (): Project {
-    return new Project('name_from_package_json', this.root)
-  }
-
-  getAgent (): Agent {
-  }
-}
 
 export class ProjectRoot {
 
@@ -481,40 +417,6 @@ export class WorkspaceProject extends CargoProject {
         .save(`${sha256}  *${name}`)
     }
   }
-}
-
-export async function runScript (
-  project?: Project, script?: string, ...args: string[]
-) {
-  if (!script) {
-    throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
-  }
-  if (!$(script).exists()) {
-    throw new Error(`${script} doesn't exist`)
-  }
-  console.log(`Running ${script}`)
-  const path = $(script).path
-  //@ts-ignore
-  const { default: main } = await import(path)
-  if (typeof main === 'function') {
-    return main(project, ...args)
-  } else {
-    console.info(`${$(script).shortPath} does not have a default export.`)
-  }
-}
-
-export async function runRepl (
-  project: Project, script?: string, ...args: string[]
-) {
-  let start
-  try {
-    const repl = await import('node:repl')
-    start = repl.start
-  } catch (e) {
-    console.error('Node REPL unavailable.')
-    throw e
-  }
-  const context = start() || project.getDeployment()
 }
 
 export async function selectDeployment (

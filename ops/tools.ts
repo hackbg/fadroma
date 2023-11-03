@@ -82,7 +82,7 @@ export function createGitRepo (cwd: string, tools: SystemTools): {
       runShellCommands(cwd, [
         'git --no-pager init',
       ])
-      writeGitIgnore($(cwd).at('.gitignore'))
+      $(cwd).at('.gitignore').as(TextFile).save(generateGitIgnore())
       runShellCommands(cwd, [
         'git --no-pager add .',
         'git --no-pager status',

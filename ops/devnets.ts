@@ -1,8 +1,8 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Config, Error, Console, bold, Agent, Devnet, Scrt, CW, } from '@fadroma/connect'
-import type { CodeId, ChainId, Environment, AgentClass } from '@fadroma/connect'
+import { Config, Error, Console, bold, Token, Agent, Devnet, Scrt, CW, } from '@fadroma/connect'
+import type { CodeId, ChainId, Environment, AgentClass, Address } from '@fadroma/connect'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import portManager, { waitPort } from '@hackbg/port'
@@ -17,11 +17,6 @@ export { Devnet }
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
 //@ts-ignore
 const thisPackage = dirname(dirname(fileURLToPath(import.meta.url)))
-
-/** @returns Devnet configured as per environment and options. */
-export function getDevnet (options: Partial<Devnet> = {}) {
-  return new DevnetConfig().getDevnet(options)
-}
 
 export function resetAll (cwd: string|Path, ids: ChainId[]) {
   return ContainerDevnet.deleteMany($(cwd).in('state'), ids)
@@ -141,6 +136,30 @@ export const platforms: Record<Platform, PlatformInfo> = {
 /** A private local instance of a network,
   * running in a container managed by @hackbg/dock. */
 class ContainerDevnet extends Devnet {
+
+  static fromEnvironment (properties?: Partial<ContainerDevnet>) {
+    const config = new Config()
+    return new this({
+      chainId:
+        config.getString('FADROMA_DEVNET_CHAIN_ID', ()=>undefined),
+      platform:
+        config.getString('FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.9'),
+      autoDelete:
+        config.getFlag('FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false),
+      autoStop:
+        config.getFlag('FADROMA_DEVNET_KEEP_RUNNING', ()=>true),
+      host:
+        config.getString('FADROMA_DEVNET_HOST', ()=>undefined),
+      port:
+        config.getString('FADROMA_DEVNET_PORT', ()=>undefined),
+      podman:
+        config.getFlag('FADROMA_DEVNET_PODMAN', ()=> config.getFlag('FADROMA_PODMAN', ()=>false)),
+      dontMountState:
+        config.getFlag('FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false),
+      ...properties
+    })
+  }
+
   /** Containerization engine (Docker or Podman). */
   engine?: Dock.Engine
   /** Path to Dockerfile to build image */
@@ -178,6 +197,10 @@ class ContainerDevnet extends Devnet {
   verbose: boolean
   /** Name of node binary. */
   daemon: string
+  /** Initial accounts. */
+  genesisAccounts?: Record<Address, Token.Amount[]>
+  /** Initial uploads. */
+  genesisUploads?: Record<CodeId, Partial<{ codeData: Uint8Array }>>
 
   /** Overridable for testing. */
   //@ts-ignore
@@ -376,7 +399,7 @@ class ContainerDevnet extends Devnet {
   create = async (): Promise<this> => {
     const exists = await this.container?.catch(()=>null)
     if (exists) {
-      this.log.alreadyExists(this.containerId)
+      this.log(`Devnet already exists in container`, bold(this.containerId?.slice(0, 8)))
     } else {
       this.log.debug('Creating...')
       // ensure we have image and chain id
@@ -390,13 +413,13 @@ class ContainerDevnet extends Devnet {
       // if port is unspecified or taken, increment
       this.port = await portManager.getFreePort(this.port)
       // create container
-      this.log.creating(this)
+      this.log(`Creating devnet`, bold(this.chainId), `on`, bold(String(this.url)))
       const init = this.initScript ? [this.initScriptMount] : []
       const container = image!.container(this.chainId, this.spawnOptions, init)
       await container.create()
       this.setExitHandler()
       // set id and save
-      this.log.createdContainer(container.id)
+      this.log.debug(`Created container:`, bold(this.containerId?.slice(0, 8)))
       this.containerId = container.id
     }
     return await this.save()
@@ -421,11 +444,11 @@ class ContainerDevnet extends Devnet {
   }
 
   /** Start the container. */
-  start = async (): Promise<this> => {
+  async start (): Promise<this> {
     this.log.debug('Starting...')
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
-      this.log.startingContainer(container.id)
+      this.log.debug(`Starting container:`, bold(this.containerId?.slice(0, 8)))
       try {
         await container.start()
       } catch (e) {
@@ -443,16 +466,16 @@ class ContainerDevnet extends Devnet {
   }
 
   /** Stop the container. */
-  pause = async () => {
+  async pause () {
     this.log('Pausing devnet...')
     const container = await this.container
     if (container) {
-      this.log.stoppingContainer(container.id)
+      this.log.debug(`Stopping container:`, bold(this.containerId?.slice(0, 8)))
       try {
         if (await container.isRunning) await container.kill()
       } catch (e) {
         if (e.statusCode == 404) {
-          this.log.warnContainerNotFound(this.containerId)
+          this.log.warn(`Container ${bold(this.containerId?.slice(0, 8))} not found`)
         } else {
           throw e
         }
@@ -463,7 +486,7 @@ class ContainerDevnet extends Devnet {
   }
 
   /** Export the state of the devnet as a container image. */
-  export = async (repository?: string, tag?: string) => {
+  async export (repository?: string, tag?: string) {
     const container = await this.container
     if (!container) {
       throw new Error("can't export: no container")
@@ -472,14 +495,14 @@ class ContainerDevnet extends Devnet {
   }
 
   /** Delete the devnet container and state. */
-  delete = async () => {
+  async delete () {
     this.log('Deleting...')
     let container
     try {
       container = await this.container
     } catch (e) {
       if (e.statusCode === 404) {
-        this.log.noContainerToDelete(this.containerId?.slice(0, 8))
+        this.log(`No container found`, bold(this.containerId?.slice(0, 8)))
       } else {
         throw e
       }
@@ -495,15 +518,15 @@ class ContainerDevnet extends Devnet {
     const path = state.shortPath
     try {
       if (state.exists()) {
-        this.log.deleting(path)
+        this.log(`Deleting ${path}...`)
         state.delete()
       }
     } catch (e: any) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
-        this.log.cannotDelete(path, e)
+        this.log.warn(`unable to delete ${path}: ${e.code}, trying cleanup container`)
         await this.forceDelete()
       } else {
-        this.log.failedToDelete(path, e)
+        this.log.error(`failed to delete ${path}:`, e)
         throw e
       }
     }
@@ -515,7 +538,7 @@ class ContainerDevnet extends Devnet {
     const image = await this.image
     const path = $(this.stateDir).shortPath
     if (image) {
-      this.log.runningCleanupContainer(path)
+      this.log('Running cleanup container for', path)
       await image.ensure()
       const name       = `${this.chainId}-cleanup`
       const AutoRemove = true
@@ -523,19 +546,11 @@ class ContainerDevnet extends Devnet {
       const extra      = { AutoRemove, HostConfig }
       const cleanupContainer = await image.run(name, { extra }, ['-rvf', '/state'], '/bin/rm')
       await cleanupContainer.start()
-      this.log.waitingForCleanupContainer()
+      this.log('Waiting for cleanup container to finish...')
       await cleanupContainer.wait()
-      this.log.cleanupContainerDone(path)
+      this.log(`Deleted ${path}/* via cleanup container.`)
       $(this.stateDir).delete()
     }
-  }
-
-  /** Get a Chain object wrapping this devnet. */
-  getChain = <A extends Agent, C extends AgentClass<A>> (
-    $C: C = (platforms[this.platform].Chain || Agent) as unknown as C,
-    options?: Partial<A>
-  ): A => {
-    return new $C({ ...options, devnet: this })
   }
 
   /** Authenticate with named genesis account. */
@@ -566,7 +581,7 @@ class ContainerDevnet extends Devnet {
     * stop/remove its container if configured to do so */
   protected setExitHandler () {
     if (this.exitHandlerSet) {
-      this.log.exitHandlerSet(this.chainId)
+      this.log.warn('Exit handler already set for', this.chainId)
       return
     }
     let exitHandlerCalled = false
@@ -579,7 +594,22 @@ class ContainerDevnet extends Devnet {
         await this.pause()
       } else {
         this.log.br()
-        this.log.isNowRunning(this)
+        this.log.log(
+          'Devnet is running on port', bold(String(this.port)),
+          `from container`, bold(this.containerId?.slice(0,8))
+        ).info(
+          'To remove the devnet:'
+        ).info(
+          '  $ npm run devnet reset'
+        ).info(
+          'Or manually:'
+        ).info(
+          `  $ docker kill`, this.containerId?.slice(0,8),
+        ).info(
+          `  $ docker rm`, this.containerId?.slice(0,8),
+        ).info(
+          `  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`
+        )
       }
     }
     process.once('beforeExit', exitHandler)
@@ -610,7 +640,7 @@ class ContainerDevnet extends Devnet {
     if (!dir.at(ContainerDevnet.stateFile).isFile()) {
       throw new Error(`not a file: ${stateFile.path}`)
     }
-    let state: Partial<Devnet> = {}
+    let state: Partial<ContainerDevnet> = {}
     try {
       state = stateFile.as(JSONFile).load() || {}
     } catch (e) {
@@ -620,6 +650,9 @@ class ContainerDevnet extends Devnet {
       }
     }
     console.missingValues(state, stateFile.path)
+    if (!state.containerId) console.warn(`${stateFile.path}: no containerId`)
+    if (!state.chainId)     console.warn(`${stateFile.path}: no chainId`)
+    if (!state.port)        console.warn(`${stateFile.path}: no port`)
     return new ContainerDevnet(state)
   }
 
@@ -647,113 +680,6 @@ class ContainerDevnet extends Devnet {
   static RE_NON_PRINTABLE = /[\x00-\x1F]/
 }
 
-class DevnetConfig extends Config {
-  constructor (
-    options: Partial<DevnetConfig> = {},
-    environment?: Environment
-  ) {
-    super(environment)
-    this.override(options)
-  }
-  chainId = this.getString(
-    'FADROMA_DEVNET_CHAIN_ID', ()=>undefined
-  )
-  platform = this.getString(
-    'FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.9'
-  )
-  autoDelete = this.getFlag(
-    'FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false
-  )
-  autoStop = this.getFlag(
-    'FADROMA_DEVNET_KEEP_RUNNING', ()=>true
-  )
-  host = this.getString(
-    'FADROMA_DEVNET_HOST', ()=>undefined
-  )
-  port = this.getString(
-    'FADROMA_DEVNET_PORT', ()=>undefined
-  )
-  podman = this.getFlag(
-    'FADROMA_DEVNET_PODMAN', ()=> this.getFlag('FADROMA_PODMAN', ()=>false)
-  )
-  dontMountState = this.getFlag(
-    'FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false
-  )
-
-  /** @returns Devnet */
-  getDevnet (options: Partial<Devnet> = {}) {
-    return new Devnet({...this})
-  }
-}
-
-/** A logger emitting devnet-related messages. */
-class DevnetConsole extends Console {
-  tryingPort = (port: string|number, taken?: string|number) =>
-    taken
-      ? this.debug('Port', bold(taken), 'is taken, trying port', bold(port))
-      : this.debug(`Trying port`, bold(port))
-  creating = ({ chainId, url }: Partial<Devnet>) =>
-    this.log(`Creating devnet`, bold(chainId), `on`, bold(String(url)))
-  loadingState = (chainId1: string, chainId2: string) =>
-    this.info(`Loading state of ${chainId1} into Devnet with id ${chainId2}`)
-  loadingFailed = (path: string) =>
-    this.warn(`Failed to load devnet state from ${path}. Deleting it.`)
-  loadingRejected = (path: string) =>
-    this.log(`${path} does not exist.`)
-  createdContainer = (id: string = '') =>
-    this.debug(`Created container:`, bold(id.slice(0, 8)))
-  alreadyExists = (id: string = '') =>
-    this.log(`Devnet already exists in container`, bold(id.slice(0, 8)))
-  startingContainer = (id: string = '') =>
-    this.debug(`Starting container:`, bold(id.slice(0, 8)))
-  stoppingContainer = (id: string = '') =>
-    this.debug(`Stopping container:`, bold(id.slice(0, 8)))
-  warnContainerNotFound = (id: string = '') =>
-    this.warn(`Container ${bold(id.slice(0, 8))} not found`)
-  noContainerToDelete = (id: string = '') =>
-    this.log(`No container found`, bold(id.slice(0, 8)))
-  missingValues = ({ chainId, containerId, port }: Partial<Devnet>, path: string) => {
-    if (!containerId) console.warn(`${path}: no containerId`)
-    if (!chainId)     console.warn(`${path}: no chainId`)
-    if (!port)        console.warn(`${path}: no port`)
-  }
-  deleting = (path: string) =>
-    this.log(`Deleting ${path}...`)
-  cannotDelete = (path: string, error: any) =>
-    this.warn(`Failed to delete ${path}: ${error.code}`)
-  runningCleanupContainer = (path: string) =>
-    this.log('Running cleanup container for', path)
-  waitingForCleanupContainer = () =>
-    this.log('Waiting for cleanup container to finish...')
-  cleanupContainerDone = (path: string) =>
-    this.log(`Deleted ${path}/* via cleanup container.`)
-  failedToDelete = (path: string, error: any) =>
-    this.warn(`Failed to delete ${path}:`, error)
-  exitHandlerSet = (chainId: string) =>
-    this.warn('Exit handler already set for', chainId)
-  isNowRunning = ({ stateDir, chainId, containerId, port }: Partial<Devnet>) => {
-    return this
-      .log(
-        'Devnet is running on port', bold(String(port)),
-        `from container`, bold(containerId?.slice(0,8))
-      ).info(
-        'To remove the devnet:'
-      ).info(
-        '  $ npm run devnet reset'
-      ).info(
-        'Or manually:'
-      ).info(
-        `  $ docker kill`, containerId?.slice(0,8),
-      ).info(
-        `  $ docker rm`, containerId?.slice(0,8),
-      ).info(
-        `  $ sudo rm -rf state/${chainId??'fadroma-devnet'}`
-      )
-  }
-}
-
 export {
   ContainerDevnet as Container,
-  DevnetConfig    as Config,
-  DevnetConsole   as Console,
 }
