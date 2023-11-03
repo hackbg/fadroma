@@ -10,8 +10,7 @@ import prompts from 'prompts'
 import * as dotenv from 'dotenv'
 import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
-import { version } from './config'
-const console = new Console(`@hackbg/fadroma ${version}`)
+import { console } from './config'
 
 export async function askText <T> (
   message: string,

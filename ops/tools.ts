@@ -3,11 +3,10 @@ import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
 import { cwd } from 'node:process'
 import Case from 'case'
-import { version } from './config'
-import type { Project } from './project'
 import $, { Path, TextFile, JSONFile, TOMLFile, OpaqueDirectory } from '@hackbg/file'
 import { bip39, bip39EN } from '@fadroma/connect'
-const console = new Console(`@hackbg/fadroma ${version}`)
+import { console } from './config'
+import type { Project } from './project'
 
 export const NOT_INSTALLED = 'not installed'
 
@@ -298,20 +297,20 @@ export function generatePackageJson (name: string) {
       "@hackbg/fadroma": `1.5.9`,
       "@hackbg/ganesha": "4.2.0",
       //"@hackbg/ubik":    "^2.0.0",
-      "typescript":      "^5.1.6",
+      "typescript":      "^5.2.2",
     },
     scripts: {
       "build":   "fadroma build",
       "rebuild": "fadroma rebuild",
       "status":  "fadroma status",
-      "mocknet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=Mocknet fadroma`,
-      "devnet":  `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtDevnet fadroma`,
-      "testnet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtTestnet fadroma`,
-      "mainnet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtMainnet fadroma`,
-      "test":         `FADROMA_PROJECT=./fadroma.config.ts fadroma run test.ts`,
-      "test:mocknet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=Mocknet fadroma run test.ts`,
-      "test:devnet":  `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtDevnet fadroma run test.ts`,
-      "test:testnet": `FADROMA_PROJECT=./fadroma.config.ts FADROMA_CHAIN=ScrtTestnet fadroma run test.ts`,
+      "mocknet": `FADROMA_CHAIN=Mocknet fadroma`,
+      "devnet":  `FADROMA_CHAIN=ScrtDevnet fadroma`,
+      "testnet": `FADROMA_CHAIN=ScrtTestnet fadroma`,
+      "mainnet": `FADROMA_CHAIN=ScrtMainnet fadroma`,
+      "test":         `fadroma run test.ts`,
+      "test:mocknet": `FADROMA_CHAIN=Mocknet fadroma run test.ts`,
+      "test:devnet":  `FADROMA_CHAIN=ScrtDevnet fadroma run test.ts`,
+      "test:testnet": `FADROMA_CHAIN=ScrtTestnet fadroma run test.ts`,
     },
   }
 }

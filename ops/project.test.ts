@@ -3,8 +3,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
 import {
+  ProjectCommands,
   Deployment, UploadedCode, ContractTemplate, ContractInstance, Stub
-} from '@fadroma/connect'
+} from '@hackbg/fadroma'
 import { JSONFileDeployStore } from './stores'
 import { getCompiler } from './build'
 import { fixture, tmpDir } from '../fixtures/fixtures'
@@ -39,29 +40,15 @@ export async function testProjectCommands () {
     })
 
   for (const project of [scriptProject, crateProject, workspaceProject]) {
-    const commands = new Projects.ProjectCommands(project)
-  }
-
-  for (const [name, Project] of [
-    [],
-    [],
-  ]) {
-  const root = `${tmpDir()}/test-project-1`
-  const name = 'test-project-1'
-  const project = Project.create({ root, name })
-
-  project.status()
-  project.cargoUpdate()
-
-  await project.build()
-  await project.build('test1')
-
-  await project.upload()
-  await project.upload('test1')
-
-  await project.deploy(/* any deploy arguments, if you've overridden the deploy procedure */)
-  await project.redeploy(/* ... */)
-  await project.exportDeployment('state')
+    const commands = new ProjectCommands(project)
+    commands.run(['status'])
+    await commands.run(['build'])
+    await commands.run(['rebuild', 'test1'])
+    await commands.run(['upload'])
+    await commands.run(['reupload', 'test1'])
+    await commands.run(['deploy'])
+    await commands.run(['redeploy', 'test1'])
+    await commands.run(['export'])
   }
 }
 
