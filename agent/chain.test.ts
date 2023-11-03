@@ -50,9 +50,13 @@ export async function testUnauthenticated () {
 
   assert(chain.contract() instanceof ContractClient)
 
-  assert(await chain.getCodeId(''))
-  assert(await chain.getCodeHashOfAddress(''))
-  assert(await chain.getCodeHashOfCodeId(''))
+  const state = new Stub.ChainState()
+  state.uploads.set("123", { codeHash: "abc", codeData: new Uint8Array() })
+  state.instances.set("stub1abc", { codeId: "123" })
+  chain = new Stub.Agent({ state })
+  assert.equal(await chain.getCodeId('stub1abc'), "123")
+  assert.equal(await chain.getCodeHashOfAddress('stub1abc'), "abc")
+  assert.equal(await chain.getCodeHashOfCodeId('123'), "abc")
 }
 
 export async function testAuthenticated () {

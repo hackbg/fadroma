@@ -2,12 +2,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Console, Error } from './base'
-import type { Class, Name } from './base'
+import type { Name } from './base'
 import type { CodeHash } from './code'
-import type { ChainId } from './chain'
-import { SourceCode, CompiledCode, UploadedCode } from './code'
+import { UploadedCode } from './code'
 import { Deployment } from './deploy'
-import type { DeploymentClass, DeploymentState } from './deploy'
+import type { DeploymentState } from './deploy'
 
 export class UploadStore extends Map<CodeHash, UploadedCode> {
   log = new Console('UploadStore')
@@ -40,8 +39,13 @@ export class DeployStore extends Map<Name, DeploymentState> {
     super()
   }
 
-  get (name: Name): DeploymentState|undefined {
-    return super.get(name)
+  selected?: DeploymentState = undefined
+
+  get (name?: Name): DeploymentState|undefined {
+    if (arguments.length === 0) {
+      return this.selected
+    }
+    return super.get(name!)
   }
 
   set (name: Name, state: Partial<Deployment>|DeploymentState): this {

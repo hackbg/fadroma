@@ -13,12 +13,20 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, sep } from 'node:path'
 import { homedir } from 'node:os'
 import { randomBytes } from 'node:crypto'
+import { thisPackage } from './config'
 
-/** Path to this package. Used to find the build script, dockerfile, etc.
-  * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
-const thisPackage =
-  //@ts-ignore
-  dirname(dirname(fileURLToPath(import.meta.url)))
+export function getCompiler ({
+  config = new Config(), useContainer = config.getFlag('FADROMA_BUILD_RAW', ()=>false),
+  ...options
+}: |({ useContainer?: false } & Partial<RawLocalRustCompiler>)
+   |({ useContainer:  true  } & Partial<ContainerizedLocalRustCompiler>) = {}
+) {
+  if (useContainer) {
+    return new ContainerizedLocalRustCompiler({ config, ...options })
+  } else {
+    return new RawLocalRustCompiler({ config, ...options })
+  }
+}
 
 export { Compiler }
 
@@ -91,12 +99,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     if (typeof source === 'string') {
       source = { cargoCrate: source }
     }
-    let {
-      sourceRef = 'HEAD',
-      cargoWorkspace = this.workspace,
-      cargoCrate,
-    } = source
-    if (cargoWorkspace && cargoCrate) {
+    if (source.cargoWorkspace && !source.cargoCrate) {
       throw new Error("missing crate name")
     }
     return source
@@ -120,7 +123,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     const env = {
       FADROMA_BUILD_GID: String(this.buildGid),
       FADROMA_BUILD_UID: String(this.buildUid),
-      FADROMA_OUTPUT:    $(sourcePath||process.cwd()).in('wasm').path,
+      FADROMA_OUTPUT:    $(process.env.FADROMA_OUTPUT||process.cwd()).in('wasm').path, // FIXME
       FADROMA_REGISTRY:  '',
       FADROMA_TOOLCHAIN: this.toolchain,
     }
@@ -296,7 +299,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
       source.cargoWorkspace ??= this.workspace
       source.sourceRef ??= 'HEAD'
       // If the source is already built, don't build it again
-      if (!this.populatePrebuilt(source)) {
+      if (!this.getCached(this.outputDir.path, source)) {
         if (!source.sourceRef || (source.sourceRef === HEAD)) {
           this.log(`Building ${bold(source.cargoCrate)} from working tree`)
         } else {
@@ -308,18 +311,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
       }
     }
     return [workspaces, revisions]
-  }
-
-  protected populatePrebuilt (source: Partial<RustSourceCode>): boolean {
-    const { cargoWorkspace, sourceRef, cargoCrate } = source
-    const prebuilt = this.prebuild(this.outputDir.path, cargoCrate, sourceRef)
-    if (prebuilt) {
-      new Console(`build ${crate}`).found(prebuilt)
-      source.codePath = prebuilt.codePath
-      source.codeHash = prebuilt.codeHash
-      return true
-    }
-    return false
   }
 
   protected async buildBatch (inputs: Partial<RustSourceCode>[], path: string, rev: string = HEAD) {
@@ -488,7 +479,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     const shouldBuild: Record<string, number> = {}
     // Collect cached templates. If any are missing from the cache mark them as source.
     for (const [index, crate] of crates) {
-      const prebuilt = this.prebuild(outputDir, crate, revision)
+      const prebuilt = this.getCached(outputDir, crate, revision)
       if (prebuilt) {
         //const location = $(prebuilt.codePath!).shortPath
         //console.info('Exists, not rebuilding:', bold($(location).shortPath))
@@ -502,9 +493,9 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
 
   /** Check if codePath exists in local artifacts cache directory.
     * If it does, don't rebuild it but return it from there. */
-  protected prebuild (outputDir: string, crate?: string, revision: string = HEAD): CompiledCode|null {
-    if (this.caching && crate) {
-      const location = $(outputDir, codePathName(crate, revision))
+  protected getCached (outputDir: string, { sourceRef, cargoCrate }: Partial<RustSourceCode>): CompiledCode|null {
+    if (this.caching && cargoCrate) {
+      const location = $(outputDir, codePathName(cargoCrate, sourceRef||HEAD))
       if (location.exists()) {
         const codePath = location.url
         const codeHash = this.hashPath(location)

@@ -2,24 +2,22 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Console, Error, bold, timestamp, UploadStore, DeployStore, ContractInstance, Deployment
+  Console, Error, bold, timestamp,
+  UploadStore, DeployStore, ContractInstance, Deployment
 } from '@fadroma/connect'
-import type {
-  CodeHash, UploadedCode, DeploymentState, Name
-} from '@fadroma/connect'
-import $, {
-  OpaqueDirectory, BinaryFile, TextFile,
-  JSONDirectory, JSONFile,
-} from '@hackbg/file'
-import type {
-  Path
-} from '@hackbg/file'
-import {
-  fileURLToPath
-} from 'node:url'
-import {
-  basename
-} from 'node:path'
+import type { CodeHash, UploadedCode, DeploymentState, Name } from '@fadroma/connect'
+import $, { OpaqueDirectory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
+import { fileURLToPath } from 'node:url'
+import { basename } from 'node:path'
+
+export function getUploadStore (path?: string|Path): UploadStore {
+  if (path) {
+    return new JSONFileUploadStore(path)
+  } else {
+    return new UploadStore()
+  }
+}
 
 /** Directory containing upload receipts, e.g. `state/$CHAIN/upload`. */
 export class JSONFileUploadStore extends UploadStore {
@@ -27,7 +25,7 @@ export class JSONFileUploadStore extends UploadStore {
 
   dir: JSONDirectory<Partial<UploadedCode>>
 
-  constructor (dir: string) {
+  constructor (dir: string|Path) {
     super()
     this.dir = $(dir).as(JSONDirectory<Partial<UploadedCode>>)
   }
@@ -70,6 +68,14 @@ export class JSONFileUploadStore extends UploadStore {
   }
 }
 
+export function getDeployStore (path?: string): DeployStore {
+  if (path) {
+    return new JSONFileDeployStore(path)
+  } else {
+    return new DeployStore()
+  }
+}
+
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`. */
 export class JSONFileDeployStore extends DeployStore {
   log = new Console('DeployStore_v1')
@@ -78,7 +84,7 @@ export class JSONFileDeployStore extends DeployStore {
   /** Name of symlink pointing to active deployment, without extension. */
   KEY = '.active'
 
-  constructor (dir: string,) {
+  constructor (dir: string|Path) {
     super()
     this.dir = $(dir).as(JSONDirectory<DeploymentState>)
   }

@@ -232,12 +232,11 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     return unit
   }
 
-  async build (
-    options: Parameters<ContractCode["compile"]>[0] = {}
-  ): Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>> {
+  async build (options: Parameters<ContractCode["compile"]>[0] = {}):
+    Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>>
+  {
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
     for (const [name, unit] of this.entries()) {
-      console.log({unit})
       if (!unit.source?.isValid() && unit.compiled?.isValid()) {
         this.log.warn(`Missing source for ${unit.compiled.codeHash}`)
       } else {
@@ -251,9 +250,9 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     return built
   }
 
-  async upload (
-    options: Parameters<ContractCode["upload"]>[0] = {}
-  ): Promise<Record<CodeId, UploadedCode & { codeId: CodeId }>> {
+  async upload (options: Parameters<ContractCode["upload"]>[0] = {}):
+    Promise<Record<CodeId, UploadedCode & { codeId: CodeId }>>
+  {
     const uploading: Array<Promise<UploadedCode & { codeId: CodeId }>> = []
     for (const [name, unit] of this.entries()) {
       uploading.push(unit.upload(options))
@@ -265,9 +264,11 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     return uploaded
   }
 
-  async deploy (
-    options: Parameters<ContractInstance["deploy"]>[0] = {}
-  ): Promise<Record<Address, ContractInstance & { address: Address }>> {
+  async deploy (options: Parameters<ContractInstance["deploy"]>[0] & {
+    deployStore?: DeployStore
+  } = {}):
+    Promise<Record<Address, ContractInstance & { address: Address }>>
+  {
     const deploying: Array<Promise<ContractInstance & { address: Address }>> = []
     for (const [name, unit] of this.entries()) {
       if (unit instanceof ContractInstance) {

@@ -9,7 +9,7 @@ import type { CodeHash, CodeId } from './code'
 import { CompiledCode, UploadedCode } from './code'
 import { ContractInstance, } from './deploy'
 import { ContractClient, ContractClientClass } from './client'
-import type { DevnetHandle } from './devnet'
+import type { Devnet } from './devnet'
 import { assignDevnet } from './devnet'
 
 /** A chain can be in one of the following modes: */
@@ -69,7 +69,7 @@ export abstract class Agent {
   fees?:    { send?: IFee, upload?: IFee, init?: IFee, exec?: IFee }
 
   /** If this is a devnet, this contains an interface to the devnet container. */
-  devnet?:  DevnetHandle
+  devnet?:  Devnet
 
   /** Whether this chain is stopped. */
   stopped?: boolean
@@ -89,7 +89,7 @@ export abstract class Agent {
       if (properties?.chainId && properties?.chainId !== properties?.devnet?.chainId) {
         this.log.warn('chain.id: ignoring override (devnet)')
       }
-      if (properties?.url && properties?.url.toString() !== properties?.devnet?.url.toString()) {
+      if (properties?.url && properties?.url.toString() !== properties?.devnet?.url?.toString()) {
         this.log.warn('chain.url: ignoring override (devnet)')
       }
       if (properties?.mode && properties?.mode !== Mode.Devnet) {

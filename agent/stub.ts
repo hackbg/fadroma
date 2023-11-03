@@ -2,18 +2,92 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, Message, Label, TxHash } from './base'
-import { Console } from './base'
+import { assign, Console, Error, base16, sha256 } from './base'
 import type { ICoin } from './token'
 import { Agent, BatchBuilder } from './chain'
+import type { ChainId } from './chain'
 import { Compiler, CompiledCode, UploadedCode } from './code'
 import type { CodeHash, CodeId, SourceCode } from './code'
 import { ContractInstance } from './deploy'
+import { Devnet } from './devnet'
+
+class StubChainState extends Devnet {
+  chainId: string = 'stub'
+
+  lastCodeId = 0
+
+  accounts = new Map<Address, {
+    balances: Record<string, bigint>
+  }>()
+
+  uploads = new Map<CodeId, {
+    chainId:  ChainId
+    codeId:   CodeId
+    codeHash: CodeHash
+    codeData: Uint8Array
+  }>()
+
+  instances = new Map<Address, {
+    codeId: CodeId
+  }>()
+
+  constructor (properties?: Partial<StubChainState>) {
+    super(properties as Partial<Devnet>)
+    assign(this, properties, ["chainId", "lastCodeId", "accounts", "uploads", "instances"])
+  }
+
+  async upload (codeData: Uint8Array) {
+    this.lastCodeId++
+    const codeId = String(this.lastCodeId)
+    let upload
+    this.uploads.set(codeId, upload = {
+      codeId,
+      chainId:  this.chainId,
+      codeHash: base16.encode(sha256(codeData)).toLowerCase(),
+      codeData,
+    })
+    return upload
+  }
+
+  async start (): Promise<this> {
+    this.running = true
+    return this
+  }
+
+  async pause (): Promise<this> {
+    this.running = false
+    return this
+  }
+
+  async import (...args: unknown[]): Promise<unknown> {
+    throw new Error("StubChainState#import: not implemented")
+  }
+
+  async export (...args: unknown[]): Promise<unknown> {
+    throw new Error("StubChainState#export: not implemented")
+  }
+
+  async mirror (...args: unknown[]): Promise<unknown> {
+    throw new Error("StubChainState#mirror: not implemented")
+  }
+
+  async getAccount (name: string): Promise<Partial<Agent>> {
+    throw new Error("StubChainState#getAccount: not implemented")
+  }
+}
 
 class StubAgent extends Agent {
 
-  protected lastCodeHash = 0
+  state: StubChainState = new StubChainState()
 
   defaultDenom: string = 'ustub'
+
+  constructor (properties?: Partial<StubAgent>) {
+    super(properties)
+    if (properties?.state) {
+      this.state = properties.state
+    }
+  }
 
   async getBlockInfo () {
     return { height: + new Date() }
@@ -23,16 +97,22 @@ class StubAgent extends Agent {
     return this.getBlockInfo().then(({height})=>height)
   }
 
-  async getCodeId (address: Address) {
-    return 'stub-code-id'
+  async getCodeId (address: Address): Promise<CodeId> {
+    const contract = this.state.instances.get(address)
+    if (!contract) {
+      throw new Error(`unknown contract ${address}`)
+    }
+    return contract.codeId
   }
 
-  async getCodeHashOfAddress (address: Address) {
-    return 'stub-code-hash'
+  async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
+    return this.getCodeHashOfCodeId(await this.getCodeId(address))
   }
 
-  async getCodeHashOfCodeId (id: CodeId) {
-    return 'stub-code-hash'
+  async getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
+    const code = this.state.uploads.get(id)
+    if (!code) throw new Error(`unknown code ${id}`)
+    return code.codeHash
   }
 
   doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
@@ -47,12 +127,8 @@ class StubAgent extends Agent {
     return Promise.resolve()
   }
 
-  protected doUpload (data: Uint8Array): Promise<UploadedCode> {
-    this.lastCodeHash = this.lastCodeHash + 1
-    return Promise.resolve(new UploadedCode({
-      chainId:  this.chainId,
-      codeId:   String(this.lastCodeHash),
-    }))
+  protected async doUpload (codeData: Uint8Array): Promise<UploadedCode> {
+    return new UploadedCode(await this.state.upload(codeData))
   }
 
   protected doInstantiate (
@@ -106,9 +182,10 @@ class StubBatchBuilder extends BatchBuilder<StubAgent> {
 }
 
 export {
-  StubAgent as Agent,
+  StubAgent        as Agent,
   StubBatchBuilder as BatchBuilder,
-  StubCompiler as Compiler,
+  StubCompiler     as Compiler,
+  StubChainState   as ChainState
 }
 
 /** A compiler that does nothing. Used for testing. */
@@ -126,14 +203,5 @@ export class StubCompiler extends Compiler {
       codePath: 'stub',
       codeHash: 'stub',
     })
-  }
-
-  async buildMany (
-    sources: (string|Partial<CompiledCode>)[], ...args: unknown[]
-  ): Promise<CompiledCode[]> {
-    return Promise.all(sources.map(source=>new CompiledCode({
-      codePath: 'stub',
-      codeHash: 'stub',
-    })))
   }
 }

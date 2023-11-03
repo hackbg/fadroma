@@ -1,21 +1,17 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import {
-  Error as BaseError, Console, Config, bold, randomHex, Scrt, CW, Agent
-} from '@fadroma/connect'
-import type {
-  CodeId, ChainId, DevnetHandle, Environment, AgentClass
-} from '@fadroma/connect'
-
+import { Config, Error, Console, bold, Agent, Devnet, Scrt, CW, } from '@fadroma/connect'
+import type { CodeId, ChainId, Environment, AgentClass } from '@fadroma/connect'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
-import ports, { waitPort } from '@hackbg/port'
+import portManager, { waitPort } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
-
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
+
+export { Devnet }
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
@@ -27,16 +23,20 @@ export function getDevnet (options: Partial<Devnet> = {}) {
   return new DevnetConfig().getDevnet(options)
 }
 
+export function resetAll (cwd: string|Path, ids: ChainId[]) {
+  return ContainerDevnet.deleteMany($(cwd).in('state'), ids)
+}
+
 /** Supported devnet variants. Add new devnets here first. */
-export type DevnetPlatform =
+export type Platform =
   | `scrt_1.${2|3|4|5|6|7|8|9}`
   | `okp4_5.0`
 
 /** Ports exposed by the devnet. One of these is used by default. */
-export type DevnetPort = 'http'|'rpc'|'grpc'|'grpcWeb'
+export type Port = 'http'|'rpc'|'grpc'|'grpcWeb'
 
 /** Parameters that define a supported devnet. */
-export type DevnetPlatformInfo = {
+export type PlatformInfo = {
   /** Tag of devnet image to download. */
   dockerTag:  string
   /** Path to dockerfile to use to build devnet image if not downloadable. */
@@ -46,24 +46,24 @@ export type DevnetPlatformInfo = {
   /** Name of node daemon binary to run inside the container. */
   daemon:     string
   /** Which port is being used. */
-  portMode:   DevnetPort
+  portMode:   Port
   /** Which Chain subclass to return from devnet.getChain. */
   Chain: Function & { defaultDenom: string }
 }
 
 /** Mapping of connection type to default port number. */
-export const devnetPorts: Record<DevnetPort, number> = {
+export const ports: Record<Port, number> = {
   http: 1317, rpc: 26657, grpc: 9090, grpcWeb: 9091
 }
 
 /** Mapping of connection type to environment variable
   * used by devnet.init.mjs to set port number. */
-export const devnetPortEnvVars: Record<DevnetPort, string> = {
+export const portEnvVars: Record<Port, string> = {
   http: 'HTTP_PORT', rpc: 'RPC_PORT', grpc: 'GRPC_PORT', grpcWeb: 'GRPC_WEB_PORT'
 }
 
 /** Descriptions of supported devnet variants. */
-export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
+export const platforms: Record<Platform, PlatformInfo> = {
   'scrt_1.2': {
     Chain:      Scrt.Agent,
     dockerTag:  'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
@@ -140,9 +140,7 @@ export const devnetPlatforms: Record<DevnetPlatform, DevnetPlatformInfo> = {
 
 /** A private local instance of a network,
   * running in a container managed by @hackbg/dock. */
-export class Devnet implements DevnetHandle {
-  /** Is this thing on? */
-  running: boolean = false
+class ContainerDevnet extends Devnet {
   /** Containerization engine (Docker or Podman). */
   engine?: Dock.Engine
   /** Path to Dockerfile to build image */
@@ -153,12 +151,8 @@ export class Devnet implements DevnetHandle {
   containerId?: string
   /** Whether to use Podman instead of Docker to run the devnet container. */
   podman: boolean
-  /** Which kind of devnet to launch */
-  platform: DevnetPlatform
   /** Which service does the API URL port correspond to. */
-  portMode: DevnetPort
-  /** The chain ID that will be passed to the devnet node. */
-  chainId: ChainId
+  portMode: Port
   /** Whether to destroy this devnet on exit. */
   deleteOnExit: boolean
   /** Whether the devnet should remain running after the command ends. */
@@ -182,9 +176,6 @@ export class Devnet implements DevnetHandle {
   launchTimeout: number
   /** Whether more detailed output is preferred. */
   verbose: boolean
-  /** List of genesis accounts that will be given an initial balance
-    * when creating the devnet container for the first time. */
-  accounts: Array<string> = [ 'Admin', 'Alice', 'Bob', 'Carol', 'Mallory' ]
   /** Name of node binary. */
   daemon: string
 
@@ -200,6 +191,7 @@ export class Devnet implements DevnetHandle {
   /** Create an object representing a devnet.
     * Must call the `respawn` method to get it running. */
   constructor (options: Partial<Devnet> = {}) {
+    super(options)
     // This determines whether generated chain id has random suffix
     this.deleteOnExit = options.deleteOnExit ?? false
     // This determines the state directory path
@@ -212,7 +204,10 @@ export class Devnet implements DevnetHandle {
         // Options always override stored state
         options = { ...state, ...options }
       } catch (e) {
-        throw new DevnetError.LoadingFailed(this.stateFile.path, e)
+        console.error(e)
+        throw new Error(
+          `failed to load devnet state from ${this.stateFile.path}: ${e.message}`
+        )
       }
     }
     // Apply the rest of the configuration options
@@ -227,13 +222,13 @@ export class Devnet implements DevnetHandle {
     this.accounts       = options.accounts ?? this.accounts
     this.engine         = options.engine ?? new Dock[this.podman?'Podman':'Docker'].Engine()
     this.containerId    = options.containerId ?? this.containerId
-    const { dockerTag, dockerFile, ready, portMode, daemon } = devnetPlatforms[this.platform]
+    const { dockerTag, dockerFile, ready, portMode, daemon } = platforms[this.platform]
     this.imageTag    = options.imageTag ?? this.imageTag ?? dockerTag
     this.dockerfile  = options.dockerfile ?? this.dockerfile ?? dockerFile
     this.readyPhrase = options.readyPhrase ?? ready
     this.daemon      = options.daemon ?? daemon
     this.portMode    = options.portMode ?? portMode
-    this.port        = options.port ?? devnetPorts[this.portMode]
+    this.port        = options.port ?? ports[this.portMode]
     this.protocol    = options.protocol ?? 'http'
     this.host        = options.host ?? 'localhost'
   }
@@ -274,8 +269,8 @@ export class Devnet implements DevnetHandle {
   /** Environment variables in the container. */
   get spawnEnv () {
     const env: Record<string, string> = {
-      DAEMON:    devnetPlatforms[this.platform].daemon,
-      TOKEN:     devnetPlatforms[this.platform].Chain.defaultDenom,
+      DAEMON:    platforms[this.platform].daemon,
+      TOKEN:     platforms[this.platform].Chain.defaultDenom,
       CHAIN_ID:  this.chainId,
       ACCOUNTS:  this.accounts.join(' '),
       STATE_UID: String((process.getuid!)()),
@@ -284,7 +279,7 @@ export class Devnet implements DevnetHandle {
     if (this.verbose) {
       env['VERBOSE'] = 'yes'
     }
-    const portVar = devnetPortEnvVars[this.portMode]
+    const portVar = portEnvVars[this.portMode]
     if (portVar) {
       env[portVar] = String(this.port)
     } else {
@@ -341,13 +336,13 @@ export class Devnet implements DevnetHandle {
       // ensure we have image and chain id
       const image = await this.image
       if (!this.image) {
-        throw new DevnetError("missing devnet container image")
+        throw new Error("missing devnet container image")
       }
       if (!this.chainId) {
-        throw new DevnetError("can't create devnet without chain ID")
+        throw new Error("can't create devnet without chain ID")
       }
       // if port is unspecified or taken, increment
-      this.port = await ports.getFreePort(this.port)
+      this.port = await portManager.getFreePort(this.port)
       // create container
       this.log.creating(this)
       const init = this.initScript ? [this.initScriptMount] : []
@@ -394,7 +389,7 @@ export class Devnet implements DevnetHandle {
       }
       this.running = true
       await this.save()
-      await container.waitLog(this.readyPhrase, Devnet.logFilter, true)
+      await container.waitLog(this.readyPhrase, ContainerDevnet.logFilter, true)
       await Dock.Docker.waitSeconds(this.postLaunchWait)
       await this.waitPort({ host: this.host, port: Number(this.port) })
     }
@@ -424,7 +419,9 @@ export class Devnet implements DevnetHandle {
   /** Export the state of the devnet as a container image. */
   export = async (repository?: string, tag?: string) => {
     const container = await this.container
-    if (!container) throw new DevnetError.CantExport("no container")
+    if (!container) {
+      throw new Error("can't export: no container")
+    }
     return container.export(repository, tag)
   }
 
@@ -489,7 +486,7 @@ export class Devnet implements DevnetHandle {
 
   /** Get a Chain object wrapping this devnet. */
   getChain = <A extends Agent, C extends AgentClass<A>> (
-    $C: C = (devnetPlatforms[this.platform].Chain || Agent) as unknown as C,
+    $C: C = (platforms[this.platform].Chain || Agent) as unknown as C,
     options?: Partial<A>
   ): A => {
     return new $C({ ...options, devnet: this })
@@ -498,7 +495,9 @@ export class Devnet implements DevnetHandle {
   /** Get the info for a genesis account, including the mnemonic */
   getAccount = async (name: string): Promise<Partial<Agent>> => {
     if (this.dontMountState) {
-      if (!this.container) throw new DevnetError.ContainerNotSet()
+      if (!this.container) {
+        throw new Error('missing devnet container')
+      }
       const path = `/state/${this.chainId}/wallet/${name}.json`
       const [identity] = await (await this.container).exec('cat', path)
       return JSON.parse(identity)
@@ -535,27 +534,27 @@ export class Devnet implements DevnetHandle {
   }
 
   /** Delete multiple devnets. */
-  static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<Devnet[]> => {
+  static deleteMany = (path: string|Path, ids?: ChainId[]): Promise<ContainerDevnet[]> => {
     const state = $(path).as(OpaqueDirectory)
     const chains = (state.exists()&&state.list()||[])
       .map(name => $(state, name))
       .filter(path => path.isDirectory())
-      .map(path => path.at(Devnet.stateFile).as(JSONFile))
+      .map(path => path.at(ContainerDevnet.stateFile).as(JSONFile))
       .filter(path => path.isFile())
       .map(path => $(path, '..'))
-    return Promise.all(chains.map(dir=>Devnet.load(dir, true).delete()))
+    return Promise.all(chains.map(dir=>ContainerDevnet.load(dir, true).delete()))
   }
 
   /** Restore a Devnet from the info stored in the state file */
-  static load (dir: string|Path, allowInvalid: boolean = false): Devnet {
+  static load (dir: string|Path, allowInvalid: boolean = false): ContainerDevnet {
     const console = new DevnetConsole('devnet')
     dir = $(dir)
     if (!dir.isDirectory()) {
-      throw new DevnetError.NotADirectory(dir.path)
+      throw new Error(`not a directory: ${dir.path}`)
     }
-    const stateFile = dir.at(Devnet.stateFile)
-    if (!dir.at(Devnet.stateFile).isFile()) {
-      throw new DevnetError.NotAFile(stateFile.path)
+    const stateFile = dir.at(ContainerDevnet.stateFile)
+    if (!dir.at(ContainerDevnet.stateFile).isFile()) {
+      throw new Error(`not a file: ${stateFile.path}`)
     }
     let state: Partial<Devnet> = {}
     try {
@@ -563,11 +562,11 @@ export class Devnet implements DevnetHandle {
     } catch (e) {
       console.warn(e)
       if (!allowInvalid) {
-        throw new DevnetError.LoadingFailed(stateFile.path)
+        throw new Error(`failed to load devnet state from ${stateFile.path}`)
       }
     }
     console.missingValues(state, stateFile.path)
-    return new Devnet(state)
+    return new ContainerDevnet(state)
   }
 
   /** Name of the file containing devnet state. */
@@ -594,7 +593,7 @@ export class Devnet implements DevnetHandle {
   static RE_NON_PRINTABLE = /[\x00-\x1F]/
 }
 
-export class DevnetConfig extends Config {
+class DevnetConfig extends Config {
   constructor (
     options: Partial<DevnetConfig> = {},
     environment?: Environment
@@ -699,29 +698,8 @@ class DevnetConsole extends Console {
   }
 }
 
-/** An error emitted by the devnet. */
-export class DevnetError extends BaseError {
-  static PortMode = this.define('PortMode',
-    (mode?: string) => `devnet.portMode must be either 'lcp' or 'grpcWeb', found: ${mode}`)
-  static NoChainId = this.define('NoChainId',
-    ()=>'refusing to create directories for devnet with empty chain id')
-  static NoContainerId = this.define('NoContainerId',
-    ()=>'missing container id in devnet state')
-  static ContainerNotSet = this.define('ContainerNotSet',
-    ()=>'devnet.container is not set')
-  static NoGenesisAccount = this.define('NoGenesisAccount',
-    (name: string, error: any)=>`genesis account not found: ${name} (${error})`)
-  static NotADirectory = this.define('NotADirectory',
-    (path: string) => `not a directory: ${path}`)
-  static NotAFile = this.define('NotAFile',
-    (path: string) => `not a file: ${path}`)
-  static CantExport = this.define('CantExport',
-    (reason: string) => `can't export: ${reason}`)
-  static LoadingFailed = this.define('LoadingFailed',
-    (path: string, cause?: Error) =>
-      `failed restoring devnet state from ${path}; ` +
-      `try deleting ${dirname(path)}` +
-      (cause ? ` ${cause.message}` : ``),
-    (error: any, path: string, cause?: Error) =>
-      Object.assign(error, { path, cause }))
+export {
+  ContainerDevnet as Container,
+  DevnetConfig    as Config,
+  DevnetConsole   as Console,
 }
