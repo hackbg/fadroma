@@ -29,23 +29,25 @@ import Case from 'case'
 
 const console = new Console(`@hackbg/fadroma ${version}`)
 
-export class ProjectCommands extends CommandContext {
-  constructor (
-    readonly project?: Project,
-    readonly root: string = process.env.FADROMA_PROJECT || process.cwd()
-  ) {
-    super()
+export function getProject (
+  root: string|Path = process.env.FADROMA_PROJECT || process.cwd()
+): Project {
+  return new Project('project', root)
+}
 
+export class ProjectCommands extends CommandContext {
+  constructor (readonly project: Project = getProject()) {
+    super()
     this
       .addCommand(
         'run', 'execute a script',
-        (...args: string[]) => runScript(this.project, ...args))
+        (...args: string[]) => runScript(this.getProject(), ...args))
       .addCommand(
         'repl', 'open a project REPL (optionally executing a script first)',
-        (...args: string[]) => runRepl(this.project, ...args))
+        (...args: string[]) => runRepl(this.getProject(), ...args))
       .addCommand(
         'status', 'show the status of the project',
-        () => Tools.logProjectStatus(this.project))
+        () => Tools.logProjectStatus(this.getProject()))
       .addCommand(
         'create', 'create a new project',
         Project.create)
@@ -75,25 +77,28 @@ export class ProjectCommands extends CommandContext {
             deployment:  this.getProject().getDeployment() }))
         .addCommand('redeploy', 'redeploy this project from scratch',
           (...args: string[]) => this.getProject().getDeployment().deploy({
-            compiler:    this.getCompiler(),
+            compiler:    Compilers.getCompiler(),
             uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
             deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
             deployment:  this.getProject().createDeployment() }))
         .addCommand('select', `activate another deployment`, 
           async (name?: string): Promise<Deployment|undefined> => selectDeployment(
-            this.root, name))
+            this.project.root, name))
         .addCommand('export', `export current deployment to JSON`,
           async (path?: string) => exportDeployment(
-            this.root, await this.getProject().getDeployment(), path))
+            this.project.root, await this.getProject().getDeployment(), path))
         .addCommand('reset', 'stop and erase running devnets',
           (...ids: ChainId[]) => Devnets.resetAll(
-            this.root, ids))
+            this.project.root, ids))
     }
   }
 
-  getProject (): Project {}
+  getProject (): Project {
+    return new Project('name_from_package_json', this.root)
+  }
 
-  getAgent (): Agent {}
+  getAgent (): Agent {
+  }
 }
 
 export class ProjectRoot {
@@ -199,9 +204,11 @@ export class Project extends ProjectRoot {
       .warn('(TODO)')
   }
 
-  static async create ( // do not convert to arrow function
-    tools = new Tools.SystemTools(), name: string, root: string|Path
-  ) {
+  static async create ({ // do not convert to arrow function
+    tools = new Tools.SystemTools(), name, root
+  }: {
+    tools?: Tools.SystemTools, name: string, root: string|Path
+  }) {
     const project = await super.create(tools, name, root) as Project
     project.readme.save(
       Tools.generateReadme(name)

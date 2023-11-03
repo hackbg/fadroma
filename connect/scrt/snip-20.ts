@@ -1,14 +1,12 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import {
-  CustomToken, ContractClient, Token, Coin, randomBytes, randomBase64, bold, colors
-} from '@fadroma/agent'
-import type { CodeHash, ICoin, Uint128, Fungible, Agent, Address } from '@fadroma/agent'
+import { Token, ContractClient, randomBytes, randomBase64, bold, colors } from '@fadroma/agent'
+import type { CodeHash, Uint128, Agent, Address } from '@fadroma/agent'
 import { Console } from './scrt-base'
 import type { Permit } from './snip-24'
 
-export class Snip20 extends ContractClient implements Fungible {
+export class Snip20 extends ContractClient implements Token.Fungible {
   log = new Console('@fadroma/tokens: Snip20')
   /** The full name of the token. */
   name: string|null = null
@@ -19,8 +17,8 @@ export class Snip20 extends ContractClient implements Fungible {
   /** The total supply of the token. */
   totalSupply: Uint128|null = null
 
-  /** Create a SNIP20 token client from a CustomToken descriptor. */
-  static fromDescriptor (descriptor: CustomToken, agent?: Agent): Snip20 {
+  /** Create a SNIP20 token client from a Token.Custom descriptor. */
+  static fromDescriptor (descriptor: Token.Custom, agent?: Agent): Snip20 {
     return descriptor.connect(agent, this)
   }
 
@@ -49,14 +47,14 @@ export class Snip20 extends ContractClient implements Fungible {
     return new ViewingKeyClient(this.contract, this.agent)
   }
 
-  /** @returns self as plain CustomToken with a *hidden (from serialization!)*
+  /** @returns self as plain Token.Custom with a *hidden (from serialization!)*
     * `client` property pointing to `this`. */
-  get asDescriptor (): CustomToken {
-    return new CustomToken(this.contract.address!, this.contract.codeHash)
+  get asDescriptor (): Token.Custom {
+    return new Token.Custom(this.contract.address!, this.contract.codeHash)
   }
 
   /** @returns true */
-  isFungible = () => true
+  isToken.Fungible = () => true
   /** @returns true */
   isCustom = () => true
   /** @returns false */
@@ -119,8 +117,8 @@ export class Snip20 extends ContractClient implements Fungible {
     this.execute({ burn: { amount: String(amount), memo } })
 
   /** Deposit native tokens into the contract. */
-  deposit = (nativeTokens: ICoin[],) =>
-    this.execute({ deposit: {} }, { execSend: nativeTokens })
+  deposit = (nativeToken: Token.ICoin[]) =>
+    this.execute({ deposit: {} }, { execSend: nativeToken })
 
   /** Redeem an amount of a native token from the contract. */
   redeem = (amount: string|number|bigint, denom?: string) =>

@@ -146,7 +146,7 @@ import assert from 'node:assert'
 
 const chains = [
   Chain.variants['Mocknet'](),
-  Chain.variants['ScrtDevnet']({ deleteOnExit: true }),
+  Chain.variants['ScrtDevnet'](),
 ]
 
 for (const chain of chains) {

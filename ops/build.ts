@@ -118,7 +118,10 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
   runtime = process.argv[0]
 
   /** Build a Source into a Template */
-  async build (source: Partial<RustSourceCode>): Promise<CompiledCode> {
+  async build (source: string|Partial<RustSourceCode>): Promise<CompiledCode> {
+    if (typeof source === 'string') {
+      source = new RustSourceCode({ sourcePath: source })
+    }
     const { sourcePath, sourceRef = HEAD, cargoWorkspace, cargoCrate } = source
     const env = {
       FADROMA_BUILD_GID: String(this.buildGid),

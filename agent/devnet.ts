@@ -1,4 +1,4 @@
-import { assign } from './base'
+import { assign, Address } from './base'
 import type { Agent, ChainId } from './chain'
 import { Mode } from './chain'
 
@@ -25,7 +25,7 @@ export abstract class Devnet {
 
   abstract mirror (...args: unknown[]): Promise<unknown>
 
-  abstract getAccount (name: string): Promise<Partial<Agent>>
+  abstract getGenesisAccount (name: string): Promise<{ address?: Address, mnemonic?: string }>
 
   constructor (properties?: Partial<Devnet>) {
     assign(this, properties, ["accounts", "chainId", "platform", "running", "url"])

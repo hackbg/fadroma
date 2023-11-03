@@ -44,7 +44,7 @@ managed by Fadroma on your local Docker installation.
 import '@hackbg/fadroma' // installs devnet support
 import { OKP4 } from '@fadroma/connect'
 
-const okp4 = await OKP4.devnet({ deleteOnExit: true }).ready
+const okp4 = await OKP4.devnet().ready
 assert(okp4 instanceof OKP4.Chain)
 ```
 

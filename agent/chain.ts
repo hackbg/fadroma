@@ -213,13 +213,13 @@ export abstract class Agent {
 
   /** Create a new, authenticated Agent. */
   async authenticate (options?: {
-    name?:     Name,
-    address?:  Address,
+    name?: Name,
+    address?: Address,
     mnemonic?: string
   }): Promise<this> {
     if (!options?.mnemonic && options?.name && this.devnet) {
       await this.devnet.start()
-      const account = await this.devnet.getAccount(options.name)
+      const account = await this.devnet.getGenesisAccount(options.name)
       options = { ...options, ...account }
     }
     return new (this.constructor as any)({

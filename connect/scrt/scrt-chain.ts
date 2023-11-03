@@ -12,7 +12,7 @@ import type {
 } from '@fadroma/agent'
 import {
   Agent, into, base64, bip39, bip39EN, bold,
-  Fee, BatchBuilder,
+  Token, BatchBuilder,
   UploadedCode, ContractInstance,
 } from '@fadroma/agent'
 
@@ -46,7 +46,7 @@ class ScrtAgent extends Agent {
 
   /** @returns Fee in uscrt */
   static gas = (amount: Uint128|number) =>
-    new Fee(amount, this.defaultDenom)
+    new Token.Fee(amount, this.defaultDenom)
 
   /** Set permissive fees by default. */
   fees = {
