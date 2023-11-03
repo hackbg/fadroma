@@ -1,23 +1,48 @@
 import assert from 'node:assert'
+import { Error } from './base'
 import * as Stub from './stub'
 import { Mode } from './chain'
-import { assignDevnet } from './devnet'
+import type { Agent } from './chain'
+import { Devnet, assignDevnet } from './devnet'
+
+class MyDevnet extends Devnet {
+  accounts = []
+  chainId = 'foo'
+  platform = 'bar'
+  running = false
+  stateDir = '/tmp/foo'
+  url = new URL('http://example.com')
+
+  async start (): Promise<this> {
+    this.running = true
+    return this
+  }
+
+  async pause (): Promise<this> {
+    this.running = false
+    return this
+  }
+
+  async import (...args: unknown[]): Promise<unknown> {
+    throw new Error("unimplemented")
+  }
+
+  async export (...args: unknown[]) {
+    throw new Error("unimplemented")
+  }
+
+  async mirror (...args: unknown[]) {
+    throw new Error("unimplemented")
+  }
+
+  async getAccount (name: string): Promise<Partial<Agent>> {
+    return { name }
+  }
+}
 
 export default async function testDevnet () {
-  const devnet = {
-    accounts: [],
-    chainId: 'foo',
-    platform: 'bar',
-    running: false,
-    stateDir: '/tmp/foo',
-    url: new URL('http://example.com'),
-    async start () { return this },
-    async getAccount () { return {} },
-    async assertPresence () {}
-  }
-  const chain = new Stub.Agent({
-    mode: Mode.Devnet, chainId: 'bar', url: 'http://asdf.com', devnet,
-  })
+  const devnet = new MyDevnet()
+  const chain = new Stub.Agent({ mode: Mode.Devnet, chainId: 'bar', url: 'http://asdf.com', devnet })
   // Properties from Devnet are passed onto Chain
   assert.equal(chain.devnet, devnet)
   //assert.equal(chain.chainId, 'foo')
@@ -29,9 +54,7 @@ export default async function testDevnet () {
   assert.throws(()=>chain.devnet=devnet)
   assert.throws(()=>chain.stopped=true)
   await chain.authenticate({ name: 'Alice' })
-
   const chain2 = new Stub.Agent({ mode: Mode.Mainnet, devnet })
-
   const agent: any = {}
   assignDevnet(agent as any, devnet)
   agent.id
@@ -44,5 +67,4 @@ export default async function testDevnet () {
   assert.throws(()=>agent.mode = "")
   assert.throws(()=>agent.devnet = "")
   assert.throws(()=>agent.stopped = "")
-
 }

@@ -1,8 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { DevnetConfig, Devnet } from './devnets'
-import type { DevnetPlatform } from './devnets'
+import * as Devnets from './devnets'
 import { Config, Error, ConnectConfig, UploadStore, DeployStore } from '@fadroma/connect'
 import type { Environment, Class, DeploymentClass } from '@fadroma/connect'
 import $, { JSONFile } from '@hackbg/file'
@@ -23,7 +22,7 @@ export const { version } = $(thisPackage, 'package.json')
   .load() as { version: string }
 
 /** Complete Fadroma configuration. */
-export class FadromaConfig extends Config {
+class FadromaConfig extends Config {
   /** License token. */
   license?: string = this.getString('FADROMA_LICENSE', ()=>undefined)
   /** The topmost directory visible to Fadroma.
@@ -39,12 +38,12 @@ export class FadromaConfig extends Config {
   /** Connect options */
   connect: ConnectConfig
   /** Devnet options. */
-  devnet:  DevnetConfig
+  devnet:  Devnets.Config
 
   constructor (
     options: Partial<Config> & Partial<{
       connect: Partial<ConnectConfig>,
-      devnet:  Partial<DevnetConfig>
+      devnet:  Partial<Devnets.Config>
     }> = {},
     environment?: Environment
   ) {
@@ -52,8 +51,8 @@ export class FadromaConfig extends Config {
     const { connect, devnet, ...rest } = options
     this.override(rest)
     this.connect = new ConnectConfig(connect, environment)
-    this.devnet = new DevnetConfig(devnet, environment)
+    this.devnet = new Devnets.Config(devnet, environment)
   }
 }
 
-export { FadromaConfig as Config, ConnectConfig, DevnetConfig }
+export { FadromaConfig as Config }

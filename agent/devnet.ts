@@ -1,25 +1,38 @@
-import type { Agent } from './chain'
+import { assign } from './base'
+import type { Agent, ChainId } from './chain'
 import { Mode } from './chain'
 
-/** Interface for Devnet (implementation is in @hackbg/fadroma). */
-export interface DevnetHandle {
-  accounts: string[]
-  chainId:  string
-  platform: string
-  running:  boolean
-  stateDir: string
-  url:      URL
+export abstract class Devnet {
+  /** List of genesis accounts that will be given an initial balance
+    * when creating the devnet container for the first time. */
+  accounts: Array<string> = [ 'Admin', 'Alice', 'Bob', 'Carol', 'Mallory' ]
+  /** The chain ID that will be passed to the devnet node. */
+  chainId?: ChainId
+  /** Which kind of devnet to launch */
+  platform?: string
+  /** Is this thing on? */
+  running: boolean = false
+  /** URL for connecting to a remote devnet. */
+  url?: string|URL
 
-  containerId?: string
-  imageTag?:    string
-  port?:        string|number
+  abstract start (): Promise<this>
 
-  start (): Promise<this>
-  getAccount (name: string): Promise<Partial<Agent>>
-  assertPresence (): Promise<void>
+  abstract pause (): Promise<this>
+
+  abstract import (...args: unknown[]): Promise<unknown>
+
+  abstract export (...args: unknown[]): Promise<unknown>
+
+  abstract mirror (...args: unknown[]): Promise<unknown>
+
+  abstract getAccount (name: string): Promise<Partial<Agent>>
+
+  constructor (properties?: Partial<Devnet>) {
+    assign(this, properties, ["accounts", "chainId", "platform", "running", "url"])
+  }
 }
 
-export function assignDevnet (agent: Agent, devnet: DevnetHandle) {
+export function assignDevnet (agent: Agent, devnet: Devnet) {
   Object.defineProperties(agent, {
     id: {
       enumerable: true, configurable: true,
@@ -30,7 +43,7 @@ export function assignDevnet (agent: Agent, devnet: DevnetHandle) {
     },
     url: {
       enumerable: true, configurable: true,
-      get: () => devnet.url.toString(),
+      get: () => devnet.url?.toString(),
       set: () => {
         throw new Error("can't override url of devnet")
       }

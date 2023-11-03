@@ -1,236 +1,40 @@
-/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type {
-  AgentClass, Uint128,
-  Address, CodeHash, ChainId, CodeId, Message, Label,
-  Into
-} from '@fadroma/agent'
+import type { CodeHash, CodeId, Address } from '@fadroma/agent'
 import {
-  randomBech32, sha256, base16, bech32,
-  brailleDump, Error as BaseError, Console as BaseConsole, bold, colors, into,
-  Mode, Agent, BatchBuilder,
-  ContractInstance, UploadedCode
+  Console, bold, Error, Stub, base16, sha256, into, bech32, randomBech32,
+  ContractInstance,
 } from '@fadroma/agent'
-
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
-type MocknetUpload = {
-  codeId: CodeId,
-  codeHash: CodeHash,
-  wasm: Uint8Array,
-  module: WebAssembly.Module,
-  cwVersion: CW,
-  meta?: any,
+type ScrtCWVersion = '0.x'|'1.x'
+
+type ScrtMocknetUpload = {
+  codeHash:        CodeHash
+  codeData:        Uint8Array
+  wasmModule:      WebAssembly.Module
+  cosmWasmVersion: ScrtCWVersion
 }
 
-/** Chain instance containing a local mocknet. */
-export class Mocknet extends Agent {
-  log = new Console('mocknet')
+export class ScrtMocknetState extends Stub.ChainState {
+  log = new Console('ScrtMocknetState')
 
-  /** Current block height. Increments when accessing nextBlock */
-  _height = 0
+  declare uploads: Map<CodeId, ScrtMocknetUpload>
 
-  /** Native token. */
-  defaultDenom = 'umock'
-
-  /** Simulation of bank module. */
-  balances: Record<Address, Uint128> = {}
-
-  /** Increments when uploading to assign sequential code ids. */
-  lastCodeId = 0
-
-  /** Map of code hash to code id. */
-  codeIdOfCodeHash: Record<CodeHash, CodeId> = {}
-
-  /** Map of contract address to code id. */
-  codeIdOfAddress: Record<Address, CodeId> = {}
-
-  /** Map of contract address to label. */
-  labelOfAddress: Record<Address, Label> = {}
-
-  /** Map of code ID to WASM code blobs. */
-  uploads: Record<CodeId, MocknetUpload> = {}
-
-  /** The address of this agent. */
-  address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
-
-  /** Map of addresses to WASM instances. */
-  contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
-
-  constructor (options: Partial<Mocknet> = {}) {
-    super({
-      chainId: 'mocknet',
-      ...options,
-      mode: Mode.Mocknet
-    })
-    this.log.label = this.id
-    this.uploads = options.uploads ?? this.uploads
-    if (Object.keys(this.uploads).length > 0) {
-      this.lastCodeId = Object.keys(this.uploads).map(x=>Number(x)).reduce((x,y)=>Math.max(x,y), 0)
+  async upload (codeData: Uint8Array): Promise<ScrtMocknetUpload> {
+    if (codeData.length < 1) throw new Error('Tried to upload empty binary.')
+    const upload = await super.upload(codeData) as ScrtMocknetUpload
+    const wasmModule  = await WebAssembly.compile(upload)
+    const wasmExports = WebAssembly.Module.exports(wasmModule)
+    const cosmWasmVersion = this.checkVersion(exports.map((x: { name: string })=>x.name))
+    if (cosmWasmVersion === null) {
+      throw new Error("failed to detect CosmWasm version from uploaded binary")
     }
+    upload.wasmModule = wasmModule
+    upload.cosmWasmVersion = cosmWasmVersion
+    return upload
   }
 
-  get isMocknet () {
-    return true
-  }
-
-  get height () {
-    return Promise.resolve(this._height)
-  }
-
-  get nextBlock () {
-    this._height++
-    return Promise.resolve(this._height)
-  }
-
-  async getHash (arg: Address) {
-    return this.contracts[arg].codeHash as CodeHash
-  }
-
-  async getCodeId (arg: any) {
-    const codeId = this.codeIdOfCodeHash[arg] ?? this.codeIdOfAddress[arg]
-    if (!codeId) throw new Error(`No code id for hash ${arg}`)
-    return Promise.resolve(codeId)
-  }
-
-  async getLabel (address: Address) {
-    return this.labelOfAddress[address]
-  }
-
-  async getBalance (address: Address) {
-    return this.balances[address] || '0'
-  }
-
-  async upload (wasm: Uint8Array, meta?: any) {
-    if (wasm.length < 1) throw new Error('Tried to upload empty binary.')
-    const chainId   = this.id
-    const codeId    = String(++this.lastCodeId)
-    this.log.log('uploading code id', codeId)
-    const codeHash  = codeHashForBlob(wasm)
-    this.log.log('compiling', wasm.length, 'bytes')
-    const module    = await WebAssembly.compile(wasm)
-    this.log.log('compiled', wasm.length, 'bytes')
-    const exports   = WebAssembly.Module.exports(module)
-    const cwVersion = this.checkVersion(exports.map(x=>x.name))
-    if (cwVersion === null) throw new Error.NoCWVersion(wasm, module, exports)
-    this.codeIdOfCodeHash[codeHash] = String(codeId)
-    this.uploads[codeId] = { codeId, codeHash, wasm, meta, module, cwVersion }
-    this.log
-      .log('code', codeId)
-      .log('hash', codeHash)
-    return this.uploads[codeId]
-  }
-
-  getCode (codeId: CodeId) {
-    const code = this.uploads[codeId]
-    if (!code) throw new Error(`No code with id ${codeId}`)
-    return code
-  }
-
-  checkVersion (exports: string[]): CW|null {
-    switch (true) {
-      case !!(exports.indexOf('instantiate') > -1): return '1.x'
-      case !!(exports.indexOf('init')        > -1): return '0.x'
-    }
-    return null
-  }
-
-  async passCallbacks (
-    cwVersion: CW,
-    sender:    Address,
-    messages:  Array<any>
-  ) {
-    if (!sender) throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
-    switch (cwVersion) {
-      case '0.x': for (const message of messages) {
-        const { wasm } = message || {}
-        if (!wasm) { this.log.warnNonWasm(message); continue }
-        const { instantiate, execute } = wasm
-        if (instantiate) {
-          const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
-          const instance = await this.instantiate(sender, new ContractInstance({
-            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
-          }))
-          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
-        } else if (execute) {
-          const { contract_addr, callback_code_hash, msg, send } = execute
-          const response = await this.mocknetExecute(
-            sender,
-            { address: contract_addr, codeHash: callback_code_hash },
-            JSON.parse(b64toUtf8(msg)),
-            { execSend: send }
-          )
-          this.log.execCallback(sender, contract_addr, callback_code_hash)
-        } else {
-          this.log.warnNonInitExec(message)
-        }
-      }; break
-      case '1.x': for (const message of messages) {
-        const { msg: { wasm = {} } = {} } = message||{}
-        if (!wasm) { this.log.warnNonWasm(message); continue }
-        const { instantiate, execute } = wasm
-        if (instantiate) {
-          const { code_id: codeId, code_hash: codeHash, label, msg, send } = instantiate
-          const instance = await this.instantiate(sender, new ContractInstance({
-            codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
-          }))
-          this.log.initCallback(sender, label, codeId, codeHash, instance.address!)
-        } else if (execute) {
-          const { contract_addr, callback_code_hash, msg, send } = execute
-          const response = await this.mocknetExecute(
-            sender,
-            { address: contract_addr, codeHash: callback_code_hash },
-            JSON.parse(b64toUtf8(msg)),
-            { execSend: send }
-          )
-          this.log.execCallback(sender, contract_addr, callback_code_hash)
-        } else {
-          this.log.warnNonInitExec(message)
-        }
-      }; break
-      default: throw Object.assign(
-        new Error('passCallback: unknown CW version'), { sender, messages }
-      )
-    }
-  }
-
-  getApi () {
-    return Promise.resolve({})
-  }
-
-  get account () {
-    this.log.warn('account: stub')
-    return Promise.resolve({})
-  }
-
-  /** Upload a binary to the mocknet. */
-  protected async doUpload (wasm: Uint8Array): Promise<UploadedCode> {
-    return new UploadedCode(await this.chain.upload(wasm))
-  }
-
-  /** Instantiate a contract on the mocknet. */
-  protected async doInstantiate (
-    codeId: CodeId|Partial<UploadedCode>,
-    options: {
-      initMsg: Into<Message>
-    }
-  ): Promise<Partial<ContractInstance>> {
-    options = { ...options }
-    options.initMsg = await into(options.initMsg)
-    const { address, codeHash, label } = await this.mocknetInstantiate(this.address, options)
-    return {
-      chainId:  this.chainId,
-      address:  address!,
-      codeHash: codeHash!,
-      label:    label!,
-      initBy:   this.address,
-      initTx:   ''
-    }
-  }
-
-  async mocknetInstantiate (
+  async instantiate (
     sender: Address,
     instance: Partial<ContractInstance>
   ): Promise<ContractInstance> {
@@ -241,7 +45,9 @@ export class Mocknet extends Agent {
     if (codeHash !== expectedCodeHash) this.log.warn('Wrong code hash passed with code id', codeId)
     // Resolve lazy init
     const msg = await into(initMsg)
-    if (typeof msg === 'undefined') throw new Error.NoInitMsg()
+    if (typeof msg === 'undefined') {
+      throw new Error("can't instantiate without init message")
+    }
     // Generate address and construct contract
     const address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
     const mocknet = this
@@ -264,15 +70,7 @@ export class Mocknet extends Agent {
     }
   }
 
-  protected async doExecute (
-    contract: { address: Address },
-    message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2]
-  ): Promise<unknown> {
-    return await this.mocknetExecute(this.address, contract, message, options)
-  }
-
-  async mocknetExecute (
+  async execute (
     sender: Address,
     { address }: Partial<ContractInstance>,
     message: Message,
@@ -286,93 +84,105 @@ export class Mocknet extends Agent {
     const result   = contract.execute({ sender, msg: message })
     const response = parseResult(result, 'execute', address)
     if (response.data !== null) response.data = b64toUtf8(response.data)
-    await this.passCallbacks(contract.cwVersion!, address!, response.messages)
+    await this.state.passCallbacks(contract.cwVersion!, address!, response.messages)
     return response
   }
 
-  protected async doQuery <Q> (
-    contract: Address|{address: Address},
-    message:  Message
-  ): Promise<Q> {
-    return await this.mocknetQuery(contract, message)
-  }
-
-  async mocknetQuery <Q> (queried: Address|{address: Address}, message: Message): Promise<Q> {
-    const contract = this.getContract(queried)
-    return contract.query({ msg: message })
-  }
-
-  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
-    this.log.warn('send: stub')
-    return Promise.resolve()
-  }
-
-  sendMany (_1:any, _2:any, _3?:any, _4?:any) {
-    this.log.warn('sendMany: stub')
-    return Promise.resolve()
-  }
-
-  getContract (address?: Address|{ address: Address }) {
-    if (typeof address === 'object') {
-      address = address.address
+  protected checkVersion (exports: string[]): ScrtCWVersion|null {
+    switch (true) {
+      case !!(exports.indexOf('instantiate') > -1): return '1.x'
+      case !!(exports.indexOf('init')        > -1): return '0.x'
     }
-    if (!address) {
-      throw new Error.NoAddress()
-    }
-    const instance = this.contracts[address]
-    if (!instance) {
-      throw new Error.WrongAddress(address)
-    }
-    return instance
+    return null
   }
 
-}
-
-class MocknetBatch extends BatchBuilder<Mocknet> {
-  messages: object[] = []
-
-  declare agent: Mocknet
-
-  get log () {
-    return this.agent.log.sub('(batch)')
+  protected async passCallbacks (cwVersion: CW, sender:Address, messages: unknown[]) {
+    if (!sender) throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
+    switch (cwVersion) {
+      case '0.x': return this.passCallbacks_CW0(sender, messages)
+      case '1.x': return this.passCallbacks_CW1(sender, messages)
+      default: throw Object.assign(new Error(`passCallbacks: unknown CW version ${cwVersion}`), {
+        sender, messages
+      })
+    }
   }
 
-  async submit (memo = "") {
-    this.log.info('Submitting mocknet batch...')
-    const results = []
-    for (const {
-      init,
-      instantiate = init,
-      exec,
-      execute = exec
-    } of this.messages) {
-      if (!!init) {
-        const { sender, codeId, codeHash, label, msg, funds } = init
-        results.push(await this.agent.instantiate(codeId, {
-          initMsg: msg, codeHash, label,
+  protected async passCallbacks_CW0 (sender: Address, messages: unknown[]) {
+    for (const message of messages) {
+      const { wasm } = message || {}
+      if (!wasm) { this.log.warnNonWasm(message); continue }
+      const { instantiate, execute } = wasm
+      if (instantiate) {
+        const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
+        const instance = await this.instantiate(sender, new ContractInstance({
+          codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
         }))
-      } else if (!!exec) {
-        const { sender, contract: address, codeHash, msg, funds: execSend } = exec
-        results.push(await this.agent.execute({ address, codeHash }, msg, { execSend }))
+        this.log.debug(
+          `callback from ${bold(sender)}: instantiated contract`, bold(label),
+          'from code id', bold(codeId), 'with hash', bold(codeHash),
+          'at address', bold(instance)
+        )
+      } else if (execute) {
+        const { contract_addr, callback_code_hash, msg, send } = execute
+        const response = await this.execute(
+          sender,
+          { address: contract_addr, codeHash: callback_code_hash },
+          JSON.parse(b64toUtf8(msg)),
+          { execSend: send }
+        )
+        this.log.debug(
+          `Callback from ${bold(sender)}: executed transaction`,
+          'on contract', bold(contract.address), 'with hash', bold(contract.codeHash),
+        )
       } else {
-        this.log.warn('MocknetBatch#submit: found unknown message in batch, ignoring')
-        results.push(null)
+        this.log.warn(
+          'mocknet.execute: transaction returned wasm message that was not '+
+          '"instantiate" or "execute", ignoring:',
+          message
+        )
       }
     }
-    return results
   }
 
-  save (name: string): Promise<unknown> {
-    throw new Error('MocknetBatch#save: not implemented')
+  protected async passCallbacks_CW1 (sender: Address, messages: unknown[]) {
+    for (const message of messages) {
+      const { msg: { wasm = {} } = {} } = message||{}
+      if (!wasm) { this.log.warnNonWasm(message); continue }
+      const { instantiate, execute } = wasm
+      if (instantiate) {
+        const { code_id: codeId, code_hash: codeHash, label, msg, send } = instantiate
+        const instance = await this.instantiate(sender, new ContractInstance({
+          codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
+        }))
+        this.log.debug(
+          `callback from ${bold(sender)}: instantiated contract`, bold(label),
+          'from code id', bold(codeId), 'with hash', bold(codeHash),
+          'at address', bold(instance)
+        )
+      } else if (execute) {
+        const { contract_addr, callback_code_hash, msg, send } = execute
+        const response = await this.execute(
+          sender,
+          { address: contract_addr, codeHash: callback_code_hash },
+          JSON.parse(b64toUtf8(msg)),
+          { execSend: send }
+        )
+        this.log.debug(
+          `Callback from ${bold(sender)}: executed transaction`,
+          'on contract', bold(contract.address), 'with hash', bold(contract.codeHash),
+        )
+      } else {
+        this.log.warn(
+          'mocknet.execute: transaction returned wasm message that was not '+
+          '"instantiate" or "execute", ignoring:',
+          message
+        )
+      }
+    }
   }
-
 }
 
-export { Mocknet as Agent }
-
-export type CW = '0.x' | '1.x'
-
-export type CWAPI<V extends CW> = {
+export type ScrtCWAPI<V extends ScrtCWVersion> = {
   imports: {
     memory: WebAssembly.Memory
     env: {
@@ -430,10 +240,9 @@ export type CWAPI<V extends CW> = {
   }
 }[V])
 
-
-export class MocknetContract<V extends CW> {
+export class MocknetContract<V extends ScrtCWVersion> {
   log = new Console('mocknet')
-  mocknet?:   Mocknet
+  mocknet?:   ScrtMocknet
   address?:   Address
   codeHash?:  CodeHash
   codeId?:    CodeId
@@ -551,7 +360,9 @@ export class MocknetContract<V extends CW> {
   }
 
   makeContext = (sender: Address, now: number = + new Date()) => {
-    if (!this.mocknet) throw new Error.NoChain()
+    if (!this.mocknet) {
+      throw new Error("missing mocknet for contract")
+    }
     const chain_id = this.mocknet.chainId
     const height = Math.floor(now/5000)
     const time = Math.floor(now/1000)
@@ -624,10 +435,16 @@ export class MocknetContract<V extends CW> {
           const req = readUtf8(memory, reqPointer)
           log.debug(bold(address), 'query_chain:', req)
           const { wasm } = JSON.parse(req)
-          if (!wasm) throw new Error.Query.NonWasm(address, req)
+          if (!wasm) {
+            throw new Error("non-wasm query")
+          }
           const { smart } = wasm
-          if (!wasm) throw new Error.Query.NonSmart(address, req)
-          if (!mocknet) throw new Error.Query.NoMocknet(address, req)
+          if (!wasm) {
+            throw new Error("non-smart query")
+          }
+          if (!mocknet) {
+            throw new Error("missing mocknet backend")
+          }
           const { contract_addr, callback_code_hash, msg } = smart
           const queried = mocknet.getContract(contract_addr)
           if (!queried) throw new Error(
@@ -783,7 +600,7 @@ declare namespace WebAssembly {
   class Instance<T> {
     exports: T
   }
-  function instantiate <V extends CW> (code: unknown, world: unknown):
+  function instantiate <V extends ScrtCWVersion> (code: unknown, world: unknown):
     Promise<Instance<CWAPI<V>['exports']>>
   class Memory {
     constructor (options: { initial: number, maximum: number })
@@ -833,6 +650,7 @@ export const parseResult = (
   }
   throw new Error(`Mocknet ${action}: contract ${address} returned non-Result type`)
 }
+
 /** Read region properties from pointer to region. */
 export const region = (buffer: any, ptr: Pointer): Region => {
   const u32a = new Uint32Array(buffer)
@@ -841,6 +659,7 @@ export const region = (buffer: any, ptr: Pointer): Region => {
   const used = u32a[ptr/4+2] // Region.length
   return [addr, size, used, u32a]
 }
+
 /** Read contents of region referenced by region pointer into a string. */
 export const readUtf8 = ({ memory: { buffer }, deallocate }: Allocator, ptr: Pointer): string => {
   const [addr, size, used] = region(buffer, ptr)
@@ -850,6 +669,7 @@ export const readUtf8 = ({ memory: { buffer }, deallocate }: Allocator, ptr: Poi
   drop({ deallocate }, ptr)
   return data
 }
+
 /** Read contents of region referenced by region pointer into a string. */
 export const readBuffer = ({ memory: { buffer } }: Allocator, ptr: Pointer): Buffer => {
   const [addr, size, used] = region(buffer, ptr)
@@ -860,11 +680,13 @@ export const readBuffer = ({ memory: { buffer } }: Allocator, ptr: Pointer): Buf
   }
   return output
 }
+
 /** Serialize a datum into a JSON string and pass it into the contract. */
 export const passJson = <T> (memory: Allocator, data: T): Pointer => {
   if (typeof data === 'undefined') throw new Error('Tried to pass undefined value into contract')
   return passBuffer(memory, utf8toBuffer(JSON.stringify(data)))
 }
+
 /** Allocate region, write data to it, and return the pointer.
   * See: https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
 export const passBuffer = ({ memory, allocate }: Allocator, data: ArrayLike<number>): Pointer => {
@@ -875,9 +697,11 @@ export const passBuffer = ({ memory, allocate }: Allocator, data: ArrayLike<numb
   write(buffer, addr, data)
   return ptr
 }
+
 /** Write UTF8-encoded data to address of region referenced by pointer. */
 export const writeToRegionUtf8 = (memory: Allocator, ptr: Pointer, data: string): void =>
   writeToRegion(memory, ptr, encoder.encode(data))
+
 /** Write data to address of region referenced by pointer. */
 export const writeToRegion = (
   { memory: { buffer } }: Allocator, ptr: Pointer, data: ArrayLike<number>
@@ -890,83 +714,27 @@ export const writeToRegion = (
   u32a![usedPointer] = data.length // set Region.length
   write(buffer, addr, data)
 }
+
 /** Write data to memory address. */
 export const write = (buffer: ArrayLike<number>, addr: number, data: ArrayLike<number>): void =>
   new Uint8Array(buffer).set(data, addr)
+
 /** Write UTF8-encoded data to memory address. */
 export const writeUtf8 = (buffer: ArrayLike<number>, addr: number, data: string): void =>
   new Uint8Array(buffer).set(encoder.encode(data), addr)
+
 /** Deallocate memory. Fails silently if no deallocate callback is exposed by the blob. */
 export const drop = ({ deallocate }: { deallocate: Allocator['deallocate'] }, ptr: Pointer): void =>
   deallocate && deallocate(ptr)
+
 /** Convert base64 string to utf8 string */
 export const b64toUtf8 = (str: string) => Buffer.from(str, 'base64').toString('utf8')
+
 /** Convert utf8 string to base64 string */
 export const utf8toB64 = (str: string) => Buffer.from(str, 'utf8').toString('base64')
+
 /** Convert utf8 string to buffer. */
 export const utf8toBuffer = (str: string) => Buffer.from(str, 'utf8')
+
 /** Convert buffer to utf8 string. */
 export const bufferToUtf8 = (buf: Buffer) => buf.toString('utf8')
-
-export const Console = (()=>{
-  return class MocknetConsole extends BaseConsole {
-    constructor (label = 'mocknet') { super(label) }
-    warnStub = (name: string) => this.warn(`mocknet: ${name}: stub`)
-    showDebug = true
-    initCallback = (
-      sender: Address, label: Label, codeId: CodeId, codeHash: CodeHash, instance: Address
-    ) => this.debug(
-      `callback from ${bold(sender)}: instantiated contract`, bold(label),
-      'from code id', bold(codeId), 'with hash', bold(codeHash),
-      'at address', bold(instance)
-    )
-    execCallback = (
-      sender: Address, contract: Address, codeHash: CodeHash
-    ) => this.debug(
-      `Callback from ${bold(sender)}: executed transaction`,
-      'on contract', bold(contract), 'with hash', bold(codeHash),
-    )
-    warnNonWasm = (message: unknown) => this.warn(
-      'mocknet.execute: transaction returned non-wasm message, ignoring:',
-      message
-    )
-    warnNonInitExec = (message: unknown) => this.warn(
-      'mocknet.execute: transaction returned wasm message that was not '+
-      '"instantiate" or "execute", ignoring:',
-      message
-    )
-  }
-})()
-
-export const Error = (()=>{
-  class MocknetError extends BaseError {
-    static NoAddress = this.define('NoAddress', () =>
-      `Mocknet: can't get instance without address`)
-    static WrongAddress = this.define('WrongAddress', (address: string) =>
-      `Mocknet: no contract at ${address}`)
-    static NoChain = this.define('NoChain', () =>
-      `MocknetAgent: chain not set`)
-    static NoBackend = this.define('NoBackend', () =>
-      `Mocknet: backend not set`)
-    static NoInitMsg = this.define('NoInitMsg', () =>
-      'Mocknet: tried to instantiate with undefined initMsg')
-    static NoCWVersion = this.define('NoCWVersion',
-      (_, __, ___) => 'Mocknet: failed to detect CosmWasm API version from module',
-      (err, wasmCode, wasmModule, wasmExports) => Object.assign(err, {
-        wasmCode, wasmModule, wasmExports
-      }))
-    static Query: typeof MocknetError_Query
-  }
-  class MocknetError_Query extends MocknetError {
-    static NonWasm = this.define('NonWasm', (address, req) =>
-      `Mocknet: contract ${address} made a non-wasm query: ${JSON.stringify(req)}`,
-      (err, req) => Object.assign(err, { req }))
-    static NonSmart = this.define('NonSmart', (address, req) =>
-      `Mocknet: contract ${address} made a non-smart wasm query: ${JSON.stringify(req)}`,
-      (err, req) => Object.assign(err, { req }))
-    static NoMocknet = this.define('NoMocknet', (address, req) =>
-      `Mocknet: contract ${address} made a query while isolated: ${JSON.stringify(req)}`,
-      (err, req) => Object.assign(err, { req }))
-  }
-  return Object.assign(MocknetError, { Query: MocknetError_Query })
-})() //MocknetError

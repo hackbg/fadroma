@@ -54,13 +54,12 @@ export async function testCodeUnits () {
   deepEqual(compiled1.toReceipt(), {
     codeHash:  undefined,
     codePath:  undefined,
-    buildInfo: undefined,
   })
   console.log(compiled1)
   assert(!compiled1.isValid())
   compiled1.codePath = fixture('empty.wasm')
   assert(compiled1.isValid())
-  await(compiled1.computeHash())
+  assert(await compiled1.computeHash())
 
   const uploaded1 = new UploadedCode()
   deepEqual(uploaded1.toReceipt(), {
@@ -68,7 +67,8 @@ export async function testCodeUnits () {
     chainId:   undefined,
     codeId:    undefined,
     uploadBy:  undefined,
-    uploadTx:  undefined
+    uploadTx:  undefined,
+    uploadGas: undefined
   })
   console.log(uploaded1)
   assert(!uploaded1.isValid())

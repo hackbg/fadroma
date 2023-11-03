@@ -34,10 +34,10 @@ connectModes['OKP4Devnet'] = CW.OKP4.Agent.devnet = (options: Partial<Scrt.Agent
 }
 
 export * from '@fadroma/connect'
-export * from './ops/build'
+export * as Compilers from './ops/build'
+export * as Stores from './ops/stores'
+export * as Devnets from './ops/devnets'
+export * as Tools from './ops/tools'
 export * from './ops/config'
-export * from './ops/stores'
-export * from './ops/devnets'
 export * from './ops/project'
-export * from './ops/wizard'
 export { Config } from './ops/config'
