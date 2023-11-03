@@ -54,19 +54,13 @@ export async function testDevnetGenesis () {
   
   const devnet = await new Devnets.Container({
     platform: 'okp4_5.0',
-    genesis: {
-      codes: {
-        7: compiled,
-        8: compiled,
-      },
-      accounts: {
-        User1: [
-          new Token.Amount('1000000000000', new Token.Native('uknow'))
-        ],
-        User2: [
-          new Token.Amount('1000000000000', new Token.Native('uknow'))
-        ]
-      }
+    genesisAccounts: {
+      User1: [ new Token.Amount('1000000000000', new Token.Native('uknow')) ],
+      User2: [ new Token.Amount('1000000000000', new Token.Native('uknow')) ]
+    },
+    genesisUploads: {
+      7: compiled,
+      8: compiled,
     }
   })
 
@@ -206,8 +200,15 @@ export async function testDevnetFurther () {
     mnemonic: string
   }
   assert.equal(alice.address, wallet.address)
-  const anotherDevnet = getDevnet({
-    accounts: [ 'Alice', 'Bob' ]
+  const anotherDevnet = Devnets.Container.fromEnvironment({
+    genesisAccounts: {
+      'Alice': [
+        new Token.Amount('1000000000000', new Token.Native('uscrt'))
+      ],
+      'Bob': [
+        new Token.Amount('2000000000000', new Token.Native('uscrt'))
+      ]
+    }
   })
   assert.deepEqual(anotherDevnet.accounts, [ 'Alice', 'Bob' ])
   await anotherDevnet.delete()

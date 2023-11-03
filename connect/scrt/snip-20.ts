@@ -54,7 +54,7 @@ export class Snip20 extends ContractClient implements Token.Fungible {
   }
 
   /** @returns true */
-  isToken.Fungible = () => true
+  isFungible = () => true
   /** @returns true */
   isCustom = () => true
   /** @returns false */

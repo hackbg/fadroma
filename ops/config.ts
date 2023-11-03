@@ -1,7 +1,6 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import * as Devnets from './devnets'
 import { Config, Error, ConnectConfig, UploadStore, DeployStore } from '@fadroma/connect'
 import type { Environment, Class, DeploymentClass } from '@fadroma/connect'
 import $, { JSONFile } from '@hackbg/file'
@@ -37,13 +36,10 @@ class FadromaConfig extends Config {
   })).path
   /** Connect options */
   connect: ConnectConfig
-  /** Devnet options. */
-  devnet:  Devnets.Config
 
   constructor (
     options: Partial<Config> & Partial<{
       connect: Partial<ConnectConfig>,
-      devnet:  Partial<Devnets.Config>
     }> = {},
     environment?: Environment
   ) {
@@ -51,7 +47,6 @@ class FadromaConfig extends Config {
     const { connect, devnet, ...rest } = options
     this.override(rest)
     this.connect = new ConnectConfig(connect, environment)
-    this.devnet = new Devnets.Config(devnet, environment)
   }
 }
 

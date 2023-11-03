@@ -35,7 +35,7 @@ class MyDevnet extends Devnet {
     throw new Error("unimplemented")
   }
 
-  async getAccount (name: string): Promise<Partial<Agent>> {
+  async getGenesisAccount (name: string): Promise<Partial<Agent>> {
     return { name }
   }
 }

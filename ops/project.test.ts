@@ -34,7 +34,7 @@ export async function testProjectCommands () {
 
   const workspaceProject =
     await Projects.WorkspaceProject.create({
-      name: 'test-workspace-project',,
+      name: 'test-workspace-project',
       root: `${tmpDir()}/test-workspace-project`
     })
 

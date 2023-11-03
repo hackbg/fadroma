@@ -16,7 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import type { AgentClass } from '@fadroma/connect'
+import type { AgentClass, Deployment } from '@fadroma/connect'
 import { connectModes, CW, Scrt } from '@fadroma/connect'
 import { Config } from './ops/config'
 
@@ -34,10 +34,122 @@ connectModes['OKP4Devnet'] = CW.OKP4.Agent.devnet = (options: Partial<Scrt.Agent
 }
 
 export * from '@fadroma/connect'
-export * as Compilers from './ops/build'
-export * as Stores from './ops/stores'
-export * as Devnets from './ops/devnets'
-export * as Tools from './ops/tools'
 export * from './ops/config'
 export * from './ops/project'
 export { Config } from './ops/config'
+
+import * as Compilers from './ops/build'
+import * as Stores from './ops/stores'
+import * as Devnets from './ops/devnets'
+import * as Tools from './ops/tools'
+export { Compilers, Stores, Devnets, Tools }
+
+import { CommandContext } from '@hackbg/cmds'
+import { Project } from './ops/project'
+import $ from '@hackbg/file'
+
+export class ProjectCommands extends CommandContext {
+  constructor (
+    readonly project: Project = new Project('project', process.env.FADROMA_PROJECT || process.cwd())
+  ) {
+    super()
+    this
+      .addCommand(
+        'run', 'execute a script',
+        (script: string, ...args: string[]) => runScript({ project: this.project, script, args }))
+      .addCommand(
+        'repl', 'open a project REPL (optionally executing a script first)',
+        (script: string, ...args: string[]) => runRepl({ project: this.project, script, args }))
+      .addCommand(
+        'status', 'show the status of the project',
+        () => Tools.logProjectStatus(this.getProject()))
+      .addCommand(
+        'create', 'create a new project',
+        Project.create)
+
+    if (this.project) {
+      this
+        .addCommand('build', 'build the project or specific contracts from it',
+          (...names: string[]) => this.getProject().getDeployment().build({
+            compiler: Compilers.getCompiler(), }))
+        .addCommand('rebuild', 'rebuild the project or specific contracts from it',
+          (...names: string[]) => this.getProject().getDeployment().build({
+            rebuild: true,
+            compiler: Compilers.getCompiler(), }))
+        .addCommand('upload', 'upload the project or specific contracts from it',
+          (...names: string[]) => this.getProject().getDeployment().upload({
+            compiler: Compilers.getCompiler(),
+            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), }))
+        .addCommand('reupload', 'reupload the project or specific contracts from it',
+          (...names: string[]) => this.getProject().getDeployment().upload({
+            compiler: Compilers.getCompiler(),
+            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), reupload: true }))
+        .addCommand('deploy', 'deploy this project or continue an interrupted deployment',
+          (...args: string[]) => this.getProject().getDeployment().deploy({
+            compiler: Compilers.getCompiler(),
+            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
+            deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
+            deployment:  this.getProject().getDeployment() }))
+        .addCommand('redeploy', 'redeploy this project from scratch',
+          (...args: string[]) => this.getProject().getDeployment().deploy({
+            compiler:    Compilers.getCompiler(),
+            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
+            deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
+            deployment:  this.getProject().createDeployment() }))
+        .addCommand('select', `activate another deployment`, 
+          async (name?: string): Promise<Deployment|undefined> => selectDeployment(
+            this.project.root, name))
+        .addCommand('export', `export current deployment to JSON`,
+          async (path?: string) => exportDeployment(
+            this.project.root, await this.getProject().getDeployment(), path))
+        .addCommand('reset', 'stop and erase running devnets',
+          (...ids: ChainId[]) => Devnets.resetAll(
+            this.project.root, ids))
+    }
+  }
+
+  getProject (): Project {
+    return new Project('name_from_package_json', this.root)
+  }
+
+  getAgent (): Agent {
+  }
+}
+
+export async function runScript ({
+  project, script, args
+}: {
+  project?: Project, script?: string, args: string[]
+}) {
+  if (!script) {
+    throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
+  }
+  if (!$(script).exists()) {
+    throw new Error(`${script} doesn't exist`)
+  }
+  console.log(`Running ${script}`)
+  const path = $(script).path
+  //@ts-ignore
+  const { default: main } = await import(path)
+  if (typeof main === 'function') {
+    return main(project, ...args)
+  } else {
+    console.info(`${$(script).shortPath} does not have a default export.`)
+  }
+}
+
+export async function runRepl ({
+  project, script, args
+}: {
+  project?: Project, script?: string, args: string[]
+}) {
+  let start
+  try {
+    const repl = await import('node:repl')
+    start = repl.start
+  } catch (e) {
+    console.error('Node REPL unavailable.')
+    throw e
+  }
+  const context = start() || project?.getDeployment()
+}
