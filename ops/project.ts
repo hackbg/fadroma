@@ -107,57 +107,16 @@ export class ProjectRoot {
 }
 
 export class Project extends ProjectRoot {
-  // warning: do not convert static create methods
-  // to arrow functions or inheritance will break
-  static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] = {}) {
-    properties.tools ??= new Tools.SystemTools()
-    properties.interactive ??= properties.tools.interactive
-    const project = await super.create(properties) as Project
-    const name = await Promise.resolve(properties.interactive ? this.askName() : undefined)
-    throw new Error('bang')
-    if (!name) {
-      throw new Error("missing project name")
-    }
-    project.readme
-      .save(Tools.generateReadme(name))
-    project.packageJson
-      .save(Tools.generatePackageJson(name))
-    project.gitIgnore
-      .save(Tools.generateGitIgnore())
-    project.envFile
-      .save(Tools.generateEnvFile())
-    project.shellNix
-      .save(Tools.generateShellNix(name))
-    project.apiIndex
-      .save(Tools.generateApiIndex(name, {}))
-    project.projectIndex
-      .save(Tools.generateProjectIndex(name))
-    project.testIndex
-      .save(Tools.generateTestIndex(name))
-    Tools.runNPMInstall(project, properties.tools)
-    return project
-  }
-
-  stateDir     = $(this.root, 'state')
-    .as(OpaqueDirectory)
-  wasmDir      = $(this.root, 'wasm')
-    .as(OpaqueDirectory)
-  envFile      = $(this.root, '.env')
-    .as(TextFile)
-  gitIgnore    = $(this.root, '.gitignore')
-    .as(TextFile)
-  packageJson  = $(this.root, 'package.json')
-    .as(JSONFile)
-  readme       = $(this.root, 'README.md')
-    .as(TextFile)
-  shellNix     = $(this.root, 'shell.nix')
-    .as(TextFile)
-  apiIndex     = $(this.root, 'index.ts')
-    .as(TextFile)
-  projectIndex = $(this.root, 'fadroma.config.ts')
-    .as(TextFile)
-  testIndex    = $(this.root, 'test.ts')
-    .as(TextFile)
+  stateDir     = $(this.root, 'state').as(OpaqueDirectory)
+  wasmDir      = $(this.root, 'wasm').as(OpaqueDirectory)
+  envFile      = $(this.root, '.env').as(TextFile)
+  gitIgnore    = $(this.root, '.gitignore').as(TextFile)
+  packageJson  = $(this.root, 'package.json').as(JSONFile)
+  readme       = $(this.root, 'README.md').as(TextFile)
+  shellNix     = $(this.root, 'shell.nix').as(TextFile)
+  apiIndex     = $(this.root, 'index.ts').as(TextFile)
+  projectIndex = $(this.root, 'fadroma.config.ts').as(TextFile)
+  testIndex    = $(this.root, 'test.ts').as(TextFile)
 
   logStatus () {
     return super.logStatus().br()
@@ -168,60 +127,81 @@ export class Project extends ProjectRoot {
   }
 
   createDeployment (): Deployment {
+    console.warn('createDeployment: not implemented')
+    return new Deployment()
   }
 
   getDeployment (): Deployment {
+    console.warn('getDeployment: not implemented')
+    return new Deployment()
   }
 
+  // warning: do not convert static create methods
+  // to arrow functions or inheritance will break
+  static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] = {}) {
+    properties.tools ??= new Tools.SystemTools()
+    properties.interactive ??= properties.tools.interactive
+    const project = await super.create(properties) as Project
+    properties.name ??= await Promise.resolve(properties.interactive ? this.askName() : undefined)
+    if (!properties.name) {
+      throw new Error("missing project name")
+    }
+    project.readme.save(Tools.generateReadme(properties.name))
+    project.packageJson.save(Tools.generatePackageJson(properties.name))
+    project.gitIgnore.save(Tools.generateGitIgnore())
+    project.envFile.save(Tools.generateEnvFile())
+    project.shellNix.save(Tools.generateShellNix(properties.name))
+    project.apiIndex.save(Tools.generateApiIndex(properties.name, {}))
+    project.projectIndex.save(Tools.generateProjectIndex(properties.name))
+    project.testIndex.save(Tools.generateTestIndex(properties.name))
+    Tools.runNPMInstall(project, properties.tools)
+    return project
+  }
   static async askTemplates (name: string): Promise<Record<string, Partial<UploadedCode>>> {
-
     return Prompts.askUntilDone({}, (state) => Prompts.askSelect([
       `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
       `  ${Object.keys(state).join(',\n  ')}`
     ].join(''), [
-      { title: `Add contract template to the project`, value: defineContract },
-      { title: `Remove contract template`, value: undefineContract },
-      { title: `Rename contract template`, value: renameContract },
+      { title: `Add contract template to the project`, value: this.defineContract },
+      { title: `Remove contract template`, value: this.undefineContract },
+      { title: `Rename contract template`, value: this.renameContract },
       { title: `(done)`, value: null },
     ]))
-
-    async function defineContract (state: Record<string, any>) {
-      let crate
-      crate = await Prompts.askText('Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):')??''
-      if (!isNaN(crate[0] as any)) {
-        console.info('Contract name cannot start with a digit.')
-        crate = ''
-      }
-      if (crate) {
-        state[crate] = { crate }
-      }
+  }
+  protected static async defineContract (state: Record<string, any>) {
+    let crate
+    crate = await Prompts.askText('Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):')??''
+    if (!isNaN(crate[0] as any)) {
+      console.info('Contract name cannot start with a digit.')
+      crate = ''
     }
-
-    async function undefineContract (state: Record<string, any>) {
-      const name = await Prompts.askSelect(`Select contract to remove from project scope:`, [
-        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
-        { title: `(done)`, value: null },
-      ])
-      if (name === null) return
+    if (crate) {
+      state[crate] = { crate }
+    }
+  }
+  protected static async undefineContract (state: Record<string, any>) {
+    const name = await Prompts.askSelect(`Select contract to remove from project scope:`, [
+      ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+      { title: `(done)`, value: null },
+    ])
+    if (name === null) return
+    delete state[name]
+  }
+  protected static async renameContract (state: Record<string, any>) {
+    const name = await Prompts.askSelect(`Select contract to rename:`, [
+      ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+      { title: `(done)`, value: null },
+    ])
+    if (name === null) return
+    const newName = await Prompts.askText(`Enter a new name for ${name} (a-z, 0-9, dash/underscore):`)
+    if (newName) {
+      state[newName] = Object.assign(state[name], { name: newName })
       delete state[name]
     }
-
-    async function renameContract (state: Record<string, any>) {
-      const name = await Prompts.askSelect(`Select contract to rename:`, [
-        ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
-        { title: `(done)`, value: null },
-      ])
-      if (name === null) return
-      const newName = await Prompts.askText(`Enter a new name for ${name} (a-z, 0-9, dash/underscore):`)
-      if (newName) {
-        state[newName] = Object.assign(state[name], { name: newName })
-        delete state[name]
-      }
-    }
-
   }
 }
 
+/** A NPM-only project that contains only scripts, no Rust crates. */
 export class ScriptProject extends Project {
   logStatus () {
     return super.logStatus().br()
@@ -229,11 +209,29 @@ export class ScriptProject extends Project {
   }
 }
 
+/** Base class for project that contains a Cargo crate or workspace. */
 export class CargoProject extends Project {
+  cargoToml = $(this.root, 'Cargo.toml')
+    .as(TOMLFile)
+  cargoUpdate () {
+    return Tools.runShellCommands(this.root.path, ['cargo update'])
+  }
+  writeContractCrate ({ path = '.', name, features = [] }: {
+    name: string, features?: string[], path?: string
+  }) {
+    $(this.root, path, 'Cargo.toml').as(TextFile)
+      .save(Tools.generateCargoToml(name, features))
+    $(this.root, path, 'src').as(OpaqueDirectory)
+      .make()
+    $(this.root, path, 'src/lib.rs').as(TextFile)
+      .save(Tools.generateContractEntrypoint())
+    return this
+  }
   static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] = {}) {
     properties.tools ??= new Tools.SystemTools()
+    properties.interactive ??= properties.tools.interactive
     const project = await super.create(properties) as Project
-    if (properties.tools?.interactive) {
+    if (properties.interactive) {
       switch (await this.askCompiler(properties?.tools)) {
         case 'podman':
           project.envFile.save(`${project.envFile.load()}\nFADROMA_BUILD_PODMAN=1`)
@@ -250,7 +248,6 @@ export class CargoProject extends Project {
     Tools.gitCommitUpdatedLockfiles(project, properties.tools)
     return project
   }
-
   static async askCompiler ({
     isLinux,
     cargo  = Tools.NOT_INSTALLED,
@@ -274,46 +271,48 @@ export class CargoProject extends Project {
       isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
     return await Prompts.askSelect(`Select build isolation mode:`, options)
   }
-
-  static writeCrate (path: string|Path, name: string, features?: string[]) {
-    $(path, 'Cargo.toml')
-      .as(TextFile)
-      .save(Tools.generateCargoToml(name, features))
-    $(path, 'src')
-      .as(OpaqueDirectory)
-      .make()
-    $(path, 'src/lib.rs')
-      .as(TextFile)
-      .save(Tools.generateContractEntrypoint())
-  }
-
 }
 
+/** Project that consists of scripts plus a single crate. */
 export class CrateProject extends CargoProject {
-  static async create (properties?: Partial<{
-    tools?: Tools.SystemTools
-    name?:  string
-    root?:  string|Path,
-    crateFeatures?: string[]
-  }>) {
-    const project = await super.create(properties) as CrateProject
-    this.writeCrate(project.root.path, project.name, properties?.crateFeatures)
-    return project
-  }
-
-  cargoToml = $(this.root, 'Cargo.toml')
-    .as(TOMLFile)
-  srcDir = $(this.root, 'lib')
-    .as(TOMLFile)
-
   logStatus () {
     return super.logStatus().br()
       .info('This project contains a single source crate:')
       .warn('TODO')
   }
+  /** Create a project, writing a single crate. */
+  static async create (properties?: Partial<{
+    tools?: Tools.SystemTools
+    name?: string
+    root?: string|Path,
+    features?: string[]
+  }>) { // don't change to arrow function (or all hell will break loose)
+    return (await super.create(properties) as CrateProject)
+      .writeContractCrate({
+        path: '.',
+        name: properties?.name || 'untitled',
+        features: properties?.features || []
+      })
+  }
 }
 
+/** Project that consists of scripts plus multiple crates in a Cargo workspace. */
 export class WorkspaceProject extends CargoProject {
+  /** The root file of the workspace */
+  cargoToml = $(this.root, 'Cargo.toml').as(TOMLFile)
+  /** Directory where deployable crates live. */
+  contractsDir = $(this.root, 'contracts').as(OpaqueDirectory)
+  /** Directory where non-deployable crates live. */
+  librariesDir = $(this.root, 'libraries').as(OpaqueDirectory)
+
+  logStatus () {
+    return super.logStatus().br()
+      .info('This project contains the following source crates:')
+      .warn('TODO')
+      .info('This project contains the following library crates:')
+      .warn('TODO')
+  }
+
   static async create (properties?: Partial<{
     tools?: Tools.SystemTools
     name?:  string
@@ -322,20 +321,6 @@ export class WorkspaceProject extends CargoProject {
     const project = await super.create(properties) as Project
     return project
   }
-
-  cargoToml = $(this.root, 'Cargo.toml')
-    .as(TOMLFile)
-  contractsDir = $(this.root, 'contracts')
-    .as(OpaqueDirectory)
-  librariesDir = $(this.root, 'libraries')
-    .as(OpaqueDirectory)
-
-  logStatus () {
-    return console.br()
-      .info('This project contains the following source crates:')
-      .warn('TODO')
-  }
-
   static writeCrates ({ cargoToml, wasmDir, crates }: {
     cargoToml: Path,
     wasmDir: Path,
