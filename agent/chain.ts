@@ -221,7 +221,8 @@ export abstract class Agent {
     name?:     Name,
     address?:  Address,
     mnemonic?: string,
-    signer?:   unknown
+    signer?:   unknown,
+    api?:      unknown
   }): this {
     return new (this.constructor as any)({
       ...this,
@@ -356,6 +357,9 @@ export abstract class Agent {
     Promise<unknown>
 
   abstract get height ():
+    Promise<number>
+
+  abstract get balance ():
     Promise<number>
 
   abstract getCodeId (contract: Address):
