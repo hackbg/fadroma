@@ -50,9 +50,20 @@ export class ProjectRoot {
     }
     root = $(await Promise.resolve(root)).as(OpaqueDirectory)
     console.log(`Creating project`, bold(name), `in`, bold(root.path))
-    const project = new this(name!, root.make())
-    Tools.createGitRepo(root.path, tools)
-    return project
+    return new this(name!, root.make())
+      .createGitRepo()
+  }
+
+  createGitRepo () {
+    Tools.runShellCommands(this.root.path, ['git --no-pager init -b main',])
+    $(this.root, '.gitignore').as(TextFile).save(Tools.generateGitIgnore())
+    Tools.runShellCommands(this.root.path, [
+      'git --no-pager add .',
+      'git --no-pager status',
+      'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
+      "git --no-pager log",
+    ])
+    return this
   }
 
   readonly root: Path
@@ -103,7 +114,6 @@ export class ProjectRoot {
       `Create project ${name} in current directory or subdirectory?`, choice
     )
   }
-
 }
 
 export class Project extends ProjectRoot {
@@ -211,26 +221,26 @@ export class ScriptProject extends Project {
 
 /** Base class for project that contains a Cargo crate or workspace. */
 export class CargoProject extends Project {
-  cargoToml = $(this.root, 'Cargo.toml')
-    .as(TOMLFile)
+  cargoToml = $(this.root, 'Cargo.toml').as(TOMLFile)
+
   cargoUpdate () {
-    return Tools.runShellCommands(this.root.path, ['cargo update'])
+    Tools.runShellCommands(this.root.path, ['cargo update'])
+    return this
   }
+
   writeContractCrate ({ path = '.', name, features = [] }: {
     name: string, features?: string[], path?: string
   }) {
-    $(this.root, path, 'Cargo.toml').as(TextFile)
-      .save(Tools.generateCargoToml(name, features))
-    $(this.root, path, 'src').as(OpaqueDirectory)
-      .make()
-    $(this.root, path, 'src/lib.rs').as(TextFile)
-      .save(Tools.generateContractEntrypoint())
+    $(this.root, path, 'Cargo.toml').as(TextFile).save(Tools.generateCargoToml(name, features))
+    $(this.root, path, 'src').as(OpaqueDirectory).make()
+    $(this.root, path, 'src/lib.rs').as(TextFile).save(Tools.generateContractEntrypoint())
     return this
   }
+
   static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] = {}) {
     properties.tools ??= new Tools.SystemTools()
     properties.interactive ??= properties.tools.interactive
-    const project = await super.create(properties) as Project
+    const project = await super.create(properties) as CargoProject
     if (properties.interactive) {
       switch (await this.askCompiler(properties?.tools)) {
         case 'podman':
@@ -241,11 +251,10 @@ export class CargoProject extends Project {
           break
       }
     }
-    Tools.runCargoUpdate(project, properties.tools)
     Prompts.logInstallRust(properties.tools)
     Prompts.logInstallSha256Sum(properties.tools)
     Prompts.logInstallWasmOpt(properties.tools)
-    Tools.gitCommitUpdatedLockfiles(project, properties.tools)
+    Tools.gitCommit(project.root.path, '"Updated lockfiles."')
     return project
   }
   static async askCompiler ({
@@ -275,29 +284,31 @@ export class CargoProject extends Project {
 
 /** Project that consists of scripts plus a single crate. */
 export class CrateProject extends CargoProject {
+
   logStatus () {
     return super.logStatus().br()
       .info('This project contains a single source crate:')
       .warn('TODO')
   }
+
   /** Create a project, writing a single crate. */
-  static async create (properties?: Partial<{
-    tools?: Tools.SystemTools
-    name?: string
-    root?: string|Path,
+  static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] & Partial<{
     features?: string[]
-  }>) { // don't change to arrow function (or all hell will break loose)
+  }> = {}) {
     return (await super.create(properties) as CrateProject)
       .writeContractCrate({
         path: '.',
         name: properties?.name || 'untitled',
         features: properties?.features || []
       })
+      .cargoUpdate()
   }
+
 }
 
 /** Project that consists of scripts plus multiple crates in a Cargo workspace. */
 export class WorkspaceProject extends CargoProject {
+
   /** The root file of the workspace */
   cargoToml = $(this.root, 'Cargo.toml').as(TOMLFile)
   /** Directory where deployable crates live. */
@@ -313,14 +324,11 @@ export class WorkspaceProject extends CargoProject {
       .warn('TODO')
   }
 
-  static async create (properties?: Partial<{
-    tools?: Tools.SystemTools
-    name?:  string
-    root?:  string|Path
-  }>) {
+  static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] = {}) {
     const project = await super.create(properties) as Project
     return project
   }
+
   static writeCrates ({ cargoToml, wasmDir, crates }: {
     cargoToml: Path,
     wasmDir: Path,
@@ -342,4 +350,5 @@ export class WorkspaceProject extends CargoProject {
         .save(`${sha256}  *${name}`)
     }
   }
+
 }

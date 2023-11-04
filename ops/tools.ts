@@ -72,26 +72,6 @@ export function createGitRepo (cwd: string, tools: SystemTools): {
   nonfatal: boolean
 } {
   let nonfatal = false
-  if (tools.git) {
-    try {
-      runShellCommands(cwd, [
-        'git --no-pager init -b main',
-      ])
-      $(cwd).at('.gitignore').as(TextFile).save(generateGitIgnore())
-      runShellCommands(cwd, [
-        'git --no-pager add .',
-        'git --no-pager status',
-        'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
-        "git --no-pager log",
-      ])
-    } catch (e) {
-      console.warn('Non-fatal: Failed to create Git repo.')
-      tools.git = null // disable git
-      nonfatal = true
-    }
-  } else {
-    console.warn('Git not found. Not creating repo.')
-  }
   return { nonfatal }
 }
 
@@ -139,41 +119,6 @@ export function runNPMInstall (project: Project, tools: SystemTools): {
     console.warn('NPM/Yarn/PNPM not found. Not creating lockfile.')
   }
   return { changed, nonfatal }
-}
-
-export function runCargoUpdate (project: Project, tools: SystemTools): {
-  changed?:  true
-  nonfatal?: true
-} {
-  let changed:  true|undefined = undefined
-  let nonfatal: true|undefined = undefined
-  if (tools.cargo) {
-    try {
-      cargoUpdate(project.root.path)
-    } catch (e) {
-      console.warn('Non-fatal: Cargo update failed:', e)
-      nonfatal = true
-    }
-    changed = true
-  } else {
-    console.warn('Cargo not found. Not creating lockfile.')
-  }
-  return { changed, nonfatal }
-}
-
-export function gitCommitUpdatedLockfiles (project: Project, tools: SystemTools, changed?: boolean): {
-  nonfatal?: true
-} {
-  let nonfatal: true|undefined = undefined
-  if (changed && tools.git) {
-    try {
-      gitCommit(project.root.path, '"Updated lockfiles."')
-    } catch (e) {
-      console.warn('Non-fatal: Git status failed:', e)
-      nonfatal = true
-    }
-  }
-  return { nonfatal }
 }
 
 export function gitCommit (cwd: string, message: string) {

@@ -283,26 +283,15 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   async buildMany (inputs: (string|(Partial<RustSourceCode>))[]): Promise<CompiledCode[]> {
     // This copies the argument because we'll mutate its contents anyway
     inputs = inputs.map(source=>this.resolveSource(source))
-    // Batch together inputs from the same repo+commit
-    const [workspaces, revisions] = this.collectBatches(inputs as Partial<RustSourceCode>[])
-    // For each repository/revision pair, build the inputs from it.
-    for (const path of workspaces) {
-      for (const revision of revisions) {
-        await this.buildBatch(inputs as Partial<RustSourceCode>[], path, revision)
-      }
-    }
-    return inputs as CompiledCode[]
-  }
-
-  /** Go over the list of inputs, filtering out the ones that are already built,
-    * and collecting the source repositories and revisions. This will allow for
-    * multiple crates from the same source checkout to be passed to a single build command. */
-  protected collectBatches (inputs: Partial<RustSourceCode>[]) {
+    // Batch together inputs from the same repo+commit.
+    // Go over the list of inputs, filtering out the ones that are already built,
+    // and collecting the source repositories and revisions. This will allow for
+    // multiple crates from the same source checkout to be passed to a single build command. */
     const workspaces = new Set<string>()
     const revisions  = new Set<string>()
     for (let id in inputs) {
       // Contracts passed as strins are converted to object here
-      const source = inputs[id]
+      const source = inputs[id] as Partial<RustSourceCode>
       source.cargoWorkspace ??= this.workspace
       source.sourceRef ??= 'HEAD'
       // If the source is already built, don't build it again
@@ -317,7 +306,13 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
         revisions.add(source.sourceRef!)
       }
     }
-    return [workspaces, revisions]
+    // For each repository/revision pair, build the inputs from it.
+    for (const path of workspaces) {
+      for (const revision of revisions) {
+        await this.buildBatch(inputs as Partial<RustSourceCode>[], path, revision)
+      }
+    }
+    return inputs as CompiledCode[]
   }
 
   protected async buildBatch (inputs: Partial<RustSourceCode>[], path: string, rev: string = HEAD) {
@@ -373,7 +368,9 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     srcSubDir = root.relative($('.', ...root.path.split(sep).slice(i)))
     this.log.debug(`building from workspace:`, bold(`${$(root.path).shortPath}/`), `@`, bold(rev))
     const matched = this.matchBatch(inputs, path, rev)
-    const results = await this.runContainer(root.path, root.relative(path), rev, matched, gitSubDir)
+    const results = await this.runContainer(
+      root.path, root.relative(path), rev, matched, gitSubDir
+    )
     // Using the previously collected indices, populate the values in each of the passed inputs.
     for (const index in results) {
       if (!results[index]) continue
@@ -389,13 +386,15 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
 
   /** Match each crate from the current repo/ref pair
       with its index in the originally passed list of inputs. */
-  protected matchBatch (inputs: Partial<RustSourceCode>[], path: string, rev: string): [number, string][] {
-    const crates: [number, string][] = []
+  protected matchBatch (
+    inputs: Partial<RustSourceCode>[], path: string, rev: string
+  ): [number, string|undefined, string|undefined][] {
+    const crates: [number, string|undefined, string|undefined][] = []
     for (let index = 0; index < inputs.length; index++) {
       const source = inputs[index]
       const { sourcePath, sourceRef = 'HEAD', cargoCrate, cargoWorkspace } = source
       if (sourcePath === path && sourceRef === rev) {
-        crates.push([index, cargoCrate!, cargoWorkspace])
+        crates.push([index, cargoCrate, cargoWorkspace])
       }
     }
     return crates
