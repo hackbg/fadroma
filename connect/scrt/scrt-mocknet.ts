@@ -1,18 +1,16 @@
-import { Stub, Console, BatchBuilder } from '@fadroma/agent'
+import { Stub, Console, BatchBuilder, into, ContractInstance, randomBech32 } from '@fadroma/agent'
+import type { Address, Message, UploadedCode, CodeId, Into } from '@fadroma/agent'
+import { MOCKNET_ADDRESS_PREFIX } from './scrt-mocknet-impl'
 
 /** Chain instance containing a local mocknet. */
 export class ScrtMocknet extends Stub.Agent {
   log = new Console('ScrtMocknet')
-
   /** Current block height. Increments when accessing nextBlock */
   _height = 0
-
   /** Native token. */
   defaultDenom = 'umock'
-
   /** The address of this agent. */
   address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
-
   /** Map of addresses to WASM instances. */
   contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
 
@@ -45,30 +43,26 @@ export class ScrtMocknet extends Stub.Agent {
 
   /** Instantiate a contract on the mocknet. */
   protected async doInstantiate (
-    codeId: CodeId|Partial<UploadedCode>,
-    options: {
-      initMsg: Into<Message>
-    }
-  ): Promise<Partial<ContractInstance>> {
+    code:    Parameters<Stub.Agent["doInstantiate"]>[0],
+    options: Parameters<Stub.Agent["doInstantiate"]>[1]
+  ) {
     options = { ...options }
     options.initMsg = await into(options.initMsg)
     const { address, codeHash, label } = await this.state.instantiate(this.address, options)
-    return {
+    return new ContractInstance({
       chainId:  this.chainId,
       address:  address!,
       codeHash: codeHash!,
       label:    label!,
       initBy:   this.address,
       initTx:   ''
-    }
+    }) as ContractInstance & { address: string }
   }
 
   protected async doExecute (
-    contract: { address: Address },
-    message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2]
+    ...args: Parameters<Stub.Agent["doExecute"]>
   ): Promise<unknown> {
-    return await this.state.execute(this.address, contract, message, options)
+    return await this.state.execute(this.address, ...args)
   }
 
   protected async doQuery <Q> (
@@ -98,11 +92,11 @@ export class ScrtMocknet extends Stub.Agent {
       address = address.address
     }
     if (!address) {
-      throw new Error.NoAddress()
+      throw new Error("missing address")
     }
     const instance = this.contracts[address]
     if (!instance) {
-      throw new Error.WrongAddress(address)
+      throw new Error("wrong address")
     }
     return instance
   }
@@ -119,24 +113,25 @@ class ScrtMocknetBatchBuilder extends BatchBuilder<ScrtMocknet> {
   async submit (memo = "") {
     this.log.info('Submitting mocknet batch...')
     const results = []
-    for (const {
-      init,
-      instantiate = init,
-      exec,
-      execute = exec
-    } of this.messages) {
+    for (const message of this.messages) {
+      const { init, instantiate = init } = message
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         results.push(await this.agent.instantiate(codeId, {
           initMsg: msg, codeHash, label,
         }))
-      } else if (!!exec) {
+        continue
+      }
+
+      const { exec, execute = exec } = message
+      if (!!exec) {
         const { sender, contract: address, codeHash, msg, funds: execSend } = exec
         results.push(await this.agent.execute({ address, codeHash }, msg, { execSend }))
-      } else {
-        this.log.warn('MocknetBatch#submit: found unknown message in batch, ignoring')
-        results.push(null)
+        continue
       }
+
+      this.log.warn('MocknetBatch#submit: found unknown message in batch, ignoring')
+      results.push(null)
     }
     return results
   }

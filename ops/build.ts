@@ -22,11 +22,15 @@ export function getCompiler ({
   ...options
 }: |({ useContainer?: false } & Partial<RawLocalRustCompiler>)
    |({ useContainer:  true  } & Partial<ContainerizedLocalRustCompiler>) = {}
-): Compiler {
+): Compiler { // class dispatch, ever awkward
   if (useContainer) {
-    return new ContainerizedLocalRustCompiler({ config, ...options })
+    return new ContainerizedLocalRustCompiler({
+      config, ...options as Partial<ContainerizedLocalRustCompiler>
+    })
   } else {
-    return new RawLocalRustCompiler({ config, ...options })
+    return new RawLocalRustCompiler({
+      config, ...options as Partial<RawLocalRustCompiler>
+    })
   }
 }
 
@@ -322,7 +326,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     let gitSubDir = ''
     let srcSubDir = ''
     const paths = new Set([ root.path ])
-
     // If building from history, make sure that full source is mounted, and fetch history
     if (rev !== HEAD) {
       const gitDir = new DotGit(path)
@@ -338,41 +341,22 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
           .warn(e)
       }
     }
-
     // If inputs contain path dependencies pointing to parent dirs
     // (e.g. fadroma/examples/foo pointing to ../../), make sure
     // those are mounted into the container.
     for (const input of inputs) {
-      for (const path of this.getPathDependencies(input)) {
+      const paths = new Set<string>()
+      const root = input.cargoWorkspace||input.sourcePath!
+      const { dependencies = [] } = $(root, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
+      for (const [dep, ver] of Object.entries(dependencies)) {
+        if (ver.path) {
+          paths.add($(root, ver.path).path)
+        }
+      }
+      for (const path of paths) {
         paths.add(path)
       }
     }
-
-    ;([root, srcSubDir] = this.getSrcSubDir(paths, root))
-
-    this.log.debug(`building from workspace:`, bold(`${$(root.path).shortPath}/`), `@`, bold(rev))
-    const matched = this.matchBatch(inputs, path, rev)
-    const results = await this.runContainer(root.path, root.relative(path), rev, matched, gitSubDir)
-
-    // Using the previously collected indices, populate the values in each of the passed inputs.
-    for (const index in results) {
-      if (!results[index]) continue
-      const input = inputs[index] as Partial<CompiledCode>
-      input.codePath = results[index]!.codePath
-      input.codeHash = results[index]!.codeHash
-    }
-  }
-
-  protected getPathDependencies (input: Partial<RustSourceCode>): Set<string> {
-    const paths = new Set<string>()
-    const cargoTOML = $(input.workspace!, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
-    for (const [dep, ver] of Object.entries(cargoTOML.dependencies||[])) {
-      if (ver.path) paths.add($(input.workspace!, ver.path).path)
-    }
-    return paths
-  }
-
-  protected getSrcSubDir (paths: Set<string>, root: Path): [Path, string] {
     const allPathFragments  = [...paths].sort().map(path=>path.split(sep))
     const basePathFragments = []
     const firstPath = allPathFragments[0]
@@ -385,8 +369,18 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
         break
       }
     }
-    const basePath = $(basePathFragments.join(sep))
-    return [basePath, basePath.relative($('.', ...root.path.split(sep).slice(i)))]
+    root = $(basePathFragments.join(sep))
+    srcSubDir = root.relative($('.', ...root.path.split(sep).slice(i)))
+    this.log.debug(`building from workspace:`, bold(`${$(root.path).shortPath}/`), `@`, bold(rev))
+    const matched = this.matchBatch(inputs, path, rev)
+    const results = await this.runContainer(root.path, root.relative(path), rev, matched, gitSubDir)
+    // Using the previously collected indices, populate the values in each of the passed inputs.
+    for (const index in results) {
+      if (!results[index]) continue
+      const input = inputs[index] as Partial<CompiledCode>
+      input.codePath = results[index]!.codePath
+      input.codeHash = results[index]!.codeHash
+    }
   }
 
   protected async fetch (gitDir: Path, remote: string) {
@@ -431,7 +425,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     const buildScript = $(`/`, $(this.script).name).path
     const command = [ 'node', buildScript, 'phase1', rev, ...cratesToBuild ]
     const {readonly, writable} = this.getMounts(buildScript, root, outputDir, safeRef)
-    const options = this.getOptions(subdir, gitSubDir, readonly, writable)
+    const options = this.getOptions({ subdir, gitSubDir, ro: readonly, rw: writable })
     let buildLogs = ''
     const logs = this.getLogStream(rev, (data) => {buildLogs += data})
     // Create output directory as user if it does not exist

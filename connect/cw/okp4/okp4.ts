@@ -7,7 +7,7 @@ import type { Environment } from '@hackbg/conf'
 import type {
   AgentClass, ContractClientClass, Uint128, Address, ChainId, CodeId
 } from '@fadroma/agent'
-import { ContractClient, Token, bindAgentSupport } from '@fadroma/agent'
+import { ContractClient, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 /** Configuration for OKP4 */
@@ -28,12 +28,8 @@ class OKP4Config extends Config {
 class OKP4Agent extends Agent {
   /** Connect to OKP4 in testnet mode. */
   static testnet = (options: Partial<OKP4Agent> = {}): OKP4Agent => {
-    const config = new OKP4Config()
-    return super.testnet({
-      id:  config.testnetChainId,
-      url: config.testnetUrl,
-      ...options||{},
-    }) as OKP4Agent
+    const { testnetChainId: chainId, testnetUrl: url } = new OKP4Config()
+    return super.testnet({ chainId, url, ...options||{}, }) as OKP4Agent
   }
   /** Connect to OKP4 in testnet mode. */
   static devnet = (options: Partial<OKP4Agent> = {}): OKP4Agent => {
@@ -107,8 +103,9 @@ class OKP4Agent extends Agent {
     for (const id of ids) {
       const codeId = Number(id)
       if (isNaN(codeId)) throw new Error('non-number code ID encountered')
-      const { checksum: codeHash } = await this.api.getCodeDetails(codeId)
-      const addresses = await this.api.getContracts(codeId)
+      const api = await this.api
+      const { checksum: codeHash } = await api.getCodeDetails(codeId)
+      const addresses = await api.getContracts(codeId)
       for (const address of addresses) {
         const contract = new Client(
           { address, codeHash, chainId, codeId: String(codeId) },

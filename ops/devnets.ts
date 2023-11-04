@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Config, Error, Console, bold, Token, Agent, Devnet, Scrt, CW, } from '@fadroma/connect'
-import type { CodeId, ChainId, Environment, AgentClass, Address } from '@fadroma/connect'
+import type { CodeId, ChainId, Environment, AgentClass, Address, Uint128 } from '@fadroma/connect'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import portManager, { waitPort } from '@hackbg/port'
@@ -258,9 +258,9 @@ class ContainerDevnet extends Devnet {
   dontMountState: boolean
 
   /** Initial accounts. */
-  genesisAccounts?: Record<Address, Token.Amount[]>
+  genesisAccounts: Record<Address, number|bigint|Uint128>
   /** Initial uploads. */
-  genesisUploads?: Record<CodeId, Partial<{ codeData: Uint8Array }>>
+  genesisUploads: Record<CodeId, Partial<{ codeData: Uint8Array }>>
   /** If set, overrides the script that launches the devnet in the container. */
   initScript?: string
   /** Once this phrase is encountered in the log output
@@ -320,8 +320,10 @@ class ContainerDevnet extends Devnet {
       ?? 10
     this.dontMountState = options.dontMountState
       ?? false
-    this.accounts = options.accounts
-      ?? this.accounts
+    this.genesisAccounts = options.genesisAccounts
+      ?? {}
+    this.genesisUploads = options.genesisUploads
+      ?? {}
     this.podman = options.podman
       ?? false
     this.engine = options.engine
@@ -344,15 +346,23 @@ class ContainerDevnet extends Devnet {
         )
       }
     }
+
+    Object.defineProperty(this, 'url', {
+      enumerable: true,
+      configurable: true,
+      get () {
+        return new URL(`${this.protocol}://${this.host}:${this.port}`).toString()
+      },
+      set () {
+        throw new Error("can't change devnet url")
+      }
+    })
   }
+
+  declare url: string
 
   get log (): Console {
-    return new Console(`${this.chainId} @ ${this.host}:${this.port}`)
-  }
-
-  /** The API URL that can be used to talk to the devnet. */
-  get url (): URL {
-    return new URL(`${this.protocol}://${this.host}:${this.port}`)
+    return new Console(`devnet: ${bold(this.chainId)} @ ${bold(`${this.host}:${this.port}`)}`)
   }
 
   /** This should point to the standard production docker image for the network. */
@@ -385,7 +395,7 @@ class ContainerDevnet extends Devnet {
       DAEMON:    platforms[this.platform as Platform].daemon,
       TOKEN:     platforms[this.platform as Platform].Chain.defaultDenom,
       CHAIN_ID:  this.chainId!,
-      ACCOUNTS:  this.accounts.join(' '),
+      ACCOUNTS:  JSON.stringify(this.genesisAccounts),
       STATE_UID: String((process.getuid!)()),
       STATE_GID: String((process.getgid!)()),
     }
@@ -440,12 +450,14 @@ class ContainerDevnet extends Devnet {
   }
 
   /** Create the devnet container and save state. */
-  create = async (): Promise<this> => {
+  async create (): Promise<this> {
     const exists = await this.container?.catch(()=>null)
     if (exists) {
-      this.log(`Devnet already exists in container`, bold(this.containerId?.slice(0, 8)))
+      this.log(`Found`, bold(this.chainId), `in container`, bold(this.containerId?.slice(0, 8)))
     } else {
-      this.log.debug('Creating...')
+      if (this.verbose) {
+        this.log.debug('Creating container for', bold(this.chainId))
+      }
       // ensure we have image and chain id
       const image = await this.image
       if (!this.image) {
@@ -457,20 +469,28 @@ class ContainerDevnet extends Devnet {
       // if port is unspecified or taken, increment
       this.port = await portManager.getFreePort(this.port)
       // create container
+      this.log.br()
       this.log(`Creating devnet`, bold(this.chainId), `on`, bold(String(this.url)))
       const init = this.initScript ? [this.initScriptMount] : []
       const container = image!.container(this.chainId, this.spawnOptions, init)
+      if (this.verbose) {
+        for (const [key, val] of Object.entries(this.spawnEnv)) {
+          this.log.debug(`  ${key}=${val}`)
+        }
+      }
       await container.create()
       this.setExitHandler()
       // set id and save
-      this.log.debug(`Created container:`, bold(this.containerId?.slice(0, 8)))
+      if (this.verbose) {
+        this.log.debug(`Created container:`, bold(this.containerId?.slice(0, 8)))
+      }
       this.containerId = container.id
     }
     return await this.save()
   }
 
   /** Write the state of the devnet to a file. This saves the info needed to respawn the node */
-  save = async (extra = {}): Promise<this> => {
+  async save (extra = {}): Promise<this> {
     this.stateFile.save({
       chainId:     this.chainId,
       containerId: this.containerId,
@@ -489,29 +509,33 @@ class ContainerDevnet extends Devnet {
 
   /** Start the container. */
   async start (): Promise<this> {
-    this.log.debug('Starting...')
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
+      this.log.br()
       this.log.debug(`Starting container:`, bold(this.containerId?.slice(0, 8)))
       try {
         await container.start()
       } catch (e) {
+        this.log.warn(e)
         // Don't throw if container already started.
         // TODO: This must be handled in @hackbg/dock
         if (e.code !== 304) throw e
       }
       this.running = true
       await this.save()
+      this.log.debug('Waiting for container to say:', bold(this.readyPhrase))
       await container.waitLog(this.readyPhrase, ContainerDevnet.logFilter, true)
+      this.log.debug('Waiting for', bold(String(this.postLaunchWait)), 'seconds...')
       await Dock.Docker.waitSeconds(this.postLaunchWait)
       await this.waitPort({ host: this.host, port: Number(this.port) })
+    } else {
+      this.log.log('Container already started:', bold(this.chainId))
     }
     return this
   }
 
   /** Stop the container. */
   async pause () {
-    this.log('Pausing devnet...')
     const container = await this.container
     if (container) {
       this.log.debug(`Stopping container:`, bold(this.containerId?.slice(0, 8)))
@@ -536,6 +560,10 @@ class ContainerDevnet extends Devnet {
       throw new Error("can't export: no container")
     }
     return container.export(repository, tag)
+  }
+
+  async import () {
+    throw new Error("unimplemented")
   }
 
   /** Delete the devnet container and state. */
@@ -597,8 +625,22 @@ class ContainerDevnet extends Devnet {
     }
   }
 
+  protected get containerCreated (): Promise<this> {
+    const creating = this.create()
+    Object.defineProperty(this, 'containerCreated', { get () { return creating } })
+    return creating
+  }
+
+  protected get containerStarted (): Promise<this> {
+    const starting = this.start()
+    Object.defineProperty(this, 'containerStarted', { get () { return starting } })
+    return starting
+  }
+
   /** Authenticate with named genesis account. */
   async authenticate <A extends Agent> (name: string) {
+    this.log.br()
+    this.log.debug('Authenticating devnet account:', bold(name))
     const account = await this.getGenesisAccount(name)
     const { Chain } = platforms[this.platform as Platform]
     return new (Chain as unknown as AgentClass<A>)({ devnet: this }).authenticate(account)
@@ -606,7 +648,11 @@ class ContainerDevnet extends Devnet {
 
   /** Get the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<Partial<Agent>> {
-    this.log.debug('get genesis account', bold(name))
+    if (!$(this.stateDir).exists()) {
+      this.log.debug('State dir not found, running genesis')
+      await this.containerCreated
+      await this.containerStarted
+    }
     if (this.dontMountState) {
       if (!this.container) {
         throw new Error('missing devnet container')
@@ -631,6 +677,7 @@ class ContainerDevnet extends Devnet {
     let exitHandlerCalled = false
     const exitHandler = async () => {
       if (exitHandlerCalled) return
+      this.log.debug('Running exit handler')
       if (this.autoDelete) {
         await this.pause()
         await this.delete()
@@ -641,19 +688,12 @@ class ContainerDevnet extends Devnet {
         this.log.log(
           'Devnet is running on port', bold(String(this.port)),
           `from container`, bold(this.containerId?.slice(0,8))
-        ).info(
-          'To remove the devnet:'
-        ).info(
-          '  $ npm run devnet reset'
-        ).info(
-          'Or manually:'
-        ).info(
-          `  $ docker kill`, this.containerId?.slice(0,8),
-        ).info(
-          `  $ docker rm`, this.containerId?.slice(0,8),
-        ).info(
-          `  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`
-        )
+        ).info('To remove the devnet:'
+        ).info('  $ npm run devnet reset'
+        ).info('Or manually:'
+        ).info(`  $ docker kill`, this.containerId?.slice(0,8),
+        ).info(`  $ docker rm`, this.containerId?.slice(0,8),
+        ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
       }
     }
     process.once('beforeExit', exitHandler)

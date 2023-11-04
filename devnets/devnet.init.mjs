@@ -9,7 +9,7 @@ const {
 
   CHAIN_ID      = `local-${DAEMON}`,
   TOKEN         = 'unspecified',
-  ACCOUNTS      = 'Admin Alice Bob Charlie Mallory',
+  ACCOUNTS      = '{"init":[]}',
   AMOUNT        = `1000000000000000000${TOKEN}`,
 
   HTTP_PORT     = '1317',
@@ -48,7 +48,7 @@ function start () {
 }
 
 function configureNode () {
-  console.info('Configuring the node...')
+  console.info('Configuring the node')
   let appTomlData = readFileSync(appToml, 'utf8')
   // enable rest api if not enabled
   appTomlData = appTomlData.replace(
@@ -100,7 +100,7 @@ function spawnLcp () {
 }
 
 function launchNode () {
-  console.info('Launching the node...')
+  console.info('Launching the node')
   let command
   if (DAEMON === 'secretd') {
     // starting the secret network daemon requires sgx env vars to be set
@@ -132,12 +132,12 @@ function performGenesis () {
   preGenesisConfig()
   createGenesisTransaction()
   bootstrapChain()
-  console.info('\nSprinkling holy water...')
+  console.info('\nSprinkling holy water')
   console.info()
 }
 
 function preGenesisCleanup () {
-  console.info('\nEnsuring a clean slate...')
+  console.info('\nEnsuring a clean slate')
   run(`rm -rf ${daemonDir}`)
   if (DAEMON === 'secretd') {
     run(`rm -rf ~/.secretcli /opt/secret/.sgx-secrets`)
@@ -145,7 +145,7 @@ function preGenesisCleanup () {
 }
 
 function preGenesisConfig () {
-  console.info('\nEstablishing initial config...')
+  console.info('\nEstablishing initial config')
   run(`mkdir -p ${wallets}`)
   fixPermissions()
   daemon(`config chain-id "${CHAIN_ID}"`)
@@ -164,25 +164,29 @@ function preGenesisConfig () {
 }
 
 function createGenesisTransaction () {
-  let accounts = ACCOUNTS.split(' ')
-  if (accounts.length === 0) accounts = ['Admin']
+  let accounts = JSON.parse(ACCOUNTS||'{}') || {}
+  if (Object.keys(accounts).length === 0) {
+    accounts = { 'Admin': '1000000000000' }
+  }
   console.info('\nCreating genesis accounts:')
-  for (const name of accounts) {
+  for (const [name, amount] of Object.entries(accounts)) {
     const mnemonic = daemon(`keys add "${name}" 2>&1 | tail -n1`)
     const address  = daemon(`keys show -a "${name}"`)
-    console.info(`\n- ${AMOUNT} ${address} (${name})`)
-    daemon(`add-genesis-account "${address}" "${AMOUNT}"`)
+    console.info(`\n- ${amount}${TOKEN} ${address} (${name})`)
+    daemon(`add-genesis-account "${address}" "${amount}${TOKEN}"`)
     const identity = `${wallets}/${name}.json`
     writeFileSync(identity, JSON.stringify({ address, mnemonic }))
     fixPermissions(identity)
   }
   fixPermissions()
-  console.info('\nCreating genesis transaction...')
-  daemon(`gentx "${accounts[0]}" 1000000${TOKEN} --chain-id ${CHAIN_ID} --keyring-backend test`)
+  console.info('\nCreating genesis transaction')
+  daemon(
+    `gentx "${Object.keys(accounts)[0]}" 1000000${TOKEN} --chain-id ${CHAIN_ID} --keyring-backend test`
+  )
 }
 
 function bootstrapChain () {
-  console.info('\nBootstrapping chain...')
+  console.info('\nBootstrapping chain')
   daemon(`collect-gentxs`)
   daemon(`validate-genesis`)
   if (DAEMON === 'secretd') {
@@ -192,8 +196,12 @@ function bootstrapChain () {
 }
 
 function fixPermissions (path = stateDir) {
-  if (STATE_UID) run(`chown -R ${STATE_UID} ${stateDir}`)
-  if (STATE_GID) run(`chgrp -R ${STATE_GID} ${stateDir}`)
+  if (STATE_UID) {
+    run(`chown -R ${STATE_UID} ${stateDir}`)
+  }
+  if (STATE_GID) {
+    run(`chgrp -R ${STATE_GID} ${stateDir}`)
+  }
 }
 
 function run (command) {

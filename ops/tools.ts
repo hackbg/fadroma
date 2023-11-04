@@ -347,3 +347,45 @@ export function generateShellNix (name: string) {
     `}`,
   ].join('\n')
 }
+
+export function generateCargoToml (name: string, features: string[] = []) {
+  return [
+    `[package]`, `name = "${name}"`, `version = "0.0.0"`, `edition = "2021"`,
+    `authors = []`, `keywords = ["fadroma"]`, `description = ""`, `readme = "README.md"`, ``,
+    `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
+    `[dependencies]`,
+    `fadroma = { version = "0.8.7", features = ${JSON.stringify(features)} }`,
+    `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
+  ].join('\n')
+}
+
+export function generateContractEntrypoint () {
+  return [
+    `//! Created by [Fadroma](https://fadroma.tech).`, ``,
+    `#[fadroma::dsl::contract] pub mod contract {`,
+    `    use fadroma::{*, dsl::*, prelude::*};`,
+    `    impl Contract {`,
+    `        #[init(entry_wasm)]`,
+    `        pub fn new () -> Result<Response, StdError> {`,
+    `            Ok(Response::default())`,
+    `        }`,
+    `        // #[execute]`,
+    `        // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+    `        //     Ok(Response::default())`,
+    `        // }`,
+    `        // #[execute]`,
+    `        // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
+    `        //     Ok(Response::default())`,
+    `        // }`,
+    `        // #[query]`,
+    `        // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+    `        //     Ok(())`, '',
+    `        // }`,
+    `        // #[query]`,
+    `        // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
+    `        //     Ok(())`, '',
+    `        // }`,
+    `    }`,
+    `}`,
+  ].join('\n')
+}

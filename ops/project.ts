@@ -28,6 +28,30 @@ import { execSync } from 'node:child_process'
 import Case from 'case'
 
 export class ProjectRoot {
+  static async create (properties: Partial<{
+    tools?:Tools.SystemTools,
+    interactive?: boolean,
+    name?: string,
+    root?: string|Path|Promise<string|Path>|undefined,
+  }> = {}) {
+    const { tools = new Tools.SystemTools(), interactive = tools.interactive } =
+      properties
+    const { name = await Promise.resolve(interactive ? this.askName() : undefined) } =
+      properties
+    if (!name) {
+      throw new Error('missing project name')
+    }
+    let { root = await Promise.resolve(interactive ? this.askRoot(name) : undefined) } =
+      properties
+    if (!root) {
+      root = $(tools.cwd, name as string)
+    }
+    root = $(await Promise.resolve(root)).as(OpaqueDirectory)
+    console.log(`Creating project`, bold(name), `in`, bold(root.path))
+    const project = new this(name!, root.make())
+    Tools.createGitRepo(root.path, tools)
+    return project
+  }
 
   readonly root: Path
 
@@ -45,31 +69,6 @@ export class ProjectRoot {
     return console.br()
       .info('Project name: ', bold(this.name))
       .info('Project root: ', bold(this.root.path))
-  }
-
-  static async create (properties: Partial<{
-    tools?: Tools.SystemTools,
-    interactive?: boolean,
-    name?: string
-    root?: string|Path
-  }>) {
-    const { tools = new Tools.SystemTools(), interactive = tools.interactive } =
-      properties
-    const { name = await Promise.resolve(interactive ? this.askName() : undefined) } =
-      properties
-    if (!name) {
-      throw new Error('missing project name')
-    }
-    let { root = await Promise.resolve(interactive ? this.askRoot(name) : undefined) } =
-      properties
-    if (!root) {
-      root = $(tools.cwd, name as string)
-    }
-    root = $(root).as(OpaqueDirectory)
-    console.log(`Creating project`, bold(name), `in`, bold(root.path))
-    const project = new this(name!, root.make())
-    Tools.createGitRepo(root.path, tools)
-    return project
   }
 
   static async askName (): Promise<string> {
@@ -106,6 +105,36 @@ export class ProjectRoot {
 }
 
 export class Project extends ProjectRoot {
+  // warning: do not convert static create methods
+  // to arrow functions or inheritance will break
+  static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] = {}) {
+    properties.tools ??= new Tools.SystemTools()
+    properties.interactive ??= properties.tools.interactive
+    const project = await super.create(properties) as Project
+    const name = await Promise.resolve(properties.interactive ? this.askName() : undefined)
+    if (!name) {
+      throw new Error("missing project name")
+    }
+    project.readme
+      .save(Tools.generateReadme(name))
+    project.packageJson
+      .save(Tools.generatePackageJson(name))
+    project.gitIgnore
+      .save(Tools.generateGitIgnore())
+    project.envFile
+      .save(Tools.generateEnvFile())
+    project.shellNix
+      .save(Tools.generateShellNix(name))
+    project.apiIndex
+      .save(Tools.generateApiIndex(name, {}))
+    project.projectIndex
+      .save(Tools.generateProjectIndex(name))
+    project.testIndex
+      .save(Tools.generateTestIndex(name))
+    Tools.runNPMInstall(project, properties.tools)
+    return project
+  }
+
   stateDir     = $(this.root, 'state')
     .as(OpaqueDirectory)
   wasmDir      = $(this.root, 'wasm')
@@ -139,51 +168,6 @@ export class Project extends ProjectRoot {
   }
 
   getDeployment (): Deployment {
-  }
-
-  static async create ({ // do not convert to arrow function
-    tools = new Tools.SystemTools(),
-    interactive = tools.interactive,
-    name,
-    root
-  }: {
-    tools?: Tools.SystemTools,
-    interactive?: boolean,
-    name?: string,
-    root?: string|Path|Promise<string|Path>|undefined,
-  }) {
-    const project = await super.create({ tools, name, root }) as Project
-    if (!name) {
-      throw new Error("missing project name")
-    }
-    project.readme.save(
-      Tools.generateReadme(name)
-    )
-    project.packageJson.save(
-      Tools.generatePackageJson(name)
-    )
-    project.gitIgnore.save(
-      Tools.generateGitIgnore()
-    )
-    project.envFile.save(
-      Tools.generateEnvFile()
-    )
-    project.shellNix.save(
-      Tools.generateShellNix(name)
-    )
-    project.apiIndex.save(
-      Tools.generateApiIndex(name, {})
-    )
-    project.projectIndex.save(
-      Tools.generateProjectIndex(name)
-    )
-    project.testIndex.save(
-      Tools.generateTestIndex(name)
-    )
-    Tools.runNPMInstall(
-      project, tools
-    )
-    return project
   }
 
   static async askTemplates (name: string): Promise<Record<string, Partial<UploadedCode>>> {
@@ -243,15 +227,11 @@ export class ScriptProject extends Project {
 }
 
 export class CargoProject extends Project {
-
-  static async create ({ // do not convert to arrow function
-    tools = new Tools.SystemTools(), name, root
-  }: {
-    tools?: Tools.SystemTools, name?: string, root?: string|Path
-  }) {
-    const project = await super.create({ tools, name, root }) as Project
-    if (tools.interactive) {
-      switch (await this.askCompiler(tools)) {
+  static async create (properties: Parameters<typeof ProjectRoot["create"]>[0] = {}) {
+    properties.tools ??= new Tools.SystemTools()
+    const project = await super.create(properties) as Project
+    if (properties.tools?.interactive) {
+      switch (await this.askCompiler(properties?.tools)) {
         case 'podman':
           project.envFile.save(`${project.envFile.load()}\nFADROMA_BUILD_PODMAN=1`)
           break
@@ -260,11 +240,11 @@ export class CargoProject extends Project {
           break
       }
     }
-    Tools.runCargoUpdate(project, tools)
-    Prompts.logInstallRust(tools)
-    Prompts.logInstallSha256Sum(tools)
-    Prompts.logInstallWasmOpt(tools)
-    Tools.gitCommitUpdatedLockfiles(project, tools, changed)
+    Tools.runCargoUpdate(project, properties.tools)
+    Prompts.logInstallRust(properties.tools)
+    Prompts.logInstallSha256Sum(properties.tools)
+    Prompts.logInstallWasmOpt(properties.tools)
+    Tools.gitCommitUpdatedLockfiles(project, properties.tools)
     return project
   }
 
@@ -276,71 +256,48 @@ export class CargoProject extends Project {
   }: Partial<Tools.SystemTools>): Promise<'raw'|'docker'|'podman'> {
     const variant = (value: string, title: string) =>
       ({ value, title })
-    const buildRaw = variant('raw',
-      `No isolation, build with local toolchain (${cargo||'cargo: not found!'})`)
-    const buildDocker = variant('docker',
-      `Isolate builds in a Docker container (${docker||'docker: not found!'})`)
+    const buildRaw =
+      variant('raw',    `No isolation, build with local toolchain (${cargo||'cargo: not found!'})`)
+    const buildDocker =
+      variant('docker', `Isolate builds in a Docker container (${docker||'docker: not found!'})`)
     /* TODO: podman is currently disabled
     const buildPodman = variant('podman',
       `Isolate builds in a Podman container (experimental; ${podman||'podman: not found!'})`)
     const hasPodman = podman && (podman !== NOT_INSTALLED)
      const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ] */
-    const engines = [ buildDocker ]
-    const options = isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
+    const engines =
+      [ buildDocker ]
+    const options =
+      isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
     return await Prompts.askSelect(`Select build isolation mode:`, options)
   }
 
-  static writeCrate (path: string|Path, name: string, features: string[]) {
+  static writeCrate (path: string|Path, name: string, features?: string[]) {
     $(path, 'Cargo.toml')
       .as(TextFile)
-      .save([
-        `[package]`, `name = "${this.name}"`, `version = "0.0.0"`, `edition = "2021"`,
-        `authors = []`, `keywords = ["fadroma"]`, `description = ""`, `readme = "README.md"`, ``,
-        `[lib]`, `crate-type = ["cdylib", "rlib"]`, ``,
-        `[dependencies]`,
-        `fadroma = { version = "0.8.7", features = ${JSON.stringify(features)} }`,
-        `serde = { version = "1.0.114", default-features = false, features = ["derive"] }`
-      ].join('\n'))
-
+      .save(Tools.generateCargoToml(name, features))
     $(path, 'src')
       .as(OpaqueDirectory)
       .make()
-
     $(path, 'src/lib.rs')
       .as(TextFile)
-      .save([
-        `//! Created by [Fadroma](https://fadroma.tech).`, ``,
-        `#[fadroma::dsl::contract] pub mod contract {`,
-        `    use fadroma::{*, dsl::*, prelude::*};`,
-        `    impl Contract {`,
-        `        #[init(entry_wasm)]`,
-        `        pub fn new () -> Result<Response, StdError> {`,
-        `            Ok(Response::default())`,
-        `        }`,
-        `        // #[execute]`,
-        `        // pub fn my_tx_1 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-        `        //     Ok(Response::default())`,
-        `        // }`,
-        `        // #[execute]`,
-        `        // pub fn my_tx_2 (arg1: String, arg2: Uint128) -> Result<Response, StdError> {`,
-        `        //     Ok(Response::default())`,
-        `        // }`,
-        `        // #[query]`,
-        `        // pub fn my_query_1 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-        `        //     Ok(())`, '',
-        `        // }`,
-        `        // #[query]`,
-        `        // pub fn my_query_2 (arg1: String, arg2: Uint128) -> Result<(), StdError> {`,
-        `        //     Ok(())`, '',
-        `        // }`,
-        `    }`,
-        `}`,
-      ].join('\n'))
+      .save(Tools.generateContractEntrypoint())
   }
 
 }
 
 export class CrateProject extends CargoProject {
+  static async create (properties?: Partial<{
+    tools?: Tools.SystemTools
+    name?:  string
+    root?:  string|Path,
+    crateFeatures?: string[]
+  }>) {
+    const project = await super.create(properties) as CrateProject
+    this.writeCrate(project.root.path, project.name, properties?.crateFeatures)
+    return project
+  }
+
   cargoToml = $(this.root, 'Cargo.toml')
     .as(TOMLFile)
   srcDir = $(this.root, 'lib')
@@ -351,19 +308,18 @@ export class CrateProject extends CargoProject {
       .info('This project contains a single source crate:')
       .warn('TODO')
   }
-
-  static async create ({ // do not convert to arrow function
-    tools = new Tools.SystemTools(), name, root
-  }: {
-    tools?: Tools.SystemTools, name?: string, root?: string|Path
-  }) {
-    const project = await super.create({ tools, name, root }) as CrateProject
-    this.writeCrate(root, name)
-    return project
-  }
 }
 
 export class WorkspaceProject extends CargoProject {
+  static async create (properties?: Partial<{
+    tools?: Tools.SystemTools
+    name?:  string
+    root?:  string|Path
+  }>) {
+    const project = await super.create(properties) as Project
+    return project
+  }
+
   cargoToml = $(this.root, 'Cargo.toml')
     .as(TOMLFile)
   contractsDir = $(this.root, 'contracts')
@@ -375,15 +331,6 @@ export class WorkspaceProject extends CargoProject {
     return console.br()
       .info('This project contains the following source crates:')
       .warn('TODO')
-  }
-
-  static async create ({ // do not convert to arrow function
-    tools = new Tools.SystemTools(), name, root
-  }: {
-    tools?: Tools.SystemTools, name?: string, root?: string|Path
-  }) {
-    const project = await super.create(tools, name, root) as Project
-    return project
   }
 
   static writeCrates ({ cargoToml, wasmDir, crates }: {
@@ -407,49 +354,4 @@ export class WorkspaceProject extends CargoProject {
         .save(`${sha256}  *${name}`)
     }
   }
-}
-
-export async function selectDeployment (
-  cwd: string|Path, name?: string, store: string|DeployStore = Stores.getDeployStore()
-): Promise<Deployment> {
-  if (typeof store === 'string') {
-    store = Stores.getDeployStore(store)
-  }
-  if (!name) {
-    if (process.stdout.isTTY) {
-      name = await Prompts.askDeployment(store)
-    } else {
-      throw new Error('pass deployment name')
-    }
-  }
-  const state = store.get(name!)
-  if (!state) {
-    throw new Error(`no deployment ${name} in store`)
-  }
-  return Deployment.fromReceipt(state)
-}
-
-export function exportDeployment (
-  cwd: string|Path, deployment?: Deployment, path?: string|Path
-) {
-  if (!deployment) {
-    throw new Error("deployment not found")
-  }
-  if (!path) {
-    path = process.cwd()
-  }
-  // If passed a directory, generate file name
-  let file = $(path)
-  if (file.isDirectory()) {
-    file = file.in(`${name}_@_${timestamp()}.json`)
-  }
-  // Serialize and write the deployment.
-  const state = deployment.toReceipt()
-  file.as(JSONFile).makeParent().save(state)
-  console.info(
-    'saved',
-    Object.keys(state).length,
-    'contracts to',
-    bold(file.shortPath)
-  )
 }

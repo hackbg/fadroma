@@ -4,7 +4,7 @@
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'
 import { Console, Error, bold } from '@fadroma/agent'
-import type { Address, ChainId, IFee } from '@fadroma/agent'
+import type { Address, ChainId, Token } from '@fadroma/agent'
 
 /** Environment settings for Secret Network. */
 class ScrtConfig extends Config {
@@ -50,7 +50,7 @@ class ScrtConsole extends Console {
       "transaction memos are not supported."
     )
   }
-  defaultGas (fees: IFee[]) {
+  defaultGas (fees: Token.IFee[]) {
     this.warn(
       "could not fetch block gas limit, defaulting to:",
       fees.map(fee=>fee.gas).join('/'))

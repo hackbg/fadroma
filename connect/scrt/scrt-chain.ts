@@ -8,7 +8,7 @@ import { Config, Error, Console } from './scrt-base'
 import { ScrtBatchBuilder } from './scrt-batch'
 import type {
   AgentClass, Uint128, ContractClient,
-  ICoin, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
+  Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
 import {
   Agent, into, base64, bip39, bip39EN, bold,
@@ -168,7 +168,7 @@ class ScrtAgent extends Agent {
     return this.api.query.auth.account({ address: this.address })
   }
 
-  async send (to: Address, amounts: ICoin[], opts?: any) {
+  async send (to: Address, amounts: Token.ICoin[], opts?: any) {
     const from_address = this.address!
     const to_address = to
     const amount = amounts
