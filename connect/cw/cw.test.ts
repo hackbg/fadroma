@@ -1,6 +1,7 @@
 import { throws, rejects, deepEqual, equal } from 'node:assert'
 
 import * as Devnets from '../../ops/devnets'
+import { fixture } from '../../fixtures/fixtures'
 import * as CW from '.'
 import { Mode, Token } from '@fadroma/agent'
 import { Suite } from '@hackbg/ensuite'
@@ -22,7 +23,10 @@ export default new Suite([
 export async function testCWChain () {
   throws(()=>new CW.Agent().authenticate())
   throws(()=>new CW.Agent().authenticate({}))
-  throws(()=>new CW.Agent().authenticate({ signer: {}, mnemonic }))
+  throws(()=>new CW.Agent().authenticate({
+    signer: {} as any,
+    mnemonic
+  }))
 }
 
 export async function testCWDevnet () {
@@ -37,6 +41,8 @@ export async function testCWDevnet () {
   await alice.height
   equal(await alice.balance, '122456789')
   equal(await bob.balance,   '987654321')
+
+  const result = await alice.upload(fixture('fadroma-example-echo@HEAD.wasm'))
 }
 
 export async function testCWOKP4 () {

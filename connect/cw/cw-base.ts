@@ -31,7 +31,7 @@ class CWAgent extends Agent {
   hdAccountIndex?: number
   /** The provided signer, which signs the transactions.
     * TODO: Implement signing transactions without external signer. */
-  signer?: Signer
+  declare signer?: Signer
 
   constructor (properties?: Partial<CWAgent>) {
     // When not using an external signer, these must be
@@ -41,7 +41,7 @@ class CWAgent extends Agent {
     this.bech32Prefix = properties?.bech32Prefix ?? this.bech32Prefix
     this.hdAccountIndex = properties?.hdAccountIndex ?? this.hdAccountIndex
     this.log.debug('Connecting to', bold(this.url))
-    this.api = CosmWasmClient.connect(this.url)
+    this.api ??= CosmWasmClient.connect(this.url)
   }
 
   authenticate (options?: Parameters<Agent["authenticate"]>[0] & { signer?: Signer }) {
@@ -53,13 +53,17 @@ class CWAgent extends Agent {
       if (mnemonic) {
         throw new CWError("pass either mnemonic or signer, but not both")
       }
-      return super.authenticate(options)
+      return super.authenticate({
+        ...options, api: SigningCosmWasmClient.connectWithSigner(this.url, signer)
+      })
     } else {
       if (!mnemonic) {
         mnemonic = bip39.generateMnemonic(bip39EN)
         this.log.warn("No mnemonic provided, generated this one:", mnemonic)
       }
-      return super.authenticate({ ...options, ...consumeMnemonic(this, mnemonic) })
+      return super.authenticate({
+        ...options, ...consumeMnemonic(this, mnemonic)
+      })
     }
   }
 
@@ -140,7 +144,7 @@ class CWAgent extends Agent {
     }
     const api = await this.api
     if (!(api as SigningCosmWasmClient)?.upload) {
-      throw new CWError("can't upload contract without authorizing the agent")
+      throw new CWError("can't upload contract with an unauthenticated agent")
     } 
     const result = await (api as SigningCosmWasmClient).upload(
       this.address, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
