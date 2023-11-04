@@ -20,26 +20,25 @@ export default new Suite([
 ])
 
 export async function testProjectCommands () {
-  const scriptProject =
+  new ProjectCommands()
+
+  for (const project of [
     await Projects.ScriptProject.create({
       name: 'test-script-project',
       root: `${tmpDir()}/test-script-project`,
       interactive: false
-    })
-  const crateProject =
+    }),
     await Projects.CrateProject.create({
       name: 'test-crate-project',
       root: `${tmpDir()}/test-crate-project`,
       interactive: false
-    })
-  const workspaceProject =
+    }),
     await Projects.WorkspaceProject.create({
       name: 'test-workspace-project',
       root: `${tmpDir()}/test-workspace-project`,
       interactive: false
     })
-
-  for (const project of [scriptProject, crateProject, workspaceProject]) {
+  ]) {
     const commands = new ProjectCommands(project)
     commands.run(['status'])
     await commands.run(['build'])

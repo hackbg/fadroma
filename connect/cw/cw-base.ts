@@ -44,7 +44,7 @@ class CWAgent extends Agent {
     this.api = CosmWasmClient.connect(this.url)
   }
 
-  async authenticate (options?: Parameters<Agent["authenticate"]>[0] & { signer?: Signer }) {
+  authenticate (options?: Parameters<Agent["authenticate"]>[0] & { signer?: Signer }) {
     if (!options) {
       throw new CWError("pass { mnemonic } or { signer } to this method")
     }
@@ -59,12 +59,7 @@ class CWAgent extends Agent {
         mnemonic = bip39.generateMnemonic(bip39EN)
         this.log.warn("No mnemonic provided, generated this one:", mnemonic)
       }
-      const agent = await super.authenticate(options)
-      const auth = consumeMnemonic(this, mnemonic)
-      agent.address = auth.address
-      agent.signer = auth.signer
-      agent.api = SigningCosmWasmClient.connectWithSigner(agent.url, auth.signer)
-      return agent
+      return super.authenticate({ ...options, ...consumeMnemonic(this, mnemonic) })
     }
   }
 
@@ -264,29 +259,30 @@ export function consumeMnemonic (agent: CWAgent, mnemonic: string): {
   // Compute public key and address
   const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
   const address = bech32.encode(agent.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
+  const signer = {
+    // One account per agent
+    getAccounts: async () => [
+      { algo: 'secp256k1', address, pubkey }
+    ],
+    // Sign a transaction
+    signAmino: async (address: string, signed: any) => {
+      if (address && (address !== agent.address)) {
+        agent.log.warn(`Passed address ${address} did not match agent address ${agent.address}`)
+      }
+      const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
+      return {
+        signed,
+        signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
+          ...numberToBytesBE(r, 32), ...numberToBytesBE(s, 32)
+        ])),
+      }
+    },
+  }
   return {
     address,
     pubkey,
-    // Construct signer
-    signer: {
-      // One account per agent
-      getAccounts: async () => [
-        { algo: 'secp256k1', address, pubkey }
-      ],
-      // Sign a transaction
-      signAmino: async (address: string, signed: any) => {
-        if (address && (address !== agent.address)) {
-          agent.log.warn(`Passed address ${address} did not match agent address ${agent.address}`)
-        }
-        const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
-        return {
-          signed,
-          signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
-            ...numberToBytesBE(r, 32), ...numberToBytesBE(s, 32)
-          ])),
-        }
-      },
-    }
+    signer,
+    api: SigningCosmWasmClient.connectWithSigner(agent.url, signer)
   }
 }
 

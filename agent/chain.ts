@@ -80,9 +80,12 @@ export abstract class Agent {
   /** The address from which transactions are signed and sent. */
   address?: Address
 
+  /** The default identity used to sign transactions with this agent. */
+  signer?: unknown
+
   constructor (properties?: Partial<Agent>) {
     assign(this, properties, [
-      'url', 'mode', 'chainId', 'fees', 'devnet', 'stopped', 'name', 'address', 'api'
+      'url', 'mode', 'chainId', 'fees', 'devnet', 'stopped', 'name', 'address', 'api', 'signer'
     ])
     if (this.devnet) {
       assignDevnet(this, this.devnet)
@@ -219,7 +222,7 @@ export abstract class Agent {
     address?:  Address,
     mnemonic?: string,
     signer?:   unknown
-  }): Promise<this> {
+  }): this {
     return new (this.constructor as any)({
       ...this,
       ...options
