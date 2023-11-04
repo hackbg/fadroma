@@ -16,37 +16,17 @@ class StubChainState extends Devnet {
 
   lastCodeId = 0
 
-  accounts = new Map<Address, {
-    balances: Record<string, bigint>
-  }>()
+  balances = new Map<Address, Record<string, bigint>>()
 
   uploads = new Map<CodeId, {
-    chainId:  ChainId
-    codeId:   CodeId
-    codeHash: CodeHash
-    codeData: Uint8Array
+    chainId: ChainId, codeId: CodeId, codeHash: CodeHash, codeData: Uint8Array
   }>()
 
-  instances = new Map<Address, {
-    codeId: CodeId
-  }>()
+  instances = new Map<Address, { codeId: CodeId }>()
 
   constructor (properties?: Partial<StubChainState>) {
     super(properties as Partial<Devnet>)
     assign(this, properties, ["chainId", "lastCodeId", "accounts", "uploads", "instances"])
-  }
-
-  async upload (codeData: Uint8Array) {
-    this.lastCodeId++
-    const codeId = String(this.lastCodeId)
-    let upload
-    this.uploads.set(codeId, upload = {
-      codeId,
-      chainId:  this.chainId,
-      codeHash: base16.encode(sha256(codeData)).toLowerCase(),
-      codeData,
-    })
-    return upload
   }
 
   async start (): Promise<this> {
@@ -67,12 +47,30 @@ class StubChainState extends Devnet {
     throw new Error("StubChainState#export: not implemented")
   }
 
-  async mirror (...args: unknown[]): Promise<unknown> {
-    throw new Error("StubChainState#mirror: not implemented")
+  async getGenesisAccount (name: string): Promise<Partial<Agent>> {
+    throw new Error("StubChainState#getAccount: not implemented")
   }
 
-  async getAccount (name: string): Promise<Partial<Agent>> {
-    throw new Error("StubChainState#getAccount: not implemented")
+  async upload (codeData: Uint8Array) {
+    this.lastCodeId++
+    const codeId = String(this.lastCodeId)
+    let upload
+    this.uploads.set(codeId, upload = {
+      codeId,
+      chainId:  this.chainId,
+      codeHash: base16.encode(sha256(codeData)).toLowerCase(),
+      codeData,
+    })
+    return upload
+  }
+
+  async instantiate (...args: unknown[]): Promise<Partial<ContractInstance>> {
+    throw new Error('not implemented')
+    return {}
+  }
+
+  async execute (...args: unknown[]): Promise<unknown> {
+    throw new Error('not implemented')
   }
 }
 

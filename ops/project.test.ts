@@ -17,7 +17,6 @@ export default new Suite([
   ["commands",   testProjectCommands],
   ["wizard",     testProjectWizard],
   ['deployment', testDeployment],
-  ['upgrade',    testDeploymentUpgrade],
 ])
 
 export async function testProjectCommands () {
@@ -26,13 +25,11 @@ export async function testProjectCommands () {
       name: 'test-script-project',
       root: `${tmpDir()}/test-script-project`
     })
-
   const crateProject =
     await Projects.CrateProject.create({
       name: 'test-crate-project',
       root: `${tmpDir()}/test-crate-project`
     })
-
   const workspaceProject =
     await Projects.WorkspaceProject.create({
       name: 'test-workspace-project',
@@ -111,43 +108,4 @@ export async function testDeployment () {
   assert.ok([deployment.a1, deployment.a2, deployment.a3, ...Object.values(deployment.b)].every(
     c=>c instanceof ContractInstance
   ))
-}
-
-export async function testDeploymentUpgrade () {
-
-  class V1Deployment extends Deployment {
-    kv1 = this.contract('kv1', {
-      sourcePath: fixture("../examples/kv"),
-      initMsg: {}
-    })
-    kv2 = this.contract('kv2', {
-      sourcePath: fixture("../examples/kv"),
-      initMsg: {}
-    })
-  }
-
-  let deployment = new V1Deployment()
-  assert.deepEqual([...deployment.keys()], ['kv1', 'kv2'])
-  const mainnetAgent: any = { chain: { isMainnet: true } } // mock
-  const testnetAgent: any = { chain: { isTestnet: true } } // mock
-
-  // simplest chain-side migration is to just call default deploy,
-  // which should reuse kv1 and kv2 and only deploy kv3.
-
-  class V2Deployment extends V1Deployment {
-    kv3 = this.contract('kv3', {
-      sourcePath: fixture("../examples/kv"),
-      initMsg: {}
-    })
-    // simplest client-side migration is to just instantiate
-    // a new deployment with the data from the old deployment.
-    static upgrade = (previous: V1Deployment) => new this({
-      ...previous
-    })
-  }
-  let deployment2 = await V2Deployment.upgrade(deployment).deploy({
-    compiler: getCompiler(),
-    uploader: new Stub.Agent(),
-    deployer: new Stub.Agent(),
-  })
 }

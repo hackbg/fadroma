@@ -1,17 +1,18 @@
-import type { CodeHash, CodeId, Address } from '@fadroma/agent'
+import type { CodeHash, CodeId, Address, Message } from '@fadroma/agent'
 import {
   Console, bold, Error, Stub, base16, sha256, into, bech32, randomBech32,
-  ContractInstance,
+  ContractInstance, brailleDump
 } from '@fadroma/agent'
+import type { ScrtMocknet } from './scrt-mocknet'
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
 type ScrtCWVersion = '0.x'|'1.x'
 
-type ScrtMocknetUpload = {
-  codeHash:        CodeHash
-  codeData:        Uint8Array
-  wasmModule:      WebAssembly.Module
+interface ScrtMocknetUpload {
+  codeHash: CodeHash
+  codeData: Uint8Array
+  wasmModule: WebAssembly.Module
   cosmWasmVersion: ScrtCWVersion
 }
 
@@ -35,13 +36,16 @@ export class ScrtMocknetState extends Stub.ChainState {
   }
 
   async instantiate (
-    sender: Address,
-    instance: Partial<ContractInstance>
+    sender: Address, ...args: Parameters<Stub.Agent["doInstantiate"]>
   ): Promise<ContractInstance> {
-    const { label, initMsg, codeId, codeHash } = instance
-    if (!codeId) throw new Error('missing code id')
+    const [codeId, { codeHash, label, initSend, initMsg, initFee }] = args
+    if (!codeId) {
+      throw new Error('missing code id')
+    }
     // Check code hash
-    const { module, cwVersion, codeHash: expectedCodeHash } = this.getCode(codeId)
+    const {
+      module, cwVersion, codeHash: expectedCodeHash
+    } = this.getCode(codeId)
     if (codeHash !== expectedCodeHash) this.log.warn('Wrong code hash passed with code id', codeId)
     // Resolve lazy init
     const msg = await into(initMsg)
@@ -61,13 +65,15 @@ export class ScrtMocknetState extends Stub.ChainState {
     this.codeIdOfAddress[address] = instance.codeId!
     this.labelOfAddress[address] = label!
     await this.passCallbacks(cwVersion, address, messages)
-    return {
-      chainId: this.id,
-      address: contract.address,
+    return new ContractInstance({
+      chainId:  this.chainId,
+      address:  address!,
       codeId,
-      codeHash,
-      label
-    }
+      codeHash: codeHash!,
+      label:    label!,
+      initBy:   this.address,
+      initTx:   ''
+    }) as ContractInstance & { address: string }
   }
 
   async execute (
@@ -247,7 +253,7 @@ export class MocknetContract<V extends ScrtCWVersion> {
   codeHash?:  CodeHash
   codeId?:    CodeId
   cwVersion?: V
-  runtime?:   WebAssembly.Instance<CWAPI<V>['exports']>
+  runtime?:   WebAssembly.Instance<ScrtCWAPI<V>['exports']>
   storage = new Map<string, Buffer>()
 
   constructor (options: Partial<MocknetContract<V>> = {}) {
@@ -256,16 +262,16 @@ export class MocknetContract<V extends ScrtCWVersion> {
 
   get initMethod (): Function {
     switch (this.cwVersion) {
-      case '0.x': return (this.runtime!.exports as CWAPI<'0.x'>['exports']).init
-      case '1.x': return (this.runtime!.exports as CWAPI<'1.x'>['exports']).instantiate
+      case '0.x': return (this.runtime!.exports as ScrtCWAPI<'0.x'>['exports']).init
+      case '1.x': return (this.runtime!.exports as ScrtCWAPI<'1.x'>['exports']).instantiate
       default: throw new Error('Could not find init/instantiate entrypoint')
     }
   }
 
   get execMethod (): Function {
     switch (this.cwVersion) {
-      case '0.x': return (this.runtime!.exports as CWAPI<'0.x'>['exports']).handle
-      case '1.x': return (this.runtime!.exports as CWAPI<'1.x'>['exports']).execute
+      case '0.x': return (this.runtime!.exports as ScrtCWAPI<'0.x'>['exports']).handle
+      case '1.x': return (this.runtime!.exports as ScrtCWAPI<'1.x'>['exports']).execute
       default: throw new Error('Could not find handle/execute entrypoint')
     }
   }
@@ -391,7 +397,7 @@ export class MocknetContract<V extends ScrtCWVersion> {
     }
   }
 
-  makeImports = (): { imports: CWAPI<V>['imports'], refresh: Function } => {
+  makeImports = (): { imports: ScrtCWAPI<V>['imports'], refresh: Function } => {
     const {log, runtime, storage, address, mocknet} = this
     // initial memory
     const wasmMemory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
@@ -482,7 +488,7 @@ export class MocknetContract<V extends ScrtCWVersion> {
           writeToRegionUtf8(memory, dstPointer, human)
           return 0
         },
-      } } as CWAPI<'0.x'>['imports']
+      } } as ScrtCWAPI<'0.x'>['imports']
 
     } else if (this.cwVersion === '1.x') {
 
@@ -578,13 +584,13 @@ export class MocknetContract<V extends ScrtCWVersion> {
           return 0
         }
 
-      } } as CWAPI<'1.x'>['imports']
+      } } as ScrtCWAPI<'1.x'>['imports']
 
     } else {
       throw new Error('Failed to detect CW API version for this contract')
     }
     return {
-      imports: imports as CWAPI<V>['imports'],
+      imports: imports as ScrtCWAPI<V>['imports'],
       refresh
     }
   }
@@ -601,7 +607,7 @@ declare namespace WebAssembly {
     exports: T
   }
   function instantiate <V extends ScrtCWVersion> (code: unknown, world: unknown):
-    Promise<Instance<CWAPI<V>['exports']>>
+    Promise<Instance<ScrtCWAPI<V>['exports']>>
   class Memory {
     constructor (options: { initial: number, maximum: number })
     buffer: any

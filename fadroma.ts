@@ -16,60 +16,21 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import type { AgentClass, Deployment } from '@fadroma/connect'
-import { connectModes, CW, Scrt } from '@fadroma/connect'
-import { Config } from './ops/config'
-
-// Install devnets as selectable chains:
-export * from '@fadroma/connect'
-export * from './ops/project'
+import type { Agent, ChainId, DeployStore } from '@fadroma/connect'
+import { bold, timestamp, Deployment, connectModes, CW, Scrt } from '@fadroma/connect'
 import * as Compilers from './ops/build'
-import * as Stores from './ops/stores'
 import * as Devnets from './ops/devnets'
+import * as Prompts from './ops/prompts'
+import * as Stores from './ops/stores'
 import * as Tools from './ops/tools'
-export { Compilers, Stores, Devnets, Tools }
-
 import { CommandContext } from '@hackbg/cmds'
 import { Project } from './ops/project'
-import $ from '@hackbg/file'
+import $, { JSONFile } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
 
-export async function runScript ({
-  project, script, args
-}: {
-  project?: Project, script?: string, args: string[]
-}) {
-  if (!script) {
-    throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
-  }
-  if (!$(script).exists()) {
-    throw new Error(`${script} doesn't exist`)
-  }
-  console.log(`Running ${script}`)
-  const path = $(script).path
-  //@ts-ignore
-  const { default: main } = await import(path)
-  if (typeof main === 'function') {
-    return main(project, ...args)
-  } else {
-    console.error(`${$(script).shortPath}'s default export is not a function`)
-  }
-}
-
-export async function runRepl ({
-  project, script, args
-}: {
-  project?: Project, script?: string, args: string[]
-}) {
-  let start
-  try {
-    const repl = await import('node:repl')
-    start = repl.start
-  } catch (e) {
-    console.error('Node REPL unavailable.')
-    throw e
-  }
-  const context = start() || project?.getDeployment()
-}
+export { Compilers, Devnets, Prompts, Stores, Tools, }
+export * from '@fadroma/connect'
+export * from './ops/project'
 
 export class ProjectCommands extends CommandContext {
   constructor (
@@ -126,7 +87,7 @@ export class ProjectCommands extends CommandContext {
           async (path?: string) => exportDeployment(
             this.project.root, await this.getProject().getDeployment(), path))
         .addCommand('reset', 'stop and erase running devnets',
-          (...ids: ChainId[]) => Devnets.resetAll(
+          (...ids: ChainId[]) => Devnets.Container.resetAll(
             this.project.root, ids))
     }
   }
@@ -137,4 +98,81 @@ export class ProjectCommands extends CommandContext {
 
   getAgent (): Agent {
   }
+}
+
+export async function runScript (context?: { project?: Project, script?: string, args: string[] }) {
+  const { project, script, args } = context || {}
+  if (!script) {
+    throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
+  }
+  if (!$(script).exists()) {
+    throw new Error(`${script} doesn't exist`)
+  }
+  console.log(`Running ${script}`)
+  const path = $(script).path
+  //@ts-ignore
+  const { default: main } = await import(path)
+  if (typeof main === 'function') {
+    return main(project, ...args||[])
+  } else {
+    console.error(`${$(script).shortPath}'s default export is not a function`)
+  }
+}
+
+export async function runRepl (context?: { project?: Project, script?: string, args: string[] }) {
+  const { project, script, args } = context || {}
+  let start
+  try {
+    const repl = await import('node:repl')
+    start = repl.start
+  } catch (e) {
+    console.error('Node REPL unavailable.')
+    throw e
+  }
+  const context2 = start() || project?.getDeployment()
+}
+
+export async function selectDeployment (
+  cwd: string|Path, name?: string, store: string|DeployStore = Stores.getDeployStore()
+): Promise<Deployment> {
+  if (typeof store === 'string') {
+    store = Stores.getDeployStore(store)
+  }
+  if (!name) {
+    if (process.stdout.isTTY) {
+      name = await Prompts.askDeployment(store)
+    } else {
+      throw new Error('pass deployment name')
+    }
+  }
+  const state = store.get(name!)
+  if (!state) {
+    throw new Error(`no deployment ${name} in store`)
+  }
+  return Deployment.fromReceipt(state)
+}
+
+export function exportDeployment (
+  cwd: string|Path, deployment?: Deployment, path?: string|Path
+) {
+  if (!deployment) {
+    throw new Error("deployment not found")
+  }
+  if (!path) {
+    path = process.cwd()
+  }
+  // If passed a directory, generate file name
+  let file = $(path)
+  if (file.isDirectory()) {
+    file = file.in(`${name}_@_${timestamp()}.json`)
+  }
+  // Serialize and write the deployment.
+  const state = deployment.toReceipt()
+  file.as(JSONFile).makeParent().save(state)
+  console.info(
+    'saved',
+    Object.keys(state).length,
+    'contracts to',
+    bold(file.shortPath)
+  )
 }

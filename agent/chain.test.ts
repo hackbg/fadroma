@@ -51,7 +51,7 @@ export async function testUnauthenticated () {
   assert(chain.contract() instanceof ContractClient)
 
   const state = new Stub.ChainState()
-  state.uploads.set("123", { codeHash: "abc", codeData: new Uint8Array() })
+  state.uploads.set("123", { codeHash: "abc", codeData: new Uint8Array() } as any)
   state.instances.set("stub1abc", { codeId: "123" })
   chain = new Stub.Agent({ state })
   assert.equal(await chain.getCodeId('stub1abc'), "123")

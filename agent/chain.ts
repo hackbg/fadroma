@@ -178,7 +178,7 @@ export abstract class Agent {
       return new Promise(async (resolve, reject)=>{
         try {
           while (true && !this.stopped) {
-            await new Promise(ok=>setTimeout(ok, 250))
+            await new Promise(ok=>setTimeout(ok, this.blockInterval))
             this.log(
               `Waiting for block > ${bold(String(startingHeight))} ` +
               `(${((+ new Date() - t)/1000).toFixed(3)}s elapsed)`
@@ -196,6 +196,8 @@ export abstract class Agent {
       })
     })
   }
+
+  blockInterval = 250
 
   async query <Q> (contract: Address|{ address: Address }, message: Message): Promise<Q> {
     if (typeof contract === 'string') contract = { address: contract }

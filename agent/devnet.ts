@@ -19,11 +19,9 @@ export abstract class Devnet {
 
   abstract pause (): Promise<this>
 
-  abstract import (...args: unknown[]): Promise<unknown>
-
   abstract export (...args: unknown[]): Promise<unknown>
 
-  abstract mirror (...args: unknown[]): Promise<unknown>
+  abstract import (...args: unknown[]): Promise<unknown>
 
   abstract getGenesisAccount (name: string): Promise<{ address?: Address, mnemonic?: string }>
 
