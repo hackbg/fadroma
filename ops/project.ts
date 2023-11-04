@@ -34,15 +34,17 @@ export class ProjectRoot {
     name?: string,
     root?: string|Path|Promise<string|Path>|undefined,
   }> = {}) {
-    const { tools = new Tools.SystemTools(), interactive = tools.interactive } =
-      properties
-    const { name = await Promise.resolve(interactive ? this.askName() : undefined) } =
-      properties
+    const tools =
+      properties.tools || new Tools.SystemTools()
+    const interactive =
+      properties.interactive || tools.interactive
+    const name =
+      properties.name || await Promise.resolve(interactive ? this.askName() : undefined)
     if (!name) {
       throw new Error('missing project name')
     }
-    let { root = await Promise.resolve(interactive ? this.askRoot(name) : undefined) } =
-      properties
+    let root =
+      properties.root || await Promise.resolve(interactive ? this.askRoot(name) : undefined)
     if (!root) {
       root = $(tools.cwd, name as string)
     }
@@ -112,6 +114,7 @@ export class Project extends ProjectRoot {
     properties.interactive ??= properties.tools.interactive
     const project = await super.create(properties) as Project
     const name = await Promise.resolve(properties.interactive ? this.askName() : undefined)
+    throw new Error('bang')
     if (!name) {
       throw new Error("missing project name")
     }

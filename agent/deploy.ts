@@ -203,10 +203,10 @@ export class Deployment extends Map<Name, DeploymentUnit> {
       Partial<CompiledCode> &
       Partial<UploadedCode>
   ): ContractTemplate {
-    const source = new SourceCode(properties)
+    const source   = new SourceCode(properties)
     const compiled = new CompiledCode(properties)
     const uploaded = new UploadedCode(properties)
-    const unit = new ContractTemplate({
+    const unit     = new ContractTemplate({
       deployment: this, name, source, compiled, uploaded
     })
     this.set(name, unit)
@@ -222,10 +222,10 @@ export class Deployment extends Map<Name, DeploymentUnit> {
       Partial<UploadedCode> &
       Partial<ContractInstance>
   ): ContractInstance {
-    const source = new SourceCode(properties)
+    const source   = new SourceCode(properties)
     const compiled = new CompiledCode(properties)
     const uploaded = new UploadedCode(properties)
-    const unit = new ContractInstance({
+    const unit     = new ContractInstance({
       deployment: this, name, source, compiled, uploaded, ...properties
     })
     this.set(name, unit)

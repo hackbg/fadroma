@@ -76,8 +76,17 @@ class CWAgent extends Agent {
     return this.getBlockInfo().then(({ header: { height } })=>height)
   }
 
+  get balance () {
+    if (this.address) {
+      return this.getBalance('uknow', this.address)
+    } else {
+      throw new Error('not authenticated, use getBalance')
+    }
+  }
+
   /** Query native token balance. */
   async getBalance (denom?: string, address?: Address): Promise<string> {
+    this.log.debug('Querying balance of', bold(address), 'in', bold(denom))
     denom ??= this.defaultDenom
     address ??= this.address
     if (!address) {

@@ -87,7 +87,7 @@ export class ProjectCommands extends CommandContext {
           async (path?: string) => exportDeployment(
             this.project.root, await this.getProject().getDeployment(), path))
         .addCommand('reset', 'stop and erase running devnets',
-          (...ids: ChainId[]) => Devnets.Container.resetAll(
+          (...ids: ChainId[]) => Devnets.Container.deleteMany(
             this.project.root, ids))
     }
   }
