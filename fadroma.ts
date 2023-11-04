@@ -37,63 +37,52 @@ export class ProjectCommands extends CommandContext {
     readonly project: Project = new Project('project', process.env.FADROMA_PROJECT || process.cwd())
   ) {
     super()
-    this
-      .addCommand(
-        'run', 'execute a script',
-        (script: string, ...args: string[]) => runScript({ project: this.project, script, args }))
-      .addCommand(
-        'repl', 'open a project REPL (optionally executing a script first)',
-        (script: string, ...args: string[]) => runRepl({ project: this.project, script, args }))
-      .addCommand(
-        'status', 'show the status of the project',
-        () => Prompts.logProjectStatus(this.getProject()))
-      .addCommand(
-        'create', 'create a new project',
-        Project.create)
-
+    this.command('run', 'execute a script',
+      (script: string, ...args: string[]) => runScript({ project: this.project, script, args }))
+    this.command('repl', 'open an interactive Fadroma shell',
+      (script: string, ...args: string[]) => runRepl({ project: this.project, script, args }))
+    this.command('status', 'show the status of the project',
+      () => console.log(JSON.stringify(this.project, null, 2)))
+    this.command('create', 'create a new project',
+      Project.create)
     if (this.project) {
-      this
-        .addCommand('build', 'build the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().build({
-            compiler: Compilers.getCompiler(), }))
-        .addCommand('rebuild', 'rebuild the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().build({
-            rebuild: true,
-            compiler: Compilers.getCompiler(), }))
-        .addCommand('upload', 'upload the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().upload({
-            compiler: Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), }))
-        .addCommand('reupload', 'reupload the project or specific contracts from it',
-          (...names: string[]) => this.getProject().getDeployment().upload({
-            compiler: Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), reupload: true }))
-        .addCommand('deploy', 'deploy this project or continue an interrupted deployment',
-          (...args: string[]) => this.getProject().getDeployment().deploy({
-            compiler: Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
-            deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
-            deployment:  this.getProject().getDeployment() }))
-        .addCommand('redeploy', 'redeploy this project from scratch',
-          (...args: string[]) => this.getProject().getDeployment().deploy({
-            compiler:    Compilers.getCompiler(),
-            uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
-            deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
-            deployment:  this.getProject().createDeployment() }))
-        .addCommand('select', `activate another deployment`, 
-          async (name?: string): Promise<Deployment|undefined> => selectDeployment(
-            this.project.root, name))
-        .addCommand('export', `export current deployment to JSON`,
-          async (path?: string) => exportDeployment(
-            this.project.root, await this.getProject().getDeployment(), path))
-        .addCommand('reset', 'stop and erase running devnets',
-          (...ids: ChainId[]) => Devnets.Container.deleteMany(
-            this.project.root, ids))
+      this.command('build', 'build the project or specific contracts from it',
+        (...names: string[]) => this.project.getDeployment().build({
+          compiler: Compilers.getCompiler(), }))
+      this.command('rebuild', 'rebuild the project or specific contracts from it',
+        (...names: string[]) => this.project.getDeployment().build({
+          rebuild: true,
+          compiler: Compilers.getCompiler(), }))
+      this.command('upload', 'upload the project or specific contracts from it',
+        (...names: string[]) => this.project.getDeployment().upload({
+          compiler: Compilers.getCompiler(),
+          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), }))
+      this.command('reupload', 'reupload the project or specific contracts from it',
+        (...names: string[]) => this.project.getDeployment().upload({
+          compiler: Compilers.getCompiler(),
+          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), reupload: true }))
+      this.command('deploy', 'deploy this project or continue an interrupted deployment',
+        (...args: string[]) => this.project.getDeployment().deploy({
+          compiler: Compilers.getCompiler(),
+          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
+          deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
+          deployment:  this.project.getDeployment() }))
+      this.command('redeploy', 'redeploy this project from scratch',
+        (...args: string[]) => this.project.getDeployment().deploy({
+          compiler:    Compilers.getCompiler(),
+          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
+          deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
+          deployment:  this.project.createDeployment() }))
+      this.command('select', `activate another deployment`, 
+        async (name?: string): Promise<Deployment|undefined> => selectDeployment(
+          this.project.root, name))
+      this.command('export', `export current deployment to JSON`,
+        async (path?: string) => exportDeployment(
+          this.project.root, await this.project.getDeployment(), path))
+      this.command('reset', 'stop and erase running devnets',
+        (...ids: ChainId[]) => Devnets.Container.deleteMany(
+          this.project.root, ids))
     }
-  }
-
-  getProject (): Project {
-    return new Project('name_from_package_json', this.root)
   }
 
   getAgent (): Agent {
@@ -164,7 +153,7 @@ export function exportDeployment (
   // If passed a directory, generate file name
   let file = $(path)
   if (file.isDirectory()) {
-    file = file.in(`${name}_@_${timestamp()}.json`)
+    file = file.in(`${deployment.name}_@_${timestamp()}.json`)
   }
   // Serialize and write the deployment.
   const state = deployment.toReceipt()

@@ -63,10 +63,6 @@ export class SystemTools {
   homebrew    = this.isMac ? this.checkTool('homebrew ', 'brew --version') : undefined
 }
 
-export function cargoUpdate (cwd: string) {
-  return runShellCommands(cwd, ['cargo update'])
-}
-
 /** Run one or more external commands in the project root. */
 export function runShellCommands (cwd: string, cmds: string[]) {
   return cmds.map(cmd=>execSync(cmd, { cwd, stdio: 'inherit' }))
@@ -79,7 +75,7 @@ export function createGitRepo (cwd: string, tools: SystemTools): {
   if (tools.git) {
     try {
       runShellCommands(cwd, [
-        'git --no-pager init',
+        'git --no-pager init -b main',
       ])
       $(cwd).at('.gitignore').as(TextFile).save(generateGitIgnore())
       runShellCommands(cwd, [

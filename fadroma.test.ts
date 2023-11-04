@@ -5,8 +5,6 @@ import { Suite } from '@hackbg/ensuite'
 
 import { ProjectCommands } from './fadroma'
 
-new ProjectCommands()
-
 export default new Suite([
   ['agent',   () => import('./agent/agent.test')],
   ['build',   () => import('./ops/build.test')],
@@ -16,4 +14,9 @@ export default new Suite([
   ['stores',  () => import('./ops/stores.test')],
   ['tools',   () => import('./ops/tools.test')],
   ['connect', () => import('./connect/connect.test')],
+  ['cli', testCLI]
 ])
+
+export async function testCLI () {
+  const cli = new ProjectCommands()
+}
