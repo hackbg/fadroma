@@ -23,17 +23,20 @@ export async function testProjectCommands () {
   const scriptProject =
     await Projects.ScriptProject.create({
       name: 'test-script-project',
-      root: `${tmpDir()}/test-script-project`
+      root: `${tmpDir()}/test-script-project`,
+      interactive: false
     })
   const crateProject =
     await Projects.CrateProject.create({
       name: 'test-crate-project',
-      root: `${tmpDir()}/test-crate-project`
+      root: `${tmpDir()}/test-crate-project`,
+      interactive: false
     })
   const workspaceProject =
     await Projects.WorkspaceProject.create({
       name: 'test-workspace-project',
-      root: `${tmpDir()}/test-workspace-project`
+      root: `${tmpDir()}/test-workspace-project`,
+      interactive: false
     })
 
   for (const project of [scriptProject, crateProject, workspaceProject]) {

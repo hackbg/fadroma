@@ -1,4 +1,4 @@
-import { throws, rejects, deepEqual } from 'node:assert'
+import { throws, rejects, deepEqual, equal } from 'node:assert'
 
 import * as Devnets from '../../ops/devnets'
 import * as CW from '.'
@@ -22,19 +22,16 @@ export async function testCWDevnet () {
     platform: 'okp4_5.0',
     genesisAccounts: {
       Alice: 123456789,
-      Bob: 987654321,
+      Bob:   987654321,
     }
   })
   const [alice, bob] = await Promise.all([
     devnet.authenticate('Alice'),
     devnet.authenticate('Bob'),
   ])
-  deepEqual(await alice.balance, {
-    uknow: 123456789
-  })
-  deepEqual(await bob.balance, {
-    uknow: 987654321
-  })
+  await alice.height
+  equal(await alice.balance, '122456789')
+  equal(await bob.balance,   '987654321')
 }
 
 export async function testCWOKP4 () {

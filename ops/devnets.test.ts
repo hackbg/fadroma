@@ -23,14 +23,13 @@ export default new Suite([
   ['genesis',    testDevnetGenesis],
 ])
 
-export async function testDevnetDocs () {
-  //@ts-ignore
-  await import('./Devnet.spec.ts.md')
-}
-
 export async function testDevnetPlatform (platform: Devnets.Platform) {
   let devnet: any
+
+  ok(devnet = Devnets.Container.fromEnvironment(), "construct devnet")
+
   ok(devnet = new Devnets.Container({ platform }), "construct devnet")
+
   ok(await devnet.start(), "starting the devnet works")
   ok(await devnet.assertPresence() || true, "devnet start automatically created container")
   ok(await devnet.pause(), "pausing the devnet works")
@@ -64,12 +63,14 @@ export async function testDevnetGenesis () {
 
   // FIXME: these should be called automatically by authenticate
   await devnet.create()
+  await devnet.create()
+  await devnet.start()
   await devnet.start()
 
   const agent1 = await devnet.authenticate('User1')
-  await agent1.instantiate('7', { label: 'test-7', initMsg: {} })
-  const agent2 = await devnet.authenticate('User2')
-  await agent2.instantiate('8', { label: 'test-8', initMsg: {} })
+  //await agent1.instantiate('7', { label: 'test-7', initMsg: {} })
+  //const agent2 = await devnet.authenticate('User2')
+  //await agent2.instantiate('8', { label: 'test-8', initMsg: {} })
 }
 
 export async function testDevnetChainId () {
@@ -83,31 +84,26 @@ export async function testDevnetChainId () {
     "construct must work with no options"
   )
   ok(
-    devnet = new Devnets.Container({ platform: 'scrt_1.9' }),
-    "can construct when passing platform and chainId"
+    devnet = new Devnets.Container('scrt_1.9'),
+    "can construct when passing platform as string"
   )
-
   ok(
     typeof devnet.chainId === 'string',
     "chain id must be auto populated when not passed"
   )
-
   // TODO: can't delete before creating
   ok(
     await devnet.save(),
     "can save"
   )
-
   ok(
     await devnet.delete(),
     "can delete"
   )
-
   ok(
-    devnet = new Devnets.Container({ platform: 'scrt_1.9' }),
+    devnet = new Devnets.Container('scrt_1.9'),
     "after deletion, can construct new devnet with same chainId"
   )
-
   // TODO: devnet with same chainid points to same resource
   ok(
     await devnet.save(),

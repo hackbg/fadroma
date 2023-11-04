@@ -127,10 +127,6 @@ export const platforms: Record<Platform, PlatformInfo> = {
   * running in a container managed by @hackbg/dock. */
 class ContainerDevnet extends Devnet {
 
-  static resetAll (cwd: string|Path, ids: ChainId[]) {
-    return ContainerDevnet.deleteMany($(cwd).in('state'), ids)
-  }
-
   /** Delete multiple devnets. */
   static deleteMany (path: string|Path, ids?: ChainId[]): Promise<ContainerDevnet[]> {
     const state = $(path).as(OpaqueDirectory)
