@@ -5,6 +5,7 @@ import {
   Config, Console, Error, Compiler, CompiledCode, HEAD, RustSourceCode, bold, assign,
 } from '@fadroma/connect'
 import type { Container } from '@hackbg/dock'
+import { DotGit } from '@hackbg/repo'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
 import $, { Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile } from '@hackbg/file'
 import { default as simpleGit } from 'simple-git'
@@ -34,6 +35,25 @@ export function getCompiler ({
   }
 }
 
+/** The parts of Cargo.toml which the compiler needs to be aware of. */
+export type CargoTOML = {
+  package: { name: string },
+  dependencies: Record<string, { path?: string }>
+}
+
+/** @returns an codePath filename name in the format CRATE@REF.wasm */
+export const codePathName = (crate: string, ref: string) =>
+  `${crate}@${sanitize(ref)}.wasm`
+
+/** @returns a filename-friendly version of a Git ref */
+export const sanitize = (ref: string) =>
+  ref.replace(/\//g, '_')
+
+/** @returns an array with duplicate elements removed */
+export const distinct = <T> (x: T[]): T[] =>
+  [...new Set(x) as any]
+
+/** A compiler that can take configuration values from the environment. */
 export abstract class ConfiguredCompiler extends Compiler {
   config: Config
   constructor (options?: Partial<{ config: Config }>) {
@@ -42,7 +62,7 @@ export abstract class ConfiguredCompiler extends Compiler {
   }
 }
 
-/** Can perform builds.
+/** Can compile Rust smart contracts.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class LocalRustCompiler extends ConfiguredCompiler {
   readonly id: string = 'local'
@@ -93,11 +113,6 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     ])
   }
 
-  /** @returns the SHA256 hash of the file at the specified location */
-  protected hashPath (location: string|Path) {
-    return $(location).as(BinaryFile).sha256
-  }
-
   /** @returns a fully populated RustSourceCode from the original. */
   protected resolveSource (source: string|Partial<RustSourceCode>): Partial<RustSourceCode> {
     if (typeof source === 'string') {
@@ -126,7 +141,16 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     if (typeof source === 'string') {
       source = new RustSourceCode({ sourcePath: source })
     }
-    const { sourcePath, sourceRef = HEAD, cargoWorkspace, cargoCrate } = source
+    const {
+      sourcePath,
+      sourceRoot = sourcePath,
+      sourceRef = HEAD,
+      cargoWorkspace,
+      cargoCrate
+    } = source
+    if (!sourcePath) {
+      throw new Error("can't build without at least sourcePath")
+    }
     const env = {
       FADROMA_BUILD_GID: String(this.buildGid),
       FADROMA_BUILD_UID: String(this.buildUid),
@@ -137,9 +161,9 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     let location: Path
     if (sourceRef && (sourceRef !== HEAD)) {
       // Check out commit in temp directory
-      const gitDir = new DotGit(sourcePath!)
-      if (!gitDir?.present) {
-        throw new Error('.git dir not found')
+      const gitDir = $(sourceRoot||sourcePath, '.git')
+      if (!gitDir.exists()) {
+        throw new Error(`could not find ${gitDir.path}`)
       }
       const tmpGit = $.tmpDir('fadroma-git-')
       const tmpBuild = $.tmpDir('fadroma-build-')
@@ -158,7 +182,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     }
     // Create an codePath for the build result
     const codePath = pathToFileURL(location.path)
-    const codeHash = this.hashPath(location.path)
+    const codeHash = $(location).as(BinaryFile).sha256
     return new CompiledCode({ codePath, codeHash })
   }
 
@@ -204,14 +228,9 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     })
   }
 
-  /** Overridable. */
+  /** Overridable for testing. */
   protected spawn (...args: Parameters<typeof spawn>) {
     return spawn(...args)
-  }
-
-  /** Overridable. */
-  protected getGitDir (...args: ConstructorParameters<typeof DotGit>): DotGit {
-    return new DotGit(...args)
   }
 }
 
@@ -496,7 +515,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
       const location = $(outputDir, codePathName(cargoCrate, sourceRef||HEAD))
       if (location.exists()) {
         const codePath = location.url
-        const codeHash = this.hashPath(location)
+        const codeHash = $(location).as(BinaryFile).sha256
         return new CompiledCode({ codePath, codeHash })
       }
     }
@@ -565,7 +584,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   protected locationToContract (location: any) {
     if (location === null) return null
     const codePath = $(location).url
-    const codeHash = this.hashPath(location)
+    const codeHash = $(location).as(BinaryFile).sha256
     return new CompiledCode({
       codePath,
       codeHash
@@ -586,94 +605,3 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     }
   }
 }
-
-/** Represents the real location of the Git data directory.
-  * - In standalone repos this is `.git/`
-  * - If the contracts workspace repository is a submodule,
-  *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
-export class DotGit extends Path {
-
-  log = new Console('@hackbg/fadroma: DotGit')
-
-  /** Whether a .git is present */
-  readonly present: boolean
-
-  /** Whether the workspace's repository is a submodule and
-    * its .git is a pointer to the parent's .git/modules */
-  readonly isSubmodule: boolean = false
-
-  constructor (base: string|URL, ...fragments: string[]) {
-    if (!base) {
-      throw new Error(
-        'you need to pass a base directory in order to '+
-        'compute the path of the corresponding.git datastore'
-      )
-    }
-    if (base instanceof URL) {
-      base = fileURLToPath(base)
-    }
-    super(base, ...fragments, '.git')
-    if (!this.exists()) {
-      // If .git does not exist, it is not possible to build past commits
-      this.log.warn(bold(this.shortPath), 'does not exist')
-      this.present = false
-    } else if (this.isFile()) {
-      // If .git is a file, the workspace is contained in a submodule
-      const gitPointer = this.as(TextFile).load().trim()
-      const prefix = 'gitdir:'
-      if (gitPointer.startsWith(prefix)) {
-        // If .git contains a pointer to the actual git directory,
-        // building past commits is possible.
-        const gitRel = gitPointer.slice(prefix.length).trim()
-        const gitPath = $(this.parent, gitRel).path
-        const gitRoot = $(gitPath)
-        //this.log.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
-        this.path = gitRoot.path
-        this.present = true
-        this.isSubmodule = true
-      } else {
-        // Otherwise, who knows?
-        this.log.info(bold(this.shortPath), 'is an unknown file.')
-        this.present = false
-      }
-    } else if (this.isDirectory()) {
-      // If .git is a directory, this workspace is not in a submodule
-      // and it is easy to build past commits
-      this.present = true
-    } else {
-      // Otherwise, who knows?
-      this.log.warn(bold(this.shortPath), `is not a file or directory`)
-      this.present = false
-    }
-  }
-
-  get rootRepo (): Path {
-    return $(this.path.split(DotGit.rootRepoRE)[0])
-  }
-
-  get submoduleDir (): string {
-    return this.path.split(DotGit.rootRepoRE)[1]
-  }
-
-  /* Matches "/.git" or "/.git/" */
-  static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
-
-}
-
-/** The parts of Cargo.toml which the compiler needs to be aware of. */
-export type CargoTOML = {
-  package: { name: string },
-  dependencies: Record<string, { path?: string }>
-}
-
-/** @returns an codePath filename name in the format CRATE@REF.wasm */
-export const codePathName = (crate: string, ref: string) =>
-  `${crate}@${sanitize(ref)}.wasm`
-
-/** @returns a filename-friendly version of a Git ref */
-export const sanitize = (ref: string) =>
-  ref.replace(/\//g, '_')
-
-/** @returns an array with duplicate elements removed */
-export const distinct = <T> (x: T[]): T[] =>
-  [...new Set(x) as any]

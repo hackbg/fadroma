@@ -1,5 +1,25 @@
+import assert, { equal } from 'node:assert'
+import $ from '@hackbg/file'
 import * as Prompts from './prompts'
 export default async function testPrompts () {
+
+  equal('ok', await Prompts.askText({
+    prompts: { prompt: () => Promise.resolve({ value: '  ok  \n ' }) },
+    message: 'test'
+  }))
+
+  equal('ok', await Prompts.askSelect({
+    prompts: { prompt: () => Promise.resolve({ value: 'ok' }) },
+    message: 'test',
+    choices: []
+  }))
+
+  Prompts.logInstallRust({})
+
+  Prompts.logInstallWasmOpt({})
+
+  Prompts.logProjectCreated({ root: $('.') })
+
 }
 
 //export async function testProjectWizard () {

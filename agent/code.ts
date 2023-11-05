@@ -130,8 +130,14 @@ export class ContractCode {
 
 /** An object representing a given source code. */
 export class SourceCode {
+  /** Path to directory containing source.
+    * If not set, defaults to sourceRoot. */
   sourcePath?:  string
-  /** URL pointing to Git repository containing the source code. */
+  /** Optional parent directory to include in the build.
+     * If not set, defaults to sourcePath.
+    * If sourceRef is set, a sourceRoot should contain the .git subdirectory. */
+  sourceRoot?:  string
+  /** URL pointing to Git upstream that contains the source code. */
   sourceRepo?:  string|URL
   /** Branch/tag pointing to the source commit. */
   sourceRef?:   string
