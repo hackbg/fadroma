@@ -3,7 +3,7 @@
     along with tools program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Class, DeployStore, UploadedCode } from '@fadroma/connect'
 import type { Project } from './project'
-import { SystemTools, NOT_INSTALLED } from './tools'
+import { NOT_INSTALLED, SystemTools } from './tools'
 import { Console, bold, colors, Scrt } from '@fadroma/connect'
 import $, { Path, OpaqueDirectory, TextFile } from '@hackbg/file'
 import Prompts from 'prompts'
@@ -134,4 +134,126 @@ export async function logProjectCreated ({ root }: { root: Path }) {
     .info(`Fund your testnet wallet at:`)
     .info(`  ${bold('https://faucet.pulsar.scrttestnet.com')}`)
 
+}
+
+export async function askProjectName (): Promise<string> {
+  let value
+  do {
+    value = await askText({
+      message: 'Enter a project name (a-z, 0-9, dash/underscore)'
+    })??''
+    value = value.trim()
+    if (!isNaN(value[0] as any)) {
+      console.info('Project name cannot start with a digit.')
+      value = ''
+    }
+  } while (value === '')
+  return value
+}
+
+export async function askProjectRoot (name: string|Promise<string>|undefined): Promise<Path> {
+  name =
+    await Promise.resolve(name) as string
+  const cwd =
+    $(process.cwd()).as(OpaqueDirectory)
+  const exists =
+    cwd.in(name).exists()
+  const inSub =
+    `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
+  const inCwd =
+    `Current directory (${cwd.name})`
+  const choices = [
+    { title: inSub, value: cwd.in(name) },
+    { title: inCwd, value: cwd },
+  ]
+  if ((cwd.list()?.length||0) === 0) {
+    choices.reverse()
+  }
+  const message = `Create project ${name} in current directory or subdirectory?`
+  return askSelect({ message, choices })
+}
+
+export async function askTemplates (name: string): Promise<Record<string, Partial<UploadedCode>>> {
+  return askUntilDone({}, (state) => askSelect({
+    message: [
+      `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
+      `  ${Object.keys(state).join(',\n  ')}`
+    ].join(''),
+    choices: [
+      { title: `Add contract template to the project`, value: defineContract },
+      { title: `Remove contract template`, value: undefineContract },
+      { title: `Rename contract template`, value: renameContract },
+      { title: `(done)`, value: null },
+    ]
+  }))
+}
+
+export async function defineContract (state: Record<string, any>) {
+  let crate
+  crate = await askText({
+    message: 'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):'
+  })??''
+  if (!isNaN(crate[0] as any)) {
+    console.info('Contract name cannot start with a digit.')
+    crate = ''
+  }
+  if (crate) {
+    state[crate] = { crate }
+  }
+}
+
+export async function undefineContract (state: Record<string, any>) {
+  const name = await askSelect({
+    message: `Select contract to remove from project scope:`,
+    choices: [
+      ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+      { title: `(done)`, value: null },
+    ]
+  })
+  if (name === null) return
+  delete state[name]
+}
+
+export async function renameContract (state: Record<string, any>) {
+  const name = await askSelect({
+    message: `Select contract to rename:`,
+    choices: [
+      ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+      { title: `(done)`, value: null },
+    ]
+  })
+  if (name === null) return
+  const newName = await askText({
+    message: `Enter a new name for ${name} (a-z, 0-9, dash/underscore):`
+  })
+  if (newName) {
+    state[newName] = Object.assign(state[name], { name: newName })
+    delete state[name]
+  }
+}
+
+export async function askCompiler ({
+  isLinux,
+  cargo  = NOT_INSTALLED,
+  docker = NOT_INSTALLED,
+  podman = NOT_INSTALLED
+}: Partial<SystemTools>, prompts: { prompt: typeof Prompts["prompt"] } = Prompts): Promise<'raw'|'docker'|'podman'> {
+  const variant = (value: string, title: string) => ({ value, title })
+  const buildRaw = variant(
+    'raw', `No isolation, build with local toolchain (${cargo||'cargo: not found!'})`
+  )
+  const buildDocker = variant(
+    'docker', `Isolate builds in a Docker container (${docker||'docker: not found!'})`
+  )
+  /* TODO: podman is currently disabled
+  const buildPodman = variant('podman',
+    `Isolate builds in a Podman container (experimental; ${podman||'podman: not found!'})`)
+  const hasPodman = podman && (podman !== NOT_INSTALLED)
+   const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ] */
+  const engines = [ buildDocker ]
+  return await askSelect({
+    prompts,
+    message: `Select build isolation mode:`,
+    choices: isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
+  })
 }

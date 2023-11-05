@@ -26,7 +26,7 @@ class StubChainState extends Devnet {
 
   constructor (properties?: Partial<StubChainState>) {
     super(properties as Partial<Devnet>)
-    assign(this, properties, ["chainId", "lastCodeId", "accounts", "uploads", "instances"])
+    assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
   }
 
   async start (): Promise<this> {

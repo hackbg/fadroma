@@ -26,23 +26,31 @@ class OKP4Config extends Config {
 
 /** Agent for OKP4. */
 class OKP4Agent extends Agent {
-  /** Connect to OKP4 in testnet mode. */
-  static testnet = (options: Partial<OKP4Agent> = {}): OKP4Agent => {
-    const { testnetChainId: chainId, testnetUrl: url } = new OKP4Config()
-    return super.testnet({ chainId, url, ...options||{}, }) as OKP4Agent
-  }
-  /** Connect to OKP4 in testnet mode. */
-  static devnet = (options: Partial<OKP4Agent> = {}): OKP4Agent => {
-    throw new Error('Devnet not installed. Import @hackbg/fadroma')
-  }
-  /** Logging handle. */
-  log = new Console('OKP4')
+  /** @returns Token.Fee in uknow */
+  static gas = (amount: Uint128|number) => new Token.Fee(amount, this.defaultDenom)
   /** Default denomination of gas token. */
   static defaultDenom = 'uknow'
   /** Default denomination of gas token. */
   defaultDenom = OKP4Agent.defaultDenom
-  /** @returns Token.Fee in uknow */
-  static gas = (amount: Uint128|number) => new Token.Fee(amount, this.defaultDenom)
+  /** Set permissive fees by default. */
+  fees = {
+    upload: OKP4Agent.gas(10000000),
+    init:   OKP4Agent.gas(10000000),
+    exec:   OKP4Agent.gas(1000000),
+    send:   OKP4Agent.gas(1000000),
+  }
+
+  /** Connect to OKP4 in testnet mode. */
+  static testnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
+    const { testnetChainId: chainId, testnetUrl: url } = new OKP4Config()
+    return super.testnet({ chainId, url, ...options||{}, }) as OKP4Agent
+  }
+  /** Connect to OKP4 in testnet mode. */
+  static devnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
+    throw new Error('Devnet not installed. Import @hackbg/fadroma')
+  }
+  /** Logging handle. */
+  log = new Console('OKP4')
 
   /** The coin type in the HD derivation path */
   declare coinType: number

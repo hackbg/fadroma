@@ -59,8 +59,12 @@ class ScrtConsole extends Console {
     this.warn('created agent from passed wallet, ignoring mnemonic')
   }
   generatedMnemonic (mnemonic: string, address?: string) {
-    this.warn("No mnemonic passed, generated this one:", bold(mnemonic))
-    if (address) this.warn("The corresponding address is:", bold(address))
+    this
+      .warn("No mnemonic passed, generated this one:",)
+      .warn(' ', bold(mnemonic))
+    if (address) {
+      this.warn("The corresponding address is:", bold(address))
+    }
     this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
     return this
   }

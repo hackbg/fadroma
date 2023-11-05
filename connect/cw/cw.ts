@@ -18,3 +18,4 @@
 
 export * from './cw-base'
 export * as OKP4 from './okp4/okp4'
+export { Agent as default } from './cw-base'
