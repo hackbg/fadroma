@@ -176,7 +176,7 @@ class CWAgent extends Agent {
       Number(codeId),
       options.initMsg,
       options.label!,
-      options.initFee as StdFee,
+      options.initFee as StdFee || 'auto',
       { admin: this.address, funds: options.initSend, memo: options.initMemo }
     )
     return {

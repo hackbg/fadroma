@@ -17,7 +17,6 @@ export default new Suite([
   ['chain',  testCWChain],
   ['devnet', testCWDevnet],
   ['okp4',   testCWOKP4],
-  ['signer', testCWSigner],
 ])
 
 export async function testCWChain () {
@@ -32,17 +31,30 @@ export async function testCWChain () {
 export async function testCWDevnet () {
   const devnet = await new Devnets.Container({
     platform: 'okp4_5.0',
-    genesisAccounts: { Alice: 123456789, Bob: 987654321, }
+    genesisAccounts: { Alice: "123456789000", Bob: "987654321000", }
   })
   const [alice, bob] = await Promise.all([
     devnet.authenticate('Alice'),
     devnet.authenticate('Bob'),
   ])
   await alice.height
-  equal(await alice.balance, '122456789')
-  equal(await bob.balance,   '987654321')
+  equal(await alice.balance, '123455789000')
+  equal(await bob.balance,   '987654321000')
 
-  const result = await alice.upload(fixture('fadroma-example-cw-null@HEAD.wasm'))
+  const uploaded = await alice.upload(fixture('fadroma-example-cw-null@HEAD.wasm'))
+  const instance = await bob.instantiate(uploaded, {
+    label: 'test',
+    initMsg: null as any,
+    initFee: new Token.Fee("10000000", "uknow")
+  })
+
+  const agent = new CW.Agent({
+    devnet, coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0
+  }).authenticate({
+    mnemonic
+  })
+  //@ts-ignore
+  const signed = await agent.signer!.signAmino("", { test: 1 })
 }
 
 export async function testCWOKP4 () {
@@ -51,16 +63,4 @@ export async function testCWOKP4 () {
   new CW.OKP4.Objectarium({}, agent)
   new CW.OKP4.LawStone({}, agent)
   CW.OKP4.testnet()
-}
-
-export async function testCWSigner () {
-  const devnet = await new Devnets.Container({ platform: 'okp4_5.0' })
-  await devnet.start()
-  const agent = new CW.Agent({
-    devnet, coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0
-  }).authenticate({
-    mnemonic
-  })
-  //@ts-ignore
-  const signed = await agent.signer!.signAmino("", { test: 1 })
 }

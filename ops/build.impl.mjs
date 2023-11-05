@@ -82,12 +82,12 @@ async function main ({
   if (tmpTarget) {
     run(`mkdir -p "${tmpTarget}" && chmod -t "${tmpTarget}"`)
   }
-  if (registry) {
-    run(`mkdir -p "${registry}"`)
-  }
-  if (docker) {
-    run(`chmod ugo+rwx /usr/local/cargo/registry`)
-  }
+  //if (registry) {
+    //run(`mkdir -p "${registry}"`)
+  //}
+  //if (docker) {
+    //run(`chmod ugo+rwx /usr/local/cargo/registry`)
+  //}
   umask(0o022)
   if (sourceRef === 'HEAD') {
     log(`Compiling from working tree.`)
