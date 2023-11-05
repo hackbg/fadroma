@@ -158,8 +158,11 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     for (const [root, refs] of Object.entries(batches)) {
       for (const [ref, batch] of Object.entries(refs)) {
         const batchResults = await this.buildBatch(batch)
-        for (const [index, result] of batchResults) {
-          results[index] = result
+        for (const [index, result] of Object.entries(batchResults)) {
+          if (results[index as unknown as number]) {
+            throw new Error(`already built #${index}`)
+          }
+          results[index as unknown as number] = result
         }
       }
     }
@@ -238,7 +241,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   }
 
   protected abstract buildBatch (batch: CompileBatch):
-    Promise<Set<[number, CompiledCode]>>
+    Promise<Record<number, CompiledCode>>
 }
 
 /** Runs the build script in the current envionment. */
@@ -250,7 +253,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     * Defaults to the same one that is running this script. */
   runtime = process.argv[0]
 
-  protected async buildBatch (batch: CompileBatch): Promise<Set<[number, CompiledCode]>> {
+  protected async buildBatch (batch: CompileBatch): Promise<Record<number, CompiledCode>> {
     throw new Error("not implemented")
   }
 
@@ -380,12 +383,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Owner gid that is set on build artifacts. */
   outputGid: string|undefined =
     this.config.getString('FADROMA_BUILD_GID', () => undefined)
-  /** Used for historical builds. */
-  preferredRemote: string =
-    this.config.getString('FADROMA_PREFERRED_REMOTE', () => 'origin')
-  /** Used to authenticate Git in build container. */
-  sshAuthSocket: string|undefined =
-    this.config.getString('SSH_AUTH_SOCK', () => undefined)
 
   constructor (options?: Partial<ContainerizedLocalRustCompiler>) {
     super(options as Partial<LocalRustCompiler>)
@@ -415,81 +412,23 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   }
 
   protected async buildBatch (
-    batch: CompileBatch,
-    options: { outputDir?: string, buildScript?: string|Path } = {}
-  ): Promise<Set<[number, CompiledCode]>> {
-    const {
-      sourcePath,
-      sourceRef,
-      tasks
-    } = batch
-    const {
-      outputDir   = this.outputDir.path,
-      buildScript = this.script
-    } = options
+    batch: CompileBatch, options: { outputDir?: string, buildScript?: string|Path } = {}
+  ): Promise<Record<number, CompiledCode>> {
+    const slashes  = new RegExp("/", "g")
+    const sanitize = (x: string) => x.replace(slashes, "_")
+    const dashes   = new RegExp("-", "g")
+    const fumigate = (x: string) => x.replace(dashes, "_")
+    const { sourcePath, sourceRef, tasks } = batch
+    const safeRef  = sanitize(sourceRef)
+    const { outputDir = this.outputDir.path, buildScript = this.script } = options
     if (!buildScript) {
       throw new Error('missing build script')
     }
     this.log.log('Building contracts from', bold(sourcePath), '@', bold(sourceRef))
-    // Output results will be collected here.
-    const results: Array<[number, CompiledCode]> = []
     // Standalone crates get built with:
     // - cargo build --manifest-path /path/to/Cargo.toml --target-dir /path/to/output/dir
     // Workspace crates get built with:
     // - cargo build --manifest-path /path/to/workspace/Cargo.toml -p crate1 crate2 crate3
-    const safeRef = sanitize(sourceRef)
-    const command = ['node', $(`/`, $(buildScript).name).path, 'phase1',]
-    const env: Record<string, string> = {
-      FADROMA_VERBOSE:     String(this.verbose),
-      FADROMA_IN_DOCKER:   'true',
-      FADROMA_SRC_REF:     sourceRef||'HEAD',
-      FADROMA_BUILD_TASKS: JSON.stringify([...tasks]),
-      FADROMA_BUILD_UID:   String(this.buildUid),
-      FADROMA_BUILD_GID:   String(this.buildGid),
-      FADROMA_GIT_REMOTE:  this.preferredRemote,
-      FADROMA_NO_FETCH:    String(this.noFetch),
-      // Used by tools invoked by the build script:
-      LOCKED:                       '',/*'--locked'*/
-      CARGO_HTTP_TIMEOUT:           '240',
-      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-      GIT_PAGER:                    'cat',
-      GIT_TERMINAL_PROMPT:          '0',
-      SSH_AUTH_SOCK:                '/ssh_agent_socket',
-      TERM:                         process?.env?.TERM||'',
-    }
-    // Remove keys whose value is `undefined` from `buildEnv`
-    for (const key of Object.keys(env)) {
-      if (env[key as keyof typeof env] === undefined) {
-        delete env[key as keyof typeof env]
-      }
-    }
-    // Readonly mounts:
-    const readonly: Record<string, string> = {}
-    // - Script that will run in the container
-    readonly[$(buildScript).path] = $(`/`, $(buildScript).name).path
-    // - Repo root, containing real .git
-    readonly[$(sourcePath).path] = '/src'
-    // - For non-interactively fetching submodules over SSH,
-    //   we need to propagate both known_hosts files:
-    const userKnownHosts = $(homedir()).in('.ssh').at('known_hosts')
-    if (userKnownHosts.isFile()) {
-      readonly[userKnownHosts.path] = '/root/.ssh/known_hosts'
-    }
-    const globalKnownHosts = $(`/etc`).in('ssh').at('ssh_known_hosts')
-    if (globalKnownHosts.isFile()) {
-      readonly[globalKnownHosts.path] = '/etc/ssh/ssh_known_hosts'
-    }
-    // For fetching from private repos, we need to give the container access to ssh-agent:
-    if (this.sshAuthSocket) {
-      readonly[this.sshAuthSocket!] = '/ssh_agent_socket'
-    }
-    // Writable mounts:
-    const writable: Record<string, string> = {}
-    // - Output path for final artifacts:
-    writable[outputDir] = `/output`
-    // - Persist cache to make future rebuilds faster. May be unneccessary.
-    // [`project_cache_${safeRef}`]: `/tmp/target`,
-    writable[`cargo_cache_${safeRef}`] = `/usr/local/cargo`
     // Create stream for collecting build logs
     let buildLogs = ''
     const logs = this.getLogStream(sourceRef, (data) => {buildLogs += data})
@@ -497,8 +436,43 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     $(outputDir).as(OpaqueDirectory).make()
     // Run the build container
     const buildContainer = await this.image.run(`fadroma-build-${randomBytes(3).toString('hex')}`, {
-      remove: true, readonly, writable, cwd: '/src', env, extra: { Tty: true, AttachStdin: true }
-    }, command, '/usr/bin/env', logs)
+      remove: true,
+      // Readonly mounts:
+      readonly: {
+        // - Script that will run in the container
+        [$(buildScript).path]: $(`/`, $(buildScript).name).path,
+        // - Repo root, containing real .git
+        [$(sourcePath).path]:  '/src'
+      },
+      // Writable mounts:
+      writable: {
+        // - Output path for final artifacts:
+        [outputDir]: `/output`,
+        // - Persist cache to make future rebuilds faster. May be unneccessary.
+        // [`project_cache_${safeRef}`]: `/tmp/target`,
+        [`cargo_cache_${safeRef}`]: `/usr/local/cargo`
+      },
+      cwd: '/src',
+      env: {
+        FADROMA_VERBOSE:     String(this.verbose),
+        FADROMA_IN_DOCKER:   'true',
+        FADROMA_SRC_REF:     sourceRef||'HEAD',
+        FADROMA_BUILD_TASKS: JSON.stringify([...tasks]),
+        FADROMA_BUILD_UID:   String(this.buildUid),
+        FADROMA_BUILD_GID:   String(this.buildGid),
+        // Used by tools invoked by the build script:
+        LOCKED:                       '',/*'--locked'*/
+        CARGO_HTTP_TIMEOUT:           '240',
+        CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+        TERM:                         process?.env?.TERM||'',
+      },
+      extra: {
+        Tty: true,
+        AttachStdin: true
+      }
+    }, [
+      'node', $(`/`, $(buildScript).name).path, 'phase1',
+    ], '/usr/bin/env', logs)
     // If this process is terminated, the build container should be killed
     process.once('beforeExit', async () => {
       if (this.verbose) this.log.log('killing build container', bold(buildContainer.id))
@@ -517,44 +491,37 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     const {error, code} = await buildContainer.wait()
     // Throw error if launching the container failed
     if (error) {
-      throw new Error(`[@hackbg/fadroma] Docker error: ${error}`)
+      throw new Error(`cocker error: ${error}`)
     }
     // Throw error if the build failed
     if (code !== 0) {
-      const crateList = cratesToCompile.join(' ')
-      this.log
-        .log(logs)
-        .error(
-          'Compile of crates:',
-          bold(crateList),
-          'exited with status',
-          bold(String(code))
-        )
-      throw new Error(
-        `[@hackbg/fadroma] Compile of crates: "${crateList}" exited with status ${code}`
-      )
+      this.log.error(logs)
+      throw new Error(`compile batch exited with status ${code}`)
     }
-    // Return a sparse array of the resulting artifacts
-    return new Set(results.map(([index, location]) => {
-      //if (location === null) return null
-      const codePath = $(location).url
-      const codeHash = $(location).as(BinaryFile).sha256
-      return [index, new CompiledCode({ codePath, codeHash })]
-    }))
-  }
-
-  /** Check if codePath exists in local artifacts cache directory.
-    * If it does, don't rebuild it but return it from there. */
-  protected getCached (outputDir: string, { sourceRef, cargoCrate }: Partial<RustSourceCode>): CompiledCode|null {
-    if (this.caching && cargoCrate) {
-      const location = $(outputDir, codePathName(cargoCrate, sourceRef||HEAD))
-      if (location.exists()) {
-        const codePath = location.url
-        const codeHash = $(location).as(BinaryFile).sha256
-        return new CompiledCode({ codePath, codeHash })
+    const results: Record<number, CompiledCode> = {}
+    const toResult = (buildIndex: number, crateName: string) => [
+      buildIndex, $(outputDir, `${sanitize(crateName)}@${sanitize(sourceRef)}.wasm`)
+    ]
+    for (const task of tasks) {
+      if ((task as CompileWorkspaceTask).cargoWorkspace) {
+        for (const { buildIndex, cargoCrate } of (task as CompileWorkspaceTask).cargoCrates) {
+          results[buildIndex] = new CompiledCode({
+            codePath: $(
+              outputDir, `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
+            ).path
+          })
+        }
+      } else if ((task as CompileCrateTask).cargoCrate) {
+          results[(task as CompileCrateTask).buildIndex] = new CompiledCode({
+            codePath: $(
+              outputDir, `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
+            ).path
+          })
+      } else {
+        throw new Error("invalid task in compile batch")
       }
     }
-    return null
+    return results
   }
 
   protected getLogStream (revision: string, cb: (data: string)=>void) {
