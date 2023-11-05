@@ -7,7 +7,7 @@ jobs:
   # Here we test creating a project from a TypeScript source checkout of Fadroma,
   # compiled on demand using the @hackbg/ganesha module loader
   project-gh:
-    name: pnpm ci
+    name: Create and build project from source
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -44,6 +44,8 @@ jobs:
         env:
           FORCE_COLOR: 2
         run: |
+          git config --global user.email "hello@fadroma.tech"
+          git config --global user.name "Hello Fadroma"
           ../fadroma/fadroma.cli.cjs create testproject test1 test2
           cd testproject
           cat package.json
@@ -108,6 +110,8 @@ jobs:
           sudo apt install -y wabt binaryen
           export FADROMA="$(pwd)"
           cd ..
+          git config --global user.email "hello@fadroma.tech"
+          git config --global user.name "Hello Fadroma"
           npx ./fadroma create myproject mycontract1 mycontract2
           cd myproject
           cat package.json
@@ -157,6 +161,8 @@ jobs:
       - name: Create project through NPX
         run: |
           sudo apt install -y wabt binaryen
+          git config --global user.email "hello@fadroma.tech"
+          git config --global user.name "Hello Fadroma"
           npx @hackbg/fadroma@latest create myproject mycontract1 mycontract2
           cd myproject
           cat package.json

@@ -32,10 +32,10 @@ class OKP4Agent extends Agent {
   static defaultDenom = 'uknow'
   /** Default denomination of gas token. */
   defaultDenom = OKP4Agent.defaultDenom
-  /** Set permissive fees by default. */
+  /** Transaction fees for this agent. */
   fees = {
     upload: OKP4Agent.gas(10000000),
-    init:   OKP4Agent.gas(10000000),
+    init:   OKP4Agent.gas(1000000),
     exec:   OKP4Agent.gas(1000000),
     send:   OKP4Agent.gas(1000000),
   }
@@ -58,13 +58,6 @@ class OKP4Agent extends Agent {
   declare bech32Prefix: string
   /** The account index in the HD derivation path */
   declare hdAccountIndex: number
-  /** Transaction fees for this agent. */
-  fees = {
-    upload: OKP4Agent.gas(10000000),
-    init:   OKP4Agent.gas(1000000),
-    exec:   OKP4Agent.gas(1000000),
-    send:   OKP4Agent.gas(1000000),
-  }
 
   constructor (options: Partial<OKP4Agent> & { config?: OKP4Config } = {
     config: new OKP4Config()

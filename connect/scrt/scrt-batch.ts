@@ -13,25 +13,20 @@ import { BatchBuilder } from '@fadroma/agent'
 import Scrt from '.'
 
 export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
-
   /** Logger handle. */
   log = new Console('ScrtBatch')
-
-  static batchCounter: number = 0
-
+  /** Messages to encrypt. */
   messages: Array<
-    |["/secret.compute.v1beta1.MsgStoreCode"
-     ,...ConstructorParameters<typeof MsgStoreCode>]
-    |["/secret.compute.v1beta1.MsgInstantiateContract"
-     ,...ConstructorParameters<typeof MsgInstantiateContract>]
-    |["/secret.compute.v1beta1.MsgExecuteContract"
-     ,...ConstructorParameters<typeof MsgExecuteContract>]
+    |InstanceType<typeof MsgStoreCode>
+    |InstanceType<typeof MsgInstantiateContract>
+    |InstanceType<typeof MsgExecuteContract>
   > = []
-
+  /** TODO: Upload in batch. */
   upload (
     code:    Parameters<BatchBuilder<Scrt>["upload"]>[0],
     options: Parameters<BatchBuilder<Scrt>["upload"]>[1]
   ) {
+    throw new Error('ScrtBatchBuilder#upload: not implemented')
     return this
   }
 
@@ -39,15 +34,15 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
     code:    Parameters<BatchBuilder<Scrt>["instantiate"]>[0],
     options: Parameters<BatchBuilder<Scrt>["instantiate"]>[1]
   ) {
-    this.messages.push(["/secret.compute.v1beta1.MsgInstantiateContract", {
-      callback_code_hash: '',
-      callback_sig:       null,
-      sender:             this.agent.address!,
-      code_id:            code,
-      label:              options.label!,
-      init_msg:           options.initMsg,
-      init_funds:         options.initSend,
-    }])
+    this.messages.push(new MsgInstantiateContract({
+      //callback_code_hash: '',
+      //callback_sig:       null,
+      sender:     this.agent.address!,
+      code_id:    ((typeof code === 'object') ? code.codeId : code) as CodeId,
+      label:      options.label!,
+      init_msg:   options.initMsg,
+      init_funds: options.initSend,
+    }))
     return this
   }
 
@@ -56,14 +51,15 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
     message:  Parameters<BatchBuilder<Scrt>["execute"]>[1],
     options:  Parameters<BatchBuilder<Scrt>["execute"]>[2],
   ) {
-    this.messages.push(['/secret.compute.v1beta1.MsgExecuteContract', {
-      callback_code_hash: '',
-      callback_sig:       null,
-      sender:             this.agent.address!,
-      contract:           contract,
-      sent_funds:         options?.execSend,
-      msg:                message as object,
-    }])
+    if (typeof contract === 'object') contract = contract.address!
+    this.messages.push(new MsgExecuteContract({
+      //callback_code_hash: '',
+      //callback_sig:       null,
+      sender:           this.agent.address!,
+      contract_address: contract,
+      sent_funds:       options?.execSend,
+      msg:              message as object,
+    }))
     return this
   }
 
@@ -93,57 +89,51 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
   }
 
   /** Format the messages for API v1 like secretjs and encrypt them. */
-  private get conformedMessages () {
-    const messages = []
-    for (const message of this.messages) {
-      switch (message.type) {
-        case "/secret.compute.v1beta1.MsgStoreCode":
-          throw new Error('not implemented')
-        case "/secret.compute.v1beta1.MsgInstantiateContract":
-          messages.push(new MsgInstantiateContract(message))
-          continue
-        case "/secret.compute.v1beta1.MsgExecuteContract":
-          messages.push(new MsgExecuteContract(message))
-          continue
-        default:
-          throw new Error(`invalid batch message type: ${(message as any).type}`)
+  private get encryptedMessages () {
+    const messages: any[] = []
+    return new Promise(async resolve=>{
+      for (const message of this.messages) {
+        switch (true) {
+          case (message instanceof MsgStoreCode): {
+            throw new Error('not implemented')
+          }
+          case (message instanceof MsgInstantiateContract): {
+            messages.push(this.encryptInit(message))
+            continue
+          }
+          case (message instanceof MsgExecuteContract): {
+            messages.push(this.encryptExec(message))
+            continue
+          }
+          default: {
+            this.log.error(`Invalid batch message:`, message)
+            throw new Error(`invalid batch message: ${message}`)
+          }
+        }
       }
-    }
-    return messages
+      return messages
+    })
   }
 
   async submit ({ memo = "" }: { memo: string }): Promise<ScrtBatchResult[]> {
+    const chainId  = this.agent.chainId!
+    const messages = this.messages
+    const limit    = Number(this.agent.fees.exec?.amount[0].amount) || undefined
+    const gas      = messages.length * (limit || 0)
 
-    const chainId =
-      this.agent.chainId!
-    const results: ScrtBatchResult[] =
-      []
-    const messages =
-      this.conformedMessages
-    const limit =
-      Number(this.agent.fees.exec?.amount[0].amount) || undefined
-    const gas =
-      messages.length * (limit || 0)
-
+    const results: ScrtBatchResult[] = []
     try {
-      const agent =
-        this.agent
-      const txResult =
-        await agent.api!.tx.broadcast(messages as any, { gasLimit: gas })
 
+      const txResult = await this.agent.api!.tx.broadcast(messages as any, { gasLimit: gas })
       if (txResult.code !== 0) {
         const error = `(in batch): gRPC error ${txResult.code}: ${txResult.rawLog}`
         throw Object.assign(new Error(error), txResult)
       }
 
       for (const i in messages) {
-
         const msg = messages[i]
-
         const result: Partial<ScrtBatchResult> = {
-          chainId,
-          sender: this.agent.address,
-          tx:     txResult.transactionHash,
+          chainId, sender: this.agent.address, tx: txResult.transactionHash,
         }
 
         if (msg instanceof MsgInstantiateContract) {
@@ -152,23 +142,18 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
             msg  ==  Number(i) &&
             type === "message" &&
             key  === "contract_address"
-          Object.assign(result, {
+          results[Number(i)] = Object.assign(result, {
             type:    'wasm/MsgInstantiateContract',
             codeId:  msg.codeId,
             label:   msg.label,
             address: txResult.arrayLog?.find(findAddr)?.value,
-          })
-        }
-
-        if (msg instanceof MsgExecuteContract) {
-          Object.assign(result, {
+          }) as ScrtBatchResult
+        } else if (msg instanceof MsgExecuteContract) {
+          results[Number(i)] = Object.assign(result, {
             type:    'wasm/MsgExecuteContract',
             address: msg.contractAddress
-          })
+          }) as ScrtBatchResult
         }
-
-        results[Number(i)] = result as ScrtBatchResult
-
       }
 
     } catch (err) {
@@ -191,22 +176,11 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
     // Print the body of the batch
     this.log.batchMessages(this.messages, 0)
     // The base Batch class stores messages as (immediately resolved) promises
-    const messages = await Promise.all(this.messages.map(message=>{
-      switch (message.type) {
-        case "/secret.compute.v1beta1.MsgStoreCode":
-          throw new Error('not implemented')
-        case "/secret.compute.v1beta1.MsgInstantiateContract":
-          return this.encryptInit(message)
-        case "/secret.compute.v1beta1.MsgExecuteContract":
-          return this.encryptExec(message)
-        default:
-          throw new Error(`invalid batch message type: ${(message as any).type}`)
-      }
-    }))
+    const messages = await this.encryptedMessages
     // Print the body of the batch
     this.log.batchMessagesEncrypted(messages, 0)
     // Compose the plaintext
-    const unsigned = this.composeUnsignedTx(messages, name)
+    const unsigned = this.composeUnsignedTx(messages as any, name)
     // Output signing instructions to the console
     new Console(this.log.label).batchSigningCommand(
       String(Math.floor(+ new Date()/1000)),

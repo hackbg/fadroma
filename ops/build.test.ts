@@ -38,13 +38,13 @@ export async function testBuildContainer () {
     dockerSocket: '/dev/null'
   })
   new ContainerizedLocalRustCompiler({
-    docker: { image: () => {} }
+    docker: { image: () => {} } as any
   })
   new ContainerizedLocalRustCompiler({
-    dockerImage: {}
+    dockerImage: {} as any
   })
   new ContainerizedLocalRustCompiler({
-    dockerImage: new Dock.Docker.Image(null, 'test')
+    dockerImage: new Dock.Docker.Image(null, 'test') as any
   })
 }
 

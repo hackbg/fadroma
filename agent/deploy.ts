@@ -201,8 +201,8 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     * the same code. */
   template (name: string, properties?:
     (
-      |({ language: 'rust'  } & Partial<RustSourceCode>)
-      |({ language: unknown } & Partial<SourceCode>)
+      |({ language: 'rust' } & Partial<RustSourceCode>)
+      |({ language?: undefined } & Partial<SourceCode>)
     )&
     Partial<CompiledCode> &
     Partial<UploadedCode>
@@ -223,8 +223,8 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     * and instantiated as part of this deployment. */ 
   contract (name: string, properties?:
     (
-      |({ language: 'rust'  } & Partial<RustSourceCode>)
-      |({ language: unknown } & Partial<SourceCode>)
+      |({ language: 'rust' } & Partial<RustSourceCode>)
+      |({ language?: undefined } & Partial<SourceCode>)
     )&
     Partial<CompiledCode> &
     Partial<UploadedCode> &
