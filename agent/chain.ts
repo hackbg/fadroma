@@ -95,13 +95,13 @@ export abstract class Agent {
     if (this.devnet) {
       assignDevnet(this, this.devnet)
       if (properties?.chainId && properties?.chainId !== properties?.devnet?.chainId) {
-        this.log.warn('chain.id: ignoring override (devnet)')
+        this.log.warn('chainId: ignoring override (devnet)')
       }
       if (properties?.url && properties?.url.toString() !== properties?.devnet?.url?.toString()) {
-        this.log.warn('chain.url: ignoring override (devnet)')
+        this.log.warn('url: ignoring override (devnet)')
       }
       if (properties?.mode && properties?.mode !== Mode.Devnet) {
-        this.log.warn('chain.mode: ignoring override (devnet)')
+        this.log.warn('mode: ignoring override (devnet)')
       }
     } else {
       Object.defineProperties(this, {
@@ -178,10 +178,13 @@ export abstract class Agent {
     return this.height.then(async startingHeight=>{
       startingHeight = Number(startingHeight)
       if (isNaN(startingHeight)) {
-        this.log.warn('Current block height undetermined. not waiting for next block')
+        this.log.warn('Current block height undetermined. Not waiting for next block')
         return Promise.resolve(NaN)
       }
-      this.log(`Waiting for block > ${bold(String(startingHeight))}`)
+      this.log.log(
+        `Waiting for block > ${bold(String(startingHeight))}`,
+        `(polling every ${this.blockInterval}ms)`
+      )
       const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
@@ -194,7 +197,7 @@ export abstract class Agent {
             const height = await this.height
             console.log({height})
             if (height > startingHeight) {
-              this.log.info(`Block height incremented to ${bold(String(height))}, continuing`)
+              this.log.log(`Block height incremented to ${bold(String(height))}, proceeding`)
               return resolve(height)
             }
           }
@@ -233,6 +236,19 @@ export abstract class Agent {
       ...this,
       ...options
     })
+  }
+
+  /** Send native tokens to 1 recipient. */
+  async send (
+    recipient: Address|{ address?: Address },
+    amounts: Token.ICoin[],
+    options?: { sendFee?: Token.IFee, sendMemo?: string }
+  ): Promise<unknown> {
+    if (typeof recipient === 'object') recipient = recipient.address!
+    const t0 = performance.now()
+    const result = await this.doSend(recipient, amounts, options)
+    const t1 = performance.now() - t0
+    return result
   }
 
   /** Upload a contract's code, generating a new code id/hash pair. */
@@ -362,10 +378,10 @@ export abstract class Agent {
     Promise<unknown>
 
   abstract get height ():
-    Promise<number>
+    Promise<string|number>
 
   abstract get balance ():
-    Promise<number>
+    Promise<string|number>
 
   abstract getCodeId (contract: Address):
     Promise<CodeId>
@@ -379,9 +395,8 @@ export abstract class Agent {
   protected abstract doQuery (contract: { address: Address }, message: Message):
     Promise<unknown>
 
-  /** Send native tokens to 1 recipient. */
-  abstract send (
-    recipient: Address|{ address?: Address },
+  protected abstract doSend (
+    recipient: Address,
     amounts: Token.ICoin[],
     opts?: { sendFee?: Token.IFee, sendMemo?: string }
   ): Promise<unknown>

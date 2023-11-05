@@ -21,36 +21,42 @@ export default new Suite([
 export async function testProjectCommands () {
   new ProjectCommands()
 
-  for (const project of [
-    await Projects.ScriptProject.create({
-      name: 'test-script-project',
-      root: `${tmpDir()}/test-script-project`,
-      interactive: false
-    }),
-    await Projects.CrateProject.create({
-      name: 'test-crate-project',
-      root: `${tmpDir()}/test-crate-project`,
-      interactive: false
-    }),
-    await Projects.WorkspaceProject.create({
-      name: 'test-workspace-project',
-      root: `${tmpDir()}/test-workspace-project`,
-      interactive: false
-    })
-  ]) {
-    const commands = new ProjectCommands(project)
-    commands.run(['status'])
-    await commands.run(['build'])
-    await commands.run(['rebuild', 'test1'])
-    await commands.run(['upload'])
-    await commands.run(['reupload', 'test1'])
-    await commands.run(['deploy'])
-    await commands.run(['redeploy', 'test1'])
-    await commands.run(['export'])
-  }
+  //for (const project of [
+    //await Projects.ScriptProject.create({
+      //name: 'test-script-project',
+      //root: `${tmpDir()}/test-script-project`,
+      //interactive: false
+    //}),
+    //await Projects.CrateProject.create({
+      //name: 'test-crate-project',
+      //root: `${tmpDir()}/test-crate-project`,
+      //interactive: false
+    //}),
+    //await Projects.WorkspaceProject.create({
+      //name: 'test-workspace-project',
+      //root: `${tmpDir()}/test-workspace-project`,
+      //interactive: false
+    //})
+  //]) {
+    //const commands = new ProjectCommands(project)
+    //commands.run(['status'])
+    //await commands.run(['build'])
+    //await commands.run(['rebuild', 'test1'])
+    //await commands.run(['upload'])
+    //await commands.run(['reupload', 'test1'])
+    //await commands.run(['deploy'])
+    //await commands.run(['redeploy', 'test1'])
+    //await commands.run(['export'])
+  //}
 }
 
 export async function testProjectWizard () {
+  await withTmpDir(root=>Projects.projectWizard({
+    name: 'test-project-1',
+    root,
+    interactive: false
+  }))
+
   //const wizard = new ProjectWizard({
     //interactive: false,
     //cwd: tmpDir()

@@ -10,9 +10,9 @@ const {
 } = Tx
 import type { Agent, Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/agent'
 import { BatchBuilder } from '@fadroma/agent'
-import * as Scrt from './scrt-chain'
+import Scrt from '.'
 
-export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
+export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
 
   /** Logger handle. */
   log = new Console('ScrtBatch')
@@ -29,15 +29,15 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
   > = []
 
   upload (
-    code:    Parameters<BatchBuilder<Scrt.Agent>["upload"]>[0],
-    options: Parameters<BatchBuilder<Scrt.Agent>["upload"]>[1]
+    code:    Parameters<BatchBuilder<Scrt>["upload"]>[0],
+    options: Parameters<BatchBuilder<Scrt>["upload"]>[1]
   ) {
     return this
   }
 
   instantiate (
-    code:    Parameters<BatchBuilder<Scrt.Agent>["instantiate"]>[0],
-    options: Parameters<BatchBuilder<Scrt.Agent>["instantiate"]>[1]
+    code:    Parameters<BatchBuilder<Scrt>["instantiate"]>[0],
+    options: Parameters<BatchBuilder<Scrt>["instantiate"]>[1]
   ) {
     this.messages.push(["/secret.compute.v1beta1.MsgInstantiateContract", {
       callback_code_hash: '',
@@ -52,9 +52,9 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
   }
 
   execute (
-    contract: Parameters<BatchBuilder<Scrt.Agent>["execute"]>[0],
-    message:  Parameters<BatchBuilder<Scrt.Agent>["execute"]>[1],
-    options:  Parameters<BatchBuilder<Scrt.Agent>["execute"]>[2],
+    contract: Parameters<BatchBuilder<Scrt>["execute"]>[0],
+    message:  Parameters<BatchBuilder<Scrt>["execute"]>[1],
+    options:  Parameters<BatchBuilder<Scrt>["execute"]>[2],
   ) {
     this.messages.push(['/secret.compute.v1beta1.MsgExecuteContract', {
       callback_code_hash: '',
@@ -225,7 +225,7 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt.Agent> {
   }
 
   private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
-    const fee = Scrt.Agent.gas(10000000)
+    const fee = Scrt.gas(10000000)
     return {
       auth_info: {
         signer_infos: [],

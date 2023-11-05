@@ -1,6 +1,7 @@
 import { Config } from '@hackbg/conf'
 import type { ChainId } from '@fadroma/agent'
 import {
+  assign,
   Agent, BatchBuilder,
   Console, Error, bold,
   bip32, bip39, bip39EN, bech32, base64,
@@ -34,14 +35,11 @@ class CWAgent extends Agent {
   declare signer?: Signer
 
   constructor (properties?: Partial<CWAgent>) {
-    // When not using an external signer, these must be
-    // either defined in a subclass or passed to the constructor.
     super(properties as Partial<Agent>)
-    this.coinType = properties?.coinType ?? this.coinType
-    this.bech32Prefix = properties?.bech32Prefix ?? this.bech32Prefix
-    this.hdAccountIndex = properties?.hdAccountIndex ?? this.hdAccountIndex
+    assign(this, properties, ['coinType', 'bech32Prefix', 'hdAccountIndex'])
     this.log.debug('Connecting to', bold(this.url))
     this.api ??= CosmWasmClient.connect(this.url)
+    this.log.label = `${this.address??'(no address)'} @ ${this.chainId||'(no chain id)'} ${this.mode||'(unspecified mode)'}`
   }
 
   authenticate (options?: Parameters<Agent["authenticate"]>[0] & { signer?: Signer }) {
@@ -59,7 +57,9 @@ class CWAgent extends Agent {
     } else {
       if (!mnemonic) {
         mnemonic = bip39.generateMnemonic(bip39EN)
-        this.log.warn("No mnemonic provided, generated this one:", mnemonic)
+        this.log
+          .warn("No mnemonic provided, generated this one:")
+          .warn(' ', bold(mnemonic))
       }
       return super.authenticate({
         ...options, ...consumeMnemonic(this, mnemonic)
@@ -122,12 +122,11 @@ class CWAgent extends Agent {
   }
 
   /** Stargate implementation of sending native token. */
-  send (
-    recipient: Address|{ address?: Address },
+  protected async doSend (
+    recipient: Address,
     amounts:   Token.ICoin[],
-    options?:  Parameters<Agent["send"]>[2]
-  ): Promise<void|unknown> {
-    if (typeof recipient === 'object') recipient = recipient.address!
+    options?:  Parameters<Agent["doSend"]>[2]
+  ) {
     return this.api.then(api=>{
       if (!(api as SigningCosmWasmClient)?.sendTokens) {
         throw new CWError("can't send tokens with an unauthenticated agent")
@@ -282,8 +281,10 @@ export function consumeMnemonic (agent: CWAgent, mnemonic: string): {
     ],
     // Sign a transaction
     signAmino: async (address: string, signed: any) => {
-      if (address && (address !== agent.address)) {
-        agent.log.warn(`Passed address ${address} did not match agent address ${agent.address}`)
+      if (agent.address && address && (address !== agent.address)) {
+        agent.log
+          .warn(`Passed address ${bold(address)} did not match`)
+          .warn(` agent address ${agent.address}, ignoring them`)
       }
       const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
       return {

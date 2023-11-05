@@ -14,6 +14,14 @@ export default async function testPrompts () {
     choices: []
   }))
 
+  equal('docker', await Prompts.askCompiler({
+    isLinux: true
+  }, { prompt: ({ choices }: any) => choices[0] }))
+
+  equal('raw', await Prompts.askCompiler({
+    isLinux: false
+  }, { prompt: ({ choices }: any) => choices[0] }))
+
   Prompts.logInstallRust({} as any)
 
   Prompts.logInstallWasmOpt({} as any)

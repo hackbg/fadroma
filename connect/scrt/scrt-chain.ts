@@ -11,43 +11,19 @@ import type {
   Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
 import {
-  Agent, into, base64, bip39, bip39EN, bold,
+  assign, Agent, into, base64, bip39, bip39EN, bold,
   Token, BatchBuilder,
   UploadedCode, ContractInstance,
 } from '@fadroma/agent'
 
 /** Represents a Secret Network API endpoint. */
 class ScrtAgent extends Agent {
-
-  /** Connect to the Secret Network Mainnet. */
-  static mainnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
-    const { mainnetChainId: chainId, mainnetUrl: url } = config
-    return super.mainnet({ chainId, url, ...options||{}, }) as ScrtAgent
-  }
-
-  /** Connect to the Secret Network Testnet. */
-  static testnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
-    const { testnetChainId: chainId, testnetUrl: url } = config
-    return super.testnet({ chainId, url, ...options||{} }) as ScrtAgent
-  }
-
-  /** Connect to Secret Network in testnet mode. */
-  static devnet (options: Partial<ScrtAgent> = {}): ScrtAgent {
-    throw new Error('Devnet not installed. Import @hackbg/fadroma')
-  }
-
-  /** Connect to a Secret Network mocknet. */
-  //static mocknet (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain {
-    //return new Mocknet.Chain({ chainId: 'mocknet', ...options })
-  //}
-
-  /** Smallest unit of native token. */
-  static defaultDenom: string = 'uscrt'
-
   /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) =>
-    new Token.Fee(amount, this.defaultDenom)
-
+  static gas = (amount: Uint128|number) => new Token.Fee(amount, this.defaultDenom)
+  /** Smallest unit of native token. */
+  static defaultDenom = 'uscrt'
+  /** Smallest unit of native token. */
+  defaultDenom = ScrtAgent.defaultDenom
   /** Set permissive fees by default. */
   fees = {
     upload: ScrtAgent.gas(10000000),
@@ -55,41 +31,48 @@ class ScrtAgent extends Agent {
     exec:   ScrtAgent.gas(1000000),
     send:   ScrtAgent.gas(1000000),
   }
-
+  /** Connect to the Secret Network Mainnet. */
+  static mainnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
+    const { mainnetChainId: chainId, mainnetUrl: url } = config
+    return super.mainnet({ chainId, url, ...options||{}, }) as ScrtAgent
+  }
+  /** Connect to the Secret Network Testnet. */
+  static testnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
+    const { testnetChainId: chainId, testnetUrl: url } = config
+    return super.testnet({ chainId, url, ...options||{} }) as ScrtAgent
+  }
+  /** Connect to Secret Network in testnet mode. */
+  static devnet (options: Partial<ScrtAgent> = {}): ScrtAgent {
+    throw new Error('Devnet not installed. Import @hackbg/fadroma')
+  }
   /** The default Config class for Secret Network. */
   static Config = Config
-
   /** Logger handle. */
   log = new Console('ScrtAgent')
-
   /** Downcast chain property to Scrt only. */
   declare chain: ScrtAgent
-
   /** Whether to simulate each execution first to get a more accurate gas estimate. */
   simulateForGas: boolean = false
 
-  defaultDenom = 'uscrt'
+  wallet?: Wallet
 
-  constructor (options: Partial<ScrtAgent> = {}) {
-    super(options)
-    this.fees = options.fees ?? this.fees
-    this.api = options.api ?? new SecretNetworkClient({ chainId: this.chainId!, url: this.url })
-    this.wallet = options.wallet
-    this.address = this.wallet?.address
-    this.encryptionUtils = options.encryptionUtils
-    this.simulateForGas = options.simulateForGas ?? this.simulateForGas
+  encryptionUtils?: EncryptionUtils
+
+  constructor (properties: Partial<ScrtAgent> = {}) {
+    super(properties as Partial<Agent>)
+    assign(this, properties, ['fees', 'api', 'wallet', 'address', 'encryptionUtils'])
+    this.api ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.url })
+    this.address ??= this.wallet?.address
     this.log.label = `${this.address??'(no address)'} @ ${this.chain?.mode||'(unspecified mode)'}`
   }
 
   /** @returns a fresh instance of the anonymous read-only API client. */
-  async authenticate (
+  authenticate (
     options?: Parameters<Agent["authenticate"]>[0] & Partial<{
       encryptionUtils: EncryptionUtils
     }>
-  ): Promise<this & {
-    address: Address, api: SecretNetworkClient, wallet: Wallet
-  }> {
-    const agent = await super.authenticate(options)
+  ) {
+    const agent = super.authenticate(options)
     let chainId = this.chainId
     if (!chainId) {
       throw new Error("can't authenticate without chainId")
@@ -106,9 +89,11 @@ class ScrtAgent extends Agent {
       throw new Error('computed address did not match passed one')
     }
     let encryptionUtils = options?.encryptionUtils
-    agent.api = new SecretNetworkClient({ chainId, url, wallet, walletAddress, encryptionUtils })
+    agent.api = new SecretNetworkClient({
+      chainId, url, wallet, walletAddress, encryptionUtils
+    })
     agent.address = walletAddress
-    return agent as this & { address: Address, api: SecretNetworkClient, wallet: Wallet }
+    return agent
   }
 
   async getBlockInfo () {
@@ -119,9 +104,9 @@ class ScrtAgent extends Agent {
     return this.getBlockInfo().then((block: any)=>Number(block.block?.header?.height))
   }
 
-  get balance () {
+  get balance ()  {
     if (!this.address) throw new Error("can't get balance of unauthenticated agent")
-    return this.getBalance(this.defaultDenom, this.address)
+    return this.getBalance(this.address, this.defaultDenom).then(x=>String(x))
   }
 
   async getBalance (address: Address, denom = this.defaultDenom) {
@@ -168,12 +153,15 @@ class ScrtAgent extends Agent {
     return this.api.query.auth.account({ address: this.address })
   }
 
-  async send (to: Address, amounts: Token.ICoin[], opts?: any) {
-    const from_address = this.address!
-    const to_address = to
-    const amount = amounts
-    const msg = { from_address, to_address, amount }
-    return this.api.tx.bank.send(msg, { gasLimit: opts?.gas?.gas })
+  protected async doSend (
+    recipient: Address,
+    amounts:   Token.ICoin[],
+    options?:  Parameters<Agent["doSend"]>[2]
+  ) {
+    return this.api.tx.bank.send(
+      { from_address: this.address!, to_address: recipient, amount: amounts },
+      { gasLimit: Number(options?.sendFee?.gas) }
+    )
   }
 
   async sendMany (outputs: never, opts?: any) {

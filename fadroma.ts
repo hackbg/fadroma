@@ -24,7 +24,7 @@ import * as Prompts from './ops/prompts'
 import * as Stores from './ops/stores'
 import * as Tools from './ops/tools'
 import { CommandContext } from '@hackbg/cmds'
-import { Project } from './ops/project'
+import { projectWizard, Project } from './ops/project'
 import $, { JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 
@@ -44,7 +44,7 @@ export default class ProjectCommands extends CommandContext {
     this.command('status', 'show the status of the project',
       () => console.log(JSON.stringify(this.project, null, 2)))
     this.command('create', 'create a new project',
-      Project.create)
+      projectWizard)
     if (this.project) {
       this.command('build', 'build the project or specific contracts from it',
         (...names: string[]) => this.project.getDeployment().build({

@@ -1,4 +1,4 @@
-import assert from 'node:assert'
+import assert, { equal, throws, rejects } from 'node:assert'
 import { Error } from './base'
 import * as Stub from './stub'
 import { Mode } from './chain'
@@ -44,27 +44,27 @@ export default async function testDevnet () {
   const devnet = new MyDevnet()
   const chain = new Stub.Agent({ mode: Mode.Devnet, chainId: 'bar', url: 'http://asdf.com', devnet })
   // Properties from Devnet are passed onto Chain
-  assert.equal(chain.devnet, devnet)
-  //assert.equal(chain.chainId, 'foo')
-  assert.equal(chain.url, 'http://example.com/')
-  assert.equal(chain.mode, Mode.Devnet)
-  assert.equal(chain.stopped, true)
+  equal(chain.devnet, devnet)
+  //equal(chain.chainId, 'foo')
+  equal(chain.url, 'http://example.com/')
+  equal(chain.mode, Mode.Devnet)
+  equal(chain.stopped, true)
   devnet.running = true
-  assert.equal(chain.stopped, false)
-  assert.throws(()=>chain.devnet=devnet)
-  assert.throws(()=>chain.stopped=true)
+  equal(chain.stopped, false)
+  throws(()=>chain.devnet=devnet)
+  throws(()=>chain.stopped=true)
   await chain.authenticate({ name: 'Alice' })
   const chain2 = new Stub.Agent({ mode: Mode.Mainnet, devnet })
   const agent: any = {}
   assignDevnet(agent as any, devnet)
-  agent.id
+  agent.chainId
   agent.url
   agent.mode
   agent.devnet
   agent.stopped
-  assert.throws(()=>agent.id = "")
-  assert.throws(()=>agent.url = "")
-  assert.throws(()=>agent.mode = "")
-  assert.throws(()=>agent.devnet = "")
-  assert.throws(()=>agent.stopped = "")
+  throws(()=>agent.chainId = "")
+  throws(()=>agent.url = "")
+  throws(()=>agent.mode = "")
+  throws(()=>agent.devnet = "")
+  throws(()=>agent.stopped = "")
 }

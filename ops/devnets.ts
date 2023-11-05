@@ -645,7 +645,7 @@ class ContainerDevnet extends Devnet {
   /** Get the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<Partial<Agent>> {
     if (!$(this.stateDir).exists()) {
-      this.log.debug('State dir not found, running genesis')
+      this.log.debug('Waking devnet container')
       await this.containerCreated
       await this.containerStarted
     }
