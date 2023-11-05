@@ -8,9 +8,9 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'f
 
 const { argv, umask, chdir, cwd, exit } = process
 const slashes = new RegExp("/", "g")
-const sanitize = (x) => { return x.replace(slashes, "_") }
+const sanitize = x => x.replace(slashes, "_")
 const dashes = new RegExp("-", "g")
-const fumigate = (x) => { return x.replace(dashes, "_") }
+const fumigate = x => x.replace(dashes, "_")
 const verbose = Boolean(env('FADROMA_VERBOSE', Boolean(env('FADROMA_BUILD_VERBOSE', false))))
 
 ;(async()=>{
@@ -92,7 +92,8 @@ async function main ({
   if (sourceRef === 'HEAD') {
     log(`Compiling from working tree.`)
   } else {
-    prepareHistory()
+    warn(`Historical builds currently disabled.`)
+    exit(1)
   }
   for (const task of tasks) {
     if (task.cargoWorkspace) {
