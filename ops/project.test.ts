@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
 import ProjectCommands, {
-  Deployment, UploadedCode, ContractTemplate, ContractInstance, Stub
+  Deployment, ContractTemplate, ContractInstance, Stub
 } from '@hackbg/fadroma'
 import { JSONFileDeployStore } from './stores'
 import { getCompiler } from './build'

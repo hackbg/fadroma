@@ -1,21 +1,9 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import {
-  Error,
-  UploadedCode, ContractInstance, Deployment,
-  UploadStore, DeployStore,
-  bold, timestamp,
-} from '@fadroma/connect'
-import type {
-  Agent, CompiledCode, ChainId, ContractCode
-} from '@fadroma/connect'
-import $, {
-  TextFile, OpaqueDirectory,
-  YAMLFile,
-  TOMLFile,
-  JSONFile, JSONDirectory
-} from '@hackbg/file'
+import { Error, Deployment, bold, timestamp } from '@fadroma/connect'
+import type { Agent, ChainId, ContractCode } from '@fadroma/connect'
+import $, { OpaqueDirectory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 import * as Compilers from './build'
@@ -76,13 +64,13 @@ export async function projectWizard (options?: {
 
   if (options?.cargoWorkspace || options?.cargoCrate) {
     if (options.cargoWorkspace) {
-      project = project.writeCargoWorkspace(
-        options.cargoWorkspace
-      )
+      project = project.writeCargoWorkspace(root)
     } else if (options?.cargoCrate) {
-      project = project.writeCargoCrate(
-        options.cargoCrate, options.libFeatures
-      )
+      project = project.writeCargoCrate({
+        root,
+        cargoCrate: options.cargoCrate,
+        libFeatures: options.libFeatures
+      })
     }
     if (interactive) {
       switch (await askCompiler(options?.tools)) {
@@ -166,11 +154,17 @@ export class Project extends ProjectRoot {
     return this
   }
 
-  writeCargoCrate (): CargoCrateProject {
+  writeCargoCrate ({
+    root       = this.root,
+    cargoCrate = '',
+    features   = []
+  }): CargoCrateProject {
     return new CargoCrateProject(this.name, this.root)
   }
 
-  writeCargoWorkspace (): CargoWorkspaceProject {
+  writeCargoWorkspace ({
+    root = this.root
+  }: { root: string|Path }): CargoWorkspaceProject {
     return new CargoWorkspaceProject(this.name, this.root)
   }
 

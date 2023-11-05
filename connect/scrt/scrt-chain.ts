@@ -221,21 +221,25 @@ class ScrtAgent extends Agent {
       sender:     this.address,
       code_id:    Number(codeId),
       code_hash:  options.codeHash,
-      label:      options.label,
+      label:      options.label!,
       init_msg:   options.initMsg,
       init_funds: options.initSend,
       memo:       options.initMemo
     }
-    const gasLimit = Number(this.fees.init?.amount[0].amount) || undefined
-    const result = await this.api.tx.compute.instantiateContract(parameters, { gasLimit })
+    const instantiateOptions = {
+      gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
+    }
+    const result = await this.api.tx.compute.instantiateContract(parameters, instantiateOptions)
     if (result.code !== 0) {
-      this.log.error('Init failed:', { parameters, result })
+      this.log.error('Init failed:', { parameters, instantiateOptions, result })
       throw new Error(`init of code id ${codeId} failed`)
     }
+
     type Log = { type: string, key: string }
     const address = result.arrayLog!
       .find((log: Log) => log.type === "message" && log.key === "contract_address")
       ?.value!
+
     return {
       chainId:  this.chainId,
       address,

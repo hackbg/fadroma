@@ -2,7 +2,7 @@ name: Fadroma (TypeScript)
 on: [push]
 jobs:
   js:
-    name: pnpm ci
+    name: PNPM CI
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -28,6 +28,8 @@ jobs:
         env:
           FORCE_COLOR: 2
         run: |
+          git config --global user.email "hello@fadroma.tech"
+          git config --global user.name "Hello Fadroma"
           sudo apt install -y wabt binaryen cloc
           mkdir -p wasm
           rustup default 1.69
