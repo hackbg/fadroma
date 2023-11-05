@@ -16,8 +16,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import type { Agent, ChainId, DeployStore } from '@fadroma/connect'
-import { bold, timestamp, Deployment, connectModes, CW, Scrt } from '@fadroma/connect'
+import type { ChainId, DeployStore } from '@fadroma/connect'
+import { Agent, bold, timestamp, Deployment, connectModes, CW, Scrt } from '@fadroma/connect'
 import * as Compilers from './ops/build'
 import * as Devnets from './ops/devnets'
 import * as Prompts from './ops/prompts'
@@ -86,6 +86,8 @@ export class ProjectCommands extends CommandContext {
   }
 
   getAgent (): Agent {
+    //@ts-ignore
+    return new Agent()
   }
 }
 

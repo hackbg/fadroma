@@ -1,43 +1,71 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import assert from 'node:assert'
-import { RawLocalRustCompiler, ContainerizedLocalRustCompiler, DotGit } from './build'
+import assert, { deepEqual, throws } from 'node:assert'
 import { Compiler, ContractInstance, Deployment } from '@fadroma/connect'
-import { Suite } from '@hackbg/ensuite'
+import { getCompiler, RawLocalRustCompiler, ContainerizedLocalRustCompiler } from './build'
 import { fixture } from '../fixtures/fixtures'
+import { Suite } from '@hackbg/ensuite'
+import * as Dock from '@hackbg/dock'
+import { DotGit } from '@hackbg/repo'
+
 export default new Suite([
-  ['basic',   testBuild],
-  ['history', testBuildHistory]
+  ['basic',     testBuild],
+  ['container', testBuildContainer],
+  ['history',   testBuildHistory]
 ])
 
 export class MyDeploymentFromSource extends Deployment {
-  t = this.template('t', {
-    sourcePath: fixture("../examples/kv")
+  t1 = this.template('t1', {
+    sourcePath: fixture("../examples/kv"),
+    sourceRoot: fixture("..")
   })
 
   // Single template instance with eager and lazy initMsg
-  a1 = this.t.contract('a1', { initMsg: {} })
-  a2 = this.t.contract('a2', { initMsg: () => ({}) })
-  a3 = this.t.contract('a3', { initMsg: async () => ({}) })
+  a1 = this.t1.contract('a1', { initMsg: {} })
+  a2 = this.t1.contract('a2', { initMsg: () => ({}) })
+  a3 = this.t1.contract('a3', { initMsg: async () => ({}) })
 
   // Multiple contracts from the same template
-  b = this.t.contracts({
+  b = this.template('t2', {
+    sourcePath: fixture("../examples/kv"),
+    sourceRoot: fixture(".."),
+  }).contracts({
     b1: { initMsg: {} },
     b2: { initMsg: () => ({}) },
     b3: { initMsg: async () => ({}) }
   })
 }
 
+/** Different config options for containerized compiler. */
+export async function testBuildContainer () {
+  new ContainerizedLocalRustCompiler({
+    dockerSocket: '/dev/null'
+  })
+  new ContainerizedLocalRustCompiler({
+    docker: { image: () => {} }
+  })
+  new ContainerizedLocalRustCompiler({
+    dockerImage: {}
+  })
+  new ContainerizedLocalRustCompiler({
+    dockerImage: new Dock.Docker.Image(null, 'test')
+  })
+}
+
 export async function testBuild () {
-  for (const CompilerVariant of [
-    RawLocalRustCompiler,
-    ContainerizedLocalRustCompiler
-  ]) {
-    const compiler = new CompilerVariant()
-    assert.ok(compiler instanceof Compiler)
+
+  for (const useContainer of [ true, false ]) {
+    const compiler = getCompiler({ useContainer })
+    assert(compiler)
+    assert(compiler[Symbol.toStringTag as unknown as keyof typeof compiler])
+    assert(compiler instanceof Compiler)
+
     const deployment = new MyDeploymentFromSource()
     await deployment.build({ compiler })
+
+    deepEqual((compiler as any).resolveSource('foo'), { cargoCrate: 'foo' })
+    throws(()=>(compiler as any).resolveSource({ cargoWorkspace: 'yes' }))
   }
 
   //assert.ok(getCompiler({ raw: false }) instanceof BuildContainer)

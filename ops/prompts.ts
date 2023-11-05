@@ -6,21 +6,29 @@ import type { Project } from './project'
 import { SystemTools, NOT_INSTALLED } from './tools'
 import { Console, bold, colors, Scrt } from '@fadroma/connect'
 import $, { Path, OpaqueDirectory, TextFile } from '@hackbg/file'
-import prompts from 'prompts'
+import Prompts from 'prompts'
 import * as dotenv from 'dotenv'
 import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
 import { console } from './config'
 
-export async function askText <T> (
-  message: string,
+export async function askText <T> ({
+  prompts = Prompts,
+  message,
   valid = (x: string) => clean(x).length > 0,
   clean = (x: string) => x.trim()
-) {
+}: {
+  prompts?: { prompt: typeof Prompts["prompt"] },
+  message: string,
+  valid?: (x: string) => boolean,
+  clean?: (x: string) => string,
+}): Promise<string> {
   while (true) {
     const input = await prompts.prompt({ type: 'text', name: 'value', message })
     if ('value' in input) {
-      if (valid(input.value)) return clean(input.value)
+      if (valid(input.value)) {
+        return clean(input.value)
+      }
     } else {
       console.error('Input cancelled.')
       process.exit(1)
@@ -28,7 +36,11 @@ export async function askText <T> (
   }
 }
 
-export async function askSelect <T> (message: string, choices: any[]) {
+export async function askSelect <T> ({ prompts = Prompts, message, choices }: {
+  prompts?: { prompt: typeof Prompts["prompt"] },
+  message: string,
+  choices: any[]
+}) {
   const input = await prompts.prompt({ type: 'select', name: 'value', message, choices })
   if ('value' in input) return input.value
   console.error('Input cancelled.')
@@ -43,6 +55,18 @@ export async function askUntilDone <S> (
     await Promise.resolve(action(state))
   }
   return state
+}
+
+export async function askDeployment (store: DeployStore & {
+  root?: Path
+}): Promise<string|undefined> {
+  const label = store.root
+    ? `Select a deployment from ${store.root.shortPath}:`
+    : `Select a deployment:`
+  return await askSelect(label, [
+    [...store.keys()].map(title=>({ title, value: title })),
+    { title: '(cancel)', value: undefined }
+  ])
 }
 
 export function logInstallRust ({ isMac, homebrew, cargo, rust }: SystemTools) {
@@ -83,14 +107,7 @@ export function logInstallWasmOpt ({ isMac, homebrew, wasmOpt }: SystemTools) {
   }
 }
 
-export function logNonFatal (nonfatal?: boolean) {
-  if (nonfatal) {
-    console.warn('One or more convenience operations failed.')
-    console.warn('You can retry them manually later.')
-  }
-}
-
-export async function logProjectCreated ({ root }: Project) {
+export async function logProjectCreated ({ root }: { root: Path }) {
 
   console.log("Project created at", bold(root.shortPath))
     .info()
@@ -117,16 +134,4 @@ export async function logProjectCreated ({ root }: Project) {
     .info(`Fund your testnet wallet at:`)
     .info(`  ${bold('https://faucet.pulsar.scrttestnet.com')}`)
 
-}
-
-export async function askDeployment (store: DeployStore & {
-  root?: Path
-}): Promise<string|undefined> {
-  const label = store.root
-    ? `Select a deployment from ${store.root.shortPath}:`
-    : `Select a deployment:`
-  return await askSelect(label, [
-    [...store.keys()].map(title=>({ title, value: title })),
-    { title: '(cancel)', value: undefined }
-  ])
 }
