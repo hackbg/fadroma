@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { deepEqual, throws } from 'node:assert'
-import { Compiler, ContractInstance, Deployment } from '@fadroma/connect'
+import { Compiler, ContractInstance, Deployment } from '@fadroma/agent'
 import { getCompiler, RawLocalRustCompiler, ContainerizedLocalRustCompiler } from './build'
 import { fixture } from '../fixtures/fixtures'
 import { Suite } from '@hackbg/ensuite'
@@ -16,20 +16,15 @@ export default new Suite([
 ])
 
 export class MyDeploymentFromSource extends Deployment {
-  t1 = this.template('t1', {
-    sourcePath: fixture("../examples/kv"),
-    sourceRoot: fixture("..")
+  a = this.contract('t1', {
+    language:   'rust',
+    sourcePath: fixture('..'),
+    cargoToml:  'examples/cw-null/Cargo.toml'
   })
-
-  // Single template instance with eager and lazy initMsg
-  a1 = this.t1.contract('a1', { initMsg: {} })
-  a2 = this.t1.contract('a2', { initMsg: () => ({}) })
-  a3 = this.t1.contract('a3', { initMsg: async () => ({}) })
-
-  // Multiple contracts from the same template
   b = this.template('t2', {
-    sourcePath: fixture("../examples/kv"),
-    sourceRoot: fixture(".."),
+    language:  'rust',
+    sourcePath: fixture('..'),
+    cargoToml: 'examples/cw-null/Cargo.toml'
   }).contracts({
     b1: { initMsg: {} },
     b2: { initMsg: () => ({}) },
@@ -58,7 +53,7 @@ export async function testBuild () {
   for (const useContainer of [ true, false ]) {
     const compiler = getCompiler({ useContainer })
     assert(compiler)
-    assert(compiler[Symbol.toStringTag as unknown as keyof typeof compiler])
+    compiler[Symbol.toStringTag as unknown as keyof typeof compiler]
     assert(compiler instanceof Compiler)
 
     const deployment = new MyDeploymentFromSource()

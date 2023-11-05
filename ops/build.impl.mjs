@@ -1,217 +1,181 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+//@ts-check
 import { execSync } from 'child_process'
-import { resolve, dirname, sep } from 'path'
-import { readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { resolve, dirname, basename, sep } from 'path'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'fs'
 
 const { argv, umask, chdir, cwd, exit } = process
 const slashes = new RegExp("/", "g")
+const sanitize = (x) => { return x.replace(slashes, "_") }
 const dashes = new RegExp("-", "g")
+const fumigate = (x) => { return x.replace(dashes, "_") }
 const verbose = Boolean(env('FADROMA_VERBOSE', Boolean(env('FADROMA_BUILD_VERBOSE', false))))
-await main()
+
+;(async()=>{
+  await main()
+})()
 
 /** As the initial user, set up the container and the source workspace,
   * checking out an old commit if specified. Then, call phase 2 with
   * the name of each crate sequentially. */
-async function main (options = {}) {
-
-  let {
-    tmpBuild    = env('FADROMA_TMP_BUILD',  '/tmp/fadroma-build'),
-    tmpTarget   = env('FADROMA_TMP_TARGET', resolve(tmpBuild, 'target')),
-    tmpGit      = env('FADROMA_TMP_GIT',    '/tmp/fadroma-git'),
-    registry    = env('FADROMA_REGISTRY',   '/usr/local/cargo/registry'),
-    srcSubdir   = env('FADROMA_SRC_SUBDIR', '.') || '.',
-    gitRoot     = env('FADROMA_GIT_ROOT',   `/src/.git`),
-    gitSubdir   = env('FADROMA_GIT_SUBDIR', ''),
-    gitRemote   = env('FADROMA_GIT_REMOTE', 'origin'),
-    noFetch     = env('FADROMA_NO_FETCH',   false),
-    outputDir   = env('FADROMA_OUTPUT',     '/output'),
-    docker      = env('RUNNING_IN_DOCKER',  false), // are we running in a container?
-    uid         = env('FADROMA_BUILD_UID',  process.getuid()),
-    gid         = env('FADROMA_BUILD_GID',  process.getgid()),
-    interpreter = argv[0], // e.g. /usr/bin/node
-    script      = argv[1], // this file
-    ref         = argv[3], // "HEAD" | <git ref>
-    crates      = argv.slice(4), // all crates to build
-    buildRoot   = resolve(tmpBuild, sanitize(ref)),
-    gitDir      = resolve(gitRoot, gitSubdir),
-    toolchain   = env('FADROMA_TOOLCHAIN'),
-    platform    = 'wasm32-unknown-unknown',
-    locked      = '',
-  } = options
-
-  log('Build phase 1: Preparing source repository for', ref)
-  const context = tools()
-  setupToolchain()
-  prepareContext()
-  lookAround()
-  prepareSource()
-  await buildCrates()
-
-  function lookAround () {
-    run(`pwd`)
-    run(`ls -al`)
-    run(`ls -al ${tmpTarget}`)
+async function main ({
+  /** @type {object} build tasks to perform. */
+  tasks       = JSON.parse(env('FADROMA_BUILD_TASKS', '[]')),
+  /** @type {string} source reference to append to file names */
+  sourceRef   = env('FADROMA_SRC_REF',    'HEAD'),
+  /** @type {string} optimized output directory */
+  outputDir   = env('FADROMA_OUTPUT',     '/output'),
+  /** @type {boolean} whether this script is running in a container */
+  docker      = env('FADROMA_IN_DOCKER',  false),
+  /** @type {string|undefined} version of toolchain to use */
+  toolchain   = env('FADROMA_TOOLCHAIN'),
+  /** @type {string} temporary build directory. */
+  tmpBuild    = env('FADROMA_TMP_BUILD',  '/tmp/fadroma-build'),
+  /** @type {string} temporary build output directory. */
+  tmpTarget   = env('FADROMA_TMP_TARGET', resolve(tmpBuild, 'target')),
+  /** @type {string} temporary git data directory. */
+  tmpGit      = env('FADROMA_TMP_GIT',    '/tmp/fadroma-git'),
+  /** @type {string} cargo registry. */
+  registry    = env('FADROMA_REGISTRY',   '/usr/local/cargo/registry'),
+  /** @type {string} source git data directory path? */
+  gitRoot     = env('FADROMA_GIT_ROOT',   `/src/.git`),
+  /** @type {string} source git remote? */
+  gitRemote   = env('FADROMA_GIT_REMOTE', 'origin'),
+  /** @type {string} don't run git fetch? */
+  noFetch     = env('FADROMA_NO_FETCH',   false),
+  /** @type {string|number} uid to set on built files? */
+  uid         = env('FADROMA_BUILD_UID',  process.getuid()),
+  /** @type {string|number} gid to set on built files? */
+  gid         = env('FADROMA_BUILD_GID',  process.getgid()),
+  /** @type {string} temporary build directory? */
+  buildRoot   = resolve(tmpBuild, sanitize(sourceRef)),
+  /** @type {'wasm32-unknown-unknown'} compilation target */
+  platform    = 'wasm32-unknown-unknown',
+  /** @type {'--locked'|''} */
+  locked      = '',
+} = {}) {
+  const context = {
+    git:         tool(`git --version`),
+    rustup:      tool(`rustup --version`),
+    cargo:       tool(`cargo --version`),
+    rustc:       tool(`rustc --version`),
+    wasmOpt:     tool(`wasm-opt --version`),
+    wasmObjdump: tool(`wasm-objdump --version`),
+    sha256Sum:   tool(`sha256sum --version | head -n1`),
   }
-
-  function setupToolchain () {
-    if (toolchain) {
-      if (!context.rustup) throw new Error("please install rustup")
-      run(`rustup default ${toolchain}`)
-      run(`rustup target add ${platform}`)
-    }
-    if (context.rustup) run(`rustup show active-toolchain`)
+  if (toolchain) {
+    if (!context.rustup) throw new Error("please install rustup")
+    run(`rustup default ${toolchain}`)
+    run(`rustup target add ${platform}`)
   }
-
-  function prepareContext () {
-    // The local registry is stored in a Docker volume mounted at /usr/local.
-    // This makes sure it is accessible to non-root users.
-    umask(0o000)
-    if (buildRoot) run(`mkdir -p "${buildRoot}"`)
-    if (tmpTarget) run(`mkdir -p "${tmpTarget}" && chmod -t "${tmpTarget}"`)
-    if (registry)  run(`mkdir -p "${registry}"`)
-    if (docker)    run(`chmod ugo+rwx /usr/local/cargo/registry`)
-    umask(0o022)
+  if (verbose && context.rustup) {
+    run(`rustup show active-toolchain`)
   }
-
-  function prepareSource () {
-    // Copy the source into the build dir
-    if (ref === 'HEAD') {
-      log(`Building from working tree.`)
-      chdir(srcSubdir)
-    } else {
-      prepareHistory
-    }
+  // The local Cargo registry is stored in a Docker volume mounted at /usr/local.
+  // This makes sure it is accessible to non-root users.:
+  umask(0o000)
+  if (buildRoot) {
+    run(`mkdir -p "${buildRoot}"`)
   }
-
-  function prepareHistory () {
-    if (!context.git) throw new Error("please install git")
-    log(`Building from checkout of ${ref}`)
-    // This works by using ".git" (or "../???/.git/modules/something") as a remote
-    // and cloning from it. Since we may need to modify that directory,
-    // we'll make a copy. This may be slow if ".git" is huge
-    // (but at least it's not the entire working tree with node_modules etc)
-    time(`cp -rT "${gitRoot}" "${tmpGit}"`)
-    gitRoot = tmpGit
-    gitDir  = resolve(gitRoot, gitSubdir)
-    // Helper functions to run with ".git" in a non-default location.
-    const gitRun  = command => run(`GIT_DIR=${gitDir} git --no-pager ${command}`)
-    const gitCall = command => call(`GIT_DIR=${gitDir} git --no-pager ${command}`)
-    // Make this a bare checkout by removing the path to the working tree from the config.
-    // We can't use "config --local --unset core.worktree" - since the working tree path
-    // does not exist, git command invocations fail with "no such file or directory".
-    const gitConfigPath = resolve(gitDir, 'config')
-    let gitConfig = readFileSync(gitConfigPath, 'utf8')
-    gitConfig = gitConfig.replace(/\s+worktree.*/g, '')
-    writeFileSync(gitConfigPath, gitConfig, 'utf8')
-    try {
-      // Make sure that .refs/heads/${ref} exists in the git history dir,
-      // (it will exist if the branch has been previously checked out).
-      // This is necessary to be able to clone that branch from the history dir -
-      // "git clone" only looks in the repo's refs, not the repo's remotes' refs
-      gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
-    } catch (e) {
-      // If the branch is not checked out, but is fetched, do a "fake checkout":
-      // create a ref under refs/heads pointing to that branch.
-      if (noFetch) {
-        console.error(`${ref} is not checked out or fetched. Run "git fetch" to update.`)
-        exit(1)
-      } else {
-        try {
-          warn(`${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
-          gitRun(`fetch origin --recurse-submodules ${ref}`)
-        } catch (e) {
-          warn(`${ref}: failed to fetch: ${e.message}`)
-        }
-        const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
-        const remoteRef = shown.split(' ')[0]
-        const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
-        mkdirSync(dirname(refPath), { recursive: true })
-        writeFileSync(refPath, remoteRef, 'utf8')
-        gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
+  if (tmpTarget) {
+    run(`mkdir -p "${tmpTarget}" && chmod -t "${tmpTarget}"`)
+  }
+  if (registry) {
+    run(`mkdir -p "${registry}"`)
+  }
+  if (docker) {
+    run(`chmod ugo+rwx /usr/local/cargo/registry`)
+  }
+  umask(0o022)
+  if (sourceRef === 'HEAD') {
+    log(`Compiling from working tree.`)
+  } else {
+    prepareHistory()
+  }
+  for (const task of tasks) {
+    if (task.cargoWorkspace) {
+      compileWorkspace(task)
+      for (const cargoCrate of task.cargoCrates) {
+        optimizeCrate(cargoCrate)
       }
+    } else if (task.cargoToml) {
+      compileCrate(task)
+      optimizeCrate(task.cargoCrate)
+    } else {
+      throw new Error("unsupported build task")
     }
-    // Clone from the temporary local remote into the temporary working tree
-    git(`clone --recursive -b ${ref} ${gitDir} ${buildRoot}`)
-    chdir(buildRoot)
-    // Report which commit we're building and what it looks like
-    git(`log -1`)
-    if (verbose) run('pwd')
-    if (verbose) run('ls -al')
-    log()
-    // Clone submodules
-    log(`Populating Git submodules...`)
-    git(`submodule update --init --recursive`)
-    chdir(srcSubdir)
   }
-
-  async function buildCrates () {
-    if (crates.length < 1) {
-      log('No crates to build.')
-      return
-    }
-    log(`Building in:`, call('pwd'))
-    log(`Building these crates: ${crates}`)
+  function compileWorkspace ({ cargoWorkspace, cargoCrates }) {
+    log(`Compiling crates ${cargoCrates.join(', ')} from workspace ${cargoWorkspace}`)
     run([
-      `cargo build`, `--release --target ${platform}`, `${locked} ${verbose?'--verbose':''}`,
-      (`-p ` + crates.join(' -p '))
+      `cargo build --release`,
+      `--manifest-path ${cargoWorkspace}`,
+      `--target ${platform}`,
+      `${locked} ${verbose?'--verbose':''}`,
+      ...cargoCrates.map(crate=>`-p ${crate}`)
     ].join(' '), {
       CARGO_TARGET_DIR: tmpTarget,
-      PLATFORM:         platform,
+      PLATFORM: platform,
     })
-    if (verbose) try { run(`tree ${tmpTarget}`) } catch(e) {}
-    for (const crate of crates) {
-      const output     = `${fumigate(crate)}.wasm`
-      const releaseDir = resolve(tmpTarget, platform, 'release')
-      const compiled   = resolve(releaseDir, output)
-      const optimized  = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`)
-      const checksum   = `${optimized}.sha256`
-      // Output optimized build to artifacts directory
-      if (verbose) run(`ls -al ${releaseDir}`)
-      //run(`cp ${compiled} ${optimized}.unoptimized`)
-      //run(`chmod -x ${optimized}.unoptimized`)
+  }
+  function compileCrate ({ cargoToml, cargoCrate }) {
+    log(`Compiling crate ${cargoCrate} from ${cargoToml}`)
+    run([
+      `cargo build --release`,
+      `--manifest-path ${cargoToml}`,
+      `--target ${platform}`,
+      `${locked} ${verbose?'--verbose':''}`,
+    ].join(' '), {
+      CARGO_TARGET_DIR: tmpTarget,
+      PLATFORM: platform,
+    })
+    lookAround(resolve(tmpTarget, platform, 'release'))
+  }
+  function optimizeCrate (crateName) {
+    const output = `${fumigate(crateName)}.wasm`
+    const releaseDir = resolve(tmpTarget, platform, 'release')
+    const compiled = resolve(releaseDir, output)
+    if (verbose) {
+      if (context.wasmObjdump) {
+        log(`wasm section headers of ${compiled}:`)
+        run(`wasm-objdump -h ${compiled}`)
+      } else {
+        warn(`install wabt to view wasm section headers of ${compiled}`)
+      }
+    }
+    const optimized = resolve(outputDir, `${sanitize(crateName)}@${sanitize(sourceRef)}.wasm`)
+    const checksum = `${optimized}.sha256`
+    if (context.wasmOpt) {
+      debug(`Optimizing ${compiled} into ${optimized}...`)
+      run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
       if (verbose) {
         if (context.wasmObjdump) {
-          log(`WASM section headers of ${compiled}:`)
-          run(`wasm-objdump -h ${compiled}`)
+          log(`wasm section headers of ${optimized}:`)
+          run(`wasm-objdump -h ${optimized}`)
         } else {
           warn('please install wabt')
         }
       }
-      if (verbose) {
-        const module  = await WebAssembly.compile(readFileSync(compiled))
-        const exports = WebAssembly.Module.exports(module)
-        log(`Exports of ${compiled}:`, exports)
-      }
-      if (context.wasmOpt) {
-        log(`Optimizing ${compiled} into ${optimized}...`)
-        run(`wasm-opt -g -Oz --strip-dwarf ${compiled} -o ${optimized}`)
-        if (verbose) {
-          if (context.wasmObjdump) {
-            log(`WASM section headers of ${optimized}:`)
-            run(`wasm-objdump -h ${optimized}`)
-          } else {
-            warn('please install wabt')
-          }
-        }
-        log(`Optimization complete`)
-        if (verbose) {
-          const module  = await WebAssembly.compile(readFileSync(optimized))
-          const exports = WebAssembly.Module.exports(module)
-          log(`Exports of ${optimized}:`, exports)
-        }
-      } else {
-        warn('please install wasm-opt')
-        log(`Copying ${compiled} to ${optimized}...`)
-        run(`cp ${compiled} ${optimized}`)
-      }
-      chown(optimized, uid, gid)
-      // Output checksum to artifacts directory
-      log(`Saving checksum for ${optimized} into ${checksum}...`)
-      run(`sha256sum -b ${optimized} > ${checksum}`)
-      chown(checksum, uid, gid)
+      debug(`Optimized ${compiled} into ${optimized}...`)
+    } else {
+      warn('install wasm-opt to automatically optimize your release builds')
+      debug(`renaming ${compiled} to ${optimized}...`)
+      run(`cp ${compiled} ${optimized}`)
     }
+    // Output checksum to artifacts directory
+    debug(`Saving checksum for ${optimized} into ${checksum}...`)
+    const cwd = process.cwd()
+    chdir(dirname(optimized))
+    run(`sha256sum -b ${basename(optimized)} > ${checksum}`)
+    chdir(cwd)
+    chown(optimized, uid, gid)
+    chown(checksum, uid, gid)
+    console.log()
+    console.log(`${readFileSync(checksum, 'utf8').trim()}`)
+    console.log(`  Compiled: ${statSync(compiled).size} bytes`)
+    console.log(`  Optimized: ${statSync(optimized).size} bytes`)
   }
 
 }
@@ -219,24 +183,28 @@ async function main (options = {}) {
 function chown (path, uid, gid) {
   try {
     run(`chown ${uid} ${path}`)
-    log(`owner of ${path} set to ${uid}`)
+    debug(`owner of ${path} set to ${uid}`)
   } catch (e) {
     log(`!!! setting owner of ${path} to ${uid} failed:`, e)
   }
   try {
     run(`chgrp ${gid} ${path}`)
-    log(`group of ${path} set to ${gid}`)
+    debug(`group of ${path} set to ${gid}`)
   } catch (e) {
     log(`!!! setting group of ${path} to ${gid} failed:`, e)
   }
 }
 
+function debug (...args) {
+  if (verbose) return console.log(" #", ...args)
+}
+
 function log (...args) {
-  return console.log("#", ...args)
+  return console.log(" #", ...args)
 }
 
 function warn (...args) {
-  return console.warn("!", ...args)
+  return console.warn(" !", ...args)
 }
 
 function env (key, def) {
@@ -256,9 +224,9 @@ function git (command, ...args) {
 }
 
 function call (command) {
-  console.log('>', command)
+  console.log(' >', command)
   const result = String(execSync(command)).trim()
-  console.log('<', result)
+  console.log(' <', result)
   return result
 }
 
@@ -269,35 +237,23 @@ function time (command) {
   console.log(`dT=${t1-t0}ms`)
 }
 
-function sanitize (x) {
-  return x.replace(slashes, "_")
-}
-
-function fumigate (x) {
-  return x.replace(dashes,  "_")
-}
 
 function tool (command) {
   let version = null
   try {
     version = String(execSync(command)).trim()
-    console.log('*', version)
+    console.log(' *', version)
   } catch (e) {
-    console.log(`!`, `not found: ${command}`)
+    console.log(` !`, `not found: ${command}`)
   } finally {
     return version
   }
 }
 
 function tools () {
-  log('Checking tools')
-  return {
-    git:         tool(`git --version`),
-    rustup:      tool(`rustup --version`),
-    cargo:       tool(`cargo --version`),
-    rustc:       tool(`rustc --version`),
-    wasmOpt:     tool(`wasm-opt --version`),
-    wasmObjdump: tool(`wasm-objdump --version`),
-    sha256Sum:   tool(`sha256sum --version | head -n1`),
-  }
+  return 
+}
+
+function lookAround (path = process.cwd()) {
+  debug(`files in ${path}: ${readdirSync(path).join(' ')}`)
 }

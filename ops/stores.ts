@@ -63,7 +63,7 @@ export class JSONFileUploadStore extends UploadStore {
     }
     const receipt = this.dir.at(`${codeHash.toLowerCase()}.json`).as(JSONFile<any>)
     this.log('writing', receipt.shortPath)
-    receipt.save(super.get(codeHash)!.toReceipt())
+    receipt.save(super.get(codeHash)!.serialize())
     return super.set(codeHash, value)
   }
 }
@@ -104,7 +104,7 @@ export class JSONFileDeployStore extends DeployStore {
   }
 
   set (name: Name, state: Partial<Deployment>|DeploymentState): this {
-    if (state instanceof Deployment) state = state.toReceipt()
+    if (state instanceof Deployment) state = state.serialize()
     const receipt = this.dir.at(`${name}.json`).as(JSONFile<any>)
     this.log('writing', receipt.shortPath)
     receipt.save(state)
@@ -187,7 +187,7 @@ export class JSONFileDeployStore extends DeployStore {
       //output += '---\n'
       //name ??= data.name!
       //if (!name) throw new Error("can't save a deployment with no name")
-      //const receipt: any = new ContractInstance(data).toReceipt()
+      //const receipt: any = new ContractInstance(data).serialize()
       //data = JSON.parse(JSON.stringify({
         //name,
         //label:    receipt.label,

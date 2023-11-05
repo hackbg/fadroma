@@ -14,9 +14,9 @@ export default async function testPrompts () {
     choices: []
   }))
 
-  Prompts.logInstallRust({})
+  Prompts.logInstallRust({} as any)
 
-  Prompts.logInstallWasmOpt({})
+  Prompts.logInstallWasmOpt({} as any)
 
   Prompts.logProjectCreated({ root: $('.') })
 

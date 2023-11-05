@@ -7,7 +7,9 @@ import type { Agent, ChainId } from './chain'
 import type { UploadStore, DeployStore } from './store'
 import type { Compiler, CodeId, CodeHash } from './code'
 import type { ICoin, IFee } from './token'
-import { ContractCode, SourceCode, CompiledCode, UploadedCode } from './code'
+import {
+  ContractCode, SourceCode, RustSourceCode, CompiledCode, UploadedCode
+} from './code'
 import { ContractClient } from './client'
 import type { ContractClientClass } from './client'
 
@@ -47,7 +49,7 @@ export class DeploymentUnit extends ContractCode {
     assign(this, properties, 'DeploymentUnit')
   }
 
-  toReceipt () {
+  serialize () {
     const { name, codeHash, chainId, codeId } = this
     return { name, codeHash, chainId, codeId }
   }
@@ -132,10 +134,10 @@ export class ContractInstance extends DeploymentUnit {
   }
 
   /** @returns the data for a deploy receipt */
-  toReceipt () {
+  serialize () {
     const { label, address, initMsg, initBy, initSend, initFee, initMemo, initTx, initGas } = this
     return {
-      ...super.toReceipt(),
+      ...super.serialize(),
       label, address, initMsg, initBy, initSend, initFee, initMemo, initTx, initGas
     }
   }
@@ -150,12 +152,12 @@ export class ContractInstance extends DeploymentUnit {
   }
 }
 
-export type DeploymentState = Partial<ReturnType<Deployment["toReceipt"]>>
+export type DeploymentState = Partial<ReturnType<Deployment["serialize"]>>
 
 /** A constructor for a Deployment subclass. */
 export interface DeploymentClass<D extends Deployment> extends Class<
   D, ConstructorParameters<typeof Deployment>
->{ fromReceipt (receipt: DeploymentState): D }
+>{ fromSnapshot (receipt: DeploymentState): D }
 
 /** A collection of contracts. */
 export class Deployment extends Map<Name, DeploymentUnit> {
@@ -163,7 +165,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
 
   name: string = timestamp()
 
-  static fromReceipt ({ name, units = {} }: DeploymentState) {
+  static fromSnapshot ({ name, units = {} }: DeploymentState) {
     const deployment = new this({ name })
     for (const [key, value] of Object.entries(units)) {
       deployment.set(key, value)
@@ -178,10 +180,10 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     this.log.label = `Deployment ${this.name}`
   }
 
-  toReceipt () {
-    const units: Record<Name, ReturnType<DeploymentUnit["toReceipt"]>> = {}
+  serialize () {
+    const units: Record<Name, ReturnType<DeploymentUnit["serialize"]>> = {}
     for (const [key, value] of this.entries()) {
-      units[key] = value.toReceipt()
+      units[key] = value.serialize()
     }
     return { name: this.name, units: Object.fromEntries(this.entries()) }
   }
@@ -197,16 +199,20 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     * and uploaded, but will not be automatically instantiated.
     * This can then be used to define multiple instances of
     * the same code. */
-  template (
-    name: string,
-    properties?: Partial<SourceCode> &
-      Partial<CompiledCode> &
-      Partial<UploadedCode>
+  template (name: string, properties?:
+    (
+      |({ language: 'rust'  } & Partial<RustSourceCode>)
+      |({ language: unknown } & Partial<SourceCode>)
+    )&
+    Partial<CompiledCode> &
+    Partial<UploadedCode>
   ): ContractTemplate {
-    const source   = new SourceCode(properties)
+    const source =
+      properties?.language === 'rust' ? new RustSourceCode(properties)
+        : new SourceCode(properties)
     const compiled = new CompiledCode(properties)
     const uploaded = new UploadedCode(properties)
-    const unit     = new ContractTemplate({
+    const unit = new ContractTemplate({
       deployment: this, name, source, compiled, uploaded
     })
     this.set(name, unit)
@@ -215,17 +221,21 @@ export class Deployment extends Map<Name, DeploymentUnit> {
 
   /** Define a contract that will be automatically compiled, uploaded,
     * and instantiated as part of this deployment. */ 
-  contract (
-    name: string,
-    properties?: Partial<SourceCode> &
-      Partial<CompiledCode> &
-      Partial<UploadedCode> &
-      Partial<ContractInstance>
+  contract (name: string, properties?:
+    (
+      |({ language: 'rust'  } & Partial<RustSourceCode>)
+      |({ language: unknown } & Partial<SourceCode>)
+    )&
+    Partial<CompiledCode> &
+    Partial<UploadedCode> &
+    Partial<ContractInstance>
   ): ContractInstance {
-    const source   = new SourceCode(properties)
+    const source =
+      properties?.language === 'rust' ? new RustSourceCode(properties)
+        : new SourceCode(properties)
     const compiled = new CompiledCode(properties)
     const uploaded = new UploadedCode(properties)
-    const unit     = new ContractInstance({
+    const unit = new ContractInstance({
       deployment: this, name, source, compiled, uploaded, ...properties
     })
     this.set(name, unit)
@@ -237,7 +247,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
   {
     const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
     for (const [name, unit] of this.entries()) {
-      if (!unit.source?.isValid() && unit.compiled?.isValid()) {
+      if (!unit.source?.canCompile && unit.compiled?.canUpload) {
         this.log.warn(`Missing source for ${unit.compiled.codeHash}`)
       } else {
         building.push(unit.compile(options))

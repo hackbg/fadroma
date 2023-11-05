@@ -2,8 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
-import {
-  ProjectCommands,
+import ProjectCommands, {
   Deployment, UploadedCode, ContractTemplate, ContractInstance, Stub
 } from '@hackbg/fadroma'
 import { JSONFileDeployStore } from './stores'
@@ -85,7 +84,11 @@ export async function testProjectWizard () {
   //.command()
 
 export class MyDeployment extends Deployment {
-  t = this.template('t', { codeId: '1', sourcePath: fixture("../examples/kv") })
+  t = this.template('t', {
+    chainId:   'stub',
+    codeId:    '1',
+    sourcePath: fixture("../examples/kv")
+  })
 
   // Single template instance with eager and lazy initMsg
   a1 = this.t.contract('a1', { initMsg: {} })

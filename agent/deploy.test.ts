@@ -57,6 +57,7 @@ export async function testDeployment () {
       codeData: new Uint8Array([1]),
     })
     contract1 = this.contract('contract1', {
+      chainId: 'stub',
       codeId:  '2',
       label:   "contract1",
       initMsg: {}
@@ -75,11 +76,11 @@ export async function testDeployment () {
     deployer: new Stub.Agent()
   })
 
-  new MyDeployment().contract1.toReceipt()
+  new MyDeployment().contract1.serialize()
 
-  new MyDeployment().toReceipt()
+  new MyDeployment().serialize()
 
-  MyDeployment.fromReceipt(new MyDeployment().toReceipt())
+  MyDeployment.fromSnapshot(new MyDeployment().serialize())
 
   assert.throws(()=>new MyDeployment().set('foo', {} as any))
 

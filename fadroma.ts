@@ -32,7 +32,7 @@ export { Compilers, Devnets, Prompts, Stores, Tools, }
 export * from '@fadroma/connect'
 export * from './ops/project'
 
-export class ProjectCommands extends CommandContext {
+export default class ProjectCommands extends CommandContext {
   constructor (
     readonly project: Project = new Project('project', process.env.FADROMA_PROJECT || process.cwd())
   ) {
@@ -140,7 +140,7 @@ export async function selectDeployment (
   if (!state) {
     throw new Error(`no deployment ${name} in store`)
   }
-  return Deployment.fromReceipt(state)
+  return Deployment.fromSnapshot(state)
 }
 
 export function exportDeployment (
@@ -158,7 +158,7 @@ export function exportDeployment (
     file = file.in(`${deployment.name}_@_${timestamp()}.json`)
   }
   // Serialize and write the deployment.
-  const state = deployment.toReceipt()
+  const state = deployment.serialize()
   file.as(JSONFile).makeParent().save(state)
   console.info(
     'saved',
