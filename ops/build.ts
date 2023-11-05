@@ -19,7 +19,7 @@ import { packageRoot, console } from './config'
 
 export function getCompiler ({
   config = new Config(),
-  useContainer = config.getFlag('FADROMA_BUILD_RAW', ()=>false),
+  useContainer = !config.getFlag('FADROMA_BUILD_RAW', ()=>false),
   ...options
 }: |({ useContainer?: false } & Partial<RawLocalRustCompiler>)
    |({ useContainer:  true  } & Partial<ContainerizedLocalRustCompiler>) = {}
@@ -45,9 +45,17 @@ export type CargoTOML = {
 export const codePathName = (crate: string, ref: string) =>
   `${crate}@${sanitize(ref)}.wasm`
 
+const slashes = new RegExp("/", "g")
+
 /** @returns a filename-friendly version of a Git ref */
 export const sanitize = (ref: string) =>
-  ref.replace(/\//g, '_')
+  ref.replace(slashes, '_')
+
+const dashes = new RegExp("-", "g")
+
+/** @returns an unambiguous crate name (dashes to underscores) */
+const fumigate = (x: string) =>
+  x.replace(dashes, "_")
 
 /** @returns an array with duplicate elements removed */
 export const distinct = <T> (x: T[]): T[] =>
@@ -240,6 +248,37 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     return null
   }
 
+  protected populateBatchResults ({
+    outputDir, sourceRef, tasks,
+  }: {
+    outputDir: string, sourceRef: string, tasks: Set<CompileTask>
+  }): Record<number, CompiledCode> {
+    const results: Record<number, CompiledCode> = {}
+    const toResult = (buildIndex: number, crateName: string) => [
+      buildIndex, $(outputDir, `${sanitize(crateName)}@${sanitize(sourceRef)}.wasm`)
+    ]
+    for (const task of tasks) {
+      if ((task as CompileWorkspaceTask).cargoWorkspace) {
+        for (const { buildIndex, cargoCrate } of (task as CompileWorkspaceTask).cargoCrates) {
+          results[buildIndex] = new CompiledCode({
+            codePath: $(
+              outputDir, `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
+            ).path
+          })
+        }
+      } else if ((task as CompileCrateTask).cargoCrate) {
+          results[(task as CompileCrateTask).buildIndex] = new CompiledCode({
+            codePath: $(
+              outputDir, `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
+            ).path
+          })
+      } else {
+        throw new Error("invalid task in compile batch")
+      }
+    }
+    return results
+  }
+
   protected abstract buildBatch (batch: CompileBatch):
     Promise<Record<number, CompiledCode>>
 }
@@ -253,101 +292,48 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     * Defaults to the same one that is running this script. */
   runtime = process.argv[0]
 
-  protected async buildBatch (batch: CompileBatch): Promise<Record<number, CompiledCode>> {
-    throw new Error("not implemented")
-  }
-
-  /** Compile a Source into a Template */
-  async build (source: string|Partial<RustSourceCode>): Promise<CompiledCode> {
-    if (typeof source === 'string') {
-      source = new RustSourceCode({ sourcePath: source })
+  protected async buildBatch (
+    batch: CompileBatch, options: { outputDir?: string, buildScript?: string|Path } = {}
+  ): Promise<Record<number, CompiledCode>> {
+    const { sourcePath, sourceRef, tasks } = batch
+    const safeRef  = sanitize(sourceRef)
+    const { outputDir = this.outputDir.path, buildScript = this.script } = options
+    if (!buildScript) {
+      throw new Error('missing build script')
     }
-    const {
-      sourcePath,
-      sourceRef = HEAD,
-      cargoToml,
-      cargoWorkspace,
-      cargoCrate,
-      cargoFeatures
-    } = source
-    if (!sourcePath) {
-      throw new Error("can't build without at least sourcePath")
-    }
-    const env = {
-      FADROMA_BUILD_GID: String(this.buildGid),
-      FADROMA_BUILD_UID: String(this.buildUid),
-      FADROMA_OUTPUT:    $(process.env.FADROMA_OUTPUT||process.cwd()).in('wasm').path, // FIXME
-      FADROMA_REGISTRY:  '',
-      FADROMA_TOOLCHAIN: this.toolchain,
-    }
-    let location: Path
-    if (sourceRef && (sourceRef !== HEAD)) {
-      // Check out commit in temp directory
-      const gitDir = $(sourcePath, '.git')
-      if (!gitDir.exists()) {
-        throw new Error(`could not find ${gitDir.path}`)
-      }
-      const tmpGit = $.tmpDir('fadroma-git-')
-      const tmpCompile = $.tmpDir('fadroma-build-')
-      location = await this.runCompile(source, Object.assign(env, {
-        FADROMA_GIT_ROOT:   gitDir.path,
-        FADROMA_GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
-        FADROMA_NO_FETCH:   this.noFetch,
-        FADROMA_TMP_BUILD:  tmpCompile.path,
-        FADROMA_TMP_GIT:    tmpGit.path,
-      }))
-      if (tmpGit.exists()) tmpGit.delete()
-      if (tmpCompile.exists()) tmpCompile.delete()
-    } else {
-      // Compile from available source
-      location = await this.runCompile(source, env)
-    }
-    // Create an codePath for the build result
-    const codePath = pathToFileURL(location.path)
-    const codeHash = $(location).as(BinaryFile).sha256
-    return new CompiledCode({ codePath, codeHash })
-  }
-
-  protected runCompile (
-    source: Partial<RustSourceCode>, env: { FADROMA_OUTPUT: string }
-  ): Promise<Path> {
-    source = this.resolveSource(source)
-    const { sourcePath, sourceRef = HEAD, cargoWorkspace, } = source
-    let { cargoCrate } = source
-    if (!sourcePath) {
-      throw new Error("can't build: no source path specified")
-    }
-    if (!cargoCrate) {
-      if (cargoWorkspace) {
-        throw new Error("can't build: no crate selected from workspace")
-      } else {
-        cargoCrate = $(sourcePath).at('Cargo.toml').as(TOMLFile<CargoTOML>).load()!.package.name
-      }
-    }
-    return new Promise((resolve)=>{
-      const args = [ this.script!, 'phase1', sourceRef ]
-      if (cargoCrate) {
-        args.push(cargoCrate)
-      }
-      const spawned = this.spawn(this.runtime!, args, {
-        cwd: sourcePath, env: { ...process.env, ...env }, stdio: 'inherit'
-      })
-      spawned.on('exit', (code: number, signal: any) => {
-        const build = `Compile of ${cargoCrate} from ${$(sourcePath!).shortPath} @ ${sourceRef}`
-        if (code === 0) {
-          resolve($(env.FADROMA_OUTPUT, codePathName(cargoCrate!, sanitize(sourceRef||'HEAD'))))
-        } else if (code !== null) {
-          const message = `${build} exited with code ${code}`
-          this.log.error(message)
-          throw Object.assign(new Error(message), { source: source, code })
-        } else if (signal !== null) {
-          const message = `${build} exited by signal ${signal}`
-          this.log.warn(message)
-        } else {
-          throw new Error('Unreachable')
-        }
-      })
+    this.log.log('Building contracts from', bold(sourcePath), '@', bold(sourceRef))
+    // Standalone crates get built with:
+    // - cargo build --manifest-path /path/to/Cargo.toml --target-dir /path/to/output/dir
+    // Workspace crates get built with:
+    // - cargo build --manifest-path /path/to/workspace/Cargo.toml -p crate1 crate2 crate3
+    // Create stream for collecting build logs
+    // Create output directory as user if it does not exist
+    $(outputDir).as(OpaqueDirectory).make()
+    // Run the build container
+    const buildProcess = this.spawn(this.runtime!, [ this.script!, 'phase1' ], {
+      cwd: $(sourcePath).path,
+      env: {
+        ...process.env,
+        FADROMA_OUTPUT:      $(process.cwd(), 'wasm').path,
+        FADROMA_VERBOSE:     String(this.verbose),
+        FADROMA_SRC_REF:     sourceRef||'HEAD',
+        FADROMA_BUILD_TASKS: JSON.stringify([...tasks]),
+        FADROMA_BUILD_UID:   String(this.buildUid),
+        FADROMA_BUILD_GID:   String(this.buildGid),
+      }, stdio: 'inherit'
     })
+    await new Promise<void>((resolve)=>buildProcess.on('exit', (code: number, signal: any) => {
+      if (code === 0) {
+        resolve()
+      } else if (code !== null) {
+        throw new Error(`build ${buildProcess.pid} exited with code ${code}`)
+      } else if (signal !== null) {
+        throw new Error(`build ${buildProcess.pid} exited by signal ${signal}`)
+      } else {
+        throw new Error(`build ${buildProcess.pid} exited without code or signal ${signal}`)
+      }
+    }))
+    return this.populateBatchResults({ outputDir, sourceRef, tasks })
   }
 
   /** Overridable for testing. */
@@ -414,10 +400,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   protected async buildBatch (
     batch: CompileBatch, options: { outputDir?: string, buildScript?: string|Path } = {}
   ): Promise<Record<number, CompiledCode>> {
-    const slashes  = new RegExp("/", "g")
-    const sanitize = (x: string) => x.replace(slashes, "_")
-    const dashes   = new RegExp("-", "g")
-    const fumigate = (x: string) => x.replace(dashes, "_")
     const { sourcePath, sourceRef, tasks } = batch
     const safeRef  = sanitize(sourceRef)
     const { outputDir = this.outputDir.path, buildScript = this.script } = options
@@ -498,30 +480,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
       this.log.error(logs)
       throw new Error(`compile batch exited with status ${code}`)
     }
-    const results: Record<number, CompiledCode> = {}
-    const toResult = (buildIndex: number, crateName: string) => [
-      buildIndex, $(outputDir, `${sanitize(crateName)}@${sanitize(sourceRef)}.wasm`)
-    ]
-    for (const task of tasks) {
-      if ((task as CompileWorkspaceTask).cargoWorkspace) {
-        for (const { buildIndex, cargoCrate } of (task as CompileWorkspaceTask).cargoCrates) {
-          results[buildIndex] = new CompiledCode({
-            codePath: $(
-              outputDir, `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
-            ).path
-          })
-        }
-      } else if ((task as CompileCrateTask).cargoCrate) {
-          results[(task as CompileCrateTask).buildIndex] = new CompiledCode({
-            codePath: $(
-              outputDir, `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
-            ).path
-          })
-      } else {
-        throw new Error("invalid task in compile batch")
-      }
-    }
-    return results
+    return this.populateBatchResults({ outputDir, sourceRef, tasks })
   }
 
   protected getLogStream (revision: string, cb: (data: string)=>void) {

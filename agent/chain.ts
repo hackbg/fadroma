@@ -304,7 +304,7 @@ export abstract class Agent {
     if (!options.label) {
       throw new Error("can't instantiate contract without label")
     }
-    if (!options.initMsg) {
+    if (!(options.initMsg||('initMsg' in options))) {
       throw new Error("can't instantiate contract without init message")
     }
     const t0 = performance.now()

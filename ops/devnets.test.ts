@@ -5,7 +5,7 @@ import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Agent, Project, Compilers, Devnets, CW, Token } from '@hackbg/fadroma'
+import { Agent, Project, Compilers, Devnets, CW, Token, CompiledCode } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import * as Dock from '@hackbg/dock'
 
@@ -46,9 +46,9 @@ export async function testDevnetChain () {
 }
 
 export async function testDevnetGenesis () {
-  const compiled = await Compilers.getCompiler().build(
-    resolve(packageRoot, 'examples', 'cw-null')
-  )
+  const compiled = new CompiledCode({
+    codePath: resolve(packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm')
+  })
   const devnet = await new Devnets.Container({
     platform: 'okp4_5.0',
     genesisAccounts: {
