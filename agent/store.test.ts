@@ -25,5 +25,5 @@ export async function testDeployStore () {
   assert.equal(deployStore.get('name'), undefined)
   const deployment = new Deployment({ name: 'foo' })
   assert.equal(deployStore.set('name', deployment), deployStore)
-  assert.deepEqual(deployStore.get('name'), deployment.toReceipt())
+  assert.deepEqual(deployStore.get('name'), deployment.serialize())
 }

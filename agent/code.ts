@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Console, assign, base16, sha256 } from './base'
+import { Console, bold, assign, base16, sha256 } from './base'
 import type { Class, Address, TxHash } from './base'
 import type { ChainId, Agent } from './chain'
 
@@ -13,22 +13,6 @@ export type CodeHash = string
 
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string
-
-assign.allow<SourceCode>('SourceCode', [
-  'sourcePath', 'sourceRepo', 'sourceRef', 'sourceDirty'
-])
-
-assign.allow<RustSourceCode>('RustSourceCode', [
-  'cargoWorkspace', 'cargoCrate', 'cargoFeatures'
-])
-
-assign.allow<CompiledCode>('CompiledCode', [
-  'codeHash', 'codePath', 'codeData'
-])
-
-assign.allow<UploadedCode>('UploadedCode', [
-  'codeHash', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas',
-])
 
 const console = new Console()
 
@@ -84,17 +68,20 @@ export class ContractCode {
   } = {}): Promise<CompiledCode & Parameters<Compiler["build"]>[1] & {
     codeHash: CodeHash
   }> {
-    if (this.compiled?.isValid() && !rebuild) {
-      return this.compiled
+    if (this.compiled?.canUpload && !rebuild) {
+      return this.compiled as typeof this["compiled"] & { codeHash: CodeHash }
     }
     if (!compiler) {
       throw new Error("can't compile: no compiler")
     }
-    if (!this.source?.isValid()) {
-      throw new Error("can't compile: no source")
+    if (!this.source) {
+      throw new Error(`can't compile: no source`)
+    }
+    if (!this.source.canCompile) {
+      throw new Error(`can't compile: ${this.source.canCompileInfo??'unspecified reason'}`)
     }
     const compiled = await compiler.build(this.source, buildOptions)
-    if (!compiled.isValid()) {
+    if (!compiled.canUpload) {
       throw new Error("build failed")
     }
     return this.compiled = compiled
@@ -113,7 +100,7 @@ export class ContractCode {
   } = {}): Promise<UploadedCode & {
     codeId: CodeId
   }> {
-    if (this.uploaded?.isValid() && !reupload && !rebuild) {
+    if (this.uploaded?.canInstantiate && !reupload && !rebuild) {
       return this.uploaded
     }
     if (!uploader || (typeof uploader === 'string')) {
@@ -121,7 +108,7 @@ export class ContractCode {
     }
     const compiled = await this.compile({ compiler, rebuild })
     const uploaded = await uploader.upload(compiled, uploadOptions)
-    if (!uploaded.isValid()) {
+    if (!uploaded.canInstantiate) {
       throw new Error("upload failed")
     }
     return this.uploaded = uploaded
@@ -130,61 +117,73 @@ export class ContractCode {
 
 /** An object representing a given source code. */
 export class SourceCode {
-  /** Path to directory containing source.
-    * If not set, defaults to sourceRoot. */
-  sourcePath?:  string
-  /** Optional parent directory to include in the build.
-     * If not set, defaults to sourcePath.
-    * If sourceRef is set, a sourceRoot should contain the .git subdirectory. */
-  sourceRoot?:  string
-  /** URL pointing to Git upstream that contains the source code. */
-  sourceRepo?:  string|URL
-  /** Branch/tag pointing to the source commit. */
-  sourceRef?:   string
+  /** URL pointing to Git upstream containing the canonical source code. */
+  sourceOrigin?: string|URL
+  /** Pointer to the source commit. */
+  sourceRef?:    string
+  /** Path to local checkout of the source code (with .git directory if sourceRef is set). */
+  sourcePath?:   string
   /** Whether the code contains uncommitted changes. */
-  sourceDirty?: boolean
+  sourceDirty?:  boolean
 
   constructor (properties: Partial<SourceCode> = {}) {
-    assign(this, properties, 'SourceCode')
+    assign(this, properties, [
+      'sourcePath', 'sourceOrigin', 'sourceRef', 'sourceDirty'
+    ])
   }
 
   get [Symbol.toStringTag] () {
     return [
       this.sourcePath ? this.sourcePath : `(missing source)`,
-      this.sourceRepo  && `(from ${this.sourceRepo})`,
-      this.sourceRef   && `(at ${this.sourceRef})`,
-      this.sourceDirty && `(modified)`
+      this.sourceOrigin && `(from ${this.sourceOrigin})`,
+      this.sourceRef    && `(at ${this.sourceRef})`,
+      this.sourceDirty  && `(modified)`
     ].filter(Boolean).join(' ')
   }
 
-  toReceipt (): {
-    sourcePath?:   string
-    sourceRepo?:   string
+  serialize (): {
+    sourceOrigin?: string
     sourceRef?:    string
+    sourcePath?:   string
     sourceDirty?:  boolean
     [key: string]: unknown
   } {
-    const { sourcePath, sourceRepo, sourceRef, sourceDirty } = this
-    return { sourcePath, sourceRepo: sourceRepo?.toString(), sourceRef, sourceDirty }
+    const { sourcePath, sourceOrigin, sourceRef, sourceDirty } = this
+    return { sourcePath, sourceOrigin: sourceOrigin?.toString(), sourceRef, sourceDirty }
   }
 
-  /** Minimum required data to compile: path. */
-  isValid () {
-    return !!(this.sourcePath)
+  get canFetch (): boolean {
+    return !!this.sourceOrigin
+  }
+
+  get canFetchInfo (): string|undefined {
+    if (!this.sourceOrigin) return "missing sourceOrigin"
+  }
+
+  get canCompile (): boolean {
+    return !!this.sourcePath || this.canFetch
+  }
+
+  get canCompileInfo (): string|undefined {
+    if (!this.sourcePath) return "missing sourcePath"
   }
 }
 
 export class RustSourceCode extends SourceCode {
-  /** Path to root directory of crate or workspace. */
+  /** Path to the crate's Cargo.toml under sourcePath */
+  cargoToml?:      string
+  /** Path to the workspace's Cargo.toml in the source tree. */
   cargoWorkspace?: string
-  /** Name of crate in workspace. */
+  /** Name of crate. */
   cargoCrate?:     string
   /** List of crate features to enable during build. */
   cargoFeatures?:  string[]|Set<string>
 
   constructor (properties?: Partial<RustSourceCode>) {
     super(properties)
-    assign(this, properties, 'RustSourceCode')
+    assign(this, properties, [
+      'cargoToml', 'cargoWorkspace', 'cargoCrate', 'cargoFeatures'
+    ])
   }
 
   get [Symbol.toStringTag] () {
@@ -196,24 +195,60 @@ export class RustSourceCode extends SourceCode {
     ].filter(Boolean).join(' ')
   }
 
-  toReceipt (): ReturnType<SourceCode["toReceipt"]> & {
+  serialize (): ReturnType<SourceCode["serialize"]> & {
     cargoWorkspace?: string
     cargoCrate?:     string
     cargoFeatures?:  string[]
     [key: string]:   unknown
   } {
-    const { cargoWorkspace, cargoCrate, cargoFeatures } = this
+    const {
+      cargoToml,
+      cargoWorkspace,
+      cargoCrate,
+      cargoFeatures
+    } = this
     return {
-      ...super.toReceipt(),
+      ...super.serialize(),
+      cargoToml,
       cargoWorkspace,
       cargoCrate,
       cargoFeatures: cargoFeatures ? [...cargoFeatures] : undefined
     }
   }
 
-  /** Minimum required data to compile: path + crate name if workspace. */
-  isValid () {
-    return super.isValid() && (this.cargoWorkspace ? !!(this.cargoCrate) : true)
+  get canCompile (): boolean {
+    const hasWorkspace = !!this.cargoWorkspace
+    const hasCrateToml = !!this.cargoToml
+    const hasCrateName = !!this.cargoCrate
+    return super.canCompile && (
+      ( hasWorkspace && !hasCrateToml &&  hasCrateName) ||
+      (!hasWorkspace &&  hasCrateToml && !hasCrateName)
+    )
+  }
+
+  get canCompileInfo (): string|undefined {
+    let result = super.canCompileInfo
+    let error
+    const hasWorkspace = !!this.cargoWorkspace
+    const hasCrateToml = !!this.cargoToml
+    const hasCrateName = !!this.cargoCrate
+    if (hasWorkspace) {
+      if (hasCrateToml) {
+        error = "cargoWorkspace is set, cargoToml must be unset"
+      }
+      if (!hasCrateName) {
+        error = "when cargoWorkspace is set, cargoCrate must also be set"
+      }
+    } else if (hasCrateToml) {
+      if (hasCrateName) {
+        error = "when cargoToml is set, cargoCrate must be unset"
+      }
+    } else {
+      error = "set either cargoToml or cargoWorkspace & cargoCrate"
+    }
+    if (result || error) {
+      return [result, error].filter(Boolean).join('; ')
+    }
   }
 }
 
@@ -227,7 +262,9 @@ export class CompiledCode {
   codeData?:  Uint8Array
 
   constructor (properties: Partial<CompiledCode> = {}) {
-    assign(this, properties, 'CompiledCode')
+    assign(this, properties, [
+      'codeHash', 'codePath', 'codeData'
+    ])
   }
 
   get [Symbol.toStringTag] () {
@@ -238,7 +275,7 @@ export class CompiledCode {
     ].filter(Boolean).join(' ')
   }
 
-  toReceipt (): {
+  serialize (): {
     codeHash?: CodeHash
     codePath?: string
     [key: string]: unknown
@@ -247,25 +284,55 @@ export class CompiledCode {
     return { codeHash, codePath: codePath?.toString() }
   }
 
-  /** Minimum required data to upload: path or data */
-  isValid (): this is CompiledCode & { codeHash: CodeHash } {
-    return !!(this.codePath || this.codeData)
+  get canFetch (): boolean {
+    return !!this.codePath
+  }
+
+  get canFetchInfo (): string|undefined {
+    if (!this.codePath) {
+      return "can't fetch binary: codePath is not set"
+    }
+  }
+
+  get canUpload (): boolean {
+    return !!this.codeData || this.canFetch
+  }
+
+  get canUploadInfo (): string|undefined {
+    if (!this.codeData && this.canFetch) {
+      return "uploading will fetch the binary from the specified path"
+    }
+    if (this.codeData && !this.codePath) {
+      return "uploading from buffer, codePath is unspecified"
+    }
   }
 
   async fetch (): Promise<Uint8Array> {
     if (this.codeData) {
+      console.debug("not fetching: codeData found; unset to refetch")
       return this.codeData
     }
     if (!this.codePath) {
-      throw new Error('missing codePath')
+      throw new Error("can't fetch: missing codePath")
     }
     if (typeof this.codePath === 'string') {
-      return this.fetchFromPath(this.codePath)
+      this.codeData = await this.fetchFromPath(this.codePath)
     } else if (this.codePath instanceof URL) {
-      return this.fetchFromURL(this.codePath)
+      this.codeData = await this.fetchFromURL(this.codePath)
     } else {
-      throw new Error('invalid codePath')
+      throw new Error("can't fetch: invalid codePath")
     }
+    if (this.codeHash) {
+      const hash0 = String(this.codeHash).toLowerCase()
+      const hash1 = base16.encode(sha256(this.codeData)).toLowerCase()
+      if (hash0 !== hash1) {
+        throw new Error(`code hash mismatch: expected ${hash0}, computed ${hash1}`)
+      }
+    } else {
+      this.codeHash = base16.encode(sha256(this.codeData)).toLowerCase() 
+      console.warn("Computed code hash from fetched data:", bold(this.codeHash))
+    }
+    return this.codeData
   }
 
   protected async fetchFromPath (path: string) {
@@ -297,6 +364,9 @@ export class CompiledCode {
     return hash
   }
 
+  static toBase16Sha256 (data: Uint8Array): string {
+    return base16.encode(sha256(data))
+  }
 }
 
 /** An object representing the contract's binary uploaded to a given chain. */
@@ -315,10 +385,12 @@ export class UploadedCode {
   uploadGas?:  string|number
 
   constructor (properties: Partial<UploadedCode> = {}) {
-    assign(this, properties, 'UploadedCode')
+    assign(this, properties, [
+      'codeHash', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas',
+    ])
   }
 
-  toReceipt (): {
+  serialize (): {
     codeHash?:     CodeHash
     chainId?:      ChainId
     codeId?:       CodeId
@@ -335,7 +407,15 @@ export class UploadedCode {
     return { codeHash, chainId, codeId, uploadTx, uploadBy: uploadBy as string, uploadGas }
   }
 
-  isValid (): this is UploadedCode & { codeId: CodeId } {
-    return !!this.codeId
+  get canInstantiate (): boolean {
+    return !!(this.chainId && this.codeId)
+  }
+
+  get canInstantiateInfo (): string|undefined {
+    return (
+      (!this.chainId) ? "can't instantiate: no chain id" :
+      (!this.codeId)  ? "can't instantiate: no code id"  :
+      undefined
+    )
   }
 }

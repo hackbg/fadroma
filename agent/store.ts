@@ -49,7 +49,7 @@ export class DeployStore extends Map<Name, DeploymentState> {
   }
 
   set (name: Name, state: Partial<Deployment>|DeploymentState): this {
-    if (state instanceof Deployment) state = state.toReceipt()
+    if (state instanceof Deployment) state = state.serialize()
     return super.set(name, state)
   }
 }

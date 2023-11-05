@@ -42,7 +42,7 @@ export async function testCWDevnet () {
   equal(await alice.balance, '122456789')
   equal(await bob.balance,   '987654321')
 
-  const result = await alice.upload(fixture('fadroma-example-echo@HEAD.wasm'))
+  const result = await alice.upload(fixture('fadroma-example-cw-null@HEAD.wasm'))
 }
 
 export async function testCWOKP4 () {

@@ -23,7 +23,7 @@ importers:
         specifier: workspace:1
         version: link:ensuite/toolbox/hide
       '@hackbg/logs':
-        specifier: workspace:2.0.7
+        specifier: workspace:2.0.8*
         version: link:ensuite/toolbox/logs
       '@hackbg/port':
         specifier: workspace:1

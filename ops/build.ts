@@ -62,6 +62,30 @@ export abstract class ConfiguredCompiler extends Compiler {
   }
 }
 
+type SourcePath = string
+
+type SourceRef = string
+
+type CompileBatches = Record<SourcePath, Record<SourceRef, CompileBatch>>
+
+type CompileBatch = {
+  sourcePath: string, sourceRef: string, tasks: Set<CompileTask>
+}
+
+type CompileTask = CompileCrateTask|CompileWorkspaceTask
+
+type CompileCrateTask = {
+  buildIndex: number, cargoToml: string, cargoCrate: string
+}
+
+type CompileWorkspaceTask = {
+  cargoWorkspace: string, cargoCrates: Array<CompileWorkspaceCrateTask>
+}
+
+type CompileWorkspaceCrateTask = {
+  buildIndex: number, cargoCrate: string
+}
+
 /** Can compile Rust smart contracts.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class LocalRustCompiler extends ConfiguredCompiler {
@@ -69,39 +93,27 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   /** Logger. */
   log = new Console('build (local)')
   /** Whether the build process should print more detail to the console. */
-  verbose: boolean =
-    this.config.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
+  verbose: boolean = this.config.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
   /** Whether the build log should be printed only on error, or always */
-  quiet: boolean =
-    this.config.getFlag('FADROMA_BUILD_QUIET', ()=>false)
+  quiet: boolean = this.config.getFlag('FADROMA_BUILD_QUIET', ()=>false)
   /** The build script. */
-  script?: string =
-    this.config.getString('FADROMA_BUILD_SCRIPT', ()=>{
-      return $(packageRoot).in('ops').at('build.impl.mjs').path
-    })
-  /** Workspace root for project crates. This is the directory that contains the root `Cargo.toml`.
-    * Defaults to parent directory of FADROMA_PROJECT. */
-  workspace?: string =
-    this.config.getString('FADROMA_WORKSPACE', ()=>process.cwd())
+  script?: string = this.config.getString('FADROMA_BUILD_SCRIPT', ()=>{
+    return $(packageRoot).in('ops').at('build.impl.mjs').path
+  })
   /** Whether to skip any `git fetch` calls in the build script. */
-  noFetch: boolean =
-    this.config.getFlag('FADROMA_NO_FETCH', ()=>false)
+  noFetch: boolean = this.config.getFlag('FADROMA_NO_FETCH', ()=>false)
   /** Name of directory where build artifacts are collected. */
   outputDir: OpaqueDirectory = new OpaqueDirectory(
     this.config.getString('FADROMA_ARTIFACTS', ()=>$(process.cwd()).in('wasm').path)
   )
   /** Version of Rust toolchain to use. */
-  toolchain: string|null =
-    this.config.getString('FADROMA_RUST', ()=>'')
+  toolchain: string|null = this.config.getString('FADROMA_RUST', ()=>'')
   /** Default Git reference from which to build sources. */
-  revision: string =
-    HEAD
+  revision: string = HEAD
   /** Owner uid that is set on build artifacts. */
-  buildUid?: number =
-    (process.getuid ? process.getuid() : undefined) // process.env.FADROMA_BUILD_UID
+  buildUid?: number = (process.getuid ? process.getuid() : undefined) // process.env.FADROMA_BUILD_UID
   /** Owner gid that is set on build artifacts. */
-  buildGid?: number =
-    (process.getgid ? process.getgid() : undefined) // process.env.FADROMA_BUILD_GID
+  buildGid?: number = (process.getgid ? process.getgid() : undefined) // process.env.FADROMA_BUILD_GID
   /** Whether to enable caching and reuse contracts from artifacts directory. */
   caching: boolean =
     !this.config.getFlag('FADROMA_REBUILD', ()=>false)
@@ -109,7 +121,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   constructor (options?: Partial<LocalRustCompiler>) {
     super()
     assign(this, options, [
-      'workspace', 'noFetch', 'toolchain', 'verbose', 'quiet', 'outputDir', 'script'
+      'noFetch', 'toolchain', 'verbose', 'quiet', 'outputDir', 'script'
     ])
   }
 
@@ -123,12 +135,114 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     }
     return source
   }
+
+  /** Compile a single contract. */
+  async build (contract: string|Partial<RustSourceCode>): Promise<CompiledCode> {
+    return (await this.buildMany([contract]))[0]
+  }
+
+  /** This implementation groups the passed source by workspace and ref,
+    * in order to launch one build container per workspace/ref combination
+    * and have it build all the crates from that combination in sequence,
+    * reusing the container's internal intermediate build cache. */
+  async buildMany (
+    contracts: (string|(Partial<RustSourceCode>))[],
+    // options: { parallel?: boolean } // TODO
+  ): Promise<CompiledCode[]> {
+    const results: CompiledCode[] = []
+    // Group contracts by source root, source ref, and cargo workspace.
+    const batches = this.collectBatches(contracts.map(
+      x => (typeof x === 'string') ? { sourcePath: x } : x
+    ) as Partial<RustSourceCode>[])
+    // Run each root/ref pair in a container, executing one or more cargo build commands.
+    for (const [root, refs] of Object.entries(batches)) {
+      for (const [ref, batch] of Object.entries(refs)) {
+        const batchResults = await this.buildBatch(batch)
+        for (const [index, result] of batchResults) {
+          results[index] = result
+        }
+      }
+    }
+    return results
+  }
+
+  protected collectBatches (contracts: Array<Partial<RustSourceCode>>): CompileBatches {
+    // Batch by sourcePath, then by sourceRef, then group by workspace
+    const batches: CompileBatches = {}
+    // Assign each contract to its appropriate branch and group
+    for (let buildIndex = 0; buildIndex < contracts.length; buildIndex++) {
+      const contract = contracts[buildIndex]
+      let {
+        cargoToml,
+        cargoWorkspace,
+        cargoCrate,
+        sourcePath = cargoWorkspace
+          ? $(cargoWorkspace).parent
+          : cargoToml
+            ? $(cargoToml).parent
+            : undefined,
+        sourceRef = 'HEAD',
+      } = contract
+      if (!sourcePath) {
+        throw new Error('Missing source path')
+      }
+      batches[sourcePath] ??= {}
+      batches[sourcePath][sourceRef] ??= { sourcePath, sourceRef, tasks: new Set() }
+      if (cargoWorkspace && cargoToml) {
+        throw new Error('When cargoWorkspace is set, use cargoCrate (name) instead of cargoToml (path)')
+      }
+      if (cargoWorkspace) {
+        if (!cargoCrate) {
+          throw new Error('When cargoWorkspace is set, you must specify cargoCrate')
+        }
+        let workspaceTask: CompileWorkspaceTask
+        for (const task of batches[sourcePath][sourceRef].tasks) {
+          if ((task as CompileWorkspaceTask).cargoWorkspace === cargoWorkspace) {
+            workspaceTask = task as CompileWorkspaceTask
+            break
+          }
+        }
+        workspaceTask ??= { cargoWorkspace, cargoCrates: [] }
+        workspaceTask.cargoCrates.push({ buildIndex, cargoCrate })
+      } else {
+        if (!cargoToml) {
+          throw new Error('When cargoWorkspace is not set, you must specify cargoToml')
+        }
+        const cargoCrate = $(cargoToml)
+          .as(TOMLFile<CargoTOML>)
+          .load()!
+          .package.name
+        batches[sourcePath][sourceRef].tasks.add({
+          buildIndex, cargoToml, cargoCrate
+        } as CompileCrateTask)
+      }
+    }
+    return batches
+  }
+
+  /** Check if codePath exists in local artifacts cache directory.
+    * If it does, don't rebuild it but return it from there. */
+  protected tryGetCached (
+    outputDir: string,
+    { sourceRef, cargoCrate }: Partial<RustSourceCode>
+  ): CompiledCode|null {
+    if (this.caching && cargoCrate) {
+      const location = $(outputDir, codePathName(cargoCrate, sourceRef||HEAD))
+      if (location.exists()) {
+        const codePath = location.url
+        const codeHash = $(location).as(BinaryFile).sha256
+        return new CompiledCode({ codePath, codeHash })
+      }
+    }
+    return null
+  }
+
+  protected abstract buildBatch (batch: CompileBatch):
+    Promise<Set<[number, CompiledCode]>>
 }
 
 /** Runs the build script in the current envionment. */
 export class RawLocalRustCompiler extends LocalRustCompiler {
-  readonly id = 'Raw'
-
   /** Logging handle. */
   log = new Console('build (raw)')
 
@@ -136,17 +250,22 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     * Defaults to the same one that is running this script. */
   runtime = process.argv[0]
 
-  /** Build a Source into a Template */
+  protected async buildBatch (batch: CompileBatch): Promise<Set<[number, CompiledCode]>> {
+    throw new Error("not implemented")
+  }
+
+  /** Compile a Source into a Template */
   async build (source: string|Partial<RustSourceCode>): Promise<CompiledCode> {
     if (typeof source === 'string') {
       source = new RustSourceCode({ sourcePath: source })
     }
     const {
       sourcePath,
-      sourceRoot = sourcePath,
       sourceRef = HEAD,
+      cargoToml,
       cargoWorkspace,
-      cargoCrate
+      cargoCrate,
+      cargoFeatures
     } = source
     if (!sourcePath) {
       throw new Error("can't build without at least sourcePath")
@@ -161,24 +280,24 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     let location: Path
     if (sourceRef && (sourceRef !== HEAD)) {
       // Check out commit in temp directory
-      const gitDir = $(sourceRoot||sourcePath, '.git')
+      const gitDir = $(sourcePath, '.git')
       if (!gitDir.exists()) {
         throw new Error(`could not find ${gitDir.path}`)
       }
       const tmpGit = $.tmpDir('fadroma-git-')
-      const tmpBuild = $.tmpDir('fadroma-build-')
-      location = await this.runBuild(source, Object.assign(env, {
+      const tmpCompile = $.tmpDir('fadroma-build-')
+      location = await this.runCompile(source, Object.assign(env, {
         FADROMA_GIT_ROOT:   gitDir.path,
         FADROMA_GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
         FADROMA_NO_FETCH:   this.noFetch,
-        FADROMA_TMP_BUILD:  tmpBuild.path,
+        FADROMA_TMP_BUILD:  tmpCompile.path,
         FADROMA_TMP_GIT:    tmpGit.path,
       }))
       if (tmpGit.exists()) tmpGit.delete()
-      if (tmpBuild.exists()) tmpBuild.delete()
+      if (tmpCompile.exists()) tmpCompile.delete()
     } else {
-      // Build from available source
-      location = await this.runBuild(source, env)
+      // Compile from available source
+      location = await this.runCompile(source, env)
     }
     // Create an codePath for the build result
     const codePath = pathToFileURL(location.path)
@@ -186,7 +305,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     return new CompiledCode({ codePath, codeHash })
   }
 
-  protected runBuild (
+  protected runCompile (
     source: Partial<RustSourceCode>, env: { FADROMA_OUTPUT: string }
   ): Promise<Path> {
     source = this.resolveSource(source)
@@ -211,7 +330,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
         cwd: sourcePath, env: { ...process.env, ...env }, stdio: 'inherit'
       })
       spawned.on('exit', (code: number, signal: any) => {
-        const build = `Build of ${cargoCrate} from ${$(sourcePath!).shortPath} @ ${sourceRef}`
+        const build = `Compile of ${cargoCrate} from ${$(sourcePath!).shortPath} @ ${sourceRef}`
         if (code === 0) {
           resolve($(env.FADROMA_OUTPUT, codePathName(cargoCrate!, sanitize(sourceRef||'HEAD'))))
         } else if (code !== null) {
@@ -234,12 +353,10 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
   }
 }
 
-
 /** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
-  readonly id = 'Container'
   /** Logger */
-  log = new Console('build (container)')
+  log = new Console('compiling in container')
   /** Used to launch build container. */
   docker: Engine
   /** Tag of the docker image for the build container. */
@@ -249,19 +366,26 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     return this.config.getFlag('FADROMA_PODMAN', ()=>false)
   })
   /** Path to Docker API endpoint. */
-  dockerSocket = this.config.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
+  dockerSocket: string =
+    this.config.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
   /** Docker image to use for dockerized builds. */
-  dockerImage = this.config.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
+  dockerImage: string =
+    this.config.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
   /** Path to the dockerfile for the build container if missing. */
-  dockerfile = this.config.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(packageRoot).at('Dockerfile').path)
+  dockerfile: string =
+    this.config.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(packageRoot).at('Dockerfile').path)
   /** Owner uid that is set on build artifacts. */
-  outputUid = this.config.getString('FADROMA_BUILD_UID', () => undefined)
+  outputUid: string|undefined =
+    this.config.getString('FADROMA_BUILD_UID', () => undefined)
   /** Owner gid that is set on build artifacts. */
-  outputGid = this.config.getString('FADROMA_BUILD_GID', () => undefined)
+  outputGid: string|undefined =
+    this.config.getString('FADROMA_BUILD_GID', () => undefined)
   /** Used for historical builds. */
-  preferredRemote = this.config.getString('FADROMA_PREFERRED_REMOTE', () => 'origin')
+  preferredRemote: string =
+    this.config.getString('FADROMA_PREFERRED_REMOTE', () => 'origin')
   /** Used to authenticate Git in build container. */
-  sshAuthSocket = this.config.getString('SSH_AUTH_SOCK', () => undefined)
+  sshAuthSocket: string|undefined =
+    this.config.getString('SSH_AUTH_SOCK', () => undefined)
 
   constructor (options?: Partial<ContainerizedLocalRustCompiler>) {
     super(options as Partial<LocalRustCompiler>)
@@ -290,222 +414,133 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}`
   }
 
-  /** Build a single contract. */
-  async build (contract: string|Partial<RustSourceCode>): Promise<CompiledCode> {
-    return (await this.buildMany([contract]))[0]
-  }
-
-  /** This implementation groups the passed source by workspace and ref,
-    * in order to launch one build container per workspace/ref combination
-    * and have it build all the crates from that combination in sequence,
-    * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: (string|(Partial<RustSourceCode>))[]): Promise<CompiledCode[]> {
-    // This copies the argument because we'll mutate its contents anyway
-    inputs = inputs.map(source=>this.resolveSource(source))
-    // Batch together inputs from the same repo+commit.
-    // Go over the list of inputs, filtering out the ones that are already built,
-    // and collecting the source repositories and revisions. This will allow for
-    // multiple crates from the same source checkout to be passed to a single build command. */
-    const workspaces = new Set<string>()
-    const revisions  = new Set<string>()
-    for (let id in inputs) {
-      // Contracts passed as strins are converted to object here
-      const source = inputs[id] as Partial<RustSourceCode>
-      source.cargoWorkspace ??= this.workspace
-      source.sourceRef ??= 'HEAD'
-      // If the source is already built, don't build it again
-      if (!this.getCached(this.outputDir.path, source)) {
-        if (!source.sourceRef || (source.sourceRef === HEAD)) {
-          this.log(`Building ${bold(source.cargoCrate)} from working tree`)
-        } else {
-          this.log(`Building ${bold(source.cargoCrate)} from revision ${bold(source.sourceRef)}`)
-        }
-        // Add the source repository of the contract to the list of inputs to build
-        workspaces.add(source.cargoWorkspace!)
-        revisions.add(source.sourceRef!)
+  protected async buildBatch (
+    batch: CompileBatch,
+    options: { outputDir?: string, buildScript?: string|Path } = {}
+  ): Promise<Set<[number, CompiledCode]>> {
+    const {
+      sourcePath,
+      sourceRef,
+      tasks
+    } = batch
+    const {
+      outputDir   = this.outputDir.path,
+      buildScript = this.script
+    } = options
+    if (!buildScript) {
+      throw new Error('missing build script')
+    }
+    this.log.log('Building contracts from', bold(sourcePath), '@', bold(sourceRef))
+    // Output results will be collected here.
+    const results: Array<[number, CompiledCode]> = []
+    // Standalone crates get built with:
+    // - cargo build --manifest-path /path/to/Cargo.toml --target-dir /path/to/output/dir
+    // Workspace crates get built with:
+    // - cargo build --manifest-path /path/to/workspace/Cargo.toml -p crate1 crate2 crate3
+    const safeRef = sanitize(sourceRef)
+    const command = ['node', $(`/`, $(buildScript).name).path, 'phase1',]
+    const env: Record<string, string> = {
+      FADROMA_VERBOSE:     String(this.verbose),
+      FADROMA_IN_DOCKER:   'true',
+      FADROMA_SRC_REF:     sourceRef||'HEAD',
+      FADROMA_BUILD_TASKS: JSON.stringify([...tasks]),
+      FADROMA_BUILD_UID:   String(this.buildUid),
+      FADROMA_BUILD_GID:   String(this.buildGid),
+      FADROMA_GIT_REMOTE:  this.preferredRemote,
+      FADROMA_NO_FETCH:    String(this.noFetch),
+      // Used by tools invoked by the build script:
+      LOCKED:                       '',/*'--locked'*/
+      CARGO_HTTP_TIMEOUT:           '240',
+      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+      GIT_PAGER:                    'cat',
+      GIT_TERMINAL_PROMPT:          '0',
+      SSH_AUTH_SOCK:                '/ssh_agent_socket',
+      TERM:                         process?.env?.TERM||'',
+    }
+    // Remove keys whose value is `undefined` from `buildEnv`
+    for (const key of Object.keys(env)) {
+      if (env[key as keyof typeof env] === undefined) {
+        delete env[key as keyof typeof env]
       }
     }
-    // For each repository/revision pair, build the inputs from it.
-    for (const path of workspaces) {
-      for (const revision of revisions) {
-        await this.buildBatch(inputs as Partial<RustSourceCode>[], path, revision)
-      }
+    // Readonly mounts:
+    const readonly: Record<string, string> = {}
+    // - Script that will run in the container
+    readonly[$(buildScript).path] = $(`/`, $(buildScript).name).path
+    // - Repo root, containing real .git
+    readonly[$(sourcePath).path] = '/src'
+    // - For non-interactively fetching submodules over SSH,
+    //   we need to propagate both known_hosts files:
+    const userKnownHosts = $(homedir()).in('.ssh').at('known_hosts')
+    if (userKnownHosts.isFile()) {
+      readonly[userKnownHosts.path] = '/root/.ssh/known_hosts'
     }
-    return inputs as CompiledCode[]
-  }
-
-  protected async buildBatch (inputs: Partial<RustSourceCode>[], path: string, rev: string = HEAD) {
-    this.log.log('Building from', path, '@', rev)
-    let root = $(path)
-    let gitSubDir = ''
-    let srcSubDir = ''
-    const paths = new Set([ root.path ])
-    // If building from history, make sure that full source is mounted, and fetch history
-    if (rev !== HEAD) {
-      const gitDir = new DotGit(path)
-      root = gitDir.rootRepo
-      if (gitDir.isSubmodule) gitSubDir = gitDir.submoduleDir
-      const remote = this.preferredRemote || 'origin'
-      try {
-        await this.fetch(gitDir, remote)
-      } catch (e) {
-        this.log
-          .warn(`Git fetch from remote ${remote} failed.`)
-          .warn(`The build may fail or produce an outdated result.`)
-          .warn(e)
-      }
+    const globalKnownHosts = $(`/etc`).in('ssh').at('ssh_known_hosts')
+    if (globalKnownHosts.isFile()) {
+      readonly[globalKnownHosts.path] = '/etc/ssh/ssh_known_hosts'
     }
-    // If inputs contain path dependencies pointing to parent dirs
-    // (e.g. fadroma/examples/foo pointing to ../../), make sure
-    // those are mounted into the container.
-    for (const input of inputs) {
-      const paths = new Set<string>()
-      const root = input.cargoWorkspace||input.sourcePath!
-      const { dependencies = [] } = $(root, 'Cargo.toml').as(TOMLFile<CargoTOML>).load()
-      for (const [dep, ver] of Object.entries(dependencies)) {
-        if (ver.path) {
-          paths.add($(root, ver.path).path)
-        }
-      }
-      for (const path of paths) {
-        paths.add(path)
-      }
+    // For fetching from private repos, we need to give the container access to ssh-agent:
+    if (this.sshAuthSocket) {
+      readonly[this.sshAuthSocket!] = '/ssh_agent_socket'
     }
-    const allPathFragments  = [...paths].sort().map(path=>path.split(sep))
-    const basePathFragments = []
-    const firstPath = allPathFragments[0]
-    const lastPath  = allPathFragments[allPathFragments.length - 1]
-    let i
-    for (i = 0; i < firstPath.length; i++) {
-      if (firstPath[i] === lastPath[i]) {
-        basePathFragments.push(firstPath[i])
-      } else {
-        break
-      }
-    }
-    root = $(basePathFragments.join(sep))
-    srcSubDir = root.relative($('.', ...root.path.split(sep).slice(i)))
-    this.log.debug(`building from workspace:`, bold(`${$(root.path).shortPath}/`), `@`, bold(rev))
-    const matched = this.matchBatch(inputs, path, rev)
-    const results = await this.runContainer(
-      root.path, root.relative(path), rev, matched, gitSubDir
-    )
-    // Using the previously collected indices, populate the values in each of the passed inputs.
-    for (const index in results) {
-      if (!results[index]) continue
-      const input = inputs[index] as Partial<CompiledCode>
-      input.codePath = results[index]!.codePath
-      input.codeHash = results[index]!.codeHash
-    }
-  }
-
-  protected async fetch (gitDir: Path, remote: string) {
-    await simpleGit(gitDir.path).fetch(remote)
-  }
-
-  /** Match each crate from the current repo/ref pair
-      with its index in the originally passed list of inputs. */
-  protected matchBatch (
-    inputs: Partial<RustSourceCode>[], path: string, rev: string
-  ): [number, string|undefined, string|undefined][] {
-    const crates: [number, string|undefined, string|undefined][] = []
-    for (let index = 0; index < inputs.length; index++) {
-      const source = inputs[index]
-      const { sourcePath, sourceRef = 'HEAD', cargoCrate, cargoWorkspace } = source
-      if (sourcePath === path && sourceRef === rev) {
-        crates.push([index, cargoCrate, cargoWorkspace])
-      }
-    }
-    return crates
-  }
-
-  /** Build the crates from each same workspace/revision pair and collect the results. */
-  protected async runContainer (
-    root: string, subdir: string, rev: string,
-    crates: [number, string][], gitSubDir: string = '', outputDir: string = this.outputDir.path
-  ): Promise<(CompiledCode|null)[]> {
-    if (!this.script) throw new Error('missing build script')
-    // Default to building from working tree.
-    rev ??= HEAD
-    // Collect crates to build
-    const [templates, shouldBuild] = this.collectCrates(outputDir, rev, crates)
-    // If there are no templates to build, this means everything was cached and we're done.
-    if (Object.keys(shouldBuild).length === 0) return templates as CompiledCode[]
-    // Define the mounts and environment variables of the build container
-    const safeRef = sanitize(rev)
-    // Pre-populate the list of expected artifacts.
-    const outputs = new Array<string|null>(crates.length).fill(null)
-    for (const [crate, index] of Object.entries(shouldBuild))
-      outputs[index] = $(outputDir, codePathName(crate, safeRef)).path
-    // Pass the compacted list of crates to build into the container
-    const cratesToBuild = Object.keys(shouldBuild)
-    // Rest of container config:
-    const buildScript = $(`/`, $(this.script).name).path
-    const command = [ 'node', buildScript, 'phase1', rev, ...cratesToBuild ]
-    const {readonly, writable} = this.getMounts(buildScript, root, outputDir, safeRef)
-    const options = this.getOptions({ subdir, gitSubDir, ro: readonly, rw: writable })
+    // Writable mounts:
+    const writable: Record<string, string> = {}
+    // - Output path for final artifacts:
+    writable[outputDir] = `/output`
+    // - Persist cache to make future rebuilds faster. May be unneccessary.
+    // [`project_cache_${safeRef}`]: `/tmp/target`,
+    writable[`cargo_cache_${safeRef}`] = `/usr/local/cargo`
+    // Create stream for collecting build logs
     let buildLogs = ''
-    const logs = this.getLogStream(rev, (data) => {buildLogs += data})
+    const logs = this.getLogStream(sourceRef, (data) => {buildLogs += data})
     // Create output directory as user if it does not exist
     $(outputDir).as(OpaqueDirectory).make()
     // Run the build container
-    this.log(
-      `started building from ${bold($(root).shortPath)} @ ${bold(rev)}:`,
-      cratesToBuild.map(x=>bold(x)).join(', ')
-    )
-    const name = `fadroma-build-${randomBytes(3).toString('hex')}`
-    const buildContainer = await this.image.run(name, options, command, '/usr/bin/env', logs)
+    const buildContainer = await this.image.run(`fadroma-build-${randomBytes(3).toString('hex')}`, {
+      remove: true, readonly, writable, cwd: '/src', env, extra: { Tty: true, AttachStdin: true }
+    }, command, '/usr/bin/env', logs)
     // If this process is terminated, the build container should be killed
-    process.once('beforeExit', () => this.killContainerizedLocalRustCompiler(buildContainer))
+    process.once('beforeExit', async () => {
+      if (this.verbose) this.log.log('killing build container', bold(buildContainer.id))
+      try {
+        await buildContainer.kill()
+        this.log.log('killed build container', bold(buildContainer.id))
+      } catch (e) {
+        if (!e.statusCode) this.log.error(e)
+        else if (e.statusCode === 404) {}
+        else if (this.verbose) this.log.warn(
+          'failed to kill build container', e.statusCode, `(${e.reason})`
+        )
+      }
+    })
+    // Wait for build to, hopefully, complete
     const {error, code} = await buildContainer.wait()
     // Throw error if launching the container failed
-    if (error) throw new Error(`[@hackbg/fadroma] Docker error: ${error}`)
-    // Throw error if the build failed
-    if (code !== 0) this.buildFailed(cratesToBuild, code, buildLogs)
-    // Return a sparse array of the resulting artifacts
-    return outputs.map(x=>this.locationToContract(x) as CompiledCode)
-  }
-
-  protected getMounts (buildScript: string, root: string, outputDir: string, safeRef: string) {
-    throw new Error('missing build script')
-    const readonly: Record<string, string> = {}
-    const writable: Record<string, string> = {}
-    // Script that will run in the container
-    readonly[this.script!]  = buildScript 
-    // Repo root, containing real .git
-    readonly[$(root).path] = '/src'
-    // For non-interactively fetching submodules over SSH, we need to propagate known_hosts:
-    const userKnownHosts = $(homedir()).in('.ssh').at('known_hosts')
-    if (userKnownHosts.isFile()) readonly[userKnownHosts.path] = '/root/.ssh/known_hosts'
-    const globalKnownHosts = $(`/etc`).in('ssh').at('ssh_known_hosts')
-    if (globalKnownHosts.isFile()) readonly[globalKnownHosts.path] = '/etc/ssh/ssh_known_hosts'
-    // For fetching from private repos, we need to give the container access to ssh-agent:
-    if (this.sshAuthSocket) readonly[this.sshAuthSocket!] = '/ssh_agent_socket'
-    // Output path for final artifacts:
-    writable[outputDir] = `/output`
-    // Persist cache to make future rebuilds faster. May be unneccessary.
-    //[`project_cache_${safeRef}`]: `/tmp/target`,
-    writable[`cargo_cache_${safeRef}`] = `/usr/local/cargo`
-    return { readonly, writable }
-  }
-
-  protected collectCrates (outputDir: string, revision: string, crates: [number, string][]) {
-    // Output slots. Indices should correspond to those of the input to buildMany
-    const templates: Array<CompiledCode|null> = crates.map(()=>null)
-    // Whether any crates should be built, and at what indices they are in the input and output.
-    const shouldBuild: Record<string, number> = {}
-    // Collect cached templates. If any are missing from the cache mark them as source.
-    for (const [index, crate] of crates) {
-      const prebuilt = this.getCached(outputDir, crate, revision)
-      if (prebuilt) {
-        //const location = $(prebuilt.codePath!).shortPath
-        //console.info('Exists, not rebuilding:', bold($(location).shortPath))
-        templates[index] = prebuilt
-      } else {
-        shouldBuild[crate] = index
-      }
+    if (error) {
+      throw new Error(`[@hackbg/fadroma] Docker error: ${error}`)
     }
-    return [ templates, shouldBuild ]
+    // Throw error if the build failed
+    if (code !== 0) {
+      const crateList = cratesToCompile.join(' ')
+      this.log
+        .log(logs)
+        .error(
+          'Compile of crates:',
+          bold(crateList),
+          'exited with status',
+          bold(String(code))
+        )
+      throw new Error(
+        `[@hackbg/fadroma] Compile of crates: "${crateList}" exited with status ${code}`
+      )
+    }
+    // Return a sparse array of the resulting artifacts
+    return new Set(results.map(([index, location]) => {
+      //if (location === null) return null
+      const codePath = $(location).url
+      const codeHash = $(location).as(BinaryFile).sha256
+      return [index, new CompiledCode({ codePath, codeHash })]
+    }))
   }
 
   /** Check if codePath exists in local artifacts cache directory.
@@ -520,41 +555,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
       }
     }
     return null
-  }
-
-  protected getOptions (options?: Partial<{
-    subdir: string, gitSubdir: string, ro: Record<string, string>, rw: Record<string, string>,
-  }>) {
-    const remove = true
-    const cwd = '/src'
-    const env = {
-      // Used by the build script itself:
-      FADROMA_BUILD_UID:  String(this.buildUid),
-      FADROMA_BUILD_GID:  String(this.buildGid),
-      FADROMA_GIT_REMOTE: this.preferredRemote,
-      FADROMA_GIT_SUBDIR: options?.gitSubdir,
-      FADROMA_SRC_SUBDIR: options?.subdir,
-      FADROMA_NO_FETCH:   String(this.noFetch),
-      FADROMA_VERBOSE:    String(this.verbose),
-      // Used by tools invoked by the build script:
-      LOCKED:                       '',/*'--locked'*/
-      CARGO_HTTP_TIMEOUT:           '240',
-      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-      GIT_PAGER:                    'cat',
-      GIT_TERMINAL_PROMPT:          '0',
-      SSH_AUTH_SOCK:                '/ssh_agent_socket',
-      TERM:                         process?.env?.TERM,
-    }
-    // Remove keys whose value is `undefined` from `buildEnv`
-    for (const key of Object.keys(env)) {
-      if (env[key as keyof typeof env] === undefined) {
-        delete env[key as keyof typeof env]
-      }
-    }
-    const extra = { Tty: true, AttachStdin: true }
-    return {
-      remove, readonly: options?.ro, writable: options?.rw, cwd, env, extra
-    }
   }
 
   protected getLogStream (revision: string, cb: (data: string)=>void) {
@@ -573,35 +573,4 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     return buildLogStream
   }
 
-  protected buildFailed (crates: string[], code: string|number, logs: string) {
-    const crateList = crates.join(' ')
-    this.log
-      .log(logs)
-      .error('Build of crates:', bold(crateList), 'exited with status', bold(String(code)))
-    throw new Error(`[@hackbg/fadroma] Build of crates: "${crateList}" exited with status ${code}`)
-  }
-
-  protected locationToContract (location: any) {
-    if (location === null) return null
-    const codePath = $(location).url
-    const codeHash = $(location).as(BinaryFile).sha256
-    return new CompiledCode({
-      codePath,
-      codeHash
-    })
-  }
-
-  protected async killContainerizedLocalRustCompiler (buildContainer: Container) {
-    if (this.verbose) this.log.log('killing build container', bold(buildContainer.id))
-    try {
-      await buildContainer.kill()
-      this.log.log('killed build container', bold(buildContainer.id))
-    } catch (e) {
-      if (!e.statusCode) this.log.error(e)
-      else if (e.statusCode === 404) {}
-      else if (this.verbose) this.log.warn(
-        'failed to kill build container', e.statusCode, `(${e.reason})`
-      )
-    }
-  }
 }

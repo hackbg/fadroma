@@ -54,18 +54,6 @@ export class ProjectRoot {
       .createGitRepo()
   }
 
-  createGitRepo () {
-    Tools.runShellCommands(this.root.path, ['git --no-pager init -b main',])
-    $(this.root, '.gitignore').as(TextFile).save(Tools.generateGitIgnore())
-    Tools.runShellCommands(this.root.path, [
-      'git --no-pager add .',
-      'git --no-pager status',
-      'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
-      "git --no-pager log",
-    ])
-    return this
-  }
-
   readonly root: Path
 
   constructor (readonly name: string, root: string|Path) {
@@ -84,10 +72,24 @@ export class ProjectRoot {
       .info('Project root: ', bold(this.root.path))
   }
 
+  createGitRepo () {
+    Tools.runShellCommands(this.root.path, ['git --no-pager init -b main',])
+    $(this.root, '.gitignore').as(TextFile).save(Tools.generateGitIgnore())
+    Tools.runShellCommands(this.root.path, [
+      'git --no-pager add .',
+      'git --no-pager status',
+      'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
+      "git --no-pager log",
+    ])
+    return this
+  }
+
   static async askName (): Promise<string> {
     let value
     do {
-      value = await Prompts.askText('Enter a project name (a-z, 0-9, dash/underscore)')??''
+      value = await Prompts.askText({
+        message: 'Enter a project name (a-z, 0-9, dash/underscore)'
+      })??''
       value = value.trim()
       if (!isNaN(value[0] as any)) {
         console.info('Project name cannot start with a digit.')
@@ -98,21 +100,25 @@ export class ProjectRoot {
   }
 
   static async askRoot (name: string|Promise<string>|undefined): Promise<Path> {
-    name = await Promise.resolve(name) as string
-    const cwd    = $(process.cwd()).as(OpaqueDirectory)
-    const exists = cwd.in(name).exists()
-    const inSub  = `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
-    const inCwd  = `Current directory (${cwd.name})`
-    const choice = [
+    name =
+      await Promise.resolve(name) as string
+    const cwd =
+      $(process.cwd()).as(OpaqueDirectory)
+    const exists =
+      cwd.in(name).exists()
+    const inSub =
+      `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
+    const inCwd =
+      `Current directory (${cwd.name})`
+    const choices = [
       { title: inSub, value: cwd.in(name) },
       { title: inCwd, value: cwd },
     ]
     if ((cwd.list()?.length||0) === 0) {
-      choice.reverse()
+      choices.reverse()
     }
-    return Prompts.askSelect(
-      `Create project ${name} in current directory or subdirectory?`, choice
-    )
+    const message = `Create project ${name} in current directory or subdirectory?`
+    return Prompts.askSelect({ message, choices })
   }
 }
 
@@ -263,22 +269,23 @@ export class CargoProject extends Project {
     docker = Tools.NOT_INSTALLED,
     podman = Tools.NOT_INSTALLED
   }: Partial<Tools.SystemTools>): Promise<'raw'|'docker'|'podman'> {
-    const variant = (value: string, title: string) =>
-      ({ value, title })
-    const buildRaw =
-      variant('raw',    `No isolation, build with local toolchain (${cargo||'cargo: not found!'})`)
-    const buildDocker =
-      variant('docker', `Isolate builds in a Docker container (${docker||'docker: not found!'})`)
+    const variant = (value: string, title: string) => ({ value, title })
+    const buildRaw = variant(
+      'raw', `No isolation, build with local toolchain (${cargo||'cargo: not found!'})`
+    )
+    const buildDocker = variant(
+      'docker', `Isolate builds in a Docker container (${docker||'docker: not found!'})`
+    )
     /* TODO: podman is currently disabled
     const buildPodman = variant('podman',
       `Isolate builds in a Podman container (experimental; ${podman||'podman: not found!'})`)
     const hasPodman = podman && (podman !== NOT_INSTALLED)
      const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ] */
-    const engines =
-      [ buildDocker ]
-    const options =
-      isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
-    return await Prompts.askSelect(`Select build isolation mode:`, options)
+    const engines = [ buildDocker ]
+    return await Prompts.askSelect({
+      message: `Select build isolation mode:`,
+      choices: isLinux ? [ ...engines, buildRaw ] : [ buildRaw, ...engines ]
+    })
   }
 }
 

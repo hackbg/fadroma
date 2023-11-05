@@ -63,10 +63,10 @@ export async function askDeployment (store: DeployStore & {
   const label = store.root
     ? `Select a deployment from ${store.root.shortPath}:`
     : `Select a deployment:`
-  return await askSelect(label, [
+  return await askSelect({ prompts: Prompts, message: label, choices: [
     [...store.keys()].map(title=>({ title, value: title })),
     { title: '(cancel)', value: undefined }
-  ])
+  ]})
 }
 
 export function logInstallRust ({ isMac, homebrew, cargo, rust }: SystemTools) {
