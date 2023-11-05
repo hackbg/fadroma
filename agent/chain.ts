@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Name, Address, Class, Into, Many, TxHash, Label, Message } from './base'
 import { Error, Console, bold, into, assign } from './base'
-import type { ICoin, IFee } from './token'
+import type * as Token from './token'
 import type { UploadStore } from './store'
 import type { CodeHash, CodeId } from './code'
 import { CompiledCode, UploadedCode } from './code'
@@ -66,7 +66,12 @@ export abstract class Agent {
   chainId?: ChainId
 
   /** Default fee maximums for send, upload, init, and execute. */
-  fees?:    { send?: IFee, upload?: IFee, init?: IFee, exec?: IFee }
+  fees?: {
+    send?:   Token.IFee,
+    upload?: Token.IFee,
+    init?:   Token.IFee,
+    exec?:   Token.IFee
+  }
 
   /** If this is a devnet, this contains an interface to the devnet container. */
   devnet?:  Devnet
@@ -236,7 +241,7 @@ export abstract class Agent {
     options: {
       reupload?:    boolean,
       uploadStore?: UploadStore,
-      uploadFee?:   ICoin[]|'auto',
+      uploadFee?:   Token.ICoin[]|'auto',
       uploadMemo?:  string
     } = {},
   ): Promise<UploadedCode & { chainId: ChainId, codeId: CodeId }> {
@@ -333,7 +338,7 @@ export abstract class Agent {
   async execute (
     contract: Address|Partial<ContractInstance>,
     message:  Message,
-    options?: { execFee?: IFee, execSend?: ICoin[], execMemo?: string }
+    options?: { execFee?: Token.IFee, execSend?: Token.ICoin[], execMemo?: string }
   ): Promise<unknown> {
     if (typeof contract === 'string') contract = new ContractInstance({ address: contract })
     if (!contract.address) throw new Error("agent.execute: no contract address")
@@ -375,11 +380,14 @@ export abstract class Agent {
     Promise<unknown>
 
   /** Send native tokens to 1 recipient. */
-  abstract send (to: Address, amounts: ICoin[], opts?: unknown):
-    Promise<unknown>
+  abstract send (
+    recipient: Address|{ address?: Address },
+    amounts: Token.ICoin[],
+    opts?: { sendFee?: Token.IFee, sendMemo?: string }
+  ): Promise<unknown>
 
   /** Send native tokens to multiple recipients. */
-  abstract sendMany (outputs: [Address, ICoin[]][], opts?: unknown):
+  abstract sendMany (outputs: [Address, Token.ICoin[]][], opts?: unknown):
     Promise<unknown>
 
   protected abstract doUpload (

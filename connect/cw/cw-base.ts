@@ -123,11 +123,23 @@ class CWAgent extends Agent {
 
   /** Stargate implementation of sending native token. */
   send (
-    recipient: Address,
+    recipient: Address|{ address?: Address },
     amounts:   Token.ICoin[],
     options?:  Parameters<Agent["send"]>[2]
   ): Promise<void|unknown> {
-    throw new Error('not implemented')
+    if (typeof recipient === 'object') recipient = recipient.address!
+    return this.api.then(api=>{
+      if (!(api as SigningCosmWasmClient)?.sendTokens) {
+        throw new CWError("can't send tokens with an unauthenticated agent")
+      } 
+      return (api as SigningCosmWasmClient).sendTokens(
+        this.address!,
+        recipient as string,
+        amounts,
+        options?.sendFee || 'auto',
+        options?.sendMemo
+      )
+    })
   }
 
   /** Stargate implementation of batch send. */
