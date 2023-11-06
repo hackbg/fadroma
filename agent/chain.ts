@@ -11,6 +11,7 @@ import { CompiledCode, UploadedCode } from './code'
 import { ContractInstance, } from './deploy'
 import { ContractClient, ContractClientClass } from './client'
 import type { Devnet } from './devnet'
+import { bip39, bip39EN } from '@hackbg/4mat'
 
 /** A chain can be in one of the following modes: */
 export enum Mode {
@@ -25,112 +26,96 @@ export type ChainId = string
 
 /** A connection to a chain. */
 export abstract class Agent {
-  /** Smallest unit of native token. */
+  /** Denomination of the token used to pay gas fees. */
   static gasToken = ''
-  /** @returns Fee in uscrt */
+  /** @returns Fee in gasToken */
   static gas (amount: Uint128|number): Fee {
     return new Fee(amount, this.gasToken)
   }
-
+  /** Create agent from random mnemonic. */
+  static random (...args: ConstructorParameters<typeof this>): InstanceType<typeof this> {
+    return new (this as any)({ ...args[0], mnemonic: bip39.generateMnemonic(bip39EN) }, ...args.slice(1) as [])
+  }
   /** @returns a mainnet instance of this chain. */
   static mainnet (options: Partial<Agent> = {}): Agent {
     return new (this as any)({ ...options, mode: Mode.Mainnet })
   }
-
   /** @returns a testnet instance of this chain. */
   static testnet (options: Partial<Agent> = {}): Agent {
     return new (this as any)({ ...options, mode: Mode.Testnet })
   }
-
   /** @returns a devnet instance of this chain. */
   static devnet (options: Partial<Agent> = {}): Agent {
     return new (this as any)({ ...options, mode: Mode.Devnet })
   }
-
   /** @returns a mocknet instance of this chain. */
   static mocknet (options?: Partial<Agent>): Agent {
     throw new Error('Mocknet is not enabled for this chain.')
   }
-
   /** Logger. */
   log = new Console('Agent')
-  /** The API URL to use. */
-  url:      string = ''
-  /** An instance of the underlying implementation-specific SDK. */
-  api?:     unknown
-  /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
-  mode?:    Mode
+
   /** The unique id of the chain. */
-  chainId?: ChainId
-  /** Smallest unit of native token. */
-  gasToken: string = (this.constructor as typeof Agent).gasToken
-  /** Default fee maximums for send, upload, init, and execute. */
-  fees?:    { send?: Token.IFee, upload?: Token.IFee, init?: Token.IFee, exec?: Token.IFee }
+  chainId?:      ChainId
+  /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
+  chainMode?:    Mode
+  /** The API URL to use. */
+  chainUrl?:     string
+  /** An instance of the underlying implementation-specific SDK. */
+  chainApi?:     unknown
   /** Whether this chain is stopped. */
-  stopped?: boolean
+  chainStopped?: boolean
+  /** Default fee maximums for send, upload, init, and execute. */
+  defaultFees?: { send?: Token.IFee, upload?: Token.IFee, init?: Token.IFee, exec?: Token.IFee }
+
   /** The friendly name of the agent. */
   name?:    string
   /** The address from which transactions are signed and sent. */
   address?: Address
-  /** The default identity used to sign transactions with this agent. */
-  signer?:  unknown
 
   devnet?:  Devnet<typeof Agent>|undefined
 
   constructor (properties?: Partial<Agent> & { mnemonic?: string }) {
     assign(this, properties, [
-      'url', 'mode', 'chainId', 'fees', 'stopped', 'name', 'address', 'api', 'signer'
+      'log',
+      'chainUrl', 'chainMode', 'chainApi', 'chainId', 'chainStopped',
+      'defaultFees', 'name', 'address',
     ])
-    if (this.mode === Mode.Mocknet) {
-      Object.defineProperty(this, 'url', {
-        enumerable: true, writable: false, value: `fadroma://mocknet-${this.chainId}`
-      })
-    }
-    Object.defineProperties(this, {
-      log: { configurable: true, enumerable: false, writable: true, },
-    })
+    this.log.label = this[Symbol.toStringTag]
   }
-
   /** Compact string tag for console representation. */
   get [Symbol.toStringTag]() {
-    return `${this.chainId||'(unidentified chain)'} `
-         + `(${this.mode||'unspecified mode'}): `
-         + `${this.name||this.address||'(unauthenticated)'}`
+    return `${this.chainId||'(unidentified chain)'}`
+         + (this.chainMode ? ` (${this.chainMode})` : '')
+         + ` ${this.name||this.address||'(unauthenticated)'}`
   }
-
-  /** Get a client instance for talking to a specific smart contract as this executor. */
+  /** Get a client handle for a specific smart contract, authenticated as as this agent. */
   contract <C extends ContractClient> (
     options?: Address|Partial<ContractInstance>,
     $C: ContractClientClass<C> = ContractClient as ContractClientClass<C>, 
   ): C {
     return new $C(options!, this) as C
   }
-
   /** Whether this is a mainnet. */
   get isMainnet () {
-    return this.mode === Mode.Mainnet
+    return this.chainMode === Mode.Mainnet
   }
-
   /** Whether this is a testnet. */
   get isTestnet () {
-    return this.mode === Mode.Testnet
+    return this.chainMode === Mode.Testnet
   }
-
   /** Whether this is a devnet. */
-  get isDevnet  () {
-    return this.mode === Mode.Devnet
+  get isDevnet () {
+    return this.chainMode === Mode.Devnet
   }
-
   /** Whether this is a mocknet. */
   get isMocknet () {
-    return this.mode === Mode.Mocknet
+    return this.chainMode === Mode.Mocknet
   }
-
   /** Whether this is a devnet or mocknet. */
   get devMode () {
     return this.isDevnet || this.isMocknet
   }
-
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
     return this.height.then(async startingHeight=>{
@@ -146,7 +131,10 @@ export abstract class Agent {
       const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
-          while (true && !this.stopped) {
+          while (true && !this.chainStopped) {
+            if (this.chainStopped) {
+              throw new Error('chain stopped, aborting wait for next block.')
+            }
             await new Promise(ok=>setTimeout(ok, this.blockInterval))
             this.log(
               `Waiting for block > ${bold(String(startingHeight))} ` +
@@ -165,9 +153,9 @@ export abstract class Agent {
       })
     })
   }
-
+  /** Time to ping for next block. */
   blockInterval = 250
-
+  /** Query a contract. */
   async query <Q> (contract: Address|{ address: Address }, message: Message): Promise<Q> {
     if (typeof contract === 'string') contract = { address: contract }
     const t0 = performance.now()
@@ -181,25 +169,23 @@ export abstract class Agent {
     )
     return result as Q
   }
-
-  /** Create a new Agent inheriting the settings from this one. */
-  connect (options?: Partial<this> & { mnemonic?: string }): this {
-    return new (this.constructor as any)({ ...this, ...options||{} })
-  }
-
   /** Send native tokens to 1 recipient. */
   async send (
     recipient: Address|{ address?: Address },
     amounts: Token.ICoin[],
     options?: { sendFee?: Token.IFee, sendMemo?: string }
   ): Promise<unknown> {
-    if (typeof recipient === 'object') recipient = recipient.address!
+    if (typeof recipient === 'object') {
+      recipient = recipient.address!
+    }
+    if (!recipient) {
+      throw new Error('no recipient address')
+    }
     const t0 = performance.now()
     const result = await this.doSend(recipient, amounts, options)
     const t1 = performance.now() - t0
     return result
   }
-
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
     code: string|URL|Uint8Array|Partial<CompiledCode>,
@@ -249,8 +235,7 @@ export abstract class Agent {
       chainId: ChainId, codeId: CodeId,
     }
   }
-
-  /** Create a new smart contract from a code id, label and init message.
+  /** Instantiate a new program from a code id, label and init message.
     * @example
     *   await agent.instantiate(template.define({ label, initMsg })
     * @returns
@@ -299,7 +284,7 @@ export abstract class Agent {
     }
   }
 
-  /** Call a transaction method on a smart contract. */
+  /** Call a given program's transaction method. */
   async execute (
     contract: Address|Partial<ContractInstance>,
     message:  Message,
@@ -321,66 +306,49 @@ export abstract class Agent {
 
   abstract getBlockInfo ():
     Promise<unknown>
-
   abstract get height ():
-    Promise<string|number>
-
+    Promise<number>
   abstract get balance ():
-    Promise<string|number>
-
+    Promise<string|number|bigint>
   abstract getCodeId (contract: Address):
     Promise<CodeId>
-
   abstract getCodeHashOfAddress (contract: Address):
     Promise<CodeHash>
-
   abstract getCodeHashOfCodeId (codeId: CodeId):
     Promise<CodeHash>
-
   protected abstract doQuery (contract: { address: Address }, message: Message):
     Promise<unknown>
-
   protected abstract doSend (
     recipient: Address,
     amounts: Token.ICoin[],
     opts?: { sendFee?: Token.IFee, sendMemo?: string }
   ): Promise<unknown>
-
   /** Send native tokens to multiple recipients. */
   abstract sendMany (outputs: [Address, Token.ICoin[]][], opts?: unknown):
     Promise<unknown>
-
   protected abstract doUpload (
     data: Uint8Array, options: Parameters<typeof this["upload"]>[1]
   ): Promise<Partial<UploadedCode>>
-
   protected abstract doInstantiate (
     codeId: CodeId, options: Partial<ContractInstance>
   ): Promise<Partial<ContractInstance>>
-
   protected abstract doExecute (
     contract: { address: Address }, message: Message, options: Parameters<this["execute"]>[2]
   ): Promise<unknown>
-
   /** Construct a transaction batch. */
   abstract batch (): BatchBuilder<Agent>
-
 }
 
 export abstract class BatchBuilder<A extends Agent> {
   constructor (readonly agent: A) {}
-
   /** Add an upload message to the batch. */
   abstract upload (...args: Parameters<A["upload"]>):
     this
-
   /** Add an instantiate message to the batch. */
   abstract instantiate (...args: Parameters<A["instantiate"]>):
     this
-
   /** Add an execute message to the batch. */
   abstract execute (...args: Parameters<A["execute"]>):
     this
-
   abstract submit (...args: unknown[]): Promise<unknown>
 }

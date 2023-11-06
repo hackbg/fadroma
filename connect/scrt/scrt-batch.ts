@@ -3,24 +3,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error, Console } from './scrt-base'
 import { Tx } from '@hackbg/secretjs-esm'
-const {
-  MsgStoreCode,
-  MsgExecuteContract,
-  MsgInstantiateContract
-} = Tx
 import type { Agent, Address, TxHash, ChainId, CodeId, CodeHash, Label } from '@fadroma/agent'
-import { BatchBuilder } from '@fadroma/agent'
+import { BatchBuilder, bold } from '@fadroma/agent'
 import Scrt from '.'
+
+const { MsgStoreCode, MsgExecuteContract, MsgInstantiateContract } = Tx
 
 export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
   /** Logger handle. */
   log = new Console('ScrtBatch')
+
   /** Messages to encrypt. */
   messages: Array<
     |InstanceType<typeof MsgStoreCode>
     |InstanceType<typeof MsgInstantiateContract>
     |InstanceType<typeof MsgExecuteContract>
   > = []
+
   /** TODO: Upload in batch. */
   upload (
     code:    Parameters<BatchBuilder<Scrt>["upload"]>[0],
@@ -63,6 +62,38 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
     return this
   }
 
+  /** Format the messages for API v1 like secretjs and encrypt them. */
+  private get encryptedMessages (): Promise<any[]> {
+    const messages: any[] = []
+    return new Promise(async resolve=>{
+      for (const message of this.messages) {
+        switch (true) {
+          case (message instanceof MsgStoreCode): {
+            messages.push(this.encryptUpload(message))
+            continue
+          }
+          case (message instanceof MsgInstantiateContract): {
+            messages.push(this.encryptInit(message))
+            continue
+          }
+          case (message instanceof MsgExecuteContract): {
+            messages.push(this.encryptExec(message))
+            continue
+          }
+          default: {
+            this.log.error(`Invalid batch message:`, message)
+            throw new Error(`invalid batch message: ${message}`)
+          }
+        }
+      }
+      return messages
+    })
+  }
+
+  private async encryptUpload (init: any): Promise<any> {
+    throw new Error('not implemented')
+  }
+
   private async encryptInit (init: any): Promise<any> {
     return {
       "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
@@ -88,81 +119,69 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
     }
   }
 
-  /** Format the messages for API v1 like secretjs and encrypt them. */
-  private get encryptedMessages () {
-    const messages: any[] = []
-    return new Promise(async resolve=>{
-      for (const message of this.messages) {
-        switch (true) {
-          case (message instanceof MsgStoreCode): {
-            throw new Error('not implemented')
-          }
-          case (message instanceof MsgInstantiateContract): {
-            messages.push(this.encryptInit(message))
-            continue
-          }
-          case (message instanceof MsgExecuteContract): {
-            messages.push(this.encryptExec(message))
-            continue
-          }
-          default: {
-            this.log.error(`Invalid batch message:`, message)
-            throw new Error(`invalid batch message: ${message}`)
-          }
-        }
-      }
-      return messages
-    })
-  }
-
-  async simulate () {
-    return await this.agent.api.tx.simulate(this.messages)
+  simulate () {
+    return Promise.resolve(this.agent.chainApi).then(api=>api.tx.simulate(this.messages))
   }
 
   async submit ({ memo = "" }: { memo: string }): Promise<ScrtBatchResult[]> {
+    const api = await Promise.resolve(this.agent.chainApi)
     const chainId  = this.agent.chainId!
     const messages = this.messages
-    const limit    = Number(this.agent.fees.exec?.amount[0].amount) || undefined
+    const limit    = Number(this.agent.defaultFees.exec?.amount[0].amount) || undefined
     const gas      = messages.length * (limit || 0)
 
     const results: ScrtBatchResult[] = []
     try {
 
-      const txResult = await this.agent.api!.tx.broadcast(messages as any, { gasLimit: gas })
+      const txResult = await api.tx.broadcast(messages as any, { gasLimit: gas })
       if (txResult.code !== 0) {
         const error = `(in batch): gRPC error ${txResult.code}: ${txResult.rawLog}`
         throw Object.assign(new Error(error), txResult)
       }
 
       for (const i in messages) {
+
         const msg = messages[i]
+
         const result: Partial<ScrtBatchResult> = {
-          chainId, sender: this.agent.address, tx: txResult.transactionHash,
+          chainId,
+          sender: this.agent.address,
+          tx: txResult.transactionHash,
         }
 
         if (msg instanceof MsgInstantiateContract) {
-          type Log = { msg: number, type: string, key: string }
-          const findAddr = ({msg, type, key}: Log) =>
+
+          const findAddr = ({msg, type, key}: {
+            msg: number, type: string, key: string
+          }) =>
             msg  ==  Number(i) &&
             type === "message" &&
             key  === "contract_address"
+
           results[Number(i)] = Object.assign(result, {
             type:    'wasm/MsgInstantiateContract',
             codeId:  msg.codeId,
             label:   msg.label,
             address: txResult.arrayLog?.find(findAddr)?.value,
           }) as ScrtBatchResult
+
         } else if (msg instanceof MsgExecuteContract) {
+
           results[Number(i)] = Object.assign(result, {
             type:    'wasm/MsgExecuteContract',
             address: msg.contractAddress
           }) as ScrtBatchResult
+
         }
       }
 
-    } catch (err) {
-      new Console(this.log.label).submittingBatchFailed(err as Error)
-      throw err
+    } catch (error) {
+      this.log.br()
+      this.log
+        .error('submitting batch failed:')
+        .error(bold(error.message))
+        .warn('(decrypting batch errors is not implemented)')
+      throw error
     }
 
     return results
@@ -178,22 +197,35 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
     // Get signer's account number and sequence via the canonical API
     const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
     // Print the body of the batch
-    this.log.batchMessages(this.messages, 0)
+    this.log.debug(`Messages in batch:`)
+    for (const msg of this.messages??[]) {
+      this.log.debug(' ', JSON.stringify(msg))
+    }
     // The base Batch class stores messages as (immediately resolved) promises
     const messages = await this.encryptedMessages
     // Print the body of the batch
-    this.log.batchMessagesEncrypted(messages, 0)
+    this.log.debug(`Encrypted messages in batch:`)
+    for (const msg of messages??[]) {
+      this.log.info(' ', JSON.stringify(msg))
+    }
     // Compose the plaintext
     const unsigned = this.composeUnsignedTx(messages as any, name)
     // Output signing instructions to the console
-    new Console(this.log.label).batchSigningCommand(
-      String(Math.floor(+ new Date()/1000)),
-      this.agent.address!,
-      this.agent.chainId!,
-      accountNumber,
-      sequence,
-      unsigned
-    )
+    
+    const output = `${name}.signed.json`
+    const string = JSON.stringify(unsigned)
+    const txdata = shellescape([string])
+    this.log.br()
+    this.log.info('Multisig batch ready.')
+    this.log.info(`Run the following command to sign the batch:
+\nsecretcli tx sign /dev/stdin --output-document=${output} \\
+--offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${this.agent.address} \\
+--chain-id=${this.agent.chainId} --account-number=${accountNumber} --sequence=${sequence} \\
+<<< ${txdata}`)
+    this.log.br()
+    this.log.debug(`Batch contents:`, JSON.stringify(unsigned, null, 2))
+    this.log.br()
+
     return {
       name,
       accountNumber,
@@ -235,4 +267,17 @@ export interface ScrtBatchResult {
   codeHash?: CodeHash
   address?:  Address
   label?:    Label
+}
+
+function shellescape (a: string[]) {
+  const ret: string[] = [];
+  a.forEach(function(s: string) {
+    if (/[^A-Za-z0-9_\/:=-]/.test(s)) {
+      s = "'"+s.replace(/'/g,"'\\''")+"'";
+      s = s.replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
+        .replace(/\\'''/g, "\\'" ); // remove non-escaped single-quote if there are enclosed between 2 escaped
+    }
+    ret.push(s);
+  });
+  return ret.join(' ');
 }

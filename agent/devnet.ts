@@ -5,17 +5,17 @@ import { Agent, Mode } from './chain'
 export abstract class Devnet<A extends typeof Agent> {
   /** Logger. */
   log = new Console(this.constructor.name)
-  /** The chain ID that will be passed to the devnet node. */
-  chainId?: ChainId
   /** Which kind of devnet to launch */
   platform?: string
+  /** The chain ID that will be passed to the devnet node. */
+  chainId?: ChainId
   /** Is this thing on? */
   running: boolean = false
   /** URL for connecting to a remote devnet. */
   url?: string|URL
 
   constructor (properties?: Partial<Devnet<A>>) {
-    assign(this, properties, ["chainId", "platform", "running", "url"])
+    assign(this, properties, ["platform", "chainId", "running", "url"])
   }
 
   abstract Agent: {
@@ -33,24 +33,30 @@ export abstract class Devnet<A extends typeof Agent> {
 
   abstract getGenesisAccount (name: string): Promise<{ address?: Address, mnemonic?: string }>
 
-  connect (...parameters: [A]|ConstructorParameters<A>): InstanceType<A> {
+  async connect (...parameters: [string]|[A]|ConstructorParameters<A>): Promise<InstanceType<A>> {
     let agent: InstanceType<A>
     if (parameters[0] instanceof Agent) {
       agent = parameters[0] as InstanceType<A>
     } else {
       const params = parameters as ConstructorParameters<A>
       if (params[0]?.name) {
-        params[0] = { ...params[0] }
+        params[0] = {
+          ...await this.getGenesisAccount(params[0].name),
+          ...params[0],
+        }
+        if (this.url) {
+          params[0].chainUrl ??= this.url.toString()
+        }
       }
       agent = new (this.Agent||Agent)(...params)
-      if (params[0]?.chainId && params[0]?.chainId !== params[0]?.devnet?.chainId) {
+      if (params[0]?.chainId && params[0]?.chainId !== this.chainId) {
         this.log.warn('chainId: ignoring override (devnet)')
       }
-      if (params[0]?.url && params[0]?.url.toString() !== params[0]?.devnet?.url?.toString()) {
-        this.log.warn('url: ignoring override (devnet)')
+      if (params[0]?.chainUrl && params[0]?.chainUrl.toString() !== this.url?.toString()) {
+        this.log.warn('chainUrl: ignoring override (devnet)')
       }
-      if (params[0]?.mode && params[0]?.mode !== Mode.Devnet) {
-        this.log.warn('mode: ignoring override (devnet)')
+      if (params[0]?.chainMode && params[0]?.chainMode !== Mode.Devnet) {
+        this.log.warn('chainMode: ignoring override (devnet)')
       }
     }
     return Object.defineProperties(agent, {
@@ -59,14 +65,14 @@ export abstract class Devnet<A extends typeof Agent> {
           throw new Error("can't override chain id of devnet")
         }
       },
-      url: {
+      chainUrl: {
         enumerable: true, configurable: true, get: () => this.url?.toString(), set: () => {
-          throw new Error("can't override url of devnet")
+          throw new Error("can't override chainUrl of devnet")
         }
       },
-      mode: {
+      chainMode: {
         enumerable: true, configurable: true, get: () => Mode.Devnet, set: () => {
-          throw new Error("agent.mode: can't override")
+          throw new Error("agent.chainMode: can't override")
         }
       },
       devnet: {

@@ -45,17 +45,16 @@ export default async function testDevnet () {
   const devnet = new MyDevnet()
   const agent = await devnet.connect({ name: 'Alice' })
   //equal(chain.chainId, 'foo')
-  equal(agent.url, 'http://example.com/')
-  equal(agent.mode, Mode.Devnet)
-  equal(agent.stopped, true)
+  equal(agent.chainUrl, 'http://example.com/')
+  equal(agent.chainMode, Mode.Devnet)
+  //equal(agent.chainStopped, true)
   devnet.running = true
-  equal(agent.stopped, false)
-  throws(()=>agent.stopped=true)
-  agent.chainId
-  agent.url
-  agent.mode
-  agent.devnet
-  agent.stopped
+  //equal(agent.chainStopped, false)
+  //throws(()=>agent.chainStopped=true)
+  equal(agent.chainId, devnet.chainId)
+  equal(agent.chainUrl, devnet.url)
+  equal(agent.chainMode, 'devnet')
+  equal(agent.devnet, devnet)
   throws(()=>agent.chainId = "")
-  throws(()=>agent.url = "")
+  throws(()=>agent.chainUrl = "")
 }

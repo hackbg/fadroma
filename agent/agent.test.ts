@@ -12,3 +12,17 @@ export default new Suite([
   ['store',  ()=>import('./store.test')],
   ['token',  ()=>import('./token.test')]
 ])
+
+import type { Agent, Devnet } from '.'
+import { Fee } from './token'
+export function testChainSupport <
+  A extends typeof Agent, D extends Devnet<A>
+> (
+  Agent:  A,
+  devnet: D,
+  token:  string
+) {
+  const sendFee   = new Fee( "1000000", "uknow")
+  const uploadFee = new Fee("10000000", "uknow")
+  const initFee   = new Fee("10000000", "uknow")
+}

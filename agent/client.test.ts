@@ -9,7 +9,7 @@ import { ContractInstance } from './deploy'
 
 export default async function testClient () {
   const contract = { address: 'addr', codeHash: 'code-hash-stub', codeId: '100' }
-  const agent    = new Stub.Agent({ chainId: 'foo', mode: Mode.Testnet })
+  const agent    = new Stub.Agent({ chainId: 'foo', chainMode: Mode.Testnet })
   const client   = new ContractClient(contract, agent)
   assert.equal(client.agent, agent)
   assert.equal(client.contract, contract)

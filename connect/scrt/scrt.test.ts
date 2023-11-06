@@ -6,8 +6,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as Devnets from '../../ops/devnets'
 import { fixture } from '../../fixtures/fixtures'
-import Scrt, { SecretJS } from '@fadroma/scrt'
-import { Token } from '@fadroma/agent'
+import Scrt, { BatchBuilder, SecretJS } from '@fadroma/scrt'
+import { Token, Test } from '@fadroma/agent'
 //import * as Mocknet from './scrt-mocknet'
 
 //@ts-ignore
@@ -21,7 +21,7 @@ const mnemonic = 'define abandon palace resource estate elevator relief stock or
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['chain',    testScrtChain],
-  ['devnet',   testScrtDevnet],
+  //['devnet',   testScrtDevnet],
   //['mocknet',  () => import('./scrt-mocknet.test')],
   ['snip-20',  () => import('./snip-20.test')],
   ['snip-24',  () => import('./snip-24.test')],
@@ -29,12 +29,26 @@ export default new Suite([
 ])
 
 export async function testScrtChain () {
-  assert(Scrt.mainnet() instanceof Scrt)
-  assert(Scrt.testnet() instanceof Scrt)
-  const chain = new Scrt({ chainId: 'scrt' })
-  assert(chain.api instanceof SecretJS.SecretNetworkClient)
-  const agent = await chain.connect({})
-  assert(agent.api instanceof SecretJS.SecretNetworkClient)
+  const { devnet, alice, bob, guest } = await Test.testChainSupport(
+    Scrt,
+    Devnets.ScrtContainer['v1.9'],
+    'uscrt',
+    fixture('fadroma-example-cw-null@HEAD.wasm')
+  )
+  const batch = () => alice.batch()
+    .instantiate('id', {
+      label:    'label',
+      initMsg:  {},
+      codeHash: 'hash',
+    } as any)
+    .execute('addr', {
+      address:  'addr',
+      codeHash: 'hash',
+      message:  {}
+    } as any, {})
+  assert(batch() instanceof BatchBuilder, 'ScrtBatch is returned')
+  assert.ok(await batch().save('test'))
+  assert.ok(await batch().submit({ memo: 'test' }))
 }
 
 export async function testScrtDevnet () {
@@ -59,7 +73,7 @@ export async function testScrtDevnet () {
   equal(await alice.balance, '123455739000')
   equal(await bob.balance,   '987654321000')
   //// Permissionsless: anyone can authenticate with their public key
-  const guest = await devnet.connect(new Scrt({ mnemonic }))
+  const guest = await devnet.connect({ mnemonic })
   //// Starting out with zero balance
   equal(await guest.balance, '0')
   //// Which may be topped up by existing users

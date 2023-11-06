@@ -21,51 +21,53 @@ import { numberToBytesBE } from "@noble/curves/abstract/utils"
 class CWAgent extends Agent {
   /** Public key corresponding to private key derived from mnemonic. */
   publicKey?: Uint8Array
-  /** API handle. */
-  declare api: Promise<CosmWasmClient|SigningCosmWasmClient>
   /** The bech32 prefix for the account's address  */
   bech32Prefix?: string
   /** The coin type in the HD derivation path */
   coinType?: number
   /** The account index in the HD derivation path */
   hdAccountIndex?: number
-  /** The provided signer, which signs the transactions.
-    * TODO: Implement signing transactions without external signer. */
-  declare signer?: OfflineSigner
+  /** API handle. */
+  declare chainApi: Promise<CosmWasmClient|SigningCosmWasmClient>
 
-  constructor (properties?: Partial<CWAgent> & { mnemonic?: string }) {
+  constructor ({
+    mnemonic,
+    signer,
+    ...properties
+  }: Partial<CWAgent> & {
+    signer?:   OfflineSigner,
+    mnemonic?: string
+  }) {
     super(properties as Partial<Agent>)
-    assign(this, properties, ['coinType', 'bech32Prefix', 'hdAccountIndex'])
+    assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex'   ])
 
-    this.log.label = `${this.chainId||'(no chain id)'} ${this.mode||'(no mode)'}: ` +
+    this.log.label = `${this.chainId||'(no chain id)'} ${this.chainMode||'(no mode)'}: ` +
       `${bold(this.name??this.address??'(no address)')}`
 
-    if (properties?.signer) {
-      if (properties?.mnemonic) {
+    if (signer) {
+      if (mnemonic) {
         this.log.warn('Signer passed. Ignoring mnemonic')
       }
-      this.signer = properties.signer
-    } else if (properties?.mnemonic) {
-      this.log.warn('Authenticating with passed mnemonic')
-      Object.assign(this, authMnemonic(this, properties.mnemonic))
-    } else {
-      let mnemonic = bip39.generateMnemonic(bip39EN)
-      this.log
-        .warn('Authenticating with generated mnemonic:')
-        .warn(' ', bold(mnemonic))
-        .warn('Store this now if you need to, as it will not be displayed again.')
-      Object.assign(this, authMnemonic(this, mnemonic))
+    } else if (mnemonic) {
+      const auth = authMnemonic(this, mnemonic)
+      if (this.address && this.address !== auth.address) {
+        throw new Error(
+          `address ${auth.address} generated from mnemonic did not match ${this.address}`
+        )
+      }
+      this.address = auth.address
+      signer = auth.signer
     }
 
-    this.log.label = `${this.chainId||'(no chain id)'} ${this.mode||'(no mode)'}: ` +
+    this.log.label = `${this.chainId||'(no chain id)'} ${this.chainMode||'(no mode)'}: ` +
       `${bold(this.name??this.address??'(no address)')}`
 
-    if (this.url) {
-      this.log.debug('Connecting to', bold(this.url), properties)
-      if (this.signer) {
-        this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.signer)
+    if (this.chainUrl) {
+      this.log.debug('Connecting to', bold(this.chainUrl), properties)
+      if (signer) {
+        this.chainApi = SigningCosmWasmClient.connectWithSigner(this.chainUrl, signer)
       } else {
-        this.api = CosmWasmClient.connect(this.url)
+        this.chainApi = CosmWasmClient.connect(this.chainUrl)
       }
     } else {
       this.log.warn('No connection url.')
@@ -73,12 +75,12 @@ class CWAgent extends Agent {
   }
 
   async getBlockInfo (): Promise<Block> {
-    return this.api?.then(api=>api.getBlock())
+    return this.chainApi.then(api=>api.getBlock())
   }
 
   get height () {
     return this.getBlockInfo().then(
-      (info: { header: { height?: number } } = { header: {} })=>String(info.header.height)
+      (info: { header: { height?: number } } = { header: {} })=>Number(info.header.height)
     )
   }
 
@@ -93,48 +95,47 @@ class CWAgent extends Agent {
   /** Query native token balance. */
   async getBalance (denom?: string, address?: Address): Promise<string> {
     this.log.debug('Querying balance of', bold(address), 'in', bold(denom))
-    denom ??= this.gasToken
+    denom ??= (this.constructor as typeof CWAgent).gasToken
     address ??= this.address
     if (!address) {
       throw new Error('getBalance: pass address')
     }
-    const { amount } = await this.api?.then(api=>api.getBalance(address!, denom!))
+    const { amount } = await this.chainApi.then(api=>api.getBalance(address!, denom!))
     return amount
   }
 
   /** Stargate implementation of getting a code id. */
   async getCodeId (address: Address): Promise<CodeId> {
     if (!address) throw new CWError('chain.getCodeId: no address')
-    const { codeId } = await this.api?.then(api=>api.getContract(address))
+    const { codeId } = await this.chainApi.then(api=>api.getContract(address))
     return String(codeId)
   }
 
   /** Stargate implementation of getting a code hash. */
   async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    const { codeId } = await this.api?.then(api=>api.getContract(address))
+    const { codeId } = await this.chainApi.then(api=>api.getContract(address))
     return this.getCodeHashOfCodeId(String(codeId))
   }
 
   /** Stargate implementation of getting a code hash. */
   async getCodeHashOfCodeId (codeId: CodeId): Promise<CodeHash> {
-    const { checksum } = await this.api?.then(api=>api.getCodeDetails(Number(codeId)))
+    const { checksum } = await this.chainApi.then(api=>api.getCodeDetails(Number(codeId)))
     return checksum
   }
 
   /** Stargate implementation of getting a contract label. */
   async getLabel (address: Address): Promise<string> {
     if (!address) throw new CWError('chain.getLabel: no address')
-    const { label } = await this.api?.then(api=>api.getContract(address))
+    const { label } = await this.chainApi.then(api=>api.getContract(address))
     return label
   }
 
   /** Stargate implementation of sending native token. */
   protected async doSend (
-    recipient: Address,
-    amounts:   Token.ICoin[],
-    options?:  Parameters<Agent["doSend"]>[2]
+    recipient: Address, amounts: Token.ICoin[], options?: Parameters<Agent["doSend"]>[2]
   ) {
-    return this.api?.then(api=>{
+    return this.chainApi.then(api=>{
+      console.log({doSend:this, api, args: arguments})
       if (!(api as SigningCosmWasmClient)?.sendTokens) {
         throw new CWError("can't send tokens with an unauthenticated agent")
       } 
@@ -160,12 +161,12 @@ class CWAgent extends Agent {
     if (!this.address) {
       throw new CWError("can't upload contract without sender address")
     }
-    const api = await this.api
+    const api = await this.chainApi
     if (!(api as SigningCosmWasmClient)?.upload) {
       throw new CWError("can't upload contract with an unauthenticated agent")
     } 
     const result = await (api as SigningCosmWasmClient).upload(
-      this.address, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
+      this.address, data, this.defaultFees?.upload || 'auto', "Uploaded by Fadroma"
     )
     return {
       chainId:   this.chainId,
@@ -185,7 +186,7 @@ class CWAgent extends Agent {
     if (!this.address) {
       throw new CWError("can't instantiate contract without sender address")
     }
-    const api = await this.api
+    const api = await this.chainApi
     if (!(api as SigningCosmWasmClient)?.instantiate) {
       throw new CWError("can't instantiate contract without authorizing the agent")
     } 
@@ -222,14 +223,14 @@ class CWAgent extends Agent {
     if (!this.address) {
       throw new CWError("can't execute transaction without sender address")
     }
-    const api = await this.api
+    const api = await this.chainApi
     if (!(api as SigningCosmWasmClient)?.execute) {
       throw new CWError("can't execute transaction without authorizing the agent")
     } 
     const {
       execSend,
       execMemo,
-      execFee = this.fees?.exec || 'auto'
+      execFee = this.defaultFees?.exec || 'auto'
     } = options
     return await (api as SigningCosmWasmClient).execute(
       this.address,
@@ -245,7 +246,7 @@ class CWAgent extends Agent {
   protected async doQuery <U> (contract: Address|Partial<ContractInstance>, msg: Message): Promise<U> {
     if (typeof contract === 'string') contract = { address: contract }
     if (!contract.address) throw new CWError('no contract address')
-    const api = await this.api
+    const api = await this.chainApi
     return await api.queryContractSmart(contract.address, msg) as U
   }
 
@@ -254,11 +255,15 @@ class CWAgent extends Agent {
   }
 }
 
-export function authMnemonic (agent: CWAgent, mnemonic: string): {
+export function authMnemonic (agent: {
+  log?:            Console
+  bech32Prefix?:   string
+  coinType?:       number
+  hdAccountIndex?: number
+}, mnemonic: string): {
   address: Address,
   pubkey:  Uint8Array,
   signer:  OfflineSigner,
-  api:     Promise<SigningCosmWasmClient>
 } {
   // Validate input
   if (!mnemonic) {
@@ -286,15 +291,12 @@ export function authMnemonic (agent: CWAgent, mnemonic: string): {
   const address = bech32.encode(agent.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
   const signer: OfflineSigner = {
     // One account per agent
-    getAccounts: async () => [
-      { algo: 'secp256k1', address, pubkey }
-    ],
+    getAccounts: async () => [{ algo: 'secp256k1', address, pubkey }],
     // Sign a transaction
-    signAmino: async (address: string, signed: any) => {
-      if (agent.address && address && (address !== agent.address)) {
-        agent.log
-          .warn(`Passed address ${bold(address)} did not match`)
-          .warn(` agent address ${agent.address}, ignoring them`)
+    signAmino: async (address2: string, signed: any) => {
+      if (address2 && address2 !== address) {
+        agent.log?.warn(`Received address ${bold(address)} that did not match`)
+          .warn(` generated address ${address}, ignoring them`)
       }
       const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
       return {
@@ -305,11 +307,11 @@ export function authMnemonic (agent: CWAgent, mnemonic: string): {
       }
     },
   }
+
   return {
     address,
     pubkey,
     signer,
-    api: SigningCosmWasmClient.connectWithSigner(agent.url, signer)
   }
 }
 
