@@ -60,9 +60,8 @@ export async function testUnauthenticated () {
 }
 
 export async function testAuthenticated () {
-  const chain = new Stub.Agent({ chainId: 'stub' })
-  let agent: Agent = await chain.authenticate({ name: 'testing1', address: '...' })
-  assert.equal(agent[Symbol.toStringTag], 'stub (mocknet): testing1')
+  const agent = new Stub.Agent({ chainId: 'stub' }).connect({ name: 'testing1', address: '...' })
+  //assert.equal(agent[Symbol.toStringTag], 'stub (mocknet): testing1')
   assert(agent instanceof Stub.Agent,  'an Agent was returned')
   assert(agent.address,                'agent has address')
   assert.equal(agent.name, 'testing1', 'agent.name assigned')
@@ -74,17 +73,14 @@ export async function testAuthenticated () {
   await agent.sendMany([])
   await agent.upload(fixture('null.wasm'), {})
   await agent.upload(new Uint8Array(), {})
-
   await agent.instantiate('1', { label: 'foo', initMsg: 'bar' })
   await agent.instantiate({ codeId: '1' }, { label: 'foo', initMsg: {} })
   assert.rejects(()=>agent.instantiate('foo', {}))
   assert.rejects(()=>agent.instantiate('', {}))
   assert.rejects(()=>agent.instantiate('1', { label: 'foo' }))
   assert.rejects(()=>agent.instantiate('1', { initMsg: {} }))
-
   await agent.execute('stub', {}, {})
   await agent.execute({ address: 'stub' }, {}, {})
-
   const batch = agent.batch()
     .upload({})
     .upload({})

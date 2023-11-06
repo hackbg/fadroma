@@ -108,32 +108,10 @@ export function logInstallWasmOpt ({ isMac, homebrew, wasmOpt }: SystemTools) {
 }
 
 export async function logProjectCreated ({ root }: { root: Path }) {
-
-  console.log("Project created at", bold(root.shortPath))
-    .info()
-    .info(`To compile your contracts:`)
-    .info(`  $ ${bold('npm run build')}`)
-    .info(`To spin up a local deployment:`)
-    .info(`  $ ${bold('npm run devnet deploy')}`)
-    .info(`To deploy to testnet:`)
-    .info(`  $ ${bold('npm run testnet deploy')}`)
-
-  const envFile = root.at('.env').as(TextFile).load()
-
-  const { FADROMA_TESTNET_MNEMONIC: mnemonic } = dotenv.parse(envFile)
-
-  console.info(`Your testnet mnemonic:`)
-    .info(`  ${bold(mnemonic)}`)
-
-  const testnetAgent = await Scrt.testnet().authenticate({ mnemonic })
-
-  Object.assign(testnetAgent, { log: { log () {} } })
-
-  console.info(`Your testnet address:`)
-    .info(`  ${bold(testnetAgent.address)}`)
-    .info(`Fund your testnet wallet at:`)
-    .info(`  ${bold('https://faucet.pulsar.scrttestnet.com')}`)
-
+  console.log("Project created at", bold(root.shortPath)).info()
+    .info(`To compile your contracts:`).info(`  $ ${bold('npm run build')}`)
+    .info(`To spin up a local deployment:`).info(`  $ ${bold('npm run devnet deploy')}`)
+    .info(`To deploy to testnet:`).info(`  $ ${bold('npm run testnet deploy')}`)
 }
 
 export async function askProjectName (): Promise<string> {
@@ -237,7 +215,7 @@ export async function askCompiler ({
   cargo  = NOT_INSTALLED,
   docker = NOT_INSTALLED,
   podman = NOT_INSTALLED
-}: Partial<SystemTools>, prompts: { prompt: typeof Prompts["prompt"] } = Prompts): Promise<'raw'|'docker'|'podman'> {
+}: Partial<SystemTools> = {}, prompts: { prompt: typeof Prompts["prompt"] } = Prompts): Promise<'raw'|'docker'|'podman'> {
   const variant = (value: string, title: string) => ({ value, title })
   const buildRaw = variant(
     'raw', `No isolation, build with local toolchain (${cargo||'cargo: not found!'})`

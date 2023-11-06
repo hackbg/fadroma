@@ -7,8 +7,7 @@ import { Config, Error, Console } from './scrt-base'
 //import * as Mocknet from './scrt-mocknet'
 import { ScrtBatchBuilder } from './scrt-batch'
 import type {
-  AgentClass, Uint128, ContractClient,
-  Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
+  Uint128, ContractClient, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
 import {
   assign, Agent, into, base64, bip39, bip39EN, bold,
@@ -18,19 +17,8 @@ import {
 
 /** Represents a Secret Network API endpoint. */
 class ScrtAgent extends Agent {
-  /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) => new Token.Fee(amount, this.defaultDenom)
   /** Smallest unit of native token. */
-  static defaultDenom = 'uscrt'
-  /** Smallest unit of native token. */
-  defaultDenom = ScrtAgent.defaultDenom
-  /** Set permissive fees by default. */
-  fees = {
-    upload: ScrtAgent.gas(10000000),
-    init:   ScrtAgent.gas(10000000),
-    exec:   ScrtAgent.gas(1000000),
-    send:   ScrtAgent.gas(1000000),
-  }
+  static gasToken = 'uscrt'
   /** Connect to the Secret Network Mainnet. */
   static mainnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
     const { mainnetChainId: chainId, mainnetUrl: url } = config
@@ -45,34 +33,32 @@ class ScrtAgent extends Agent {
   static devnet (options: Partial<ScrtAgent> = {}): ScrtAgent {
     throw new Error('Devnet not installed. Import @hackbg/fadroma')
   }
-  /** The default Config class for Secret Network. */
-  static Config = Config
+  /** Set permissive fees by default. */
+  fees = {
+    upload: ScrtAgent.gas(10000000),
+    init:   ScrtAgent.gas(10000000),
+    exec:   ScrtAgent.gas(1000000),
+    send:   ScrtAgent.gas(1000000),
+  }
   /** Logger handle. */
   log = new Console('ScrtAgent')
-  /** Downcast chain property to Scrt only. */
-  declare chain: ScrtAgent
-  /** Whether to simulate each execution first to get a more accurate gas estimate. */
-  simulateForGas: boolean = false
-
+  /** Underlying API client. */
+  api: SecretNetworkClient
+  /** API extra. */
   wallet?: Wallet
-
+  /** API extra. */
   encryptionUtils?: EncryptionUtils
 
-  constructor (properties: Partial<ScrtAgent> = {}) {
-    super(properties as Partial<Agent>)
+  constructor (properties?: Partial<ScrtAgent> & { mnemonic?: string }) {
+    super(properties)
     assign(this, properties, ['fees', 'api', 'wallet', 'address', 'encryptionUtils'])
     this.api ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.url })
     this.address ??= this.wallet?.address
-    this.log.label = `${this.address??'(no address)'} @ ${this.chain?.mode||'(unspecified mode)'}`
+    this.log.label = `${this.address??'(no address)'} @ ${this.mode||'(unspecified mode)'}`
   }
 
-  /** @returns a fresh instance of the anonymous read-only API client. */
-  authenticate (
-    options?: Parameters<Agent["authenticate"]>[0] & Partial<{
-      encryptionUtils: EncryptionUtils
-    }>
-  ) {
-    const agent = super.authenticate(options)
+  connect (options?: Partial<this> & { mnemonic?: string }): this {
+    const agent = super.connect(options)
     let chainId = this.chainId
     if (!chainId) {
       throw new Error("can't authenticate without chainId")
@@ -106,10 +92,10 @@ class ScrtAgent extends Agent {
 
   get balance ()  {
     if (!this.address) throw new Error("can't get balance of unauthenticated agent")
-    return this.getBalance(this.address, this.defaultDenom).then(x=>String(x))
+    return this.getBalance(this.address, this.gasToken).then(x=>String(x))
   }
 
-  async getBalance (address: Address, denom = this.defaultDenom) {
+  async getBalance (address: Address, denom = this.gasToken) {
     const response = await this.api.query.bank.balance({ address, denom })
     return response.balance!.amount!
   }
@@ -146,9 +132,6 @@ class ScrtAgent extends Agent {
     }) as U
   }
 
-  /** Underlying API client. */
-  api: SecretNetworkClient
-
   get account (): ReturnType<SecretNetworkClient['query']['auth']['account']> {
     return this.api.query.auth.account({ address: this.address })
   }
@@ -183,11 +166,11 @@ class ScrtAgent extends Agent {
     if (code !== 0) {
       this.log.error(`Upload failed with code ${bold(code)}:`, bold(message ?? rawLog ?? ''), ...details)
       if (message === `account ${this.address} not found`) {
-        this.log.info(`If this is a new account, send it some ${this.defaultDenom} first.`)
-        if (this.chain.isMainnet) {
+        this.log.info(`If this is a new account, send it some ${this.gasToken} first.`)
+        if (this.isMainnet) {
           this.log.info(`Mainnet fee grant faucet:`, bold(`https://faucet.secretsaturn.net/`))
         }
-        if (this.chain.isTestnet) {
+        if (this.isTestnet) {
           this.log.info(`Testnet faucet:`, bold(`https://faucet.pulsar.scrttestnet.com/`))
         }
       }
@@ -254,7 +237,9 @@ class ScrtAgent extends Agent {
   protected async doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2]
+    options?: Parameters<Agent["doExecute"]>[2] & {
+      preSimulate?: boolean
+    }
   ): Promise<TxResponse> {
     const tx = {
       sender:           this.address!,
@@ -266,7 +251,7 @@ class ScrtAgent extends Agent {
     const txOpts = {
       gasLimit: Number(options?.execFee?.gas) || undefined
     }
-    if (this.simulateForGas) {
+    if (options?.preSimulate) {
       this.log.info('Simulating transaction...')
       let simResult
       try {
@@ -291,7 +276,7 @@ class ScrtAgent extends Agent {
   }
 
   async setMaxGas (): Promise<this> {
-    const max = ScrtAgent.gas((await this.chain.fetchLimits()).gas)
+    const max = ScrtAgent.gas((await this.fetchLimits()).gas)
     this.fees = { upload: max, init: max, exec: max, send: max }
     return this
   }

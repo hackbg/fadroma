@@ -1,16 +1,16 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type { Name, Address, Class, Into, Many, TxHash, Label, Message } from './base'
+import type { Name, Address, Class, Into, Many, TxHash, Label, Message, Uint128 } from './base'
 import { Error, Console, bold, into, assign } from './base'
 import type * as Token from './token'
+import { Fee } from './token'
 import type { UploadStore } from './store'
 import type { CodeHash, CodeId } from './code'
 import { CompiledCode, UploadedCode } from './code'
 import { ContractInstance, } from './deploy'
 import { ContractClient, ContractClientClass } from './client'
 import type { Devnet } from './devnet'
-import { assignDevnet } from './devnet'
 
 /** A chain can be in one of the following modes: */
 export enum Mode {
@@ -23,12 +23,14 @@ export enum Mode {
 /** The unique ID of a chain. */
 export type ChainId = string
 
-/** A constructor for an Agent subclass. */
-export interface AgentClass<A extends Agent>
-  extends Class<A, [ ...ConstructorParameters<typeof Agent>, ...unknown[] ]> {}
-
 /** A connection to a chain. */
 export abstract class Agent {
+  /** Smallest unit of native token. */
+  static gasToken = ''
+  /** @returns Fee in uscrt */
+  static gas (amount: Uint128|number): Fee {
+    return new Fee(amount, this.gasToken)
+  }
 
   /** @returns a mainnet instance of this chain. */
   static mainnet (options: Partial<Agent> = {}): Agent {
@@ -51,86 +53,42 @@ export abstract class Agent {
   }
 
   /** Logger. */
-  log = new Console(this.constructor.name)
-
+  log = new Console('Agent')
   /** The API URL to use. */
   url:      string = ''
-
   /** An instance of the underlying implementation-specific SDK. */
   api?:     unknown
-
   /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
   mode?:    Mode
-
   /** The unique id of the chain. */
   chainId?: ChainId
-
+  /** Smallest unit of native token. */
+  gasToken: string = (this.constructor as typeof Agent).gasToken
   /** Default fee maximums for send, upload, init, and execute. */
-  fees?: {
-    send?:   Token.IFee,
-    upload?: Token.IFee,
-    init?:   Token.IFee,
-    exec?:   Token.IFee
-  }
-
-  /** If this is a devnet, this contains an interface to the devnet container. */
-  devnet?:  Devnet
-
+  fees?:    { send?: Token.IFee, upload?: Token.IFee, init?: Token.IFee, exec?: Token.IFee }
   /** Whether this chain is stopped. */
   stopped?: boolean
-
   /** The friendly name of the agent. */
   name?:    string
-
   /** The address from which transactions are signed and sent. */
   address?: Address
-
   /** The default identity used to sign transactions with this agent. */
-  signer?: unknown
+  signer?:  unknown
 
-  constructor (properties?: Partial<Agent>) {
+  devnet?:  Devnet<typeof Agent>|undefined
+
+  constructor (properties?: Partial<Agent> & { mnemonic?: string }) {
     assign(this, properties, [
-      'url', 'mode', 'chainId', 'fees', 'devnet', 'stopped', 'name', 'address', 'api', 'signer'
+      'url', 'mode', 'chainId', 'fees', 'stopped', 'name', 'address', 'api', 'signer'
     ])
-    if (this.devnet) {
-      assignDevnet(this, this.devnet)
-      if (properties?.chainId && properties?.chainId !== properties?.devnet?.chainId) {
-        this.log.warn('chainId: ignoring override (devnet)')
-      }
-      if (properties?.url && properties?.url.toString() !== properties?.devnet?.url?.toString()) {
-        this.log.warn('url: ignoring override (devnet)')
-      }
-      if (properties?.mode && properties?.mode !== Mode.Devnet) {
-        this.log.warn('mode: ignoring override (devnet)')
-      }
-    } else {
-      Object.defineProperties(this, {
-        id: {
-          enumerable: true, writable: false, value: properties?.chainId
-        },
-        mode: {
-          enumerable: true, writable: false, value: properties?.mode || Mode.Mocknet
-        }
-      })
-      this.url = properties?.url ?? this.url
-    }
-
     if (this.mode === Mode.Mocknet) {
       Object.defineProperty(this, 'url', {
-        enumerable: true,
-        writable: false,
-        value: `fadroma://mocknet-${this.chainId}`
+        enumerable: true, writable: false, value: `fadroma://mocknet-${this.chainId}`
       })
     }
-
     Object.defineProperties(this, {
-      log: {
-        configurable: true,
-        enumerable: false,
-        writable: true,
-      },
+      log: { configurable: true, enumerable: false, writable: true, },
     })
-
   }
 
   /** Compact string tag for console representation. */
@@ -198,7 +156,7 @@ export abstract class Agent {
             console.log({height})
             if (height > startingHeight) {
               this.log.log(`Block height incremented to ${bold(String(height))}, proceeding`)
-              return resolve(height)
+              return resolve(height as number)
             }
           }
         } catch (e) {
@@ -224,18 +182,9 @@ export abstract class Agent {
     return result as Q
   }
 
-  /** Create a new, authenticated Agent. */
-  authenticate (options?: {
-    name?:     Name,
-    address?:  Address,
-    mnemonic?: string,
-    signer?:   unknown,
-    api?:      unknown
-  }): this {
-    return new (this.constructor as any)({
-      ...this,
-      ...options
-    })
+  /** Create a new Agent inheriting the settings from this one. */
+  connect (options?: Partial<this> & { mnemonic?: string }): this {
+    return new (this.constructor as any)({ ...this, ...options||{} })
   }
 
   /** Send native tokens to 1 recipient. */
@@ -369,10 +318,6 @@ export abstract class Agent {
     )
     return result
   }
-
-  /** The default denomination of the chain's native token. */
-  abstract defaultDenom:
-    string
 
   abstract getBlockInfo ():
     Promise<unknown>

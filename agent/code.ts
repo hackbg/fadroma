@@ -84,7 +84,7 @@ export class ContractCode {
     if (!compiled.canUpload) {
       throw new Error("build failed")
     }
-    return this.compiled = compiled
+    return this.compiled = compiled as typeof compiled & { codeHash: CodeHash }
   }
 
   /** Upload this contract, unless a valid upload is present and a rebuild is not requested. */
@@ -101,7 +101,7 @@ export class ContractCode {
     codeId: CodeId
   }> {
     if (this.uploaded?.canInstantiate && !reupload && !rebuild) {
-      return this.uploaded
+      return this.uploaded as typeof uploaded & { codeId: CodeId }
     }
     if (!uploader || (typeof uploader === 'string')) {
       throw new Error("can't upload: no uploader agent")

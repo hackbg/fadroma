@@ -11,7 +11,79 @@ import type { CodeHash, CodeId, SourceCode } from './code'
 import { ContractInstance } from './deploy'
 import { Devnet } from './devnet'
 
-class StubChainState extends Devnet {
+class StubAgent extends Agent {
+  state: StubChainState = new StubChainState()
+
+  defaultDenom: string = 'ustub'
+
+  constructor (properties?: Partial<StubAgent>) {
+    super(properties)
+    if (properties?.state) {
+      this.state = properties.state
+    }
+  }
+  async getBlockInfo () {
+    return { height: + new Date() }
+  }
+  get balance (): Promise<number> {
+    throw new Error('unimplemented')
+  }
+  get height (): Promise<number> {
+    return this.getBlockInfo().then(({height})=>height)
+  }
+  async getCodeId (address: Address): Promise<CodeId> {
+    const contract = this.state.instances.get(address)
+    if (!contract) {
+      throw new Error(`unknown contract ${address}`)
+    }
+    return contract.codeId
+  }
+  async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
+    return this.getCodeHashOfCodeId(await this.getCodeId(address))
+  }
+  async getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
+    const code = this.state.uploads.get(id)
+    if (!code) throw new Error(`unknown code ${id}`)
+    return code.codeHash
+  }
+  protected doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
+    return Promise.resolve({} as Q)
+  }
+  protected doSend (to: Address, amounts: ICoin[], opts?: never): Promise<void> {
+    return Promise.resolve()
+  }
+  sendMany (outputs: [Address, ICoin[]][], opts?: never): Promise<void> {
+    return Promise.resolve()
+  }
+  protected async doUpload (codeData: Uint8Array): Promise<UploadedCode> {
+    return new UploadedCode(await this.state.upload(codeData))
+  }
+  protected doInstantiate (
+    codeId:  CodeId,
+    options: Parameters<Agent["doInstantiate"]>[1]
+  ): Promise<ContractInstance & {
+    address: Address
+  }> {
+    return Promise.resolve(new ContractInstance({
+      address: 'stub',
+      label: ''
+    }) as ContractInstance & { address: Address })
+  }
+  protected doExecute (
+    contract: { address: Address, codeHash: CodeHash },
+    message:  Message,
+    options?: Parameters<Agent["doExecute"]>[2]
+  ): Promise<void|unknown> {
+    return Promise.resolve({})
+  }
+  batch (): StubBatchBuilder {
+    return new StubBatchBuilder(this)
+  }
+}
+
+class StubChainState extends Devnet<typeof StubAgent> {
+  Agent = StubAgent
+
   chainId: string = 'stub'
 
   lastCodeId = 0
@@ -25,7 +97,7 @@ class StubChainState extends Devnet {
   instances = new Map<Address, { codeId: CodeId }>()
 
   constructor (properties?: Partial<StubChainState>) {
-    super(properties as Partial<Devnet>)
+    super(properties as Partial<Devnet<typeof StubAgent>>)
     assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
   }
 
@@ -74,87 +146,6 @@ class StubChainState extends Devnet {
   }
 }
 
-class StubAgent extends Agent {
-
-  state: StubChainState = new StubChainState()
-
-  defaultDenom: string = 'ustub'
-
-  constructor (properties?: Partial<StubAgent>) {
-    super(properties)
-    if (properties?.state) {
-      this.state = properties.state
-    }
-  }
-
-  async getBlockInfo () {
-    return { height: + new Date() }
-  }
-
-  get height (): Promise<number> {
-    return this.getBlockInfo().then(({height})=>height)
-  }
-
-  async getCodeId (address: Address): Promise<CodeId> {
-    const contract = this.state.instances.get(address)
-    if (!contract) {
-      throw new Error(`unknown contract ${address}`)
-    }
-    return contract.codeId
-  }
-
-  async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    return this.getCodeHashOfCodeId(await this.getCodeId(address))
-  }
-
-  async getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
-    const code = this.state.uploads.get(id)
-    if (!code) throw new Error(`unknown code ${id}`)
-    return code.codeHash
-  }
-
-  doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
-    return Promise.resolve({} as Q)
-  }
-
-  send (to: Address, amounts: ICoin[], opts?: never): Promise<void> {
-    return Promise.resolve()
-  }
-
-  sendMany (outputs: [Address, ICoin[]][], opts?: never): Promise<void> {
-    return Promise.resolve()
-  }
-
-  protected async doUpload (codeData: Uint8Array): Promise<UploadedCode> {
-    return new UploadedCode(await this.state.upload(codeData))
-  }
-
-  protected doInstantiate (
-    codeId:  CodeId,
-    options: Parameters<Agent["doInstantiate"]>[1]
-  ): Promise<ContractInstance & {
-    address: Address
-  }> {
-    return Promise.resolve(new ContractInstance({
-      address: 'stub',
-      label: ''
-    }) as ContractInstance & { address: Address })
-  }
-
-  protected doExecute (
-    contract: { address: Address, codeHash: CodeHash },
-    message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2]
-  ): Promise<void|unknown> {
-    return Promise.resolve({})
-  }
-
-  batch (): StubBatchBuilder {
-    return new StubBatchBuilder(this)
-  }
-
-}
-
 class StubBatchBuilder extends BatchBuilder<StubAgent> {
   messages: object[] = []
 
@@ -179,13 +170,6 @@ class StubBatchBuilder extends BatchBuilder<StubAgent> {
   }
 }
 
-export {
-  StubAgent        as Agent,
-  StubBatchBuilder as BatchBuilder,
-  StubCompiler     as Compiler,
-  StubChainState   as ChainState
-}
-
 /** A compiler that does nothing. Used for testing. */
 export class StubCompiler extends Compiler {
   caching = false
@@ -202,4 +186,11 @@ export class StubCompiler extends Compiler {
       codeHash: 'stub',
     })
   }
+}
+
+export {
+  StubAgent        as Agent,
+  StubBatchBuilder as BatchBuilder,
+  StubCompiler     as Compiler,
+  StubChainState   as ChainState
 }

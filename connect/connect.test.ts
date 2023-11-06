@@ -15,5 +15,4 @@ export default new Suite([
 export async function testConnectConfig () {
   const { ConnectConfig } = await import('./connect')
   const config = new ConnectConfig()
-  config.listChains()
 }
