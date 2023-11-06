@@ -61,7 +61,6 @@ class ScrtAgent extends Agent {
   }> = {}) {
     super(properties as Partial<Agent>)
     this.chainApi ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.chainUrl! })
-    this.address ??= this.wallet?.address
     this.log.label = `${this.address||'ScrtAgent'}`
     if (this.chainId) {
       this.log.label += `@${this.chainId}`
@@ -85,9 +84,16 @@ class ScrtAgent extends Agent {
       chainId: this.chainId,
       url: this.chainUrl,
       wallet,
-      walletAddress,
+      walletAddress: wallet?.address,
       encryptionUtils
     })
+    if (this.address) {
+      if (this.chainApi.address !== this.address) {
+        throw new Error(`computed address ${this.chainApi.address} but expected ${this.address}`)
+      }
+    } else {
+      this.address = this.chainApi.address
+    }
   }
 
   async getBlockInfo () {
@@ -99,7 +105,10 @@ class ScrtAgent extends Agent {
   }
 
   get balance ()  {
-    if (!this.address) throw new Error("can't get balance of unauthenticated agent")
+    if (!this.address) {
+      console.trace({agent:this})
+      throw new Error("can't get balance of unauthenticated agent")
+    }
     return this.getBalance(this.address, ScrtAgent.gasToken).then(x=>String(x))
   }
 
