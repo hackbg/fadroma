@@ -25,5 +25,7 @@ export * from './code'
 export * from './deploy'
 export * from './devnet'
 export * from './store'
+
 export * as Stub from './stub'
 export * as Token from './token'
+export { Agent as default } from './chain'

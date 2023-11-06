@@ -64,12 +64,14 @@ export async function projectWizard (options?: {
 
   if (options?.cargoWorkspace || options?.cargoCrate) {
     if (options.cargoWorkspace) {
-      project = project.writeCargoWorkspace(root)
+      project = project.writeCargoWorkspace({
+        root
+      })
     } else if (options?.cargoCrate) {
       project = project.writeCargoCrate({
         root,
         cargoCrate: options.cargoCrate,
-        libFeatures: options.libFeatures
+        features:   options?.libFeatures
       })
     }
     if (interactive) {
@@ -157,7 +159,7 @@ export class Project extends ProjectRoot {
   writeCargoCrate ({
     root       = this.root,
     cargoCrate = '',
-    features   = []
+    features   = [] as string[]
   }): CargoCrateProject {
     return new CargoCrateProject(this.name, this.root)
   }

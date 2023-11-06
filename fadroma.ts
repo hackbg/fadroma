@@ -17,7 +17,7 @@
 **/
 
 import type { ChainId, DeployStore } from '@fadroma/connect'
-import { Agent, bold, timestamp, Deployment, connectModes, CW, Scrt } from '@fadroma/connect'
+import { Agent, bold, timestamp, Deployment, CW, Scrt } from '@fadroma/connect'
 import * as Compilers from './ops/build'
 import * as Devnets from './ops/devnets'
 import * as Prompts from './ops/prompts'
@@ -80,7 +80,7 @@ export default class ProjectCommands extends CommandContext {
         async (path?: string) => exportDeployment(
           this.project.root, await this.project.getDeployment(), path))
       this.command('reset', 'stop and erase running devnets',
-        (...ids: ChainId[]) => Devnets.Container.deleteMany(
+        (...ids: ChainId[]) => Devnets.deleteDevnets(
           this.project.root, ids))
     }
   }

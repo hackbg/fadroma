@@ -115,6 +115,10 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
     })
   }
 
+  async simulate () {
+    return await this.agent.api.tx.simulate(this.messages)
+  }
+
   async submit ({ memo = "" }: { memo: string }): Promise<ScrtBatchResult[]> {
     const chainId  = this.agent.chainId!
     const messages = this.messages
@@ -220,12 +224,6 @@ export class ScrtBatchBuilder extends BatchBuilder<Scrt> {
       }
     }
   }
-
-  async simulateForGas () {
-    const messages = this.conformedMessages
-    return await this.agent.api.tx.simulate(messages as any)
-  }
-
 }
 
 export interface ScrtBatchResult {

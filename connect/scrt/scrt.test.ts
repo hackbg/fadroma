@@ -33,7 +33,7 @@ export async function testScrtChain () {
   assert(Scrt.testnet() instanceof Scrt)
   const chain = new Scrt({ chainId: 'scrt' })
   assert(chain.api instanceof SecretJS.SecretNetworkClient)
-  const agent = await chain.authenticate({})
+  const agent = await chain.connect({})
   assert(agent.api instanceof SecretJS.SecretNetworkClient)
 }
 
@@ -42,7 +42,7 @@ export async function testScrtDevnet () {
   const uploadFee = new Token.Fee("10000000", "uscrt")
   const initFee   = new Token.Fee("10000000", "uscrt")
   // Just a devnet with a couple of genesis users.
-  const devnet = new Devnets.Container({
+  const devnet = new Devnets.ScrtContainer({
     platform: 'scrt_1.9',
     genesisAccounts: { Alice: "123456789000", Bob: "987654321000", }
   })
@@ -50,8 +50,8 @@ export async function testScrtDevnet () {
   // This creates and launches the devnet in
   // order to be able to access the wallets.
   const [alice, bob] = await Promise.all([
-    devnet.authenticate('Alice'),
-    devnet.authenticate('Bob'),
+    devnet.connect({ name: 'Alice' }),
+    devnet.connect({ name: 'Bob' }),
   ])
   // Query block height
   console.log('Height:', await alice.height)
@@ -59,7 +59,7 @@ export async function testScrtDevnet () {
   equal(await alice.balance, '123455739000')
   equal(await bob.balance,   '987654321000')
   //// Permissionsless: anyone can authenticate with their public key
-  const guest = await new Scrt({ devnet }).authenticate({ mnemonic })
+  const guest = await devnet.connect(new Scrt({ mnemonic }))
   //// Starting out with zero balance
   equal(await guest.balance, '0')
   //// Which may be topped up by existing users

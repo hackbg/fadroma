@@ -4,9 +4,7 @@ import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Environment } from '@hackbg/conf'
-import type {
-  AgentClass, ContractClientClass, Uint128, Address, ChainId, CodeId
-} from '@fadroma/agent'
+import type { ContractClientClass, Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
 import { ContractClient, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
@@ -26,20 +24,15 @@ class OKP4Config extends Config {
 
 /** Agent for OKP4. */
 class OKP4Agent extends Agent {
-  /** @returns Token.Fee in uknow */
-  static gas = (amount: Uint128|number) => new Token.Fee(amount, this.defaultDenom)
   /** Default denomination of gas token. */
-  static defaultDenom = 'uknow'
-  /** Default denomination of gas token. */
-  defaultDenom = OKP4Agent.defaultDenom
+  static gasToken = 'uknow'
   /** Transaction fees for this agent. */
   fees = {
     upload: OKP4Agent.gas(10000000),
-    init:   OKP4Agent.gas(1000000),
-    exec:   OKP4Agent.gas(1000000),
-    send:   OKP4Agent.gas(1000000),
+    init: OKP4Agent.gas(1000000),
+    exec: OKP4Agent.gas(1000000),
+    send: OKP4Agent.gas(1000000),
   }
-
   /** Connect to OKP4 in testnet mode. */
   static testnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
     const { testnetChainId: chainId, testnetUrl: url } = new OKP4Config()
@@ -59,7 +52,7 @@ class OKP4Agent extends Agent {
   /** The account index in the HD derivation path */
   declare hdAccountIndex: number
 
-  constructor (options: Partial<OKP4Agent> & { config?: OKP4Config } = {
+  constructor (options: Partial<OKP4Agent> & { mnemonic?: string, config?: OKP4Config } = {
     config: new OKP4Config()
   }) {
     super({
@@ -68,7 +61,6 @@ class OKP4Agent extends Agent {
       bech32Prefix: 'okp4',
       hdAccountIndex: 0
     })
-    this.log.label = `${this.address??'(no address)'} @ ${this.chainId??'(no chain id)'}`
   }
 
   /** Get clients for all Cognitarium instances,

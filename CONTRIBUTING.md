@@ -157,3 +157,9 @@ or the devnet Dockerfiles), make sure to preserve the registry URL prefix and SH
 of the base image. In the spirit of reproducible builds, this prevents a hostile build
 environment from potentially replacing base images with its own versions for "optimization"
 purposes.
+
+### Notes
+
+* When refactoring, avoid turning static methods into arrow functions,
+  as they may depend on static inheritance (whose behavior is different
+  in arrow functions).

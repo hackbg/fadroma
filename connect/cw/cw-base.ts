@@ -11,7 +11,7 @@ import {
 } from '@fadroma/agent'
 import type { Address, Message, CodeId, CodeHash, UploadedCode, Label } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
-import type { logs, OfflineSigner as Signer, Block, StdFee } from '@hackbg/cosmjs-esm'
+import type { logs, OfflineSigner, Block, StdFee } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
@@ -19,7 +19,6 @@ import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
 /** Generic agent for CosmWasm-enabled chains. */
 class CWAgent extends Agent {
-  defaultDenom = ''
   /** Public key corresponding to private key derived from mnemonic. */
   publicKey?: Uint8Array
   /** API handle. */
@@ -32,47 +31,55 @@ class CWAgent extends Agent {
   hdAccountIndex?: number
   /** The provided signer, which signs the transactions.
     * TODO: Implement signing transactions without external signer. */
-  declare signer?: Signer
+  declare signer?: OfflineSigner
 
-  constructor (properties?: Partial<CWAgent>) {
+  constructor (properties?: Partial<CWAgent> & { mnemonic?: string }) {
     super(properties as Partial<Agent>)
     assign(this, properties, ['coinType', 'bech32Prefix', 'hdAccountIndex'])
-    this.log.debug('Connecting to', bold(this.url))
-    this.api ??= CosmWasmClient.connect(this.url)
-    this.log.label = `${this.address??'(no address)'} @ ${this.chainId||'(no chain id)'} ${this.mode||'(unspecified mode)'}`
-  }
 
-  authenticate (options?: Parameters<Agent["authenticate"]>[0] & { signer?: Signer }) {
-    if (!options) {
-      throw new CWError("pass { mnemonic } or { signer } to this method")
-    }
-    let { signer, mnemonic } = options
-    if (signer) {
-      if (mnemonic) {
-        throw new CWError("pass either mnemonic or signer, but not both")
+    this.log.label = `${this.chainId||'(no chain id)'} ${this.mode||'(no mode)'}: ` +
+      `${bold(this.name??this.address??'(no address)')}`
+
+    if (properties?.signer) {
+      if (properties?.mnemonic) {
+        this.log.warn('Signer passed. Ignoring mnemonic')
       }
-      return super.authenticate({
-        ...options, api: SigningCosmWasmClient.connectWithSigner(this.url, signer)
-      })
+      this.signer = properties.signer
+    } else if (properties?.mnemonic) {
+      this.log.warn('Authenticating with passed mnemonic')
+      Object.assign(this, authMnemonic(this, properties.mnemonic))
     } else {
-      if (!mnemonic) {
-        mnemonic = bip39.generateMnemonic(bip39EN)
-        this.log
-          .warn("No mnemonic provided, generated this one:")
-          .warn(' ', bold(mnemonic))
+      let mnemonic = bip39.generateMnemonic(bip39EN)
+      this.log
+        .warn('Authenticating with generated mnemonic:')
+        .warn(' ', bold(mnemonic))
+        .warn('Store this now if you need to, as it will not be displayed again.')
+      Object.assign(this, authMnemonic(this, mnemonic))
+    }
+
+    this.log.label = `${this.chainId||'(no chain id)'} ${this.mode||'(no mode)'}: ` +
+      `${bold(this.name??this.address??'(no address)')}`
+
+    if (this.url) {
+      this.log.debug('Connecting to', bold(this.url), properties)
+      if (this.signer) {
+        this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.signer)
+      } else {
+        this.api = CosmWasmClient.connect(this.url)
       }
-      return super.authenticate({
-        ...options, ...consumeMnemonic(this, mnemonic)
-      })
+    } else {
+      this.log.warn('No connection url.')
     }
   }
 
   async getBlockInfo (): Promise<Block> {
-    return this.api.then(api=>api.getBlock())
+    return this.api?.then(api=>api.getBlock())
   }
 
   get height () {
-    return this.getBlockInfo().then(({ header: { height } })=>height)
+    return this.getBlockInfo().then(
+      (info: { header: { height?: number } } = { header: {} })=>String(info.header.height)
+    )
   }
 
   get balance () {
@@ -86,38 +93,38 @@ class CWAgent extends Agent {
   /** Query native token balance. */
   async getBalance (denom?: string, address?: Address): Promise<string> {
     this.log.debug('Querying balance of', bold(address), 'in', bold(denom))
-    denom ??= this.defaultDenom
+    denom ??= this.gasToken
     address ??= this.address
     if (!address) {
       throw new Error('getBalance: pass address')
     }
-    const { amount } = await this.api.then(api=>api.getBalance(address!, denom!))
+    const { amount } = await this.api?.then(api=>api.getBalance(address!, denom!))
     return amount
   }
 
   /** Stargate implementation of getting a code id. */
   async getCodeId (address: Address): Promise<CodeId> {
     if (!address) throw new CWError('chain.getCodeId: no address')
-    const { codeId } = await this.api.then(api=>api.getContract(address))
+    const { codeId } = await this.api?.then(api=>api.getContract(address))
     return String(codeId)
   }
 
   /** Stargate implementation of getting a code hash. */
   async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    const { codeId } = await this.api.then(api=>api.getContract(address))
+    const { codeId } = await this.api?.then(api=>api.getContract(address))
     return this.getCodeHashOfCodeId(String(codeId))
   }
 
   /** Stargate implementation of getting a code hash. */
   async getCodeHashOfCodeId (codeId: CodeId): Promise<CodeHash> {
-    const { checksum } = await this.api.then(api=>api.getCodeDetails(Number(codeId)))
+    const { checksum } = await this.api?.then(api=>api.getCodeDetails(Number(codeId)))
     return checksum
   }
 
   /** Stargate implementation of getting a contract label. */
   async getLabel (address: Address): Promise<string> {
     if (!address) throw new CWError('chain.getLabel: no address')
-    const { label } = await this.api.then(api=>api.getContract(address))
+    const { label } = await this.api?.then(api=>api.getContract(address))
     return label
   }
 
@@ -127,7 +134,7 @@ class CWAgent extends Agent {
     amounts:   Token.ICoin[],
     options?:  Parameters<Agent["doSend"]>[2]
   ) {
-    return this.api.then(api=>{
+    return this.api?.then(api=>{
       if (!(api as SigningCosmWasmClient)?.sendTokens) {
         throw new CWError("can't send tokens with an unauthenticated agent")
       } 
@@ -247,8 +254,11 @@ class CWAgent extends Agent {
   }
 }
 
-export function consumeMnemonic (agent: CWAgent, mnemonic: string): {
-  address: Address, pubkey: Uint8Array, signer: Signer
+export function authMnemonic (agent: CWAgent, mnemonic: string): {
+  address: Address,
+  pubkey:  Uint8Array,
+  signer:  OfflineSigner,
+  api:     Promise<SigningCosmWasmClient>
 } {
   // Validate input
   if (!mnemonic) {
@@ -274,7 +284,7 @@ export function consumeMnemonic (agent: CWAgent, mnemonic: string): {
   // Compute public key and address
   const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
   const address = bech32.encode(agent.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
-  const signer = {
+  const signer: OfflineSigner = {
     // One account per agent
     getAccounts: async () => [
       { algo: 'secp256k1', address, pubkey }
