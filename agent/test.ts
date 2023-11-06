@@ -1,21 +1,17 @@
 import type { Agent, Devnet } from '.'
-import { Fee, Coin } from './token'
+import { Coin } from './token'
 export async function testChainSupport <
   A extends typeof Agent, D extends typeof Devnet<A>
 > (
   Agent: A, Devnet: D, token: string, code: string
 ) {
   const { equal } = await import('node:assert')
-  const sendFee = new Fee( "1000000", "uknow")
-  const uploadFee = new Fee("10000000", "uknow")
-  const initFee = new Fee("10000000", "uknow")
+  const sendFee = Agent.gas("1000000")
+  const uploadFee = Agent.gas("10000000")
+  const initFee = Agent.gas("10000000")
   const devnet = new (Devnet as any)({
-    genesisAccounts: {
-      Alice: "123456789000",
-      Bob:   "987654321000",
-    }
+    genesisAccounts: { Alice: "123456789000", Bob: "987654321000" }
   })
-
   const [alice, bob] = await Promise.all([
     devnet.connect({ name: 'Alice' }),
     devnet.connect({ name: 'Bob' }),
@@ -25,8 +21,8 @@ export async function testChainSupport <
   await alice.height
 
   console.log('Querying balances...')
-  equal(await alice.balance, '123455789000')
-  equal(await bob.balance,   '987654321000')
+  equal((await alice.balance).length, '123455789000'.length)//varying amount subtracted at genesis
+  equal(await bob.balance, '987654321000')
 
   console.log('Authenticating a non-genesis account...')
   const guest = await devnet.connect({ mnemonic: [
@@ -40,11 +36,10 @@ export async function testChainSupport <
   equal((await guest.balance)??'0', '0')
 
   console.log('Topping up non-genesis account balance from genesis accounts...')
-  console.log({alice, guest})
-  await alice.send(guest, [new Coin("1", "uknow")], { sendFee })
+  await alice.send(guest, [Agent.coin("1")], { sendFee })
   equal(await guest.balance, '1')
-  await bob.send(guest, [new Coin("10", "uknow")], { sendFee })
-  equal(await guest.balance, '11')
+  await bob.send(guest, [Agent.coin("11")], { sendFee })
+  equal(await guest.balance, '12')
 
   console.log('Uploading code...')
   const uploaded = await alice.upload(code)

@@ -4,7 +4,7 @@
 import type { Name, Address, Class, Into, Many, TxHash, Label, Message, Uint128 } from './base'
 import { Error, Console, bold, into, assign } from './base'
 import type * as Token from './token'
-import { Fee } from './token'
+import { Fee, Coin } from './token'
 import type { UploadStore } from './store'
 import type { CodeHash, CodeId } from './code'
 import { CompiledCode, UploadedCode } from './code'
@@ -32,6 +32,10 @@ export abstract class Agent {
   static gas (amount: Uint128|number): Fee {
     return new Fee(amount, this.gasToken)
   }
+  /** @returns Coin in gasToken */
+  static coin (amount: Uint128|number): Coin {
+    return new Coin(amount, this.gasToken)
+  }
   /** Create agent from random mnemonic. */
   static random (...args: ConstructorParameters<typeof this>): InstanceType<typeof this> {
     return new (this as any)({ ...args[0], mnemonic: bip39.generateMnemonic(bip39EN) }, ...args.slice(1) as [])
@@ -52,8 +56,14 @@ export abstract class Agent {
   static mocknet (options?: Partial<Agent>): Agent {
     throw new Error('Mocknet is not enabled for this chain.')
   }
+
   /** Logger. */
   log = new Console('Agent')
+
+  /** The friendly name of the agent. */
+  name?:         string
+  /** The address from which transactions are signed and sent. */
+  address?:      Address
 
   /** The unique id of the chain. */
   chainId?:      ChainId
@@ -68,33 +78,30 @@ export abstract class Agent {
   /** Default fee maximums for send, upload, init, and execute. */
   defaultFees?: { send?: Token.IFee, upload?: Token.IFee, init?: Token.IFee, exec?: Token.IFee }
 
-  /** The friendly name of the agent. */
-  name?:    string
-  /** The address from which transactions are signed and sent. */
-  address?: Address
-
   devnet?:  Devnet<typeof Agent>|undefined
 
   constructor (properties?: Partial<Agent> & { mnemonic?: string }) {
     assign(this, properties, [
-      'log',
+      'log', 'name', 'address',
       'chainUrl', 'chainMode', 'chainApi', 'chainId', 'chainStopped',
-      'defaultFees', 'name', 'address',
     ])
+    this.defaultFees = { ...this.defaultFees||{}, ...properties?.defaultFees||{} }
     this.log.label = this[Symbol.toStringTag]
   }
   /** Compact string tag for console representation. */
   get [Symbol.toStringTag]() {
-    return `${this.chainId||'(unidentified chain)'}`
-         + (this.chainMode ? ` (${this.chainMode})` : '')
-         + ` ${this.name||this.address||'(unauthenticated)'}`
+    return [
+      `${this.chainId||'(unidentified chain)'}`,
+      (this.chainMode ? ` (${this.chainMode})` : ''),
+      ` ${this.name?`"${this.name}"`:(this.address||'(unauthenticated)')}`
+    ].join('')
   }
   /** Get a client handle for a specific smart contract, authenticated as as this agent. */
-  contract <C extends ContractClient> (
-    options?: Address|Partial<ContractInstance>,
-    $C: ContractClientClass<C> = ContractClient as ContractClientClass<C>, 
-  ): C {
-    return new $C(options!, this) as C
+  contract (options?: Address|Partial<ContractInstance>): ContractClient
+  contract <C extends typeof ContractClient> (
+    options?: Address|Partial<ContractInstance>, $C: C = ContractClient as C, 
+  ): InstanceType<C> {
+    return new $C(options!, this) as InstanceType<C>
   }
   /** Whether this is a mainnet. */
   get isMainnet () {

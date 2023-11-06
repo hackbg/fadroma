@@ -39,15 +39,15 @@ export abstract class Devnet<A extends typeof Agent> {
       agent = parameters[0] as InstanceType<A>
     } else {
       const params = parameters as ConstructorParameters<A>
-      if (params[0]?.name) {
+      params[0] ??= {}
+      if (params[0].name) {
         params[0] = {
           ...await this.getGenesisAccount(params[0].name),
           ...params[0],
         }
-        if (this.url) {
-          params[0].chainUrl ??= this.url.toString()
-        }
       }
+      params[0].chainId ??= this.chainId
+      params[0].chainUrl ??= this.url?.toString()
       agent = new (this.Agent||Agent)(...params)
       if (params[0]?.chainId && params[0]?.chainId !== this.chainId) {
         this.log.warn('chainId: ignoring override (devnet)')

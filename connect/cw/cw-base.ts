@@ -30,11 +30,7 @@ class CWAgent extends Agent {
   /** API handle. */
   declare chainApi: Promise<CosmWasmClient|SigningCosmWasmClient>
 
-  constructor ({
-    mnemonic,
-    signer,
-    ...properties
-  }: Partial<CWAgent> & {
+  constructor ({ mnemonic, signer, ...properties }: Partial<CWAgent> & {
     signer?:   OfflineSigner,
     mnemonic?: string
   }) {
@@ -63,10 +59,11 @@ class CWAgent extends Agent {
       `${bold(this.name??this.address??'(no address)')}`
 
     if (this.chainUrl) {
-      this.log.debug('Connecting to', bold(this.chainUrl), properties)
       if (signer) {
+        this.log.debug('Connecting to', bold(this.chainUrl), 'as', bold(this.address))
         this.chainApi = SigningCosmWasmClient.connectWithSigner(this.chainUrl, signer)
       } else {
+        this.log.debug('Connecting to', bold(this.chainUrl), 'in read-only mode')
         this.chainApi = CosmWasmClient.connect(this.chainUrl)
       }
     } else {
@@ -135,7 +132,6 @@ class CWAgent extends Agent {
     recipient: Address, amounts: Token.ICoin[], options?: Parameters<Agent["doSend"]>[2]
   ) {
     return this.chainApi.then(api=>{
-      console.log({doSend:this, api, args: arguments})
       if (!(api as SigningCosmWasmClient)?.sendTokens) {
         throw new CWError("can't send tokens with an unauthenticated agent")
       } 
@@ -151,8 +147,7 @@ class CWAgent extends Agent {
 
   /** Stargate implementation of batch send. */
   sendMany (
-    outputs:  [Address, Token.ICoin[]][],
-    options?: Parameters<Agent["sendMany"]>[1]
+    outputs: [Address, Token.ICoin[]][], options?: Parameters<Agent["sendMany"]>[1]
   ): Promise<void|unknown> {
     throw new Error('not implemented')
   }
@@ -180,8 +175,7 @@ class CWAgent extends Agent {
 
   /** Instantiate a contract via CosmJS Stargate. */
   protected async doInstantiate (
-    codeId:  CodeId,
-    options: Parameters<Agent["doInstantiate"]>[1]
+    codeId: CodeId, options: Parameters<Agent["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
     if (!this.address) {
       throw new CWError("can't instantiate contract without sender address")
@@ -216,9 +210,7 @@ class CWAgent extends Agent {
 
   /** Call a transaction method of a contract. */
   protected async doExecute (
-    contract: { address: Address },
-    message:  Message,
-    options:  Parameters<Agent["execute"]>[2] = {}
+    contract: { address: Address }, message: Message, options: Parameters<Agent["execute"]>[2] = {}
   ): Promise<unknown> {
     if (!this.address) {
       throw new CWError("can't execute transaction without sender address")
