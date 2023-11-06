@@ -23,6 +23,10 @@ export class Fee implements IFee {
   }
   add = (amount: Uint128|number, denom: string) =>
     this.amount.push({ amount: String(amount), denom })
+
+  get [Symbol.toStringTag] () {
+    return `${this.gas}`
+  }
 }
 
 /** Represents some amount of native token. */

@@ -165,7 +165,7 @@ class StubBatchBuilder extends BatchBuilder<StubAgent> {
   }
 
   async submit () {
-    this.agent.log.debug('Submited batch:', this.messages)
+    this.agent.log.debug('Submitted batch:', this.messages)
     return this.messages
   }
 }

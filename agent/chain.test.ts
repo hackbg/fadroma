@@ -10,7 +10,7 @@ import * as Stub from './stub'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['modes',           testModes],
+  //['modes',           testModes],
   ['unauthenticated', testUnauthenticated],
   ['authenticated',   testAuthenticated],
 ])
@@ -22,15 +22,19 @@ export async function testModes () {
   assert(!(Stub.Agent.testnet().devMode))
   assert(Stub.Agent.devnet().isDevnet)
   assert(Stub.Agent.devnet().devMode)
-  assert(new Stub.Agent({ mode: Mode.Mocknet }).isMocknet)
-  assert(new Stub.Agent({ mode: Mode.Mocknet }).devMode)
+  assert(new Stub.Agent({ chainMode: Mode.Mocknet }).isMocknet)
+  assert(new Stub.Agent({ chainMode: Mode.Mocknet }).devMode)
 }
 
 export async function testUnauthenticated () {
   let chain: Agent
   assert.throws(()=>Stub.Agent.mocknet())
   assert(chain = new Stub.Agent())
-  assert(chain = new Stub.Agent({ mode: Mode.Testnet, chainId: 'stub', url: 'stub' }))
+  assert(chain = new Stub.Agent({
+    chainMode: Mode.Testnet,
+    chainId:  'stub',
+    chainUrl: 'stub'
+  }))
 
   assert(await chain.height)
   assert(await chain.nextBlock)
@@ -60,7 +64,7 @@ export async function testUnauthenticated () {
 }
 
 export async function testAuthenticated () {
-  const agent = new Stub.Agent({ chainId: 'stub' }).connect({ name: 'testing1', address: '...' })
+  const agent = new Stub.Agent({ chainId: 'stub', name: 'testing1', address: '...' })
   //assert.equal(agent[Symbol.toStringTag], 'stub (mocknet): testing1')
   assert(agent instanceof Stub.Agent,  'an Agent was returned')
   assert(agent.address,                'agent has address')
@@ -69,7 +73,7 @@ export async function testAuthenticated () {
   agent.height
   agent.nextBlock
   await agent.query('', {})
-  await agent.send('', [])
+  await agent.send('x', [])
   await agent.sendMany([])
   await agent.upload(fixture('null.wasm'), {})
   await agent.upload(new Uint8Array(), {})

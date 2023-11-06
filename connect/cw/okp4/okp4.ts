@@ -35,8 +35,8 @@ class OKP4Agent extends Agent {
   }
   /** Connect to OKP4 in testnet mode. */
   static testnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
-    const { testnetChainId: chainId, testnetUrl: url } = new OKP4Config()
-    return super.testnet({ chainId, url, ...options||{}, }) as OKP4Agent
+    const { testnetChainId: chainId, testnetUrl: chainUrl } = new OKP4Config()
+    return super.testnet({ chainId, chainUrl, ...options||{}, }) as OKP4Agent
   }
   /** Connect to OKP4 in testnet mode. */
   static devnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
@@ -45,45 +45,26 @@ class OKP4Agent extends Agent {
   /** Logging handle. */
   log = new Console('OKP4')
 
-  /** The coin type in the HD derivation path */
-  declare coinType: number
-  /** The bech32 prefix for the account's address  */
-  declare bech32Prefix: string
-  /** The account index in the HD derivation path */
-  declare hdAccountIndex: number
-
   constructor (options: Partial<OKP4Agent> & { mnemonic?: string, config?: OKP4Config } = {
     config: new OKP4Config()
   }) {
-    super({
-      ...options||{},
-      coinType: 118,
-      bech32Prefix: 'okp4',
-      hdAccountIndex: 0
-    })
+    super({ coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, ...options } as Partial<Agent>)
   }
-
-  /** Get clients for all Cognitarium instances,
-    * keyed by address. */
+  /** Get clients for all Cognitarium instances, keyed by address. */
   async cognitaria ({ map = true } = {}) {
     const ids = Object.values(cognitariumCodeIds)
     return await this.getContractsById(Cognitarium, ids, map)
   }
-
-  /** Get clients for all Objectarium instances,
-    * keyed by address. */
+  /** Get clients for all Objectarium instances, keyed by address. */
   async objectaria ({ map = true } = {}) {
     const ids = Object.values(objectariumCodeIds)
     return await this.getContractsById(Objectarium, ids, map)
   }
-
-  /** Get clients for all Law Stone instances,
-    * keyed by address. */
+  /** Get clients for all Law Stone instances, keyed by address. */
   async lawStones ({ map = true } = {}) {
     const ids = Object.values(lawStoneCodeIds)
     return await this.getContractsById(LawStone, ids, map)
   }
-
   async getContractsById <C extends ContractClient> (
     Client: ContractClientClass<C> = ContractClient as ContractClientClass<C>,
     ids: CodeId[],
@@ -96,7 +77,7 @@ class OKP4Agent extends Agent {
     for (const id of ids) {
       const codeId = Number(id)
       if (isNaN(codeId)) throw new Error('non-number code ID encountered')
-      const api = await this.api
+      const api = await this.chainApi
       const { checksum: codeHash } = await api.getCodeDetails(codeId)
       const addresses = await api.getContracts(codeId)
       for (const address of addresses) {
@@ -115,7 +96,10 @@ class OKP4Agent extends Agent {
   }
 }
 
-export { OKP4Config as Config, OKP4Agent as Agent, }
+export {
+  OKP4Config as Config,
+  OKP4Agent  as Agent
+}
 
 /** Connect to OKP4 testnet. */
 export const testnet = (...args: Parameters<typeof OKP4Agent.testnet>) => OKP4Agent.testnet(...args)

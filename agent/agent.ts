@@ -28,4 +28,6 @@ export * from './store'
 
 export * as Stub from './stub'
 export * as Token from './token'
+export * as Test from './test'
 export { Agent as default } from './chain'
+

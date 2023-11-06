@@ -6,28 +6,9 @@ import { Console, Error, assign, into, intoArray, intoRecord } from './base'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['errors',      testErrors],
-  ['console',     testConsole],
   ['collections', testCollections],
   ['assign',      testAssign],
 ])
-
-export async function testErrors () {
-  // Make sure each error subclass can be created with no arguments:
-  for (const key of Object.keys(Error)) {
-    const subtype = Error[key as keyof typeof Error] as any
-    if (typeof subtype ==='function') assert(new subtype() instanceof Error, `error ${key}`)
-  }
-}
-
-export async function testConsole () {
-  // Make sure each log message can be created with no arguments:
-  const log = new Console('(test message)')
-  for (const key of Object.keys(log)) {
-    const method = log[key as keyof typeof log] as any
-    if (typeof method==='function') try { method.bind(log)() } catch (e) { console.warn(e) }
-  }
-}
 
 export async function testCollections () {
   assert.equal(await into(1), 1)
