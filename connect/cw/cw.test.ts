@@ -11,7 +11,8 @@ export default new Suite([
 export async function testCWChain () {
   const { devnet, alice, bob, guest } = await Test.testChainSupport(
     CW.OKP4.Agent,
-    Devnets.OKP4Container['v5.0'],
+    Devnets.OKP4Container,
+    'v5.0',
     'uknow',
     fixture('cw-null.wasm')
   )

@@ -4,7 +4,7 @@ import { Console, bold } from '@hackbg/logs'
 export async function testChainSupport <
   A extends typeof Agent, D extends typeof Devnet<A>
 > (
-  Agent: A, Devnet: D, token: string, code: string
+  Agent: A, Devnet: D, version: string, token: string, code: string
 ) {
   const console = new Console(`testing(${bold(Agent.name)} + ${bold(Devnet.name)})`)
 
@@ -13,9 +13,9 @@ export async function testChainSupport <
   const uploadFee = Agent.gas("10000000")
   const initFee = Agent.gas("10000000")
   const execFee = Agent.gas("10000000")
-  const devnet = new (Devnet as any)({
-    genesisAccounts: { Alice: "123456789000", Bob: "987654321000" }
-  })
+
+  const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
+  const devnet = new (Devnet as any)({ version,  genesisAccounts })
   const [alice, bob] = await Promise.all([
     devnet.connect({ name: 'Alice' }),
     devnet.connect({ name: 'Bob' }),

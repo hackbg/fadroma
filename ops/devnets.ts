@@ -471,89 +471,98 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
 class ScrtDevnetContainer extends DevnetContainer<typeof Scrt.Agent> {
   Agent = Scrt.Agent
 
-  static ['v1.2'] = class ScrtDevnetContainer_1_2 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_2.Dockerfile').path
-    readyString       = 'indexed block'
-    daemon            = 'secretd'
-    portMode          = 'http' as Port
-    platform          = 'scrt_1_2'
+  constructor ({ version = 'v1.9', ...properties }: Partial<ScrtDevnetContainer & {
+    version: keyof typeof ScrtDevnetContainer.versions
+  }>) {
+    super({ ...ScrtDevnetContainer.versions[version] || {}, ...properties })
   }
 
-  static ['v1.3'] = class ScrtDevnetContainer_1_3 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_3.Dockerfile').path
-    readyString       = 'indexed block'
-    daemon            = 'secretd'
-    portMode          = 'grpcWeb' as Port
-    platform          = 'scrt_1_3'
-  }
-
-  static ['1.4'] = class ScrtDevnetContainer_1_4 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_4.Dockerfile').path
-    readyString       = 'indexed block'
-    daemon            = 'secretd'
-    portMode          = 'grpcWeb' as Port
-    platform          = 'scrt_1_4'
-  }
-
-  static ['v1.5'] = class ScrtDevnetContainer_1_5 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_5.Dockerfile').path
-    readyString       = 'indexed block'
-    daemon            = 'secretd'
-    portMode          = 'http' as Port
-    platform          = 'scrt_1_5'
-  }
-
-  static ['v1.6'] = class ScrtDevnetContainer_1_6 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_6.Dockerfile').path
-    readyString       = 'indexed block'
-    daemon            = 'secretd'
-    portMode          = 'http' as Port
-    platform          = 'scrt_1_6'
-  }
-
-  static ['v1.7'] = class ScrtDevnetContainer_1_7 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_7.Dockerfile').path
-    readyString       = 'indexed block'
-    daemon            = 'secretd'
-    portMode          = 'http' as Port
-    platform          = 'scrt_1_7'
-  }
-
-  static ['v1.8'] = class ScrtDevnetContainer_1_8 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_8.Dockerfile').path
-    readyString       = 'Done verifying block height'
-    daemon            = 'secretd'
-    portMode          = 'http' as Port
-    platform          = 'scrt_1_8'
-  }
-
-  static ['v1.9'] = class ScrtDevnetContainer_1_9 extends ScrtDevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master'
-    containerManifest = $(packageRoot, 'devnets', 'scrt_1_9.Dockerfile').path
-    readyString       = 'Validating proposal'
-    daemon            = 'secretd'
-    portMode          = 'http' as Port
-    platform          = 'scrt_1_9'
+  static versions = {
+    'v1.2': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_2.Dockerfile').path,
+      readyString: 'indexed block',
+      daemon: 'secretd',
+      portMode: 'http' as Port,
+      platform: 'scrt_1_2',
+    },
+    'v1.3': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.3:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_3.Dockerfile').path,
+      readyString: 'indexed block',
+      daemon: 'secretd',
+      portMode: 'grpcWeb' as Port,
+      platform: 'scrt_1_3',
+    },
+    '1.4': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.4:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_4.Dockerfile').path,
+      readyString: 'indexed block',
+      daemon: 'secretd',
+      portMode: 'grpcWeb' as Port,
+      platform: 'scrt_1_4',
+    },
+    'v1.5': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.5:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_5.Dockerfile').path,
+      readyString: 'indexed block',
+      daemon: 'secretd',
+      portMode: 'http' as Port,
+      platform: 'scrt_1_5',
+    },
+    'v1.6': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.6:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_6.Dockerfile').path,
+      readyString: 'indexed block',
+      daemon: 'secretd',
+      portMode: 'http' as Port,
+      platform: 'scrt_1_6',
+    },
+    'v1.7': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.7:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_7.Dockerfile').path,
+      readyString: 'indexed block',
+      daemon: 'secretd',
+      portMode: 'http' as Port,
+      platform: 'scrt_1_7',
+    },
+    'v1.8': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.8:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_8.Dockerfile').path,
+      readyString: 'Done verifying block height',
+      daemon: 'secretd',
+      portMode: 'http' as Port,
+      platform: 'scrt_1_8',
+    },
+    'v1.9': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.9:master',
+      containerManifest: $(packageRoot, 'devnets', 'scrt_1_9.Dockerfile').path,
+      readyString: 'Validating proposal',
+      daemon: 'secretd',
+      portMode: 'http' as Port,
+      platform: 'scrt_1_9',
+    }
   }
 }
 
 class OKP4DevnetContainer extends DevnetContainer<typeof CW.OKP4.Agent> {
   Agent = CW.OKP4.Agent
 
-  static ['v5.0'] = class OKP4DevnetContainer_5_0 extends OKP4DevnetContainer {
-    containerImage    = 'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master'
-    containerManifest = $(packageRoot, 'devnets', 'okp4_5_0.Dockerfile').path
-    readyString       = 'indexed block'
-    daemon            = 'okp4d'
-    portMode          = 'rpc' as Port
-    platform          = 'okp4_5_0'
+  constructor ({ version = 'v5.0', ...properties }: Partial<OKP4DevnetContainer & {
+    version: keyof typeof OKP4DevnetContainer.versions
+  }>) {
+    super({ ...OKP4DevnetContainer.versions[version] || {}, ...properties })
+  }
+
+  static versions = {
+    'v5.0': {
+      containerImage: 'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
+      containerManifest: $(packageRoot, 'devnets', 'okp4_5_0.Dockerfile').path,
+      readyString: 'indexed block',
+      daemon: 'okp4d',
+      portMode: 'rpc' as Port,
+      platform: 'okp4_5_0',
+    }
   }
 }
 
