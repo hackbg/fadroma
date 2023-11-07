@@ -31,7 +31,8 @@ export default new Suite([
 export async function testScrtChain () {
   const { devnet, alice, bob, guest } = await Test.testChainSupport(
     Scrt,
-    Devnets.ScrtContainer['v1.9'],
+    Devnets.ScrtContainer,
+    'v1.9',
     'uscrt',
     fixture('scrt-null.wasm')
   )
