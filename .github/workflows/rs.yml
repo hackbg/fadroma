@@ -20,8 +20,13 @@ jobs:
           override:  true
       - name: Setup Rust cache
         uses: mozilla-actions/sccache-action@v0.0.3
-      - name: Try building for WASM
-        run: cargo build --all-features --target wasm32-unknown-unknown
+      - name: Build Fadroma
+        run: |
+          cargo build --all-features --target wasm32-unknown-unknown
+      - name: Build Fadroma Ensemble
+        run: |
+          cd ensemble && cargo build --all-features --target wasm32-unknown-unknown
+
   #rs-coverage:
     #name: cargo tarpaulin
     #runs-on: ubuntu-latest
