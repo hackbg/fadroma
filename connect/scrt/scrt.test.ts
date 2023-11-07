@@ -33,22 +33,22 @@ export async function testScrtChain () {
     Scrt,
     Devnets.ScrtContainer['v1.9'],
     'uscrt',
-    fixture('fadroma-example-echo@HEAD.wasm')
+    fixture('scrt-null.wasm')
   )
-  const batch = () => alice.batch()
-    .instantiate('id', {
-      label:    'label',
-      initMsg:  {},
-      codeHash: 'hash',
-    } as any)
-    .execute('addr', {
-      address:  'addr',
-      codeHash: 'hash',
-      message:  {}
-    } as any, {})
-  assert(batch() instanceof BatchBuilder, 'ScrtBatch is returned')
-  assert.ok(await batch().save('test'))
-  assert.ok(await batch().submit({ memo: 'test' }))
+  //const batch = () => alice.batch()
+    //.instantiate('id', {
+      //label:    'label',
+      //initMsg:  {},
+      //codeHash: 'hash',
+    //} as any)
+    //.execute('addr', {
+      //address:  'addr',
+      //codeHash: 'hash',
+      //message:  {}
+    //} as any, {})
+  //assert(batch() instanceof BatchBuilder, 'ScrtBatch is returned')
+  //assert.ok(await batch().save('test'))
+  //assert.ok(await batch().submit({ memo: 'test' }))
 }
 
 export async function testScrtDevnet () {

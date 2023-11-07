@@ -4,33 +4,33 @@ export default function main (state) {
   return new Deployment(state)
     .addContract("cw-null", {
       language:   'rust',
-      sourcePath: '.',
-      cargoToml:  './contracts/cw-null/Cargo.toml'
+      sourcePath: '..',
+      cargoToml:  './examples/contracts/cw-null/Cargo.toml'
     })
     .addContract("cw-stub", {
       language:   'rust',
-      sourcePath: '.',
-      cargoToml:  './contracts/cw-stub/Cargo.toml'
+      sourcePath: '..',
+      cargoToml:  './examples/contracts/cw-stub/Cargo.toml'
     })
-    .addContract("cw-echo",   {
+    .addContract("cw-echo", {
       language:   'rust',
-      sourcePath: '.',
-      cargoToml:  './contracts/cw-echo/Cargo.toml'
+      sourcePath: '..',
+      cargoToml:  './examples/contracts/cw-echo/Cargo.toml'
     })
     .addContract("scrt-null", {
       language:   'rust',
-      sourcePath: '.',
-      cargoToml:  './contracts/scrt-stub/Cargo.toml'
+      sourcePath: '..',
+      cargoToml:  './examples/contracts/scrt-null/Cargo.toml'
     })
     .addContract("scrt-stub", {
       language:   'rust',
-      sourcePath: '.',
-      cargoToml:  './contracts/scrt-stub/Cargo.toml'
+      sourcePath: '..',
+      cargoToml:  './examples/contracts/scrt-stub/Cargo.toml'
     })
     .addContract("scrt-echo", {
       language:   'rust',
-      sourcePath: '.',
-      cargoToml:  './contracts/scrt-echo/Cargo.toml'
+      sourcePath: '..',
+      cargoToml:  './examples/contracts/scrt-echo/Cargo.toml'
     })
 }
 

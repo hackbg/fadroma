@@ -4,7 +4,7 @@
 import assert, { deepEqual, throws } from 'node:assert'
 import { Compiler, ContractInstance, Deployment } from '@fadroma/agent'
 import { getCompiler, RawLocalRustCompiler, ContainerizedLocalRustCompiler } from './build'
-import { fixture } from '../fixtures/fixtures'
+import { fixture, TestBuildDeployment } from '../fixtures/fixtures'
 import { Suite } from '@hackbg/ensuite'
 import * as Dock from '@hackbg/dock'
 import { DotGit } from '@hackbg/repo'
@@ -14,23 +14,6 @@ export default new Suite([
   ['container', testBuildContainer],
   ['history',   testBuildHistory]
 ])
-
-export class MyDeploymentFromSource extends Deployment {
-  a = this.contract('null-a', {
-    language:   'rust',
-    sourcePath: fixture('../examples'),
-    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
-  })
-  b = this.template('null-b', {
-    language:  'rust',
-    sourcePath: fixture('..'),
-    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
-  }).contracts({
-    b1: { initMsg: {} },
-    b2: { initMsg: () => ({}) },
-    b3: { initMsg: async () => ({}) }
-  })
-}
 
 /** Different config options for containerized compiler. */
 export async function testBuildContainer () {
@@ -56,7 +39,7 @@ export async function testBuild () {
     compiler[Symbol.toStringTag as unknown as keyof typeof compiler]
     assert(compiler instanceof Compiler)
 
-    const deployment = new MyDeploymentFromSource()
+    const deployment = new TestBuildDeployment()
     await deployment.build({ compiler })
 
     deepEqual((compiler as any).resolveSource('foo'), { cargoCrate: 'foo' })

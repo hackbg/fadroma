@@ -75,7 +75,7 @@ export async function testAuthenticated () {
   await agent.query('', {})
   await agent.send('x', [])
   await agent.sendMany([])
-  await agent.upload(fixture('null.wasm'), {})
+  await agent.upload(fixture('empty.wasm'), {})
   await agent.upload(new Uint8Array(), {})
   await agent.instantiate('1', { label: 'foo', initMsg: 'bar' })
   await agent.instantiate({ codeId: '1' }, { label: 'foo', initMsg: {} })

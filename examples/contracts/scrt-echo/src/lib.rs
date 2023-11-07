@@ -1,5 +1,5 @@
-extern crate cosmwasm_std;
-use cosmwasm_std::*;
+extern crate secret_cosmwasm_std;
+use secret_cosmwasm_std::*;
 use serde::Deserialize;
 
 #[derive(Deserialize)]

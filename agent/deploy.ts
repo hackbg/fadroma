@@ -248,19 +248,31 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     return this
   }
 
-  async build (options: Parameters<ContractCode["compile"]>[0] = {}):
+  async build ({ units = [...this.keys()], ...options }: Parameters<ContractCode["compile"]>[0] & {
+    units?: Name[]
+  } = {}):
     Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>>
   {
     const toCompile: Array<DeploymentUnit & { source: SourceCode }> = []
-    for (const [name, unit] of this.entries()) {
-      if (!unit.source?.canCompile && unit.compiled?.canUpload) {
-        this.log.warn(`Missing source for ${unit.compiled.codeHash}`)
-      } else {
-        toCompile.push(unit as DeploymentUnit & { source: SourceCode })
+
+    if (units && units.length > 0) {
+      for (const name of units) {
+        const unit = this.get(name)
+        if (!unit) {
+          throw new Error(`requested to build unknown unit "${unit}"`)
+        }
+        if (!unit.source?.canCompile && unit.compiled?.canUpload) {
+          this.log.warn(`Missing source for ${bold(name)} (${unit.compiled.codeHash})`)
+        } else {
+          toCompile.push(unit as DeploymentUnit & { source: SourceCode })
+        }
       }
     }
+
     const compiled = await options.compiler!.buildMany(toCompile.map(unit=>unit.source!))
+
     const byCodeHash: Record<CodeHash, CompiledCode & { codeHash: CodeHash }> = {}
+
     for (const index in compiled) {
       const output = compiled[index]
       if (!output.codeHash) {
@@ -270,10 +282,14 @@ export class Deployment extends Map<Name, DeploymentUnit> {
       toCompile[index].compiled = output
       byCodeHash[output.codeHash] = output as CompiledCode & { codeHash: CodeHash }
     }
+
     return byCodeHash
   }
 
-  async upload (options: Parameters<ContractCode["upload"]>[0] = {}):
+  async upload ({ units, ...options }: Parameters<ContractCode["upload"]>[0] & {
+    units?: Name[]
+    uploadStore?: UploadStore
+  } = {}):
     Promise<Record<CodeId, UploadedCode & { codeId: CodeId }>>
   {
     const uploading: Array<Promise<UploadedCode & { codeId: CodeId }>> = []
@@ -287,7 +303,8 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     return uploaded
   }
 
-  async deploy (options: Parameters<ContractInstance["deploy"]>[0] & {
+  async deploy ({ units, ...options }: Parameters<ContractInstance["deploy"]>[0] & {
+    units?: Name[],
     deployStore?: DeployStore
   } = {}):
     Promise<Record<Address, ContractInstance & { address: Address }>>

@@ -99,7 +99,7 @@ type CompileWorkspaceCrateTask = {
 export abstract class LocalRustCompiler extends ConfiguredCompiler {
   readonly id: string = 'local'
   /** Logger. */
-  log = new Console('LocalRustCompiler')
+  log = new Console('compiler(rust)')
   /** Whether the build process should print more detail to the console. */
   verbose: boolean = this.config.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
   /** Whether the build log should be printed only on error, or always */
@@ -183,20 +183,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     // Assign each contract to its appropriate branch and group
     for (let buildIndex = 0; buildIndex < contracts.length; buildIndex++) {
       const contract = contracts[buildIndex]
-      let {
-        cargoToml,
-        cargoWorkspace,
-        cargoCrate,
-        sourcePath = cargoWorkspace
-          ? $(cargoWorkspace).parent
-          : cargoToml
-            ? $(cargoToml).parent
-            : undefined,
-        sourceRef = 'HEAD',
-      } = contract
-      if (!sourcePath) {
-        throw new Error('Missing source path')
-      }
+      let { cargoToml, cargoWorkspace, cargoCrate, sourcePath = '.', sourceRef = 'HEAD', } = contract
       sourcePath = $(sourcePath).path
       batches[sourcePath] ??= {}
       batches[sourcePath][sourceRef] ??= { sourcePath, sourceRef, tasks: new Set() }
@@ -215,7 +202,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
           }
         }
         workspaceTask ??= {
-          cargoWorkspace: $(sourcePath).relative(cargoWorkspace),
+          cargoWorkspace: cargoWorkspace,
           cargoCrates: []
         }
         workspaceTask.cargoCrates.push({ buildIndex, cargoCrate })
@@ -223,13 +210,13 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
         if (!cargoToml) {
           throw new Error('When cargoWorkspace is not set, you must specify cargoToml')
         }
-        const cargoCrate = $(cargoToml)
+        const cargoCrate = $(sourcePath, cargoToml)
           .as(TOMLFile<CargoTOML>)
           .load()!
           .package.name
         batches[sourcePath][sourceRef].tasks.add({
           buildIndex,
-          cargoToml: $(sourcePath).relative(cargoToml),
+          cargoToml,
           cargoCrate
         } as CompileCrateTask)
       }
@@ -265,17 +252,25 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
         for (const { buildIndex, cargoCrate } of (task as CompileWorkspaceTask).cargoCrates) {
           const wasmName = `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
           const codePath = $(outputDir, wasmName)
-          results[buildIndex] = await
-            new CompiledCode({ codePath: codePath.path }).computeHash()
+          const compiled = await new CompiledCode({ codePath: codePath.path }).computeHash()
+          results[buildIndex] = compiled
         }
       } else if ((task as CompileCrateTask).cargoCrate) {
         const wasmName = `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
         const codePath = $(outputDir, wasmName)
-        results[(task as CompileCrateTask).buildIndex] = await
-          new CompiledCode({ codePath: codePath.path }).computeHash()
+        const compiled = await new CompiledCode({ codePath: codePath.path }).computeHash()
+        results[(task as CompileCrateTask).buildIndex] = compiled
       } else {
         throw new Error("invalid task in compile batch")
       }
+    }
+    if (Object.keys(results).length > 0) {
+      this.log.br().log('Compiled:')
+      for (const compiled of Object.values(results)) {
+        this.log(' ', compiled.codeHash, bold($(compiled.codePath!).shortPath))
+      }
+    } else {
+      this.log('Nothing to compile.')
     }
     return results
   }
@@ -294,7 +289,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
 /** Runs the build script in the current envionment. */
 export class RawLocalRustCompiler extends LocalRustCompiler {
   /** Logging handle. */
-  log = new Console('RawLocalRustCompiler')
+  log = new Console('compiler(rust-raw)')
 
   /** Node.js runtime that runs the build subprocess.
     * Defaults to the same one that is running this script. */
@@ -353,7 +348,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
 /** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Logger */
-  log = new Console('ContainerizedLocalRustCompiler')
+  log = new Console('compiler(rust-containers)')
   /** Used to launch build container. */
   docker: Engine
   /** Tag of the docker image for the build container. */
@@ -399,7 +394,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     // Set up Docker image
     this.dockerfile ??= options?.dockerfile!
     this.script ??= options?.script!
-    this.log.label = `compiling in ${bold(this.image?.name||'??')}`
+    this.log.label = `compiler(${bold(this.image?.name||'??')})`
     if (this.docker?.name && (this.docker?.name !== '/var/run/docker.sock')) {
       this.log.label += ` on ${bold(this.docker?.name)||'??'}`
     }
@@ -497,7 +492,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   }
 
   protected getLogStream (revision: string, cb: (data: string)=>void) {
-    let log = this.log
+    let log = new Console(`compiling in container(${bold(this.image.name)})`)
     if (revision && revision !== HEAD) {
       log = log.sub(`(from ${bold(revision)})`)
     }

@@ -2,12 +2,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
-import projectMain, {
-  Deployment, ContractTemplate, ContractInstance, Stub
-} from '@hackbg/fadroma'
+import projectMain, { Deployment, ContractTemplate, ContractInstance, Stub } from '@hackbg/fadroma'
 import { JSONFileDeployStore } from './stores'
 import { getCompiler } from './build'
-import { fixture, tmpDir } from '../fixtures/fixtures'
+import { tmpDir, TestProjectDeployment } from '../fixtures/fixtures'
 import * as Projects from './project'
 import { withTmpDir } from '@hackbg/file'
 
@@ -89,28 +87,8 @@ export async function testProjectCreate () {
   //})
   //.command()
 
-export class MyDeployment extends Deployment {
-  t = this.template('t', {
-    chainId:   'stub',
-    codeId:    '1',
-    sourcePath: fixture("../examples/kv")
-  })
-
-  // Single template instance with eager and lazy initMsg
-  a1 = this.t.contract('a1', { initMsg: {} })
-  a2 = this.t.contract('a2', { initMsg: () => ({}) })
-  a3 = this.t.contract('a3', { initMsg: async () => ({}) })
-
-  // Multiple contracts from the same template
-  b = this.t.contracts({
-    b1: { initMsg: {} },
-    b2: { initMsg: () => ({}) },
-    b3: { initMsg: async () => ({}) }
-  })
-}
-
 export async function testDeployment () {
-  const deployment = new MyDeployment()
+  const deployment = new TestProjectDeployment()
   assert.ok(deployment.t instanceof ContractTemplate)
   await deployment.deploy({
     uploader: new Stub.Agent(),

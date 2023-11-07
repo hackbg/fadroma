@@ -20,11 +20,14 @@ console.log(`Running ${bold(relative(process.cwd(), main))}`)
 process.argv = [ node, cmds, main, ...process.argv.slice(2) ]
 
 const t1 = performance.now()
+console.br()
 console.log(`Ready in ${bold(String((t1 - t0).toFixed(3)))} ms`)
 
 process.on('exit', ()=>{
   const t2 = performance.now() - (t0 + t1)
+  console.br()
   console.log(`Exited in ${bold(String((t2 - t1).toFixed(3)))} ms`)
 })
 
+console.br()
 require('@hackbg/cmds/cmds-ts.cli.cjs')
