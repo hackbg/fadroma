@@ -72,7 +72,7 @@ export default function main (...args: any) {
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
         compiler:    Compilers.getCompiler(),
         uploadStore: Stores.getUploadStore(), uploader: getAgent(),
-        deployStore: Stores.getDeployStore(), deployer: getAgent()
+        deployStore: Stores.getDeployStore(), deployer: getAgent(),
         units, redeploy: true })))
     .addCommand('select', `activate another deployment`, 
       async (name?: string): Promise<Deployment|undefined> => selectDeployment(

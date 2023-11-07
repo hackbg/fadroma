@@ -12,6 +12,7 @@ export async function testChainSupport <
   const sendFee = Agent.gas("1000000")
   const uploadFee = Agent.gas("10000000")
   const initFee = Agent.gas("10000000")
+  const execFee = Agent.gas("10000000")
   const devnet = new (Devnet as any)({
     genesisAccounts: { Alice: "123456789000", Bob: "987654321000" }
   })
@@ -59,7 +60,7 @@ export async function testChainSupport <
   equal(await guest.getCodeHashOfAddress(instance.address), uploaded.codeHash)
 
   console.log('Executing transaction...')
-  const txResult = await alice.execute(instance, null as any)
+  const txResult = await alice.execute(instance, null as any, { execFee })
 
   console.log('Executing query...')
   const qResult = await alice.query(instance, null as any)

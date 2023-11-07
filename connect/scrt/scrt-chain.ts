@@ -278,6 +278,7 @@ class ScrtAgent extends Agent {
     const txOpts = {
       gasLimit: Number(options?.execFee?.gas) || undefined
     }
+    console.log({contract, message, options, tx, txOpts})
     if (options?.preSimulate) {
       this.log.info('Simulating transaction...')
       let simResult

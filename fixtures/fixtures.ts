@@ -40,33 +40,43 @@ export const tmpDir = () => {
 }
 
 export class TestBuildDeployment extends Deployment {
+
   a = this.contract('null-a', {
-    language:   'rust',
-    sourcePath: fixture('../examples'),
-    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
+    language:  'rust',
+    cargoToml: 'examples/contracts/cw-null/Cargo.toml'
   })
+
   b = this.template('null-b', {
     language:  'rust',
-    sourcePath: fixture('..'),
-    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
+    cargoToml: 'examples/contracts/cw-null/Cargo.toml'
   }).contracts({
     b1: { initMsg: {} },
     b2: { initMsg: () => ({}) },
     b3: { initMsg: async () => ({}) }
   })
+
 }
 
 export class TestProjectDeployment extends Deployment {
+
   t = this.template('t', {
     chainId:   'stub',
     codeId:    '1',
-    sourcePath: fixture("../examples/kv")
+    cargoToml: "examples/contracts/scrt-kv/Cargo.toml"
   })
 
   // Single template instance with eager and lazy initMsg
-  a1 = this.t.contract('a1', { initMsg: {} })
-  a2 = this.t.contract('a2', { initMsg: () => ({}) })
-  a3 = this.t.contract('a3', { initMsg: async () => ({}) })
+  a1 = this.t.contract('a1', {
+    initMsg: {}
+  })
+
+  a2 = this.t.contract('a2', {
+    initMsg: () => ({})
+  })
+
+  a3 = this.t.contract('a3', {
+    initMsg: async () => ({})
+  })
 
   // Multiple contracts from the same template
   b = this.t.contracts({
@@ -74,4 +84,5 @@ export class TestProjectDeployment extends Deployment {
     b2: { initMsg: () => ({}) },
     b3: { initMsg: async () => ({}) }
   })
+
 }

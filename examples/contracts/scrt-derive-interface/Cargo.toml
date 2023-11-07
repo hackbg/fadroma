@@ -1,5 +1,5 @@
 [package]
-name = "fadroma-example-derive-contract-interface"
+name = "scrt-derive-interface-example"
 version = "0.1.0"
 edition = "2021"
 publish = false
