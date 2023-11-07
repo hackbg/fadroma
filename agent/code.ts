@@ -189,8 +189,9 @@ export class RustSourceCode extends SourceCode {
   get [Symbol.toStringTag] () {
     return [
       this.cargoWorkspace
-        ? (this.cargoCrate ? `crate ${this.cargoCrate} from` : 'unknown crate from')
-        : undefined,
+        ? ((this.cargoCrate ? `crate ${this.cargoCrate} from` : 'unknown crate from')
+           +this.cargoWorkspace)
+        : this.cargoToml,
       super[Symbol.toStringTag],
     ].filter(Boolean).join(' ')
   }
@@ -220,7 +221,7 @@ export class RustSourceCode extends SourceCode {
     const hasWorkspace = !!this.cargoWorkspace
     const hasCrateToml = !!this.cargoToml
     const hasCrateName = !!this.cargoCrate
-    return super.canCompile && (
+    return (
       ( hasWorkspace && !hasCrateToml &&  hasCrateName) ||
       (!hasWorkspace &&  hasCrateToml && !hasCrateName)
     )
@@ -352,7 +353,7 @@ export class CompiledCode {
   }
 
   /** Compute the code hash if missing; throw if different. */
-  async computeHash (): Promise<CodeHash> {
+  async computeHash (): Promise<this & { codeHash: CodeHash }> {
     const hash = base16.encode(sha256(await this.fetch()))
     if (this.codeHash) {
       if (this.codeHash.toLowerCase() !== hash.toLowerCase()) {
@@ -361,7 +362,7 @@ export class CompiledCode {
     } else {
       this.codeHash = hash
     }
-    return hash
+    return this as this & { codeHash: CodeHash }
   }
 
   static toBase16Sha256 (data: Uint8Array): string {
@@ -388,6 +389,14 @@ export class UploadedCode {
     assign(this, properties, [
       'codeHash', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas',
     ])
+  }
+
+  get [Symbol.toStringTag] () {
+    return [
+      this.chainId  || 'no chain id',
+      this.codeId   || 'no code id',
+      this.codeHash || 'no code hash'
+    ].join(' ')
   }
 
   serialize (): {

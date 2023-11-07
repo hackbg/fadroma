@@ -5,7 +5,7 @@ import {
   assign, Config, Error, Console, bold, Token, Agent, Devnet, Scrt, CW, Stub
 } from '@fadroma/connect'
 import type { CodeId, ChainId, Environment, Address, Uint128, CompiledCode } from '@fadroma/connect'
-import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/file'
+import $, { JSONFile, JSONDirectory, Directory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import portManager, { waitPort } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
@@ -97,7 +97,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
       this.port ??= ports[this.portMode]
     }
     this.containerEngine ??= new Dock.Docker.Engine()
-    this.chainId ??= `fadroma-local-${options.platform}-${randomBytes(4).toString('hex')}`
+    this.chainId ??= `local-${this.platform}-${randomBytes(4).toString('hex')}`
     this.stateDir = $(options.stateDir ?? $('state', this.chainId).path)
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
       try {
@@ -154,7 +154,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
 
   /** Virtual path inside the container where the init script is mounted. */
   get initScriptMount (): string {
-    return this.initScript ? $('/', $(this.initScript).name).path : '/devnet.init.mjs'
+    return this.initScript ? $('/', $(this.initScript).basename).path : '/devnet.init.mjs'
   }
 
   /** Environment variables in the container. */
@@ -624,7 +624,7 @@ export function getDevnetFromFile <A extends typeof Agent> (
 export async function deleteDevnets (
   path: string|Path, ids?: ChainId[]
 ): Promise<void> {
-  const state = $(path).as(OpaqueDirectory)
+  const state = $(path).as(Directory)
   const chains = (state.exists()&&state.list()||[])
     .map(name => $(state, name))
     .filter(path => path.isDirectory())

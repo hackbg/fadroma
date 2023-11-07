@@ -1,4 +1,4 @@
-import { Console, Error, Config, Agent, BatchBuilder } from '../cw-base'
+import { Error, Config, Agent, BatchBuilder } from '../cw-base'
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
@@ -26,13 +26,6 @@ class OKP4Config extends Config {
 class OKP4Agent extends Agent {
   /** Default denomination of gas token. */
   static gasToken = 'uknow'
-  /** Transaction fees for this agent. */
-  defaultFees = {
-    upload: OKP4Agent.gas(10000000),
-    init: OKP4Agent.gas(1000000),
-    exec: OKP4Agent.gas(1000000),
-    send: OKP4Agent.gas(1000000),
-  }
   /** Connect to OKP4 in testnet mode. */
   static testnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
     const { testnetChainId: chainId, testnetUrl: chainUrl } = new OKP4Config()
@@ -42,8 +35,13 @@ class OKP4Agent extends Agent {
   static devnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
     throw new Error('Devnet not installed. Import @hackbg/fadroma')
   }
-  /** Logging handle. */
-  log = new Console('OKP4')
+  /** Transaction fees for this agent. */
+  defaultFees = {
+    upload: OKP4Agent.gas(10000000),
+    init: OKP4Agent.gas(1000000),
+    exec: OKP4Agent.gas(1000000),
+    send: OKP4Agent.gas(1000000),
+  }
 
   constructor (options: Partial<OKP4Agent> & { mnemonic?: string, config?: OKP4Config } = {
     config: new OKP4Config()

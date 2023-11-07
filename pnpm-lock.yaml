@@ -1016,6 +1016,12 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1
 
+  examples:
+    dependencies:
+      '@hackbg/fadroma':
+        specifier: workspace:..
+        version: link:..
+
 packages:
 
   /@aashutoshrathi/word-wrap@1.2.6:

@@ -37,8 +37,8 @@ class CWAgent extends Agent {
     super(properties as Partial<Agent>)
     assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex'   ])
 
-    this.log.label = `${this.chainId||'(no chain id)'} ${this.chainMode||'(no mode)'}: ` +
-      `${bold(this.name??this.address??'(no address)')}`
+    this.log.label = `${this.chainId||'no chain id'}(` +
+      `${bold(this.name??this.address??'no address')})`
 
     if (signer) {
       if (mnemonic) {
@@ -55,8 +55,8 @@ class CWAgent extends Agent {
       signer = auth.signer
     }
 
-    this.log.label = `${this.chainId||'(no chain id)'} ${this.chainMode||'(no mode)'}: ` +
-      `${bold(this.name??this.address??'(no address)')}`
+    this.log.label = `${this.chainId||'no chain id'}(` +
+      `${bold(this.name??this.address??'no address')})`
 
     if (this.chainUrl) {
       if (signer) {
@@ -90,12 +90,17 @@ class CWAgent extends Agent {
   }
 
   /** Query native token balance. */
-  async getBalance (token?: string, address?: Address): Promise<string> {
-    this.log.debug('Querying', bold(token), 'balance of', bold(address))
-    token ??= (this.constructor as typeof CWAgent).gasToken
-    address ??= this.address
+  async getBalance (
+    token:   string = (this.constructor as typeof CWAgent).gasToken,
+    address: Address|undefined = this.address
+  ): Promise<string> {
     if (!address) {
-      throw new Error('getBalance: pass address')
+      throw new Error('getBalance: pass (token, address)')
+    }
+    if (address === this.address) {
+      this.log.debug('Querying', bold(token), 'balance')
+    } else {
+      this.log.debug('Querying', bold(token), 'balance of', bold(address))
     }
     const { amount } = await this.chainApi.then(api=>api.getBalance(address!, token!))
     return amount
@@ -368,6 +373,4 @@ class CWConfig extends Config {}
 
 class CWError extends Error {}
 
-class CWConsole extends Console {
-  label = '@fadroma/cw'
-}
+class CWConsole extends Console {}

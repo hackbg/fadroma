@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
 import { Console } from './base'
-import { Deployment, DeploymentContractLabel, ContractInstance } from './deploy'
+import { Deployment, ContractInstance } from './deploy'
 import { ContractClient } from './client'
 import * as Stub from './stub'
 import { CompiledCode } from './code'
@@ -12,7 +12,6 @@ import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['units',      testDeploymentUnits],
   ['deployment', testDeployment],
-  ['labels',     testDeploymentLabels],
 ])
 
 export async function testDeploymentUnits () {
@@ -94,20 +93,4 @@ export async function testDeployment () {
     uploader: new Stub.Agent(),
     deployer: new Stub.Agent(),
   })
-}
-
-export async function testDeploymentLabels () {
-  const label1 = new DeploymentContractLabel('foo', 'bar', 'baz')
-  assert.equal(label1.toString(), 'foo/bar+baz')
-  const label2 = DeploymentContractLabel.parse('foo/bar+baz')
-  assert(label2 instanceof DeploymentContractLabel)
-  assert.deepEqual(label2, { prefix: 'foo', name: 'bar', suffix: 'baz' })
-  assert.deepEqual(label2.toString(), 'foo/bar+baz')
-
-  const RE = DeploymentContractLabel.RE_LABEL
-  DeploymentContractLabel.RE_LABEL = /1/
-  assert.throws(()=>DeploymentContractLabel.parse(''))
-  DeploymentContractLabel.RE_LABEL = /(?<prefix>.+)?/
-  assert.throws(()=>DeploymentContractLabel.parse('foo/+baz'))
-  DeploymentContractLabel.RE_LABEL = RE
 }

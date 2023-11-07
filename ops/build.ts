@@ -7,7 +7,7 @@ import {
 import type { Container } from '@hackbg/dock'
 import { DotGit } from '@hackbg/repo'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
-import $, { Path, OpaqueDirectory, TextFile, BinaryFile, TOMLFile } from '@hackbg/file'
+import $, { Path, Directory, TextFile, BinaryFile, TOMLFile } from '@hackbg/file'
 import { default as simpleGit } from 'simple-git'
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -99,7 +99,7 @@ type CompileWorkspaceCrateTask = {
 export abstract class LocalRustCompiler extends ConfiguredCompiler {
   readonly id: string = 'local'
   /** Logger. */
-  log = new Console('build (local)')
+  log = new Console('LocalRustCompiler')
   /** Whether the build process should print more detail to the console. */
   verbose: boolean = this.config.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
   /** Whether the build log should be printed only on error, or always */
@@ -111,7 +111,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   /** Whether to skip any `git fetch` calls in the build script. */
   noFetch: boolean = this.config.getFlag('FADROMA_NO_FETCH', ()=>false)
   /** Name of directory where build artifacts are collected. */
-  outputDir: OpaqueDirectory = new OpaqueDirectory(
+  outputDir: Directory = new Directory(
     this.config.getString('FADROMA_ARTIFACTS', ()=>$(process.cwd()).in('wasm').path)
   )
   /** Version of Rust toolchain to use. */
@@ -197,6 +197,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
       if (!sourcePath) {
         throw new Error('Missing source path')
       }
+      sourcePath = $(sourcePath).path
       batches[sourcePath] ??= {}
       batches[sourcePath][sourceRef] ??= { sourcePath, sourceRef, tasks: new Set() }
       if (cargoWorkspace && cargoToml) {
@@ -213,7 +214,10 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
             break
           }
         }
-        workspaceTask ??= { cargoWorkspace, cargoCrates: [] }
+        workspaceTask ??= {
+          cargoWorkspace: $(sourcePath).relative(cargoWorkspace),
+          cargoCrates: []
+        }
         workspaceTask.cargoCrates.push({ buildIndex, cargoCrate })
       } else {
         if (!cargoToml) {
@@ -224,7 +228,9 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
           .load()!
           .package.name
         batches[sourcePath][sourceRef].tasks.add({
-          buildIndex, cargoToml, cargoCrate
+          buildIndex,
+          cargoToml: $(sourcePath).relative(cargoToml),
+          cargoCrate
         } as CompileCrateTask)
       }
     }
@@ -248,30 +254,25 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     return null
   }
 
-  protected populateBatchResults ({
+  protected async populateBatchResults ({
     outputDir, sourceRef, tasks,
   }: {
     outputDir: string, sourceRef: string, tasks: Set<CompileTask>
-  }): Record<number, CompiledCode> {
+  }): Promise<Record<number, CompiledCode>> {
     const results: Record<number, CompiledCode> = {}
-    const toResult = (buildIndex: number, crateName: string) => [
-      buildIndex, $(outputDir, `${sanitize(crateName)}@${sanitize(sourceRef)}.wasm`)
-    ]
     for (const task of tasks) {
       if ((task as CompileWorkspaceTask).cargoWorkspace) {
         for (const { buildIndex, cargoCrate } of (task as CompileWorkspaceTask).cargoCrates) {
-          results[buildIndex] = new CompiledCode({
-            codePath: $(
-              outputDir, `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
-            ).path
-          })
+          const wasmName = `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
+          const codePath = $(outputDir, wasmName)
+          results[buildIndex] = await
+            new CompiledCode({ codePath: codePath.path }).computeHash()
         }
       } else if ((task as CompileCrateTask).cargoCrate) {
-          results[(task as CompileCrateTask).buildIndex] = new CompiledCode({
-            codePath: $(
-              outputDir, `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
-            ).path
-          })
+        const wasmName = `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
+        const codePath = $(outputDir, wasmName)
+        results[(task as CompileCrateTask).buildIndex] = await
+          new CompiledCode({ codePath: codePath.path }).computeHash()
       } else {
         throw new Error("invalid task in compile batch")
       }
@@ -281,12 +282,19 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
 
   protected abstract buildBatch (batch: CompileBatch):
     Promise<Record<number, CompiledCode>>
+
+  protected logStart (sourcePath: string, sourceRef: string, tasks: Set<CompileTask>) {
+    this.log.log('Compiling from', bold(sourcePath), '@', bold(sourceRef))
+    for (const task of tasks) {
+      this.log.log('  Compiling:', JSON.stringify(task))
+    }
+  }
 }
 
 /** Runs the build script in the current envionment. */
 export class RawLocalRustCompiler extends LocalRustCompiler {
   /** Logging handle. */
-  log = new Console('build (raw)')
+  log = new Console('RawLocalRustCompiler')
 
   /** Node.js runtime that runs the build subprocess.
     * Defaults to the same one that is running this script. */
@@ -301,14 +309,14 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     if (!buildScript) {
       throw new Error('missing build script')
     }
-    this.log.log('Building contracts from', bold(sourcePath), '@', bold(sourceRef))
+    this.logStart(sourcePath, sourceRef, tasks)
     // Standalone crates get built with:
     // - cargo build --manifest-path /path/to/Cargo.toml --target-dir /path/to/output/dir
     // Workspace crates get built with:
     // - cargo build --manifest-path /path/to/workspace/Cargo.toml -p crate1 crate2 crate3
     // Create stream for collecting build logs
     // Create output directory as user if it does not exist
-    $(outputDir).as(OpaqueDirectory).make()
+    $(outputDir).as(Directory).make()
     // Run the build container
     const buildProcess = this.spawn(this.runtime!, [ this.script!, 'phase1' ], {
       cwd: $(sourcePath).path,
@@ -333,7 +341,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
         throw new Error(`build ${buildProcess.pid} exited without code or signal ${signal}`)
       }
     }))
-    return this.populateBatchResults({ outputDir, sourceRef, tasks })
+    return await this.populateBatchResults({ outputDir, sourceRef, tasks })
   }
 
   /** Overridable for testing. */
@@ -345,7 +353,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
 /** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Logger */
-  log = new Console('compiling in container')
+  log = new Console('ContainerizedLocalRustCompiler')
   /** Used to launch build container. */
   docker: Engine
   /** Tag of the docker image for the build container. */
@@ -391,6 +399,10 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     // Set up Docker image
     this.dockerfile ??= options?.dockerfile!
     this.script ??= options?.script!
+    this.log.label = `compiling in ${bold(this.image?.name||'??')}`
+    if (this.docker?.name && (this.docker?.name !== '/var/run/docker.sock')) {
+      this.log.label += ` on ${bold(this.docker?.name)||'??'}`
+    }
   }
 
   get [Symbol.toStringTag]() {
@@ -401,12 +413,12 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     batch: CompileBatch, options: { outputDir?: string, buildScript?: string|Path } = {}
   ): Promise<Record<number, CompiledCode>> {
     const { sourcePath, sourceRef, tasks } = batch
-    const safeRef  = sanitize(sourceRef)
+    const safeRef = sanitize(sourceRef)
     const { outputDir = this.outputDir.path, buildScript = this.script } = options
     if (!buildScript) {
       throw new Error('missing build script')
     }
-    this.log.log('Building contracts from', bold(sourcePath), '@', bold(sourceRef))
+    this.logStart(sourcePath, sourceRef, tasks)
     // Standalone crates get built with:
     // - cargo build --manifest-path /path/to/Cargo.toml --target-dir /path/to/output/dir
     // Workspace crates get built with:
@@ -415,24 +427,25 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     let buildLogs = ''
     const logs = this.getLogStream(sourceRef, (data) => {buildLogs += data})
     // Create output directory as user if it does not exist
-    $(outputDir).as(OpaqueDirectory).make()
+    $(outputDir).as(Directory).make()
     // Run the build container
     const buildContainer = await this.image.run(`fadroma-build-${randomBytes(3).toString('hex')}`, {
       remove: true,
       // Readonly mounts:
       readonly: {
         // - Script that will run in the container
-        [$(buildScript).path]: $(`/`, $(buildScript).name).path,
-        // - Repo root, containing real .git
-        [$(sourcePath).path]:  '/src'
+        [$(buildScript).path]: $(`/`, $(buildScript).basename).path,
       },
       // Writable mounts:
       writable: {
+        // - Repo root, containing real .git
+        // (FIXME: need readonly only for updating lockfile)
+        [$(sourcePath).path]:  '/src',
         // - Output path for final artifacts:
         [outputDir]: `/output`,
         // - Persist cache to make future rebuilds faster. May be unneccessary.
-        // [`project_cache_${safeRef}`]: `/tmp/target`,
-        [`cargo_cache_${safeRef}`]: `/usr/local/cargo`
+        [`fadroma_cargo_cache_${safeRef}`]: `/usr/local/cargo`
+        //[`fadroma_build_cache_${safeRef}`]: `/tmp/target`,
       },
       cwd: '/src',
       env: {
@@ -453,7 +466,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
         AttachStdin: true
       }
     }, [
-      'node', $(`/`, $(buildScript).name).path, 'phase1',
+      'node', $(`/`, $(buildScript).basename).path, 'phase1',
     ], '/usr/bin/env', logs)
     // If this process is terminated, the build container should be killed
     process.once('beforeExit', async () => {
@@ -480,16 +493,19 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
       this.log.error(logs)
       throw new Error(`compile batch exited with status ${code}`)
     }
-    return this.populateBatchResults({ outputDir, sourceRef, tasks })
+    return await this.populateBatchResults({ outputDir, sourceRef, tasks })
   }
 
   protected getLogStream (revision: string, cb: (data: string)=>void) {
-    const log = new Console(`building from ${revision}`)
+    let log = this.log
+    if (revision && revision !== HEAD) {
+      log = log.sub(`(from ${bold(revision)})`)
+    }
     // This stream collects the output from the build container, i.e. the build logs.
     const buildLogStream = new LineTransformStream((!this.quiet)
       // In normal and verbose mode, build logs are printed to the console in real time,
       // with an addition prefix to show what is being built.
-      ? (line:string)=>log.log(line)
+      ? (line:string)=>this.log.log(line)
       // In quiet mode the logs are collected into a string as-is,
       // and are only printed if the build fails.
       : (line:string)=>line)

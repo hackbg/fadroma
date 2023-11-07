@@ -15,7 +15,7 @@ const compiler = getCompiler()
 * `FADROMA_BUILD_RAW` environment variable lets you switch
   between the two default compile implementations.
 
-#### LocalRustCompiler
+#### RawLocalRustCompiler
 
 ```typescript
 const compiler = getCompiler({ container: false })
@@ -27,7 +27,7 @@ Runs the build procedure in the current shell environment
 * Set `FADROMA_BUILD_SCRIPT` to customize build behavior. This defaults to
   the [`build.impl.mjs`](./build.impl.mjs) script included in the Fadroma package.
 
-#### LocalContainerRustCompiler
+#### ContainerizedLocalRustCompiler
 
 ```typescript
 const compiler = getCompiler({ container: true })

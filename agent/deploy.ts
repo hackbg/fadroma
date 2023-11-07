@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Console, Error, assign, timestamp, into, map } from './base'
+import { Console, bold, Error, assign, timestamp, into, map, hideProperties } from './base'
 import type { Into, Name, Label, Class, Address, TxHash, Message, Many } from './base'
 import type { Agent, ChainId } from './chain'
 import type { UploadStore, DeployStore } from './store'
@@ -12,18 +12,6 @@ import {
 } from './code'
 import { ContractClient } from './client'
 import type { ContractClientClass } from './client'
-
-assign.allow('DeploymentUnit', [
-  'name', 'deployment', 'isTemplate', 'codeHash', 'chainId', 'codeId', 
-] as Array<keyof DeploymentUnit>)
-
-assign.allow('ContractInstance', [
-  'label', 'address', 'initMsg', 'initBy', 'initSend', 'initFee', 'initMemo', 'initTx', 'initGas'
-] as Array<keyof ContractInstance>)
-
-assign.allow('Deployment', [
-  'name'
-] as Array<keyof Omit<Deployment, keyof Map<any, any>>>)
 
 const console = new Console()
 
@@ -46,7 +34,9 @@ export class DeploymentUnit extends ContractCode {
     properties: ConstructorParameters<typeof ContractCode>[0] & Partial<DeploymentUnit> = {}
   ) {
     super(properties)
-    assign(this, properties, 'DeploymentUnit')
+    assign(this, properties, [
+      'name', 'deployment', 'isTemplate', 'codeHash', 'chainId', 'codeId', 
+    ] as any)
   }
 
   serialize () {
@@ -57,7 +47,6 @@ export class DeploymentUnit extends ContractCode {
 
 export class ContractTemplate extends DeploymentUnit {
   readonly isTemplate = true
-
   /** Create a new instance of this contract. */
   contract (
     name: Name, parameters?: Partial<ContractInstance>
@@ -78,7 +67,6 @@ export class ContractTemplate extends DeploymentUnit {
 
 export class ContractInstance extends DeploymentUnit {
   readonly isTemplate = false
-
   /** Full label of the instance. Unique for a given chain. */
   label?:    Label
   /** Address of this contract instance. Unique per chain. */
@@ -102,7 +90,10 @@ export class ContractInstance extends DeploymentUnit {
     properties?: ConstructorParameters<typeof DeploymentUnit>[0] & Partial<ContractInstance>
   ) {
     super(properties)
-    assign(this, properties, 'ContractInstance')
+    assign(this, properties, [
+      'label', 'address',
+      'initMsg', 'initBy', 'initSend', 'initFee', 'initMemo', 'initTx', 'initGas'
+    ])
   }
 
   async deploy ({
@@ -133,7 +124,6 @@ export class ContractInstance extends DeploymentUnit {
     return instance
   }
 
-  /** @returns the data for a deploy receipt */
   serialize () {
     const { label, address, initMsg, initBy, initSend, initFee, initMemo, initTx, initGas } = this
     return {
@@ -142,8 +132,11 @@ export class ContractInstance extends DeploymentUnit {
     }
   }
 
-  connect <C extends ContractClient> (agent: Agent, $C?: ContractClientClass<C>) {
-    $C ??= ContractClient as ContractClientClass<C>
+  /** Returns a client to this contract instance. */
+  connect (agent?: Agent): ContractClient
+  connect <C extends typeof ContractClient> (
+    agent?: Agent, $C: C = ContractClient as C
+  ) {
     return new $C(this, agent)
   }
 
@@ -153,11 +146,6 @@ export class ContractInstance extends DeploymentUnit {
 }
 
 export type DeploymentState = Partial<ReturnType<Deployment["serialize"]>>
-
-/** A constructor for a Deployment subclass. */
-export interface DeploymentClass<D extends Deployment> extends Class<
-  D, ConstructorParameters<typeof Deployment>
->{ fromSnapshot (receipt: DeploymentState): D }
 
 /** A collection of contracts. */
 export class Deployment extends Map<Name, DeploymentUnit> {
@@ -175,9 +163,9 @@ export class Deployment extends Map<Name, DeploymentUnit> {
 
   constructor (properties: Partial<Deployment> = {}) {
     super()
-    assign(this, properties, 'Deployment')
+    assign(this, properties, [ 'name' ])
     this.name ??= timestamp()
-    this.log.label = `Deployment ${this.name}`
+    this.log.label = `deployment(${bold(this.name)})`
   }
 
   serialize () {
@@ -215,6 +203,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     const unit = new ContractTemplate({
       deployment: this, name, source, compiled, uploaded
     })
+    hideProperties(unit, 'name', 'deployment', 'isTemplate')
     this.set(name, unit)
     return unit
   }
@@ -238,26 +227,50 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     const unit = new ContractInstance({
       deployment: this, name, source, compiled, uploaded, ...properties
     })
+    hideProperties(unit, 'name', 'deployment', 'isTemplate')
     this.set(name, unit)
     return unit
+  }
+
+  addContract (...args: Parameters<this["contract"]>) {
+    this.contract(
+      //@ts-ignore
+      ...args
+    )
+    return this
+  }
+
+  addContracts (...args: Parameters<this["template"]>) {
+    this.template(
+      //@ts-ignore
+      ...args
+    )
+    return this
   }
 
   async build (options: Parameters<ContractCode["compile"]>[0] = {}):
     Promise<Record<CodeHash, CompiledCode & { codeHash: CodeHash }>>
   {
-    const building: Array<Promise<CompiledCode & { codeHash: CodeHash }>> = []
+    const toCompile: Array<DeploymentUnit & { source: SourceCode }> = []
     for (const [name, unit] of this.entries()) {
       if (!unit.source?.canCompile && unit.compiled?.canUpload) {
         this.log.warn(`Missing source for ${unit.compiled.codeHash}`)
       } else {
-        building.push(unit.compile(options))
+        toCompile.push(unit as DeploymentUnit & { source: SourceCode })
       }
     }
-    const built: Record<CodeHash, CompiledCode & { codeHash: CodeHash }> = {}
-    for (const output of await Promise.all(building)) {
-      built[output.codeHash] = output
+    const compiled = await options.compiler!.buildMany(toCompile.map(unit=>unit.source!))
+    const byCodeHash: Record<CodeHash, CompiledCode & { codeHash: CodeHash }> = {}
+    for (const index in compiled) {
+      const output = compiled[index]
+      if (!output.codeHash) {
+        console.log({output})
+        throw new Error('build output did not contain codeHash')
+      }
+      toCompile[index].compiled = output
+      byCodeHash[output.codeHash] = output as CompiledCode & { codeHash: CodeHash }
     }
-    return built
+    return byCodeHash
   }
 
   async upload (options: Parameters<ContractCode["upload"]>[0] = {}):
@@ -290,39 +303,5 @@ export class Deployment extends Map<Name, DeploymentUnit> {
       deployed[output.address] = output
     }
     return deployed
-  }
-}
-
-/** A contract name with optional prefix and suffix, implementing namespacing
-  * for append-only platforms where labels have to be globally unique. */
-export class DeploymentContractLabel {
-  /** RegExp for parsing labels of the format `prefix/name+suffix` */
-  static RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
-
-  constructor (
-    public prefix?: string,
-    public name?:   string,
-    public suffix?: string,
-  ) {}
-
-  /** Construct a label from prefix, name, and suffix. */
-  toString () {
-    let name = this.name
-    if (this.prefix) name = `${this.prefix}/${name}`
-    if (this.suffix) name = `${name}+${this.suffix}`
-    return name
-  }
-
-  /** Parse a label into prefix, name, and suffix. */
-  static parse (label: string): DeploymentContractLabel {
-    const matches = label.match(DeploymentContractLabel.RE_LABEL)
-    if (!matches || !matches.groups) {
-      throw new Error(`label does not match format: ${label}`)
-    }
-    const { name, prefix, suffix } = matches.groups
-    if (!name) {
-      throw new Error(`label does not match format: ${label}`)
-    }
-    return new DeploymentContractLabel(prefix, name, suffix)
   }
 }

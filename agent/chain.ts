@@ -9,7 +9,7 @@ import type { UploadStore } from './store'
 import type { CodeHash, CodeId } from './code'
 import { CompiledCode, UploadedCode } from './code'
 import { ContractInstance, } from './deploy'
-import { ContractClient, ContractClientClass } from './client'
+import { ContractClient } from './client'
 import type { Devnet } from './devnet'
 import { bip39, bip39EN } from '@hackbg/4mat'
 
@@ -42,15 +42,15 @@ export abstract class Agent {
   }
   /** @returns a mainnet instance of this chain. */
   static mainnet (options: Partial<Agent> = {}): Agent {
-    return new (this as any)({ ...options, mode: Mode.Mainnet })
+    return new (this as any)({ ...options, chainMode: Mode.Mainnet })
   }
   /** @returns a testnet instance of this chain. */
   static testnet (options: Partial<Agent> = {}): Agent {
-    return new (this as any)({ ...options, mode: Mode.Testnet })
+    return new (this as any)({ ...options, chainMode: Mode.Testnet })
   }
   /** @returns a devnet instance of this chain. */
   static devnet (options: Partial<Agent> = {}): Agent {
-    return new (this as any)({ ...options, mode: Mode.Devnet })
+    return new (this as any)({ ...options, chainMode: Mode.Devnet })
   }
   /** @returns a mocknet instance of this chain. */
   static mocknet (options?: Partial<Agent>): Agent {
@@ -169,9 +169,7 @@ export abstract class Agent {
     const result = this.doQuery(contract, message)
     const t1 = performance.now() - t0
     this.log.debug(
-      `Queried in`,
-      bold(t1.toFixed(3)),
-      `msec: address`,
+      `Queried in`, `${bold((t1/1000).toFixed(6))}s:`,
       bold(contract.address)
     )
     return result as Q
@@ -216,25 +214,16 @@ export abstract class Agent {
       template = await (code as CompiledCode).fetch()
       const t1 = performance.now() - t0
       this.log.log(
-        `Fetched in`,
-        bold(t1.toFixed(3)),
-        `msec:`,
-        bold(String(code.codeData?.length)),
-        `bytes`
+        `Fetched in`, `${bold((t1/1000).toFixed(6))}s:`,
+        bold(String(code.codeData?.length)), `bytes`
       )
     }
     const t0 = performance.now()
     const result = await this.doUpload(template, options)
     const t1 = performance.now() - t0
     this.log.log(
-      `Uploaded in`,
-      bold(t1.toFixed(3)),
-      `msec: code id`,
-      bold(String(result.codeId)),
-      `on chain`,
-      bold(result.chainId),
-      `from code hash`,
-      bold(result.codeHash)
+      `Uploaded in`, `${bold((t1/1000).toFixed(6))}s:`,
+      `code id`, bold(String(result.codeId)), `(${bold(result.codeHash)})`,
     )
     return new UploadedCode({
       ...template, ...result
@@ -276,13 +265,9 @@ export abstract class Agent {
     })
     const t1 = performance.now() - t0
     this.log.log(
-      `Instantiated in`,
-      bold(t1.toFixed(3)),
-      `msec:`,
-      bold(String(options.label)),
-      `(${bold(result.address)})`,
-      `from code id`,
-      bold(String(contract.codeId)),
+      `Instantiated in`, `${bold((t1/1000).toFixed(6))}s:`,
+      `from code id`, `${bold(String(contract.codeId))}:`,
+      bold(String(options.label)), `(${bold(result.address)})`,
     )
     return new ContractInstance({
       ...options, ...result
@@ -304,8 +289,8 @@ export abstract class Agent {
     const t1 = performance.now() - t0
     this.log.log(
       `Executed in`,
-      bold(t1.toFixed(3)),
-      `msec: address`,
+      bold((t1/1000).toFixed(8)),
+      `s: address`,
       bold(contract.address)
     )
     return result

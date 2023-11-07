@@ -1,12 +1,12 @@
 import type { Agent, Devnet } from '.'
 import { Coin } from './token'
-import { Console } from '@hackbg/logs'
+import { Console, bold } from '@hackbg/logs'
 export async function testChainSupport <
   A extends typeof Agent, D extends typeof Devnet<A>
 > (
   Agent: A, Devnet: D, token: string, code: string
 ) {
-  const console = new Console(`${Agent.name} + ${Devnet.name}`)
+  const console = new Console(`testing(${bold(Agent.name)} + ${bold(Devnet.name)})`)
 
   const { equal } = await import('node:assert')
   const sendFee = Agent.gas("1000000")
@@ -55,12 +55,14 @@ export async function testChainSupport <
   const initMsg = null as any // actually a valid init message
   const instance = await bob.instantiate(uploaded, { label, initMsg, initFee })
 
-  console.log('Querying contract instance...')
+  console.log('Querying code hash of instance...')
   equal(await guest.getCodeHashOfAddress(instance.address), uploaded.codeHash)
 
   console.log('Executing transaction...')
   const txResult = await alice.execute(instance, null as any)
-  console.debug('txResult:', txResult)
+
+  console.log('Executing query...')
+  const qResult = await alice.query(instance, null as any)
 
   return { devnet, alice, bob, guest }
 }
