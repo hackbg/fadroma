@@ -5,7 +5,7 @@ use std::{
     ops::{Bound, RangeBounds}
 };
 
-use crate::cosmwasm_std::{
+use fadroma::cosmwasm_std::{
     Storage, Record, Order
 };
 

@@ -8,18 +8,13 @@ description = "Tools and frequently used functionality for developing CosmWasm s
 repository = "https://github.com/hackbg/fadroma"
 readme = "README.md"
 authors = [
-  # Core maintainers:
   "Adam A. <adam@hack.bg>",
   "Asparuh Kamenov <aakamenov@hack.bg>",
   "denismaxim0v <denis_maxim0v@protonmail.com>",
-
-  # Featuring contributions by:
   "Chris Ricketts <chris.ricketts@steribar.com>",
   "Tibor Hudik <tibor@barrage.net>",
   "Wiz1991 <wizoftime92@gmail.com>",
   "hydropump3 <3ki2fiay@anonaddy.me>",
-
-  # SNIP-20 implementation based on:
   "Itzik <itzik@keytango.io>"
 ]
 
@@ -32,10 +27,9 @@ all-features = true
 
 [features]
 scrt = ["secret-cosmwasm-std"]
+scrt-staking = ["secret-cosmwasm-std/staking"]
 permit = ["scrt", "ripemd", "sha2", "remain", "bech32"]
 vk = ["scrt", "crypto", "subtle"]
-ensemble = [ "oorandom", "anyhow" ]
-ensemble-staking = [ "ensemble", "time/formatting", "staking" ]
 crypto = ["rand_core", "rand_chacha", "sha2"]
 snip20 = ["scrt", "permit", "vk"]
 

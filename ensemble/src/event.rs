@@ -3,7 +3,7 @@ use std::convert::{TryFrom, TryInto};
 #[cfg(feature = "ensemble-staking")]
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
-use crate::cosmwasm_std::{Response, Attribute, Event};
+use fadroma::cosmwasm_std::{Response, Attribute, Event};
 use super::{
     EnsembleResult, EnsembleError,
     response::{

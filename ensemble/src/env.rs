@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use crate::schemars::{self, JsonSchema};
-use crate::cosmwasm_std::{Addr, Coin};
+use fadroma::schemars::{self, JsonSchema};
+use fadroma::cosmwasm_std::{Addr, Coin};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MockEnv {

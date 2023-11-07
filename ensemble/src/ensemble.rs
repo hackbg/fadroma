@@ -6,9 +6,7 @@ use serde::{
     Serialize,
     de::DeserializeOwned
 };
-use oorandom::Rand64;
-
-use crate::{
+use fadroma::{
     prelude::{ContractCode, ContractLink},
     cosmwasm_std::{
         SubMsg, Deps, DepsMut, Env, Response, MessageInfo, Binary, Coin, Empty,
@@ -17,8 +15,13 @@ use crate::{
         from_binary, to_binary, testing::MockApi
     }
 };
+
+use oorandom::Rand64;
+
 #[cfg(feature = "ensemble-staking")]
-use crate::cosmwasm_std::{Uint128, FullDelegation, Validator, Delegation, StakingMsg, DistributionMsg};
+use fadroma::cosmwasm_std::{
+    Uint128, FullDelegation, Validator, Delegation, StakingMsg, DistributionMsg
+};
 
 use super::{
     bank::Balances,

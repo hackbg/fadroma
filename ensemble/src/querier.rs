@@ -1,5 +1,5 @@
 use super::ensemble::Context;
-use crate::cosmwasm_std::{
+use fadroma::cosmwasm_std::{
     Querier, QueryRequest, WasmQuery, BankQuery, QuerierResult, SystemResult,
     SystemError, ContractResult, Empty, AllBalanceResponse, BalanceResponse,
     from_slice, to_binary, testing::MockQuerier
