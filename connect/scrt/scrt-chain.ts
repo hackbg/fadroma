@@ -61,14 +61,14 @@ class ScrtAgent extends Agent {
   }> = {}) {
     super(properties as Partial<Agent>)
     this.chainApi ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.chainUrl! })
-    this.log.label = `${this.address||'ScrtAgent'}`
+    this.log.label = `${bold(this.name?`"${this.name}"`:(this.address||'ScrtAgent'))}`
     if (this.chainId) {
-      this.log.label += `@${this.chainId}`
+      this.log.label += ` @ ${bold(this.chainId)}`
     } else {
       throw new Error("can't authenticate without chainId")
     }
     if (this.chainUrl) {
-      this.log.label += `(${this.chainUrl})`
+      this.log.label += ` (${this.chainUrl})`
     } else {
       throw new Error("can't connect without chainUrl")
     }
