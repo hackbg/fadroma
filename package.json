@@ -26,7 +26,9 @@
   ],
   "license": "AGPL-3.0-only",
   "scripts": {
-    "repl":          "./fadroma.cli.cjs repl",
+    "fadroma": "FADROMA_PROJECT=./examples fadroma",
+
+    "repl": "./fadroma.cli.cjs repl",
 
     "prepare":       "husky install",
     "clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",

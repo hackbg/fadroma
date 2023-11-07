@@ -3,14 +3,14 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFileSync } from 'node:fs'
 import $, { BinaryFile } from '@hackbg/file'
-import { Console, bold } from '@fadroma/agent'
+import { Deployment, Console, bold } from '@fadroma/agent'
 
 //@ts-ignore
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = (...args: string[]) => resolve(here, ...args)
 export const log       = new Console('Fadroma Testing')
-export const nullWasm = readFileSync(fixture('null.wasm'))
+export const nullWasm = readFileSync(fixture('empty.wasm'))
 export const mnemonics = [
   'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
   'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
@@ -37,4 +37,41 @@ export const tmpDir = () => {
   let x
   withTmpDir(dir=>x=dir)
   return x
+}
+
+export class TestBuildDeployment extends Deployment {
+  a = this.contract('null-a', {
+    language:   'rust',
+    sourcePath: fixture('../examples'),
+    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
+  })
+  b = this.template('null-b', {
+    language:  'rust',
+    sourcePath: fixture('..'),
+    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
+  }).contracts({
+    b1: { initMsg: {} },
+    b2: { initMsg: () => ({}) },
+    b3: { initMsg: async () => ({}) }
+  })
+}
+
+export class TestProjectDeployment extends Deployment {
+  t = this.template('t', {
+    chainId:   'stub',
+    codeId:    '1',
+    sourcePath: fixture("../examples/kv")
+  })
+
+  // Single template instance with eager and lazy initMsg
+  a1 = this.t.contract('a1', { initMsg: {} })
+  a2 = this.t.contract('a2', { initMsg: () => ({}) })
+  a3 = this.t.contract('a3', { initMsg: async () => ({}) })
+
+  // Multiple contracts from the same template
+  b = this.t.contracts({
+    b1: { initMsg: {} },
+    b2: { initMsg: () => ({}) },
+    b3: { initMsg: async () => ({}) }
+  })
 }

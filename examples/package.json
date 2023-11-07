@@ -6,6 +6,6 @@
     "@hackbg/fadroma": "workspace:.."
   },
   "scripts": {
-    "fadroma": "fadroma"
+    "fadroma": "time fadroma"
   }
 }

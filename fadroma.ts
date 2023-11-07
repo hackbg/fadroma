@@ -35,7 +35,6 @@ export * from './ops/project'
 const console = new Console('@hackbg/fadroma')
 
 export default function main (...args: any) {
-  console.log({args})
   return new CommandContext()
     .addCommand('run', 'execute a script',
       (script: string, ...args: string[]) => runScript({ project: getProject(), script, args }))
@@ -46,30 +45,35 @@ export default function main (...args: any) {
     .addCommand('create', 'create a new project',
       createProject)
     .addCommand('build', 'build the project or specific contracts from it',
-      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
-        compiler: Compilers.getCompiler(), })))
+      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
+        compiler: Compilers.getCompiler(),
+        units })))
     .addCommand('rebuild', 'rebuild the project or specific contracts from it',
-      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
-        rebuild: true,
-        compiler: Compilers.getCompiler(), })))
+      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
+        compiler: Compilers.getCompiler(),
+        units, rebuild: true })))
     .addCommand('upload', 'upload the project or specific contracts from it',
-      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
-        compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getAgent(), })))
-    .addCommand('reupload', 'reupload the project or specific contracts from it',
-      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
-        compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getAgent(), reupload: true })))
-    .addCommand('deploy', 'deploy getProject() or continue an interrupted deployment',
-      (...args: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
+      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
         compiler: Compilers.getCompiler(),
         uploadStore: Stores.getUploadStore(), uploader: getAgent(),
-        deployStore: Stores.getDeployStore(), deployer: getAgent() })))
+        units })))
+    .addCommand('reupload', 'reupload the project or specific contracts from it',
+      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
+        compiler: Compilers.getCompiler(),
+        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
+        units, reupload: true })))
+    .addCommand('deploy', 'deploy getProject() or continue an interrupted deployment',
+      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
+        compiler: Compilers.getCompiler(),
+        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
+        deployStore: Stores.getDeployStore(), deployer: getAgent(),
+        units })))
     .addCommand('redeploy', 'redeploy getProject() from scratch',
-      (...args: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
+      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
         compiler:    Compilers.getCompiler(),
         uploadStore: Stores.getUploadStore(), uploader: getAgent(),
-        deployStore: Stores.getDeployStore(), deployer: getAgent() })))
+        deployStore: Stores.getDeployStore(), deployer: getAgent()
+        units, redeploy: true })))
     .addCommand('select', `activate another deployment`, 
       async (name?: string): Promise<Deployment|undefined> => selectDeployment(
         getProject().root, name))

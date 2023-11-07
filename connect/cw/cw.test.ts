@@ -13,8 +13,9 @@ export async function testCWChain () {
     CW.OKP4.Agent,
     Devnets.OKP4Container['v5.0'],
     'uknow',
-    fixture('fadroma-example-cw-null@HEAD.wasm')
+    fixture('cw-null.wasm')
   )
+
   new CW.OKP4.Cognitarium({}, alice)
   new CW.OKP4.Objectarium({}, bob)
   new CW.OKP4.LawStone({}, guest)

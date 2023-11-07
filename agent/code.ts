@@ -14,7 +14,7 @@ export type CodeHash = string
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string
 
-const console = new Console()
+const console = new Console('@fadroma/agent')
 
 export abstract class Compiler {
   log = new Console(this.constructor.name)
@@ -309,6 +309,7 @@ export class CompiledCode {
   }
 
   async fetch (): Promise<Uint8Array> {
+    const console = new Console(`compiled(${bold(this[Symbol.toStringTag])})`)
     if (this.codeData) {
       console.debug("not fetching: codeData found; unset to refetch")
       return this.codeData
@@ -331,7 +332,11 @@ export class CompiledCode {
       }
     } else {
       this.codeHash = base16.encode(sha256(this.codeData)).toLowerCase() 
-      console.warn("Computed code hash from fetched data:", bold(this.codeHash))
+      console
+        .br()
+        .warn("TOFU: Computed code hash from fetched data:")
+        .warn(bold(this.codeHash))
+        .warn('Pin the expected code hash by setting the codeHash property.')
     }
     return this.codeData
   }

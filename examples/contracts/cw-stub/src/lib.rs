@@ -1,9 +1,8 @@
 extern crate cosmwasm_std;
 use cosmwasm_std::*;
 use serde::Deserialize;
-use schemars::JsonSchema;
 
-#[derive(Deserialize, JsonSchema)]
+#[derive(Deserialize)]
 pub struct InstantiateMsg;
 
 #[entry_point]
@@ -13,7 +12,7 @@ pub fn instantiate(
     Err(StdError::generic_err("This contract is not available on this chain."))
 }
 
-#[derive(Deserialize, JsonSchema)]
+#[derive(Deserialize)]
 pub struct ExecuteMsg;
 
 #[entry_point]
@@ -23,7 +22,7 @@ pub fn execute(
     Err(StdError::generic_err("This contract is not available on this chain."))
 }
 
-#[derive(Deserialize, JsonSchema)]
+#[derive(Deserialize)]
 pub struct QueryMsg;
 
 #[entry_point]
