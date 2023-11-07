@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::cosmwasm_std::StdError;
+use fadroma::cosmwasm_std::StdError;
 
 #[derive(Debug)]
 pub enum EnsembleError {

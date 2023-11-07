@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::cosmwasm_std::{Coin, Storage};
+use fadroma::cosmwasm_std::{Coin, Storage};
 
 use super::{
     EnsembleResult,

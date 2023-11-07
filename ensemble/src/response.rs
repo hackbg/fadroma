@@ -1,6 +1,6 @@
 use std::iter::Iterator;
 
-use crate::{
+use fadroma::{
     prelude::ContractLink,
     cosmwasm_std::{Addr, Binary, Response, Coin, Reply, SubMsg}
 };

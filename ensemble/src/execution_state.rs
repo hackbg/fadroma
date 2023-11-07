@@ -1,8 +1,8 @@
-use crate::{
+use fadroma::{
     cosmwasm_std::{SubMsg, ReplyOn, Event, Binary},
-    ensemble::{
-        ResponseVariants, EnsembleResult, SubMsgExecuteResult
-    }
+};
+use crate::{
+    ResponseVariants, EnsembleResult, SubMsgExecuteResult
 };
 
 pub struct ExecutionState {
