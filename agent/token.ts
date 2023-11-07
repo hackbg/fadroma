@@ -91,6 +91,7 @@ class CustomToken extends FungibleToken {
   isNative = () => false
 
   connect (agent?: Agent): ContractClient 
+  connect <C extends typeof ContractClient> (agent?: Agent, $C?: C): InstanceType<C> 
   connect <C extends typeof ContractClient> (
     agent?: Agent, $C: C = ContractClient as C
   ): InstanceType<C> {

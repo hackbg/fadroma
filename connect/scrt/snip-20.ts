@@ -19,7 +19,7 @@ export class Snip20 extends ContractClient implements Token.Fungible {
 
   /** Create a SNIP20 token client from a Token.Custom descriptor. */
   static fromDescriptor (descriptor: Token.Custom, agent?: Agent): Snip20 {
-    return descriptor.connect(agent, this)
+    return descriptor.connect(agent, this as typeof Snip20)
   }
 
   /** Create a SNIP20 init message. */

@@ -1,6 +1,7 @@
 import { Deployment } from '@hackbg/fadroma'
 
 export default function main (state) {
+
   return new Deployment(state)
     .addContract("cw-null", {
       language:   'rust',
