@@ -92,7 +92,7 @@ routes:
     name: Connecting
 
   - path: /devnet.html
-    page: ops/devnets.ts.md
+    page: ops/devnets.docs.md
     name: Devnet
 
   - path: /project.html
