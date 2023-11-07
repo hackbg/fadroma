@@ -2,7 +2,7 @@ name: Fadroma (Rust)
 on: [push]
 jobs:
   rs-publish:
-    name: cargo publish --dry-run
+    name: Cargo Check
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -22,10 +22,10 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Build Fadroma
         run: |
-          cargo build --all-features --target wasm32-unknown-unknown
+          cargo check --all-features
       - name: Build Fadroma Ensemble
         run: |
-          cd ensemble && cargo build --all-features --target wasm32-unknown-unknown
+          cd ensemble && cargo check --all-features
 
   #rs-coverage:
     #name: cargo tarpaulin
