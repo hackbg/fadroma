@@ -16,15 +16,15 @@ export default new Suite([
 ])
 
 export class MyDeploymentFromSource extends Deployment {
-  a = this.contract('t1', {
+  a = this.contract('null-a', {
     language:   'rust',
-    sourcePath: fixture('..'),
-    cargoToml:  'examples/cw-null/Cargo.toml'
+    sourcePath: fixture('../examples'),
+    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
   })
-  b = this.template('t2', {
+  b = this.template('null-b', {
     language:  'rust',
     sourcePath: fixture('..'),
-    cargoToml: 'examples/cw-null/Cargo.toml'
+    cargoToml:  fixture('../examples/contracts/cw-null/Cargo.toml')
   }).contracts({
     b1: { initMsg: {} },
     b2: { initMsg: () => ({}) },

@@ -1,5 +1,5 @@
 [package]
-name = "fadroma-example-cw-null"
+name = "scrt-null"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -8,6 +8,5 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cosmwasm-std = "1.4.1"
+secret-cosmwasm-std = "1.1.11"
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
-schemars = "0.8.15"

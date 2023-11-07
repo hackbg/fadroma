@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
-import ProjectCommands, {
+import projectMain, {
   Deployment, ContractTemplate, ContractInstance, Stub
 } from '@hackbg/fadroma'
 import { JSONFileDeployStore } from './stores'
@@ -14,12 +14,12 @@ import { withTmpDir } from '@hackbg/file'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ["commands",   testProjectCommands],
-  ["wizard",     testProjectWizard],
+  ["create",     testProjectCreate],
   ['deployment', testDeployment],
 ])
 
 export async function testProjectCommands () {
-  new ProjectCommands()
+  await projectMain()
 
   //for (const project of [
     //await Projects.ScriptProject.create({
@@ -50,18 +50,18 @@ export async function testProjectCommands () {
   //}
 }
 
-export async function testProjectWizard () {
-  await withTmpDir(root=>Projects.projectWizard({
+export async function testProjectCreate () {
+  await withTmpDir(root=>Projects.createProject({
     name: 'test-project-1',
     root,
     interactive: false
   }))
 
-  //const wizard = new ProjectWizard({
+  //const create = new ProjectCreate({
     //interactive: false,
     //cwd: tmpDir()
   //})
-  //assert.ok(await wizard.createProject(
+  //assert.ok(await create.createProject(
     //Project,
     //'test-project-2',
     //'test3',

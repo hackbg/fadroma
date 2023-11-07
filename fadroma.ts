@@ -17,14 +17,14 @@
 **/
 
 import type { ChainId, DeployStore } from '@fadroma/connect'
-import { Agent, bold, timestamp, Deployment, CW, Scrt } from '@fadroma/connect'
+import { Agent, Console, bold, timestamp, Deployment, CW, Scrt } from '@fadroma/connect'
 import * as Compilers from './ops/build'
 import * as Devnets from './ops/devnets'
 import * as Prompts from './ops/prompts'
 import * as Stores from './ops/stores'
 import * as Tools from './ops/tools'
 import { CommandContext } from '@hackbg/cmds'
-import { projectWizard, Project } from './ops/project'
+import { getProject, createProject, Project } from './ops/project'
 import $, { JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 
@@ -32,63 +32,59 @@ export { Compilers, Devnets, Prompts, Stores, Tools, }
 export * from '@fadroma/connect'
 export * from './ops/project'
 
-export default class ProjectCommands extends CommandContext {
-  constructor (
-    readonly project: Project = new Project('project', process.env.FADROMA_PROJECT || process.cwd())
-  ) {
-    super()
-    this.command('run', 'execute a script',
-      (script: string, ...args: string[]) => runScript({ project: this.project, script, args }))
-    this.command('repl', 'open an interactive Fadroma shell',
-      (script: string, ...args: string[]) => runRepl({ project: this.project, script, args }))
-    this.command('status', 'show the status of the project',
-      () => console.log(JSON.stringify(this.project, null, 2)))
-    this.command('create', 'create a new project',
-      projectWizard)
-    if (this.project) {
-      this.command('build', 'build the project or specific contracts from it',
-        (...names: string[]) => this.project.getDeployment().build({
-          compiler: Compilers.getCompiler(), }))
-      this.command('rebuild', 'rebuild the project or specific contracts from it',
-        (...names: string[]) => this.project.getDeployment().build({
-          rebuild: true,
-          compiler: Compilers.getCompiler(), }))
-      this.command('upload', 'upload the project or specific contracts from it',
-        (...names: string[]) => this.project.getDeployment().upload({
-          compiler: Compilers.getCompiler(),
-          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), }))
-      this.command('reupload', 'reupload the project or specific contracts from it',
-        (...names: string[]) => this.project.getDeployment().upload({
-          compiler: Compilers.getCompiler(),
-          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(), reupload: true }))
-      this.command('deploy', 'deploy this project or continue an interrupted deployment',
-        (...args: string[]) => this.project.getDeployment().deploy({
-          compiler: Compilers.getCompiler(),
-          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
-          deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
-          deployment:  this.project.getDeployment() }))
-      this.command('redeploy', 'redeploy this project from scratch',
-        (...args: string[]) => this.project.getDeployment().deploy({
-          compiler:    Compilers.getCompiler(),
-          uploadStore: Stores.getUploadStore(), uploader: this.getAgent(),
-          deployStore: Stores.getDeployStore(), deployer: this.getAgent(),
-          deployment:  this.project.createDeployment() }))
-      this.command('select', `activate another deployment`, 
-        async (name?: string): Promise<Deployment|undefined> => selectDeployment(
-          this.project.root, name))
-      this.command('export', `export current deployment to JSON`,
-        async (path?: string) => exportDeployment(
-          this.project.root, await this.project.getDeployment(), path))
-      this.command('reset', 'stop and erase running devnets',
-        (...ids: ChainId[]) => Devnets.deleteDevnets(
-          this.project.root, ids))
-    }
-  }
+const console = new Console('@hackbg/fadroma')
 
-  getAgent (): Agent {
-    //@ts-ignore
-    return new Agent()
-  }
+export default function main (...args: any) {
+  console.log({args})
+  return new CommandContext()
+    .addCommand('run', 'execute a script',
+      (script: string, ...args: string[]) => runScript({ project: getProject(), script, args }))
+    .addCommand('repl', 'open an interactive Fadroma shell',
+      (script: string, ...args: string[]) => runRepl({ project: getProject(), script, args }))
+    .addCommand('status', 'show the status of the project',
+      () => getProject().logStatus())
+    .addCommand('create', 'create a new project',
+      createProject)
+    .addCommand('build', 'build the project or specific contracts from it',
+      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
+        compiler: Compilers.getCompiler(), })))
+    .addCommand('rebuild', 'rebuild the project or specific contracts from it',
+      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
+        rebuild: true,
+        compiler: Compilers.getCompiler(), })))
+    .addCommand('upload', 'upload the project or specific contracts from it',
+      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
+        compiler: Compilers.getCompiler(),
+        uploadStore: Stores.getUploadStore(), uploader: getAgent(), })))
+    .addCommand('reupload', 'reupload the project or specific contracts from it',
+      (...names: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
+        compiler: Compilers.getCompiler(),
+        uploadStore: Stores.getUploadStore(), uploader: getAgent(), reupload: true })))
+    .addCommand('deploy', 'deploy getProject() or continue an interrupted deployment',
+      (...args: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
+        compiler: Compilers.getCompiler(),
+        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
+        deployStore: Stores.getDeployStore(), deployer: getAgent() })))
+    .addCommand('redeploy', 'redeploy getProject() from scratch',
+      (...args: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
+        compiler:    Compilers.getCompiler(),
+        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
+        deployStore: Stores.getDeployStore(), deployer: getAgent() })))
+    .addCommand('select', `activate another deployment`, 
+      async (name?: string): Promise<Deployment|undefined> => selectDeployment(
+        getProject().root, name))
+    .addCommand('export', `export current deployment to JSON`,
+      async (path?: string) => exportDeployment(
+        getProject().root, await getProject().getDeployment(), path))
+    .addCommand('reset', 'stop and erase running devnets',
+      (...ids: ChainId[]) => Devnets.deleteDevnets(
+        getProject().root, ids))
+}
+
+//main.prototype.run = (...args: any[]) => console.log(this, args)
+
+export function getAgent (): Agent {
+  throw new Error('not implemented')
 }
 
 export async function runScript (context?: { project?: Project, script?: string, args: string[] }) {
@@ -160,10 +156,8 @@ export function exportDeployment (
   // Serialize and write the deployment.
   const state = deployment.serialize()
   file.as(JSONFile).makeParent().save(state)
-  console.info(
-    'saved',
-    Object.keys(state).length,
-    'contracts to',
-    bold(file.shortPath)
+  console.log(
+    'saved', Object.keys(state).length,
+    'contracts to', bold(file.shortPath)
   )
 }

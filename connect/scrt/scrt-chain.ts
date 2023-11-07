@@ -101,7 +101,8 @@ class ScrtAgent extends Agent {
   }
 
   get height () {
-    return this.getBlockInfo().then((block: any)=>Number(block.block?.header?.height))
+    return this.getBlockInfo()
+      .then((block: any)=>Number(block.block?.header?.height))
   }
 
   get balance ()  {
@@ -113,28 +114,31 @@ class ScrtAgent extends Agent {
   }
 
   async getBalance (address: Address, denom = ScrtAgent.gasToken) {
-    const response = await this.chainApi.query.bank.balance({ address, denom })
-    return response.balance!.amount!
+    return (await this.chainApi.query.bank.balance({ address, denom }))
+      .balance!
+      .amount!
   }
 
   async getLabelOfContract (contract_address: Address): Promise<Label> {
-    const response = await this.chainApi.query.compute.contractInfo({ contract_address })
-    return response.ContractInfo!.label!
+    return (await this.chainApi.query.compute.contractInfo({ contract_address }))
+      .ContractInfo!
+      .label!
   }
 
   async getCodeId (contract_address: Address): Promise<CodeId> {
-    const response = await this.chainApi.query.compute.contractInfo({ contract_address })
-    return response.ContractInfo!.code_id!
+    return (await this.chainApi.query.compute.contractInfo({ contract_address }))
+      .ContractInfo!
+      .code_id!
   }
 
-  async getCodeHashOfCodeId (contract_address: Address): Promise<CodeHash> {
-    const response = await this.chainApi.query.compute.codeHashByContractAddress({ contract_address })
-    return response.code_hash!
+  async getCodeHashOfAddress (contract_address: Address): Promise<CodeHash> {
+    return (await this.chainApi.query.compute.codeHashByContractAddress({ contract_address }))
+      .code_hash!
   }
 
-  async getCodeHashOfAddress (code_id: CodeId): Promise<CodeHash> {
-    const response = await this.chainApi.query.compute.codeHashByCodeId({ code_id })
-    return response.code_hash!
+  async getCodeHashOfCodeId (code_id: CodeId): Promise<CodeHash> {
+    return (await this.chainApi.query.compute.codeHashByCodeId({ code_id }))
+      .code_hash!
   }
 
   /** Query a contract.
@@ -181,7 +185,11 @@ class ScrtAgent extends Agent {
       code, message, details = [], rawLog 
     } = result
     if (code !== 0) {
-      this.log.error(`Upload failed with code ${bold(code)}:`, bold(message ?? rawLog ?? ''), ...details)
+      this.log.error(
+        `Upload failed with code ${bold(code)}:`,
+        bold(message ?? rawLog ?? ''),
+        ...details
+      )
       if (message === `account ${this.address} not found`) {
         this.log.info(`If this is a new account, send it some ${ScrtAgent.gasToken} first.`)
         if (this.isMainnet) {
@@ -202,10 +210,12 @@ class ScrtAgent extends Agent {
       this.log.error(`Code ID not found in result`, { result })
       throw new Error('upload failed')
     }
+    const codeHash = await this.getCodeHashOfCodeId(codeId)
+    console.log({ codeHash })
     return {
       chainId:  this.chainId,
       codeId,
-      codeHash: await this.getCodeHashOfCodeId(codeId),
+      codeHash,
       uploadBy: this.address,
       uploadTx: result.transactionHash,
       uploadGas: result.gasUsed

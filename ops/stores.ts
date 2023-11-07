@@ -6,7 +6,7 @@ import {
   UploadStore, DeployStore, ContractInstance, Deployment
 } from '@fadroma/connect'
 import type { CodeHash, UploadedCode, DeploymentState, Name } from '@fadroma/connect'
-import $, { OpaqueDirectory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
+import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
 import { basename } from 'node:path'
@@ -152,7 +152,7 @@ export class JSONFileDeployStore extends DeployStore {
   //[>* Get the names of all stored deployments. <]
   //list (): string[] {
     //if (this.root.exists()) {
-      //const list = this.root.as(OpaqueDirectory).list() ?? []
+      //const list = this.root.as(Directory).list() ?? []
       //return list
         //.filter(x=>x.endsWith('.yml'))
         //.map(x=>basename(x, '.yml'))

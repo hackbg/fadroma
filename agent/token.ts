@@ -3,9 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, Uint128 } from './base'
 import type { Agent } from './chain'
-import type { ContractClientClass } from './client'
 import { ContractClient } from './client'
-
 
 /** A gas fee, payable in native tokens. */
 export interface IFee { amount: readonly ICoin[], gas: Uint128 }
@@ -92,10 +90,11 @@ class CustomToken extends FungibleToken {
   /** @returns false */
   isNative = () => false
 
-  connect <C extends ContractClient> (
-    agent?: Agent, $C: ContractClientClass<C> = ContractClient as unknown as ContractClientClass<C>
-  ): C {
-    return new $C({ address: this.address, codeHash: this.codeHash }, agent)
+  connect (agent?: Agent): ContractClient 
+  connect <C extends typeof ContractClient> (
+    agent?: Agent, $C: C = ContractClient as C
+  ): InstanceType<C> {
+    return new $C({ address: this.address, codeHash: this.codeHash }, agent) as InstanceType<C>
   }
 }
 

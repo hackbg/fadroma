@@ -5,7 +5,7 @@ import type { Class, DeployStore, UploadedCode } from '@fadroma/connect'
 import type { Project } from './project'
 import { NOT_INSTALLED, SystemTools } from './tools'
 import { Console, bold, colors, Scrt } from '@fadroma/connect'
-import $, { Path, OpaqueDirectory, TextFile } from '@hackbg/file'
+import $, { Path, Directory, TextFile } from '@hackbg/file'
 import Prompts from 'prompts'
 import * as dotenv from 'dotenv'
 import { execSync } from 'node:child_process'
@@ -133,13 +133,13 @@ export async function askProjectRoot (name: string|Promise<string>|undefined): P
   name =
     await Promise.resolve(name) as string
   const cwd =
-    $(process.cwd()).as(OpaqueDirectory)
+    $(process.cwd()).as(Directory)
   const exists =
     cwd.in(name).exists()
   const inSub =
-    `Subdirectory (${exists?'overwrite: ':''}${cwd.name}/${name})`
+    `Subdirectory (${exists?'overwrite: ':''}${cwd.basename}/${name})`
   const inCwd =
-    `Current directory (${cwd.name})`
+    `Current directory (${cwd.basename})`
   const choices = [
     { title: inSub, value: cwd.in(name) },
     { title: inCwd, value: cwd },

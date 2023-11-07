@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
 import { cwd } from 'node:process'
 import Case from 'case'
-import $, { Path, TextFile, JSONFile, TOMLFile, OpaqueDirectory } from '@hackbg/file'
+import $, { Path, TextFile, JSONFile, TOMLFile, Directory } from '@hackbg/file'
 import { bip39, bip39EN } from '@fadroma/connect'
 import { console } from './config'
 import type { Project } from './project'
@@ -329,4 +329,26 @@ export function generateContractEntrypoint () {
     `    }`,
     `}`,
   ].join('\n')
+}
+
+export function writeCrates ({ cargoToml, wasmDir, crates }: {
+  cargoToml: Path,
+  wasmDir: Path,
+  crates: Record<string, any>
+}) {
+  // Populate root Cargo.toml
+  cargoToml.as(TextFile).save([
+    `[workspace]`, `resolver = "2"`, `members = [`,
+    Object.values(crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
+    `]`
+  ].join('\n'))
+  // Create each crate and store a null checksum for it
+  const sha256 = '000000000000000000000000000000000000000000000000000000000000000'
+  for (const crate of Object.values(crates)) {
+    crate.create()
+    const name = `${crate.name}@HEAD.wasm`
+    $(wasmDir, `${name}.sha256`)
+      .as(TextFile)
+      .save(`${sha256}  *${name}`)
+  }
 }

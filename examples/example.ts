@@ -1,0 +1,53 @@
+import { Deployment } from '@hackbg/fadroma'
+
+export default function main (state) {
+  return new Deployment(state)
+    .addContract("cw-null", {
+      language:   'rust',
+      sourcePath: '.',
+      cargoToml:  './contracts/cw-null/Cargo.toml'
+    })
+    .addContract("cw-stub", {
+      language:   'rust',
+      sourcePath: '.',
+      cargoToml:  './contracts/cw-stub/Cargo.toml'
+    })
+    .addContract("cw-echo",   {
+      language:   'rust',
+      sourcePath: '.',
+      cargoToml:  './contracts/cw-echo/Cargo.toml'
+    })
+    .addContract("scrt-null", {
+      language:   'rust',
+      sourcePath: '.',
+      cargoToml:  './contracts/scrt-stub/Cargo.toml'
+    })
+    .addContract("scrt-stub", {
+      language:   'rust',
+      sourcePath: '.',
+      cargoToml:  './contracts/scrt-stub/Cargo.toml'
+    })
+    .addContract("scrt-echo", {
+      language:   'rust',
+      sourcePath: '.',
+      cargoToml:  './contracts/scrt-echo/Cargo.toml'
+    })
+}
+
+//export default class ExampleDeployment extends Deployment {
+
+  //cw = {
+    //stub: this.contract("cw-stub", { language: 'rust', cargoToml: './cw-stub/Cargo.toml' }),
+    //echo: this.contract("cw-echo", { language: 'rust', cargoToml: './cw-echo/Cargo.toml' }),
+  //}
+
+  //scrt = {
+    //stub: this.contract("scrt-stub", { language: 'rust', cargoToml: './scrt-stub/Cargo.toml' }),
+    //echo: this.contract("scrt-echo", { language: 'rust', cargoToml: './scrt-echo/Cargo.toml' }),
+  //}
+
+  //run (...args: any) {
+    //console.log(this, args)
+  //}
+
+//}
