@@ -42,7 +42,7 @@
 
     "docs:dev":      "ensuite-dev",
     "docs:render":   "time ensuite/ensuite-render.cli.mjs",
-    "docs:typedoc":  "time typedoc --customCss ./typedoc.css --tsconfig ./tsconfig.json --entryPointStrategy legacy-packages --entryPoints agent --entryPoints connect/* --entryPoints connect --entryPoints .",
+    "docs:typedoc":  "time typedoc --customCss ./typedoc.css --tsconfig ./tsconfig.json --entryPointStrategy Packages --entryPoints agent --entryPoints connect/* --entryPoints connect --entryPoints .",
 
     "test":          "time ensuite fadroma.test.ts",
     "cov":           "time ensuite-cov fadroma.test.ts",
