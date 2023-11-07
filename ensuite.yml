@@ -70,48 +70,43 @@ routes:
   - path: /index.html
     page: index.pug
     name: Fadroma
+
   - path: /guide.html
     page: GUIDE.ts.md
     name: Getting started
+
   - path: /dsl.html
     page: proc/fadroma-dsl/README.md
     name: Macro DSL
+
   - path: /agent.html
-    page: spec/Agent.spec.ts.md
+    page: agent/README.md
     name: Agent
+
   - path: /build.html
-    page: spec/Build.spec.ts.md
+    page: ops/build.docs.md
     name: Building
+
   - path: /connect.html
-    page: spec/Connect.spec.ts.md
+    page: connect/README.md
     name: Connecting
-  - path: /deploy.html
-    page: spec/Deploy.spec.ts.md
-    name: Deploying
+
   - path: /devnet.html
-    page: spec/Devnet.spec.ts.md
+    page: ops/devnets.ts.md
     name: Devnet
-  - path: /mocknet.html
-    page: spec/Mocknet.spec.ts.md
-    name: Mocknet
+
   - path: /project.html
-    page: spec/Project.spec.ts.md
+    page: spec/project.docs.ts
     name: Project
+
   - path: /scrt.html
-    page: spec/Scrt.spec.ts.md
+    page: connect/scrt/README.md
     name: Secret Network
-  - path: /snip20.html
-    page: spec/Snip20.spec.ts.md
-    name: SNIP-20 support
-  - path: /upload.html
-    page: spec/Upload.spec.ts.md
-    name: Uploading
-  - path: /factory.html
-    page: spec/Factory.spec.ts.md
-    name: Factory Pattern
-  - path: /impl.html
-    page: spec/Implementing.spec.ts.md
-    name: Implementing support for new chains
+
+  - path: /scrt.html
+    page: connect/cw/README.md
+    name: CosmWasm
+
   - path: /schema.html
     page: schema/schema.pug
     name: CosmWasm Schema Tool
