@@ -24,8 +24,6 @@ state
 target
 tarpaulin-report.html
 wasm/*
-!wasm/*.sha256
-!wasm/.gitkeep
 yarn-error.log
 yarn.lock
 !page/*.js

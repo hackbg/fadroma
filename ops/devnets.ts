@@ -121,7 +121,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
       },
       log: {
         enumerable: true, configurable: true, get () {
-          return new Console(`devnet: ${bold(this.chainId)} @ ${bold(`${this.host}:${this.port}`)}`)
+          return new Console(`devnet(${bold(this.chainId)} @ ${bold(`${this.host}:${this.port}`)})`)
         }, set () {
           throw new Error("can't change devnet logger")
         }
@@ -577,9 +577,13 @@ export function getDevnetFromEnvironment <A extends typeof Agent> (
     dontMountState: config.getFlag('FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false),
   }
   if (properties.Agent === Scrt.Agent) {
-    return new ScrtDevnetContainer({ ...defaults, ...properties }) as DevnetContainer<typeof Scrt.Agent>
+    return new ScrtDevnetContainer(
+      { ...defaults, ...properties } as any
+    ) as any
   } else if (properties.Agent === CW.OKP4.Agent) {
-    return new OKP4DevnetContainer({ ...defaults, ...properties }) as DevnetContainer<typeof CW.OKP4.Agent>
+    return new OKP4DevnetContainer(
+      { ...defaults, ...properties } as any
+    ) as any
   } else {
     throw new Error('pass Scrt.Agent or CW.OKP4.Agent to getDevnet({ Agent })')
   }
@@ -615,9 +619,7 @@ export function getDevnetFromFile <A extends typeof Agent> (
   if (!state.port) {
     console.warn(`${stateFile.path}: no port`)
   }
-  return new (class extends DevnetContainer<typeof Stub.Agent> { Agent = Stub.Agent })(
-    state as any
-  )
+  return new (class extends DevnetContainer<any> { Agent = null as any })(state as any)
 }
 
 /** Delete multiple devnets. */
