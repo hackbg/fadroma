@@ -51,7 +51,7 @@ export async function testChainSupport <
   console.log('Querying code upload...')
   equal(await bob.getCodeHashOfCodeId(uploaded.codeId), uploaded.codeHash)
 
-  console.log('Querying code instantiation...')
+  console.log('Instantiating code...')
   const label = 'my-contract-label'
   const initMsg = null as any // actually a valid init message
   const instance = await bob.instantiate(uploaded, { label, initMsg, initFee })

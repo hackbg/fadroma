@@ -33,7 +33,9 @@ export abstract class Devnet<A extends typeof Agent> {
 
   abstract getGenesisAccount (name: string): Promise<{ address?: Address, mnemonic?: string }>
 
-  async connect (...parameters: [string]|[A]|ConstructorParameters<A>): Promise<InstanceType<A>> {
+  async connect (
+    ...parameters: [string]|[{name: string}]|[A]|ConstructorParameters<A>
+  ): Promise<InstanceType<A>> {
     let agent: InstanceType<A>
     if (parameters[0] instanceof Agent) {
       agent = parameters[0] as InstanceType<A>

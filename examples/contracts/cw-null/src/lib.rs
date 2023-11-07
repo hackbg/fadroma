@@ -30,5 +30,5 @@ pub struct QueryMsg;
 pub fn query(
     _deps: Deps, _env: Env, _msg: QueryMsg,
 ) -> Result<QueryResponse, StdError> {
-    Ok(QueryResponse::default())
+    Ok("null".as_bytes().into())
 }

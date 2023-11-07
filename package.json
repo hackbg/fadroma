@@ -53,7 +53,7 @@
     "@fadroma/connect": "workspace:4.0.0-rc.1",
     "@hackbg/cmds":     "workspace:3.0.7",
     "@hackbg/dock":     "workspace:2",
-    "@hackbg/file":     "workspace:1.2.3",
+    "@hackbg/file":     "workspace:2.0.0-rc.1",
     "@hackbg/hide":     "workspace:1",
     "@hackbg/logs":     "workspace:2.0.8*",
     "@hackbg/port":     "workspace:1",
@@ -85,7 +85,7 @@
     "freeport-async": "^2.0.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.1.2",
-    "typedoc": "0.24.8",
+    "typedoc": "0.25.3",
     "typescript": "^5.2.2",
 
     "@types/dockerode": "^3.3.14",

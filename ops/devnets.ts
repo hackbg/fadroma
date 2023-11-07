@@ -90,7 +90,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
     assign(this, options, [
       'verbose', 'autoStop', 'autoDelete',
       'containerEngine', 'containerImage', 'containerManifest', 'containerId',
-      'daemon', 'portMode', 'protocol', 'host', 'port', 'dontMountState',
+      'platform', 'daemon', 'portMode', 'protocol', 'host', 'port', 'dontMountState',
       'genesisAccounts', 'genesisUploads', 'initScript', 'readyString', 'launchTimeout',
     ])
     if (this.portMode) {
