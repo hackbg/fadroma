@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - name: Setup Rust cache
         uses: mozilla-actions/sccache-action@v0.0.3
-      - name: Run pnpm ci
+      - name: Setup environment
         env:
           FORCE_COLOR: 2
         run: |
@@ -39,7 +39,6 @@ jobs:
           rustup target add wasm32-unknown-unknown --toolchain 1.69
           pnpm --version
           pnpm i --frozen-lockfile
-          FORCE_COLOR=1 FADROMA_BUILD_RAW=1 TEMP="$(dirname $(pwd))" TMP="$(dirname $(pwd))" pnpm run ci
       - name: Create, build, and deploy project
         env:
           FORCE_COLOR: 2
