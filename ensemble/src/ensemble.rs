@@ -422,7 +422,8 @@ impl ContractEnsemble {
             code_hash: contract.code_hash.clone(),
             msg: to_binary(msg)?,
             funds: env.sent_funds,
-            label: env.contract.into_string()
+            label: env.contract.into_string(),
+            admin: None
         });
 
         match self.ctx.execute_messages(sub_msg, env.sender.into_string())? {
@@ -757,7 +758,8 @@ impl Context {
                     msg,
                     funds,
                     label,
-                    code_hash
+                    code_hash,
+                    ..
                 } => {
                     let contract = self
                         .contracts
