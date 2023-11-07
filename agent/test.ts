@@ -1,10 +1,13 @@
 import type { Agent, Devnet } from '.'
 import { Coin } from './token'
+import { Console } from '@hackbg/logs'
 export async function testChainSupport <
   A extends typeof Agent, D extends typeof Devnet<A>
 > (
   Agent: A, Devnet: D, token: string, code: string
 ) {
+  const console = new Console(`${Agent.name} + ${Devnet.name}`)
+
   const { equal } = await import('node:assert')
   const sendFee = Agent.gas("1000000")
   const uploadFee = Agent.gas("10000000")

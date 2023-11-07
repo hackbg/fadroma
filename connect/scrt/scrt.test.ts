@@ -33,7 +33,7 @@ export async function testScrtChain () {
     Scrt,
     Devnets.ScrtContainer['v1.9'],
     'uscrt',
-    fixture('fadroma-example-cw-null@HEAD.wasm')
+    fixture('fadroma-example-kv@HEAD.wasm')
   )
   const batch = () => alice.batch()
     .instantiate('id', {

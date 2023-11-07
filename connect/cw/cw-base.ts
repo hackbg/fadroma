@@ -90,14 +90,14 @@ class CWAgent extends Agent {
   }
 
   /** Query native token balance. */
-  async getBalance (denom?: string, address?: Address): Promise<string> {
-    this.log.debug('Querying balance of', bold(address), 'in', bold(denom))
-    denom ??= (this.constructor as typeof CWAgent).gasToken
+  async getBalance (token?: string, address?: Address): Promise<string> {
+    this.log.debug('Querying', bold(token), 'balance of', bold(address))
+    token ??= (this.constructor as typeof CWAgent).gasToken
     address ??= this.address
     if (!address) {
       throw new Error('getBalance: pass address')
     }
-    const { amount } = await this.chainApi.then(api=>api.getBalance(address!, denom!))
+    const { amount } = await this.chainApi.then(api=>api.getBalance(address!, token!))
     return amount
   }
 

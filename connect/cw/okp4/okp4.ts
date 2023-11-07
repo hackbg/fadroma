@@ -27,7 +27,7 @@ class OKP4Agent extends Agent {
   /** Default denomination of gas token. */
   static gasToken = 'uknow'
   /** Transaction fees for this agent. */
-  fees = {
+  defaultFees = {
     upload: OKP4Agent.gas(10000000),
     init: OKP4Agent.gas(1000000),
     exec: OKP4Agent.gas(1000000),
