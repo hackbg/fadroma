@@ -17,7 +17,7 @@ importers:
         specifier: workspace:2
         version: link:ensuite/toolbox/dock
       '@hackbg/file':
-        specifier: workspace:2.0.0-rc.1
+        specifier: workspace:2.0.0
         version: link:ensuite/toolbox/file
       '@hackbg/logs':
         specifier: workspace:2.0.8
@@ -48,13 +48,13 @@ importers:
         specifier: workspace:*
         version: link:connect/scrt
       '@hackbg/ensuite':
-        specifier: workspace:*
+        specifier: workspace:^1.5.1
         version: link:ensuite
       '@hackbg/fadroma':
         specifier: workspace:*
         version: 'link:'
       '@hackbg/ganesha':
-        specifier: workspace:*
+        specifier: workspace:^4.2.0
         version: link:ensuite/ganesha
       '@hackbg/ubik':
         specifier: workspace:*
@@ -121,7 +121,7 @@ importers:
         version: link:../ensuite/toolbox/over
     devDependencies:
       '@hackbg/ensuite':
-        specifier: workspace:../ensuite
+        specifier: workspace:^1.5.1
         version: link:../ensuite
 
   connect:
@@ -140,7 +140,7 @@ importers:
         version: link:../ensuite/toolbox/conf
     devDependencies:
       '@hackbg/ensuite':
-        specifier: workspace:../ensuite
+        specifier: workspace:^1.5.1
         version: link:../ensuite
 
   connect/cw:
@@ -162,7 +162,7 @@ importers:
         version: 1.3.2
     devDependencies:
       '@hackbg/ensuite':
-        specifier: workspace:../../ensuite
+        specifier: workspace:^1.5.1
         version: link:../../ensuite
 
   connect/cw/cosmjs-esm:
@@ -347,7 +347,7 @@ importers:
         version: 2.0.0
     devDependencies:
       '@hackbg/ensuite':
-        specifier: workspace:../../ensuite
+        specifier: workspace:^1.5.1
         version: link:../../ensuite
 
   connect/scrt/secretjs-esm:
@@ -471,7 +471,7 @@ importers:
   ensuite:
     dependencies:
       '@hackbg/file':
-        specifier: workspace:2.0.0-rc.1
+        specifier: workspace:2.0.0
         version: link:toolbox/file
       '@hackbg/ganesha':
         specifier: workspace:^4.2.0

@@ -13,13 +13,14 @@
     "@noble/curves":      "^1.2.0"
   },
   "devDependencies": {
-    "@hackbg/ensuite": "workspace:../../ensuite"
+    "@hackbg/ensuite": "workspace:^1.5.1"
   },
   "scripts": {
     "check":  "time tsc --noEmit",
     "test":   "time ensuite cw.test.ts",
     "cov":    "time ensuite-cov -r text -r lcov -- cw.test.ts",
     "ubik":   "npm run check && npm run cov all && ubik",
-    "schema": "./schema/cw-gen-types.cjs"
+    "schema": "./schema/cw-gen-types.cjs",
+    "release": "pnpm ubik --access public --otp 123123"
   }
 }
