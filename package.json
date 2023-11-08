@@ -28,7 +28,7 @@
   "scripts": {
     "build": "./fadroma.cli.cjs build",
     "check": "time tsc --noEmit",
-    "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm cloc && pnpm clean && pnpm chec && pnpm cov all && pnpm ubik --dry compile && ls -al",
+    "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm cloc && pnpm clean && pnpm check && pnpm cov all && pnpm ubik --dry compile && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
     "cloc": "cloc --verbose=2 --fullpath --not-match-d=node_modules --not-match-f=pnpm-lock.yaml --exclude-dir=.github,.husky,ensuite,cosmjs-esm,secretjs-esm,coverage,state .",
     "cov":  "time ensuite-cov fadroma.test.ts",
