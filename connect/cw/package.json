@@ -19,7 +19,7 @@
     "check":  "time tsc --noEmit",
     "test":   "time ensuite cw.test.ts",
     "cov":    "time ensuite-cov -r text -r lcov -- cw.test.ts",
-    "ubik":   "npm run check && ubik",
+    "ubik":   "npm run check && npm run cov all && ubik",
     "schema": "./schema/cw-gen-types.cjs"
   }
 }
