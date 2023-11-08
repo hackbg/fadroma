@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "2.0.0-rc.2",
+  "version": "2.0.0-rc.3",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -49,7 +49,6 @@
     "@hackbg/cmds":     "workspace:3.0.7",
     "@hackbg/dock":     "workspace:2",
     "@hackbg/file":     "workspace:2.0.0-rc.1",
-    "@hackbg/hide":     "workspace:1",
     "@hackbg/logs":     "workspace:2.0.8",
     "@hackbg/port":     "workspace:1.3",
     "@hackbg/repo":     "workspace:0.1.0",
@@ -59,7 +58,7 @@
     "simple-git":       "^3.7.1"
   },
   "peerDependencies": {
-    "@hackbg/ganesha": "^4"
+    "@hackbg/ganesha": "^4.2.0"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": { "optional": true }
@@ -73,10 +72,7 @@
     "@hackbg/fadroma": "workspace:*",
     "@hackbg/ubik":    "workspace:*",
 
-    "body-parser": "^1.20.0",
-    "concurrently": "7.2.2",
     "express": "^4.18.1",
-    "freeport-async": "^2.0.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.1.2",
     "typedoc": "0.25.3",

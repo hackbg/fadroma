@@ -19,9 +19,6 @@ importers:
       '@hackbg/file':
         specifier: workspace:2.0.0-rc.1
         version: link:ensuite/toolbox/file
-      '@hackbg/hide':
-        specifier: workspace:1
-        version: link:ensuite/toolbox/hide
       '@hackbg/logs':
         specifier: workspace:2.0.8
         version: link:ensuite/toolbox/logs
@@ -80,18 +77,9 @@ importers:
       '@types/secure-random':
         specifier: ^1.1.0
         version: 1.1.0
-      body-parser:
-        specifier: ^1.20.0
-        version: 1.20.0
-      concurrently:
-        specifier: 7.2.2
-        version: 7.2.2
       express:
         specifier: ^4.18.1
         version: 4.18.1
-      freeport-async:
-        specifier: ^2.0.0
-        version: 2.0.0
       husky:
         specifier: ^8.0.3
         version: 8.0.3
@@ -5019,11 +5007,6 @@ packages:
   /forwarded@0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
-    dev: true
-
-  /freeport-async@2.0.0:
-    resolution: {integrity: sha512-K7od3Uw45AJg00XUmy15+Hae2hOcgKcmN3/EF6Y7i01O0gaqiRx8sUSpsb9+BRNL8RPBrhzPsVfy8q9ADlJuWQ==}
-    engines: {node: '>=8'}
     dev: true
 
   /fresh@0.5.2:
