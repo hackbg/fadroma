@@ -1,5 +1,11 @@
 # Configuration
 
+---
+
+**Status:** Needs update, some are OOD/contradictory.
+
+---
+
 |Env var|Description|
 |-|-|
 |**`FADROMA_ARTIFACTS`**            |**Path to directory.** project artifact cache|
