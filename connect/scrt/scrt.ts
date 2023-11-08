@@ -18,9 +18,9 @@
 
 export * from './scrt-base'
 export * from './scrt-chain'
+export * as Mocknet from './scrt-mocknet'
 export * as Snip20 from './snip-20'
 export * as Snip24 from './snip-24'
 export * as Snip721 from './snip-721'
 export * as SecretJS from '@hackbg/secretjs-esm'
-export { ScrtBatchBuilder as BatchBuilder } from './scrt-batch'
-export { Agent as default } from './scrt-chain'
+export { Agent as default, ScrtBatchBuilder as BatchBuilder } from './scrt-chain'

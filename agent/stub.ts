@@ -136,9 +136,11 @@ class StubChainState extends Devnet<typeof StubAgent> {
     return upload
   }
 
-  async instantiate (...args: unknown[]): Promise<Partial<ContractInstance>> {
+  async instantiate (...args: unknown[]): Promise<Partial<ContractInstance> & {
+    address: Address
+  }> {
     throw new Error('not implemented')
-    return {}
+    return { address: '' }
   }
 
   async execute (...args: unknown[]): Promise<unknown> {

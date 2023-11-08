@@ -21,6 +21,7 @@ coverage:
     - "shim/**/*"
     - "spec/**/*"
     - "typedoc-theme.tsx"
+    - "docs"
 
 header:
   title: Fadroma
