@@ -5,9 +5,12 @@
 const t0 = performance.now()
 const { join, resolve, relative } = require('path')
 const { readFileSync } = require('fs')
-const { Console, bold } = require('@hackbg/logs')
+const { Console, bold, colors } = require('@hackbg/logs')
 const pkgj = JSON.parse(readFileSync(resolve(__dirname, 'package.json')), 'utf8')
-const console = new Console(`@hackbg/fadroma ${pkgj.version}`)
+console = new Console(`@hackbg/fadroma ${pkgj.version}`)
+console
+  .log(colors.green('█▀▀ █▀█ █▀▄ █▀█ █▀█ █▀█▀█ █▀█'))
+  .log(colors.green('█▀  █▀█ █▄▀ █▀▄ █▄█ █ ▀ █ █▀█'))
 require('dotenv').config()
 const node = process.argv[0]
 const cmds = require.resolve('@hackbg/cmds/cmds-ts.cli.cjs')
@@ -20,7 +23,6 @@ console.log(`Running ${bold(relative(process.cwd(), main))}`)
 process.argv = [ node, cmds, main, ...process.argv.slice(2) ]
 
 const t1 = performance.now()
-console.br()
 console.log(`Ready in ${bold(String((t1 - t0).toFixed(3)))} ms`)
 
 process.on('exit', ()=>{
@@ -29,5 +31,4 @@ process.on('exit', ()=>{
   console.log(`Exited in ${bold(String((t2 - t1).toFixed(3)))} ms`)
 })
 
-console.br()
 require('@hackbg/cmds/cmds-ts.cli.cjs')

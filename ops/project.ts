@@ -1,13 +1,13 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Error, Deployment, bold, timestamp } from '@fadroma/connect'
+import { Error, Deployment, bold, timestamp, bip39, bip39EN } from '@fadroma/connect'
 import type { Agent, ChainId, ContractCode } from '@fadroma/connect'
 import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 import * as Compilers from './build'
-import { console } from './config'
+import { console, packageRoot } from './config'
 import * as Stores from './stores'
 import * as Devnets from './devnets'
 import {
@@ -21,6 +21,8 @@ import {
 import * as Tools from './tools'
 import { execSync } from 'node:child_process'
 import Case from 'case'
+
+const { version, dependencies } = $(packageRoot, 'package.json').as(JSONFile<any>).load()
 
 export function getProject (
   root: string|Path = process.env.FADROMA_PROJECT || process.cwd()
@@ -143,27 +145,95 @@ export class Project extends ProjectDirectory {
   }> = {}
 
   createGitRepo () {
+
     Tools.runShellCommands(this.path, ['git --no-pager init -b main',])
-    this.gitIgnore.save(Tools.generateGitIgnore())
+
+    this.gitIgnore.save([
+      '.env',
+      '*.swp',
+      'node_modules',
+      'target',
+      'state/*',
+      '!state/secret-1', '!state/secret-2', '!state/secret-3', '!state/secret-4',
+      '!state/pulsar-1', '!state/pulsar-2', '!state/pulsar-3',
+      '!state/okp4-nemeton-1',
+      'wasm/*',
+      '!wasm/*.sha256',
+    ].join('\n'))
+
     Tools.runShellCommands(this.path, [
+      'ls -al',
       'git --no-pager add .',
       'git --no-pager status',
       'git --no-pager commit -m "Project created by @hackbg/fadroma (https://fadroma.tech)"',
       "git --no-pager log",
     ])
+
     return this
+
   }
+
   writePlatformManifests () {
+
     if (!this.name) {
       throw new Error("can't write nameless project")
     }
-    this.readme.save(Tools.generateReadme(this.name))
-    this.packageJson.save(Tools.generatePackageJson(this.name))
-    this.gitIgnore.save(Tools.generateGitIgnore())
-    this.envFile.save(Tools.generateEnvFile())
-    this.shellNix.save(Tools.generateShellNix(this.name))
+
+    this.readme.save([
+      `# ${this.name}\n---\n`,
+      `Powered by [Fadroma](https://fadroma.tech) `,
+      `as provided by [Hack.bg](https://hack.bg) `,
+      `under [AGPL3](https://www.gnu.org/licenses/agpl-3.0.en.html).`
+    ].join('\n'))
+
+    this.packageJson.save({
+      name: `${this.name}`,
+      main: `index.ts`,
+      type: "module",
+      version: "0.1.0",
+      dependencies: {
+        "@hackbg/fadroma": version,
+      },
+      devDependencies: {
+        "@hackbg/fadroma": `^${version}`,
+        "@hackbg/ganesha": "4.2.0",
+        //"@hackbg/ubik": "^2.0.0",
+        "typescript": "5.2.2",
+      },
+      scripts: {
+        "fadroma": "fadroma",
+        "test": "fadroma run index.test.ts",
+      },
+    })
+
+    this.envFile.save([
+      '# FADROMA_MNEMONIC=your mainnet mnemonic',
+      `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`,
+      ``,
+      `# Just remove these two when pulsar-3 is ready:`,
+      `FADROMA_SCRT_TESTNET_CHAIN_ID=pulsar-2`,
+      `FADROMA_SCRT_TESTNET_URL=https://lcd.testnet.secretsaturn.net`,
+      ``,
+      `# Other settings:`,
+    ].join('\n'))
+
+    this.shellNix.save([
+      `{ pkgs ? import <nixpkgs> {}, ... }: let name = "${this.name}"; in pkgs.mkShell {`,
+      `  inherit name;`,
+      `  nativeBuildInputs = with pkgs; [`,
+      `    git nodejs nodePackages_latest.pnpm rustup`,
+      `    binaryen wabt wasm-pack wasm-bindgen-cli`,
+      `  ];`,
+      `  shellHook = ''`,
+      `    export PS1="$PS1[\${name}] "`,
+      `    export PATH="$PATH:$HOME/.cargo/bin:\${./.}/node_modules/.bin"`,
+      `  '';`,
+      `}`,
+    ].join('\n'))
+
     return this
   }
+
   writeApplicationTemplate () {
     if (!this.name) {
       throw new Error("can't write nameless project")
@@ -173,10 +243,12 @@ export class Project extends ProjectDirectory {
     //this.testIndex.save(Tools.generateTestIndex(this.name))
     return this
   }
+
   runNPMInstall (tools: Tools.SystemTools) {
     Tools.runNPMInstall(this, tools)
     return this
   }
+
   //writeCargoCrate ({
     //root       = this.path,
     //cargoCrate = '',
