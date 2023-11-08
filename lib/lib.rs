@@ -168,3 +168,18 @@ macro_rules! entrypoint {
         }
     };
 }
+
+#[macro_export] macro_rules! contract {
+    ($($body:item)*) => {
+        pub use contract::*;
+
+        #[fadroma::dsl::contract]
+        pub mod contract {
+            use super::*;
+            use fadroma::{prelude::*, dsl::*};
+            impl Contract {
+                $($body)*
+            }
+        }
+    }
+}
