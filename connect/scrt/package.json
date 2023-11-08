@@ -19,6 +19,6 @@
     "check": "time tsc --noEmit",
     "test":  "time ensuite scrt.test.ts",
     "cov":   "time ensuite-cov -r text -r lcov -- scrt.test.ts",
-    "ubik":  "npm run check && npm run cov && ubik"
+    "ubik":  "npm run check && npm run cov all && ubik"
   }
 }
