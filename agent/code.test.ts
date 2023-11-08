@@ -19,7 +19,13 @@ export async function testCodeCompiler () {
 }
 
 export async function testCodeUnits () {
+
+  rejects(()=>new ContractCode({ }).compile())
+
+  rejects(()=>new ContractCode({ compiler: new Stub.Compiler() }).compile())
+
   const source1 = new SourceCode()
+  assert(source1[Symbol.toStringTag])
   deepEqual(source1.serialize(), {
     sourceOrigin: undefined,
     sourceRef:    undefined,
@@ -36,7 +42,15 @@ export async function testCodeUnits () {
   assert(!source1.canFetch)
   assert(source1.canCompile)
 
+  rejects(()=>new ContractCode({ source: source1 }).compile())
+
+  assert(
+    await new ContractCode({ source: source1, compiler: new Stub.Compiler() }).compile()
+    instanceof CompiledCode
+  )
+
   const rustSource1 = new RustSourceCode()
+  assert(rustSource1[Symbol.toStringTag])
   deepEqual(rustSource1.serialize(), {
     sourceOrigin:   undefined,
     sourceRef:      undefined,
@@ -58,6 +72,8 @@ export async function testCodeUnits () {
   assert(!rustSource1.canCompile)
   rustSource1.cargoToml = 'foo'
   assert(rustSource1.canCompile)
+  rustSource1.canFetch
+  rustSource1.canCompileInfo
 
   const compiled1 = new CompiledCode()
   deepEqual(compiled1.serialize(), {

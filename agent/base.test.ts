@@ -38,6 +38,6 @@ export async function testCollections () {
 }
 
 export async function testAssign () {
-  assert.throws(()=>assign({}, {}, ''))
+  assert.throws(()=>assign({}, {}, '' as any))
   assert.ok(()=>assign({}, {}, []))
 }

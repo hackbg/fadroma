@@ -693,6 +693,9 @@ importers:
         specifier: ^3.0.7
         version: 3.0.7
     devDependencies:
+      '@hackbg/ganesha':
+        specifier: ^4.2
+        version: link:../ganesha
       '@hackbg/ubik':
         specifier: workspace:*
         version: link:ubik
@@ -735,16 +738,8 @@ importers:
       secure-random:
         specifier: ^1.1.2
         version: 1.1.2
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
 
-  ensuite/toolbox/allo:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
+  ensuite/toolbox/allo: {}
 
   ensuite/toolbox/atom:
     devDependencies:
@@ -811,14 +806,7 @@ importers:
         specifier: ^1.4.5
         version: link:../..
 
-  ensuite/toolbox/dump:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
-      '@hackbg/ubik':
-        specifier: workspace:*
-        version: link:../ubik
+  ensuite/toolbox/dump: {}
 
   ensuite/toolbox/emit:
     devDependencies:
@@ -859,9 +847,6 @@ importers:
         specifier: ^3
         version: 3.0.0
     devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
       '@hackbg/spec':
         specifier: workspace:*
         version: link:../spec
@@ -889,22 +874,10 @@ importers:
       zen-observable:
         specifier: ^0.8.15
         version: 0.8.15
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
 
-  ensuite/toolbox/hide:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
+  ensuite/toolbox/hide: {}
 
-  ensuite/toolbox/into:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
+  ensuite/toolbox/into: {}
 
   ensuite/toolbox/logs:
     dependencies:
@@ -917,28 +890,12 @@ importers:
       chalk:
         specifier: ^4
         version: 4.0.0
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
 
-  ensuite/toolbox/many:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
+  ensuite/toolbox/many: {}
 
-  ensuite/toolbox/oops:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
+  ensuite/toolbox/oops: {}
 
-  ensuite/toolbox/over:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
+  ensuite/toolbox/over: {}
 
   ensuite/toolbox/port:
     dependencies:
@@ -967,16 +924,8 @@ importers:
       '@hackbg/logs':
         specifier: workspace:^2.0.1
         version: link:../logs
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
 
-  ensuite/toolbox/time:
-    devDependencies:
-      '@hackbg/ganesha':
-        specifier: ^4.2
-        version: link:../../ganesha
+  ensuite/toolbox/time: {}
 
   ensuite/toolbox/ubik:
     dependencies:

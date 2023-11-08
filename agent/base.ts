@@ -22,27 +22,14 @@ export interface Class<T, U extends unknown[]> { new (...args: U): T }
   * - no need to state property name thrice
   * - doesn't leave `undefined`s */
 export function assign <T extends {}> (
-  object: T, properties: Partial<T> & any = {}, allowed: string|Array<keyof T>|Set<keyof T>
+  object: T, properties: Partial<T> & any = {}, allowed: Array<keyof T>|Set<keyof T>
 ) {
-  if (typeof allowed === 'string') {
-    allowed = assign.allowed.get(allowed) as Set<keyof T>
-  }
-  if (!allowed) {
+  if (!allowed || (typeof allowed !== 'object')) {
     throw new Error(`no list of allowed properties when constructing ${object.constructor.name}`)
   }
   for (const property of allowed) {
     if (property in properties) object[property] = properties[property]
   }
-}
-
-/** Allowlist for value object below. */
-assign.allowed = new Map<string, Set<string|number|symbol>>()
-
-/** Add properties to the allow list for a given value object class. */
-assign.allow = <T>(name: string, props: Array<keyof Omit<T, symbol>>) => {
-  const allowedProperties = assign.allowed.get(name) || new Set()
-  for (const prop of props) allowedProperties.add(prop)
-  assign.allowed.set(name, allowedProperties)
 }
 
 /** A 128-bit integer. */
