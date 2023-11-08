@@ -5,7 +5,7 @@
 [Distributed application groundwork](https://fadroma.tech) developed at
 [**Hack.bg**](https://hack.bg).
 
-Fadroma is a scriptable equivalent to Docker Compose
+Fadroma is a scriptable equivalent to Docker Compose and more
 for building innovative dApps on CosmWasm-enabled backends.
 
 |Component|Package|Docs|

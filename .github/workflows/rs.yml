@@ -5,6 +5,7 @@ jobs:
     name: Cargo Check
     runs-on: ubuntu-latest
     env:
+      FORCE_COLOR: 2
       CARGO_INCREMENTAL: 0
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"

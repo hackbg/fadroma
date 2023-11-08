@@ -22,7 +22,7 @@ import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['chain',    testScrtChain],
   //['devnet',   testScrtDevnet],
-  //['mocknet',  () => import('./scrt-mocknet.test')],
+  ['mocknet',  () => import('./scrt-mocknet.test')],
   ['snip-20',  () => import('./snip-20.test')],
   ['snip-24',  () => import('./snip-24.test')],
   ['snip-721', () => import('./snip-721.test')],

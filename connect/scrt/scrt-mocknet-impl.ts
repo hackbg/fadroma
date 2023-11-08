@@ -1,4 +1,4 @@
-import type { CodeHash, CodeId, Address, Message } from '@fadroma/agent'
+import type { ChainId, CodeHash, CodeId, Address, Message } from '@fadroma/agent'
 import {
   Console, bold, Error, Stub, base16, sha256, into, bech32, randomBech32,
   ContractInstance, brailleDump
@@ -10,9 +10,11 @@ import * as ed25519   from '@noble/ed25519'
 type ScrtCWVersion = '0.x'|'1.x'
 
 interface ScrtMocknetUpload {
-  codeHash: CodeHash
-  codeData: Uint8Array
-  wasmModule: WebAssembly.Module
+  chainId:         ChainId
+  codeId:          CodeId
+  codeHash:        CodeHash
+  codeData:        Uint8Array
+  wasmModule:      WebAssembly.Module
   cosmWasmVersion: ScrtCWVersion
 }
 
@@ -20,6 +22,12 @@ export class ScrtMocknetState extends Stub.ChainState {
   log = new Console('ScrtMocknetState')
 
   declare uploads: Map<CodeId, ScrtMocknetUpload>
+
+  contracts: Record<Address, MocknetContract<any>> = {}
+
+  codeIdOfAddress: Record<Address, CodeId> = {}
+
+  labelOfAddress: Record<Address, string> = {}
 
   async upload (codeData: Uint8Array): Promise<ScrtMocknetUpload> {
     if (codeData.length < 1) throw new Error('Tried to upload empty binary.')
@@ -43,9 +51,7 @@ export class ScrtMocknetState extends Stub.ChainState {
       throw new Error('missing code id')
     }
     // Check code hash
-    const {
-      module, cwVersion, codeHash: expectedCodeHash
-    } = this.getCode(codeId)
+    const { module, cwVersion, codeHash: expectedCodeHash } = this.getCode(codeId)
     if (codeHash !== expectedCodeHash) this.log.warn('Wrong code hash passed with code id', codeId)
     // Resolve lazy init
     const msg = await into(initMsg)
@@ -102,7 +108,7 @@ export class ScrtMocknetState extends Stub.ChainState {
     return null
   }
 
-  protected async passCallbacks (cwVersion: CW, sender:Address, messages: unknown[]) {
+  protected async passCallbacks (cwVersion: ScrtCWVersion, sender:Address, messages: unknown[]) {
     if (!sender) throw new Error("mocknet.passCallbacks: can't pass callbacks without sender")
     switch (cwVersion) {
       case '0.x': return this.passCallbacks_CW0(sender, messages)
@@ -513,7 +519,7 @@ export class MocknetContract<V extends ScrtCWVersion> {
           return 0
         },
         addr_validate (srcPointer: Pointer) {
-          log.warnStub('addr_validate')
+          log.warn('stub: addr_validate')
           return 0
         },
 
@@ -548,7 +554,7 @@ export class MocknetContract<V extends ScrtCWVersion> {
           const privKey   = readBuffer(memory, priv)
           const signature = ed25519.sign(message, privKey)
           return passBuffer(memory, signature)
-          log.warnStub('ed25519_sign')
+          log.warn('stub: ed25519_sign')
           return 0
         },
         ed25519_verify (msg: Pointer, sig: Pointer, pub: Pointer) {
@@ -565,7 +571,7 @@ export class MocknetContract<V extends ScrtCWVersion> {
           const messages   = readBuffer(memory, msgs)
           const signatures = readBuffer(memory, sigs)
           const publicKeys = readBuffer(memory, pubs)
-          log.warnStub('ed25519_batch_verify')
+          log.warn('stub: ed25519_batch_verify')
           return 0
         },
 

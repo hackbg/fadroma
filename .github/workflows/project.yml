@@ -13,6 +13,7 @@ jobs:
       CARGO_INCREMENTAL: 0
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      FORCE_COLOR: 2
     steps:
       - name: Clone with submodules
         uses: actions/checkout@v4
@@ -30,8 +31,6 @@ jobs:
       - name: Setup Rust cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Setup environment
-        env:
-          FORCE_COLOR: 2
         run: |
           sudo apt install -y wabt binaryen cloc
           mkdir -p wasm
@@ -39,12 +38,10 @@ jobs:
           rustup target add wasm32-unknown-unknown --toolchain 1.69
           pnpm --version
           pnpm i --frozen-lockfile
-      - name: Create, build, and deploy project
-        env:
-          FORCE_COLOR: 2
-        run: |
           git config --global user.email "hello@fadroma.tech"
           git config --global user.name "Hello Fadroma"
+      - name: Create, build, and deploy project
+        run: |
           ../fadroma/fadroma.cli.cjs create testproject test1 test2
           cd testproject
           cat package.json
