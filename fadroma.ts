@@ -43,7 +43,7 @@ export default function main (...args: any) {
     .addCommand('status', 'show the status of the project',
       () => getProject().logStatus())
     .addCommand('create', 'create a new project',
-      createProject)
+      (name: string, crates: string[]) => createProject({ name }))
     .addCommand('build', 'build the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
         compiler: Compilers.getCompiler(),
