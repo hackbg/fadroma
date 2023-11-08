@@ -499,7 +499,6 @@ dependencies = [
  "fadroma",
  "oorandom",
  "proptest",
- "secret-cosmwasm-std",
  "serde",
  "time",
 ]

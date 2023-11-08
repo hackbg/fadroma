@@ -1,5 +1,5 @@
-use crate::ensemble::{ContractEnsemble, EnsembleError};
-use crate::prelude::*;
+use crate::{ContractEnsemble, EnsembleError};
+use fadroma::prelude::*;
 
 #[test]
 fn staking() {

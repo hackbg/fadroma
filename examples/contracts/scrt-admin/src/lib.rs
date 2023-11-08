@@ -8,34 +8,25 @@ use fadroma::{
     schemars::{self, JsonSchema},
 };
 use counter::interface::Counter;
-
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-pub struct InstantiateMsg {
+fadroma::message!(pub struct InstantiateMsg {
     counter: counter::interface::InstantiateMsg,
     admin: Option<String>
-}
+});
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum ExecuteMsg {
+fadroma::message!(pub enum ExecuteMsg {
     Counter(counter::interface::ExecuteMsg),
     Admin(admin::ExecuteMsg)
-}
+});
 
-#[derive(Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum QueryMsg {
+fadroma::message!(pub enum QueryMsg {
     Counter(counter::interface::QueryMsg),
     Admin(admin::QueryMsg)
-}
+});
 
 pub fn instantiate(
-    mut deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: InstantiateMsg,
+    mut deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg,
 ) -> StdResult<Response> {
     admin::init(deps.branch(), msg.admin.as_deref(), &info)?;
 
@@ -43,10 +34,7 @@ pub fn instantiate(
 }
 
 pub fn execute(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
+    deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg,
 ) -> StdResult<Response> {
     match msg {
         ExecuteMsg::Admin(msg) => match msg {
@@ -72,9 +60,7 @@ pub fn execute(
 }
 
 pub fn query(
-    deps: Deps,
-    env: Env,
-    msg: QueryMsg,
+    deps: Deps, env: Env, msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::Admin(msg) => match msg {
@@ -134,13 +120,9 @@ mod counter_admin {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use fadroma::{
-        cosmwasm_std::Addr,
-        ensemble::{ContractEnsemble, MockEnv}
-    };
-
-    fadroma::contract_harness!(
+    use fadroma::cosmwasm_std::Addr;
+    use fadroma_ensemble::{ContractEnsemble, MockEnv};
+    fadroma_ensemble::contract_harness!(
         CounterWithAdminTest,
         init: super::instantiate,
         execute: super::execute,

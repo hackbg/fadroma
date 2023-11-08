@@ -26,22 +26,17 @@ rustc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [features]
-staking = [ "time/formatting", "secret-cosmwasm-std/staking" ]
+staking = [ "time/formatting" ]
 
 # Can't be used on the stable channel
 #backtraces = [ "secret-cosmwasm-std/backtraces" ]
 
 [dependencies]
 fadroma = { path = "..", features = [ "scrt", "scrt-staking" ] }
-secret-cosmwasm-std = { version = "1.1.11", default-features = false, optional = true }
 oorandom = { version = "11.1.3" }
 anyhow = { version = "1.0.65" }
 time = { optional = true, version = "0.3.17" }
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
-
-# Enable iterator for testing (not supported in production)
-[target.'cfg(not(target_arch="wasm32"))'.dependencies]
-secret-cosmwasm-std = { version = "1.1.11", default-features = false, features = ["iterator", "random"], optional = true }
 
 [dev-dependencies]
 criterion = "0.4.0"

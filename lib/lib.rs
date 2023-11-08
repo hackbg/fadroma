@@ -34,19 +34,21 @@ pub mod ensemble;
 /// **Start here.** `use fadroma::prelude::*` to get the essentials for
 /// writing smart contracts with Fadroma.
 pub mod prelude {
+    #[cfg(feature = "scrt")]
+    pub use crate::cosmwasm_std::{self, *};
+    #[cfg(feature = "scrt")]
+    pub use crate::scrt::{ResponseExt, to_cosmos_msg, space_pad, BLOCK_SIZE};
+
+    #[cfg(feature = "scrt")]
     /// Alias for `StdResult<()>`.
     pub type UsuallyOk = cosmwasm_std::StdResult<()>;
-
+    #[cfg(feature = "scrt")]
     /// Alias for `StdResult<Option<V>>`.
     pub type Eventually<V> = cosmwasm_std::StdResult<Option<V>>;
 
     pub use crate::core::*;
 
     pub use crate::bin_serde::{FadromaSerialize, FadromaDeserialize};
-
-    pub use crate::cosmwasm_std::{self, *};
-    #[cfg(feature = "scrt")]
-    pub use crate::scrt::{ResponseExt, to_cosmos_msg, space_pad, BLOCK_SIZE};
 
     pub use crate::tokens::*;
 
@@ -181,5 +183,13 @@ macro_rules! entrypoint {
                 $($body)*
             }
         }
+    }
+}
+
+#[macro_export] macro_rules! message {
+    ($structOrEnum:item) => {
+        #[derive(Serialize, Deserialize, JsonSchema)]
+        #[serde(rename_all = "snake_case")]
+        $structOrEnum
     }
 }
