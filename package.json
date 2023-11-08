@@ -40,7 +40,8 @@
     "prepare": "husky install",
     "repl": "./fadroma.cli.cjs repl",
     "test": "time ensuite fadroma.test.ts",
-    "ubik": "pnpm i && pnpm clean && pnpm check && ubik"
+    "ubik": "pnpm i && pnpm clean && pnpm check && ubik",
+    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik publish --otp 123123"
   },
   "dependencies": {
     "@fadroma/agent":   "workspace:2.0.0-rc.1",
