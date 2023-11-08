@@ -97,7 +97,7 @@ routes:
     name: Devnet
 
   - path: /project.html
-    page: ops/project.docs.ts
+    page: ops/project.docs.md
     name: Project
 
   - path: /scrt.html
