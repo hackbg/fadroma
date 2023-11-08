@@ -7,7 +7,7 @@
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
     "check": "tsc --noEmit",
-    "ubik":  "pnpm check && ubik",
+    "ubik":  "pnpm check && pnpm cov all && ubik",
     "test":  "time ensuite connect.test.ts",
     "cov":   "time ensuite-cov -r text -r lcov -- connect.test.ts"
   },
