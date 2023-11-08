@@ -24,7 +24,7 @@ for building next-generation dApps on CosmWasm-enabled backends.
 
 # Getting started
 
-## Creating a a project
+## Creating a project
 
 ```sh
 # Create a project:
