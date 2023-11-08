@@ -6,7 +6,7 @@ OKP4 is an Open Knowledge Platform For decentralized ontologies.
 import { OKP4 } from '@fadroma/cw'
 
 // select chain and authenticate
-const okp4 = await OKP4.testnet().getAgent({ mnemonic: '...' }).ready
+const okp4 = await OKP4.testnet().authenticate({ mnemonic: '...' }).ready
 
 // deploy cognitarium
 const { address: cognitariumAddress } = await okp4.instantiate(OKP4.Cognitarium.init())

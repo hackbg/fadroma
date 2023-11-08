@@ -44,7 +44,7 @@ managed by Fadroma on your local Docker installation.
 import '@hackbg/fadroma' // installs devnet support
 import { OKP4 } from '@fadroma/connect'
 
-const okp4 = await OKP4.devnet({ deleteOnExit: true }).ready
+const okp4 = await OKP4.devnet().ready
 assert(okp4 instanceof OKP4.Chain)
 ```
 
@@ -58,12 +58,12 @@ console.log(await okp4.lawStones())
 ```
 
 To interact with them, you need to authenticate. This is done with
-the `getAgent` method. The returned `OKP4Agent` has the same listing
+the `authenticate` method. The returned `OKP4Agent` has the same listing
 methods - only this time the contracts are returned ready to use.
 
 ```typescript
 const signer = { /* get this from keplr */ }
-const agent = await okp4.getAgent({ signer }).ready
+const agent = await okp4.authenticate({ signer }).ready
 
 console.log(await agent.cognitaria())
 console.log(await agent.objectaria())

@@ -1,0 +1,44 @@
+[package]
+name = "fadroma-ensemble"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0"
+keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
+description = "Testing framework for Secret Network"
+repository = "https://github.com/hackbg/fadroma"
+readme = "README.md"
+authors = [
+  "Asparuh Kamenov <aakamenov@hack.bg>",
+  "Adam A. <adam@hack.bg>",
+  "denismaxim0v <denis_maxim0v@protonmail.com>",
+  "Chris Ricketts <chris.ricketts@steribar.com>",
+  "Tibor Hudik <tibor@barrage.net>",
+  "Wiz1991 <wizoftime92@gmail.com>",
+  "hydropump3 <3ki2fiay@anonaddy.me>",
+  "Itzik <itzik@keytango.io>"
+]
+
+[lib]
+path = "src/lib.rs"
+
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]
+all-features = true
+
+[features]
+staking = [ "time/formatting" ]
+
+# Can't be used on the stable channel
+#backtraces = [ "secret-cosmwasm-std/backtraces" ]
+
+[dependencies]
+fadroma = { path = "..", features = [ "scrt", "scrt-staking" ] }
+oorandom = { version = "11.1.3" }
+anyhow = { version = "1.0.65" }
+time = { optional = true, version = "0.3.17" }
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+criterion = "0.4.0"
+bincode2 = "2.0.1"
+proptest = "1.1.0"

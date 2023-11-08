@@ -1,0 +1,16 @@
+[package]
+name = "scrt-admin-example"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fadroma = { path = "../../..", features = ["scrt"] }
+counter = { package = "scrt-derive-interface-example", path = "../scrt-derive-interface" }
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+fadroma-ensemble = { path = "../../../ensemble" }

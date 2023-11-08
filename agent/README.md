@@ -120,7 +120,7 @@ Examples:
 ## Authenticating an agent
 
 To transact on a given chain, you need to authorize an **Agent**.
-This is done using the **chain.getAgent(...)** method, which synchonously
+This is done using the **chain.authenticate(...)** method, which synchonously
 returns a new **Agent** instance for the given chain.
 
 Instantiating multiple agents allows the same program to interact with the chain
@@ -128,9 +128,9 @@ from multiple distinct identities.
 
 This method may be called with one of the following signatures:
 
-* **chain.getAgent(options)**
-* **chain.getAgent(CustomAgentClass, options)**
-* **chain.getAgent(CustomAgentClass)**
+* **chain.authenticate(options)**
+* **chain.authenticate(CustomAgentClass, options)**
+* **chain.authenticate(CustomAgentClass)**
 
 The returned **Agent** starts out uninitialized. Awaiting the **agent.ready** property makes sure
 the agent is initialized. Usually, agents are initialized the first time you call one of the
@@ -218,7 +218,7 @@ import { readFileSync } from 'node:fs'
 // uploading from a Buffer
 await agent.upload(readFileSync(examples['KV'].path), {
   // optional metadata
-  artifact: examples['KV'].path
+  codePath: examples['KV'].path
 })
 
 // Uploading from a filename
@@ -226,13 +226,6 @@ await agent.upload('example.wasm') // TODO
 
 // Uploading an Uploadable object
 await agent.upload({ artifact: './example.wasm', codeHash: 'expectedCodeHash' }) // TODO
-
-// Uploading multiple pieces of code:
-await agent.uploadMany([
-  'example.wasm',
-  readFileSync('example.wasm'),
-  { artifact: './example.wasm', codeHash: 'expectedCodeHash' }
-])
 
 const c1 = await agent.instantiate({
   codeId:   '1',
@@ -373,7 +366,7 @@ to another instance of `Agent`:
 
 ```typescript
 assert.equal(client.agent, agent)
-client.agent = await chain.getAgent()
+client.agent = await chain.authenticate()
 assert.notEqual(client.agent, agent)
 ```
 
@@ -382,8 +375,8 @@ client class, bound to a different `agent`, thus allowing you to execute
 transactions as a different identity.
 
 ```typescript
-const agent1 = await chain.getAgent(/*...*/)
-const agent2 = await chain.getAgent(/*...*/)
+const agent1 = await chain.authenticate(/*...*/)
+const agent2 = await chain.authenticate(/*...*/)
 
 client = agent1.getClient(Client, "...")
 
@@ -407,13 +400,10 @@ assert.ok(client.meta instanceof Contract)
 Fetching metadata:
 
 ```typescript
-import { fetchCodeHash, fetchCodeId, fetchLabel, assertCodeHash, codeHashOf } from '@fadroma/agent'
+import { fetchLabel } from '@fadroma/agent'
 
-await fetchCodeHash(client, agent)
 await fetchCodeId(client, agent)
 await fetchLabel(client, agent)
-codeHashOf({ codeHash: 'hash' })
-codeHashOf({ code_hash: 'hash' })
 ```
 
 The code ID is a unique identifier for compiled code uploaded to a chain.
@@ -633,9 +623,9 @@ You can pass either an array or an object to `template.instances`.
 
 #### Building from source code
 
-To build, the `builder` property must be set to a valid `Builder`.
-When obtaining instances from a `Deployment`, the `builder` property
-is provided automatically from `deployment.builder`.
+To build, the `compiler` property must be set to a valid `Compiler`.
+When obtaining instances from a `Deployment`, the `compiler` property
+is provided automatically from `deployment.compiler`.
 
 ```typescript
 // TODO
@@ -662,7 +652,7 @@ You can upload a `Template` (or its subclass, `Contract`) by awaiting the
 `uploaded` property or the return value of the `upload()` method.
 
 If a WASM binary is not present (`template.artifact` is empty),
-but a source and a builder are present, this will also try to build the contract.
+but a source and a compiler are present, this will also try to build the contract.
 
 ```typescript
 // TODO
@@ -670,6 +660,6 @@ but a source and a builder are present, this will also try to build the contract
 
 ## Services
 
-### Builder
+### Compiler
 
 ### Uploader

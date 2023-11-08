@@ -1,11 +1,18 @@
 {
   "extends": "./tsconfig.base.json",
+  "include": [
+    "*.ts",
+    "agent/*.ts",
+    "ops/*.ts",
+    "connect/*.ts",
+    "connect/scrt/*.ts",
+    "connect/cw/*.ts"
+  ],
   "exclude": [
     "**/*.dist.*",
     "**/*.mjs",
     "**/*.spec.ts",
     "**/dist/**/*",
-    "*.test.*",
     "spec/*",
     "agent",
     "connect",

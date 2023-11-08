@@ -146,7 +146,7 @@ import assert from 'node:assert'
 
 const chains = [
   Chain.variants['Mocknet'](),
-  Chain.variants['ScrtDevnet']({ deleteOnExit: true }),
+  Chain.variants['ScrtDevnet'](),
 ]
 
 for (const chain of chains) {
@@ -154,7 +154,7 @@ for (const chain of chains) {
   // Get a populated instance of `FactoryDeployment`:
   const deployment = getDeployment(FactoryDeployment, {
     // You need to provide an authenticated `Agent`:
-    agent: await chain.getAgent({ name: 'Admin' }).ready
+    agent: await chain.authenticate({ name: 'Admin' }).ready
   })
 
   // Deploy all contracts:
@@ -228,7 +228,7 @@ const testnetState = {/* ... */} // mock
 const mainnet = true // process.env.MAINNET, or a toggle in your UI, etc.
 const chain = mainnet ? 'ScrtMainnet' : 'ScrtTestnet'
 const state = mainnet ? mainnetState : testnetState
-const agent = Chain.variants[chain]().getAgent({/* mnemonic: '...' */})
+const agent = Chain.variants[chain]().authenticate({/* mnemonic: '...' */})
 const app = new FactoryDeployment({ ...state, agent })
 ```
 
@@ -244,11 +244,11 @@ define "connect" entrypoints - either as functions (as show below):
 export const connectToFactory = {
   onMainnet: () => (mnemonic: string) => new FactoryDeployment({
     ...mainnetState,
-    agent: Chain.variants['ScrtMainnet']().getAgent({ mnemonic })
+    agent: Chain.variants['ScrtMainnet']().authenticate({ mnemonic })
   }),
   onTestnet: () => (mnemonic: string) => new FactoryDeployment({
     ...testnetState,
-    agent: Chain.variants['ScrtTestnet']().getAgent({ mnemonic })
+    agent: Chain.variants['ScrtTestnet']().authenticate({ mnemonic })
   })
 }
 ```
@@ -265,11 +265,11 @@ export class imagine_this_is_FactoryDeployment {
   // ... the rest of your Deployment class ...
   static mainnet = () => (mnemonic: string) => new FactoryDeployment({
     ...mainnetState,
-    agent: Chain.variants['ScrtMainnet'].getAgent({ mnemonic })
+    agent: Chain.variants['ScrtMainnet'].authenticate({ mnemonic })
   })
   static testnet = () => (mnemonic: string) => new FactoryDeployment({
     ...testnetState,
-    agent: Chain.variants['ScrtTestnet'].getAgent({ mnemonic })
+    agent: Chain.variants['ScrtTestnet'].authenticate({ mnemonic })
   })
   // ... the rest of your Deployment class ...
 }

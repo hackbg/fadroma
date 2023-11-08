@@ -1,219 +1,109 @@
-import { Console, Error, Config, Chain, Agent, Batch } from '../cw-base'
+import { Error, Config, Agent, BatchBuilder } from '../cw-base'
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Environment } from '@hackbg/conf'
-import type {
-  AgentClass, ClientClass, Uint128, Address, ChainId, AgentFees, CodeId
-} from '@fadroma/agent'
-import { Client, Fee, bindChainSupport } from '@fadroma/agent'
+import type { ContractClientClass, Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
+import { ContractClient, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 /** Configuration for OKP4 */
 class OKP4Config extends Config {
-
   static defaultTestnetChainId: string = 'okp4-nemeton-1'
-
-  static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'
-                                    //'https://okp4-testnet-api.polkachu.com/'
-
+  static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'//'https://okp4-testnet-api.polkachu.com/'
   constructor (options: Partial<OKP4Config> = {}, environment?: Environment) {
     super(environment)
     this.override(options)
   }
-
-  testnetChainId: string = this.getString(
-    'FADROMA_OKP4_TESTNET_CHAIN_ID',
-    () => OKP4Config.defaultTestnetChainId
-  )
-
-  testnetUrl: string = this.getString(
-    'FADROMA_OKP4_TESTNET_URL',
-    () => OKP4Config.defaultTestnetUrl
-  )
-
-}
-
-/** OKP4 chain. */
-class OKP4Chain extends Chain {
-
-  /** Default Agent class to use. */
-  declare Agent: AgentClass<OKP4Agent>
-
-  /** Logging handle. */
-  log = new Console('OKP4Chain')
-
-  /** Default denomination of gas token. */
-  defaultDenom = OKP4Chain.defaultDenom
-
-  constructor (options: Partial<OKP4Chain> & { config?: OKP4Config } = {
-    config: new OKP4Config()
-  }) {
-    super(options)
-  }
-
-  /** Connect to OKP4 in testnet mode. */
-  static testnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => {
-    const config = new OKP4Config()
-    return super.testnet({
-      id:  config.testnetChainId,
-      url: config.testnetUrl,
-      ...options||{},
-    }) as OKP4Chain
-  }
-
-  /** Connect to OKP4 in testnet mode. */
-  static devnet = (options: Partial<OKP4Chain> = {}): OKP4Chain => {
-    throw new Error('devnet not installed. import @hackbg/fadroma')
-  }
-
-  /** Get clients for all Cognitarium instances,
-    * keyed by address. */
-  async cognitaria ({ map = true } = {}) {
-    const { api } = await this.ready
-    const ids = Object.values(cognitariumCodeIds)
-    return await getContractsById(this.id, api, Cognitarium, ids, map)
-  }
-
-  /** Get clients for all Objectarium instances,
-    * keyed by address. */
-  async objectaria ({ map = true } = {}) {
-    const { api } = await this.ready
-    const ids = Object.values(objectariumCodeIds)
-    return await getContractsById(this.id, api, Objectarium, ids, map)
-  }
-
-  /** Get clients for all Law Stone instances,
-    * keyed by address. */
-  async lawStones ({ map = true } = {}) {
-    const { api } = await this.ready
-    const ids = Object.values(lawStoneCodeIds)
-    return await getContractsById(this.id, api, LawStone, ids, map)
-  }
-
-  /** Default denomination of gas token. */
-  static defaultDenom = 'uknow'
-
-  /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) => new Fee(amount, this.defaultDenom)
-
-  /** Set permissive fees by default. */
-  static defaultFees: AgentFees = {
-    upload: this.gas(10000000),
-    init:   this.gas(1000000),
-    exec:   this.gas(1000000),
-    send:   this.gas(1000000),
-  }
-
-}
-
-async function getContractsById <C extends Client> (
-  chainId: ChainId,
-  api: CosmWasmClient,
-  $C: ClientClass<C>,
-  ids: CodeId[],
-  map = true
-): Promise<
-  typeof map extends true ? Map<Address, C> : Record<Address, C>
-> {
-  const contracts = map ? new Map() : {}
-
-  for (const id of ids) {
-
-    const codeId = Number(id)
-    if (isNaN(codeId)) throw new Error('non-number code ID encountered')
-
-    const { checksum: codeHash } = await api.getCodeDetails(codeId)
-
-    const addresses = await api.getContracts(codeId)
-
-    for (const address of addresses) {
-      const contract = new $C(
-        { address, codeHash, codeId: String(codeId) } as Partial<C>
-      )
-      contract.meta.chainId = chainId
-      if (map) {
-        (contracts as Map<Address, C>).set(address, contract)
-      } else {
-        (contracts as Record<Address, C>)[address] = contract
-      }
-    }
-
-  }
-
-  return contracts
+  testnetChainId: string = this.getString('FADROMA_OKP4_TESTNET_CHAIN_ID',
+    () => OKP4Config.defaultTestnetChainId)
+  testnetUrl: string = this.getString('FADROMA_OKP4_TESTNET_URL',
+    () => OKP4Config.defaultTestnetUrl)
 }
 
 /** Agent for OKP4. */
 class OKP4Agent extends Agent {
-  /** Logging handle. */
-  log = new Console('OKP4Agent')
-  /** Chain on which this agent operates. */
-  declare chain: OKP4Chain
-  /** The coin type in the HD derivation path */
-  declare coinType: number
-  /** The bech32 prefix for the account's address  */
-  declare bech32Prefix: string
-  /** The account index in the HD derivation path */
-  declare hdAccountIndex: number
+  /** Default denomination of gas token. */
+  static gasToken = 'uknow'
+  /** Connect to OKP4 in testnet mode. */
+  static testnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
+    const { testnetChainId: chainId, testnetUrl: chainUrl } = new OKP4Config()
+    return super.testnet({ chainId, chainUrl, ...options||{}, }) as OKP4Agent
+  }
+  /** Connect to OKP4 in testnet mode. */
+  static devnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
+    throw new Error('Devnet not installed. Import @hackbg/fadroma')
+  }
   /** Transaction fees for this agent. */
-  fees = OKP4Chain.defaultFees
-
-  constructor (options: Partial<OKP4Agent> = {}) {
-    super({
-      ...options||{},
-      coinType: 118,
-      bech32Prefix: 'okp4',
-      hdAccountIndex: 0
-    })
-    this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
+  defaultFees = {
+    upload: OKP4Agent.gas(10000000),
+    init: OKP4Agent.gas(1000000),
+    exec: OKP4Agent.gas(1000000),
+    send: OKP4Agent.gas(1000000),
   }
 
-  /** Get clients for all Cognitarium instances,
-    * keyed by address. */
+  constructor (options: Partial<OKP4Agent> & { mnemonic?: string, config?: OKP4Config } = {
+    config: new OKP4Config()
+  }) {
+    super({ coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, ...options } as Partial<Agent>)
+  }
+  /** Get clients for all Cognitarium instances, keyed by address. */
   async cognitaria ({ map = true } = {}) {
-    return populateAgent(map, await this.chain.cognitaria({map}), this)
+    const ids = Object.values(cognitariumCodeIds)
+    return await this.getContractsById(Cognitarium, ids, map)
   }
-
-  /** Get clients for all Objectarium instances,
-    * keyed by address. */
+  /** Get clients for all Objectarium instances, keyed by address. */
   async objectaria ({ map = true } = {}) {
-    return populateAgent(map, await this.chain.objectaria({map}), this)
+    const ids = Object.values(objectariumCodeIds)
+    return await this.getContractsById(Objectarium, ids, map)
   }
-
-  /** Get clients for all Law Stone instances,
-    * keyed by address. */
+  /** Get clients for all Law Stone instances, keyed by address. */
   async lawStones ({ map = true } = {}) {
-    return populateAgent(map, await this.chain.lawStones({map}), this)
+    const ids = Object.values(lawStoneCodeIds)
+    return await this.getContractsById(LawStone, ids, map)
+  }
+  async getContractsById <C extends ContractClient> (
+    Client: ContractClientClass<C> = ContractClient as ContractClientClass<C>,
+    ids: CodeId[],
+    map = true
+  ): Promise<
+    typeof map extends true ? Map<Address, C> : Record<Address, C>
+  > {
+    const chainId = this.chainId
+    const contracts = map ? new Map() : {}
+    for (const id of ids) {
+      const codeId = Number(id)
+      if (isNaN(codeId)) throw new Error('non-number code ID encountered')
+      const api = await this.chainApi
+      const { checksum: codeHash } = await api.getCodeDetails(codeId)
+      const addresses = await api.getContracts(codeId)
+      for (const address of addresses) {
+        const contract = new Client(
+          { address, codeHash, chainId, codeId: String(codeId) },
+          this
+        )
+        if (map) {
+          (contracts as Map<Address, C>).set(address, contract)
+        } else {
+          (contracts as Record<Address, C>)[address] = contract
+        }
+      }
+    }
+    return contracts
   }
 }
 
-function populateAgent <C extends Client> (
-  map: boolean,
-  contracts: typeof map extends true ? Map<Address, C> : Record<Address, C>,
-  agent: OKP4Agent
-) {
-  const values = map
-    ? (contracts as unknown as Map<Address, Cognitarium>).values()
-    : Object.values(contracts)
-  for (const contract of values) {
-    contract.agent = agent
-  }
-  return contracts
+export {
+  OKP4Config as Config,
+  OKP4Agent  as Agent
 }
-
-/** Transaction batch for OKP4. */
-class OKP4Batch extends Batch {}
-
-bindChainSupport(OKP4Chain, OKP4Agent, OKP4Batch)
-export { OKP4Config as Config, OKP4Chain as Chain, OKP4Agent as Agent, OKP4Batch as Batch }
 
 /** Connect to OKP4 testnet. */
-export const testnet = (...args: Parameters<typeof OKP4Chain.testnet>) => OKP4Chain.testnet(...args)
+export const testnet = (...args: Parameters<typeof OKP4Agent.testnet>) => OKP4Agent.testnet(...args)
 
 /** Connect to local OKP4 devnet. */
-export const devnet = (...args: Parameters<typeof OKP4Chain.devnet>) => OKP4Chain.devnet(...args)
+export const devnet = (...args: Parameters<typeof OKP4Agent.devnet>) => OKP4Agent.devnet(...args)
 
 export * from './okp4-cognitarium'
 export * from './okp4-objectarium'

@@ -1,0 +1,13 @@
+[package]
+name = "cw-stub"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cosmwasm-std = "1.5.0"
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }
+schemars = "0.8.15"

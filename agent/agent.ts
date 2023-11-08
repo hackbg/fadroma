@@ -1,6 +1,6 @@
 /**
 
-  Fadroma: Core Agent Library
+  Fadroma Agent
   Copyright (C) 2023 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,16 @@
 
 **/
 
-export * from './agent-base'
-export * from './agent-chain'
-export * from './agent-token'
-export * from './agent-client'
-export * from './agent-deploy'
-export * from './agent-services'
+export * from './base'
+export * from './chain'
+export * from './client'
+export * from './code'
+export * from './deploy'
+export * from './devnet'
+export * from './store'
+
+export * as Stub from './stub'
+export * as Token from './token'
+export * as Test from './test'
+export { Agent as default } from './chain'
+

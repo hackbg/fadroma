@@ -1,18 +1,21 @@
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Config } from '@hackbg/conf'
 import type { Environment } from '@hackbg/conf'
 import { Console, Error, bold } from '@fadroma/agent'
-import type { Address, ChainId, Fee } from '@fadroma/agent'
+import type { Address, ChainId, Token } from '@fadroma/agent'
 
 /** Environment settings for Secret Network. */
 class ScrtConfig extends Config {
   /** The mainnet chain ID. */
   static defaultMainnetChainId: string = 'secret-4'
   /** The mainnet URL. */
-  static defaultMainnetUrl:     string = 'https://lcd.mainnet.secretsaturn.net'
+  static defaultMainnetUrl: string = 'https://lcd.mainnet.secretsaturn.net'
   /** The testnet chain ID. */
   static defaultTestnetChainId: string = 'pulsar-3'
   /** The testnet URL. */
-  static defaultTestnetUrl:     string = 'https://api.pulsar3.scrttestnet.com/'
+  static defaultTestnetUrl: string = 'https://api.pulsar3.scrttestnet.com/'
 
   constructor (
     options: Partial<ScrtConfig> = {},
@@ -38,59 +41,8 @@ class ScrtConfig extends Config {
 
 class ScrtError extends Error {}
 
-class ScrtConsole extends Console {
-  label = '@fadroma/scrt'
-
-  noMemos = () => this.warn(
-    "transaction memos are not supported.")
-  defaultGas = (fees: Fee[]) => this.warn(
-    "could not fetch block gas limit, defaulting to:",
-    fees.map(fee=>fee.gas).join('/'))
-  ignoringMnemonic = () => this.warn(
-    'created agent from passed wallet, ignoring mnemonic')
-  generatedMnemonic = (mnemonic: string, address?: string) => {
-    this.warn("No mnemonic passed, generated this one:", bold(mnemonic))
-    if (address) this.warn("The corresponding address is:", bold(address))
-    this.warn("To specify a default mnemonic, set the FADROMA_MNEMONIC environment variable.")
-    return this
-  }
-  batchSigningCommand = (
-    name: string, multisig: Address, chainId: ChainId, accountNumber: number, sequence: number,
-    unsigned: any
-  ) => {
-    const output = `${name}.signed.json`
-    const string = JSON.stringify(unsigned)
-    const txdata = shellescape([string])
-    this.br()
-    this.log('Multisig batch ready.')
-    this.log(`Run the following command to sign the batch:
-\nsecretcli tx sign /dev/stdin --output-document=${output} \\
---offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${multisig} \\
---chain-id=${chainId} --account-number=${accountNumber} --sequence=${sequence} \\
-<<< ${txdata}`)
-    this.br()
-    this.log(`Batch contents:`, JSON.stringify(unsigned, null, 2))
-    this.br()
-  }
-  submittingBatchFailed = ({ message }: Error) => {
-    this.br()
-    this.error('submitting batch failed:')
-    this.error(bold(message))
-    this.warn('(decrypting batch errors is not implemented)')
-  }
-}
-
-export { ScrtConfig as Config, ScrtError as Error, ScrtConsole as Console, }
-
-function shellescape (a: string[]) {
-  const ret: string[] = [];
-  a.forEach(function(s: string) {
-    if (/[^A-Za-z0-9_\/:=-]/.test(s)) {
-      s = "'"+s.replace(/'/g,"'\\''")+"'";
-      s = s.replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
-        .replace(/\\'''/g, "\\'" ); // remove non-escaped single-quote if there are enclosed between 2 escaped
-    }
-    ret.push(s);
-  });
-  return ret.join(' ');
+export {
+  ScrtConfig as Config,
+  ScrtError as Error,
+  Console
 }

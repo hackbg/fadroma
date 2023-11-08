@@ -1,0 +1,14 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "out": "docs",
+  "entryPoints": [
+    "fadroma.ts",
+    "fadroma.browser.ts",
+    "agent/agent.ts",
+    "ops/build.ts",
+    "connect/connect.ts",
+    "connect/scrt/scrt.ts",
+    "connect/cw/cw.ts"
+  ],
+  "entryPointStrategy": "resolve"
+}

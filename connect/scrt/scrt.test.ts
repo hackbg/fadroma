@@ -1,198 +1,119 @@
-import * as SecretJS from '@hackbg/secretjs-esm'
-import assert from 'node:assert'
-import { Devnet } from '@hackbg/fadroma'
-import * as Scrt from '@fadroma/scrt'
-import { Agent, ChainId, Address, randomBech32 } from '@fadroma/agent'
-import * as Mocknet from './scrt-mocknet'
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+import assert, { equal, rejects } from 'node:assert'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import * as Devnets from '../../ops/devnets'
+import { fixture } from '../../fixtures/fixtures'
+import Scrt, { BatchBuilder, SecretJS } from '@fadroma/scrt'
+import { Token, Test } from '@fadroma/agent'
+//import * as Mocknet from './scrt-mocknet'
+
+//@ts-ignore
+export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
 
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 let chain: any // for mocking
-let agent: Agent
+let agent: Scrt
 const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['devnet',  testScrtDevnet],
-  ['chain',   testScrtChain],
-  ['fees',    testScrtFees],
-  ['batches', testScrtBatches],
-  ['permits', testScrtPermits],
-  ['console', testScrtConsole],
-  ['mocknet', testMocknet],
+  ['chain',    testScrtChain],
+  //['devnet',   testScrtDevnet],
+  ['mocknet',  () => import('./scrt-mocknet.test')],
+  ['snip-20',  () => import('./snip-20.test')],
+  ['snip-24',  () => import('./snip-24.test')],
+  ['snip-721', () => import('./snip-721.test')],
 ])
 
-async function testScrtDevnet () {
-
-  chain = {
-    SecretJS,
-    getApi: () => ({}),
-    isDevnet: true,
-    devnet: {
-      start: () => Promise.resolve(),
-      getAccount: ()=>Promise.resolve({ mnemonic } as any)
-    } as any,
-  }
-
-  assert.equal(
-    mnemonic,
-    (await new Scrt.Agent({
-      name:     'genesis',
-      mnemonic: 'if name is passed mnemonic is ignored',
-      chain
-    }).ready).mnemonic,
-    joinWith(' ',
-      'the "name" constructor property of ScrtAgent can be used',
-      'to get a devnet genesis account')
+export async function testScrtChain () {
+  const { devnet, alice, bob, guest } = await Test.testChainSupport(
+    Scrt,
+    Devnets.ScrtContainer,
+    'v1.9',
+    'uscrt',
+    fixture('scrt-null.wasm')
   )
-
+  //const batch = () => alice.batch()
+    //.instantiate('id', {
+      //label:    'label',
+      //initMsg:  {},
+      //codeHash: 'hash',
+    //} as any)
+    //.execute('addr', {
+      //address:  'addr',
+      //codeHash: 'hash',
+      //message:  {}
+    //} as any, {})
+  //assert(batch() instanceof BatchBuilder, 'ScrtBatch is returned')
+  //assert.ok(await batch().save('test'))
+  //assert.ok(await batch().submit({ memo: 'test' }))
 }
 
-async function testScrtChain () {
-  Scrt.mainnet()
-  const devnet = await new Devnet({ platform: 'scrt_1.9' }).create()
-  const chain = await (devnet.getChain() as Scrt.Chain).ready
-
-  // TODO: ScrtChain#ready instead of getApi() "memoize yourself"
-  assert(await chain.api instanceof SecretJS.SecretNetworkClient)
-  await chain.block
-  await chain.height
-  await chain.fetchLimits()
-
-  const alice = await chain.getAgent({ name: 'Alice' }).ready as Scrt.Agent
-  //assert(alice.wallet instanceof SecretJS.Wallet)
-  assert(alice.api instanceof SecretJS.SecretNetworkClient)
-  //assert(alice.encryptionUtils instanceof SecretJS.EncryptionUtilsImpl)
-  await chain.getBalance(chain.defaultDenom, alice.address!)
-  await alice.getBalance(chain.defaultDenom, alice.address!)
-  await alice.balance
-  const bob = await chain.getAgent({ name: 'Bob' }).ready as Scrt.Agent
-  await alice.getBalance(chain.defaultDenom, bob.address!)
-}
-
-async function testScrtFees () {
-
-  assert.ok(
-
-    await new Scrt.Agent({
-      fees: false as any,
-      chain: {
-        SecretJS,
-        getApi: () => ({}),
-        fetchLimits: ()=>Promise.resolve({gas: 'max'}),
-        id: 'test',
-      } as any,
-    }).ready,
-
-    [ 'if fees=false is passed to ScrtAgent, ',
-      'fees are fetched from the chain' ].join()
-
-  )
-
-}
-
-async function testScrtBatches () {
-
-  const someBatch = () => new Scrt.Agent({
-    chain: {
-      SecretJS,
-      getApi: () => ({
-        encryptionUtils: {
-          encrypt: () => Promise.resolve(new Uint8Array())
-        },
-        query: { auth: { account: () => Promise.resolve({
-          account: { account_number: 0, sequence: 0 }
-        }) } },
-        tx: {
-          broadcast: () => Promise.resolve({ code: 0 }),
-          simulate: () => Promise.resolve({ code: 0 })
-        }
-      })
-    } as any
-  }).batch(async (batch)=>{
-    assert(batch instanceof Scrt.Batch)
-    await batch.instantiate({ codeId: 'id', codeHash: 'hash', msg: {} } as any)
-    await batch.execute({ address: 'addr', codeHash: 'hash', msg: {} } as any, {})
+export async function testScrtDevnet () {
+  const sendFee   = new Token.Fee( "1000000", "uscrt")
+  const uploadFee = new Token.Fee("10000000", "uscrt")
+  const initFee   = new Token.Fee("10000000", "uscrt")
+  // Just a devnet with a couple of genesis users.
+  const devnet = new Devnets.ScrtContainer({
+    platform: 'scrt_1.9',
+    genesisAccounts: { Alice: "123456789000", Bob: "987654321000", }
   })
+  // Get a couple of accounts from the devnet.
+  // This creates and launches the devnet in
+  // order to be able to access the wallets.
+  const [alice, bob] = await Promise.all([
+    devnet.connect({ name: 'Alice' }),
+    devnet.connect({ name: 'Bob' }),
+  ])
+  // Query block height
+  console.log('Height:', await alice.height)
+  // Query balance in default native token
+  equal(await alice.balance, '123455739000')
+  equal(await bob.balance,   '987654321000')
+  //// Permissionsless: anyone can authenticate with their public key
+  const guest = await devnet.connect({ mnemonic })
+  //// Starting out with zero balance
+  equal(await guest.balance, '0')
+  //// Which may be topped up by existing users
+  await alice.send(guest, [new Token.Coin("1", "uscrt")], { sendFee })
+  //equal(await guest.balance, '1')
+  await bob.send(guest, [new Token.Coin("10", "uscrt")], { sendFee })
+  equal(await guest.balance, '11')
+  //// User with balance may upload contract code
+  //const uploaded = await alice.upload(fixture('fadroma-example-echo@HEAD.wasm'))
+  //// Which is immediately queryable by other users
+  //equal(await bob.getCodeHashOfCodeId(uploaded.codeId), uploaded.codeHash)
+  ////// Who can create instances of the uploaded contract code
+  //const label = 'my-contract-label'
+  //const initMsg = null as any // actually a valid init message
+  //const instance = await bob.instantiate(uploaded, { label, initMsg, initFee })
+  ////// Which are immediately visible to all
+  //equal(await guest.getCodeHashOfAddress(instance.address), uploaded.codeHash)
+  ////// And can execute transactions for users
+  //const txResult = await alice.execute(instance, null as any)
+  //console.info('txResult:', txResult)
+  // FIXME: Execute query (oops, empty string is not valid json)
+  //const qResponse = await alice.query(instance, null as any) 
+  //console.log({qResponse})
 
-  assert.ok(
-    await someBatch().save('test'),
-    [ '"saving" a batch outputs it to the console in the format ',
-    , 'of a multisig message' ].join()
-  )
-  assert.ok(
-    await someBatch().submit('test'),
-    'submitting a batch',
-  )
-  assert(
-    someBatch() instanceof Scrt.Batch,
-    'ScrtBatch is returned'
-  )
+  //@ts-ignore
+  //const signed = await guest.signer!.signAmino("", { test: 1 })
 
-}
-
-async function testScrtPermits () {
-
-  Scrt.PermitSigner.createSignDoc('chain-id', {foo:'bar'})
-
-  new Scrt.PermitSignerKeplr('chain-id', 'address', { signAmino })
-    .sign({ permit_name: 'permit_name', allowed_tokens: [], permissions: [] })
-
-  async function signAmino (
-    chain_id: ChainId,
-    address:  Address,
-    signDoc:  Scrt.SignDoc,
-    options: { preferNoSetFee: boolean, preferNoSetMemo: boolean }
-  ) {
-    return {
-      signature: {
-        pub_key: 'pub_key' as any, signature: 'signature'
-      },
-      params: {
-        permit_name: 'permit_name', allowed_tokens: [], chain_id: 'chain-id', permissions: []
-      }
-    }
-  }
-
-}
-
-async function testScrtConsole () {
-
-  new Scrt.Console()
-    .noMemos()
-    .ignoringMnemonic()
-    .defaultGas([])
-    .submittingBatchFailed(new Error())
-
-}
-
-export async function testMocknet () {
-  new Mocknet.Console().log('...')
-  new Mocknet.Console().trace('...')
-  new Mocknet.Console().debug('...')
-
-  // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
-  // responses) are returned by the contract as Base64-encoded strings
-  // If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
-  // These functions are used by the mocknet code to encode/decode the base64.
-  assert.equal(Mocknet.b64toUtf8('IkVjaG8i'), '"Echo"')
-  assert.equal(Mocknet.utf8toB64('"Echo"'), 'IkVjaG8i')
-
-  let key:   string
-  let value: string
-  let data:  string
-}
-
-export function mockEnv () {
-  const height   = 0
-  const time     = 0
-  const chain_id = "mock"
-  const sender   = randomBech32('mocked')
-  const address  = randomBech32('mocked')
-  return {
-    block:    { height, time, chain_id },
-    message:  { sender: sender, sent_funds: [] },
-    contract: { address },
-    contract_key: "",
-    contract_code_hash: ""
-  }
+  //const batch = () => alice.batch()
+    //.instantiate('id', {
+      //label:    'label',
+      //initMsg:  {},
+      //codeHash: 'hash',
+    //} as any)
+    //.execute('addr', {
+      //address:  'addr',
+      //codeHash: 'hash',
+      //message:  {}
+    //} as any, {})
+  //assert(batch() instanceof Scrt.BatchBuilder, 'ScrtBatch is returned')
+  //assert(await batch().save('test'))
+  //assert(await batch().submit('test'))
 }

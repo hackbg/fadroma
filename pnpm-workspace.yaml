@@ -18,3 +18,5 @@ packages:
   - '!ensuite/ganesha/test'
 
   - '!examples/project'
+
+  - 'examples'

@@ -1,212 +1,175 @@
 import { Config } from '@hackbg/conf'
-
+import type { ChainId } from '@fadroma/agent'
 import {
-  Chain, assertChain, bindChainSupport,
-  Agent, Batch,
-  ICoin,
+  assign,
+  Agent, BatchBuilder,
   Console, Error, bold,
   bip32, bip39, bip39EN, bech32, base64,
-  into
+  into,
+  ContractInstance,
+  Token
 } from '@fadroma/agent'
-
-import type {
-  Address, Client, Contract, Message, ExecOpts, CodeId, CodeHash,
-  Uploadable, Uploaded, Instantiated
-} from '@fadroma/agent'
-
+import type { Address, Message, CodeId, CodeHash, UploadedCode, Label } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
-import type { logs, OfflineSigner as Signer, Block } from '@hackbg/cosmjs-esm'
-
+import type { logs, OfflineSigner, Block, StdFee } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
-class CWConfig extends Config {}
+/** Generic agent for CosmWasm-enabled chains. */
+class CWAgent extends Agent {
+  /** Public key corresponding to private key derived from mnemonic. */
+  publicKey?: Uint8Array
+  /** The bech32 prefix for the account's address  */
+  bech32Prefix?: string
+  /** The coin type in the HD derivation path */
+  coinType?: number
+  /** The account index in the HD derivation path */
+  hdAccountIndex?: number
+  /** API handle. */
+  declare chainApi: Promise<CosmWasmClient|SigningCosmWasmClient>
 
-class CWError extends Error {}
+  constructor ({ mnemonic, signer, ...properties }: Partial<CWAgent> & {
+    signer?:   OfflineSigner,
+    mnemonic?: string
+  }) {
+    super(properties as Partial<Agent>)
+    assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex'   ])
 
-class CWConsole extends Console {}
+    this.log.label = `${this.chainId||'no chain id'}(` +
+      `${bold(this.name??this.address??'no address')})`
 
-/** Generic CosmWasm-enabled chain. */
-class CWChain extends Chain {
+    if (signer) {
+      if (mnemonic) {
+        this.log.warn('Signer passed. Ignoring mnemonic')
+      }
+    } else if (mnemonic) {
+      const auth = authMnemonic(this, mnemonic)
+      if (this.address && this.address !== auth.address) {
+        throw new Error(
+          `address ${auth.address} generated from mnemonic did not match ${this.address}`
+        )
+      }
+      this.address = auth.address
+      signer = auth.signer
+    }
 
-  defaultDenom = ''
+    this.log.label = `${this.chainId||'no chain id'}(` +
+      `${bold(this.name??this.address??'no address')})`
 
-  /** Query-only API handle. */
-  declare api?: CosmWasmClient
-
-  async getApi (): Promise<CosmWasmClient> {
-    return await CosmWasmClient.connect(this.url)
+    if (this.chainUrl) {
+      if (signer) {
+        this.log.debug('Connecting to', bold(this.chainUrl), 'as', bold(this.address))
+        this.chainApi = SigningCosmWasmClient.connectWithSigner(this.chainUrl, signer)
+      } else {
+        this.log.debug('Connecting to', bold(this.chainUrl), 'in read-only mode')
+        this.chainApi = CosmWasmClient.connect(this.chainUrl)
+      }
+    } else {
+      this.log.warn('No connection url.')
+    }
   }
 
-  get block (): Promise<Block> {
-    return this.ready.then(({api})=>api.getBlock())
+  async getBlockInfo (): Promise<Block> {
+    return this.chainApi.then(api=>api.getBlock())
   }
 
   get height () {
-    return this.block.then(block=>Number(block.header.height))
+    return this.getBlockInfo().then(
+      (info: { header: { height?: number } } = { header: {} })=>Number(info.header.height)
+    )
   }
 
-  /** Stargate implementation of getting native balance. */
-  async getBalance (denom: string, address: Address): Promise<string> {
-    const { api } = await this.ready
-    denom ??= this.defaultDenom
-    if (!address) {
-      throw new Error('getBalance: pass address')
+  get balance () {
+    if (this.address) {
+      return this.getBalance('uknow', this.address)
+    } else {
+      throw new Error('not authenticated, use getBalance')
     }
-    const { amount } = await api.getBalance(address, denom)
-    return amount
   }
 
-  /** Stargate implementation of querying a smart contract. */
-  async query <U> (contract: Client, msg: Message): Promise<U> {
-    const { api } = await this.ready
-    if (!contract.address) throw new CWError('chain.query: no contract address')
-    return await api.queryContractSmart(contract.address, msg) as U
+  /** Query native token balance. */
+  async getBalance (
+    token:   string = (this.constructor as typeof CWAgent).gasToken,
+    address: Address|undefined = this.address
+  ): Promise<string> {
+    if (!address) {
+      throw new Error('getBalance: pass (token, address)')
+    }
+    if (address === this.address) {
+      this.log.debug('Querying', bold(token), 'balance')
+    } else {
+      this.log.debug('Querying', bold(token), 'balance of', bold(address))
+    }
+    const { amount } = await this.chainApi.then(api=>api.getBalance(address!, token!))
+    return amount
   }
 
   /** Stargate implementation of getting a code id. */
   async getCodeId (address: Address): Promise<CodeId> {
-    const { api } = await this.ready
     if (!address) throw new CWError('chain.getCodeId: no address')
-    const { codeId } = await api.getContract(address)
+    const { codeId } = await this.chainApi.then(api=>api.getContract(address))
     return String(codeId)
   }
 
   /** Stargate implementation of getting a code hash. */
-  async getHash (addressOrCodeId: Address|number): Promise<CodeHash> {
-    const { api } = await this.ready
-    if (!addressOrCodeId) 
-    if (typeof addressOrCodeId === 'number') {
-      const { checksum } = await api.getCodeDetails(addressOrCodeId)
-      return checksum
-    } else if (typeof addressOrCodeId === 'string') {
-      const { codeId } = await api.getContract(addressOrCodeId)
-      const { checksum } = await api.getCodeDetails(codeId)
-      return checksum
-    }
-    throw new CWError('chain.getHash: pass address (as string) or code id (as number)')
+  async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
+    const { codeId } = await this.chainApi.then(api=>api.getContract(address))
+    return this.getCodeHashOfCodeId(String(codeId))
+  }
+
+  /** Stargate implementation of getting a code hash. */
+  async getCodeHashOfCodeId (codeId: CodeId): Promise<CodeHash> {
+    const { checksum } = await this.chainApi.then(api=>api.getCodeDetails(Number(codeId)))
+    return checksum
   }
 
   /** Stargate implementation of getting a contract label. */
   async getLabel (address: Address): Promise<string> {
-    const { api } = await this.ready
     if (!address) throw new CWError('chain.getLabel: no address')
-    const { label } = await api.getContract(address)
+    const { label } = await this.chainApi.then(api=>api.getContract(address))
     return label
   }
 
-}
-
-/** Generic agent for CosmWasm-enabled chains. */
-class CWAgent extends Agent {
-
-  constructor (options: Partial<CWAgent> = {}) {
-    super(options)
-
-    // When not using an external signer, these must be
-    // either defined in a subclass or passed to the constructor.
-    this.coinType = options.coinType ?? this.coinType
-    this.bech32Prefix = options.bech32Prefix ?? this.bech32Prefix
-    this.hdAccountIndex = options.hdAccountIndex ?? this.hdAccountIndex
-
-    // When setting mnemonic, construct a signer.
-    Object.defineProperty(this, 'mnemonic', {
-      get () {
-        throw new Error('mnemonic is write-only')
-      },
-      set (mnemonic: string) {
-        setMnemonic(this, mnemonic)
-      }
-    })
-
-    if (options.signer) {
-      // When passing external signer, ignore the mnemonic.
-      this.signer = options.signer
-      if (options.mnemonic) {
-        this.log.warn('Both signer and mnemonic were provided. Ignoring mnemonic.')
-      }
-    } else if (options.mnemonic) {
-      // When not passing external signer, create one from the mnemonic.
-      let mnemonic = options.mnemonic
-      if (!mnemonic) {
-        mnemonic = bip39.generateMnemonic(bip39EN)
-        this.log.warn("No mnemonic provided, generated this one:", mnemonic)
-      }
-      this.mnemonic = mnemonic
-    }
-
-  }
-
-  /** Public key corresponding to private key derived from mnemonic. */
-  publicKey?: Uint8Array
-
-  /** Signing API handle. */
-  declare api?: SigningCosmWasmClient
-
-  /** The bech32 prefix for the account's address  */
-  bech32Prefix?: string
-
-  /** The coin type in the HD derivation path */
-  coinType?: number
-
-  /** The account index in the HD derivation path */
-  hdAccountIndex?: number
-
-  /** The provided signer, which signs the transactions.
-    * TODO: Implement signing transactions without external signer. */
-  signer?: Signer
-
-  /** One-shot async initialization of agent.
-    * Populates the `api` property with a SigningCosmWasmClient. */
-  get ready (): Promise<this & { api: SigningCosmWasmClient }> {
-    const init = new Promise<this & { api: SigningCosmWasmClient }>(async (resolve, reject)=>{
-      if (!this.api) {
-        if (!this.chain) throw new CWError("the agent's chain property is not set")
-        if (this.chain?.devnet) {
-          await this.chain?.devnet.start()
-          if (!this.address && this.name) {
-            Object.assign(this, await this.chain?.devnet.getAccount(this.name))
-          }
-        }
-        if (!this.signer) throw new CWError("the agent's signer property is not set")
-        const api = await SigningCosmWasmClient.connectWithSigner(this.chain.url, this.signer)
-        this.api = api
-      }
-      return resolve(this as this & { api: SigningCosmWasmClient })
-    })
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
-  }
-
-  /** Query native token balance. */
-  async getBalance (denom?: string, address?: Address): Promise<string> {
-    const { api } = await this.ready
-    denom ??= this.defaultDenom
-    address ??= this.address
-    const { amount } = await api.getBalance(address!, denom)
-    return amount
-  }
-
   /** Stargate implementation of sending native token. */
-  send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
-    throw new Error('not implemented')
+  protected async doSend (
+    recipient: Address, amounts: Token.ICoin[], options?: Parameters<Agent["doSend"]>[2]
+  ) {
+    return this.chainApi.then(api=>{
+      if (!(api as SigningCosmWasmClient)?.sendTokens) {
+        throw new CWError("can't send tokens with an unauthenticated agent")
+      } 
+      return (api as SigningCosmWasmClient).sendTokens(
+        this.address!,
+        recipient as string,
+        amounts,
+        options?.sendFee || 'auto',
+        options?.sendMemo
+      )
+    })
   }
 
   /** Stargate implementation of batch send. */
-  sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
+  sendMany (
+    outputs: [Address, Token.ICoin[]][], options?: Parameters<Agent["sendMany"]>[1]
+  ): Promise<void|unknown> {
     throw new Error('not implemented')
   }
 
-  protected async doUpload (data: Uint8Array): Promise<Uploaded> {
-    const { api } = await this.ready
-    if (!this.address) throw new Error.Missing.Address()
-    const result = await api.upload(
-      this.address, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
+  protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
+    if (!this.address) {
+      throw new CWError("can't upload contract without sender address")
+    }
+    const api = await this.chainApi
+    if (!(api as SigningCosmWasmClient)?.upload) {
+      throw new CWError("can't upload contract with an unauthenticated agent")
+    } 
+    const result = await (api as SigningCosmWasmClient).upload(
+      this.address, data, this.defaultFees?.upload || 'auto', "Uploaded by Fadroma"
     )
     return {
-      chainId:   assertChain(this).id,
+      chainId:   this.chainId,
       codeId:    String(result.codeId),
       codeHash:  result.checksum,
       uploadBy:  this.address,
@@ -215,74 +178,91 @@ class CWAgent extends Agent {
     }
   }
 
-  /** Instantiate a contract. */
-  async instantiate <C extends Client> (
-    instance: Contract<C>,
-    init_funds: ICoin[] = [],
-    memo: string = '',
-  ): Promise<Instantiated> {
-    const { api } = await this.ready
-    if (!this.address) throw new Error("Agent has no address")
-    if (instance.address) {
-      this.log.warn("Instance already has address, not instantiating.")
-      return instance as Instantiated
+  /** Instantiate a contract via CosmJS Stargate. */
+  protected async doInstantiate (
+    codeId: CodeId, options: Parameters<Agent["doInstantiate"]>[1]
+  ): Promise<Partial<ContractInstance>> {
+    if (!this.address) {
+      throw new CWError("can't instantiate contract without sender address")
     }
-    const { chainId, codeId, codeHash, label, initMsg } = instance
-    const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) {
-      throw new Error.Missing.CodeId()
-    }
-    if (!label) {
-      throw new Error.Missing.Label()
-    }
-    if (!initMsg) {
-      throw new Error.Missing.InitMsg()
-    }
-    if (chainId && chainId !== assertChain(this).id) {
-      throw new Error.Invalid.WrongChain()
-    }
-    const result = await api.instantiate(
-      this.address,
-      code_id,
-      await into(initMsg),
-      label,
-      this.fees?.init || 'auto',
-      { funds: init_funds, admin: this.address, memo }
+    const api = await this.chainApi
+    if (!(api as SigningCosmWasmClient)?.instantiate) {
+      throw new CWError("can't instantiate contract without authorizing the agent")
+    } 
+    const result = await (api as SigningCosmWasmClient).instantiate(
+      this.address!,
+      Number(codeId),
+      options.initMsg,
+      options.label!,
+      options.initFee as StdFee || 'auto',
+      { admin: this.address, funds: options.initSend, memo: options.initMemo }
     )
-    this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
     return {
-      chainId:  chainId!,
+      codeId,
+      codeHash: options.codeHash,
+      label:    options.label,
+      initMsg:  options.initMsg,
+      chainId:  this.chainId,
       address:  result.contractAddress,
-      codeHash: codeHash!,
-      initBy:   this.address,
       initTx:   result.transactionHash,
       initGas:  result.gasUsed,
-      label,
+      initBy:   this.address,
+      initFee:  options.initFee || 'auto',
+      initSend: options.initSend,
+      initMemo: options.initMemo
     }
   }
 
   /** Call a transaction method of a contract. */
-  async execute (
-    instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
+  protected async doExecute (
+    contract: { address: Address }, message: Message, options: Parameters<Agent["execute"]>[2] = {}
   ): Promise<unknown> {
-    const { api } = await this.ready
-    if (!this.address) throw new CWError("agent.execute: no agent address")
-    if (!instance.address) throw new CWError("agent.execute: no contract address")
-    const { address, codeHash } = instance
-    const { send, memo, fee = this.fees?.exec || 'auto' } = opts
-    return await api.execute(this.address, instance.address, msg, fee, memo, send)
+    if (!this.address) {
+      throw new CWError("can't execute transaction without sender address")
+    }
+    const api = await this.chainApi
+    if (!(api as SigningCosmWasmClient)?.execute) {
+      throw new CWError("can't execute transaction without authorizing the agent")
+    } 
+    const {
+      execSend,
+      execMemo,
+      execFee = this.defaultFees?.exec || 'auto'
+    } = options
+    return await (api as SigningCosmWasmClient).execute(
+      this.address,
+      contract.address,
+      message,
+      execFee,
+      execMemo,
+      execSend
+    )
   }
 
-  /** Query a contract. */
-  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
-    const { api } = await this.ready
-    if (!instance.address) throw new CWError('agent.query: no contract address')
-    return await api.queryContractSmart(instance.address, query) as U
+  /** Stargate implementation of querying a smart contract. */
+  protected async doQuery <U> (contract: Address|Partial<ContractInstance>, msg: Message): Promise<U> {
+    if (typeof contract === 'string') contract = { address: contract }
+    if (!contract.address) throw new CWError('no contract address')
+    const api = await this.chainApi
+    return await api.queryContractSmart(contract.address, msg) as U
   }
 
+  batch (): CWBatchBuilder {
+    return new CWBatchBuilder(this)
+  }
 }
 
-function setMnemonic (agent: CWAgent, mnemonic: string) {
+export function authMnemonic (agent: {
+  log?:            Console
+  bech32Prefix?:   string
+  coinType?:       number
+  hdAccountIndex?: number
+}, mnemonic: string): {
+  address: Address,
+  pubkey:  Uint8Array,
+  signer:  OfflineSigner,
+} {
+  // Validate input
   if (!mnemonic) {
     throw new CWError("can't set empty mnemonic")
   }
@@ -303,30 +283,17 @@ function setMnemonic (agent: CWAgent, mnemonic: string) {
   if (!privateKey) {
     throw new CWError("failed to derive key pair")
   }
-  // Compute public key
+  // Compute public key and address
   const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
-  Object.defineProperty(agent, 'publicKey', {
-    enumerable: true, writable: false, value: pubkey
-  })
-  // Compute and assign address
-  const address = bech32.encode(
-    agent.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey)))
-  )
-  Object.defineProperty(agent, 'address', {
-    enumerable: true, writable: false, value: address
-  })
-  agent.name ??= agent.address
-
-  // Construct signer
-  agent.signer = {
-
-    // Returns only one account
-    getAccounts: () => Promise.resolve([{ algo: 'secp256k1', address, pubkey }]),
-
+  const address = bech32.encode(agent.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
+  const signer: OfflineSigner = {
+    // One account per agent
+    getAccounts: async () => [{ algo: 'secp256k1', address, pubkey }],
     // Sign a transaction
-    signAmino: async (address: string, signed: any) => {
-      if (address && (address !== agent.address)) {
-        agent.log.warn(`Passed address ${address} did not match agent address ${agent.address}`)
+    signAmino: async (address2: string, signed: any) => {
+      if (address2 && address2 !== address) {
+        agent.log?.warn(`Received address ${bold(address)} that did not match`)
+          .warn(` generated address ${address}, ignoring them`)
       }
       const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
       return {
@@ -336,12 +303,16 @@ function setMnemonic (agent: CWAgent, mnemonic: string) {
         ])),
       }
     },
+  }
 
+  return {
+    address,
+    pubkey,
+    signer,
   }
 }
 
-
-function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
+export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
   pub_key: { type: string, value: string },
   signature: string
 } {
@@ -363,15 +334,43 @@ function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
 }
 
 /** Transaction batch for CosmWasm-enabled chains. */
-class CWBatch extends Batch {}
+class CWBatchBuilder extends BatchBuilder<CWAgent> {
 
-export {
-  CWConfig  as Config,
-  CWError   as Error,
-  CWConsole as Console,
-  CWChain   as Chain,
-  CWAgent   as Agent,
-  CWBatch   as Batch
+  upload (
+    code:    Parameters<BatchBuilder<Agent>["upload"]>[0],
+    options: Parameters<BatchBuilder<Agent>["upload"]>[1]
+  ) {
+    return this
+  }
+
+  instantiate (
+    code:    Parameters<BatchBuilder<Agent>["instantiate"]>[0],
+    options: Parameters<BatchBuilder<Agent>["instantiate"]>[1]
+  ) {
+    return this
+  }
+
+  execute (
+    contract: Parameters<BatchBuilder<Agent>["execute"]>[0],
+    options:  Parameters<BatchBuilder<Agent>["execute"]>[1]
+  ) {
+    return this
+  }
+
+  async submit () {}
+
 }
 
-bindChainSupport(CWChain, CWAgent, CWBatch)
+export {
+  CWConfig as Config,
+  CWError as Error,
+  CWConsole as Console,
+  CWAgent as Agent,
+  CWBatchBuilder as BatchBuilder
+}
+
+class CWConfig extends Config {}
+
+class CWError extends Error {}
+
+class CWConsole extends Console {}

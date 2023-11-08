@@ -1,490 +1,289 @@
-import {
-  MsgExecuteContract,
-  MsgInstantiateContract,
-  ReadonlySigner,
-  SecretNetworkClient,
-  Wallet,
-} from '@hackbg/secretjs-esm'
-import type {
-  CreateClientOptions,
-  EncryptionUtils,
-  TxResponse
-} from '@hackbg/secretjs-esm'
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+import { Tx, ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
+import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
 import { Config, Error, Console } from './scrt-base'
-import * as Mocknet from './scrt-mocknet'
-import {
-  Agent, Contract, assertAddress, into, base64, bip39, bip39EN, bold,
-  Chain, Fee, Batch, assertChain
-} from '@fadroma/agent'
+//import * as Mocknet from './scrt-mocknet'
 import type {
-  AgentClass, Built, Uploaded, AgentFees, ChainClass, Uint128, BatchClass, Client,
-  ExecOpts, ICoin, Message, Name, AnyContract, Address, TxHash, ChainId, CodeId, CodeHash, Label,
-  Instantiated, Uploadable
+  Uint128, ContractClient, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
+import {
+  assign, Agent, into, base64, bip39, bip39EN, bold,
+  Token, BatchBuilder,
+  UploadedCode, ContractInstance,
+} from '@fadroma/agent'
+
+const { MsgStoreCode, MsgExecuteContract, MsgInstantiateContract } = Tx
 
 /** Represents a Secret Network API endpoint. */
-class ScrtChain extends Chain {
-
-  /** Logger handle. */
-  log = new Console('Scrt')
-
+class ScrtAgent extends Agent {
   /** Smallest unit of native token. */
-  defaultDenom: string = ScrtChain.defaultDenom
-
-  /** The Agent class used by this instance. */
-  Agent: AgentClass<ScrtAgent> = ScrtChain.Agent
-
-  /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
-  declare api?: SecretNetworkClient
-
-  /** @returns a fresh instance of the anonymous read-only API client. */
-  getApi (options: Partial<CreateClientOptions> = {}): SecretNetworkClient {
-    options = { chainId: this.id, url: this.url, ...options }
-    if (!options.url) throw new Error.Missing('api url')
-    return new SecretNetworkClient(options as CreateClientOptions)
+  static gasToken = 'uscrt'
+  /** Connect to the Secret Network Mainnet. */
+  static mainnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
+    const { mainnetChainId: chainId, mainnetUrl: chainUrl } = config
+    return super.mainnet({ chainId, chainUrl, ...options||{}, }) as ScrtAgent
+  }
+  /** Connect to the Secret Network Testnet. */
+  static testnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
+    const { testnetChainId: chainId, testnetUrl: chainUrl } = config
+    return super.testnet({ chainId, chainUrl, ...options||{} }) as ScrtAgent
+  }
+  /** Connect to Secret Network in testnet mode. */
+  static devnet (options: Partial<ScrtAgent> = {}): ScrtAgent {
+    throw new Error('Devnet not installed. Import @hackbg/fadroma')
+  }
+  /** Logger handle. */
+  log = new Console('ScrtAgent')
+  /** Underlying API client. */
+  declare chainApi: SecretNetworkClient
+  /** API extra. */
+  wallet?: Wallet
+  /** API extra. */
+  encryptionUtils?: EncryptionUtils
+  /** Set permissive fees by default. */
+  defaultFees = {
+    upload: ScrtAgent.gas(10000000),
+    init:   ScrtAgent.gas(10000000),
+    exec:   ScrtAgent.gas(1000000),
+    send:   ScrtAgent.gas(1000000),
   }
 
-  get block (): any {
-    return this.ready.then(({api})=>api.query.tendermint.getLatestBlock({}))
+  constructor ({
+    mnemonic,
+    wallet = mnemonic ? new Wallet(mnemonic) : undefined,
+    encryptionUtils,
+    ...properties
+  }: Partial<ScrtAgent & {
+    mnemonic:        string,
+    wallet:          Wallet,
+    encryptionUtils: EncryptionUtils
+  }> = {}) {
+    super(properties as Partial<Agent>)
+    this.chainApi ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.chainUrl! })
+    this.log.label = `${bold(this.name?`"${this.name}"`:(this.address||'ScrtAgent'))}`
+    if (this.chainId) {
+      this.log.label += ` @ ${bold(this.chainId)}`
+    } else {
+      throw new Error("can't authenticate without chainId")
+    }
+    if (this.chainUrl) {
+      this.log.label += ` (${this.chainUrl})`
+    } else {
+      throw new Error("can't connect without chainUrl")
+    }
+    if (!mnemonic && !wallet) {
+      mnemonic = bip39.generateMnemonic(bip39EN)
+      wallet = new Wallet(mnemonic)
+    }
+    let walletAddress = wallet ? wallet.address : properties?.address
+    if (walletAddress && properties?.address && (walletAddress !== properties?.address)) {
+      throw new Error('computed address did not match passed one')
+    }
+    this.chainApi = new SecretNetworkClient({
+      chainId: this.chainId,
+      url: this.chainUrl,
+      wallet,
+      walletAddress: wallet?.address,
+      encryptionUtils
+    })
+    if (this.address) {
+      if (this.chainApi.address !== this.address) {
+        throw new Error(`computed address ${this.chainApi.address} but expected ${this.address}`)
+      }
+    } else {
+      this.address = this.chainApi.address
+    }
+  }
+
+  async getBlockInfo () {
+    return await this.chainApi.query.tendermint.getLatestBlock({})
   }
 
   get height () {
-    return this.block.then((block: any)=>Number(block.block?.header?.height))
+    return this.getBlockInfo()
+      .then((block: any)=>Number(block.block?.header?.height))
   }
 
-  async getBalance (denom = this.defaultDenom, address: Address) {
-    const {api} = await this.ready
-    const response = await api.query.bank.balance({ address, denom })
-    return response.balance!.amount!
-  }
-
-  async getLabel (contract_address: string): Promise<string> {
-    const {api} = await this.ready
-    const response = await api.query.compute.contractInfo({ contract_address })
-    return response.ContractInfo!.label!
-  }
-
-  async getCodeId (contract_address: string): Promise<string> {
-    const {api} = await this.ready
-    const response = await api.query.compute.contractInfo({ contract_address })
-    return response.ContractInfo!.code_id!
-  }
-
-  async getHash (arg: string|number): Promise<string> {
-    const {api} = await this.ready
-    if (typeof arg === 'number' || !isNaN(Number(arg))) {
-      return (await api.query.compute.codeHashByCodeId({
-        code_id: String(arg)
-      })).code_hash!
-    } else {
-      return (await api.query.compute.codeHashByContractAddress({
-        contract_address: arg
-      })).code_hash!
+  get balance ()  {
+    if (!this.address) {
+      console.trace({agent:this})
+      throw new Error("can't get balance of unauthenticated agent")
     }
+    return this.getBalance(this.address, ScrtAgent.gasToken).then(x=>String(x))
   }
 
-  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
-    throw new Error('TODO: Scrt#query: use same method on agent')
+  async getBalance (address: Address, denom = ScrtAgent.gasToken) {
+    return (await this.chainApi.query.bank.balance({ address, denom }))
+      .balance!
+      .amount!
   }
 
-  async fetchLimits (): Promise<{ gas: number }> {
-    const {api} = await this.ready
-    const params = { subspace: "baseapp", key: "BlockParams" }
-    const { param } = await api.query.params.params(params)
-    let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
-    this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
-    if (max_gas < 0) {
-      max_gas = 10000000
-      this.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
-    }
-    return { gas: max_gas }
+  async getLabelOfContract (contract_address: Address): Promise<Label> {
+    return (await this.chainApi.query.compute.contractInfo({ contract_address }))
+      .ContractInfo!
+      .label!
   }
 
-  /** Smallest unit of native token. */
-  static defaultDenom: string = 'uscrt'
-
-  /** @returns Fee in uscrt */
-  static gas = (amount: Uint128|number) =>
-    new Fee(amount, this.defaultDenom)
-
-  /** Set permissive fees by default. */
-  static defaultFees: AgentFees = {
-    upload: this.gas(10000000),
-    init:   this.gas(10000000),
-    exec:   this.gas(1000000),
-    send:   this.gas(1000000),
+  async getCodeId (contract_address: Address): Promise<CodeId> {
+    return (await this.chainApi.query.compute.contractInfo({ contract_address }))
+      .ContractInfo!
+      .code_id!
   }
 
-  /** The default Config class for Secret Network. */
-  static Config = Config
-
-  /** The default Agent class for Secret Network. */
-  static Agent: AgentClass<ScrtAgent> // set in index
-
-  /** Connect to the Secret Network Mainnet. */
-  static mainnet = (
-    options: Partial<ScrtChain> = {},
-    config = new Config()
-  ): ScrtChain => super.mainnet({
-    id:  config.mainnetChainId,
-    url: config.mainnetUrl,
-    ...options||{},
-  }) as ScrtChain
-
-  /** Connect to the Secret Network Testnet. */
-  static testnet = (
-    options: Partial<ScrtChain> = {},
-    config = new Config()
-  ): ScrtChain => super.testnet({
-    id:  config.testnetChainId,
-    url: config.testnetUrl,
-    ...options||{},
-  }) as ScrtChain
-
-  /** Connect to Secret Network in testnet mode. */
-  static devnet = (options: Partial<ScrtChain> = {}): ScrtChain => {
-    throw new Error('Devnet not installed. Import @hackbg/fadroma')
+  async getCodeHashOfAddress (contract_address: Address): Promise<CodeHash> {
+    return (await this.chainApi.query.compute.codeHashByContractAddress({ contract_address }))
+      .code_hash!
   }
 
-  /** Connect to a Secret Network mocknet. */
-  static mocknet = (options: Partial<Mocknet.Chain> = {}): Mocknet.Chain => new Mocknet.Chain({
-    id: 'mocknet',
-    ...options
-  })
-
-}
-
-export type { TxResponse }
-
-/** Represents a connection to the Secret Network,
-  * authenticated as a specific address. */
-class ScrtAgent extends Agent {
-
-  log = new Console('ScrtAgent')
-
-  /** Downcast chain property to Scrt only. */
-  declare chain: ScrtChain
-
-  /** Batch class used by this agent. */
-  Batch: BatchClass<ScrtBatch> = ScrtAgent.Batch
-
-  /** Whether to simulate each execution first to get a more accurate gas estimate. */
-  simulateForGas: boolean = false
-
-  /** Default fees for this agent. */
-  fees = ScrtChain.defaultFees
-
-  constructor (options: Partial<ScrtAgent> = {}) {
-    super(options)
-    this.fees            = options.fees ?? this.fees
-    this.api             = options.api
-    this.wallet          = options.wallet
-    this.address         = this.wallet?.address
-    this.mnemonic        = options.mnemonic ?? this.mnemonic
-    this.encryptionUtils = options.encryptionUtils
-    this.simulateForGas  = options.simulateForGas ?? this.simulateForGas
-    this.log.label = `${this.address??'(no address)'} @ ${this.chain?.id??'(no chain id)'}`
+  async getCodeHashOfCodeId (code_id: CodeId): Promise<CodeHash> {
+    return (await this.chainApi.query.compute.codeHashByCodeId({ code_id }))
+      .code_hash!
   }
 
-  get ready (): Promise<this & { api: SecretNetworkClient }> {
-    // If an API instance is already available (e.g. provided to constructor), just use that.
-    if (this.api) return Promise.resolve(this as this & { api: SecretNetworkClient })
-    // Require chain reference to be populated.
-    if (!this.chain) throw new Error.Missing.Chain()
-    // Begin asynchronous init.
-    const init = new Promise<this & { api: SecretNetworkClient }>(async (
-      resolve, reject
-    )=>{
-      try {
-        let wallet = this.wallet
-        if (!wallet || wallet instanceof ReadonlySigner) {
-          // If this is a named devnet agent
-          if (this.name && this.chain.isDevnet && this.chain.devnet) {
-            // Provide mnemonic from devnet genesis accounts
-            await this.chain.devnet.start()
-            this.mnemonic = (await this.chain.devnet.getAccount(this.name)).mnemonic!
-          }
-          // If there is still no mnemonic
-          if (!this.mnemonic) {
-            // Generate fresh mnemonic
-            this.mnemonic = bip39.generateMnemonic(bip39EN)
-            this.log.generatedMnemonic(this.mnemonic!)
-          }
-          wallet = new Wallet(this.mnemonic)
-        } else if (this.mnemonic) {
-          this.log.ignoringMnemonic()
-        }
-        // Construct the API client
-        const url = this.chain.url && removeTrailingSlash(this.chain.url)
-        const chainId = this.chain.id
-        const walletAddress = wallet?.address || this.address
-        const { encryptionUtils } = this
-        const apiOptions = { chainId, url, wallet, walletAddress, encryptionUtils }
-        this.api = await this.chain.getApi(apiOptions)
-        // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
-        if (encryptionUtils) Object.assign(this.api, { encryptionUtils })
-        // If fees are not specified, get default fees from API.
-        if (!this.fees) {
-          this.fees = ScrtChain.defaultFees
-          try {
-            const max = ScrtChain.gas((await this.chain.fetchLimits()).gas)
-            this.fees = { upload: max, init: max, exec: max, send: max }
-          } catch (e) {
-            this.log.warn(e)
-            this.log.defaultGas(Object.values(this.fees))
-          }
-        }
-        // Override address and set name if missing.
-        this.address = wallet.address
-        this.name ??= this.address
-        this.log.label = `${this.address??'(no address)'} @ ${this.chain.id??'(no chain id)'}`
-        this.log.log('authenticated')
-        // Done.
-        resolve(this as this & { api: SecretNetworkClient })
-      } catch (e) {
-        reject(e)
-      }
-    })
-    // Memoize the init procedure.
-    Object.defineProperty(this, 'ready', { get () { return init } })
-    return init
-  }
-
-  /** Instance of the underlying platform API provided by `secretjs`. */
-  get api (): SecretNetworkClient|undefined {
-    return undefined
-  }
-  set api (value: SecretNetworkClient|undefined) {
-    setApi(this, value)
-  }
-
-  /** This agent's identity on the chain. */
-  get wallet (): Wallet|undefined {
-    return (this.api as any)?.wallet
-  }
-  set wallet (value: Wallet|undefined) {
-    setWallet(this, value)
-  }
-
-  /** Provide this to allow SecretJS to sign with keys stored in Keplr. */
-  get encryptionUtils (): EncryptionUtils|undefined {
-    return (this.api as any)?.encryptionUtils
-  }
-  set encryptionUtils (value: EncryptionUtils|undefined) {
-    setEncryptionUtils(this, value)
-  }
-
-  get account () {
-    return this.ready.then(()=>this.api!.query.auth.account({ address: assertAddress(this) }))
-  }
-
-  get balance () {
-    return this.ready.then(()=>this.getBalance(this.defaultDenom, assertAddress(this)))
-  }
-
-  async getBalance (denom = this.defaultDenom, address: Address): Promise<string> {
-    const { api } = await this.ready
-    const response = await api.query.bank.balance({ address, denom })
-    return response.balance!.amount!
-  }
-
-  async send (to: Address, amounts: ICoin[], opts?: any) {
-    const { api } = await this.ready
-    const from_address = assertAddress(this)
-    const to_address = to
-    const amount = amounts
-    const msg = { from_address, to_address, amount }
-    return api.tx.bank.send(msg, { gasLimit: opts?.gas?.gas })
-  }
-
-  async sendMany (outputs: never, opts: never) {
-    throw new Error('ScrtAgent#sendMany: not implemented')
-  }
-
-  async getLabel (contract_address: string): Promise<string> {
-    const { api } = await this.ready
-    const response = await api.query.compute.contractInfo({ contract_address })
-    return response.ContractInfo!.label!
-  }
-
-  async getCodeId (contract_address: string): Promise<string> {
-    const { api } = await this.ready
-    const response = await api.query.compute.contractInfo({ contract_address })
-    return response.ContractInfo!.code_id!
-  }
-
-  async getHash (arg: string|number): Promise<string> {
-    const { api } = await this.ready
-    if (typeof arg === 'number' || !isNaN(Number(arg))) {
-      return (await api.query.compute.codeHashByCodeId({
-        code_id: String(arg)
-      })).code_hash!
-    } else {
-      return (await api.query.compute.codeHashByContractAddress({
-        contract_address: arg
-      })).code_hash!
-    }
-  }
-
-  async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
-    const { api } = await this.ready
-    if (!this.address) throw new Error("No address")
-    const failed = ()=>{
-      throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
-    }
-    const result = await api.query.auth.account({ address: this.address }) ?? failed()
-    const { account_number, sequence } = result.account as any
-    return { accountNumber: Number(account_number), sequence: Number(sequence) }
-  }
-
-  async encrypt (codeHash: CodeHash, msg: Message) {
-    if (!codeHash) throw new Error.Missing.CodeHash()
-    const { api } = await this.ready
-    const { encryptionUtils } = await this.api as any
-    const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
-    return base64.encode(encrypted)
-  }
-
-  /** Query a Client.
+  /** Query a contract.
     * @returns the result of the query */
-  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
-    const { api } = await this.ready
-    return await api.query.compute.queryContract({
-      contract_address: instance.address!,
-      code_hash:        instance.codeHash,
-      query: query as Record<string, unknown>
+  async doQuery <U> (
+    contract: { address: Address, codeHash: CodeHash }, message: Message
+  ): Promise<U> {
+    const { address: contract_address, codeHash: code_hash } = contract
+    const query = message as Record<string, unknown>
+    return await this.chainApi.query.compute.queryContract({
+      contract_address, code_hash, query
     }) as U
   }
 
+  get account (): ReturnType<SecretNetworkClient['query']['auth']['account']> {
+    return this.chainApi.query.auth.account({ address: this.address })
+  }
+
+  protected async doSend (
+    recipient: Address,
+    amounts:   Token.ICoin[],
+    options?:  Parameters<Agent["doSend"]>[2]
+  ) {
+    return this.chainApi.tx.bank.send(
+      { from_address: this.address!, to_address: recipient, amount: amounts },
+      { gasLimit: Number(options?.sendFee?.gas) }
+    )
+  }
+
+  async sendMany (outputs: never, opts?: any) {
+    throw new Error('ScrtAgent#sendMany: not implemented')
+  }
+
   /** Upload a WASM binary. */
-  protected async doUpload (data: Uint8Array): Promise<Uploaded> {
-    const { api } = await this.ready
-    type Log = { type: string, key: string }
-    if (!this.address) throw new Error.Missing.Address()
-    const request  = { sender: this.address, wasm_byte_code: data, source: "", builder: "" }
-    const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
-    const result   = await api.tx.compute.storeCode(request, { gasLimit }).catch(error=>error)
-    const { code, message, details = [], rawLog } = result
+  protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
+    const request  = {
+      sender: this.address!, wasm_byte_code: data, source: "", builder: ""
+    }
+    const gasLimit = Number(this.defaultFees.upload?.amount[0].amount)
+      || undefined
+    const result = await this.chainApi!.tx.compute.storeCode(request, { gasLimit })
+      .catch((error:any)=>error)
+    const {
+      code, message, details = [], rawLog 
+    } = result
     if (code !== 0) {
-      this.log.error(`Upload failed with code ${bold(code)}:`, bold(message ?? rawLog ?? ''), ...details)
+      this.log.error(
+        `Upload failed with code ${bold(code)}:`,
+        bold(message ?? rawLog ?? ''),
+        ...details
+      )
       if (message === `account ${this.address} not found`) {
-        this.log.info(`If this is a new account, send it some ${this.defaultDenom} first.`)
-        if (this.chain.isMainnet) {
+        this.log.info(`If this is a new account, send it some ${ScrtAgent.gasToken} first.`)
+        if (this.isMainnet) {
           this.log.info(`Mainnet fee grant faucet:`, bold(`https://faucet.secretsaturn.net/`))
         }
-        if (this.chain.isTestnet) {
+        if (this.isTestnet) {
           this.log.info(`Testnet faucet:`, bold(`https://faucet.pulsar.scrttestnet.com/`))
         }
       }
-      throw new Error.Failed.Upload(result)
+      this.log.error(`Upload failed`, { result })
+      throw new Error('upload failed')
     }
+    type Log = { type: string, key: string }
     const codeId = result.arrayLog
       ?.find((log: Log) => log.type === "message" && log.key === "code_id")
       ?.value
     if (!codeId) {
-      this.log.error(`Code id not found in result.`)
-      throw new Error.Failed.Upload({ ...result, noCodeId: true })
+      this.log.error(`Code ID not found in result`, { result })
+      throw new Error('upload failed')
     }
+    const codeHash = await this.getCodeHashOfCodeId(codeId)
+    console.log({ codeHash })
     return {
-      chainId:  assertChain(this).id,
+      chainId:  this.chainId,
       codeId,
-      codeHash: await this.getHash(Number(codeId)),
+      codeHash,
       uploadBy: this.address,
       uploadTx: result.transactionHash,
       uploadGas: result.gasUsed
     }
   }
 
-  async instantiate <C extends Client> (
-    instance: Contract<C>,
-    init_funds: ICoin[] = []
-  ): Promise<Instantiated> {
-    const { api } = await this.ready
-    if (!this.address) throw new Error("Agent has no address")
-    if (instance.address) {
-      this.log.warn("Instance already has address, not instantiating.")
-      return instance as Instantiated
-    }
-    const { chainId, codeId, codeHash, label, initMsg } = instance
-    const code_id = Number(instance.codeId)
-    if (isNaN(code_id)) throw new Error.Missing.CodeId()
-    if (!label) throw new Error.Missing.Label()
-    if (!initMsg) throw new Error.Missing.InitMsg()
-    if (chainId && chainId !== assertChain(this).id) throw new Error.Invalid.WrongChain()
+  protected async doInstantiate (
+    codeId: CodeId,
+    options: Parameters<Agent["doInstantiate"]>[1]
+  ): Promise<Partial<ContractInstance>> {
+    if (!this.address) throw new Error("agent has no address")
     const parameters = {
-      sender:    this.address,
-      code_id,
-      code_hash: codeHash!,
-      init_msg:  await into(initMsg),
-      label,
-      init_funds
+      sender:     this.address,
+      code_id:    Number(codeId),
+      code_hash:  options.codeHash,
+      label:      options.label!,
+      init_msg:   options.initMsg,
+      init_funds: options.initSend,
+      memo:       options.initMemo
     }
-    const gasLimit = Number(this.fees.init?.amount[0].amount) || undefined
-    const result = await api.tx.compute.instantiateContract(parameters, { gasLimit })
+    const instantiateOptions = {
+      gasLimit: Number(this.defaultFees.init?.amount[0].amount) || undefined
+    }
+    const result = await this.chainApi.tx.compute.instantiateContract(parameters, instantiateOptions)
     if (result.code !== 0) {
-      this.log.error('Init failed:', { initMsg, result })
-      throw Object.assign(new Error.Failed.Init(code_id), { result })
+      this.log.error('Init failed:', { parameters, instantiateOptions, result })
+      throw new Error(`init of code id ${codeId} failed`)
     }
+
     type Log = { type: string, key: string }
-    const address  = result.arrayLog!
+    const address = result.arrayLog!
       .find((log: Log) => log.type === "message" && log.key === "contract_address")
       ?.value!
-    this.log.debug(`gas used for init of code id ${code_id}:`, result.gasUsed)
+
     return {
-      chainId: chainId!,
+      chainId:  this.chainId,
       address,
-      codeHash: codeHash!,
-      initBy: this.address,
-      initTx: result.transactionHash,
-      initGas: result.gasUsed,
-      label,
+      codeHash: options.codeHash,
+      initBy:   this.address,
+      initTx:   result.transactionHash,
+      initGas:  result.gasUsed,
+      label:    options.label,
     }
   }
 
-  //instantiateMany (instances: Record<Name, AnyContract>):
-    //Promise<Record<Name, AnyContract>>
-  //instantiateMany (instances: AnyContract[]):
-    //Promise<AnyContract[]>
-  //async instantiateMany <C> (instances: C): Promise<C> {
-    //// instantiate multiple contracts in a batch:
-    //const response = await this.batch().wrap(async batch=>{
-      //await batch.instantiateMany(template, configs)
-    //})
-    //// add code hashes to them:
-    //for (const i in configs) {
-      //const instance = instances[i]
-      //if (instance) {
-        //instance.codeId   = template.codeId
-        //instance.codeHash = template.codeHash
-        //instance.label    = configs[i][0]
-      //}
-    //}
-    //return instances
-  //}
-
-  async execute (
-    instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
+  protected async doExecute (
+    contract: { address: Address, codeHash: CodeHash },
+    message:  Message,
+    options?: Parameters<Agent["doExecute"]>[2] & {
+      preSimulate?: boolean
+    }
   ): Promise<TxResponse> {
-    const { api } = await this.ready
-    if (!this.address) throw new Error("No address")
-    const { address, codeHash } = instance
-    const { send, memo, fee = this.fees.exec } = opts
-    if (memo) this.log.noMemos()
     const tx = {
-      sender:           this.address,
-      contract_address: instance.address!,
-      code_hash:        instance.codeHash,
-      msg:              msg as Record<string, unknown>,
-      sentFunds:        send
+      sender:           this.address!,
+      contract_address: contract.address,
+      code_hash:        contract.codeHash,
+      msg:              message as Record<string, unknown>,
+      sentFunds:        options?.execSend
     }
     const txOpts = {
-      gasLimit: Number(fee?.gas) || undefined
+      gasLimit: Number(options?.execFee?.gas) || undefined
     }
-    if (this.simulateForGas) {
+    if (options?.preSimulate) {
       this.log.info('Simulating transaction...')
       let simResult
       try {
-        simResult = await api.tx.compute.executeContract.simulate(tx, txOpts)
+        simResult = await this.chainApi.tx.compute.executeContract.simulate(tx, txOpts)
       } catch (e) {
         this.log.error(e)
         this.log.warn('TX simulation failed:', tx, 'from', this)
@@ -498,10 +297,45 @@ class ScrtAgent extends Agent {
         txOpts.gasLimit = gas
       }
     }
-    const result = await api.tx.compute.executeContract(tx, txOpts)
+    const result = await this.chainApi.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
     if (result.code !== 0) throw this.decryptError(result)
     return result as TxResponse
+  }
+
+  async setMaxGas (): Promise<this> {
+    const max = ScrtAgent.gas((await this.fetchLimits()).gas)
+    this.defaultFees = { upload: max, init: max, exec: max, send: max }
+    return this
+  }
+
+  async fetchLimits (): Promise<{ gas: number }> {
+    const params = { subspace: "baseapp", key: "BlockParams" }
+    const { param } = await this.chainApi.query.params.params(params)
+    let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
+    this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
+    if (max_gas < 0) {
+      max_gas = 10000000
+      this.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
+    }
+    return { gas: max_gas }
+  }
+
+  async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
+    const result = await this.chainApi.query.auth.account({ address: this.address }) ?? (() => {
+      throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
+    })
+    const { account_number, sequence } = result.account as any
+    return { accountNumber: Number(account_number), sequence: Number(sequence) }
+  }
+
+  async encrypt (codeHash: CodeHash, msg: Message) {
+    if (!codeHash) {
+      throw new Error("can't encrypt message without code hash")
+    }
+    const { encryptionUtils } = this.chainApi as any
+    const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
+    return base64.encode(encrypted)
   }
 
   decryptError (result: TxResponse) {
@@ -526,7 +360,9 @@ class ScrtAgent extends Agent {
     return Object.assign(new Error(error), result)
   }
 
-  static Batch: BatchClass<ScrtBatch> // populated in index
+  batch (): ScrtBatchBuilder {
+    return new ScrtBatchBuilder(this)
+  }
 
 }
 
@@ -550,47 +386,261 @@ function removeTrailingSlash (url: string) {
   return url
 }
 
-function setApi (agent: ScrtAgent, value: SecretNetworkClient|undefined) {
-  Object.defineProperty(agent, 'api', {
-    get () { return value },
-    set (value: SecretNetworkClient|undefined) { setApi(agent, value) },
-    enumerable: true,
-    configurable: true
-  })
-  if (value && agent.wallet) {
-    Object.assign(value, { wallet: agent.wallet })
-  }
-  if (value && agent.encryptionUtils) {
-    Object.assign(value, { encryptionUtils: agent.encryptionUtils })
-  }
+export {
+  ScrtAgent as Agent
 }
 
-function setWallet (agent: ScrtAgent, value: Wallet|undefined) {
-  Object.defineProperty(agent, 'wallet', {
-    get () { return value },
-    set (value: Wallet|undefined) { setWallet(agent, value) },
-    enumerable: true,
-    configurable: true
-  })
-  if (agent.api) {
-    Object.assign(agent.api, { wallet: value })
-  }
+export type {
+  TxResponse
 }
 
-function setEncryptionUtils (agent: ScrtAgent, value: EncryptionUtils|undefined) {
-  Object.defineProperty(agent, 'encryptionUtils', {
-    get () { return value },
-    set (value: EncryptionUtils|undefined) { setEncryptionUtils(agent, value) },
-    enumerable: true,
-    configurable: true
-  })
-  if (agent.api) {
-    Object.assign(agent.api, { encryptionUtils: value })
-  }
-}
+export class ScrtBatchBuilder extends BatchBuilder<ScrtAgent> {
+  /** Logger handle. */
+  log = new Console('ScrtBatch')
 
-export interface ScrtBatchClass <B extends ScrtBatch> {
-  new (agent: ScrtAgent): B
+  /** Messages to encrypt. */
+  messages: Array<
+    |InstanceType<typeof MsgStoreCode>
+    |InstanceType<typeof MsgInstantiateContract>
+    |InstanceType<typeof MsgExecuteContract>
+  > = []
+
+  /** TODO: Upload in batch. */
+  upload (
+    code:    Parameters<BatchBuilder<ScrtAgent>["upload"]>[0],
+    options: Parameters<BatchBuilder<ScrtAgent>["upload"]>[1]
+  ) {
+    throw new Error('ScrtBatchBuilder#upload: not implemented')
+    return this
+  }
+
+  instantiate (
+    code:    Parameters<BatchBuilder<ScrtAgent>["instantiate"]>[0],
+    options: Parameters<BatchBuilder<ScrtAgent>["instantiate"]>[1]
+  ) {
+    this.messages.push(new MsgInstantiateContract({
+      //callback_code_hash: '',
+      //callback_sig:       null,
+      sender:     this.agent.address!,
+      code_id:    ((typeof code === 'object') ? code.codeId : code) as CodeId,
+      label:      options.label!,
+      init_msg:   options.initMsg,
+      init_funds: options.initSend,
+    }))
+    return this
+  }
+
+  execute (
+    contract: Parameters<BatchBuilder<ScrtAgent>["execute"]>[0],
+    message:  Parameters<BatchBuilder<ScrtAgent>["execute"]>[1],
+    options:  Parameters<BatchBuilder<ScrtAgent>["execute"]>[2],
+  ) {
+    if (typeof contract === 'object') contract = contract.address!
+    this.messages.push(new MsgExecuteContract({
+      //callback_code_hash: '',
+      //callback_sig:       null,
+      sender:           this.agent.address!,
+      contract_address: contract,
+      sent_funds:       options?.execSend,
+      msg:              message as object,
+    }))
+    return this
+  }
+
+  /** Format the messages for API v1 like secretjs and encrypt them. */
+  private get encryptedMessages (): Promise<any[]> {
+    const messages: any[] = []
+    return new Promise(async resolve=>{
+      for (const message of this.messages) {
+        switch (true) {
+          case (message instanceof MsgStoreCode): {
+            messages.push(this.encryptUpload(message))
+            continue
+          }
+          case (message instanceof MsgInstantiateContract): {
+            messages.push(this.encryptInit(message))
+            continue
+          }
+          case (message instanceof MsgExecuteContract): {
+            messages.push(this.encryptExec(message))
+            continue
+          }
+          default: {
+            this.log.error(`Invalid batch message:`, message)
+            throw new Error(`invalid batch message: ${message}`)
+          }
+        }
+      }
+      return messages
+    })
+  }
+
+  private async encryptUpload (init: any): Promise<any> {
+    throw new Error('not implemented')
+  }
+
+  private async encryptInit (init: any): Promise<any> {
+    return {
+      "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
+      callback_code_hash: '',
+      callback_sig:       null,
+      sender:             this.agent.address,
+      code_id:     String(init.codeId),
+      init_funds:         init.funds,
+      label:              init.label,
+      init_msg:           await this.agent.encrypt(init.codeHash, init.msg),
+    }
+  }
+
+  private async encryptExec (exec: any): Promise<any> {
+    return {
+      "@type":            '/secret.compute.v1beta1.MsgExecuteContract',
+      callback_code_hash: '',
+      callback_sig:       null,
+      sender:             this.agent.address,
+      contract:           exec.contract,
+      sent_funds:         exec.funds,
+      msg:                await this.agent.encrypt(exec.codeHash, exec.msg),
+    }
+  }
+
+  simulate () {
+    return Promise.resolve(this.agent.chainApi).then(api=>api.tx.simulate(this.messages))
+  }
+
+  async submit ({ memo = "" }: { memo: string }): Promise<ScrtBatchResult[]> {
+    const api = await Promise.resolve(this.agent.chainApi)
+    const chainId  = this.agent.chainId!
+    const messages = this.messages
+    const limit    = Number(this.agent.defaultFees.exec?.amount[0].amount) || undefined
+    const gas      = messages.length * (limit || 0)
+
+    const results: ScrtBatchResult[] = []
+    try {
+
+      const txResult = await api.tx.broadcast(messages as any, { gasLimit: gas })
+      if (txResult.code !== 0) {
+        const error = `(in batch): gRPC error ${txResult.code}: ${txResult.rawLog}`
+        throw Object.assign(new Error(error), txResult)
+      }
+
+      for (const i in messages) {
+
+        const msg = messages[i]
+
+        const result: Partial<ScrtBatchResult> = {
+          chainId,
+          sender: this.agent.address,
+          tx: txResult.transactionHash,
+        }
+
+        if (msg instanceof MsgInstantiateContract) {
+
+          const findAddr = ({msg, type, key}: {
+            msg: number, type: string, key: string
+          }) =>
+            msg  ==  Number(i) &&
+            type === "message" &&
+            key  === "contract_address"
+
+          results[Number(i)] = Object.assign(result, {
+            type:    'wasm/MsgInstantiateContract',
+            codeId:  msg.codeId,
+            label:   msg.label,
+            address: txResult.arrayLog?.find(findAddr)?.value,
+          }) as ScrtBatchResult
+
+        } else if (msg instanceof MsgExecuteContract) {
+
+          results[Number(i)] = Object.assign(result, {
+            type:    'wasm/MsgExecuteContract',
+            address: msg.contractAddress
+          }) as ScrtBatchResult
+
+        }
+      }
+
+    } catch (error) {
+      this.log.br()
+      this.log
+        .error('submitting batch failed:')
+        .error(bold(error.message))
+        .warn('(decrypting batch errors is not implemented)')
+      throw error
+    }
+
+    return results
+
+  }
+
+  /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
+    * unsigned transaction batch; don't execute it, but save it in
+    * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
+  async save (name?: string) {
+    // Number of batch, just for identification in console
+    name ??= name || `TX.${+new Date()}`
+    // Get signer's account number and sequence via the canonical API
+    const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
+    // Print the body of the batch
+    this.log.debug(`Messages in batch:`)
+    for (const msg of this.messages??[]) {
+      this.log.debug(' ', JSON.stringify(msg))
+    }
+    // The base Batch class stores messages as (immediately resolved) promises
+    const messages = await this.encryptedMessages
+    // Print the body of the batch
+    this.log.debug(`Encrypted messages in batch:`)
+    for (const msg of messages??[]) {
+      this.log.info(' ', JSON.stringify(msg))
+    }
+    // Compose the plaintext
+    const unsigned = this.composeUnsignedTx(messages as any, name)
+    // Output signing instructions to the console
+    
+    const output = `${name}.signed.json`
+    const string = JSON.stringify(unsigned)
+    const txdata = shellescape([string])
+    this.log.br()
+    this.log.info('Multisig batch ready.')
+    this.log.info(`Run the following command to sign the batch:
+\nsecretcli tx sign /dev/stdin --output-document=${output} \\
+--offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${this.agent.address} \\
+--chain-id=${this.agent.chainId} --account-number=${accountNumber} --sequence=${sequence} \\
+<<< ${txdata}`)
+    this.log.br()
+    this.log.debug(`Batch contents:`, JSON.stringify(unsigned, null, 2))
+    this.log.br()
+
+    return {
+      name,
+      accountNumber,
+      sequence,
+      unsignedTxBody: JSON.stringify(unsigned)
+    }
+  }
+
+  private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
+    const fee = ScrtAgent.gas(10000000)
+    return {
+      auth_info: {
+        signer_infos: [],
+        fee: {
+          ...fee,
+          gas: fee.gas,
+          payer: "",
+          granter: ""
+        },
+      },
+      signatures: [],
+      body: {
+        memo,
+        messages: encryptedMessages,
+        timeout_height: "0",
+        extension_options: [],
+        non_critical_extension_options: []
+      }
+    }
+  }
 }
 
 export interface ScrtBatchResult {
@@ -604,175 +654,15 @@ export interface ScrtBatchResult {
   label?:    Label
 }
 
-/** Base class for transaction-bundling Agent for both Secret Network implementations. */
-class ScrtBatch extends Batch {
-
-  static batchCounter: number = 0
-
-  /** The agent which will sign and/or broadcast the batch. */
-  declare agent: ScrtAgent
-
-  constructor (agent: ScrtAgent, callback?: (batch: ScrtBatch)=>unknown) {
-    super(agent, callback as (batch: Batch)=>unknown)
-  }
-
-  /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
-    * unsigned transaction batch; don't execute it, but save it in
-    * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
-  async save (name?: string) {
-    await super.save(name)
-    // Number of batch, just for identification in console
-    const N = ++ScrtBatch.batchCounter
-    name ??= name || `TX.${N}.${+new Date()}`
-    // Get signer's account number and sequence via the canonical API
-    const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
-    // Print the body of the batch
-    this.log.batchMessages(this.msgs, N)
-    // The base Batch class stores messages as (immediately resolved) promises
-    const messages = await Promise.all(this.msgs.map(({init, exec})=>{
-      // Encrypt init message
-      if (init) return this.encryptInit(init)
-      // Encrypt exec/handle message
-      if (exec) return this.encryptExec(exec)
-      // Anything in the messages array that does not have init or exec key is ignored
-    }))
-    // Print the body of the batch
-    this.log.batchMessagesEncrypted(messages, N)
-    // Compose the plaintext
-    const unsigned = this.composeUnsignedTx(messages, name)
-    // Output signing instructions to the console
-    new Console(this.log.label).batchSigningCommand(
-      String(Math.floor(+ new Date()/1000)),
-      this.agent.address!, assertChain(this.agent).id,
-      accountNumber, sequence, unsigned
-    )
-    return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
-  }
-
-  private async encryptInit (init: any): Promise<any> {
-    const encrypted = await this.agent.encrypt(init.codeHash, init.msg)
-    return {
-      "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
-      callback_code_hash: '',
-      callback_sig:       null,
-      sender:             init.sender,
-      code_id:     String(init.codeId),
-      init_funds:         init.funds,
-      label:              init.label,
-      init_msg:           encrypted,
+function shellescape (a: string[]) {
+  const ret: string[] = [];
+  a.forEach(function(s: string) {
+    if (/[^A-Za-z0-9_\/:=-]/.test(s)) {
+      s = "'"+s.replace(/'/g,"'\\''")+"'";
+      s = s.replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
+        .replace(/\\'''/g, "\\'" ); // remove non-escaped single-quote if there are enclosed between 2 escaped
     }
-  }
-
-  private async encryptExec (exec: any): Promise<any> {
-    const encrypted = await this.agent.encrypt(exec.codeHash, exec.msg)
-    return {
-      "@type":            '/secret.compute.v1beta1.MsgExecuteContract',
-      callback_code_hash: '',
-      callback_sig:       null,
-      sender:             exec.sender,
-      contract:           exec.contract,
-      sent_funds:         exec.funds,
-      msg:                encrypted,
-    }
-  }
-
-  private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
-    const fee = ScrtChain.gas(10000000)
-    const gas = fee.gas
-    const payer = ""
-    const granter = ""
-    const auth_info = { signer_infos: [], fee: { ...fee, gas, payer, granter }, }
-    const signatures: any[] = []
-    const body = {
-      memo,
-      messages:                       encryptedMessages,
-      timeout_height:                 "0",
-      extension_options:              [],
-      non_critical_extension_options: []
-    }
-    return { auth_info, signatures, body }
-  }
-
-  async submit (memo = ""): Promise<ScrtBatchResult[]> {
-    await super.submit(memo)
-    const chainId = assertChain(this).id
-    const results: ScrtBatchResult[] = []
-    const msgs  = this.conformedMsgs
-    const limit = Number(ScrtChain.defaultFees.exec?.amount[0].amount) || undefined
-    const gas   = msgs.length * (limit || 0)
-    try {
-      const agent = this.agent as unknown as ScrtAgent
-      await agent.ready
-      const txResult = await agent.api!.tx.broadcast(msgs as any, { gasLimit: gas })
-      if (txResult.code !== 0) {
-        const error = `(in batch): gRPC error ${txResult.code}: ${txResult.rawLog}`
-        throw Object.assign(new Error(error), txResult)
-      }
-      for (const i in msgs) {
-        const msg = msgs[i]
-        const result: Partial<ScrtBatchResult> = {}
-        result.sender  = this.address
-        result.tx      = txResult.transactionHash
-        result.chainId = chainId
-        if (msg instanceof MsgInstantiateContract) {
-          type Log = { msg: number, type: string, key: string }
-          const findAddr = ({msg, type, key}: Log) =>
-            msg  ==  Number(i) &&
-            type === "message" &&
-            key  === "contract_address"
-          result.type    = 'wasm/MsgInstantiateContract'
-          result.codeId  = msg.codeId
-          result.label   = msg.label
-          result.address = txResult.arrayLog?.find(findAddr)?.value
-        }
-        if (msg instanceof MsgExecuteContract) {
-          result.type    = 'wasm/MsgExecuteContract'
-          result.address = msg.contractAddress
-        }
-        results[Number(i)] = result as ScrtBatchResult
-      }
-    } catch (err) {
-      new Console(this.log.label)
-        .submittingBatchFailed(err as Error)
-      throw err
-    }
-    return results
-  }
-
-  async simulateForGas () {
-    const { api } = await this.agent.ready
-    const msgs = this.conformedMsgs
-    return await api!.tx.simulate(msgs as any)
-  }
-
-  /** Format the messages for API v1 like secretjs and encrypt them. */
-  private get conformedMsgs () {
-    const msgs = this.assertMessages().map(({init, exec}={})=>{
-      if (init) return new MsgInstantiateContract({
-        sender:          init.sender,
-        code_id:         init.codeId,
-        code_hash:       init.codeHash,
-        label:           init.label,
-        init_msg:        init.msg,
-        init_funds:      init.funds,
-      })
-      if (exec) return new MsgExecuteContract({
-        sender:           exec.sender,
-        contract_address: exec.contract,
-        code_hash:        exec.codeHash,
-        msg:              exec.msg,
-        sent_funds:       exec.funds,
-      })
-    })
-    return msgs
-  }
-
-}
-
-Object.assign(ScrtChain, { Agent: Object.assign(ScrtAgent, { Batch: ScrtBatch }) })
-
-export {
-  ScrtChain as Chain,
-  ScrtAgent as Agent,
-  ScrtBatch as Batch,
+    ret.push(s);
+  });
+  return ret.join(' ');
 }

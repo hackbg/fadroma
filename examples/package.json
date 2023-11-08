@@ -1,0 +1,11 @@
+{
+  "name": "@fadroma/example",
+  "private": "true",
+  "main": "example.ts",
+  "dependencies": {
+    "@hackbg/fadroma": "workspace:.."
+  },
+  "scripts": {
+    "fadroma": "time fadroma"
+  }
+}
