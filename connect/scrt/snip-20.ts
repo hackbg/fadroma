@@ -23,17 +23,23 @@ export class Snip20 extends ContractClient implements Token.Fungible {
   }
 
   /** Create a SNIP20 init message. */
-  static init (
-    name:     string,
-    symbol:   string,
-    decimals: number,
-    admin:    Address|{ address: Address },
-    config:   Partial<Snip20InitConfig> = {},
-    balances: Array<{address: Address, amount: Uint128}> = []
-  ): Snip20InitMsg {
-    if (typeof admin === 'object') admin = admin.address
+  static init ({
+    name, symbol, decimals, admin,
+    config = {}, balances = [], prngSeed = randomBase64()
+  }: {
+    name:      string,
+    symbol:    string,
+    decimals:  number,
+    admin:     Address|{ address: Address },
+    config?:   Partial<Snip20InitConfig>,
+    balances?: Array<{address: Address, amount: Uint128}>
+    prngSeed?: string
+  }): Snip20InitMsg {
+    if (admin && (typeof admin === 'object')) {
+      admin = admin.address
+    }
     return {
-      name, symbol, decimals, admin, config, initial_balances: balances, prng_seed: randomBase64(),
+      name, symbol, decimals, admin, config, initial_balances: balances, prng_seed: prngSeed,
     }
   }
 

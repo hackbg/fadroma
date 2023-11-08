@@ -22,7 +22,7 @@ export class ContractClient {
 
   constructor (contract: Address|Partial<ContractInstance>, agent?: ContractClient["agent"]) {
     if (typeof contract === 'string') {
-      this.contract = { address: contract }
+      contract = { address: contract }
     }
     this.contract = contract as Partial<ContractInstance>
     this.agent = agent
