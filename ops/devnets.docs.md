@@ -1,4 +1,4 @@
-## Devnet API
+## Fadroma Devnet API
 
 ### Obtaining a Devnet
 

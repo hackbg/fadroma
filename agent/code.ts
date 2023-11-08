@@ -256,16 +256,14 @@ export class RustSourceCode extends SourceCode {
 /** An object representing a given compiled binary. */
 export class CompiledCode {
   /** Code hash uniquely identifying the compiled code. */
-  codeHash?:  CodeHash
+  codeHash?: CodeHash
   /** Location of the compiled code. */
-  codePath?:  string|URL
+  codePath?: string|URL
   /** The compiled code. */
-  codeData?:  Uint8Array
+  codeData?: Uint8Array
 
   constructor (properties: Partial<CompiledCode> = {}) {
-    assign(this, properties, [
-      'codeHash', 'codePath', 'codeData'
-    ])
+    assign(this, properties, [ 'codeHash', 'codePath', 'codeData' ])
   }
 
   get [Symbol.toStringTag] () {
@@ -326,12 +324,12 @@ export class CompiledCode {
     }
     if (this.codeHash) {
       const hash0 = String(this.codeHash).toLowerCase()
-      const hash1 = base16.encode(sha256(this.codeData)).toLowerCase()
+      const hash1 = CompiledCode.toCodeHash(this.codeData)
       if (hash0 !== hash1) {
         throw new Error(`code hash mismatch: expected ${hash0}, computed ${hash1}`)
       }
     } else {
-      this.codeHash = base16.encode(sha256(this.codeData)).toLowerCase() 
+      this.codeHash = CompiledCode.toCodeHash(this.codeData)
       console
         .br()
         .warn("TOFU: Computed code hash from fetched data:")
@@ -359,7 +357,7 @@ export class CompiledCode {
 
   /** Compute the code hash if missing; throw if different. */
   async computeHash (): Promise<this & { codeHash: CodeHash }> {
-    const hash = base16.encode(sha256(await this.fetch()))
+    const hash = CompiledCode.toCodeHash(await this.fetch())
     if (this.codeHash) {
       if (this.codeHash.toLowerCase() !== hash.toLowerCase()) {
         throw new Error(`computed code hash ${hash} did not match preexisting ${this.codeHash}`)
@@ -370,25 +368,25 @@ export class CompiledCode {
     return this as this & { codeHash: CodeHash }
   }
 
-  static toBase16Sha256 (data: Uint8Array): string {
-    return base16.encode(sha256(data))
+  static toCodeHash (data: Uint8Array): string {
+    return base16.encode(sha256(data)).toLowerCase()
   }
 }
 
 /** An object representing the contract's binary uploaded to a given chain. */
 export class UploadedCode {
   /** Code hash uniquely identifying the compiled code. */
-  codeHash?:   CodeHash
+  codeHash?:  CodeHash
   /** ID of chain on which this contract is uploaded. */
-  chainId?:    ChainId
+  chainId?:   ChainId
   /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:     CodeId
+  codeId?:    CodeId
   /** TXID of transaction that performed the upload. */
-  uploadTx?:   TxHash
+  uploadTx?:  TxHash
   /** address of agent that performed the upload. */
-  uploadBy?:   Address|Agent
+  uploadBy?:  Address|Agent
   /** address of agent that performed the upload. */
-  uploadGas?:  string|number
+  uploadGas?: string|number
 
   constructor (properties: Partial<UploadedCode> = {}) {
     assign(this, properties, [
