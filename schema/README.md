@@ -10,3 +10,5 @@ the output of `cosmwasm-schema`.
 npm install --save-dev @fadroma/schema
 npm exec fadroma-schema myschema.json > myschema.md
 ```
+
+* TODO: Deploy CosmWasm schema viewer tool
