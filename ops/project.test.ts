@@ -49,11 +49,19 @@ export async function testProjectCommands () {
 }
 
 export async function testProjectCreate () {
-  await withTmpDir(root=>Projects.createProject({
-    name: 'test-project-1',
-    root,
-    interactive: false
-  }))
+  await withTmpDir(async root=>{
+    Projects.createProject({
+      name: 'test-project-1',
+      root,
+      interactive: false
+    })
+
+    const project = Projects.getProject(root)
+
+    await project.logStatus()
+
+    //project.getDeployment()
+  })
 
   //const create = new ProjectCreate({
     //interactive: false,
