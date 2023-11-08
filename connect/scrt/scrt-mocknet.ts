@@ -1,6 +1,7 @@
-import { Stub, Console, BatchBuilder, into, ContractInstance, randomBech32 } from '@fadroma/agent'
+import { Stub, Console, BatchBuilder, into, ContractInstance, randomBech32, Mode } from '@fadroma/agent'
 import type { Address, Message, UploadedCode, CodeId, Into } from '@fadroma/agent'
 import { MOCKNET_ADDRESS_PREFIX } from './scrt-mocknet-impl'
+import type { MocknetContract } from './scrt-mocknet-impl'
 
 /** Chain instance containing a local mocknet. */
 export class ScrtMocknet extends Stub.Agent {
@@ -15,7 +16,7 @@ export class ScrtMocknet extends Stub.Agent {
   contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
 
   constructor (options: Partial<ScrtMocknet> = {}) {
-    super({ chainId: 'mocknet', ...options, mode: Mode.Mocknet })
+    super({ chainId: 'mocknet', ...options, chainMode: Mode.Mocknet })
     this.log.label += ` (${this.chainId})`
   }
 
@@ -104,12 +105,10 @@ export class ScrtMocknet extends Stub.Agent {
 }
 
 class ScrtMocknetBatchBuilder extends BatchBuilder<ScrtMocknet> {
-  messages: object[] = []
-
+  messages: any[] = []
   get log () {
     return this.agent.log.sub('(batch)')
   }
-
   async submit (memo = "") {
     this.log.info('Submitting mocknet batch...')
     const results = []
@@ -135,9 +134,25 @@ class ScrtMocknetBatchBuilder extends BatchBuilder<ScrtMocknet> {
     }
     return results
   }
-
   save (name: string): Promise<unknown> {
     throw new Error('MocknetBatch#save: not implemented')
   }
-
+  upload (
+    ...args: Parameters<BatchBuilder<ScrtMocknet>["upload"]>
+  ) {
+    this.log.warn('scrt mocknet batch: not implemented')
+    return this
+  }
+  instantiate (
+    ...args: Parameters<BatchBuilder<ScrtMocknet>["instantiate"]>
+  ) {
+    this.log.warn('scrt mocknet batch: not implemented')
+    return this
+  }
+  execute (
+    ...args: Parameters<BatchBuilder<ScrtMocknet>["execute"]>
+  ) {
+    this.log.warn('scrt mocknet batch: not implemented')
+    return this
+  }
 }

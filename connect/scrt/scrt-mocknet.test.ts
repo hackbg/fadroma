@@ -3,6 +3,9 @@ import * as Mocknet from './scrt-mocknet'
 import * as MocknetImpl from './scrt-mocknet-impl'
 
 export default async function testScrtMocknet () {
+  new Mocknet.ScrtMocknet()
+  new MocknetImpl.ScrtMocknetState()
+  new MocknetImpl.MocknetContract()
   // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
   // responses) are returned by the contract as Base64-encoded strings
   // If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
