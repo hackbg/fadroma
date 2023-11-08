@@ -26,6 +26,7 @@ rustc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [features]
+default = ["scrt"]
 scrt = ["secret-cosmwasm-std"]
 scrt-staking = ["secret-cosmwasm-std/staking"]
 permit = ["scrt", "ripemd", "sha2", "remain", "bech32"]

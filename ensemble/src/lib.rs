@@ -26,6 +26,8 @@ pub use response::*;
 pub use error::*;
 pub use anyhow;
 
+pub use fadroma::prelude::cosmwasm_std;
+
 /// Generate a struct and implement [`ContractHarness`] for the given struct identifier,
 /// using the provided entry point functions.
 /// 
@@ -36,7 +38,7 @@ pub use anyhow;
 /// 
 /// ```
 /// # #[macro_use] extern crate fadroma;
-/// # use fadroma::cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, StdResult, Response, Binary, to_binary};
+/// # use fadroma::{schemars, cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, StdResult, Response, Binary, to_binary}};
 /// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 /// # pub struct InitMsg;
 /// # #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
@@ -69,7 +71,7 @@ pub use anyhow;
 ///     to_binary(&true)
 /// }
 /// 
-/// contract_harness! {
+/// fadroma_ensemble::contract_harness! {
 ///     pub NameOfStruct,
 ///     init: instantiate,
 ///     execute: execute,
@@ -82,17 +84,11 @@ macro_rules! contract_harness {
         fn instantiate(
             &self,
             deps: $crate::cosmwasm_std::DepsMut,
-            env: $crate::cosmwasm_std::Env,
+            env:  $crate::cosmwasm_std::Env,
             info: $crate::cosmwasm_std::MessageInfo,
-            msg: $crate::cosmwasm_std::Binary
-        ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
-            let result = $init(
-                deps,
-                env,
-                info,
-                $crate::cosmwasm_std::from_binary(&msg)?
-            )?;
-
+            msg:  $crate::cosmwasm_std::Binary
+        ) -> $crate::AnyResult<$crate::cosmwasm_std::Response> {
+            let result = $init(deps, env, info, $crate::cosmwasm_std::from_binary(&msg)?)?;
             Ok(result)
         }
     };
@@ -101,17 +97,11 @@ macro_rules! contract_harness {
         fn execute(
             &self,
             deps: $crate::cosmwasm_std::DepsMut,
-            env: $crate::cosmwasm_std::Env,
+            env:  $crate::cosmwasm_std::Env,
             info: $crate::cosmwasm_std::MessageInfo,
-            msg: $crate::cosmwasm_std::Binary
-        ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
-            let result = $execute(
-                deps,
-                env,
-                info,
-                $crate::cosmwasm_std::from_binary(&msg)?
-            )?;
-
+            msg:  $crate::cosmwasm_std::Binary
+        ) -> $crate::AnyResult<$crate::cosmwasm_std::Response> {
+            let result = $execute(deps, env, info, $crate::cosmwasm_std::from_binary(&msg)?)?;
             Ok(result)
         }
     };
@@ -120,15 +110,10 @@ macro_rules! contract_harness {
         fn query(
             &self,
             deps: $crate::cosmwasm_std::Deps,
-            env: $crate::cosmwasm_std::Env,
-            msg: $crate::cosmwasm_std::Binary
-        ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Binary> {
-            let result = $query(
-                deps,
-                env,
-                $crate::cosmwasm_std::from_binary(&msg)?
-            )?;
-
+            env:  $crate::cosmwasm_std::Env,
+            msg:  $crate::cosmwasm_std::Binary
+        ) -> $crate::AnyResult<$crate::cosmwasm_std::Binary> {
+            let result = $query(deps, env, $crate::cosmwasm_std::from_binary(&msg)?)?;
             Ok(result)
         }
     };
@@ -136,16 +121,11 @@ macro_rules! contract_harness {
     (@reply $reply:path) => {
         fn reply(
             &self,
-            deps: $crate::cosmwasm_std::DepsMut,
-            env: $crate::cosmwasm_std::Env,
+            deps:  $crate::cosmwasm_std::DepsMut,
+            env:   $crate::cosmwasm_std::Env,
             reply: $crate::cosmwasm_std::Reply
-        ) -> $crate::ensemble::AnyResult<$crate::cosmwasm_std::Response> {
-            let result = $reply(
-                deps,
-                env,
-                reply
-            )?;
-
+        ) -> $crate::AnyResult<$crate::cosmwasm_std::Response> {
+            let result = $reply(deps, env, reply)?;
             Ok(result)
         }
     };
@@ -153,7 +133,7 @@ macro_rules! contract_harness {
     (@trait_impl $visibility:vis $name:ident, $($contents:tt)*) => {
         $visibility struct $name;
 
-        impl $crate::ensemble::ContractHarness for $name {
+        impl $crate::ContractHarness for $name {
             $($contents)*
         }
     };

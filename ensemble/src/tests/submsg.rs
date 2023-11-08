@@ -1,16 +1,16 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    ContractEnsemble, ContractHarness,
+    MockEnv, AnyResult,
+    anyhow::{bail, anyhow},
+    response::ResponseVariants, EnsembleResult
+};
+use fadroma::{
     bin_serde::adapter::SerdeAdapter,
     storage::{SingleItem, ItemSpace, TypedKey},
-    ensemble::{
-        ContractEnsemble, ContractHarness,
-        MockEnv, AnyResult,
-        anyhow::{bail, anyhow},
-        response::ResponseVariants, EnsembleResult
-    }
 };
-use crate::prelude::*;
+use fadroma::prelude::*;
 
 const SENDER: &str = "sender";
 const A_ADDR: &str = "a";
@@ -54,10 +54,10 @@ struct StateResponse {
     balance: Coin
 }
 
-crate::namespace!(ReplyDataNs, b"reply_data_");
+fadroma::namespace!(ReplyDataNs, b"reply_data_");
 const REPLY_DATA: ItemSpace<Binary, ReplyDataNs, TypedKey<u64>> = ItemSpace::new();
 
-crate::namespace!(ReplyNs, b"reply");
+fadroma::namespace!(ReplyNs, b"reply");
 const REPLY_RESP: SingleItem<SerdeAdapter<SubMsg>, ReplyNs> = SingleItem::new();
 const REPLIES: ItemSpace<SerdeAdapter<SubMsgResponse>, ReplyNs, TypedKey<u64>> = ItemSpace::new();
 

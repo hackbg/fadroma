@@ -15,9 +15,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.71"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "base16ct"
@@ -228,14 +228,12 @@ dependencies = [
 
 [[package]]
 name = "fadroma"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
- "anyhow",
  "fadroma-derive-canonize",
  "fadroma-derive-serde",
  "fadroma-dsl",
  "fadroma-proc-auth",
- "oorandom",
  "schemars",
  "secret-cosmwasm-std",
  "serde",
@@ -269,19 +267,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "fadroma-example-admin"
+name = "fadroma-ensemble"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "fadroma",
- "fadroma-example-derive-contract-interface",
- "serde",
-]
-
-[[package]]
-name = "fadroma-example-derive-contract-interface"
-version = "0.1.0"
-dependencies = [
- "fadroma",
+ "oorandom",
  "serde",
 ]
 
@@ -492,6 +483,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "scrt-admin-example"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "fadroma-ensemble",
+ "scrt-derive-interface-example",
+ "serde",
+]
+
+[[package]]
+name = "scrt-derive-interface-example"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
 name = "sec1"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -520,9 +529,9 @@ dependencies = [
 
 [[package]]
 name = "secret-cosmwasm-std"
-version = "1.1.10"
+version = "1.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96c6a61dae35087c6408d020abaacc91e6011135015ebcc680f37bada7391411"
+checksum = "50e4393b01aa6587007161a6bb193859deaa8165ab06c8a35f253d329ff99e4d"
 dependencies = [
  "base64",
  "cosmwasm-derive",

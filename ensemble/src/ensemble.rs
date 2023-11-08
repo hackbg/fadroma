@@ -73,16 +73,18 @@ pub trait ContractHarness {
 /// use fadroma::{
 ///     cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, Response, Binary, from_binary, to_binary},
 ///     storage::{load, save},
-///     ensemble::{ContractEnsemble, ContractHarness, MockEnv, EnsembleResult, AnyResult},
 ///     serde::{Serialize, Deserialize},
-///     schemars::JsonSchema
+///     schemars::{self, JsonSchema}
+/// };
+/// use fadroma_ensemble::{
+///     ContractEnsemble, ContractHarness, MockEnv, EnsembleResult, AnyResult
 /// };
 /// 
 /// const NUMBER_KEY: &[u8] = b"number";
 /// 
 /// struct Counter;
 /// 
-/// #[derive(Serialize, Deserialize, JsonSchema)]
+/// #[derive(Serialize, Deserialize, schemars::JsonSchema)]
 /// #[serde(rename_all = "snake_case")]
 /// enum ExecuteMsg {
 ///     Increment,
@@ -271,10 +273,8 @@ impl ContractEnsemble {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::{
-    ///     ensemble::ContractEnsemble,
-    ///     cosmwasm_std::coin
-    /// };
+    /// use fadroma::cosmwasm_std::coin;
+    /// use fadroma_ensemble::ContractEnsemble;
     /// 
     /// let mut ensemble = ContractEnsemble::new();
     /// ensemble.add_funds("wallet", vec![coin(100, "uscrt")]);
@@ -296,10 +296,8 @@ impl ContractEnsemble {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma::{
-    ///     ensemble::ContractEnsemble,
-    ///     cosmwasm_std::{Uint128, coin}
-    /// };
+    /// use fadroma::cosmwasm_std::{Uint128, coin};
+    /// use fadroma_ensemble::ContractEnsemble;
     /// 
     /// let mut ensemble = ContractEnsemble::new();
     /// ensemble.add_funds("wallet", vec![coin(100, "uscrt")]);

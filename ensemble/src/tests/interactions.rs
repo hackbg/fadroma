@@ -2,14 +2,11 @@ use serde::{Deserialize, Serialize};
 use anyhow::{Result as AnyResult, bail};
 
 use crate::{
-    self as fadroma,
-    ensemble::{
-        ContractEnsemble, ContractHarness,
-        MockEnv, EnsembleResult, EnsembleError,
-        ResponseVariants
-    }
+    ContractEnsemble, ContractHarness,
+    MockEnv, EnsembleResult, EnsembleError,
+    ResponseVariants
 };
-use crate::prelude::*;
+use fadroma::prelude::*;
 
 const SEND_AMOUNT: u128 = 100;
 const SEND_DENOM: &str = "uscrt";
@@ -71,7 +68,8 @@ impl ContractHarness for Counter {
                 msg: to_binary(&MultiplierInit {
                     fail: msg.fail_multiplier,
                 })?,
-                label: "A".repeat(MockEnv::MAX_ADDRESS_LEN + 1)
+                label: "A".repeat(MockEnv::MAX_ADDRESS_LEN + 1),
+                admin: None
             },
             0
         );
