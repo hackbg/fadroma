@@ -644,13 +644,13 @@ importers:
       open:
         specifier: ^8.4.0
         version: 8.4.0
-      rimraf:
-        specifier: ^3.0.2
-        version: 3.0.2
       signal-exit:
         specifier: ^3.0.7
         version: 3.0.7
     devDependencies:
+      '@hackbg/ensuite':
+        specifier: ^1.5.1
+        version: link:..
       '@hackbg/ganesha':
         specifier: ^4.2
         version: link:../ganesha
@@ -921,6 +921,9 @@ importers:
       c8:
         specifier: ^8.0.1
         version: 8.0.1
+      typescript:
+        specifier: ^5.2.2
+        version: 5.2.2
 
   examples:
     dependencies:

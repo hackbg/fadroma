@@ -130,25 +130,25 @@ and `pnpm test:cov` or `pnpm test:lcov` to generate a test coverage report. Happ
 
 #### Publishing package versions
 
-The TypeScript packages have been configured to use `@hackbg/ubik` for publishing.
-Packages published using Ubik contain TS, ESM and CJS code side by side.
-This is all because in 2022 TypeScript made the decision to generate invalid ESM modules
-that Node 16+ would not consume. (Ubik "fixes it in post" by rewriting the `import` statements.)
+This will require you to update the `version` field in the updated package's
+`package.json`, as well as references to the updated package in each of its
+dependents.
 
 To test if a package is fit for publishing, use a "dry run":
 
 ```sh
-pnpm ubik dry
+pnpm release --dry-run
 ```
 
-To publish an individual package, use:
+To publish a package, run this in the package directory:
 
 ```sh
-pnpm ubik publish --otp <OTP>
+pnpm release
 ```
 
-Having made changes to `@hackbg/fadroma` and one or more subpackages,
-you can use `pnpm ubik:all` to publish them on NPM (note that this command has no dry run).
+You will need to do this once per package.
+
+Fadroma uses `@hackbg/ubik` to "fix in post" some drama around TypeScript and ESM extensions.
 
 #### Publishing docker image
 

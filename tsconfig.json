@@ -2,11 +2,7 @@
   "extends": "./tsconfig.base.json",
   "include": [
     "*.ts",
-    "agent/*.ts",
-    "ops/*.ts",
-    "connect/*.ts",
-    "connect/scrt/*.ts",
-    "connect/cw/*.ts"
+    "ops/*.ts"
   ],
   "exclude": [
     "**/*.dist.*",
