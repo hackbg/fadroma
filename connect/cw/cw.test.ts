@@ -1,7 +1,7 @@
 import { Mode, Token, Test } from '@fadroma/agent'
 import * as CW from '.'
-import * as Devnets from '../../ops/devnets'
-import { fixture } from '../../fixtures/fixtures'
+import { Devnets } from '@hackbg/fadroma'
+import { fixture } from '@fadroma/fixtures'
 import { throws, rejects, deepEqual, equal } from 'node:assert'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([

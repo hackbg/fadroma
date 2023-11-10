@@ -8,7 +8,7 @@ importers:
         specifier: workspace:2.0.0-rc.3
         version: link:agent
       '@fadroma/connect':
-        specifier: workspace:4.0.0-rc.1
+        specifier: workspace:4.0.0-rc.2
         version: link:connect
       '@hackbg/cmds':
         specifier: workspace:3.0.7
@@ -45,7 +45,7 @@ importers:
         specifier: workspace:*
         version: link:connect/cw
       '@fadroma/fixtures':
-        specifier: workspace:./fixtures
+        specifier: ./fixtures
         version: link:fixtures
       '@fadroma/scrt':
         specifier: workspace:*
@@ -129,10 +129,10 @@ importers:
         specifier: workspace:2.0.0-rc.3
         version: link:../agent
       '@fadroma/cw':
-        specifier: workspace:1.0.0-rc.1
+        specifier: workspace:1.0.0-rc.2
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:11.0.0-rc.1
+        specifier: workspace:11.0.0-rc.2
         version: link:scrt
       '@hackbg/conf':
         specifier: workspace:3.1.5

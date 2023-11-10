@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "2.0.0-rc.4",
+  "version": "2.0.0-rc.5",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type": "module",
   "main": "fadroma.ts",
@@ -8,21 +8,20 @@
   "description": "CosmWasm dApp framework.",
   "bin": { "fadroma": "fadroma.cli.cjs" },
   "files": [
-    "*.ts",
-    "tsconfig.json",
-    "Dockerfile",
-    "build.impl.mjs",
-    "devnets/*",
-    "logo.svg",
-    "!agent/*",
-    "!connect/*",
-    "!examples/*",
-    "!coverage/*",
-    "!target/*",
+    "LICENSE",
     "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",
     "TROUBLESHOOTING.md",
-    "LICENSE"
+
+    "*.ts", "!*.test.ts*",
+    "ops/*.ts", "!ops/*.test.ts*", "ops/build.impl.mjs",
+    "tsconfig.json",
+    "Dockerfile", "build.impl.mjs",
+    "devnets/*",
+    "!agent/*",
+    "!connect/*",
+    "!examples/*",
+    "!coverage/*", "!target/*"
   ],
   "license": "AGPL-3.0-only",
   "scripts": {
@@ -41,11 +40,12 @@
     "repl": "./fadroma.cli.cjs repl",
     "test": "time ensuite fadroma.test.ts",
     "ubik": "ubik",
-    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik publish --otp 123123"
+    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik publish --otp 123123",
+    "release:fast": "pnpm i && ubik publish --otp 123123"
   },
   "dependencies": {
     "@fadroma/agent":   "workspace:2.0.0-rc.3",
-    "@fadroma/connect": "workspace:4.0.0-rc.1",
+    "@fadroma/connect": "workspace:4.0.0-rc.2",
     "@hackbg/cmds":     "workspace:3.0.7",
     "@hackbg/dock":     "workspace:2",
     "@hackbg/file":     "workspace:2.0.0",
@@ -64,7 +64,7 @@
     "@hackbg/ganesha": { "optional": true }
   },
   "devDependencies": {
-    "@fadroma/fixtures": "workspace:./fixtures",
+    "@fadroma/fixtures": "./fixtures",
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/cw":     "workspace:*",
 
