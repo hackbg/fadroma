@@ -13,8 +13,5 @@
     "useUnknownInCatchVariables":    false,
     "plugins": [ { "transform": "@magic-works/commonjs-import.meta" } ]
   },
-  "exclude": [
-    "*.dist.*", "**/*.dist.*",
-    "*.spec.*", "**/*.spec.*"
-  ]
+  "exclude": [ "*.dist.*", "**/*.dist.*", "*.spec.*", "**/*.spec.*" ]
 }
