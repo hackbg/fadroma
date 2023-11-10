@@ -12,16 +12,13 @@
     "@noble/hashes":      "^1.3.2",
     "@noble/curves":      "^1.2.0"
   },
-  "devDependencies": {
-    "@hackbg/fadroma": "workspace:*"
-  },
   "scripts": {
-    "check":  "time tsc --noEmit",
-    "test":   "time ensuite cw.test.ts",
-    "cov":    "time ensuite-cov -r text -r lcov -- cw.test.ts",
-    "ubik":   "npm run check && npm run cov all && ubik",
+    "check": "time tsc --noEmit",
+    "test": "time ensuite cw.test.ts",
+    "cov": "time ensuite-cov -r text -r lcov -- cw.test.ts",
+    "ubik": "npm run check && npm run cov all && time ubik",
     "schema": "./schema/cw-gen-types.cjs",
-    "release": "pnpm ubik publish --access public --otp 123123",
-    "release:fast": "ubik publish --access public --otp 123123"
+    "release": "time pnpm ubik publish --access public --otp 123123",
+    "release:fast": "time ubik publish --access public --otp 123123"
   }
 }

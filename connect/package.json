@@ -12,10 +12,11 @@
     "@hackbg/conf":   "workspace:3.1.5"
   },
   "scripts": {
-    "check": "tsc --noEmit",
-    "test":  "time ensuite connect.test.ts",
-    "cov":   "time ensuite-cov -r text -r lcov -- connect.test.ts",
-    "ubik":  "pnpm check && pnpm cov all && ubik",
-    "release": "pnpm ubik --access public --otp 123123"
+    "check": "time tsc --noEmit",
+    "test": "time ensuite connect.test.ts",
+    "cov": "time ensuite-cov -r text -r lcov -- connect.test.ts",
+    "ubik": "npm run check && npm run cov all && time ubik",
+    "release": "time pnpm ubik publish --access public --otp 123123",
+    "release:fast": "time ubik publish --access public --otp 123123"
   }
 }

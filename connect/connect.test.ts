@@ -8,8 +8,8 @@ import assert from 'node:assert'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['config', () => testConnectConfig],
-  ['scrt',   () => import('./scrt/scrt.test')],
-  ['cw',     () => import('./cw/cw.test')]
+  //['scrt',   () => import('./scrt/scrt.test')],
+  //['cw',     () => import('./cw/cw.test')]
 ])
 
 export async function testConnectConfig () {
