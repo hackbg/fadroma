@@ -21,8 +21,5 @@
     "@hackbg/many": "^1",
     "@hackbg/oops": "workspace:^1.1",
     "@hackbg/over": "^1.1"
-  },
-  "devDependencies": {
-    "@hackbg/ensuite": "workspace:^1.5.1"
   }
 }

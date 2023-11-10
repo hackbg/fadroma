@@ -67,7 +67,7 @@
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/cw":     "workspace:*",
 
-    "@hackbg/ensuite": "workspace:^1.5.1",
+    "@hackbg/ensuite": "workspace:^1.5.2",
     "@hackbg/ganesha": "workspace:^4.2.0",
     "@hackbg/fadroma": "workspace:*",
     "@hackbg/ubik":    "workspace:*",

@@ -8,14 +8,12 @@ packages:
   - 'connect/scrt/secretjs-esm'
   - 'connect/scrt/secretjs-esm/ubik'
 
-  - 'ensuite'
-  - 'ensuite/toolbox'
-  - 'ensuite/toolbox/*'
-  - 'ensuite/ganesha'
-  - 'ensuite/ganesha/*'
-  - '!ensuite/ganesha/vsc'
-  - '!ensuite/ganesha/rollup'
-  - '!ensuite/ganesha/test'
+  - 'toolbox'
+  - 'toolbox/*'
+  - 'toolbox/ganesha/*'
+  - '!toolbox/ganesha/vsc'
+  - '!toolbox/ganesha/rollup'
+  - '!toolbox/ganesha/test'
 
   - '!examples/project'
 

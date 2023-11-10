@@ -11,9 +11,6 @@
     "@fadroma/cw":    "workspace:1.0.0-rc.1",
     "@hackbg/conf":   "workspace:3.1.5"
   },
-  "devDependencies": {
-    "@hackbg/ensuite": "workspace:^1.5.1"
-  },
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "time ensuite connect.test.ts",
