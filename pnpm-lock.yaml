@@ -5,7 +5,7 @@ importers:
   .:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.1
+        specifier: workspace:2.0.0-rc.3
         version: link:agent
       '@fadroma/connect':
         specifier: workspace:4.0.0-rc.1
@@ -44,6 +44,9 @@ importers:
       '@fadroma/cw':
         specifier: workspace:*
         version: link:connect/cw
+      '@fadroma/fixtures':
+        specifier: workspace:./fixtures
+        version: link:fixtures
       '@fadroma/scrt':
         specifier: workspace:*
         version: link:connect/scrt
@@ -123,7 +126,7 @@ importers:
   connect:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.1
+        specifier: workspace:2.0.0-rc.3
         version: link:../agent
       '@fadroma/cw':
         specifier: workspace:1.0.0-rc.1
@@ -138,7 +141,7 @@ importers:
   connect/cw:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.1
+        specifier: workspace:2.0.0-rc.3
         version: link:../../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -319,7 +322,7 @@ importers:
   connect/scrt:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.1
+        specifier: workspace:2.0.0-rc.3
         version: link:../../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -457,6 +460,8 @@ importers:
       '@hackbg/fadroma':
         specifier: workspace:..
         version: link:..
+
+  fixtures: {}
 
   toolbox:
     dependencies:

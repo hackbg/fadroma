@@ -18,3 +18,4 @@ packages:
   - '!examples/project'
 
   - 'examples'
+  - 'fixtures'

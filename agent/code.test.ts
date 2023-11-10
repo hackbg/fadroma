@@ -4,7 +4,7 @@
 import assert, { rejects, deepEqual, equal } from 'node:assert'
 import { ContractCode, SourceCode, RustSourceCode, CompiledCode, UploadedCode } from './code'
 import * as Stub from './stub'
-import { fixture } from '../fixtures/fixtures'
+import { fixture } from '@fadroma/fixtures'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([

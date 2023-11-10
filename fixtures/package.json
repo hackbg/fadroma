@@ -1,0 +1,5 @@
+{
+  "name": "@fadroma/fixtures",
+  "private": true,
+  "main": "fixtures.ts"
+}

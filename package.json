@@ -44,7 +44,7 @@
     "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik publish --otp 123123"
   },
   "dependencies": {
-    "@fadroma/agent":   "workspace:2.0.0-rc.1",
+    "@fadroma/agent":   "workspace:2.0.0-rc.3",
     "@fadroma/connect": "workspace:4.0.0-rc.1",
     "@hackbg/cmds":     "workspace:3.0.7",
     "@hackbg/dock":     "workspace:2",
@@ -64,6 +64,7 @@
     "@hackbg/ganesha": { "optional": true }
   },
   "devDependencies": {
+    "@fadroma/fixtures": "workspace:./fixtures",
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/cw":     "workspace:*",
 

@@ -6,7 +6,7 @@
   "files":   [ "*.ts", "!cw", "!evm", "!scrt" ],
   "description": "Catalog of platforms that Fadroma can operate on.",
   "dependencies": {
-    "@fadroma/agent": "workspace:2.0.0-rc.1",
+    "@fadroma/agent": "workspace:2.0.0-rc.3",
     "@fadroma/scrt":  "workspace:11.0.0-rc.1",
     "@fadroma/cw":    "workspace:1.0.0-rc.1",
     "@hackbg/conf":   "workspace:3.1.5"

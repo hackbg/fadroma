@@ -1,16 +1,16 @@
 {
   "name":    "@fadroma/agent",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.3",
   "type":    "module",
   "main":    "agent.ts",
-  "files": [ "*.ts", "**/*.ts" ],
+  "files": [ "*.ts", "!*.test.*" ],
   "description": "Isomorphic base layer for implementing dAPI clients. See @fadroma/scrt for Secret Network support.",
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "time ensuite agent.test.ts",
     "cov":   "time ensuite-cov -r text -r lcov -- agent.test.ts",
     "ubik":  "npm run check && npm run cov all && ubik",
-    "release": "npm run ubik --access public --otp 123123"
+    "release": "ubik publish --access public --otp 123123"
   },
   "dependencies": {
     "@hackbg/4mat": "workspace:^1.0.1",
