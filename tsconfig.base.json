@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "composite":                    true,
+    "rootDir":                      ".",
     "target":                       "esnext",
     "module":                       "esnext",
     "moduleResolution":             "node",

@@ -1,9 +1,6 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": [
-    "*.ts",
-    "ops/*.ts"
-  ],
+  "include": ["*.ts", "ops/*.ts", "ops/project.ts"],
   "exclude": [
     "**/*.dist.*",
     "**/*.mjs",
