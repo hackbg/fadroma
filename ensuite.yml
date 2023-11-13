@@ -12,7 +12,7 @@ coverage:
     - "devnets/devnet.init.mjs"
     - "devnets/devnet.server.mjs"
     - "dist/**/*"
-    - "ensuite/**/*"
+    - "toolbox/**/*"
     - "examples/**/*"
     - "fadroma.browser.ts"
     - "fadroma.cli.cjs"
