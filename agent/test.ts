@@ -17,7 +17,7 @@ export async function testChainSupport <
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
   const devnet = new (Devnet as any)({ version,  genesisAccounts })
 
-  const chain = await devnet.connect()
+  //const chain = await devnet.connect()
 
   const [alice, bob] = await Promise.all([
     devnet.connect({ name: 'Alice' }),
