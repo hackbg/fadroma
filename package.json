@@ -1,27 +1,36 @@
 {
   "name": "@hackbg/fadroma",
   "version": "2.0.0-rc.6",
-  "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hackbg/fadroma"
+  },
   "type": "module",
   "main": "fadroma.ts",
   "browser": "fadroma.browser.ts",
   "description": "CosmWasm dApp framework.",
-  "bin": { "fadroma": "fadroma.cli.cjs" },
+  "bin": {
+    "fadroma": "fadroma.cli.cjs"
+  },
   "files": [
     "LICENSE",
     "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",
     "TROUBLESHOOTING.md",
-
-    "*.ts", "!*.test.ts*",
-    "ops/*.ts", "!ops/*.test.ts*", "ops/build.impl.mjs",
+    "*.ts",
+    "!*.test.ts*",
+    "ops/*.ts",
+    "!ops/*.test.ts*",
+    "ops/build.impl.mjs",
     "tsconfig.json",
-    "Dockerfile", "build.impl.mjs",
+    "Dockerfile",
+    "build.impl.mjs",
     "devnets/*",
     "!agent/*",
     "!connect/*",
     "!examples/*",
-    "!coverage/*", "!target/*"
+    "!coverage/*",
+    "!target/*"
   ],
   "license": "AGPL-3.0-only",
   "scripts": {
@@ -30,7 +39,7 @@
     "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm cloc && pnpm clean && pnpm check && pnpm cov all && pnpm ubik --dry compile && ls -al",
     "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
     "cloc": "cloc --verbose=2 --fullpath --not-match-d=node_modules --not-match-f=pnpm-lock.yaml --exclude-dir=.github,.husky,ensuite,cosmjs-esm,secretjs-esm,coverage,state .",
-    "cov":  "time ensuite-cov fadroma.test.ts",
+    "cov": "time ensuite-cov fadroma.test.ts",
     "docs:dev": "ensuite-dev",
     "docs:render": "time ensuite/ensuite-render.cli.mjs",
     "docs:typedoc": "time typedoc --customCss ./typedoc.css --tsconfig ./tsconfig.json --entryPointStrategy Packages --entryPoints agent --entryPoints connect --entryPoints ensuite --entryPoints ensuite/ganesha --entryPoints ensuite/toolbox --entryPoints .",
@@ -44,48 +53,46 @@
     "release:fast": "pnpm i && ubik publish --otp 123123"
   },
   "dependencies": {
-    "@fadroma/agent":   "workspace:2.0.0-rc.3",
+    "@fadroma/agent": "workspace:2.0.0-rc.3",
     "@fadroma/connect": "workspace:4.0.0-rc.2",
-    "@hackbg/cmds":     "workspace:3.0.7",
-    "@hackbg/conf":     "workspace:3.1.5",
-    "@hackbg/dock":     "workspace:2",
-    "@hackbg/file":     "workspace:2.0.0",
-    "@hackbg/logs":     "workspace:2.0.8",
-    "@hackbg/port":     "workspace:1.3",
-    "@hackbg/repo":     "workspace:0.1.0",
-    "case":             "^1.6.3",
-    "dotenv":           "^16.0.1",
-    "prompts":          "^2.4.2",
-    "simple-git":       "^3.7.1"
+    "@hackbg/cmds": "workspace:*",
+    "@hackbg/conf": "workspace:*",
+    "@hackbg/dock": "workspace:^",
+    "@hackbg/file": "workspace:*",
+    "@hackbg/logs": "workspace:*",
+    "@hackbg/port": "workspace:~",
+    "@hackbg/repo": "workspace:*",
+    "case": "^1.6.3",
+    "dotenv": "^16.3.1",
+    "prompts": "^2.4.2"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^4.2.0"
   },
   "peerDependenciesMeta": {
-    "@hackbg/ganesha": { "optional": true }
+    "@hackbg/ganesha": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@fadroma/fixtures": "./fixtures",
-    "@fadroma/scrt":   "workspace:*",
-    "@fadroma/cw":     "workspace:*",
-
-    "@hackbg/ensuite": "workspace:^1.5.2",
-    "@hackbg/ganesha": "workspace:^4.2.0",
+    "@fadroma/cw": "workspace:*",
+    "@fadroma/fixtures": "link:fixtures",
+    "@fadroma/scrt": "workspace:*",
+    "@hackbg/ensuite": "workspace:^",
     "@hackbg/fadroma": "workspace:*",
-    "@hackbg/ubik":    "workspace:*",
-
-    "express": "^4.18.1",
-    "husky": "^8.0.3",
-    "lint-staged": "^13.1.2",
-    "typedoc": "0.25.3",
-    "typescript": "^5.2.2",
-
-    "@types/dockerode": "^3.3.14",
-    "@types/js-yaml": "^4.0.5",
+    "@hackbg/ganesha": "workspace:^",
+    "@hackbg/ubik": "workspace:*",
+    "@types/dockerode": "^3.3.23",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "latest",
     "@types/prettyjson": "^0.0.30",
-    "@types/prompts": "^2.4.2",
-    "@types/secure-random": "^1.1.0"
+    "@types/prompts": "^2.4.8",
+    "@types/secure-random": "^1.1.3",
+    "express": "^4.18.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.3.0",
+    "typedoc": "0.25.3",
+    "typescript": "^5.2.2"
   },
   "pnpm": {
     "peerDependencyRules": {
