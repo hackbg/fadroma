@@ -8,7 +8,7 @@ export async function testChainSupport <
 ) {
   const console = new Console(`testing(${bold(Agent.name)} + ${bold(Devnet.name)})`)
 
-  const { equal } = await import('node:assert')
+  const { equal, throws, rejects } = await import('node:assert')
   const sendFee = Agent.gas("1000000")
   const uploadFee = Agent.gas("10000000")
   const initFee = Agent.gas("10000000")
@@ -16,6 +16,9 @@ export async function testChainSupport <
 
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
   const devnet = new (Devnet as any)({ version,  genesisAccounts })
+
+  const chain = await devnet.connect()
+
   const [alice, bob] = await Promise.all([
     devnet.connect({ name: 'Alice' }),
     devnet.connect({ name: 'Bob' }),

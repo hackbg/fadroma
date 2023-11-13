@@ -25,7 +25,7 @@ class StubAgent extends Agent {
   async getBlockInfo () {
     return { height: + new Date() }
   }
-  get balance (): Promise<number> {
+  getBalance (...args: unknown[]): Promise<number> {
     throw new Error('unimplemented')
   }
   get height (): Promise<number> {

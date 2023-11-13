@@ -174,6 +174,17 @@ export abstract class Agent {
     )
     return result as Q
   }
+
+  get balance () {
+    if (!this.address) {
+      throw new Error('not authenticated, use .getBalance(token, address)')
+    } else if (!(this.constructor as { gasToken?: string }).gasToken) {
+      throw new Error('no default token for this chain, use .getBalance(token, address)')
+    } else {
+      return this.getBalance('uknow', this.address)
+    }
+  }
+
   /** Send native tokens to 1 recipient. */
   async send (
     recipient: Address|{ address?: Address },
@@ -296,11 +307,11 @@ export abstract class Agent {
     return result
   }
 
-  abstract getBlockInfo ():
-    Promise<unknown>
   abstract get height ():
     Promise<number>
-  abstract get balance ():
+  abstract getBlockInfo ():
+    Promise<unknown>
+  abstract getBalance (token?: string, address?: string):
     Promise<string|number|bigint>
   abstract getCodeId (contract: Address):
     Promise<CodeId>

@@ -5,7 +5,7 @@ import { fixture } from '@fadroma/fixtures'
 import { throws, rejects, deepEqual, equal } from 'node:assert'
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['chain',  testCWChain],
+  ['chain', testCWChain],
 ])
 
 export async function testCWChain () {
@@ -16,6 +16,14 @@ export async function testCWChain () {
     'uknow',
     fixture('cw-null.wasm')
   )
+
+  new CW.OKP4.Agent({ signer: {}, mnemonic: 'x' } as any)
+  throws(()=>new CW.OKP4.Agent({ address: 'foo', mnemonic: [
+    'define abandon palace resource estate elevator',
+    'relief stock order pool knock myth',
+    'brush element immense task rapid habit',
+    'angry tiny foil prosper water news'
+  ] } as any))
 
   new CW.OKP4.Cognitarium({}, alice)
   new CW.OKP4.Objectarium({}, bob)

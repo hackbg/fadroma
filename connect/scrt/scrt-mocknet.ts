@@ -62,13 +62,17 @@ class ScrtMocknet extends Stub.Agent {
     const contract = (this.state as ScrtMocknetState).getContract(queried)
     return contract.query({ msg: message })
   }
-  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
+  send (...args: unknown[]) {
     this.log.warn('send: stub')
     return Promise.resolve()
   }
-  sendMany (_1:any, _2:any, _3?:any, _4?:any) {
+  sendMany (...args: unknown[]) {
     this.log.warn('sendMany: stub')
     return Promise.resolve()
+  }
+  getBalance (...args: unknown[]) {
+    throw new Error('getBalance: not implemented')
+    return Promise.resolve(0)
   }
 }
 

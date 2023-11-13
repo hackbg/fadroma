@@ -81,14 +81,6 @@ class CWAgent extends Agent {
     )
   }
 
-  get balance () {
-    if (this.address) {
-      return this.getBalance('uknow', this.address)
-    } else {
-      throw new Error('not authenticated, use getBalance')
-    }
-  }
-
   /** Query native token balance. */
   async getBalance (
     token:   string = (this.constructor as typeof CWAgent).gasToken,
