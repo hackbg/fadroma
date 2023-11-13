@@ -22,6 +22,7 @@ coverage:
     - "spec/**/*"
     - "typedoc-theme.tsx"
     - "docs"
+    - "agent/test.ts"
 
 header:
   title: Fadroma
