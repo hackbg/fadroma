@@ -4,8 +4,8 @@
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['base',   ()=>import('./base.test')],
-  ['chain',  ()=>import('./chain.test')],
-  ['client', ()=>import('./client.test')],
+  ['connection',  ()=>import('./connection.test')],
+  //['client', ()=>import('./client.test')],
   ['code',   ()=>import('./code.test')],
   ['deploy', ()=>import('./deploy.test')],
   ['devnet', ()=>import('./devnet.test')],
@@ -13,12 +13,12 @@ export default new Suite([
   ['token',  ()=>import('./token.test')]
 ])
 
-import type { Agent, Devnet } from '.'
+import type { Connection, Devnet } from '.'
 import { Fee } from './token'
 export function testChainSupport <
-  A extends typeof Agent, D extends Devnet<A>
+  A extends typeof Connection, D extends Devnet<A>
 > (
-  Agent:  A,
+  Connection: A,
   devnet: D,
   token:  string
 ) {

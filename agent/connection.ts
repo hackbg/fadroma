@@ -2,28 +2,30 @@ import { Console, bold, into } from './base'
 import type { Address, Message } from './base'
 import * as Code from './code'
 import * as Deploy from './deploy'
-import type * as Token from './token'
+import * as Token from './token'
 import type * as Store from './store'
 
 export type FOO = 'foo'
 export type BAR = 'bar'
 
-class Foo<A> {}
-
-class Bar<A> { constructor (x: Foo<A>) {} }
-
-new Bar<BAR>(new Foo<FOO>)
-
-export type Mode = 'mainnet'|'testnet'|'devnet'|'mocknet'
-
 export type ChainId = string
 
-export abstract class Connection {
+export class Connection {
+  /** Native token of chain. */
+  static gasToken: Token.Native = new Token.Native('')
+  /** Native token of chain. */
+  static gas (amount): Token.Amount {
+    return this.gasToken.amount(amount)
+  }
+  /** Logging handle. */
   log = new Console(this.constructor.name)
-
+  /** API endpoint. */
   endpoint: Endpoint
+  /** Signer identity. */
   identity?: Identity
+  /** Default transaction fees. */
   fees?: { send?: Token.IFee, upload?: Token.IFee, init?: Token.IFee, exec?: Token.IFee }
+
   constructor (properties: Partial<Connection> = {}) {
     if (!properties.endpoint) {
       throw new Error('no endpoint')
@@ -44,17 +46,35 @@ export abstract class Connection {
     return result
   }
 
-  abstract getCodeId (
-    contract: Address
-  ): Promise<Code.CodeId>
+  /** Get the code id of a given address. */
+  getCodeId (contract: Address|{ address: Address }): Promise<Code.CodeId> {
+    const address = (typeof contract === 'string') ? contract : contract.address
+    this.log.debug(`Fetching code ID of ${bold(address)}`)
+    return this.timed(
+      () => this.endpoint.getCodeId(address),
+      (t, result) => `Fetched in ${bold(t)}: address ${bold(address)} has code ID ${bold(result)}`
+    )
+  }
 
-  abstract getCodeHashOfCodeId (
-    codeId: Code.CodeId
-  ): Promise<Code.CodeHash>
+  /** Get the code hash of a given code id. */
+  getCodeHashOfCodeId (contract: Code.CodeId|{ codeId: Code.CodeId }): Promise<Code.CodeHash> {
+    const codeId = (typeof contract === 'object') ? contract.codeId : contract
+    this.log.debug(`Fetching code hash of code id ${bold(codeId)}`)
+    return this.timed(
+      () => this.endpoint.getCodeHashOfCodeId(codeId),
+      (t, result) => `Fetched in ${bold(t)}: code ID ${bold(codeId)} has hash ${bold(result)}`
+    )
+  }
 
-  abstract getCodeHashOfAddress (
-    contract: Address
-  ): Promise<Code.CodeHash>
+  /** Get the code hash of a given address. */
+  getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Code.CodeHash> {
+    const address = (typeof contract === 'string') ? contract : contract.address
+    this.log.debug(`Fetching code hash of address ${bold(address)}`)
+    return this.timed(
+      () => this.endpoint.getCodeHashOfCodeId(address),
+      (t, result) => `Fetched in ${bold(t)}: code ID ${bold(address)} has hash ${bold(result)}`
+    )
+  }
 
   /** Get a client handle for a specific smart contract, authenticated as as this agent. */
   getContract (
@@ -106,7 +126,9 @@ export abstract class Connection {
     return {}
   }
 
-  abstract get height (): Promise<number>
+  get height (): Promise<number> {
+    return this.endpoint.height
+  }
 
   /** Time to ping for next block. */
   blockInterval = 250
@@ -153,11 +175,55 @@ export abstract class Connection {
     } else if (!(this.constructor as { gasToken?: string }).gasToken) {
       throw new Error('no default token for this chain, use .getBalance(token, address)')
     } else {
-      return this.getBalance('uknow', this.identity.address)
+      return this.getBalanceOf(this.identity.address)
     }
   }
 
-  abstract getBalance (token: string, address: Address): Promise<string|number|bigint>
+  /** Get the balance in a native token of a given address,
+    * either in this connection's gas token,
+    * or in another given token. */
+  getBalanceOf (address: Address|{ address: Address }, token?: string) {
+    if (!address) {
+      throw new Error('pass (address, token?) to getBalanceOf')
+    }
+    token ??= (this.constructor as typeof Connection).gasToken?.id
+    if (!token) {
+      throw new Error('no token for balance query')
+    }
+    const addr = (typeof address === 'string') ? address : address.address
+    if (addr === this.identity?.address) {
+      this.log.debug('Querying', bold(token), 'balance')
+    } else {
+      this.log.debug('Querying', bold(token), 'balance of', bold(addr))
+    }
+    return this.timed(
+      () => this.endpoint.getBalance(token, addr),
+      (t, result) => `Fetched in ${t}s: balance of ${bold(address)} is ${bold(result)}`
+    )
+  }
+
+  /** Get the balance in a given native token, of
+    * either this connection's identity's address,
+    * or of another given address. */
+  getBalanceIn (token: string, address?: Address|{ address: Address }) {
+    if (!token) {
+      throw new Error('pass (token, address?) to getBalanceIn')
+    }
+    address ??= this.identity?.address
+    if (!address) {
+      throw new Error('no address for balance query')
+    }
+    const addr = (typeof address === 'string') ? address : address.address
+    if (addr === this.identity?.address) {
+      this.log.debug('Querying', bold(token), 'balance')
+    } else {
+      this.log.debug('Querying', bold(token), 'balance of', bold(addr))
+    }
+    return this.timed(
+      () => this.endpoint.getBalance(token, addr),
+      (t, result) => `Fetched in ${t}s: balance of ${bold(address)} is ${bold(result)}`
+    )
+  }
 
   /** Query a contract. */
   async query <Q> (contract: Address|{ address: Address }, message: Message): Promise<Q> {
@@ -296,23 +362,26 @@ export abstract class Connection {
   }
 
   /** Construct a transaction batch. */
-  abstract batch (): Batch<typeof this>
+  batch (): Batch<typeof this> {
+    return new Batch(this)
+  }
 }
 
 export abstract class Endpoint {
+  /** Logging handle. */
   log = new Console(this.constructor.name)
-
+  /** Chain ID. */
   id?: ChainId
-  
-  live?: true
-  
-  mode?: Mode
-  
+  /** Setting this to false stops retries. */
+  live: boolean = true
+  /** Connection URL. */
   url?: string
-  
+  /** Platform SDK. */
   api?: unknown
 
   constructor (properties: Partial<Endpoint> = {}) {}
+
+  abstract get height (): Promise<number>
 
   abstract getBlockInfo (): Promise<unknown>
 
@@ -361,13 +430,15 @@ export abstract class Endpoint {
   ): Promise<unknown>
 }
 
-export abstract class Identity {
+export class Identity {
   log = new Console(this.constructor.name)
 
   name?: Address
   address?: Address
   constructor (properties: Partial<Identity> = {}) {}
-  abstract sign (): unknown
+  sign (doc: any): unknown {
+    throw new Error("can't sign: stub")
+  }
 }
 
 /** ContractHandle: interface to the API of a particular contract instance.
@@ -422,14 +493,29 @@ export class ContractHandle {
 }
 
 /** Builder object for batched transactions. */
-export abstract class Batch<C extends Connection> {
+export class Batch<C extends Connection> {
+  log = new Console(this.constructor.name)
+
   constructor (readonly connection: C) {}
+
   /** Add an upload message to the batch. */
-  abstract upload (...args: Parameters<C["upload"]>): this
+  upload (...args: Parameters<C["upload"]>): this {
+    this.log.warn('upload: stub (not implemented)')
+    return this
+  }
   /** Add an instantiate message to the batch. */
-  abstract instantiate (...args: Parameters<C["instantiate"]>): this
+  instantiate (...args: Parameters<C["instantiate"]>): this {
+    this.log.warn('instantiate: stub (not implemented)')
+    return this
+  }
   /** Add an execute message to the batch. */
-  abstract execute (...args: Parameters<C["execute"]>): this
+  execute (...args: Parameters<C["execute"]>): this {
+    this.log.warn('execute: stub (not implemented)')
+    return this
+  }
   /** Submit the batch. */
-  abstract submit (...args: unknown[]): Promise<unknown>
+  async submit (...args: unknown[]): Promise<unknown> {
+    this.log.warn('submit: stub (not implemented)')
+    return {}
+  }
 }

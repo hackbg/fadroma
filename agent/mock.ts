@@ -46,6 +46,10 @@ class StubAgent extends Agent {
     if (!code) throw new Error(`unknown code ${id}`)
     return code.codeHash
   }
+  protected async doGetContractsByCodeId (id: CodeId) {
+    throw new Error('unimplemented')
+    return []
+  }
   protected doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
     return Promise.resolve({} as Q)
   }

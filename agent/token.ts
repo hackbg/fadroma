@@ -61,18 +61,31 @@ abstract class FungibleToken extends Token {
   static readonly addZeros = (n: number|Uint128, z: number): Uint128 => {
     return `${n}${[...Array(z)].map(() => '0').join('')}`
   }
+
+  amount (amount: Uint128): TokenAmount {
+    return new TokenAmount(amount, this)
+  }
+}
+
+/** An amount of a fungible token. */
+class TokenAmount {
+  constructor (public amount: Uint128, public token: FungibleToken,) {}
+  /** Pass this to send, initSend, execSend */
+  get asNativeBalance (): ICoin[] {
+    if (this.token.isNative()) {
+      return [new Coin(this.amount, this.token.denom)]
+    }
+    return []
+  }
 }
 
 /** The chain's natively implemented token (such as SCRT on Secret Network). */
 class NativeToken extends FungibleToken {
   constructor (readonly denom: string) { super() }
-
   /** The token's unique id. */
   get id () { return this.denom }
-
   /** @returns false */
   isCustom = () => false
-
   /** @returns true */
   isNative = () => true
 }
@@ -80,13 +93,10 @@ class NativeToken extends FungibleToken {
 /** A contract-based token. */
 class CustomToken extends FungibleToken {
   constructor (readonly address: Address, readonly codeHash?: string) { super() }
-
   /** The token contract's address. */
   get id () { return this.address }
-
   /** @returns true */
   isCustom = () => true
-
   /** @returns false */
   isNative = () => false
 
@@ -105,18 +115,6 @@ class TokenPair {
   /** Reverse the pair. */
   get reverse (): TokenPair {
     return new TokenPair(this.b, this.a)
-  }
-}
-
-/** An amount of a fungible token. */
-class TokenAmount {
-  constructor (public amount: Uint128, public token: FungibleToken,) {}
-  /** Pass this to send, initSend, execSend */
-  get asNativeBalance (): ICoin[] {
-    if (this.token.isNative()) {
-      return [new Coin(this.amount, this.token.denom)]
-    }
-    return []
   }
 }
 
