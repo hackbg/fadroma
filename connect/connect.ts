@@ -16,28 +16,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Console, Error, Agent, Mode, ChainId, bold } from '@fadroma/agent'
-import * as Scrt from '@fadroma/scrt'
-import * as CW from '@fadroma/cw'
-import { Config } from '@hackbg/conf'
-import type { Environment } from '@hackbg/conf'
-export * from '@hackbg/conf'
 export * from '@fadroma/agent'
-export { Scrt, CW }
-
-/** Connection configuration. Factory for `Chain` and `Agent` objects. */
-export class ConnectConfig extends Config {
-  /** Secret Network configuration. */
-  scrt: Scrt.Config
-  /** OKP4 configuration. */
-  okp4: CW.OKP4.Config
-
-  constructor (options: Partial<ConnectConfig> & Partial<{
-    scrt: Partial<Scrt.Config>, okp4: Partial<CW.OKP4.Config>
-  }> = {}, environment?: Environment) {
-    super(environment)
-    this.override(options)
-    this.scrt = new Scrt.Config(options?.scrt, environment)
-    this.okp4 = new CW.OKP4.Config(options?.okp4, environment)
-  }
-}
+export * as Scrt from '@fadroma/scrt'
+export * as CW from '@fadroma/cw'
