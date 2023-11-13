@@ -1,16 +1,20 @@
-import { Console, bold, colors } from '@fadroma/connect'
+import { bold, colors } from '@fadroma/connect'
+import type { DeployStore, UploadedCode } from '@fadroma/connect'
+import $, { Path, TextFile, JSONFile, TOMLFile, Directory } from '@hackbg/file'
+
 import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
 import { cwd } from 'node:process'
 import Case from 'case'
-import $, { Path, TextFile, JSONFile, TOMLFile, Directory } from '@hackbg/file'
+import Prompts from 'prompts'
+import * as dotenv from 'dotenv'
+
 import { console } from './config'
 import type { Project } from './project'
 
 export const NOT_INSTALLED = 'not installed'
 
 export class SystemTools {
-
   constructor (readonly verbose: boolean = true) {}
 
   /** Check and report a variable */
@@ -65,13 +69,6 @@ export class SystemTools {
 /** Run one or more external commands in the project root. */
 export function runShellCommands (cwd: string, cmds: string[]) {
   return cmds.map(cmd=>execSync(cmd, { cwd, stdio: 'inherit' }))
-}
-
-export function createGitRepo (cwd: string, tools: SystemTools): {
-  nonfatal: boolean
-} {
-  let nonfatal = false
-  return { nonfatal }
 }
 
 export function runNPMInstall (project: Project, tools: SystemTools): {
@@ -261,4 +258,251 @@ export function writeCrates ({ cargoToml, wasmDir, crates }: {
       .as(TextFile)
       .save(`${sha256}  *${name}`)
   }
+}
+
+export function logInstallRust ({ isMac, homebrew, cargo, rust }: SystemTools) {
+  if (!cargo || !rust) {
+    console.warn('Tool not available: cargo or rustc.')
+    console.warn('Building contract without container will fail.')
+    if (isMac && !homebrew) {
+      console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+    } else {
+      console.info('You can install it with:')
+      console.info('  $ brew install rustup')
+      console.info('  $ rustup target add wasm32-unknown-unknown')
+    }
+  }
+}
+
+export function logInstallSha256Sum ({ isMac, homebrew, sha256sum }: SystemTools) {
+  if (!sha256sum) {
+    console.warn('Tool not available: sha256sum. Building contract without container will fail.')
+    if (isMac && !homebrew) {
+      console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+    } else {
+      console.info('You can install it with:')
+      console.info('  $ brew install coreutils')
+    }
+  }
+}
+
+export function logInstallWasmOpt ({ isMac, homebrew, wasmOpt }: SystemTools) {
+  if (!wasmOpt) {
+    console.warn('Tool not available: wasm-opt. Building contract without container will fail.')
+    if (isMac && !homebrew) {
+      console.info('Install homebrew (https://docs.brew.sh/Installation), then:')
+    } else {
+      console.info('You can install it with:')
+      console.info('  $ brew install binaryen')
+    }
+  }
+}
+
+export async function logProjectCreated ({ root }: { root: Path }) {
+  console.log("Project created at", bold(root.shortPath)).info()
+    .info(`To compile your contracts:`).info(`  $ ${bold('npm run build')}`)
+    .info(`To spin up a local deployment:`).info(`  $ ${bold('npm run devnet deploy')}`)
+    .info(`To deploy to testnet:`).info(`  $ ${bold('npm run testnet deploy')}`)
+}
+
+export class InputCancelled extends Error {}
+
+const choice = <T>(title: string, value: T) => ({ title, value })
+
+export class Prompter {
+
+  constructor (
+    public prompts: { prompt: typeof Prompts["prompt"] } = Prompts,
+    public interactive: boolean = true
+  ) {}
+
+  async text <T> (message: string, {
+    valid = (x: string) => clean(x).length > 0,
+    clean = (x: string) => x.trim()
+  }: {
+    valid?: (x: string) => boolean,
+    clean?: (x: string) => string,
+  } = {}): Promise<string> {
+    while (true) {
+      const input = await this.prompts.prompt({
+        type: 'text',
+        name: 'value',
+        message
+      })
+      if ('value' in input) {
+        if (valid(input.value)) {
+          return clean(input.value)
+        }
+      } else {
+        console.error('Input cancelled.')
+        process.exit(1)
+      }
+    }
+  }
+
+  async select <T> (message: string, choices: T[]) {
+    const input = await this.prompts.prompt({
+      type: 'select',
+      name: 'value',
+      message,
+      choices
+    })
+    if ('value' in input) {
+      return input.value
+    }
+    throw new InputCancelled()
+    console.error('Input cancelled.')
+    process.exit(1)
+  }
+
+  async untilDone <S> (
+    state: S, selector: (state: S)=>Promise<Function|null>|Function|null
+  ) {
+    let action = null
+    while (typeof (action = await Promise.resolve(selector(state))) === 'function') {
+      await Promise.resolve(action(state))
+    }
+    return state
+  }
+
+}
+
+export class ProjectPrompter extends Prompter {
+
+  deployment (store: DeployStore & { root?: Path }): Promise<string|undefined> {
+    const label = store.root
+      ? `Select a deployment from ${store.root.shortPath}:`
+      : `Select a deployment:`
+    return this.select(label, [
+      [...store.keys()].map(title=>({ title, value: title })),
+      { title: '(cancel)', value: undefined }
+    ])
+  }
+
+  async projectName (): Promise<string> {
+    let value
+    do {
+      value = await this.text('Enter a project name (a-z, 0-9, dash/underscore)')??''
+      value = value.trim()
+      if (!isNaN(value[0] as any)) {
+        console.info('Project name cannot start with a digit.')
+        value = ''
+      }
+    } while (value === '')
+    return value
+  }
+
+  async projectRoot (name: string|Promise<string>|undefined): Promise<Path> {
+    name =
+      await Promise.resolve(name) as string
+    const cwd =
+      $(process.cwd()).as(Directory)
+    const exists =
+      cwd.in(name).exists()
+    const inSub =
+      `Subdirectory (${exists?'overwrite: ':''}${cwd.basename}/${name})`
+    const inCwd =
+      `Current directory (${cwd.basename})`
+    const choices = [
+      { title: inSub, value: cwd.in(name) },
+      { title: inCwd, value: cwd },
+    ]
+    if ((cwd.list()?.length||0) === 0) {
+      choices.reverse()
+    }
+    return this.select(
+      `Create project ${name} in current directory or subdirectory?`,
+      choices
+    )
+  }
+
+  projectMode = (prompts: typeof Prompts = Prompts): Promise<0|1|typeof Infinity> =>
+    this.select(`How many crates will this project contain?`, [
+      choice('No crates, just scripts.',         0),
+      choice('One contract crate plus scripts.', 1),
+      choice('One workspace plus scripts.',      Infinity),
+    ])
+
+  contractCrates = (name: string): Promise<Record<string, Partial<UploadedCode>>> =>
+    this.untilDone({}, state => {
+      const message = [
+        `Project ${name} contains ${Object.keys(state).length} contract(s):\n`,
+        `  ${Object.keys(state).join(',\n  ')}`
+      ].join('')
+      return this.select(message, [
+        choice(`Add contract template to the project`, ()=>this.defineContract(state)),
+        choice(`Remove contract template`,             ()=>this.undefineContract(state)),
+        choice(`Rename contract template`,             ()=>this.renameContract(state)),
+        choice(`(done)`,                               null),
+      ])
+    })
+
+  defineContract = async (state: Record<string, any>) => {
+    let crate
+    crate = await this.text(
+      'Enter a name for the new contract (lowercase a-z, 0-9, dash, underscore):'
+    )??''
+    if (!isNaN(crate[0] as any)) {
+      console.info('Contract name cannot start with a digit.')
+      crate = ''
+    }
+    if (crate) {
+      state[crate] = { crate }
+    }
+  }
+
+  undefineContract = async (state: Record<string, any>) => {
+    const name = await this.select(`Select contract to remove from project scope:`, [
+      ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+      { title: `(done)`, value: null },
+    ])
+    if (name === null) {
+      return
+    }
+    delete state[name]
+  }
+
+  renameContract = async (state: Record<string, any>) => {
+    const name = await this.select(`Select contract to rename:`, [
+      ...Object.keys(state).map(contract=>({ title: contract, value: contract })),
+      { title: `(done)`, value: null },
+    ])
+    if (name === null) {
+      return
+    }
+    const newName = await this.text(`Enter a new name for ${name} (a-z, 0-9, dash/underscore):`)
+    if (newName) {
+      state[newName] = Object.assign(state[name], { name: newName })
+      delete state[name]
+    }
+  }
+
+  compileMode = (
+    {
+      isLinux, cargo  = NOT_INSTALLED, docker = NOT_INSTALLED, podman = NOT_INSTALLED
+    }: Partial<SystemTools> = {},
+    prompts: {
+      prompt: typeof Prompts["prompt"]
+    } = Prompts
+  ): Promise<'raw'|'docker'|'podman'> => {
+    const variant = (value: string, title: string) => ({ value, title })
+    /* TODO: podman is currently disabled
+    const buildPodman = variant('podman',
+      `Isolate builds in a Podman container (experimental; ${podman||'podman: not found!'})`)
+    const hasPodman = podman && (podman !== NOT_INSTALLED)
+     const engines = hasPodman ? [ buildPodman, buildDocker ] : [ buildDocker, buildPodman ] */
+    const engines = [
+      variant('docker', `Compile contracts in a local container (${docker||'docker: not found!'})`)
+    ]
+    const buildRaw = variant(
+      'raw', `Compiler contracts with your local toolchain (${cargo||'cargo: not found!'})`
+    )
+    if (isLinux) {
+      engines.push(buildRaw)
+    } else {
+      engines.unshift(buildRaw)
+    }
+    return this.select(`Select build isolation mode:`, engines)
+  }
+
 }

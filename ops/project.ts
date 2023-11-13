@@ -6,21 +6,14 @@ import type { Agent, ChainId, ContractCode } from '@fadroma/connect'
 import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
-import * as Compilers from './build'
 import { console, packageRoot } from './config'
-import * as Stores from './stores'
-import * as Devnets from './devnets'
-import {
-  askProjectName,
-  askProjectRoot,
-  askCompiler,
-  logInstallRust,
-  logInstallSha256Sum,
-  logInstallWasmOpt,
-} from './prompts'
-import * as Tools from './tools'
 import { execSync } from 'node:child_process'
 import Case from 'case'
+
+import * as Compilers from './build'
+import * as Stores from './stores'
+import * as Devnets from './devnets'
+import * as Tools from './tools'
 
 const { version, dependencies } = $(packageRoot, 'package.json').as(JSONFile<any>).load()
 
@@ -48,19 +41,16 @@ export async function createProject (options?: {
   cargoCrate?:     string,
   libFeatures?:    string[],
 }) {
-  const tools =
-    options?.tools || new Tools.SystemTools()
-  const interactive =
-    options?.interactive ?? tools.interactive
+  const tools = options?.tools || new Tools.SystemTools()
+  const interactive = options?.interactive ?? tools.interactive
+  const prompter = new Tools.ProjectPrompter()
   // 1st question: project name (required).
-  const name =
-    options?.name || await Promise.resolve(interactive ? askProjectName() : undefined)
+  const name = options?.name || await Promise.resolve(interactive ? prompter.projectName() : undefined)
   if (!name) {
     throw new Error('missing project name')
   }
   // 2nd question: project directory (defaults to subdir of current dir)
-  let root =
-    options?.root || await Promise.resolve(interactive ? askProjectRoot(name) : undefined)
+  let root = options?.root || await Promise.resolve(interactive ? prompter.projectRoot(name) : undefined)
   if (!root) {
     root = $(tools.cwd, name as string)
   }
@@ -75,12 +65,9 @@ export async function createProject (options?: {
     .writeApplicationTemplate()
     .runNPMInstall(tools)
 
-  console.log({options})
-
   //if (options?.cargoWorkspace && options?.cargoCrate) {
     //throw new Error('specify either cargoWorkspace or cargoCrate')
   //}
-
   //if (options?.cargoWorkspace || options?.cargoCrate) {
     //if (options.cargoWorkspace) {
       //project = project.writeCargoWorkspace({
@@ -94,7 +81,7 @@ export async function createProject (options?: {
       //})
     //}
     //if (interactive) {
-      //switch (await askCompiler(options?.tools)) {
+      //switch (await Tools.askCompiler(options?.tools)) {
         //case 'podman':
           //project.envFile.save(`${project.envFile.load()}\nFADROMA_BUILD_PODMAN=1`)
           //break
@@ -103,12 +90,11 @@ export async function createProject (options?: {
           //break
       //}
     //}
-    //logInstallRust(tools)
-    //logInstallSha256Sum(tools)
-    //logInstallWasmOpt(tools)
+    //Tools.logInstallRust(tools)
+    //Tools.logInstallSha256Sum(tools)
+    //Tools.logInstallWasmOpt(tools)
     //Tools.gitCommit(project.root.path, '"Updated lockfiles."')
   //}
-
   return project
 }
 

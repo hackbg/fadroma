@@ -2,8 +2,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Config, Console, Error, Compiler, CompiledCode, HEAD, RustSourceCode, bold, assign,
+  Console, Error, Compiler, CompiledCode, HEAD, RustSourceCode, bold, assign,
 } from '@fadroma/connect'
+import { Config } from '@hackbg/conf'
 import type { Container } from '@hackbg/dock'
 import { DotGit } from '@hackbg/repo'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'

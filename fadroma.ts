@@ -20,7 +20,6 @@ import type { ChainId, DeployStore } from '@fadroma/connect'
 import { Agent, Console, bold, timestamp, Deployment, CW, Scrt } from '@fadroma/connect'
 import * as Compilers from './ops/build'
 import * as Devnets from './ops/devnets'
-import * as Prompts from './ops/prompts'
 import * as Stores from './ops/stores'
 import * as Tools from './ops/tools'
 import { CommandContext } from '@hackbg/cmds'
@@ -28,7 +27,7 @@ import { getProject, createProject, Project } from './ops/project'
 import $, { JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 
-export { Compilers, Devnets, Prompts, Stores, Tools, }
+export { Compilers, Devnets, Stores, Tools }
 export * from '@fadroma/connect'
 export * from './ops/project'
 
@@ -131,7 +130,7 @@ export async function selectDeployment (
   }
   if (!name) {
     if (process.stdout.isTTY) {
-      name = await Prompts.askDeployment(store)
+      name = await new Tools.ProjectPrompter().deployment(store)
     } else {
       throw new Error('pass deployment name')
     }

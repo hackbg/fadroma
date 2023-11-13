@@ -2,9 +2,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  assign, Config, Error, Console, bold, Token, Agent, Devnet, Scrt, CW, Stub
+  assign, Error, Console, bold, Token, Agent, Devnet, Scrt, CW, Stub
 } from '@fadroma/connect'
-import type { CodeId, ChainId, Environment, Address, Uint128, CompiledCode } from '@fadroma/connect'
+import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/connect'
+import { Config } from '@hackbg/conf'
 import $, { JSONFile, JSONDirectory, Directory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import portManager, { waitPort } from '@hackbg/port'

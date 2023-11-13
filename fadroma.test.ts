@@ -8,7 +8,6 @@ export default new Suite([
   ['build',   () => import('./ops/build.test')],
   ['devnets', () => import('./ops/devnets.test')],
   ['project', () => import('./ops/project.test')],
-  ['prompts', () => import('./ops/prompts.test')],
   ['stores',  () => import('./ops/stores.test')],
   ['tools',   () => import('./ops/tools.test')],
   ['connect', () => import('./connect/connect.test')],
