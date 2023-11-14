@@ -26,6 +26,7 @@ export type ChainId = string
 
 /** A connection to a chain. */
 export abstract class Agent {
+  static log = new Console(this.name)
   /** Denomination of the token used to pay gas fees. */
   static gasToken = ''
   /** @returns Fee in gasToken */
