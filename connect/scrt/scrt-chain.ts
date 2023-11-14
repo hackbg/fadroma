@@ -16,6 +16,17 @@ import {
 
 const { MsgStoreCode, MsgExecuteContract, MsgInstantiateContract } = Tx
 
+/** See https://docs.scrt.network/secret-network-documentation/development/resources-api-contract-addresses/connecting-to-the-network/mainnet-secret-4#api-endpoints */
+const mainnets = new Set([
+  'https://lcd.secret.express',
+  'https://rpc.ankr.com/http/scrt_cosmos',
+  'https://1rpc.io/scrt-lcd',
+  'https://lcd-secret.whispernode.com',
+  'https://secret-api.lavenderfive.com',
+])
+
+const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
+
 /** Represents a Secret Network API endpoint. */
 class ScrtAgent extends Agent {
   /** Smallest unit of native token. */
@@ -23,12 +34,16 @@ class ScrtAgent extends Agent {
   /** Connect to the Secret Network Mainnet. */
   static mainnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
     const { mainnetChainId: chainId, mainnetUrl: chainUrl } = config
-    return super.mainnet({ chainId, chainUrl, ...options||{}, }) as ScrtAgent
+    return super.mainnet({
+      chainId: 'secret-4', chainUrl: pickRandom(mainnets), ...options||{}
+    }) as ScrtAgent
   }
   /** Connect to the Secret Network Testnet. */
   static testnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
     const { testnetChainId: chainId, testnetUrl: chainUrl } = config
-    return super.testnet({ chainId, chainUrl, ...options||{} }) as ScrtAgent
+    return super.testnet({
+      chainId: 'pulsar-3', chainUrl, ...options||{}
+    }) as ScrtAgent
   }
   /** Connect to Secret Network in testnet mode. */
   static devnet (options: Partial<ScrtAgent> = {}): ScrtAgent {
