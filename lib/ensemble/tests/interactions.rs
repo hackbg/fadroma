@@ -1,15 +1,14 @@
 use serde::{Deserialize, Serialize};
 use anyhow::{Result as AnyResult, bail};
-
 use crate::{
     self as fadroma,
+    prelude::*,
     ensemble::{
         ContractEnsemble, ContractHarness,
         MockEnv, EnsembleResult, EnsembleError,
         ResponseVariants
     }
 };
-use crate::prelude::*;
 
 const SEND_AMOUNT: u128 = 100;
 const SEND_DENOM: &str = "uscrt";

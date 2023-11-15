@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    prelude::*,
     bin_serde::adapter::SerdeAdapter,
     storage::{SingleItem, ItemSpace, TypedKey},
     ensemble::{
@@ -10,7 +11,6 @@ use crate::{
         response::ResponseVariants, EnsembleResult
     }
 };
-use crate::prelude::*;
 
 const SENDER: &str = "sender";
 const A_ADDR: &str = "a";

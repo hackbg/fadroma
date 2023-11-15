@@ -15,7 +15,8 @@ use super::response::{StakingResponse, StakingOp, DistributionResponse, Distribu
 
 const CONTRACT_ATTR: &str = "contract_address";
 
-pub struct ProcessedEvents(Vec<Event>);
+#[derive(Debug)]
+pub struct ProcessedEvents(pub(crate) Vec<Event>);
 
 impl ProcessedEvents {
     #[inline]

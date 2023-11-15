@@ -49,6 +49,8 @@ sidebar:
       text: Secret Network
     - href: /dsl.html
       text: Macro DSL
+    - href: /ensemble.html
+      text: Ensemble Testing
     - href: /build.html
       text: Building
     - href: /upload.html
@@ -74,6 +76,9 @@ routes:
   - path: /dsl.html
     page: proc/fadroma-dsl/README.md
     name: Macro DSL
+  - path: /ensemble.html
+    page: lib/ensemble/README.md
+    name: Ensemble
   - path: /agent.html
     page: spec/Agent.spec.ts.md
     name: Agent
@@ -404,7 +409,11 @@ features:
     info: Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
     links:
       - icon: rust
-        text: fadroma::ensemble
+        text: Testing with Fadroma Ensemble
+        href: ensemble.html
+        bold: true
+      - icon: rust
+        text: fadroma::ensemble module documentation
         href: https://docs.rs/fadroma/latest/fadroma/ensemble/
         bold: true
       - icon: rust

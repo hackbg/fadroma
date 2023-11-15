@@ -1,17 +1,65 @@
 # Fadroma Ensemble
 
-![](https://img.shields.io/badge/version-0.1.0-blueviolet)
+Fadroma Ensemble provides a way to test multi-contract interactions
+without having to deploy contracts on-chain.
 
-**How to write multi-contract CosmWasm integration tests in Rust using `fadroma-ensemble`**
+This approach allows a lot of flexibility for testing contracts. Mock implementations can be
+created, contract methods can be overridden, `Bank` interactions are also possible.
 
-## Introduction
-Fadroma Ensemble provides a way to test multi-contract interactions without having to deploy contracts on-chain.
+* To start testing with Fadroma Ensemble, you must **implement `ContractHarness` for each
+  contract under test**.
+* In each test case, you must **instantiate `ContractEnsemble` and register the contracts**
+  using the `register` method.
 
-## Getting started
-To start testing with ensemble `ContractHarness` has to be implemented for each contract and registered by the `ContractEnsemble`. This approach allows a lot of flexibility for testing contracts. Mock implementations can be created, contract methods can be overridden, `Bank` interactions are also possible.
+### `ContractEnsemble`
 
-### ContractHarness
-`ContractHarness` defines entrypoints to any contract: `init`, `handle`, `query`. In order to implement contract we can use `DefaultImpl` from existing contract code, or override contract methods. You can also use the `impl_contract_harness!` macro.
+`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state
+and executing messages between contracts.
+
+It exposes:
+
+* methods like `register` for registering contract harnesses
+* `instantiate`, `execute`, `reply`, `query` for interacting with contracts
+* methods to inspect/alter the raw storage if needed.
+
+Just like on the blockchain, if any contract returns an error during exection,
+all state is reverted.
+
+Currently, supported messages are `CosmosMsg::Wasm` and `CosmosMsg::Bank`.
+
+```rust
+#[test]
+fn test_query_price() {
+    let mut ensemble = ContractEnsemble::new();
+    // environment identifies contract and sender:
+    let env = MockEnv::new("address_of_sender", "address_of_contract");
+    // register contract
+    let oracle = ensemble.register(Box::new(Oracle));
+    // register each contract (once) and instantiate it (once or more)
+    let oracle = ensemble.instantiate(oracle.id, &{}, env.clone())
+        .unwrap()
+        .instance;
+    // executing transactions:
+    let tx_response = ensemble
+        .execute(&oracle::ExecuteMsg::UpdatePrices {}, env.clone())
+        .unwrap();
+    // querying:
+    let query_response = ensemble
+        .query(oracle.address, &oracle::QueryMsg::GetPrice { base_symbol: "SCRT".into })
+        .unwrap();
+    assert_eq!(query_response.price, Uint128(1_000_000_000));
+}
+```
+
+### `ContractHarness`
+
+For each contract under test, you must implement the `ContractHarness` trait.
+`ContractHarness` defines entrypoints to any contract: `init`, `handle`, `query`.
+In order to implement contract we can use `DefaultImpl` from existing contract code,
+or override contract methods.
+
+You can also use the `contract_harness!` macro.
+
 ```rust
 // Here we create a ContractHarness implementation for an Oracle contract
 use path::to::contracts::oracle;
@@ -62,40 +110,17 @@ impl ContractHarness for Oracle {
     }
 }
 ```
-### ContractEnsemble
-`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state and executing messages between contracts. Currently, supported messages are `CosmosMsg::Wasm` and `CosmosMsg::Bank`. It exposes methods like `register` for registering contract harnesses and `instantiate`, `execute`, `reply`, `query` for interacting with contracts and methods to inspect/alter the raw storage if needed. Just like on the blockchain, if any contract returns an error during exection, all state is reverted.
 
-```rust
-#[test]
-fn test_query_price() {
-    let mut ensemble = ContractEnsemble::new();
+### Simulating the passage of time
 
-    // register contract
-    let oracle = ensemble.register(Box::new(Oracle));
+Since the ensemble is designed to simulate a blockchain environment, it maintains
+the current block height and time.
 
-    // instantiate
-    let oracle = ensemble.instantiate(
-        oracle.id,
-        &{},
-        MockEnv::new(
-            "Admin",
-            "oracle" // This will be the contract address
-        )
-    ).unwrap().instance;
+Block height increases automatically with each successful call to execute and instantiate messages
+(**sub-messages don't trigger this behaviour**). It is possible to configure as needed:
+blocks can be incremented by a fixed amount or by a random value within a provided range.
+In addition, the current block can be frozen so subsequent calls will not modify it if desired.
 
-    // query
-    let oracle::QueryMsg::GetPrice { price } = ensemble.query(
-        oracle.address,
-        &oracle::QueryMsg::GetPrice { base_symbol: "SCRT".into },
-    ).unwrap();
-
-    assert_eq!(price, Uint128(1_000_000_000));
-}
-```
-
-### Simulating blocks
-Since the ensemble is designed to simulate a blockchain environment it maintains an idea of block height and time. Block height increases automatically with each successful call to execute and instantiate messages (**sub-messages don't trigger this behaviour**). It is possible to configure as needed: blocks can be incremented by a fixed amount or by a random value within a provided range. In addition, the current block can be frozen so subsequent calls will not modify it if desired.
-  
 Set the block height manually:
 
 ```rust
@@ -105,7 +130,8 @@ ensemble.block_mut().height = 10;
 ensemble.block_mut().time = 10000;
 ```
 
-Use auto-increments (after each **successful** call) for block height and time when initializing the ensemble:
+Use auto-increments (after each **successful** call)
+for block height and time when initializing the ensemble:
 
 ```rust
 // For exact increments

@@ -1,9 +1,5 @@
 use std::iter::Iterator;
-
-use crate::{
-    prelude::ContractLink,
-    cosmwasm_std::{Addr, Binary, Response, Coin, Reply, SubMsg}
-};
+use crate::{prelude::*, cosmwasm_std::{Addr, Binary, Response, Coin, Reply, SubMsg}};
 
 #[derive(Clone, PartialEq, Debug)]
 #[non_exhaustive]

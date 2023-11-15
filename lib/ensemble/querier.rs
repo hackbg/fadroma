@@ -62,7 +62,7 @@ impl Querier for EnsembleQuerier {
                         });
                     }
 
-                    querier_result!(ctx.query(&contract_addr, msg))
+                    querier_result!(ctx.execute_query(&contract_addr, msg))
                 }
                 WasmQuery::Raw { contract_addr, .. } => {
                     if cfg!(feature = "scrt") {
