@@ -49,8 +49,8 @@
     "repl": "./fadroma.cli.cjs repl",
     "test": "time ensuite fadroma.test.ts",
     "ubik": "ubik",
-    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik publish --otp 123123",
-    "release:fast": "pnpm i && ubik publish --otp 123123"
+    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release:fast": "pnpm i && ubik release --otp 123123"
   },
   "dependencies": {
     "@fadroma/agent": "workspace:2.0.0-rc.3",
@@ -81,7 +81,7 @@
     "@hackbg/ensuite": "workspace:^",
     "@hackbg/fadroma": "workspace:*",
     "@hackbg/ganesha": "workspace:^",
-    "@hackbg/ubik": "workspace:*",
+    "@hackbg/ubik": "workspace:^2",
     "@types/dockerode": "^3.3.23",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "latest",

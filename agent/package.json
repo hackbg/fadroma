@@ -10,7 +10,7 @@
     "test":  "time ensuite agent.test.ts",
     "cov":   "time ensuite-cov -r text -r lcov -- agent.test.ts",
     "ubik":  "npm run check && npm run cov all && ubik",
-    "release": "ubik publish --access public --otp 123123"
+    "release": "ubik release --access public --otp 123123"
   },
   "dependencies": {
     "@hackbg/4mat": "workspace:^1.0.1",

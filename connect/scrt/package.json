@@ -17,7 +17,7 @@
     "test": "time ensuite scrt.test.ts",
     "cov": "time ensuite-cov -r text -r lcov -- scrt.test.ts",
     "ubik": "npm run check && npm run cov all && time ubik",
-    "release": "time pnpm ubik publish --access public --otp 123123",
-    "release:fast": "time ubik publish --access public --otp 123123"
+    "release": "time pnpm ubik release --access public --otp 123123",
+    "release:fast": "time ubik release --access public --otp 123123"
   }
 }
