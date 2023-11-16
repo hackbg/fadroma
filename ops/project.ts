@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error, Deployment, bold, timestamp, bip39, bip39EN } from '@fadroma/connect'
-import type { Agent, ChainId, ContractCode } from '@fadroma/connect'
+import type { ChainId, ContractCode } from '@fadroma/connect'
 import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'

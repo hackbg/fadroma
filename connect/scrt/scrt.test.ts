@@ -21,7 +21,7 @@ const mnemonic = 'define abandon palace resource estate elevator relief stock or
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['chain',    testScrtChain],
-  //['devnet',   testScrtDevnet],
+  //['backend',   testScrtDevnet],
   ['mocknet',  () => import('./scrt-mocknet.test')],
   ['snip-20',  () => import('./snip-20.test')],
   ['snip-24',  () => import('./snip-24.test')],
@@ -29,7 +29,7 @@ export default new Suite([
 ])
 
 export async function testScrtChain () {
-  const { devnet, alice, bob, guest } = await Tester.testChainSupport(
+  const { backend, alice, bob, guest } = await Tester.testChainSupport(
     Scrt,
     Devnets.ScrtContainer,
     'v1.9',
@@ -56,17 +56,17 @@ export async function testScrtDevnet () {
   const sendFee   = new Token.Fee( "1000000", "uscrt")
   const uploadFee = new Token.Fee("10000000", "uscrt")
   const initFee   = new Token.Fee("10000000", "uscrt")
-  // Just a devnet with a couple of genesis users.
-  const devnet = new Devnets.ScrtContainer({
+  // Just a backend with a couple of genesis users.
+  const backend = new Devnets.ScrtContainer({
     platform: 'scrt_1.9',
     genesisAccounts: { Alice: "123456789000", Bob: "987654321000", }
   })
-  // Get a couple of accounts from the devnet.
-  // This creates and launches the devnet in
+  // Get a couple of accounts from the backend.
+  // This creates and launches the backend in
   // order to be able to access the wallets.
   const [alice, bob] = await Promise.all([
-    devnet.connect({ name: 'Alice' }),
-    devnet.connect({ name: 'Bob' }),
+    backend.connect({ name: 'Alice' }),
+    backend.connect({ name: 'Bob' }),
   ])
   // Query block height
   console.log('Height:', await alice.height)
@@ -74,7 +74,7 @@ export async function testScrtDevnet () {
   equal(await alice.balance, '123455739000')
   equal(await bob.balance,   '987654321000')
   //// Permissionsless: anyone can authenticate with their public key
-  const guest = await devnet.connect({ mnemonic })
+  const guest = await backend.connect({ mnemonic })
   //// Starting out with zero balance
   equal(await guest.balance, '0')
   //// Which may be topped up by existing users

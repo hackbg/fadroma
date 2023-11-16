@@ -1,4 +1,4 @@
-import { BatchBuilder, Mode } from '@fadroma/agent'
+import { Batch } from '@fadroma/agent'
 import type { UploadedCode, Into } from '@fadroma/agent'
 import type { ChainId, CodeHash, CodeId, Address, Message } from '@fadroma/agent'
 import {
@@ -9,7 +9,7 @@ import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
 /** Chain instance containing a local mocknet. */
-class ScrtMocknet extends Stub.Agent {
+class ScrtMocknet extends Stub.Connection {
   log = new Console('ScrtMocknet')
   /** Current block height. Increments when accessing nextBlock */
   _height = 0
@@ -23,7 +23,7 @@ class ScrtMocknet extends Stub.Agent {
   declare state: ScrtMocknetState
 
   constructor (options: Partial<ScrtMocknet> = {}) {
-    super({ chainId: 'mocknet', ...options, chainMode: Mode.Mocknet })
+    super({ chainId: 'mocknet', ...options })
     this.log.label += ` (${this.chainId})`
   }
   get isMocknet () {
@@ -44,11 +44,11 @@ class ScrtMocknet extends Stub.Agent {
     return Promise.resolve({})
   }
   /** Instantiate a contract on the mocknet. */
-  protected async doInstantiate (...args: Parameters<Stub.Agent["doInstantiate"]>) {
+  protected async doInstantiate (...args: Parameters<Stub.Connection["doInstantiate"]>) {
     return await this.state.instantiate(this.address, ...args) as ContractInstance & { address: Address }
   }
   protected async doExecute (
-    ...args: Parameters<Stub.Agent["doExecute"]>
+    ...args: Parameters<Stub.Connection["doExecute"]>
   ): Promise<unknown> {
     return await this.state.execute(this.address, ...args)
   }
@@ -76,9 +76,9 @@ class ScrtMocknet extends Stub.Agent {
   }
 }
 
-export { ScrtMocknet as Agent }
+export { ScrtMocknet as Connection }
 
-class ScrtMocknetBatchBuilder extends BatchBuilder<ScrtMocknet> {
+class ScrtMocknetBatch extends Batch<ScrtMocknet> {
   messages: any[] = []
   get log () {
     return this.agent.log.sub('(batch)')
@@ -112,26 +112,26 @@ class ScrtMocknetBatchBuilder extends BatchBuilder<ScrtMocknet> {
     throw new Error('MocknetBatch#save: not implemented')
   }
   upload (
-    ...args: Parameters<BatchBuilder<ScrtMocknet>["upload"]>
+    ...args: Parameters<Batch<ScrtMocknet>["upload"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
   }
   instantiate (
-    ...args: Parameters<BatchBuilder<ScrtMocknet>["instantiate"]>
+    ...args: Parameters<Batch<ScrtMocknet>["instantiate"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
   }
   execute (
-    ...args: Parameters<BatchBuilder<ScrtMocknet>["execute"]>
+    ...args: Parameters<Batch<ScrtMocknet>["execute"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
   }
 }
 
-export { ScrtMocknetBatchBuilder as BatchBuilder }
+export { ScrtMocknetBatch as Batch }
 
 type ScrtCWVersion = '0.x'|'1.x'
 
@@ -144,7 +144,7 @@ interface ScrtMocknetUpload {
   cosmWasmVersion: ScrtCWVersion
 }
 
-class ScrtMocknetState extends Stub.ChainState {
+class ScrtMocknetState extends Stub.Backend {
   log = new Console('ScrtMocknetState')
 
   declare uploads: Map<CodeId, ScrtMocknetUpload>
@@ -184,7 +184,7 @@ class ScrtMocknetState extends Stub.ChainState {
   }
 
   async instantiate (
-    sender: Address, ...args: Parameters<Stub.Agent["doInstantiate"]>
+    sender: Address, ...args: Parameters<Stub.Connection["doInstantiate"]>
   ): Promise<ContractInstance & {
     address: Address
   }> {

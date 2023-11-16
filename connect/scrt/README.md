@@ -511,17 +511,6 @@ deepEqual(yourToken.asDescriptor, {
     token_code_hash: some.codeHash
   }
 })
-
-// And the converse: creating Snip20 clients
-// from descriptors received over the wire:
-ok(
-  Snip20.fromDescriptor(null, yourToken.asDescriptor) instanceof Snip20
-)
-
-deepEqual(
-  Snip20.fromDescriptor(null, yourToken.asDescriptor).asDescriptor,
-  descriptor
-)
 ```
 
 ### Populating token metadata

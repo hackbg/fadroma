@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  assign, Error, Console, bold, Token, Agent, Devnet, Scrt, CW, Stub
+  assign, Error, Console, bold, Token, Connection, Backend, Scrt, CW, Stub
 } from '@fadroma/connect'
 import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/connect'
 import { Config } from '@hackbg/conf'
@@ -39,7 +39,7 @@ const RE_NON_PRINTABLE = /[\x00-\x1F]/
 
 /** A private local instance of a network,
   * running in a container managed by @hackbg/dock. */
-abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
+abstract class DevnetContainer<A extends typeof Connection> extends Backend {
   /** Name of the file containing devnet state. */
   static stateFile = 'devnet.json'
   /** Whether more detailed output is preferred. */
@@ -149,7 +149,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
   }
 
   /** Build image containing all or some code ids from a given chain id */
-  async copyUploads (from: Agent, codeIds?: CodeId[]) {
+  async copyUploads (from: Connection, codeIds?: CodeId[]) {
     const image = await this.image
   }
 
@@ -162,7 +162,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
   get spawnEnv () {
     const env: Record<string, string> = {
       DAEMON:    this.daemon||'',
-      TOKEN:     this.Agent.gasToken,
+      TOKEN:     this.Connection.gasToken,
       CHAIN_ID:  this.chainId!,
       ACCOUNTS:  JSON.stringify(this.genesisAccounts),
       STATE_UID: String((process.getuid!)()),
@@ -401,7 +401,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
   }
 
   /** Get info for named genesis account, including the mnemonic */
-  async getGenesisAccount (name: string): Promise<Partial<Agent>> {
+  async getGenesisAccount (name: string): Promise<Partial<Connection>> {
     this.log.br()
     this.log.debug('Authenticating devnet account:', bold(name))
     if (!$(this.stateDir).exists()) {
@@ -419,7 +419,7 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
     } else {
       return $(this.stateDir, 'wallet', `${name}.json`)
         .as(JSONFile)
-        .load() as Partial<Agent>
+        .load() as Partial<Connection>
     }
   }
 
@@ -469,8 +469,8 @@ abstract class DevnetContainer<A extends typeof Agent> extends Devnet<A> {
   private exitHandler?: (...args: any)=>void
 }
 
-class ScrtDevnetContainer extends DevnetContainer<typeof Scrt.Agent> {
-  Agent = Scrt.Agent
+class ScrtDevnetContainer extends DevnetContainer<typeof Scrt.Connection> {
+  Connection = Scrt.Connection
 
   constructor ({ version = 'v1.9', ...properties }: Partial<ScrtDevnetContainer & {
     version: keyof typeof ScrtDevnetContainer.versions
@@ -546,8 +546,8 @@ class ScrtDevnetContainer extends DevnetContainer<typeof Scrt.Agent> {
   }
 }
 
-class OKP4DevnetContainer extends DevnetContainer<typeof CW.OKP4.Agent> {
-  Agent = CW.OKP4.Agent
+class OKP4DevnetContainer extends DevnetContainer<typeof CW.OKP4.Connection> {
+  Connection = CW.OKP4.Connection
 
   constructor ({ version = 'v5.0', ...properties }: Partial<OKP4DevnetContainer & {
     version: keyof typeof OKP4DevnetContainer.versions
@@ -573,8 +573,8 @@ export {
   OKP4DevnetContainer as OKP4Container,
 }
 
-export function getDevnetFromEnvironment <A extends typeof Agent> (
-  properties: Partial<DevnetContainer<A>> & { Agent: A }
+export function getDevnetFromEnvironment <A extends typeof Connection> (
+  properties: Partial<DevnetContainer<A>> & { Connection: A }
 ): DevnetContainer<A> {
   const config = new Config()
   const defaults = {
@@ -586,21 +586,21 @@ export function getDevnetFromEnvironment <A extends typeof Agent> (
     port:           config.getString('FADROMA_DEVNET_PORT', ()=>undefined),
     dontMountState: config.getFlag('FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false),
   }
-  if (properties.Agent === Scrt.Agent) {
+  if (properties.Connection === Scrt.Connection) {
     return new ScrtDevnetContainer(
       { ...defaults, ...properties } as any
     ) as any
-  } else if (properties.Agent === CW.OKP4.Agent) {
+  } else if (properties.Connection === CW.OKP4.Connection) {
     return new OKP4DevnetContainer(
       { ...defaults, ...properties } as any
     ) as any
   } else {
-    throw new Error('pass Scrt.Agent or CW.OKP4.Agent to getDevnet({ Agent })')
+    throw new Error('pass Scrt.Connection or CW.OKP4.Connection to getDevnet({ Connection })')
   }
 }
 
 /** Restore a Devnet from the info stored in the state file */
-export function getDevnetFromFile <A extends typeof Agent> (
+export function getDevnetFromFile <A extends typeof Connection> (
   dir: string|Path, allowInvalid: boolean = false
 ): DevnetContainer<A> {
   dir = $(dir)
@@ -629,7 +629,7 @@ export function getDevnetFromFile <A extends typeof Agent> (
   if (!state.port) {
     console.warn(`${stateFile.path}: no port`)
   }
-  return new (class extends DevnetContainer<any> { Agent = null as any })(state as any)
+  return new (class extends DevnetContainer<any> { Connection = null as any })(state as any)
 }
 
 /** Delete multiple devnets. */

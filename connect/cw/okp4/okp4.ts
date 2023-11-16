@@ -1,11 +1,11 @@
-import { Error, Config, Agent, BatchBuilder } from '../cw-base'
+import { Error, Config, Connection, Batch } from '../cw-base'
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Environment } from '@hackbg/conf'
-import type { ContractClientClass, Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
-import { ContractClient, Token } from '@fadroma/agent'
+import type { Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
+import { Contract, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 /** Configuration for OKP4 */
@@ -22,31 +22,31 @@ class OKP4Config extends Config {
     () => OKP4Config.defaultTestnetUrl)
 }
 
-/** Agent for OKP4. */
-class OKP4Agent extends Agent {
+/** Connection for OKP4. */
+class OKP4Connection extends Connection {
   /** Default denomination of gas token. */
   static gasToken = 'uknow'
   /** Connect to OKP4 in testnet mode. */
-  static testnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
+  static testnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
     const { testnetChainId: chainId, testnetUrl: chainUrl } = new OKP4Config()
-    return super.testnet({ chainId, chainUrl, ...options||{}, }) as OKP4Agent
+    return super.testnet({ chainId, chainUrl, ...options||{}, }) as OKP4Connection
   }
   /** Connect to OKP4 in testnet mode. */
-  static devnet (options: Partial<OKP4Agent> = {}): OKP4Agent {
+  static devnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
     throw new Error('Devnet not installed. Import @hackbg/fadroma')
   }
   /** Transaction fees for this agent. */
   defaultFees = {
-    upload: OKP4Agent.gas(10000000),
-    init: OKP4Agent.gas(1000000),
-    exec: OKP4Agent.gas(1000000),
-    send: OKP4Agent.gas(1000000),
+    upload: OKP4Connection.gas(10000000),
+    init: OKP4Connection.gas(1000000),
+    exec: OKP4Connection.gas(1000000),
+    send: OKP4Connection.gas(1000000),
   }
 
-  constructor (options: Partial<OKP4Agent> & { mnemonic?: string, config?: OKP4Config } = {
+  constructor (options: Partial<OKP4Connection> & { mnemonic?: string, config?: OKP4Config } = {
     config: new OKP4Config()
   }) {
-    super({ coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, ...options } as Partial<Agent>)
+    super({ coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, ...options } as Partial<Connection>)
   }
 
   /** Get clients for all Cognitarium instances, keyed by address. */
@@ -66,25 +66,25 @@ class OKP4Agent extends Agent {
   //}
 
   getContractsById (id: CodeId):
-    Promise<ContractClient>
-  getContractsById <C extends typeof ContractClient> (id: CodeId):
+    Promise<Contract>
+  getContractsById <C extends typeof Contract> (id: CodeId):
     Promise<InstanceType<C>>
   {
-    return Promise.resolve(new ContractClient('', this) as InstanceType<C>)
+    return Promise.resolve(new Contract('', this) as InstanceType<C>)
   }
 
   getContractsByIds (ids: CodeId[]):
-    Promise<Map<CodeId, ContractClient>>
-  getContractsByIds (ids: Record<CodeId, typeof ContractClient>):
-    Promise<Map<CodeId, ContractClient>>
+    Promise<Map<CodeId, Contract>>
+  getContractsByIds (ids: Record<CodeId, typeof Contract>):
+    Promise<Map<CodeId, Contract>>
   getContractsByIds (ids: unknown):
-    Promise<Map<CodeId, ContractClient>>
+    Promise<Map<CodeId, Contract>>
   {
     return Promise.resolve(new Map())
   }
 
-  //async getContractsById <C extends typeof ContractClient> (
-    //Client: C = ContractClient as C,
+  //async getContractsById <C extends typeof Contract> (
+    //Client: C = Contract as C,
     //ids: CodeId[],
     //map = true
   //): Promise<
@@ -116,14 +116,14 @@ class OKP4Agent extends Agent {
 
 export {
   OKP4Config as Config,
-  OKP4Agent  as Agent
+  OKP4Connection  as Connection
 }
 
 /** Connect to OKP4 testnet. */
-export const testnet = (...args: Parameters<typeof OKP4Agent.testnet>) => OKP4Agent.testnet(...args)
+export const testnet = (...args: Parameters<typeof OKP4Connection.testnet>) => OKP4Connection.testnet(...args)
 
 /** Connect to local OKP4 devnet. */
-export const devnet = (...args: Parameters<typeof OKP4Agent.devnet>) => OKP4Agent.devnet(...args)
+export const devnet = (...args: Parameters<typeof OKP4Connection.devnet>) => OKP4Connection.devnet(...args)
 
 export * from './okp4-cognitarium'
 export * from './okp4-objectarium'

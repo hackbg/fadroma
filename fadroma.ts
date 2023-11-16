@@ -17,7 +17,7 @@
 **/
 
 import type { ChainId, DeployStore } from '@fadroma/connect'
-import { Agent, Console, bold, timestamp, Deployment, CW, Scrt } from '@fadroma/connect'
+import { Connection, Console, bold, timestamp, Deployment, CW, Scrt } from '@fadroma/connect'
 import * as Compilers from './ops/build'
 import * as Devnets from './ops/devnets'
 import * as Stores from './ops/stores'
@@ -54,24 +54,24 @@ export default function main (...args: any) {
     .addCommand('upload', 'upload the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
         compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
+        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
         units })))
     .addCommand('reupload', 'reupload the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
         compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
+        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
         units, reupload: true })))
     .addCommand('deploy', 'deploy getProject() or continue an interrupted deployment',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
         compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
-        deployStore: Stores.getDeployStore(), deployer: getAgent(),
+        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
+        deployStore: Stores.getDeployStore(), deployer: getConnection(),
         units })))
     .addCommand('redeploy', 'redeploy getProject() from scratch',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
         compiler:    Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getAgent(),
-        deployStore: Stores.getDeployStore(), deployer: getAgent(),
+        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
+        deployStore: Stores.getDeployStore(), deployer: getConnection(),
         units, redeploy: true })))
     .addCommand('select', `activate another deployment`, 
       async (name?: string): Promise<Deployment|undefined> => selectDeployment(
@@ -86,7 +86,7 @@ export default function main (...args: any) {
 
 //main.prototype.run = (...args: any[]) => console.log(this, args)
 
-export function getAgent (): Agent {
+export function getConnection (): Connection {
   throw new Error('not implemented')
 }
 

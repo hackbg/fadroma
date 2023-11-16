@@ -1,5 +1,5 @@
 import type { CodeId } from '@fadroma/agent'
-import { ContractClient } from '@fadroma/agent'
+import { Contract } from '@fadroma/agent'
 
 export type ObjectariumVersion = string
 
@@ -9,7 +9,7 @@ export const objectariumCodeIds: Record<ObjectariumVersion, CodeId> = {
 }
 
 /** OKP4 object store. */
-export class Objectarium extends ContractClient {
+export class Objectarium extends Contract {
 
   /** Create an init message for an objectarium. */
   static init = (bucket: string) => ({ bucket })

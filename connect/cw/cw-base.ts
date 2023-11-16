@@ -2,7 +2,7 @@ import { Config } from '@hackbg/conf'
 import type { ChainId } from '@fadroma/agent'
 import {
   assign,
-  Agent, BatchBuilder,
+  Connection, Batch,
   Console, Error, bold,
   bip32, bip39, bip39EN, bech32, base64,
   into,
@@ -18,7 +18,7 @@ import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
 /** Generic agent for CosmWasm-enabled chains. */
-class CWAgent extends Agent {
+class CWConnection extends Connection {
   /** Public key corresponding to private key derived from mnemonic. */
   publicKey?: Uint8Array
   /** The bech32 prefix for the account's address  */
@@ -30,11 +30,11 @@ class CWAgent extends Agent {
   /** API handle. */
   declare chainApi: Promise<CosmWasmClient|SigningCosmWasmClient>
 
-  constructor ({ mnemonic, signer, ...properties }: Partial<CWAgent> & {
+  constructor ({ mnemonic, signer, ...properties }: Partial<CWConnection> & {
     signer?:   OfflineSigner,
     mnemonic?: string
   }) {
-    super(properties as Partial<Agent>)
+    super(properties as Partial<Connection>)
     assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex'   ])
 
     this.log.label = `${this.chainId||'no chain id'}(` +
@@ -83,7 +83,7 @@ class CWAgent extends Agent {
 
   /** Query native token balance. */
   async getBalance (
-    token:   string = (this.constructor as typeof CWAgent).gasToken,
+    token:   string = (this.constructor as typeof CWConnection).gasToken,
     address: Address|undefined = this.address
   ): Promise<string> {
     if (!address) {
@@ -126,7 +126,7 @@ class CWAgent extends Agent {
 
   /** Stargate implementation of sending native token. */
   protected async doSend (
-    recipient: Address, amounts: Token.ICoin[], options?: Parameters<Agent["doSend"]>[2]
+    recipient: Address, amounts: Token.ICoin[], options?: Parameters<Connection["doSend"]>[2]
   ) {
     return this.chainApi.then(api=>{
       if (!(api as SigningCosmWasmClient)?.sendTokens) {
@@ -144,7 +144,7 @@ class CWAgent extends Agent {
 
   /** Stargate implementation of batch send. */
   sendMany (
-    outputs: [Address, Token.ICoin[]][], options?: Parameters<Agent["sendMany"]>[1]
+    outputs: [Address, Token.ICoin[]][], options?: Parameters<Connection["sendMany"]>[1]
   ): Promise<void|unknown> {
     throw new Error('not implemented')
   }
@@ -172,7 +172,7 @@ class CWAgent extends Agent {
 
   /** Instantiate a contract via CosmJS Stargate. */
   protected async doInstantiate (
-    codeId: CodeId, options: Parameters<Agent["doInstantiate"]>[1]
+    codeId: CodeId, options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
     if (!this.address) {
       throw new CWError("can't instantiate contract without sender address")
@@ -207,7 +207,7 @@ class CWAgent extends Agent {
 
   /** Call a transaction method of a contract. */
   protected async doExecute (
-    contract: { address: Address }, message: Message, options: Parameters<Agent["execute"]>[2] = {}
+    contract: { address: Address }, message: Message, options: Parameters<Connection["execute"]>[2] = {}
   ): Promise<unknown> {
     if (!this.address) {
       throw new CWError("can't execute transaction without sender address")
@@ -239,8 +239,8 @@ class CWAgent extends Agent {
     return await api.queryContractSmart(contract.address, msg) as U
   }
 
-  batch (): CWBatchBuilder {
-    return new CWBatchBuilder(this)
+  batch (): CWBatch {
+    return new CWBatch(this)
   }
 }
 
@@ -326,25 +326,25 @@ export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Ar
 }
 
 /** Transaction batch for CosmWasm-enabled chains. */
-class CWBatchBuilder extends BatchBuilder<CWAgent> {
+class CWBatch extends Batch<CWConnection> {
 
   upload (
-    code:    Parameters<BatchBuilder<Agent>["upload"]>[0],
-    options: Parameters<BatchBuilder<Agent>["upload"]>[1]
+    code:    Parameters<Batch<Connection>["upload"]>[0],
+    options: Parameters<Batch<Connection>["upload"]>[1]
   ) {
     return this
   }
 
   instantiate (
-    code:    Parameters<BatchBuilder<Agent>["instantiate"]>[0],
-    options: Parameters<BatchBuilder<Agent>["instantiate"]>[1]
+    code:    Parameters<Batch<Connection>["instantiate"]>[0],
+    options: Parameters<Batch<Connection>["instantiate"]>[1]
   ) {
     return this
   }
 
   execute (
-    contract: Parameters<BatchBuilder<Agent>["execute"]>[0],
-    options:  Parameters<BatchBuilder<Agent>["execute"]>[1]
+    contract: Parameters<Batch<Connection>["execute"]>[0],
+    options:  Parameters<Batch<Connection>["execute"]>[1]
   ) {
     return this
   }
@@ -357,8 +357,8 @@ export {
   CWConfig as Config,
   CWError as Error,
   CWConsole as Console,
-  CWAgent as Agent,
-  CWBatchBuilder as BatchBuilder
+  CWConnection as Connection,
+  CWBatch as Batch
 }
 
 class CWConfig extends Config {}

@@ -1,12 +1,12 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Token, ContractClient, randomBytes, randomBase64, bold, colors } from '@fadroma/agent'
-import type { CodeHash, Uint128, Agent, Address } from '@fadroma/agent'
+import { Token, Contract, randomBytes, randomBase64, bold, colors } from '@fadroma/agent'
+import type { CodeHash, Uint128, Connection, Address } from '@fadroma/agent'
 import { Console } from './scrt-base'
 import type { Permit } from './snip-24'
 
-export class Snip20 extends ContractClient implements Token.Fungible {
+export class Snip20 extends Contract implements Token.Fungible {
   log = new Console('@fadroma/tokens: Snip20')
   /** The full name of the token. */
   name: string|null = null
@@ -16,11 +16,6 @@ export class Snip20 extends ContractClient implements Token.Fungible {
   decimals: number|null = null
   /** The total supply of the token. */
   totalSupply: Uint128|null = null
-
-  /** Create a SNIP20 token client from a Token.Custom descriptor. */
-  static fromDescriptor (descriptor: Token.Custom, agent?: Agent): Snip20 {
-    return descriptor.connect(agent, this as typeof Snip20)
-  }
 
   /** Create a SNIP20 init message. */
   static init ({
@@ -49,8 +44,8 @@ export class Snip20 extends ContractClient implements Token.Fungible {
   }
 
   /** Get a client to the Viewing Key API. */
-  get vk (): ViewingKeyClient {
-    return new ViewingKeyClient(this.contract, this.agent)
+  get vk (): ViewingKeyContract {
+    return new ViewingKeyContract(this.contract, this.agent)
   }
 
   /** @returns self as plain Token.Custom with a *hidden (from serialization!)*
@@ -279,7 +274,7 @@ export interface SendFromAction {
 export type ViewingKey = string
 
 /** A contract's viewing key methods. */
-export class ViewingKeyClient extends ContractClient {
+export class ViewingKeyContract extends Contract {
 
   /** Create a random viewing key. */
   async create (entropy = randomBytes(32).toString("hex")) {

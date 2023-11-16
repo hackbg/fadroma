@@ -99,8 +99,8 @@ export async function testDeployment () {
   const deployment = new TestProjectDeployment()
   assert.ok(deployment.t instanceof ContractTemplate)
   await deployment.deploy({
-    uploader: new Stub.Agent(),
-    deployer: new Stub.Agent(),
+    uploader: new Stub.Connection(),
+    deployer: new Stub.Connection(),
   })
   assert.ok([deployment.a1, deployment.a2, deployment.a3, ...Object.values(deployment.b)].every(
     c=>c instanceof ContractInstance

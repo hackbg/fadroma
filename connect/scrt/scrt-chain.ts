@@ -6,11 +6,11 @@ import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/s
 import { Config, Error, Console } from './scrt-base'
 //import * as Mocknet from './scrt-mocknet'
 import type {
-  Uint128, ContractClient, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
+  Uint128, Contract, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
 } from '@fadroma/agent'
 import {
-  assign, Agent, into, base64, bip39, bip39EN, bold,
-  Token, BatchBuilder,
+  assign, Connection, into, base64, bip39, bip39EN, bold,
+  Token, Batch,
   UploadedCode, ContractInstance,
 } from '@fadroma/agent'
 
@@ -28,29 +28,33 @@ const mainnets = new Set([
 const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
 
 /** Represents a Secret Network API endpoint. */
-class ScrtAgent extends Agent {
+class ScrtConnection extends Connection {
   /** Smallest unit of native token. */
   static gasToken = 'uscrt'
   /** Connect to the Secret Network Mainnet. */
-  static mainnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
+  static mainnet (options: Partial<ScrtConnection> = {}, config = new Config()): ScrtConnection {
     const { mainnetChainId: chainId, mainnetUrl: chainUrl } = config
     return super.mainnet({
-      chainId: 'secret-4', chainUrl: pickRandom(mainnets), ...options||{}
-    }) as ScrtAgent
+      chainId: 'secret-4',
+      chainUrl: pickRandom(mainnets),
+      ...options||{}
+    }) as ScrtConnection
   }
   /** Connect to the Secret Network Testnet. */
-  static testnet (options: Partial<ScrtAgent> = {}, config = new Config()): ScrtAgent {
+  static testnet (options: Partial<ScrtConnection> = {}, config = new Config()): ScrtConnection {
     const { testnetChainId: chainId, testnetUrl: chainUrl } = config
     return super.testnet({
-      chainId: 'pulsar-3', chainUrl, ...options||{}
-    }) as ScrtAgent
+      chainId: 'pulsar-3',
+      chainUrl,
+      ...options||{}
+    }) as ScrtConnection
   }
   /** Connect to Secret Network in testnet mode. */
-  static devnet (options: Partial<ScrtAgent> = {}): ScrtAgent {
+  static devnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
     throw new Error('Devnet not installed. Import @hackbg/fadroma')
   }
   /** Logger handle. */
-  log = new Console('ScrtAgent')
+  log = new Console('ScrtConnection')
   /** Underlying API client. */
   declare chainApi: SecretNetworkClient
   /** API extra. */
@@ -59,10 +63,10 @@ class ScrtAgent extends Agent {
   encryptionUtils?: EncryptionUtils
   /** Set permissive fees by default. */
   defaultFees = {
-    upload: ScrtAgent.gas(10000000),
-    init:   ScrtAgent.gas(10000000),
-    exec:   ScrtAgent.gas(1000000),
-    send:   ScrtAgent.gas(1000000),
+    upload: ScrtConnection.gas(10000000),
+    init:   ScrtConnection.gas(10000000),
+    exec:   ScrtConnection.gas(1000000),
+    send:   ScrtConnection.gas(1000000),
   }
 
   constructor ({
@@ -70,14 +74,14 @@ class ScrtAgent extends Agent {
     wallet = mnemonic ? new Wallet(mnemonic) : undefined,
     encryptionUtils,
     ...properties
-  }: Partial<ScrtAgent & {
+  }: Partial<ScrtConnection & {
     mnemonic:        string,
     wallet:          Wallet,
     encryptionUtils: EncryptionUtils
   }> = {}) {
-    super(properties as Partial<Agent>)
+    super(properties as Partial<Connection>)
     this.chainApi ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.chainUrl! })
-    this.log.label = `${bold(this.name?`"${this.name}"`:(this.address||'ScrtAgent'))}`
+    this.log.label = `${bold(this.name?`"${this.name}"`:(this.address||'ScrtConnection'))}`
     if (this.chainId) {
       this.log.label += ` @ ${bold(this.chainId)}`
     } else {
@@ -126,10 +130,10 @@ class ScrtAgent extends Agent {
       console.trace({agent:this})
       throw new Error("can't get balance of unauthenticated agent")
     }
-    return this.getBalance(this.address, ScrtAgent.gasToken).then(x=>String(x))
+    return this.getBalance(this.address, ScrtConnection.gasToken).then(x=>String(x))
   }
 
-  async getBalance (address: Address, denom = ScrtAgent.gasToken) {
+  async getBalance (address: Address, denom = ScrtConnection.gasToken) {
     return (await this.chainApi.query.bank.balance({ address, denom }))
       .balance!
       .amount!
@@ -176,7 +180,7 @@ class ScrtAgent extends Agent {
   protected async doSend (
     recipient: Address,
     amounts:   Token.ICoin[],
-    options?:  Parameters<Agent["doSend"]>[2]
+    options?:  Parameters<Connection["doSend"]>[2]
   ) {
     return this.chainApi.tx.bank.send(
       { from_address: this.address!, to_address: recipient, amount: amounts },
@@ -185,7 +189,7 @@ class ScrtAgent extends Agent {
   }
 
   async sendMany (outputs: never, opts?: any) {
-    throw new Error('ScrtAgent#sendMany: not implemented')
+    throw new Error('ScrtConnection#sendMany: not implemented')
   }
 
   /** Upload a WASM binary. */
@@ -207,7 +211,7 @@ class ScrtAgent extends Agent {
         ...details
       )
       if (message === `account ${this.address} not found`) {
-        this.log.info(`If this is a new account, send it some ${ScrtAgent.gasToken} first.`)
+        this.log.info(`If this is a new account, send it some ${ScrtConnection.gasToken} first.`)
         if (this.isMainnet) {
           this.log.info(`Mainnet fee grant faucet:`, bold(`https://faucet.secretsaturn.net/`))
         }
@@ -240,7 +244,7 @@ class ScrtAgent extends Agent {
 
   protected async doInstantiate (
     codeId: CodeId,
-    options: Parameters<Agent["doInstantiate"]>[1]
+    options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
     if (!this.address) throw new Error("agent has no address")
     const parameters = {
@@ -280,7 +284,7 @@ class ScrtAgent extends Agent {
   protected async doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2] & {
+    options?: Parameters<Connection["doExecute"]>[2] & {
       preSimulate?: boolean
     }
   ): Promise<TxResponse> {
@@ -319,7 +323,7 @@ class ScrtAgent extends Agent {
   }
 
   async setMaxGas (): Promise<this> {
-    const max = ScrtAgent.gas((await this.fetchLimits()).gas)
+    const max = ScrtConnection.gas((await this.fetchLimits()).gas)
     this.defaultFees = { upload: max, init: max, exec: max, send: max }
     return this
   }
@@ -354,7 +358,7 @@ class ScrtAgent extends Agent {
   }
 
   decryptError (result: TxResponse) {
-    const error = `ScrtAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
+    const error = `ScrtConnection#execute: gRPC error ${result.code}: ${result.rawLog}`
     // make the original result available on request
     const original = structuredClone(result)
     Object.defineProperty(result, "original", { enumerable: false, get () { return original } })
@@ -375,8 +379,8 @@ class ScrtAgent extends Agent {
     return Object.assign(new Error(error), result)
   }
 
-  batch (): ScrtBatchBuilder {
-    return new ScrtBatchBuilder(this)
+  batch (): ScrtBatch {
+    return new ScrtBatch(this)
   }
 
 }
@@ -402,14 +406,14 @@ function removeTrailingSlash (url: string) {
 }
 
 export {
-  ScrtAgent as Agent
+  ScrtConnection as Connection
 }
 
 export type {
   TxResponse
 }
 
-export class ScrtBatchBuilder extends BatchBuilder<ScrtAgent> {
+export class ScrtBatch extends Batch<ScrtConnection> {
   /** Logger handle. */
   log = new Console('ScrtBatch')
 
@@ -422,16 +426,16 @@ export class ScrtBatchBuilder extends BatchBuilder<ScrtAgent> {
 
   /** TODO: Upload in batch. */
   upload (
-    code:    Parameters<BatchBuilder<ScrtAgent>["upload"]>[0],
-    options: Parameters<BatchBuilder<ScrtAgent>["upload"]>[1]
+    code:    Parameters<Batch<ScrtConnection>["upload"]>[0],
+    options: Parameters<Batch<ScrtConnection>["upload"]>[1]
   ) {
-    throw new Error('ScrtBatchBuilder#upload: not implemented')
+    throw new Error('ScrtBatch#upload: not implemented')
     return this
   }
 
   instantiate (
-    code:    Parameters<BatchBuilder<ScrtAgent>["instantiate"]>[0],
-    options: Parameters<BatchBuilder<ScrtAgent>["instantiate"]>[1]
+    code:    Parameters<Batch<ScrtConnection>["instantiate"]>[0],
+    options: Parameters<Batch<ScrtConnection>["instantiate"]>[1]
   ) {
     this.messages.push(new MsgInstantiateContract({
       //callback_code_hash: '',
@@ -446,9 +450,9 @@ export class ScrtBatchBuilder extends BatchBuilder<ScrtAgent> {
   }
 
   execute (
-    contract: Parameters<BatchBuilder<ScrtAgent>["execute"]>[0],
-    message:  Parameters<BatchBuilder<ScrtAgent>["execute"]>[1],
-    options:  Parameters<BatchBuilder<ScrtAgent>["execute"]>[2],
+    contract: Parameters<Batch<ScrtConnection>["execute"]>[0],
+    message:  Parameters<Batch<ScrtConnection>["execute"]>[1],
+    options:  Parameters<Batch<ScrtConnection>["execute"]>[2],
   ) {
     if (typeof contract === 'object') contract = contract.address!
     this.messages.push(new MsgExecuteContract({
@@ -635,7 +639,7 @@ export class ScrtBatchBuilder extends BatchBuilder<ScrtAgent> {
   }
 
   private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
-    const fee = ScrtAgent.gas(10000000)
+    const fee = ScrtConnection.gas(10000000)
     return {
       auth_info: {
         signer_infos: [],
