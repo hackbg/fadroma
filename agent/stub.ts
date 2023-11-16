@@ -4,7 +4,7 @@
 import type { Address, Message, Label, TxHash } from './base'
 import { assign, Console, Error, base16, sha256 } from './base'
 import type { ChainId } from './connec'
-import { Connection, Endpoint, Devnet, Batch, Identity } from './connec'
+import { Connection, Endpoint, Backend, Batch, Identity } from './connec'
 import type { CodeId, CodeHash } from './deploy'
 import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy'
 import * as Token from './token'
@@ -22,11 +22,11 @@ class StubConnection extends Connection {
 }
 
 class StubEndpoint extends Endpoint {
-  state: StubBackend
+  declare backend: StubBackend
   constructor (properties: Partial<StubEndpoint> = {}) {
     super(properties)
-    assign(this, properties, ['state'])
-    this.state ??= new StubBackend()
+    assign(this, properties, ['backend'])
+    this.backend ??= new StubBackend()
   }
   get height (): Promise<number> {
     return this.getBlockInfo().then(({height})=>height)
@@ -39,7 +39,7 @@ class StubEndpoint extends Endpoint {
     return Promise.resolve(0)
   }
   async getCodeId (address: Address): Promise<CodeId> {
-    const contract = this.state.instances.get(address)
+    const contract = this.backend.instances.get(address)
     if (!contract) {
       throw new Error(`unknown contract ${address}`)
     }
@@ -54,7 +54,7 @@ class StubEndpoint extends Endpoint {
       .then(id=>this.getCodeHashOfCodeId(id))
   }
   getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
-    const code = this.state.uploads.get(id)
+    const code = this.backend.uploads.get(id)
     if (!code) {
       throw new Error(`unknown code ${id}`)
     }
@@ -70,7 +70,7 @@ class StubEndpoint extends Endpoint {
     return Promise.resolve()
   }
   upload (codeData: Uint8Array): Promise<UploadedCode> {
-    return Promise.resolve(new UploadedCode(this.state.upload(codeData)))
+    return Promise.resolve(new UploadedCode(this.backend.upload(codeData)))
   }
   instantiate (
     codeId: CodeId, options: Parameters<Endpoint["instantiate"]>[1]
@@ -89,7 +89,7 @@ class StubEndpoint extends Endpoint {
   }
 }
 
-class StubBackend extends Devnet {
+class StubBackend extends Backend {
   Connection = StubConnection
 
   chainId: string = 'stub'
@@ -105,32 +105,49 @@ class StubBackend extends Devnet {
   instances = new Map<Address, { codeId: CodeId }>()
 
   constructor (properties?: Partial<StubBackend>) {
-    super(properties as Partial<Devnet>)
+    super(properties as Partial<Backend>)
     assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
   }
 
-  async start (): Promise<this> {
+  async connect (parameter?: string|Partial<Identity>): Promise<Connection> {
+    console.log({parameter})
+    if (typeof parameter === 'string') {
+      parameter = await this.getIdentity(parameter)
+    }
+    return new StubConnection({
+      endpoint: this.getEndpoint(),
+      identity: new Identity(parameter)
+    })
+  }
+
+  getEndpoint () {
+    return new StubEndpoint({ id: this.chainId, backend: this })
+  }
+
+  getIdentity (name: string): Promise<Identity> {
+    console.log({getIdentity: name})
+    const i = new Identity({ name, address: `stub1${name}` })
+    console.log({i})
+    return Promise.resolve(i)
+  }
+
+  start (): Promise<this> {
     this.running = true
-    return this
+    return Promise.resolve(this)
   }
 
-  async pause (): Promise<this> {
+  pause (): Promise<this> {
     this.running = false
-    return this
+    return Promise.resolve(this)
   }
 
-  async import (...args: unknown[]): Promise<unknown> {
+  import (...args: unknown[]): Promise<unknown> {
     throw new Error("StubChainState#import: not implemented")
   }
 
-  async export (...args: unknown[]): Promise<unknown> {
+  export (...args: unknown[]): Promise<unknown> {
     throw new Error("StubChainState#export: not implemented")
   }
-
-  async getGenesisAccount (name: string): Promise<Identity> {
-    throw new Error("StubChainState#getAccount: not implemented")
-  }
-
 
   upload (codeData: Uint8Array) {
     this.lastCodeId++

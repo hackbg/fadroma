@@ -1,12 +1,13 @@
-import type { Connection, Devnet } from './connec'
+import type { Connection, Backend } from './connec'
 import { Console, bold } from '@hackbg/logs'
+import ok from 'node:assert'
 export async function testChainSupport <
   A extends typeof Connection,
-  D extends typeof Devnet
+  D extends typeof Backend
 > (
-  Chain: A, Devnet: D, version: string, token: string, code: string
+  Chain: A, Backend: D, version: string, token: string, code: string
 ) {
-  const console = new Console(`testing(${bold(Chain.name)} + ${bold(Devnet.name)})`)
+  const console = new Console(`testing(${bold(Chain.name)}@${bold(Backend.name)})`)
 
   const { equal, throws, rejects } = await import('node:assert')
   const sendFee   = Chain.gas(1000000)
@@ -15,24 +16,27 @@ export async function testChainSupport <
   const execFee   = Chain.gas(10000000)
 
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
-  const devnet = new (Devnet as any)({ version,  genesisAccounts })
+  const backend = new Backend({ version,  genesisAccounts })
 
-  //const chain = await devnet.connect()
+  //const chain = await backend.connect()
 
   const [alice, bob] = await Promise.all([
-    devnet.connect({ name: 'Alice' }),
-    devnet.connect({ name: 'Bob' }),
+    backend.connect('Alice'),
+    backend.connect('Bob'),
   ])
+  console.log({alice})
+  console.log({id:alice.identity})
+  ok(alice.identity.address)
 
   console.log('Querying block height...')
   await alice.height
 
-  console.log('Querying balances...')
+  console.log('Querying balances...', alice)
   equal((await alice.balance).length, '123455789000'.length)//varying amount subtracted at genesis
   equal(await bob.balance, '987654321000')
 
   console.log('Authenticating a non-genesis account...')
-  const guest = await devnet.connect({ mnemonic: [
+  const guest = await backend.connect({ mnemonic: [
     'define abandon palace resource estate elevator',
     'relief stock order pool knock myth',
     'brush element immense task rapid habit',
@@ -68,5 +72,5 @@ export async function testChainSupport <
   console.log('Executing query...')
   const qResult = await alice.query(instance, null as any)
 
-  return { devnet, alice, bob, guest }
+  return { backend, alice, bob, guest }
 }

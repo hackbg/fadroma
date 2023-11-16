@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { equal, throws, rejects } from 'node:assert'
-import { Connection, Identity, Endpoint, Devnet, Contract, Batch } from './connec'
+import { Connection, Identity, Endpoint, Backend, Contract, Batch } from './connec'
 import { ContractInstance } from './deploy'
 import { fixture } from '@fadroma/fixtures'
 import { Error } from './base'
@@ -12,7 +12,9 @@ import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ["height", testHeight],
   ["codes",  testCodes],
-  ["auth",   testAuth]
+  ["auth",   testAuth],
+  ["batch",  testBatch],
+  ["client", testClient],
 ])
 
 export async function testHeight () {
@@ -40,11 +42,11 @@ export async function testHeight () {
 
 export async function testCodes () {
   const endpoint = new Stub.Endpoint()
-  endpoint.state.uploads.set("123", {
+  endpoint.backend.uploads.set("123", {
     codeHash: "abc",
     codeData: new Uint8Array()
   } as any)
-  endpoint.state.instances.set("stub1abc", {
+  endpoint.backend.instances.set("stub1abc", {
     codeId: "123"
   })
   const connection = new Stub.Connection({ endpoint })
@@ -109,58 +111,4 @@ export async function testClient () {
   assert.throws(()=>new Contract({}).execute({}))
   assert.throws(()=>new Contract({ connection }).execute({}))
   assert.throws(()=>new Contract({ connection: {} as any }).execute({}))
-}
-
-class MyDevnet extends Devnet {
-  Connection = Stub.Connection
-  accounts = []
-  chainId = 'foo'
-  platform = 'bar'
-  running = false
-  stateDir = '/tmp/foo'
-  url = new URL('http://example.com')
-
-  async start (): Promise<this> {
-    this.running = true
-    return this
-  }
-
-  async pause (): Promise<this> {
-    this.running = false
-    return this
-  }
-
-  async import (...args: unknown[]): Promise<unknown> {
-    throw new Error("unimplemented")
-  }
-
-  async export (...args: unknown[]) {
-    throw new Error("unimplemented")
-  }
-
-  async mirror (...args: unknown[]) {
-    throw new Error("unimplemented")
-  }
-
-  async getGenesisAccount (name: string): Promise<Identity> {
-    return new Identity({ name })
-  }
-}
-
-export async function testDevnet () {
-  const devnet = new MyDevnet()
-  const connection = await devnet.connect({ name: 'Alice' })
-  //equal(chain.chainId, 'foo')
-  //equal(connection.chainUrl, 'http://example.com/')
-  //equal(connection.chainMode, Mode.Devnet)
-  //equal(connection.chainStopped, true)
-  devnet.running = true
-  //equal(connection.chainStopped, false)
-  //throws(()=>connection.chainStopped=true)
-  equal(connection.endpoint?.id, devnet.chainId)
-  equal(connection.endpoint?.url, devnet.url)
-  //equal(connection.chainMode, 'devnet')
-  //equal(connection.devnet, devnet)
-  //throws(()=>connection.chainId = "")
-  //throws(()=>connection.chainUrl = "")
 }

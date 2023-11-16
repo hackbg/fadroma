@@ -11,12 +11,16 @@ import * as Token from './token'
 export type ChainId = string
 
 export class Identity extends Logged {
+  /** Display name. */
   name?: Address
+  /** Unique identifier. */
   address?: Address
+
   constructor (properties?: Partial<Identity>) {
     super(properties)
     assign(this, properties, ['name', 'address'])
   }
+
   sign (doc: any): unknown {
     throw new Error("can't sign: stub")
   }
@@ -41,12 +45,32 @@ export class Connection extends Logged {
     this.endpoint = properties.endpoint
     this.identity = properties.identity
     this.fees = properties.fees || this.fees
+    this.log.label += (
+      this[Symbol.toStringTag]
+      ? ` (${bold(this[Symbol.toStringTag])})`
+      : '')
+  }
+
+  get [Symbol.toStringTag] () {
+    let tag = ''
+    if (
+      (this.identity && (this.identity.name||this.identity.address)) ||
+      (this.endpoint && (this.endpoint.id||this.endpoint.url))
+    ) {
+      if (this.identity) {
+        tag += `${this.identity.name||this.identity.address}`
+      }
+      if (this.endpoint) {
+        tag += `@${this.endpoint.id||this.endpoint.url}`
+      }
+    }
+    return tag
   }
 
   /** Get the code id of a given address. */
   getCodeId (contract: Address|{ address: Address }): Promise<Deploy.CodeId> {
     const address = (typeof contract === 'string') ? contract : contract.address
-    this.log.debug(`Fetching code ID of ${bold(address)}`)
+    this.log.debug(`Querying code ID of ${bold(address)}`)
     return timed(
       () => connected(this).getCodeId(address),
       ({ elapsed, result }) => this.log.debug(
@@ -58,7 +82,7 @@ export class Connection extends Logged {
   /** Get the code hash of a given code id. */
   getCodeHashOfCodeId (contract: Deploy.CodeId|{ codeId: Deploy.CodeId }): Promise<Deploy.CodeHash> {
     const codeId = (typeof contract === 'object') ? contract.codeId : contract
-    this.log.debug(`Fetching code hash of code id ${bold(codeId)}`)
+    this.log.debug(`Querying code hash of code id ${bold(codeId)}`)
     return timed(
       () => connected(this).getCodeHashOfCodeId(codeId),
       ({ elapsed, result }) => this.log.debug(
@@ -70,11 +94,11 @@ export class Connection extends Logged {
   /** Get the code hash of a given address. */
   getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Deploy.CodeHash> {
     const address = (typeof contract === 'string') ? contract : contract.address
-    this.log.debug(`Fetching code hash of address ${bold(address)}`)
+    this.log.debug(`Querying code hash of address ${bold(address)}`)
     return timed(
       () => connected(this).getCodeHashOfAddress(address),
       ({ elapsed, result }) => this.log.debug(
-        `Fetched in ${bold(elapsed)}: code ID ${bold(address)} has hash ${bold(result)}`
+        `Queried in ${bold(elapsed)}: code ID ${bold(address)} has hash ${bold(result)}`
       )
     )
   }
@@ -194,7 +218,7 @@ export class Connection extends Logged {
     if (!address) {
       throw new Error('pass (address, token?) to getBalanceOf')
     }
-    token ??= (this.constructor as typeof Connection).gasToken?.id
+    token ??= (this.constructor as typeof Connection).gasToken?.denom
     if (!token) {
       throw new Error('no token for balance query')
     }
@@ -207,7 +231,7 @@ export class Connection extends Logged {
     return timed(
       () => connected(this).getBalance(token, addr),
       ({ elapsed, result }) => this.log.debug(
-        `Fetched in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
+        `Queried in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
       )
     )
   }
@@ -232,7 +256,7 @@ export class Connection extends Logged {
     return timed(
       () => connected(this).getBalance(token, addr),
       ({ elapsed, result }) => this.log.debug(
-        `Fetched in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
+        `Queried in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
       )
     )
   }
@@ -289,8 +313,8 @@ export class Connection extends Logged {
       template = await (code as Deploy.CompiledCode).fetch()
       const t1 = performance.now() - t0
       this.log.log(
-        `Fetched in`, `${bold((t1/1000).toFixed(6))}s:`,
-        bold(String(code.codeData?.length)), `bytes`
+        `Fetched in`, `${bold((t1/1000).toFixed(6))}s:\n `,
+        bold(code.codeHash), '=', bold(String(code.codeData?.length)), `bytes`
       )
     }
 
@@ -410,9 +434,26 @@ export abstract class Endpoint extends Logged {
   url?: string
   /** Platform SDK. */
   api?: unknown
+  /** Managed backend */
+  backend?: unknown
 
   constructor (properties: Partial<Endpoint> = {}) {
     super(properties)
+    this.log.label += (
+      this[Symbol.toStringTag]
+      ? ` (${bold(this[Symbol.toStringTag])})`
+      : '')
+  }
+
+  get [Symbol.toStringTag] () {
+    let tag = ''
+    if (this.id) {
+      tag += this.id
+    }
+    if (this.url) {
+      tag += `(${this.url})`
+    }
+    return tag
   }
 
   abstract get height (): Promise<number>
@@ -509,7 +550,7 @@ export class Contract extends Logged {
   }
 }
 
-export abstract class Devnet extends Logged {
+export abstract class Backend extends Logged {
   /** Which kind of devnet to launch */
   platform?: string
   /** The chain ID that will be passed to the devnet node. */
@@ -519,10 +560,25 @@ export abstract class Devnet extends Logged {
   /** URL for connecting to a remote devnet. */
   url?: string|URL
 
-  constructor (properties?: Partial<Devnet>) {
+  constructor (properties?: Partial<Backend>) {
     super(properties)
     assign(this, properties, ["platform", "chainId", "running", "url"])
   }
+
+  async connect (parameter?: string|Partial<Identity>): Promise<Connection> {
+    console.log({parameter})
+    if (typeof parameter === 'string') {
+      parameter = await this.getIdentity(parameter)
+    }
+    return new Connection({
+      endpoint: this.getEndpoint(),
+      identity: new Identity(parameter)
+    })
+  }
+
+  abstract getEndpoint (): Endpoint
+
+  abstract getIdentity (name: string): Promise<{ address?: Address, mnemonic?: string }>
 
   abstract start (): Promise<this>
 
@@ -531,66 +587,6 @@ export abstract class Devnet extends Logged {
   abstract export (...args: unknown[]): Promise<unknown>
 
   abstract import (...args: unknown[]): Promise<unknown>
-
-  abstract getGenesisAccount (name: string): Promise<{ address?: Address, mnemonic?: string }>
-
-  async connect <A extends typeof Connection> (
-    ...parameters: [string]|[{name: string}]|[A]|ConstructorParameters<A>
-  ): Promise<InstanceType<A>> {
-    let agent: InstanceType<A> = undefined!
-    return agent
-    //if (parameters[0] instanceof Agent) {
-      //agent = parameters[0] as InstanceType<A>
-    //} else {
-      //const params = parameters as ConstructorParameters<A>
-      //params[0] ??= {}
-      //if (params[0].name) {
-        //params[0] = {
-          //...await this.getGenesisAccount(params[0].name),
-          //...params[0],
-        //}
-      //}
-      //params[0].chainId ??= this.chainId
-      //params[0].chainUrl ??= this.url?.toString()
-      //agent = new (this.Agent||Agent)(...params)
-      //if (params[0]?.chainId && params[0]?.chainId !== this.chainId) {
-        //this.log.warn('chainId: ignoring override (devnet)')
-      //}
-      //if (params[0]?.chainUrl && params[0]?.chainUrl.toString() !== this.url?.toString()) {
-        //this.log.warn('chainUrl: ignoring override (devnet)')
-      //}
-      //if (params[0]?.chainMode && params[0]?.chainMode !== Mode.Devnet) {
-        //this.log.warn('chainMode: ignoring override (devnet)')
-      //}
-    //}
-    //return Object.defineProperties(agent, {
-      //chainId: {
-        //enumerable: true, configurable: true, get: () => this.chainId, set: () => {
-          //throw new Error("can't override chain id of devnet")
-        //}
-      //},
-      //chainUrl: {
-        //enumerable: true, configurable: true, get: () => this.url?.toString(), set: () => {
-          //throw new Error("can't override chainUrl of devnet")
-        //}
-      //},
-      //chainMode: {
-        //enumerable: true, configurable: true, get: () => Mode.Devnet, set: () => {
-          //throw new Error("agent.chainMode: can't override")
-        //}
-      //},
-      //devnet: {
-        //enumerable: true, configurable: true, get: () => this, set: () => {
-          //throw new Error("agent.devnet: can't override")
-        //}
-      //},
-      //stopped: {
-        //enumerable: true, configurable: true, get: () => !(this.running), set: () => {
-          //throw new Error("agent.stopped: can't override")
-        //}
-      //}
-    //})
-  }
 }
 
 /** Builder object for batched transactions. */
