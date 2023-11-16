@@ -1,24 +1,33 @@
-import { Console, bold, into } from './base'
-import type { Address, Message } from './base'
-import * as Code from './code'
+/** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+import type { Address, Message, Uint128 } from './base'
+import { ContractInstance } from './deploy'
+import { Error, Logged, bold, into } from './base'
+import { assign, Console } from './base'
 import * as Deploy from './deploy'
 import * as Token from './token'
-import type * as Store from './store'
-
-export type FOO = 'foo'
-export type BAR = 'bar'
 
 export type ChainId = string
 
-export class Connection {
+export class Identity extends Logged {
+  name?: Address
+  address?: Address
+  constructor (properties: Partial<Identity> = {}) {
+    super(properties)
+  }
+  sign (doc: any): unknown {
+    throw new Error("can't sign: stub")
+  }
+}
+
+export class Connection extends Logged {
   /** Native token of chain. */
   static gasToken: Token.Native = new Token.Native('')
   /** Native token of chain. */
-  static gas (amount): Token.Amount {
-    return this.gasToken.amount(amount)
+  static gas (amount: number|Uint128): Token.Amount {
+    return this.gasToken.amount(String(amount))
   }
-  /** Logging handle. */
-  log = new Console(this.constructor.name)
   /** API endpoint. */
   endpoint: Endpoint
   /** Signer identity. */
@@ -27,6 +36,7 @@ export class Connection {
   fees?: { send?: Token.IFee, upload?: Token.IFee, init?: Token.IFee, exec?: Token.IFee }
 
   constructor (properties: Partial<Connection> = {}) {
+    super(properties)
     if (!properties.endpoint) {
       throw new Error('no endpoint')
     }
@@ -47,7 +57,7 @@ export class Connection {
   }
 
   /** Get the code id of a given address. */
-  getCodeId (contract: Address|{ address: Address }): Promise<Code.CodeId> {
+  getCodeId (contract: Address|{ address: Address }): Promise<Deploy.CodeId> {
     const address = (typeof contract === 'string') ? contract : contract.address
     this.log.debug(`Fetching code ID of ${bold(address)}`)
     return this.timed(
@@ -57,7 +67,7 @@ export class Connection {
   }
 
   /** Get the code hash of a given code id. */
-  getCodeHashOfCodeId (contract: Code.CodeId|{ codeId: Code.CodeId }): Promise<Code.CodeHash> {
+  getCodeHashOfCodeId (contract: Deploy.CodeId|{ codeId: Deploy.CodeId }): Promise<Deploy.CodeHash> {
     const codeId = (typeof contract === 'object') ? contract.codeId : contract
     this.log.debug(`Fetching code hash of code id ${bold(codeId)}`)
     return this.timed(
@@ -67,7 +77,7 @@ export class Connection {
   }
 
   /** Get the code hash of a given address. */
-  getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Code.CodeHash> {
+  getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Deploy.CodeHash> {
     const address = (typeof contract === 'string') ? contract : contract.address
     this.log.debug(`Fetching code hash of address ${bold(address)}`)
     return this.timed(
@@ -78,20 +88,26 @@ export class Connection {
 
   /** Get a client handle for a specific smart contract, authenticated as as this agent. */
   getContract (
-    options: Address|{ address: Address }): ContractHandle
-  getContract <C extends typeof ContractHandle> (
-    options: Address|{ address: Address }, $C: C = ContractHandle as C, 
+    options: Address|{ address: Address }): Contract
+  getContract <C extends typeof Contract> (
+    options: Address|{ address: Address }, $C: C = Contract as C, 
   ): InstanceType<C> {
-    return new $C({ instance: options, connection: this }) as InstanceType<C>
+    if (typeof options === 'string') {
+      options = { address: options }
+    }
+    return new $C({
+      instance: options,
+      connection: this
+    }) as InstanceType<C>
   }
 
   /** Get client handles for all contracts that match a code ID */
   getContractsByCodeId (
-    id: Code.CodeId): Promise<Record<Address, ContractHandle>>
-  getContractsByCodeId <C extends typeof ContractHandle> (
-    id: Code.CodeId, $C: C): Promise<Record<Address, InstanceType<C>>>
-  getContractsByCodeId <C extends typeof ContractHandle> (
-    id: Code.CodeId, $C: C = ContractHandle as C
+    id: Deploy.CodeId): Promise<Record<Address, Contract>>
+  getContractsByCodeId <C extends typeof Contract> (
+    id: Deploy.CodeId, $C: C): Promise<Record<Address, InstanceType<C>>>
+  getContractsByCodeId <C extends typeof Contract> (
+    id: Deploy.CodeId, $C: C = Contract as C
   ): Promise<Record<Address, InstanceType<C>>> {
     return this.endpoint.getContractsByCodeId(id).then(contracts=>{
       const results: Record<Address, InstanceType<C>> = {}
@@ -104,16 +120,16 @@ export class Connection {
 
   /** Get client handles for all contracts that match multiple code IDs */
   getContractsByCodeIds (
-    ids: Iterable<Code.CodeId>): Promise<Record<Code.CodeId, Record<Address, ContractHandle>>>
-  getContractsByCodeIds <C extends typeof ContractHandle> (
-    ids: Iterable<Code.CodeId>, $C?: C): Promise<Record<Code.CodeId, Record<Address, InstanceType<C>>>>
-  getContractsByCodeIds <C extends typeof ContractHandle> (
-    ids: Record<Code.CodeId, ContractHandle>): Promise<Record<Code.CodeId, Record<Address, InstanceType<C>>>>
+    ids: Iterable<Deploy.CodeId>): Promise<Record<Deploy.CodeId, Record<Address, Contract>>>
+  getContractsByCodeIds <C extends typeof Contract> (
+    ids: Iterable<Deploy.CodeId>, $C?: C): Promise<Record<Deploy.CodeId, Record<Address, InstanceType<C>>>>
+  getContractsByCodeIds <C extends typeof Contract> (
+    ids: Record<Deploy.CodeId, Contract>): Promise<Record<Deploy.CodeId, Record<Address, InstanceType<C>>>>
   async getContractsByCodeIds (...args: any[]) {
     if (!args[0]) {
-      throw new Error('Invalid arguments. Pass Code.CodeId[] or Record<Code.CodeId, typeof ContractHandle>')
+      throw new Error('Invalid arguments. Pass Deploy.CodeId[] or Record<Deploy.CodeId, typeof Contract>')
     }
-    const result: Record<Code.CodeId, Record<Address, ContractHandle>> = {}
+    const result: Record<Deploy.CodeId, Record<Address, Contract>> = {}
     if (args[0][Symbol.iterator]) {
       for (const codeId of args[0]) {
         result[codeId] = await this.getContractsByCodeId(codeId, args[1])
@@ -255,26 +271,26 @@ export class Connection {
 
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
-    code: string|URL|Uint8Array|Partial<Code.CompiledCode>,
+    code: string|URL|Uint8Array|Partial<Deploy.CompiledCode>,
     options: {
       reupload?:    boolean,
-      uploadStore?: Store.UploadStore,
+      uploadStore?: Deploy.UploadStore,
       uploadFee?:   Token.ICoin[]|'auto',
       uploadMemo?:  string
     } = {},
-  ): Promise<Code.UploadedCode & { chainId: ChainId, codeId: Code.CodeId }> {
+  ): Promise<Deploy.UploadedCode & { chainId: ChainId, codeId: Deploy.CodeId }> {
 
     let template: Uint8Array
     if (code instanceof Uint8Array) {
       template = code
     } else {
       if (typeof code === 'string' || code instanceof URL) {
-        code = new Code.CompiledCode({ codePath: code })
+        code = new Deploy.CompiledCode({ codePath: code })
       } else {
-        code = new Code.CompiledCode(code)
+        code = new Deploy.CompiledCode(code)
       }
       const t0 = performance.now()
-      template = await (code as Code.CompiledCode).fetch()
+      template = await (code as Deploy.CompiledCode).fetch()
       const t1 = performance.now() - t0
       this.log.log(
         `Fetched in`, `${bold((t1/1000).toFixed(6))}s:`,
@@ -289,10 +305,10 @@ export class Connection {
       ].join(' ')
     )
 
-    return new Code.UploadedCode({
+    return new Deploy.UploadedCode({
       ...template, ...result
-    }) as Code.UploadedCode & {
-      chainId: ChainId, codeId: Code.CodeId,
+    }) as Deploy.UploadedCode & {
+      chainId: ChainId, codeId: Deploy.CodeId,
     }
 
   }
@@ -304,13 +320,13 @@ export class Connection {
     *   Deploy.ContractInstance with no `address` populated yet.
     *   This will be populated after executing the batch. */
   async instantiate (
-    contract: Code.CodeId|Partial<Code.UploadedCode>,
+    contract: Deploy.CodeId|Partial<Deploy.UploadedCode>,
     options:  Partial<Deploy.ContractInstance>
   ): Promise<Deploy.ContractInstance & {
     address: Address,
   }> {
     if (typeof contract === 'string') {
-      contract = new Code.UploadedCode({ codeId: contract })
+      contract = new Deploy.UploadedCode({ codeId: contract })
     }
     if (isNaN(Number(contract.codeId))) {
       throw new Error(`can't instantiate contract with missing code id: ${contract.codeId}`)
@@ -363,13 +379,11 @@ export class Connection {
 
   /** Construct a transaction batch. */
   batch (): Batch<typeof this> {
-    return new Batch(this)
+    return new Batch({ connection: this })
   }
 }
 
-export abstract class Endpoint {
-  /** Logging handle. */
-  log = new Console(this.constructor.name)
+export abstract class Endpoint extends Logged {
   /** Chain ID. */
   id?: ChainId
   /** Setting this to false stops retries. */
@@ -379,7 +393,9 @@ export abstract class Endpoint {
   /** Platform SDK. */
   api?: unknown
 
-  constructor (properties: Partial<Endpoint> = {}) {}
+  constructor (properties: Partial<Endpoint> = {}) {
+    super(properties)
+  }
 
   abstract get height (): Promise<number>
 
@@ -391,19 +407,19 @@ export abstract class Endpoint {
 
   abstract getCodeId (
     contract: Address
-  ): Promise<Code.CodeId>
+  ): Promise<Deploy.CodeId>
 
   abstract getContractsByCodeId (
-    id: Code.CodeId
+    id: Deploy.CodeId
   ): Promise<Iterable<{ address: Address }>>
 
   abstract getCodeHashOfAddress (
     contract: Address
-  ): Promise<Code.CodeHash>
+  ): Promise<Deploy.CodeHash>
 
   abstract getCodeHashOfCodeId (
-    codeId: Code.CodeId
-  ): Promise<Code.CodeHash>
+    codeId: Deploy.CodeId
+  ): Promise<Deploy.CodeHash>
 
   abstract query (
     contract: { address: Address }, message: Message
@@ -419,10 +435,10 @@ export abstract class Endpoint {
 
   abstract upload (
     data: Uint8Array, options: Parameters<Connection["upload"]>[1]
-  ): Promise<Partial<Code.UploadedCode>>
+  ): Promise<Partial<Deploy.UploadedCode>>
 
   abstract instantiate (
-    codeId: Code.CodeId, options: Partial<Deploy.ContractInstance>
+    codeId: Deploy.CodeId, options: Partial<Deploy.ContractInstance>
   ): Promise<Partial<Deploy.ContractInstance>>
 
   abstract execute (
@@ -430,51 +446,34 @@ export abstract class Endpoint {
   ): Promise<unknown>
 }
 
-export class Identity {
-  log = new Console(this.constructor.name)
-
-  name?: Address
-  address?: Address
-  constructor (properties: Partial<Identity> = {}) {}
-  sign (doc: any): unknown {
-    throw new Error("can't sign: stub")
-  }
-}
-
-/** ContractHandle: interface to the API of a particular contract instance.
+/** Contract: interface to the API of a particular contract instance.
   * Has an `address` on a specific `chain`, usually also an `agent`.
   * Subclass this to add the contract's methods. */
-export class ContractHandle {
-  log = new Console(this.constructor.name)
-
-  instance: Partial<Deploy.ContractInstance>
+export class Contract extends Logged {
+  instance?: { address?: Address }
   connection?: Connection
-
-  constructor (options: Partial<{
-    instance: Address|{ address: Address },
-    connection?: Connection
-  }> = {}) {
-    let { instance, connection } = options
-    if (typeof instance === 'string') {
-      instance = { address: instance }
+  constructor (properties: Address|Partial<Contract>) {
+    super((typeof properties === 'string')?{}:properties)
+    if (typeof properties === 'string') {
+      properties = { instance: { address: properties } }
     }
+    assign(this, properties, [ 'instance', 'connection' ])
+    let { instance, connection } = properties
     this.instance = instance as Partial<Deploy.ContractInstance>
     this.connection = connection
   }
-
   /** Execute a query on the specified instance as the specified Connection. */
   query <Q> (message: Message): Promise<Q> {
     if (!this.connection) {
       throw new Error("can't query instance without connection")
     }
-    if (!this.instance.address) {
+    if (!this.instance?.address) {
       throw new Error("can't query instance without address")
     }
     return this.connection.query<Q>(
       this.instance as Deploy.ContractInstance & { address: Address }, message
     )
   }
-
   /** Execute a transaction on the specified instance as the specified Connection. */
   execute (message: Message, options: Parameters<Connection["execute"]>[2] = {}): Promise<unknown> {
     if (!this.connection) {
@@ -483,7 +482,7 @@ export class ContractHandle {
     if (!this.connection.execute) {
       throw new Error("can't transact with instance without authorizing the connection")
     }
-    if (!this.instance.address) {
+    if (!this.instance?.address) {
       throw new Error("can't transact with instance without address")
     }
     return this.connection.execute(
@@ -492,12 +491,97 @@ export class ContractHandle {
   }
 }
 
+export abstract class Devnet extends Logged {
+  /** Which kind of devnet to launch */
+  platform?: string
+  /** The chain ID that will be passed to the devnet node. */
+  chainId?: ChainId
+  /** Is this thing on? */
+  running: boolean = false
+  /** URL for connecting to a remote devnet. */
+  url?: string|URL
+
+  constructor (properties?: Partial<Devnet>) {
+    super(properties)
+    assign(this, properties, ["platform", "chainId", "running", "url"])
+  }
+
+  abstract start (): Promise<this>
+
+  abstract pause (): Promise<this>
+
+  abstract export (...args: unknown[]): Promise<unknown>
+
+  abstract import (...args: unknown[]): Promise<unknown>
+
+  abstract getGenesisAccount (name: string): Promise<{ address?: Address, mnemonic?: string }>
+
+  async connect <A extends typeof Connection> (
+    ...parameters: [string]|[{name: string}]|[A]|ConstructorParameters<A>
+  ): Promise<InstanceType<A>> {
+    let agent: InstanceType<A> = undefined!
+    return agent
+    //if (parameters[0] instanceof Agent) {
+      //agent = parameters[0] as InstanceType<A>
+    //} else {
+      //const params = parameters as ConstructorParameters<A>
+      //params[0] ??= {}
+      //if (params[0].name) {
+        //params[0] = {
+          //...await this.getGenesisAccount(params[0].name),
+          //...params[0],
+        //}
+      //}
+      //params[0].chainId ??= this.chainId
+      //params[0].chainUrl ??= this.url?.toString()
+      //agent = new (this.Agent||Agent)(...params)
+      //if (params[0]?.chainId && params[0]?.chainId !== this.chainId) {
+        //this.log.warn('chainId: ignoring override (devnet)')
+      //}
+      //if (params[0]?.chainUrl && params[0]?.chainUrl.toString() !== this.url?.toString()) {
+        //this.log.warn('chainUrl: ignoring override (devnet)')
+      //}
+      //if (params[0]?.chainMode && params[0]?.chainMode !== Mode.Devnet) {
+        //this.log.warn('chainMode: ignoring override (devnet)')
+      //}
+    //}
+    //return Object.defineProperties(agent, {
+      //chainId: {
+        //enumerable: true, configurable: true, get: () => this.chainId, set: () => {
+          //throw new Error("can't override chain id of devnet")
+        //}
+      //},
+      //chainUrl: {
+        //enumerable: true, configurable: true, get: () => this.url?.toString(), set: () => {
+          //throw new Error("can't override chainUrl of devnet")
+        //}
+      //},
+      //chainMode: {
+        //enumerable: true, configurable: true, get: () => Mode.Devnet, set: () => {
+          //throw new Error("agent.chainMode: can't override")
+        //}
+      //},
+      //devnet: {
+        //enumerable: true, configurable: true, get: () => this, set: () => {
+          //throw new Error("agent.devnet: can't override")
+        //}
+      //},
+      //stopped: {
+        //enumerable: true, configurable: true, get: () => !(this.running), set: () => {
+          //throw new Error("agent.stopped: can't override")
+        //}
+      //}
+    //})
+  }
+}
+
 /** Builder object for batched transactions. */
-export class Batch<C extends Connection> {
-  log = new Console(this.constructor.name)
+export class Batch<C extends Connection> extends Logged {
+  connection?: C
 
-  constructor (readonly connection: C) {}
-
+  constructor (properties?: Partial<Batch<C>>) {
+    super(properties)
+  }
   /** Add an upload message to the batch. */
   upload (...args: Parameters<C["upload"]>): this {
     this.log.warn('upload: stub (not implemented)')

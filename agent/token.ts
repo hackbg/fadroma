@@ -2,8 +2,6 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, Uint128 } from './base'
-import type { Agent } from './chain'
-import { ContractClient } from './client'
 
 /** A gas fee, payable in native tokens. */
 export interface IFee { amount: readonly ICoin[], gas: Uint128 }
@@ -99,14 +97,6 @@ class CustomToken extends FungibleToken {
   isCustom = () => true
   /** @returns false */
   isNative = () => false
-
-  connect (agent?: Agent): ContractClient 
-  connect <C extends typeof ContractClient> (agent?: Agent, $C?: C): InstanceType<C> 
-  connect <C extends typeof ContractClient> (
-    agent?: Agent, $C: C = ContractClient as C
-  ): InstanceType<C> {
-    return new $C({ address: this.address, codeHash: this.codeHash }, agent) as InstanceType<C>
-  }
 }
 
 /** A pair of tokens. */

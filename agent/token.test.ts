@@ -64,7 +64,6 @@ export async function testFungible () {
   assert(new Custom('foo').id === 'foo')
   assert(!(new Custom('foo').isNative()))
   assert(new Custom('foo').isCustom())
-  assert(new Custom('foo').connect())
 }
 
 export async function testNonFungible () {

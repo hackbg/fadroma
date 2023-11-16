@@ -19,15 +19,9 @@
 **/
 
 export * from './base'
-export * from './connection'
-export * from './client'
-export * from './code'
+export * from './connec'
 export * from './deploy'
-export * from './devnet'
-export * from './store'
-
-export * as Mock from './mock'
 export * as Token from './token'
-export * as Test from './test'
-export { Agent as default } from './chain'
 
+export * as Stub from './stub'
+export * as Tester from './tester'

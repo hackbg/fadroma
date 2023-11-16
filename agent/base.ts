@@ -14,9 +14,6 @@ export * from '@hackbg/many'
 export * from '@hackbg/4mat'
 export * from '@hackbg/dump'
 
-/** A class constructor. */
-export interface Class<T, U extends unknown[]> { new (...args: U): T }
-
 /** Helper for assigning only allowed properties of value object:
   * - safe, can't set unsupported properties 
   * - no need to state property name thrice
@@ -29,6 +26,13 @@ export function assign <T extends {}> (
   }
   for (const property of allowed) {
     if (property in properties) object[property] = properties[property]
+  }
+}
+
+export class Logged {
+  log: Console
+  constructor (properties?: Partial<Logged>) {
+    this.log = properties?.log ?? new Console(this.constructor.name)
   }
 }
 

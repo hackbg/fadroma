@@ -3,20 +3,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, Message, Label, TxHash } from './base'
 import { assign, Console, Error, base16, sha256 } from './base'
+import type { ChainId } from './connec'
+import { Connection, Devnet, Batch } from './connec'
+import type { CodeId, CodeHash } from './deploy'
+import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy'
 import type { ICoin } from './token'
-import { Agent, BatchBuilder } from './chain'
-import type { ChainId } from './chain'
-import { Compiler, CompiledCode, UploadedCode } from './code'
-import type { CodeHash, CodeId, SourceCode } from './code'
-import { ContractInstance } from './deploy'
-import { Devnet } from './devnet'
 
-class StubAgent extends Agent {
+class StubConnection extends Connection {
   state: StubChainState = new StubChainState()
 
   defaultDenom: string = 'ustub'
 
-  constructor (properties?: Partial<StubAgent>) {
+  constructor (properties?: Partial<StubConnection>) {
     super(properties)
     if (properties?.state) {
       this.state = properties.state
@@ -64,7 +62,7 @@ class StubAgent extends Agent {
   }
   protected doInstantiate (
     codeId:  CodeId,
-    options: Parameters<Agent["doInstantiate"]>[1]
+    options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<ContractInstance & {
     address: Address
   }> {
@@ -76,17 +74,17 @@ class StubAgent extends Agent {
   protected doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2]
+    options?: Parameters<Connection["doExecute"]>[2]
   ): Promise<void|unknown> {
     return Promise.resolve({})
   }
-  batch (): StubBatchBuilder {
-    return new StubBatchBuilder(this)
+  batch (): Batch<this> {
+    return new StubBatch({ connection: this }) as Batch<this>
   }
 }
 
-class StubChainState extends Devnet<typeof StubAgent> {
-  Agent = StubAgent
+class StubChainState extends Devnet {
+  Connection = StubConnection
 
   chainId: string = 'stub'
 
@@ -101,7 +99,7 @@ class StubChainState extends Devnet<typeof StubAgent> {
   instances = new Map<Address, { codeId: CodeId }>()
 
   constructor (properties?: Partial<StubChainState>) {
-    super(properties as Partial<Devnet<typeof StubAgent>>)
+    super(properties as Partial<Devnet>)
     assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
   }
 
@@ -123,7 +121,7 @@ class StubChainState extends Devnet<typeof StubAgent> {
     throw new Error("StubChainState#export: not implemented")
   }
 
-  async getGenesisAccount (name: string): Promise<Partial<Agent>> {
+  async getGenesisAccount (name: string): Promise<Partial<Connection>> {
     throw new Error("StubChainState#getAccount: not implemented")
   }
 
@@ -152,26 +150,26 @@ class StubChainState extends Devnet<typeof StubAgent> {
   }
 }
 
-class StubBatchBuilder extends BatchBuilder<StubAgent> {
+class StubBatch extends Batch<StubConnection> {
   messages: object[] = []
 
-  upload (...args: Parameters<StubAgent["upload"]>) {
+  upload (...args: Parameters<StubConnection["upload"]>) {
     this.messages.push({ instantiate: args })
     return this
   }
 
-  instantiate (...args: Parameters<StubAgent["instantiate"]>) {
+  instantiate (...args: Parameters<StubConnection["instantiate"]>) {
     this.messages.push({ instantiate: args })
     return this
   }
 
-  execute (...args: Parameters<StubAgent["execute"]>) {
+  execute (...args: Parameters<StubConnection["execute"]>) {
     this.messages.push({ execute: args })
     return this
   }
 
   async submit () {
-    this.agent.log.debug('Submitted batch:', this.messages)
+    this.log.debug('Submitted batch:', this.messages)
     return this.messages
   }
 }
@@ -195,8 +193,8 @@ export class StubCompiler extends Compiler {
 }
 
 export {
-  StubAgent        as Agent,
-  StubBatchBuilder as BatchBuilder,
-  StubCompiler     as Compiler,
-  StubChainState   as ChainState
+  StubConnection as Connection,
+  StubBatch      as Batch,
+  StubCompiler   as Compiler,
+  StubChainState as ChainState
 }

@@ -1,18 +1,19 @@
-import type { Connection, Devnet } from '.'
+import type { Connection, Devnet } from './connec'
 import { Coin } from './token'
 import { Console, bold } from '@hackbg/logs'
 export async function testChainSupport <
-  A extends typeof Connection, D extends typeof Devnet<A>
+  A extends typeof Connection,
+  D extends typeof Devnet
 > (
-  Connection: A, Devnet: D, version: string, token: string, code: string
+  Chain: A, Devnet: D, version: string, token: string, code: string
 ) {
-  const console = new Console(`testing(${bold(Connection.name)} + ${bold(Devnet.name)})`)
+  const console = new Console(`testing(${bold(Chain.name)} + ${bold(Devnet.name)})`)
 
   const { equal, throws, rejects } = await import('node:assert')
-  const sendFee   = Connection.gas("1000000")
-  const uploadFee = Connection.gas("10000000")
-  const initFee   = Connection.gas("10000000")
-  const execFee   = Connection.gas("10000000")
+  const sendFee   = Chain.gas(1000000)
+  const uploadFee = Chain.gas(10000000)
+  const initFee   = Chain.gas(10000000)
+  const execFee   = Chain.gas(10000000)
 
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
   const devnet = new (Devnet as any)({ version,  genesisAccounts })
@@ -43,9 +44,9 @@ export async function testChainSupport <
   equal((await guest.balance)??'0', '0')
 
   console.log('Topping up non-genesis account balance from genesis accounts...')
-  await alice.send(guest, [Connection.coin("1")], { sendFee })
+  await alice.send(guest, [Chain.gas(1)], { sendFee })
   equal(await guest.balance, '1')
-  await bob.send(guest, [Connection.coin("11")], { sendFee })
+  await bob.send(guest, [Chain.gas(11)], { sendFee })
   equal(await guest.balance, '12')
 
   console.log('Uploading code...')
