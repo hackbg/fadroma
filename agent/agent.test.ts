@@ -6,5 +6,6 @@ export default new Suite([
   ['base',       ()=>import('./base.test')],
   ['connection', ()=>import('./connec.test')],
   ['deploy',     ()=>import('./deploy.test')],
-  ['token',      ()=>import('./token.test')]
+  ['token',      ()=>import('./token.test')],
+  ['stub',       ()=>import('./stub.test')]
 ])

@@ -39,10 +39,15 @@ export async function testHeight () {
 }
 
 export async function testCodes () {
-  const state = new Stub.ChainState()
-  state.uploads.set("123", { codeHash: "abc", codeData: new Uint8Array() } as any)
-  state.instances.set("stub1abc", { codeId: "123" })
-  const connection = new Stub.Connection({ state })
+  const endpoint = new Stub.Endpoint()
+  endpoint.state.uploads.set("123", {
+    codeHash: "abc",
+    codeData: new Uint8Array()
+  } as any)
+  endpoint.state.instances.set("stub1abc", {
+    codeId: "123"
+  })
+  const connection = new Stub.Connection({ endpoint })
   assert.equal(
     await connection.getCodeId('stub1abc'), "123")
   assert.equal(
@@ -52,17 +57,17 @@ export async function testCodes () {
 }
 
 export async function testAuth () {
-  const connection = new Stub.Connection({ identity: new Identity() })
+  const identity = new Identity({ name: 'foo', address: 'foo1bar' })
+  const connection = new Stub.Connection({ identity })
   //assert.equal(connection[Symbol.toStringTag], 'stub (mocknet): testing1')
   assert(connection instanceof Stub.Connection)
   assert(connection.identity?.address)
-  assert.equal(connection.identity?.name, 'testing1')
-  connection.defaultDenom
+  assert(connection.identity?.name)
   connection.height
   connection.nextBlock
   await connection.query('', {})
   await connection.send('x', [])
-  await connection.sendMany([])
+  //await connection.sendMany([])
   await connection.upload(fixture('empty.wasm'), {})
   await connection.upload(new Uint8Array(), {})
   await connection.instantiate('1', { label: 'foo', initMsg: 'bar' })
@@ -152,8 +157,8 @@ export async function testDevnet () {
   devnet.running = true
   //equal(connection.chainStopped, false)
   //throws(()=>connection.chainStopped=true)
-  equal(connection.endpoint.id, devnet.chainId)
-  equal(connection.endpoint.url, devnet.url)
+  equal(connection.endpoint?.id, devnet.chainId)
+  equal(connection.endpoint?.url, devnet.url)
   //equal(connection.chainMode, 'devnet')
   //equal(connection.devnet, devnet)
   //throws(()=>connection.chainId = "")

@@ -13,8 +13,9 @@ export type ChainId = string
 export class Identity extends Logged {
   name?: Address
   address?: Address
-  constructor (properties: Partial<Identity> = {}) {
+  constructor (properties?: Partial<Identity>) {
     super(properties)
+    assign(this, properties, ['name', 'address'])
   }
   sign (doc: any): unknown {
     throw new Error("can't sign: stub")
@@ -29,7 +30,7 @@ export class Connection extends Logged {
     return this.gasToken.amount(String(amount))
   }
   /** API endpoint. */
-  endpoint: Endpoint
+  endpoint?: Endpoint
   /** Signer identity. */
   identity?: Identity
   /** Default transaction fees. */
@@ -37,32 +38,20 @@ export class Connection extends Logged {
 
   constructor (properties: Partial<Connection> = {}) {
     super(properties)
-    if (!properties.endpoint) {
-      throw new Error('no endpoint')
-    }
     this.endpoint = properties.endpoint
     this.identity = properties.identity
     this.fees = properties.fees || this.fees
-  }
-
-  protected async timed <T> (
-    fn: ()=>Promise<T>,
-    cb: (elapsed: string, result: T)=>string
-  ): Promise<T> {
-    const t0 = performance.now()
-    const result = await fn()
-    const t1 = performance.now()
-    this.log.debug(cb(((t1-t0)/1000).toFixed(3)+'s', result))
-    return result
   }
 
   /** Get the code id of a given address. */
   getCodeId (contract: Address|{ address: Address }): Promise<Deploy.CodeId> {
     const address = (typeof contract === 'string') ? contract : contract.address
     this.log.debug(`Fetching code ID of ${bold(address)}`)
-    return this.timed(
-      () => this.endpoint.getCodeId(address),
-      (t, result) => `Fetched in ${bold(t)}: address ${bold(address)} has code ID ${bold(result)}`
+    return timed(
+      () => connected(this).getCodeId(address),
+      ({ elapsed, result }) => this.log.debug(
+        `Queried in ${bold(elapsed)}: address ${bold(address)} has code ID ${bold(result)}`
+      )
     )
   }
 
@@ -70,9 +59,11 @@ export class Connection extends Logged {
   getCodeHashOfCodeId (contract: Deploy.CodeId|{ codeId: Deploy.CodeId }): Promise<Deploy.CodeHash> {
     const codeId = (typeof contract === 'object') ? contract.codeId : contract
     this.log.debug(`Fetching code hash of code id ${bold(codeId)}`)
-    return this.timed(
-      () => this.endpoint.getCodeHashOfCodeId(codeId),
-      (t, result) => `Fetched in ${bold(t)}: code ID ${bold(codeId)} has hash ${bold(result)}`
+    return timed(
+      () => connected(this).getCodeHashOfCodeId(codeId),
+      ({ elapsed, result }) => this.log.debug(
+        `Queried in ${bold(elapsed)}: code ID ${bold(codeId)} has hash ${bold(result)}`
+      )
     )
   }
 
@@ -80,9 +71,11 @@ export class Connection extends Logged {
   getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Deploy.CodeHash> {
     const address = (typeof contract === 'string') ? contract : contract.address
     this.log.debug(`Fetching code hash of address ${bold(address)}`)
-    return this.timed(
-      () => this.endpoint.getCodeHashOfCodeId(address),
-      (t, result) => `Fetched in ${bold(t)}: code ID ${bold(address)} has hash ${bold(result)}`
+    return timed(
+      () => connected(this).getCodeHashOfAddress(address),
+      ({ elapsed, result }) => this.log.debug(
+        `Fetched in ${bold(elapsed)}: code ID ${bold(address)} has hash ${bold(result)}`
+      )
     )
   }
 
@@ -109,7 +102,7 @@ export class Connection extends Logged {
   getContractsByCodeId <C extends typeof Contract> (
     id: Deploy.CodeId, $C: C = Contract as C
   ): Promise<Record<Address, InstanceType<C>>> {
-    return this.endpoint.getContractsByCodeId(id).then(contracts=>{
+    return connected(this).getContractsByCodeId(id).then(contracts=>{
       const results: Record<Address, InstanceType<C>> = {}
       for (const instance of contracts) {
         results[instance.address] = new $C({ instance, connection: this }) as InstanceType<C>
@@ -143,7 +136,7 @@ export class Connection extends Logged {
   }
 
   get height (): Promise<number> {
-    return this.endpoint.height
+    return connected(this).height
   }
 
   /** Time to ping for next block. */
@@ -164,14 +157,13 @@ export class Connection extends Logged {
       const t = + new Date()
       return new Promise(async (resolve, reject)=>{
         try {
-          while (this.endpoint.live) {
+          while (connected(this).live) {
             await new Promise(ok=>setTimeout(ok, this.blockInterval))
             this.log(
               `Waiting for block > ${bold(String(startingHeight))} ` +
               `(${((+ new Date() - t)/1000).toFixed(3)}s elapsed)`
             )
             const height = await this.height
-            console.log({height})
             if (height > startingHeight) {
               this.log.log(`Block height incremented to ${bold(String(height))}, proceeding`)
               return resolve(height as number)
@@ -212,9 +204,11 @@ export class Connection extends Logged {
     } else {
       this.log.debug('Querying', bold(token), 'balance of', bold(addr))
     }
-    return this.timed(
-      () => this.endpoint.getBalance(token, addr),
-      (t, result) => `Fetched in ${t}s: balance of ${bold(address)} is ${bold(result)}`
+    return timed(
+      () => connected(this).getBalance(token, addr),
+      ({ elapsed, result }) => this.log.debug(
+        `Fetched in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
+      )
     )
   }
 
@@ -235,17 +229,19 @@ export class Connection extends Logged {
     } else {
       this.log.debug('Querying', bold(token), 'balance of', bold(addr))
     }
-    return this.timed(
-      () => this.endpoint.getBalance(token, addr),
-      (t, result) => `Fetched in ${t}s: balance of ${bold(address)} is ${bold(result)}`
+    return timed(
+      () => connected(this).getBalance(token, addr),
+      ({ elapsed, result }) => this.log.debug(
+        `Fetched in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
+      )
     )
   }
 
   /** Query a contract. */
   async query <Q> (contract: Address|{ address: Address }, message: Message): Promise<Q> {
     const _contract = (typeof contract === 'string') ? { address: contract } : contract
-    const result = await this.timed(
-      ()=>this.endpoint.query(_contract, message),
+    const result = await timed(
+      ()=>connected(this).query(_contract, message),
       t=>`Queried in ${bold(t)}s: ${bold(_contract)}`
     )
     return result as Q
@@ -263,8 +259,8 @@ export class Connection extends Logged {
     if (!recipient) {
       throw new Error('no recipient address')
     }
-    return await this.timed(
-      ()=>this.endpoint.send(recipient as string, amounts, options),
+    return await timed(
+      ()=>connected(this).send(recipient as string, amounts, options),
       t=>`Sent in ${bold(t)}s`
     )
   }
@@ -298,12 +294,12 @@ export class Connection extends Logged {
       )
     }
 
-    const result = await this.timed(
-      () => this.endpoint.upload(template, options),
-      (t, result) => [
-        `Uploaded in ${bold(t)}: code id ${bold(String(result.codeId))} (${bold(result.codeHash)})`,
-      ].join(' ')
-    )
+    const result = await timed(
+      () => connected(this).upload(template, options),
+      ({elapsed, result}) => this.log.debug(
+        `Uploaded in ${bold(elapsed)}:\n`,
+        ` ${bold(result.codeHash)} = code id ${bold(String(result.codeId))}`,
+      ))
 
     return new Deploy.UploadedCode({
       ...template, ...result
@@ -341,15 +337,15 @@ export class Connection extends Logged {
       throw new Error("can't instantiate contract without init message")
     }
     const { codeId } = contract
-    const result = await this.timed(
-      async () => this.endpoint.instantiate(codeId, {
+    const result = await timed(
+      async () => connected(this).instantiate(codeId, {
         ...options,
         initMsg: await into(options.initMsg)
       }),
-      (t, result) => [
-        `Instantiated in ${bold(t)} from code id ${bold(String(codeId))}:`,
-        bold(String(options.label)), `(${bold(result.address)})`,
-      ].join(' ')
+      ({ elapsed, result }) => this.log.debug(
+        `Instantiated in ${bold(elapsed)} from code id ${bold(String(codeId))}:\n`,
+        ` ${bold(result.address)} ${options.label}`
+      )
     )
     return new Deploy.ContractInstance({
       ...options, ...result
@@ -371,9 +367,11 @@ export class Connection extends Logged {
       throw new Error("agent.execute: no contract address")
     }
     const { address } = contract
-    return this.timed(
-      () => this.endpoint.execute(contract as { address: Address }, message, options),
-      t => `Executed in ${bold(t)}: address ${bold(address)}`
+    return timed(
+      () => connected(this).execute(contract as { address: Address }, message, options),
+      ({ elapsed }) => this.log.debug(
+        `Executed in ${bold(elapsed)}: address ${bold(address)}`
+      )
     )
   }
 
@@ -381,6 +379,26 @@ export class Connection extends Logged {
   batch (): Batch<typeof this> {
     return new Batch({ connection: this })
   }
+}
+
+async function timed <T> (
+  fn: ()=>Promise<T>, cb: (ctx: { elapsed: string, result: T })=>unknown
+): Promise<T> {
+  const t0 = performance.now()
+  const result = await fn()
+  const t1 = performance.now()
+  cb({
+    elapsed: ((t1-t0)/1000).toFixed(3)+'s',
+    result
+  })
+  return result
+}
+
+function connected ({ endpoint }: { endpoint?: Endpoint }): Endpoint {
+  if (!endpoint) {
+    throw new Error('not connected')
+  }
+  return endpoint
 }
 
 export abstract class Endpoint extends Logged {

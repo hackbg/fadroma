@@ -33,6 +33,7 @@ export class Logged {
   log: Console
   constructor (properties?: Partial<Logged>) {
     this.log = properties?.log ?? new Console(this.constructor.name)
+    Object.defineProperty(this, 'log', { enumerable: false, configurable: true })
   }
 }
 

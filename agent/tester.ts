@@ -1,5 +1,4 @@
 import type { Connection, Devnet } from './connec'
-import { Coin } from './token'
 import { Console, bold } from '@hackbg/logs'
 export async function testChainSupport <
   A extends typeof Connection,

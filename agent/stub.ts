@@ -4,30 +4,39 @@
 import type { Address, Message, Label, TxHash } from './base'
 import { assign, Console, Error, base16, sha256 } from './base'
 import type { ChainId } from './connec'
-import { Connection, Devnet, Batch } from './connec'
+import { Connection, Endpoint, Devnet, Batch, Identity } from './connec'
 import type { CodeId, CodeHash } from './deploy'
 import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy'
-import type { ICoin } from './token'
+import * as Token from './token'
 
 class StubConnection extends Connection {
-  state: StubChainState = new StubChainState()
+  static gasToken: Token.Native = new Token.Native('ustub')
 
-  defaultDenom: string = 'ustub'
-
-  constructor (properties?: Partial<StubConnection>) {
+  constructor (properties: Partial<Connection> = {}) {
     super(properties)
-    if (properties?.state) {
-      this.state = properties.state
-    }
+    this.endpoint ??= new StubEndpoint()
   }
-  async getBlockInfo () {
-    return { height: + new Date() }
+  batch (): Batch<this> {
+    return new StubBatch({ connection: this }) as Batch<this>
   }
-  getBalance (...args: unknown[]): Promise<number> {
-    throw new Error('unimplemented')
+}
+
+class StubEndpoint extends Endpoint {
+  state: StubBackend
+  constructor (properties: Partial<StubEndpoint> = {}) {
+    super(properties)
+    assign(this, properties, ['state'])
+    this.state ??= new StubBackend()
   }
   get height (): Promise<number> {
     return this.getBlockInfo().then(({height})=>height)
+  }
+  getBlockInfo () {
+    return Promise.resolve({ height: + new Date() })
+  }
+  getBalance (...args: unknown[]): Promise<number> {
+    this.log.warn('getBalance: stub')
+    return Promise.resolve(0)
   }
   async getCodeId (address: Address): Promise<CodeId> {
     const contract = this.state.instances.get(address)
@@ -36,54 +45,51 @@ class StubConnection extends Connection {
     }
     return contract.codeId
   }
-  async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    return this.getCodeHashOfCodeId(await this.getCodeId(address))
+  getContractsByCodeId (id: CodeId) {
+    this.log.warn('getContractsByCodeId: stub')
+    return Promise.resolve([])
   }
-  async getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
+  getCodeHashOfAddress (address: Address): Promise<CodeHash> {
+    return this.getCodeId(address)
+      .then(id=>this.getCodeHashOfCodeId(id))
+  }
+  getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
     const code = this.state.uploads.get(id)
-    if (!code) throw new Error(`unknown code ${id}`)
-    return code.codeHash
+    if (!code) {
+      throw new Error(`unknown code ${id}`)
+    }
+    return Promise.resolve(code.codeHash)
   }
-  protected async doGetContractsByCodeId (id: CodeId) {
-    throw new Error('unimplemented')
-    return []
-  }
-  protected doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
+  query <Q> (contract: { address: Address }, message: Message): Promise<Q> {
     return Promise.resolve({} as Q)
   }
-  protected doSend (to: Address, amounts: ICoin[], opts?: never): Promise<void> {
+  send (to: Address, amounts: Token.ICoin[], opts?: never): Promise<void> {
     return Promise.resolve()
   }
-  sendMany (outputs: [Address, ICoin[]][], opts?: never): Promise<void> {
+  sendMany (outputs: [Address, Token.ICoin[]][], opts?: never): Promise<void> {
     return Promise.resolve()
   }
-  protected async doUpload (codeData: Uint8Array): Promise<UploadedCode> {
-    return new UploadedCode(await this.state.upload(codeData))
+  upload (codeData: Uint8Array): Promise<UploadedCode> {
+    return Promise.resolve(new UploadedCode(this.state.upload(codeData)))
   }
-  protected doInstantiate (
-    codeId:  CodeId,
-    options: Parameters<Connection["doInstantiate"]>[1]
-  ): Promise<ContractInstance & {
-    address: Address
-  }> {
+  instantiate (
+    codeId: CodeId, options: Parameters<Endpoint["instantiate"]>[1]
+  ): Promise<ContractInstance & { address: Address }> {
     return Promise.resolve(new ContractInstance({
       address: 'stub',
       label: ''
     }) as ContractInstance & { address: Address })
   }
-  protected doExecute (
+  execute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: Parameters<Connection["doExecute"]>[2]
+    options?: Parameters<Endpoint["execute"]>[2]
   ): Promise<void|unknown> {
     return Promise.resolve({})
   }
-  batch (): Batch<this> {
-    return new StubBatch({ connection: this }) as Batch<this>
-  }
 }
 
-class StubChainState extends Devnet {
+class StubBackend extends Devnet {
   Connection = StubConnection
 
   chainId: string = 'stub'
@@ -98,7 +104,7 @@ class StubChainState extends Devnet {
 
   instances = new Map<Address, { codeId: CodeId }>()
 
-  constructor (properties?: Partial<StubChainState>) {
+  constructor (properties?: Partial<StubBackend>) {
     super(properties as Partial<Devnet>)
     assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
   }
@@ -121,11 +127,12 @@ class StubChainState extends Devnet {
     throw new Error("StubChainState#export: not implemented")
   }
 
-  async getGenesisAccount (name: string): Promise<Partial<Connection>> {
+  async getGenesisAccount (name: string): Promise<Identity> {
     throw new Error("StubChainState#getAccount: not implemented")
   }
 
-  async upload (codeData: Uint8Array) {
+
+  upload (codeData: Uint8Array) {
     this.lastCodeId++
     const codeId = String(this.lastCodeId)
     let upload
@@ -194,7 +201,8 @@ export class StubCompiler extends Compiler {
 
 export {
   StubConnection as Connection,
+  StubEndpoint   as Endpoint,
+  StubBackend    as Backend,
   StubBatch      as Batch,
   StubCompiler   as Compiler,
-  StubChainState as ChainState
 }
