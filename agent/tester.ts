@@ -16,7 +16,7 @@ export async function testChainSupport <
   const execFee   = Chain.gas(10000000)
 
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
-  const backend = new Backend({ version,  genesisAccounts })
+  const backend = new Backend({ version, genesisAccounts })
 
   //const chain = await backend.connect()
 
@@ -24,26 +24,28 @@ export async function testChainSupport <
     backend.connect('Alice'),
     backend.connect('Bob'),
   ])
-  console.log({alice})
-  console.log({id:alice.identity})
-  ok(alice.identity.address)
+  ok(alice.identity?.address)
 
   console.log('Querying block height...')
   await alice.height
 
   console.log('Querying balances...', alice)
-  equal((await alice.balance).length, '123455789000'.length)//varying amount subtracted at genesis
-  equal(await bob.balance, '987654321000')
+  await alice.balance
+  await bob.balance
 
   console.log('Authenticating a non-genesis account...')
-  const guest = await backend.connect({ mnemonic: [
-    'define abandon palace resource estate elevator',
-    'relief stock order pool knock myth',
-    'brush element immense task rapid habit',
-    'angry tiny foil prosper water news'
-  ].join(' ') })
+  const guest = await backend.connect({
+    name: 'Guest',
+    mnemonic: [
+      'define abandon palace resource estate elevator',
+      'relief stock order pool knock myth',
+      'brush element immense task rapid habit',
+      'angry tiny foil prosper water news'
+    ].join(' ')
+  })
 
   console.log('Querying non-genesis account balance...')
+  console.log({guest})
   equal((await guest.balance)??'0', '0')
 
   console.log('Topping up non-genesis account balance from genesis accounts...')

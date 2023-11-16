@@ -4,7 +4,7 @@
 import type { Address, Message, Label, TxHash } from './base'
 import { assign, Console, Error, base16, sha256 } from './base'
 import type { ChainId } from './connec'
-import { Connection, Endpoint, Backend, Batch, Identity } from './connec'
+import { Connection, Backend, Batch, Identity } from './connec'
 import type { CodeId, CodeHash } from './deploy'
 import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy'
 import * as Token from './token'
@@ -12,132 +12,130 @@ import * as Token from './token'
 class StubConnection extends Connection {
   static gasToken: Token.Native = new Token.Native('ustub')
 
-  constructor (properties: Partial<Connection> = {}) {
-    super(properties)
-    this.endpoint ??= new StubEndpoint()
-  }
-  batch (): Batch<this> {
-    return new StubBatch({ connection: this }) as Batch<this>
-  }
-}
+  backend: StubBackend
 
-class StubEndpoint extends Endpoint {
-  declare backend: StubBackend
-  constructor (properties: Partial<StubEndpoint> = {}) {
+  constructor (properties: Partial<StubConnection> = {}) {
     super(properties)
     assign(this, properties, ['backend'])
     this.backend ??= new StubBackend()
   }
-  get height (): Promise<number> {
-    return this.getBlockInfo().then(({height})=>height)
+  batch (): Batch<this> {
+    return new StubBatch({ connection: this }) as Batch<this>
   }
-  getBlockInfo () {
+  get height (): Promise<number> {
+    return this.doGetBlockInfo().then(({height})=>height)
+  }
+  doGetHeight () {
+    return Promise.resolve(+ new Date())
+  }
+  doGetBlockInfo () {
     return Promise.resolve({ height: + new Date() })
   }
-  getBalance (...args: unknown[]): Promise<number> {
+  doGetBalance (...args: unknown[]): Promise<number> {
     this.log.warn('getBalance: stub')
     return Promise.resolve(0)
   }
-  async getCodeId (address: Address): Promise<CodeId> {
+  async doGetCodeId (address: Address): Promise<CodeId> {
     const contract = this.backend.instances.get(address)
     if (!contract) {
       throw new Error(`unknown contract ${address}`)
     }
     return contract.codeId
   }
-  getContractsByCodeId (id: CodeId) {
+  doGetContractsByCodeId (id: CodeId) {
     this.log.warn('getContractsByCodeId: stub')
     return Promise.resolve([])
   }
-  getCodeHashOfAddress (address: Address): Promise<CodeHash> {
+  doGetCodeHashOfAddress (address: Address): Promise<CodeHash> {
     return this.getCodeId(address)
       .then(id=>this.getCodeHashOfCodeId(id))
   }
-  getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
+  doGetCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
     const code = this.backend.uploads.get(id)
     if (!code) {
       throw new Error(`unknown code ${id}`)
     }
     return Promise.resolve(code.codeHash)
   }
-  query <Q> (contract: { address: Address }, message: Message): Promise<Q> {
+  doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
     return Promise.resolve({} as Q)
   }
-  send (to: Address, amounts: Token.ICoin[], opts?: never): Promise<void> {
+  doSend (to: Address, amounts: Token.ICoin[], opts?: never): Promise<void> {
+    for (const { amount, denom } of amounts) {
+      const x = BigInt(amount)
+    }
     return Promise.resolve()
   }
-  sendMany (outputs: [Address, Token.ICoin[]][], opts?: never): Promise<void> {
+  doSendMany (outputs: [Address, Token.ICoin[]][], opts?: never): Promise<void> {
     return Promise.resolve()
   }
-  upload (codeData: Uint8Array): Promise<UploadedCode> {
+  doUpload (codeData: Uint8Array): Promise<UploadedCode> {
     return Promise.resolve(new UploadedCode(this.backend.upload(codeData)))
   }
-  instantiate (
-    codeId: CodeId, options: Parameters<Endpoint["instantiate"]>[1]
+  doInstantiate (
+    codeId: CodeId, options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<ContractInstance & { address: Address }> {
     return Promise.resolve(new ContractInstance({
       address: 'stub',
       label: ''
     }) as ContractInstance & { address: Address })
   }
-  execute (
+  doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: Parameters<Endpoint["execute"]>[2]
+    options?: Parameters<Connection["doExecute"]>[2]
   ): Promise<void|unknown> {
     return Promise.resolve({})
   }
 }
 
 class StubBackend extends Backend {
-  Connection = StubConnection
-
-  chainId: string = 'stub'
-
-  lastCodeId = 0
-
-  balances = new Map<Address, Record<string, bigint>>()
-
-  uploads = new Map<CodeId, {
-    chainId: ChainId, codeId: CodeId, codeHash: CodeHash, codeData: Uint8Array
-  }>()
-
-  instances = new Map<Address, { codeId: CodeId }>()
+  chainId =
+    'stub'
+  url =
+    'http://stub'
+  alive =
+    true
+  lastCodeId =
+    0
+  balances =
+    new Map<Address, Record<string, bigint>>()
+  uploads =
+    new Map<CodeId, {chainId: ChainId, codeId: CodeId, codeHash: CodeHash, codeData: Uint8Array}>()
+  instances =
+    new Map<Address, {codeId: CodeId}>()
 
   constructor (properties?: Partial<StubBackend>) {
     super(properties as Partial<Backend>)
     assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
   }
 
-  async connect (parameter?: string|Partial<Identity>): Promise<Connection> {
-    console.log({parameter})
+  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
     if (typeof parameter === 'string') {
       parameter = await this.getIdentity(parameter)
     }
+    if (parameter.mnemonic && !parameter.address) {
+      parameter.address = `stub1${parameter.name}`
+    }
     return new StubConnection({
-      endpoint: this.getEndpoint(),
+      id: this.chainId,
+      url: 'stub',
+      alive: true,
       identity: new Identity(parameter)
     })
   }
 
-  getEndpoint () {
-    return new StubEndpoint({ id: this.chainId, backend: this })
-  }
-
   getIdentity (name: string): Promise<Identity> {
-    console.log({getIdentity: name})
-    const i = new Identity({ name, address: `stub1${name}` })
-    console.log({i})
-    return Promise.resolve(i)
+    return Promise.resolve(new Identity({ name, address: `stub1${name}` }))
   }
 
   start (): Promise<this> {
-    this.running = true
+    this.alive = true
     return Promise.resolve(this)
   }
 
   pause (): Promise<this> {
-    this.running = false
+    this.alive = false
     return Promise.resolve(this)
   }
 
@@ -218,7 +216,6 @@ export class StubCompiler extends Compiler {
 
 export {
   StubConnection as Connection,
-  StubEndpoint   as Endpoint,
   StubBackend    as Backend,
   StubBatch      as Batch,
   StubCompiler   as Compiler,

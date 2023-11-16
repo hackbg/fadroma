@@ -41,15 +41,15 @@ export async function testHeight () {
 }
 
 export async function testCodes () {
-  const endpoint = new Stub.Endpoint()
-  endpoint.backend.uploads.set("123", {
+  const backend = new Stub.Backend()
+  backend.uploads.set("123", {
     codeHash: "abc",
     codeData: new Uint8Array()
   } as any)
-  endpoint.backend.instances.set("stub1abc", {
+  backend.instances.set("stub1abc", {
     codeId: "123"
   })
-  const connection = new Stub.Connection({ endpoint })
+  const connection = new Stub.Connection({ backend })
   assert.equal(
     await connection.getCodeId('stub1abc'), "123")
   assert.equal(
@@ -98,7 +98,7 @@ export async function testBatch () {
 export async function testClient () {
   const instance   = { address: 'addr', codeHash: 'code-hash-stub', codeId: '100' }
   const connection = new Stub.Connection()
-  const client     = new Contract({ connection, instance })
+  const client     = connection.getContract(instance)
   assert.equal(client.connection, connection)
   assert.equal(client.instance, instance)
   await client.query({foo: 'bar'})
