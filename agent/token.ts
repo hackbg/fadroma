@@ -13,12 +13,13 @@ export interface ICoin { amount: Uint128, denom: string }
 export class Fee implements IFee {
   amount: ICoin[] = []
   constructor (
-    amount: Uint128|number, denom: string, public gas: string = String(amount)
+    amount: Uint128|number|bigint, denom: string, public gas: string = String(amount)
   ) {
     this.add(amount, denom)
   }
-  add = (amount: Uint128|number, denom: string) =>
+  add (amount: Uint128|number|bigint, denom: string) {
     this.amount.push({ amount: String(amount), denom })
+  }
 
   get [Symbol.toStringTag] () {
     return `${this.gas}`
@@ -90,6 +91,10 @@ class NativeToken extends FungibleToken {
   isCustom = () => false
   /** @returns true */
   isNative = () => true
+
+  fee (amount: string|number|bigint): IFee {
+    return new Fee(amount, this.id)
+  }
 }
 
 /** A contract-based token. */

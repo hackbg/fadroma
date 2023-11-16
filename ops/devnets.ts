@@ -2,7 +2,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  assign, Error, Console, bold, Token, Connection, Backend, Scrt, CW, Stub
+  assign, Error, Console, bold, Token, Connection, Backend, Identity,
+  Scrt, CW, Stub
 } from '@fadroma/connect'
 import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/connect'
 import { Config } from '@hackbg/conf'
@@ -39,7 +40,7 @@ const RE_NON_PRINTABLE = /[\x00-\x1F]/
 
 /** A private local instance of a network,
   * running in a container managed by @hackbg/dock. */
-abstract class DevnetContainer<A extends typeof Connection> extends Backend {
+abstract class DevnetContainer extends Backend {
   /** Name of the file containing devnet state. */
   static stateFile = 'devnet.json'
   /** Whether more detailed output is preferred. */
@@ -86,7 +87,7 @@ abstract class DevnetContainer<A extends typeof Connection> extends Backend {
 
   declare url: string
 
-  constructor (options: Partial<DevnetContainer<A>> = {}) {
+  constructor (options: Partial<DevnetContainer> = {}) {
     super(options)
     assign(this, options, [
       'verbose', 'autoStop', 'autoDelete',
@@ -401,7 +402,7 @@ abstract class DevnetContainer<A extends typeof Connection> extends Backend {
   }
 
   /** Get info for named genesis account, including the mnemonic */
-  async getGenesisAccount (name: string): Promise<Partial<Connection>> {
+  async getIdentity (name: string): Promise<Identity> {
     this.log.br()
     this.log.debug('Authenticating devnet account:', bold(name))
     if (!$(this.stateDir).exists()) {
@@ -469,13 +470,13 @@ abstract class DevnetContainer<A extends typeof Connection> extends Backend {
   private exitHandler?: (...args: any)=>void
 }
 
-class ScrtDevnetContainer extends DevnetContainer<typeof Scrt.Connection> {
+class ScrtContainer extends DevnetContainer {
   Connection = Scrt.Connection
 
-  constructor ({ version = 'v1.9', ...properties }: Partial<ScrtDevnetContainer & {
-    version: keyof typeof ScrtDevnetContainer.versions
+  constructor ({ version = 'v1.9', ...properties }: Partial<ScrtContainer & {
+    version: keyof typeof ScrtContainer.versions
   }>) {
-    super({ ...ScrtDevnetContainer.versions[version] || {}, ...properties })
+    super({ ...ScrtContainer.versions[version] || {}, ...properties })
   }
 
   static versions = {
@@ -544,15 +545,29 @@ class ScrtDevnetContainer extends DevnetContainer<typeof Scrt.Connection> {
       platform: 'scrt_1_9',
     }
   }
+
+  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+    if (typeof parameter === 'string') {
+      parameter = await this.getIdentity(parameter)
+    }
+    if (parameter.mnemonic && !parameter.address) {
+      parameter.address = `stub1${parameter.name}`
+    }
+    const id = this.chainId
+    const url = this.url?.toString()
+    const alive = this.running
+    const identity = new Identity(parameter)
+    return new CW.OKP4.Connection({ id, url, alive, identity })
+  }
 }
 
-class OKP4DevnetContainer extends DevnetContainer<typeof CW.OKP4.Connection> {
+class OKP4Container extends DevnetContainer {
   Connection = CW.OKP4.Connection
 
-  constructor ({ version = 'v5.0', ...properties }: Partial<OKP4DevnetContainer & {
-    version: keyof typeof OKP4DevnetContainer.versions
+  constructor ({ version = 'v5.0', ...properties }: Partial<OKP4Container & {
+    version: keyof typeof OKP4Container.versions
   }>) {
-    super({ ...OKP4DevnetContainer.versions[version] || {}, ...properties })
+    super({ ...OKP4Container.versions[version] || {}, ...properties })
   }
 
   static versions = {
@@ -565,17 +580,27 @@ class OKP4DevnetContainer extends DevnetContainer<typeof CW.OKP4.Connection> {
       platform: 'okp4_5_0',
     }
   }
+
+  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+    if (typeof parameter === 'string') {
+      parameter = await this.getIdentity(parameter)
+    }
+    if (parameter.mnemonic && !parameter.address) {
+      parameter.address = `stub1${parameter.name}`
+    }
+    const id = this.chainId
+    const url = this.url?.toString()
+    const alive = this.running
+    const identity = new Identity(parameter)
+    return new CW.OKP4.Connection({ id, url, alive, identity })
+  }
 }
 
-export {
-  DevnetContainer as Container,
-  ScrtDevnetContainer as ScrtContainer,
-  OKP4DevnetContainer as OKP4Container,
-}
+export { DevnetContainer as Container, ScrtContainer, OKP4Container, }
 
 export function getDevnetFromEnvironment <A extends typeof Connection> (
-  properties: Partial<DevnetContainer<A>> & { Connection: A }
-): DevnetContainer<A> {
+  properties: Partial<DevnetContainer> & { Connection: A }
+): DevnetContainer {
   const config = new Config()
   const defaults = {
     chainId:        config.getString('FADROMA_DEVNET_CHAIN_ID', ()=>undefined),
@@ -587,13 +612,9 @@ export function getDevnetFromEnvironment <A extends typeof Connection> (
     dontMountState: config.getFlag('FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false),
   }
   if (properties.Connection === Scrt.Connection) {
-    return new ScrtDevnetContainer(
-      { ...defaults, ...properties } as any
-    ) as any
+    return new ScrtContainer({ ...defaults, ...properties } as any) as any
   } else if (properties.Connection === CW.OKP4.Connection) {
-    return new OKP4DevnetContainer(
-      { ...defaults, ...properties } as any
-    ) as any
+    return new OKP4Container({ ...defaults, ...properties } as any) as any
   } else {
     throw new Error('pass Scrt.Connection or CW.OKP4.Connection to getDevnet({ Connection })')
   }
@@ -602,7 +623,7 @@ export function getDevnetFromEnvironment <A extends typeof Connection> (
 /** Restore a Devnet from the info stored in the state file */
 export function getDevnetFromFile <A extends typeof Connection> (
   dir: string|Path, allowInvalid: boolean = false
-): DevnetContainer<A> {
+): DevnetContainer {
   dir = $(dir)
   if (!dir.isDirectory()) {
     throw new Error(`not a directory: ${dir.path}`)
@@ -611,7 +632,7 @@ export function getDevnetFromFile <A extends typeof Connection> (
   if (!dir.at(DevnetContainer.stateFile).isFile()) {
     throw new Error(`not a file: ${stateFile.path}`)
   }
-  let state: Partial<DevnetContainer<A>> = {}
+  let state: Partial<DevnetContainer> = {}
   try {
     state = stateFile.as(JSONFile).load() || {}
   } catch (e) {
@@ -629,7 +650,7 @@ export function getDevnetFromFile <A extends typeof Connection> (
   if (!state.port) {
     console.warn(`${stateFile.path}: no port`)
   }
-  return new (class extends DevnetContainer<any> { Connection = null as any })(state as any)
+  throw new Error('not implemented')
 }
 
 /** Delete multiple devnets. */

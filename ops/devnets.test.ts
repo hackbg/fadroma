@@ -5,7 +5,7 @@ import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Agent, Project, Compilers, Devnets, Scrt, CW, Token, CompiledCode } from '@hackbg/fadroma'
+import { Connection, Project, Compilers, Devnets, Scrt, CW, Token, CompiledCode } from '@hackbg/fadroma'
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import * as Dock from '@hackbg/dock'
 import { fixture } from '../fixtures/fixtures'
@@ -15,14 +15,14 @@ export const packageRoot = dirname(dirname(resolve(fileURLToPath(import.meta.url
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['scrt', ()=>testDevnetPlatform(Scrt.Agent,    Devnets.ScrtContainer, 'v1.9', 'secretd')],
-  ['okp4', ()=>testDevnetPlatform(CW.OKP4.Agent, Devnets.OKP4Container, 'v5.0', 'okp4d')],
+  ['scrt', ()=>testDevnetPlatform(Scrt.Connection,    Devnets.ScrtContainer, 'v1.9', 'secretd')],
+  ['okp4', ()=>testDevnetPlatform(CW.OKP4.Connection, Devnets.OKP4Container, 'v5.0', 'okp4d')],
 ])
 
 export async function testDevnetPlatform <
-  A extends typeof Agent, D extends typeof Devnets.Container<A>,
+  A extends typeof Connection, D extends typeof Devnets.Container<A>,
 > (
-  Agent: A, Devnet: D, version: string, daemon: string
+  Connection: A, Devnet: D, version: string, daemon: string
 ) {
   const codePath = resolve(packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm')
   let devnet: InstanceType<D> = new (Devnet as any)({
@@ -44,7 +44,7 @@ export async function testDevnetPlatform <
   equal(devnet.initScriptMount, '/devnet.init.mjs')
   ok((await devnet.image) instanceof Dock.Image)
   deepEqual(devnet.spawnEnv.DAEMON,    daemon)
-  deepEqual(devnet.spawnEnv.TOKEN,     Agent.gasToken)
+  deepEqual(devnet.spawnEnv.TOKEN,     Connection.gasToken)
   deepEqual(devnet.spawnEnv.CHAIN_ID,  devnet.chainId)
   deepEqual(devnet.spawnEnv.ACCOUNTS,  JSON.stringify(devnet.genesisAccounts))
   deepEqual(devnet.spawnEnv.STATE_UID, String(getuid!()))
@@ -68,9 +68,9 @@ export async function testDevnetPlatform <
 
   ok(await devnet.start())
   const agent = await devnet.connect({ name: 'User1' })
-  ok(agent instanceof Agent)
+  ok(agent instanceof Connection)
   equal(agent.chainId, devnet.chainId)
-  equal(agent.chainUrl, devnet.url)
+  equal(agent.url, devnet.url)
 
   ok(await devnet.pause())
   ok(await devnet.export())

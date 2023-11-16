@@ -111,7 +111,7 @@ class StubConnection extends Connection {
 }
 
 class StubBackend extends Backend {
-  id =
+  chainId =
     'stub'
   url =
     'http://stub'
@@ -147,10 +147,10 @@ class StubBackend extends Backend {
       parameter.address = `stub1${parameter.name}`
     }
     return new StubConnection({
-      id: this.chainId,
-      url: 'stub',
-      alive: true,
-      backend: this,
+      chainId:  this.chainId,
+      url:      'stub',
+      alive:    this.alive,
+      backend:  this,
       identity: new Identity(parameter)
     })
   }
@@ -180,13 +180,10 @@ class StubBackend extends Backend {
   upload (codeData: Uint8Array) {
     this.lastCodeId++
     const codeId = String(this.lastCodeId)
-    let upload
-    this.uploads.set(codeId, upload = {
-      codeId,
-      chainId:  this.id,
-      codeHash: base16.encode(sha256(codeData)).toLowerCase(),
-      codeData,
-    })
+    const chainId = this.chainId
+    const codeHash = base16.encode(sha256(codeData)).toLowerCase()
+    const upload = { codeId, chainId, codeHash, codeData }
+    this.uploads.set(codeId, upload)
     return upload
   }
 

@@ -44,23 +44,21 @@ class ScrtMocknet extends Stub.Connection {
     return Promise.resolve({})
   }
   /** Instantiate a contract on the mocknet. */
-  protected async doInstantiate (...args: Parameters<Stub.Connection["doInstantiate"]>) {
+  async doInstantiate (...args: Parameters<Stub.Connection["doInstantiate"]>) {
     return await this.state.instantiate(this.address, ...args) as ContractInstance & { address: Address }
   }
-  protected async doExecute (
+  doExecute (
     ...args: Parameters<Stub.Connection["doExecute"]>
   ): Promise<unknown> {
-    return await this.state.execute(this.address, ...args)
+    return this.state.execute(this.address, ...args)
   }
-  protected async doQuery <Q> (
+  doQuery <Q> (
     contract: Address|{address: Address},
     message:  Message
   ): Promise<Q> {
-    return await this.mocknetQuery(contract, message)
-  }
-  async mocknetQuery <Q> (queried: Address|{address: Address}, message: Message): Promise<Q> {
-    const contract = (this.state as ScrtMocknetState).getContract(queried)
-    return contract.query({ msg: message })
+    return (this.state as ScrtMocknetState)
+      .getContract(contract)
+      .query({ msg: message })
   }
   send (...args: unknown[]) {
     this.log.warn('send: stub')
@@ -81,7 +79,7 @@ export { ScrtMocknet as Connection }
 class ScrtMocknetBatch extends Batch<ScrtMocknet> {
   messages: any[] = []
   get log () {
-    return this.agent.log.sub('(batch)')
+    return this.connection!.log.sub('(batch)')
   }
   async submit (memo = "") {
     this.log.info('Submitting mocknet batch...')
@@ -90,7 +88,7 @@ class ScrtMocknetBatch extends Batch<ScrtMocknet> {
       const { init, instantiate = init } = message
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        results.push(await this.agent.instantiate(codeId, {
+        results.push(await this.connection!.instantiate(codeId, {
           initMsg: msg, codeHash, label,
         }))
         continue
@@ -99,7 +97,7 @@ class ScrtMocknetBatch extends Batch<ScrtMocknet> {
       const { exec, execute = exec } = message
       if (!!exec) {
         const { sender, contract: address, codeHash, msg, funds: execSend } = exec
-        results.push(await this.agent.execute({ address, codeHash }, msg, { execSend }))
+        results.push(await this.connection!.execute({ address, codeHash }, msg, { execSend }))
         continue
       }
 

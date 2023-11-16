@@ -7,7 +7,6 @@ import { Console } from './scrt-base'
 import type { Permit } from './snip-24'
 
 export class Snip20 extends Contract implements Token.Fungible {
-  log = new Console('@fadroma/tokens: Snip20')
   /** The full name of the token. */
   name: string|null = null
   /** The market symbol of the token. */
@@ -16,6 +15,8 @@ export class Snip20 extends Contract implements Token.Fungible {
   decimals: number|null = null
   /** The total supply of the token. */
   totalSupply: Uint128|null = null
+
+  declare instance?: { address?: Address, codeHash?: CodeHash }
 
   /** Create a SNIP20 init message. */
   static init ({
@@ -40,18 +41,18 @@ export class Snip20 extends Contract implements Token.Fungible {
 
   /** Get a comparable token ID. */
   get id () {
-    return this.contract.address!
+    return this.instance?.address!
   }
 
   /** Get a client to the Viewing Key API. */
-  get vk (): ViewingKeyContract {
-    return new ViewingKeyContract(this.contract, this.agent)
+  get vk (): ViewingKeyClient {
+    return new ViewingKeyClient(this)
   }
 
   /** @returns self as plain Token.Custom with a *hidden (from serialization!)*
     * `client` property pointing to `this`. */
   get asDescriptor (): Token.Custom {
-    return new Token.Custom(this.contract.address!, this.contract.codeHash)
+    return new Token.Custom(this.instance?.address!, this.instance?.codeHash)
   }
 
   /** @returns true */
@@ -62,15 +63,15 @@ export class Snip20 extends Contract implements Token.Fungible {
   isNative = () => false
 
   async fetchMetadata (): Promise<this> {
-    if (!this.agent) {
+    if (!this.connection) {
       throw new Error("can't fetch metadata without agent")
     }
-    if (!this.contract || !this.contract.address) {
+    if (!this.instance || !this.instance.address) {
       throw new Error("can't fetch metadata without contract address")
     }
     return Promise.all([
-      this.agent.getCodeHashOfAddress(this.contract.address).then((codeHash: CodeHash) =>
-        this.contract.codeHash = codeHash),
+      this.connection.getCodeHashOfAddress(this.instance.address).then((codeHash: CodeHash) =>
+        this.instance!.codeHash = codeHash),
       this.getTokenInfo().then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) =>
         Object.assign(this, { name, symbol, decimals, total_supply }))
     ]).then(()=>this)
@@ -105,7 +106,7 @@ export class Snip20 extends Contract implements Token.Fungible {
 
   /** Mint SNIP20 tokens */
   mint = (
-    amount: string|number|bigint, recipient: string|undefined = this.agent?.address
+    amount: string|number|bigint, recipient: string|undefined = this.connection?.address
   ) => {
     if (!recipient) {
       throw new Error('Snip20#mint: specify recipient')
@@ -139,8 +140,8 @@ export class Snip20 extends Contract implements Token.Fungible {
   /** Increase allowance to spender */
   increaseAllowance = (amount:  string|number|bigint, spender: Address) => {
     this.log.debug(
-      `${bold(this.agent?.address||'(missing address)')}: increasing allowance of`,
-      bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.contract.address))
+      `${bold(this.connection?.address||'(missing address)')}: increasing allowance of`,
+      bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.instance?.address))
     )
     return this.execute({ increase_allowance: { amount: String(amount), spender } })
   }
@@ -185,6 +186,10 @@ export class Snip20 extends Contract implements Token.Fungible {
 
   batchSendFrom = (actions: SendFromAction[]) =>
     this.execute({ batch_send_from: { actions } })
+
+  amount (amount: Uint128): Token.Amount {
+    return new Token.Amount(amount, this)
+  }
 }
 
 export interface Snip20BaseConfig {
@@ -274,7 +279,7 @@ export interface SendFromAction {
 export type ViewingKey = string
 
 /** A contract's viewing key methods. */
-export class ViewingKeyContract extends Contract {
+export class ViewingKeyClient extends Contract {
 
   /** Create a random viewing key. */
   async create (entropy = randomBytes(32).toString("hex")) {

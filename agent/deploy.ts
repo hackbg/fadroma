@@ -694,7 +694,6 @@ export class Deployment extends Map<Name, DeploymentUnit> {
     for (const index in compiled) {
       const output = compiled[index]
       if (!output.codeHash) {
-        console.log({output})
         throw new Error('build output did not contain codeHash')
       }
       toCompile[index].compiled = output

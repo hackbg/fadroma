@@ -19,8 +19,6 @@ export async function testChainSupport <
   const $B = Backend as any
   const backend = new $B({ version, genesisAccounts })
 
-  //const chain = await backend.connect()
-
   const [alice, bob] = await Promise.all([
     backend.connect('Alice'),
     backend.connect('Bob'),

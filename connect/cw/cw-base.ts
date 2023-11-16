@@ -38,7 +38,7 @@ class CWConnection extends Connection {
     assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex'   ])
 
     this.log.label = `${this.chainId||'no chain id'}(` +
-      `${bold(this.name??this.address??'no address')})`
+      `${bold(this.identity?.name??this.address??'no address')})`
 
     if (signer) {
       if (mnemonic) {
@@ -71,18 +71,18 @@ class CWConnection extends Connection {
     }
   }
 
-  async getBlockInfo (): Promise<Block> {
+  doGetBlockInfo (): Promise<Block> {
     return this.chainApi.then(api=>api.getBlock())
   }
 
-  get height () {
-    return this.getBlockInfo().then(
+  doGetHeight () {
+    return this.doGetBlockInfo().then(
       (info: { header: { height?: number } } = { header: {} })=>Number(info.header.height)
     )
   }
 
   /** Query native token balance. */
-  async getBalance (
+  doGetBalance (
     token:   string = (this.constructor as typeof CWConnection).gasToken,
     address: Address|undefined = this.address
   ): Promise<string> {
@@ -94,27 +94,35 @@ class CWConnection extends Connection {
     } else {
       this.log.debug('Querying', bold(token), 'balance of', bold(address))
     }
-    const { amount } = await this.chainApi.then(api=>api.getBalance(address!, token!))
-    return amount
+    return this.chainApi
+      .then(api=>api.getBalance(address!, token!))
+      .then(({amount})=>amount)
   }
 
   /** Stargate implementation of getting a code id. */
-  async getCodeId (address: Address): Promise<CodeId> {
+  doGetCodeId (address: Address): Promise<CodeId> {
     if (!address) throw new CWError('chain.getCodeId: no address')
-    const { codeId } = await this.chainApi.then(api=>api.getContract(address))
-    return String(codeId)
+    return this.chainApi
+      .then(api=>api.getContract(address))
+      .then(({codeId})=>String(codeId))
+  }
+
+  doGetContractsByCodeId (id: CodeId): Promise<Iterable<{address: Address}>> {
+    throw new Error('not implemented')
   }
 
   /** Stargate implementation of getting a code hash. */
-  async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    const { codeId } = await this.chainApi.then(api=>api.getContract(address))
-    return this.getCodeHashOfCodeId(String(codeId))
+  doGetCodeHashOfAddress (address: Address): Promise<CodeHash> {
+    return this.chainApi
+      .then(api=>api.getContract(address))
+      .then(({codeHash})=>String(codeHash))
   }
 
   /** Stargate implementation of getting a code hash. */
-  async getCodeHashOfCodeId (codeId: CodeId): Promise<CodeHash> {
-    const { checksum } = await this.chainApi.then(api=>api.getCodeDetails(Number(codeId)))
-    return checksum
+  doGetCodeHashOfCodeId (codeId: CodeId): Promise<CodeHash> {
+    return this.chainApi
+      .then(api=>api.getCodeDetails(Number(codeId)))
+      .then(({checksum})=>checksum)
   }
 
   /** Stargate implementation of getting a contract label. */
@@ -125,7 +133,7 @@ class CWConnection extends Connection {
   }
 
   /** Stargate implementation of sending native token. */
-  protected async doSend (
+  async doSend (
     recipient: Address, amounts: Token.ICoin[], options?: Parameters<Connection["doSend"]>[2]
   ) {
     return this.chainApi.then(api=>{
@@ -143,35 +151,38 @@ class CWConnection extends Connection {
   }
 
   /** Stargate implementation of batch send. */
-  sendMany (
-    outputs: [Address, Token.ICoin[]][], options?: Parameters<Connection["sendMany"]>[1]
+  doSendMany (
+    outputs: [Address, Token.ICoin[]][],
+    options?: Parameters<Connection["doSendMany"]>[1]
   ): Promise<void|unknown> {
     throw new Error('not implemented')
   }
 
-  protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
+  async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
     if (!this.address) {
       throw new CWError("can't upload contract without sender address")
     }
-    const api = await this.chainApi
-    if (!(api as SigningCosmWasmClient)?.upload) {
-      throw new CWError("can't upload contract with an unauthenticated agent")
-    } 
-    const result = await (api as SigningCosmWasmClient).upload(
-      this.address, data, this.defaultFees?.upload || 'auto', "Uploaded by Fadroma"
-    )
-    return {
-      chainId:   this.chainId,
-      codeId:    String(result.codeId),
-      codeHash:  result.checksum,
-      uploadBy:  this.address,
-      uploadTx:  result.transactionHash,
-      uploadGas: result.gasUsed
-    }
+    return this.chainApi
+      .then(api=>{
+        if (!(api as SigningCosmWasmClient)?.upload) {
+          throw new CWError("can't upload contract with an unauthenticated agent")
+        }
+        return (api as SigningCosmWasmClient).upload(
+          this.address!, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
+        )
+      })
+      .then(result=>({
+        chainId:   this.chainId,
+        codeId:    String(result.codeId),
+        codeHash:  result.checksum,
+        uploadBy:  this.address,
+        uploadTx:  result.transactionHash,
+        uploadGas: result.gasUsed
+      }))
   }
 
   /** Instantiate a contract via CosmJS Stargate. */
-  protected async doInstantiate (
+  async doInstantiate (
     codeId: CodeId, options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
     if (!this.address) {
@@ -206,7 +217,7 @@ class CWConnection extends Connection {
   }
 
   /** Call a transaction method of a contract. */
-  protected async doExecute (
+  async doExecute (
     contract: { address: Address }, message: Message, options: Parameters<Connection["execute"]>[2] = {}
   ): Promise<unknown> {
     if (!this.address) {
@@ -219,7 +230,7 @@ class CWConnection extends Connection {
     const {
       execSend,
       execMemo,
-      execFee = this.defaultFees?.exec || 'auto'
+      execFee = this.fees?.exec || 'auto'
     } = options
     return await (api as SigningCosmWasmClient).execute(
       this.address,
@@ -232,7 +243,7 @@ class CWConnection extends Connection {
   }
 
   /** Stargate implementation of querying a smart contract. */
-  protected async doQuery <U> (contract: Address|Partial<ContractInstance>, msg: Message): Promise<U> {
+  async doQuery <U> (contract: Address|Partial<ContractInstance>, msg: Message): Promise<U> {
     if (typeof contract === 'string') contract = { address: contract }
     if (!contract.address) throw new CWError('no contract address')
     const api = await this.chainApi

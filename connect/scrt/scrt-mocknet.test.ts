@@ -3,7 +3,7 @@ import * as Mocknet from './scrt-mocknet'
 
 export default async function testScrtMocknet () {
   const state = new Mocknet.State()
-  const agent = new Mocknet.Agent({ state })
+  const agent = new Mocknet.Connection({ state })
   const contract = new Mocknet.Contract(state)
   // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
   // responses) are returned by the contract as Base64-encoded strings

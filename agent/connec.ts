@@ -28,7 +28,7 @@ export class Identity extends Logged {
 
 export abstract class Endpoint extends Logged {
   /** Chain ID. */
-  id?: ChainId
+  chainId?: ChainId
   /** Setting this to false stops retries. */
   alive: boolean = true
   /** Connection URL. */
@@ -46,8 +46,8 @@ export abstract class Endpoint extends Logged {
 
   get [Symbol.toStringTag] () {
     let tag = ''
-    if (this.id) {
-      tag += this.id
+    if (this.chainId) {
+      tag += this.chainId
     }
     if (this.url) {
       tag += `(${this.url})`
@@ -88,6 +88,10 @@ export abstract class Connection extends Endpoint {
 
   get address (): Address|undefined {
     return this.identity?.address
+  }
+
+  get defaultDenom (): string {
+    return (this.constructor as Function & {gasToken: Token.Native}).gasToken?.id
   }
 
   get height (): Promise<number> {
@@ -247,7 +251,7 @@ export abstract class Connection extends Endpoint {
   get balance () {
     if (!this.identity?.address) {
       throw new Error('not authenticated, use .getBalance(token, address)')
-    } else if (!(this.constructor as { gasToken?: string }).gasToken) {
+    } else if (!this.defaultDenom) {
       throw new Error('no default token for this chain, use .getBalance(token, address)')
     } else {
       return this.getBalanceOf(this.identity.address)
@@ -261,7 +265,7 @@ export abstract class Connection extends Endpoint {
     if (!address) {
       throw new Error('pass (address, token?) to getBalanceOf')
     }
-    token ??= (this.constructor as typeof Connection).gasToken?.denom
+    token ??= this.defaultDenom
     if (!token) {
       throw new Error('no token for balance query')
     }

@@ -279,10 +279,10 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     Promise<Record<number, CompiledCode>>
 
   protected logStart (sourcePath: string, sourceRef: string, tasks: Set<CompileTask>) {
-    this.log.log('Compiling from', bold(sourcePath), '@', bold(sourceRef))
-    for (const task of tasks) {
-      this.log.log('  Compiling:', JSON.stringify(task))
-    }
+    this.log.log(
+      'Compiling from', bold(sourcePath), '@', bold(sourceRef),
+      '\n ', [...tasks].map(task=>JSON.stringify(task)).join('\n  ')
+    )
   }
 }
 

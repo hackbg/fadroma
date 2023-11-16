@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Tx, ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
-import { Config, Error, Console } from './scrt-base'
+import { Config, Error } from './scrt-base'
 //import * as Mocknet from './scrt-mocknet'
 import type {
   Uint128, Contract, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
@@ -16,6 +16,13 @@ import {
 
 const { MsgStoreCode, MsgExecuteContract, MsgInstantiateContract } = Tx
 
+const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
+
+/** Connect to the Secret Network Mainnet. */
+export function mainnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
+  return new ScrtConnection({ chainId: 'secret-4', url: pickRandom(mainnets), ...options||{} }) as ScrtConnection
+}
+
 /** See https://docs.scrt.network/secret-network-documentation/development/resources-api-contract-addresses/connecting-to-the-network/mainnet-secret-4#api-endpoints */
 const mainnets = new Set([
   'https://lcd.secret.express',
@@ -25,36 +32,18 @@ const mainnets = new Set([
   'https://secret-api.lavenderfive.com',
 ])
 
-const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
+/** Connect to the Secret Network Testnet. */
+export function testnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
+  return new ScrtConnection({ chainId: 'pulsar-3', url: pickRandom(testnets), ...options||{} })
+}
+
+const testnets = new Set([
+])
 
 /** Represents a Secret Network API endpoint. */
 class ScrtConnection extends Connection {
   /** Smallest unit of native token. */
-  static gasToken = 'uscrt'
-  /** Connect to the Secret Network Mainnet. */
-  static mainnet (options: Partial<ScrtConnection> = {}, config = new Config()): ScrtConnection {
-    const { mainnetChainId: chainId, mainnetUrl: chainUrl } = config
-    return super.mainnet({
-      chainId: 'secret-4',
-      chainUrl: pickRandom(mainnets),
-      ...options||{}
-    }) as ScrtConnection
-  }
-  /** Connect to the Secret Network Testnet. */
-  static testnet (options: Partial<ScrtConnection> = {}, config = new Config()): ScrtConnection {
-    const { testnetChainId: chainId, testnetUrl: chainUrl } = config
-    return super.testnet({
-      chainId: 'pulsar-3',
-      chainUrl,
-      ...options||{}
-    }) as ScrtConnection
-  }
-  /** Connect to Secret Network in testnet mode. */
-  static devnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
-    throw new Error('Devnet not installed. Import @hackbg/fadroma')
-  }
-  /** Logger handle. */
-  log = new Console('ScrtConnection')
+  static gasToken = new Token.Native('uscrt')
   /** Underlying API client. */
   declare chainApi: SecretNetworkClient
   /** API extra. */
@@ -62,11 +51,11 @@ class ScrtConnection extends Connection {
   /** API extra. */
   encryptionUtils?: EncryptionUtils
   /** Set permissive fees by default. */
-  defaultFees = {
-    upload: ScrtConnection.gas(10000000),
-    init:   ScrtConnection.gas(10000000),
-    exec:   ScrtConnection.gas(1000000),
-    send:   ScrtConnection.gas(1000000),
+  fees = {
+    upload: ScrtConnection.gasToken.fee(10000000),
+    init:   ScrtConnection.gasToken.fee(10000000),
+    exec:   ScrtConnection.gasToken.fee(1000000),
+    send:   ScrtConnection.gasToken.fee(1000000),
   }
 
   constructor ({
@@ -80,17 +69,17 @@ class ScrtConnection extends Connection {
     encryptionUtils: EncryptionUtils
   }> = {}) {
     super(properties as Partial<Connection>)
-    this.chainApi ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.chainUrl! })
+    this.chainApi ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.url! })
     this.log.label = `${bold(this.name?`"${this.name}"`:(this.address||'ScrtConnection'))}`
     if (this.chainId) {
       this.log.label += ` @ ${bold(this.chainId)}`
     } else {
       throw new Error("can't authenticate without chainId")
     }
-    if (this.chainUrl) {
-      this.log.label += ` (${this.chainUrl})`
+    if (this.url) {
+      this.log.label += ` (${this.url})`
     } else {
-      throw new Error("can't connect without chainUrl")
+      throw new Error("can't connect without url")
     }
     if (!mnemonic && !wallet) {
       mnemonic = bip39.generateMnemonic(bip39EN)
@@ -102,7 +91,7 @@ class ScrtConnection extends Connection {
     }
     this.chainApi = new SecretNetworkClient({
       chainId: this.chainId,
-      url: this.chainUrl,
+      url: this.url,
       wallet,
       walletAddress: wallet?.address,
       encryptionUtils
@@ -177,7 +166,7 @@ class ScrtConnection extends Connection {
     return this.chainApi.query.auth.account({ address: this.address })
   }
 
-  protected async doSend (
+  async doSend (
     recipient: Address,
     amounts:   Token.ICoin[],
     options?:  Parameters<Connection["doSend"]>[2]
@@ -193,11 +182,11 @@ class ScrtConnection extends Connection {
   }
 
   /** Upload a WASM binary. */
-  protected async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
+  async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
     const request  = {
       sender: this.address!, wasm_byte_code: data, source: "", builder: ""
     }
-    const gasLimit = Number(this.defaultFees.upload?.amount[0].amount)
+    const gasLimit = Number(this.fees.upload?.amount[0].amount)
       || undefined
     const result = await this.chainApi!.tx.compute.storeCode(request, { gasLimit })
       .catch((error:any)=>error)
@@ -242,7 +231,7 @@ class ScrtConnection extends Connection {
     }
   }
 
-  protected async doInstantiate (
+  async doInstantiate (
     codeId: CodeId,
     options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<Partial<ContractInstance>> {
@@ -257,7 +246,7 @@ class ScrtConnection extends Connection {
       memo:       options.initMemo
     }
     const instantiateOptions = {
-      gasLimit: Number(this.defaultFees.init?.amount[0].amount) || undefined
+      gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
     }
     const result = await this.chainApi.tx.compute.instantiateContract(parameters, instantiateOptions)
     if (result.code !== 0) {
@@ -281,7 +270,7 @@ class ScrtConnection extends Connection {
     }
   }
 
-  protected async doExecute (
+  async doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
     options?: Parameters<Connection["doExecute"]>[2] & {
@@ -323,8 +312,8 @@ class ScrtConnection extends Connection {
   }
 
   async setMaxGas (): Promise<this> {
-    const max = ScrtConnection.gas((await this.fetchLimits()).gas)
-    this.defaultFees = { upload: max, init: max, exec: max, send: max }
+    const max = ScrtConnection.gasToken.fee((await this.fetchLimits()).gas)
+    this.fees = { upload: max, init: max, exec: max, send: max }
     return this
   }
 
@@ -379,8 +368,8 @@ class ScrtConnection extends Connection {
     return Object.assign(new Error(error), result)
   }
 
-  batch (): ScrtBatch {
-    return new ScrtBatch(this)
+  batch (): Batch<this> {
+    return new ScrtBatch({ connection: this }) as Batch<this>
   }
 
 }
@@ -414,9 +403,6 @@ export type {
 }
 
 export class ScrtBatch extends Batch<ScrtConnection> {
-  /** Logger handle. */
-  log = new Console('ScrtBatch')
-
   /** Messages to encrypt. */
   messages: Array<
     |InstanceType<typeof MsgStoreCode>
@@ -440,7 +426,7 @@ export class ScrtBatch extends Batch<ScrtConnection> {
     this.messages.push(new MsgInstantiateContract({
       //callback_code_hash: '',
       //callback_sig:       null,
-      sender:     this.agent.address!,
+      sender:     this.connection!.address!,
       code_id:    ((typeof code === 'object') ? code.codeId : code) as CodeId,
       label:      options.label!,
       init_msg:   options.initMsg,
@@ -458,7 +444,7 @@ export class ScrtBatch extends Batch<ScrtConnection> {
     this.messages.push(new MsgExecuteContract({
       //callback_code_hash: '',
       //callback_sig:       null,
-      sender:           this.agent.address!,
+      sender:           this.connection!.address!,
       contract_address: contract,
       sent_funds:       options?.execSend,
       msg:              message as object,
@@ -503,11 +489,11 @@ export class ScrtBatch extends Batch<ScrtConnection> {
       "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
       callback_code_hash: '',
       callback_sig:       null,
-      sender:             this.agent.address,
+      sender:             this.connection!.address,
       code_id:     String(init.codeId),
       init_funds:         init.funds,
       label:              init.label,
-      init_msg:           await this.agent.encrypt(init.codeHash, init.msg),
+      init_msg:           await this.connection!.encrypt(init.codeHash, init.msg),
     }
   }
 
@@ -516,22 +502,22 @@ export class ScrtBatch extends Batch<ScrtConnection> {
       "@type":            '/secret.compute.v1beta1.MsgExecuteContract',
       callback_code_hash: '',
       callback_sig:       null,
-      sender:             this.agent.address,
+      sender:             this.connection!.address,
       contract:           exec.contract,
       sent_funds:         exec.funds,
-      msg:                await this.agent.encrypt(exec.codeHash, exec.msg),
+      msg:                await this.connection!.encrypt(exec.codeHash, exec.msg),
     }
   }
 
   simulate () {
-    return Promise.resolve(this.agent.chainApi).then(api=>api.tx.simulate(this.messages))
+    return Promise.resolve(this.connection!.chainApi).then(api=>api.tx.simulate(this.messages))
   }
 
   async submit ({ memo = "" }: { memo: string }): Promise<ScrtBatchResult[]> {
-    const api = await Promise.resolve(this.agent.chainApi)
-    const chainId  = this.agent.chainId!
+    const api = await Promise.resolve(this.connection!.chainApi)
+    const chainId  = this.connection!.chainId!
     const messages = this.messages
-    const limit    = Number(this.agent.defaultFees.exec?.amount[0].amount) || undefined
+    const limit    = Number(this.connection!.fees.exec?.amount[0].amount) || undefined
     const gas      = messages.length * (limit || 0)
 
     const results: ScrtBatchResult[] = []
@@ -549,7 +535,7 @@ export class ScrtBatch extends Batch<ScrtConnection> {
 
         const result: Partial<ScrtBatchResult> = {
           chainId,
-          sender: this.agent.address,
+          sender: this.connection!.address,
           tx: txResult.transactionHash,
         }
 
@@ -599,7 +585,7 @@ export class ScrtBatch extends Batch<ScrtConnection> {
     // Number of batch, just for identification in console
     name ??= name || `TX.${+new Date()}`
     // Get signer's account number and sequence via the canonical API
-    const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
+    const { accountNumber, sequence } = await this.connection!.getNonce()//this.chain.url, this.connection!.address)
     // Print the body of the batch
     this.log.debug(`Messages in batch:`)
     for (const msg of this.messages??[]) {
@@ -623,8 +609,8 @@ export class ScrtBatch extends Batch<ScrtConnection> {
     this.log.info('Multisig batch ready.')
     this.log.info(`Run the following command to sign the batch:
 \nsecretcli tx sign /dev/stdin --output-document=${output} \\
---offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${this.agent.address} \\
---chain-id=${this.agent.chainId} --account-number=${accountNumber} --sequence=${sequence} \\
+--offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${this.connection!.address} \\
+--chain-id=${this.connection!.chainId} --account-number=${accountNumber} --sequence=${sequence} \\
 <<< ${txdata}`)
     this.log.br()
     this.log.debug(`Batch contents:`, JSON.stringify(unsigned, null, 2))
