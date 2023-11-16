@@ -11,7 +11,7 @@ import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 /** Configuration for OKP4 */
 class OKP4Config extends Config {
   static defaultTestnetChainId: string = 'okp4-nemeton-1'
-  static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'//'https://okp4-testnet-api.polkachu.com/'
+  static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'
   constructor (options: Partial<OKP4Config> = {}, environment?: Environment) {
     super(environment)
     this.override(options)
@@ -23,8 +23,21 @@ class OKP4Config extends Config {
 }
 
 export const testnets = new Set([
-  'https://okp4-testnet-rpc.polkachu.com/'
+  'https://okp4-testnet-rpc.polkachu.com/',
+  //'https://okp4-testnet-api.polkachu.com/'
 ])
+
+import { CWMnemonicIdentity } from '../cw-identity'
+class OKP4MnemonicIdentity extends CWMnemonicIdentity {
+  constructor (properties: { mnemonic: string }) {
+    super({
+      coinType: 118,
+      bech32Prefix: 'okp4',
+      hdAccountIndex: 0,
+      ...properties
+    })
+  }
+}
 
 /** Connection for OKP4. */
 class OKP4Connection extends Connection {
@@ -40,11 +53,11 @@ class OKP4Connection extends Connection {
     throw new Error('Devnet not installed. Import @hackbg/fadroma')
   }
   /** Transaction fees for this agent. */
-  defaultFees = {
-    upload: OKP4Connection.gas(10000000),
-    init: OKP4Connection.gas(1000000),
-    exec: OKP4Connection.gas(1000000),
-    send: OKP4Connection.gas(1000000),
+  fees = {
+    upload: OKP4Connection.gasToken.fee(10000000),
+    init:   OKP4Connection.gasToken.fee(1000000),
+    exec:   OKP4Connection.gasToken.fee(1000000),
+    send:   OKP4Connection.gasToken.fee(1000000),
   }
 
   constructor (options: Partial<OKP4Connection> & { mnemonic?: string, config?: OKP4Config } = {
@@ -119,8 +132,9 @@ class OKP4Connection extends Connection {
 }
 
 export {
-  OKP4Config as Config,
-  OKP4Connection  as Connection
+  OKP4Config           as Config,
+  OKP4MnemonicIdentity as MnemonicIdentity,
+  OKP4Connection       as Connection
 }
 
 /** Connect to OKP4 testnet. */

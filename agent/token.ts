@@ -22,7 +22,15 @@ export class Fee implements IFee {
   }
 
   get [Symbol.toStringTag] () {
-    return `${this.gas}`
+    let tag = `${this.gas}`
+    if (this.amount.length > 0) {
+      tag += ' ('
+      return this.amount.map(({ amount, denom })=>{
+        return `${amount} ${denom}`
+      }).join('|')
+      tag += ')'
+    }
+    return tag
   }
 }
 
@@ -79,6 +87,10 @@ class TokenAmount {
 
   get denom () {
     return this.token?.id
+  }
+
+  get [Symbol.toStringTag] () {
+    return `${this.amount??''} ${this.token?.id??''}`
   }
 }
 

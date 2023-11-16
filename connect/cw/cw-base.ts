@@ -7,7 +7,7 @@ import {
   bip32, bip39, bip39EN, bech32, base64,
   into,
   ContractInstance,
-  Token
+  Token,
 } from '@fadroma/agent'
 import type { Address, Message, CodeId, CodeHash, UploadedCode, Label } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
@@ -16,55 +16,40 @@ import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
+import type * as Identity from './cw-identity'
+
+const assertApi =
+  ({ api }: { api?: CWConnection["api"] }): NonNullable<CWConnection["api"]> => {
+    if (!api) {
+      throw new Error('no api')
+    }
+    return api
+  }
 
 /** Generic agent for CosmWasm-enabled chains. */
 class CWConnection extends Connection {
-  /** Public key corresponding to private key derived from mnemonic. */
-  publicKey?: Uint8Array
   /** The bech32 prefix for the account's address  */
   bech32Prefix?: string
   /** The coin type in the HD derivation path */
   coinType?: number
   /** The account index in the HD derivation path */
   hdAccountIndex?: number
-  /** API handle. */
-  declare chainApi: Promise<CosmWasmClient|SigningCosmWasmClient>
+  /** API connects asynchronously, so API handle is a promise of either variant. */
+  declare api: Promise<CosmWasmClient|SigningCosmWasmClient>
+  /** A supported method of authentication. */
+  declare identity: Identity.CWMnemonicIdentity|Identity.CWSignerIdentity
 
-  constructor ({ mnemonic, signer, ...properties }: Partial<CWConnection> & {
-    signer?:   OfflineSigner,
-    mnemonic?: string
-  }) {
-    super(properties as Partial<Connection>)
-    assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex'   ])
-
-    this.log.label = `${this.chainId||'no chain id'}(` +
-      `${bold(this.identity?.name??this.address??'no address')})`
-
-    if (signer) {
-      if (mnemonic) {
-        this.log.warn('Signer passed. Ignoring mnemonic')
-      }
-    } else if (mnemonic) {
-      const auth = authMnemonic(this, mnemonic)
-      if (this.address && this.address !== auth.address) {
-        throw new Error(
-          `address ${auth.address} generated from mnemonic did not match ${this.address}`
-        )
-      }
-      this.address = auth.address
-      signer = auth.signer
-    }
-
-    this.log.label = `${this.chainId||'no chain id'}(` +
-      `${bold(this.name??this.address??'no address')})`
-
-    if (this.chainUrl) {
-      if (signer) {
-        this.log.debug('Connecting to', bold(this.chainUrl), 'as', bold(this.address))
-        this.chainApi = SigningCosmWasmClient.connectWithSigner(this.chainUrl, signer)
+  constructor (properties: Partial<CWConnection>) {
+    super(properties)
+    assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex' ])
+    this.log.label = `${this.chainId||'no chain id'}(${bold(this.identity?.name??this.address??'no address')})`
+    if (this.url) {
+      if (this.identity.signer) {
+        this.log.debug('Connecting to', bold(this.url), 'as', bold(this.address))
+        this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
       } else {
-        this.log.debug('Connecting to', bold(this.chainUrl), 'in read-only mode')
-        this.chainApi = CosmWasmClient.connect(this.chainUrl)
+        this.log.debug('Connecting to', bold(this.url), 'in read-only mode')
+        this.api = CosmWasmClient.connect(this.url)
       }
     } else {
       this.log.warn('No connection url.')
@@ -72,7 +57,7 @@ class CWConnection extends Connection {
   }
 
   doGetBlockInfo (): Promise<Block> {
-    return this.chainApi.then(api=>api.getBlock())
+    return assertApi(this).then(api=>api.getBlock())
   }
 
   doGetHeight () {
@@ -83,7 +68,7 @@ class CWConnection extends Connection {
 
   /** Query native token balance. */
   doGetBalance (
-    token:   string = (this.constructor as typeof CWConnection).gasToken,
+    token:   string = (this.constructor as typeof CWConnection).gasToken.id,
     address: Address|undefined = this.address
   ): Promise<string> {
     if (!address) {
@@ -94,7 +79,7 @@ class CWConnection extends Connection {
     } else {
       this.log.debug('Querying', bold(token), 'balance of', bold(address))
     }
-    return this.chainApi
+    return assertApi(this)
       .then(api=>api.getBalance(address!, token!))
       .then(({amount})=>amount)
   }
@@ -102,7 +87,7 @@ class CWConnection extends Connection {
   /** Stargate implementation of getting a code id. */
   doGetCodeId (address: Address): Promise<CodeId> {
     if (!address) throw new CWError('chain.getCodeId: no address')
-    return this.chainApi
+    return assertApi(this)
       .then(api=>api.getContract(address))
       .then(({codeId})=>String(codeId))
   }
@@ -113,14 +98,14 @@ class CWConnection extends Connection {
 
   /** Stargate implementation of getting a code hash. */
   doGetCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    return this.chainApi
+    return assertApi(this)
       .then(api=>api.getContract(address))
       .then(({codeHash})=>String(codeHash))
   }
 
   /** Stargate implementation of getting a code hash. */
   doGetCodeHashOfCodeId (codeId: CodeId): Promise<CodeHash> {
-    return this.chainApi
+    return assertApi(this)
       .then(api=>api.getCodeDetails(Number(codeId)))
       .then(({checksum})=>checksum)
   }
@@ -128,7 +113,7 @@ class CWConnection extends Connection {
   /** Stargate implementation of getting a contract label. */
   async getLabel (address: Address): Promise<string> {
     if (!address) throw new CWError('chain.getLabel: no address')
-    const { label } = await this.chainApi.then(api=>api.getContract(address))
+    const { label } = await assertApi(this).then(api=>api.getContract(address))
     return label
   }
 
@@ -136,7 +121,7 @@ class CWConnection extends Connection {
   async doSend (
     recipient: Address, amounts: Token.ICoin[], options?: Parameters<Connection["doSend"]>[2]
   ) {
-    return this.chainApi.then(api=>{
+    return assertApi(this).then(api=>{
       if (!(api as SigningCosmWasmClient)?.sendTokens) {
         throw new CWError("can't send tokens with an unauthenticated agent")
       } 
@@ -162,7 +147,7 @@ class CWConnection extends Connection {
     if (!this.address) {
       throw new CWError("can't upload contract without sender address")
     }
-    return this.chainApi
+    return assertApi(this)
       .then(api=>{
         if (!(api as SigningCosmWasmClient)?.upload) {
           throw new CWError("can't upload contract with an unauthenticated agent")
@@ -188,7 +173,7 @@ class CWConnection extends Connection {
     if (!this.address) {
       throw new CWError("can't instantiate contract without sender address")
     }
-    const api = await this.chainApi
+    const api = await assertApi(this)
     if (!(api as SigningCosmWasmClient)?.instantiate) {
       throw new CWError("can't instantiate contract without authorizing the agent")
     } 
@@ -223,7 +208,7 @@ class CWConnection extends Connection {
     if (!this.address) {
       throw new CWError("can't execute transaction without sender address")
     }
-    const api = await this.chainApi
+    const api = await assertApi(this)
     if (!(api as SigningCosmWasmClient)?.execute) {
       throw new CWError("can't execute transaction without authorizing the agent")
     } 
@@ -246,93 +231,12 @@ class CWConnection extends Connection {
   async doQuery <U> (contract: Address|Partial<ContractInstance>, msg: Message): Promise<U> {
     if (typeof contract === 'string') contract = { address: contract }
     if (!contract.address) throw new CWError('no contract address')
-    const api = await this.chainApi
+    const api = await assertApi(this)
     return await api.queryContractSmart(contract.address, msg) as U
   }
 
   batch (): CWBatch {
     return new CWBatch(this)
-  }
-}
-
-export function authMnemonic (agent: {
-  log?:            Console
-  bech32Prefix?:   string
-  coinType?:       number
-  hdAccountIndex?: number
-}, mnemonic: string): {
-  address: Address,
-  pubkey:  Uint8Array,
-  signer:  OfflineSigner,
-} {
-  // Validate input
-  if (!mnemonic) {
-    throw new CWError("can't set empty mnemonic")
-  }
-  if (agent.coinType === undefined) {
-    throw new CWError('coinType is not set')
-  }
-  if (agent.bech32Prefix === undefined) {
-    throw new CWError('bech32Prefix is not set')
-  }
-  if (agent.hdAccountIndex === undefined) {
-    throw new CWError('hdAccountIndex is not set')
-  }
-  // Derive keypair and address from mnemonic
-  const seed = bip39.mnemonicToSeedSync(mnemonic)
-  const node = bip32.HDKey.fromMasterSeed(seed)
-  const secretHD = node.derive(`m/44'/${agent.coinType}'/0'/0/${agent.hdAccountIndex}`)
-  const privateKey = secretHD.privateKey
-  if (!privateKey) {
-    throw new CWError("failed to derive key pair")
-  }
-  // Compute public key and address
-  const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
-  const address = bech32.encode(agent.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
-  const signer: OfflineSigner = {
-    // One account per agent
-    getAccounts: async () => [{ algo: 'secp256k1', address, pubkey }],
-    // Sign a transaction
-    signAmino: async (address2: string, signed: any) => {
-      if (address2 && address2 !== address) {
-        agent.log?.warn(`Received address ${bold(address)} that did not match`)
-          .warn(` generated address ${address}, ignoring them`)
-      }
-      const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
-      return {
-        signed,
-        signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
-          ...numberToBytesBE(r, 32), ...numberToBytesBE(s, 32)
-        ])),
-      }
-    },
-  }
-
-  return {
-    address,
-    pubkey,
-    signer,
-  }
-}
-
-export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Array): {
-  pub_key: { type: string, value: string },
-  signature: string
-} {
-  if (pubkey.length !== 33 || (pubkey[0] !== 0x02 && pubkey[0] !== 0x03)) {
-    throw new CWError(
-      "Public key must be compressed secp256k1, i.e. 33 bytes starting with 0x02 or 0x03"
-    )
-  }
-  if (signature.length !== 64) {
-    throw new CWError(
-      "Signature must be 64 bytes long. Cosmos SDK uses a 2x32 byte fixed length encoding "+
-      "for the secp256k1 signature integers r and s."
-    )
-  }
-  return {
-    pub_key: { type: "tendermint/PubKeySecp256k1", value: base64.encode(pubkey), },
-    signature: base64.encode(signature)
   }
 }
 
@@ -364,6 +268,12 @@ class CWBatch extends Batch<CWConnection> {
 
 }
 
+class CWConfig extends Config {}
+
+class CWError extends Error {}
+
+class CWConsole extends Console {}
+
 export {
   CWConfig as Config,
   CWError as Error,
@@ -371,9 +281,3 @@ export {
   CWConnection as Connection,
   CWBatch as Batch
 }
-
-class CWConfig extends Config {}
-
-class CWError extends Error {}
-
-class CWConsole extends Console {}

@@ -83,8 +83,6 @@ abstract class DevnetContainer extends Backend {
   /** After how many seconds to throw if container is not ready. */
   launchTimeout: number = 10
 
-  abstract genesisToken: string
-
   declare url: string
 
   constructor (options: Partial<DevnetContainer> = {}) {
@@ -402,26 +400,36 @@ abstract class DevnetContainer extends Backend {
   }
 
   /** Get info for named genesis account, including the mnemonic */
-  async getIdentity (name: string): Promise<Identity> {
-    this.log.br()
-    this.log.debug('Authenticating devnet account:', bold(name))
+  async getIdentity (
+    name: string|{ name?: string }
+  ): Promise<Partial<Identity> & { mnemonic: string }> {
+
+    if (typeof name === 'object') {
+      name = name.name!
+    }
+    if (!name) {
+      throw new Error('no name')
+    }
+
+    this.log.debug('Authenticating to devnet as genesis account:', bold(name))
+
     if (!$(this.stateDir).exists()) {
       this.log.debug('Waking devnet container')
       await this.containerCreated
       await this.containerStarted
     }
+
     if (this.dontMountState) {
       if (!this.container) {
-        throw new Error('missing devnet container')
+        throw new Error('no devnet container')
       }
       const path = `/state/${this.chainId}/wallet/${name}.json`
       const [identity] = await (await this.container).exec('cat', path)
       return JSON.parse(identity)
-    } else {
-      return $(this.stateDir, 'wallet', `${name}.json`)
-        .as(JSONFile)
-        .load() as Partial<Connection>
     }
+
+    return $(this.stateDir, 'wallet', `${name}.json`).as(JSONFile).load() as Partial<Identity>
+
   }
 
   /** Function that waits for port to open after launching container.
@@ -477,6 +485,15 @@ class ScrtContainer extends DevnetContainer {
     version: keyof typeof ScrtContainer.versions
   }>) {
     super({ ...ScrtContainer.versions[version] || {}, ...properties })
+  }
+
+  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+    return new Scrt.Connection({
+      chainId:  this.chainId,
+      url:      this.url?.toString(),
+      alive:    this.running,
+      identity: new Scrt.ScrtMnemonicIdentity(await this.getIdentity(parameter))
+    })
   }
 
   static versions = {
@@ -545,20 +562,6 @@ class ScrtContainer extends DevnetContainer {
       platform: 'scrt_1_9',
     }
   }
-
-  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
-    if (typeof parameter === 'string') {
-      parameter = await this.getIdentity(parameter)
-    }
-    if (parameter.mnemonic && !parameter.address) {
-      parameter.address = `stub1${parameter.name}`
-    }
-    const id = this.chainId
-    const url = this.url?.toString()
-    const alive = this.running
-    const identity = new Identity(parameter)
-    return new CW.OKP4.Connection({ id, url, alive, identity })
-  }
 }
 
 class OKP4Container extends DevnetContainer {
@@ -570,6 +573,15 @@ class OKP4Container extends DevnetContainer {
     super({ ...OKP4Container.versions[version] || {}, ...properties })
   }
 
+  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+    return new CW.OKP4.Connection({
+      chainId:  this.chainId,
+      url:      this.url?.toString(),
+      alive:    this.running,
+      identity: new CW.OKP4.MnemonicIdentity(await this.getIdentity(parameter))
+    })
+  }
+
   static versions = {
     'v5.0': {
       containerImage: 'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
@@ -579,20 +591,6 @@ class OKP4Container extends DevnetContainer {
       portMode: 'rpc' as Port,
       platform: 'okp4_5_0',
     }
-  }
-
-  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
-    if (typeof parameter === 'string') {
-      parameter = await this.getIdentity(parameter)
-    }
-    if (parameter.mnemonic && !parameter.address) {
-      parameter.address = `stub1${parameter.name}`
-    }
-    const id = this.chainId
-    const url = this.url?.toString()
-    const alive = this.running
-    const identity = new Identity(parameter)
-    return new CW.OKP4.Connection({ id, url, alive, identity })
   }
 }
 

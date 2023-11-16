@@ -23,6 +23,7 @@ export async function testChainSupport <
     backend.connect('Alice'),
     backend.connect('Bob'),
   ])
+  console.log({backend, alice, bob})
   ok(alice.identity?.address)
 
   console.log('Querying block height...')
