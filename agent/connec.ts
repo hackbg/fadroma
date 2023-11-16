@@ -38,19 +38,19 @@ export abstract class Endpoint extends Logged {
 
   constructor (properties: Partial<Endpoint> = {}) {
     super(properties)
-    this.log.label += (
-      this[Symbol.toStringTag]
-      ? `(${bold(this[Symbol.toStringTag])})`
-      : '')
+    assign(this, properties, ['chainId', 'alive', 'url', 'api'])
+    this.log.label = [
+      this.constructor.name,
+      '(',
+      this[Symbol.toStringTag] ? `(${bold(this[Symbol.toStringTag])})` : null,
+      ')'
+    ].filter(Boolean).join('')
   }
 
   get [Symbol.toStringTag] () {
     let tag = ''
     if (this.chainId) {
       tag += this.chainId
-    }
-    if (this.url) {
-      tag += `(${this.url})`
     }
     return tag
   }
@@ -70,12 +70,10 @@ export abstract class Connection extends Endpoint {
 
   constructor (properties: Partial<Connection> = {}) {
     super(properties)
-    this.identity = properties.identity
-    this.fees = properties.fees || this.fees
-    this.log.label += (
-      this[Symbol.toStringTag]
-      ? `(${bold(this[Symbol.toStringTag])})`
-      : '')
+    assign(this, properties, ['identity', 'fees'])
+    this.log.label = this[Symbol.toStringTag]
+      ? this[Symbol.toStringTag]
+      : this.constructor.name
   }
 
   get [Symbol.toStringTag] () {
@@ -278,7 +276,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       this.doGetBalance.bind(this, token, addr),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
+        `Queried in ${elapsed}s:\n  ${bold(address)} has ${bold(result)} ${token}`
       )
     )
   }
@@ -317,7 +315,9 @@ export abstract class Connection extends Endpoint {
     const _contract = (typeof contract === 'string') ? { address: contract } : contract
     const result = await timed(
       ()=>this.doQuery(_contract, message),
-      t=>`Queried in ${bold(t)}s: ${bold(_contract)}`
+      ({ elapsed, result }) => this.log.debug(
+        `Queried in ${bold(elapsed)}s: ${bold(result)}`
+      )
     )
     return result as Q
   }
@@ -329,7 +329,7 @@ export abstract class Connection extends Endpoint {
   /** Send native tokens to 1 recipient. */
   async send (
     recipient: Address|{ address?: Address },
-    amounts: Token.ICoin[],
+    amounts: (Token.Amount|Token.ICoin)[],
     options?: { sendFee?: Token.IFee, sendMemo?: string }
   ): Promise<unknown> {
     if (typeof recipient === 'object') {
@@ -338,8 +338,11 @@ export abstract class Connection extends Endpoint {
     if (!recipient) {
       throw new Error('no recipient address')
     }
+    this.log.debug(`Sending\n  to ${bold(recipient)}:\n${amounts.map(x=>'  - '+x.toString())}`)
     return await timed(
-      ()=>this.doSend(recipient as string, amounts, options),
+      ()=>this.doSend(recipient as string, amounts.map(
+        amount=>(amount instanceof Token.Amount)?amount.asCoin():amount
+      ), options),
       t=>`Sent in ${bold(t)}s`
     )
   }

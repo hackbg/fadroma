@@ -1,13 +1,15 @@
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
-import { Identity, bip32, bip39, bip39EN, bech32, base64, bold } from '@fadroma/agent'
-import { Error } from './cw-base'
+import { Identity, bip32, bip39, bip39EN, bech32, base64 } from '@fadroma/agent'
+import { Error, bold } from './cw-base'
 import type { OfflineSigner } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
-export class CWMnemonicIdentity extends Identity {
+class CWIdentity extends Identity {}
+
+class CWMnemonicIdentity extends CWIdentity {
   bech32Prefix:   string
   coinType:       number
   hdAccountIndex: number
@@ -80,7 +82,7 @@ export class CWMnemonicIdentity extends Identity {
   }
 }
 
-export class CWSignerIdentity extends Identity {
+class CWSignerIdentity extends Identity {
   signer: OfflineSigner
   constructor ({ signer, ...properties }: Partial<Identity> & { signer: OfflineSigner }) {
     super(properties)
@@ -109,4 +111,10 @@ export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Ar
     pub_key: { type: "tendermint/PubKeySecp256k1", value: base64.encode(pubkey), },
     signature: base64.encode(signature)
   }
+}
+
+export {
+  CWIdentity         as Identity,
+  CWMnemonicIdentity as MnemonicIdentity,
+  CWSignerIdentity   as SignerIdentity,
 }

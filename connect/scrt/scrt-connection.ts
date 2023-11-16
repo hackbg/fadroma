@@ -4,6 +4,7 @@
 import { Tx, ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
 import { Config, Error } from './scrt-base'
+import { Identity } from './scrt-identity'
 //import * as Mocknet from './scrt-mocknet'
 import type {
   Uint128, Contract, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
@@ -20,11 +21,14 @@ const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.
 
 /** Connect to the Secret Network Mainnet. */
 export function mainnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
-  return new ScrtConnection({ chainId: 'secret-4', url: pickRandom(mainnets), ...options||{} }) as ScrtConnection
+  return new ScrtConnection({
+    chainId: 'secret-4', url: pickRandom(mainnets), ...options||{}
+  })
 }
 
 /** See https://docs.scrt.network/secret-network-documentation/development/resources-api-contract-addresses/connecting-to-the-network/mainnet-secret-4#api-endpoints */
-const mainnets = new Set([
+export const mainnets = new Set([
+  'https://lcd.mainnet.secretsaturn.net',
   'https://lcd.secret.express',
   'https://rpc.ankr.com/http/scrt_cosmos',
   'https://1rpc.io/scrt-lcd',
@@ -34,22 +38,37 @@ const mainnets = new Set([
 
 /** Connect to the Secret Network Testnet. */
 export function testnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
-  return new ScrtConnection({ chainId: 'pulsar-3', url: pickRandom(testnets), ...options||{} })
+  return new ScrtConnection({
+    chainId: 'pulsar-3', url: pickRandom(testnets), ...options||{}
+  })
 }
 
-const testnets = new Set([
+export const testnets = new Set([
+  'https://api.pulsar.scrttestnet.com',
+  'https://api.pulsar3.scrttestnet.com/'
 ])
+
+export const faucets: Record<ChainId, Set<string>> = {
+  'secret-4': new Set([
+    `https://faucet.secretsaturn.net/`
+  ]),
+  'pulsar-3': new Set([
+    `https://faucet.pulsar.scrttestnet.com/`
+  ])
+}
+
+const intoError = (e: object)=>{throw Object.assign(new Error(), e)}
+
+const withIntoError = <T>(p: Promise<T>): Promise<T> => p.catch(intoError)
 
 /** Represents a Secret Network API endpoint. */
 class ScrtConnection extends Connection {
   /** Smallest unit of native token. */
   static gasToken = new Token.Native('uscrt')
   /** Underlying API client. */
-  declare chainApi: SecretNetworkClient
-  /** API extra. */
-  wallet?: Wallet
-  /** API extra. */
-  encryptionUtils?: EncryptionUtils
+  declare api: SecretNetworkClient
+  /** Supports multiple authentication methods. */
+  declare identity: Identity
   /** Set permissive fees by default. */
   fees = {
     upload: ScrtConnection.gasToken.fee(10000000),
@@ -57,113 +76,84 @@ class ScrtConnection extends Connection {
     exec:   ScrtConnection.gasToken.fee(1000000),
     send:   ScrtConnection.gasToken.fee(1000000),
   }
-
-  constructor ({
-    mnemonic,
-    wallet = mnemonic ? new Wallet(mnemonic) : undefined,
-    encryptionUtils,
-    ...properties
-  }: Partial<ScrtConnection & {
-    mnemonic:        string,
-    wallet:          Wallet,
-    encryptionUtils: EncryptionUtils
-  }> = {}) {
+  constructor (properties?: Partial<ScrtConnection>) {
     super(properties as Partial<Connection>)
-    this.chainApi ??= new SecretNetworkClient({ chainId: this.chainId!, url: this.url! })
-    this.log.label = `${bold(this.name?`"${this.name}"`:(this.address||'ScrtConnection'))}`
-    if (this.chainId) {
-      this.log.label += ` @ ${bold(this.chainId)}`
-    } else {
+    this.api ??= new SecretNetworkClient({ url: this.url!, chainId: this.chainId!, })
+    const {chainId, url} = this
+    if (!chainId) {
       throw new Error("can't authenticate without chainId")
     }
-    if (this.url) {
-      this.log.label += ` (${this.url})`
-    } else {
+    if (!url) {
       throw new Error("can't connect without url")
     }
-    if (!mnemonic && !wallet) {
-      mnemonic = bip39.generateMnemonic(bip39EN)
-      wallet = new Wallet(mnemonic)
-    }
-    let walletAddress = wallet ? wallet.address : properties?.address
-    if (walletAddress && properties?.address && (walletAddress !== properties?.address)) {
-      throw new Error('computed address did not match passed one')
-    }
-    this.chainApi = new SecretNetworkClient({
-      chainId: this.chainId,
-      url: this.url,
-      wallet,
-      walletAddress: wallet?.address,
-      encryptionUtils
-    })
-    if (this.address) {
-      if (this.chainApi.address !== this.address) {
-        throw new Error(`computed address ${this.chainApi.address} but expected ${this.address}`)
-      }
+    if (this.identity) {
+      this.api = this.identity.getApi({ chainId, url }) 
     } else {
-      this.address = this.chainApi.address
+      this.api = new SecretNetworkClient({ chainId, url })
     }
   }
 
-  async getBlockInfo () {
-    return await this.chainApi.query.tendermint.getLatestBlock({})
+  doGetBlockInfo () {
+    return this.api.query.tendermint.getLatestBlock({})
   }
 
-  get height () {
-    return this.getBlockInfo()
-      .then((block: any)=>Number(block.block?.header?.height))
+  doGetHeight () {
+    return this.doGetBlockInfo().then((block: any)=>
+      Number(block.block?.header?.height))
   }
 
-  get balance ()  {
-    if (!this.address) {
-      console.trace({agent:this})
-      throw new Error("can't get balance of unauthenticated agent")
-    }
-    return this.getBalance(this.address, ScrtConnection.gasToken).then(x=>String(x))
+  async doGetCodeId (contract_address: Address): Promise<CodeId> {
+    return (await withIntoError(this.api.query.compute.contractInfo({
+      contract_address
+    })))
+      .ContractInfo!.code_id!
   }
 
-  async getBalance (address: Address, denom = ScrtConnection.gasToken) {
-    return (await this.chainApi.query.bank.balance({ address, denom }))
-      .balance!
-      .amount!
+  doGetContractsByCodeId (id: CodeId): Promise<Iterable<{address: Address}>> {
+    throw new Error('not implemented')
   }
 
-  async getLabelOfContract (contract_address: Address): Promise<Label> {
-    return (await this.chainApi.query.compute.contractInfo({ contract_address }))
-      .ContractInfo!
-      .label!
-  }
-
-  async getCodeId (contract_address: Address): Promise<CodeId> {
-    return (await this.chainApi.query.compute.contractInfo({ contract_address }))
-      .ContractInfo!
-      .code_id!
-  }
-
-  async getCodeHashOfAddress (contract_address: Address): Promise<CodeHash> {
-    return (await this.chainApi.query.compute.codeHashByContractAddress({ contract_address }))
+  async doGetCodeHashOfAddress (contract_address: Address): Promise<CodeHash> {
+    return (await withIntoError(this.api.query.compute.codeHashByContractAddress({
+      contract_address
+    })))
       .code_hash!
   }
 
-  async getCodeHashOfCodeId (code_id: CodeId): Promise<CodeHash> {
-    return (await this.chainApi.query.compute.codeHashByCodeId({ code_id }))
+  async doGetCodeHashOfCodeId (code_id: CodeId): Promise<CodeHash> {
+    return (await withIntoError(this.api.query.compute.codeHashByCodeId({
+      code_id
+    })))
       .code_hash!
+  }
+
+  async doGetBalance (denom: string = this.defaultDenom, address: string|undefined = this.address) {
+    return (await withIntoError(this.api.query.bank.balance({
+      address,
+      denom
+    })))
+      .balance!.amount!
+  }
+
+  async getLabel (contract_address: Address): Promise<Label> {
+    return (await withIntoError(this.api.query.compute.contractInfo({
+      contract_address
+    })))
+      .ContractInfo!.label!
   }
 
   /** Query a contract.
     * @returns the result of the query */
-  async doQuery <U> (
-    contract: { address: Address, codeHash: CodeHash }, message: Message
-  ): Promise<U> {
-    const { address: contract_address, codeHash: code_hash } = contract
-    const query = message as Record<string, unknown>
-    return await this.chainApi.query.compute.queryContract({
-      contract_address, code_hash, query
-    }) as U
+  doQuery <U> (contract: { address: Address, codeHash: CodeHash }, message: Message): Promise<U> {
+    return withIntoError(this.api.query.compute.queryContract({
+      contract_address: contract.address,
+      code_hash: contract.codeHash,
+      query: message as Record<string, unknown>
+    }))
   }
 
   get account (): ReturnType<SecretNetworkClient['query']['auth']['account']> {
-    return this.chainApi.query.auth.account({ address: this.address })
+    return this.api.query.auth.account({ address: this.address })
   }
 
   async doSend (
@@ -171,10 +161,16 @@ class ScrtConnection extends Connection {
     amounts:   Token.ICoin[],
     options?:  Parameters<Connection["doSend"]>[2]
   ) {
-    return this.chainApi.tx.bank.send(
+    return withIntoError(this.api.tx.bank.send(
       { from_address: this.address!, to_address: recipient, amount: amounts },
       { gasLimit: Number(options?.sendFee?.gas) }
-    )
+    ))
+  }
+
+  doSendMany (
+    outputs: [Address, Token.ICoin[]][], options?: unknown
+  ): Promise<unknown> {
+    throw new Error('unimplemented')
   }
 
   async sendMany (outputs: never, opts?: any) {
@@ -183,16 +179,10 @@ class ScrtConnection extends Connection {
 
   /** Upload a WASM binary. */
   async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
-    const request  = {
-      sender: this.address!, wasm_byte_code: data, source: "", builder: ""
-    }
-    const gasLimit = Number(this.fees.upload?.amount[0].amount)
-      || undefined
-    const result = await this.chainApi!.tx.compute.storeCode(request, { gasLimit })
-      .catch((error:any)=>error)
-    const {
-      code, message, details = [], rawLog 
-    } = result
+    const request = { sender: this.address!, wasm_byte_code: data, source: "", builder: "" }
+    const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
+    const result = await intoError(this.api!.tx.compute.storeCode(request, { gasLimit }))
+    const { code, message, details = [], rawLog  } = result
     if (code !== 0) {
       this.log.error(
         `Upload failed with code ${bold(code)}:`,
@@ -201,11 +191,8 @@ class ScrtConnection extends Connection {
       )
       if (message === `account ${this.address} not found`) {
         this.log.info(`If this is a new account, send it some ${ScrtConnection.gasToken} first.`)
-        if (this.isMainnet) {
-          this.log.info(`Mainnet fee grant faucet:`, bold(`https://faucet.secretsaturn.net/`))
-        }
-        if (this.isTestnet) {
-          this.log.info(`Testnet faucet:`, bold(`https://faucet.pulsar.scrttestnet.com/`))
+        if (faucets[this.chainId!]) {
+          this.log.info(`Available faucets\n `, [...faucets[this.chainId!]].join('\n  '))
         }
       }
       this.log.error(`Upload failed`, { result })
@@ -220,13 +207,12 @@ class ScrtConnection extends Connection {
       throw new Error('upload failed')
     }
     const codeHash = await this.getCodeHashOfCodeId(codeId)
-    console.log({ codeHash })
     return {
-      chainId:  this.chainId,
+      chainId:   this.chainId,
       codeId,
       codeHash,
-      uploadBy: this.address,
-      uploadTx: result.transactionHash,
+      uploadBy:  this.address,
+      uploadTx:  result.transactionHash,
       uploadGas: result.gasUsed
     }
   }
@@ -245,10 +231,9 @@ class ScrtConnection extends Connection {
       init_funds: options.initSend,
       memo:       options.initMemo
     }
-    const instantiateOptions = {
-      gasLimit: Number(this.fees.init?.amount[0].amount) || undefined
-    }
-    const result = await this.chainApi.tx.compute.instantiateContract(parameters, instantiateOptions)
+    const instantiateOptions = { gasLimit: Number(this.fees.init?.amount[0].amount) || undefined }
+    const result = await intoError(
+      this.api.tx.compute.instantiateContract(parameters, instantiateOptions))
     if (result.code !== 0) {
       this.log.error('Init failed:', { parameters, instantiateOptions, result })
       throw new Error(`init of code id ${codeId} failed`)
@@ -291,7 +276,7 @@ class ScrtConnection extends Connection {
       this.log.info('Simulating transaction...')
       let simResult
       try {
-        simResult = await this.chainApi.tx.compute.executeContract.simulate(tx, txOpts)
+        simResult = await this.api.tx.compute.executeContract.simulate(tx, txOpts)
       } catch (e) {
         this.log.error(e)
         this.log.warn('TX simulation failed:', tx, 'from', this)
@@ -305,7 +290,7 @@ class ScrtConnection extends Connection {
         txOpts.gasLimit = gas
       }
     }
-    const result = await this.chainApi.tx.compute.executeContract(tx, txOpts)
+    const result = await this.api.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
     if (result.code !== 0) throw this.decryptError(result)
     return result as TxResponse
@@ -319,7 +304,7 @@ class ScrtConnection extends Connection {
 
   async fetchLimits (): Promise<{ gas: number }> {
     const params = { subspace: "baseapp", key: "BlockParams" }
-    const { param } = await this.chainApi.query.params.params(params)
+    const { param } = await this.api.query.params.params(params)
     let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
     this.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
     if (max_gas < 0) {
@@ -330,7 +315,7 @@ class ScrtConnection extends Connection {
   }
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
-    const result = await this.chainApi.query.auth.account({ address: this.address }) ?? (() => {
+    const result = await this.api.query.auth.account({ address: this.address }) ?? (() => {
       throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
     })
     const { account_number, sequence } = result.account as any
@@ -341,7 +326,7 @@ class ScrtConnection extends Connection {
     if (!codeHash) {
       throw new Error("can't encrypt message without code hash")
     }
-    const { encryptionUtils } = this.chainApi as any
+    const { encryptionUtils } = this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return base64.encode(encrypted)
   }
@@ -510,11 +495,11 @@ export class ScrtBatch extends Batch<ScrtConnection> {
   }
 
   simulate () {
-    return Promise.resolve(this.connection!.chainApi).then(api=>api.tx.simulate(this.messages))
+    return Promise.resolve(this.connection!.api).then(api=>api.tx.simulate(this.messages))
   }
 
   async submit ({ memo = "" }: { memo: string }): Promise<ScrtBatchResult[]> {
-    const api = await Promise.resolve(this.connection!.chainApi)
+    const api = await Promise.resolve(this.connection!.api)
     const chainId  = this.connection!.chainId!
     const messages = this.messages
     const limit    = Number(this.connection!.fees.exec?.amount[0].amount) || undefined

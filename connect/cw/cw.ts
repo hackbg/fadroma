@@ -17,6 +17,7 @@
 **/
 
 export * from './cw-base'
+export * from './cw-connection'
 export * from './cw-identity'
 export * as OKP4 from './okp4/okp4'
-export { Connection as default } from './cw-base'
+export { Connection as default } from './cw-connection'

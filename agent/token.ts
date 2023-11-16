@@ -69,14 +69,17 @@ abstract class FungibleToken extends Token {
     return `${n}${[...Array(z)].map(() => '0').join('')}`
   }
 
-  amount (amount: Uint128): TokenAmount {
+  amount (amount: number|Uint128): TokenAmount {
     return new TokenAmount(amount, this)
   }
 }
 
 /** An amount of a fungible token. */
 class TokenAmount {
-  constructor (public amount: Uint128, public token: FungibleToken,) {}
+  public amount: Uint128
+  constructor (amount: string|number|bigint, public token: FungibleToken) {
+    this.amount = String(amount)
+  }
   /** Pass this to send, initSend, execSend */
   get asNativeBalance (): ICoin[] {
     if (this.token.isNative()) {
@@ -90,7 +93,25 @@ class TokenAmount {
   }
 
   get [Symbol.toStringTag] () {
+    return this.toString()
+  }
+
+  toString () {
     return `${this.amount??''} ${this.token?.id??''}`
+  }
+
+  asCoin (): ICoin {
+    if (!this.token.isNative()) {
+      throw new Error(`not a native token: ${this.toString()}`)
+    }
+    return { amount: this.amount, denom: this.denom }
+  }
+
+  asFee (gas: Uint128 = this.amount): IFee {
+    if (!this.token.isNative()) {
+      throw new Error(`not a native token: ${this.toString()}`)
+    }
+    return { amount: [this.asCoin()], gas }
   }
 }
 

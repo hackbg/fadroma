@@ -9,7 +9,7 @@ export default new Suite([
 ])
 
 export async function testCWChain () {
-  const { devnet, alice, bob, guest } = await Tester.testChainSupport(
+  const { backend, alice, bob, guest } = await Tester.testChainSupport(
     CW.OKP4.Connection,
     Devnets.OKP4Container,
     'v5.0',

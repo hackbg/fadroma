@@ -162,32 +162,13 @@ import { Devnet } from '@hackbg/fadroma'
 import assert from 'node:assert'
 ```
 
-## Configuring
-
-Several options are exposed as environment variables.
-
-```typescript
-const config = new Scrt.Config()
-```
-
-|ScrtConfig property|Env var|Description|
-|-|-|-|
-|agentName     |FADROMA_SCRT_AGENT_NAME      |agent name|
-|agentMnemonic |FADROMA_SCRT_AGENT_MNEMONIC  |agent mnemonic for scrt only|
-|mainnetChainId|FADROMA_SCRT_MAINNET_CHAIN_ID|chain id for mainnet|
-|testnetChainId|FADROMA_SCRT_TESTNET_CHAIN_ID|chain id for mainnet|
-|mainnetUrl    |FADROMA_SCRT_MAINNET_URL     |mainnet URL|
-|testnetUrl    |FADROMA_SCRT_TESTNET_URL     |testnet URL|
-
 ## Connecting and authenticating
 
 To connect to Secret Network with Fadroma, use one of the following:
 
 ```typescript
-const mainnet = Scrt.Chain.mainnet({ url: 'test' })
-const testnet = Scrt.Chain.testnet({ url: 'test' })
-const devnet  = new Devnet({ platform: 'scrt_1.9' }).getChain(Scrt.Chain)
-const mocknet = Scrt.Chain.mocknet({ url: 'test' })
+const mainnet = Scrt.mainnet()
+const testnet = Scrt.testnet()
 ```
 
 This will give you a `Scrt` instance (subclass of `Chain`):

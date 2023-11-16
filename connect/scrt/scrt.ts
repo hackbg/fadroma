@@ -17,10 +17,11 @@
 **/
 
 export * from './scrt-base'
-export * from './scrt-chain'
+export * from './scrt-connection'
+export * from './scrt-identity'
 export * as Mocknet from './scrt-mocknet'
 export * as Snip20 from './snip-20'
 export * as Snip24 from './snip-24'
 export * as Snip721 from './snip-721'
 export * as SecretJS from '@hackbg/secretjs-esm'
-export { Connection as default, ScrtBatch as Batch } from './scrt-chain'
+export { Connection as default, ScrtBatch as Batch } from './scrt-connection'

@@ -121,7 +121,7 @@ abstract class DevnetContainer extends Backend {
       },
       log: {
         enumerable: true, configurable: true, get () {
-          return new Console(`devnet(${bold(this.chainId)} @ ${bold(`${this.host}:${this.port}`)})`)
+          return new Console(`DevnetContainer(${bold(this.chainId)})`)
         }, set () {
           throw new Error("can't change devnet logger")
         }
@@ -222,7 +222,6 @@ abstract class DevnetContainer extends Backend {
       // if port is unspecified or taken, increment
       this.port = await portManager.getFreePort(this.port)
       // create container
-      this.log.br()
       this.log(`Creating devnet`, bold(this.chainId), `on`, bold(String(this.url)))
       const init = this.initScript ? [this.initScriptMount] : []
       const container = image!.container(this.chainId, this.spawnOptions, init)
@@ -269,7 +268,6 @@ abstract class DevnetContainer extends Backend {
   async start (): Promise<this> {
     if (!this.running) {
       const container = await this.container ?? await (await this.create()).container!
-      this.log.br()
       this.log.debug(`Starting container:`, bold(this.containerId?.slice(0, 8)))
       try {
         await container.start()
@@ -294,7 +292,8 @@ abstract class DevnetContainer extends Backend {
           && !data.startsWith('configuration saved to')
         ), true)
       this.log.debug('Waiting for', bold(String(this.postLaunchWait)), 'seconds...')
-      await Dock.Docker.waitSeconds(this.postLaunchWait)
+      await new Promise(resolve=>setTimeout(resolve, this.postLaunchWait))
+      //await Dock.Docker.waitSeconds(this.postLaunchWait)
       await this.waitPort({ host: this.host, port: Number(this.port) })
     } else {
       this.log.log('Container already started:', bold(this.chainId))
@@ -458,7 +457,6 @@ abstract class DevnetContainer extends Backend {
       } else if (!this.autoStop) {
         await this.pause()
       } else {
-        this.log.br()
         this.log.log(
           'Devnet is running on port', bold(String(this.port)),
           `from container`, bold(this.containerId?.slice(0,8))
@@ -488,11 +486,17 @@ class ScrtContainer extends DevnetContainer {
   }
 
   async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+    if (typeof parameter === 'string') {
+      parameter = { name: parameter }
+    }
+    const { mnemonic } = parameter
     return new Scrt.Connection({
       chainId:  this.chainId,
       url:      this.url?.toString(),
       alive:    this.running,
-      identity: new Scrt.ScrtMnemonicIdentity(await this.getIdentity(parameter))
+      identity: new Scrt.MnemonicIdentity(mnemonic
+        ? parameter as { mnemonic: string }
+        : await this.getIdentity(parameter))
     })
   }
 
@@ -574,11 +578,17 @@ class OKP4Container extends DevnetContainer {
   }
 
   async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+    if (typeof parameter === 'string') {
+      parameter = { name: parameter }
+    }
+    const { mnemonic } = parameter
     return new CW.OKP4.Connection({
       chainId:  this.chainId,
       url:      this.url?.toString(),
       alive:    this.running,
-      identity: new CW.OKP4.MnemonicIdentity(await this.getIdentity(parameter))
+      identity: new CW.OKP4.MnemonicIdentity(mnemonic
+        ? parameter as { mnemonic: string }
+        : await this.getIdentity(parameter))
     })
   }
 

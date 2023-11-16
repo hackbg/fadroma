@@ -44,12 +44,10 @@ class ScrtMocknet extends Stub.Connection {
   }
   /** Instantiate a contract on the mocknet. */
   async doInstantiate (...args: Parameters<Stub.Connection["doInstantiate"]>) {
-    return await this.state.instantiate(this.address, ...args) as ContractInstance & { address: Address }
+    return await this.state.instantiate(this.address!, ...args) as ContractInstance & { address: Address }
   }
-  doExecute (
-    ...args: Parameters<Stub.Connection["doExecute"]>
-  ): Promise<unknown> {
-    return this.state.execute(this.address, ...args)
+  doExecute (...args: Parameters<Stub.Connection["doExecute"]>): Promise<unknown> {
+    return this.state.execute(this.address!, ...args)
   }
   doQuery <Q> (
     contract: Address|{address: Address},

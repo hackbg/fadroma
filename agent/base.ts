@@ -2,12 +2,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error } from '@hackbg/oops'
-import { Console, bold, colors } from '@hackbg/logs'
+import { Console, Logged, bold, colors } from '@hackbg/logs'
 import type { Deployment } from './deploy'
 
 const { red, green, gray } = colors
 
-export { bold, colors, timestamp } from '@hackbg/logs'
+export { bold, colors, timestamp, Logged } from '@hackbg/logs'
 export * from '@hackbg/into'
 export * from '@hackbg/hide'
 export * from '@hackbg/many'
@@ -26,14 +26,6 @@ export function assign <T extends {}> (
   }
   for (const property of allowed) {
     if (property in properties) object[property] = properties[property]
-  }
-}
-
-export class Logged {
-  log: Console
-  constructor (properties?: Partial<Logged>) {
-    this.log = properties?.log ?? new Console(this.constructor.name)
-    Object.defineProperty(this, 'log', { enumerable: false, configurable: true })
   }
 }
 

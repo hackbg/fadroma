@@ -1,4 +1,7 @@
-import { Error, Config, Connection, Batch } from '../cw-base'
+import { Error, Config } from '../cw-base'
+import { Connection, Batch } from '../cw-connection'
+import { MnemonicIdentity } from '../cw-identity'
+
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
@@ -22,13 +25,17 @@ class OKP4Config extends Config {
     () => OKP4Config.defaultTestnetUrl)
 }
 
-export const testnets = new Set([
-  'https://okp4-testnet-rpc.polkachu.com/',
-  //'https://okp4-testnet-api.polkachu.com/'
-])
+  /** Connect to OKP4 in testnet mode. */
+export function testnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
+  return new OKP4Connection({
+    chainId: 'pulsar-3',
+    url: 'https://okp4-testnet-rpc.polkachu.com/',
+    //'https://okp4-testnet-api.polkachu.com/'
+    ...options||{}
+  })
+}
 
-import { CWMnemonicIdentity } from '../cw-identity'
-class OKP4MnemonicIdentity extends CWMnemonicIdentity {
+class OKP4MnemonicIdentity extends MnemonicIdentity {
   constructor (properties: { mnemonic: string }) {
     super({
       coinType: 118,
@@ -43,15 +50,6 @@ class OKP4MnemonicIdentity extends CWMnemonicIdentity {
 class OKP4Connection extends Connection {
   /** Default denomination of gas token. */
   static gasToken = new Token.Native('uknow')
-  /** Connect to OKP4 in testnet mode. */
-  static testnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
-    const { testnetChainId: chainId, testnetUrl: chainUrl } = new OKP4Config()
-    return super.testnet({ chainId, chainUrl, ...options||{}, }) as OKP4Connection
-  }
-  /** Connect to OKP4 in testnet mode. */
-  static devnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
-    throw new Error('Devnet not installed. Import @hackbg/fadroma')
-  }
   /** Transaction fees for this agent. */
   fees = {
     upload: OKP4Connection.gasToken.fee(10000000),
@@ -87,7 +85,10 @@ class OKP4Connection extends Connection {
   getContractsById <C extends typeof Contract> (id: CodeId):
     Promise<InstanceType<C>>
   {
-    return Promise.resolve(new Contract('', this) as InstanceType<C>)
+    return Promise.resolve(new Contract({
+      instance: { address: '' },
+      connection: this
+    }) as InstanceType<C>)
   }
 
   getContractsByIds (ids: CodeId[]):
@@ -136,12 +137,6 @@ export {
   OKP4MnemonicIdentity as MnemonicIdentity,
   OKP4Connection       as Connection
 }
-
-/** Connect to OKP4 testnet. */
-export const testnet = (...args: Parameters<typeof OKP4Connection.testnet>) => OKP4Connection.testnet(...args)
-
-/** Connect to local OKP4 devnet. */
-export const devnet = (...args: Parameters<typeof OKP4Connection.devnet>) => OKP4Connection.devnet(...args)
 
 export * from './okp4-cognitarium'
 export * from './okp4-objectarium'
