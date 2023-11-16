@@ -22,10 +22,14 @@ class OKP4Config extends Config {
     () => OKP4Config.defaultTestnetUrl)
 }
 
+export const testnets = new Set([
+  'https://okp4-testnet-rpc.polkachu.com/'
+])
+
 /** Connection for OKP4. */
 class OKP4Connection extends Connection {
   /** Default denomination of gas token. */
-  static gasToken = 'uknow'
+  static gasToken = new Token.Native('uknow')
   /** Connect to OKP4 in testnet mode. */
   static testnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
     const { testnetChainId: chainId, testnetUrl: chainUrl } = new OKP4Config()

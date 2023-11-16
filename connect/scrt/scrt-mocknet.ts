@@ -3,20 +3,19 @@ import type { UploadedCode, Into } from '@fadroma/agent'
 import type { ChainId, CodeHash, CodeId, Address, Message } from '@fadroma/agent'
 import {
   Console, bold, Error, Stub, base16, sha256, into, bech32, randomBech32,
-  ContractInstance, brailleDump
+  ContractInstance, brailleDump, Token
 } from '@fadroma/agent'
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
 /** Chain instance containing a local mocknet. */
 class ScrtMocknet extends Stub.Connection {
-  log = new Console('ScrtMocknet')
+  static gasToken = new Token.Native('umock')
+
   /** Current block height. Increments when accessing nextBlock */
   _height = 0
-  /** Native token. */
-  defaultDenom = 'umock'
   /** The address of this agent. */
-  address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
+  //address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
   /** Map of addresses to WASM instances. */
   contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
 

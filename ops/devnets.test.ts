@@ -44,7 +44,7 @@ export async function testDevnetPlatform <
   equal(devnet.initScriptMount, '/devnet.init.mjs')
   ok((await devnet.image) instanceof Dock.Image)
   deepEqual(devnet.spawnEnv.DAEMON,    daemon)
-  deepEqual(devnet.spawnEnv.TOKEN,     Connection.gasToken)
+  deepEqual(devnet.spawnEnv.TOKEN,     Connection.gasToken.denom)
   deepEqual(devnet.spawnEnv.CHAIN_ID,  devnet.chainId)
   deepEqual(devnet.spawnEnv.ACCOUNTS,  JSON.stringify(devnet.genesisAccounts))
   deepEqual(devnet.spawnEnv.STATE_UID, String(getuid!()))

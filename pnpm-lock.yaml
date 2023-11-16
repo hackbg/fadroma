@@ -17,7 +17,7 @@ importers:
         specifier: workspace:*
         version: link:toolbox/conf
       '@hackbg/dock':
-        specifier: workspace:^
+        specifier: workspace:^2.0.5
         version: link:toolbox/dock
       '@hackbg/file':
         specifier: workspace:*

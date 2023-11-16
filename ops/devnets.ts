@@ -82,8 +82,8 @@ abstract class DevnetContainer extends Backend {
   readyString: string = ''
   /** After how many seconds to throw if container is not ready. */
   launchTimeout: number = 10
-  /** Create an object representing a devnet.
-    * Must call the `respawn` method to get it running. */
+
+  abstract genesisToken: string
 
   declare url: string
 
@@ -163,7 +163,7 @@ abstract class DevnetContainer extends Backend {
   get spawnEnv () {
     const env: Record<string, string> = {
       DAEMON:    this.daemon||'',
-      TOKEN:     this.Connection.gasToken,
+      TOKEN:     this.Connection.gasToken.denom,
       CHAIN_ID:  this.chainId!,
       ACCOUNTS:  JSON.stringify(this.genesisAccounts),
       STATE_UID: String((process.getuid!)()),

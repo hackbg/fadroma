@@ -21,10 +21,10 @@ const mnemonic = 'define abandon palace resource estate elevator relief stock or
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['chain',    testScrtChain],
-  ['mocknet',  () => import('./scrt-mocknet.test')],
   ['snip-20',  () => import('./snip-20.test')],
   ['snip-24',  () => import('./snip-24.test')],
   ['snip-721', () => import('./snip-721.test')],
+  ['mocknet',  () => import('./scrt-mocknet.test')],
 ])
 
 export async function testScrtChain () {

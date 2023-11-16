@@ -132,7 +132,6 @@ function performGenesis () {
   preGenesisConfig()
   createGenesisTransaction()
   bootstrapChain()
-  console.info('\nSprinkling holy water')
   console.info()
 }
 

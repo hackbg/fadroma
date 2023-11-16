@@ -57,7 +57,7 @@
     "@fadroma/connect": "workspace:4.0.0-rc.2",
     "@hackbg/cmds": "workspace:*",
     "@hackbg/conf": "workspace:*",
-    "@hackbg/dock": "workspace:^",
+    "@hackbg/dock": "workspace:^2.0.5",
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",
     "@hackbg/port": "workspace:~",
