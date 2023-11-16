@@ -108,7 +108,6 @@ export class ContractCode extends Logged {
     }
     const compiled = await this.compile({ compiler, rebuild })
     const uploaded = await uploader.upload(compiled, uploadOptions)
-    console.log({uploaded})
     if (!uploaded.canInstantiate) {
       throw new Error("upload failed")
     }
@@ -309,7 +308,7 @@ export class CompiledCode {
   }
 
   async fetch (): Promise<Uint8Array> {
-    const console = new Console(`compiled(${bold(this[Symbol.toStringTag])})`)
+    const console = new Console(`CompiledCode(${bold(this[Symbol.toStringTag])})`)
     if (this.codeData) {
       console.debug("not fetching: codeData found; unset to refetch")
       return this.codeData
@@ -332,11 +331,10 @@ export class CompiledCode {
       }
     } else {
       this.codeHash = CompiledCode.toCodeHash(this.codeData)
-      console
-        .br()
-        .warn("TOFU: Computed code hash from fetched data:")
-        .warn(bold(this.codeHash))
-        .warn('Pin the expected code hash by setting the codeHash property.')
+      console.warn(
+        "\n  TOFU: Computed code hash from fetched data:" +
+        `\n  ${bold(this.codeHash)}` +
+        '\n  Pin the expected code hash by setting the codeHash property.')
     }
     return this.codeData
   }

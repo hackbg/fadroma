@@ -59,6 +59,7 @@ export async function testChainSupport <
 
   console.log('Querying code upload...')
   equal(await bob.getCodeHashOfCodeId(uploaded.codeId), uploaded.codeHash)
+  rejects(()=>bob.getCodeHashOfCodeId('missing'))
 
   console.log('Instantiating code...')
   const label = 'my-contract-label'

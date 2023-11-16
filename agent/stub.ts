@@ -22,11 +22,8 @@ class StubConnection extends Connection {
   batch (): Batch<this> {
     return new StubBatch({ connection: this }) as Batch<this>
   }
-  get height (): Promise<number> {
-    return this.doGetBlockInfo().then(({height})=>height)
-  }
   doGetHeight () {
-    return Promise.resolve(+ new Date())
+    return this.doGetBlockInfo().then(({height})=>height)
   }
   doGetBlockInfo () {
     return Promise.resolve({ height: + new Date() })
@@ -100,10 +97,9 @@ class StubConnection extends Connection {
   doInstantiate (
     codeId: CodeId, options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<ContractInstance & { address: Address }> {
-    return Promise.resolve(new ContractInstance({
-      address: 'stub',
-      label: ''
-    }) as ContractInstance & { address: Address })
+    return Promise.resolve(new ContractInstance(this.backend.instantiate(codeId, options)) as ContractInstance & {
+      address: Address
+    })
   }
   doExecute (
     contract: { address: Address, codeHash: CodeHash },
@@ -128,7 +124,7 @@ class StubBackend extends Backend {
   uploads =
     new Map<CodeId, {chainId: ChainId, codeId: CodeId, codeHash: CodeHash, codeData: Uint8Array}>()
   instances =
-    new Map<Address, {codeId: CodeId}>()
+    new Map<Address, {codeId: CodeId, address: Address}>()
 
   constructor (properties?: Partial<StubBackend & {
     genesisAccounts: Record<string, string|number>
@@ -194,11 +190,12 @@ class StubBackend extends Backend {
     return upload
   }
 
-  async instantiate (...args: unknown[]): Promise<Partial<ContractInstance> & {
+  instantiate (codeId: CodeId, options: unknown): Partial<ContractInstance> & {
     address: Address
-  }> {
-    throw new Error('not implemented')
-    return { address: '' }
+  } {
+    const address = `stub1${Math.floor(Math.random()*1000000)}`
+    this.instances.set(address, { address, codeId })
+    return { address, codeId }
   }
 
   async execute (...args: unknown[]): Promise<unknown> {

@@ -159,7 +159,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       this.doGetCodeHashOfCodeId.bind(this, codeId),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}: code ID ${bold(codeId)} has hash ${bold(result)}`
+        `Queried in ${bold(elapsed)}: code ID ${bold(codeId)} has hash:\n  ${bold(result)}`
       )
     )
   }
@@ -175,7 +175,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       this.doGetCodeHashOfAddress.bind( this, address),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}: code ID ${bold(address)} has hash ${bold(result)}`
+        `Queried in ${bold(elapsed)}: contract ${bold(address)} has hash:\n  ${bold(result)}`
       )
     )
   }

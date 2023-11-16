@@ -49,7 +49,7 @@ export async function testCoins () {
 
 export async function testFees () {
   // FIXME: new Fee(gas, amounts[])
-  new Fee(1000, 'utest', '100000')
+  new Fee(1000, 'utest', '100000')[Symbol.toStringTag]
 }
 
 export async function testFungible () {
