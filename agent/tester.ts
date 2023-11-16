@@ -16,7 +16,8 @@ export async function testChainSupport <
   const execFee   = Chain.gas(10000000)
 
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
-  const backend = new Backend({ version, genesisAccounts })
+  const $B = Backend as any
+  const backend = new $B({ version, genesisAccounts })
 
   //const chain = await backend.connect()
 
@@ -29,7 +30,7 @@ export async function testChainSupport <
   console.log('Querying block height...')
   await alice.height
 
-  console.log('Querying balances...', alice)
+  console.log('Querying balances...')
   await alice.balance
   await bob.balance
 
@@ -45,7 +46,6 @@ export async function testChainSupport <
   })
 
   console.log('Querying non-genesis account balance...')
-  console.log({guest})
   equal((await guest.balance)??'0', '0')
 
   console.log('Topping up non-genesis account balance from genesis accounts...')

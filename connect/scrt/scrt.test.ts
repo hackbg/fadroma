@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { Devnets } from '@hackbg/fadroma'
 import { fixture } from '@fadroma/fixtures'
 import Scrt, { BatchBuilder, SecretJS } from '@fadroma/scrt'
-import { Token, Test } from '@fadroma/agent'
+import { Token, Tester } from '@fadroma/agent'
 //import * as Mocknet from './scrt-mocknet'
 
 //@ts-ignore
@@ -29,7 +29,7 @@ export default new Suite([
 ])
 
 export async function testScrtChain () {
-  const { devnet, alice, bob, guest } = await Test.testChainSupport(
+  const { devnet, alice, bob, guest } = await Tester.testChainSupport(
     Scrt,
     Devnets.ScrtContainer,
     'v1.9',

@@ -31,9 +31,13 @@ class StubConnection extends Connection {
   doGetBlockInfo () {
     return Promise.resolve({ height: + new Date() })
   }
-  doGetBalance (...args: unknown[]): Promise<number> {
+  doGetBalance (
+    token:   string = (this.constructor as Function & { gasToken: Token.Native }).gasToken.id,
+    address: string|undefined = this.address
+  ): Promise<string> {
     this.log.warn('getBalance: stub')
-    return Promise.resolve(0)
+    const balance = (this.backend.balances.get(address!)||{})[token] ?? 0
+    return Promise.resolve(String(balance))
   }
   async doGetCodeId (address: Address): Promise<CodeId> {
     const contract = this.backend.instances.get(address)
@@ -60,10 +64,31 @@ class StubConnection extends Connection {
   doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
     return Promise.resolve({} as Q)
   }
-  doSend (to: Address, amounts: Token.ICoin[], opts?: never): Promise<void> {
-    for (const { amount, denom } of amounts) {
-      const x = BigInt(amount)
+  doSend (recipient: Address, sums: Token.ICoin[], opts?: never): Promise<void> {
+    if (!this.address) {
+      throw new Error('not authenticated')
     }
+    const senderBalances = {
+      ...this.backend.balances.get(this.address) || {}}
+    const recipientBalances = {
+      ...this.backend.balances.get(recipient)    || {}}
+    for (const sum of sums) {
+      if (!Object.keys(senderBalances).includes(sum.denom)) {
+        throw new Error(`sender has no balance in ${sum.denom}`)
+      }
+      const amount = BigInt(sum.amount)
+      if (senderBalances[sum.denom] < amount) {
+        throw new Error(
+          `sender has insufficient balance in ${sum.denom}: ${senderBalances[sum.denom]} < ${amount}`
+        )
+      }
+      senderBalances[sum.denom] =
+        senderBalances[sum.denom] - amount
+      recipientBalances[sum.denom] =
+        (recipientBalances[sum.denom] ?? BigInt(0)) + amount
+    }
+    this.backend.balances.set(this.address, senderBalances)
+    this.backend.balances.set(recipient, recipientBalances)
     return Promise.resolve()
   }
   doSendMany (outputs: [Address, Token.ICoin[]][], opts?: never): Promise<void> {
@@ -90,7 +115,7 @@ class StubConnection extends Connection {
 }
 
 class StubBackend extends Backend {
-  chainId =
+  id =
     'stub'
   url =
     'http://stub'
@@ -105,9 +130,17 @@ class StubBackend extends Backend {
   instances =
     new Map<Address, {codeId: CodeId}>()
 
-  constructor (properties?: Partial<StubBackend>) {
+  constructor (properties?: Partial<StubBackend & {
+    genesisAccounts: Record<string, string|number>
+  }>) {
     super(properties as Partial<Backend>)
     assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
+    for (const [name, balance] of Object.entries(properties?.genesisAccounts||{})) {
+      const address = `stub1${name}`
+      const balances = this.balances.get(address) || {}
+      balances['ustub'] = BigInt(balance)
+      this.balances.set(address, balances)
+    }
   }
 
   async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
@@ -121,6 +154,7 @@ class StubBackend extends Backend {
       id: this.chainId,
       url: 'stub',
       alive: true,
+      backend: this,
       identity: new Identity(parameter)
     })
   }
@@ -153,7 +187,7 @@ class StubBackend extends Backend {
     let upload
     this.uploads.set(codeId, upload = {
       codeId,
-      chainId:  this.chainId,
+      chainId:  this.id,
       codeHash: base16.encode(sha256(codeData)).toLowerCase(),
       codeData,
     })

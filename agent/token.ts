@@ -75,6 +75,10 @@ class TokenAmount {
     }
     return []
   }
+
+  get denom () {
+    return this.token?.id
+  }
 }
 
 /** The chain's natively implemented token (such as SCRT on Secret Network). */

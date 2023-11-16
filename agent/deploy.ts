@@ -60,7 +60,7 @@ export class ContractCode extends Logged {
   /** Compile this contract, unless a valid binary is present and a rebuild is not requested. */
   async compile ({
     compiler = this.compiler,
-    rebuild = false,
+    rebuild  = false,
     ...buildOptions
   }: {
     compiler?: Compiler
@@ -89,7 +89,7 @@ export class ContractCode extends Logged {
 
   /** Upload this contract, unless a valid upload is present and a rebuild is not requested. */
   async upload ({
-    compiler  = this.compiler,
+    compiler = this.compiler,
     rebuild  = false,
     uploader = this.uploader,
     reupload = rebuild,
@@ -108,6 +108,7 @@ export class ContractCode extends Logged {
     }
     const compiled = await this.compile({ compiler, rebuild })
     const uploaded = await uploader.upload(compiled, uploadOptions)
+    console.log({uploaded})
     if (!uploaded.canInstantiate) {
       throw new Error("upload failed")
     }

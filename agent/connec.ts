@@ -40,7 +40,7 @@ export abstract class Endpoint extends Logged {
     super(properties)
     this.log.label += (
       this[Symbol.toStringTag]
-      ? ` (${bold(this[Symbol.toStringTag])})`
+      ? `(${bold(this[Symbol.toStringTag])})`
       : '')
   }
 
@@ -74,14 +74,14 @@ export abstract class Connection extends Endpoint {
     this.fees = properties.fees || this.fees
     this.log.label += (
       this[Symbol.toStringTag]
-      ? ` (${bold(this[Symbol.toStringTag])})`
+      ? `(${bold(this[Symbol.toStringTag])})`
       : '')
   }
 
   get [Symbol.toStringTag] () {
     let tag = super[Symbol.toStringTag]
     if ((this.identity && (this.identity.name||this.identity.address))) {
-      tag = `${this.identity.name||this.identity.address}@` + tag
+      tag = [`${this.identity.name||this.identity.address}`, tag].filter(Boolean).join('@')
     }
     return tag
   }

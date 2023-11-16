@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import assert, { deepEqual, rejects } from 'node:assert'
+import assert, { equal, deepEqual, rejects, throws } from 'node:assert'
 import { Contract } from './connec'
 import * as Stub from './stub'
 import {
@@ -29,25 +29,33 @@ export default new Suite([
 
 export async function testDeploymentUnits () {
   const contract = new ContractInstance({ address: 'present' })
-  assert.equal(await contract.deploy(), contract)
-  assert(contract.connect(new Stub.Connection()) instanceof Contract)
-
-  assert.rejects(()=>new ContractInstance({
-    uploaded: { codeId: 123 } as any,
-  }).deploy())
-
-  assert.rejects(()=>new ContractInstance({
-    uploaded: { codeId: 123 } as any,
-    deployer: 'onlyaddress'
-  }).deploy())
-
-  assert.rejects(()=>new ContractInstance({
-    uploaded: { codeId: 123 } as any,
-    deployer: { instantiate: ((...args: any) => Promise.resolve({ isValid: () => false })) } as any
-  }).deploy())
+  equal(
+    await contract.deploy(), contract)
+  assert(
+    contract.connect(new Stub.Connection()) instanceof Contract)
+  rejects(
+    ()=>new ContractInstance({
+      uploaded: { codeId: 123 } as any,
+    }).deploy())
+  rejects(
+    ()=>new ContractInstance({
+      uploaded: { codeId: 123 } as any,
+      deployer: 'onlyaddress'
+    }).deploy())
+  rejects(
+    ()=>new ContractInstance({
+      uploaded: { codeId: 123 } as any,
+      deployer: { instantiate: ((...args: any) => Promise.resolve({ isValid: () => false })) } as any
+    }).deploy())
 }
 
 export async function testDeployment () {
+
+  const uploadStore = new UploadStore()
+  const deployStore = new DeployStore()
+  const compiler = new Stub.Compiler()
+  const uploader = new Stub.Connection()
+  const deployer = uploader
 
   class MyBuildableDeployment extends Deployment {
     template1 = this.template('template1', {
@@ -59,9 +67,7 @@ export async function testDeployment () {
     })
   }
 
-  await new MyBuildableDeployment().build({
-    compiler: new Stub.Compiler()
-  })
+  await new MyBuildableDeployment().build({ compiler })
 
   class MyDeployment extends Deployment {
     template1 = this.template('template1', {
@@ -84,44 +90,43 @@ export async function testDeployment () {
     })
   }
 
-  await new MyDeployment().contract1.deploy({
-    deployer: new Stub.Connection()
-  })
+  await new MyDeployment().contract1.deploy({ deployer })
 
   new MyDeployment().contract1.serialize()
 
   new MyDeployment().serialize()
 
-  MyDeployment.fromSnapshot(new MyDeployment().serialize())
-
-  assert.throws(()=>new MyDeployment().set('foo', {} as any))
-
-  await new MyDeployment().upload({
-    compiler: new Stub.Compiler(),
-    uploader: new Stub.Connection(),
-  })
-
-  await new MyDeployment().deploy({
-    compiler: new Stub.Compiler(),
-    uploader: new Stub.Connection(),
-    deployer: new Stub.Connection(),
-  })
+  assert(
+    MyDeployment.fromSnapshot(new MyDeployment().serialize()))
+  throws(
+    ()=>new MyDeployment().set('foo', {} as any))
+  assert(
+    await new MyDeployment().upload({ compiler, uploader }))
+  assert(
+    await new MyDeployment().deploy({ compiler, uploader, deployer }))
 }
 
 export async function testUploadStore () {
   const uploadStore = new UploadStore()
-  assert.equal(uploadStore.get('name'), undefined)
-  assert.equal(uploadStore.set('name', {}), uploadStore)
-  assert.throws(()=>uploadStore.set('foo', { codeHash: 'bar' }))
-  assert(uploadStore.get('name') instanceof UploadedCode)
+  equal(
+    uploadStore.get('name'), undefined)
+  equal(
+    uploadStore.set('name', {}), uploadStore)
+  throws(
+    ()=>uploadStore.set('foo', { codeHash: 'bar' }))
+  assert(
+    uploadStore.get('name') instanceof UploadedCode)
 }
 
 export async function testDeployStore () {
   const deployStore = new DeployStore()
-  assert.equal(deployStore.get('name'), undefined)
+  assert.equal(
+    deployStore.get('name'), undefined)
   const deployment = new Deployment({ name: 'foo' })
-  assert.equal(deployStore.set('name', deployment), deployStore)
-  assert.deepEqual(deployStore.get('name'), deployment.serialize())
+  assert.equal(
+    deployStore.set('name', deployment), deployStore)
+  assert.deepEqual(
+    deployStore.get('name'), deployment.serialize())
 }
 export async function testCodeContract () {
   //const contract1 = new ContractCode({
