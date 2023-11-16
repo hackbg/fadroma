@@ -1,10 +1,9 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Logged, timestamp, hideProperties } from './base'
-import type { Name, Label, Into, Message } from './base'
-import { Console, bold, assign, base16, sha256 } from './base'
-import type { Address, TxHash } from './base'
+import { Logged, Console, timestamp, bold, assign, hideProperties, base16, sha256 } from './base'
+import type { Name, Label, Into, Message, Address, TxHash } from './base'
+import { } from './base'
 import type { Connection, ChainId } from './connec'
 import { Contract } from './connec'
 import * as Token from './token'

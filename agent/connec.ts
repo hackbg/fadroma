@@ -79,18 +79,9 @@ export abstract class Connection extends Endpoint {
   }
 
   get [Symbol.toStringTag] () {
-    let tag = ''
-    if (false
-      ||(this.identity && (this.identity.name||this.identity.address))
-      ||this.id
-      ||this.url
-    ) {
-      if (this.identity) {
-        tag += `${this.identity.name||this.identity.address}`
-      }
-      if (this.id||this.url) {
-        tag += `@${this.id||this.url}`
-      }
+    let tag = super[Symbol.toStringTag]
+    if ((this.identity && (this.identity.name||this.identity.address))) {
+      tag = `${this.identity.name||this.identity.address}@` + tag
     }
     return tag
   }
@@ -235,7 +226,7 @@ export abstract class Connection extends Endpoint {
   getContractsByCodeIds <C extends typeof Contract> (
     ids: Iterable<Deploy.CodeId>, $C?: C): Promise<Record<Deploy.CodeId, Record<Address, InstanceType<C>>>>
   getContractsByCodeIds <C extends typeof Contract> (
-    ids: Record<Deploy.CodeId, Contract>): Promise<Record<Deploy.CodeId, Record<Address, InstanceType<C>>>>
+    ids: Record<Deploy.CodeId, C>): Promise<Record<Deploy.CodeId, Record<Address, InstanceType<C>>>>
   async getContractsByCodeIds (...args: any[]) {
     if (!args[0]) {
       throw new Error('Invalid arguments. Pass Deploy.CodeId[] or Record<Deploy.CodeId, typeof Contract>')

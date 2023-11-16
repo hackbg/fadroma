@@ -59,6 +59,7 @@ export async function testCodes () {
 }
 
 export async function testAuth () {
+  throws(()=>new Identity().sign(''))
   const identity = new Identity({ name: 'foo', address: 'foo1bar' })
   const connection = new Stub.Connection({ identity })
   //assert.equal(connection[Symbol.toStringTag], 'stub (mocknet): testing1')
@@ -103,6 +104,7 @@ export async function testClient () {
   assert.equal(client.instance, instance)
   await client.query({foo: 'bar'})
   await client.execute({foo: 'bar'})
+  await connection.getContract('addr')
 
   assert(new Contract('addr'))
   assert(new Contract(new ContractInstance({ address: 'addr' })))
@@ -111,4 +113,8 @@ export async function testClient () {
   assert.throws(()=>new Contract({}).execute({}))
   assert.throws(()=>new Contract({ connection }).execute({}))
   assert.throws(()=>new Contract({ connection: {} as any }).execute({}))
+
+  await connection.getContractsByCodeId('id')
+  await connection.getContractsByCodeIds(['id1', 'id2'])
+  await connection.getContractsByCodeIds({'id1': Contract, 'id2': Contract})
 }
