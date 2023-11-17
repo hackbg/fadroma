@@ -76,7 +76,7 @@ abstract class DevnetContainer extends Backend {
   /** Initial uploads. */
   genesisUploads: Record<CodeId, Partial<CompiledCode>> = {}
   /** If set, overrides the script that launches the devnet in the container. */
-  initScript: Path = $(packageRoot, 'devnets', 'devnet.init.mjs')
+  initScript: Path = $(packageRoot, 'devnet.init.mjs')
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyString: string = ''

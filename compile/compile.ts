@@ -108,7 +108,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   quiet: boolean = this.config.getFlag('FADROMA_BUILD_QUIET', ()=>false)
   /** The build script. */
   script?: string = this.config.getString('FADROMA_BUILD_SCRIPT', ()=>{
-    return $(packageRoot).in('ops').at('build.impl.mjs').path
+    return $(packageRoot, 'compile.script.mjs').path
   })
   /** Whether to skip any `git fetch` calls in the build script. */
   noFetch: boolean = this.config.getFlag('FADROMA_NO_FETCH', ()=>false)

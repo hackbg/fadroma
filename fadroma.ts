@@ -21,7 +21,6 @@ import {
   UploadStore, DeployStore, ContractInstance
 } from '@fadroma/connect'
 import { CommandContext } from '@hackbg/cmds'
-import { getProject, createProject, Project } from '@fadroma/create'
 import type { CodeHash, UploadedCode, DeploymentState, Name } from '@fadroma/connect'
 import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -40,8 +39,6 @@ export default function main (...args: any) {
       (script: string, ...args: string[]) => runRepl({ project: getProject(), script, args }))
     .addCommand('status', 'show the status of the project',
       () => getProject().logStatus())
-    .addCommand('create', 'create a new project',
-      (name: string, crates: string[]) => createProject({ name }))
     .addCommand('build', 'build the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
         compiler: getCompiler(), units })))
@@ -80,6 +77,12 @@ export default function main (...args: any) {
 }
 
 //main.prototype.run = (...args: any[]) => console.log(this, args)
+
+type Project = any
+
+export function getProject (): Project {
+  throw new Error('not implemented')
+}
 
 export function getCompiler (): Compiler {
   throw new Error('not implemented')

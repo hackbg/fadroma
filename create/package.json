@@ -1,7 +1,7 @@
 {
   "name": "@fadroma/create",
   "version": "0.1.0",
-  "main": "project.ts",
+  "main": "create.ts",
   "dependencies": {
     "case": "^1.6.3",
     "prompts": "^2.4.2",
@@ -12,7 +12,8 @@
   },
   "scripts": {
     "check": "time tsc --noEmit",
-    "test": "time ensuite compile.test.ts",
+    "test": "time ensuite create.test.ts",
+    "cov": "time ensuite-cov create.test.ts",
     "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
     "release:fast": "pnpm i && ubik release --otp 123123"
   }

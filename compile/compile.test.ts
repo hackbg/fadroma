@@ -8,10 +8,30 @@ import {
   RawLocalRustCompiler,
   ContainerizedLocalRustCompiler
 } from './compile'
-import { fixture, TestBuildDeployment } from '../fixtures/fixtures'
+import { fixture } from '../fixtures/fixtures'
 import { Suite } from '@hackbg/ensuite'
 import * as Dock from '@hackbg/dock'
 import { DotGit } from '@hackbg/repo'
+
+class TestBuildDeployment extends Deployment {
+
+  a = this.contract('null-a', {
+    language:   'rust',
+    sourcePath: '..',
+    cargoToml:  'examples/contracts/cw-null/Cargo.toml'
+  })
+
+  b = this.template('null-b', {
+    language:   'rust',
+    sourcePath: '..',
+    cargoToml:  'examples/contracts/cw-null/Cargo.toml'
+  }).contracts({
+    b1: { initMsg: {} },
+    b2: { initMsg: () => ({}) },
+    b3: { initMsg: async () => ({}) }
+  })
+
+}
 
 export default new Suite([
   ['basic',     testBuild],

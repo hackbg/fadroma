@@ -174,17 +174,19 @@ export class Project extends ProjectDirectory {
       type: "module",
       version: "0.1.0",
       dependencies: {
-        "@hackbg/fadroma": version,
+        "@hackbg/fadroma": `^2.0.0-rc.5`,
       },
       devDependencies: {
-        "@hackbg/fadroma": `^${version}`,
-        "@hackbg/ganesha": "4.2.0",
-        //"@hackbg/ubik": "^2.0.0",
-        "typescript": "5.2.2",
+        //"@fadroma/compile": "*",
+        //"@fadroma/devnets": "*",
+        "@hackbg/ganesha": "^4.2.0",
+        "@hackbg/ubik":    "^2.0.0",
+        "typescript":      "5.2.2",
       },
       scripts: {
         "fadroma": "fadroma",
-        "test": "fadroma run index.test.ts",
+        "test":    "fadroma run index.test.ts",
+        "release": "ubik release --access public --otp 000000"
       },
     })
 

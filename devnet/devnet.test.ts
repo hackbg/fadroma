@@ -13,7 +13,7 @@ import * as Dock from '@hackbg/dock'
 import { Connection, Scrt, CW, Token, CompiledCode } from '@hackbg/fadroma'
 
 import { fixture } from '../fixtures/fixtures'
-import * as Devnets from './devnets'
+import * as Devnets from './devnet'
 
 //@ts-ignore
 export const packageRoot = dirname(dirname(resolve(fileURLToPath(import.meta.url))))

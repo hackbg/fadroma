@@ -1,5 +1,5 @@
 {
-  "name": "@fadroma/devnet",
+  "name": "@fadroma/devnets",
   "version": "0.1.0",
   "main": "devnet.ts",
   "dependencies": {
@@ -10,7 +10,8 @@
   },
   "scripts": {
     "check": "time tsc --noEmit",
-    "test": "time ensuite compile.test.ts",
+    "test": "time ensuite devnet.test.ts",
+    "cov": "time ensuite-cov devnet.test.ts",
     "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
     "release:fast": "pnpm i && ubik release --otp 123123"
   }

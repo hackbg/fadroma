@@ -39,24 +39,6 @@ export const tmpDir = () => {
   return x
 }
 
-export class TestBuildDeployment extends Deployment {
-
-  a = this.contract('null-a', {
-    language:  'rust',
-    cargoToml: 'examples/contracts/cw-null/Cargo.toml'
-  })
-
-  b = this.template('null-b', {
-    language:  'rust',
-    cargoToml: 'examples/contracts/cw-null/Cargo.toml'
-  }).contracts({
-    b1: { initMsg: {} },
-    b2: { initMsg: () => ({}) },
-    b3: { initMsg: async () => ({}) }
-  })
-
-}
-
 export class TestProjectDeployment extends Deployment {
 
   t = this.template('t', {

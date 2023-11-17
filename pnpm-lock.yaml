@@ -41,9 +41,18 @@ importers:
         specifier: ^2.4.2
         version: 2.4.2
     devDependencies:
+      '@fadroma/compile':
+        specifier: workspace:*
+        version: link:compile
+      '@fadroma/create':
+        specifier: workspace:*
+        version: link:create
       '@fadroma/cw':
         specifier: workspace:*
         version: link:connect/cw
+      '@fadroma/devnets':
+        specifier: workspace:*
+        version: link:devnet
       '@fadroma/fixtures':
         specifier: link:fixtures
         version: link:fixtures

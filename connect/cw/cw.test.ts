@@ -1,8 +1,10 @@
-import { Token, Tester } from '@fadroma/agent'
-import * as CW from '.'
-import { Devnets } from '@hackbg/fadroma'
-import { fixture } from '@fadroma/fixtures'
 import { ok, throws, rejects, deepEqual, equal } from 'node:assert'
+
+import { Token, Tester } from '@fadroma/agent'
+import * as Devnets from '@fadroma/devnets'
+import { fixture } from '@fadroma/fixtures'
+import * as CW from '.'
+
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['chain', testCWChain],

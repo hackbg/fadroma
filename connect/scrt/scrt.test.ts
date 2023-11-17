@@ -4,7 +4,7 @@
 import assert, { equal, rejects } from 'node:assert'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Devnets } from '@hackbg/fadroma'
+import * as Devnets from '@fadroma/devnets'
 import { fixture } from '@fadroma/fixtures'
 import Scrt, { Batch, SecretJS } from '@fadroma/scrt'
 import { Token, Tester } from '@fadroma/agent'

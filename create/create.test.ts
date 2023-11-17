@@ -2,9 +2,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
-import projectMain, { Deployment, ContractTemplate, ContractInstance, Stub } from '@hackbg/fadroma'
+import projectMain, {
+  Deployment, ContractTemplate, ContractInstance, Stub
+} from '@hackbg/fadroma'
 import { tmpDir, TestProjectDeployment } from '../fixtures/fixtures'
-import * as Projects from './project'
+import * as Projects from './create'
 import { withTmpDir } from '@hackbg/file'
 
 import { Suite } from '@hackbg/ensuite'

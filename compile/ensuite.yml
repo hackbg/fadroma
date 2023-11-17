@@ -2,3 +2,4 @@ coverage:
   exclude:
     - "*.test.*"
     - "*.dist.*"
+    - coverage

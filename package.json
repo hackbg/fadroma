@@ -55,6 +55,7 @@
   "dependencies": {
     "@fadroma/agent": "workspace:2.0.0-rc.4",
     "@fadroma/connect": "workspace:4.0.0-rc.2",
+
     "@hackbg/cmds": "workspace:*",
     "@hackbg/conf": "workspace:*",
     "@hackbg/dock": "workspace:^2.0.5",
@@ -62,6 +63,7 @@
     "@hackbg/logs": "workspace:*",
     "@hackbg/port": "workspace:~",
     "@hackbg/repo": "workspace:*",
+
     "case": "^1.6.3",
     "dotenv": "^16.3.1",
     "prompts": "^2.4.2"
@@ -75,19 +77,27 @@
     }
   },
   "devDependencies": {
-    "@fadroma/cw": "workspace:*",
+    "@hackbg/fadroma":   "workspace:*",
+
+    "@fadroma/compile":  "workspace:*",
+    "@fadroma/create":   "workspace:*",
+    "@fadroma/devnets":  "workspace:*",
     "@fadroma/fixtures": "link:fixtures",
-    "@fadroma/scrt": "workspace:*",
+
+    "@fadroma/cw":       "workspace:*",
+    "@fadroma/scrt":     "workspace:*",
+
     "@hackbg/ensuite": "workspace:^",
-    "@hackbg/fadroma": "workspace:*",
     "@hackbg/ganesha": "workspace:^",
-    "@hackbg/ubik": "workspace:^2",
+    "@hackbg/ubik":    "workspace:^2",
+
     "@types/dockerode": "^3.3.23",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "latest",
     "@types/prettyjson": "^0.0.30",
     "@types/prompts": "^2.4.8",
     "@types/secure-random": "^1.1.3",
+
     "express": "^4.18.2",
     "husky": "^8.0.3",
     "lint-staged": "^13.3.0",
