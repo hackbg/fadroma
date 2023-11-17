@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/create",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "main": "create.ts",
   "files": [
     "!coverage",
@@ -15,7 +15,7 @@
     "@hackbg/logs": "workspace:*",
     "@hackbg/cmds": "workspace:^3.2.1",
 
-    "@fadroma/agent": "workspace:*"
+    "@fadroma/agent": "workspace:2.0.0-rc.7"
   },
   "scripts": {
     "check": "time tsc --noEmit",
