@@ -1,6 +1,5 @@
 import assert from 'node:assert'
-import { Tester } from '@fadroma/agent'
-import { fixture } from '@fadroma/fixtures'
+import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import * as Mocknet from './scrt-mocknet'
 
 export default async function testScrtMocknet () {
@@ -11,7 +10,7 @@ export default async function testScrtMocknet () {
     const contract = new Mocknet.Contract(backend)
   }
 
-  const { backend, alice, bob, guest } = await Tester.testChainSupport(
+  const { backend, alice, bob, guest } = await testConnectionWithBackend(
     Mocknet.Connection,
     Mocknet.Backend,
     'v1.9',
