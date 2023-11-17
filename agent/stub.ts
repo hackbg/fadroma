@@ -35,10 +35,9 @@ class StubConnection extends Connection {
       )
     ))
   }
-  doGetBalance (
-    token:   string = (this.constructor as Function & { gasToken: Token.Native }).gasToken.id,
-    address: string|undefined = this.address
-  ): Promise<string> {
+  doGetBalance (token?: string, address?: string): Promise<string> {
+    token ??= this.defaultDenom
+    address ??= this.address
     const balance = (this.backend.balances.get(address!)||{})[token] ?? 0
     return Promise.resolve(String(balance))
   }
@@ -97,15 +96,17 @@ class StubConnection extends Connection {
   doSendMany (outputs: [Address, Token.ICoin[]][], opts?: never): Promise<void> {
     return Promise.resolve()
   }
-  doUpload (codeData: Uint8Array): Promise<UploadedCode> {
-    return Promise.resolve(new UploadedCode(this.backend.upload(codeData)))
+  async doUpload (codeData: Uint8Array): Promise<UploadedCode> {
+    return new UploadedCode(await this.backend.upload(codeData))
   }
-  doInstantiate (
+  async doInstantiate (
     codeId: CodeId, options: Parameters<Connection["doInstantiate"]>[1]
   ): Promise<ContractInstance & { address: Address }> {
-    return Promise.resolve(new ContractInstance(this.backend.instantiate(codeId, options)) as ContractInstance & {
+    return new ContractInstance(await this.backend.instantiate(
+      this.address!, codeId, options
+    )) as ContractInstance & {
       address: Address
-    })
+    }
   }
   doExecute (
     contract: { address: Address, codeHash: CodeHash },
@@ -116,45 +117,45 @@ class StubConnection extends Connection {
   }
 }
 
+type StubAccount = {
+  address: Address,
+  mnemonic?: string
+}
+type StubBalances = Record<string, bigint>
+type StubUpload = {
+  chainId: ChainId,
+  codeId: CodeId,
+  codeHash: CodeHash,
+  codeData: Uint8Array,
+  instances: Set<Address>
+}
+type StubInstance = {
+  codeId: CodeId,
+  address: Address,
+  creator: Address
+}
+
 class StubBackend extends Backend {
-  chainId =
-    'stub'
-  url =
-    'http://stub'
-  alive =
-    true
-  lastCodeId =
-    0
-
-  accounts = new Map<string, {
-    address: Address,
-    mnemonic?: string
-  }>()
-
-  balances = new Map<Address, Record<string, bigint>>()
-
-  uploads = new Map<CodeId, {
-    chainId:   ChainId,
-    codeId:    CodeId,
-    codeHash:  CodeHash,
-    codeData:  Uint8Array
-    instances: Set<Address>
-  }>()
-
-  instances = new Map<Address, {
-    codeId:  CodeId,
-    address: Address
-  }>()
+  gasToken   = 'ustub'
+  prefix     = 'stub1'
+  chainId    = 'stub'
+  url        = 'http://stub'
+  alive      = true
+  lastCodeId = 0
+  accounts   = new Map<string, StubAccount>()
+  balances   = new Map<Address, StubBalances>()
+  uploads    = new Map<CodeId, StubUpload>()
+  instances  = new Map<Address, StubInstance>()
 
   constructor (properties?: Partial<StubBackend & {
     genesisAccounts: Record<string, string|number>
   }>) {
     super(properties as Partial<Backend>)
-    assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
+    assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances", "gasToken", "prefix"])
     for (const [name, balance] of Object.entries(properties?.genesisAccounts||{})) {
-      const address = randomBech32('stub1').slice(0,30)
+      const address = randomBech32(this.prefix)
       const balances = this.balances.get(address) || {}
-      balances['ustub'] = BigInt(balance)
+      balances[this.gasToken] = BigInt(balance)
       this.balances.set(address, balances)
       this.accounts.set(name, { address })
     }
@@ -165,7 +166,7 @@ class StubBackend extends Backend {
       parameter = await this.getIdentity(parameter)
     }
     if (parameter.mnemonic && !parameter.address) {
-      parameter.address = `stub1${parameter.name}`
+      parameter.address = `${this.prefix}${parameter.name}`
     }
     return new StubConnection({
       chainId:  this.chainId,
@@ -201,7 +202,7 @@ class StubBackend extends Backend {
     throw new Error("StubChainState#export: not implemented")
   }
 
-  upload (codeData: Uint8Array) {
+  async upload (codeData: Uint8Array) {
     this.lastCodeId++
     const codeId = String(this.lastCodeId)
     const chainId = this.chainId
@@ -211,16 +212,16 @@ class StubBackend extends Backend {
     return upload
   }
 
-  instantiate (codeId: CodeId, options: unknown): Partial<ContractInstance> & {
+  async instantiate (creator: Address, codeId: CodeId, options: unknown): Promise<Partial<ContractInstance> & {
     address: Address
-  } {
-    const address = `stub1${Math.floor(Math.random()*1000000)}`
+  }> {
+    const address = randomBech32(this.prefix)
     const code = this.uploads.get(codeId)
     if (!code) {
       throw new Error(`invalid code id ${codeId}`)
     }
     code.instances.add(address)
-    this.instances.set(address, { address, codeId })
+    this.instances.set(address, { address, codeId, creator })
     return { address, codeId }
   }
 

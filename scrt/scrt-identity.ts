@@ -26,9 +26,9 @@ class ScrtMnemonicIdentity extends ScrtIdentity {
     mnemonic = bip39.generateMnemonic(bip39EN),
     wallet = new Wallet(mnemonic),
     ...properties
-  }: Partial<ScrtMnemonicIdentity> & {
+  }: Partial<ScrtMnemonicIdentity & {
     mnemonic: string
-  }) {
+  }>) {
     super(properties)
     this.wallet = wallet
     if (this.address && (wallet.address !== this.address)) {

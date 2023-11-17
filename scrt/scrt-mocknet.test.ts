@@ -1,10 +1,25 @@
 import assert from 'node:assert'
+import { Tester } from '@fadroma/agent'
+import { fixture } from '@fadroma/fixtures'
 import * as Mocknet from './scrt-mocknet'
 
 export default async function testScrtMocknet () {
-  const state = new Mocknet.State()
-  const agent = new Mocknet.Connection({ state })
-  const contract = new Mocknet.Contract(state)
+
+  {
+    const backend  = new Mocknet.Backend()
+    const agent    = new Mocknet.Connection({ backend })
+    const contract = new Mocknet.Contract(backend)
+  }
+
+  const { backend, alice, bob, guest } = await Tester.testChainSupport(
+    Mocknet.Connection,
+    Mocknet.Backend,
+    'v1.9',
+    'uscrt',
+    fixture('scrt-null.wasm'),
+    null
+  )
+
   // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
   // responses) are returned by the contract as Base64-encoded strings
   // If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.

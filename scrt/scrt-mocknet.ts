@@ -1,76 +1,57 @@
 import { Batch } from '@fadroma/agent'
-import type { UploadedCode, Into } from '@fadroma/agent'
-import type { ChainId, CodeHash, CodeId, Address, Message } from '@fadroma/agent'
+import type {
+  UploadedCode, Into, ChainId, CodeHash, CodeId, Address, Message, Identity
+} from '@fadroma/agent'
 import {
   Console, bold, Error, Stub, base16, sha256, into, bech32, randomBech32,
-  ContractInstance, brailleDump, Token
+  ContractInstance, brailleDump, Token, bip39, bip39EN
 } from '@fadroma/agent'
+import { MnemonicIdentity } from './scrt-identity'
+import { Wallet } from '@hackbg/secretjs-esm'
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
 /** Chain instance containing a local mocknet. */
-class ScrtMocknet extends Stub.Connection {
+class ScrtMocknetConnection extends Stub.Connection {
   static gasToken = new Token.Native('umock')
 
-  /** Current block height. Increments when accessing nextBlock */
-  _height = 0
-  /** The address of this agent. */
-  //address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
-  /** Map of addresses to WASM instances. */
-  contracts: Record<Address, MocknetContract<'0.x'|'1.x'>> = {}
+  declare backend: ScrtMocknetBackend
 
-  declare state: ScrtMocknetState
-
-  constructor (options: Partial<ScrtMocknet> = {}) {
+  constructor (options: Partial<ScrtMocknetConnection> = {}) {
     super({ chainId: 'mocknet', ...options })
     this.log.label += ` (${this.chainId})`
   }
   get height () {
-    return Promise.resolve(this._height)
+    return Promise.resolve(this.backend.height)
   }
   get nextBlock () {
-    this._height++
-    return Promise.resolve(this._height)
+    this.backend.height++
+    return Promise.resolve(this.backend.height)
   }
   getApi () {
     return Promise.resolve({})
   }
-  get account () {
-    this.log.warn('account: stub')
-    return Promise.resolve({})
-  }
-  /** Instantiate a contract on the mocknet. */
-  async doInstantiate (...args: Parameters<Stub.Connection["doInstantiate"]>) {
-    return await this.state.instantiate(this.address!, ...args) as ContractInstance & { address: Address }
+  doInstantiate (...args: Parameters<Stub.Connection["doInstantiate"]>) {
+    return this.backend.instantiate(this.address!, ...args) as Promise<ContractInstance & {
+      address: Address
+    }>
   }
   doExecute (...args: Parameters<Stub.Connection["doExecute"]>): Promise<unknown> {
-    return this.state.execute(this.address!, ...args)
+    return this.backend.execute(this.address!, ...args)
   }
   doQuery <Q> (
     contract: Address|{address: Address},
     message:  Message
   ): Promise<Q> {
-    return (this.state as ScrtMocknetState)
+    return (this.backend as ScrtMocknetBackend)
       .getContract(contract)
       .query({ msg: message })
   }
-  send (...args: unknown[]) {
-    this.log.warn('send: stub')
-    return Promise.resolve()
-  }
-  sendMany (...args: unknown[]) {
-    this.log.warn('sendMany: stub')
-    return Promise.resolve()
-  }
-  getBalance (...args: unknown[]) {
-    throw new Error('getBalance: not implemented')
-    return Promise.resolve(0)
-  }
 }
 
-export { ScrtMocknet as Connection }
+export { ScrtMocknetConnection as Connection }
 
-class ScrtMocknetBatch extends Batch<ScrtMocknet> {
+class ScrtMocknetBatch extends Batch<ScrtMocknetConnection> {
   messages: any[] = []
   async submit (memo = "") {
     this.log.info('Submitting mocknet batch...')
@@ -101,19 +82,19 @@ class ScrtMocknetBatch extends Batch<ScrtMocknet> {
     throw new Error('MocknetBatch#save: not implemented')
   }
   upload (
-    ...args: Parameters<Batch<ScrtMocknet>["upload"]>
+    ...args: Parameters<Batch<ScrtMocknetConnection>["upload"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
   }
   instantiate (
-    ...args: Parameters<Batch<ScrtMocknet>["instantiate"]>
+    ...args: Parameters<Batch<ScrtMocknetConnection>["instantiate"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
   }
   execute (
-    ...args: Parameters<Batch<ScrtMocknet>["execute"]>
+    ...args: Parameters<Batch<ScrtMocknetConnection>["execute"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
@@ -131,18 +112,100 @@ interface ScrtMocknetUpload {
   codeData:        Uint8Array
   wasmModule:      WebAssembly.Module
   cosmWasmVersion: ScrtCWVersion
+  instances:       Set<Address>
 }
 
-class ScrtMocknetState extends Stub.Backend {
-  log = new Console('ScrtMocknetState')
+class ScrtMocknetBackend extends Stub.Backend {
+
+  /** Current block height. Increments when accessing nextBlock */
+  height = 0
 
   declare uploads: Map<CodeId, ScrtMocknetUpload>
 
-  contracts: Record<Address, MocknetContract<any>> = {}
+  contracts: Record<Address, ScrtMocknetContract<ScrtCWVersion>> = {}
 
-  codeIdOfAddress: Record<Address, CodeId> = {}
+  constructor ({
+    gasToken = 'umock',
+    prefix   = 'secret1',
+    chainId  = 'scrt-mocknet',
+    url      = 'http://fadroma.tech/scrt-mocknet',
+    ...args
+  }: ConstructorParameters<typeof Stub.Backend>[0] = {}) {
+    super({ gasToken, prefix, chainId, url, ...args })
+    this.accounts = new Map()
+    this.balances = new Map()
+    for (const [name, balance] of Object.entries(args.genesisAccounts||{})) {
+      const account = this.accounts.get(name) || {} as any
+      account.mnemonic = bip39.generateMnemonic(bip39EN)
+      account.address = new Wallet(account.mnemonic).address
+      this.accounts.set(name, account)
 
-  labelOfAddress: Record<Address, string> = {}
+      const balances = this.balances.get(account.address) || {}
+      balances[this.gasToken] = BigInt(balance)
+      this.balances.set(account.address, balances)
+    }
+  }
+
+  async upload (codeData: Uint8Array): Promise<ScrtMocknetUpload> {
+    if (codeData.length < 1) {
+      throw new Error('tried to upload empty binary to mocknet.')
+    }
+    const upload = await super.upload(codeData) as ScrtMocknetUpload
+    const wasmModule  = await WebAssembly.compile(upload.codeData)
+    const wasmExports = WebAssembly.Module.exports(wasmModule)
+    const cosmWasmVersion = this.checkVersion(wasmExports.map((x: { name: string })=>x.name))
+    if (cosmWasmVersion === null) {
+      throw new Error("failed to detect CosmWasm version from uploaded binary")
+    }
+    upload.wasmModule = wasmModule
+    upload.cosmWasmVersion = cosmWasmVersion
+    return upload
+  }
+
+  //async instantiate (codeId: CodeId, options: unknown): Promise<Partial<ContractInstance> & {
+  async instantiate (
+    creator: Address, ...args: Parameters<Stub.Connection["doInstantiate"]>
+  ): Promise<ContractInstance & {
+    address: Address
+  }> {
+    const [codeId, { codeHash, label, initSend, initMsg, initFee }] = args
+    if (!codeId) {
+      throw new Error('missing code id')
+    }
+    const code = this.uploads.get(codeId)
+    if (!code) {
+      throw new Error(`invalid code id ${codeId}`)
+    }
+    const { wasmModule, cosmWasmVersion, codeHash: expectedCodeHash } = code
+    if (codeHash !== expectedCodeHash) {
+      this.log.warn('Wrong code hash passed with code id', codeId)
+    }
+    const msg = await into(initMsg)
+    if (typeof msg === 'undefined') {
+      throw new Error("can't instantiate without init message")
+    }
+    const address = randomBech32(this.prefix)
+    const mocknet = this
+    const properties = { codeId, codeHash, address, cosmWasmVersion }
+    const contract = await new ScrtMocknetContract(this, properties)
+    const {imports, refresh} = contract.makeImports()
+    contract.runtime = await WebAssembly.instantiate(wasmModule, imports)
+    const response = contract.init({ sender: creator, msg })
+    const {messages} = parseResult(response, 'instantiate', address)
+    this.contracts[address] = contract
+    await this.passCallbacks(cosmWasmVersion, address, messages)
+    code.instances.add(address)
+    this.instances.set(address, { address, codeId, creator })
+    return new ContractInstance({
+      chainId:  this.chainId,
+      address:  address!,
+      codeId,
+      codeHash: codeHash!,
+      label:    label!,
+      initBy:   creator,
+      initTx:   ''
+    }) as ContractInstance & { address: string }
+  }
 
   getContract (address?: Address|{ address: Address }) {
     if (typeof address === 'object') {
@@ -156,75 +219,6 @@ class ScrtMocknetState extends Stub.Backend {
       throw new Error("wrong address")
     }
     return instance
-  }
-
-  async upload (codeData: Uint8Array): Promise<ScrtMocknetUpload> {
-    if (codeData.length < 1) throw new Error('Tried to upload empty binary.')
-    const upload = await super.upload(codeData) as ScrtMocknetUpload
-    const wasmModule  = await WebAssembly.compile(upload)
-    const wasmExports = WebAssembly.Module.exports(wasmModule)
-    const cosmWasmVersion = this.checkVersion(exports.map((x: { name: string })=>x.name))
-    if (cosmWasmVersion === null) {
-      throw new Error("failed to detect CosmWasm version from uploaded binary")
-    }
-    upload.wasmModule = wasmModule
-    upload.cosmWasmVersion = cosmWasmVersion
-    return upload
-  }
-
-  async instantiate (
-    sender: Address, ...args: Parameters<Stub.Connection["doInstantiate"]>
-  ): Promise<ContractInstance & {
-    address: Address
-  }> {
-    const [codeId, { codeHash, label, initSend, initMsg, initFee }] = args
-    if (!codeId) {
-      throw new Error('missing code id')
-    }
-
-    // Check code hash
-    const {
-      wasmModule,
-      cosmWasmVersion,
-      codeHash: expectedCodeHash
-    } = this.uploads.get(codeId)!
-    if (codeHash !== expectedCodeHash) {
-      this.log.warn('Wrong code hash passed with code id', codeId)
-    }
-
-    // Resolve lazy init
-    const msg = await into(initMsg)
-    if (typeof msg === 'undefined') {
-      throw new Error("can't instantiate without init message")
-    }
-
-    // Generate address and construct contract
-    const address = randomBech32(MOCKNET_ADDRESS_PREFIX).slice(0,20)
-    const mocknet = this
-    const contract = await new MocknetContract(this, {
-      codeId,
-      codeHash,
-      address,
-      cosmWasmVersion
-    })
-    // Provide imports and launch contract runtime (wasm instance)
-    const {imports, refresh} = contract.makeImports()
-    contract.runtime = await WebAssembly.instantiate(module, imports)
-    const response = contract.init({ sender, msg })
-    const {messages} = parseResult(response, 'instantiate', address)
-    this.contracts[address] = contract
-    this.codeIdOfAddress[address] = codeId
-    this.labelOfAddress[address] = label!
-    await this.passCallbacks(cosmWasmVersion, address, messages)
-    return new ContractInstance({
-      chainId:  this.chainId,
-      address:  address!,
-      codeId,
-      codeHash: codeHash!,
-      label:    label!,
-      initBy:   sender,
-      initTx:   ''
-    }) as ContractInstance & { address: string }
   }
 
   async execute (
@@ -346,15 +340,34 @@ class ScrtMocknetState extends Stub.Backend {
       } else {
         this.log.warn(
           'mocknet.execute: transaction returned wasm message that was not '+
-          '"instantiate" or "execute", ignoring:',
-          message
+          '"instantiate" or "execute", ignoring:', message
         )
       }
     }
   }
+
+  getIdentity (name: string): Promise<Identity> {
+    return Promise.resolve(new MnemonicIdentity({ name, ...this.accounts.get(name) }))
+  }
+
+  async connect (
+    parameter: string|Partial<Identity & { mnemonic?: string }> = {}
+  ): Promise<ScrtMocknetConnection> {
+    if (typeof parameter === 'string') {
+      parameter = await this.getIdentity(parameter)
+    }
+    return new ScrtMocknetConnection({
+      chainId:  this.chainId,
+      url:      this.url,
+      alive:    this.alive,
+      backend:  this,
+      identity: new MnemonicIdentity(parameter)
+    })
+  }
+
 }
 
-export { ScrtMocknetState as State }
+export { ScrtMocknetBackend as Backend }
 
 export type ScrtCWAPI<V extends ScrtCWVersion> = {
   imports: {
@@ -414,7 +427,8 @@ export type ScrtCWAPI<V extends ScrtCWVersion> = {
   }
 }[V])
 
-class MocknetContract<V extends ScrtCWVersion> {
+class ScrtMocknetContract<V extends ScrtCWVersion> {
+  prefix = 'secret1'
   log = new Console('mocknet')
   address?:   Address
   codeHash?:  CodeHash
@@ -423,7 +437,7 @@ class MocknetContract<V extends ScrtCWVersion> {
   runtime?:   WebAssembly.Instance<ScrtCWAPI<V>['exports']>
   storage = new Map<string, Buffer>()
 
-  constructor (readonly mocknet: ScrtMocknetState, options: Partial<MocknetContract<V>> = {}) {
+  constructor (readonly mocknet: ScrtMocknetBackend, options: Partial<ScrtMocknetContract<V>> = {}) {
     Object.assign(this, options)
   }
 
@@ -621,7 +635,7 @@ class MocknetContract<V extends ScrtCWVersion> {
           const { contract_addr, callback_code_hash, msg } = smart
           const queried = mocknet.getContract(contract_addr)
           if (!queried) throw new Error(
-            `MocknetContract ${address} made a query to contract ${contract_addr}` +
+            `ScrtMocknetContract ${address} made a query to contract ${contract_addr}` +
             ` which was not found in the Mocknet: ${JSON.stringify(req)}`
           )
           const decoded = JSON.parse(b64toUtf8(msg))
@@ -633,6 +647,8 @@ class MocknetContract<V extends ScrtCWVersion> {
         }
       }
     }
+
+    const prefix = this.prefix
 
     if (this.cosmWasmVersion === '0.x') {
 
@@ -649,7 +665,7 @@ class MocknetContract<V extends ScrtCWVersion> {
         humanize_address (srcPointer: Pointer, dstPointer: Pointer) {
           const memory = refresh()
           const canon  = readBuffer(memory, srcPointer)
-          const human  = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
+          const human  = bech32.encode(prefix, bech32.toWords(canon))
           const dst    = region(memory.memory.buffer, dstPointer)
           log.debug(bold(address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(memory, dstPointer, human)
@@ -673,7 +689,7 @@ class MocknetContract<V extends ScrtCWVersion> {
         addr_humanize (srcPointer: Pointer, dstPointer: Pointer) {
           const memory = refresh()
           const canon  = readBuffer(memory, srcPointer)
-          const human  = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
+          const human  = bech32.encode(prefix, bech32.toWords(canon))
           const dst    = region(memory.memory.buffer, dstPointer)
           log.debug(bold(address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(memory, dstPointer, human)
@@ -764,7 +780,7 @@ class MocknetContract<V extends ScrtCWVersion> {
 
 }
 
-export { MocknetContract as Contract }
+export { ScrtMocknetContract as Contract }
 
 declare namespace WebAssembly {
   class Module {
@@ -797,8 +813,6 @@ interface Allocator {
   allocate    (len: Size): Pointer
   deallocate? (ptr: Pointer): void
 }
-
-export const MOCKNET_ADDRESS_PREFIX = 'mocked'
 
 export const codeHashForBlob = (blob: Uint8Array) => base16.encode(sha256(blob))
 

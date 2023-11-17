@@ -7,6 +7,9 @@ importers:
       '@fadroma/agent':
         specifier: workspace:2.0.0-rc.4
         version: link:agent
+      '@fadroma/create':
+        specifier: workspace:*
+        version: link:create
       '@fadroma/cw':
         specifier: workspace:*
         version: link:cw
@@ -47,9 +50,6 @@ importers:
       '@fadroma/compile':
         specifier: workspace:*
         version: link:compile
-      '@fadroma/create':
-        specifier: workspace:*
-        version: link:create
       '@fadroma/devnets':
         specifier: workspace:*
         version: link:devnet
@@ -372,6 +372,10 @@ importers:
       '@hackbg/fadroma':
         specifier: workspace:..
         version: link:..
+    devDependencies:
+      '@fadroma/compile':
+        specifier: workspace:../compile
+        version: link:../compile
 
   fixtures: {}
 

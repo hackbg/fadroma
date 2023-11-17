@@ -44,7 +44,11 @@ export async function testCodes () {
 
   const backend = new Stub.Backend({})
   backend.uploads.set("123", { codeHash: "abc", codeData: new Uint8Array() } as any)
-  backend.instances.set("stub1abc", { codeId: "123", address: 'stub1foo' })
+  backend.instances.set("stub1abc", {
+    codeId:  "123",
+    address: 'stub1instancefoo',
+    creator: 'stub1instancefoo'
+  })
 
   const connection = new Stub.Connection({ backend })
   assert.equal(

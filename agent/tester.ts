@@ -5,7 +5,7 @@ export async function testChainSupport <
   A extends typeof Connection,
   D extends typeof Backend
 > (
-  Chain: A, Backend: D, version: string, token: string, code: string
+  Chain: A, Backend: D, version: string, token: string, code: string, initMsg: any = null
 ) {
   const console = new Console(`Testing ${bold(Chain.name)} + ${bold(Backend.name)}`)
 
@@ -59,7 +59,6 @@ export async function testChainSupport <
 
   //console.info('Instantiating code...')
   const label = 'my-contract-label'
-  const initMsg = null as any // actually a valid init message
   const instance = await bob.instantiate(uploaded, { label, initMsg, initFee })
 
   //console.info('Querying code hash of instance...')
