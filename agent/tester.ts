@@ -1,4 +1,4 @@
-import type { Connection, Backend } from './connec'
+import type { Connection, Backend } from './connect'
 import { Console, bold } from '@hackbg/logs'
 import ok from 'node:assert'
 export async function testChainSupport <

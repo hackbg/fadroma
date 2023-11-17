@@ -19,7 +19,7 @@
 **/
 
 export * from './base'
-export * from './connec'
+export * from './connect'
 export * from './deploy'
 export * as Token from './token'
 export * as Stub from './stub'

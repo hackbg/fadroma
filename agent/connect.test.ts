@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { equal, throws, rejects } from 'node:assert'
-import { Connection, Identity, Endpoint, Backend, Contract, Batch } from './connec'
+import { Connection, Identity, Endpoint, Backend, Contract, Batch } from './connect'
 import { ContractInstance } from './deploy'
 import { fixture } from '@fadroma/fixtures'
 import { Error } from './base'

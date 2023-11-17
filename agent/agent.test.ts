@@ -4,7 +4,7 @@
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['base',       ()=>import('./base.test')],
-  ['connection', ()=>import('./connec.test')],
+  ['connection', ()=>import('./connect.test')],
   ['deploy',     ()=>import('./deploy.test')],
   ['token',      ()=>import('./token.test')],
   ['stub',       ()=>import('./stub.test')]

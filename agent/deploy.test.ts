@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { equal, deepEqual, rejects, throws } from 'node:assert'
-import { Contract } from './connec'
+import { Contract } from './connect'
 import * as Stub from './stub'
 import {
   Deployment,

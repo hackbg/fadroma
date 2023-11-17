@@ -3,8 +3,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, Message, Label, TxHash } from './base'
 import { assign, Console, Error, base16, sha256, randomBech32 } from './base'
-import type { ChainId } from './connec'
-import { Connection, Backend, Batch, Identity } from './connec'
+import type { ChainId } from './connect'
+import { Connection, Backend, Batch, Identity } from './connect'
 import type { CodeId, CodeHash } from './deploy'
 import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy'
 import * as Token from './token'

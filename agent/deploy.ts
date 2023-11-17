@@ -4,8 +4,8 @@
 import { Logged, Console, timestamp, bold, assign, hideProperties, base16, sha256 } from './base'
 import type { Name, Label, Into, Message, Address, TxHash } from './base'
 import { } from './base'
-import type { Connection, ChainId } from './connec'
-import { Contract } from './connec'
+import type { Connection, ChainId } from './connect'
+import { Contract } from './connect'
 import * as Token from './token'
 
 /** The default Git ref when not specified. */
