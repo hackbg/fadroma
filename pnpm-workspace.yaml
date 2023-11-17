@@ -1,7 +1,8 @@
 packages:
   - 'agent'
   - 'create'
-  - 'ops'
+  - 'compile'
+  - 'devnet'
   - 'connect'
   - 'connect/*'
   - 'connect/cw/cosmjs-esm'

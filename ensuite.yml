@@ -1,7 +1,7 @@
 coverage:
   exclude:
     - "**/*.dist.*"
-    - "**/*.test.*"
+    - "*.test.*"
     - "*.dist.*"
     - "*/coverage/**/*"
     - "coverage/**/*"

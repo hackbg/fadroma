@@ -15,28 +15,20 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-import type { ChainId, DeployStore } from '@fadroma/connect'
-import { Connection, Console, bold, timestamp, Deployment, CW, Scrt } from '@fadroma/connect'
-import { Error, UploadStore, ContractInstance, } from '@fadroma/connect'
-import * as Compilers from './ops/build'
-import * as Devnets from './ops/devnets'
-import * as Stores from './ops/stores'
-import * as Tools from './ops/tools'
+import type { ChainId, Compiler } from '@fadroma/connect'
+import {
+  Connection, Console, Error, bold, timestamp, Deployment, CW, Scrt,
+  UploadStore, DeployStore, ContractInstance
+} from '@fadroma/connect'
 import { CommandContext } from '@hackbg/cmds'
-import { getProject, createProject, Project } from './ops/project'
-import $, { JSONFile } from '@hackbg/file'
-import type { Path } from '@hackbg/file'
-
+import { getProject, createProject, Project } from '@fadroma/create'
 import type { CodeHash, UploadedCode, DeploymentState, Name } from '@fadroma/connect'
 import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
 import { basename } from 'node:path'
 
-export { Compilers, Devnets, Stores, Tools }
 export * from '@fadroma/connect'
-export * from './ops/project'
 
 const console = new Console('@hackbg/fadroma')
 
@@ -52,33 +44,29 @@ export default function main (...args: any) {
       (name: string, crates: string[]) => createProject({ name }))
     .addCommand('build', 'build the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
-        compiler: Compilers.getCompiler(),
-        units })))
+        compiler: getCompiler(), units })))
     .addCommand('rebuild', 'rebuild the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
-        compiler: Compilers.getCompiler(),
-        units, rebuild: true })))
+        compiler: getCompiler(), units, rebuild: true })))
     .addCommand('upload', 'upload the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
-        compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
+        compiler: getCompiler(), uploadStore: getUploadStore(), uploader: getConnection(),
         units })))
     .addCommand('reupload', 'reupload the project or specific contracts from it',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
-        compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
+        compiler: getCompiler(), uploadStore: getUploadStore(), uploader: getConnection(),
         units, reupload: true })))
     .addCommand('deploy', 'deploy getProject() or continue an interrupted deployment',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
-        compiler: Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
-        deployStore: Stores.getDeployStore(), deployer: getConnection(),
+        compiler: getCompiler(),
+        uploadStore: getUploadStore(), uploader: getConnection(),
+        deployStore: getDeployStore(), deployer: getConnection(),
         units })))
     .addCommand('redeploy', 'redeploy getProject() from scratch',
       (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
-        compiler:    Compilers.getCompiler(),
-        uploadStore: Stores.getUploadStore(), uploader: getConnection(),
-        deployStore: Stores.getDeployStore(), deployer: getConnection(),
+        compiler:    getCompiler(),
+        uploadStore: getUploadStore(), uploader: getConnection(),
+        deployStore: getDeployStore(), deployer: getConnection(),
         units, redeploy: true })))
     .addCommand('select', `activate another deployment`, 
       async (name?: string): Promise<Deployment|undefined> => selectDeployment(
@@ -92,6 +80,10 @@ export default function main (...args: any) {
 }
 
 //main.prototype.run = (...args: any[]) => console.log(this, args)
+
+export function getCompiler (): Compiler {
+  throw new Error('not implemented')
+}
 
 export function getConnection (): Connection {
   throw new Error('not implemented')
@@ -130,10 +122,10 @@ export async function runRepl (context?: { project?: Project, script?: string, a
 }
 
 export async function selectDeployment (
-  cwd: string|Path, name?: string, store: string|DeployStore = Stores.getDeployStore()
+  cwd: string|Path, name?: string, store: string|DeployStore = getDeployStore()
 ): Promise<Deployment> {
   if (typeof store === 'string') {
-    store = Stores.getDeployStore(store)
+    store = getDeployStore(store)
   }
   if (!name) {
     if (process.stdout.isTTY) {

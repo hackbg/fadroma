@@ -1,11 +1,17 @@
 {
   "name": "@fadroma/devnet",
   "version": "0.1.0",
-  "main": "project.ts",
+  "main": "devnet.ts",
   "dependencies": {
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",
     "@hackbg/cmds": "workspace:*",
     "@fadroma/agent": "workspace:*"
+  },
+  "scripts": {
+    "check": "time tsc --noEmit",
+    "test": "time ensuite compile.test.ts",
+    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release:fast": "pnpm i && ubik release --otp 123123"
   }
 }

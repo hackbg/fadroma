@@ -9,7 +9,7 @@ import Case from 'case'
 import Prompts from 'prompts'
 import * as dotenv from 'dotenv'
 
-import { console } from './config'
+import { console } from './package'
 import type { Project } from './project'
 
 export const NOT_INSTALLED = 'not installed'

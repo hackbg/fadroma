@@ -1,14 +1,19 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+
 import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Connection, Project, Compilers, Devnets, Scrt, CW, Token, CompiledCode } from '@hackbg/fadroma'
+
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import * as Dock from '@hackbg/dock'
+
+import { Connection, Scrt, CW, Token, CompiledCode } from '@hackbg/fadroma'
+
 import { fixture } from '../fixtures/fixtures'
+import * as Devnets from './devnets'
 
 //@ts-ignore
 export const packageRoot = dirname(dirname(resolve(fileURLToPath(import.meta.url))))
@@ -20,7 +25,7 @@ export default new Suite([
 ])
 
 export async function testDevnetPlatform <
-  A extends typeof Connection, D extends typeof Devnets.Container<A>,
+  A extends typeof Connection, D extends typeof Devnets.Container,
 > (
   Connection: A, Devnet: D, version: string, daemon: string
 ) {

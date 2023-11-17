@@ -14,7 +14,7 @@ import * as Dock from '@hackbg/dock'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
-import { console, packageRoot } from './config'
+import { console, packageRoot } from './package'
 
 /** Supported devnet variants. Add new devnets here first. */
 export type Platform =
@@ -161,7 +161,7 @@ abstract class DevnetContainer extends Backend {
   get spawnEnv () {
     const env: Record<string, string> = {
       DAEMON:    this.daemon||'',
-      TOKEN:     this.Connection.gasToken.denom,
+      TOKEN:     (this as any).Connection?.gasToken.denom, // FIXME
       CHAIN_ID:  this.chainId!,
       ACCOUNTS:  JSON.stringify(this.genesisAccounts),
       STATE_UID: String((process.getuid!)()),
@@ -427,8 +427,9 @@ abstract class DevnetContainer extends Backend {
       return JSON.parse(identity)
     }
 
-    return $(this.stateDir, 'wallet', `${name}.json`).as(JSONFile).load() as Partial<Identity>
-
+    return $(this.stateDir, 'wallet', `${name}.json`)
+      .as(JSONFile<Partial<Identity> & { mnemonic: string }>)
+      .load()
   }
 
   /** Function that waits for port to open after launching container.

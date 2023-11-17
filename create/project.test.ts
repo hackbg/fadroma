@@ -3,8 +3,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
 import projectMain, { Deployment, ContractTemplate, ContractInstance, Stub } from '@hackbg/fadroma'
-import { JSONFileDeployStore } from './stores'
-import { getCompiler } from './build'
 import { tmpDir, TestProjectDeployment } from '../fixtures/fixtures'
 import * as Projects from './project'
 import { withTmpDir } from '@hackbg/file'

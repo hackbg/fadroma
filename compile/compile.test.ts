@@ -3,7 +3,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { deepEqual, throws } from 'node:assert'
 import { Compiler, ContractInstance, Deployment } from '@fadroma/agent'
-import { getCompiler, RawLocalRustCompiler, ContainerizedLocalRustCompiler } from './build'
+import {
+  getCompiler,
+  RawLocalRustCompiler,
+  ContainerizedLocalRustCompiler
+} from './compile'
 import { fixture, TestBuildDeployment } from '../fixtures/fixtures'
 import { Suite } from '@hackbg/ensuite'
 import * as Dock from '@hackbg/dock'

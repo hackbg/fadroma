@@ -4,18 +4,20 @@
 import {
   Console, Error, Compiler, CompiledCode, HEAD, RustSourceCode, bold, assign,
 } from '@fadroma/connect'
+
 import { Config } from '@hackbg/conf'
 import type { Container } from '@hackbg/dock'
 import { DotGit } from '@hackbg/repo'
 import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
 import $, { Path, Directory, TextFile, BinaryFile, TOMLFile } from '@hackbg/file'
+
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, sep } from 'node:path'
 import { homedir } from 'node:os'
 import { randomBytes } from 'node:crypto'
 
-import { packageRoot, console } from './config'
+import { packageRoot, console } from './package'
 
 export function getCompiler ({
   config = new Config(),
@@ -511,3 +513,5 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
 
 }
 
+export default function main (...args: any) {
+}
