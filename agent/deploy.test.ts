@@ -75,10 +75,11 @@ export async function testDeployment () {
       codeData: new Uint8Array([1]),
     })
     contract1 = this.contract('contract1', {
-      chainId: 'stub',
-      codeId:  '2',
-      label:   "contract1",
-      initMsg: {}
+      chainId:  'stub',
+      codeHash: "asdf",
+      codeData: new Uint8Array([1]),
+      label:    "contract1",
+      initMsg:  {}
     })
     contract2 = this.template1.contract('contract2', {
       label:   "contract2",
@@ -90,7 +91,9 @@ export async function testDeployment () {
     })
   }
 
-  await new MyDeployment().contract1.deploy({ deployer })
+  await new MyDeployment().contract1.deploy({
+    deployer
+  })
 
   new MyDeployment().contract1.serialize()
 
@@ -129,6 +132,38 @@ export async function testDeployStore () {
     deployStore.get('name'), deployment.serialize())
 }
 export async function testCodeContract () {
+
+  rejects(()=>new ContractCode({
+    //@ts-ignore
+    source: { canCompile: false },
+    //@ts-ignore
+    compiler: {}
+  }).compile())
+
+  rejects(()=>new ContractCode({
+    //@ts-ignore
+    source: { canCompile: true },
+  }).compile({
+    //@ts-ignore
+    compiler: { build: () => Promise.resolve({ canUpload: false }) }
+  }))
+
+  rejects(()=>new ContractCode({
+    //@ts-ignore
+    compiled: { canUpload: true },
+  }).upload({
+    //@ts-ignore
+    uploader: false
+  }))
+
+  rejects(()=>new ContractCode({
+    //@ts-ignore
+    compiled: { canUpload: true },
+  }).upload({
+    //@ts-ignore
+    uploader: { upload: () => Promise.resolve({ canInstantiate: false }) }
+  }))
+
   //const contract1 = new ContractCode({
     //source:   new SourceCode(),
     //compiled: new CompiledCode(),
@@ -166,38 +201,54 @@ export async function testCodeCompiler () {
 }
 
 export async function testCodeUnits () {
-
-  rejects(()=>new ContractCode({ }).compile())
-
-  rejects(()=>new ContractCode({ compiler: new Stub.Compiler() }).compile())
+  rejects(
+    ()=>new ContractCode({ }).compile())
+  rejects(
+    ()=>new ContractCode({ compiler: new Stub.Compiler() }).compile())
 
   const source1 = new SourceCode()
-  assert(source1[Symbol.toStringTag])
+  assert(
+    source1[Symbol.toStringTag])
+  assert(
+    !source1.canFetch)
+  assert(
+    !source1.canCompile)
   deepEqual(source1.serialize(), {
     sourceOrigin: undefined,
     sourceRef:    undefined,
     sourcePath:   undefined,
     sourceDirty:  undefined,
   })
-  assert(!source1.canFetch)
-  assert(!source1.canCompile)
+
   source1.sourceOrigin = 'foo'
-  assert(source1.canFetch)
-  assert(source1.canCompile)
+  assert(
+    source1.canFetch)
+  assert(
+    source1.canCompile)
+
   source1.sourceOrigin = undefined
   source1.sourcePath = 'foo'
-  assert(!source1.canFetch)
-  assert(source1.canCompile)
-
-  rejects(()=>new ContractCode({ source: source1 }).compile())
+  assert(
+    !source1.canFetch)
+  assert(
+    source1.canCompile)
+  rejects(
+    ()=>new ContractCode({ source: source1 }).compile())
 
   assert(
-    await new ContractCode({ source: source1, compiler: new Stub.Compiler() }).compile()
-    instanceof CompiledCode
+    await new ContractCode({
+      source: source1,
+      compiler: new Stub.Compiler()
+    }).compile() instanceof CompiledCode
   )
 
   const rustSource1 = new RustSourceCode()
-  assert(rustSource1[Symbol.toStringTag])
+  assert(
+    rustSource1[Symbol.toStringTag])
+  assert(
+    !rustSource1.canFetch)
+  assert(
+    !rustSource1.canCompile)
   deepEqual(rustSource1.serialize(), {
     sourceOrigin:   undefined,
     sourceRef:      undefined,
@@ -208,17 +259,24 @@ export async function testCodeUnits () {
     cargoCrate:     undefined,
     cargoFeatures:  undefined,
   })
-  assert(!rustSource1.canFetch)
-  assert(!rustSource1.canCompile)
+
   rustSource1.sourceOrigin = 'foo'
-  assert(rustSource1.canFetch)
-  assert(!rustSource1.canCompile)
+  assert(
+    rustSource1.canFetch)
+  assert(
+    !rustSource1.canCompile)
+
   rustSource1.sourceOrigin = undefined
   rustSource1.sourcePath = 'foo'
-  assert(!rustSource1.canFetch)
-  assert(!rustSource1.canCompile)
+  assert(
+    !rustSource1.canFetch)
+  assert(
+    !rustSource1.canCompile)
+
   rustSource1.cargoToml = 'foo'
-  assert(rustSource1.canCompile)
+  assert(
+    rustSource1.canCompile)
+
   rustSource1.canFetch
   rustSource1.canCompileInfo
 

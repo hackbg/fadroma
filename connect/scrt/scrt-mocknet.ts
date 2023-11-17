@@ -25,9 +25,6 @@ class ScrtMocknet extends Stub.Connection {
     super({ chainId: 'mocknet', ...options })
     this.log.label += ` (${this.chainId})`
   }
-  get isMocknet () {
-    return true
-  }
   get height () {
     return Promise.resolve(this._height)
   }

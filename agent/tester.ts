@@ -26,8 +26,8 @@ export async function testChainSupport <
   await alice.height
 
   //console.info('Querying balances...')
-  const [aliceBalance, bobBalance] = await Promise.all([alice.balance, bob.balance])
-  console.log({aliceBalance, bobBalance})
+  const [aliceBalance, bobBalance] =
+    await Promise.all([alice.balance, bob.balance])
 
   //console.info('Authenticating a brand new account...')
   const guest = await backend.connect({

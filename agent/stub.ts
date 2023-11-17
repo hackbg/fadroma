@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, Message, Label, TxHash } from './base'
-import { assign, Console, Error, base16, sha256 } from './base'
+import { assign, Console, Error, base16, sha256, randomBech32 } from './base'
 import type { ChainId } from './connec'
 import { Connection, Backend, Batch, Identity } from './connec'
 import type { CodeId, CodeHash } from './deploy'
@@ -32,7 +32,6 @@ class StubConnection extends Connection {
     token:   string = (this.constructor as Function & { gasToken: Token.Native }).gasToken.id,
     address: string|undefined = this.address
   ): Promise<string> {
-    this.log.warn('getBalance: stub')
     const balance = (this.backend.balances.get(address!)||{})[token] ?? 0
     return Promise.resolve(String(balance))
   }
@@ -44,8 +43,8 @@ class StubConnection extends Connection {
     return contract.codeId
   }
   doGetContractsByCodeId (id: CodeId) {
-    this.log.warn('getContractsByCodeId: stub')
-    return Promise.resolve([])
+    return Promise.resolve([...this.backend.uploads.get(id)!.instances]
+      .map(address=>({address})))
   }
   doGetCodeHashOfAddress (address: Address): Promise<CodeHash> {
     return this.getCodeId(address)
@@ -119,12 +118,26 @@ class StubBackend extends Backend {
     true
   lastCodeId =
     0
-  balances =
-    new Map<Address, Record<string, bigint>>()
-  uploads =
-    new Map<CodeId, {chainId: ChainId, codeId: CodeId, codeHash: CodeHash, codeData: Uint8Array}>()
-  instances =
-    new Map<Address, {codeId: CodeId, address: Address}>()
+
+  accounts = new Map<string, {
+    address: Address,
+    mnemonic?: string
+  }>()
+
+  balances = new Map<Address, Record<string, bigint>>()
+
+  uploads = new Map<CodeId, {
+    chainId:   ChainId,
+    codeId:    CodeId,
+    codeHash:  CodeHash,
+    codeData:  Uint8Array
+    instances: Set<Address>
+  }>()
+
+  instances = new Map<Address, {
+    codeId:  CodeId,
+    address: Address
+  }>()
 
   constructor (properties?: Partial<StubBackend & {
     genesisAccounts: Record<string, string|number>
@@ -132,10 +145,11 @@ class StubBackend extends Backend {
     super(properties as Partial<Backend>)
     assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
     for (const [name, balance] of Object.entries(properties?.genesisAccounts||{})) {
-      const address = `stub1${name}`
+      const address = randomBech32('stub1').slice(0,30)
       const balances = this.balances.get(address) || {}
       balances['ustub'] = BigInt(balance)
       this.balances.set(address, balances)
+      this.accounts.set(name, { address })
     }
   }
 
@@ -156,7 +170,10 @@ class StubBackend extends Backend {
   }
 
   getIdentity (name: string): Promise<Identity> {
-    return Promise.resolve(new Identity({ name, address: `stub1${name}` }))
+    return Promise.resolve(new Identity({
+      name,
+      ...this.accounts.get(name)
+    }))
   }
 
   start (): Promise<this> {
@@ -182,7 +199,7 @@ class StubBackend extends Backend {
     const codeId = String(this.lastCodeId)
     const chainId = this.chainId
     const codeHash = base16.encode(sha256(codeData)).toLowerCase()
-    const upload = { codeId, chainId, codeHash, codeData }
+    const upload = { codeId, chainId, codeHash, codeData, instances: new Set<string>() }
     this.uploads.set(codeId, upload)
     return upload
   }
@@ -191,6 +208,11 @@ class StubBackend extends Backend {
     address: Address
   } {
     const address = `stub1${Math.floor(Math.random()*1000000)}`
+    const code = this.uploads.get(codeId)
+    if (!code) {
+      throw new Error(`invalid code id ${codeId}`)
+    }
+    code.instances.add(address)
     this.instances.set(address, { address, codeId })
     return { address, codeId }
   }
@@ -219,7 +241,9 @@ class StubBatch extends Batch<StubConnection> {
   }
 
   async submit () {
-    this.log.debug('Submitted batch:', this.messages)
+    this.log.debug('Submitted batch:\n ', this.messages
+      .map(x=>Object.entries(x)[0].map(x=>JSON.stringify(x)).join(': '))
+      .join('\n  '))
     return this.messages
   }
 }

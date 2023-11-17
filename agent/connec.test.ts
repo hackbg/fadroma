@@ -69,16 +69,36 @@ export async function testAuth () {
   await connection.query('', {})
   await connection.send('x', [])
   //await connection.sendMany([])
+
   await connection.upload(fixture('empty.wasm'), {})
   await connection.upload(new Uint8Array(), {})
+
   await connection.instantiate('1', { label: 'foo', initMsg: 'bar' })
-  await connection.instantiate({ codeId: '1' }, { label: 'foo', initMsg: {} })
-  assert.rejects(()=>connection.instantiate('foo', {}))
-  assert.rejects(()=>connection.instantiate('', {}))
-  assert.rejects(()=>connection.instantiate('1', { label: 'foo' }))
-  assert.rejects(()=>connection.instantiate('1', { initMsg: {} }))
+  await connection.instantiate({ codeId: '2' }, { label: 'foo', initMsg: {} })
+  rejects(()=>connection.instantiate('foo', {}))
+  rejects(()=>connection.instantiate('', {}))
+  rejects(()=>connection.instantiate('1', { label: 'foo' }))
+  rejects(()=>connection.instantiate('1', { initMsg: {} }))
+
+  await connection.getContractsByCodeId('1')
+  rejects(connection.getContractsByCodeIds(null as any))
+  await connection.getContractsByCodeIds(['1', '2'])
+  await connection.getContractsByCodeIds({'1': Contract, '2': Contract})
+
   await connection.execute('stub', {}, {})
+  await connection.execute('stub', 'method', {})
+  await connection.execute('stub', {'method':'man'}, {})
   await connection.execute({ address: 'stub' }, {}, {})
+  await connection.execute({ address: 'stub' }, 'method', {})
+  await connection.execute({ address: 'stub' }, {'method':'crystal'}, {})
+
+  throws(()=>new Stub.Connection().balance)
+  throws(()=>new Stub.Connection().getBalanceOf(null as any))
+  throws(()=>new Stub.Connection().getBalanceOf('addr', false as any))
+  assert(await new Stub.Connection().getBalanceOf('addr'))
+  throws(()=>new Stub.Connection().getBalanceIn(null as any))
+  throws(()=>new Stub.Connection().getBalanceIn('token', null as any))
+  assert(await new Stub.Connection().getBalanceIn('token', 'addr'))
 }
 
 export async function testBatch () {
@@ -111,8 +131,4 @@ export async function testClient () {
   assert.throws(()=>new Contract({}).execute({}))
   assert.throws(()=>new Contract({ connection }).execute({}))
   assert.throws(()=>new Contract({ connection: {} as any }).execute({}))
-
-  await connection.getContractsByCodeId('id')
-  await connection.getContractsByCodeIds(['id1', 'id2'])
-  await connection.getContractsByCodeIds({'id1': Contract, 'id2': Contract})
 }

@@ -69,7 +69,9 @@ export class ContractCode extends Logged {
     codeHash: CodeHash
   }> {
     if (this.compiled?.canUpload && !rebuild) {
-      return this.compiled as typeof this["compiled"] & { codeHash: CodeHash }
+      return Promise.resolve(
+        this.compiled as typeof this["compiled"] & { codeHash: CodeHash }
+      )
     }
     if (!compiler) {
       throw new Error("can't compile: no compiler")
@@ -396,10 +398,10 @@ export class UploadedCode {
 
   get [Symbol.toStringTag] () {
     return [
-      this.chainId  || 'no chain id',
       this.codeId   || 'no code id',
-      this.codeHash || 'no code hash'
-    ].join(' ')
+      this.chainId  || 'no chain id',
+      this.codeHash || '(no code hash)'
+    ].join('; ')
   }
 
   serialize (): {
@@ -514,12 +516,12 @@ export class ContractInstance extends DeploymentUnit {
   }
 
   async deploy ({
+    deployer = this.deployer,
+    redeploy = false,
+    uploader = this.uploader||deployer,
+    reupload = false,
     compiler = this.compiler,
     rebuild  = false,
-    uploader = this.uploader,
-    reupload = rebuild,
-    deployer = this.deployer,
-    redeploy = reupload,
     ...initOptions
   }: Parameters<this["upload"]>[0] & Parameters<Connection["instantiate"]>[1] & {
     deployer?: Address|{ instantiate: Connection["instantiate"] }
@@ -533,7 +535,9 @@ export class ContractInstance extends DeploymentUnit {
     if (!deployer || (typeof deployer === 'string')) {
       throw new Error("can't deploy: no deployer agent")
     }
-    const uploaded = await this.upload({ compiler, rebuild, uploader, reupload })
+    const uploaded = await this.upload({
+      compiler, rebuild, uploader, reupload
+    })
     const instance = await deployer.instantiate(uploaded, this)
     if (!instance.isValid()) {
       throw new Error("init failed")

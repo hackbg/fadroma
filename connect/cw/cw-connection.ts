@@ -31,7 +31,7 @@ class CWConnection extends Connection {
   constructor (properties: Partial<CWConnection>) {
     super(properties)
     assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex' ])
-    this.log.label = [this.address, this.chainId].filter(Boolean).join(' @ ')
+    this.log.label = [this.chainId, this.address].filter(Boolean).join(': ')
     if (this.url) {
       if (this.identity.signer) {
         this.log.debug('Connecting\n  to', bold(this.url), this.chainId, '\n  as', bold(this.address), this.identity?.name||'')
