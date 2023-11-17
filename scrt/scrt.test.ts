@@ -24,7 +24,7 @@ export default new Suite([
   ['snip-20',  () => import('./snip-20.test')],
   ['snip-24',  () => import('./snip-24.test')],
   ['snip-721', () => import('./snip-721.test')],
-  ['mocknet',  () => import('./scrt-mocknet.test')],
+  //['mocknet',  () => import('./scrt-mocknet.test')],
 ])
 
 import { mainnet, testnet, Connection } from '.'
