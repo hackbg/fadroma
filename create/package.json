@@ -1,0 +1,13 @@
+{
+  "name": "@fadroma/create",
+  "version": "0.1.0",
+  "main": "project.ts",
+  "dependencies": {
+    "case": "^1.6.3",
+    "prompts": "^2.4.2",
+    "@hackbg/file": "workspace:*",
+    "@hackbg/logs": "workspace:*",
+    "@hackbg/cmds": "workspace:*",
+    "@fadroma/agent": "workspace:*"
+  }
+}

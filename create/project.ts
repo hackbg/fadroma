@@ -1,18 +1,14 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Error, Deployment, bold, timestamp, bip39, bip39EN } from '@fadroma/connect'
-import type { ChainId, ContractCode } from '@fadroma/connect'
+import { Error, Deployment, bold, timestamp, bip39, bip39EN } from '@fadroma/agent'
+import type { ChainId, ContractCode } from '@fadroma/agent'
 import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
-import { console, packageRoot } from './config'
+import { console, packageRoot } from './package'
 import { execSync } from 'node:child_process'
 import Case from 'case'
-
-import * as Compilers from './build'
-import * as Stores from './stores'
-import * as Devnets from './devnets'
 import * as Tools from './tools'
 
 const { version, dependencies } = $(packageRoot, 'package.json').as(JSONFile<any>).load()
@@ -327,3 +323,4 @@ export class CargoWorkspaceProject extends Project {
   /** Directory where non-deployable crates live. */
   readonly librariesDir = $(this.root, 'libraries').as(Directory)
 }
+
