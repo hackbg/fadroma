@@ -60,9 +60,15 @@ If you have write access to the Fadroma repo:
 git clone --recursive git@github.com:hackbg/fadroma.git # clone with submodules
 ```
 
-* External contributors tht don't have write access to the repo
-  should instead [fork Fadroma](https://github.com/hackbg/fadroma/fork),
-  clone from their fork's URL, and see [submitting pull requests](#submitting-pull-requests).
+External contributors that don't have write access to the repo
+should instead [fork Fadroma](https://github.com/hackbg/fadroma/fork) and
+clone from their fork's URL
+
+```shell
+git clone --recursive git@github.com:yourusername/fadroma.git # clone with submodules
+```
+
+* See also: [submitting pull requests](#submitting-pull-requests).
 
 #### Update submodules
 

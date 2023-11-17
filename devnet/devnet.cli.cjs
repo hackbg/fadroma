@@ -21,7 +21,6 @@ const t1 = performance.now()
 console.log(`Ready in ${bold(String((t1 - t0).toFixed(3)))} ms`)
 process.on('exit', ()=>{
   const t2 = performance.now() - (t0 + t1)
-  console.br()
   console.log(`Exited in ${bold(String((t2 - t1).toFixed(3)))} ms`)
 })
 require('@hackbg/cmds/cmds-ts.cli.cjs')

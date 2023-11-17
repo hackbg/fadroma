@@ -1,4 +1,11 @@
 packages:
+  - 'toolbox'
+  - 'toolbox/*'
+  - 'toolbox/ganesha/*'
+  - '!toolbox/ganesha/vsc'
+  - '!toolbox/ganesha/rollup'
+  - '!toolbox/ganesha/test'
+  - 'fixtures'
   - 'agent'
   - 'create'
   - 'compile'
@@ -7,15 +14,3 @@ packages:
   - 'cw/cosmjs-esm'
   - 'scrt'
   - 'scrt/secretjs-esm'
-
-  - 'toolbox'
-  - 'toolbox/*'
-  - 'toolbox/ganesha/*'
-  - '!toolbox/ganesha/vsc'
-  - '!toolbox/ganesha/rollup'
-  - '!toolbox/ganesha/test'
-
-  - '!examples/project'
-
-  - 'examples'
-  - 'fixtures'

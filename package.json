@@ -54,11 +54,11 @@
   },
   "dependencies": {
     "@fadroma/agent":  "workspace:2.0.0-rc.4",
-    "@fadroma/cw":     "workspace:*",
-    "@fadroma/scrt":   "workspace:*",
+    "@fadroma/cw":     "workspace:1.0.0-rc.3",
+    "@fadroma/scrt":   "workspace:11.0.0-rc.3",
     "@fadroma/create": "workspace:*",
 
-    "@hackbg/cmds": "workspace:*",
+    "@hackbg/cmds": "workspace:^3.1",
     "@hackbg/conf": "workspace:*",
     "@hackbg/dock": "workspace:^2.0.5",
     "@hackbg/file": "workspace:*",
@@ -85,10 +85,9 @@
     "@fadroma/devnets":  "workspace:*",
     "@fadroma/fixtures": "link:fixtures",
 
-
     "@hackbg/ensuite": "workspace:^",
     "@hackbg/ganesha": "workspace:^",
-    "@hackbg/ubik":    "workspace:^2",
+    "@hackbg/ubik":    "workspace:^2.0.8",
 
     "@types/dockerode": "^3.3.23",
     "@types/js-yaml": "^4.0.9",

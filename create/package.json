@@ -5,9 +5,9 @@
   "dependencies": {
     "case": "^1.6.3",
     "prompts": "^2.4.2",
-    "@hackbg/file": "workspace:*",
-    "@hackbg/logs": "workspace:*",
-    "@hackbg/cmds": "workspace:*",
+    "@hackbg/file":   "workspace:*",
+    "@hackbg/logs":   "workspace:*",
+    "@hackbg/cmds":   "workspace:^3.1",
     "@fadroma/agent": "workspace:*"
   },
   "scripts": {

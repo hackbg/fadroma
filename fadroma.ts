@@ -25,7 +25,7 @@ import {
   Connection, Console, Error, bold, timestamp, Deployment,
   UploadStore, DeployStore, ContractInstance
 } from '@fadroma/agent'
-import { ProjectPrompter } from '@fadroma/create'
+import { getProject, ProjectPrompter } from '@fadroma/create'
 import { CommandContext } from '@hackbg/cmds'
 import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -35,6 +35,7 @@ import { basename } from 'node:path'
 const console = new Console('@hackbg/fadroma')
 
 export default function main (...args: any) {
+  console.debug('Running main...')
   return new CommandContext()
     .addCommand('run', 'execute a script',
       (script: string, ...args: string[]) => runScript({ project: getProject(), script, args }))
@@ -43,37 +44,59 @@ export default function main (...args: any) {
     .addCommand('status', 'show the status of the project',
       () => getProject().logStatus())
     .addCommand('build', 'build the project or specific contracts from it',
-      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
-        compiler: getCompiler(), units })))
+      (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.build({
+        compiler: await getCompiler(),
+        units
+      })))
     .addCommand('rebuild', 'rebuild the project or specific contracts from it',
-      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.build({
-        compiler: getCompiler(), units, rebuild: true })))
+      (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.build({
+        compiler: await getCompiler(),
+        units,
+        rebuild: true
+      })))
     .addCommand('upload', 'upload the project or specific contracts from it',
-      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
-        compiler: getCompiler(), uploadStore: getUploadStore(), uploader: getConnection(),
-        units })))
+      (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.upload({
+        compiler:    await getCompiler(),
+        uploadStore: getUploadStore(),
+        uploader:    getConnection(),
+        units
+      })))
     .addCommand('reupload', 'reupload the project or specific contracts from it',
-      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.upload({
-        compiler: getCompiler(), uploadStore: getUploadStore(), uploader: getConnection(),
-        units, reupload: true })))
+      (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.upload({
+        compiler:    await getCompiler(),
+        uploadStore: getUploadStore(),
+        uploader:    getConnection(),
+        reupload:    true,
+        units,
+      })))
     .addCommand('deploy', 'deploy getProject() or continue an interrupted deployment',
-      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
-        compiler: getCompiler(),
-        uploadStore: getUploadStore(), uploader: getConnection(),
-        deployStore: getDeployStore(), deployer: getConnection(),
-        units })))
+      (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.deploy({
+        compiler:    await getCompiler(),
+        uploadStore: getUploadStore(),
+        deployStore: getDeployStore(),
+        deployer:    getConnection(),
+        units
+      })))
     .addCommand('redeploy', 'redeploy getProject() from scratch',
-      (...units: string[]) => getProject().getDeployment().then(deployment=>deployment.deploy({
-        compiler:    getCompiler(),
-        uploadStore: getUploadStore(), uploader: getConnection(),
-        deployStore: getDeployStore(), deployer: getConnection(),
-        units, redeploy: true })))
+      (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.deploy({
+        compiler:    await getCompiler(),
+        uploadStore: getUploadStore(),
+        deployStore: getDeployStore(),
+        deployer:    getConnection(),
+        redeploy:    true,
+        units,
+      })))
     .addCommand('select', `activate another deployment`, 
       async (name?: string): Promise<Deployment|undefined> => selectDeployment(
-        getProject().root, name))
+        getProject().root,
+        name
+      ))
     .addCommand('export', `export current deployment to JSON`,
       async (path?: string) => exportDeployment(
-        getProject().root, await getProject().getDeployment(), path))
+        getProject().root,
+        await getProject().getDeployment(),
+        path
+      ))
     //.addCommand('reset', 'stop and erase running devnets',
       //(...ids: ChainId[]) => Devnets.deleteDevnets(
         //getProject().root, ids))
@@ -87,16 +110,41 @@ type Project = { // FIXME
   logStatus(): unknown
 }
 
-export function getProject (): Project {
-  throw new Error('not implemented')
-}
-
-export function getCompiler (): Compiler {
-  throw new Error('not implemented')
-}
-
 export function getConnection (): Connection {
   throw new Error('not implemented')
+}
+
+export function getCompiler (pkg = "@fadroma/compile"): Promise<Compiler> {
+  return import(pkg).catch(e=>{
+    console.error(
+      "Failed to import @fadroma/compile.\n ",
+      "This is the package that compiles the contracts.\n ",
+      "You can install it with 'npm i --save @fadroma/compile'"
+    )
+    throw e
+  }).then(compile=>{
+    if (process.env.FADROMA_BUILD_NO_CONTAINER) {
+      return new compile.RawLocalRustCompiler()
+    } else {
+      return new compile.ContainerizedLocalRustCompiler()
+    }
+  })
+}
+
+export function getUploadStore (path?: string|Path): UploadStore {
+  if (path) {
+    return new JSONFileUploadStore(path)
+  } else {
+    return new UploadStore()
+  }
+}
+
+export function getDeployStore (path?: string): DeployStore {
+  if (path) {
+    return new JSONFileDeployStore(path)
+  } else {
+    return new DeployStore()
+  }
 }
 
 export async function runScript (context?: { project?: Project, script?: string, args: string[] }) {
@@ -174,15 +222,6 @@ export function exportDeployment (
   )
 }
 
-
-export function getUploadStore (path?: string|Path): UploadStore {
-  if (path) {
-    return new JSONFileUploadStore(path)
-  } else {
-    return new UploadStore()
-  }
-}
-
 /** Directory containing upload receipts, e.g. `state/$CHAIN/upload`. */
 export class JSONFileUploadStore extends UploadStore {
   dir: JSONDirectory<Partial<UploadedCode>>
@@ -227,14 +266,6 @@ export class JSONFileUploadStore extends UploadStore {
     this.log('writing', receipt.shortPath)
     receipt.save(super.get(codeHash)!.serialize())
     return super.set(codeHash, value)
-  }
-}
-
-export function getDeployStore (path?: string): DeployStore {
-  if (path) {
-    return new JSONFileDeployStore(path)
-  } else {
-    return new DeployStore()
   }
 }
 

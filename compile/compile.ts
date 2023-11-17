@@ -19,6 +19,8 @@ import { randomBytes } from 'node:crypto'
 
 import { packageRoot, console } from './package'
 
+export { Compiler }
+
 export function getCompiler ({
   config = new Config(),
   useContainer = !config.getFlag('FADROMA_BUILD_RAW', ()=>false),
@@ -100,8 +102,6 @@ type CompileWorkspaceCrateTask = {
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class LocalRustCompiler extends ConfiguredCompiler {
   readonly id: string = 'local'
-  /** Logger. */
-  log = new Console('compiler(rust)')
   /** Whether the build process should print more detail to the console. */
   verbose: boolean = this.config.getFlag('FADROMA_BUILD_VERBOSE', ()=>false)
   /** Whether the build log should be printed only on error, or always */
@@ -289,8 +289,6 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
 
 /** Runs the build script in the current envionment. */
 export class RawLocalRustCompiler extends LocalRustCompiler {
-  /** Logging handle. */
-  log = new Console('compiler(rust-raw)')
 
   /** Node.js runtime that runs the build subprocess.
     * Defaults to the same one that is running this script. */
@@ -348,8 +346,6 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
 
 /** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
-  /** Logger */
-  log = new Console('compiler(rust-containers)')
   /** Used to launch build container. */
   docker: Engine
   /** Tag of the docker image for the build container. */
@@ -510,7 +506,6 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     if (this.quiet) buildLogStream.on('data', cb)
     return buildLogStream
   }
-
 }
 
 export default function main (...args: any) {

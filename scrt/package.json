@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "11.0.0-rc.2",
+  "version": "11.0.0-rc.3",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
@@ -8,7 +8,7 @@
   "dependencies": {
     "@fadroma/agent":       "workspace:2.0.0-rc.4",
     "@hackbg/conf":         "workspace:3.1.5",
-    "@hackbg/secretjs-esm": "workspace:1.9.3-patch.29",
+    "@hackbg/secretjs-esm": "workspace:1.9.3-patch.30",
     "@noble/secp256k1":     "^2.0.0",
     "@noble/ed25519":       "^2.0.0"
   },
