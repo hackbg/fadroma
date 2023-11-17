@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type { Address, Message, Uint128 } from './base'
+import type { Uint128 } from './base'
 import { ContractInstance } from './deploy'
 import { Error, Logged, bold, into } from './base'
 import { assign, Console } from './base'
@@ -9,6 +9,18 @@ import * as Deploy from './deploy'
 import * as Token from './token'
 
 export type ChainId = string
+
+/** An address on a chain. */
+export type Address = string
+
+/** A contract's full unique on-chain label. */
+export type Label = string
+
+/** A transaction message that can be sent to a contract. */
+export type Message = string|Record<string, unknown>
+
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash = string
 
 export class Identity extends Logged {
   /** Display name. */

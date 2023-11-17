@@ -2,10 +2,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Logged, Console, timestamp, bold, assign, hideProperties, base16, sha256 } from './base'
-import type { Name, Label, Into, Message, Address, TxHash } from './base'
-import { } from './base'
+import type { Name, Into } from './base'
+import { Contract, Label, Message, Address, TxHash } from './connect'
 import type { Connection, ChainId } from './connect'
-import { Contract } from './connect'
 import * as Token from './token'
 
 /** The default Git ref when not specified. */
