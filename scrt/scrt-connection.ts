@@ -121,8 +121,14 @@ class ScrtConnection extends Connection {
       .ContractInfo!.code_id!
   }
 
-  doGetContractsByCodeId (id: CodeId): Promise<Iterable<{address: Address}>> {
-    throw new Error('not implemented')
+  async doGetContractsByCodeId (code_id: CodeId): Promise<Iterable<{address: Address}>> {
+    return (await withIntoError(this.api.query.compute.contractsByCodeId({ code_id })))
+      .contract_infos!
+      .map(({ contract_address, contract_info: { label, creator } }: any)=>({
+        label,
+        address: contract_address,
+        initBy:  creator
+      }))
   }
 
   async doGetCodeHashOfAddress (contract_address: Address): Promise<CodeHash> {
