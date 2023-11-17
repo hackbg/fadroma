@@ -15,11 +15,11 @@ export type Decimal128 = string
 /** A 256-bit decimal fraction. */
 export type Decimal256 = string
 
-/** A gas fee, payable in native tokens. */
-export interface IFee { amount: readonly ICoin[], gas: Uint128 }
-
 /** Represents some amount of native token. */
 export interface ICoin { amount: Uint128, denom: string }
+
+/** A gas fee, payable in native tokens. */
+export interface IFee { amount: readonly ICoin[], gas: Uint128 }
 
 /** A constructable gas fee in native tokens. */
 export class Fee implements IFee {

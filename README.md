@@ -1,6 +1,6 @@
 <div align="center">
 
-[![Fadroma](./banner2.svg)](https://fadroma.tech)
+[![Fadroma](./assets/banner2.svg)](https://fadroma.tech)
 
 [Distributed application groundwork](https://fadroma.tech) developed at
 [**Hack.bg**](https://hack.bg).
@@ -14,9 +14,11 @@ for building next-generation dApps on CosmWasm-enabled backends.
 |`fadroma-dsl` crate|[![Latest version](https://img.shields.io/crates/v/fadroma-dsl.svg?color=%2365b34c&style=for-the-badge)](https://crates.io/crates/fadroma-dsl)|[![Documentation](https://img.shields.io/docsrs/fadroma-dsl/latest?color=%2365b34c&style=for-the-badge)](https://docs.rs/fadroma-dsl)|
 |`@hackbg/fadroma`|[![](https://img.shields.io/npm/v/@hackbg/fadroma?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/fadroma)|[View docs](https://fadroma.tech/ts/modules/_hackbg_fadroma.html)|
 |`@fadroma/agent`|[![](https://img.shields.io/npm/v/@fadroma/agent?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/agent)|[View docs](https://fadroma.tech/ts/modules/_fadroma_agent.html)|
-|`@fadroma/connect`|[![](https://img.shields.io/npm/v/@fadroma/connect?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)|[View docs](https://fadroma.tech/ts/modules/_fadroma_connect.html)|
 |`@fadroma/scrt`|[![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_scrt.html)|
 |`@fadroma/cw`|[![](https://img.shields.io/npm/v/@fadroma/cw?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/connect)|[View docs](https://fadroma.tech/ts/modules/_fadroma_cw.html)|
+|`@fadroma/create`|[![](https://img.shields.io/npm/v/@fadroma/create?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)|[View docs](https://fadroma.tech/ts/modules/_fadroma_create.html)|
+|`@fadroma/compile`|[![](https://img.shields.io/npm/v/@fadroma/compile?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)|[View docs](https://fadroma.tech/ts/modules/_fadroma_compile.html)|
+|`@fadroma/devnets`|[![](https://img.shields.io/npm/v/@fadroma/devnets?color=%2365b34c&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)|[View docs](https://fadroma.tech/ts/modules/_fadroma_devnets.html)|
 
 </div>
 
