@@ -63,7 +63,12 @@ class CWMnemonicIdentity extends CWIdentity {
     const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
     const address = bech32.encode(this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
     if (generatedMnemonic) {
-      this.log.warn(`Generated mnemonic for:\n  ${bold(address)}\n  mnemonic: ${bold(mnemonic)}\nIt will not be displayed again.`)
+      this.log.warn(
+        `Generated mnemonic for:\n `,
+        `${address}\n `,
+        `${bold(mnemonic)}\n`,
+        `It will not be displayed again.`
+      )
     }
     if (this.address && this.address !== address) {
       throw new Error(
