@@ -1,5 +1,6 @@
 packages:
   - 'agent'
+  - 'create'
   - 'ops'
   - 'connect'
   - 'connect/*'

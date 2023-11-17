@@ -100,3 +100,4 @@ To get the actual code as a `Uint8Array`, use:
 ```typescript
 const binary = await compiled.fetch()
 ```
+

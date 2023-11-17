@@ -452,6 +452,27 @@ importers:
         specifier: 4.9.2
         version: 4.9.2(webpack@5.76.0)
 
+  create:
+    dependencies:
+      '@fadroma/agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@hackbg/cmds':
+        specifier: workspace:*
+        version: link:../toolbox/cmds
+      '@hackbg/file':
+        specifier: workspace:*
+        version: link:../toolbox/file
+      '@hackbg/logs':
+        specifier: workspace:*
+        version: link:../toolbox/logs
+      case:
+        specifier: ^1.6.3
+        version: 1.6.3
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
+
   examples:
     dependencies:
       '@hackbg/fadroma':

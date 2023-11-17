@@ -8,10 +8,10 @@ import { fileURLToPath } from 'node:url'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
-export const packageRoot = dirname(dirname(fileURLToPath(
+export const packageRoot = dirname(fileURLToPath(
   //@ts-ignore
   import.meta.url
-)))
+))
 
 /** Version of Fadroma in use. */
 export const {
@@ -23,3 +23,4 @@ export const {
 }
 
 export const console = new Console(`${packageName} ${packageVersion}`)
+

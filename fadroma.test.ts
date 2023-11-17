@@ -12,3 +12,18 @@ export default new Suite([
   ['tools',   () => import('./ops/tools.test')],
   ['connect', () => import('./connect/connect.test')],
 ])
+
+import { TestProjectDeployment } from '../fixtures/fixtures'
+import { JSONFileUploadStore } from './stores'
+import { Stub } from '@fadroma/connect'
+import { withTmpDir } from '@hackbg/file'
+
+export default async function testJSONFileStores () {
+  await withTmpDir(async dir=>{
+    const deployment = new TestProjectDeployment()
+    await deployment.upload({
+      uploader:    new Stub.Connection(),
+      uploadStore: new JSONFileUploadStore(dir)
+    })
+  })
+}
