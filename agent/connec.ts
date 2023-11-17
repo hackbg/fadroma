@@ -79,7 +79,10 @@ export abstract class Connection extends Endpoint {
   get [Symbol.toStringTag] () {
     let tag = super[Symbol.toStringTag]
     if ((this.identity && (this.identity.name||this.identity.address))) {
-      tag = [`${this.identity.name||this.identity.address}`, tag].filter(Boolean).join('@')
+      tag = [`${this.identity.name||this.identity.address}`, tag]
+        .filter(Boolean)
+        .map(x=>bold(x))
+        .join(' @ ')
     }
     return tag
   }
@@ -145,7 +148,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       this.doGetCodeId.bind(this, address),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}: address ${bold(address)} has code ID ${bold(result)}`
+        `Queried in ${bold(elapsed)}:\n  ${bold(address)}\n  is code id ${bold(result)}`
       )
     )
   }
@@ -157,11 +160,11 @@ export abstract class Connection extends Endpoint {
   /** Get the code hash of a given code id. */
   getCodeHashOfCodeId (contract: Deploy.CodeId|{ codeId: Deploy.CodeId }): Promise<Deploy.CodeHash> {
     const codeId = (typeof contract === 'object') ? contract.codeId : contract
-    this.log.debug(`Querying code hash of code id ${bold(codeId)}`)
+    this.log.debug(`Querying code hash\n  of code id ${bold(codeId)}`)
     return timed(
       this.doGetCodeHashOfCodeId.bind(this, codeId),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}: code ID ${bold(codeId)} has hash:\n  ${bold(result)}`
+        `Queried in ${bold(elapsed)}:\n  id ${bold(codeId)}\n  hash: ${bold(result)}`
       )
     )
   }
@@ -173,11 +176,11 @@ export abstract class Connection extends Endpoint {
   /** Get the code hash of a given address. */
   getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Deploy.CodeHash> {
     const address = (typeof contract === 'string') ? contract : contract.address
-    this.log.debug(`Querying code hash of address ${bold(address)}`)
+    this.log.debug(`Querying code hash\n   of ${bold(address)}`)
     return timed(
       this.doGetCodeHashOfAddress.bind( this, address),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}: contract ${bold(address)} has hash:\n  ${bold(result)}`
+        `Queried in ${bold(elapsed)}:\n  ${bold(address)}\n  hash: ${bold(result)}`
       )
     )
   }
@@ -338,7 +341,7 @@ export abstract class Connection extends Endpoint {
     if (!recipient) {
       throw new Error('no recipient address')
     }
-    this.log.debug(`Sending\n  to ${bold(recipient)}:\n${amounts.map(x=>'  - '+x.toString())}`)
+    this.log.debug(`Sending\n  to ${bold(recipient)}:\n${amounts.map(x=>'   - '+x.toString())}`)
     return await timed(
       ()=>this.doSend(recipient as string, amounts.map(
         amount=>(amount instanceof Token.Amount)?amount.asCoin():amount
@@ -436,7 +439,8 @@ export abstract class Connection extends Endpoint {
         ...options, initMsg
       })),
       ({ elapsed, result }) => this.log.debug(
-        `Instantiated in ${bold(elapsed)} from code id ${bold(String(codeId))}:\n`,
+        `Instantiated in ${bold(elapsed)}:\n `,
+        ` from code id ${bold(String(codeId))}:\n`,
         ` ${bold(result.address)} ${options.label}`
       )
     )
@@ -467,7 +471,8 @@ export abstract class Connection extends Endpoint {
     return timed(
       () => this.doExecute(contract as { address: Address }, message, options),
       ({ elapsed }) => this.log.debug(
-        `Executed in ${bold(elapsed)}: address ${bold(address)}`
+        `Executed in ${bold(elapsed)}:\n `,
+        ` with ${bold(address)}`
       )
     )
   }

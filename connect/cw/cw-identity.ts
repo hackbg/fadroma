@@ -13,36 +13,44 @@ class CWMnemonicIdentity extends CWIdentity {
   bech32Prefix:   string
   coinType:       number
   hdAccountIndex: number
-  pubkey?:        unknown
+  pubkey:         Uint8Array
   signer:         OfflineSigner
   constructor ({
     bech32Prefix,
     coinType,
     hdAccountIndex,
     mnemonic,
+    generateMnemonic = true,
     ...properties
-  }: Partial<Identity> & {
-    bech32Prefix:   string
-    coinType:       number
-    hdAccountIndex: number
-    mnemonic:       string
-  }) {
+  }: Partial<Identity & {
+    bech32Prefix:     string
+    coinType:         number
+    hdAccountIndex:   number
+    mnemonic:         string
+    generateMnemonic: boolean
+  }>) {
     super(properties)
-    this.bech32Prefix   = bech32Prefix
-    this.coinType       = coinType
-    this.hdAccountIndex = hdAccountIndex
     // Validate input
-    if (!mnemonic) {
-      throw new Error("can't set empty mnemonic")
-    }
-    if (this.coinType === undefined) {
-      throw new Error('coinType is not set')
-    }
-    if (this.bech32Prefix === undefined) {
+    if (bech32Prefix === undefined) {
       throw new Error('bech32Prefix is not set')
     }
-    if (this.hdAccountIndex === undefined) {
+    if (coinType === undefined) {
+      throw new Error('coinType is not set')
+    }
+    if (hdAccountIndex === undefined) {
       throw new Error('hdAccountIndex is not set')
+    }
+    this.bech32Prefix = bech32Prefix
+    this.coinType = coinType
+    this.hdAccountIndex = hdAccountIndex
+    let generatedMnemonic = false
+    if (!mnemonic) {
+      if (generateMnemonic) {
+        mnemonic = bip39.generateMnemonic(bip39EN)
+        generatedMnemonic = true
+      } else {
+        throw new Error("mnemonic is not set")
+      }
     }
     // Derive keypair and address from mnemonic
     const seed = bip39.mnemonicToSeedSync(mnemonic)
@@ -54,6 +62,9 @@ class CWMnemonicIdentity extends CWIdentity {
     }
     const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
     const address = bech32.encode(this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
+    if (generatedMnemonic) {
+      this.log.warn(`Generated mnemonic for:\n  ${bold(address)}\n  mnemonic: ${bold(mnemonic)}\nIt will not be displayed again.`)
+    }
     if (this.address && this.address !== address) {
       throw new Error(
         `address ${address} generated from mnemonic did not match ${this.address}`
@@ -84,8 +95,11 @@ class CWMnemonicIdentity extends CWIdentity {
 
 class CWSignerIdentity extends Identity {
   signer: OfflineSigner
-  constructor ({ signer, ...properties }: Partial<Identity> & { signer: OfflineSigner }) {
+  constructor ({ signer, ...properties }: Partial<Identity & { signer: OfflineSigner }>) {
     super(properties)
+    if (!signer) {
+      throw new Error("signer not set")
+    }
     this.signer = signer
   }
   sign () {

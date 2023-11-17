@@ -7,12 +7,11 @@ import { Console, Error, bold } from '@fadroma/agent'
 import type { Address, ChainId, Token } from '@fadroma/agent'
 
 class ScrtError extends Error {}
-
-class ScrtConsole extends Console {
-  label = '@fadroma/scrt'
-}
+class ScrtConsole extends Console { label = '@fadroma/scrt' }
+const console = new ScrtConsole()
 
 export {
   ScrtError   as Error,
   ScrtConsole as Console,
+  console
 }

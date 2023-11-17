@@ -11,37 +11,23 @@ import type { Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
 import { Contract, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
-/** Configuration for OKP4 */
-class OKP4Config extends Config {
-  static defaultTestnetChainId: string = 'okp4-nemeton-1'
-  static defaultTestnetUrl: string = 'https://okp4-testnet-rpc.polkachu.com/'
-  constructor (options: Partial<OKP4Config> = {}, environment?: Environment) {
-    super(environment)
-    this.override(options)
-  }
-  testnetChainId: string = this.getString('FADROMA_OKP4_TESTNET_CHAIN_ID',
-    () => OKP4Config.defaultTestnetChainId)
-  testnetUrl: string = this.getString('FADROMA_OKP4_TESTNET_URL',
-    () => OKP4Config.defaultTestnetUrl)
-}
-
   /** Connect to OKP4 in testnet mode. */
 export function testnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
   return new OKP4Connection({
-    chainId: 'pulsar-3',
-    url: 'https://okp4-testnet-rpc.polkachu.com/',
+    chainId: 'okp4-nemeton-1',
+    url:     'https://okp4-testnet-rpc.polkachu.com/',
     //'https://okp4-testnet-api.polkachu.com/'
     ...options||{}
   })
 }
 
 class OKP4MnemonicIdentity extends MnemonicIdentity {
-  constructor (properties: { mnemonic: string }) {
+  constructor (properties?: { mnemonic: string }) {
     super({
       coinType: 118,
       bech32Prefix: 'okp4',
       hdAccountIndex: 0,
-      ...properties
+      ...properties||{}
     })
   }
 }
@@ -58,10 +44,13 @@ class OKP4Connection extends Connection {
     send:   OKP4Connection.gasToken.fee(1000000),
   }
 
-  constructor (options: Partial<OKP4Connection> & { mnemonic?: string, config?: OKP4Config } = {
-    config: new OKP4Config()
-  }) {
-    super({ coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, ...options } as Partial<Connection>)
+  constructor (options: Partial<OKP4Connection> & { mnemonic?: string }) {
+    super({
+      coinType: 118,
+      bech32Prefix: 'okp4',
+      hdAccountIndex: 0,
+      ...options
+    } as Partial<Connection>)
   }
 
   /** Get clients for all Cognitarium instances, keyed by address. */
@@ -133,7 +122,6 @@ class OKP4Connection extends Connection {
 }
 
 export {
-  OKP4Config           as Config,
   OKP4MnemonicIdentity as MnemonicIdentity,
   OKP4Connection       as Connection
 }

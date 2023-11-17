@@ -171,7 +171,7 @@ function createGenesisTransaction () {
   for (const [name, amount] of Object.entries(accounts)) {
     const mnemonic = daemon(`keys add "${name}" 2>&1 | tail -n1`)
     const address  = daemon(`keys show -a "${name}"`)
-    console.info(`\n- ${amount}${TOKEN} ${address} (${name})`)
+    console.info(`\n\n${address} (${name})\n  ${mnemonic}\n  ${amount}${TOKEN}`)
     daemon(`add-genesis-account "${address}" "${amount}${TOKEN}"`)
     const identity = `${wallets}/${name}.json`
     writeFileSync(identity, JSON.stringify({ address, mnemonic }))

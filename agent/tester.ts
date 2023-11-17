@@ -22,14 +22,14 @@ export async function testChainSupport <
   const [alice, bob] = await Promise.all([backend.connect('Alice'), backend.connect('Bob')])
   ok(alice.identity?.address && bob.identity?.address)
 
-  console.info('Querying block height...')
+  //console.info('Querying block height...')
   await alice.height
 
-  console.info('Querying balances...')
+  //console.info('Querying balances...')
   const [aliceBalance, bobBalance] = await Promise.all([alice.balance, bob.balance])
   console.log({aliceBalance, bobBalance})
 
-  console.info('Authenticating a non-genesis account...')
+  //console.info('Authenticating a brand new account...')
   const guest = await backend.connect({
     name: 'Guest',
     mnemonic: [
@@ -40,34 +40,34 @@ export async function testChainSupport <
     ].join(' ')
   })
 
-  console.info('Querying non-genesis account balance...')
+  //console.info('Querying new account balance...')
   equal((await guest.balance)??'0', '0')
 
-  console.info('Topping up non-genesis account balance from genesis accounts...')
+  //console.info('Topping up guest account balance from genesis accounts...')
   await alice.send(guest, [Chain.gas(1)], { sendFee })
   equal(await guest.balance, '1')
   await bob.send(guest, [Chain.gas(11)], { sendFee })
   equal(await guest.balance, '12')
 
-  console.info('Uploading code...')
+  //console.info('Uploading code...')
   const uploaded = await alice.upload(code)
 
-  console.info('Querying code upload...')
+  //console.info('Querying code upload...')
   equal(await bob.getCodeHashOfCodeId(uploaded.codeId), uploaded.codeHash)
   rejects(()=>bob.getCodeHashOfCodeId('missing'))
 
-  console.info('Instantiating code...')
+  //console.info('Instantiating code...')
   const label = 'my-contract-label'
   const initMsg = null as any // actually a valid init message
   const instance = await bob.instantiate(uploaded, { label, initMsg, initFee })
 
-  console.info('Querying code hash of instance...')
+  //console.info('Querying code hash of instance...')
   equal(await guest.getCodeHashOfAddress(instance.address), uploaded.codeHash)
 
-  console.info('Executing transaction...')
+  //console.info('Executing transaction...')
   const txResult = await alice.execute(instance, null as any, { execFee })
 
-  console.info('Executing query...')
+  //console.info('Executing query...')
   const qResult = await alice.query(instance, null as any)
 
   return { backend, alice, bob, guest }

@@ -265,10 +265,9 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
       }
     }
     if (Object.keys(results).length > 0) {
-      this.log.br().log('Compiled:')
-      for (const compiled of Object.values(results)) {
-        this.log(' ', compiled.codeHash, bold($(compiled.codePath!).shortPath))
-      }
+      this.log.log('Compiled the following:\n ', Object.values(results)
+        .map(x=>`${x.codeHash} ${bold($(x.codePath!).shortPath)}`)
+        .join('\n  '))
     } else {
       this.log('Nothing to compile.')
     }

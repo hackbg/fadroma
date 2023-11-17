@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Tx, ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
-import { Config, Error } from './scrt-base'
+import { Error, console } from './scrt-base'
 import { Identity } from './scrt-identity'
 //import * as Mocknet from './scrt-mocknet'
 import type {
@@ -56,10 +56,6 @@ export const faucets: Record<ChainId, Set<string>> = {
     `https://faucet.pulsar.scrttestnet.com/`
   ])
 }
-
-const intoError = (e: object)=>{throw Object.assign(new Error(), e)}
-
-const withIntoError = <T>(p: Promise<T>): Promise<T> => p.catch(intoError)
 
 /** Represents a Secret Network API endpoint. */
 class ScrtConnection extends Connection {
@@ -181,7 +177,7 @@ class ScrtConnection extends Connection {
   async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
     const request = { sender: this.address!, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
-    const result = await intoError(this.api!.tx.compute.storeCode(request, { gasLimit }))
+    const result = await withIntoError(this.api!.tx.compute.storeCode(request, { gasLimit }))
     const { code, message, details = [], rawLog  } = result
     if (code !== 0) {
       this.log.error(
@@ -232,7 +228,7 @@ class ScrtConnection extends Connection {
       memo:       options.initMemo
     }
     const instantiateOptions = { gasLimit: Number(this.fees.init?.amount[0].amount) || undefined }
-    const result = await intoError(
+    const result = await withIntoError(
       this.api.tx.compute.instantiateContract(parameters, instantiateOptions))
     if (result.code !== 0) {
       this.log.error('Init failed:', { parameters, instantiateOptions, result })
@@ -292,7 +288,9 @@ class ScrtConnection extends Connection {
     }
     const result = await this.api.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
-    if (result.code !== 0) throw this.decryptError(result)
+    if (result.code !== 0) {
+      throw decodeError(result)
+    }
     return result as TxResponse
   }
 
@@ -331,32 +329,43 @@ class ScrtConnection extends Connection {
     return base64.encode(encrypted)
   }
 
-  decryptError (result: TxResponse) {
-    const error = `ScrtConnection#execute: gRPC error ${result.code}: ${result.rawLog}`
-    // make the original result available on request
-    const original = structuredClone(result)
-    Object.defineProperty(result, "original", { enumerable: false, get () { return original } })
-    // decode the values in the result
-    const txBytes = tryDecode(result.tx as Uint8Array)
-    Object.assign(result, { txBytes })
-    for (const i in result.tx.signatures) {
-      Object.assign(result.tx.signatures, { [i]: tryDecode(result.tx.signatures[i as any]) })
-    }
-    for (const event of result.events) {
-      for (const attr of event?.attributes ?? []) {
-        //@ts-ignore
-        try { attr.key   = tryDecode(attr.key)   } catch (e) {}
-        //@ts-ignore
-        try { attr.value = tryDecode(attr.value) } catch (e) {}
-      }
-    }
-    return Object.assign(new Error(error), result)
-  }
-
   batch (): Batch<this> {
     return new ScrtBatch({ connection: this }) as Batch<this>
   }
 
+}
+
+export function decodeError (result: TxResponse) {
+  const error = `ScrtConnection#execute: gRPC error ${result.code}: ${result.rawLog}`
+  // make the original result available on request
+  const original = structuredClone(result)
+  Object.defineProperty(result, "original", {
+    enumerable: false, get () { return original }
+  })
+  // decode the values in the result
+  const txBytes = tryDecode(result.tx as Uint8Array)
+  Object.assign(result, { txBytes })
+  for (const i in result.tx.signatures) {
+    Object.assign(result.tx.signatures, { [i]: tryDecode(result.tx.signatures[i as any]) })
+  }
+  for (const event of result.events) {
+    for (const attr of event?.attributes ?? []) {
+      //@ts-ignore
+      try { attr.key   = tryDecode(attr.key)   } catch (e) {}
+      //@ts-ignore
+      try { attr.value = tryDecode(attr.value) } catch (e) {}
+    }
+  }
+  return Object.assign(new Error(error), result)
+}
+
+const withIntoError = <T>(p: Promise<T>): Promise<T> =>
+  p.catch(intoError)
+
+const intoError = async (e: object)=>{
+  e = await Promise.resolve(e)
+  console.error(e)
+  throw Object.assign(new Error(), e)
 }
 
 /** Used to decode Uint8Array-represented UTF8 strings in TX responses. */

@@ -29,4 +29,5 @@ yarn.lock
 !page/*.js
 examples/wasm
 *.tsbuildinfo
+*/*.tsbuildinfo
 **/*.tsbuildinfo
