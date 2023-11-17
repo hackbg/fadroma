@@ -134,6 +134,11 @@ git commit --no-verify -m "feat(name): description"
   * It's allowed within a feature branch (as an escape hatch for saving unfinished work),
     since the branch will have to pass CI (incl. typecheck) before merge.
   * Also useful when you know you haven't changed any TS/JS code in your commit.
+* The pre-commit check includes a `pnpm i` which may update one or more `pnpm-lock.yaml` files.
+  Currently, these are not automatically added to the commit; use `git add ...` and
+  `git commit --amend --no-verify --no-edit` to add them to the last commit.
+* Avoid amending commits that are already pushed because you'll have to force push those,
+  which makes submodules fragile.
 
 ### Release
 
