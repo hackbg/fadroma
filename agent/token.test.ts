@@ -49,7 +49,7 @@ export async function testCoins () {
 
 export async function testFees () {
   // FIXME: new Fee(gas, amounts[])
-  new Fee(1000, 'utest', '100000')
+  new Fee(1000, 'utest', '100000')[Symbol.toStringTag]
 }
 
 export async function testFungible () {
@@ -64,7 +64,6 @@ export async function testFungible () {
   assert(new Custom('foo').id === 'foo')
   assert(!(new Custom('foo').isNative()))
   assert(new Custom('foo').isCustom())
-  assert(new Custom('foo').connect())
 }
 
 export async function testNonFungible () {

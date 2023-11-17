@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "exclude": [ "cosmjs-esm/**", "../fadroma*.ts" ],
+  "include": [ "*.ts", "**/*.ts" ],
+  "compilerOptions": {
+    "rootDir": ".",
+    "composite": true
+  }
+}

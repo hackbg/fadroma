@@ -19,15 +19,10 @@
 **/
 
 export * from './base'
-export * from './chain'
-export * from './client'
-export * from './code'
+export * from './connect'
+export type { ChainId, Address, Message, TxHash } from './connect'
 export * from './deploy'
-export * from './devnet'
-export * from './store'
-
-export * as Stub from './stub'
+export type { CodeId, CodeHash, } from './deploy'
 export * as Token from './token'
-export * as Test from './test'
-export { Agent as default } from './chain'
-
+export type { Uint128, Uint256, Decimal128, Decimal256 } from './token'
+export * as Stub from './stub'

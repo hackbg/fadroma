@@ -1,28 +1,37 @@
 coverage:
   exclude:
-    - "**/*.dist.*"
-    - "**/*.test.*"
-    - "*.dist.*"
+    - "**/*/coverage/**/*"
     - "*/coverage/**/*"
     - "coverage/**/*"
-    - "**/*/coverage/**/*"
-    - "connect/scrt/secretjs-esm"
-    - "connect/cw/cosmjs-esm"
-    - "ops/build.impl.mjs"
-    - "devnets/devnet.init.mjs"
-    - "devnets/devnet.server.mjs"
+
+    - "**/*.dist.*"
+    - "*/*.dist.*"
+    - "*.dist.*"
+
+    - "*/*.test.*"
+    - "*.test.*"
+
+    - "*/*.cli.cjs"
+    - "*.cli.cjs"
+
+    - "agent/test.ts"
+    - "cw/cosmjs-esm"
+
+    - "devnet/devnet.init.mjs"
+
     - "dist/**/*"
-    - "toolbox/**/*"
+    - "docs"
     - "examples/**/*"
     - "fadroma.browser.ts"
     - "fadroma.cli.cjs"
     - "fixtures/**/*"
+    - "ops/build.impl.mjs"
     - "schema"
+    - "scrt/secretjs-esm"
     - "shim/**/*"
     - "spec/**/*"
+    - "toolbox/**/*"
     - "typedoc-theme.tsx"
-    - "docs"
-    - "agent/test.ts"
 
 header:
   title: Fadroma

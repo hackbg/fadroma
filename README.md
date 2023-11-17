@@ -250,14 +250,18 @@ of `Deployment` classes.
 
 ## Further reading
 
-* [**Fadroma Agent API**](./agent/README.md), our core API defining portable user agents
+* [**Fadroma Agent Core**](./agent/README.md), our core API defining portable user agents
   for smart contract-based backends.
+    * [**Fadroma Agent for Secret Network**](./scrt/README.md)
+    * [**Fadroma Agent for CosmWasm**](./scrt/README.md)
 
-* [**Fadroma Connect**](./connect/README.md), our catalog of supported platforms.
-
-* [**Fadroma Workshop**](https://github.com/hackbg/fadroma-workshop) repo,
+* [Example: **Fadroma Workshop**](https://github.com/hackbg/fadroma-workshop) repo,
   a step-by-step guide on how to build smart contracts using the Fadroma Rust crate.
 
-* [**Fadroma Factory**](https://fadroma.tech/factory.html),
+* [Example: **Fadroma Factory**](https://fadroma.tech/factory.html),
   a guide to deploying your Rust contracts using the Fadroma TypeScript package,
   via a factory pattern that enables your users to instantiate contracts in a controlled way.
+
+* [**Contribution guidelines**](./CONTRIBUTING.md).
+
+* [**Code of conduct**](./CODE_OF_CONDUCT.md).

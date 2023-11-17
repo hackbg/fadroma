@@ -1,0 +1,23 @@
+{
+  "name":    "@fadroma/scrt",
+  "version": "11.0.0-rc.3",
+  "type":    "module",
+  "main":    "scrt.ts",
+  "files": [ "*.ts" ],
+  "description": "Fadroma support for Secret Network. Provides a SecretJS-based implementation of the base classes in @fadroma/agent to operate smart contracts on the Secret Network.",
+  "dependencies": {
+    "@fadroma/agent":       "workspace:2.0.0-rc.6",
+    "@hackbg/conf":         "workspace:3.1.5",
+    "@hackbg/secretjs-esm": "workspace:1.9.3-patch.30",
+    "@noble/secp256k1":     "^2.0.0",
+    "@noble/ed25519":       "^2.0.0"
+  },
+  "scripts": {
+    "check": "time tsc --noEmit",
+    "test": "time ensuite scrt.test.ts",
+    "cov": "time ensuite-cov -r text -r lcov -- scrt.test.ts",
+    "ubik": "npm run check && npm run cov all && time ubik",
+    "release": "time pnpm ubik release --access public --otp 123123",
+    "release:fast": "time ubik release --access public --otp 123123"
+  }
+}

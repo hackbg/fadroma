@@ -2,13 +2,30 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Suite } from '@hackbg/ensuite'
-
 export default new Suite([
   ['agent',   () => import('./agent/agent.test')],
-  ['build',   () => import('./ops/build.test')],
-  ['devnets', () => import('./ops/devnets.test')],
-  ['project', () => import('./ops/project.test')],
-  ['stores',  () => import('./ops/stores.test')],
-  ['tools',   () => import('./ops/tools.test')],
-  ['connect', () => import('./connect/connect.test')],
+  ['compile', () => import('./compile/compile.test')],
+  ['create',  () => import('./create/create.test')],
+  ['devnet',  () => import('./devnet/devnet.test')],
+  ['stores',  testJSONFileStores],
+  ['scrt',   () =>
+    //@ts-ignore
+    import('./scrt/scrt.test')],
+  ['cw',     () =>
+    //@ts-ignore
+    import('./cw/cw.test')],
 ])
+
+import { TestProjectDeployment } from './fixtures/fixtures'
+import { JSONFileUploadStore } from './fadroma'
+import { Stub } from '@fadroma/agent'
+import { withTmpDir } from '@hackbg/file'
+export async function testJSONFileStores () {
+  await withTmpDir(async dir=>{
+    const deployment = new TestProjectDeployment()
+    await deployment.upload({
+      uploader:    new Stub.Connection(),
+      uploadStore: new JSONFileUploadStore(dir)
+    })
+  })
+}

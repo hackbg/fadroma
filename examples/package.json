@@ -3,7 +3,9 @@
   "private": "true",
   "main": "example.ts",
   "dependencies": {
-    "@hackbg/fadroma": "workspace:.."
+    "@hackbg/fadroma": "link:.."
+  },
+  "devDependencies": {
   },
   "scripts": {
     "fadroma": "time fadroma"

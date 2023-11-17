@@ -1,146 +1,227 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type { Address, Message, Label, TxHash } from './base'
-import { assign, Console, Error, base16, sha256 } from './base'
-import type { ICoin } from './token'
-import { Agent, BatchBuilder } from './chain'
-import type { ChainId } from './chain'
-import { Compiler, CompiledCode, UploadedCode } from './code'
-import type { CodeHash, CodeId, SourceCode } from './code'
-import { ContractInstance } from './deploy'
-import { Devnet } from './devnet'
+import { assign, Console, Error, base16, sha256, randomBech32 } from './base'
+import type { ChainId, Address, Message, Label, TxHash } from './connect'
+import { Connection, Backend, Batch, Identity } from './connect'
+import type { CodeId, CodeHash } from './deploy'
+import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy'
+import * as Token from './token'
 
-class StubAgent extends Agent {
-  state: StubChainState = new StubChainState()
+class StubConnection extends Connection {
+  static gasToken: Token.Native = new Token.Native('ustub')
 
-  defaultDenom: string = 'ustub'
+  backend: StubBackend
 
-  constructor (properties?: Partial<StubAgent>) {
+  constructor (properties: Partial<StubConnection> = {}) {
     super(properties)
-    if (properties?.state) {
-      this.state = properties.state
-    }
+    assign(this, properties, ['backend'])
+    this.backend ??= new StubBackend()
   }
-  async getBlockInfo () {
-    return { height: + new Date() }
+  batch (): Batch<this> {
+    return new StubBatch({ connection: this }) as Batch<this>
   }
-  getBalance (...args: unknown[]): Promise<number> {
-    throw new Error('unimplemented')
+  doGetHeight () {
+    return this.doGetBlockInfo().then(({height})=>height)
   }
-  get height (): Promise<number> {
-    return this.getBlockInfo().then(({height})=>height)
+  doGetBlockInfo () {
+    return Promise.resolve({ height: + new Date() })
   }
-  async getCodeId (address: Address): Promise<CodeId> {
-    const contract = this.state.instances.get(address)
+  doGetCodes () {
+    return Promise.resolve(Object.fromEntries(
+      [...this.backend.uploads.entries()].map(
+        ([key, val])=>[key, new UploadedCode(val)]
+      )
+    ))
+  }
+  doGetBalance (token?: string, address?: string): Promise<string> {
+    token ??= this.defaultDenom
+    address ??= this.address
+    const balance = (this.backend.balances.get(address!)||{})[token] ?? 0
+    return Promise.resolve(String(balance))
+  }
+  async doGetCodeId (address: Address): Promise<CodeId> {
+    const contract = this.backend.instances.get(address)
     if (!contract) {
       throw new Error(`unknown contract ${address}`)
     }
     return contract.codeId
   }
-  async getCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    return this.getCodeHashOfCodeId(await this.getCodeId(address))
+  doGetContractsByCodeId (id: CodeId) {
+    return Promise.resolve([...this.backend.uploads.get(id)!.instances]
+      .map(address=>({address})))
   }
-  async getCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
-    const code = this.state.uploads.get(id)
-    if (!code) throw new Error(`unknown code ${id}`)
-    return code.codeHash
+  doGetCodeHashOfAddress (address: Address): Promise<CodeHash> {
+    return this.getCodeId(address)
+      .then(id=>this.getCodeHashOfCodeId(id))
   }
-  protected doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
+  doGetCodeHashOfCodeId (id: CodeId): Promise<CodeHash> {
+    const code = this.backend.uploads.get(id)
+    if (!code) {
+      throw new Error(`unknown code ${id}`)
+    }
+    return Promise.resolve(code.codeHash)
+  }
+  doQuery <Q> (contract: { address: Address }, message: Message): Promise<Q> {
     return Promise.resolve({} as Q)
   }
-  protected doSend (to: Address, amounts: ICoin[], opts?: never): Promise<void> {
+  doSend (recipient: Address, sums: Token.ICoin[], opts?: never): Promise<void> {
+    if (!this.address) {
+      throw new Error('not authenticated')
+    }
+    const senderBalances = {
+      ...this.backend.balances.get(this.address) || {}}
+    const recipientBalances = {
+      ...this.backend.balances.get(recipient)    || {}}
+    for (const sum of sums) {
+      if (!Object.keys(senderBalances).includes(sum.denom)) {
+        throw new Error(`sender has no balance in ${sum.denom}`)
+      }
+      const amount = BigInt(sum.amount)
+      if (senderBalances[sum.denom] < amount) {
+        throw new Error(
+          `sender has insufficient balance in ${sum.denom}: ${senderBalances[sum.denom]} < ${amount}`
+        )
+      }
+      senderBalances[sum.denom] =
+        senderBalances[sum.denom] - amount
+      recipientBalances[sum.denom] =
+        (recipientBalances[sum.denom] ?? BigInt(0)) + amount
+    }
+    this.backend.balances.set(this.address, senderBalances)
+    this.backend.balances.set(recipient, recipientBalances)
     return Promise.resolve()
   }
-  sendMany (outputs: [Address, ICoin[]][], opts?: never): Promise<void> {
+  doSendMany (outputs: [Address, Token.ICoin[]][], opts?: never): Promise<void> {
     return Promise.resolve()
   }
-  protected async doUpload (codeData: Uint8Array): Promise<UploadedCode> {
-    return new UploadedCode(await this.state.upload(codeData))
+  async doUpload (codeData: Uint8Array): Promise<UploadedCode> {
+    return new UploadedCode(await this.backend.upload(codeData))
   }
-  protected doInstantiate (
-    codeId:  CodeId,
-    options: Parameters<Agent["doInstantiate"]>[1]
-  ): Promise<ContractInstance & {
-    address: Address
-  }> {
-    return Promise.resolve(new ContractInstance({
-      address: 'stub',
-      label: ''
-    }) as ContractInstance & { address: Address })
+  async doInstantiate (
+    codeId: CodeId, options: Parameters<Connection["doInstantiate"]>[1]
+  ): Promise<ContractInstance & { address: Address }> {
+    return new ContractInstance(await this.backend.instantiate(
+      this.address!, codeId, options
+    )) as ContractInstance & {
+      address: Address
+    }
   }
-  protected doExecute (
+  doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: Parameters<Agent["doExecute"]>[2]
+    options?: Parameters<Connection["doExecute"]>[2]
   ): Promise<void|unknown> {
     return Promise.resolve({})
   }
-  batch (): StubBatchBuilder {
-    return new StubBatchBuilder(this)
-  }
 }
 
-class StubChainState extends Devnet<typeof StubAgent> {
-  Agent = StubAgent
+type StubAccount = {
+  address: Address,
+  mnemonic?: string
+}
+type StubBalances = Record<string, bigint>
+type StubUpload = {
+  chainId: ChainId,
+  codeId: CodeId,
+  codeHash: CodeHash,
+  codeData: Uint8Array,
+  instances: Set<Address>
+}
+type StubInstance = {
+  codeId: CodeId,
+  address: Address,
+  creator: Address
+}
 
-  chainId: string = 'stub'
-
+class StubBackend extends Backend {
+  gasToken   = 'ustub'
+  prefix     = 'stub1'
+  chainId    = 'stub'
+  url        = 'http://stub'
+  alive      = true
   lastCodeId = 0
+  accounts   = new Map<string, StubAccount>()
+  balances   = new Map<Address, StubBalances>()
+  uploads    = new Map<CodeId, StubUpload>()
+  instances  = new Map<Address, StubInstance>()
 
-  balances = new Map<Address, Record<string, bigint>>()
-
-  uploads = new Map<CodeId, {
-    chainId: ChainId, codeId: CodeId, codeHash: CodeHash, codeData: Uint8Array
-  }>()
-
-  instances = new Map<Address, { codeId: CodeId }>()
-
-  constructor (properties?: Partial<StubChainState>) {
-    super(properties as Partial<Devnet<typeof StubAgent>>)
-    assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances"])
+  constructor (properties?: Partial<StubBackend & {
+    genesisAccounts: Record<string, string|number>
+  }>) {
+    super(properties as Partial<Backend>)
+    assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances", "gasToken", "prefix"])
+    for (const [name, balance] of Object.entries(properties?.genesisAccounts||{})) {
+      const address = randomBech32(this.prefix)
+      const balances = this.balances.get(address) || {}
+      balances[this.gasToken] = BigInt(balance)
+      this.balances.set(address, balances)
+      this.accounts.set(name, { address })
+    }
   }
 
-  async start (): Promise<this> {
-    this.running = true
-    return this
+  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+    if (typeof parameter === 'string') {
+      parameter = await this.getIdentity(parameter)
+    }
+    if (parameter.mnemonic && !parameter.address) {
+      parameter.address = `${this.prefix}${parameter.name}`
+    }
+    return new StubConnection({
+      chainId:  this.chainId,
+      url:      'stub',
+      alive:    this.alive,
+      backend:  this,
+      identity: new Identity(parameter)
+    })
   }
 
-  async pause (): Promise<this> {
-    this.running = false
-    return this
+  getIdentity (name: string): Promise<Identity> {
+    return Promise.resolve(new Identity({
+      name,
+      ...this.accounts.get(name)
+    }))
   }
 
-  async import (...args: unknown[]): Promise<unknown> {
+  start (): Promise<this> {
+    this.alive = true
+    return Promise.resolve(this)
+  }
+
+  pause (): Promise<this> {
+    this.alive = false
+    return Promise.resolve(this)
+  }
+
+  import (...args: unknown[]): Promise<unknown> {
     throw new Error("StubChainState#import: not implemented")
   }
 
-  async export (...args: unknown[]): Promise<unknown> {
+  export (...args: unknown[]): Promise<unknown> {
     throw new Error("StubChainState#export: not implemented")
-  }
-
-  async getGenesisAccount (name: string): Promise<Partial<Agent>> {
-    throw new Error("StubChainState#getAccount: not implemented")
   }
 
   async upload (codeData: Uint8Array) {
     this.lastCodeId++
     const codeId = String(this.lastCodeId)
-    let upload
-    this.uploads.set(codeId, upload = {
-      codeId,
-      chainId:  this.chainId,
-      codeHash: base16.encode(sha256(codeData)).toLowerCase(),
-      codeData,
-    })
+    const chainId = this.chainId
+    const codeHash = base16.encode(sha256(codeData)).toLowerCase()
+    const upload = { codeId, chainId, codeHash, codeData, instances: new Set<string>() }
+    this.uploads.set(codeId, upload)
     return upload
   }
 
-  async instantiate (...args: unknown[]): Promise<Partial<ContractInstance> & {
+  async instantiate (creator: Address, codeId: CodeId, options: unknown): Promise<Partial<ContractInstance> & {
     address: Address
   }> {
-    throw new Error('not implemented')
-    return { address: '' }
+    const address = randomBech32(this.prefix)
+    const code = this.uploads.get(codeId)
+    if (!code) {
+      throw new Error(`invalid code id ${codeId}`)
+    }
+    code.instances.add(address)
+    this.instances.set(address, { address, codeId, creator })
+    return { address, codeId }
   }
 
   async execute (...args: unknown[]): Promise<unknown> {
@@ -148,26 +229,28 @@ class StubChainState extends Devnet<typeof StubAgent> {
   }
 }
 
-class StubBatchBuilder extends BatchBuilder<StubAgent> {
+class StubBatch extends Batch<StubConnection> {
   messages: object[] = []
 
-  upload (...args: Parameters<StubAgent["upload"]>) {
+  upload (...args: Parameters<StubConnection["upload"]>) {
     this.messages.push({ instantiate: args })
     return this
   }
 
-  instantiate (...args: Parameters<StubAgent["instantiate"]>) {
+  instantiate (...args: Parameters<StubConnection["instantiate"]>) {
     this.messages.push({ instantiate: args })
     return this
   }
 
-  execute (...args: Parameters<StubAgent["execute"]>) {
+  execute (...args: Parameters<StubConnection["execute"]>) {
     this.messages.push({ execute: args })
     return this
   }
 
   async submit () {
-    this.agent.log.debug('Submitted batch:', this.messages)
+    this.log.debug('Submitted batch:\n ', this.messages
+      .map(x=>Object.entries(x)[0].map(x=>JSON.stringify(x)).join(': '))
+      .join('\n  '))
     return this.messages
   }
 }
@@ -191,8 +274,8 @@ export class StubCompiler extends Compiler {
 }
 
 export {
-  StubAgent        as Agent,
-  StubBatchBuilder as BatchBuilder,
-  StubCompiler     as Compiler,
-  StubChainState   as ChainState
+  StubConnection as Connection,
+  StubBackend    as Backend,
+  StubBatch      as Batch,
+  StubCompiler   as Compiler,
 }

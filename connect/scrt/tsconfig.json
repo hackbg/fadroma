@@ -1,6 +1,0 @@
-{
-  "extends": "../../tsconfig.base.json",
-  "include": [ "*.ts", "**/*.ts" ],
-  "exclude": [ "secretjs-esm/**/*" ],
-  "compilerOptions": { "rootDir": ".", "composite": true, "skipLibCheck": true }
-}

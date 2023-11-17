@@ -1,0 +1,22 @@
+{
+  "name": "@fadroma/create",
+  "version": "1.0.0-rc.1",
+  "main": "create.ts",
+  "dependencies": {
+    "case":    "^1.6.3",
+    "prompts": "^2.4.2",
+
+    "@hackbg/file": "workspace:*",
+    "@hackbg/logs": "workspace:*",
+    "@hackbg/cmds": "workspace:^3.1",
+
+    "@fadroma/agent": "workspace:*"
+  },
+  "scripts": {
+    "check": "time tsc --noEmit",
+    "test": "time ensuite create.test.ts",
+    "cov": "time ensuite-cov create.test.ts",
+    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release:fast": "pnpm i && ubik release --otp 123123"
+  }
+}

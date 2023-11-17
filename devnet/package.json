@@ -1,0 +1,21 @@
+{
+  "name": "@fadroma/devnets",
+  "version": "1.0.0-rc.1",
+  "main": "devnet.ts",
+  "dependencies": {
+    "@hackbg/file": "workspace:*",
+    "@hackbg/logs": "workspace:*",
+    "@hackbg/cmds": "workspace:^3.1",
+
+    "@fadroma/agent": "workspace:*",
+    "@fadroma/scrt":  "workspace:*",
+    "@fadroma/cw":    "workspace:*"
+  },
+  "scripts": {
+    "check": "time tsc --noEmit",
+    "test": "time ensuite devnet.test.ts",
+    "cov": "time ensuite-cov devnet.test.ts",
+    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release:fast": "pnpm i && ubik release --otp 123123"
+  }
+}

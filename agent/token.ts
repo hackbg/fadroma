@@ -1,9 +1,19 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type { Address, Uint128 } from './base'
-import type { Agent } from './chain'
-import { ContractClient } from './client'
+import type { Address } from './connect'
+
+/** A 128-bit integer. */
+export type Uint128 = string
+
+/** A 256-bit integer. */
+export type Uint256 = string
+
+/** A 128-bit decimal fraction. */
+export type Decimal128 = string
+
+/** A 256-bit decimal fraction. */
+export type Decimal256 = string
 
 /** A gas fee, payable in native tokens. */
 export interface IFee { amount: readonly ICoin[], gas: Uint128 }
@@ -15,15 +25,24 @@ export interface ICoin { amount: Uint128, denom: string }
 export class Fee implements IFee {
   amount: ICoin[] = []
   constructor (
-    amount: Uint128|number, denom: string, public gas: string = String(amount)
+    amount: Uint128|number|bigint, denom: string, public gas: string = String(amount)
   ) {
     this.add(amount, denom)
   }
-  add = (amount: Uint128|number, denom: string) =>
+  add (amount: Uint128|number|bigint, denom: string) {
     this.amount.push({ amount: String(amount), denom })
+  }
 
   get [Symbol.toStringTag] () {
-    return `${this.gas}`
+    let tag = `${this.gas}`
+    if (this.amount.length > 0) {
+      tag += ' ('
+      return this.amount.map(({ amount, denom })=>{
+        return `${amount} ${denom}`
+      }).join('|')
+      tag += ')'
+    }
+    return tag
   }
 }
 
@@ -61,42 +80,77 @@ abstract class FungibleToken extends Token {
   static readonly addZeros = (n: number|Uint128, z: number): Uint128 => {
     return `${n}${[...Array(z)].map(() => '0').join('')}`
   }
+
+  amount (amount: number|Uint128): TokenAmount {
+    return new TokenAmount(amount, this)
+  }
+}
+
+/** An amount of a fungible token. */
+class TokenAmount {
+  public amount: Uint128
+  constructor (amount: string|number|bigint, public token: FungibleToken) {
+    this.amount = String(amount)
+  }
+  /** Pass this to send, initSend, execSend */
+  get asNativeBalance (): ICoin[] {
+    if (this.token.isNative()) {
+      return [new Coin(this.amount, this.token.denom)]
+    }
+    return []
+  }
+
+  get denom () {
+    return this.token?.id
+  }
+
+  get [Symbol.toStringTag] () {
+    return this.toString()
+  }
+
+  toString () {
+    return `${this.amount??''} ${this.token?.id??''}`
+  }
+
+  asCoin (): ICoin {
+    if (!this.token.isNative()) {
+      throw new Error(`not a native token: ${this.toString()}`)
+    }
+    return { amount: this.amount, denom: this.denom }
+  }
+
+  asFee (gas: Uint128 = this.amount): IFee {
+    if (!this.token.isNative()) {
+      throw new Error(`not a native token: ${this.toString()}`)
+    }
+    return { amount: [this.asCoin()], gas }
+  }
 }
 
 /** The chain's natively implemented token (such as SCRT on Secret Network). */
 class NativeToken extends FungibleToken {
   constructor (readonly denom: string) { super() }
-
   /** The token's unique id. */
   get id () { return this.denom }
-
   /** @returns false */
   isCustom = () => false
-
   /** @returns true */
   isNative = () => true
+
+  fee (amount: string|number|bigint): IFee {
+    return new Fee(amount, this.id)
+  }
 }
 
 /** A contract-based token. */
 class CustomToken extends FungibleToken {
   constructor (readonly address: Address, readonly codeHash?: string) { super() }
-
   /** The token contract's address. */
   get id () { return this.address }
-
   /** @returns true */
   isCustom = () => true
-
   /** @returns false */
   isNative = () => false
-
-  connect (agent?: Agent): ContractClient 
-  connect <C extends typeof ContractClient> (agent?: Agent, $C?: C): InstanceType<C> 
-  connect <C extends typeof ContractClient> (
-    agent?: Agent, $C: C = ContractClient as C
-  ): InstanceType<C> {
-    return new $C({ address: this.address, codeHash: this.codeHash }, agent) as InstanceType<C>
-  }
 }
 
 /** A pair of tokens. */
@@ -105,18 +159,6 @@ class TokenPair {
   /** Reverse the pair. */
   get reverse (): TokenPair {
     return new TokenPair(this.b, this.a)
-  }
-}
-
-/** An amount of a fungible token. */
-class TokenAmount {
-  constructor (public amount: Uint128, public token: FungibleToken,) {}
-  /** Pass this to send, initSend, execSend */
-  get asNativeBalance (): ICoin[] {
-    if (this.token.isNative()) {
-      return [new Coin(this.amount, this.token.denom)]
-    }
-    return []
   }
 }
 
