@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "2.0.0-rc.9",
+  "version": "2.0.0-rc.10",
   "repository": {
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
@@ -34,6 +34,7 @@
     "!coverage/*",
     "!create/*",
     "!cw/*",
+    "!cw/okp4/*",
     "!devnet/*",
     "!evm/*",
     "!ensemble/*",
