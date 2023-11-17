@@ -17,7 +17,7 @@ importers:
         specifier: workspace:11.0.0-rc.3
         version: link:scrt
       '@hackbg/cmds':
-        specifier: workspace:^3.1
+        specifier: workspace:^3.2.1
         version: link:toolbox/cmds
       '@hackbg/conf':
         specifier: workspace:*
@@ -129,7 +129,7 @@ importers:
         specifier: workspace:*
         version: link:../agent
       '@hackbg/cmds':
-        specifier: workspace:^3.1
+        specifier: workspace:^3.2.1
         version: link:../toolbox/cmds
       '@hackbg/file':
         specifier: workspace:*
@@ -144,7 +144,7 @@ importers:
         specifier: workspace:*
         version: link:../agent
       '@hackbg/cmds':
-        specifier: workspace:^3.1
+        specifier: workspace:^3.2.1
         version: link:../toolbox/cmds
       '@hackbg/file':
         specifier: workspace:*
@@ -352,7 +352,7 @@ importers:
         specifier: workspace:*
         version: link:../scrt
       '@hackbg/cmds':
-        specifier: workspace:^3.1
+        specifier: workspace:^3.2.1
         version: link:../toolbox/cmds
       '@hackbg/file':
         specifier: workspace:*
@@ -567,7 +567,7 @@ importers:
         specifier: workspace:^1.0.3
         version: link:../hide
       '@hackbg/logs':
-        specifier: workspace:^2.0.7
+        specifier: workspace:^2.1
         version: link:../logs
       '@hackbg/task':
         specifier: workspace:^1

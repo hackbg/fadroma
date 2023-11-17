@@ -20,13 +20,15 @@
 export * from './fadroma.browser'
 
 // And more!
-import type { ChainId, Compiler,  CodeHash, UploadedCode, DeploymentState, Name } from '@fadroma/agent'
+import type {
+  ChainId, Compiler,  CodeHash, UploadedCode, DeploymentState, Name
+} from '@fadroma/agent'
 import {
   Connection, Console, Error, bold, timestamp, Deployment,
   UploadStore, DeployStore, ContractInstance
 } from '@fadroma/agent'
 import { getProject, ProjectPrompter } from '@fadroma/create'
-import { CommandContext } from '@hackbg/cmds'
+import Commands from '@hackbg/cmds'
 import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
@@ -36,7 +38,7 @@ const console = new Console('@hackbg/fadroma')
 
 export default function main (...args: any) {
   console.debug('Running main...')
-  return new CommandContext()
+  return new Commands()
     .addCommand('run', 'execute a script',
       (script: string, ...args: string[]) => runScript({ project: getProject(), script, args }))
     .addCommand('repl', 'open an interactive Fadroma shell',

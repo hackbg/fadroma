@@ -5,7 +5,6 @@ import { Error, Deployment, bold, timestamp, bip39, bip39EN } from '@fadroma/age
 import type { ChainId, ContractCode } from '@fadroma/agent'
 import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
-import { CommandContext } from '@hackbg/cmds'
 import { console, packageRoot } from './package'
 import Case from 'case'
 

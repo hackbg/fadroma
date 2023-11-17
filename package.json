@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "2.0.0-rc.8",
+  "version": "2.0.0-rc.9",
   "repository": {
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
@@ -67,7 +67,8 @@
     "test": "time ensuite fadroma.test.ts",
     "ubik": "ubik",
     "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
-    "release:fast": "pnpm i && ubik release --otp 123123"
+    "release:fast": "pnpm i && pnpm check && ubik release --otp 123123",
+    "release:faster": "pnpm i && ubik release --otp 123123"
   },
   "dependencies": {
     "@fadroma/agent":  "workspace:2.0.0-rc.6",
@@ -75,7 +76,7 @@
     "@fadroma/scrt":   "workspace:11.0.0-rc.3",
     "@fadroma/create": "workspace:1.0.0-rc.1",
 
-    "@hackbg/cmds": "workspace:^3.1",
+    "@hackbg/cmds": "workspace:^3.2.1",
     "@hackbg/conf": "workspace:*",
     "@hackbg/dock": "workspace:^2.0.5",
     "@hackbg/file": "workspace:*",
