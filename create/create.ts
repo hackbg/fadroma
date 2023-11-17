@@ -7,7 +7,6 @@ import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { CommandContext } from '@hackbg/cmds'
 import { console, packageRoot } from './package'
-import { execSync } from 'node:child_process'
 import Case from 'case'
 
 import * as Tools from './tools'
