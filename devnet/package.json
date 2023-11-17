@@ -17,5 +17,6 @@
     "cov": "time ensuite-cov devnet.test.ts",
     "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
     "release:fast": "pnpm i && ubik release --otp 123123"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

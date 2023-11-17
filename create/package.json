@@ -2,6 +2,11 @@
   "name": "@fadroma/create",
   "version": "1.0.0-rc.1",
   "main": "create.ts",
+  "files": [
+    "!coverage",
+    "*.ts",
+    "!*.test.*"
+  ],
   "dependencies": {
     "case":    "^1.6.3",
     "prompts": "^2.4.2",
@@ -16,7 +21,8 @@
     "check": "time tsc --noEmit",
     "test": "time ensuite create.test.ts",
     "cov": "time ensuite-cov create.test.ts",
-    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
-    "release:fast": "pnpm i && ubik release --otp 123123"
-  }
+    "release": "pnpm i && pnpm check && pnpm cov all && ubik release --access public --otp 000000",
+    "release:fast": "pnpm i && ubik release --access public --otp 000000"
+  },
+  "license": "AGPL-3.0-only"
 }

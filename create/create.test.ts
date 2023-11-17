@@ -5,7 +5,7 @@ import assert from 'node:assert'
 import projectMain, {
   Deployment, ContractTemplate, ContractInstance, Stub
 } from '@hackbg/fadroma'
-import { tmpDir, TestProjectDeployment } from '../fixtures/fixtures'
+import { tmpDir, TestProjectDeployment } from '@fadroma/fixtures'
 import * as Projects from './create'
 import { withTmpDir } from '@hackbg/file'
 
