@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Logged, Console, timestamp, bold, assign, hideProperties, base16, sha256 } from './base'
-import type { Name, Into } from './base'
+import type { Into } from './base'
 import { Contract, Label, Message, Address, TxHash } from './connect'
 import type { Connection, ChainId } from './connect'
 import * as Token from './token'
@@ -15,6 +15,9 @@ export type CodeHash = string
 
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string
+
+/** The name of a deployment unit. Used to generate contract label. */
+export type Name = string
 
 export abstract class Compiler extends Logged {
   /** Whether to enable build caching.

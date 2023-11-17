@@ -18,8 +18,6 @@
     "@hackbg/hide": "^1",
     "@hackbg/into": "^1.0.1",
     "@hackbg/logs": "workspace:^2.0.2",
-    "@hackbg/many": "^1",
-    "@hackbg/oops": "workspace:^1.1",
-    "@hackbg/over": "^1.1"
+    "@hackbg/oops": "workspace:^1.1"
   }
 }

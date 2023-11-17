@@ -1,7 +1,6 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type { Uint128 } from './base'
 import { ContractInstance } from './deploy'
 import { Error, Logged, bold, into } from './base'
 import { assign, Console } from './base'
@@ -72,7 +71,7 @@ export abstract class Connection extends Endpoint {
   /** Native token of chain. */
   static gasToken: Token.Native = new Token.Native('')
   /** Native token of chain. */
-  static gas (amount: number|Uint128): Token.Amount {
+  static gas (amount: number|Token.Uint128): Token.Amount {
     return this.gasToken.amount(String(amount))
   }
   /** Signer identity. */

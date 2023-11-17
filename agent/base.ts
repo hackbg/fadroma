@@ -7,12 +7,9 @@ import type { Deployment } from './deploy'
 
 const { red, green, gray } = colors
 
-export { bold, colors, timestamp, Logged } from '@hackbg/logs'
-export * from '@hackbg/into'
-export * from '@hackbg/hide'
-export * from '@hackbg/many'
-export * from '@hackbg/4mat'
-export * from '@hackbg/dump'
+class FadromaError extends Error {}
+
+export { FadromaError as Error }
 
 /** Helper for assigning only allowed properties of value object:
   * - safe, can't set unsupported properties 
@@ -29,31 +26,12 @@ export function assign <T extends {}> (
   }
 }
 
-/** A 128-bit integer. */
-export type Uint128 = string
+export { Console, Logged, bold, colors, timestamp } from '@hackbg/logs'
 
-/** A 256-bit integer. */
-export type Uint256 = string
+export * from '@hackbg/into'
 
-/** A 128-bit decimal fraction. */
-export type Decimal = string
+export * from '@hackbg/hide'
 
-/** A 256-bit decimal fraction. */
-export type Decimal256 = string
+export * from '@hackbg/4mat'
 
-/** A moment in time. */
-export type Moment = number
-
-/** A period of time. */
-export type Duration = number
-
-/** Part of a Label */
-export type Name = string
-
-/** Error kinds. */
-class FadromaError extends Error {}
-
-export {
-  Console,
-  FadromaError as Error
-}
+export * from '@hackbg/dump'
