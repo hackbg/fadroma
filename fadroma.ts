@@ -15,19 +15,21 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import type { ChainId, Compiler } from '@fadroma/connect'
+
+// Reexport everything that's available client side...
+export * from './fadroma.browser'
+
+// And more!
+import type { ChainId, Compiler,  CodeHash, UploadedCode, DeploymentState, Name } from '@fadroma/agent'
 import {
-  Connection, Console, Error, bold, timestamp, Deployment, CW, Scrt,
+  Connection, Console, Error, bold, timestamp, Deployment,
   UploadStore, DeployStore, ContractInstance
-} from '@fadroma/connect'
+} from '@fadroma/agent'
 import { CommandContext } from '@hackbg/cmds'
-import type { CodeHash, UploadedCode, DeploymentState, Name } from '@fadroma/connect'
 import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
 import { basename } from 'node:path'
-
-export * from '@fadroma/connect'
 
 const console = new Console('@hackbg/fadroma')
 
@@ -178,8 +180,6 @@ export function getUploadStore (path?: string|Path): UploadStore {
 
 /** Directory containing upload receipts, e.g. `state/$CHAIN/upload`. */
 export class JSONFileUploadStore extends UploadStore {
-  log = new Console('FSUploadStore')
-
   dir: JSONDirectory<Partial<UploadedCode>>
 
   constructor (dir: string|Path) {
@@ -235,7 +235,6 @@ export function getDeployStore (path?: string): DeployStore {
 
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`. */
 export class JSONFileDeployStore extends DeployStore {
-  log = new Console('DeployStore_v1')
   /** Root directory of deploy store. */
   dir: JSONDirectory<DeploymentState>
   /** Name of symlink pointing to active deployment, without extension. */

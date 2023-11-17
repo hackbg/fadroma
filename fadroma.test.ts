@@ -5,15 +5,20 @@ import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['agent',   () => import('./agent/agent.test')],
   ['compile', () => import('./compile/compile.test')],
-  ['connect', () => import('./connect/connect.test')],
   ['create',  () => import('./create/create.test')],
   ['devnet',  () => import('./devnet/devnet.test')],
   ['stores',  testJSONFileStores],
+  ['scrt',   () =>
+    //@ts-ignore
+    import('./scrt/scrt.test')],
+  ['cw',     () =>
+    //@ts-ignore
+    import('./cw/cw.test')],
 ])
 
 import { TestProjectDeployment } from './fixtures/fixtures'
 import { JSONFileUploadStore } from './fadroma'
-import { Stub } from '@fadroma/connect'
+import { Stub } from '@fadroma/agent'
 import { withTmpDir } from '@hackbg/file'
 export async function testJSONFileStores () {
   await withTmpDir(async dir=>{

@@ -1,5 +1,5 @@
-import { bold, colors } from '@fadroma/connect'
-import type { DeployStore, UploadedCode } from '@fadroma/connect'
+import { bold, colors } from '@fadroma/agent'
+import type { DeployStore, UploadedCode } from '@fadroma/agent'
 import $, { Path, TextFile, JSONFile, TOMLFile, Directory } from '@hackbg/file'
 
 import { execSync } from 'node:child_process'
@@ -10,7 +10,7 @@ import Prompts from 'prompts'
 import * as dotenv from 'dotenv'
 
 import { console } from './package'
-import type { Project } from './project'
+import type { Project } from './create'
 
 export const NOT_INSTALLED = 'not installed'
 

@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
   Console, Error, Compiler, CompiledCode, HEAD, RustSourceCode, bold, assign,
-} from '@fadroma/connect'
+} from '@fadroma/agent'
 
 import { Config } from '@hackbg/conf'
 import type { Container } from '@hackbg/dock'

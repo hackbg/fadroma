@@ -22,6 +22,5 @@ export * from './base'
 export * from './connec'
 export * from './deploy'
 export * as Token from './token'
-
 export * as Stub from './stub'
 export * as Tester from './tester'

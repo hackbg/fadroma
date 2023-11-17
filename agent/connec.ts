@@ -455,7 +455,7 @@ export abstract class Connection extends Endpoint {
       ({ elapsed, result }) => this.log.debug(
         `Instantiated in ${bold(elapsed)}:\n `,
         `code id ${bold(String(codeId))}`,
-        `instance ${bold(options.label)}\  n${result.address}`
+        `instance ${bold(options.label)}\n  ${result.address}`
       )
     )
     return new Deploy.ContractInstance({

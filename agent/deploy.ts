@@ -745,7 +745,7 @@ export class Deployment extends Map<Name, DeploymentUnit> {
 }
 
 export class UploadStore extends Map<CodeHash, UploadedCode> {
-  log = new Console('UploadStore')
+  log = new Console(this.constructor.name)
 
   constructor () {
     super()
@@ -769,7 +769,7 @@ export class UploadStore extends Map<CodeHash, UploadedCode> {
 /** A deploy store collects receipts corresponding to individual instances of Deployment,
   * and can create Deployment objects with the data from the receipts. */
 export class DeployStore extends Map<Name, DeploymentState> {
-  log = new Console('DeployStore')
+  log = new Console(this.constructor.name)
 
   constructor () {
     super()

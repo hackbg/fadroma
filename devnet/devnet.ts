@@ -1,20 +1,24 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import {
-  assign, Error, Console, bold, Token, Connection, Backend, Identity,
-  Scrt, CW, Stub
-} from '@fadroma/connect'
-import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/connect'
+
 import { Config } from '@hackbg/conf'
 import $, { JSONFile, JSONDirectory, Directory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import portManager, { waitPort } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
+
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
 import { console, packageRoot } from './package'
+
+import {
+  assign, Error, Console, bold, Token, Connection, Backend, Identity, Stub
+} from '@fadroma/agent'
+import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/agent'
+import * as Scrt from '@fadroma/scrt'
+import * as CW from '@fadroma/cw'
 
 /** Supported devnet variants. Add new devnets here first. */
 export type Platform =

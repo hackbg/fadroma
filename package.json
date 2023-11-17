@@ -54,7 +54,8 @@
   },
   "dependencies": {
     "@fadroma/agent": "workspace:2.0.0-rc.4",
-    "@fadroma/connect": "workspace:4.0.0-rc.2",
+    "@fadroma/cw":    "workspace:*",
+    "@fadroma/scrt":  "workspace:*",
 
     "@hackbg/cmds": "workspace:*",
     "@hackbg/conf": "workspace:*",
@@ -84,8 +85,6 @@
     "@fadroma/devnets":  "workspace:*",
     "@fadroma/fixtures": "link:fixtures",
 
-    "@fadroma/cw":       "workspace:*",
-    "@fadroma/scrt":     "workspace:*",
 
     "@hackbg/ensuite": "workspace:^",
     "@hackbg/ganesha": "workspace:^",

@@ -2,29 +2,30 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { deepEqual, throws } from 'node:assert'
+import { dirname } from 'node:path'
+
+import * as Dock from '@hackbg/dock'
+import { DotGit } from '@hackbg/repo'
+
 import { Compiler, ContractInstance, Deployment } from '@fadroma/agent'
+
 import {
   getCompiler,
   RawLocalRustCompiler,
   ContainerizedLocalRustCompiler
 } from './compile'
-import { fixture } from '../fixtures/fixtures'
-import { Suite } from '@hackbg/ensuite'
-import * as Dock from '@hackbg/dock'
-import { DotGit } from '@hackbg/repo'
+import { packageRoot } from './package'
+
+const sourcePath = dirname(packageRoot)
 
 class TestBuildDeployment extends Deployment {
 
   a = this.contract('null-a', {
-    language:   'rust',
-    sourcePath: '..',
-    cargoToml:  'examples/contracts/cw-null/Cargo.toml'
+    language: 'rust', sourcePath, cargoToml: 'examples/contracts/cw-null/Cargo.toml'
   })
 
   b = this.template('null-b', {
-    language:   'rust',
-    sourcePath: '..',
-    cargoToml:  'examples/contracts/cw-null/Cargo.toml'
+    language: 'rust', sourcePath, cargoToml: 'examples/contracts/cw-null/Cargo.toml'
   }).contracts({
     b1: { initMsg: {} },
     b2: { initMsg: () => ({}) },
@@ -33,6 +34,7 @@ class TestBuildDeployment extends Deployment {
 
 }
 
+import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['basic',     testBuild],
   ['container', testBuildContainer],
