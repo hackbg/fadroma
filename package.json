@@ -53,7 +53,7 @@
     "release:fast": "pnpm i && ubik release --otp 123123"
   },
   "dependencies": {
-    "@fadroma/agent":  "workspace:2.0.0-rc.5",
+    "@fadroma/agent":  "workspace:2.0.0-rc.6",
     "@fadroma/cw":     "workspace:1.0.0-rc.4",
     "@fadroma/scrt":   "workspace:11.0.0-rc.3",
     "@fadroma/create": "workspace:1.0.0-rc.1",

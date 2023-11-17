@@ -1,8 +1,7 @@
-import { testChainSupport } from './tester'
 import * as Stub from './stub'
-import { fixture } from '@fadroma/fixtures'
+import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 export default async function testStubImpl () {
-  await testChainSupport(
+  await testConnectionWithBackend(
     Stub.Connection,
     Stub.Backend,
     '',

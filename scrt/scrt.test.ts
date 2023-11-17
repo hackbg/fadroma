@@ -5,9 +5,9 @@ import assert, { equal, rejects } from 'node:assert'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as Devnets from '@fadroma/devnets'
-import { fixture } from '@fadroma/fixtures'
+import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import Scrt, { Batch, SecretJS } from '@fadroma/scrt'
-import { Token, Tester } from '@fadroma/agent'
+import { Token } from '@fadroma/agent'
 //import * as Mocknet from './scrt-mocknet'
 
 //@ts-ignore
@@ -31,7 +31,7 @@ import { mainnet, testnet, Connection } from '.'
 export async function testScrtChain () {
   assert(mainnet() instanceof Connection)
   assert(testnet() instanceof Connection)
-  const { backend, alice, bob, guest } = await Tester.testChainSupport(
+  const { backend, alice, bob, guest } = await testConnectionWithBackend(
     Scrt,
     Devnets.ScrtContainer,
     'v1.9',

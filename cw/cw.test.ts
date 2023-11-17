@@ -1,8 +1,8 @@
 import { ok, throws, rejects, deepEqual, equal } from 'node:assert'
 
-import { Token, Tester } from '@fadroma/agent'
+import { Token } from '@fadroma/agent'
 import * as Devnets from '@fadroma/devnets'
-import { fixture } from '@fadroma/fixtures'
+import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import * as CW from '.'
 
 import { Suite } from '@hackbg/ensuite'
@@ -29,7 +29,7 @@ export async function testCWChain () {
     Object.assign(new Uint8Array(33), [0x02, 0x03]),
     new Uint8Array(64)
   ))
-  const { backend, alice, bob, guest } = await Tester.testChainSupport(
+  const { backend, alice, bob, guest } = await testConnectionWithBackend(
     CW.OKP4.Connection,
     Devnets.OKP4Container,
     'v5.0',
