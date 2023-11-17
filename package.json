@@ -53,10 +53,10 @@
     "release:fast": "pnpm i && ubik release --otp 123123"
   },
   "dependencies": {
-    "@fadroma/agent":  "workspace:2.0.0-rc.4",
-    "@fadroma/cw":     "workspace:1.0.0-rc.3",
+    "@fadroma/agent":  "workspace:2.0.0-rc.5",
+    "@fadroma/cw":     "workspace:1.0.0-rc.4",
     "@fadroma/scrt":   "workspace:11.0.0-rc.3",
-    "@fadroma/create": "workspace:*",
+    "@fadroma/create": "workspace:1.0.0-rc.1",
 
     "@hackbg/cmds": "workspace:^3.1",
     "@hackbg/conf": "workspace:*",
@@ -81,8 +81,8 @@
   "devDependencies": {
     "@hackbg/fadroma":   "workspace:*",
 
-    "@fadroma/compile":  "workspace:*",
-    "@fadroma/devnets":  "workspace:*",
+    "@fadroma/compile":  "workspace:1.0.0-rc.1",
+    "@fadroma/devnets":  "workspace:1.0.0-rc.1",
     "@fadroma/fixtures": "link:fixtures",
 
     "@hackbg/ensuite": "workspace:^",

@@ -92,7 +92,6 @@ export abstract class Connection extends Endpoint {
   }
 
   get defaultDenom (): string {
-    console.log(this.constructor)
     return (this.constructor as Function & {gasToken: Token.Native}).gasToken?.id
   }
 
