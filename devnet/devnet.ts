@@ -485,9 +485,9 @@ class ScrtContainer extends DevnetContainer {
   Connection = Scrt.Connection
 
   constructor ({ version = 'v1.9', ...properties }: Partial<ScrtContainer & {
-    version: keyof typeof ScrtContainer.versions
+    version: keyof typeof ScrtContainer.version
   }>) {
-    super({ ...ScrtContainer.versions[version] || {}, ...properties })
+    super({ ...ScrtContainer.version[version] || {}, ...properties })
   }
 
   async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
@@ -505,7 +505,7 @@ class ScrtContainer extends DevnetContainer {
     })
   }
 
-  static versions = {
+  static version = {
     'v1.2': {
       containerImage: 'ghcr.io/hackbg/fadroma-devnet-scrt-1.2:master',
       containerManifest: $(packageRoot, 'devnets', 'scrt_1_2.Dockerfile').path,
@@ -577,9 +577,9 @@ class OKP4Container extends DevnetContainer {
   Connection = CW.OKP4.Connection
 
   constructor ({ version = 'v5.0', ...properties }: Partial<OKP4Container & {
-    version: keyof typeof OKP4Container.versions
+    version: keyof typeof OKP4Container.version
   }>) {
-    super({ ...OKP4Container.versions[version] || {}, ...properties })
+    super({ ...OKP4Container.version[version] || {}, ...properties })
   }
 
   async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
@@ -597,7 +597,7 @@ class OKP4Container extends DevnetContainer {
     })
   }
 
-  static versions = {
+  static version = {
     'v5.0': {
       containerImage: 'ghcr.io/hackbg/fadroma-devnet-okp4-5.0:master',
       containerManifest: $(packageRoot, 'devnets', 'okp4_5_0.Dockerfile').path,
@@ -609,29 +609,7 @@ class OKP4Container extends DevnetContainer {
   }
 }
 
-export { DevnetContainer as Container, ScrtContainer, OKP4Container, }
-
-export function getDevnetFromEnvironment <A extends typeof Connection> (
-  properties: Partial<DevnetContainer> & { Connection: A }
-): DevnetContainer {
-  const config = new Config()
-  const defaults = {
-    chainId:        config.getString('FADROMA_DEVNET_CHAIN_ID', ()=>undefined),
-    platform:       config.getString('FADROMA_DEVNET_PLATFORM', ()=>'scrt_1.9'),
-    autoDelete:     config.getFlag('FADROMA_DEVNET_REMOVE_ON_EXIT', ()=>false),
-    autoStop:       config.getFlag('FADROMA_DEVNET_KEEP_RUNNING', ()=>true),
-    host:           config.getString('FADROMA_DEVNET_HOST', ()=>undefined),
-    port:           config.getString('FADROMA_DEVNET_PORT', ()=>undefined),
-    dontMountState: config.getFlag('FADROMA_DEVNET_DONT_MOUNT_STATE', ()=>false),
-  }
-  if (properties.Connection === Scrt.Connection) {
-    return new ScrtContainer({ ...defaults, ...properties } as any) as any
-  } else if (properties.Connection === CW.OKP4.Connection) {
-    return new OKP4Container({ ...defaults, ...properties } as any) as any
-  } else {
-    throw new Error('pass Scrt.Connection or CW.OKP4.Connection to getDevnet({ Connection })')
-  }
-}
+export { DevnetContainer as Container, ScrtContainer, OKP4Container }
 
 /** Restore a Devnet from the info stored in the state file */
 export function getDevnetFromFile <A extends typeof Connection> (

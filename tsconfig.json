@@ -23,6 +23,7 @@
     "shim",
     "target",
     "toolbox",
+    "toolbox/*",
     "typedoc-theme.tsx",
     "types"
   ]

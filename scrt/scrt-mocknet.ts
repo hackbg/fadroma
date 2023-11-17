@@ -72,9 +72,6 @@ export { ScrtMocknet as Connection }
 
 class ScrtMocknetBatch extends Batch<ScrtMocknet> {
   messages: any[] = []
-  get log () {
-    return this.connection!.log.sub('(batch)')
-  }
   async submit (memo = "") {
     this.log.info('Submitting mocknet batch...')
     const results = []

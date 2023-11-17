@@ -210,12 +210,11 @@ class CWConnection extends Connection {
 
   /** Call a transaction method of a contract. */
   async doExecute (
-    contract: { address: Address },
-    message: Message, {
-      execSend,
-      execMemo,
-      execFee = this.fees?.exec || 'auto'
-    }: Parameters<Connection["execute"]>[2] = {}
+    contract: { address: Address }, message: Message, {
+      execSend, execMemo, execFee = this.fees?.exec || 'auto'
+    }: Omit<NonNullable<Parameters<Connection["execute"]>[2]>, 'execFee'> & {
+      execFee?: Token.IFee | number | 'auto'
+    } = {}
   ): Promise<unknown> {
     if (!this.address) {
       throw new Error("can't execute transaction without sender address")
@@ -225,18 +224,15 @@ class CWConnection extends Connection {
         throw new Error("can't execute transaction without authorizing the agent")
       }
       return (api as SigningCosmWasmClient).execute(
-        this.address!,
-        contract.address,
-        message,
-        execFee,
-        execMemo,
-        execSend
+        this.address!, contract.address, message, execFee, execMemo, execSend
       )
     })
   }
 
   /** Stargate implementation of querying a smart contract. */
-  async doQuery <U> (contract: Address|{ address: Address }, msg: Message): Promise<U> {
+  async doQuery <U> (
+    contract: Address|{ address: Address }, message: Message
+  ): Promise<U> {
     if (typeof contract === 'string') {
       contract = { address: contract }
     }
@@ -244,12 +240,12 @@ class CWConnection extends Connection {
       throw new Error('no contract address')
     }
     return assertApi(this).then(api=>{
-      return api.queryContractSmart((contract as { address: Address }).address, msg) as U
+      return api.queryContractSmart((contract as { address: Address }).address, message) as U
     })
   }
 
   batch (): Batch<this> {
-    return new CWBatch({ connection: this })
+    return new CWBatch({ connection: this }) as unknown as Batch<this>
   }
 }
 

@@ -3,7 +3,8 @@
 ### Obtaining a Devnet
 
 ```typescript
-import { getDevnetFromEnvironment } from '@hackbg/fadroma'
+import * as Devnet from '@fadroma/devnets'
+const devnet = new Devnet.ScrtContainer.version["1.9"]()
 ```
 
 ### Creating the devnet

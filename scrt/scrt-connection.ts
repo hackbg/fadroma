@@ -194,7 +194,7 @@ class ScrtConnection extends Connection {
     const request = { sender: this.address!, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
     const result = await withIntoError(this.api!.tx.compute.storeCode(request, { gasLimit }))
-    const { code, message, details = [], rawLog  } = result
+    const { code, message, details = [], rawLog  } = result as any
     if (code !== 0) {
       this.log.error(
         `Upload failed with code ${bold(code)}:`,
@@ -346,7 +346,7 @@ class ScrtConnection extends Connection {
   }
 
   batch (): Batch<this> {
-    return new ScrtBatch({ connection: this }) as Batch<this>
+    return new ScrtBatch({ connection: this }) as unknown as Batch<this>
   }
 
 }
@@ -635,7 +635,7 @@ export class ScrtBatch extends Batch<ScrtConnection> {
   }
 
   private composeUnsignedTx (encryptedMessages: any[], memo?: string): any {
-    const fee = ScrtConnection.gas(10000000)
+    const fee = ScrtConnection.gas(10000000).asFee()
     return {
       auth_info: {
         signer_infos: [],

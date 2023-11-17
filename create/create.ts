@@ -9,7 +9,10 @@ import { CommandContext } from '@hackbg/cmds'
 import { console, packageRoot } from './package'
 import { execSync } from 'node:child_process'
 import Case from 'case'
+
 import * as Tools from './tools'
+
+export { ProjectPrompter } from './tools'
 
 const { version, dependencies } = $(packageRoot, 'package.json').as(JSONFile<any>).load()
 

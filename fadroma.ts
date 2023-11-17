@@ -25,6 +25,7 @@ import {
   Connection, Console, Error, bold, timestamp, Deployment,
   UploadStore, DeployStore, ContractInstance
 } from '@fadroma/agent'
+import { ProjectPrompter } from '@fadroma/create'
 import { CommandContext } from '@hackbg/cmds'
 import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
@@ -73,14 +74,18 @@ export default function main (...args: any) {
     .addCommand('export', `export current deployment to JSON`,
       async (path?: string) => exportDeployment(
         getProject().root, await getProject().getDeployment(), path))
-    .addCommand('reset', 'stop and erase running devnets',
-      (...ids: ChainId[]) => Devnets.deleteDevnets(
-        getProject().root, ids))
+    //.addCommand('reset', 'stop and erase running devnets',
+      //(...ids: ChainId[]) => Devnets.deleteDevnets(
+        //getProject().root, ids))
 }
 
 //main.prototype.run = (...args: any[]) => console.log(this, args)
 
-type Project = any
+type Project = { // FIXME
+  root: any
+  getDeployment(): Promise<Deployment>
+  logStatus(): unknown
+}
 
 export function getProject (): Project {
   throw new Error('not implemented')
@@ -134,7 +139,7 @@ export async function selectDeployment (
   }
   if (!name) {
     if (process.stdout.isTTY) {
-      name = await new Tools.ProjectPrompter().deployment(store)
+      name = await new ProjectPrompter().deployment(store)
     } else {
       throw new Error('pass deployment name')
     }
