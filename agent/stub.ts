@@ -28,6 +28,13 @@ class StubConnection extends Connection {
   doGetBlockInfo () {
     return Promise.resolve({ height: + new Date() })
   }
+  doGetCodes () {
+    return Promise.resolve(Object.fromEntries(
+      [...this.backend.uploads.entries()].map(
+        ([key, val])=>[key, new UploadedCode(val)]
+      )
+    ))
+  }
   doGetBalance (
     token:   string = (this.constructor as Function & { gasToken: Token.Native }).gasToken.id,
     address: string|undefined = this.address

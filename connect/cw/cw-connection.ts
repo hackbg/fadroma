@@ -1,6 +1,6 @@
-import { Connection, Batch, assign, bold } from '@fadroma/agent'
+import { Connection, Batch, assign, UploadedCode, bold } from '@fadroma/agent'
 import type {
-  Address, Message, CodeId, CodeHash, UploadedCode, Label,
+  Address, Message, CodeId, CodeHash, Label,
   ContractInstance, Token
 } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
@@ -71,6 +71,23 @@ class CWConnection extends Connection {
     return assertApi(this)
       .then(api=>api.getBalance(address!, token!))
       .then(({amount})=>amount)
+  }
+
+  doGetCodes () {
+    const codes: Record<CodeId, UploadedCode> = {}
+    return assertApi(this)
+      .then(api=>api.getCodes())
+      .then(results=>{
+        for (const { id, checksum, creator } of results||[]) {
+          codes[id!] = new UploadedCode({
+            chainId:  this.chainId,
+            codeId:   String(id),
+            codeHash: checksum,
+            uploadBy: creator
+          })
+        }
+        return codes
+      })
   }
 
   /** Stargate implementation of getting a code id. */

@@ -51,6 +51,7 @@ export async function testChainSupport <
 
   //console.info('Uploading code...')
   const uploaded = await alice.upload(code)
+  equal(Object.keys(await bob.getCodes()).length, 1)
 
   //console.info('Querying code upload...')
   equal(await bob.getCodeHashOfCodeId(uploaded.codeId), uploaded.codeHash)

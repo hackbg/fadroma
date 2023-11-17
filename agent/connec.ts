@@ -204,6 +204,13 @@ export abstract class Connection extends Endpoint {
     }) as InstanceType<C>
   }
 
+  getCodes (): Promise<Record<Deploy.CodeId, Deploy.UploadedCode>> {
+    this.log.debug('Querying all codes...')
+    return this.doGetCodes()
+  }
+
+  abstract doGetCodes (): Promise<Record<Deploy.CodeId, Deploy.UploadedCode>>
+
   /** Get client handles for all contracts that match a code ID */
   getContractsByCodeId (
     id: Deploy.CodeId): Promise<Record<Address, Contract>>
@@ -212,6 +219,7 @@ export abstract class Connection extends Endpoint {
   getContractsByCodeId <C extends typeof Contract> (
     id: Deploy.CodeId, $C: C = Contract as C
   ): Promise<Record<Address, InstanceType<C>>> {
+    this.log.debug(`Querying contracts with id ${id}...`)
     return this.doGetContractsByCodeId(id).then(contracts=>{
       const results: Record<Address, InstanceType<C>> = {}
       for (const instance of contracts) {
@@ -238,10 +246,12 @@ export abstract class Connection extends Endpoint {
     }
     const result: Record<Deploy.CodeId, Record<Address, Contract>> = {}
     if (args[0][Symbol.iterator]) {
+      this.log.debug(`Querying contracts with ids ${[...args[0]].join(', ')}...`)
       for (const codeId of args[0]) {
         result[codeId] = await this.getContractsByCodeId(codeId, args[1])
       }
     } else {
+      this.log.debug(`Querying contracts with ids ${Object.keys(args[0]).join(', ')}...`)
       for (const [codeId, $C] of Object.entries(args[0])) {
         result[codeId] = await this.getContractsByCodeId(codeId, args[1])
       }

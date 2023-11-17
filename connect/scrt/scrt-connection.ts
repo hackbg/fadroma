@@ -98,6 +98,22 @@ class ScrtConnection extends Connection {
       Number(block.block?.header?.height))
   }
 
+  doGetCodes () {
+    const codes: Record<CodeId, UploadedCode> = {}
+    return withIntoError(this.api.query.compute.codes({}))
+      .then(({code_infos})=>{
+        for (const { code_id, code_hash, creator } of code_infos||[]) {
+          codes[code_id!] = new UploadedCode({
+            chainId:  this.chainId,
+            codeId:   code_id,
+            codeHash: code_hash,
+            uploadBy: creator
+          })
+        }
+        return codes
+      })
+  }
+
   async doGetCodeId (contract_address: Address): Promise<CodeId> {
     return (await withIntoError(this.api.query.compute.contractInfo({
       contract_address
