@@ -352,7 +352,7 @@ export abstract class Connection extends Endpoint {
       throw new Error('no recipient address')
     }
     this.log.debug(
-      `Sending to ${bold(recipient)}:\n`,
+      `Sending\n  to ${bold(recipient)}:\n`,
       ` ${amounts.map(x=>x.toString()).join('\n  ')}`
     )
     return await timed(
