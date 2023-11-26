@@ -31,3 +31,5 @@ examples/wasm
 *.tsbuildinfo
 */*.tsbuildinfo
 **/*.tsbuildinfo
+*.js.map
+*.d.ts.map

@@ -11,7 +11,8 @@
     "lib":                         ["ES2020", "DOM"],
     "strict":                        true,
     "useUnknownInCatchVariables":    false,
-    "plugins": [ { "transform": "@magic-works/commonjs-import.meta" } ]
+    "plugins": [ { "transform": "@magic-works/commonjs-import.meta" } ],
+    "noEmitOnError": true
   },
   "exclude": [ "*.dist.*", "**/*.dist.*", "*.spec.*", "**/*.spec.*" ]
 }

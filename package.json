@@ -66,7 +66,6 @@
     "prepare": "husky install",
     "repl": "./fadroma.cli.cjs repl",
     "test": "time ensuite fadroma.test.ts",
-    "ubik": "ubik",
     "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
     "release:fast": "pnpm i && pnpm check && ubik release --otp 123123",
     "release:faster": "pnpm i && ubik release --otp 123123"
@@ -106,7 +105,7 @@
 
     "@hackbg/ensuite": "workspace:^",
     "@hackbg/ganesha": "workspace:^",
-    "@hackbg/ubik":    "workspace:^2.0.8",
+    "@hackbg/ubik":    "workspace:^3.0.0-rc.1",
 
     "@types/dockerode": "^3.3.23",
     "@types/js-yaml": "^4.0.9",
