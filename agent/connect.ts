@@ -414,13 +414,13 @@ export abstract class Connection extends Endpoint {
     this.log.debug(`Uploading\n  ${bold((code as any).codeHash)}`)
     const result = await timed(
       this.doUpload.bind(this, template, options),
-      ({elapsed, result}) => this.log.debug(
+      ({elapsed, result}: any) => this.log.debug(
         `Uploaded in ${bold(elapsed)}:\n`,
         ` ${bold(result.codeHash)} = code id ${bold(String(result.codeId))}`,
       ))
 
     return new Deploy.UploadedCode({
-      ...template, ...result
+      ...template, ...result as any
     }) as Deploy.UploadedCode & {
       chainId: ChainId, codeId: Deploy.CodeId,
     }
