@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/cw",
-  "version": "1.0.0-rc.6",
+  "version": "1.0.0-rc.7",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts", "okp4/*.ts" ],
