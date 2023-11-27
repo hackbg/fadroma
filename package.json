@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "2.0.0-rc.14",
+  "version": "2.0.0-rc.15",
   "repository": {
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
@@ -42,9 +42,9 @@
 
     "clean": "rm -rf .ubik *.dist.*",
 
-    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
-    "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
-    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
+    "release":        "pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release:fast":   "pnpm clean && pnpm i && pnpm check && ubik release --otp 123123",
+    "release:faster": "pnpm clean && pnpm i && ubik release --otp 123123"
   },
   "dependencies": {
     "@fadroma/agent":  "workspace:2.0.0-rc.8",
