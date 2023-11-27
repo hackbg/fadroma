@@ -12,9 +12,11 @@
     "check": "tsc --noEmit",
     "test": "time ensuite agent.test.ts",
     "cov": "time ensuite-cov -r text -r lcov -- agent.test.ts",
-    "release": "npm run check && npm run cov all && npm run release:faster",
-    "release:fast": "npm run check && npm run release:faster",
-    "release:faster": "ubik release --access public --otp 123123"
+    "clean": "rm -rf .ubik *.dist.*",
+
+    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
+    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
   },
   "dependencies": {
     "@hackbg/4mat": "workspace:^1.0.1",

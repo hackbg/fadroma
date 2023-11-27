@@ -15,8 +15,11 @@
     "check": "time tsc --noEmit",
     "test": "time ensuite devnet.test.ts",
     "cov": "time ensuite-cov devnet.test.ts",
-    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 000000",
-    "release:fast": "pnpm i && ubik release --otp 000000"
+    "clean": "rm -rf .ubik *.dist.*",
+
+    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
+    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
   },
   "license": "AGPL-3.0-only"
 }

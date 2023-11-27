@@ -1,5 +1,4 @@
 {
-  "extends": "../tsconfig.base.json",
   "files": [
     "scrt.ts",
     "scrt-base.ts",
@@ -14,5 +13,17 @@
     "snip-25.ts",
     "snip-721.ts",
     "snip-722.ts"
-  ]
+  ],
+  "include": [],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
+  "compilerOptions": {
+    "composite": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node10",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true
+  }
 }
