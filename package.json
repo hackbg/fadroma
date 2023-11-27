@@ -21,7 +21,6 @@
     "MAINTAINERS.md",
     "README.md",
     "*.ts",
-    "*.cjs",
     "Dockerfile",
     "assets/banner2.svg"
   ],
@@ -30,7 +29,6 @@
     "build": "./fadroma.cli.cjs build",
     "check": "time tsc --noEmit",
     "ci": "node --version && npm --version && pnpm --version && pwd && ls -al && pnpm cloc && pnpm clean && pnpm check && pnpm cov all && pnpm ubik --dry compile && ls -al",
-    "clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
     "cloc": "cloc --verbose=2 --fullpath --not-match-d=node_modules --not-match-f=pnpm-lock.yaml --exclude-dir=.github,.husky,ensuite,cosmjs-esm,secretjs-esm,coverage,state .",
     "cov": "time ensuite-cov fadroma.test.ts",
     "docs:dev": "ensuite-dev",
@@ -41,9 +39,11 @@
     "prepare": "husky install",
     "repl": "./fadroma.cli.cjs repl",
     "test": "time ensuite fadroma.test.ts",
-    "release": "pnpm i && pnpm clean && pnpm check && pnpm cov all && ubik release --otp 123123",
-    "release:fast": "pnpm i && pnpm check && ubik release --otp 123123",
-    "release:faster": "pnpm i && ubik release --otp 123123"
+
+    "clean": "rm -rf .ubik *.dist.*",
+    "release": "pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release:fast": "pnpm clean && pnpm i && pnpm check && ubik release --otp 123123",
+    "release:faster": "pnpm clean && pnpm i && ubik release --otp 123123"
   },
   "dependencies": {
     "@fadroma/agent":  "workspace:2.0.0-rc.8",

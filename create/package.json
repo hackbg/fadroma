@@ -3,9 +3,10 @@
   "version": "1.0.0-rc.3",
   "main": "create.ts",
   "files": [
-    "!coverage",
+    "!*",
     "*.ts",
-    "!*.test.*"
+    "!*.test.*",
+    "create.cli.cjs"
   ],
   "dependencies": {
     "case":    "^1.6.3",
@@ -21,8 +22,11 @@
     "check": "time tsc --noEmit",
     "test": "time ensuite create.test.ts",
     "cov": "time ensuite-cov create.test.ts",
-    "release": "pnpm i && pnpm check && pnpm cov all && ubik release --access public --otp 000000",
-    "release:fast": "pnpm i && ubik release --access public --otp 000000"
+
+    "clean": "rm -rf .ubik *.dist.*",
+    "release": "pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release:fast": "pnpm clean && pnpm i && pnpm check && ubik release --otp 123123",
+    "release:faster": "pnpm clean && pnpm i && ubik release --otp 123123"
   },
   "license": "AGPL-3.0-only"
 }
