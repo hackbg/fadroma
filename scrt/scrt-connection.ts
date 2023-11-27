@@ -335,10 +335,10 @@ class ScrtConnection extends Connection {
   }
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
-    const result = await this.api.query.auth.account({ address: this.address }) ?? (() => {
+    const result: any = await this.api.query.auth.account({ address: this.address }) ?? (() => {
       throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
     })
-    const { account_number, sequence } = result.account as any
+    const { account_number, sequence } = result.account
     return { accountNumber: Number(account_number), sequence: Number(sequence) }
   }
 

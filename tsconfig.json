@@ -1,30 +1,18 @@
 {
-  "extends": "./tsconfig.base.json",
-  "include": ["./*.ts", "compile/*.ts", "create/*.ts", "devnet/*.ts"],
-  "exclude": [
-    "**/*.dist.*",
-    "**/*.mjs",
-    "**/*.spec.ts",
-    "**/dist/**/*",
-    "spec/*",
-    "agent/*",
-    "cw/*",
-    "scrt/*",
-    "evm/*",
-    "coverage",
-    "ensuite",
-    "examples",
-    "fadroma.cli.cjs",
-    "fixtures",
-    "homepage",
-    "ops",
-    "packages/schema",
-    "platforms",
-    "shim",
-    "target",
-    "toolbox",
-    "toolbox/*",
-    "typedoc-theme.tsx",
-    "types"
-  ]
+  "files": [
+    "fadroma.ts",
+    "fadroma.browser.ts"
+  ],
+  "include": [],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
+  "compilerOptions": {
+    "composite": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true
+  }
 }

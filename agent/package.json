@@ -23,6 +23,5 @@
     "@hackbg/into": "^1.0.1",
     "@hackbg/logs": "workspace:^2.1",
     "@hackbg/oops": "workspace:^1.1"
-  },
-  "ubik": true
+  }
 }

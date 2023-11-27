@@ -35,7 +35,13 @@ export class Snip20 extends Contract implements Token.Fungible {
       admin = admin.address
     }
     return {
-      name, symbol, decimals, admin, config, initial_balances: balances, prng_seed: prngSeed,
+      name,
+      symbol,
+      decimals,
+      admin: admin as Address,
+      config,
+      initial_balances: balances,
+      prng_seed: prngSeed,
     }
   }
 

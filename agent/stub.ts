@@ -19,7 +19,7 @@ class StubConnection extends Connection {
     this.backend ??= new StubBackend()
   }
   batch (): Batch<this> {
-    return new StubBatch({ connection: this }) as Batch<this>
+    return new StubBatch({ connection: this }) as unknown as Batch<this>
   }
   doGetHeight () {
     return this.doGetBlockInfo().then(({height})=>height)
