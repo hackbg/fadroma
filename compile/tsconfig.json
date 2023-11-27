@@ -1,8 +1,17 @@
 {
-  "extends": "../tsconfig.base.json",
-  "include": [ "*.ts" ],
+  "files": [
+    "compile.ts"
+  ],
+  "include": [],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
   "compilerOptions": {
-    "rootDir": ".",
-    "composite": true
+    "composite": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true
   }
 }
