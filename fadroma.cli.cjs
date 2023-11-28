@@ -11,6 +11,7 @@ const console = new Console(`${pkgj.name} ${pkgj.version}`)
 console
   .log(colors.green('█▀▀▀▀ █▀▀▀█ █▀▀▀▄ █▀▀▀█ █▀▀▀█ █▀█▀█ █▀▀▀█'))
   .log(colors.green('█▀▀   █▀▀▀█ █▄▄▄▀ █▀▀▀▄ █▄▄▄█ █ ▀ █ █▀▀▀█'))
+  .log(colors.green('l e v e l t h e l a n d s c a p e  2021-∞'))
 require('dotenv').config()
 const node = process.argv[0]
 const cmds = require.resolve('@hackbg/cmds/cmds-ts.cli.cjs')
