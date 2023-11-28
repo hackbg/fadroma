@@ -21,7 +21,7 @@
 export * from './base'
 export * from './connect'
 export type { ChainId, Address, Message, TxHash } from './connect'
-export * from './deploy'
+export * from './deploy.browser'
 export type { CodeId, CodeHash, } from './deploy.browser'
 export * as Token from './token'
 export type { Uint128, Uint256, Decimal128, Decimal256 } from './token'
