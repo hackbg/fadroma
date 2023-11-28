@@ -372,7 +372,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.35
+        specifier: workspace:1.9.3-patch.36
         version: link:secretjs-esm
       '@noble/ed25519':
         specifier: ^2.0.0
