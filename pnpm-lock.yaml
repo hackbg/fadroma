@@ -5,16 +5,16 @@ importers:
   .:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.8
+        specifier: workspace:2.0.0-rc.9
         version: link:agent
       '@fadroma/create':
-        specifier: workspace:1.0.0-rc.3
+        specifier: workspace:1.0.0-rc.4
         version: link:create
       '@fadroma/cw':
-        specifier: workspace:1.0.0-rc.7
+        specifier: workspace:1.0.0-rc.8
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:11.0.0-rc.6
+        specifier: workspace:11.0.0-rc.7
         version: link:scrt
       '@hackbg/cmds':
         specifier: workspace:^3.2.1
@@ -126,7 +126,7 @@ importers:
   compile:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.8
+        specifier: workspace:2.0.0-rc.9
         version: link:../agent
       '@hackbg/cmds':
         specifier: workspace:^3.2.1
@@ -141,7 +141,7 @@ importers:
   create:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.8
+        specifier: workspace:2.0.0-rc.9
         version: link:../agent
       '@hackbg/cmds':
         specifier: workspace:^3.2.1
@@ -162,7 +162,7 @@ importers:
   cw:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.8
+        specifier: workspace:2.0.0-rc.9
         version: link:../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -366,7 +366,7 @@ importers:
   scrt:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.8
+        specifier: workspace:2.0.0-rc.9
         version: link:../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5

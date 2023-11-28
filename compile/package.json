@@ -7,7 +7,7 @@
     "@hackbg/logs": "workspace:*",
     "@hackbg/cmds": "workspace:^3.2.1",
 
-    "@fadroma/agent": "workspace:2.0.0-rc.8"
+    "@fadroma/agent": "workspace:2.0.0-rc.9"
   },
   "scripts": {
     "check": "time tsc --noEmit",
