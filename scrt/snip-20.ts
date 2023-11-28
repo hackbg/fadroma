@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Token, Contract, randomBytes, randomBase64, bold, colors } from '@fadroma/agent'
+import { Token, Contract, randomBase64, bold, colors } from '@fadroma/agent'
 import type { CodeHash, Uint128, Connection, Address } from '@fadroma/agent'
 import { Console } from './scrt-base'
 import type { Permit } from './snip-24'
@@ -20,13 +20,18 @@ export class Snip20 extends Contract implements Token.Fungible {
 
   /** Create a SNIP20 init message. */
   static init ({
-    name, symbol, decimals, admin,
-    config = {}, balances = [], prngSeed = randomBase64()
+    symbol,
+    decimals,
+    admin,
+    name = symbol,
+    config = {},
+    balances = [],
+    prngSeed = randomBase64()
   }: {
-    name:      string,
     symbol:    string,
     decimals:  number,
     admin:     Address|{ address: Address },
+    name?:     string,
     config?:   Partial<Snip20InitConfig>,
     balances?: Array<{address: Address, amount: Uint128}>
     prngSeed?: string
@@ -288,7 +293,7 @@ export type ViewingKey = string
 export class ViewingKeyClient extends Contract {
 
   /** Create a random viewing key. */
-  async create (entropy = randomBytes(32).toString("hex")) {
+  async create (entropy = randomBase64()) {
     const msg = { create_viewing_key: { entropy, padding: null } }
     let { data } = await this.execute(msg) as { data: Uint8Array|Uint8Array[] }
     if (data instanceof Uint8Array) {
