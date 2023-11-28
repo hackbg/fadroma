@@ -1,10 +1,10 @@
 {
   "name": "@fadroma/agent",
   "version": "2.0.0-rc.15",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "main": "agent.ts",
   "browser": "agent.browser.ts",
-  "license": "AGPL-3.0-only",
   "files": [
     "*.ts",
     "!*.test.*"

@@ -1,6 +1,7 @@
 {
   "name": "@hackbg/fadroma",
   "version": "2.0.0-rc.18",
+  "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
@@ -24,7 +25,6 @@
     "Dockerfile",
     "assets/banner2.svg"
   ],
-  "license": "AGPL-3.0-only",
   "scripts": {
     "build": "./fadroma.cli.cjs build",
     "check": "time tsc --noEmit",

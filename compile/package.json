@@ -1,6 +1,7 @@
 {
   "name": "@fadroma/compile",
   "version": "1.0.0-rc.3",
+  "license": "AGPL-3.0-only",
   "main": "compile.ts",
   "dependencies": {
     "@hackbg/file": "workspace:*",
