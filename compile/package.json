@@ -1,13 +1,12 @@
 {
   "name": "@fadroma/compile",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "main": "compile.ts",
   "dependencies": {
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",
     "@hackbg/cmds": "workspace:^3.2.1",
-
-    "@fadroma/agent": "workspace:2.0.0-rc.9"
+    "@fadroma/agent": "workspace:*"
   },
   "scripts": {
     "check": "time tsc --noEmit",

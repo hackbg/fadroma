@@ -5,25 +5,25 @@ importers:
   .:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.9
+        specifier: workspace:*
         version: link:agent
       '@fadroma/create':
-        specifier: workspace:1.0.0-rc.4
+        specifier: workspace:*
         version: link:create
       '@fadroma/cw':
-        specifier: workspace:1.0.0-rc.8
+        specifier: workspace:*
         version: link:cw
       '@fadroma/scrt':
-        specifier: workspace:11.0.0-rc.7
+        specifier: workspace:*
         version: link:scrt
       '@hackbg/cmds':
-        specifier: workspace:^3.2.1
+        specifier: workspace:*
         version: link:toolbox/cmds
       '@hackbg/conf':
         specifier: workspace:*
         version: link:toolbox/conf
       '@hackbg/dock':
-        specifier: workspace:^2.0.5
+        specifier: workspace:*
         version: link:toolbox/dock
       '@hackbg/file':
         specifier: workspace:*
@@ -32,7 +32,7 @@ importers:
         specifier: workspace:*
         version: link:toolbox/logs
       '@hackbg/port':
-        specifier: workspace:~
+        specifier: workspace:*
         version: link:toolbox/port
       '@hackbg/repo':
         specifier: workspace:*
@@ -48,10 +48,10 @@ importers:
         version: 2.4.2
     devDependencies:
       '@fadroma/compile':
-        specifier: workspace:1.0.0-rc.2
+        specifier: workspace:^
         version: link:compile
       '@fadroma/devnets':
-        specifier: workspace:1.0.0-rc.1
+        specifier: workspace:^
         version: link:devnet
       '@fadroma/fixtures':
         specifier: link:fixtures
@@ -60,13 +60,13 @@ importers:
         specifier: workspace:^
         version: link:toolbox/ensuite
       '@hackbg/fadroma':
-        specifier: workspace:*
+        specifier: workspace:^
         version: 'link:'
       '@hackbg/ganesha':
         specifier: workspace:^
         version: link:toolbox/ganesha
       '@hackbg/ubik':
-        specifier: workspace:^3.0.0-rc.1
+        specifier: workspace:^
         version: link:toolbox/ubik
       '@types/dockerode':
         specifier: ^3.3.23
@@ -126,7 +126,7 @@ importers:
   compile:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.9
+        specifier: workspace:*
         version: link:../agent
       '@hackbg/cmds':
         specifier: workspace:^3.2.1
@@ -141,7 +141,7 @@ importers:
   create:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.9
+        specifier: workspace:*
         version: link:../agent
       '@hackbg/cmds':
         specifier: workspace:^3.2.1
@@ -162,7 +162,7 @@ importers:
   cw:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.9
+        specifier: workspace:*
         version: link:../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5
@@ -366,7 +366,7 @@ importers:
   scrt:
     dependencies:
       '@fadroma/agent':
-        specifier: workspace:2.0.0-rc.9
+        specifier: workspace:*
         version: link:../agent
       '@hackbg/conf':
         specifier: workspace:3.1.5
