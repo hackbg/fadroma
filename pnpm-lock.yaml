@@ -105,7 +105,7 @@ importers:
   agent:
     dependencies:
       '@hackbg/4mat':
-        specifier: workspace:^1.0.1
+        specifier: workspace:^2
         version: link:../toolbox/4mat
       '@hackbg/dump':
         specifier: workspace:^1.0.1
@@ -372,7 +372,7 @@ importers:
         specifier: workspace:3.1.5
         version: link:../toolbox/conf
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.37
+        specifier: workspace:1.9.3-patch.38
         version: link:secretjs-esm
       '@noble/ed25519':
         specifier: ^2.0.0
@@ -515,7 +515,7 @@ importers:
         specifier: ^4.2
         version: link:ganesha
       '@hackbg/ubik':
-        specifier: workspace:^3.0.0-rc.1
+        specifier: workspace:./ubik
         version: link:ubik
       '@types/node':
         specifier: latest
@@ -550,12 +550,6 @@ importers:
       '@scure/bip39':
         specifier: ^1.2.1
         version: 1.2.1
-      '@types/secure-random':
-        specifier: ^1.1.0
-        version: 1.1.0
-      secure-random:
-        specifier: ^1.1.2
-        version: 1.1.2
 
   toolbox/allo: {}
 
@@ -585,7 +579,7 @@ importers:
   toolbox/dock:
     dependencies:
       '@hackbg/file':
-        specifier: workspace:^2.0.0-rc.1
+        specifier: workspace:^2.0.1
         version: link:../file
       '@hackbg/hide':
         specifier: workspace:^1
@@ -620,7 +614,7 @@ importers:
     dependencies:
       '@hackbg/file':
         specifier: 2.0.0
-        version: link:../file
+        version: 2.0.0
       '@hackbg/ganesha':
         specifier: 4.2.0
         version: link:../ganesha
@@ -677,7 +671,7 @@ importers:
   toolbox/file:
     dependencies:
       '@hackbg/4mat':
-        specifier: workspace:^1
+        specifier: workspace:^2
         version: link:../4mat
       '@hackbg/hide':
         specifier: workspace:^1.0.3
@@ -881,7 +875,7 @@ importers:
   toolbox/repo:
     dependencies:
       '@hackbg/file':
-        specifier: workspace:^2.0.0-rc.1
+        specifier: workspace:^2.0.1
         version: link:../file
       '@hackbg/logs':
         specifier: workspace:^2.0.7
@@ -903,7 +897,7 @@ importers:
         specifier: ^7.22.10
         version: 7.22.10
       '@hackbg/logs':
-        specifier: ^2.0.8
+        specifier: ^2.1.0
         version: link:../logs
       acorn:
         specifier: ^8.10.0
@@ -1638,8 +1632,34 @@ packages:
       - supports-color
     dev: true
 
+  /@hackbg/4mat@1.0.1:
+    resolution: {integrity: sha512-uSTQnhO9OZovCZ8/JiT6ICsY5YUkimESOj6QcZ2q7kwuuo8xzospISJCGLjfZ2EarV4J68Urlsf6YUMi/gsp6A==}
+    dependencies:
+      '@noble/hashes': 1.3.2
+      '@scure/base': 1.1.3
+      '@scure/bip32': 1.3.2
+      '@scure/bip39': 1.2.1
+      '@types/secure-random': 1.1.3
+      secure-random: 1.1.2
+    dev: false
+
   /@hackbg/dacrypt@0.2.0:
     resolution: {integrity: sha512-ripWH+O6Zl0+E0XBaexF0vQgkY6wT3F6hhABVof+VsstIlNbkWfWcgAA3SLAx6aORM6NEK4YlE6BXfT7tG8FmQ==}
+    dev: false
+
+  /@hackbg/file@2.0.0:
+    resolution: {integrity: sha512-sZ3g7PECyFyshfg/Ej0OHSR9PjIikVJssGYWopXQxDggjJ5uQVKLETyB8tZ+stPOw1XKbaVm4xFDJGIzzvtCXw==}
+    dependencies:
+      '@hackbg/4mat': 1.0.1
+      '@hackbg/hide': link:toolbox/hide
+      '@hackbg/logs': link:toolbox/logs
+      js-yaml: 4.1.0
+      mkdirp: 1.0.4
+      recursive-copy: 2.0.13
+      rimraf: 3.0.2
+      symlink-dir: 5.0.1
+      tmp: 0.2.1
+      toml: 3.0.0
     dev: false
 
   /@hackbg/logs@2.0.8:
@@ -2405,7 +2425,6 @@ packages:
     resolution: {integrity: sha512-D0WfRmU9TQ8I9PFx9Yc+EBHw+vSpIub4IDvQivcp26PtPrdMGAq5SDcpXEo/epqa/DXotVpekHiLNTg3iaKXBQ==}
     dependencies:
       undici-types: 5.26.5
-    dev: true
 
   /@types/node@20.9.0:
     resolution: {integrity: sha512-nekiGu2NDb1BcVofVcEKMIwzlx4NjHlcjhoxxKBNLtz15Y1z7MYf549DFvkHSId02Ax6kGwWntIBPC3l/JZcmw==}
@@ -2448,17 +2467,10 @@ packages:
       '@types/node': 20.9.1
     dev: true
 
-  /@types/secure-random@1.1.0:
-    resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
-    dependencies:
-      '@types/node': 20.9.1
-    dev: false
-
   /@types/secure-random@1.1.3:
     resolution: {integrity: sha512-zUvl/Y/9gG2wRE5IUgqJTje0jQr97Rw+ZWovmkbkP393aUO7PR71diJlp4wKQcqucUoJVXMJdWjZfVkcoCt64w==}
     dependencies:
       '@types/node': 20.10.0
-    dev: true
 
   /@types/semver@7.5.0:
     resolution: {integrity: sha512-G8hZ6XJiHnuhQKR7ZmysCeJWE08o8T0AXtk5darsCaTVsYZhhgUrq53jizaR2FvsoeCwJhlmwTjkXBY5Pn/ZHw==}
