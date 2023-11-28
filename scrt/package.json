@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "11.0.0-rc.20",
+  "version": "11.0.0-rc.21",
   "license": "AGPL-3.0-only",
   "type":    "module",
   "main":    "scrt.ts",
@@ -9,7 +9,7 @@
   "dependencies": {
     "@fadroma/agent":       "workspace:*",
     "@hackbg/conf":         "workspace:3.1.5",
-    "@hackbg/secretjs-esm": "workspace:1.9.3-patch.36",
+    "@hackbg/secretjs-esm": "workspace:1.9.3-patch.37",
     "@noble/secp256k1":     "^2.0.0",
     "@noble/ed25519":       "^2.0.0"
   },
@@ -21,6 +21,6 @@
     "clean": "rm -rf .ubik *.dist.*",
     "release": "pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123",
     "release:fast": "pnpm clean && pnpm i && pnpm check && ubik release --otp 123123",
-    "release:faster": "pnpm clean && pnpm i && ubik release --otp 123123"
+    "release:faster": "pnpm clean && pnpm i && ubik release --otp 123123 --no-git-checks"
   }
 }
