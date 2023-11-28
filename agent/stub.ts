@@ -5,7 +5,7 @@ import { assign, Console, Error, base16, sha256, randomBech32 } from './base'
 import type { ChainId, Address, Message, Label, TxHash } from './connect'
 import { Connection, Backend, Batch, Identity } from './connect'
 import type { CodeId, CodeHash } from './deploy'
-import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy'
+import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy.browser'
 import * as Token from './token'
 
 class StubConnection extends Connection {
