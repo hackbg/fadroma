@@ -1,11 +1,21 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+    along with this program. If not, see <http://www.gnu.org/licenses/>. **/
 import { ContractInstance } from './deploy'
 import { Error, Logged, bold, into } from './base'
 import { assign, Console } from './base'
-import * as Deploy from './deploy'
+import * as Deploy from './deploy.browser'
 import * as Token from './token'
+
+// HACK: this class has an alternate implementation for non-browser environments.
+// This is because Next.js tries to parse the dynamic import('node:...') calls
+// in the fetch methods. (Which were made dynamic exactly to avoid such a
+// dual-implementation situation but it is what it is.) So it defaults to the
+// version that can only fetch from URL using the global fetch method, and when
+// the library is loaded through the non-browser entrypoint, it gets substituted
+// to the version which can also load code from disk. (Ugh.)
+import { CompiledCode } from './deploy.browser'
+export const _$_HACK_$_ = { CompiledCode }
 
 export type ChainId = string
 
@@ -398,9 +408,9 @@ export abstract class Connection extends Endpoint {
       template = code
     } else {
       if (typeof code === 'string' || code instanceof URL) {
-        code = new Deploy.CompiledCode({ codePath: code })
+        code = new _$_HACK_$_.CompiledCode({ codePath: code })
       } else {
-        code = new Deploy.CompiledCode(code)
+        code = new _$_HACK_$_.CompiledCode(code)
       }
       const t0 = performance.now()
       template = await (code as Deploy.CompiledCode).fetch()

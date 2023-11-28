@@ -18,10 +18,11 @@
 
 **/
 
-export * from './agent.browser'
-
-// See note in connect.ts for what this does:
-import { _$_HACK_$_ } from './agent.browser'
-import { LocalCompiledCode } from './deploy'
-_$_HACK_$_.CompiledCode = LocalCompiledCode
-export { LocalCompiledCode }
+export * from './base'
+export * from './connect'
+export type { ChainId, Address, Message, TxHash } from './connect'
+export * from './deploy'
+export type { CodeId, CodeHash, } from './deploy.browser'
+export * as Token from './token'
+export type { Uint128, Uint256, Decimal128, Decimal256 } from './token'
+export * as Stub from './stub'

@@ -10,7 +10,8 @@ import {
   ContractInstance,
   SourceCode,
   RustSourceCode,
-  CompiledCode,
+  CompiledCode as BaseCompiledCode,
+  LocalCompiledCode as CompiledCode,
   UploadedCode,
   UploadStore,
   DeployStore
@@ -196,8 +197,8 @@ export async function testCodeContract () {
 }
 
 export async function testCodeCompiler () {
-  assert((await new Stub.Compiler().build('')) instanceof CompiledCode)
-  assert((await new Stub.Compiler().buildMany([{}]))[0] instanceof CompiledCode)
+  assert((await new Stub.Compiler().build('')) instanceof BaseCompiledCode)
+  assert((await new Stub.Compiler().buildMany([{}]))[0] instanceof BaseCompiledCode)
 }
 
 export async function testCodeUnits () {
@@ -239,7 +240,7 @@ export async function testCodeUnits () {
     await new ContractCode({
       source: source1,
       compiler: new Stub.Compiler()
-    }).compile() instanceof CompiledCode
+    }).compile() instanceof BaseCompiledCode
   )
 
   const rustSource1 = new RustSourceCode()

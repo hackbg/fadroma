@@ -1,9 +1,11 @@
 {
   "files": [
     "agent.ts",
+    "agent.browser.ts",
     "base.ts",
     "connect.ts",
     "deploy.ts",
+    "deploy.browser.ts",
     "stub.ts",
     "token.ts"
   ],

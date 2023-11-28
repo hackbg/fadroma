@@ -1,8 +1,9 @@
 {
   "name": "@fadroma/agent",
-  "version": "2.0.0-rc.11",
+  "version": "2.0.0-rc.12",
   "type": "module",
   "main": "agent.ts",
+  "browser": "agent.browser.ts",
   "files": [
     "*.ts",
     "!*.test.*"
