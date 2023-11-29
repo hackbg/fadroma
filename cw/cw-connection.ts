@@ -98,7 +98,9 @@ export class CWConnection extends Connection {
   }
 
   doGetContractsByCodeId (id: CodeId): Promise<Iterable<{address: Address}>> {
-    throw new Error('not implemented')
+    return assertApi(this)
+      .then(api=>api.getContracts(Number(id)))
+      .then(addresses=>addresses.map(address=>({address})))
   }
 
   /** Stargate implementation of getting a code hash. */

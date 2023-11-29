@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/cw",
-  "version": "1.0.0-rc.12",
+  "version": "1.0.0-rc.13",
   "license": "AGPL-3.0-only",
   "type": "module",
   "main": "cw.ts",
