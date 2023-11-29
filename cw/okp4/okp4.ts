@@ -115,17 +115,19 @@ export * from './okp4-cognitarium'
 export * from './okp4-objectarium'
 export * from './okp4-law-stone'
 
-export default class FadromaOKP4 {
-  static Connection = OKP4Connection
-  static Identity = { ...CWIdentity, Mnemonic: OKP4MnemonicIdentity }
-  static Batch = CWBatch
-  /** Connect to OKP4 in testnet mode. */
-  static testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
-    return new OKP4Connection({
-      chainId: 'okp4-nemeton-1',
-      url:     'https://okp4-testnet-rpc.polkachu.com/',
-      //'https://okp4-testnet-api.polkachu.com/'
-      ...options||{}
-    })
-  }
+export const chainIds = {
+  testnet: 'okp4-nemeton-1',
 }
+
+export const testnets = new Set([
+  'https://okp4-testnet-rpc.polkachu.com/'
+])
+
+/** Connect to OKP4 in testnet mode. */
+export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
+  return new OKP4Connection({
+    chainId: chainIds.testnet, url: pickRandom(testnets), ...options||{}
+  })
+}
+
+const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]

@@ -21,57 +21,48 @@ import { ScrtConnection, ScrtBatch } from './scrt-connection'
 import { ScrtIdentity } from './scrt-identity'
 import faucets from './scrt-faucets'
 
-const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
-
-export default class FadromaScrt {
-
-  static Connection = ScrtConnection
-
-  static Identity = ScrtIdentity
-
-  static Batch = ScrtBatch
-
-  /** Connect to the Secret Network Mainnet. */
-  static mainnet = (options: Partial<ScrtConnection> = {}): ScrtConnection => {
-    return new ScrtConnection({
-      chainId: 'secret-4', url: pickRandom(this.mainnets), ...options||{}
-    })
-  }
-
-  /** See https://docs.scrt.network/secret-network-documentation/development/resources-api-contract-addresses/connecting-to-the-network/mainnet-secret-4#api-endpoints */
-  static mainnets = new Set([
-    'https://lcd.mainnet.secretsaturn.net',
-    'https://lcd.secret.express',
-    'https://rpc.ankr.com/http/scrt_cosmos',
-    'https://1rpc.io/scrt-lcd',
-    'https://lcd-secret.whispernode.com',
-    'https://secret-api.lavenderfive.com',
-  ])
-
-  /** Connect to the Secret Network Testnet. */
-  static testnet = (options: Partial<ScrtConnection> = {}): ScrtConnection => {
-    return new ScrtConnection({
-      chainId: 'pulsar-3', url: pickRandom(this.testnets), ...options||{}
-    })
-  }
-
-  static testnets = new Set([
-    'https://api.pulsar.scrttestnet.com',
-    'https://api.pulsar3.scrttestnet.com/'
-  ])
-
-  static faucets = faucets
-
-  constructor () {
-    throw new Error('static class')
-  }
-}
-
 export * from './scrt-base'
 export * from './scrt-connection'
 export * from './scrt-identity'
+export { default as faucets } from './scrt-faucets'
 export * as Mocknet from './scrt-mocknet'
 export * as Snip20 from './snip-20'
 export * as Snip24 from './snip-24'
 export * as Snip721 from './snip-721'
 export * as SecretJS from '@hackbg/secretjs-esm'
+
+export const chainIds = {
+  mainnet: 'secret-4',
+  testnet: 'pulsar-3',
+}
+
+/** See https://docs.scrt.network/secret-network-documentation/development/resources-api-contract-addresses/connecting-to-the-network/mainnet-secret-4#api-endpoints */
+export const mainnets = new Set([
+  'https://lcd.mainnet.secretsaturn.net',
+  'https://lcd.secret.express',
+  'https://rpc.ankr.com/http/scrt_cosmos',
+  'https://1rpc.io/scrt-lcd',
+  'https://lcd-secret.whispernode.com',
+  'https://secret-api.lavenderfive.com',
+])
+
+/** Connect to the Secret Network Mainnet. */
+export function mainnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
+  return new ScrtConnection({
+    chainId: chainIds.mainnet, url: pickRandom(mainnets), ...options||{}
+  })
+}
+
+export const testnets = new Set([
+  'https://api.pulsar.scrttestnet.com',
+  'https://api.pulsar3.scrttestnet.com/'
+])
+
+/** Connect to the Secret Network Testnet. */
+export function testnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
+  return new ScrtConnection({
+    chainId: chainIds.testnet, url: pickRandom(testnets), ...options||{}
+  })
+}
+
+const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]

@@ -15,18 +15,7 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import { CWConnection, CWBatch } from './cw-connection'
-import CWIdentity from './cw-identity'
-import OKP4 from './okp4/okp4'
 export * from './cw-base'
 export * from './cw-connection'
 export * from './cw-identity'
 export * as OKP4 from './okp4/okp4'
-export default class FadromaCW {
-  static Connection = CWConnection
-  static Identity = CWIdentity
-  static Batch = CWBatch
-  static Chain = {
-    'OKP4': OKP4
-  }
-}
