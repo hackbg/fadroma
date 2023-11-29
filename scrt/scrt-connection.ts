@@ -4,7 +4,8 @@
 import { Tx, ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
 import { Error, console } from './scrt-base'
-import { Identity } from './scrt-identity'
+import { ScrtIdentity } from './scrt-identity'
+import faucets from './scrt-faucets'
 //import * as Mocknet from './scrt-mocknet'
 import type {
   Uint128, Contract, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
@@ -17,54 +18,16 @@ import {
 
 const { MsgStoreCode, MsgExecuteContract, MsgInstantiateContract } = Tx
 
-const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
-
-/** Connect to the Secret Network Mainnet. */
-export function mainnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
-  return new ScrtConnection({
-    chainId: 'secret-4', url: pickRandom(mainnets), ...options||{}
-  })
-}
-
-/** See https://docs.scrt.network/secret-network-documentation/development/resources-api-contract-addresses/connecting-to-the-network/mainnet-secret-4#api-endpoints */
-export const mainnets = new Set([
-  'https://lcd.mainnet.secretsaturn.net',
-  'https://lcd.secret.express',
-  'https://rpc.ankr.com/http/scrt_cosmos',
-  'https://1rpc.io/scrt-lcd',
-  'https://lcd-secret.whispernode.com',
-  'https://secret-api.lavenderfive.com',
-])
-
-/** Connect to the Secret Network Testnet. */
-export function testnet (options: Partial<ScrtConnection> = {}): ScrtConnection {
-  return new ScrtConnection({
-    chainId: 'pulsar-3', url: pickRandom(testnets), ...options||{}
-  })
-}
-
-export const testnets = new Set([
-  'https://api.pulsar.scrttestnet.com',
-  'https://api.pulsar3.scrttestnet.com/'
-])
-
-export const faucets: Record<ChainId, Set<string>> = {
-  'secret-4': new Set([
-    `https://faucet.secretsaturn.net/`
-  ]),
-  'pulsar-3': new Set([
-    `https://faucet.pulsar.scrttestnet.com/`
-  ])
-}
+export type { TxResponse }
 
 /** Represents a Secret Network API endpoint. */
-class ScrtConnection extends Connection {
+export class ScrtConnection extends Connection {
   /** Smallest unit of native token. */
   static gasToken = new Token.Native('uscrt')
   /** Underlying API client. */
   declare api: SecretNetworkClient
   /** Supports multiple authentication methods. */
-  declare identity: Identity
+  declare identity: ScrtIdentity
   /** Set permissive fees by default. */
   fees = {
     upload: ScrtConnection.gasToken.fee(10000000),
@@ -408,14 +371,6 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
 function removeTrailingSlash (url: string) {
   while (url.endsWith('/')) { url = url.slice(0, url.length - 1) }
   return url
-}
-
-export {
-  ScrtConnection as Connection
-}
-
-export type {
-  TxResponse
 }
 
 export class ScrtBatch extends Batch<ScrtConnection> {

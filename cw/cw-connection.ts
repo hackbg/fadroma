@@ -5,7 +5,7 @@ import type {
 } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
 import type { Block, StdFee } from '@hackbg/cosmjs-esm'
-import type * as Identity from './cw-identity'
+import type { CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
 
 const assertApi =
   ({ api }: { api?: CWConnection["api"] }): NonNullable<CWConnection["api"]> => {
@@ -16,7 +16,7 @@ const assertApi =
   }
 
 /** Generic agent for CosmWasm-enabled chains. */
-class CWConnection extends Connection {
+export class CWConnection extends Connection {
   /** The bech32 prefix for the account's address  */
   bech32Prefix?: string
   /** The coin type in the HD derivation path */
@@ -26,7 +26,7 @@ class CWConnection extends Connection {
   /** API connects asynchronously, so API handle is a promise of either variant. */
   declare api: Promise<CosmWasmClient|SigningCosmWasmClient>
   /** A supported method of authentication. */
-  declare identity: Identity.MnemonicIdentity|Identity.SignerIdentity
+  declare identity: CWMnemonicIdentity|CWSignerIdentity
 
   constructor (properties: Partial<CWConnection>) {
     super(properties)
@@ -250,7 +250,7 @@ class CWConnection extends Connection {
 }
 
 /** Transaction batch for CosmWasm-enabled chains. */
-class CWBatch extends Batch<CWConnection> {
+export class CWBatch extends Batch<CWConnection> {
 
   upload (
     code:    Parameters<Batch<Connection>["upload"]>[0],
@@ -275,9 +275,4 @@ class CWBatch extends Batch<CWConnection> {
 
   async submit () {}
 
-}
-
-export {
-  CWConnection as Connection,
-  CWBatch      as Batch
 }

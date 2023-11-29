@@ -7,14 +7,15 @@ import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
-class CWIdentity extends Identity {}
+export class CWMnemonicIdentity extends Identity {
+  declare signer: OfflineSigner
 
-class CWMnemonicIdentity extends CWIdentity {
   bech32Prefix:   string
   coinType:       number
   hdAccountIndex: number
+
   pubkey:         Uint8Array
-  signer:         OfflineSigner
+
   constructor ({
     bech32Prefix,
     coinType,
@@ -98,7 +99,7 @@ class CWMnemonicIdentity extends CWIdentity {
   }
 }
 
-class CWSignerIdentity extends Identity {
+export class CWSignerIdentity extends Identity {
   signer: OfflineSigner
   constructor ({ signer, ...properties }: Partial<Identity & { signer: OfflineSigner }>) {
     super(properties)
@@ -132,8 +133,7 @@ export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Ar
   }
 }
 
-export {
-  CWIdentity         as Identity,
-  CWMnemonicIdentity as MnemonicIdentity,
-  CWSignerIdentity   as SignerIdentity,
+export default {
+  Mnemonic: CWMnemonicIdentity,
+  Signer:   CWSignerIdentity
 }

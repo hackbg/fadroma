@@ -6,7 +6,7 @@ import {
   Console, bold, Error, Stub, base16, sha256, into, bech32, randomBech32,
   ContractInstance, brailleDump, Token, bip39, bip39EN
 } from '@fadroma/agent'
-import { MnemonicIdentity } from './scrt-identity'
+import { ScrtMnemonicIdentity } from './scrt-identity'
 import { Wallet } from '@hackbg/secretjs-esm'
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
@@ -347,7 +347,7 @@ class ScrtMocknetBackend extends Stub.Backend {
   }
 
   getIdentity (name: string): Promise<Identity> {
-    return Promise.resolve(new MnemonicIdentity({ name, ...this.accounts.get(name) }))
+    return Promise.resolve(new ScrtMnemonicIdentity({ name, ...this.accounts.get(name) }))
   }
 
   async connect (
@@ -361,7 +361,7 @@ class ScrtMocknetBackend extends Stub.Backend {
       url:      this.url,
       alive:    this.alive,
       backend:  this,
-      identity: new MnemonicIdentity(parameter)
+      identity: new ScrtMnemonicIdentity(parameter)
     })
   }
 

@@ -4,11 +4,15 @@ import { SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { EncryptionUtils } from '@hackbg/secretjs-esm'
 import { Error } from './scrt-base'
 
-abstract class ScrtIdentity extends Identity {
+export abstract class ScrtIdentity extends Identity {
   abstract getApi ({chainId, url}: {chainId: ChainId, url: string|URL}): SecretNetworkClient
+
+  static fromKeplr = () => {
+    throw new Error('unimplemented')
+  }
 }
 
-class ScrtSignerIdentity extends ScrtIdentity {
+export class ScrtSignerIdentity extends ScrtIdentity {
   encryptionUtils?: EncryptionUtils
   constructor ({ encryptionUtils, ...properties }: Partial<ScrtSignerIdentity>) {
     super(properties)
@@ -20,7 +24,7 @@ class ScrtSignerIdentity extends ScrtIdentity {
   }
 }
 
-class ScrtMnemonicIdentity extends ScrtIdentity {
+export class ScrtMnemonicIdentity extends ScrtIdentity {
   wallet: Wallet
   constructor ({
     mnemonic = bip39.generateMnemonic(bip39EN),
@@ -42,10 +46,4 @@ class ScrtMnemonicIdentity extends ScrtIdentity {
       chainId, url: url.toString(), wallet, walletAddress: wallet.address,
     })
   }
-}
-
-export {
-  ScrtIdentity         as Identity,
-  ScrtSignerIdentity   as SignerIdentity,
-  ScrtMnemonicIdentity as MnemonicIdentity,
 }

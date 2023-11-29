@@ -1,6 +1,6 @@
 import { Error, Config } from '../cw-base'
-import { Connection, Batch } from '../cw-connection'
-import { MnemonicIdentity } from '../cw-identity'
+import { CWConnection, CWBatch } from '../cw-connection'
+import CWIdentity, { CWMnemonicIdentity } from '../cw-identity'
 
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
@@ -11,17 +11,7 @@ import type { Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
 import { Contract, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
-  /** Connect to OKP4 in testnet mode. */
-export function testnet (options: Partial<OKP4Connection> = {}): OKP4Connection {
-  return new OKP4Connection({
-    chainId: 'okp4-nemeton-1',
-    url:     'https://okp4-testnet-rpc.polkachu.com/',
-    //'https://okp4-testnet-api.polkachu.com/'
-    ...options||{}
-  })
-}
-
-class OKP4MnemonicIdentity extends MnemonicIdentity {
+export class OKP4MnemonicIdentity extends CWMnemonicIdentity {
   constructor (properties?: { mnemonic: string }) {
     super({
       coinType: 118,
@@ -33,7 +23,7 @@ class OKP4MnemonicIdentity extends MnemonicIdentity {
 }
 
 /** Connection for OKP4. */
-class OKP4Connection extends Connection {
+export class OKP4Connection extends CWConnection {
   /** Default denomination of gas token. */
   static gasToken = new Token.Native('uknow')
   /** Transaction fees for this agent. */
@@ -50,7 +40,7 @@ class OKP4Connection extends Connection {
       bech32Prefix: 'okp4',
       hdAccountIndex: 0,
       ...options
-    } as Partial<Connection>)
+    } as Partial<CWConnection>)
   }
 
   /** Get clients for all Cognitarium instances, keyed by address. */
@@ -121,11 +111,21 @@ class OKP4Connection extends Connection {
   //}
 }
 
-export {
-  OKP4MnemonicIdentity as MnemonicIdentity,
-  OKP4Connection       as Connection
-}
-
 export * from './okp4-cognitarium'
 export * from './okp4-objectarium'
 export * from './okp4-law-stone'
+
+export default class FadromaOKP4 {
+  static Connection = OKP4Connection
+  static Identity = { ...CWIdentity, Mnemonic: OKP4MnemonicIdentity }
+  static Batch = CWBatch
+  /** Connect to OKP4 in testnet mode. */
+  static testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
+    return new OKP4Connection({
+      chainId: 'okp4-nemeton-1',
+      url:     'https://okp4-testnet-rpc.polkachu.com/',
+      //'https://okp4-testnet-api.polkachu.com/'
+      ...options||{}
+    })
+  }
+}
