@@ -105,7 +105,7 @@ importers:
   agent:
     dependencies:
       '@hackbg/4mat':
-        specifier: workspace:^2
+        specifier: workspace:^2.0.1
         version: link:../toolbox/4mat
       '@hackbg/dump':
         specifier: workspace:^1.0.1

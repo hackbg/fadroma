@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/agent",
-  "version": "2.0.0-rc.16",
+  "version": "2.0.0-rc.17",
   "license": "AGPL-3.0-only",
   "type": "module",
   "main": "agent.ts",
@@ -21,7 +21,7 @@
     "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123 --no-git-checks'"
   },
   "dependencies": {
-    "@hackbg/4mat": "workspace:^2",
+    "@hackbg/4mat": "workspace:^2.0.1",
     "@hackbg/dump": "workspace:^1.0.1",
     "@hackbg/hide": "^1",
     "@hackbg/into": "^1.0.1",
