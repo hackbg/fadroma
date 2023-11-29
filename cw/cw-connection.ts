@@ -33,7 +33,7 @@ export class CWConnection extends Connection {
     assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex' ])
     this.log.label = [this.chainId, this.address].filter(Boolean).join(': ')
     if (this.url) {
-      if (this.identity.signer) {
+      if (this.identity?.signer) {
         this.log.debug('Connecting\n  to', bold(this.url), this.chainId, '\n  as', bold(this.address), this.identity?.name||'')
         this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
       } else {
