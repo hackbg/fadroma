@@ -27,10 +27,10 @@ export default new Suite([
   //['mocknet',  () => import('./scrt-mocknet.test')],
 ])
 
-import { mainnet, testnet, Connection } from '.'
+import { mainnet, testnet, ScrtConnection } from '.'
 export async function testScrtChain () {
-  assert(mainnet() instanceof Connection)
-  assert(testnet() instanceof Connection)
+  assert(mainnet() instanceof Scrt.Connection)
+  assert(testnet() instanceof Scrt.Connection)
   const { backend, alice, bob, guest } = await testConnectionWithBackend(
     Scrt,
     Devnets.ScrtContainer,

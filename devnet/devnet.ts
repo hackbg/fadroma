@@ -165,7 +165,7 @@ abstract class DevnetContainer extends Backend {
   get spawnEnv () {
     const env: Record<string, string> = {
       DAEMON:    this.daemon||'',
-      TOKEN:     (this as any).Connection?.gasToken.denom, // FIXME
+      TOKEN:     this.Connection.gasToken.denom, // FIXME
       CHAIN_ID:  this.chainId!,
       ACCOUNTS:  JSON.stringify(this.genesisAccounts),
       STATE_UID: String((process.getuid!)()),

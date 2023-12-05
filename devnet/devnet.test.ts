@@ -19,9 +19,23 @@ import * as Devnets from './devnet'
 export const packageRoot = dirname(dirname(resolve(fileURLToPath(import.meta.url))))
 
 import { Suite } from '@hackbg/ensuite'
+
 export default new Suite([
-  ['scrt', ()=>testDevnetPlatform(Scrt.Connection,    Devnets.ScrtContainer, 'v1.9', 'secretd')],
-  ['okp4', ()=>testDevnetPlatform(CW.OKP4.Connection, Devnets.OKP4Container, 'v5.0', 'okp4d')],
+
+  ['scrt', ()=>testDevnetPlatform(
+    Scrt.ScrtConnection,
+    Devnets.ScrtContainer,
+    'v1.9',
+    'secretd'
+  )],
+
+  ['okp4', ()=>testDevnetPlatform(
+    CW.OKP4.OKP4Connection,
+    Devnets.OKP4Container,
+    'v5.0',
+    'okp4d'
+  )],
+
 ])
 
 export async function testDevnetPlatform <

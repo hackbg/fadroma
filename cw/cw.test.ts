@@ -14,8 +14,8 @@ export async function testCWChain () {
   new CW.OKP4.Cognitarium({}) 
   new CW.OKP4.Objectarium({})
   new CW.OKP4.LawStone({})
-  new CW.OKP4.MnemonicIdentity()
-  new CW.SignerIdentity({ signer: {} as any })
+  new CW.OKP4.OKP4MnemonicIdentity()
+  new CW.CWSignerIdentity({ signer: {} as any })
 
   throws(()=>CW.encodeSecp256k1Signature(
     new Uint8Array(),
@@ -30,7 +30,7 @@ export async function testCWChain () {
     new Uint8Array(64)
   ))
   const { backend, alice, bob, guest } = await testConnectionWithBackend(
-    CW.OKP4.Connection,
+    CW.OKP4.OKP4Connection,
     Devnets.OKP4Container,
     'v5.0',
     'uknow',
