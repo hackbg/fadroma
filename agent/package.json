@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/agent",
-  "version": "2.0.0-rc.17",
+  "version": "2.0.0-rc.18",
   "license": "AGPL-3.0-only",
   "type": "module",
   "main": "agent.ts",
@@ -16,12 +16,12 @@
     "cov": "time ensuite-cov -r text -r lcov -- agent.test.ts",
     "clean": "rm -rf .ubik *.dist.*",
 
-    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
     "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
     "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123 --no-git-checks'"
   },
   "dependencies": {
-    "@hackbg/4mat": "workspace:^2.0.1",
+    "@hackbg/4mat": "workspace:^2.0.2",
     "@hackbg/dump": "workspace:^1.0.1",
     "@hackbg/hide": "^1",
     "@hackbg/into": "^1.0.1",

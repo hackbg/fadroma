@@ -1,4 +1,4 @@
-import { Error, Config } from '../cw-base'
+import { Error } from '../cw-base'
 import { CWConnection, CWBatch } from '../cw-connection'
 import CWIdentity, { CWMnemonicIdentity } from '../cw-identity'
 
@@ -6,7 +6,6 @@ import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
-import type { Environment } from '@hackbg/conf'
 import type { Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
 import { Contract, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
