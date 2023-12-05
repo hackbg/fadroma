@@ -1,13 +1,17 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import assert, { equal, rejects } from 'node:assert'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import * as Devnets from '@fadroma/devnets'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
-import Scrt, { Batch, SecretJS } from '@fadroma/scrt'
+import { mainnet, testnet, ScrtConnection, ScrtBatch, SecretJS } from '@fadroma/scrt'
 import { Token } from '@fadroma/agent'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { webcrypto } from 'node:crypto'
+import assert, { equal, rejects } from 'node:assert'
+
+//@ts-ignore
+globalThis.crypto ??= webcrypto
 //import * as Mocknet from './scrt-mocknet'
 
 //@ts-ignore
@@ -27,12 +31,11 @@ export default new Suite([
   //['mocknet',  () => import('./scrt-mocknet.test')],
 ])
 
-import { mainnet, testnet, ScrtConnection } from '.'
 export async function testScrtChain () {
-  assert(mainnet() instanceof Scrt.Connection)
-  assert(testnet() instanceof Scrt.Connection)
+  assert(mainnet() instanceof ScrtConnection)
+  assert(testnet() instanceof ScrtConnection)
   const { backend, alice, bob, guest } = await testConnectionWithBackend(
-    Scrt,
+    ScrtConnection,
     Devnets.ScrtContainer,
     'v1.9',
     'uscrt',

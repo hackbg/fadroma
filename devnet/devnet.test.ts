@@ -26,14 +26,16 @@ export default new Suite([
     Scrt.ScrtConnection,
     Devnets.ScrtContainer,
     'v1.9',
-    'secretd'
+    'secretd',
+    new Token.Native('uscrt')
   )],
 
   ['okp4', ()=>testDevnetPlatform(
     CW.OKP4.OKP4Connection,
     Devnets.OKP4Container,
     'v5.0',
-    'okp4d'
+    'okp4d',
+    new Token.Native('uknow')
   )],
 
 ])
@@ -41,10 +43,15 @@ export default new Suite([
 export async function testDevnetPlatform <
   A extends typeof Connection, D extends typeof Devnets.Container,
 > (
-  Connection: A, Devnet: D, version: string, daemon: string
+  Connection: A,
+  Devnet:     D,
+  version:    string,
+  daemon:     string,
+  gasToken:   Token.Native
 ) {
   const codePath = resolve(packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm')
   let devnet: InstanceType<D> = new (Devnet as any)({
+    gasToken,
     genesisAccounts: {
       User1: 12345678,
       User2: 87654321,
@@ -60,10 +67,13 @@ export async function testDevnetPlatform <
   })
   ok(devnet, "construct devnet")
   ok(typeof devnet.chainId === 'string')
+  ok(devnet.gasToken)
+  ok(devnet.gasToken instanceof Token.Fungible)
+  ok(typeof devnet.gasToken.denom === 'string')
   equal(devnet.initScriptMount, '/devnet.init.mjs')
   ok((await devnet.image) instanceof Dock.Image)
   deepEqual(devnet.spawnEnv.DAEMON,    daemon)
-  deepEqual(devnet.spawnEnv.TOKEN,     Connection.gasToken.denom)
+  deepEqual(devnet.spawnEnv.TOKEN,     gasToken.denom)
   deepEqual(devnet.spawnEnv.CHAIN_ID,  devnet.chainId)
   deepEqual(devnet.spawnEnv.ACCOUNTS,  JSON.stringify(devnet.genesisAccounts))
   deepEqual(devnet.spawnEnv.STATE_UID, String(getuid!()))

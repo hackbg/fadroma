@@ -366,7 +366,7 @@ importers:
         specifier: workspace:*
         version: link:../agent
       '@hackbg/secretjs-esm':
-        specifier: workspace:1.9.3-patch.38
+        specifier: workspace:*
         version: link:secretjs-esm
       '@noble/ed25519':
         specifier: ^2.0.0

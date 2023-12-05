@@ -125,7 +125,7 @@ class ScrtMocknetBackend extends Stub.Backend {
   contracts: Record<Address, ScrtMocknetContract<ScrtCWVersion>> = {}
 
   constructor ({
-    gasToken = 'umock',
+    gasToken = new Token.Native('umock'),
     prefix   = 'secret1',
     chainId  = 'scrt-mocknet',
     url      = 'http://fadroma.tech/scrt-mocknet',
@@ -139,9 +139,8 @@ class ScrtMocknetBackend extends Stub.Backend {
       account.mnemonic = bip39.generateMnemonic(bip39EN)
       account.address = new Wallet(account.mnemonic).address
       this.accounts.set(name, account)
-
       const balances = this.balances.get(account.address) || {}
-      balances[this.gasToken] = BigInt(balance)
+      balances[this.gasToken.denom] = BigInt(balance)
       this.balances.set(account.address, balances)
     }
   }

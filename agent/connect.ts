@@ -584,6 +584,8 @@ export class Contract extends Logged {
 export abstract class Backend extends Logged {
   /** Which kind of devnet to launch */
   platform?: string
+  /** Denomination of base gas token for this chain. */
+  gasToken?: Token.Native
   /** The chain ID that will be passed to the devnet node. */
   chainId?: ChainId
   /** Is this thing on? */
@@ -593,7 +595,7 @@ export abstract class Backend extends Logged {
 
   constructor (properties?: Partial<Backend>) {
     super(properties)
-    assign(this, properties, ["platform", "chainId", "running", "url"])
+    assign(this, properties, ["platform", "chainId", "running", "url", "gasToken"])
   }
 
   abstract connect (parameter?: string|Partial<Identity>): Promise<Connection>

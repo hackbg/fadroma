@@ -135,7 +135,7 @@ type StubInstance = {
 }
 
 class StubBackend extends Backend {
-  gasToken   = 'ustub'
+  gasToken   = new Token.Native('ustub')
   prefix     = 'stub1'
   chainId    = 'stub'
   url        = 'http://stub'
@@ -154,7 +154,7 @@ class StubBackend extends Backend {
     for (const [name, balance] of Object.entries(properties?.genesisAccounts||{})) {
       const address = randomBech32(this.prefix)
       const balances = this.balances.get(address) || {}
-      balances[this.gasToken] = BigInt(balance)
+      balances[this.gasToken.denom] = BigInt(balance)
       this.balances.set(address, balances)
       this.accounts.set(name, { address })
     }

@@ -8,7 +8,7 @@
   "description": "Fadroma support for Secret Network. Provides a SecretJS-based implementation of the base classes in @fadroma/agent to operate smart contracts on the Secret Network.",
   "dependencies": {
     "@fadroma/agent":       "workspace:*",
-    "@hackbg/secretjs-esm": "workspace:1.9.3-patch.38",
+    "@hackbg/secretjs-esm": "workspace:*",
     "@noble/secp256k1":     "^2.0.0",
     "@noble/ed25519":       "^2.0.0"
   },

@@ -105,7 +105,7 @@ abstract class DevnetContainer extends Backend {
     this.stateDir = $(options.stateDir ?? $('state', this.chainId).path)
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
       try {
-        const state = this.stateFile.as(JSONFile).load() || {}
+        const state = (this.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
         // Options always override stored state
         options = { ...state, ...options }
       } catch (e) {
@@ -165,7 +165,7 @@ abstract class DevnetContainer extends Backend {
   get spawnEnv () {
     const env: Record<string, string> = {
       DAEMON:    this.daemon||'',
-      TOKEN:     this.Connection.gasToken.denom, // FIXME
+      TOKEN:     this.gasToken?.denom,
       CHAIN_ID:  this.chainId!,
       ACCOUNTS:  JSON.stringify(this.genesisAccounts),
       STATE_UID: String((process.getuid!)()),
@@ -482,8 +482,6 @@ abstract class DevnetContainer extends Backend {
 }
 
 class ScrtContainer extends DevnetContainer {
-  Connection = Scrt.Connection
-
   constructor ({ version = 'v1.9', ...properties }: Partial<ScrtContainer & {
     version: keyof typeof ScrtContainer.version
   }>) {
@@ -495,11 +493,11 @@ class ScrtContainer extends DevnetContainer {
       parameter = { name: parameter }
     }
     const { mnemonic } = parameter
-    return new Scrt.Connection({
+    return new Scrt.ScrtConnection({
       chainId:  this.chainId,
       url:      this.url?.toString(),
       alive:    this.running,
-      identity: new Scrt.MnemonicIdentity(mnemonic
+      identity: new Scrt.ScrtMnemonicIdentity(mnemonic
         ? parameter as { mnemonic: string }
         : await this.getIdentity(parameter))
     })
@@ -574,8 +572,6 @@ class ScrtContainer extends DevnetContainer {
 }
 
 class OKP4Container extends DevnetContainer {
-  Connection = CW.OKP4.Connection
-
   constructor ({ version = 'v5.0', ...properties }: Partial<OKP4Container & {
     version: keyof typeof OKP4Container.version
   }>) {
@@ -587,11 +583,11 @@ class OKP4Container extends DevnetContainer {
       parameter = { name: parameter }
     }
     const { mnemonic } = parameter
-    return new CW.OKP4.Connection({
+    return new CW.OKP4.OKP4Connection({
       chainId:  this.chainId,
       url:      this.url?.toString(),
       alive:    this.running,
-      identity: new CW.OKP4.MnemonicIdentity(mnemonic
+      identity: new CW.OKP4.OKP4MnemonicIdentity(mnemonic
         ? parameter as { mnemonic: string }
         : await this.getIdentity(parameter))
     })
