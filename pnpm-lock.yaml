@@ -357,6 +357,9 @@ importers:
       '@hackbg/logs':
         specifier: workspace:*
         version: link:../toolbox/logs
+      gracy:
+        specifier: ^4.0.0
+        version: 4.0.0
 
   fixtures: {}
 
@@ -5401,6 +5404,11 @@ packages:
 
   /graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  /gracy@4.0.0:
+    resolution: {integrity: sha512-jDUO/+IyN5v+O7VC66lANOy3xVvcffRFrYuO4YIzRIE62xiEaFihiVdpabkcjzEAjf4+dBBGcXCig0fHPhpp7w==}
+    engines: {node: '>=20', pnpm: '>=8'}
+    dev: false
 
   /graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}

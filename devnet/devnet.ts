@@ -7,7 +7,7 @@ import $, { JSONFile, JSONDirectory, Directory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import portManager, { waitPort } from '@hackbg/port'
 import * as Dock from '@hackbg/dock'
-
+import { onExit } from 'gracy'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomBytes } from 'node:crypto'
@@ -453,8 +453,12 @@ abstract class DevnetContainer extends Backend {
       return
     }
     let exitHandlerCalled = false
-    this.exitHandler = async () => {
-      if (exitHandlerCalled) return
+    onExit(this.exitHandler = async () => {
+      if (exitHandlerCalled) {
+        this.log.warn('Exit handler called more than once')
+        return
+      }
+      exitHandlerCalled = true
       this.log.debug('Running exit handler')
       if (this.autoDelete) {
         await this.pause()
@@ -472,9 +476,7 @@ abstract class DevnetContainer extends Backend {
         ).info(`  $ docker rm`, this.containerId?.slice(0,8),
         ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
       }
-    }
-    process.once('beforeExit', this.exitHandler)
-    process.once('uncaughtExceptionMonitor', this.exitHandler)
+    }, { logger: this.log })
   }
 
   /** Kludge. */

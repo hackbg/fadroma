@@ -10,7 +10,9 @@
 
     "@fadroma/agent": "workspace:*",
     "@fadroma/scrt":  "workspace:*",
-    "@fadroma/cw":    "workspace:*"
+    "@fadroma/cw":    "workspace:*",
+
+    "gracy": "^4.0.0"
   },
   "scripts": {
     "check": "time tsc --noEmit",
