@@ -3,12 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Error } from '@hackbg/oops'
 import { Console, Logged, bold, colors } from '@hackbg/logs'
-import type { Deployment } from './deploy'
-
-const { red, green, gray } = colors
-
 class FadromaError extends Error {}
-
 export { FadromaError as Error }
 
 /** Helper for assigning only allowed properties of value object:
@@ -27,11 +22,7 @@ export function assign <T extends {}> (
 }
 
 export { Console, Logged, bold, colors, timestamp } from '@hackbg/logs'
-
 export * from '@hackbg/into'
-
 export * from '@hackbg/hide'
-
 export * from '@hackbg/4mat'
-
 export * from '@hackbg/dump'
