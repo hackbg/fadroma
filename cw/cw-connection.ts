@@ -253,28 +253,23 @@ export class CWConnection extends Connection {
 
 /** Transaction batch for CosmWasm-enabled chains. */
 export class CWBatch extends Batch<CWConnection> {
-
   upload (
     code:    Parameters<Batch<Connection>["upload"]>[0],
     options: Parameters<Batch<Connection>["upload"]>[1]
   ) {
     return this
   }
-
   instantiate (
     code:    Parameters<Batch<Connection>["instantiate"]>[0],
     options: Parameters<Batch<Connection>["instantiate"]>[1]
   ) {
     return this
   }
-
   execute (
     contract: Parameters<Batch<Connection>["execute"]>[0],
     options:  Parameters<Batch<Connection>["execute"]>[1]
   ) {
     return this
   }
-
   async submit () {}
-
 }

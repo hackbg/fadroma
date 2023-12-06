@@ -1,6 +1,10 @@
 {
   "files": [
-    "*.ts"
+    "package.ts",
+    "devnet-base.ts",
+    "devnet-okp4.ts",
+    "devnet-scrt.ts",
+    "devnet.ts"
   ],
   "include": [],
   "exclude": [ ".ubik", "*.dist.*", "node_modules" ],

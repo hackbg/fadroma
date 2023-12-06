@@ -1,11 +1,10 @@
 import { ok, throws, rejects, deepEqual, equal } from 'node:assert'
-
 import { Token } from '@fadroma/agent'
 import * as Devnets from '@fadroma/devnets'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import * as CW from '.'
-
 import { Suite } from '@hackbg/ensuite'
+
 export default new Suite([
   ['chain', testCWChain],
 ])
@@ -36,7 +35,6 @@ export async function testCWChain () {
     'uknow',
     fixture('cw-null.wasm')
   )
-
   //new CW.OKP4.Connection({ signer: {}, mnemonic: 'x' } as any)
   //throws(()=>new CW.OKP4.Connection({ address: 'foo', mnemonic: [
     //'define abandon palace resource estate elevator',
@@ -44,7 +42,5 @@ export async function testCWChain () {
     //'brush element immense task rapid habit',
     //'angry tiny foil prosper water news'
   //] } as any))
-
   //CW.OKP4.testnet()
-
 }

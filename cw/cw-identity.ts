@@ -7,15 +7,27 @@ import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
-export class CWMnemonicIdentity extends Identity {
+export class CWIdentity extends Identity {
   declare signer: OfflineSigner
+}
 
+export class CWSignerIdentity extends CWIdentity {
+  constructor ({ signer, ...properties }: Partial<Identity & { signer: OfflineSigner }>) {
+    super(properties)
+    if (!signer) {
+      throw new Error("signer not set")
+    }
+    this.signer = signer
+  }
+  sign () {
+  }
+}
+
+export class CWMnemonicIdentity extends CWIdentity {
   bech32Prefix:   string
   coinType:       number
   hdAccountIndex: number
-
   pubkey:         Uint8Array
-
   constructor ({
     bech32Prefix,
     coinType,
@@ -96,19 +108,6 @@ export class CWMnemonicIdentity extends Identity {
         }
       },
     }
-  }
-}
-
-export class CWSignerIdentity extends Identity {
-  signer: OfflineSigner
-  constructor ({ signer, ...properties }: Partial<Identity & { signer: OfflineSigner }>) {
-    super(properties)
-    if (!signer) {
-      throw new Error("signer not set")
-    }
-    this.signer = signer
-  }
-  sign () {
   }
 }
 
