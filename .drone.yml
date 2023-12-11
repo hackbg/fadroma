@@ -1,0 +1,18 @@
+---
+kind: pipeline
+type: docker
+name: default
+trigger: { event: [ push ], branch: [ v2 ] }
+volumes: [ { name: docs, host: { path: /var/www/docs.hack.bg  } } ]
+steps:
+- name: test
+  image: node:21-alpine3.18
+  volumes: [ { name: docs, path: /var/www/docs.hack.bg } ]
+  commands:
+  - corepack enable
+  - pnpm i --frozen-lockfile --strict-peer-dependencies
+  - pnpm docs:typedoc2
+  - du -sh ./docs
+  - mkdir -p /var/www/docs.hack.bg
+  - cp -r docs /var/www/docs.hack.bg/fadroma~
+  - mv /var/www/docs.hack.bg/fadroma~ /var/www/docs.hack.bg/fadroma
