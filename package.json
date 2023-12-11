@@ -35,6 +35,7 @@
     "docs:render": "time ensuite/ensuite-render.cli.mjs",
     "docs:typedoc": "time typedoc --customCss ./typedoc.css --tsconfig ./tsconfig.json --entryPointStrategy Packages --entryPoints agent --entryPoints connect --entryPoints ensuite --entryPoints ensuite/ganesha --entryPoints ensuite/toolbox --entryPoints .",
     "docs:typedoc2": "time typedoc --customCss ./typedoc.css --name Fadroma",
+    "docs:typedoc3": "time typedoc --customCss ./typedoc.css --name Fadroma fadroma.ts",
     "fadroma": "FADROMA_PROJECT=./examples fadroma",
     "prepare": "husky install",
     "repl": "./fadroma.cli.cjs repl",

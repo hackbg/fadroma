@@ -14,9 +14,10 @@ steps:
   commands:
   - corepack enable
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
-  - pnpm docs:typedoc2
+  - pnpm docs:typedoc3
   - du -sh ./docs
   - mkdir -p /var/www/docs.hack.bg
   - cp -r docs /var/www/docs.hack.bg/fadroma~
+  - rm -rf /var/www/docs.hack.bg/fadroma
   - mv /var/www/docs.hack.bg/fadroma~ /var/www/docs.hack.bg/fadroma
 volumes: [ { name: docs, host: { path: /var/www/docs.hack.bg  } } ]
