@@ -9,6 +9,7 @@ steps:
   image: node:21-alpine3.18
   volumes: [ { name: docs, path: /var/www/docs.hack.bg } ]
   commands:
+  - git submodule update --init --recursive
   - corepack enable
   - pnpm i --frozen-lockfile --strict-peer-dependencies
   - pnpm docs:typedoc2
