@@ -9,12 +9,12 @@ steps:
   commands:
   - git submodule init
   - git submodule update --recursive --remote
-- name: test
+- name: docs
   image: node:21-alpine3.18
   volumes: [ { name: docs, path: /var/www/docs.hack.bg } ]
   commands:
   - corepack enable
-  - pnpm i --frozen-lockfile --strict-peer-dependencies
+  - pnpm i --no-frozen-lockfile --strict-peer-dependencies
   - pnpm docs:typedoc2
   - du -sh ./docs
   - mkdir -p /var/www/docs.hack.bg
