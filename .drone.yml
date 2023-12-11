@@ -3,13 +3,16 @@ kind: pipeline
 type: docker
 name: default
 trigger: { event: [ push ], branch: [ v2 ] }
-volumes: [ { name: docs, host: { path: /var/www/docs.hack.bg  } } ]
 steps:
+- name: submodules
+  image: alpine/git
+  commands:
+  - git submodule init
+  - git submodule update --recursive --remote
 - name: test
   image: node:21-alpine3.18
   volumes: [ { name: docs, path: /var/www/docs.hack.bg } ]
   commands:
-  - git submodule update --init --recursive
   - corepack enable
   - pnpm i --frozen-lockfile --strict-peer-dependencies
   - pnpm docs:typedoc2
@@ -17,3 +20,4 @@ steps:
   - mkdir -p /var/www/docs.hack.bg
   - cp -r docs /var/www/docs.hack.bg/fadroma~
   - mv /var/www/docs.hack.bg/fadroma~ /var/www/docs.hack.bg/fadroma
+volumes: [ { name: docs, host: { path: /var/www/docs.hack.bg  } } ]
