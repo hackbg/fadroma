@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: docker
-name: default
+name: docs
 trigger: { event: [ push ], branch: [ v2 ] }
 steps:
 - name: submodules
@@ -21,3 +21,18 @@ steps:
   - rm -rf /var/www/docs.hack.bg/fadroma
   - mv /var/www/docs.hack.bg/fadroma~ /var/www/docs.hack.bg/fadroma
 volumes: [ { name: docs, host: { path: /var/www/docs.hack.bg  } } ]
+---
+kind: pipeline
+type: docker
+name: test
+trigger: { event: [ push ], branch: [ v2 ] }
+steps:
+- name: submodules
+  image: alpine/git
+  commands:
+  - git submodule update --init --recursive
+- name: test
+  image: ghcr.io/hackbg/fadroma:v2
+  commands:
+  - pnpm i --no-frozen-lockfile --strict-peer-dependencies
+  - pnpm cov all
