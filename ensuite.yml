@@ -172,8 +172,9 @@ features:
         info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
         href: https://github.com/hackbg/fadroma/issues/90
 
-  - name: Supported platforms
-    info: |
+  - info: |
+      ## Supported platforms
+
       Fadroma 1.0.0 supports [Secret Network](https://scrt.network/).
       During [**HackWasm Berlin 2023**](https://dorahacks.io/hackathon/hackwasm/detail),
       work began on generic support for other CosmWasm chains, and
@@ -200,52 +201,13 @@ features:
         text: Guide to implementing support for new chains
         href: /impl.html
 
-  - name: Fadroma DSL
+  - name: Safely perform complex operations on the blockchain
+    big: left
     info: |
-      Use attribute macros to abstract away the boilerplate.
-      Compose smart contracts out of encapsulated components.
-    links:
-      - icon: rust
-        text: Fadroma DSL on Crates.io
-        href: https://docs.rs/fadroma-dsl/latest/fadroma_dsl/
-        bold: true
-      - icon: rust
-        text: Fadroma DSL Docs
-        href: ./dsl.html
-        bold: true
-      - icon: rust
-        text: Example contracts
-        href: https://github.com/hackbg/fadroma/tree/master/examples/
-
-  - name: Build reproducibly
-    info: |
-      Perform production builds of your contracts in a Docker container.
-    link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
-    links:
-      - icon: console
-        text: $ fadroma build
-        href: /build.html#BuildCLI
-        bold: true
-      - icon: typescript
-        text: "@fadroma/build"
-        href: /build.html#BuildAPI
-        bold: true
-
-  - name: Export a rich API
-    info: |
-      Extend the `@fadroma/agent` library to define the structure of your project,
-      export a client library for third-party integrations, and add support for new chains.
-    links:
-      - icon: typescript
-        text: "@fadroma/agent"
-        href: /agent.html
-        bold: true
-      - icon: typescript
-        text: Example client
-        href: https://github.com/hackbg/fadroma/tree/master/examples/project/api/api.ts
-
-  - name: Deploy and operate
-    info: Manage hundreds of heterogeneous contracts using a declarative API.
+      Define the structure once, then manage hundreds of different contracts declaratively.
+      ## Share a rich API
+      Your project definition is also your app's SDK library,
+      ready for third-party integrations, and add support for new chains.
     links:
       - icon: typescript
         text: Writing a script
@@ -258,11 +220,61 @@ features:
       - icon: typescript
         text: Example script
         href: https://github.com/hackbg/fadroma/tree/master/examples/project/ops/ops.ts
+      - icon: typescript
+        text: "@fadroma/agent"
+        href: /agent.html
+        bold: true
+      - icon: typescript
+        text: Example client
+        href: https://github.com/hackbg/fadroma/tree/master/examples/project/api/api.ts
 
-  - name: Efficient storage
+  - name: Tokenomics
     info: |
-      Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
+      Interact with fungible and non-fungible distributed tokens.
     links:
+      - icon: typescript
+        text: Call a SNIP20 token from a script or an app
+        href: /scrt.html#SNIP20Client
+        bold: true
+      - icon: rust
+        text: Call a SNIP20 token from another contract
+        info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/
+        bold: true
+      - icon: rust
+        text: Customize a SNIP20 token
+        info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/
+        bold: true
+      - icon: todo
+        text: "WIP: SNIP721 Client class"
+
+  - name: Write smart contracts with ease
+    big: left
+    info: |
+      Use attribute macros to abstract away the boilerplate.
+      Compose smart contracts out of encapsulated components.
+
+      ## Efficient storage
+      Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
+
+      ## 256-bit math
+      Fadroma implements 256-bit math for EVM/Cosmos interop, hashing, and randomness for contracts.
+
+      ## Authorization
+      Pluggable implementations of several common access control patterns.
+    links:
+      - icon: rust
+        text: Fadroma DSL on Crates.io
+        href: https://docs.rs/fadroma-dsl/latest/fadroma_dsl/
+        bold: true
+      - icon: rust
+        text: Fadroma DSL Docs
+        href: ./dsl.html
+        bold: true
+      - icon: rust
+        text: Example contracts
+        href: https://github.com/hackbg/fadroma/tree/master/examples/
       - icon: rust
         text: fadroma::storage
         href: https://docs.rs/fadroma/latest/fadroma/storage/
@@ -275,10 +287,6 @@ features:
         text: fadroma-derive-canonize
         href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/
         bold: true
-
-  - name: Math primitives
-    info: Fadroma implements 256-bit math for EVM/Cosmos interop, hashing, and randomness for contracts.
-    links:
       - icon: rust
         text: 256-bit integer arithmetic
         href: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
@@ -291,31 +299,6 @@ features:
         text: ChaCha-based pseudo-random number generator
         href: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
         bold: true
-
-  - name: Tokenomics
-    info: |
-      Interact with fungible and non-fungible distributed tokens.
-    links:
-      - icon: rust
-        text: Embed custom SNIP20 token into a contract
-        info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/
-        bold: true
-      - icon: rust
-        text: Call SNIP20 token from another contract
-        info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/
-        bold: true
-      - icon: typescript
-        text: Call SNIP20 token from TS
-        href: /scrt.html#SNIP20Client
-        bold: true
-      - icon: todo
-        text: "WIP: SNIP721 Client class"
-
-  - name: Authorization
-    info: Fadroma implements several common access control patterns and primitives.
-    links:
       - icon: rust
         text: Admin role
         href: https://docs.rs/fadroma/latest/fadroma/admin/
@@ -344,26 +327,23 @@ features:
         href: ./scrt.html
         bold: true
 
-  - name: Local devnets
-    info: Spawn local blockchain nodes for development and testing.
-    link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
+  - name: Reproducible builds
+    info: |
+      Perform production builds of your contracts in a preset Docker container.
+      ## Integration testing
+      Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
+      ## Local devnets
+      Spawn real blockchain nodes locally for end-to-end testing.
+    link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
     links:
       - icon: console
-        text: $ fadroma devnet
-        href: devnet.html#cli
+        text: $ fadroma build
+        href: /build.html#BuildCLI
         bold: true
       - icon: typescript
-        text: "@fadroma/devnet"
-        href: devnet.html#api
+        text: "@fadroma/build"
+        href: /build.html#BuildAPI
         bold: true
-      - icon: todo
-        text: "WIP: Export devnet"
-      - icon: todo
-        text: "TODO: Smart code reloading"
-
-  - name: Integration testing
-    info: Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
-    links:
       - icon: rust
         text: fadroma::ensemble
         href: https://docs.rs/fadroma/latest/fadroma/ensemble/
@@ -379,47 +359,56 @@ features:
         text: "TODO: Property-based testing"
       - icon: todo
         text: "TODO: Gas profiling"
+      - icon: console
+        text: $ fadroma devnet
+        href: devnet.html#cli
+        bold: true
+      - icon: typescript
+        text: "@fadroma/devnet"
+        href: devnet.html#api
+        bold: true
+      - icon: todo
+        text: "WIP: Export devnet"
+      - icon: todo
+        text: "TODO: Smart code reloading"
 
-  - name: Docker integration
-    info: Fadroma runs builds and devnets in containers using Docker or Podman
+  - info: |
+      ## Docker integration
+      Fadroma runs builds and devnets in containers using Docker or Podman
+
+      ## Scripting
+      Fadroma scripts are structured as ES/TS modules that export one or more commands.
+
+      ## Configuration
+      You can configure the TypeScript subsystems of Fadroma using env vars and/or a .env file.
+
+      ## Literate programming
+      Fadroma is tested using the Ensuite documentation and testing harness for Markdown and TypeScript.
     foss: true
+    big: left
     link:
     links:
       - icon: todo
         text: "WIP: Podman support"
       - icon: typescript
-        text: "Powered by @hackbg/dock"
+        text: "@hackbg/dock"
         href: https://www.npmjs.com/package/@hackbg/dock
         bold: true
-
-  - name: Scripting
-    info: Fadroma scripts are structured as ES/TS modules that export one or more commands.
-    foss: true
-    links:
       - icon: typescript
-        text: "Powered by @hackbg/cmds"
+        text: "@hackbg/cmds"
         href: https://www.npmjs.com/package/@hackbg/cmds
         bold: true
-
-  - name: Configuration
-    info: You can configure the TypeScript subsystems of Fadroma using env vars and/or a .env file.
-    foss: true
-    links:
       - icon: typescript
-        text: "Powered by @hackbg/conf"
+        text: "@hackbg/conf"
         href: https://www.npmjs.com/package/@hackbg/conf
         bold: true
-
-  - name: Literate programming
-    info: Fadroma is tested using the Ensuite documentation and testing harness for Markdown and TypeScript.
-    foss: true
-    links:
       - icon: typescript
         text: "@hackbg/ensuite"
         href: https://github.com/hackbg/ensuite
         bold: true
 
   - name: Licensing
+    foss: true
     info: |
       Fadroma is [**free software**](https://foss.hack.bg), 
       available to the public under the [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.txt) 

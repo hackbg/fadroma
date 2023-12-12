@@ -22,7 +22,7 @@ html(lang='en')
     mixin icon (id)
       svg(class=`icon icon-${id}`)
         use(xlink:href=`#${id}`)
-    .content
+    .main
       header
         a.logo(href="https://github.com/hackbg/fadroma")
           img(src='./assets/logo.svg')
@@ -71,3 +71,4 @@ html(lang='en')
                       strong= link.text
                     else
                       = link.text
+    //-.wallet x Connected!
