@@ -37,6 +37,8 @@ steps:
   - cp -r docs /var/www/docs.hack.bg/fadroma~
   - rm -rf /var/www/docs.hack.bg/fadroma
   - mv /var/www/docs.hack.bg/fadroma~ /var/www/docs.hack.bg/fadroma
+  environment:
+    FORCE_COLOR: 2
 volumes:
 - { name: cache, host: { path: /var/build/cache } }
 - { name: docs,  host: { path: /var/www/docs.hack.bg } }
@@ -54,8 +56,7 @@ steps:
   - cat BRANCH
 - name: test
   image: ghcr.io/hackbg/fadroma:v2
-  volumes:
-  - { name: cache, path: "/var/build/cache" }
+  volumes: [ { name: cache, path: "/var/build/cache" } ]
   commands:
   - export BRANCH="$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
   - echo $BRANCH
@@ -72,5 +73,7 @@ steps:
 
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
   - pnpm cov all
+  environment:
+    FORCE_COLOR: 2
 volumes:
 - { name: cache, host: { path: /var/build/cache } }
