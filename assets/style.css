@@ -7,7 +7,7 @@ html, body {
 body {
   color: #123;
   font-size: 16px;
-  font-family: "Cantarell", "Inter", sans-serif;
+  font-family: "Cantarell", sans-serif;
   background-color: rgb(101, 179, 76);
   background-image: url('bg.svg');
   background-repeat: repeat;
