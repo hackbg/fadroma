@@ -66,7 +66,7 @@ jobs:
           tar -cvf dist/docs/nix shell.nix
 
       - name: Publish docs
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'v2'
         run: |
           pwd
           ls -al
