@@ -94,7 +94,7 @@ th { padding-right: 5em }
   flex-flow: row wrap;
   justify-content: center;
   margin: 0 0 3rem 0;
-  padding: 0 0.5rem 0 0;
+  padding: 0.33rem 0.66rem 0 0;
 }
 
 @media (max-width: 80rem) {
@@ -132,7 +132,7 @@ th { padding-right: 5em }
 
 .feature {
   padding: 1rem;
-  margin: 1rem 0.5rem 0;
+  margin: 1rem 0.66rem 0;
   border: 1px solid rgba(0,0,0,0.1);
   border-top-color: rgba(255,255,255,0.5);
   border-left-color: rgba(255,255,255,0.5);
@@ -147,6 +147,10 @@ th { padding-right: 5em }
   .feature .docs {
     font-weight: bold;
   }
+  .feature .description {
+    line-height: 1.5;
+    font-size: 0.875rem;
+  }
 
 .left {
   text-align: left;
@@ -155,10 +159,6 @@ th { padding-right: 5em }
   text-align: center;
 }
 
-.feature .description {
-  line-height: 1.5;
-  font-size: 0.875rem;
-}
 
 code { font-size: 0.9375rem; }
 code.inline, code.block { background: #0c5749; color: white; font-family: monospace; font-weight: bold; }
@@ -204,9 +204,10 @@ pre, code {
 }
 
 p {
-  line-height: 1.5rem;
+  line-height: 1.75rem;
   margin-top: 0;
   margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 svg.icon {
