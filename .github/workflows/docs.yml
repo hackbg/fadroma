@@ -62,7 +62,7 @@ jobs:
           mv docs dist/docs/ts
           #mv coverage/lcov-report dist/docs/cov/ts
           mv .docs/* dist/docs
-          cp -r assets/* dist/docs
+          cp -r assets dist/docs
           tar -cvf dist/docs/nix shell.nix
 
       - name: Publish docs
@@ -85,6 +85,7 @@ jobs:
           rm -rf stable unstable js
           cp -rv ../page/* .
           #mv ../.gitmodules . || true
+          ls -alh
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
           git add .
