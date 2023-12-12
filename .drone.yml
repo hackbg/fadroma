@@ -7,7 +7,7 @@ steps:
 - name: submodules
   image: alpine/git
   commands:
-  - git submodule update --init --recursive
+  - git submodule update --init --recursive --depth 1
   - printf $(git rev-parse --abbrev-ref HEAD) > BRANCH
   - cat BRANCH
 - name: docs
@@ -49,7 +49,7 @@ steps:
 - name: submodules
   image: alpine/git
   commands:
-  - git submodule update --init --recursive
+  - git submodule update --init --recursive --depth 1
   - printf $(git rev-parse --abbrev-ref HEAD) > BRANCH
   - cat BRANCH
 - name: test
