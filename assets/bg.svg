@@ -1,59 +1,220 @@
-<svg width="2566px" height="1305px" viewBox="0 0 2566 1305" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <defs/>
-    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="Artboard" transform="translate(-37.000000, -25.000000)">
-            <g id="background" transform="translate(37.000000, 25.000000)">
-                <g id="Rectangle-3_Isometric" opacity="0.0510044643" transform="translate(1132.000000, 3.000000)">
-                    <polygon fill="#616161" points="176.347403 357 0 268.325806 0 90.9774194 176.347403 179.651613"/>
-                    <polygon fill="#9C9C9C" points="176.347403 357 352.694805 268.325806 352.694805 90.9774194 176.347403 179.651613"/>
-                    <polygon fill="#8D8D8D" points="0 89.25 177.5 0 355 89.25 177.5 178.5"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0510044643" transform="translate(0.000000, 435.000000)">
-                    <polygon fill="#616161" points="274.271399 555 0 417.209544 0 141.628631 274.271399 279.419087"/>
-                    <polygon fill="#9C9C9C" points="274.271399 555 548.542797 417.209544 548.542797 141.628631 274.271399 279.419087"/>
-                    <polygon fill="#8D8D8D" points="0 138.75 276 0 552 138.75 276 277.5"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0510044643" transform="translate(1309.000000, 427.000000)">
-                    <polygon fill="#616161" points="210.772358 427 0 321.113208 0 109.339623 210.772358 215.226415"/>
-                    <polygon fill="#9C9C9C" points="210.772358 427 421.544715 321.113208 421.544715 109.339623 210.772358 215.226415"/>
-                    <polygon fill="#8D8D8D" points="0 106.462264 212.5 0 425 106.462264 212.5 212.924528"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0510044643" transform="translate(2141.000000, 0.000000)">
-                    <polygon fill="#616161" points="210.772358 427 0 321.113208 0 109.339623 210.772358 215.226415"/>
-                    <polygon fill="#9C9C9C" points="210.772358 427 421.544715 321.113208 421.544715 109.339623 210.772358 215.226415"/>
-                    <polygon fill="#8D8D8D" points="0 106.462264 212.5 0 425 106.462264 212.5 212.924528"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0501116071" transform="translate(444.000000, 52.000000)">
-                    <polygon fill="#616161" points="161 327 0 245.666667 0 83 161 164.333333"/>
-                    <polygon fill="#9C9C9C" points="161 327 322 245.666667 322 83 161 164.333333"/>
-                    <polygon fill="#8D8D8D" points="0 82 162 0 324 82 162 164"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0501116071" transform="translate(851.000000, 713.000000)">
-                    <polygon fill="#616161" points="103 209 0 157 0 53 103 105"/>
-                    <polygon fill="#9C9C9C" points="103 209 206 157 206 53 103 105"/>
-                    <polygon fill="#8D8D8D" points="0 52.5 103.5 0 207 52.5 103.5 105"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0501116071" transform="translate(1912.000000, 331.000000)">
-                    <polygon fill="#616161" points="103 209 0 157 0 53 103 105"/>
-                    <polygon fill="#9C9C9C" points="103 209 206 157 206 53 103 105"/>
-                    <polygon fill="#8D8D8D" points="0 52.5 103.5 0 207 52.5 103.5 105"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0501116071" transform="translate(1367.000000, 1002.000000)">
-                    <polygon fill="#616161" points="103 209 0 157 0 53 103 105"/>
-                    <polygon fill="#9C9C9C" points="103 209 206 157 206 53 103 105"/>
-                    <polygon fill="#8D8D8D" points="0 52.5 103.5 0 207 52.5 103.5 105"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0501116071" transform="translate(198.000000, 1096.000000)">
-                    <polygon fill="#616161" points="103 209 0 157 0 53 103 105"/>
-                    <polygon fill="#9C9C9C" points="103 209 206 157 206 53 103 105"/>
-                    <polygon fill="#8D8D8D" points="0 52.5 103.5 0 207 52.5 103.5 105"/>
-                </g>
-                <g id="Rectangle-3_Isometric" opacity="0.0501116071" transform="translate(2284.000000, 974.000000)">
-                    <polygon fill="#616161" points="103 209 0 157 0 53 103 105"/>
-                    <polygon fill="#9C9C9C" points="103 209 206 157 206 53 103 105"/>
-                    <polygon fill="#8D8D8D" points="0 52.5 103.5 0 207 52.5 103.5 105"/>
-                </g>
-            </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="2566px"
+   height="1305px"
+   viewBox="0 0 2566 1305"
+   version="1.1"
+   id="svg87"
+   sodipodi:docname="bg.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview89"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="0.52883866"
+     inkscape:cx="1283"
+     inkscape:cy="652.37288"
+     inkscape:window-width="2048"
+     inkscape:window-height="1083"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg87" />
+  <defs
+     id="defs2" />
+  <g
+     stroke="none"
+     stroke-width="1"
+     fill="none"
+     fill-rule="evenodd"
+     id="g85">
+    <g
+       id="Artboard"
+       transform="translate(-37.000000, -25.000000)">
+      <g
+         id="background"
+         transform="translate(37.000000, 25.000000)">
+        <g
+           id="Rectangle-3_Isometric"
+           opacity="0.0510044643"
+           transform="translate(1132.000000, 3.000000)">
+          <polygon
+             fill="#616161"
+             points="176.347403 357 0 268.325806 0 90.9774194 176.347403 179.651613"
+             id="polygon4" />
+          <polygon
+             fill="#9C9C9C"
+             points="176.347403 357 352.694805 268.325806 352.694805 90.9774194 176.347403 179.651613"
+             id="polygon6" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 89.25 177.5 0 355 89.25 177.5 178.5"
+             id="polygon8" />
         </g>
+        <g
+           id="g17"
+           opacity="0.0510044643"
+           transform="translate(0.000000, 435.000000)">
+          <polygon
+             fill="#616161"
+             points="274.271399 555 0 417.209544 0 141.628631 274.271399 279.419087"
+             id="polygon11" />
+          <polygon
+             fill="#9C9C9C"
+             points="274.271399 555 548.542797 417.209544 548.542797 141.628631 274.271399 279.419087"
+             id="polygon13" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 138.75 276 0 552 138.75 276 277.5"
+             id="polygon15" />
+        </g>
+        <g
+           id="g25"
+           opacity="0.0510044643"
+           transform="translate(1309.000000, 427.000000)">
+          <polygon
+             fill="#616161"
+             points="210.772358 427 0 321.113208 0 109.339623 210.772358 215.226415"
+             id="polygon19" />
+          <polygon
+             fill="#9C9C9C"
+             points="210.772358 427 421.544715 321.113208 421.544715 109.339623 210.772358 215.226415"
+             id="polygon21" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 106.462264 212.5 0 425 106.462264 212.5 212.924528"
+             id="polygon23" />
+        </g>
+        <g
+           id="g33"
+           opacity="0.0510044643"
+           transform="translate(2141.000000, 0.000000)">
+          <polygon
+             fill="#616161"
+             points="210.772358 427 0 321.113208 0 109.339623 210.772358 215.226415"
+             id="polygon27" />
+          <polygon
+             fill="#9C9C9C"
+             points="210.772358 427 421.544715 321.113208 421.544715 109.339623 210.772358 215.226415"
+             id="polygon29" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 106.462264 212.5 0 425 106.462264 212.5 212.924528"
+             id="polygon31" />
+        </g>
+        <g
+           id="g41"
+           opacity="0.0501116071"
+           transform="translate(444.000000, 52.000000)">
+          <polygon
+             fill="#616161"
+             points="161 327 0 245.666667 0 83 161 164.333333"
+             id="polygon35" />
+          <polygon
+             fill="#9C9C9C"
+             points="161 327 322 245.666667 322 83 161 164.333333"
+             id="polygon37" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 82 162 0 324 82 162 164"
+             id="polygon39" />
+        </g>
+        <g
+           id="g49"
+           opacity="0.0501116071"
+           transform="translate(851.000000, 713.000000)">
+          <polygon
+             fill="#616161"
+             points="103 209 0 157 0 53 103 105"
+             id="polygon43" />
+          <polygon
+             fill="#9C9C9C"
+             points="103 209 206 157 206 53 103 105"
+             id="polygon45" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 52.5 103.5 0 207 52.5 103.5 105"
+             id="polygon47" />
+        </g>
+        <g
+           id="g57"
+           opacity="0.0501116071"
+           transform="translate(1912.000000, 331.000000)">
+          <polygon
+             fill="#616161"
+             points="103 209 0 157 0 53 103 105"
+             id="polygon51" />
+          <polygon
+             fill="#9C9C9C"
+             points="103 209 206 157 206 53 103 105"
+             id="polygon53" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 52.5 103.5 0 207 52.5 103.5 105"
+             id="polygon55" />
+        </g>
+        <g
+           id="g65"
+           opacity="0.0501116071"
+           transform="translate(1367.000000, 1002.000000)">
+          <polygon
+             fill="#616161"
+             points="103 209 0 157 0 53 103 105"
+             id="polygon59" />
+          <polygon
+             fill="#9C9C9C"
+             points="103 209 206 157 206 53 103 105"
+             id="polygon61" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 52.5 103.5 0 207 52.5 103.5 105"
+             id="polygon63" />
+        </g>
+        <g
+           id="g73"
+           opacity="0.0501116071"
+           transform="translate(198.000000, 1096.000000)">
+          <polygon
+             fill="#616161"
+             points="103 209 0 157 0 53 103 105"
+             id="polygon67" />
+          <polygon
+             fill="#9C9C9C"
+             points="103 209 206 157 206 53 103 105"
+             id="polygon69" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 52.5 103.5 0 207 52.5 103.5 105"
+             id="polygon71" />
+        </g>
+        <g
+           id="g81"
+           opacity="0.0501116071"
+           transform="translate(2284.000000, 974.000000)">
+          <polygon
+             fill="#616161"
+             points="103 209 0 157 0 53 103 105"
+             id="polygon75" />
+          <polygon
+             fill="#9C9C9C"
+             points="103 209 206 157 206 53 103 105"
+             id="polygon77" />
+          <polygon
+             fill="#8D8D8D"
+             points="0 52.5 103.5 0 207 52.5 103.5 105"
+             id="polygon79" />
+        </g>
+      </g>
     </g>
+  </g>
 </svg>

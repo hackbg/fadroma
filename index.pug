@@ -8,7 +8,6 @@ html(lang='en')
       include assets/fonts.css
       include assets/style.css
   body
-
     svg(
       style="position:absolute;width:0;height:0;overflow:hidden"
       version="1.1"
@@ -20,18 +19,13 @@ html(lang='en')
           symbol(id=icon.id viewBox=icon.viewBox)
             title= icon.title
             path(d=icon.path)
-
     mixin icon (id)
       svg(class=`icon icon-${id}`)
         use(xlink:href=`#${id}`)
-
     .content
-
       header
-        
         a.logo(href="https://github.com/hackbg/fadroma")
           img(src='./assets/logo.svg')
-
         div
           p
           .badges.center
@@ -53,18 +47,17 @@ html(lang='en')
               img(src="https://img.shields.io/npm/v/@fadroma/cw?color=%2365b34c&label=%40fadroma%2Fcw")
             a.badge(href="https://www.npmjs.com/package/@fadroma/evm")
               img(src="https://img.shields.io/npm/v/@fadroma/evm?color=%2365b34c&label=%40fadroma%2Fevm")
-
       #features
-
         .grid
           each feature in self.features
             .feature(style=feature.style class=[
-              feature.big    && `big-${feature.big}`,
-              feature.invert && `invert`,
-              feature.foss   && `foss`,
+              feature.big && `big-${feature.big}`,
+              feature.highlight && `highlight`,
+              feature.foss && `foss`,
             ].filter(Boolean).join(' '))
               div
-                h2= feature.name
+                if feature.name
+                  h2= feature.name
                 div.description!= self.markdown.render(feature.info||'')
               .spacer
               if feature.tags
@@ -78,4 +71,3 @@ html(lang='en')
                       strong= link.text
                     else
                       = link.text
-

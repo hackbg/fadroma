@@ -10,6 +10,8 @@ body {
   font-family: "Cantarell", sans-serif;
   background-color: rgb(101, 179, 76);
   background-image: url('bg.svg');
+  background-image: url('assets/bg.svg');
+  background-size: contain;
   background-repeat: repeat;
 }
   body > .content {
@@ -24,7 +26,7 @@ body {
   body > .content > header {
     text-align: center;
     margin: 0 auto;
-    padding: 2rem 2rem 1rem;
+    padding: 1.25rem 1rem;
     display: flex;
     flex-flow: column nowrap;
     justify-content: space-around;
@@ -42,9 +44,26 @@ body {
       max-width: 16rem;
       max-height: 16rem;
     }
+    body > .content > header .logo.hack {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: space-around;
+    }
+    body > .content > header .logo.hack img {
+      max-width: 9rem;
+    }
     body > .content > header a.badge {
       display: inline-block; padding: 0.25rem 0.5rem;
     }
+
+a[href] {
+  text-decoration: none;
+}
+  a[href]:hover,
+  a[href]:focus {
+    text-decoration: underline;
+  }
 
 section { padding: 1em; }
 
@@ -93,7 +112,7 @@ th { padding-right: 5em }
   grid-template-columns: 1fr 1fr 1fr 1fr;
   flex-flow: row wrap;
   justify-content: center;
-  margin: 0 0 3rem 0;
+  margin: 0 0 3rem -0.66rem;
   padding: 0.33rem 0.66rem 0 0;
 }
 
@@ -144,6 +163,38 @@ th { padding-right: 5em }
   min-height: 10rem;
   border-radius: 0.5rem;
 }
+  .feature.highlight {
+    background-color: rgb(67, 119, 51);
+    background-image: url('bg.svg');
+    background-image: url('assets/bg.svg');
+    background-size: contain;
+    background-repeat: repeat;
+    color: white;
+    padding: 2rem;
+  }
+    .feature.highlight * { color: white; fill: white; }
+    .feature.highlight a.docs { color: white; }
+    .feature.highlight a.docs[href] { text-decoration: underline; }
+    .feature.highlight p { font-size: 1.33rem; line-height: 2rem; }
+    .feature.highlight pre { margin: 0 -1rem; }
+  .feature.foss { background: #2e0056; color: white; }
+    .feature.foss * { color: white; fill:  white; }
+    .feature.foss a.docs { color: white; }
+  .feature pre {
+    padding: 0;
+    font-size: 0.875rem;
+    font-weight: normal;
+    margin-top: 1rem;
+    color: #555;
+  }
+    .feature pre .hljs {
+      padding: 1rem 2rem;
+      border: none;
+      box-shadow: none;
+    }
+    .feature pre .hljs.language-sh .hljs-comment {
+      color: #89a;
+    }
   .feature .docs {
     font-weight: bold;
   }
@@ -234,7 +285,7 @@ a > svg.icon {
   color: #888;
 }
 .feature a.docs[href] {
-  text-decoration: underline;
+  text-decoration: none;
   color: rgb(67, 119, 51);
   cursor: pointer;
 }
@@ -261,30 +312,8 @@ svg.icon-todo {
     padding-left 0.33s,
     margin-right 0.33s;
 }
-.links > a[href]:hover {
-  padding-left: 0.5rem;
-  margin-right: 0.5rem;
-}
-.feature pre {
-  background: #eee;
-  padding: 0.5rem;
-  border-radius: 0.1rem;
-  font-size: 0.875rem;
-  font-weight: normal;
-  margin-top: 1rem;
-  color: #555;
-}
 
 /*.feature .links .icon { fill: #F46623 }*/
-
-.feature.invert { background: rgb(67, 119, 51); color: white; }
-.feature.invert * { color: white; fill: white; }
-.feature.invert a.docs { color: white; }
-.feature.invert a.docs[href] { text-decoration: underline; }
-
-.feature.foss { background: #2e0056; color: white; }
-.feature.foss * { color: white; fill:  white; }
-.feature.foss a.docs { color: white; }
 
 .icon-todo { fill: #aaa !important; }
 
