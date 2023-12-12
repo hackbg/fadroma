@@ -78,49 +78,16 @@ sidebar:
       text: Supporting new chains
 
 routes:
-  - path: /index.html
-    page: index.pug
-    name: Fadroma
-
-  - path: /guide.html
-    page: GUIDE.ts.md
-    name: Getting started
-
-  - path: /dsl.html
-    page: proc/fadroma-dsl/README.md
-    name: Macro DSL
-
-  - path: /agent.html
-    page: agent/README.md
-    name: Agent
-
-  - path: /build.html
-    page: ops/build.docs.md
-    name: Building
-
-  - path: /connect.html
-    page: connect/README.md
-    name: Connecting
-
-  - path: /devnet.html
-    page: ops/devnets.docs.md
-    name: Devnet
-
-  - path: /project.html
-    page: ops/project.docs.md
-    name: Project
-
-  - path: /scrt.html
-    page: connect/scrt/README.md
-    name: Secret Network
-
-  - path: /scrt.html
-    page: connect/cw/README.md
-    name: CosmWasm
-
-  - path: /schema.html
-    page: schema/schema.pug
-    name: CosmWasm Schema Tool
+  - { path: /index.html,   page: index.pug,                  name: Fadroma }
+  - { path: /guide.html,   page: GUIDE.ts.md,                name: Getting started }
+  - { path: /dsl.html,     page: proc/fadroma-dsl/README.md, name: Macro DSL }
+  - { path: /agent.html,   page: agent/README.md,            name: Agent }
+  - { path: /build.html,   page: compile/README.md,          name: Building }
+  - { path: /devnet.html,  page: devnet/README.md,           name: Devnet }
+  - { path: /project.html, page: create/README.md,           name: Project }
+  - { path: /scrt.html,    page: scrt/README.md,             name: Secret Network }
+  - { path: /cw.html,      page: cw/README.md,               name: CosmWasm }
+  - { path: /schema.html,  page: schema/schema.pug,          name: CosmWasm Schema Tool }
 
 styles:
   - assets/fonts.css
