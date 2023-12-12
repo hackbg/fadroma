@@ -165,21 +165,31 @@ th { padding-right: 5em }
 }
   .feature.highlight {
     background-color: rgb(67, 119, 51);
-    background-image: url('bg.svg');
-    background-image: url('assets/bg.svg');
+    background-image: url('bg.svg'), linear-gradient(to bottom, transparent 90%, rgba(0,0,0,0.1));
+    background-image: url('assets/bg.svg'), linear-gradient(to bottom, transparent 90%, rgba(0,0,0,0.1));
     background-size: contain;
     background-repeat: repeat;
     color: white;
     padding: 2rem;
+    box-shadow: 2px 2px 2px rgba(0,0,0,0.2) inset;
   }
     .feature.highlight * { color: white; fill: white; }
     .feature.highlight a.docs { color: white; }
     .feature.highlight a.docs[href] { text-decoration: underline; }
     .feature.highlight p { font-size: 1.33rem; line-height: 2rem; }
     .feature.highlight pre { margin: 0 -1rem; }
+    .feature.highlight h2 {
+      font-size: 1.75em;
+      line-height: 2.33rem;
+      margin-bottom: 1rem;
+      text-transform: none;
+      margin-top: -0.5rem;
+    }
   .feature.foss { background: #2e0056; color: white; }
     .feature.foss * { color: white; fill:  white; }
     .feature.foss a.docs { color: white; }
+  .feature h2 { font-size: 1rem; line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
+  .feature p { line-height: 1.5rem; }
   .feature pre {
     padding: 0;
     font-size: 0.875rem;
@@ -304,14 +314,16 @@ svg.icon-todo {
 
 .links {
   display: flex;
-  flex-flow: column nowrap;
+  flex-flow: row wrap;
+  margin-top: -0.5rem;
+  margin-bottom: -0.5rem;
 }
-.links > a {
-  margin-right: 1rem;
-  transition:
-    padding-left 0.33s,
-    margin-right 0.33s;
-}
+  .links > a {
+    margin-right: 1rem;
+    transition:
+      padding-left 0.33s,
+      margin-right 0.33s;
+  }
 
 /*.feature .links .icon { fill: #F46623 }*/
 
