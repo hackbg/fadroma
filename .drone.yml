@@ -8,10 +8,27 @@ steps:
   image: alpine/git
   commands:
   - git submodule update --init --recursive
+  - printf $(git rev-parse --abbrev-ref HEAD) > BRANCH
+  - cat BRANCH
 - name: docs
-  image: node:21-alpine3.18
-  volumes: [ { name: docs, path: /var/www/docs.hack.bg } ]
+  image: ghcr.io/hackbg/fadroma:v2
+  volumes:
+  - { name: cache, path: /var/build/cache }
+  - { name: docs, path: /var/www/docs.hack.bg }
   commands:
+  - export BRANCH="$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
+  - echo $BRANCH
+
+  - mkdir -vp "/var/build/cache/fadroma-docs-$BRANCH"
+  - rm -rvf node_modules
+  - ln -vs "/var/build/cache/fadroma-docs-$BRANCH" node_modules
+  - touch node_modules/.magic
+
+  - mkdir -vp "/var/build/cache/pnpm-store-v3"
+  - rm -rvf ~/.local/share/pnpm
+  - mkdir -p ~/.local/share/pnpm/store
+  - ln -s "/var/build/cache/pnpm-store-v3" ~/.local/share/pnpm/store/v3
+
   - corepack enable
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
   - pnpm docs:typedoc3
@@ -20,7 +37,9 @@ steps:
   - cp -r docs /var/www/docs.hack.bg/fadroma~
   - rm -rf /var/www/docs.hack.bg/fadroma
   - mv /var/www/docs.hack.bg/fadroma~ /var/www/docs.hack.bg/fadroma
-volumes: [ { name: docs, host: { path: /var/www/docs.hack.bg  } } ]
+volumes:
+- { name: cache, host: { path: /var/build/cache } }
+- { name: docs,  host: { path: /var/www/docs.hack.bg } }
 ---
 kind: pipeline
 type: docker
@@ -31,8 +50,27 @@ steps:
   image: alpine/git
   commands:
   - git submodule update --init --recursive
+  - printf $(git rev-parse --abbrev-ref HEAD) > BRANCH
+  - cat BRANCH
 - name: test
   image: ghcr.io/hackbg/fadroma:v2
+  volumes:
+  - { name: cache, path: "/var/build/cache" }
   commands:
+  - export BRANCH="$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
+  - echo $BRANCH
+
+  - mkdir -vp "/var/build/cache/fadroma-test-$BRANCH"
+  - rm -rvf node_modules
+  - ln -vs "/var/build/cache/fadroma-test-$BRANCH" node_modules
+  - touch node_modules/.magic
+
+  - mkdir -vp "/var/build/cache/pnpm-store-v3"
+  - rm -rvf ~/.local/share/pnpm
+  - mkdir -p ~/.local/share/pnpm/store
+  - ln -s "/var/build/cache/pnpm-store-v3" ~/.local/share/pnpm/store/v3
+
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
   - pnpm cov all
+volumes:
+- { name: cache, host: { path: /var/build/cache } }
