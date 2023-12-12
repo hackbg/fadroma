@@ -8,55 +8,205 @@
 </head>
 <body>
 <script data-goatcounter="https://goat.fadroma.hack.bg/count" async src="//goat.fadroma.hack.bg/count.js"></script>
-<style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
-@font-face {
-  font-family: 'Inter';
+<style name="assets/fonts.css" type="text/css">@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Bold.ttf') format('truetype'),
+  url('fonts/Cantarell-Bold.woff') format('woff'),
+  url('fonts/Cantarell-Bold.woff2') format('woff2');
+  font-weight: 700;
   font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-BoldItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-BoldItalic.woff') format('woff'),
+  url('fonts/Cantarell-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ExtraBold.ttf') format('truetype'),
+  url('fonts/Cantarell-ExtraBold.woff') format('woff'),
+  url('fonts/Cantarell-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ExtraBoldItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-ExtraBoldItalic.woff') format('woff'),
+  url('fonts/Cantarell-ExtraBoldItalic.woff2') format('woff2');
+  font-weight: 800;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Italic.ttf') format('truetype'),
+  url('fonts/Cantarell-Italic.woff') format('woff'),
+  url('fonts/Cantarell-Italic.woff2') format('woff2');
   font-weight: 400;
-  src: url('assets/fonts/inter-v8-latin-regular.eot'); /* IE9 Compat Modes */
-  src: local(''),
-       url('assets/fonts/inter-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-       url('assets/fonts/inter-v8-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
-       url('assets/fonts/inter-v8-latin-regular.woff') format('woff'), /* Modern Browsers */
-       url('assets/fonts/inter-v8-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
-       url('assets/fonts/inter-v8-latin-regular.svg#Inter') format('svg'); /* Legacy iOS */
+  font-style: italic;
 }
 
-/* inter-600 - latin */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Light.ttf') format('truetype'),
+  url('fonts/Cantarell-Light.woff') format('woff'),
+  url('fonts/Cantarell-Light.woff2') format('woff2');
+  font-weight: 300;
   font-style: normal;
-  font-weight: 600;
-  src: url('assets/fonts/inter-v8-latin-600.eot'); /* IE9 Compat Modes */
-  src: local(''),
-       url('assets/fonts/inter-v8-latin-600.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-       url('assets/fonts/inter-v8-latin-600.woff2') format('woff2'), /* Super Modern Browsers */
-       url('assets/fonts/inter-v8-latin-600.woff') format('woff'), /* Modern Browsers */
-       url('assets/fonts/inter-v8-latin-600.ttf') format('truetype'), /* Safari, Android, iOS */
-       url('assets/fonts/inter-v8-latin-600.svg#Inter') format('svg'); /* Legacy iOS */
 }
 
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-LightItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-LightItalic.woff') format('woff'),
+  url('fonts/Cantarell-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
 
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Regular.ttf') format('truetype'),
+  url('fonts/Cantarell-Regular.woff') format('woff'),
+  url('fonts/Cantarell-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Thin.ttf') format('truetype'),
+  url('fonts/Cantarell-Thin.woff') format('woff'),
+  url('fonts/Cantarell-Thin.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ThinItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-ThinItalic.woff') format('woff'),
+  url('fonts/Cantarell-ThinItalic.woff2') format('woff2');
+  font-weight: 200;
+  font-style: italic;
+}
 </style>
-<style name="ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#3e5915;background:#f6f5b2}.hljs-keyword,.hljs-literal,.hljs-selector-tag{color:#059}.hljs-subst{color:#3e5915}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-link,.hljs-section,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#2c009f}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#e60415}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}</style>
-<style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
-
-html, body { min-height: 100%; height: 100% }
-
-body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
-body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
-
-body > header {
-  text-align: center;
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 2rem 2rem 1rem;
+<style name="toolbox/ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
 }
-body > header { display: flex; flex-flow: row nowrap; justify-content: space-around; align-items: center; }
-body > header .logo, .logo img { display: block; margin: 0; flex-shrink: 1; }
-body > header .logo img { max-width: 16rem; max-height: 16rem; }
-body > header .badges { margin-bottom: 1rem; }
-body > header a.badge { display: inline-block; padding: 0.25rem 0.5rem; }
+code.hljs {
+  padding: 3px 5px
+}
+/*
+
+School Book style from goldblog.com.ua (c) Zaripov Yura <yur4ik7@ukr.net>
+
+*/
+.hljs {
+  color: #3e5915;
+  background: #f6f5b2
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal {
+  color: #005599;
+  font-weight: bold
+}
+.hljs-subst {
+  color: #3e5915
+}
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-attribute,
+.hljs-built_in,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-link {
+  color: #2c009f
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: #e60415
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-name,
+.hljs-selector-id,
+.hljs-strong {
+  font-weight: bold
+}
+.hljs-emphasis {
+  font-style: italic
+}</style>
+<style name="assets/style.css" type="text/css">* {
+  box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5;
+}
+html, body {
+  min-height: 100%; height: 100%
+}
+body {
+  color: #123;
+  font-size: 16px;
+  font-family: "Cantarell", sans-serif;
+  background-color: rgb(101, 179, 76);
+  background-image: url('bg.svg');
+  background-repeat: repeat;
+}
+  body > .content {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: flex-start;
+    background: #f0f0f0;
+    margin: 1rem;
+    border-radius: 1rem;
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  }
+  body > .content > header {
+    text-align: center;
+    margin: 0 auto;
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 20rem;
+  }
+    body > .content > header .logo {
+      display: block; margin: 0; flex-shrink: 1;
+      margin-bottom: 1rem;
+    }
+    body > .content > header .logo img {
+      display: block;
+      margin: 0;
+      flex-shrink: 1;
+      max-width: 16rem;
+      max-height: 16rem;
+    }
+    body > .content > header a.badge {
+      display: inline-block; padding: 0.25rem 0.5rem;
+    }
 
 section { padding: 1em; }
 
@@ -105,11 +255,14 @@ th { padding-right: 5em }
   grid-template-columns: 1fr 1fr 1fr 1fr;
   flex-flow: row wrap;
   justify-content: center;
-  max-width: 80rem;
-  margin: 0 auto 3rem;
+  margin: 0 0 3rem 0;
+  padding: 0.33rem 0.66rem 0 0;
 }
 
 @media (max-width: 80rem) {
+  body > .content {
+    flex-flow: row wrap;
+  }
   .grid {
     display: flex;
     flex-flow: column nowrap;
@@ -141,7 +294,7 @@ th { padding-right: 5em }
 
 .feature {
   padding: 1rem;
-  margin: 1rem 0.5rem 0;
+  margin: 1rem 0.66rem 0;
   border: 1px solid rgba(0,0,0,0.1);
   border-top-color: rgba(255,255,255,0.5);
   border-left-color: rgba(255,255,255,0.5);
@@ -150,15 +303,16 @@ th { padding-right: 5em }
   display: flex;
   flex-flow: column nowrap;
   background: #fff;
-}
-
-.feature .docs {
-  font-weight: bold;
-}
-
-#features .feature {
   min-height: 10rem;
+  border-radius: 0.5rem;
 }
+  .feature .docs {
+    font-weight: bold;
+  }
+  .feature .description {
+    line-height: 1.5;
+    font-size: 0.875rem;
+  }
 
 .left {
   text-align: left;
@@ -167,10 +321,6 @@ th { padding-right: 5em }
   text-align: center;
 }
 
-.feature .description {
-  line-height: 1.5;
-  font-size: 0.875rem;
-}
 
 code { font-size: 0.9375rem; }
 code.inline, code.block { background: #0c5749; color: white; font-family: monospace; font-weight: bold; }
@@ -216,9 +366,10 @@ pre, code {
 }
 
 p {
-  line-height: 1.5rem;
+  line-height: 1.75rem;
   margin-top: 0;
   margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 svg.icon {
@@ -450,276 +601,219 @@ hr {
 <li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
 <li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
 <li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
-<li><a class="ensuite-md-link" href=/implementing.html>Supporting new chains</a></li>
+<li><a class="ensuite-md-link" href=/impl.html>Supporting new chains</a></li>
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
-<h1 id="fadroma-agent-api" tabindex="-1">Fadroma Agent API</h1>
-<p>The <strong>Agent API</strong> is a simple imperative transaction-level API for
-interacting with Cosmos-like networks.</p>
-<p>Its core primitives are the <strong><code>Chain</code></strong> and <strong><code>Agent</code></strong> abstract classes.
-An <code>Agent</code> corresponds to your identity (wallet) on a given chain,
-and lets you operate in terms of transactions (sending tokens, calling contracts, etc.)</p>
-<p><strong>Note:</strong> The <code>Chain</code> and <code>Agent</code> exported from <code>@fadroma/agent</code> are stub implementations.
-<a href="./scrt.html">The <strong><code>@fadroma/scrt</code></strong> package</a> provides
-<strong><code>ScrtChain</code></strong> and <strong><code>ScrtAgent</code></strong>, the concrete implementations
-of Fadroma Chain API for Secret Network.</p>
-<h2 id="chain" tabindex="-1">Chain</h2>
-<p>The <code>Chain</code> object identifies what chain to connect to -
-such as the Secret Network mainnet or testnet.</p>
-<p>Since the workflow is request-based, no persistent connection is maintained.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">chain</span>: <span class="hljs-title class_">Chain</span>
-</code></pre>
-<p><strong>Note:</strong> <code>Chain</code> in <code>@fadroma/agent</code> is a stub class. If you want to connect
-to Secret Network, you need the <code>ScrtChain</code> implementation from <code>@fadroma/scrt</code>,
-which is available using either:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Scrt</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-chain = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mainnet</span>()
-</code></pre>
-<p>or</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Scrt</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/scrt&#x27;</span>
-chain = <span class="hljs-title class_">Scrt</span>.<span class="hljs-property">Chain</span>.<span class="hljs-title function_">mainnet</span>()
-</code></pre>
-<h3 id="chain-modes" tabindex="-1">Chain modes</h3>
-<p>Chains can be in several <code>mode</code>s, enumerated by <code>ChainMode</code> a.k.a. <code>Chain.Mode</code>.
-To connect to a chain in a specific mode, you can use the corresponding static
-method on the <code>Chain</code></p>
-<p><strong>Mainnet</strong> is the production chain where value is stored.</p>
-<pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">mainnet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
-
-<span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">devMode</span>)
-<span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isMainnet</span>)
-</code></pre>
-<p><strong>Testnet</strong> is a persistent remote chain used for testing.</p>
-<pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">testnet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
-
-<span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">devMode</span>)
-<span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isTestnet</span>)
-<span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">isMainnet</span>)
-</code></pre>
-<p><a href="../devnet/Devnet.spec.ts.md"><strong>Devnet</strong></a> uses a real chain node, booted up temporarily in
-a local environment.</p>
-<pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">devnet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
-
-<span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">devMode</span>)
-<span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isDevnet</span>)
-<span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">isMainnet</span>)
-</code></pre>
-<p><a href="../mocknet/Mocknet.spec.ts.md"><strong>Mocknet</strong></a> is a fast, nodeless way of executing contract code
-in the local JS WASM runtime.</p>
-<pre><code class="hljs language-typescript">chain = <span class="hljs-title class_">Chain</span>.<span class="hljs-title function_">mocknet</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span> <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span> })
-
-<span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">devMode</span>)
-<span class="hljs-title function_">assert</span>(chain.<span class="hljs-property">isMocknet</span>)
-<span class="hljs-title function_">assert</span>(!chain.<span class="hljs-property">isMainnet</span>)
-</code></pre>
-<h3 id="dev-mode" tabindex="-1">Dev mode</h3>
-<p>The <code>chain.devMode</code> flag is true if you are able to restart
-the chain and start over (i.e. when using a devnet or mocknet).</p>
-<h2 id="agent" tabindex="-1">Agent</h2>
-<p>To transact on a <a href="./Chains.ts.md">chain</a>, you need to authenticate
-with your identity (account, wallet). To do that, you obtain an
-<code>Agent</code> from the <code>Chain</code> using <code>chain.getAgent({...})</code>.</p>
-<p>Instantiating multiple authenticated agents allows the same program
-to interact with the chain from multiple distinct identities.</p>
-<p>If you don't pass a mnemonic, a random mnemonic and address will be generated.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Agent</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">let</span> <span class="hljs-attr">agent</span>: <span class="hljs-title class_">Agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>({ <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;testing1&#x27;</span> })
-
-assert.<span class="hljs-title function_">ok</span>(agent <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>,    <span class="hljs-string">&#x27;an Agent was returned&#x27;</span>)
-assert.<span class="hljs-title function_">ok</span>(agent.<span class="hljs-property">address</span>,             <span class="hljs-string">&#x27;agent has address&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">name</span>, <span class="hljs-string">&#x27;testing1&#x27;</span>, <span class="hljs-string">&#x27;agent.name assigned&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(agent.<span class="hljs-property">chain</span>, chain,     <span class="hljs-string">&#x27;agent.chain assigned&#x27;</span>)
+<h1 id="fadroma-agent%3A-scriptable-user-agents-for-the-blockchain" tabindex="-1"><a href="https://fadroma.tech">Fadroma</a> Agent: Scriptable User Agents for the Blockchain</h1>
+<p><a href="https://www.npmjs.com/package/@fadroma/agent"><img src="https://img.shields.io/npm/v/@fadroma/agent?color=%2365b34c&amp;label=%40fadroma%2Fagent&amp;style=for-the-badge" alt=""></a></p>
+<p>The <em>Fadroma Agent API</em> is Fadroma's imperative API for interacting with smart contract
+platforms. It's designed for expressing smart contract operations in a concise and readable manner.</p>
+<p>The API is specified by the <a href="https://www.npmjs.com/package/@fadroma/agent"><strong>@fadroma/agent</strong></a>
+package. In effect, it's a reduced and simplified vocabulary that covers the common ground
+between different implementations of smart contract-enabled chains.</p>
+<p>Since different chains provide different client libraries and connection methods,
+the concrete implementations of the Fadroma Agent API are contained in separate
+packages:</p>
+<ul>
+<li><a href="https://www.npmjs.com/package/@fadroma/scrt"><strong>@fadroma/scrt</strong></a> for Secret Network;</li>
+<li><a href="https://www.npmjs.com/package/@fadroma/cw"><strong>@fadroma/cw</strong></a> for other CosmWasm-enabled chains,
+such as OKP4.</li>
+</ul>
+<p><a href="https://www.npmjs.com/package/@fadroma/connect"><strong>@fadroma/connect</strong></a> reexports all available
+Fadroma Agent API implementations. It's recommended to use <strong>@fadroma/connect</strong> when depending
+on more than one of the above.</p>
+<p>The overarching goal of Fadroma Agent is to enable developers to learn only a single client
+library for all supported blockchains and client platforms.</p>
+<h2 id="connecting-to-a-chain" tabindex="-1">Connecting to a chain</h2>
+<p>Instances of the <strong>Chain</strong> class represents blockchains.</p>
+<p>A chain may exists in one of several modes,
+represented by the <strong>chain.mode</strong> property
+and the <strong>ChainMode</strong> enum:</p>
+<ul>
+<li><strong><strong>mainnet</strong></strong> is a production chain storing real value;</li>
+<li><strong><strong>testnet</strong></strong> is a persistent remote chain used for testing;</li>
+<li><strong><strong>devnet</strong></strong> is a locally run chain node in a Docker container;</li>
+<li><strong><strong>mocknet</strong></strong> is a mock implementation of a chain.</li>
+</ul>
+<p>The <strong>Chain.mainnet</strong>, <strong>Chain.testnet</strong>, <strong>Chain.devnet</strong> and <strong>Chain.mocknet</strong>
+static methods construct a chain in the given mode.</p>
+<p>You can also check whether a chain is in a given mode using the
+<strong>chain.isMainnet</strong>, <strong>chain.isTestnet</strong>, <strong>chain.isDevnet</strong> and <strong>chain.isMocknet</strong>
+read-only boolean properties.</p>
+<p>The <strong>chain.devMode</strong> property is true when the chain is a devnet or mocknet.
+Devnets and mocknets are under your control - i.e. you can delete them and
+start over. On the other hand, mainnet and testnet are global and persistent.</p>
+<p>The <strong>chain.id</strong> property is a string that uniquely identifies a given blockchain.
+Examples are <code>secret-4</code> (Secret Network mainnet), <code>pulsar-3</code> (Secret Network testnet),
+or <code>okp4-nemeton-1</code> (OKP4 testnet). Chains in different modes usually have distinct IDs.</p>
+<p>The same chain may be accessible via different URLs. The <strong>chain.url</strong> property
+identifies the URL to which requests are sent.</p>
+<p>Since the underlying API classes (e.g. <code>CosmWasmClient</code> or <code>SecretNetworkClient</code>) are
+initialized asynchronously, and JavaScript does not have async constructors, chains start
+out in an unitialized state, where the <strong>chain.api</strong> property is not populated. Awaiting the
+<strong>chain.ready</strong> one-shot promise returns the same chain object, but with the API client populated.
+Normally, this is done automatically when calling the chain's async methods; but if you want to
+access the API handle directly, you would need to <strong>await chain.ready</strong>. This is useful if you
+want to access a chain-specific feature that is not part of the Fadroma Agent API</p>
+<p>Examples:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> { api } = <span class="hljs-keyword">await</span> chain.<span class="hljs-property">ready</span>
 </code></pre>
 <h3 id="block-height" tabindex="-1">Block height</h3>
-<p>Having obtained an <code>Agent</code>, you are ready to begin performing operations.
-The simplest thing to do is waiting until the block height increments.
-The block height is the heartbeat of the blockchain.</p>
-<ul>
-<li>On Secret Network, this can be necessary for uploading multiple contracts.</li>
-</ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> height = <span class="hljs-keyword">await</span> agent.<span class="hljs-property">height</span> <span class="hljs-comment">// Get the current block height</span>
+<p>The <strong>chain.height</strong> getter returns a <strong>Promise</strong> wrapping the current block height.</p>
+<p>The <strong>chain.nextBlock</strong> getter returns a <strong>Promise</strong> which resolves when the
+block height increments, and contains the new block height.</p>
+<p>Examples:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// Get the current block height</span>
+<span class="hljs-keyword">const</span> height = <span class="hljs-keyword">await</span> chain.<span class="hljs-property">height</span>
 
-<span class="hljs-comment">//await agent.nextBlock             // Wait for the block height to increment</span>
-<span class="hljs-comment">//assert.equal(await agent.height, height + 1)</span>
+<span class="hljs-comment">// Wait until the block height increments</span>
+<span class="hljs-keyword">await</span> chain.<span class="hljs-property">nextBlock</span>
 </code></pre>
-<h3 id="gas-fees" tabindex="-1">Gas fees</h3>
-<p>Transacting creates load on the network, which incurs costs on node operators.
-Compensations for transactions are represented by the gas metric.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Fee</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<h3 id="native-tokens" tabindex="-1">Native tokens</h3>
+<p>The <strong>Chain.defaultDenom</strong> and <strong>chain.defaultDenom</strong> properties contain the default
+denomination of the chain's native token.</p>
+<p>The <strong>chain.getBalance(denom, address)</strong> async method queries the balance of a given
+address in a given token.</p>
+<p>Examples:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<h3 id="querying-contracts" tabindex="-1">Querying contracts</h3>
+<p>The <strong>chain.query(contract, message)</strong> async method calls a read-only query method of a smart
+contract.</p>
+<p>The <strong>chain.getCodeId(address)</strong>, <strong>chain.getHash(addressOrCodeId)</strong> and
+<strong>chain.getLabel(address)</strong> async methods query the corresponding metadata of a smart contract.</p>
+<p>The <strong>chain.checkHash(address, codeHash)</strong> method warns if the code hash of a contract
+is not the expected one.</p>
+<p>Examples:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<h2 id="authenticating-an-agent" tabindex="-1">Authenticating an agent</h2>
+<p>To transact on a given chain, you need to authorize an <strong>Agent</strong>.
+This is done using the <strong>chain.authenticate(...)</strong> method, which synchonously
+returns a new <strong>Agent</strong> instance for the given chain.</p>
+<p>Instantiating multiple agents allows the same program to interact with the chain
+from multiple distinct identities.</p>
+<p>This method may be called with one of the following signatures:</p>
+<ul>
+<li><strong>chain.authenticate(options)</strong></li>
+<li><strong>chain.authenticate(CustomAgentClass, options)</strong></li>
+<li><strong>chain.authenticate(CustomAgentClass)</strong></li>
+</ul>
+<p>The returned <strong>Agent</strong> starts out uninitialized. Awaiting the <strong>agent.ready</strong> property makes sure
+the agent is initialized. Usually, agents are initialized the first time you call one of the
+async methods described below.</p>
+<p>If you don't pass a mnemonic, a random mnemonic and address will be generated.</p>
+<p>Examples:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<h3 id="agent-identity" tabindex="-1">Agent identity</h3>
+<p>The <strong>agent.address</strong> property is the on-chain address that uniquely identifies the agent.</p>
+<p>The <strong>agent.name</strong> property is a user-friendly name for an agent. On devnet, the name is
+also used to access the initial accounts that are created during devnet genesis.</p>
+<h3 id="agents-and-block-height" tabindex="-1">Agents and block height</h3>
+<p>The <strong>agent.height</strong> and <strong>agent.nextBlock</strong> methods are equivalent to the same methods
+on the chain object, and are replicated on the Agent class purely for convenience.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> height = <span class="hljs-keyword">await</span> agent.<span class="hljs-property">height</span>
+
+<span class="hljs-keyword">await</span> agent.<span class="hljs-property">nextBlock</span>
 </code></pre>
 <h3 id="native-token-transactions" tabindex="-1">Native token transactions</h3>
-<p>You're not on the chain to wait around, though.
-The simplest operation you can conduct is transact with native tokens.</p>
-<h4 id="query-balance" tabindex="-1">Query balance</h4>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent.<span class="hljs-property">balance</span>             <span class="hljs-comment">// In the default native token</span>
-<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">getBalance</span>()        <span class="hljs-comment">// In the default native token</span>
+<p>The <strong>agent.getBalance(denom, address)</strong> async method works the same as <strong>chain.getBalance(...)</strong>
+but defaults to the agent's address.</p>
+<p>The <strong>agent.balance</strong> readonly property is a shorthand for querying the current agent's balance
+in the chain's main native token.</p>
+<p>The <strong>agent.send(address, amounts, options)</strong> async method sends one or more amounts of
+native tokens to the specified address.</p>
+<p>The <strong>agent.sendMany([[address, coin], [address, coin]...])</strong> async method sends native tokens
+to multiple addresses.</p>
+<p>Examples:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent.<span class="hljs-property">balance</span> <span class="hljs-comment">// In the default native token</span>
+
+<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">getBalance</span>() <span class="hljs-comment">// In the default native token</span>
+
 <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">getBalance</span>(<span class="hljs-string">&#x27;token&#x27;</span>) <span class="hljs-comment">// In a non-default native token</span>
-</code></pre>
-<h4 id="send-default-token" tabindex="-1">Send default token</h4>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>(<span class="hljs-string">&#x27;recipient-address&#x27;</span>, <span class="hljs-number">1000</span>)
+
+<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>(<span class="hljs-string">&#x27;recipient-address&#x27;</span>, <span class="hljs-number">1000</span>)
+
 <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>(<span class="hljs-string">&#x27;recipient-address&#x27;</span>, <span class="hljs-string">&#x27;1000&#x27;</span>)
-</code></pre>
-<h4 id="send-non-default-tokens" tabindex="-1">Send non-default tokens</h4>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>(<span class="hljs-string">&#x27;recipient-address&#x27;</span>, [
+
+<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">send</span>(<span class="hljs-string">&#x27;recipient-address&#x27;</span>, [
   {<span class="hljs-attr">denom</span>:<span class="hljs-string">&#x27;token1&#x27;</span>, <span class="hljs-attr">amount</span>: <span class="hljs-string">&#x27;1000&#x27;</span>}
   {<span class="hljs-attr">denom</span>:<span class="hljs-string">&#x27;token2&#x27;</span>, <span class="hljs-attr">amount</span>: <span class="hljs-string">&#x27;2000&#x27;</span>}
 ])
 </code></pre>
-<h3 id="compute-transactions" tabindex="-1">Compute transactions</h3>
-<h4 id="uploading-code" tabindex="-1">Uploading code</h4>
+<h3 id="uploading-and-instantiating-contracts" tabindex="-1">Uploading and instantiating contracts</h3>
+<p>The <strong>agent.upload(...)</strong> uploads a contract binary to the chain.</p>
+<p>The <strong>agent.instantiate(...)</strong> async method takes a code ID and returns a contract
+instance.</p>
+<p>The <strong>agent.instantiateMany(...)</strong> async method instantiates multiple contracts within
+the same transaction.</p>
+<p>On Secret Network, it's not possible to send multiple separate upload transactions
+within the same block. Therefore, when uploading multiple contracts, <strong>agent.nextBlock</strong>
+needs to be awaited between them. <strong>agent.uploadMany(...)</strong> does this automatically.</p>
+<p>Examples:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { examples } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./fixtures/Fixtures.ts.md&#x27;</span>
 <span class="hljs-keyword">import</span> { readFileSync } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:fs&#x27;</span>
 
 <span class="hljs-comment">// uploading from a Buffer</span>
 <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(<span class="hljs-title function_">readFileSync</span>(examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">path</span>), {
   <span class="hljs-comment">// optional metadata</span>
-  <span class="hljs-attr">artifact</span>: examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">path</span>
+  <span class="hljs-attr">codePath</span>: examples[<span class="hljs-string">&#x27;KV&#x27;</span>].<span class="hljs-property">path</span>
 })
 
 <span class="hljs-comment">// Uploading from a filename</span>
-<span class="hljs-comment">//await agent.upload(&#x27;example.wasm&#x27;)</span>
+<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(<span class="hljs-string">&#x27;example.wasm&#x27;</span>) <span class="hljs-comment">// TODO</span>
 
 <span class="hljs-comment">// Uploading an Uploadable object</span>
-<span class="hljs-comment">//await agent.upload({ artifact: &#x27;./example.wasm&#x27;, codeHash: &#x27;expectedCodeHash&#x27; })</span>
+<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>({ <span class="hljs-attr">artifact</span>: <span class="hljs-string">&#x27;./example.wasm&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;expectedCodeHash&#x27;</span> }) <span class="hljs-comment">// TODO</span>
 
-<span class="hljs-comment">// Uploading multiple pieces of code:</span>
-<span class="hljs-comment">/*await agent.uploadMany([
-  &#x27;example.wasm&#x27;,
-  readFileSync(&#x27;example.wasm&#x27;),
-  { artifact: &#x27;./example.wasm&#x27;, codeHash: &#x27;expectedCodeHash&#x27; }
-])*/</span>
-</code></pre>
-<p>The code ID is a unique identifier for compiled code uploaded to a chain.</p>
-<p>The code hash also uniquely identifies for the code that underpins a contract.
-However, unlike the code ID, which is opaque, the code hash corresponds to the
-actual content of the code. Uploading the same code multiple times will give
-you different code IDs, but the same code hash.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { assertCodeHash, codeHashOf } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">assertCodeHash</span>({ <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;code-hash-stub&#x27;</span> }))
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">assertCodeHash</span>({}))
-
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">codeHashOf</span>({ <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;hash&#x27;</span> }), <span class="hljs-string">&#x27;hash&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-title function_">codeHashOf</span>({ <span class="hljs-attr">code_hash</span>: <span class="hljs-string">&#x27;hash&#x27;</span> }), <span class="hljs-string">&#x27;hash&#x27;</span>)
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">codeHashOf</span>({ <span class="hljs-attr">code_hash</span>: <span class="hljs-string">&#x27;hash1&#x27;</span>, <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;hash2&#x27;</span> }))
-</code></pre>
-<h4 id="instantiating-contracts" tabindex="-1">Instantiating contracts</h4>
-<ul>
-<li>Instantiating a single contract:</li>
-</ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> c1 = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiate</span>({
+<span class="hljs-keyword">const</span> c1 = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiate</span>({
   <span class="hljs-attr">codeId</span>:   <span class="hljs-string">&#x27;1&#x27;</span>,
   <span class="hljs-attr">codeHash</span>: <span class="hljs-string">&#x27;verify!&#x27;</span>,
   <span class="hljs-attr">label</span>:    <span class="hljs-string">&#x27;unique1&#x27;</span>,
   <span class="hljs-attr">initMsg</span>:  { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;val&#x27;</span> }
 })
-</code></pre>
-<ul>
-<li>Instantiating multiple contracts in a single transaction:</li>
-</ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> [ c2, c3 ] = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiateMany</span>([
+
+<span class="hljs-keyword">const</span> [ c2, c3 ] = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiateMany</span>([
   { <span class="hljs-attr">codeId</span>: <span class="hljs-string">&#x27;2&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;unique2&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;values&#x27;</span> } },
   { <span class="hljs-attr">codeId</span>: <span class="hljs-string">&#x27;3&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;unique3&#x27;</span>, <span class="hljs-attr">initMsg</span>: { <span class="hljs-attr">arg</span>: <span class="hljs-string">&#x27;values&#x27;</span> } }
 ])
 </code></pre>
-<h4 id="querying-contract-state" tabindex="-1">Querying contract state</h4>
+<h3 id="executing-transactions-and-performing-queries" tabindex="-1">Executing transactions and performing queries</h3>
+<p>The <strong>agent.query(contract, message)</strong> async method calls a query method of a smart contract.
+This is equivalent to <strong>chain.query(...)</strong>.</p>
+<p>The <strong>agent.execute(contract, message)</strong> async method calls a transaction method of a smart
+contract, signing the transaction as the given agent.</p>
+<p>Examples:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> response = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">query</span>(c1, { <span class="hljs-attr">get</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span> } })
 assert.<span class="hljs-title function_">rejects</span>(agent.<span class="hljs-title function_">query</span>(c1, { <span class="hljs-attr">invalid</span>: <span class="hljs-string">&quot;query&quot;</span> }))
-</code></pre>
-<h4 id="executing-transactions" tabindex="-1">Executing transactions</h4>
-<p>Executing a single transaction:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;2&#x27;</span> } })
+
+<span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;2&#x27;</span> } })
 assert.<span class="hljs-title function_">rejects</span>(agent.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">invalid</span>: <span class="hljs-string">&quot;tx&quot;</span> }))
 </code></pre>
-<p>Broadcasting multiple execute calls as a single transaction message
-(transaction bundling):</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> results = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">bundle</span>(<span class="hljs-keyword">async</span> bundle=&gt;{
-  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">del</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span> } })
-  <span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>(c2, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;3&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;4&#x27;</span> } })
+<h3 id="batching-transactions" tabindex="-1">Batching transactions</h3>
+<p>The <strong>agent.batch(...)</strong> method creates an instance of <strong>Batch</strong>.</p>
+<p>Conceptually, you can view a batch as a kind of agent that does not execute transactions
+immediately - it collects them, and waits for the <strong>batch.broadcast()</strong> method. You can
+pass a batch anywhere you can pass an agent.</p>
+<p>The main difference between a batch and and agent is that <em>you cannot query from a batch</em>.
+This is because a batch is an atomic action, and queries made inbetween individual transactions
+of a batch would return the state as it was before <em>all</em> the transactions. Therefore, to avoid
+confusion and outdated state, the query methods of the batch &quot;agent&quot; throw errors.
+If you need to perform queries, use a regular agent before or after the batch.</p>
+<p>Instead of broadcasting, you can also export an unsigned batch, and pass it around manually
+as part of a multisig transaction.</p>
+<p>To create and submit a batch in a single expression,
+you can use <code>batch.wrap(async (batch) =&gt; { ... })</code>:</p>
+<p>Examples:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> results = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">batch</span>(<span class="hljs-keyword">async</span> batch=&gt;{
+  <span class="hljs-keyword">await</span> batch.<span class="hljs-title function_">execute</span>(c1, { <span class="hljs-attr">del</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;1&#x27;</span> } })
+  <span class="hljs-keyword">await</span> batch.<span class="hljs-title function_">execute</span>(c2, { <span class="hljs-attr">set</span>: { <span class="hljs-attr">key</span>: <span class="hljs-string">&#x27;3&#x27;</span>, <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;4&#x27;</span> } })
 }).<span class="hljs-title function_">run</span>()
 </code></pre>
-<h4 id="batching-transactions" tabindex="-1">Batching transactions</h4>
-<p>To submit multiple messages as a single transaction, you can
-use the <code>Bundle</code> class through <code>Agent#bundle</code>.</p>
-<ul>
-<li>A <code>Bundle</code> is a special kind of <code>Agent</code> that
-does not broadcast messages immediately.</li>
-<li>Instead, messages are collected inside the bundle until
-the caller explicitly submits them.</li>
-<li>Bundles can also be saved for manual signing of multisig
-transactions</li>
-</ul>
-<p>A <code>Bundle</code> is designed to serve as a stand-in for its corresponding
-<code>Agent</code>, and therefore implements the same API methods.</p>
-<ul>
-<li>However, some operations don't make sense in the middle of a Bundle.</li>
-<li>Most importantly, querying any state from the chain
-must be done either before or after the bundle.</li>
-<li>Trying to query state from a <code>Bundle</code> agent will fail.</li>
-</ul>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Chain</span>, <span class="hljs-title class_">Agent</span>, <span class="hljs-title class_">Bundle</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-chain = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Chain</span>({ <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;id&#x27;</span>, <span class="hljs-attr">url</span>: <span class="hljs-string">&#x27;example.com&#x27;</span>, <span class="hljs-attr">mode</span>: <span class="hljs-string">&#x27;mainnet&#x27;</span> })
-agent = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
-<span class="hljs-keyword">let</span> <span class="hljs-attr">bundle</span>: <span class="hljs-title class_">Bundle</span>
-</code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-bundle = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Bundle</span>(agent)
-
-<span class="hljs-title function_">assert</span>(bundle.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">Client</span>, <span class="hljs-string">&#x27;&#x27;</span>) <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>, <span class="hljs-string">&#x27;Bundle#getClient&#x27;</span>)
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">execute</span>({}), bundle)
-assert.<span class="hljs-title function_">equal</span>(bundle.<span class="hljs-property">id</span>, <span class="hljs-number">1</span>)
-<span class="hljs-comment">//assert(await bundle.instantiateMany({}, []))</span>
-<span class="hljs-comment">//assert(await bundle.instantiateMany({}, [[&#x27;label&#x27;, &#x27;init&#x27;]]))</span>
-<span class="hljs-comment">//assert(await bundle.instantiate({}, &#x27;label&#x27;, &#x27;init&#x27;))</span>
-assert.<span class="hljs-title function_">equal</span>(<span class="hljs-keyword">await</span> bundle.<span class="hljs-title function_">checkHash</span>(), <span class="hljs-string">&#x27;code-hash-stub&#x27;</span>)
-
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-title function_">query</span>())
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-title function_">upload</span>())
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-title function_">uploadMany</span>())
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-title function_">sendMany</span>())
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-title function_">send</span>())
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-title function_">getBalance</span>())
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-property">height</span>)
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-property">nextBlock</span>)
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span>bundle.<span class="hljs-property">balance</span>)
-</code></pre>
-<p>To create and submit a bundle in a single expression,
-you can use <code>bundle.wrap(async (bundle) =&gt; { ... })</code>:</p>
-<h2 id="client" tabindex="-1">Client</h2>
-<p>Client objects are interfaces to programs deployed in a specific environment, i.e.
-<strong>they represent smart contracts</strong>. Once you know what methods your contract will support,
-you'll want to extend <code>Client</code> and implement handles to them there:</p>
-<p>By publishing a library of <code>Client</code> subclasses corresponding to your contracts,
-you can provide a robust API to users of your project, so that they can in turn
-integrate it into their systems.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">class</span> <span class="hljs-title class_">MyClient</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
-  myMethod = <span class="hljs-function">(<span class="hljs-params">param</span>) =&gt;</span>
-    <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: { param } })
-  myQuery = <span class="hljs-function">(<span class="hljs-params">param</span>) =&gt;</span>
-    <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">my_query</span>: { param } }) }
-}
-</code></pre>
-<h3 id="constructing" tabindex="-1">Constructing</h3>
-<p>To operate a smart contract through a <code>Client</code>,
-you need an <code>agent</code>, an <code>address</code>, and a <code>codeHash</code>:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">let</span> address  = <span class="hljs-title class_">Symbol</span>(<span class="hljs-string">&#x27;some-addr&#x27;</span>)
-<span class="hljs-keyword">let</span> codeHash = <span class="hljs-title class_">Symbol</span>(<span class="hljs-string">&#x27;some-hash&#x27;</span>)
-<span class="hljs-keyword">let</span> <span class="hljs-attr">client</span>: <span class="hljs-title class_">Client</span> = <span class="hljs-keyword">new</span> <span class="hljs-title class_">MyClient</span>({ agent, address, codeHash })
-
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">agent</span>,    agent)
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">address</span>,  address)
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">codeHash</span>, codeHash)
-</code></pre>
-<p>Alternatively you can construct through <code>agent.getClient</code>:</p>
-<pre><code class="hljs language-typescript">client = agent.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">MyClient</span>, address, codeHash)
-</code></pre>
-<h3 id="querying-and-transacting" tabindex="-1">Querying and transacting</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> client.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: {} })
-<span class="hljs-keyword">await</span> client.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">my_query</span>: {} })
-</code></pre>
-<h3 id="per-transaction-fees" tabindex="-1">Per-transaction fees</h3>
+<h2 id="gas-fees" tabindex="-1">Gas fees</h2>
+<p>Transacting creates load on the network, which incurs costs on node operators.
+Compensations for transactions are represented by the gas metric.</p>
 <p>You can specify default gas limits for each method by defining the <code>fees: Record&lt;string, IFee&gt;</code>
 property of your client class:</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> fee1 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Fee</span>(<span class="hljs-string">&#x27;100000&#x27;</span>, <span class="hljs-string">&#x27;uscrt&#x27;</span>)
@@ -734,29 +828,41 @@ This method works by returning a copy of <code>client</code> with fees overridde
 
 assert.<span class="hljs-title function_">deepEqual</span>(<span class="hljs-keyword">await</span> client.<span class="hljs-title function_">withFee</span>(fee2).<span class="hljs-title function_">getFee</span>(<span class="hljs-string">&#x27;my_method&#x27;</span>), fee2)
 </code></pre>
-<h3 id="metadata" tabindex="-1">Metadata</h3>
-<p>The original <code>Contract</code> object from which the contract
-was deployed can be found on the optional <code>meta</code> property of the <code>Client</code>.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(client.<span class="hljs-property">meta</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
+<h2 id="contracts" tabindex="-1">Contracts</h2>
+<h3 id="contract-clients" tabindex="-1">Contract clients</h3>
+<p>The <strong>Client</strong> class represents a handle to a smart contract deployed to a given chain.</p>
+<p>To provide a robust SDK to users of your project, simply publish a NPM package
+containing subclasses of <strong>Client</strong> that correspond to your contracts and invoke
+their methods.</p>
+<p>To operate a smart contract through a <code>Client</code>,
+you need an <code>agent</code>, an <code>address</code>, and a <code>codeHash</code>:</p>
+<p>Example:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Client</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">MyClient</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Client</span> {
+
+  myMethod = <span class="hljs-function">(<span class="hljs-params">param</span>) =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">execute</span>({
+    <span class="hljs-attr">my_method</span>: { param }
+  })
+
+  myQuery = <span class="hljs-function">(<span class="hljs-params">param</span>) =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">query</span>({
+    <span class="hljs-attr">my_query</span>: { param }
+  })
+
+}
+
+<span class="hljs-keyword">let</span> address  = <span class="hljs-title class_">Symbol</span>(<span class="hljs-string">&#x27;some-addr&#x27;</span>)
+<span class="hljs-keyword">let</span> codeHash = <span class="hljs-title class_">Symbol</span>(<span class="hljs-string">&#x27;some-hash&#x27;</span>)
+<span class="hljs-keyword">let</span> <span class="hljs-attr">client</span>: <span class="hljs-title class_">Client</span> = <span class="hljs-keyword">new</span> <span class="hljs-title class_">MyClient</span>({ agent, address, codeHash })
+
+assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">agent</span>,    agent)
+assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">address</span>,  address)
+assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">codeHash</span>, codeHash)
+client = agent.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">MyClient</span>, address, codeHash)
+<span class="hljs-keyword">await</span> client.<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: {} })
+<span class="hljs-keyword">await</span> client.<span class="hljs-title function_">query</span>({ <span class="hljs-attr">my_query</span>: {} })
 </code></pre>
-<p>Fetching metadata:</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fetchCodeHash, fetchCodeId, fetchLabel } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-
-client.<span class="hljs-property">address</span> = <span class="hljs-string">&#x27;someaddress&#x27;</span> <span class="hljs-comment">// FIXME</span>
-assert.<span class="hljs-title function_">ok</span>(client.<span class="hljs-property">codeHash</span> = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeHash</span>(client, agent))
-<span class="hljs-comment">//assert.ok(client.codeId   = await fetchCodeId(client, agent))</span>
-assert.<span class="hljs-title function_">ok</span>(client.<span class="hljs-property">label</span>    = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchLabel</span>(client, agent))
-
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">codeHash</span>, <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeHash</span>(client, agent, client.<span class="hljs-property">codeHash</span>))
-<span class="hljs-comment">//assert.equal(client.codeId,   await fetchCodeId(client, agent, client.codeId))</span>
-assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">label</span>,    <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchLabel</span>(client, agent, client.<span class="hljs-property">label</span>))
-
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchCodeHash</span>(client, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchCodeId</span>(client, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
-assert.<span class="hljs-title function_">rejects</span>(<span class="hljs-title function_">fetchLabel</span>(client, agent, <span class="hljs-string">&#x27;unexpected&#x27;</span>))
-</code></pre>
-<h3 id="client-agent" tabindex="-1">Client agent</h3>
+<h4 id="client-agent" tabindex="-1">Client agent</h4>
 <p>By default, the <code>Client</code>'s <code>agent</code> property is equal to the <code>agent</code>
 which deployed the contract. This property determines the address from
 which subsequent transactions with that <code>Client</code> will be sent.</p>
@@ -764,14 +870,14 @@ which subsequent transactions with that <code>Client</code> will be sent.</p>
 with it from another one as part of the same procedure, you can set <code>agent</code>
 to another instance of <code>Agent</code>:</p>
 <pre><code class="hljs language-typescript">assert.<span class="hljs-title function_">equal</span>(client.<span class="hljs-property">agent</span>, agent)
-client.<span class="hljs-property">agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>()
+client.<span class="hljs-property">agent</span> = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">authenticate</span>()
 assert.<span class="hljs-title function_">notEqual</span>(client.<span class="hljs-property">agent</span>, agent)
 </code></pre>
 <p>Similarly to <code>withFee</code>, the <code>as</code> method returns a new instance of your
 client class, bound to a different <code>agent</code>, thus allowing you to execute
 transactions as a different identity.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
-<span class="hljs-keyword">const</span> agent2 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">getAgent</span>(<span class="hljs-comment">/*...*/</span>)
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> agent1 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">authenticate</span>(<span class="hljs-comment">/*...*/</span>)
+<span class="hljs-keyword">const</span> agent2 = <span class="hljs-keyword">await</span> chain.<span class="hljs-title function_">authenticate</span>(<span class="hljs-comment">/*...*/</span>)
 
 client = agent1.<span class="hljs-title function_">getClient</span>(<span class="hljs-title class_">Client</span>, <span class="hljs-string">&quot;...&quot;</span>)
 
@@ -781,12 +887,201 @@ client.<span class="hljs-title function_">execute</span>({ <span class="hljs-att
 <span class="hljs-comment">// executed by agent2</span>
 client.<span class="hljs-title function_">withAgent</span>(agent2).<span class="hljs-title function_">execute</span>({ <span class="hljs-attr">my_method</span>: {} })
 </code></pre>
-<hr>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
-<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;./Agent.test.ts&#x27;</span>
+<h4 id="client-metadata" tabindex="-1">Client metadata</h4>
+<p>The original <code>Contract</code> object from which the contract
+was deployed can be found on the optional <code>meta</code> property of the <code>Client</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+assert.<span class="hljs-title function_">ok</span>(client.<span class="hljs-property">meta</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Contract</span>)
 </code></pre>
+<p>Fetching metadata:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { fetchLabel } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchCodeId</span>(client, agent)
+<span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchLabel</span>(client, agent)
+</code></pre>
+<p>The code ID is a unique identifier for compiled code uploaded to a chain.</p>
+<p>The code hash also uniquely identifies for the code that underpins a contract.
+However, unlike the code ID, which is opaque, the code hash corresponds to the
+actual content of the code. Uploading the same code multiple times will give
+you different code IDs, but the same code hash.</p>
+<h3 id="contract-deployments" tabindex="-1">Contract deployments</h3>
+<p>These classes are used for describing systems consisting of multiple smart contracts,
+such as when deploying them from source. By defining such a system as one or more
+subclasses of <code>Deployment</code>, Fadroma enables declarative, idempotent, and reproducible
+smart contract deployments.</p>
+<p>The <code>Deployment</code> class represents a set of interrelated contracts.
+To define your deployment, extend the <code>Deployment</code> class, and use the
+<code>this.template({...})</code> and <code>this.contract({...})</code> methods to specify
+what contracts to deploy:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// in your project&#x27;s api.ts:</span>
+
+<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Deployment</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">DeploymentA</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
+
+  kv1 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({
+    <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv1&#x27;</span>,
+    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>,
+    <span class="hljs-attr">initMsg</span>: {}
+  })
+
+  kv2 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({
+    <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv2&#x27;</span>,
+    <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>,
+    <span class="hljs-attr">initMsg</span>: {}
+  })
+
+}
+</code></pre>
+<h4 id="preparing" tabindex="-1">Preparing</h4>
+<p>To prepare a deployment for deploying, use <code>getDeployment</code>.
+This will provide a populated instance of your deployment class.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getDeployment } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+deployment = <span class="hljs-title function_">getDeployment</span>(<span class="hljs-title class_">DeploymentA</span>, <span class="hljs-comment">/* ...constructor args */</span>)
+</code></pre>
+<h4 id="deploying-everything" tabindex="-1">Deploying everything</h4>
+<p>Then, call its <code>deploy</code> method:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-title function_">deploy</span>()
+</code></pre>
+<p>For each contract defined in the deployment, this will do the following:</p>
+<ul>
+<li>If it's not compiled yet, this will <strong>build</strong> it.</li>
+<li>If it's not uploaded yet, it will <strong>upload</strong> it.</li>
+<li>If it's not instantiated yet, it will <strong>instantiate</strong> it.</li>
+</ul>
+<h4 id="expecting-contracts-to-be-deployed" tabindex="-1">Expecting contracts to be deployed</h4>
+<p>Having deployed a contract, you want to obtain a <code>Client</code> instance
+that points to it, so you can call the contract's methods.</p>
+<p>Using the <code>contract.expect()</code> method you can get an instance
+of the <code>Client</code> specified in the contract options, provided
+the contract is already deployed (i.e. its address is known).</p>
+<pre><code class="hljs language-typescript"><span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">kv1</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">kv2</span>.<span class="hljs-title function_">expect</span>() <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+</code></pre>
+<p>This is the recommended method for passing handles to contracts
+to your UI code after deploying or connecting to a stored deployment
+(see below).</p>
+<p>If the address of the request contract is not available,
+this will throw an error.</p>
+<h4 id="deploying-individual-contracts-with-dependencies" tabindex="-1">Deploying individual contracts with dependencies</h4>
+<p>By <code>await</code>ing a <code>Contract</code>'s <code>deployed</code> property, you say:
+&quot;give me a handle to this contract; if it's not deployed,
+deploy it, and all of its dependencies (as specified by the <code>initMsg</code> method)&quot;.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-title function_">assert</span>(<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">kv1</span>.<span class="hljs-property">deployed</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+<span class="hljs-title function_">assert</span>(<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">kv2</span>.<span class="hljs-property">deployed</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Client</span>)
+</code></pre>
+<p>Since this does not call the deployment's <code>deploy</code> method,
+it <em>only</em> deploys the requested contract and its dependencies
+but not any other contracts defined in the deployment.</p>
+<h4 id="deploying-with-custom-logic" tabindex="-1">Deploying with custom logic</h4>
+<p>The <code>deployment.deploy</code> method simply instantiates
+all contracts in order. You are free to override it
+and deploy the defined contracts according to some
+custom logic:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">class</span> <span class="hljs-title class_">DeploymentB</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_ inherited__">Deployment</span> {
+  kv1 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv1&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+  kv2 = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">contract</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;kv2&#x27;</span>, <span class="hljs-attr">initMsg</span>: {} })
+
+  deploy = <span class="hljs-keyword">async</span> (<span class="hljs-attr">deployBoth</span>: <span class="hljs-built_in">boolean</span> = <span class="hljs-literal">false</span>) =&gt; {
+    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">kv1</span>.<span class="hljs-property">deployed</span>
+    <span class="hljs-keyword">if</span> (deployBoth) <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">kv2</span>.<span class="hljs-property">deployed</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>
+  }
+}
+</code></pre>
+<h3 id="contract-instances" tabindex="-1">Contract instances</h3>
+<p>The <code>Contract</code> class describes an individual smart contract instance and uniquely identifies it
+within the <code>Deployment</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>({
+  <span class="hljs-attr">repository</span>: <span class="hljs-string">&#x27;REPO&#x27;</span>,
+  <span class="hljs-attr">revision</span>:   <span class="hljs-string">&#x27;REF&#x27;</span>,
+  <span class="hljs-attr">workspace</span>:  <span class="hljs-string">&#x27;WORKSPACE&#x27;</span>
+  <span class="hljs-attr">crate</span>:      <span class="hljs-string">&#x27;CRATE&#x27;</span>,
+  <span class="hljs-attr">artifact</span>:   <span class="hljs-string">&#x27;ARTIFACT&#x27;</span>,
+  <span class="hljs-attr">chain</span>:      { <span class="hljs-comment">/* ... */</span> },
+  <span class="hljs-attr">agent</span>:      { <span class="hljs-comment">/* ... */</span> },
+  <span class="hljs-attr">deployment</span>: { <span class="hljs-comment">/* ... */</span> },
+  <span class="hljs-attr">codeId</span>:     <span class="hljs-number">0</span>,
+  <span class="hljs-attr">codeHash</span>:   <span class="hljs-string">&#x27;CODEHASH&#x27;</span>
+  <span class="hljs-attr">client</span>:     <span class="hljs-title class_">Client</span>,
+  <span class="hljs-attr">name</span>:       <span class="hljs-string">&#x27;NAME&#x27;</span>,
+  <span class="hljs-attr">initMsg</span>:    <span class="hljs-keyword">async</span> () =&gt; ({})
+})
+</code></pre>
+<h4 id="naming-and-labels" tabindex="-1">Naming and labels</h4>
+<p>The chain requires labels to be unique.
+Labels generated by Fadroma are of the format <code>${deployment.name}/${contract.name}</code>.</p>
+<h4 id="lazy-init" tabindex="-1">Lazy init</h4>
+<p>The <code>initMsg</code> property of <code>Contract</code> can be a function returning the actual message.
+This function is only called during instantiation, and can be used to generate init
+messages on the fly, such as when passing the address of one contract to another.</p>
+<h4 id="deploying-contract-instances" tabindex="-1">Deploying contract instances</h4>
+<p>To instantiate a <code>Contract</code>, its <code>agent</code> property must be set to a valid <code>Agent</code>.
+When obtaining instances from a <code>Deployment</code>, their <code>agent</code> property is provided
+from <code>deployment.agent</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Agent</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
+<span class="hljs-title function_">assert</span>(deployment.<span class="hljs-property">a</span>.<span class="hljs-property">agent</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Agent</span>)
+assert.<span class="hljs-title function_">equal</span>(deployment.<span class="hljs-property">a</span>.<span class="hljs-property">agent</span>, deployment.<span class="hljs-property">agent</span>)
+</code></pre>
+<p>You can instantiate a <code>Contract</code> by awaiting the <code>deployed</code> property or the return value of the
+<code>deploy()</code> method. Since distributed ledgers are append-only, deployment is an idempotent operation,
+so the deploy will run only once and subsequent calls will return the same <code>Contract</code> with the
+same <code>address</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-property">a</span>.<span class="hljs-title function_">deploy</span>()
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">a</span>.<span class="hljs-property">deployed</span>
+</code></pre>
+<p>If <code>contract.codeId</code> is not set but either source code or a WASM binary is present,
+this will try to upload and build the code first.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">await</span> deployment.<span class="hljs-property">a</span>.<span class="hljs-property">uploaded</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">a</span>.<span class="hljs-title function_">upload</span>()
+
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">a</span>.<span class="hljs-property">built</span>
+<span class="hljs-keyword">await</span> deployment.<span class="hljs-property">a</span>.<span class="hljs-title function_">build</span>()
+</code></pre>
+<h3 id="contract-templates" tabindex="-1">Contract templates</h3>
+<p>The <code>Template</code> class represents a smart contract's source, compilation,
+binary, and upload. It can have a <code>codeHash</code> and <code>codeId</code> but not an
+<code>address</code>.</p>
+<p><strong>Instantiating a template</strong> refers to calling the <code>template.instance</code>
+method (or its plural, <code>template.instances</code>), which returns <code>Contract</code>,
+which represents a particular smart contract instance, which can have
+an <code>address</code>.</p>
+<h4 id="deploying-multiple-contracts-from-a-template" tabindex="-1">Deploying multiple contracts from a template</h4>
+<p>The <code>deployment.template</code> method adds a <code>Template</code> to the <code>Deployment</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<p>You can pass either an array or an object to <code>template.instances</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<h4 id="building-from-source-code" tabindex="-1">Building from source code</h4>
+<p>To build, the <code>compiler</code> property must be set to a valid <code>Compiler</code>.
+When obtaining instances from a <code>Deployment</code>, the <code>compiler</code> property
+is provided automatically from <code>deployment.compiler</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<p>You can build a <code>Template</code> (or its subclass, <code>Contract</code>) by awaiting the
+<code>built</code> property or the return value of the <code>build()</code> method.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<h4 id="uploading-binaries" tabindex="-1">Uploading binaries</h4>
+<p>To upload, the <code>uploader</code> property must be set to a valid <code>Uploader</code>.
+When obtaining instances from a <code>Deployment</code>, the <code>uploader</code> property
+is provided automatically from <code>deployment.uploader</code>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<p>You can upload a <code>Template</code> (or its subclass, <code>Contract</code>) by awaiting the
+<code>uploaded</code> property or the return value of the <code>upload()</code> method.</p>
+<p>If a WASM binary is not present (<code>template.artifact</code> is empty),
+but a source and a compiler are present, this will also try to build the contract.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO</span>
+</code></pre>
+<h2 id="services" tabindex="-1">Services</h2>
+<h3 id="compiler" tabindex="-1">Compiler</h3>
+<h3 id="uploader" tabindex="-1">Uploader</h3>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#chain">Chain</a><ul><li><a href="#chain-modes">Chain modes</a></li><li><a href="#dev-mode">Dev mode</a></li></ul></li><li><a href="#agent">Agent</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#gas-fees">Gas fees</a></li><li><a href="#native-token-transactions">Native token transactions</a><ul><li><a href="#query-balance">Query balance</a></li><li><a href="#send-default-token">Send default token</a></li><li><a href="#send-non-default-tokens">Send non-default tokens</a></li></ul></li><li><a href="#compute-transactions">Compute transactions</a><ul><li><a href="#uploading-code">Uploading code</a></li><li><a href="#instantiating-contracts">Instantiating contracts</a></li><li><a href="#querying-contract-state">Querying contract state</a></li><li><a href="#executing-transactions">Executing transactions</a></li><li><a href="#batching-transactions">Batching transactions</a></li></ul></li></ul></li><li><a href="#client">Client</a><ul><li><a href="#constructing">Constructing</a></li><li><a href="#querying-and-transacting">Querying and transacting</a></li><li><a href="#per-transaction-fees">Per-transaction fees</a></li><li><a href="#metadata">Metadata</a></li><li><a href="#client-agent">Client agent</a></li></ul></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#connecting-to-a-chain">Connecting to a chain</a><ul><li><a href="#block-height">Block height</a></li><li><a href="#native-tokens">Native tokens</a></li><li><a href="#querying-contracts">Querying contracts</a></li></ul></li><li><a href="#authenticating-an-agent">Authenticating an agent</a><ul><li><a href="#agent-identity">Agent identity</a></li><li><a href="#agents-and-block-height">Agents and block height</a></li><li><a href="#native-token-transactions">Native token transactions</a></li><li><a href="#uploading-and-instantiating-contracts">Uploading and instantiating contracts</a></li><li><a href="#executing-transactions-and-performing-queries">Executing transactions and performing queries</a></li><li><a href="#batching-transactions">Batching transactions</a></li></ul></li><li><a href="#gas-fees">Gas fees</a></li><li><a href="#contracts">Contracts</a><ul><li><a href="#contract-clients">Contract clients</a><ul><li><a href="#client-agent">Client agent</a></li><li><a href="#client-metadata">Client metadata</a></li></ul></li><li><a href="#contract-deployments">Contract deployments</a><ul><li><a href="#preparing">Preparing</a></li><li><a href="#deploying-everything">Deploying everything</a></li><li><a href="#expecting-contracts-to-be-deployed">Expecting contracts to be deployed</a></li><li><a href="#deploying-individual-contracts-with-dependencies">Deploying individual contracts with dependencies</a></li><li><a href="#deploying-with-custom-logic">Deploying with custom logic</a></li></ul></li><li><a href="#contract-instances">Contract instances</a><ul><li><a href="#naming-and-labels">Naming and labels</a></li><li><a href="#lazy-init">Lazy init</a></li><li><a href="#deploying-contract-instances">Deploying contract instances</a></li></ul></li><li><a href="#contract-templates">Contract templates</a><ul><li><a href="#deploying-multiple-contracts-from-a-template">Deploying multiple contracts from a template</a></li><li><a href="#building-from-source-code">Building from source code</a></li><li><a href="#uploading-binaries">Uploading binaries</a></li></ul></li></ul></li><li><a href="#services">Services</a><ul><li><a href="#compiler">Compiler</a></li><li><a href="#uploader">Uploader</a></li></ul></li></ul></div></p></nav>
 </div>
 </body>
 </html>

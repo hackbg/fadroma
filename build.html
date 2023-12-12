@@ -8,55 +8,205 @@
 </head>
 <body>
 <script data-goatcounter="https://goat.fadroma.hack.bg/count" async src="//goat.fadroma.hack.bg/count.js"></script>
-<style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
-@font-face {
-  font-family: 'Inter';
+<style name="assets/fonts.css" type="text/css">@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Bold.ttf') format('truetype'),
+  url('fonts/Cantarell-Bold.woff') format('woff'),
+  url('fonts/Cantarell-Bold.woff2') format('woff2');
+  font-weight: 700;
   font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-BoldItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-BoldItalic.woff') format('woff'),
+  url('fonts/Cantarell-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ExtraBold.ttf') format('truetype'),
+  url('fonts/Cantarell-ExtraBold.woff') format('woff'),
+  url('fonts/Cantarell-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ExtraBoldItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-ExtraBoldItalic.woff') format('woff'),
+  url('fonts/Cantarell-ExtraBoldItalic.woff2') format('woff2');
+  font-weight: 800;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Italic.ttf') format('truetype'),
+  url('fonts/Cantarell-Italic.woff') format('woff'),
+  url('fonts/Cantarell-Italic.woff2') format('woff2');
   font-weight: 400;
-  src: url('assets/fonts/inter-v8-latin-regular.eot'); /* IE9 Compat Modes */
-  src: local(''),
-       url('assets/fonts/inter-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-       url('assets/fonts/inter-v8-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
-       url('assets/fonts/inter-v8-latin-regular.woff') format('woff'), /* Modern Browsers */
-       url('assets/fonts/inter-v8-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
-       url('assets/fonts/inter-v8-latin-regular.svg#Inter') format('svg'); /* Legacy iOS */
+  font-style: italic;
 }
 
-/* inter-600 - latin */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Light.ttf') format('truetype'),
+  url('fonts/Cantarell-Light.woff') format('woff'),
+  url('fonts/Cantarell-Light.woff2') format('woff2');
+  font-weight: 300;
   font-style: normal;
-  font-weight: 600;
-  src: url('assets/fonts/inter-v8-latin-600.eot'); /* IE9 Compat Modes */
-  src: local(''),
-       url('assets/fonts/inter-v8-latin-600.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-       url('assets/fonts/inter-v8-latin-600.woff2') format('woff2'), /* Super Modern Browsers */
-       url('assets/fonts/inter-v8-latin-600.woff') format('woff'), /* Modern Browsers */
-       url('assets/fonts/inter-v8-latin-600.ttf') format('truetype'), /* Safari, Android, iOS */
-       url('assets/fonts/inter-v8-latin-600.svg#Inter') format('svg'); /* Legacy iOS */
 }
 
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-LightItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-LightItalic.woff') format('woff'),
+  url('fonts/Cantarell-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
 
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Regular.ttf') format('truetype'),
+  url('fonts/Cantarell-Regular.woff') format('woff'),
+  url('fonts/Cantarell-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Thin.ttf') format('truetype'),
+  url('fonts/Cantarell-Thin.woff') format('woff'),
+  url('fonts/Cantarell-Thin.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ThinItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-ThinItalic.woff') format('woff'),
+  url('fonts/Cantarell-ThinItalic.woff2') format('woff2');
+  font-weight: 200;
+  font-style: italic;
+}
 </style>
-<style name="ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#3e5915;background:#f6f5b2}.hljs-keyword,.hljs-literal,.hljs-selector-tag{color:#059}.hljs-subst{color:#3e5915}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-link,.hljs-section,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#2c009f}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#e60415}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}</style>
-<style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
-
-html, body { min-height: 100%; height: 100% }
-
-body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
-body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
-
-body > header {
-  text-align: center;
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 2rem 2rem 1rem;
+<style name="toolbox/ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
 }
-body > header { display: flex; flex-flow: row nowrap; justify-content: space-around; align-items: center; }
-body > header .logo, .logo img { display: block; margin: 0; flex-shrink: 1; }
-body > header .logo img { max-width: 16rem; max-height: 16rem; }
-body > header .badges { margin-bottom: 1rem; }
-body > header a.badge { display: inline-block; padding: 0.25rem 0.5rem; }
+code.hljs {
+  padding: 3px 5px
+}
+/*
+
+School Book style from goldblog.com.ua (c) Zaripov Yura <yur4ik7@ukr.net>
+
+*/
+.hljs {
+  color: #3e5915;
+  background: #f6f5b2
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal {
+  color: #005599;
+  font-weight: bold
+}
+.hljs-subst {
+  color: #3e5915
+}
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-attribute,
+.hljs-built_in,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-link {
+  color: #2c009f
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: #e60415
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-name,
+.hljs-selector-id,
+.hljs-strong {
+  font-weight: bold
+}
+.hljs-emphasis {
+  font-style: italic
+}</style>
+<style name="assets/style.css" type="text/css">* {
+  box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5;
+}
+html, body {
+  min-height: 100%; height: 100%
+}
+body {
+  color: #123;
+  font-size: 16px;
+  font-family: "Cantarell", sans-serif;
+  background-color: rgb(101, 179, 76);
+  background-image: url('bg.svg');
+  background-repeat: repeat;
+}
+  body > .content {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: flex-start;
+    background: #f0f0f0;
+    margin: 1rem;
+    border-radius: 1rem;
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  }
+  body > .content > header {
+    text-align: center;
+    margin: 0 auto;
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 20rem;
+  }
+    body > .content > header .logo {
+      display: block; margin: 0; flex-shrink: 1;
+      margin-bottom: 1rem;
+    }
+    body > .content > header .logo img {
+      display: block;
+      margin: 0;
+      flex-shrink: 1;
+      max-width: 16rem;
+      max-height: 16rem;
+    }
+    body > .content > header a.badge {
+      display: inline-block; padding: 0.25rem 0.5rem;
+    }
 
 section { padding: 1em; }
 
@@ -105,11 +255,14 @@ th { padding-right: 5em }
   grid-template-columns: 1fr 1fr 1fr 1fr;
   flex-flow: row wrap;
   justify-content: center;
-  max-width: 80rem;
-  margin: 0 auto 3rem;
+  margin: 0 0 3rem 0;
+  padding: 0.33rem 0.66rem 0 0;
 }
 
 @media (max-width: 80rem) {
+  body > .content {
+    flex-flow: row wrap;
+  }
   .grid {
     display: flex;
     flex-flow: column nowrap;
@@ -141,7 +294,7 @@ th { padding-right: 5em }
 
 .feature {
   padding: 1rem;
-  margin: 1rem 0.5rem 0;
+  margin: 1rem 0.66rem 0;
   border: 1px solid rgba(0,0,0,0.1);
   border-top-color: rgba(255,255,255,0.5);
   border-left-color: rgba(255,255,255,0.5);
@@ -150,15 +303,16 @@ th { padding-right: 5em }
   display: flex;
   flex-flow: column nowrap;
   background: #fff;
-}
-
-.feature .docs {
-  font-weight: bold;
-}
-
-#features .feature {
   min-height: 10rem;
+  border-radius: 0.5rem;
 }
+  .feature .docs {
+    font-weight: bold;
+  }
+  .feature .description {
+    line-height: 1.5;
+    font-size: 0.875rem;
+  }
 
 .left {
   text-align: left;
@@ -167,10 +321,6 @@ th { padding-right: 5em }
   text-align: center;
 }
 
-.feature .description {
-  line-height: 1.5;
-  font-size: 0.875rem;
-}
 
 code { font-size: 0.9375rem; }
 code.inline, code.block { background: #0c5749; color: white; font-family: monospace; font-weight: bold; }
@@ -216,9 +366,10 @@ pre, code {
 }
 
 p {
-  line-height: 1.5rem;
+  line-height: 1.75rem;
   margin-top: 0;
   margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 svg.icon {
@@ -450,287 +601,104 @@ hr {
 <li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
 <li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
 <li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
-<li><a class="ensuite-md-link" href=/implementing.html>Supporting new chains</a></li>
+<li><a class="ensuite-md-link" href=/impl.html>Supporting new chains</a></li>
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
-<h1 id="building-contracts-from-source" tabindex="-1">Building contracts from source</h1>
-<p>When deploying, Fadroma automatically builds the <code>Contract</code>s specified in the deployment,
-using a procedure based on <a href="https://hub.docker.com/r/enigmampc/secret-contract-optimizer">secret-contract-optimizer</a>.</p>
-<p>This either with your local Rust/WASM toolchain,
-or in a pre-defined <a href="https://github.com/hackbg/fadroma/pkgs/container/fadroma">build container</a>.
-The latter option requires Docker (which you also need for the devnet).</p>
-<p>By default, optimized builds are output to the <code>wasm</code> subdirectory of your project.
-Checksums of build artifacts are emitted as <code>wasm/*.wasm.sha256</code>: these checksums
-should be equal to the code hashes returned by the chain.</p>
-<p>We advise you to keep these
-<strong>build receipts</strong> in version control. This gives you a quick way to keep track of the
-correspondence between changes to source and resulting changes to code hashes.</p>
-<p>Furthermore, when creating a <code>Project</code>, you'll be asked to define one or more <code>Template</code>s
-corresponding to the contract crates of your project. You can</p>
-<p>Fadroma implements <strong>reproducible compilation</strong> of contracts.
-What to compile is specified using the primitives defined in <a href="../client/README.md">Fadroma Core</a>.</p>
-<h2 id="build-cli" tabindex="-1">Build CLI</h2>
-<pre><code class="hljs language-shell"><span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma build CONTRACT    <span class="hljs-comment"># nop if already built</span></span>
-<span class="hljs-meta prompt_">$ </span><span class="language-bash">fadroma rebuild CONTRACT  <span class="hljs-comment"># always rebuilds</span></span>
-</code></pre>
-<ul>
-<li><strong><code>CONTRACT</code></strong>: one of the contracts defined in the <a href="../project/Project.spec.ts">project</a>,
-<em>or</em> a path to a crate assumed to contain a single contract.</li>
-</ul>
-<h3 id="builder-configuration" tabindex="-1">Builder configuration</h3>
-<table>
-<thead>
-<tr>
-<th>env var</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong><code>FADROMA_BUILD_VERBOSE</code></strong></td>
-<td>flag</td>
-<td>more log output</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_BUILD_QUIET</code></strong></td>
-<td>flag</td>
-<td>less log output</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_BUILD_SCRIPT</code></strong></td>
-<td>path to script</td>
-<td>build implementation</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_BUILD_RAW</code></strong></td>
-<td>flag</td>
-<td>run the build script in the current environment instead of container</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_DOCKER</code></strong></td>
-<td>host:port or socket</td>
-<td>non-default docker socket address</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_BUILD_IMAGE</code></strong></td>
-<td>docker image tag</td>
-<td>image to run</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_BUILD_DOCKERFILE</code></strong></td>
-<td>path to dockerfile</td>
-<td>dockerfile to build image if missing</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_BUILD_PODMAN</code></strong></td>
-<td>flag</td>
-<td>whether to use podman instead of docker</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_PROJECT</code></strong></td>
-<td>path</td>
-<td>root of project</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_ARTIFACTS</code></strong></td>
-<td>path</td>
-<td>project artifact cache</td>
-</tr>
-<tr>
-<td><strong><code>FADROMA_REBUILD</code></strong></td>
-<td>flag</td>
-<td>builds always run, artifact cache is ignored</td>
-</tr>
-</tbody>
-</table>
-<h2 id="build-api" tabindex="-1">Build API</h2>
-<ul>
-<li><strong>BuildRaw</strong>: runs the build in the current environment</li>
-<li><strong>BuildContainer</strong>: runs the build in a container for enhanced reproducibility</li>
-</ul>
-<h3 id="getting-a-builder" tabindex="-1">Getting a builder</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getBuilder } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-<span class="hljs-keyword">const</span> builder = <span class="hljs-title function_">getBuilder</span>(<span class="hljs-comment">/* { ...options... } */</span>)
-
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">Builder</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-<span class="hljs-title function_">assert</span>(builder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Builder</span>)
-</code></pre>
-<h4 id="buildcontainer" tabindex="-1">BuildContainer</h4>
-<p>By default, you get a <code>BuildContainer</code>,
-which runs the build procedure in a container
-provided by either Docker or Podman (as selected
-by the <code>FADROMA_BUILD_PODMAN</code> environment variable).</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">BuildContainer</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">false</span> }) <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">BuildContainer</span>)
-</code></pre>
-<p><code>BuildContainer</code> uses <a href="https://www.npmjs.com/package/@hackbg/dock"><code>@hackbg/dock</code></a> to
-operate the container engine.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Dokeres</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/dock&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">false</span> }).<span class="hljs-property">docker</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Dokeres</span>.<span class="hljs-property">Engine</span>)
-</code></pre>
-<p>Use <code>FADROMA_DOCKER</code> or the <code>dockerSocket</code> option to specify a non-default Docker socket path.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">false</span>, <span class="hljs-attr">dockerSocket</span>: <span class="hljs-string">&#x27;test&#x27;</span> })
-</code></pre>
-<p>The <code>BuildContainer</code> runs the build procedure defined by the <code>FADROMA_BUILD_SCRIPT</code>
-in a container based on the <code>FADROMA_BUILD_IMAGE</code>, resulting in optimized WASM build artifacts
-being output to the <code>FADROMA_ARTIFACTS</code> directory.</p>
-<h4 id="buildraw" tabindex="-1">BuildRaw</h4>
-<p>If you want to execute the build procedure in your
-current environment, you can switch to <code>BuildRaw</code>
-by passing <code>raw: true</code> or setting <code>FADROMA_BUILD_RAW</code>.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> rawBuilder = <span class="hljs-title function_">getBuilder</span>({ <span class="hljs-attr">raw</span>: <span class="hljs-literal">true</span> })
-
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">BuildRaw</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-assert.<span class="hljs-title function_">ok</span>(rawBuilder <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">BuildRaw</span>)
-</code></pre>
-<h3 id="building-a-contract" tabindex="-1">Building a contract</h3>
-<p>Now that we've obtained a <code>Builder</code>, let's compile a contract from source into a WASM binary.</p>
-<h4 id="building-a-named-contract-from-the-project" tabindex="-1">Building a named contract from the project</h4>
-<p>Building asynchronously returns <code>Template</code> instances.
-A <code>Template</code> is an undeployed contract. You can upload
-it once, and instantiate any number of <code>Contract</code>s from it.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> raw <span class="hljs-keyword">of</span> [<span class="hljs-literal">true</span>, <span class="hljs-literal">false</span>]) {
-  <span class="hljs-keyword">const</span> builder = <span class="hljs-title function_">getBuilder</span>({ raw })
-</code></pre>
-<p>To build a single crate with the builder:</p>
-<pre><code class="hljs language-typescript">  <span class="hljs-keyword">const</span> contract_0 = <span class="hljs-keyword">await</span> builder.<span class="hljs-title function_">build</span>({ <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/kv&#x27;</span> })
-</code></pre>
-<p>To build multiple crates in parallel:</p>
-<pre><code class="hljs language-typescript">  <span class="hljs-keyword">const</span> [contract_1, contract_2] = <span class="hljs-keyword">await</span> builder.<span class="hljs-title function_">buildMany</span>([
-    { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/admin&#x27;</span> },
-    { <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;examples/killswitch&#x27;</span> }
-  ])
-</code></pre>
-<p>For built contracts, the following holds true:</p>
-<pre><code class="hljs language-typescript">  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [contract, index] <span class="hljs-keyword">of</span> [ contract_0, contract_1, contract_2 ].<span class="hljs-title function_">map</span>(<span class="hljs-params">(c,i)=&gt;[c,i]</span>) {
-</code></pre>
-<ul>
-<li>Build result will contain code hash and path to binary:</li>
-</ul>
-<pre><code class="hljs language-typescript">    <span class="hljs-title function_">assert</span>(<span class="hljs-keyword">typeof</span> contract.<span class="hljs-property">codeHash</span> === <span class="hljs-string">&#x27;string&#x27;</span>, <span class="hljs-string">`contract_<span class="hljs-subst">${index}</span>.codeHash is set`</span>)
-    <span class="hljs-title function_">assert</span>(contract.<span class="hljs-property">artifact</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-variable constant_">URL</span>,      <span class="hljs-string">`contract_<span class="hljs-subst">${index}</span>.artifact is set`</span>)
-</code></pre>
-<ul>
-<li>Build result will contain info about build inputs:</li>
-</ul>
-<pre><code class="hljs language-typescript">    <span class="hljs-title function_">assert</span>(contract.<span class="hljs-property">workspace</span>, <span class="hljs-string">`contract_<span class="hljs-subst">${index}</span>.workspace is set`</span>)
-    <span class="hljs-title function_">assert</span>(contract.<span class="hljs-property">crate</span>,     <span class="hljs-string">`contract_<span class="hljs-subst">${index}</span>.crate is set`</span>)
-    <span class="hljs-title function_">assert</span>(contract.<span class="hljs-property">revision</span>,  <span class="hljs-string">`contract_<span class="hljs-subst">${index}</span>.revision is set`</span>)
-</code></pre>
-<p>The above holds true equally for contracts produced
-by <code>BuildContainer</code> and <code>BuildRaw</code>.</p>
-<pre><code class="hljs language-typescript">  }
-}
-</code></pre>
-<h4 id="specifying-a-contract-to-build" tabindex="-1">Specifying a contract to build</h4>
-<p>The <code>Template</code> and <code>Contract</code> classes have the following properties for specifying the source:</p>
-<table>
-<thead>
-<tr>
-<th>field</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong><code>repository</code></strong></td>
-<td>Path or URL</td>
-<td>Points to the Git repository containing the contract sources. This is all you need if your smart contract is a single crate.</td>
-</tr>
-<tr>
-<td><strong><code>workspace</code></strong></td>
-<td>Path or URL</td>
-<td>Cargo workspace containing the contract sources. May or may not be equal to <code>contract.repo</code>. May be empty if the contract is a single crate.</td>
-</tr>
-<tr>
-<td><strong><code>crate</code></strong></td>
-<td>string</td>
-<td>Name of the Cargo crate containing the individual contract source. Required if <code>contract.workspace</code> is set.</td>
-</tr>
-<tr>
-<td><strong><code>revision</code></strong></td>
-<td>string</td>
-<td>Git reference (branch or tag). Defaults to <code>HEAD</code>, otherwise builds a commit from history.</td>
-</tr>
-</tbody>
-</table>
-<p>The outputs of builds are called <strong>artifact</strong>s, and are represented by two properties:</p>
-<table>
-<thead>
-<tr>
-<th>field</th>
-<th>type</th>
-<th>description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong><code>artifact</code></strong></td>
-<td>URL</td>
-<td>Canonical location of the compiled binary.</td>
-</tr>
-<tr>
-<td><strong><code>codeHash</code></strong></td>
-<td>string</td>
-<td>SHA256 checksum of artifact. should correspond to <strong>template.codeHash</strong> and <strong>instance.codeHash</strong> properties of uploaded and instantiated contracts</td>
-</tr>
-</tbody>
-</table>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">const</span> <span class="hljs-attr">contract</span>: <span class="hljs-title class_">Contract</span> = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>({ builder, <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
-<span class="hljs-keyword">await</span> contract.<span class="hljs-property">compiled</span>
-</code></pre>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Template</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">const</span> template = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Template</span>({ builder, <span class="hljs-attr">crate</span>: <span class="hljs-string">&#x27;fadroma-example-kv&#x27;</span> })
-<span class="hljs-keyword">await</span> template.<span class="hljs-property">compiled</span>
-</code></pre>
-<h3 id="building-past-commits-of-contracts" tabindex="-1">Building past commits of contracts</h3>
-<ul>
-<li><code>DotGit</code>, a helper for finding the contents of Git history
-where Git submodules are involved. This works in tandem with
-<code>build.impl.mjs</code> to enable:
-<ul>
-<li><strong>building any commit</strong> from a project's history, and therefore</li>
-<li><strong>pinning versions</strong> for predictability during automated one-step deployments.</li>
-</ul>
-</li>
-</ul>
-<p>If <code>.git</code> directory is present, builders can check out and build a past commits of the repo,
-as specifier by <code>contract.revision</code>.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">Contract</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/agent&#x27;</span>
-<span class="hljs-keyword">import</span> { getGitDir, <span class="hljs-title class_">DotGit</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
-
-assert.<span class="hljs-title function_">throws</span>(<span class="hljs-function">()=&gt;</span><span class="hljs-title function_">getGitDir</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>()))
-
-<span class="hljs-keyword">const</span> contractWithSource = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Contract</span>({
-  <span class="hljs-attr">repository</span>: <span class="hljs-string">&#x27;REPO&#x27;</span>,
-  <span class="hljs-attr">revision</span>:   <span class="hljs-string">&#x27;REF&#x27;</span>,
-  <span class="hljs-attr">workspace</span>:  <span class="hljs-string">&#x27;WORKSPACE&#x27;</span>
-  <span class="hljs-attr">crate</span>:      <span class="hljs-string">&#x27;CRATE&#x27;</span>
-})
-
-assert.<span class="hljs-title function_">ok</span>(<span class="hljs-title function_">getGitDir</span>(contractWithSource) <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">DotGit</span>)
-</code></pre>
-<h3 id="build-caching" tabindex="-1">Build caching</h3>
-<p>When build caching is enabled, each build call first checks in <code>FADROMA_ARTIFACTS</code>
-for a corresponding pre-existing build and reuses it if present.</p>
-<p>Setting <code>FADROMA_REBUILD</code> disables build caching.</p>
-<h2 id="implementation-details" tabindex="-1">Implementation details</h2>
-<h3 id="the-build-procedure" tabindex="-1">The build procedure</h3>
-<p>The ultimate build procedure, i.e. actual calls to <code>cargo</code> and such,
-is implemented in the standalone script <code>FADROMA_BUILD_SCRIPT</code> (default: <code>build.impl.mjs</code>),
-which is launched by the builders.</p>
-<h3 id="builders" tabindex="-1">Builders</h3>
-<p>The subclasses of the abstract base class <code>Builder</code> in Fadroma Core
-implement the compilation procedure for contracts.</p>
+<h1 id="fadroma-compile-api" tabindex="-1">Fadroma Compile API</h1>
 <hr>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
-<span class="hljs-keyword">import</span> { fileURLToPath } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;url&#x27;</span>
+<p><strong>Status:</strong> Covers the basics.
+<strong>To do:</strong></p>
+<ul>
+<li>Using <code>sourceOrigin</code> and <code>sourceRef</code> for transparent builds of remote git checkouts.
+(this feature worked in previous versions but is currently disabled).</li>
+<li>Verifying code hashes more strictly: add <code>codeHashPath</code> and separate
+<code>fetch</code> path for comparing <code>toCodeHash(codeData)</code> vs value of <code>codeHashPath</code></li>
+</ul>
+<hr>
+<p>Fadroma can deploy smart contracts from source.
+Therefore, it must be able to compile them.
+Various compilation options are implemented
+in the form of the Compiler classes, which
+set up the appropriate build environments.</p>
+<h2 id="get-a-compiler" tabindex="-1">Get a compiler</h2>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { getCompiler } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span>
+<span class="hljs-keyword">const</span> compiler = <span class="hljs-title function_">getCompiler</span>()
+</code></pre>
+<ul>
+<li><code>FADROMA_BUILD_RAW</code> environment variable lets you select
+between <code>RawLocalRustCompiler</code> and <code>ContainerizedLocalRustCompiler</code>.</li>
+</ul>
+<h4 id="rawlocalrustcompiler" tabindex="-1">RawLocalRustCompiler</h4>
+<p>Runs the build procedure in the current shell environment
+(using Rust from your <code>rustup</code> setup, etc.)</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> compiler = <span class="hljs-title function_">getCompiler</span>({ <span class="hljs-attr">container</span>: <span class="hljs-literal">false</span> })
+</code></pre>
+<ul>
+<li>Set <code>FADROMA_BUILD_SCRIPT</code> to customize build behavior. This defaults to
+the <a href="./build.impl.mjs"><code>build.impl.mjs</code></a> script included in the Fadroma package.</li>
+</ul>
+<h4 id="containerizedlocalrustcompiler" tabindex="-1">ContainerizedLocalRustCompiler</h4>
+<p>Runs the build procedure in a Docker container, <a href="https://github.com/hackbg/fadroma/pkgs/container/fadroma"><code>https://ghcr.io/hackbg/fadroma</code></a>,
+using <a href="https://www.npmjs.com/package/@hackbg/dock"><code>@hackbg/dock</code></a>.</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> compiler = <span class="hljs-title function_">getCompiler</span>({ <span class="hljs-attr">container</span>: <span class="hljs-literal">true</span> })
+<span class="hljs-comment">// specify custom docker connection:</span>
+<span class="hljs-keyword">const</span> compiler = <span class="hljs-title function_">getCompiler</span>({ <span class="hljs-attr">container</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">dockerSocket</span>: <span class="hljs-string">&#x27;localhost:5000&#x27;</span> })
+</code></pre>
+<ul>
+<li>Use <code>FADROMA_DOCKER</code> or the <code>dockerSocket</code> option to specify a non-default Docker socket path.</li>
+<li>Use <code>FADROMA_BUILD_IMAGE</code>, <code>FADROMA_BUILD_SCRIPT</code> to provide alternate build behavior.</li>
+</ul>
+<h2 id="compile-a-crate" tabindex="-1">Compile a crate</h2>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> compiled = <span class="hljs-keyword">await</span> compiler.<span class="hljs-title function_">build</span>({
+  <span class="hljs-attr">cargoToml</span>: <span class="hljs-string">&quot;./path/to/crate/Cargo.toml&quot;</span>
+})
+</code></pre>
+<h2 id="compile-a-crate-from-a-workspace" tabindex="-1">Compile a crate from a workspace</h2>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> compiled = <span class="hljs-keyword">await</span> compiler.<span class="hljs-title function_">build</span>({
+  <span class="hljs-attr">cargoWorkspace</span>: <span class="hljs-string">&quot;./path/to/workspace/Cargo.toml&quot;</span>,
+  <span class="hljs-attr">cargoCrate</span>: <span class="hljs-string">&quot;my-contract-1&quot;</span>
+})
+</code></pre>
+<p>This returns an instance of <code>CompiledCode</code> with the following properties:</p>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>codePath</td>
+<td>path to compiled code</td>
+</tr>
+<tr>
+<td>codeHash</td>
+<td>sha256 of compiled code</td>
+</tr>
+<tr>
+<td>codeData</td>
+<td>(empty before fetch) Uint8Array with the compiled code</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>At <code>${codePath}.sha256</code>, there'll be a checksum file.
+You can keep that checksum in Git to know when the binary has changed.</li>
+</ul>
+<p>You can then upload and instantiate the compiled code with:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> uploaded = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(compiled)
+<span class="hljs-keyword">const</span> instance = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">instantiate</span>(uploaded, { label, initMsg })
+</code></pre>
+<p>To prevent reuploads of the same code, upload with:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> uploadStore = <span class="hljs-title function_">getUploadStore</span>(<span class="hljs-string">&#x27;/path/to/uploads/dir&#x27;</span>) 
+<span class="hljs-keyword">const</span> uploaded = <span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">upload</span>(compiled, { uploadStore })
+</code></pre>
+<p>To get the actual code as a <code>Uint8Array</code>, use:</p>
+<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> binary = <span class="hljs-keyword">await</span> compiled.<span class="hljs-title function_">fetch</span>()
 </code></pre>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#build-cli">Build CLI</a><ul><li><a href="#builder-configuration">Builder configuration</a></li></ul></li><li><a href="#build-api">Build API</a><ul><li><a href="#getting-a-builder">Getting a builder</a><ul><li><a href="#buildcontainer">BuildContainer</a></li><li><a href="#buildraw">BuildRaw</a></li></ul></li><li><a href="#building-a-contract">Building a contract</a><ul><li><a href="#building-a-named-contract-from-the-project">Building a named contract from the project</a></li><li><a href="#specifying-a-contract-to-build">Specifying a contract to build</a></li></ul></li><li><a href="#building-past-commits-of-contracts">Building past commits of contracts</a></li><li><a href="#build-caching">Build caching</a></li></ul></li><li><a href="#implementation-details">Implementation details</a><ul><li><a href="#the-build-procedure">The build procedure</a></li><li><a href="#builders">Builders</a></li></ul></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#get-a-compiler">Get a compiler</a><ul><li><ul><li><a href="#rawlocalrustcompiler">RawLocalRustCompiler</a></li><li><a href="#containerizedlocalrustcompiler">ContainerizedLocalRustCompiler</a></li></ul></li></ul></li><li><a href="#compile-a-crate">Compile a crate</a></li><li><a href="#compile-a-crate-from-a-workspace">Compile a crate from a workspace</a></li></ul></div></p></nav>
 </div>
 </body>
 </html>

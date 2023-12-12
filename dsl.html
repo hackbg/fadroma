@@ -8,55 +8,205 @@
 </head>
 <body>
 <script data-goatcounter="https://goat.fadroma.hack.bg/count" async src="//goat.fadroma.hack.bg/count.js"></script>
-<style name="assets/fonts.css" type="text/css">/* inter-regular - latin */
-@font-face {
-  font-family: 'Inter';
+<style name="assets/fonts.css" type="text/css">@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Bold.ttf') format('truetype'),
+  url('fonts/Cantarell-Bold.woff') format('woff'),
+  url('fonts/Cantarell-Bold.woff2') format('woff2');
+  font-weight: 700;
   font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-BoldItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-BoldItalic.woff') format('woff'),
+  url('fonts/Cantarell-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ExtraBold.ttf') format('truetype'),
+  url('fonts/Cantarell-ExtraBold.woff') format('woff'),
+  url('fonts/Cantarell-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ExtraBoldItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-ExtraBoldItalic.woff') format('woff'),
+  url('fonts/Cantarell-ExtraBoldItalic.woff2') format('woff2');
+  font-weight: 800;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Italic.ttf') format('truetype'),
+  url('fonts/Cantarell-Italic.woff') format('woff'),
+  url('fonts/Cantarell-Italic.woff2') format('woff2');
   font-weight: 400;
-  src: url('assets/fonts/inter-v8-latin-regular.eot'); /* IE9 Compat Modes */
-  src: local(''),
-       url('assets/fonts/inter-v8-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-       url('assets/fonts/inter-v8-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
-       url('assets/fonts/inter-v8-latin-regular.woff') format('woff'), /* Modern Browsers */
-       url('assets/fonts/inter-v8-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
-       url('assets/fonts/inter-v8-latin-regular.svg#Inter') format('svg'); /* Legacy iOS */
+  font-style: italic;
 }
 
-/* inter-600 - latin */
 @font-face {
-  font-family: 'Inter';
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Light.ttf') format('truetype'),
+  url('fonts/Cantarell-Light.woff') format('woff'),
+  url('fonts/Cantarell-Light.woff2') format('woff2');
+  font-weight: 300;
   font-style: normal;
-  font-weight: 600;
-  src: url('assets/fonts/inter-v8-latin-600.eot'); /* IE9 Compat Modes */
-  src: local(''),
-       url('assets/fonts/inter-v8-latin-600.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-       url('assets/fonts/inter-v8-latin-600.woff2') format('woff2'), /* Super Modern Browsers */
-       url('assets/fonts/inter-v8-latin-600.woff') format('woff'), /* Modern Browsers */
-       url('assets/fonts/inter-v8-latin-600.ttf') format('truetype'), /* Safari, Android, iOS */
-       url('assets/fonts/inter-v8-latin-600.svg#Inter') format('svg'); /* Legacy iOS */
 }
 
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-LightItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-LightItalic.woff') format('woff'),
+  url('fonts/Cantarell-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
 
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Regular.ttf') format('truetype'),
+  url('fonts/Cantarell-Regular.woff') format('woff'),
+  url('fonts/Cantarell-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-Thin.ttf') format('truetype'),
+  url('fonts/Cantarell-Thin.woff') format('woff'),
+  url('fonts/Cantarell-Thin.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Cantarell';
+  src: url('fonts/Cantarell-ThinItalic.ttf') format('truetype'),
+  url('fonts/Cantarell-ThinItalic.woff') format('woff'),
+  url('fonts/Cantarell-ThinItalic.woff2') format('woff2');
+  font-weight: 200;
+  font-style: italic;
+}
 </style>
-<style name="ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#3e5915;background:#f6f5b2}.hljs-keyword,.hljs-literal,.hljs-selector-tag{color:#059}.hljs-subst{color:#3e5915}.hljs-addition,.hljs-attribute,.hljs-built_in,.hljs-bullet,.hljs-link,.hljs-section,.hljs-string,.hljs-symbol,.hljs-template-tag,.hljs-template-variable,.hljs-title,.hljs-type,.hljs-variable{color:#2c009f}.hljs-comment,.hljs-deletion,.hljs-meta,.hljs-quote{color:#e60415}.hljs-doctag,.hljs-keyword,.hljs-literal,.hljs-name,.hljs-section,.hljs-selector-id,.hljs-selector-tag,.hljs-strong,.hljs-title,.hljs-type{font-weight:700}.hljs-emphasis{font-style:italic}</style>
-<style name="assets/style.css" type="text/css">* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
-
-html, body { min-height: 100%; height: 100% }
-
-body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
-body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
-
-body > header {
-  text-align: center;
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 2rem 2rem 1rem;
+<style name="toolbox/ensuite/node_modules/highlight.js/styles/school-book.css" type="text/css">pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em
 }
-body > header { display: flex; flex-flow: row nowrap; justify-content: space-around; align-items: center; }
-body > header .logo, .logo img { display: block; margin: 0; flex-shrink: 1; }
-body > header .logo img { max-width: 16rem; max-height: 16rem; }
-body > header .badges { margin-bottom: 1rem; }
-body > header a.badge { display: inline-block; padding: 0.25rem 0.5rem; }
+code.hljs {
+  padding: 3px 5px
+}
+/*
+
+School Book style from goldblog.com.ua (c) Zaripov Yura <yur4ik7@ukr.net>
+
+*/
+.hljs {
+  color: #3e5915;
+  background: #f6f5b2
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal {
+  color: #005599;
+  font-weight: bold
+}
+.hljs-subst {
+  color: #3e5915
+}
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-attribute,
+.hljs-built_in,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-link {
+  color: #2c009f
+}
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: #e60415
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-name,
+.hljs-selector-id,
+.hljs-strong {
+  font-weight: bold
+}
+.hljs-emphasis {
+  font-style: italic
+}</style>
+<style name="assets/style.css" type="text/css">* {
+  box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5;
+}
+html, body {
+  min-height: 100%; height: 100%
+}
+body {
+  color: #123;
+  font-size: 16px;
+  font-family: "Cantarell", sans-serif;
+  background-color: rgb(101, 179, 76);
+  background-image: url('bg.svg');
+  background-repeat: repeat;
+}
+  body > .content {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: flex-start;
+    background: #f0f0f0;
+    margin: 1rem;
+    border-radius: 1rem;
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  }
+  body > .content > header {
+    text-align: center;
+    margin: 0 auto;
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 20rem;
+  }
+    body > .content > header .logo {
+      display: block; margin: 0; flex-shrink: 1;
+      margin-bottom: 1rem;
+    }
+    body > .content > header .logo img {
+      display: block;
+      margin: 0;
+      flex-shrink: 1;
+      max-width: 16rem;
+      max-height: 16rem;
+    }
+    body > .content > header a.badge {
+      display: inline-block; padding: 0.25rem 0.5rem;
+    }
 
 section { padding: 1em; }
 
@@ -105,11 +255,14 @@ th { padding-right: 5em }
   grid-template-columns: 1fr 1fr 1fr 1fr;
   flex-flow: row wrap;
   justify-content: center;
-  max-width: 80rem;
-  margin: 0 auto 3rem;
+  margin: 0 0 3rem 0;
+  padding: 0.33rem 0.66rem 0 0;
 }
 
 @media (max-width: 80rem) {
+  body > .content {
+    flex-flow: row wrap;
+  }
   .grid {
     display: flex;
     flex-flow: column nowrap;
@@ -141,7 +294,7 @@ th { padding-right: 5em }
 
 .feature {
   padding: 1rem;
-  margin: 1rem 0.5rem 0;
+  margin: 1rem 0.66rem 0;
   border: 1px solid rgba(0,0,0,0.1);
   border-top-color: rgba(255,255,255,0.5);
   border-left-color: rgba(255,255,255,0.5);
@@ -150,15 +303,16 @@ th { padding-right: 5em }
   display: flex;
   flex-flow: column nowrap;
   background: #fff;
-}
-
-.feature .docs {
-  font-weight: bold;
-}
-
-#features .feature {
   min-height: 10rem;
+  border-radius: 0.5rem;
 }
+  .feature .docs {
+    font-weight: bold;
+  }
+  .feature .description {
+    line-height: 1.5;
+    font-size: 0.875rem;
+  }
 
 .left {
   text-align: left;
@@ -167,10 +321,6 @@ th { padding-right: 5em }
   text-align: center;
 }
 
-.feature .description {
-  line-height: 1.5;
-  font-size: 0.875rem;
-}
 
 code { font-size: 0.9375rem; }
 code.inline, code.block { background: #0c5749; color: white; font-family: monospace; font-weight: bold; }
@@ -216,9 +366,10 @@ pre, code {
 }
 
 p {
-  line-height: 1.5rem;
+  line-height: 1.75rem;
   margin-top: 0;
   margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 svg.icon {
@@ -450,7 +601,7 @@ hr {
 <li><a class="ensuite-md-link" href=/factory.html>Factories</a></li>
 <li><a class="ensuite-md-link" href=/devnet.html>Devnets</a></li>
 <li><a class="ensuite-md-link" href=/mocknet.html>Mocknets</a></li>
-<li><a class="ensuite-md-link" href=/implementing.html>Supporting new chains</a></li>
+<li><a class="ensuite-md-link" href=/impl.html>Supporting new chains</a></li>
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
 <h1 id="writing-smart-contracts-with-fadroma-dsl" tabindex="-1">Writing smart contracts with Fadroma DSL</h1>
