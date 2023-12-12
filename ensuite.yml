@@ -124,7 +124,7 @@ routes:
 
 styles:
   - assets/fonts.css
-  - ensuite/node_modules/highlight.js/styles/school-book.css
+  - toolbox/ensuite/node_modules/highlight.js/styles/school-book.css
   - assets/style.css
 
 icons: # Icons as inline svg paths, see https://icomoon.io/#docs/inline-svg
