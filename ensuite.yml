@@ -149,49 +149,11 @@ features:
       ```sh
       npm init @fadroma
       ```
+
       The resulting NPM package is home to your project.
       It also doubles as your app's API client library &mdash;
       ready for framework-agnostic frontend work, client-side
       computation, or third-party integrations.
-      ### Safely perform complex operations on the blockchain
-      Define project structure, then manage contracts declaratively:
-      ```typescript
-      // api.ts
-      import Fadroma, { Contract } from '@hackbg/fadroma'
-
-      // a deployment definition:
-      export default Fadroma(context => ({
-
-        // an external dependency:
-        theirContract: context.depend({
-          address:  '...',
-          codeHash: '...'
-        })
-
-        // a custom contract, built and deployed from source:
-        myContract: context.deploy({
-          sourcePath: '.',
-          async initMsg (context) { // generate init message
-            // dependencies are resolved simply by `await`ing:
-            const { address, codeHash } = await context.theirContract
-            return { link: { address, code_hash: codeHash } }
-          }
-        }, class MyContract extends Contract {
-          myTX = (seed = Fadroma.randomBase64()) => this.execute({ // custom transaction
-            my_transaction: { seed }
-          })
-          myQ = (id) => this.query({ // custom query
-            return this.query({ my_query: { id } })
-          })
-        })
-
-      }))
-      ```
-
-      ```sh
-      npx fadroma deploy --testnet myDeployment
-      npx fadroma call myDeployment myContract myTX "some-seed"
-      ```
     highlight: true
     big: left
     links:
@@ -203,115 +165,77 @@ features:
         bold: true
         text: "@fadroma/create on NPM ![](https://img.shields.io/npm/v/@fadroma/create?color=%23437733&label=&style=for-the-badge)"
         href: https://www.npmjs.com/package/@fadroma/create
+  
+  - name: Safely perform complex operations on the blockchain.
+    info: |
+      Define project structure, then manage contracts declaratively:
+      ```typescript
+      // api.ts
+      import Fadroma, { Contract } from '@hackbg/fadroma'
 
-  - info: |
-      ### Launch app
-      Monitor network state, visualize deployment contents, view test results and coverage,
-      and perform administrative operations, from a unified local dashboard.
-      ### Fully scriptable:
-      Add Fadroma to an existing NPM project:
+      // a deployment definition:
+      export default Fadroma(context => ({
+
+        // an external dependency:
+        theirContract: context.depend({
+          address:  '...',
+          codeHash: '...',
+        })
+
+        // a custom contract, built and deployed from source:
+        myContract: context.deploy({
+          sourcePath: '.',
+          async initMsg (context) { // generate init message
+            // dependencies are resolved simply by `await`ing:
+            const { address, codeHash } = await context.theirContract
+            return { link: { address, code_hash: codeHash } }
+          },
+          // client side behavior for the resulting contract:
+          client: class MyContract extends Contract
+        })
+
+      }))
+
+      export class MyContract extends Contract {
+        myTX = (seed = Fadroma.randomBase64()) => this.execute({ // custom transaction
+          my_transaction: { seed }
+        })
+        myQ = (id) => this.query({ // custom query
+          return this.query({ my_query: { id } })
+        })
+      }
+      ```
+
       ```sh
-      npm i --save @hackbg/fadroma
+      npx fadroma deploy --testnet myDeployment
+      npx fadroma call myDeployment myContract myTX "some-seed"
       ```
-      ## Connect to [Secret Network](https://scrt.network/)... 🤫
-      ```ts
-      import { Scrt } from '@hackbg/fadroma'
-      const scrtTestnet = Scrt.testnet()
-      const scrtMainnet = Scrt.mainnet()
-      ```
-      ## ...to [**OKP4**](https://okp4.network/)... 🧙
-      ```ts
-      import { CW } from '@hackbg/fadroma'
-      const okp4 = CW.testnet('okp4-nemeton-1')
-      // wen mainnet?
-      ```
-      ## ...or any other CosmWasm chain: 🚀
-      ```ts
-      const osmosis = CW.mainnet('osmosis-1', {
-        url: 'https://lcd.osmosis.zone'
-      })
-      const archway = CW.mainnet('archway-1', {
-        url: 'https://api.mainnet.archway.io'
-      })
-      ```
-      ### Tokenomic examples
-      ## Call a SNIP20 token from a script or app
-      ```typescript
-      const token = Scrt.testnet().snip20({
-        address:  '...',
-        codeHash: '...',
-      })
-      ```
-      ## SNIP20 Viewing Key
-      ```typescript
-      // TODO EXAMPLE
-      ```
-      ## SNIP20 Query Permit
-      ```typescript
-      // TODO EXAMPLE
-      ```
-      ## SNIP721
-      ```typescript
-      // CONTRIBUTIONS WELCOME https://...
-      ```
+    highlight: true
+    big: left
     links:
       - icon: typescript
-        text: Call a SNIP20 token from a script or an app
-        href: /scrt.html#SNIP20Client
         bold: true
-      - icon: rust
-        text: Call a SNIP20 token from another contract
-        info: A struct that interfaces with a SNIP-20 token, for sending messages to tokens in fewer lines of code.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/client/
-        bold: true
-      - icon: rust
-        text: Customize a SNIP20 token
-        info: An embeddable SNIP-20 implementation, for customizing token functionality, and/or embedding tokens alongside custom logic in the same contract.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/snip20/contract/
-        bold: true
-      - icon: todo
-        text: "WIP: SNIP721 Client class"
-      - icon: rust
-        text: fadroma::scrt
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/
-        bold: true
+        text: "@fadroma/agent on NPM ![](https://img.shields.io/npm/v/@fadroma/agent?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/agent
       - icon: typescript
-        text: "@fadroma/scrt"
-        href: /scrt.html
         bold: true
-      - icon: todo
-        text: "WIP: OKP4"
-        info: Chain with triple store, object store, and Prolog rule engine
-        href: https://github.com/hackbg/fadroma/pull/188
-      - icon: todo
-        text: "WIP: @fadroma/cw"
-        info: Generic support for `@cosmjs/stargate` connections
-        href: https://github.com/hackbg/fadroma/issues/148
-      - icon: rust
-        text: Viewing keys
-        info: Generate and use SNIP-20 compatible viewing keys in any contract.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/
-        bold: true
+        text: "@fadroma/scrt on NPM ![](https://img.shields.io/npm/v/@fadroma/scrt?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/scrt
       - icon: typescript
-        text: Viewing key client
-        href: ./scrt.html
         bold: true
-      - icon: rust
-        text: Query permits
-        info: Generate and use revokable SNIP-24 query permits.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/
-        bold: true
+        text: "@fadroma/cw on NPM ![](https://img.shields.io/npm/v/@fadroma/cw?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/cw
       - icon: typescript
-        text: Query permit client
-        href: ./scrt.html
         bold: true
+        text: "@fadroma/evm on NPM ![](https://img.shields.io/npm/v/@fadroma/evm?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/evm
 
-  - name: Write smart contracts with ease
+  - name: Write smart contracts with ease.
     big: left
     highlight: true
     info: |
-      Use attribute macros to abstract away the boilerplate.
-      Compose smart contracts out of encapsulated components.
+      Use attribute macros to abstract away repetitive boilerplate code,
+      and compose smart contracts out of encapsulated components.
       ```rust
       use fadroma::*;
       ```
@@ -389,64 +313,6 @@ features:
         href: https://docs.rs/fadroma/latest/fadroma/killswitch/
         bold: true
 
-  - info: |
-      ## Call a SNIP20 token from a contract
-      ```typescript
-      ```
-      ## Deploy a custom SNIP20 token
-      ```rust
-      use fadroma::*
-      #[contract]
-      mod contract {
-        // ...
-      }
-      ```
-      ```typescript
-      ```
-      ### Reproducible builds
-      Perform production builds of your contracts in a preset Docker container.
-      ### Integration testing
-      Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
-      ### Local devnets
-      Spawn real blockchain nodes locally for end-to-end testing.
-    link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
-    links:
-      - icon: console
-        text: $ fadroma build
-        href: /build.html#BuildCLI
-        bold: true
-      - icon: typescript
-        text: "@fadroma/build"
-        href: /build.html#BuildAPI
-        bold: true
-      - icon: rust
-        text: fadroma::ensemble
-        href: https://docs.rs/fadroma/latest/fadroma/ensemble/
-        bold: true
-      - icon: rust
-        text: Example ensemble test
-        href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
-      - icon: typescript
-        text: "@fadroma/mocknet"
-        href: mocknet.html
-        bold: true
-      - icon: todo
-        text: "TODO: Property-based testing"
-      - icon: todo
-        text: "TODO: Gas profiling"
-      - icon: console
-        text: $ fadroma devnet
-        href: devnet.html#cli
-        bold: true
-      - icon: typescript
-        text: "@fadroma/devnet"
-        href: devnet.html#api
-        bold: true
-      - icon: todo
-        text: "WIP: Export devnet"
-      - icon: todo
-        text: "TODO: Smart code reloading"
-
   - name: Powered by Open Source
     info: |
       ### Docker integration
@@ -499,6 +365,145 @@ features:
         href: https://foss.hack.bg
       - text: Custom licensing and exemptions
         href: mailto:hello@hack.bg
+
+examples:
+
+  - info: |
+      ### Launch app
+      Monitor network state, visualize deployment contents, view test results and coverage,
+      and perform administrative operations, all from a snappy local dashboard.
+    links:
+      - icon: rust
+        text: Launch app
+        href: /app
+        bold: true
+
+  - info: |
+      ### Fully scriptable:
+      Add Fadroma to an existing NPM project:
+      ```sh
+      npm i --save @hackbg/fadroma
+      ```
+      ## Connect to [Secret Network](https://scrt.network/)... 🤫
+      ```ts
+      import { Scrt } from '@hackbg/fadroma'
+      const scrtTestnet = Scrt.testnet()
+      const scrtMainnet = Scrt.mainnet()
+      ```
+      ## ...to [**OKP4**](https://okp4.network/)... 🧙
+      ```ts
+      import { CW } from '@hackbg/fadroma'
+      const okp4 = CW.testnet('okp4-nemeton-1')
+      // wen mainnet?
+      ```
+      ## ...or any other CosmWasm chain: 🚀
+      ```ts
+      const osmosis = CW.mainnet('osmosis-1', {
+        url: 'https://lcd.osmosis.zone'
+      })
+      const archway = CW.mainnet('archway-1', {
+        url: 'https://api.mainnet.archway.io'
+      })
+      ```
+      ### Tokenomic examples
+      ## Call a SNIP20 token from a script or app
+      ```typescript
+      const token = Scrt.testnet().snip20({
+        address:  '...',
+        codeHash: '...',
+      })
+      ```
+      ## SNIP20 Viewing Key
+      ```typescript
+      // TODO EXAMPLE
+      ```
+      ## SNIP20 Query Permit
+      ```typescript
+      // TODO EXAMPLE
+      ```
+      ## SNIP721
+      ```typescript
+      // CONTRIBUTIONS WELCOME https://...
+      ```
+      ## Call a SNIP20 token from a contract
+      ```rust
+      ```
+      ```typescript
+      ```
+      ## Deploy a custom SNIP20 token
+      ```rust
+      use fadroma::*
+      #[contract]
+      mod contract {
+        // ...
+      }
+      ```
+      ```typescript
+      ```
+      ### Reproducible builds
+      Perform production builds of your contracts in a preset Docker container.
+      ```sh
+      npx fadroma compile all
+      npx fadroma compile myContract
+      ```
+      ### Deduplicated code uploads
+      ```sh
+      npx fadroma upload all
+      npx fadroma upload myContract
+      ```
+      ### Local devnets
+      Spawn real blockchain nodes locally for end-to-end testing.
+      ```sh
+      npx fadroma devnet reset
+      npx fadroma devnet export
+      ```
+      ### Integration testing
+      Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
+    link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
+    links:
+      - icon: typescript
+        bold: true
+        text: "@fadroma/compile on NPM ![](https://img.shields.io/npm/v/@fadroma/compile?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/compile
+      - icon: typescript
+        bold: true
+        text: "@fadroma/devnet on NPM ![](https://img.shields.io/npm/v/@fadroma/devnet?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/devnet
+      - icon: console
+        text: $ fadroma build
+        href: /build.html#BuildCLI
+        bold: true
+      - icon: typescript
+        text: "@fadroma/build"
+        href: /build.html#BuildAPI
+        bold: true
+      - icon: rust
+        text: fadroma::ensemble
+        href: https://docs.rs/fadroma/latest/fadroma/ensemble/
+        bold: true
+      - icon: rust
+        text: Example ensemble test
+        href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
+      - icon: typescript
+        text: "@fadroma/mocknet"
+        href: mocknet.html
+        bold: true
+      - icon: todo
+        text: "TODO: Property-based testing"
+      - icon: todo
+        text: "TODO: Gas profiling"
+      - icon: console
+        text: $ fadroma devnet
+        href: devnet.html#cli
+        bold: true
+      - icon: typescript
+        text: "@fadroma/devnet"
+        href: devnet.html#api
+        bold: true
+      - icon: todo
+        text: "WIP: Export devnet"
+      - icon: todo
+        text: "TODO: Smart code reloading"
 
 extra:
   beforeBody:
