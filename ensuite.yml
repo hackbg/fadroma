@@ -141,46 +141,49 @@ features:
       to write [CosmWasm](https://cosmwasm.com/) smart contracts, test them, deploy them,
       and maintain their operational health.
 
-      Fadroma is compatible, expressive, and self-contained &mdash;
+      Fadroma is compatible, expressive, self-contained &mdash;
       and installs without requiring `root`, `curl|bash`, your contact list,
       or your phone number.
 
       Use this command to install Fadroma and create a new project:
       ```sh
-      npm init @fadroma@latest
+      npm init @fadroma
       ```
       The resulting NPM package is home to your project.
       It also doubles as your app's API client library &mdash;
-      ready for off-chain and third-party integrations.
+      ready for framework-agnostic frontend work, client-side
+      computation, or third-party integrations.
       ### Safely perform complex operations on the blockchain
       Define project structure, then manage contracts declaratively:
       ```typescript
       // api.ts
-      import * as Fadroma from '@hackbg/fadroma'
+      import Fadroma, { Contract } from '@hackbg/fadroma'
 
-      export default Fadroma(() => ({
+      // a deployment definition:
+      export default Fadroma(context => ({
 
-        // a dependency:
-        theirContract: new Fadroma.Contract({ // dependency
+        // an external dependency:
+        theirContract: context.depend({
           address:  '...',
           codeHash: '...'
-        }),
+        })
 
         // a custom contract, built and deployed from source:
-        myContract: class MyContract extends Fadroma.Contract {
-          static crate = '.' // path to source
-          static initMsg = async (context) => { // generate init message
-            const { // dependencies are resolved simply by `await`ing:
-              address, codeHash } = await context.theirContract
+        myContract: context.deploy({
+          sourcePath: '.',
+          async initMsg (context) { // generate init message
+            // dependencies are resolved simply by `await`ing:
+            const { address, codeHash } = await context.theirContract
             return { link: { address, code_hash: codeHash } }
           }
+        }, class MyContract extends Contract {
           myTX = (seed = Fadroma.randomBase64()) => this.execute({ // custom transaction
             my_transaction: { seed }
           })
           myQ = (id) => this.query({ // custom query
             return this.query({ my_query: { id } })
           })
-        }
+        })
 
       }))
       ```
@@ -192,56 +195,28 @@ features:
     highlight: true
     big: left
     links:
-      - icon: console
-        text: Get started
-        bold: true
-        href: /guide.html
-      - icon: console
-        text: Write a contract
-        bold: true
-        href: /dsl.html
-      - icon: console
-        text: Build and deploy
-        bold: true
-        href: /guide.html#build-cli
-      - icon: typescript
-        bold: true
-        text: "@fadroma/create on NPM ![](https://img.shields.io/npm/v/@fadroma/create?color=%23437733&label=&style=for-the-badge)"
-        href: https://www.npmjs.com/package/@fadroma/create
       - icon: typescript
         bold: true
         text: "@hackbg/fadroma on NPM ![](https://img.shields.io/npm/v/@hackbg/fadroma?color=%23437733&label=&style=for-the-badge)"
         href: https://www.npmjs.com/package/@hackbg/fadroma
       - icon: typescript
-        text: Writing a script
-        href: /deploy.html#WritingDeployScripts
         bold: true
-      - icon: console
-        text: Running scripts
-        href: /deploy.html#RunningDeployScripts
-        bold: true
-      - icon: typescript
-        text: Example script
-        href: https://github.com/hackbg/fadroma/tree/master/examples/project/ops/ops.ts
-      - icon: typescript
-        text: "@fadroma/agent"
-        href: /agent.html
-        bold: true
-      - icon: typescript
-        text: Example client
-        href: https://github.com/hackbg/fadroma/tree/master/examples/project/api/api.ts
+        text: "@fadroma/create on NPM ![](https://img.shields.io/npm/v/@fadroma/create?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/create
 
   - info: |
       ### Launch app
       Monitor network state, visualize deployment contents, view test results and coverage,
       and perform administrative operations, from a unified local dashboard.
       ### Fully scriptable:
+      Add Fadroma to an existing NPM project:
+      ```sh
+      npm i --save @hackbg/fadroma
+      ```
       ## Connect to [Secret Network](https://scrt.network/)... 🤫
       ```ts
       import { Scrt } from '@hackbg/fadroma'
       const scrtTestnet = Scrt.testnet()
-      ```
-      ```ts
       const scrtMainnet = Scrt.mainnet()
       ```
       ## ...to [**OKP4**](https://okp4.network/)... 🧙
@@ -255,8 +230,6 @@ features:
       const osmosis = CW.mainnet('osmosis-1', {
         url: 'https://lcd.osmosis.zone'
       })
-      ```
-      ```ts
       const archway = CW.mainnet('archway-1', {
         url: 'https://api.mainnet.archway.io'
       })
@@ -314,6 +287,24 @@ features:
         text: "WIP: @fadroma/cw"
         info: Generic support for `@cosmjs/stargate` connections
         href: https://github.com/hackbg/fadroma/issues/148
+      - icon: rust
+        text: Viewing keys
+        info: Generate and use SNIP-20 compatible viewing keys in any contract.
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/
+        bold: true
+      - icon: typescript
+        text: Viewing key client
+        href: ./scrt.html
+        bold: true
+      - icon: rust
+        text: Query permits
+        info: Generate and use revokable SNIP-24 query permits.
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/
+        bold: true
+      - icon: typescript
+        text: Query permit client
+        href: ./scrt.html
+        bold: true
 
   - name: Write smart contracts with ease
     big: left
@@ -396,24 +387,6 @@ features:
         text: Killswitch
         info: Emergency pause and permanent termination for your contract.
         href: https://docs.rs/fadroma/latest/fadroma/killswitch/
-        bold: true
-      - icon: rust
-        text: Viewing keys
-        info: Generate and use SNIP-20 compatible viewing keys in any contract.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/vk/
-        bold: true
-      - icon: typescript
-        text: Viewing key client
-        href: ./scrt.html
-        bold: true
-      - icon: rust
-        text: Query permits
-        info: Generate and use revokable SNIP-24 query permits.
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/permit/
-        bold: true
-      - icon: typescript
-        text: Query permit client
-        href: ./scrt.html
         bold: true
 
   - info: |
