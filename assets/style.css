@@ -196,6 +196,7 @@ th { padding-right: 5em }
     .feature.foss * { color: white; fill:  white; }
     .feature.foss a.docs { color: white; }
   .feature h2 { font-size: 1rem; line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
+  .feature h3 { font-size: 1.25rem; line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
   .feature p { line-height: 1.5rem; }
   .feature pre {
     padding: 0;
@@ -324,9 +325,11 @@ svg.icon-todo {
   flex-flow: row wrap;
   margin-top: -0.5rem;
   margin-bottom: -0.5rem;
+  margin: -1rem;
 }
   .links > a {
     margin-right: 1rem;
+    margin: 0.25rem 1rem;
     transition:
       padding-left 0.33s,
       margin-right 0.33s;
@@ -397,22 +400,11 @@ ul { margin-left: 0; margin-bottom: 1em; }
 p > code { font-weight: bold; color: #345 }
 pre > code {
   display: block;
-  border: 1px solid #888;
   padding: 0.5rem 1rem;
   margin-bottom: 1rem;
-  background: rgba(255,255,255,0.5);
-  box-shadow: 2px 2px 2px #888;
   overflow-x: auto;
   margin: 1rem -1rem;
-}
-pre > code.language-sh {
   background: #123;
-  border-radius: 0;
-  color: #fe0;
-}
-pre > code.language-typescript {
-  background: #ffe;
-  border-radius: 0.15rem;
 }
 
 .ensuite-md-header {
@@ -492,3 +484,8 @@ hr {
   50%  { transform: translateY(0.2rem); }
 	100% { transform: translateY(0rem); }
 }
+
+.hljs-keyword { color: tomato !important }
+.hljs-title { color: gold !important }
+.hljs-attr { color: #0f0 !important }
+.hljs-string { color: #0f0 !important }

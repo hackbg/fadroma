@@ -137,10 +137,9 @@ features:
 
   - name: "Fadroma is a comprehensive toolkit for building decentralized applications with Rust and TypeScript."
     info: |
-      From a single token to a hundred-contract DEX and beyond, Fadroma
+      From a single smart token to a hundred-contract DEX &mdash; and beyond, Fadroma
       makes it easy to write [CosmWasm](https://cosmwasm.com/)
       smart contracts, test them, deploy them, and integrate them into any Web app.
-
       ```sh
       npm init @fadroma@latest  # create a project
       ```
@@ -174,7 +173,6 @@ features:
 
   - info: |
       ## Supported platforms
-
       Fadroma 1.0.0 supports [Secret Network](https://scrt.network/).
       During [**HackWasm Berlin 2023**](https://dorahacks.io/hackathon/hackwasm/detail),
       work began on generic support for other CosmWasm chains, and
@@ -203,11 +201,43 @@ features:
 
   - name: Safely perform complex operations on the blockchain
     big: left
+    highlight: true
     info: |
-      Define the structure once, then manage hundreds of different contracts declaratively.
-      ## Share a rich API
-      Your project definition is also your app's SDK library,
-      ready for third-party integrations, and add support for new chains.
+      Define structure once, then manage hundreds of different contracts declaratively.
+      ```typescript
+      import { Deployment } from '@hackbg/fadroma'
+      export default new Deployment()
+        .contract("yourContract", {
+          address:  '...',
+          codeHash: '...',
+        })
+        .contract("myContract", {
+          workspace: '...',
+          crate:     '...',
+          codeHash:  '...',
+          client:    YourContract,
+          initMsg:   async () => ({ /* ... */ })
+        })
+      ```
+      ```sh
+      npx fadroma deploy --testnet myDeployment
+      ```
+      ### Share a rich API
+      Your project definitions also double as your app's SDK library,
+      ready for third-party integrations. Give your token holder
+      community's thought leaders structured access to the inner workings,
+      or just let the frontend team skip the toolchain.
+      ```typescript
+      import { Contract, randomBase64 } from '@hackbg/fadroma'
+      export class YourContract extends Contract {
+        myTX (seed = randomBase64) {
+          return this.execute({ my_transaction: { seed } })
+        }
+      }
+      ```
+      ```sh
+      npx fadroma call myDeployment myContract myTX "some-seed"
+      ```
     links:
       - icon: typescript
         text: Writing a script
@@ -251,17 +281,15 @@ features:
 
   - name: Write smart contracts with ease
     big: left
+    highlight: true
     info: |
       Use attribute macros to abstract away the boilerplate.
       Compose smart contracts out of encapsulated components.
-
-      ## Efficient storage
+      ### Efficient storage
       Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
-
-      ## 256-bit math
+      ### 256-bit math
       Fadroma implements 256-bit math for EVM/Cosmos interop, hashing, and randomness for contracts.
-
-      ## Authorization
+      ### Easy auth
       Pluggable implementations of several common access control patterns.
     links:
       - icon: rust
@@ -372,20 +400,22 @@ features:
       - icon: todo
         text: "TODO: Smart code reloading"
 
-  - info: |
-      ## Docker integration
+  - name: Powered by Open Source
+    info: |
+      ### Docker integration
       Fadroma runs builds and devnets in containers using Docker or Podman
 
-      ## Scripting
+      ### Scripting
       Fadroma scripts are structured as ES/TS modules that export one or more commands.
 
-      ## Configuration
+      ### Configuration
       You can configure the TypeScript subsystems of Fadroma using env vars and/or a .env file.
 
-      ## Literate programming
+      ### Literate programming
       Fadroma is tested using the Ensuite documentation and testing harness for Markdown and TypeScript.
     foss: true
     big: left
+    highlight: true
     link:
     links:
       - icon: todo
