@@ -137,11 +137,57 @@ features:
 
   - name: "Fadroma is a comprehensive toolkit for building decentralized applications with Rust and TypeScript."
     info: |
-      From a single smart token to a hundred-contract DEX &mdash; and beyond, Fadroma
-      makes it easy to write [CosmWasm](https://cosmwasm.com/)
-      smart contracts, test them, deploy them, and integrate them into any Web app.
+      From a single smart token to a hundred-pool DEX, Fadroma makes it easy
+      to write [CosmWasm](https://cosmwasm.com/) smart contracts, test them, deploy them,
+      and maintain their operational health.
+
+      Fadroma is compatible, expressive, and self-contained &mdash;
+      and installs without requiring `root`, `curl|bash`, your contact list,
+      or your phone number.
+
+      Use this command to install Fadroma and create a new project:
       ```sh
-      npm init @fadroma@latest  # create a project
+      npm init @fadroma@latest
+      ```
+      The resulting NPM package is home to your project.
+      It also doubles as your app's API client library &mdash;
+      ready for off-chain and third-party integrations.
+      ### Safely perform complex operations on the blockchain
+      Define project structure, then manage contracts declaratively:
+      ```typescript
+      // api.ts
+      import * as Fadroma from '@hackbg/fadroma'
+
+      export default Fadroma(() => ({
+
+        // a dependency:
+        theirContract: new Fadroma.Contract({ // dependency
+          address:  '...',
+          codeHash: '...'
+        }),
+
+        // a custom contract, built and deployed from source:
+        myContract: class MyContract extends Fadroma.Contract {
+          static crate = '.' // path to source
+          static initMsg = async (context) => { // generate init message
+            const { // dependencies are resolved simply by `await`ing:
+              address, codeHash } = await context.theirContract
+            return { link: { address, code_hash: codeHash } }
+          }
+          myTX = (seed = Fadroma.randomBase64()) => this.execute({ // custom transaction
+            my_transaction: { seed }
+          })
+          myQ = (id) => this.query({ // custom query
+            return this.query({ my_query: { id } })
+          })
+        }
+
+      }))
+      ```
+
+      ```sh
+      npx fadroma deploy --testnet myDeployment
+      npx fadroma call myDeployment myContract myTX "some-seed"
       ```
     highlight: true
     big: left
@@ -158,87 +204,14 @@ features:
         text: Build and deploy
         bold: true
         href: /guide.html#build-cli
-      - icon: rust
-        text: Fadroma on Crates.io
-        bold: true
-        href: https://crates.io/crates/fadroma
       - icon: typescript
-        text: Fadroma on NPM
         bold: true
+        text: "@fadroma/create on NPM ![](https://img.shields.io/npm/v/@fadroma/create?color=%23437733&label=&style=for-the-badge)"
+        href: https://www.npmjs.com/package/@fadroma/create
+      - icon: typescript
+        bold: true
+        text: "@hackbg/fadroma on NPM ![](https://img.shields.io/npm/v/@hackbg/fadroma?color=%23437733&label=&style=for-the-badge)"
         href: https://www.npmjs.com/package/@hackbg/fadroma
-      - icon: todo
-        text: "WIP: Dev server with GUI"
-        info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard.
-        href: https://github.com/hackbg/fadroma/issues/90
-
-  - info: |
-      ## Supported platforms
-      Fadroma 1.0.0 supports [Secret Network](https://scrt.network/).
-      During [**HackWasm Berlin 2023**](https://dorahacks.io/hackathon/hackwasm/detail),
-      work began on generic support for other CosmWasm chains, and
-      [**OKP4**](https://okp4.network/) in particular.
-    links:
-      - icon: rust
-        text: fadroma::scrt
-        href: https://docs.rs/fadroma/latest/fadroma/scrt/
-        bold: true
-      - icon: typescript
-        text: "@fadroma/scrt"
-        href: /scrt.html
-        bold: true
-      - icon: todo
-        text: "WIP: OKP4"
-        info: Chain with triple store, object store, and Prolog rule engine
-        href: https://github.com/hackbg/fadroma/pull/188
-      - icon: todo
-        text: "WIP: @fadroma/cw"
-        info: Generic support for `@cosmjs/stargate` connections
-        href: https://github.com/hackbg/fadroma/issues/148
-      - icon: typescript
-        bold: true
-        text: Guide to implementing support for new chains
-        href: /impl.html
-
-  - name: Safely perform complex operations on the blockchain
-    big: left
-    highlight: true
-    info: |
-      Define structure once, then manage hundreds of different contracts declaratively.
-      ```typescript
-      import { Deployment } from '@hackbg/fadroma'
-      export default new Deployment()
-        .contract("yourContract", {
-          address:  '...',
-          codeHash: '...',
-        })
-        .contract("myContract", {
-          workspace: '...',
-          crate:     '...',
-          codeHash:  '...',
-          client:    YourContract,
-          initMsg:   async () => ({ /* ... */ })
-        })
-      ```
-      ```sh
-      npx fadroma deploy --testnet myDeployment
-      ```
-      ### Share a rich API
-      Your project definitions also double as your app's SDK library,
-      ready for third-party integrations. Give your token holder
-      community's thought leaders structured access to the inner workings,
-      or just let the frontend team skip the toolchain.
-      ```typescript
-      import { Contract, randomBase64 } from '@hackbg/fadroma'
-      export class YourContract extends Contract {
-        myTX (seed = randomBase64) {
-          return this.execute({ my_transaction: { seed } })
-        }
-      }
-      ```
-      ```sh
-      npx fadroma call myDeployment myContract myTX "some-seed"
-      ```
-    links:
       - icon: typescript
         text: Writing a script
         href: /deploy.html#WritingDeployScripts
@@ -258,9 +231,56 @@ features:
         text: Example client
         href: https://github.com/hackbg/fadroma/tree/master/examples/project/api/api.ts
 
-  - name: Tokenomics
-    info: |
-      Interact with fungible and non-fungible distributed tokens.
+  - info: |
+      ### Launch app
+      Monitor network state, visualize deployment contents, view test results and coverage,
+      and perform administrative operations, from a unified local dashboard.
+      ### Fully scriptable:
+      ## Connect to [Secret Network](https://scrt.network/)... 🤫
+      ```ts
+      import { Scrt } from '@hackbg/fadroma'
+      const scrtTestnet = Scrt.testnet()
+      ```
+      ```ts
+      const scrtMainnet = Scrt.mainnet()
+      ```
+      ## ...to [**OKP4**](https://okp4.network/)... 🧙
+      ```ts
+      import { CW } from '@hackbg/fadroma'
+      const okp4 = CW.testnet('okp4-nemeton-1')
+      // wen mainnet?
+      ```
+      ## ...or any other CosmWasm chain: 🚀
+      ```ts
+      const osmosis = CW.mainnet('osmosis-1', {
+        url: 'https://lcd.osmosis.zone'
+      })
+      ```
+      ```ts
+      const archway = CW.mainnet('archway-1', {
+        url: 'https://api.mainnet.archway.io'
+      })
+      ```
+      ### Tokenomic examples
+      ## Call a SNIP20 token from a script or app
+      ```typescript
+      const token = Scrt.testnet().snip20({
+        address:  '...',
+        codeHash: '...',
+      })
+      ```
+      ## SNIP20 Viewing Key
+      ```typescript
+      // TODO EXAMPLE
+      ```
+      ## SNIP20 Query Permit
+      ```typescript
+      // TODO EXAMPLE
+      ```
+      ## SNIP721
+      ```typescript
+      // CONTRIBUTIONS WELCOME https://...
+      ```
     links:
       - icon: typescript
         text: Call a SNIP20 token from a script or an app
@@ -278,6 +298,22 @@ features:
         bold: true
       - icon: todo
         text: "WIP: SNIP721 Client class"
+      - icon: rust
+        text: fadroma::scrt
+        href: https://docs.rs/fadroma/latest/fadroma/scrt/
+        bold: true
+      - icon: typescript
+        text: "@fadroma/scrt"
+        href: /scrt.html
+        bold: true
+      - icon: todo
+        text: "WIP: OKP4"
+        info: Chain with triple store, object store, and Prolog rule engine
+        href: https://github.com/hackbg/fadroma/pull/188
+      - icon: todo
+        text: "WIP: @fadroma/cw"
+        info: Generic support for `@cosmjs/stargate` connections
+        href: https://github.com/hackbg/fadroma/issues/148
 
   - name: Write smart contracts with ease
     big: left
@@ -285,13 +321,38 @@ features:
     info: |
       Use attribute macros to abstract away the boilerplate.
       Compose smart contracts out of encapsulated components.
-      ### Efficient storage
-      Highly performant keyed, namepaced, and iterable data storage primitives. Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
-      ### 256-bit math
-      Fadroma implements 256-bit math for EVM/Cosmos interop, hashing, and randomness for contracts.
+      ```rust
+      use fadroma::*;
+      ```
       ### Easy auth
       Pluggable implementations of several common access control patterns.
+      ```rust
+      ```
+      ### 256-bit math
+      Fadroma implements 256-bit math for EVM/Cosmos interop, hashing, and randomness for contracts.
+      ```rust
+      ```
+      ### Efficient storage
+      Optimized and highly performant keyed, namepaced, and iterable
+      data storage primitives.
+      ```rust
+      fadroma::storage::atom!(STATE);
+      fadroma::storage::array1d!(BALANCES);
+      fadroma::storage::array2d!();
+      fadroma::storage::array3d!();
+      ```
+      Conversion between human-readable Addr and storage-friendly CanonicalAddr on the struct level.
+      ```rust
+      #[derive(fadroma::Canonicalize)]
+      pub struct MyMessage {
+        address: Address
+      }
+      ```
     links:
+      - icon: rust
+        text: Fadroma on Crates.io ![](https://img.shields.io/crates/v/fadroma.svg?color=%23437733&label=&style=for-the-badge)
+        bold: true
+        href: https://crates.io/crates/fadroma
       - icon: rust
         text: Fadroma DSL on Crates.io
         href: https://docs.rs/fadroma-dsl/latest/fadroma_dsl/
@@ -355,12 +416,25 @@ features:
         href: ./scrt.html
         bold: true
 
-  - name: Reproducible builds
-    info: |
+  - info: |
+      ## Call a SNIP20 token from a contract
+      ```typescript
+      ```
+      ## Deploy a custom SNIP20 token
+      ```rust
+      use fadroma::*
+      #[contract]
+      mod contract {
+        // ...
+      }
+      ```
+      ```typescript
+      ```
+      ### Reproducible builds
       Perform production builds of your contracts in a preset Docker container.
-      ## Integration testing
+      ### Integration testing
       Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
-      ## Local devnets
+      ### Local devnets
       Spawn real blockchain nodes locally for end-to-end testing.
     link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
     links:
@@ -418,8 +492,6 @@ features:
     highlight: true
     link:
     links:
-      - icon: todo
-        text: "WIP: Podman support"
       - icon: typescript
         text: "@hackbg/dock"
         href: https://www.npmjs.com/package/@hackbg/dock

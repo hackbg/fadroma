@@ -24,7 +24,7 @@ body {
   border-radius: 1rem;
   box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
 }
-@media (max-width: 80rem) {
+@media (max-width: 70rem) {
   .main {
     display: flex;
     flex-flow: column nowrap;
@@ -63,6 +63,10 @@ body {
   .main > header a.badge {
     display: inline-block; padding: 0.25rem 0.5rem;
   }
+#features {
+  grid-column-start: 2;
+  grid-column-end: 4;
+}
 
 a[href] {
   text-decoration: none;
@@ -182,6 +186,7 @@ th { padding-right: 5em }
   }
     .feature.highlight * { color: white; fill: white; }
     .feature.highlight a.docs { color: white; }
+    .feature.highlight a.docs:hover { background: rgba(255,255,255,0.1) }
     .feature.highlight a.docs[href] { text-decoration: underline; }
     .feature.highlight p { font-size: 1.33rem; line-height: 2rem; }
     .feature.highlight pre { margin: 0 -1rem; }
@@ -199,18 +204,21 @@ th { padding-right: 5em }
   .feature h3 { font-size: 1.25rem; line-height: 1.5rem; margin-bottom: 0.5rem; margin-top: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
   .feature p { line-height: 1.5rem; }
   .feature pre {
+    color: white;
     padding: 0;
     font-size: 0.875rem;
     font-weight: normal;
     margin-top: 1rem;
-    color: #555;
   }
     .feature pre .hljs {
       padding: 1rem 2rem;
       border: none;
       box-shadow: none;
     }
-    .feature pre .hljs.language-sh .hljs-comment {
+    .feature pre .hljs-meta {
+      color: gold;
+    }
+    .feature pre .hljs-comment {
       color: #89a;
     }
   .feature .docs {
@@ -219,12 +227,16 @@ th { padding-right: 5em }
   .feature a.docs {
     display: flex;
     flex-flow: row nowrap;
-    align-items: flex-start;
+    align-items: center;
     font-weight: normal;
     text-decoration: none;
-    padding: 0.5rem 0;
     cursor: default;
     color: #888;
+  }
+  .feature a.docs strong {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
   }
   .feature a.docs[href] {
     text-decoration: none;
@@ -234,6 +246,9 @@ th { padding-right: 5em }
   .feature .description {
     line-height: 1.5;
     font-size: 0.875rem;
+  }
+  .feature .description h3:first-child {
+    margin-top: 0;
   }
 
 .left {
@@ -329,7 +344,8 @@ svg.icon-todo {
 }
   .links > a {
     margin-right: 1rem;
-    margin: 0.25rem 1rem;
+    margin: 0.25rem;
+    padding: 0.5rem 0.75rem;
     transition:
       padding-left 0.33s,
       margin-right 0.33s;
@@ -405,6 +421,12 @@ pre > code {
   overflow-x: auto;
   margin: 1rem -1rem;
   background: #123;
+}
+pre > code.language-sh {
+  background: #132;
+}
+pre > code.language-rust {
+  background: #220;
 }
 
 .ensuite-md-header {
@@ -485,7 +507,8 @@ hr {
 	100% { transform: translateY(0rem); }
 }
 
-.hljs-keyword { color: tomato !important }
+.hljs-keyword { color: #8fbcbb !important }
 .hljs-title { color: gold !important }
-.hljs-attr { color: #0f0 !important }
-.hljs-string { color: #0f0 !important }
+.hljs-attr { color: #8fbcbb !important }
+.hljs-string { color: #8fbcbb !important }
+.hljs-comment { color: #9ab !important }
