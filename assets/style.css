@@ -1,5 +1,4 @@
 * {
-  * flex-grow: 1;
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -157,7 +156,7 @@ body {
     .feature h2 {
       font-size: 1.25rem;
       line-height: 1.5rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 1rem;
       margin-top: 0;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -165,7 +164,7 @@ body {
     .feature h3 {
       font-size: 1rem;
       line-height: 1.5rem;
-      margin: 1rem 0;
+      margin: 1.5rem 0 0rem;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -415,7 +414,8 @@ svg.icon-todo {
 .ensuite-md-rendered h2 { margin-top: 2.5rem; margin-bottom: 0.5rem; }
 .ensuite-md-rendered h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
 
-ul { margin-left: 2rem; margin-bottom: 1rem; margin-top: 1rem; }
+ul { margin: 0.5rem 2rem; }
+li { margin: 0.5rem 0; }
 
 .ensuite-md-header {
   z-index: 100;

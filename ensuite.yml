@@ -156,104 +156,129 @@ features:
 
   - name: "Fadroma is a comprehensive toolkit for building decentralized applications with Rust and TypeScript."
     info: |
+      Fadroma is compatible, expressive, self-contained &mdash;
+      and installs without requiring `sudo`, `curl|bash`, your contact list,
+      or your phone number.
+
       Try it today with:
       ```sh
       npm init @fadroma
       ```
 
-      Fadroma is compatible, expressive, self-contained &mdash;
-      and installs without requiring `sudo`, `curl|bash`, your contact list,
-      or your phone number.
-
       **From a single smart token to a hundred-pool DEX, Fadroma makes it easy
       to write [CosmWasm](https://cosmwasm.com/) smart contracts, test them, deploy them,
-      and maintain their operational health.**
+      and maintain their continued operation.**
 
     highlight: true
     big: left
   
-  - name: Safely perform complex operations on the blockchain.
+  - name: Safely perform complex transactions.
     info: |
       A Fadroma project starts with an NPM package. It describes
       the structure of your application: what contracts are there
       and how they relate to each other.
+      
+      You specify that by writing one or more `Deployment` classes &mdash;
+      corresponding to groups of contracts that should be managed together:
 
       ```typescript
-      // api.ts
-      import Fadroma from '@hackbg/fadroma'
-      export default Fadroma(context => ({
-        myContract: context.deploy({
-          sourcePath: '.',
-          label:      'optional',
-          codeHash:   'optional',
-          client:     MyContract,
-          async initMsg (context) {
+      // index.ts
+      import { Deployment } from '@hackbg/fadroma'
+      import { KVStore } from './kvstore'
+
+      /** For the CLI tools to find your deployment definition,
+          it must be the default export of your project package's
+          main module. */
+      export default class MyDeployment extends Deployment {
+
+        kv = this.contract("main-kv-store", {
+          repo:  'https://github.com/hackbg/fadroma',
+          crate: 'fadroma-example-kv',
+          client: KVStore,
+          async initMsg () {
             return { /* ... */ }
           },
         })
-      }))
-      ```
 
-      This also doubles as your app's API client library &mdash; ready for framework-agnostic
-      frontend work, client-side computation, or third-party integrations.
-
-      ```typescript
-      // api.ts (cont'd)
-      export class MyContract extends Fadroma.Contract {
-        async myTransactionMethod (arg = Fadroma.randomBase64()) { 
-          const { result } = await this.execute({ my_transaction: { seed: arg } })
-          return result
-        }
-        async myQueryMethod (id) {
-          const { my_query_response } = await this.query({ my_query: { id } })
-          return my_query_response
-        }
       }
       ```
 
-      Then, manage contracts declaratively:
+      Then, use one of the commands defined in `package.json` to deploy:
 
       ```sh
-      npx fadroma deploy --testnet myDeployment
-      npx fadroma call myDeployment myContract myTX "some-seed"
+      npx devnet deploy    # test deploy to container
+      npx testnet deploy   # deploy to testnet
+      npx mainnet deploy   # deploy to mainnet
       ```
 
-      ### Verify linked contracts
+      If you want to provide a higher-level API, or extend your contracts
+      with client-side computations, you can implement `Contract` classes
+      that expose your contracts' methods:
+
       ```typescript
-      // api.ts
-      import Fadroma, { Contract } from '@hackbg/fadroma'
+      // kv.ts
+      import { Contract, randomBase64 } from '@hackbg/fadroma'
 
-      // a deployment definition:
-      export default Fadroma(context => ({
+      export class KVStore extends Contract {
 
-        // an external dependency:
-        theirContract: context.depend({
-          address:  '...',
-          codeHash: '...',
-        })
+        async put (data, id = randomBase64()) {
+          await this.execute({
+            set: { id, data }
+          })
+          return id
+        }
 
-        // a custom contract, built and deployed from source:
-        myContract: context.deploy({
-          sourcePath: '.',
-          async initMsg (context) { // generate init message
-            // dependencies are resolved simply by `await`ing:
-            const { address, codeHash } = await context.theirContract
-            return { link: { address, code_hash: codeHash } }
-          },
-          // client side behavior for the resulting contract:
-          client: class MyContract extends Contract
-        })
+        async get (id) {
+          const { data } = await this.query({
+            get: { id }
+          })
+          return data
+        }
 
-      }))
+      }
+      ```
+      ```sh
+      npx fadroma call deployment1 their-token-contract balance "some-address"
+      npx fadroma call deployment1 my-kv-contract put "some-data"
+      ```
+
+      To publish your project's TypeScript SDK to NPM as a well-formed ESM package:
+
+      ```sh
+      npx fadroma deploy --mainnet   # update mainnet deployment
+      npm bump                       # increment version in package.json
+      npx ubik release               # publish to NPM
+      ```
+
+      That way, your ecosystem developers can get started as simply as:
+
+      ```sh
+      npm i --save @my/project
+      ```
+
+      ```typescript
+      import MyProject from '@my/project'
+      const deployment = MyProject.testnet()
+      const id = await deployment.myKVContract.put("some-data")
+      const data = await deployment.myKVContract.get(id)
       ```
     highlight: true
     big: left
-    links:
 
   - name: Write smart contracts with ease.
     big: left
     highlight: true
     info: |
+      Besides deployment instructions and operation scripts, your project
+      directory can contain the source code for one or more Rust smart contracts.
+
+      Add a contract to your project with:
+
+      ```sh
+      npx fadroma add
+      ```
+
+      ### Contract DSL
       Use attribute macros to abstract away repetitive boilerplate code,
       and compose smart contracts out of encapsulated components.
       ```rust
@@ -279,73 +304,17 @@ features:
       ### Integration testing
       Test the interoperation of multiple smart contracts. Quickly execute smart contracts in a simulated local environment, without waiting for block validation. Test smart contracts for edge cases using auto-generated input data.
       ```
-    links:
-      - icon: rust
-        text: Fadroma on Crates.io ![](https://img.shields.io/crates/v/fadroma.svg?color=%23437733&label=&style=for-the-badge)
-        bold: true
-        href: https://crates.io/crates/fadroma
-      - icon: rust
-        text: Fadroma DSL on Crates.io
-        href: https://docs.rs/fadroma-dsl/latest/fadroma_dsl/
-        bold: true
-      - icon: rust
-        text: Fadroma DSL Docs
-        href: ./dsl.html
-        bold: true
-      - icon: rust
-        text: Example contracts
-        href: https://github.com/hackbg/fadroma/tree/master/examples/
-      - icon: rust
-        text: fadroma::storage
-        href: https://docs.rs/fadroma/latest/fadroma/storage/
-        bold: true
-      - icon: rust
-        text: fadroma::core::addr
-        href: https://docs.rs/fadroma/latest/fadroma/core/addr/
-        bold: true
-      - icon: rust
-        text: fadroma-derive-canonize
-        href: https://docs.rs/fadroma-derive-canonize/latest/fadroma-derive-canonize/
-        bold: true
-      - icon: rust
-        text: 256-bit integer arithmetic
-        href: https://docs.rs/fadroma/latest/fadroma/prelude/struct.Uint256.html
-        bold: true
-      - icon: rust
-        text: Generate SHA256 hashes on-chain
-        href: https://docs.rs/fadroma/latest/fadroma/crypto/fn.sha_256.html
-        bold: true
-      - icon: rust
-        text: ChaCha-based pseudo-random number generator
-        href: https://docs.rs/fadroma/latest/fadroma/crypto/struct.Prng.html
-        bold: true
-      - icon: rust
-        text: Admin role
-        href: https://docs.rs/fadroma/latest/fadroma/admin/
-        bold: true
-      - icon: rust
-        text: Killswitch
-        info: Emergency pause and permanent termination for your contract.
-        href: https://docs.rs/fadroma/latest/fadroma/killswitch/
-        bold: true
-  - name: Licensing
+  - name: Powered by Open Source
     foss: true
     highlight: true
     info: |
-      Fadroma is [**free software**](https://foss.hack.bg), 
-      available to the public under the [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.txt) 
-      license. This license protects user freedoms and encourages responsibility towards
-      the digital commons. If this license doesn't work for your business case, email
+      Fadroma is **free software**. Its source code is available to the public under the
+      [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.txt)  license.
+      This license protects user freedoms and encourages responsibility towards
+      the digital commons.
+
+      If our public license doesn't work for your business case, email
       us at *\[hello at hack dot bg\]* to arrange for custom licensing options.
-    links:
-      - text: View license
-        href: https://www.gnu.org/licenses/agpl-3.0.txt
-      - text: Maintainers
-        href: https://github.com/hackbg/fadroma/blob/master/MAINTAINERS.md
-      - text: Hack.bg FOSS Initiative
-        href: https://foss.hack.bg
-      - text: Custom licensing and exemptions
-        href: mailto:hello@hack.bg
 
 examples:
 
@@ -355,6 +324,12 @@ examples:
       ```sh
       npm i --save @hackbg/fadroma
       ```
+      Minimum requirements:
+      * Linux or macOS
+      * Node.js
+
+      Recommended:
+      * Docker
   - info: |
       ## Connect
       * 🤫 To [**Secret Network**](https://scrt.network/):
@@ -436,6 +411,8 @@ examples:
       ```typescript
       // TODO EXAMPLE
       ```
+  - info: |
+      ## Contract components:
       ### Easy auth
       Pluggable implementations of several common access control patterns.
       ```rust
@@ -462,75 +439,6 @@ examples:
         address: Address
       }
     link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
-    links:
-      - icon: console
-        text: $ fadroma build
-        href: /build.html#BuildCLI
-        bold: true
-      - icon: typescript
-        text: "@fadroma/build"
-        href: /build.html#BuildAPI
-        bold: true
-      - icon: rust
-        text: fadroma::ensemble
-        href: https://docs.rs/fadroma/latest/fadroma/ensemble/
-        bold: true
-      - icon: rust
-        text: Example ensemble test
-        href: https://github.com/hackbg/fadroma/tree/master/examples/ensemble
-      - icon: typescript
-        text: "@fadroma/mocknet"
-        href: mocknet.html
-        bold: true
-      - icon: todo
-        text: "TODO: Property-based testing"
-      - icon: todo
-        text: "TODO: Gas profiling"
-      - icon: console
-        text: $ fadroma devnet
-        href: devnet.html#cli
-        bold: true
-      - icon: typescript
-        text: "@fadroma/devnet"
-        href: devnet.html#api
-        bold: true
-      - icon: todo
-        text: "WIP: Export devnet"
-      - icon: todo
-        text: "TODO: Smart code reloading"
-
-  - name: Powered by Open Source
-    info: |
-      ### Docker integration
-      Fadroma runs builds and devnets in containers using Docker or Podman
-
-      ### Scripting
-      Fadroma scripts are structured as ES/TS modules that export one or more commands.
-
-      ### Configuration
-      You can configure the TypeScript subsystems of Fadroma using env vars and/or a .env file.
-
-      ### Literate programming
-      Fadroma is tested using the Ensuite documentation and testing harness for Markdown and TypeScript.
-    foss: true
-    link:
-    links:
-      - icon: typescript
-        text: "@hackbg/dock"
-        href: https://www.npmjs.com/package/@hackbg/dock
-        bold: true
-      - icon: typescript
-        text: "@hackbg/cmds"
-        href: https://www.npmjs.com/package/@hackbg/cmds
-        bold: true
-      - icon: typescript
-        text: "@hackbg/conf"
-        href: https://www.npmjs.com/package/@hackbg/conf
-        bold: true
-      - icon: typescript
-        text: "@hackbg/ensuite"
-        href: https://github.com/hackbg/ensuite
-        bold: true
 
 extra:
   beforeBody:
