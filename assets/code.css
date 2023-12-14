@@ -1,4 +1,7 @@
-pre, code {
+pre,
+pre *,
+code,
+code * {
   font-family: monospace;
 }
 p > code {

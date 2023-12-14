@@ -154,23 +154,58 @@ references:
 
 features:
 
-  - name: "Fadroma is a comprehensive toolkit for building decentralized applications with Rust and TypeScript."
+  - name: ""
     info: |
-      Fadroma is compatible, expressive, self-contained &mdash;
-      and installs without requiring `sudo`, `curl|bash`, your contact list,
-      or your phone number.
+      # Fadroma is a comprehensive toolkit for building decentralized applications with Rust and TypeScript.
 
-      Try it today with:
+      Fadroma is compatible, expressive, self-contained &mdash; and installs without requiring `sudo`, `curl|bash`, your contact list, or your phone number.
+
+      Get started today with one simple command:
       ```sh
-      npm init @fadroma
+      npm init @fadroma @your/project-name
       ```
 
-      **From a single smart token to a hundred-pool DEX, Fadroma makes it easy
-      to write [CosmWasm](https://cosmwasm.com/) smart contracts, test them, deploy them,
-      and maintain their continued operation.**
+      **From a single smart token to a hundred-pool DEX, Fadroma facilitates
+      writing [CosmWasm](https://cosmwasm.com/) smart contracts, testing them,
+      deploying them, and maintaining their continued operation.**
 
     highlight: true
     big: left
+
+  - info: |
+      ## Deploy an instance of a pre-existing contact
+      A Fadroma project starts with an NPM package. It describes
+      the structure of your application: what contracts are there
+      and how they relate to each other.
+
+      Here's a tiny Fadroma project with no custom contracts:
+
+      ```typescript
+      // index.ts
+      import * as Fadroma from '@hackbg/fadroma'
+      export default class KVStore extends Fadroma.Contract {
+        static repo     = 'https://github.com/hackbg/fadroma'
+        static crate    = 'fadroma-example-kv'
+        static codeHash = '...'
+        static codeId   = { 'pulsar-3': '12345' }
+      }
+      ```
+
+      If you have Docker, this command will pull the contract
+      sources from GitHub, compile them, and deploy an instance
+      of this contract to a local devnet:
+
+      ```sh
+      npx devnet deploy
+      ```
+
+      And this command will deploy an instance of the contract
+      to the `pulsar-3` testnet (trusting that the provided
+      code ID and code hash correspond to the given sources):
+
+      ```sh
+      npx testnet deploy
+      ```
   
   - name: Safely perform complex transactions.
     info: |

@@ -330,7 +330,7 @@ export class CompiledCode {
     } else {
       this.codeHash = CompiledCode.toCodeHash(this.codeData)
       console.warn(
-        "\n  TOFU: Computed code hash from fetched data:" +
+        "\n  Trusting: Computed this code hash from fetched data:" +
         `\n  ${bold(this.codeHash)}` +
         '\n  Pin the expected code hash by setting the codeHash property.')
     }

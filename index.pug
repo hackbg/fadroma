@@ -49,6 +49,11 @@ html(lang='en')
         .references
           each reference in self.references
             +card(reference)
+      //-section.search
+        //-input(placeholder="Search for address, transaction id, code hash...")
+        //-a(href="").connect-button
+          //-.connect-button-chip
+          //-span Connected
       section.page-content
         .features
           each feature in self.features
