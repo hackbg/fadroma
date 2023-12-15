@@ -135,14 +135,164 @@ features:
       writing [CosmWasm](https://cosmwasm.com/) smart contracts, testing them,
       deploying them, and maintaining their continued operation.**
 
+  - name: Quick start
+    info: |
+      ##
+      ### Project structure
+
+      Every Fadroma project starts out as an **NPM package**: a directory
+      with a `package.json`.
+
+      ```json
+      {
+        "name": "@your/project-name",
+        "version": "1.0.0",
+      ```
+
+      When published to NPM, this project package can be used as an API client library.
+
+      The main library lets you connect to all supported backends:
+
+      ```json
+        "dependencies": {
+          "@hackbg/fadroma": "^2"
+        },
+      ```
+
+      But Fadroma also gives you utilities for:
+      * Compiling smart contracts from source
+      * Testing them in a local environment
+
+      ```json
+        "devDependencies": {
+          "@fadroma/compile": "^1",
+          "@fadroma/devnet": "^1",
+      ```
+
+      For TypeScript users, the default project also includes:
+      * `@hackbg/ganesha`, a TypeScript module loader,
+      * `@hackbg/ubik`, a utility for automatically publishing well-formed packages to NPM.
+
+      ```json
+          "typescript": "^5.3",
+          "@hackbg/ganesha": "^4.2.0",
+          "@hackbg/ubik": "^3",
+        },
+      ```
+
+      Finally, we define the following shortcuts
+      that you can invoke using `npm run` or equivalent:
+
+      ```json
+        "scripts": {
+          "check:ts": "tsc --noEmit",
+          "check:rs": "cargo check",
+          "compile":  "fadroma compile",
+          "devnet":   "fadroma --devnet",
+          "testnet":  "fadroma --testnet",
+          "mainnet":  "fadroma --mainnet",
+          "release":  "ubik release"
+        }
+      }
+      ```
+
+      Inside the project directory, you can call Fadroma with:
+
+      ```sh
+      npx fadroma
+      ```
+
     highlight: true
     big: left
 
   - info: |
+      ## Case 1. Well-known contracts
+      
+      Fadroma makes an effort to support the main types of contracts
+      and patterns that you would encounter on a given chain.
+
+      ```typescript
+      import * as Fadroma from '@hackbg/fadroma'
+
+      const sscrt = Fadroma.Scrt.mainnet().snip20({
+        label: '...'
+      })
+
+      const cogni = Fadroma.CW.OKP4.testnet().cognitarium({
+        address: '...'
+      })
+      ```
+
+  - info: |
+      ## Case 2. Deploy a new instance of a well-known contract
+
+      ```typescript
+      // index.ts
+      import * as Fadroma from '@hackbg/fadroma'
+      export default Fadroma.Scrt.Snip20.with({
+        label: 'my-snip20-token',
+        codeId: {
+          'pulsar-3': '1'
+        },
+        codeHash: '...',
+        initMsg: {
+          ...
+        }
+      })
+      ```
+
+      In this case, you are *trusting* that the contract with the given
+      codeId and codeHash is what you expect it to be.
+
+      The way to actually *verify* that assumption, is to compile the
+      presumed source code of a given contract and make sure the resulting
+      code hash matches. Fadroma provides the `verify` command for this task:
+
+      ```typescript
+      // index.ts
+      import * as Fadroma from '@hackbg/fadroma'
+      export default Fadroma.Scrt.Snip20.with({
+        repo: '...'
+        crate: '...'
+        ref: '00000000',
+        label: 'my-snip20-token',
+        codeId: {
+          'pulsar-3: '1'
+        },
+        codeHash: '...',
+        initMsg: {
+          ...
+        }
+      })
+      ```
+
+      ```sh
+      npx fadroma verify
+      ```
+
+  - info: |
+      ## Case 3. Deploy a contract from another repo
+
+      ```typescript
+      // index.ts
+      import * as Fadroma from '@hackbg/fadroma'
+      export default class KVStore extends Fadroma.Contract {
+        static codeHash = '...'
+        static codeId   = { 'pulsar-3': '12345' }
+      }
+      ```
+
+  - info: |
+      ## Case 4. Deploy the contract from the current repo
+
+      On top of the NPM package, a Fadroma project may also contain either
+      a single Cargo crate, or a Cargo workspace.
+
+  - info: |
+      ## Case 5. Deploy multiple contracts from the current workspace
+
+  - info: |
       ## Deploy an instance of a pre-existing contact
-      A Fadroma project starts with an NPM package. It describes
-      the structure of your application: what contracts are there
-      and how they relate to each other.
 
       Here's a tiny Fadroma project with no custom contracts:
 
@@ -331,6 +481,8 @@ examples:
 
       Recommended:
       * Docker
+      * TypeScript (optional)
+      * Rust (also available via Docker)
   - info: |
       ## Connect
       * 🤫 To [**Secret Network**](https://scrt.network/):
@@ -355,23 +507,27 @@ examples:
       ```
   - info: |
       ## Authenticate
-      * With the first signer available:
+      * With any signer available:
       ```ts
       const agent = await chain.authenticate()
       ```
-      * Keplr:
+      * With Keplr:
       ```ts
-      const agent = await chain.authenticate(globalThis.keplr)
+      const agent = await chain.authenticate(
+        globalThis.keplr
+      )
       ```
       * With a raw mnemonic:
       ```ts
-      const mnemonic = new Fadroma.Bip39.generateMnemonic()
-      const agent = await chain.authenticate(mnemonic)
+      const agent = await chain.authenticate(
+        new Fadroma.Bip39.generateMnemonic()
+      )
       ```
       * With a private key:
       ```ts
-      const privateKey = new Uint8Array([/*private key*/])
-      const agent = await chain.authenticate(privateKey)
+      const agent = await chain.authenticate(
+        new Uint8Array([/*private key*/])
+      )
       ```
   - info: |
       ## Tokenomic primitives:
