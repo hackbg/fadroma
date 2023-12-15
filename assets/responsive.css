@@ -1,0 +1,16 @@
+@media (max-width: 1366px) {
+  .page {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+  .page-content {
+    display: flex;
+    flex-flow: row wrap;
+  }
+  .references {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: stretch;
+    justify-content: space-around;
+  }
+}

@@ -30,6 +30,7 @@ body {
   background: #f0f0f0;
   border-radius: 1rem;
   border-right: 1px solid #fff;
+  border-left: 1px solid #fff;
   border-top: 2px solid #fff;
   box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
   display: grid;
@@ -38,12 +39,6 @@ body {
   grid-gap: 1.618rem;
   margin: 1rem;
   padding: 1.618rem;
-}
-@media (max-width: 1366px) {
-  .page {
-    display: flex;
-    flex-flow: column nowrap;
-  }
 }
   .page > .page-header {
     grid-row: 1 / span 2;
@@ -124,12 +119,6 @@ body {
     display: flex;
     flex-flow: column nowrap;
   }
-@media (max-width: 60rem) {
-  .page-content {
-    display: flex;
-    flex-flow: row wrap;
-  }
-}
 
 .feature {
   padding: 1.5rem;
@@ -164,14 +153,6 @@ body {
   flex-flow: column nowrap;
   grid-gap: 1.618rem;
 }
-  @media (max-width: 50vh) {
-    .references {
-      display: flex;
-      flex-flow: row wrap;
-      align-items: stretch;
-      justify-content: space-around;
-    }
-  }
   .references .package {
     display: flex;
     flex-flow: row nowrap;
@@ -291,12 +272,6 @@ body {
     .feature.foss { background: #2e0056; color: white; }
       .feature.foss * { color: white; fill:  white; }
       .feature.foss a.docs { color: white; }
-
-@media (max-width: 80rem) {
-}
-
-@media (max-width: 48rem) {
-}
 
 /*.big-left { grid-column-start: 1; grid-column-end: 3; }*/
 /*.big-center { grid-column-start: 2; grid-column-end: 4; }*/
