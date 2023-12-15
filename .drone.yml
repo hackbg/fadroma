@@ -2,7 +2,7 @@
 kind: pipeline
 type: docker
 name: docs
-trigger: { event: [ push ], branch: [ v2 ] }
+trigger: { event: [ push ], branch: [ v2, docs/homepage ] }
 steps:
 - name: submodules
   image: alpine/git
