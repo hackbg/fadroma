@@ -33,16 +33,15 @@ steps:
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
   - pnpm docs:render
   - mkdir -p /var/www/dev.hack.bg
-  - cp -r docs /var/www/dev.hack.bg/fadroma~
+  - rm -rf /var/www/dev.hack.bg/fadroma~
+  - cp -r .docs /var/www/dev.hack.bg/fadroma~
   - rm -rf /var/www/dev.hack.bg/fadroma
   - mv /var/www/dev.hack.bg/fadroma~ /var/www/dev.hack.bg/fadroma
 
   - pnpm docs:typedoc3
   - du -sh ./docs
   - mkdir -p /var/www/docs.hack.bg
-  - cp -r docs /var/www/docs.hack.bg/fadroma~
-  - rm -rf /var/www/docs.hack.bg/fadroma
-  - mv /var/www/docs.hack.bg/fadroma~ /var/www/docs.hack.bg/fadroma
+  - cp -r docs /var/www/docs.hack.bg/fadroma/ts
   environment:
     FORCE_COLOR: 2
 volumes:
