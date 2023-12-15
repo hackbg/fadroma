@@ -47,6 +47,39 @@ html(lang='en')
         a.logo(href="https://github.com/hackbg/fadroma")
           img(src='./assets/logo.svg')
         .references
+
+          article.feature
+            h3 Releases:
+            each pkg in self.packages
+              div
+              div.package
+                a.package-name(href=`https://www.npmjs.com/package/${pkg}`)= pkg
+                .spacer
+                div.package-version(data-url=`https://registry.npmjs.org/${pkg}/latest`)
+                  script.
+                    ((el = document.currentScript.parentElement)=>
+                      fetch(el.dataset.url)
+                        .then(r=>r.json())
+                        .then(({version})=>el.innerText = version||'')
+                      )()
+            h3 Upcoming:
+            div.upcoming
+              script.
+                ((el = document.currentScript.parentElement)=>
+                  fetch("https://api.github.com/repos/hackbg/fadroma/pulls")
+                    .then(r=>{
+                      el.innerHTML = ''
+                      return r.json()
+                    })
+                    .then(pulls=>pulls.forEach(pull=>{
+                      el.innerHTML += `
+                        <div class="pr">
+                          <strong><a href="${pull.html_url}">${pull.title}</a></strong>
+                        </div>
+                      `
+                    }))
+                  )()
+
           each reference in self.references
             +card(reference)
       //-section.search

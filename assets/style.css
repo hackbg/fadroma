@@ -39,7 +39,7 @@ body {
   margin: 1rem;
   padding: 1.618rem;
 }
-@media (max-width: 40vh) {
+@media (max-width: 1366px) {
   .page {
     display: flex;
     flex-flow: column nowrap;
@@ -164,9 +164,6 @@ body {
   flex-flow: column nowrap;
   grid-gap: 1.618rem;
 }
-  .references .feature {
-    flex-grow: 1;
-  }
   @media (max-width: 50vh) {
     .references {
       display: flex;
@@ -175,7 +172,13 @@ body {
       justify-content: space-around;
     }
   }
+  .references .package {
+    display: flex;
+    flex-flow: row nowrap;
+  }
+
   .references .feature {
+    flex-grow: 1;
     padding: 1rem;
     text-align: left;
   }
@@ -240,7 +243,7 @@ body {
       line-height: 1.5;
       font-size: 0.875rem;
     }
-    .feature .description h3:first-child {
+    .feature h3:first-child {
       margin-top: 0;
     }
 
