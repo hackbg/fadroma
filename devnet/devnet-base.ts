@@ -86,7 +86,13 @@ export default abstract class DevnetContainer extends Backend {
     Object.defineProperties(this, {
       url: {
         enumerable: true, configurable: true, get () {
-          return new URL(`${this.protocol}://${this.host}:${this.port}`).toString()
+          let url = `${this.protocol}://${this.host}:${this.port}`
+          try {
+            return new URL(url).toString()
+          } catch (e) {
+            this.log.error(`Invalid URL: ${url}`)
+            throw e
+          }
         }, set () {
           throw new Error("can't change devnet url")
         }

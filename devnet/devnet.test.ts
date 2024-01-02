@@ -31,7 +31,7 @@ export default new Suite([
   )],
 
   ['okp4', ()=>testDevnetPlatform(
-    CW.OKP4.OKP4Connection,
+    CW.OKP4Connection,
     Devnets.OKP4Container,
     'v5.0',
     'okp4d',

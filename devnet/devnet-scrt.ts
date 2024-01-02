@@ -45,7 +45,7 @@ export default class ScrtContainer<V extends ScrtVersion> extends DevnetContaine
 }
 
 function scrtVersion (v: ScrtVersion) {
-  const w = v.replace(/./g, '_')
+  const w = v.replace(/\./g, '_')
   let readyString
   let portMode: Port
   switch (v) {
@@ -86,8 +86,8 @@ function scrtVersion (v: ScrtVersion) {
   return {
     portMode,
     readyString,
-    containerManifest: $(packageRoot, 'devnets', `okp4_${w}.Dockerfile`).path,
-    containerImage:    `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
+    containerManifest: $(packageRoot, `scrt_${w}.Dockerfile`).path,
+    containerImage:    `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
     daemon:            'secretd',
   }
 }

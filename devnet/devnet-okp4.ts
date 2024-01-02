@@ -36,10 +36,10 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
 }
 
 export function okp4Version (v: OKP4Version) {
-  const w = v.replace(/./g, '_')
+  const w = v.replace(/\./g, '_')
   return {
     containerImage:    `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
-    containerManifest: $(packageRoot, 'devnets', `okp4_${w}.Dockerfile`).path,
+    containerManifest: $(packageRoot, `okp4_${w}.Dockerfile`).path,
     readyString:       'indexed block',
     daemon:            'okp4d',
     portMode:          'rpc' as Port,
