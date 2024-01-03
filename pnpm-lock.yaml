@@ -384,6 +384,9 @@ importers:
 
   scrt/secretjs-esm:
     dependencies:
+      '@hackbg/4mat':
+        specifier: 2.0.4
+        version: link:../../toolbox/4mat
       '@hackbg/dacrypt':
         specifier: 0.2.0
         version: 0.2.0
@@ -3495,6 +3498,7 @@ packages:
   /buildcheck@0.0.6:
     resolution: {integrity: sha512-8f9ZJCUXyT1M35Jx7MkBgmBMo3oHTTBIPLiY9xyL0pl3T5RwcPEY8cUHr5LBNfu/fk6c2T4DJZuVM/8ZZT2D2A==}
     engines: {node: '>=10.0.0'}
+    requiresBuild: true
     dev: false
     optional: true
 
@@ -7075,6 +7079,7 @@ packages:
 
   /nan@2.18.0:
     resolution: {integrity: sha512-W7tfG7vMOGtD30sHoZSSc/JVYiyDPEyQVso/Zz+/uQd0B0L46gtC+pHha5FFMRpil6fm/AoEcRWyOVi4+E/f8w==}
+    requiresBuild: true
     dev: false
     optional: true
 
