@@ -135,20 +135,27 @@ export default abstract class DevnetContainer extends Backend {
         this.containerImage,
         this.containerManifest,
         [this.initScriptMount]
-      ).ensure()
+      ).ensure().then(image=>{
+        image.log.label = this.log.label
+        return image
+      })
     }
   }
 
   /** Handle to created devnet container */
   get container () {
     if (this.containerEngine && this.containerId) {
-      return this.containerEngine.container(this.containerId)
+      return this.containerEngine.container(this.containerId).then(container=>{
+        container.log.label = this.log.label
+        return container
+      })
     }
   }
 
   /** Build image containing all or some code ids from a given chain id */
   async copyUploads (from: Connection, codeIds?: CodeId[]) {
     const image = await this.image
+    throw new Error('not implemented')
   }
 
   /** Virtual path inside the container where the init script is mounted. */
@@ -224,6 +231,7 @@ export default abstract class DevnetContainer extends Backend {
       this.log(`Creating devnet`, bold(this.chainId), `on`, bold(String(this.url)))
       const init = this.initScript ? [this.initScriptMount] : []
       const container = image!.container(this.chainId, this.spawnOptions, init)
+      container.log.label = this.log.label
       if (this.verbose) {
         for (const [key, val] of Object.entries(this.spawnEnv)) {
           this.log.debug(`  ${key}=${val}`)
