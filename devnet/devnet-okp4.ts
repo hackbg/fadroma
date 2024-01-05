@@ -15,6 +15,13 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
   }: Partial<OKP4Container<V> & {
     version: keyof typeof OKP4Container.v
   }>) {
+    const supported = Object.keys(new.target.v)
+    if (!supported.includes(version)) {
+      throw new Error(
+        `Unsupported version: ${version}. ` +
+        `Specify one of the following: ${Object.keys(OKP4Container.v).join(', ')}`
+      )
+    }
     super({ ...new.target.v[version] || {}, ...properties })
   }
   async connect (parameter: string|Partial<OKP4MnemonicIdentity & {
@@ -24,6 +31,7 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
       parameter = { name: parameter }
     }
     const { mnemonic } = parameter
+    await this.containerStarted
     return new OKP4Connection({
       chainId:  this.chainId,
       url:      this.url?.toString(),
@@ -38,11 +46,11 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
 export function okp4Version (v: OKP4Version) {
   const w = v.replace(/\./g, '_')
   return {
+    platform:          `okp4_${w}`,
     containerImage:    `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
     containerManifest: $(packageRoot, `okp4_${w}.Dockerfile`).path,
-    readyString:       'indexed block',
     daemon:            'okp4d',
+    readyString:       'indexed block',
     portMode:          'rpc' as Port,
-    platform:          `okp4_${w}`,
   }
 }

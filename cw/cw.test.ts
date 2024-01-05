@@ -31,7 +31,7 @@ export async function testCWChain () {
   const { backend, alice, bob, guest } = await testConnectionWithBackend(
     CW.OKP4Connection,
     Devnets.OKP4Container,
-    'v5.0',
+    '5.0',
     'uknow',
     fixture('cw-null.wasm')
   )

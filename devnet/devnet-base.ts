@@ -60,16 +60,37 @@ export default abstract class DevnetContainer extends Backend {
   constructor (options: Partial<DevnetContainer> = {}) {
     super(options)
     assign(this, options, [
-      'verbose', 'autoStop', 'autoDelete',
-      'containerEngine', 'containerImage', 'containerManifest', 'containerId',
-      'platform', 'daemon', 'portMode', 'protocol', 'host', 'port', 'dontMountState',
-      'genesisAccounts', 'genesisUploads', 'initScript', 'readyString', 'launchTimeout',
+      'autoDelete',
+      'autoStop',
+      'chainId',
+      'containerEngine',
+      'containerId',
+      'containerImage',
+      'containerManifest',
+      'daemon',
+      'dontMountState',
+      'genesisAccounts',
+      'genesisUploads',
+      'host',
+      'initScript',
+      'launchTimeout',
+      'platform',
+      'port',
+      'portMode',
+      'protocol',
+      'readyString',
+      'verbose',
     ])
     if (this.portMode) {
       this.port ??= DevnetContainer.ports[this.portMode]
     }
     this.containerEngine ??= new Dock.Docker.Engine()
-    this.chainId ??= `local-${this.platform}-${randomBase16(4)}`
+    if (!this.chainId) {
+      if (!this.platform) {
+        throw new Error('no platform or chainId specified')
+      }
+      this.chainId = `local-${this.platform}-${randomBase16(4).toLowerCase()}`
+    }
     this.stateDir = $(options.stateDir ?? $('state', this.chainId).path)
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
       try {
@@ -231,7 +252,7 @@ export default abstract class DevnetContainer extends Backend {
       chainId:     this.chainId,
       containerId: this.containerId,
       port:        this.port,
-      containerImage:   this.containerImage,
+      containerImage: this.containerImage,
     })
     return this
   }

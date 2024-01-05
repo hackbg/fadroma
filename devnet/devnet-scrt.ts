@@ -23,7 +23,14 @@ export default class ScrtContainer<V extends ScrtVersion> extends DevnetContaine
   }: Partial<ScrtContainer<V> & {
     version: keyof typeof ScrtContainer.v
   }>) {
-    super({ ...ScrtContainer.v[version] || {}, ...properties })
+    const supported = Object.keys(new.target.v)
+    if (!supported.includes(version)) {
+      throw new Error(
+        `Unsupported version: ${version}. ` +
+        `Specify one of the following: ${Object.keys(ScrtContainer.v).join(', ')}`
+      )
+    }
+    super({ ...new.target.v[version] || {}, ...properties })
   }
 
   async connect (parameter: string|Partial<ScrtMnemonicIdentity & {
@@ -33,6 +40,7 @@ export default class ScrtContainer<V extends ScrtVersion> extends DevnetContaine
       parameter = { name: parameter }
     }
     const { mnemonic } = parameter
+    await this.containerStarted
     return new ScrtConnection({
       chainId:  this.chainId,
       url:      this.url?.toString(),
@@ -81,13 +89,13 @@ function scrtVersion (v: ScrtVersion) {
       readyString = 'Validating proposal'
       portMode = 'http' as Port
       break
-    default:
   }
   return {
-    portMode,
-    readyString,
-    containerManifest: $(packageRoot, `scrt_${w}.Dockerfile`).path,
+    platform:          `scrt_${w}`,
     containerImage:    `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
+    containerManifest: $(packageRoot, `scrt_${w}.Dockerfile`).path,
     daemon:            'secretd',
+    readyString,
+    portMode,
   }
 }

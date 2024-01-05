@@ -37,7 +37,7 @@ export async function testScrtChain () {
   const { backend, alice, bob, guest } = await testConnectionWithBackend(
     ScrtConnection,
     Devnets.ScrtContainer,
-    'v1.9',
+    '1.9',
     'uscrt',
     fixture('scrt-null.wasm')
   )
