@@ -24,6 +24,11 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
     }
     super({ ...new.target.v[version] || {}, ...properties })
   }
+
+  get spawnEnv () {
+    return { ...super.spawnEnv, TOKEN: 'uknow' }
+  }
+
   async connect (parameter: string|Partial<OKP4MnemonicIdentity & {
     mnemonic?: string
   }> = {}): Promise<OKP4Connection> {

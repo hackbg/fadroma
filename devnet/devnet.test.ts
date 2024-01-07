@@ -65,6 +65,7 @@ export async function testDevnetPlatform <
       },
     }
   })
+  console.log({devnet})
   ok(devnet, "construct devnet")
   ok(typeof devnet.chainId === 'string')
   ok(devnet.gasToken)

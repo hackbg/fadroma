@@ -33,6 +33,10 @@ export default class ScrtContainer<V extends ScrtVersion> extends DevnetContaine
     super({ ...new.target.v[version] || {}, ...properties })
   }
 
+  get spawnEnv () {
+    return { ...super.spawnEnv, TOKEN: 'uscrt' }
+  }
+
   async connect (parameter: string|Partial<ScrtMnemonicIdentity & {
     mnemonic?: string
   }> = {}): Promise<ScrtConnection> {

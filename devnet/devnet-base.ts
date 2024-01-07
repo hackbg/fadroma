@@ -9,6 +9,7 @@ import { packageRoot } from './package'
 /** A private local instance of a network,
   * running in a container managed by @hackbg/dock. */
 export default abstract class DevnetContainer extends Backend {
+
   declare url: string
   /** Whether more detailed output is preferred. */
   verbose: boolean = false
@@ -439,6 +440,8 @@ export default abstract class DevnetContainer extends Backend {
       .load()
   }
 
+  /** The exit handler that cleans up external resources. */
+  private exitHandler?: (...args: any)=>void
   /** Set an exit handler on the process to let the devnet
     * stop/remove its container if configured to do so */
   protected setExitHandler () {
@@ -472,8 +475,7 @@ export default abstract class DevnetContainer extends Backend {
       }
     }, { logger: this.log })
   }
-  /** Kludge. */
-  private exitHandler?: (...args: any)=>void
+
   /** Name of the file containing devnet state. */
   static stateFile = 'devnet.json'
   /** Restore a Devnet from the info stored in the state file */
@@ -508,12 +510,15 @@ export default abstract class DevnetContainer extends Backend {
     }
     throw new Error('not implemented')
   }
+
+  /** Default port numbers for each kind of port. */
   static ports: Record<Port, number> = {
     http:    1317,
     rpc:     26657,
     grpc:    9090,
     grpcWeb: 9091
   }
+
   /** Mapping of connection type to environment variable
     * used by devnet.init.mjs to set port number. */
   static portVars: Record<Port, string> = {
@@ -522,9 +527,12 @@ export default abstract class DevnetContainer extends Backend {
     grpc:    'GRPC_PORT',
     grpcWeb: 'GRPC_WEB_PORT'
   }
+
 }
+
 /** Ports exposed by the devnet. One of these is used by default. */
 export type Port = 'http'|'rpc'|'grpc'|'grpcWeb'
+
 /** Mapping of connection type to default port number. */
 /** Regexp for filtering out non-printable characters that may be output by the containers. */
 const RE_NON_PRINTABLE = /[\x00-\x1F]/

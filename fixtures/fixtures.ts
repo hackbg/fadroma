@@ -88,6 +88,7 @@ export async function testConnectionWithBackend <
 
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
   const $B = Backend as any
+  //console.log({$B, version})
   const backend = new $B({ version, genesisAccounts })
 
   const [alice, bob] = await Promise.all([backend.connect('Alice'), backend.connect('Bob')])
