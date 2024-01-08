@@ -446,22 +446,28 @@ export default abstract class DevnetContainer extends Backend {
     * stop/remove its container if configured to do so */
   protected setExitHandler () {
     if (this.exitHandler) {
-      this.log.warn('Exit handler already set for', this.chainId)
+      //this.log.warn('Exit handler already set for', this.chainId)
       return
     }
+    this.log.debug('Registering exit handler')
     let exitHandlerCalled = false
-    onExit(this.exitHandler = async () => {
+    onExit(this.exitHandler ??= async () => {
       if (exitHandlerCalled) {
-        this.log.warn('Exit handler called more than once')
+        //this.log.trace('Exit handler called more than once')
         return
       }
-      exitHandlerCalled = true
+      //exitHandlerCalled = true
       this.log.debug('Running exit handler')
       if (this.autoDelete) {
+        this.log.log(`Stopping and deleting ${this.chainId}`)
         await this.pause()
+        this.log.log(`Stopped ${this.chainId}`)
         await this.delete()
-      } else if (!this.autoStop) {
+        this.log.log(`Deleted ${this.chainId}`)
+      } else if (this.autoStop) {
+        this.log.log(`Stopping ${this.chainId}`)
         await this.pause()
+        this.log.log(`Stopped ${this.chainId}`)
       } else {
         this.log.log(
           'Devnet is running on port', bold(String(this.port)),
@@ -473,7 +479,8 @@ export default abstract class DevnetContainer extends Backend {
         ).info(`  $ docker rm`, this.containerId?.slice(0,8),
         ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
       }
-    }, { logger: this.log })
+      this.log.debug('Exit handler complete')
+    }, { logger: false })
   }
 
   /** Name of the file containing devnet state. */

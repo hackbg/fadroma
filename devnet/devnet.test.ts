@@ -23,19 +23,11 @@ import { Suite } from '@hackbg/ensuite'
 export default new Suite([
 
   ['scrt', ()=>testDevnetPlatform(
-    Scrt.ScrtConnection,
-    Devnets.ScrtContainer,
-    'v1.9',
-    'secretd',
-    new Token.Native('uscrt')
+    Scrt.ScrtConnection, Devnets.ScrtContainer, '1.9', 'secretd', new Token.Native('uscrt')
   )],
 
   ['okp4', ()=>testDevnetPlatform(
-    CW.OKP4Connection,
-    Devnets.OKP4Container,
-    'v5.0',
-    'okp4d',
-    new Token.Native('uknow')
+    CW.OKP4Connection, Devnets.OKP4Container, '5.0', 'okp4d', new Token.Native('uknow')
   )],
 
 ])
@@ -52,20 +44,12 @@ export async function testDevnetPlatform <
   const codePath = resolve(packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm')
   let devnet: InstanceType<D> = new (Devnet as any)({
     gasToken,
-    genesisAccounts: {
-      User1: 12345678,
-      User2: 87654321,
-    },
+    genesisAccounts: { User1: 12345678, User2: 87654321, },
     genesisUploads: {
-      '7': {
-        codePath: fixture('fadroma-example-cw-null@HEAD.wasm')
-      },
-      '8': {
-        codePath: fixture('fadroma-example-cw-echo@HEAD.wasm')
-      },
+      '7': { codePath: fixture('fadroma-example-cw-null@HEAD.wasm') },
+      '8': { codePath: fixture('fadroma-example-cw-echo@HEAD.wasm') },
     }
   })
-  console.log({devnet})
   ok(devnet, "construct devnet")
   ok(typeof devnet.chainId === 'string')
   ok(devnet.gasToken)
@@ -89,32 +73,17 @@ export async function testDevnetPlatform <
   deepEqual(devnet.spawnOptions.extra.HostConfig.PortBindings, {
     [`${String(devnet.port)}/tcp`]: [ { HostPort: String(devnet.port) } ]
   }, "devnet port binding is present")
-
   equal(await devnet.container, undefined)
   ok(await devnet.create())
   equal(devnet.url.toString(), `http://${devnet.host}:${devnet.port}/`)
   ok((await devnet.container) instanceof Dock.Container)
   equal((await devnet.container)!.name, `/${devnet.chainId}`)
-
   ok(await devnet.start())
   const agent = await devnet.connect({ name: 'User1' })
   ok(agent instanceof Connection)
   equal(agent.chainId, devnet.chainId)
   equal(agent.url, devnet.url)
-
   ok(await devnet.pause())
   ok(await devnet.export())
   ok(await devnet.delete())
-
-  //ok(await devnet.create(), "devnet creation is idempotent")
-  //;(await devnet.container).remove()
-  //$(devnet.stateFile).as(TextFile).save("invalidjson")
-  //throws(
-    //()=>{ devnet = new Devnets.Container({ platform: 'scrt_1.9' }) },
-    //"can't construct if state is invalid json"
-  //)
-  //$(devnet.stateFile).as(TextFile).save("null")
-  //ok(devnet = new Devnet(),
-    //"can construct if state is valid json but empty")
-  //ok(await devnet.delete(), "can delete if state is valid json but empty")
 }
