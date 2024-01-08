@@ -1,6 +1,7 @@
 {
   "files": [
-    "compile.ts"
+    "compile.ts",
+    "package.ts"
   ],
   "include": [],
   "exclude": [ ".ubik", "*.dist.*", "node_modules" ],

@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program. If not, see <http://www.gnu.org/licenses/>. **/
 import { ContractInstance } from './deploy'
-import { Error, Logged, bold, into } from './base'
+import { Error, Logged, colors, bold, randomColor, into } from './base'
 import { assign, Console } from './base'
 import * as Deploy from './deploy.browser'
 import * as Token from './token'
@@ -71,7 +71,7 @@ export abstract class Endpoint extends Logged {
   get [Symbol.toStringTag] () {
     let tag = ''
     if (this.chainId) {
-      tag += this.chainId
+      tag = colors.bgHex(randomColor({ luminosity: 'dark', seed: this.chainId })).whiteBright(this.chainId)
     }
     return tag
   }
@@ -100,10 +100,10 @@ export abstract class Connection extends Endpoint {
   get [Symbol.toStringTag] () {
     let tag = super[Symbol.toStringTag]
     if ((this.identity && (this.identity.name||this.identity.address))) {
-      tag = [tag, `${this.identity.name||this.identity.address}`]
-        .filter(Boolean)
-        .map(x=>bold(x))
-        .join(': ')
+      let myTag = `${this.identity.name||this.identity.address}`
+      const myColor = randomColor({ luminosity: 'dark', seed: myTag })
+      myTag = colors.bgHex(myColor).whiteBright.bold(myTag)
+      tag = [tag, myTag].filter(Boolean).join(':')
     }
     return tag
   }

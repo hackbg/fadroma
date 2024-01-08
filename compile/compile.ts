@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import {
-  Console, Error, Compiler, CompiledCode, HEAD, RustSourceCode, bold, assign,
+  Console, Error, Compiler, CompiledCode, LocalCompiledCode, HEAD, RustSourceCode, bold, assign,
 } from '@fadroma/agent'
 
 import { Config } from '@hackbg/conf'
@@ -254,13 +254,13 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
         for (const { buildIndex, cargoCrate } of (task as CompileWorkspaceTask).cargoCrates) {
           const wasmName = `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
           const codePath = $(outputDir, wasmName)
-          const compiled = await new CompiledCode({ codePath: codePath.path }).computeHash()
+          const compiled = await new LocalCompiledCode({ codePath: codePath.path }).computeHash()
           results[buildIndex] = compiled
         }
       } else if ((task as CompileCrateTask).cargoCrate) {
         const wasmName = `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
         const codePath = $(outputDir, wasmName)
-        const compiled = await new CompiledCode({ codePath: codePath.path }).computeHash()
+        const compiled = await new LocalCompiledCode({ codePath: codePath.path }).computeHash()
         results[(task as CompileCrateTask).buildIndex] = compiled
       } else {
         throw new Error("invalid task in compile batch")
@@ -391,10 +391,12 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     // Set up Docker image
     this.dockerfile ??= options?.dockerfile!
     this.script ??= options?.script!
-    this.log.label = `compiler(${bold(this.image?.name||'??')})`
+    this.log.label = `Compiler(${bold(this.image?.name||'??')})`
     if (this.docker?.name && (this.docker?.name !== '/var/run/docker.sock')) {
       this.log.label += ` on ${bold(this.docker?.name)||'??'}`
     }
+    //this.docker.log.label = this.log.label
+    //this.image.log.label = this.log.label
   }
 
   get [Symbol.toStringTag]() {

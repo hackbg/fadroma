@@ -7,17 +7,19 @@
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",
     "@hackbg/cmds": "workspace:^3.2.1",
+    "@hackbg/dock": "workspace:*",
 
     "@fadroma/agent": "workspace:*",
     "@fadroma/scrt":  "workspace:*",
     "@fadroma/cw":    "workspace:*",
 
-    "gracy": "^4.0.0"
+    "deasync": "^0.1.29",
+    "gracy":   "^4.0.0"
   },
   "scripts": {
     "check": "time tsc --noEmit",
-    "test": "time ensuite devnet.test.ts",
-    "cov": "time ensuite-cov devnet.test.ts",
+    "test":  "time ensuite devnet.test.ts",
+    "cov":   "time ensuite-cov devnet.test.ts",
     "clean": "rm -rf .ubik *.dist.*",
 
     "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",

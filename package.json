@@ -55,7 +55,6 @@
 
     "@hackbg/cmds": "workspace:*",
     "@hackbg/conf": "workspace:*",
-    "@hackbg/dock": "workspace:*",
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",
     "@hackbg/port": "workspace:*",
@@ -83,6 +82,7 @@
     "@hackbg/ensuite": "workspace:^",
     "@hackbg/ganesha": "workspace:^",
     "@hackbg/ubik":    "workspace:^",
+    "@hackbg/dock":    "workspace:^",
 
     "@types/dockerode": "^3.3.23",
     "@types/js-yaml": "^4.0.9",

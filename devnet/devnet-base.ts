@@ -2,7 +2,10 @@ import portManager, { waitPort } from '@hackbg/port'
 import $, { Path, JSONFile } from '@hackbg/file'
 import * as Dock from '@hackbg/dock'
 import { onExit } from 'gracy'
-import { Backend, Identity, assign, randomBase16, Console, bold } from '@fadroma/agent'
+import deasync from 'deasync'
+import {
+  Backend, Identity, assign, randomBase16, Console, colors, randomColor, bold
+} from '@fadroma/agent'
 import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadroma/agent'
 import { packageRoot } from './package'
 
@@ -105,6 +108,9 @@ export default abstract class DevnetContainer extends Backend {
         )
       }
     }
+    const loggerColor = randomColor({ luminosity: 'dark', seed: this.chainId })
+    const loggerTag = colors.whiteBright.bgHex(loggerColor)(this.chainId)
+    const logger = new Console(`Devnet ${loggerTag}`)
     Object.defineProperties(this, {
       url: {
         enumerable: true, configurable: true, get () {
@@ -121,7 +127,7 @@ export default abstract class DevnetContainer extends Backend {
       },
       log: {
         enumerable: true, configurable: true, get () {
-          return new Console(`DevnetContainer(${bold(this.chainId)})`)
+          return logger
         }, set () {
           throw new Error("can't change devnet logger")
         }
@@ -445,42 +451,40 @@ export default abstract class DevnetContainer extends Backend {
   /** Set an exit handler on the process to let the devnet
     * stop/remove its container if configured to do so */
   protected setExitHandler () {
-    if (this.exitHandler) {
-      //this.log.warn('Exit handler already set for', this.chainId)
-      return
+    if (!this.exitHandler) {
+      let exitHandlerCalled = false
+      this.log.debug('Registering exit handler')
+      onExit(this.exitHandler = () => {
+        if (exitHandlerCalled) {
+          //this.log.trace('Exit handler called more than once')
+          return
+        }
+        //exitHandlerCalled = true
+        this.log.debug('Running exit handler')
+        if (this.autoDelete) {
+          this.log.log(`Stopping and deleting ${this.chainId}`)
+          deasync(this.pause.bind(this))()
+          this.log.log(`Stopped ${this.chainId}`)
+          deasync(this.delete.bind(this))()
+          this.log.log(`Deleted ${this.chainId}`)
+        } else if (this.autoStop) {
+          this.log.log(`Stopping ${this.chainId}`)
+          deasync(this.pause.bind(this))()
+          this.log.log(`Stopped ${this.chainId}`)
+        } else {
+          this.log.log(
+            'Devnet is running on port', bold(String(this.port)),
+            `from container`, bold(this.containerId?.slice(0,8))
+          ).info('To remove the devnet:'
+          ).info('  $ npm run devnet reset'
+          ).info('Or manually:'
+          ).info(`  $ docker kill`, this.containerId?.slice(0,8),
+          ).info(`  $ docker rm`, this.containerId?.slice(0,8),
+          ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
+        }
+        this.log.debug('Exit handler complete')
+      }, { logger: false })
     }
-    this.log.debug('Registering exit handler')
-    let exitHandlerCalled = false
-    onExit(this.exitHandler ??= async () => {
-      if (exitHandlerCalled) {
-        //this.log.trace('Exit handler called more than once')
-        return
-      }
-      //exitHandlerCalled = true
-      this.log.debug('Running exit handler')
-      if (this.autoDelete) {
-        this.log.log(`Stopping and deleting ${this.chainId}`)
-        await this.pause()
-        this.log.log(`Stopped ${this.chainId}`)
-        await this.delete()
-        this.log.log(`Deleted ${this.chainId}`)
-      } else if (this.autoStop) {
-        this.log.log(`Stopping ${this.chainId}`)
-        await this.pause()
-        this.log.log(`Stopped ${this.chainId}`)
-      } else {
-        this.log.log(
-          'Devnet is running on port', bold(String(this.port)),
-          `from container`, bold(this.containerId?.slice(0,8))
-        ).info('To remove the devnet:'
-        ).info('  $ npm run devnet reset'
-        ).info('Or manually:'
-        ).info(`  $ docker kill`, this.containerId?.slice(0,8),
-        ).info(`  $ docker rm`, this.containerId?.slice(0,8),
-        ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
-      }
-      this.log.debug('Exit handler complete')
-    }, { logger: false })
   }
 
   /** Name of the file containing devnet state. */

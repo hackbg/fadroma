@@ -6,6 +6,7 @@ import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import deasync from 'deasync'
 
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
 import * as Dock from '@hackbg/dock'

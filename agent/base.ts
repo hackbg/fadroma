@@ -21,7 +21,7 @@ export function assign <T extends {}> (
   }
 }
 
-export { Console, Logged, bold, colors, timestamp } from '@hackbg/logs'
+export { Console, Logged, bold, colors, randomColor, timestamp } from '@hackbg/logs'
 export * from '@hackbg/into'
 export * from '@hackbg/hide'
 export * from '@hackbg/4mat'
