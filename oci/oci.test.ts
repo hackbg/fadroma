@@ -1,21 +1,21 @@
-import { Engine, Image, Container, defaultSocketPath } from './dock-docker'
+import { OCIConnection, OCIImage, OCIContainer, defaultSocketPath } from './oci'
 import * as assert from 'node:assert'
 
-assert.throws(()=>new Engine(123 as any))
+assert.throws(()=>new OCIConnection(123 as any))
 
 {
-  const engine = new Engine()
+  const engine = new OCIConnection()
   const image = engine.image('tag')
   const container = image.container('name')
-  assert.ok(image instanceof Image)
+  assert.ok(image instanceof OCIImage)
   assert.equal(image.engine, engine)
-  assert.ok(container instanceof Container)
+  assert.ok(container instanceof OCIContainer)
   assert.equal(container.image, image)
 }
 
 {
 
-  const engine = Engine.mock()
+  const engine = OCIConnection.mock()
 
   {
     const image = engine.image('test', 'Dockerfile')
@@ -34,7 +34,8 @@ assert.throws(()=>new Engine(123 as any))
 
   {
     const container = await engine.container('test')
-    assert.equal(container.image.dockerode, engine.dockerode)
+    assert.equal(container.api, engine.api)
+    assert.equal(container.image.api, engine.api)
   }
 
 }

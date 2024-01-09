@@ -113,28 +113,7 @@ export class OCIConnection extends Connection {
     super(properties as Partial<Connection>)
   }
 
-  dockerode: DockerHandle
-
-  image (
-    name:        string|null,
-    dockerfile?: string|null,
-    extraFiles?: string[]
-  ): OCIImage {
-    return new OCIImage(this, name, dockerfile, extraFiles)
-  }
-
-  async container (id: string): Promise<OCIContainer> {
-    const container = await this.dockerode.getContainer(id)
-    const info = await container.inspect()
-    const image = this.image(info.Image)
-    return Object.assign(new OCIContainer(
-      image,
-      info.Name,
-      undefined,
-      info.Args,
-      info.Path
-    ), { container })
-  }
+  declare api: DockerHandle
 
   async doGetHeight () {
     return + new Date()
@@ -169,6 +148,21 @@ export class OCIConnection extends Connection {
   async doInstantiate () {
   }
   async doExecute () {
+  }
+
+  image (
+    name:        string|null,
+    dockerfile?: string|null,
+    extraFiles?: string[]
+  ): OCIImage {
+    return new OCIImage({  engine: this, name, dockerfile, extraFiles })
+  }
+
+  async container (id: string): Promise<OCIContainer> {
+    const container = await this.api.getContainer(id)
+    const { Image, Name: name, Args: command, Path: entrypoint } = await container.inspect()
+    const image = this.image(Image)
+    return Object.assign(new OCIContainer({ image, name, command, entrypoint }), { container })
   }
 }
 
@@ -218,11 +212,11 @@ export class OCIImage extends ContractTemplate {
     return await Promise.resolve(this._available)
   }
 
-  get dockerode (): Docker {
-    if (!this.engine || !this.engine.dockerode) {
+  get api (): Docker {
+    if (!this.engine || !this.engine.api) {
       throw new OCIError.NoDockerode()
     }
-    return this.engine.dockerode as unknown as Docker
+    return this.engine.api as unknown as Docker
   }
 
   /** Throws if inspected image does not exist locally. */
@@ -230,20 +224,20 @@ export class OCIImage extends ContractTemplate {
     if (!this.name) {
       throw new OCIError.NoName('inspect')
     }
-    await this.dockerode.getImage(this.name).inspect()
+    await this.api.getImage(this.name).inspect()
   }
 
   /** Throws if inspected image does not exist in Docker Hub. */
   async pull () {
-    const { name, dockerode } = this
+    const { name, api } = this
     if (!name) {
       throw new OCIError.NoName('pull')
     }
     await new Promise<void>((ok, fail)=>{
       const log = new Console(`pulling docker image ${this.name}`)
-      dockerode.pull(name, async (err: any, stream: any) => {
+      api.pull(name, async (err: any, stream: any) => {
         if (err) return fail(err)
-        await follow(dockerode, stream, (event) => {
+        await follow(api, stream, (event) => {
           if (event.error) {
             log.error(event.error)
             throw new OCIError.PullFailed(name)
@@ -261,19 +255,19 @@ export class OCIImage extends ContractTemplate {
     if (!this.dockerfile) {
       throw new OCIError.NoDockerfile()
     }
-    if (!this.engine?.dockerode) {
+    if (!this.engine?.api) {
       throw new OCIError.NoDockerode()
     }
-    const { name, engine: { dockerode } } = this
+    const { name, engine: { api } } = this
     const dockerfile = basename(this.dockerfile)
     const context = dirname(this.dockerfile)
     const src = [dockerfile, ...this.extraFiles]
-    const build = await dockerode.buildImage(
+    const build = await api.buildImage(
       { context, src },
       { t: this.name, dockerfile }
     )
     const log = new Console(`building docker image ${this.name}`)
-    await follow(dockerode, build, (event) => {
+    await follow(api, build, (event) => {
       if (event.error) {
         log.error(event.error)
         throw new OCIError.BuildFailed(name??'(no name)', dockerfile, context)
@@ -307,7 +301,7 @@ export class OCIImage extends ContractTemplate {
     entrypoint?: ContainerCommand,
   ) {
     return new OCIContainer({
-      engine: this,
+      image: this,
       name,
       options,
       command,
@@ -340,13 +334,13 @@ export class OCIContainer extends ContractInstance {
 
   constructor (properties: Partial<OCIContainer> = {}) {
     super(properties)
-    if (engine && !(engine instanceof OCIConnection)) {
+    if (properties.engine && !(properties.engine instanceof OCIConnection)) {
       throw new OCIError.NotDockerode()
     }
-    if (!name && !dockerfile) {
+    if (!properties.name && !properties.dockerfile) {
       throw new OCIError.NoNameNorDockerfile()
     }
-    this.log = new OCIConsole(name ? `Container(${bold(name)})` : `container`)
+    this.log = new OCIConsole(properties.name ? `Container(${bold(name)})` : `container`)
     hide(this, 'log')
   }
 
@@ -397,12 +391,11 @@ export class OCIContainer extends ContractInstance {
 
   container: Docker.Container|null = null
 
-  get dockerode (): Docker {
-    return this.image.dockerode as unknown as Docker
+  get api (): Docker {
+    return this.image.api as unknown as Docker
   }
 
   get dockerodeOpts (): Docker.ContainerCreateOptions {
-
     const {
       remove   = false,
       env      = {},
@@ -413,14 +406,13 @@ export class OCIContainer extends ContractInstance {
       extra    = {},
       cwd
     } = this.options
-
     const config = {
-      name: this.name,
-      Image: this.image.name,
-      Entrypoint: this.entrypoint,
-      Cmd: this.command,
-      Env: Object.entries(env).map(([key, val])=>`${key}=${val}`),
-      WorkingDir: cwd,
+      name:         this.name,
+      Image:        this.image.name,
+      Entrypoint:   this.entrypoint,
+      Cmd:          this.command,
+      Env:          Object.entries(env).map(([key, val])=>`${key}=${val}`),
+      WorkingDir:   cwd,
       ExposedPorts: {} as Record<string, {}>,
       HostConfig: {
         Binds: [] as Array<string>,
@@ -428,27 +420,15 @@ export class OCIContainer extends ContractInstance {
         AutoRemove: remove
       }
     }
-
-    exposed
-      .forEach(containerPort=>
-        config.ExposedPorts[containerPort] = {})
-
-    Object.entries(mapped)
-      .forEach(([containerPort, hostPort])=>
+    exposed.forEach(containerPort=>config.ExposedPorts[containerPort] = {})
+    Object.entries(mapped).forEach(([containerPort, hostPort])=>
         config.HostConfig.PortBindings[containerPort] = [{ HostPort: hostPort }])
-
-    Object.entries(readonly)
-      .forEach(([hostPath, containerPath])=>
+    Object.entries(readonly).forEach(([hostPath, containerPath])=>
         config.HostConfig.Binds.push(`${hostPath}:${containerPath}:ro`))
-
-    Object.entries(writable)
-      .forEach(([hostPath, containerPath])=>
+    Object.entries(writable).forEach(([hostPath, containerPath])=>
         config.HostConfig.Binds.push(`${hostPath}:${containerPath}:rw`))
-
     return Object.assign(config, JSON.parse(JSON.stringify(extra)))
-
   }
-
 
   get id (): string {
     if (!this.container) {
@@ -484,35 +464,27 @@ export class OCIContainer extends ContractInstance {
     if (this.container) {
       throw new OCIError.ContainerAlreadyCreated()
     }
-
     // Specify the container
     const opts = this.dockerodeOpts
-
     this.image.log.creatingContainer(opts.name)
-
     // Log mounted volumes
     this.log.boundVolumes(opts?.HostConfig?.Binds ?? [])
-
     // Log exposed ports
     for (const [containerPort, config] of Object.entries(opts?.HostConfig?.PortBindings ?? {})) {
       for (const { HostPort = '(unknown)' } of config as Array<{HostPort: unknown}>) {
         this.log.boundPort(containerPort, HostPort)
       }
     }
-
     // Create the container
-    this.container = await this.dockerode.createContainer(opts)
-
+    this.container = await this.api.createContainer(opts)
     // Update the logger tag with the container id
     this.log.label = this.name
       ? `OCIContainer(${this.container.id} ${this.name})`
       : `OCIContainer(${this.container.id})`
-
     // Display any warnings emitted during container creation
     if (this.warnings) {
       this.log.createdWithWarnings(this.shortId, this.warnings)
     }
-
     return this
   }
 
@@ -547,7 +519,7 @@ export class OCIContainer extends ContractInstance {
     const prettyId = bold(id.slice(0,8))
     if (await this.isRunning) {
       console.log(`Stopping ${prettyId}...`)
-      await this.dockerode.getContainer(id).kill()
+      await this.api.getContainer(id).kill()
       console.log(`Stopped ${prettyId}`)
     } else {
       console.warn(`Container already stopped: ${prettyId}`)
@@ -595,39 +567,29 @@ export class OCIContainer extends ContractInstance {
     if (!this.container) {
       throw new OCIError.NoContainer()
     }
-
     // Specify the execution
     const exec = await this.container.exec({
-      Cmd: command,
-      AttachStdin:  true,
-      AttachStdout: true,
-      AttachStderr: true,
+      Cmd: command, AttachStdin: true, AttachStdout: true, AttachStderr: true,
     })
-
     // Collect stdout
-    let stdout = ''; const stdoutStream = new Transform({
+    let stdout = ''
+    const stdoutStream = new Transform({
       transform (chunk, encoding, callback) { stdout += chunk; callback() }
     })
-
     // Collect stderr
-    let stderr = ''; const stderrStream = new Transform({
+    let stderr = ''
+    const stderrStream = new Transform({
       transform (chunk, encoding, callback) { stderr += chunk; callback() }
     })
-
     return new Promise(async (resolve, reject)=>{
-
       // Start the executon
       const stream = await exec.start({hijack: true})
-
       // Bind this promise to the stream
       stream.on('error', error => reject(error))
       stream.on('end', () => resolve([stdout, stderr]))
-
       // Demux the stdout/stderr stream into the two output streams
-      this.dockerode.modem.demuxStream(stream, stdoutStream, stderrStream)
-
+      this.api.modem.demuxStream(stream, stdoutStream, stderrStream)
     })
-
   }
 
   /** Save a container as an image. */
