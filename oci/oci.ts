@@ -174,46 +174,20 @@ export class OCIConnection extends Connection {
 
 export class OCIImage extends ContractTemplate {
 
-  constructor (
-    readonly engine:     Engine|null,
-    readonly name:       string|null,
-    readonly dockerfile: string|null = null,
-    readonly extraFiles: string[]    = []
-  ) {
-    this.log = new Console(`Image(${bold(this.name)})`)
+  constructor (properties: Partial<OCIImage> = {}) {
+    super(properties)
+    this.log = new OCIConsole(`Image(${bold(this.name)})`)
     hide(this, 'log')
   }
 
-  log:
-    Console
+  declare log: OCIConsole
+  engine:      OCIConnection|null
+  dockerfile:  string|null = null
+  extraFiles:  string[]    = []
 
-  /** Throws if inspected image does not exist locally. */
-  abstract check ():
-    Promise<void>
+  get [Symbol.toStringTag](): string { return this.name||'' }
 
-  abstract pull ():
-    Promise<void>
-
-  abstract build ():
-    Promise<void>
-
-  abstract run (
-    name?:         string,
-    options?:      Partial<ContainerOpts>,
-    command?:      ContainerCommand,
-    entrypoint?:   ContainerCommand,
-    outputStream?: Writable
-  ): Promise<Container>
-
-  abstract container (
-    name?:       string,
-    options?:    Partial<ContainerOpts>,
-    command?:    ContainerCommand,
-    entrypoint?: ContainerCommand,
-  ): Container
-
-  protected _available:
-    Promise<this>|null = null
+  protected _available: Promise<this>|null = null
 
   async ensure (): Promise<this> {
     this._available ??= new Promise(async(resolve, reject)=>{
@@ -244,10 +218,6 @@ export class OCIImage extends ContractTemplate {
     return await Promise.resolve(this._available)
   }
 
-  get [Symbol.toStringTag](): string { return this.name||'' }
-
-  declare engine: OCIConnection
-
   get dockerode (): Docker {
     if (!this.engine || !this.engine.dockerode) {
       throw new OCIError.NoDockerode()
@@ -255,6 +225,7 @@ export class OCIImage extends ContractTemplate {
     return this.engine.dockerode as unknown as Docker
   }
 
+  /** Throws if inspected image does not exist locally. */
   async check () {
     if (!this.name) {
       throw new OCIError.NoName('inspect')
@@ -335,13 +306,13 @@ export class OCIImage extends ContractTemplate {
     command?:    ContainerCommand,
     entrypoint?: ContainerCommand,
   ) {
-    return new OCIContainer(
-      this,
+    return new OCIContainer({
+      engine: this,
       name,
       options,
       command,
       entrypoint
-    )
+    })
   }
 }
 
@@ -365,31 +336,28 @@ export interface ContainerState {
 }
 
 /** Interface to a Docker container. */
-export abstract class OCIContainer extends ContractInstance {
+export class OCIContainer extends ContractInstance {
 
-  constructor (
-    engine:     OCIConnection|null,
-    name:       string|null,
-    dockerfile: string|null = null,
-    extraFiles: string[]    = []
-  ) {
+  constructor (properties: Partial<OCIContainer> = {}) {
+    super(properties)
     if (engine && !(engine instanceof OCIConnection)) {
       throw new OCIError.NotDockerode()
     }
     if (!name && !dockerfile) {
       throw new OCIError.NoNameNorDockerfile()
     }
-    super(engine, name, dockerfile, extraFiles)
-    this.log = new Console(name ? `Container(${bold(name)})` : `container`)
+    this.log = new OCIConsole(name ? `Container(${bold(name)})` : `container`)
     hide(this, 'log')
   }
 
-  readonly image:       Image
-  readonly name:        string|null = null
-  readonly options:     Partial<ContainerOpts> = {}
-  readonly command?:    ContainerCommand
-  readonly entrypoint?: ContainerCommand
-  log: Console
+  engine:      OCIConnection|null
+  dockerfile:  string|null = null
+  extraFiles:  string[]    = []
+  image:       OCIImage
+  options:     Partial<ContainerOpts> = {}
+  command?:    ContainerCommand
+  entrypoint?: ContainerCommand
+  declare log: OCIConsole
 
   static async create (
     image:       OCIImage,
