@@ -78,11 +78,11 @@
     "@fadroma/compile":  "workspace:^",
     "@fadroma/devnets":  "workspace:^",
     "@fadroma/fixtures": "link:fixtures",
+    "@fadroma/oci":      "workspace:^",
 
     "@hackbg/ensuite": "workspace:^",
     "@hackbg/ganesha": "workspace:^",
     "@hackbg/ubik":    "workspace:^",
-    "@hackbg/dock":    "workspace:^",
 
     "@types/dockerode": "^3.3.23",
     "@types/js-yaml": "^4.0.9",

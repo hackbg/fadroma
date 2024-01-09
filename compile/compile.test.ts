@@ -4,10 +4,10 @@
 import assert, { deepEqual, throws } from 'node:assert'
 import { dirname } from 'node:path'
 
-import * as Dock from '@hackbg/dock'
 import { DotGit } from '@hackbg/repo'
 
 import { Compiler, ContractInstance, Deployment } from '@fadroma/agent'
+import * as Dock from '@fadroma/oci'
 
 import {
   getCompiler,

@@ -57,9 +57,9 @@ importers:
       '@fadroma/fixtures':
         specifier: link:fixtures
         version: link:fixtures
-      '@hackbg/dock':
+      '@fadroma/oci':
         specifier: workspace:^
-        version: link:toolbox/dock
+        version: link:oci
       '@hackbg/ensuite':
         specifier: workspace:^
         version: link:toolbox/ensuite
@@ -132,12 +132,12 @@ importers:
       '@fadroma/agent':
         specifier: workspace:*
         version: link:../agent
+      '@fadroma/oci':
+        specifier: workspace:*
+        version: link:../oci
       '@hackbg/cmds':
         specifier: workspace:^3.2.1
         version: link:../toolbox/cmds
-      '@hackbg/dock':
-        specifier: workspace:*
-        version: link:../toolbox/dock
       '@hackbg/file':
         specifier: workspace:*
         version: link:../toolbox/file
@@ -352,15 +352,15 @@ importers:
       '@fadroma/cw':
         specifier: workspace:*
         version: link:../cw
+      '@fadroma/oci':
+        specifier: workspace:*
+        version: link:../oci
       '@fadroma/scrt':
         specifier: workspace:*
         version: link:../scrt
       '@hackbg/cmds':
         specifier: workspace:^3.2.1
         version: link:../toolbox/cmds
-      '@hackbg/dock':
-        specifier: workspace:*
-        version: link:../toolbox/dock
       '@hackbg/file':
         specifier: workspace:*
         version: link:../toolbox/file
@@ -375,6 +375,34 @@ importers:
         version: 4.0.0
 
   fixtures: {}
+
+  oci:
+    dependencies:
+      '@hackbg/file':
+        specifier: workspace:^
+        version: link:../toolbox/file
+      '@hackbg/hide':
+        specifier: workspace:^
+        version: link:../toolbox/hide
+      '@hackbg/logs':
+        specifier: workspace:^
+        version: link:../toolbox/logs
+      '@hackbg/oops':
+        specifier: workspace:^
+        version: link:../toolbox/oops
+      colors:
+        specifier: 1.4.0
+        version: 1.4.0
+      dockerode:
+        specifier: ^3.3.5
+        version: 3.3.5
+    devDependencies:
+      '@hackbg/ensuite':
+        specifier: ^1.1.1
+        version: link:../toolbox/ensuite
+      '@types/dockerode':
+        specifier: ^3.3.23
+        version: 3.3.23
 
   scrt:
     dependencies:
@@ -581,34 +609,6 @@ importers:
       '@hackbg/over':
         specifier: workspace:^
         version: link:../over
-
-  toolbox/dock:
-    dependencies:
-      '@hackbg/file':
-        specifier: workspace:^
-        version: link:../file
-      '@hackbg/hide':
-        specifier: workspace:^
-        version: link:../hide
-      '@hackbg/logs':
-        specifier: workspace:^
-        version: link:../logs
-      '@hackbg/oops':
-        specifier: workspace:^
-        version: link:../oops
-      colors:
-        specifier: 1.4.0
-        version: 1.4.0
-      dockerode:
-        specifier: ^3.3.5
-        version: 3.3.5
-    devDependencies:
-      '@hackbg/ensuite':
-        specifier: ^1.1.1
-        version: link:../ensuite
-      '@types/dockerode':
-        specifier: ^3.3.23
-        version: 3.3.23
 
   toolbox/dome: {}
 

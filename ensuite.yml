@@ -403,8 +403,8 @@ features:
       - icon: todo
         text: "WIP: Podman support"
       - icon: typescript
-        text: "Powered by @hackbg/dock"
-        href: https://www.npmjs.com/package/@hackbg/dock
+        text: "Powered by @fadroma/oci"
+        href: https://www.npmjs.com/package/@fadroma/oci
         bold: true
 
   - name: Scripting

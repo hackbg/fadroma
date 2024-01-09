@@ -42,7 +42,7 @@ const compiler = getCompiler({ container: false })
 #### ContainerizedLocalRustCompiler
 
 Runs the build procedure in a Docker container, [`https://ghcr.io/hackbg/fadroma`](https://github.com/hackbg/fadroma/pkgs/container/fadroma),
-using [`@hackbg/dock`](https://www.npmjs.com/package/@hackbg/dock).
+using [`@fadroma/oci`](https://www.npmjs.com/package/@fadroma/oci).
 
 ```typescript
 const compiler = getCompiler({ container: true })

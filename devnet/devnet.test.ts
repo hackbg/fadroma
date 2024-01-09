@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import deasync from 'deasync'
 
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
-import * as Dock from '@hackbg/dock'
+import * as Dock from '@fadroma/oci'
 
 import { Connection, Scrt, CW, Token, CompiledCode } from '@hackbg/fadroma'
 

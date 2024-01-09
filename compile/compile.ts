@@ -4,11 +4,11 @@
 import {
   Console, Error, Compiler, CompiledCode, LocalCompiledCode, HEAD, RustSourceCode, bold, assign,
 } from '@fadroma/agent'
+import type { Container } from '@fadroma/oci'
+import { Engine, Image, Docker, Podman, LineTransformStream } from '@fadroma/oci'
 
 import { Config } from '@hackbg/conf'
-import type { Container } from '@hackbg/dock'
 import { DotGit } from '@hackbg/repo'
-import { Engine, Image, Docker, Podman, LineTransformStream } from '@hackbg/dock'
 import $, { Path, Directory, TextFile, BinaryFile, TOMLFile } from '@hackbg/file'
 
 import { spawn } from 'node:child_process'

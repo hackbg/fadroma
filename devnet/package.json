@@ -7,11 +7,11 @@
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",
     "@hackbg/cmds": "workspace:^3.2.1",
-    "@hackbg/dock": "workspace:*",
 
     "@fadroma/agent": "workspace:*",
     "@fadroma/scrt":  "workspace:*",
     "@fadroma/cw":    "workspace:*",
+    "@fadroma/oci":   "workspace:*",
 
     "deasync": "^0.1.29",
     "gracy":   "^4.0.0"

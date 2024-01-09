@@ -14,3 +14,4 @@ packages:
   - 'cw/cosmjs-esm'
   - 'scrt'
   - 'scrt/secretjs-esm'
+  - 'oci'
