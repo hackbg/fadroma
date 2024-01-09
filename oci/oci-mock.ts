@@ -1,3 +1,5 @@
+import type { DockerHandle } from './oci'
+
 /** A stub implementation of the Dockerode APIs used by @fadroma/oci. */
 export function mockDockerode (callback: Function = () => {}): DockerHandle {
   return {

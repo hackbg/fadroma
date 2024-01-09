@@ -14,15 +14,18 @@ import {
 import { LineTransformStream } from './oci-stream'
 import * as Mock from './oci-mock'
 
+/** Defaults to the `DOCKER_HOST` environment variable. */
+export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
+
 export class OCIError extends Error {
   static NoDockerode = this.define('NoDockerode',
     ()=>'Dockerode API handle not set'
   )
   static NotDockerode = this.define('NotDockerode',
-    ()=>'DockerImage: pass a Dock.DockerEngine instance'
+    ()=>'OCIImage: pass a Dock.OCIConnection instance'
   )
   static NoNameNorDockerfile = this.define('NoNameNorDockerfile',
-    ()=>'DockerImage: specify at least one of: name, dockerfile'
+    ()=>'OCIImage: specify at least one of: name, dockerfile'
   )
   static NoDockerfile = this.define('NoDockerfile',
     ()=>'No dockerfile specified'
@@ -88,58 +91,43 @@ export class OCIConsole extends Console {
 
 export const console = new OCIConsole('@fadroma/oci')
 
-export class OCIEngine {
+export class OCIConnection extends Connection {
   static mock (callback?: Function) {
-    return new this({
-      name: 'mock',
-      dockerode: Mock.mockDockerode(callback)
-    })
+    return new this({ api: Mock.mockDockerode(callback) })
   }
 
   /** By default, creates an instance of Dockerode
     * connected to env `DOCKER_HOST`. You can also pass
     * your own Dockerode instance or socket path. */
-  constructor (options: string|{
-    name: string,
-    log?: Console,
-    dockerode?: DockerHandle|string
-  }) {
-    if (!dockerode) {
-      dockerode = new Docker({ socketPath: defaultSocketPath })
-    } else if (typeof dockerode === 'object') {
-      dockerode = dockerode
-    } else if (typeof dockerode === 'string') {
-      dockerode = new Docker({ socketPath: dockerode })
+  constructor (properties: Partial<OCIConnection> = {}) {
+    properties = { ...properties }
+    if (!properties.api) {
+      properties.api = new Docker({ socketPath: defaultSocketPath })
+    } else if (typeof properties.api === 'object') {
+      properties.api = properties.api
+    } else if (typeof properties.api === 'string') {
+      properties.api = new Docker({ socketPath: properties.api })
     } else {
       throw new OCIError('invalid docker engine configuration')
     }
-    const api = dockerode.modem.host ?? dockerode.modem.socketPath
-    if (typeof options === 'string') {
-      options = { name: options }
-    }
-    this.name = options.name
-    this.log  = options.log ?? new Console(`@fadroma/oci: ${this.name}`)
-    hide(this, 'log')
-    this.dockerode = dockerode
+    super(properties as Partial<Connection>)
   }
 
-  name:      string
-  log:       Console
   dockerode: DockerHandle
 
   image (
     name:        string|null,
     dockerfile?: string|null,
     extraFiles?: string[]
-  ): DockerImage {
-    return new DockerImage(this, name, dockerfile, extraFiles)
+  ): OCIImage {
+    return new OCIImage(this, name, dockerfile, extraFiles)
   }
 
-  async container (id: string): Promise<DockerContainer> {
+  async container (id: string): Promise<OCIContainer> {
     const container = await this.dockerode.getContainer(id)
     const info = await container.inspect()
     const image = this.image(info.Image)
-    return Object.assign(new DockerContainer(
+    return Object.assign(new OCIContainer(
       image,
       info.Name,
       undefined,
@@ -147,9 +135,44 @@ export class OCIEngine {
       info.Path
     ), { container })
   }
+
+  async doGetHeight () {
+    return + new Date()
+  }
+  async doGetBlockInfo () {
+    return {}
+  }
+  async doGetCodeId (container: string): Promise<string> {
+    return "0"
+  }
+  async doGetCodeHashOfCodeId (contract) {
+    return ''
+  }
+  async doGetCodeHashOfAddress (contract) {
+  }
+  async doGetCodes () {
+  }
+  async doGetContractsByCodeId (id) {
+  }
+  async doGetBalance () {
+    return 0
+  }
+  async doQuery (contract, message) {
+    return {}
+  }
+  async doSend () {
+  }
+  async doSendMany () {
+  }
+  async doUpload () {
+  }
+  async doInstantiate () {
+  }
+  async doExecute () {
+  }
 }
 
-export class OCIImage {
+export class OCIImage extends ContractTemplate {
 
   constructor (
     readonly engine:     Engine|null,
@@ -223,9 +246,7 @@ export class OCIImage {
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
-
-  declare engine:
-    DockerEngine
+  declare engine: OCIConnection
 
   get dockerode (): Docker {
     if (!this.engine || !this.engine.dockerode) {
@@ -298,7 +319,7 @@ export class OCIImage {
     entrypoint?:   ContainerCommand,
     outputStream?: Writable
   ) {
-    return await DockerContainer.run(
+    return await OCIContainer.run(
       this,
       name,
       options,
@@ -314,7 +335,7 @@ export class OCIImage {
     command?:    ContainerCommand,
     entrypoint?: ContainerCommand,
   ) {
-    return new DockerContainer(
+    return new OCIContainer(
       this,
       name,
       options,
@@ -324,39 +345,54 @@ export class OCIImage {
   }
 }
 
+export interface ContainerOpts {
+  cwd:      string
+  env:      Record<string, string>
+  exposed:  string[]
+  mapped:   Record<string, string>
+  readonly: Record<string, string>
+  writable: Record<string, string>
+  extra:    Record<string, unknown>
+  remove:   boolean
+}
+
+export type ContainerCommand = string|string[]
+
+export interface ContainerState {
+  Image: string,
+  State: { Running: boolean },
+  NetworkSettings: { IPAddress: string }
+}
+
 /** Interface to a Docker container. */
-export abstract class OCIContainer {
+export abstract class OCIContainer extends ContractInstance {
 
   constructor (
-    readonly image:       Image,
-    readonly name:        string|null = null,
-    readonly options:     Partial<ContainerOpts> = {},
-    readonly command?:    ContainerCommand,
-    readonly entrypoint?: ContainerCommand
-  ) {
-    this.log = new Console(name ? `Container(${bold(name)})` : `container`)
-    hide(this, 'log')
-  }
-  constructor (
-    engine:     DockerEngine|null,
+    engine:     OCIConnection|null,
     name:       string|null,
     dockerfile: string|null = null,
     extraFiles: string[]    = []
   ) {
-    if (engine && !(engine instanceof DockerEngine)) {
+    if (engine && !(engine instanceof OCIConnection)) {
       throw new OCIError.NotDockerode()
     }
     if (!name && !dockerfile) {
       throw new OCIError.NoNameNorDockerfile()
     }
     super(engine, name, dockerfile, extraFiles)
+    this.log = new Console(name ? `Container(${bold(name)})` : `container`)
+    hide(this, 'log')
   }
 
-  log:
-    Console
+  readonly image:       Image
+  readonly name:        string|null = null
+  readonly options:     Partial<ContainerOpts> = {}
+  readonly command?:    ContainerCommand
+  readonly entrypoint?: ContainerCommand
+  log: Console
 
   static async create (
-    image:       Image,
+    image:       OCIImage,
     name?:       string,
     options?:    Partial<ContainerOpts>,
     command?:    ContainerCommand,
@@ -369,7 +405,7 @@ export abstract class OCIContainer {
   }
 
   static async run (
-    image:         Image,
+    image:         OCIImage,
     name?:         string,
     options?:      Partial<ContainerOpts>,
     command?:      ContainerCommand,
@@ -392,8 +428,6 @@ export abstract class OCIContainer {
   get [Symbol.toStringTag](): string { return this.name||'' }
 
   container: Docker.Container|null = null
-
-  declare image: DockerImage
 
   get dockerode (): Docker {
     return this.image.dockerode as unknown as Docker
@@ -503,8 +537,8 @@ export abstract class OCIContainer {
 
     // Update the logger tag with the container id
     this.log.label = this.name
-      ? `DockerContainer(${this.container.id} ${this.name})`
-      : `DockerContainer(${this.container.id})`
+      ? `OCIContainer(${this.container.id} ${this.name})`
+      : `OCIContainer(${this.container.id})`
 
     // Display any warnings emitted during container creation
     if (this.warnings) {
@@ -640,6 +674,21 @@ export abstract class OCIContainer {
 
 }
 
+/** APIs from dockerode in use. */
+export interface DockerHandle {
+  getImage:         Function
+  buildImage:       Function
+  getContainer:     Function
+  pull:             Function
+  createContainer:  Function
+  run:              Function
+  modem: {
+    host?:          string
+    socketPath?:    string
+    followProgress: Function,
+  },
+}
+
 /** Follow the output stream from a Dockerode container until it closes. */
 export async function follow (
   dockerode: DockerHandle,
@@ -680,102 +729,4 @@ export function waitStream (
       }
     }
   })
-}
-
-export interface ContainerOpts {
-  cwd:      string
-  env:      Record<string, string>
-  exposed:  string[]
-  mapped:   Record<string, string>
-  readonly: Record<string, string>
-  writable: Record<string, string>
-  extra:    Record<string, unknown>
-  remove:   boolean
-}
-
-export type ContainerCommand = string|string[]
-
-export interface ContainerState {
-  Image: string,
-  State: { Running: boolean },
-  NetworkSettings: { IPAddress: string }
-}
-
-export interface DockerHandle {
-  getImage:         Function
-  buildImage:       Function
-  getContainer:     Function
-  pull:             Function
-  createContainer:  Function
-  run:              Function
-  modem: {
-    host?:          string
-    socketPath?:    string
-    followProgress: Function,
-  },
-}
-
-/** Defaults to the `DOCKER_HOST` environment variable. */
-export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
-
-export class ContainerEngine extends Backend {
-  async connect (): Promise<ContainerConnection> {
-    return new ContainerConnection()
-  }
-  async getIdentity (): Promise<{}> {
-    return {}
-  }
-  async start () {
-    return this
-  }
-  async pause () {
-    return this
-  }
-  async export () {
-  }
-  async import () {
-  }
-}
-
-export class ContainerConnection extends Connection {
-  async doGetHeight () {
-    return + new Date()
-  }
-  async doGetBlockInfo () {
-    return {}
-  }
-  async doGetCodeId (contract) {
-    return 0
-  }
-  async doGetCodeHashOfCodeId (contract) {
-    return ''
-  }
-  async doGetCodeHashOfAddress (contract) {
-  }
-  async doGetCodes () {
-  }
-  async doGetContractsByCodeId (id) {
-  }
-  async doGetBalance () {
-    return 0
-  }
-  async doQuery (contract, message) {
-    return {}
-  }
-  async doSend () {
-  }
-  async doSendMany () {
-  }
-  async doUpload () {
-  }
-  async doInstantiate () {
-  }
-  async doExecute () {
-  }
-}
-
-export class ContainerImage extends ContractTemplate {
-}
-
-export class Container extends ContractInstance {
 }
