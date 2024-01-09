@@ -639,7 +639,7 @@ the <a href="./build.impl.mjs"><code>build.impl.mjs</code></a> script included i
 </ul>
 <h4 id="containerizedlocalrustcompiler" tabindex="-1">ContainerizedLocalRustCompiler</h4>
 <p>Runs the build procedure in a Docker container, <a href="https://github.com/hackbg/fadroma/pkgs/container/fadroma"><code>https://ghcr.io/hackbg/fadroma</code></a>,
-using <a href="https://www.npmjs.com/package/@hackbg/dock"><code>@hackbg/dock</code></a>.</p>
+using <a href="https://www.npmjs.com/package/@fadroma/oci"><code>@fadroma/oci</code></a>.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> compiler = <span class="hljs-title function_">getCompiler</span>({ <span class="hljs-attr">container</span>: <span class="hljs-literal">true</span> })
 <span class="hljs-comment">// specify custom docker connection:</span>
 <span class="hljs-keyword">const</span> compiler = <span class="hljs-title function_">getCompiler</span>({ <span class="hljs-attr">container</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">dockerSocket</span>: <span class="hljs-string">&#x27;localhost:5000&#x27;</span> })
