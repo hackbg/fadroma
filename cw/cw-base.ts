@@ -1,4 +1,4 @@
-import { Console, Error, bold, } from '@fadroma/agent'
+import { Console, Error, bold } from '@fadroma/agent'
 
 class CWError extends Error {}
 

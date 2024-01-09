@@ -1,6 +1,6 @@
 import portManager, { waitPort } from '@hackbg/port'
 import $, { Path, JSONFile } from '@hackbg/file'
-import * as Dock from '@fadroma/oci'
+import * as Dock from '@hackbg/dock'
 import { onExit } from 'gracy'
 import deasync from 'deasync'
 import {
@@ -10,7 +10,7 @@ import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadrom
 import { packageRoot } from './package'
 
 /** A private local instance of a network,
-  * running in a container managed by @fadroma/oci. */
+  * running in a container managed by @hackbg/dock. */
 export default abstract class DevnetContainer extends Backend {
 
   declare url: string
@@ -288,7 +288,7 @@ export default abstract class DevnetContainer extends Backend {
       } catch (e) {
         this.log.warn(e)
         // Don't throw if container already started.
-        // TODO: This must be handled in @fadroma/oci
+        // TODO: This must be handled in @hackbg/dock
         if (e.code !== 304) throw e
       }
       this.running = true
@@ -451,40 +451,40 @@ export default abstract class DevnetContainer extends Backend {
   /** Set an exit handler on the process to let the devnet
     * stop/remove its container if configured to do so */
   protected setExitHandler () {
-    if (!this.exitHandler) {
-      let exitHandlerCalled = false
-      this.log.debug('Registering exit handler')
-      onExit(this.exitHandler = () => {
-        if (exitHandlerCalled) {
-          //this.log.trace('Exit handler called more than once')
-          return
-        }
-        //exitHandlerCalled = true
-        this.log.debug('Running exit handler')
-        if (this.autoDelete) {
-          this.log.log(`Stopping and deleting ${this.chainId}`)
-          deasync(this.pause.bind(this))()
-          this.log.log(`Stopped ${this.chainId}`)
-          deasync(this.delete.bind(this))()
-          this.log.log(`Deleted ${this.chainId}`)
-        } else if (this.autoStop) {
-          this.log.log(`Stopping ${this.chainId}`)
-          deasync(this.pause.bind(this))()
-          this.log.log(`Stopped ${this.chainId}`)
-        } else {
-          this.log.log(
-            'Devnet is running on port', bold(String(this.port)),
-            `from container`, bold(this.containerId?.slice(0,8))
-          ).info('To remove the devnet:'
-          ).info('  $ npm run devnet reset'
-          ).info('Or manually:'
-          ).info(`  $ docker kill`, this.containerId?.slice(0,8),
-          ).info(`  $ docker rm`, this.containerId?.slice(0,8),
-          ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
-        }
-        this.log.debug('Exit handler complete')
-      }, { logger: false })
+    if (this.exitHandler) return
+    let exitHandlerCalled = false
+    this.log.debug('Registering exit handler')
+    this.exitHandler = () => {
+      if (exitHandlerCalled) {
+        //this.log.trace('Exit handler called more than once')
+        return
+      }
+      //exitHandlerCalled = true
+      this.log.debug('Running exit handler')
+      if (this.autoDelete) {
+        this.log.log(`Exit handler: stopping and deleting ${this.chainId}`)
+        deasync(this.pause.bind(this))()
+        this.log.log(`Stopped ${this.chainId}`)
+        deasync(this.delete.bind(this))()
+        this.log.log(`Deleted ${this.chainId}`)
+      } else if (this.autoStop) {
+        this.log.log(`Stopping ${this.chainId}`)
+        deasync(this.pause.bind(this))()
+        this.log.log(`Stopped ${this.chainId}`)
+      } else {
+        this.log.log(
+          'Devnet is running on port', bold(String(this.port)),
+          `from container`, bold(this.containerId?.slice(0,8))
+        ).info('To remove the devnet:'
+        ).info('  $ npm run devnet reset'
+        ).info('Or manually:'
+        ).info(`  $ docker kill`, this.containerId?.slice(0,8),
+        ).info(`  $ docker rm`, this.containerId?.slice(0,8),
+        ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
+      }
+      this.log.debug('Exit handler complete')
     }
+    onExit(this.exitHandler, { logger: false })
   }
 
   /** Name of the file containing devnet state. */
