@@ -4,6 +4,7 @@ import { connect } from './devnet-impl'
 import DevnetContainer from './devnet-base'
 import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
 import { packageRoot } from './package'
+import { Token } from '@fadroma/agent'
 
 type ScrtVersion = `1.${2|3|4|5|6|7|8|9}`
 
@@ -30,9 +31,7 @@ export default class ScrtContainer<V extends ScrtVersion> extends DevnetContaine
     return connect(this, ScrtConnection, ScrtMnemonicIdentity, parameter)
   }
 
-  get spawnEnv () {
-    return { ...super.spawnEnv, TOKEN: 'uscrt' }
-  }
+  gasToken = new Token.Native('uscrt')
 
   /** Supported versions of Secret Network. */
   static v: Record<ScrtVersion, Partial<ScrtContainer<ScrtVersion>>> = {

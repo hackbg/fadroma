@@ -23,19 +23,3 @@ export type APIMode =
   |'rpc'
   |'grpc'
   |'grpcWeb'
-
-/** Delete multiple devnets. */
-export async function deleteDevnets (
-  path: string|Path, ids?: ChainId[]
-): Promise<void> {
-  const state = $(path).as(Directory)
-  const chains = (state.exists()&&state.list()||[])
-    .map(name => $(state, name))
-    .filter(path => path.isDirectory())
-    .map(path => path.at(Container.stateFile).as(JSONFile))
-    .filter(path => path.isFile())
-    .map(path => $(path, '..'))
-  await Promise.all(
-    chains.map(dir=>Container.fromFile(dir, true).delete())
-  )
-}

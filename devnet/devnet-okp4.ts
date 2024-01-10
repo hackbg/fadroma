@@ -4,6 +4,7 @@ import DevnetContainer from './devnet-base'
 import { connect } from './devnet-impl'
 import { OKP4Connection, OKP4MnemonicIdentity } from '@fadroma/cw'
 import { packageRoot } from './package'
+import { Token } from '@fadroma/agent'
 
 type OKP4Version = '5.0'
 
@@ -30,9 +31,7 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
     return connect(this, OKP4Connection, OKP4MnemonicIdentity, parameter)
   }
 
-  get spawnEnv () {
-    return { ...super.spawnEnv, TOKEN: 'uknow' }
-  }
+  gasToken = new Token.Native('uknow')
 
   /** Supported versions of OKP4. */
   static v: Record<OKP4Version, Partial<OKP4Container<OKP4Version>>> = {

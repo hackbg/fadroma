@@ -19,6 +19,7 @@ import type { APIMode } from './devnet'
 import {
   containerOptions,
   forceDelete,
+  getIdentity,
   defaultPorts,
   setExitHandler,
   FILTER
@@ -27,59 +28,46 @@ import {
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
 export default abstract class DevnetContainer extends Backend {
-
-  declare url: string
-
   /** Whether more detailed output is preferred. */
-  verbose: boolean = false
-
+  verbose:              boolean = false
   /** Containerization engine (Docker or Podman). */
-  containerEngine?:   OCIConnection
+  containerEngine?:     OCIConnection
   /** Name or tag of image if set */
-  containerImageTag?: string
+  containerImageTag?:   string
   /** Container image from which devnet will be spawned. */
-  containerImage?:    OCIImage
+  containerImage?:      OCIImage
   /** Path to Dockerfile to build the image if missing. */
-  containerManifest?: string
+  containerManifest?:   string
   /** ID of container if exists */
-  containerId?:       string
-
+  containerId?:         string
   /** Name of binary in container to start. */
-  nodeBinary?:        string
+  nodeBinary?:          string
   /** Which service does the API URL port correspond to. */
-  nodePortMode?:      APIMode
+  nodePortMode?:        APIMode
   /** The protocol of the API URL without the trailing colon. */
-  nodeProtocol:       string = 'http'
+  nodeProtocol:         string = 'http'
   /** The hostname of the API URL. */
-  nodeHost:           string = 'localhost'
+  nodeHost:             string = 'localhost'
   /** The port of the API URL. */
-  nodePort?:          string|number
-
+  nodePort?:            string|number
   /** This directory is created to remember the state of the devnet setup. */
-  stateDir:           Path
-  /** Whether to skip mounting a local state directory into/out of the container. */
-  dontMountState:     boolean = false
-
+  stateDir:             Path
   /** Initial accounts. */
-  genesisAccounts:    Record<Address, number|bigint|Uint128> = {}
+  genesisAccounts:      Record<Address, number|bigint|Uint128> = {}
   /** Initial uploads. */
-  genesisUploads:     Record<CodeId, Partial<CompiledCode>> = {}
-
+  genesisUploads:       Record<CodeId, Partial<CompiledCode>> = {}
   /** If set, overrides the script that launches the devnet in the container. */
-  initScript:         Path = $(packageRoot, 'devnet.init.mjs')
-
+  initScript:           Path = $(packageRoot, 'devnet.init.mjs')
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
-  readyString:        string = ''
-
+  readyString:          string = ''
   /** What to do with the devnet once the process that has spawned it exits.
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
     * - "delete": the devnet container is stopped and deleted, along with the state directory */
-  onExit: 'remain'|'pause'|'delete'
-
+  onExit:               'remain'|'pause'|'delete'
   /** The exit handler that cleans up external resources. */
-  private exitHandler?: (...args: any)=>void
+  exitHandler?:         (...args: any)=>void
 
   constructor (options: Partial<DevnetContainer> = {}) {
     super(options)
@@ -89,7 +77,6 @@ export default abstract class DevnetContainer extends Backend {
       'containerId',
       'containerImageTag',
       'containerManifest',
-      'dontMountState',
       'genesisAccounts',
       'genesisUploads',
       'initScript',
@@ -98,6 +85,7 @@ export default abstract class DevnetContainer extends Backend {
       'nodePort',
       'nodePortMode',
       'nodeProtocol',
+      'onExit',
       'platform',
       'readyString',
       'verbose',
@@ -209,13 +197,6 @@ export default abstract class DevnetContainer extends Backend {
     return await this.save()
   }
 
-  /** Idempotent create. */
-  protected get containerCreated (): Promise<this> {
-    const creating = this.create()
-    Object.defineProperty(this, 'containerCreated', { get () { return creating } })
-    return creating
-  }
-
   /** Delete the devnet container and state. */
   async delete () {
     this.log('Deleting...')
@@ -282,13 +263,6 @@ export default abstract class DevnetContainer extends Backend {
     return this
   }
 
-  /** Idempotent start. */
-  get containerStarted (): Promise<this> {
-    const starting = this.start()
-    Object.defineProperty(this, 'containerStarted', { get () { return starting } })
-    return starting
-  }
-
   /** Stop the container. */
   async pause () {
     const container = await this.container
@@ -332,80 +306,11 @@ export default abstract class DevnetContainer extends Backend {
     return this
   }
 
-  /** This file contains the id of the current devnet container.
-    * TODO store multiple containers */
-  get stateFile (): JSONFile<Partial<this>> {
-    return $(this.stateDir, DevnetContainer.stateFile).as(JSONFile) as JSONFile<Partial<this>>
-  }
-
   /** Get info for named genesis account, including the mnemonic */
   async getIdentity (
     name: string|{ name?: string }
   ): Promise<Partial<Identity> & { mnemonic: string }> {
-
-    if (typeof name === 'object') {
-      name = name.name!
-    }
-    if (!name) {
-      throw new Error('no name')
-    }
-
-    this.log.debug('Authenticating to devnet as genesis account:', bold(name))
-
-    if (!$(this.stateDir).exists()) {
-      this.log.debug('Waking devnet container')
-      await this.containerCreated
-      await this.containerStarted
-    }
-
-    if (this.dontMountState) {
-      if (!this.container) {
-        throw new Error('no devnet container')
-      }
-      const path = `/state/${this.chainId}/wallet/${name}.json`
-      const [identity] = await (await this.container).exec('cat', path)
-      return JSON.parse(identity)
-    }
-
-    return $(this.stateDir, 'wallet', `${name}.json`)
-      .as(JSONFile<Partial<Identity> & { mnemonic: string }>)
-      .load()
-  }
-
-  /** Name of the file containing devnet state. */
-  static stateFile = 'devnet.json'
-
-  /** Restore a Devnet from the info stored in the state file */
-  static fromFile <A extends typeof Connection> (
-    dir: string|Path, allowInvalid: boolean = false
-  ): DevnetContainer {
-    dir = $(dir)
-    if (!dir.isDirectory()) {
-      throw new Error(`not a directory: ${dir.path}`)
-    }
-    const stateFile = dir.at(DevnetContainer.stateFile)
-    if (!dir.at(DevnetContainer.stateFile).isFile()) {
-      throw new Error(`not a file: ${stateFile.path}`)
-    }
-    let state: Partial<DevnetContainer> = {}
-    try {
-      state = stateFile.as(JSONFile).load() || {}
-    } catch (e) {
-      console.warn(e)
-      if (!allowInvalid) {
-        throw new Error(`failed to load devnet state from ${stateFile.path}`)
-      }
-    }
-    if (!state.containerId) {
-      console.warn(`${stateFile.path}: no containerId`)
-    }
-    if (!state.chainId) {
-      console.warn(`${stateFile.path}: no chainId`)
-    }
-    if (!state.nodePort) {
-      console.warn(`${stateFile.path}: no port`)
-    }
-    throw new Error('not implemented')
+    return getIdentity(this, name)
   }
 
   /** Function that waits for port to open after launching container.
@@ -416,5 +321,29 @@ export default abstract class DevnetContainer extends Backend {
   /** Seconds to wait after first block.
     * Tests override this to save time. */
   protected postLaunchWait = 7
+
+  /** This file contains the id of the current devnet container.
+    * TODO store multiple containers */
+  get stateFile (): JSONFile<Partial<this>> {
+    return $(this.stateDir, 'devnet.json').as(JSONFile) as JSONFile<Partial<this>>
+  }
+
+  get pidFile (): Path {
+    return $(this.stateDir, 'devnet.pid')
+  }
+
+  /** Idempotent create. */
+  get containerCreated (): Promise<this> {
+    const creating = this.create()
+    Object.defineProperty(this, 'containerCreated', { get () { return creating } })
+    return creating
+  }
+
+  /** Idempotent start. */
+  get containerStarted (): Promise<this> {
+    const starting = this.start()
+    Object.defineProperty(this, 'containerStarted', { get () { return starting } })
+    return starting
+  }
 
 }
