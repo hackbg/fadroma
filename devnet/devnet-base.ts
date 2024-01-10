@@ -51,8 +51,6 @@ export default abstract class DevnetContainer extends Backend {
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyString: string = ''
-  /** After how many seconds to throw if container is not ready. */
-  launchTimeout: number = 10
   /** Function that waits for port to open after launching container.
     * Tests override this to save time. */
   //@ts-ignore
@@ -77,7 +75,6 @@ export default abstract class DevnetContainer extends Backend {
       'genesisUploads',
       'host',
       'initScript',
-      'launchTimeout',
       'platform',
       'port',
       'portMode',
