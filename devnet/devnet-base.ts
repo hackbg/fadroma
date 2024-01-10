@@ -3,13 +3,26 @@ import $, { Path, JSONFile } from '@hackbg/file'
 import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
 
 import {
-  Backend, Identity, assign, randomBase16, Console, colors, randomColor, bold
+  assign,
+  bold,
+  colors,
+  randomBase16,
+  randomColor,
+  Backend,
+  Console,
+  Identity,
 } from '@fadroma/agent'
 import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadroma/agent'
 
 import { packageRoot } from './package'
 import type { APIMode } from './devnet'
-import { setExitHandler, FILTER } from './devnet-impl'
+import {
+  containerOptions,
+  forceDelete,
+  defaultPorts,
+  setExitHandler,
+  FILTER
+} from './devnet-impl'
 
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
@@ -65,6 +78,9 @@ export default abstract class DevnetContainer extends Backend {
     * - "delete": the devnet container is stopped and deleted, along with the state directory */
   onExit: 'remain'|'pause'|'delete'
 
+  /** The exit handler that cleans up external resources. */
+  private exitHandler?: (...args: any)=>void
+
   constructor (options: Partial<DevnetContainer> = {}) {
     super(options)
     assign(this, options, [
@@ -87,7 +103,7 @@ export default abstract class DevnetContainer extends Backend {
       'verbose',
     ])
     if (this.nodePortMode) {
-      this.nodePort ??= DevnetContainer.ports[this.nodePortMode]
+      this.nodePort ??= defaultPorts[this.nodePortMode]
     }
     this.containerEngine ??= new OCIConnection()
     if (this.containerEngine && this.containerImageTag) {
@@ -159,51 +175,6 @@ export default abstract class DevnetContainer extends Backend {
     return this.initScript ? $('/', $(this.initScript).basename).path : '/devnet.init.mjs'
   }
 
-  /** Environment variables in the container. */
-  get spawnEnv () {
-    const env: Record<string, string> = {
-      DAEMON:    this.nodeBinary||'',
-      TOKEN:     this.gasToken?.denom,
-      CHAIN_ID:  this.chainId!,
-      ACCOUNTS:  JSON.stringify(this.genesisAccounts),
-      STATE_UID: String((process.getuid!)()),
-      STATE_GID: String((process.getgid!)()),
-    }
-    if (this.verbose) {
-      env['VERBOSE'] = 'yes'
-    }
-    const portVar = DevnetContainer.portVars[this.nodePortMode!]
-    if (portVar) {
-      env[portVar] = String(this.nodePort)
-    } else {
-      this.log.warn(`Unknown port mode ${this.nodePortMode}, devnet may not be accessible.`)
-    }
-    return env
-  }
-
-  /** Options for the container. */
-  get spawnOptions () {
-    const Binds: string[] = []
-    if (this.initScript) {
-      Binds.push(`${this.initScript.path}:${this.initScriptMount}:ro`)
-    }
-    if (!this.dontMountState) {
-      Binds.push(`${$(this.stateDir).path}:/state/${this.chainId}:rw`)
-    }
-    const NetworkMode  = 'bridge'
-    const PortBindings = {[`${this.nodePort}/tcp`]: [{HostPort: `${this.nodePort}`}]}
-    const HostConfig   = {Binds, NetworkMode, PortBindings}
-    const Tty          = true
-    const AttachStdin  = true
-    const AttachStdout = true
-    const AttachStderr = true
-    const Hostname     = this.chainId
-    const Domainname   = this.chainId
-    const extra   = {Tty, AttachStdin, AttachStdout, AttachStderr, Hostname, Domainname, HostConfig}
-    const options = {env: this.spawnEnv, exposed: [`${this.nodePort}/tcp`], extra}
-    return options
-  }
-
   /** Create the devnet container and save state. */
   async create (): Promise<this> {
     const exists = await this.container?.catch(()=>null)
@@ -223,13 +194,10 @@ export default abstract class DevnetContainer extends Backend {
       // create container
       this.log(`Creating devnet`, bold(this.chainId), `on`, bold(String(this.url)))
       const init = this.initScript ? [this.initScriptMount] : []
-      const container = this.containerImage!.container(this.chainId, this.spawnOptions, init)
+      const container = this.containerImage!.container(
+        this.chainId, containerOptions(this), init
+      )
       container.log.label = this.log.label
-      if (this.verbose) {
-        for (const [key, val] of Object.entries(this.spawnEnv)) {
-          this.log.debug(`  ${key}=${val}`)
-        }
-      }
       await container.create()
       setExitHandler(this)
       // set id and save
@@ -241,30 +209,50 @@ export default abstract class DevnetContainer extends Backend {
     return await this.save()
   }
 
-  /** The exit handler that cleans up external resources. */
-  private exitHandler?: (...args: any)=>void
-
+  /** Idempotent create. */
   protected get containerCreated (): Promise<this> {
     const creating = this.create()
     Object.defineProperty(this, 'containerCreated', { get () { return creating } })
     return creating
   }
 
-  /** Write the state of the devnet to a file. This saves the info needed to respawn the node */
-  async save (extra = {}): Promise<this> {
-    this.stateFile.save({
-      chainId:           this.chainId,
-      containerImageTag: this.containerImageTag,
-      containerId:       this.containerId,
-      nodePort:          this.nodePort,
-    })
+  /** Delete the devnet container and state. */
+  async delete () {
+    this.log('Deleting...')
+    let container
+    try {
+      container = await this.container
+    } catch (e) {
+      if (e.statusCode === 404) {
+        this.log(`No container found`, bold(this.containerId?.slice(0, 8)))
+      } else {
+        throw e
+      }
+    }
+    if (container && await container?.isRunning) {
+      if (await container.isRunning) {
+        await this.pause()
+      }
+      await container.remove()
+      this.containerId = undefined
+    }
+    const state = $(this.stateDir)
+    const path = state.shortPath
+    try {
+      if (state.exists()) {
+        this.log(`Deleting ${path}...`)
+        state.delete()
+      }
+    } catch (e: any) {
+      if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
+        this.log.warn(`unable to delete ${path}: ${e.code}, trying cleanup container`)
+        await forceDelete(this)
+      } else {
+        this.log.error(`failed to delete ${path}:`, e)
+        throw e
+      }
+    }
     return this
-  }
-
-  /** This file contains the id of the current devnet container.
-    * TODO store multiple containers */
-  get stateFile (): JSONFile<Partial<this>> {
-    return $(this.stateDir, DevnetContainer.stateFile).as(JSONFile) as JSONFile<Partial<this>>
   }
 
   /** Start the container. */
@@ -294,6 +282,7 @@ export default abstract class DevnetContainer extends Backend {
     return this
   }
 
+  /** Idempotent start. */
   get containerStarted (): Promise<this> {
     const starting = this.start()
     Object.defineProperty(this, 'containerStarted', { get () { return starting } })
@@ -332,65 +321,21 @@ export default abstract class DevnetContainer extends Backend {
     throw new Error("unimplemented")
   }
 
-  /** Delete the devnet container and state. */
-  async delete () {
-    this.log('Deleting...')
-    let container
-    try {
-      container = await this.container
-    } catch (e) {
-      if (e.statusCode === 404) {
-        this.log(`No container found`, bold(this.containerId?.slice(0, 8)))
-      } else {
-        throw e
-      }
-    }
-    if (container && await container?.isRunning) {
-      if (await container.isRunning) {
-        await this.pause()
-      }
-      await container.remove()
-      this.containerId = undefined
-    }
-    const state = $(this.stateDir)
-    const path = state.shortPath
-    try {
-      if (state.exists()) {
-        this.log(`Deleting ${path}...`)
-        state.delete()
-      }
-    } catch (e: any) {
-      if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
-        this.log.warn(`unable to delete ${path}: ${e.code}, trying cleanup container`)
-        await this.forceDelete()
-      } else {
-        this.log.error(`failed to delete ${path}:`, e)
-        throw e
-      }
-    }
+  /** Write the state of the devnet to a file. This saves the info needed to respawn the node */
+  async save (extra = {}): Promise<this> {
+    this.stateFile.save({
+      chainId:           this.chainId,
+      containerImageTag: this.containerImageTag,
+      containerId:       this.containerId,
+      nodePort:          this.nodePort,
+    })
     return this
   }
 
-  /** Run the cleanup container, deleting devnet state even if emitted as root. */
-  private async forceDelete () {
-    const path = $(this.stateDir).shortPath
-    this.log('Running cleanup container for', path)
-    const cleanupContainer = await this.containerImage.run({
-      name: `${this.chainId}-cleanup`,
-      entrypoint: '/bin/rm',
-      command: ['-rvf', '/state'],
-      options: {
-        extra: {
-          AutoRemove: true,
-          HostConfig: { Binds: [`${$(this.stateDir).path}:/state:rw`] }
-        }
-      },
-    })
-    await cleanupContainer.start()
-    this.log('Waiting for cleanup container to finish...')
-    await cleanupContainer.wait()
-    this.log(`Deleted ${path}/* via cleanup container.`)
-    $(this.stateDir).delete()
+  /** This file contains the id of the current devnet container.
+    * TODO store multiple containers */
+  get stateFile (): JSONFile<Partial<this>> {
+    return $(this.stateDir, DevnetContainer.stateFile).as(JSONFile) as JSONFile<Partial<this>>
   }
 
   /** Get info for named genesis account, including the mnemonic */
@@ -461,17 +406,6 @@ export default abstract class DevnetContainer extends Backend {
       console.warn(`${stateFile.path}: no port`)
     }
     throw new Error('not implemented')
-  }
-
-  /** Default port numbers for each kind of port. */
-  static ports: Record<APIMode, number> = {
-    http: 1317, grpc: 9090, grpcWeb: 9091, rpc: 26657
-  }
-
-  /** Mapping of connection type to environment variable
-    * used by devnet.init.mjs to set port number. */
-  static portVars: Record<APIMode, string> = {
-    http: 'HTTP_PORT', grpc: 'GRPC_PORT', grpcWeb: 'GRPC_WEB_PORT', rpc: 'RPC_PORT',
   }
 
   /** Function that waits for port to open after launching container.
