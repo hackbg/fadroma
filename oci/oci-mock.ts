@@ -1,27 +1,36 @@
-import type { DockerHandle } from './oci'
+import type { DockerHandle } from './oci-backend'
 
 /** A stub implementation of the Dockerode APIs used by @fadroma/oci. */
 export function mockDockerode (callback: Function = () => {}): DockerHandle {
   return {
-    getImage () {
+    //@ts-ignore
+    getImage (_) {
       return { async inspect () { return } }
     },
+    //@ts-ignore
     getContainer (options: any) {
       return mockDockerodeContainer(callback)
     },
+    //@ts-ignore
     async pull (name: any, callback: any) {
       callback(null, null)
     },
-    buildImage () {},
+    //@ts-ignore
+    buildImage () {
+    },
+    //@ts-ignore
     async createContainer (options: any) {
       return mockDockerodeContainer(callback)
     },
-    async run (...args: any) {
+    //@ts-ignore
+    async run (...args: any): Promise<any> {
       callback({run:args})
       return [{Error:null,StatusCode:0},Symbol()]
     },
     modem: {
-      followProgress (stream: any, complete: Function, callback: any) { complete(null, null) }
+      followProgress (stream: any, complete: Function, callback: any) {
+        complete(null, null)
+      }
     }
   }
 }

@@ -4,8 +4,7 @@
 import {
   Console, Error, Compiler, CompiledCode, LocalCompiledCode, HEAD, RustSourceCode, bold, assign,
 } from '@fadroma/agent'
-import type { Container } from '@fadroma/oci'
-import { Engine, Image, Docker, Podman, LineTransformStream } from '@fadroma/oci'
+import * as OCI from '@fadroma/oci'
 
 import { Config } from '@hackbg/conf'
 import { DotGit } from '@hackbg/repo'
@@ -347,13 +346,9 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
 /** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Used to launch build container. */
-  docker: Engine
+  docker: OCI.OCIConnection
   /** Tag of the docker image for the build container. */
-  image: Image
-  /** Whether to use Podman instead of Docker to run the build container. */
-  podman = this.config.getFlag('FADROMA_BUILD_PODMAN', () => {
-    return this.config.getFlag('FADROMA_PODMAN', ()=>false)
-  })
+  image:  OCI.OCIImage
   /** Path to Docker API endpoint. */
   dockerSocket: string =
     this.config.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
@@ -373,16 +368,15 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   constructor (options?: Partial<ContainerizedLocalRustCompiler>) {
     super(options as Partial<LocalRustCompiler>)
     // Set up Docker API handle
-    const Containers = options?.podman ? Podman : Docker
     if (options?.dockerSocket) {
-      this.docker = new Containers.Engine(options.dockerSocket)
+      this.docker = new OCI.OCIConnection({ url: options.dockerSocket })
     } else if (options?.docker) {
       this.docker = options.docker
     } else {
-      this.docker = new Containers.Engine()
+      this.docker = new OCI.OCIConnection()
     }
-    if ((options?.dockerImage as unknown) instanceof Containers.Image) {
-      this.image = options?.dockerImage as unknown as Image
+    if ((options?.dockerImage as unknown) instanceof OCI.OCIImage) {
+      this.image = options?.dockerImage as unknown as OCI.OCIImage
     } else if (options?.dockerImage) {
       this.image = this.docker.image(options.dockerImage)
     } else {
@@ -392,8 +386,8 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     this.dockerfile ??= options?.dockerfile!
     this.script ??= options?.script!
     this.log.label = `Compiler(${bold(this.image?.name||'??')})`
-    if (this.docker?.name && (this.docker?.name !== '/var/run/docker.sock')) {
-      this.log.label += ` on ${bold(this.docker?.name)||'??'}`
+    if (this.docker?.url && (this.docker?.url !== '/var/run/docker.sock')) {
+      this.log.label += ` on ${bold(this.docker?.url)||'??'}`
     }
     //this.docker.log.label = this.log.label
     //this.image.log.label = this.log.label
@@ -496,7 +490,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
       log = log.sub(`(from ${bold(revision)})`)
     }
     // This stream collects the output from the build container, i.e. the build logs.
-    const buildLogStream = new LineTransformStream((!this.quiet)
+    const buildLogStream = new OCI.LineTransformStream((!this.quiet)
       // In normal and verbose mode, build logs are printed to the console in real time,
       // with an addition prefix to show what is being built.
       ? (line:string)=>this.log.log(line)

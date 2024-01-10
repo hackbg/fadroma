@@ -1,6 +1,6 @@
 import portManager, { waitPort } from '@hackbg/port'
 import $, { Path, JSONFile } from '@hackbg/file'
-import * as Dock from '@hackbg/dock'
+import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
 import { onExit } from 'gracy'
 import deasync from 'deasync'
 import {
@@ -10,7 +10,7 @@ import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadrom
 import { packageRoot } from './package'
 
 /** A private local instance of a network,
-  * running in a container managed by @hackbg/dock. */
+  * running in a container managed by @fadroma/oci. */
 export default abstract class DevnetContainer extends Backend {
 
   declare url: string
@@ -21,7 +21,7 @@ export default abstract class DevnetContainer extends Backend {
   /** Whether the devnet container should be removed when the process exits. */
   autoDelete: boolean = true
   /** Containerization engine (Docker or Podman). */
-  containerEngine?: Dock.Engine
+  containerEngine?: OCIConnection
   /** Name or tag of image if set */
   containerImage?: string
   /** Path to Dockerfile to build the image if missing. */
@@ -88,7 +88,7 @@ export default abstract class DevnetContainer extends Backend {
     if (this.portMode) {
       this.port ??= DevnetContainer.ports[this.portMode]
     }
-    this.containerEngine ??= new Dock.Docker.Engine()
+    this.containerEngine ??= new OCIConnection()
     if (!this.chainId) {
       if (!this.platform) {
         throw new Error('no platform or chainId specified')
@@ -288,7 +288,7 @@ export default abstract class DevnetContainer extends Backend {
       } catch (e) {
         this.log.warn(e)
         // Don't throw if container already started.
-        // TODO: This must be handled in @hackbg/dock
+        // TODO: This must be handled in @fadroma/oci
         if (e.code !== 304) throw e
       }
       this.running = true

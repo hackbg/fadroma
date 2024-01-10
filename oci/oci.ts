@@ -2,6 +2,7 @@ import { hideProperties as hide } from '@hackbg/hide'
 import { Writable, Transform } from 'node:stream'
 import { basename, dirname } from 'node:path'
 import Docker from 'dockerode'
+import type { DockerHandle } from './oci-backend'
 import {
   bold,
   Error,
@@ -11,7 +12,6 @@ import {
   ContractTemplate,
   ContractInstance
 } from '@fadroma/agent'
-import { LineTransformStream } from './oci-stream'
 import * as Mock from './oci-mock'
 
 /** Defaults to the `DOCKER_HOST` environment variable. */
@@ -128,10 +128,18 @@ export class OCIConnection extends Connection {
     return ''
   }
   async doGetCodeHashOfAddress (contract) {
+    return ''
   }
+  /** Returns list of container images. */
   async doGetCodes () {
+    return (await this.api.listImages())
+      .reduce((images, image)=>Object.assign(images, { [image.Id]: image }), {})
   }
+  /** Returns list of containers from a given image. */
   async doGetContractsByCodeId (id) {
+    return (await this.api.listContainers())
+      .filter(container=>container.Image === id)
+      .map(container=>({ address: container.Id, codeId: id, container }))
   }
   async doGetBalance () {
     return 0
@@ -155,7 +163,7 @@ export class OCIConnection extends Connection {
     dockerfile?: string|null,
     extraFiles?: string[]
   ): OCIImage {
-    return new OCIImage({  engine: this, name, dockerfile, extraFiles })
+    return new OCIImage({ engine: this, name, dockerfile, extraFiles })
   }
 
   async container (id: string): Promise<OCIContainer> {
@@ -604,21 +612,6 @@ export class OCIContainer extends ContractInstance {
 
 }
 
-/** APIs from dockerode in use. */
-export interface DockerHandle {
-  getImage:         Function
-  buildImage:       Function
-  getContainer:     Function
-  pull:             Function
-  createContainer:  Function
-  run:              Function
-  modem: {
-    host?:          string
-    socketPath?:    string
-    followProgress: Function,
-  },
-}
-
 /** Follow the output stream from a Dockerode container until it closes. */
 export async function follow (
   dockerode: DockerHandle,
@@ -659,4 +652,51 @@ export function waitStream (
       }
     }
   })
+}
+
+/** Based on: Line Transform Stream by Nick Schwarzenberg <nick@bitfasching.de>
+  * https://github.com/bitfasching/node-line-transform-stream#readme
+  * Used under MIT license. */
+export class LineTransformStream extends Transform {
+  declare transformCallback: Function
+  declare stringEncoding:    string
+  declare lineBuffer:        string
+  constructor (transformCallback: Function, stringEncoding: string = 'utf8') {
+    // fail if callback is not a function
+    if (typeof transformCallback != 'function') throw new TypeError("Callback must be a function.")
+    // initialize parent
+    super()
+    // set callback for transforming lines
+    this.transformCallback = transformCallback
+    // set string encoding
+    this.stringEncoding = stringEncoding
+    // initialize internal line buffer
+    this.lineBuffer = ''
+  }
+  // implement transform method (input encoding is ignored)
+  _transform(data: any, encoding: string, callback: Function) {
+    // convert data to string
+    data = data.toString(this.stringEncoding)
+    // split data at line breaks
+    const lines = data.split( '\n' )
+    // prepend buffered data to first line
+    lines[0] = this.lineBuffer + lines[0]
+    // last "line" is actually not a complete line,
+    // remove it and store it for next time
+    this.lineBuffer = lines.pop()
+    // collect output
+    let output = ''
+    // process line by line
+    lines.forEach((line: string) => {
+      try {
+        // pass line to callback, transform it and add line-break back
+        output += this.transformCallback( line ) + '\n'
+      } catch (error) {
+        // catch processing errors and emit as stream error
+        callback(error)
+      }
+    })
+    // push output
+    callback(null, output)
+  }
 }
