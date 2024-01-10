@@ -4,6 +4,7 @@
     "devnet-base.ts",
     "devnet-okp4.ts",
     "devnet-scrt.ts",
+    "devnet-impl.ts",
     "devnet.ts"
   ],
   "include": [],

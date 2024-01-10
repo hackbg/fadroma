@@ -9,6 +9,21 @@ export { default as Container } from './devnet-base'
 export { default as ScrtContainer } from './devnet-scrt'
 export { default as OKP4Container } from './devnet-okp4'
 
+/** Identifiers of supported platforms. */
+export type Platform =
+  | `scrt_1.${2|3|4|5|6|7|8|9}`
+  | `okp4_5.0`
+
+/** Identifiers of supported API endpoints.
+  * These are different APIs exposed by a node at different ports. 
+  * One of these is used by default - can be a different one
+  * depending on platform version. */
+export type APIMode =
+  |'http'
+  |'rpc'
+  |'grpc'
+  |'grpcWeb'
+
 /** Delete multiple devnets. */
 export async function deleteDevnets (
   path: string|Path, ids?: ChainId[]
@@ -24,7 +39,3 @@ export async function deleteDevnets (
     chains.map(dir=>Container.fromFile(dir, true).delete())
   )
 }
-
-export type Platform =
-  | `scrt_1.${2|3|4|5|6|7|8|9}`
-  | `okp4_5.0`

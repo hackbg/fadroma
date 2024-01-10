@@ -1,64 +1,69 @@
 import portManager, { waitPort } from '@hackbg/port'
 import $, { Path, JSONFile } from '@hackbg/file'
 import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
-import { onExit } from 'gracy'
-import deasync from 'deasync'
+
 import {
   Backend, Identity, assign, randomBase16, Console, colors, randomColor, bold
 } from '@fadroma/agent'
 import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadroma/agent'
+
 import { packageRoot } from './package'
+import type { APIMode } from './devnet'
+import { setExitHandler, FILTER } from './devnet-impl'
 
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
 export default abstract class DevnetContainer extends Backend {
 
   declare url: string
+
   /** Whether more detailed output is preferred. */
   verbose: boolean = false
+
+  /** Containerization engine (Docker or Podman). */
+  containerEngine?:   OCIConnection
+  /** Name or tag of image if set */
+  containerImageTag?: string
+  /** Container image from which devnet will be spawned. */
+  containerImage?:    OCIImage
+  /** Path to Dockerfile to build the image if missing. */
+  containerManifest?: string
+  /** ID of container if exists */
+  containerId?:       string
+
+  /** Name of binary in container to start. */
+  nodeBinary?:        string
+  /** Which service does the API URL port correspond to. */
+  nodePortMode?:      APIMode
+  /** The protocol of the API URL without the trailing colon. */
+  nodeProtocol:       string = 'http'
+  /** The hostname of the API URL. */
+  nodeHost:           string = 'localhost'
+  /** The port of the API URL. */
+  nodePort?:          string|number
+
+  /** This directory is created to remember the state of the devnet setup. */
+  stateDir:           Path
+  /** Whether to skip mounting a local state directory into/out of the container. */
+  dontMountState:     boolean = false
+
+  /** Initial accounts. */
+  genesisAccounts:    Record<Address, number|bigint|Uint128> = {}
+  /** Initial uploads. */
+  genesisUploads:     Record<CodeId, Partial<CompiledCode>> = {}
+
+  /** If set, overrides the script that launches the devnet in the container. */
+  initScript:         Path = $(packageRoot, 'devnet.init.mjs')
+
+  /** Once this phrase is encountered in the log output
+    * from the container, the devnet is ready to accept requests. */
+  readyString:        string = ''
+
   /** What to do with the devnet once the process that has spawned it exits.
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
     * - "delete": the devnet container is stopped and deleted, along with the state directory */
   onExit: 'remain'|'pause'|'delete'
-  /** Containerization engine (Docker or Podman). */
-  containerEngine?: OCIConnection
-  /** Name or tag of image if set */
-  containerImage?: string
-  /** Path to Dockerfile to build the image if missing. */
-  containerManifest?: string
-  /** ID of container if exists */
-  containerId?: string
-  /** Name of binary in container to start. */
-  daemon?: string
-  /** Which service does the API URL port correspond to. */
-  portMode?: Port
-  /** The protocol of the API URL without the trailing colon. */
-  protocol: string = 'http'
-  /** The hostname of the API URL. */
-  host: string = 'localhost'
-  /** The port of the API URL. */
-  port?: string|number
-  /** This directory is created to remember the state of the devnet setup. */
-  stateDir: Path
-  /** Whether to skip mounting a local state directory into/out of the container. */
-  dontMountState: boolean = false
-  /** Initial accounts. */
-  genesisAccounts: Record<Address, number|bigint|Uint128> = {}
-  /** Initial uploads. */
-  genesisUploads: Record<CodeId, Partial<CompiledCode>> = {}
-  /** If set, overrides the script that launches the devnet in the container. */
-  initScript: Path = $(packageRoot, 'devnet.init.mjs')
-  /** Once this phrase is encountered in the log output
-    * from the container, the devnet is ready to accept requests. */
-  readyString: string = ''
-  /** Function that waits for port to open after launching container.
-    * Tests override this to save time. */
-  //@ts-ignore
-  protected waitPort = waitPort
-  /** Seconds to wait after first block.
-    * Tests override this to save time. */
-  protected postLaunchWait = 7
 
   constructor (options: Partial<DevnetContainer> = {}) {
     super(options)
@@ -66,25 +71,33 @@ export default abstract class DevnetContainer extends Backend {
       'chainId',
       'containerEngine',
       'containerId',
-      'containerImage',
+      'containerImageTag',
       'containerManifest',
-      'daemon',
       'dontMountState',
       'genesisAccounts',
       'genesisUploads',
-      'host',
       'initScript',
+      'nodeBinary',
+      'nodeHost',
+      'nodePort',
+      'nodePortMode',
+      'nodeProtocol',
       'platform',
-      'port',
-      'portMode',
-      'protocol',
       'readyString',
       'verbose',
     ])
-    if (this.portMode) {
-      this.port ??= DevnetContainer.ports[this.portMode]
+    if (this.nodePortMode) {
+      this.nodePort ??= DevnetContainer.ports[this.nodePortMode]
     }
     this.containerEngine ??= new OCIConnection()
+    if (this.containerEngine && this.containerImageTag) {
+      this.containerImage = this.containerEngine.image(
+        this.containerImageTag,
+        this.containerManifest,
+        [this.initScriptMount]
+      )
+      this.containerImage.log.label = this.log.label
+    }
     if (!this.chainId) {
       if (!this.platform) {
         throw new Error('no platform or chainId specified')
@@ -110,7 +123,7 @@ export default abstract class DevnetContainer extends Backend {
     Object.defineProperties(this, {
       url: {
         enumerable: true, configurable: true, get () {
-          let url = `${this.protocol}://${this.host}:${this.port}`
+          let url = `${this.nodeProtocol}://${this.nodeHost}:${this.nodePort}`
           try {
             return new URL(url).toString()
           } catch (e) {
@@ -131,20 +144,6 @@ export default abstract class DevnetContainer extends Backend {
     })
   }
 
-  /** This should point to the standard production docker image for the network. */
-  get image () {
-    if (this.containerEngine && this.containerImage) {
-      return this.containerEngine.image(
-        this.containerImage,
-        this.containerManifest,
-        [this.initScriptMount]
-      ).ensure().then(image=>{
-        image.log.label = this.log.label
-        return image
-      })
-    }
-  }
-
   /** Handle to created devnet container */
   get container () {
     if (this.containerEngine && this.containerId) {
@@ -155,12 +154,6 @@ export default abstract class DevnetContainer extends Backend {
     }
   }
 
-  /** Build image containing all or some code ids from a given chain id */
-  async copyUploads (from: Connection, codeIds?: CodeId[]) {
-    const image = await this.image
-    throw new Error('not implemented')
-  }
-
   /** Virtual path inside the container where the init script is mounted. */
   get initScriptMount (): string {
     return this.initScript ? $('/', $(this.initScript).basename).path : '/devnet.init.mjs'
@@ -169,7 +162,7 @@ export default abstract class DevnetContainer extends Backend {
   /** Environment variables in the container. */
   get spawnEnv () {
     const env: Record<string, string> = {
-      DAEMON:    this.daemon||'',
+      DAEMON:    this.nodeBinary||'',
       TOKEN:     this.gasToken?.denom,
       CHAIN_ID:  this.chainId!,
       ACCOUNTS:  JSON.stringify(this.genesisAccounts),
@@ -179,11 +172,11 @@ export default abstract class DevnetContainer extends Backend {
     if (this.verbose) {
       env['VERBOSE'] = 'yes'
     }
-    const portVar = DevnetContainer.portVars[this.portMode!]
+    const portVar = DevnetContainer.portVars[this.nodePortMode!]
     if (portVar) {
-      env[portVar] = String(this.port)
+      env[portVar] = String(this.nodePort)
     } else {
-      this.log.warn(`Unknown port mode ${this.portMode}, devnet may not be accessible.`)
+      this.log.warn(`Unknown port mode ${this.nodePortMode}, devnet may not be accessible.`)
     }
     return env
   }
@@ -198,7 +191,7 @@ export default abstract class DevnetContainer extends Backend {
       Binds.push(`${$(this.stateDir).path}:/state/${this.chainId}:rw`)
     }
     const NetworkMode  = 'bridge'
-    const PortBindings = {[`${this.port}/tcp`]: [{HostPort: `${this.port}`}]}
+    const PortBindings = {[`${this.nodePort}/tcp`]: [{HostPort: `${this.nodePort}`}]}
     const HostConfig   = {Binds, NetworkMode, PortBindings}
     const Tty          = true
     const AttachStdin  = true
@@ -207,7 +200,7 @@ export default abstract class DevnetContainer extends Backend {
     const Hostname     = this.chainId
     const Domainname   = this.chainId
     const extra   = {Tty, AttachStdin, AttachStdout, AttachStderr, Hostname, Domainname, HostConfig}
-    const options = {env: this.spawnEnv, exposed: [`${this.port}/tcp`], extra}
+    const options = {env: this.spawnEnv, exposed: [`${this.nodePort}/tcp`], extra}
     return options
   }
 
@@ -221,19 +214,16 @@ export default abstract class DevnetContainer extends Backend {
         this.log.debug('Creating container for', bold(this.chainId))
       }
       // ensure we have image and chain id
-      const image = await this.image
-      if (!this.image) {
-        throw new Error("missing devnet container image")
-      }
+      await this.containerImage.ensure()
       if (!this.chainId) {
         throw new Error("can't create devnet without chain ID")
       }
       // if port is unspecified or taken, increment
-      this.port = await portManager.getFreePort(this.port)
+      this.nodePort = await portManager.getFreePort(this.nodePort)
       // create container
       this.log(`Creating devnet`, bold(this.chainId), `on`, bold(String(this.url)))
       const init = this.initScript ? [this.initScriptMount] : []
-      const container = image!.container(this.chainId, this.spawnOptions, init)
+      const container = this.containerImage!.container(this.chainId, this.spawnOptions, init)
       container.log.label = this.log.label
       if (this.verbose) {
         for (const [key, val] of Object.entries(this.spawnEnv)) {
@@ -241,7 +231,7 @@ export default abstract class DevnetContainer extends Backend {
         }
       }
       await container.create()
-      this.setExitHandler()
+      setExitHandler(this)
       // set id and save
       if (this.verbose) {
         this.log.debug(`Created container:`, bold(this.containerId?.slice(0, 8)))
@@ -250,6 +240,9 @@ export default abstract class DevnetContainer extends Backend {
     }
     return await this.save()
   }
+
+  /** The exit handler that cleans up external resources. */
+  private exitHandler?: (...args: any)=>void
 
   protected get containerCreated (): Promise<this> {
     const creating = this.create()
@@ -260,10 +253,10 @@ export default abstract class DevnetContainer extends Backend {
   /** Write the state of the devnet to a file. This saves the info needed to respawn the node */
   async save (extra = {}): Promise<this> {
     this.stateFile.save({
-      chainId:     this.chainId,
-      containerId: this.containerId,
-      port:        this.port,
-      containerImage: this.containerImage,
+      chainId:           this.chainId,
+      containerImageTag: this.containerImageTag,
+      containerId:       this.containerId,
+      nodePort:          this.nodePort,
     })
     return this
   }
@@ -290,28 +283,18 @@ export default abstract class DevnetContainer extends Backend {
       this.running = true
       await this.save()
       this.log.debug('Waiting for container to say:', bold(this.readyString))
-      await container.waitLog(this.readyString, (data: string) =>
-        ((data.length > 0 && data.length <= 1024)
-          && !data.startsWith('TRACE ')
-          && !data.startsWith('DEBUG ')
-          && !data.startsWith('INFO ')
-          && !data.startsWith('I[')
-          && !data.startsWith('Storing key:')
-          && !RE_NON_PRINTABLE.test(data)
-          && !data.startsWith('{"app_message":')
-          && !data.startsWith('configuration saved to')
-        ), true)
+      await container.waitLog(this.readyString, FILTER, true)
       this.log.debug('Waiting for', bold(String(this.postLaunchWait)), 'seconds...')
       await new Promise(resolve=>setTimeout(resolve, this.postLaunchWait))
       //await Dock.Docker.waitSeconds(this.postLaunchWait)
-      await this.waitPort({ host: this.host, port: Number(this.port) })
+      await this.waitPort({ host: this.nodeHost, port: Number(this.nodePort) })
     } else {
       this.log.log('Container already started:', bold(this.chainId))
     }
     return this
   }
 
-  protected get containerStarted (): Promise<this> {
+  get containerStarted (): Promise<this> {
     const starting = this.start()
     Object.defineProperty(this, 'containerStarted', { get () { return starting } })
     return starting
@@ -390,24 +373,24 @@ export default abstract class DevnetContainer extends Backend {
 
   /** Run the cleanup container, deleting devnet state even if emitted as root. */
   private async forceDelete () {
-    const image = await this.image
     const path = $(this.stateDir).shortPath
-    if (image) {
-      this.log('Running cleanup container for', path)
-      await image.ensure()
-      const name       = `${this.chainId}-cleanup`
-      const AutoRemove = true
-      const HostConfig = { Binds: [`${$(this.stateDir).path}:/state:rw`] }
-      const extra      = { AutoRemove, HostConfig }
-      const cleanupContainer = await image.run({
-        name, options: { extra }, entrypoint: '/bin/rm', command: ['-rvf', '/state']
-      })
-      await cleanupContainer.start()
-      this.log('Waiting for cleanup container to finish...')
-      await cleanupContainer.wait()
-      this.log(`Deleted ${path}/* via cleanup container.`)
-      $(this.stateDir).delete()
-    }
+    this.log('Running cleanup container for', path)
+    const cleanupContainer = await this.containerImage.run({
+      name: `${this.chainId}-cleanup`,
+      entrypoint: '/bin/rm',
+      command: ['-rvf', '/state'],
+      options: {
+        extra: {
+          AutoRemove: true,
+          HostConfig: { Binds: [`${$(this.stateDir).path}:/state:rw`] }
+        }
+      },
+    })
+    await cleanupContainer.start()
+    this.log('Waiting for cleanup container to finish...')
+    await cleanupContainer.wait()
+    this.log(`Deleted ${path}/* via cleanup container.`)
+    $(this.stateDir).delete()
   }
 
   /** Get info for named genesis account, including the mnemonic */
@@ -444,49 +427,9 @@ export default abstract class DevnetContainer extends Backend {
       .load()
   }
 
-  /** The exit handler that cleans up external resources. */
-  private exitHandler?: (...args: any)=>void
-  /** Set an exit handler on the process to let the devnet
-    * stop/remove its container if configured to do so */
-  protected setExitHandler () {
-    if (this.exitHandler) return
-    let exitHandlerCalled = false
-    this.log.debug('Registering exit handler')
-    this.exitHandler = () => {
-      if (exitHandlerCalled) {
-        //this.log.trace('Exit handler called more than once')
-        return
-      }
-      //exitHandlerCalled = true
-      this.log.debug('Running exit handler')
-      if (this.onExit === 'delete') {
-        this.log.log(`Exit handler: stopping and deleting ${this.chainId}`)
-        deasync(this.pause.bind(this))()
-        this.log.log(`Stopped ${this.chainId}`)
-        deasync(this.delete.bind(this))()
-        this.log.log(`Deleted ${this.chainId}`)
-      } else if (this.onExit === 'pause') {
-        this.log.log(`Stopping ${this.chainId}`)
-        deasync(this.pause.bind(this))()
-        this.log.log(`Stopped ${this.chainId}`)
-      } else {
-        this.log.log(
-          'Devnet is running on port', bold(String(this.port)),
-          `from container`, bold(this.containerId?.slice(0,8))
-        ).info('To remove the devnet:'
-        ).info('  $ npm run devnet reset'
-        ).info('Or manually:'
-        ).info(`  $ docker kill`, this.containerId?.slice(0,8),
-        ).info(`  $ docker rm`, this.containerId?.slice(0,8),
-        ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
-      }
-      this.log.debug('Exit handler complete')
-    }
-    onExit(this.exitHandler, { logger: false })
-  }
-
   /** Name of the file containing devnet state. */
   static stateFile = 'devnet.json'
+
   /** Restore a Devnet from the info stored in the state file */
   static fromFile <A extends typeof Connection> (
     dir: string|Path, allowInvalid: boolean = false
@@ -514,34 +457,30 @@ export default abstract class DevnetContainer extends Backend {
     if (!state.chainId) {
       console.warn(`${stateFile.path}: no chainId`)
     }
-    if (!state.port) {
+    if (!state.nodePort) {
       console.warn(`${stateFile.path}: no port`)
     }
     throw new Error('not implemented')
   }
 
   /** Default port numbers for each kind of port. */
-  static ports: Record<Port, number> = {
-    http:    1317,
-    rpc:     26657,
-    grpc:    9090,
-    grpcWeb: 9091
+  static ports: Record<APIMode, number> = {
+    http: 1317, grpc: 9090, grpcWeb: 9091, rpc: 26657
   }
 
   /** Mapping of connection type to environment variable
     * used by devnet.init.mjs to set port number. */
-  static portVars: Record<Port, string> = {
-    http:    'HTTP_PORT',
-    rpc:     'RPC_PORT',
-    grpc:    'GRPC_PORT',
-    grpcWeb: 'GRPC_WEB_PORT'
+  static portVars: Record<APIMode, string> = {
+    http: 'HTTP_PORT', grpc: 'GRPC_PORT', grpcWeb: 'GRPC_WEB_PORT', rpc: 'RPC_PORT',
   }
 
+  /** Function that waits for port to open after launching container.
+    * Tests override this to save time. */
+  //@ts-ignore
+  protected waitPort = waitPort
+
+  /** Seconds to wait after first block.
+    * Tests override this to save time. */
+  protected postLaunchWait = 7
+
 }
-
-/** Ports exposed by the devnet. One of these is used by default. */
-export type Port = 'http'|'rpc'|'grpc'|'grpcWeb'
-
-/** Mapping of connection type to default port number. */
-/** Regexp for filtering out non-printable characters that may be output by the containers. */
-const RE_NON_PRINTABLE = /[\x00-\x1F]/
