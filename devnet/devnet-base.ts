@@ -16,10 +16,11 @@ export default abstract class DevnetContainer extends Backend {
   declare url: string
   /** Whether more detailed output is preferred. */
   verbose: boolean = false
-  /** Whether the devnet container should stop when the process exits. */
-  autoStop: boolean = true
-  /** Whether the devnet container should be removed when the process exits. */
-  autoDelete: boolean = true
+  /** What to do with the devnet once the process that has spawned it exits.
+    * - "remain": the devnet container keeps running
+    * - "pause": the devnet container is stopped
+    * - "delete": the devnet container is stopped and deleted, along with the state directory */
+  onExit: 'remain'|'pause'|'delete'
   /** Containerization engine (Docker or Podman). */
   containerEngine?: OCIConnection
   /** Name or tag of image if set */
@@ -62,8 +63,6 @@ export default abstract class DevnetContainer extends Backend {
   constructor (options: Partial<DevnetContainer> = {}) {
     super(options)
     assign(this, options, [
-      'autoDelete',
-      'autoStop',
       'chainId',
       'containerEngine',
       'containerId',
@@ -460,13 +459,13 @@ export default abstract class DevnetContainer extends Backend {
       }
       //exitHandlerCalled = true
       this.log.debug('Running exit handler')
-      if (this.autoDelete) {
+      if (this.onExit === 'delete') {
         this.log.log(`Exit handler: stopping and deleting ${this.chainId}`)
         deasync(this.pause.bind(this))()
         this.log.log(`Stopped ${this.chainId}`)
         deasync(this.delete.bind(this))()
         this.log.log(`Deleted ${this.chainId}`)
-      } else if (this.autoStop) {
+      } else if (this.onExit === 'pause') {
         this.log.log(`Stopping ${this.chainId}`)
         deasync(this.pause.bind(this))()
         this.log.log(`Stopped ${this.chainId}`)
