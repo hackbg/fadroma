@@ -50,8 +50,15 @@ export default abstract class DevnetContainer extends Backend {
   nodeHost:             string = 'localhost'
   /** The port of the API URL. */
   nodePort?:            string|number
-  /** This directory is created to remember the state of the devnet setup. */
+  /** This directory contains the state of the devnet. */
   stateDir:             Path
+  /** This file contains the id of the current devnet container,
+    * and possibly other state. */
+  stateFile:            JSONFile<Partial<this>>
+  /** This hidden file is created when the container is started,
+    * and is mounted into the container. Deleting it tells the script
+    * running inside the container to kill the devnet. */
+  runFile:              Path
   /** Initial accounts. */
   genesisAccounts:      Record<Address, number|bigint|Uint128> = {}
   /** Initial uploads. */
@@ -103,12 +110,16 @@ export default abstract class DevnetContainer extends Backend {
       this.containerImage.log.label = this.log.label
     }
     if (!this.chainId) {
-      if (!this.platform) {
+      if (this.platform) {
+        this.chainId = `local-${this.platform}-${randomBase16(4).toLowerCase()}`
+      } else {
         throw new Error('no platform or chainId specified')
       }
-      this.chainId = `local-${this.platform}-${randomBase16(4).toLowerCase()}`
     }
-    this.stateDir = $(options.stateDir ?? $('state', this.chainId).path)
+    this.stateDir =
+      $(options.stateDir ?? $('state', this.chainId).path)
+    this.stateFile =
+      $(options.stateFile ?? $(this.stateDir, 'devnet.json')).as(JSONFile) as JSONFile<Partial<this>>
     if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
       try {
         const state = (this.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
@@ -321,16 +332,6 @@ export default abstract class DevnetContainer extends Backend {
   /** Seconds to wait after first block.
     * Tests override this to save time. */
   protected postLaunchWait = 7
-
-  /** This file contains the id of the current devnet container.
-    * TODO store multiple containers */
-  get stateFile (): JSONFile<Partial<this>> {
-    return $(this.stateDir, 'devnet.json').as(JSONFile) as JSONFile<Partial<this>>
-  }
-
-  get pidFile (): Path {
-    return $(this.stateDir, 'devnet.pid')
-  }
 
   /** Idempotent create. */
   get containerCreated (): Promise<this> {
