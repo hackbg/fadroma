@@ -403,7 +403,9 @@ export default abstract class DevnetContainer extends Backend {
       const AutoRemove = true
       const HostConfig = { Binds: [`${$(this.stateDir).path}:/state:rw`] }
       const extra      = { AutoRemove, HostConfig }
-      const cleanupContainer = await image.run(name, { extra }, ['-rvf', '/state'], '/bin/rm')
+      const cleanupContainer = await image.run({
+        name, options: { extra }, entrypoint: '/bin/rm', command: ['-rvf', '/state']
+      })
       await cleanupContainer.start()
       this.log('Waiting for cleanup container to finish...')
       await cleanupContainer.wait()
