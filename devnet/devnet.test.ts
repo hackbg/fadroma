@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import deasync from 'deasync'
 
 import $, { TextFile, JSONFile, JSONDirectory } from '@hackbg/file'
-import * as Dock from '@fadroma/oci'
+import { OCIContainer, OCIImage } from '@fadroma/oci'
 
 import { Connection, Scrt, CW, Token, CompiledCode } from '@hackbg/fadroma'
 
@@ -57,7 +57,7 @@ export async function testDevnetPlatform <
   ok(devnet.gasToken instanceof Token.Fungible)
   ok(typeof devnet.gasToken.denom === 'string')
   equal(devnet.initScriptMount, '/devnet.init.mjs')
-  ok((await devnet.image) instanceof Dock.Image)
+  ok((await devnet.image) instanceof OCIImage)
   deepEqual(devnet.spawnEnv.DAEMON,    daemon)
   deepEqual(devnet.spawnEnv.TOKEN,     gasToken.denom)
   deepEqual(devnet.spawnEnv.CHAIN_ID,  devnet.chainId)
@@ -77,7 +77,7 @@ export async function testDevnetPlatform <
   equal(await devnet.container, undefined)
   ok(await devnet.create())
   equal(devnet.url.toString(), `http://${devnet.host}:${devnet.port}/`)
-  ok((await devnet.container) instanceof Dock.Container)
+  ok((await devnet.container) instanceof OCIContainer)
   equal((await devnet.container)!.name, `/${devnet.chainId}`)
   ok(await devnet.start())
   const agent = await devnet.connect({ name: 'User1' })
