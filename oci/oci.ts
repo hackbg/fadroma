@@ -4,6 +4,7 @@ import { basename, dirname } from 'node:path'
 import Docker from 'dockerode'
 import type { DockerHandle } from './oci-backend'
 import {
+  assign,
   bold,
   Error,
   Console,
@@ -148,7 +149,9 @@ export class OCIConnection extends Connection {
   /** Returns list of container images. */
   async doGetCodes () {
     return (await this.api.listImages())
-      .reduce((images, image)=>Object.assign(images, { [image.Id]: image }), {})
+      .reduce((images, image)=>Object.assign(images, {
+        [image.Id]: image
+      }), {})
   }
   /** Returns list of containers from a given image. */
   async doGetContractsByCodeId (imageId) {
@@ -185,7 +188,9 @@ export class OCIConnection extends Connection {
     const container = await this.api.getContainer(id)
     const { Image, Name: name, Args: command, Path: entrypoint } = await container.inspect()
     const image = this.image(Image)
-    return Object.assign(new OCIContainer({ image, name, command, entrypoint }), { container })
+    return Object.assign(new OCIContainer({
+      image, name, command, entrypoint
+    }), { container })
   }
 }
 
@@ -193,6 +198,7 @@ export class OCIImage extends ContractTemplate {
 
   constructor (properties: Partial<OCIImage> = {}) {
     super(properties)
+    assign(this, properties, ['engine', 'dockerfile', 'extraFiles'])
     this.log = new OCIConsole(`Image(${bold(this.name)})`)
     hide(this, 'log')
   }
@@ -296,7 +302,7 @@ export class OCIImage extends ContractTemplate {
         throw new OCIError.BuildFailed(name??'(no name)', dockerfile, context)
       }
       const data = event.progress || event.status || event.stream || JSON.stringify(event) || ''
-      console.log(data.trim())
+      this.log(data.trim())
     })
   }
 
@@ -338,47 +344,21 @@ export class OCIImage extends ContractTemplate {
   }
 }
 
-export interface ContainerOpts {
-  cwd:      string
-  env:      Record<string, string>
-  exposed:  string[]
-  mapped:   Record<string, string>
-  readonly: Record<string, string>
-  writable: Record<string, string>
-  extra:    Record<string, unknown>
-  remove:   boolean
-}
-
-export type ContainerCommand = string|string[]
-
-export interface ContainerState {
-  Image: string,
-  State: { Running: boolean },
-  NetworkSettings: { IPAddress: string }
-}
-
 /** Interface to a Docker container. */
 export class OCIContainer extends ContractInstance {
 
   constructor (properties: Partial<OCIContainer> = {}) {
     super(properties)
-    if (properties.engine && !(properties.engine instanceof OCIConnection)) {
-      throw new OCIError.NotDockerode()
-    }
-    if (!properties.name && !properties.dockerfile) {
-      throw new OCIError.NoNameNorDockerfile()
-    }
-    this.log = new OCIConsole(properties.name ? `Container(${bold(name)})` : `container`)
+    assign(this, properties, ['engine', 'image', 'entrypoint', 'command', 'options'])
+    this.log = new OCIConsole('OCIContainer')
     hide(this, 'log')
   }
 
   engine:      OCIConnection|null
-  dockerfile:  string|null = null
-  extraFiles:  string[]    = []
   image:       OCIImage
-  options:     Partial<ContainerOpts> = {}
-  command?:    ContainerCommand
   entrypoint?: ContainerCommand
+  command?:    ContainerCommand
+  options:     Partial<ContainerOpts> = {}
   declare log: OCIConsole
 
   get [Symbol.toStringTag](): string { return this.name||'' }
@@ -512,11 +492,11 @@ export class OCIContainer extends ContractInstance {
     const id = this.shortId
     const prettyId = bold(id.slice(0,8))
     if (await this.isRunning) {
-      console.log(`Stopping ${prettyId}...`)
+      this.log(`Stopping ${prettyId}...`)
       await this.api.getContainer(id).kill()
-      console.log(`Stopped ${prettyId}`)
+      this.log(`Stopped ${prettyId}`)
     } else {
-      console.warn(`Container already stopped: ${prettyId}`)
+      this.log.warn(`Container already stopped: ${prettyId}`)
     }
     return this
   }
@@ -596,6 +576,25 @@ export class OCIContainer extends ContractInstance {
     return Id
   }
 
+}
+
+export interface ContainerOpts {
+  cwd:      string
+  env:      Record<string, string>
+  exposed:  string[]
+  mapped:   Record<string, string>
+  readonly: Record<string, string>
+  writable: Record<string, string>
+  extra:    Record<string, unknown>
+  remove:   boolean
+}
+
+export type ContainerCommand = string|string[]
+
+export interface ContainerState {
+  Image: string,
+  State: { Running: boolean },
+  NetworkSettings: { IPAddress: string }
 }
 
 /** Follow the output stream from a Dockerode container until it closes. */

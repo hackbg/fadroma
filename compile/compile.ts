@@ -343,58 +343,60 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
   }
 }
 
+const DEFAULT_ENGINE_SOCKET = '/var/run/docker.sock'
+
 /** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Used to launch build container. */
-  docker: OCI.OCIConnection
-  /** Tag of the docker image for the build container. */
-  image:  OCI.OCIImage
+  engine:             OCI.OCIConnection
   /** Path to Docker API endpoint. */
-  dockerSocket: string =
-    this.config.getString('FADROMA_DOCKER', ()=>'/var/run/docker.sock')
+  engineSocket:       string =
+    this.config.getString('FADROMA_DOCKER', ()=>DEFAULT_ENGINE_SOCKET)
+  /** Tag of the docker image for the build container. */
+  buildImage:         OCI.OCIImage
   /** Docker image to use for dockerized builds. */
-  dockerImage: string =
+  buildImageTag:      string =
     this.config.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
   /** Path to the dockerfile for the build container if missing. */
-  dockerfile: string =
+  buildImageManifest: string =
     this.config.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(packageRoot).at('Dockerfile').path)
   /** Owner uid that is set on build artifacts. */
-  outputUid: string|undefined =
+  outputUid:          string|undefined =
     this.config.getString('FADROMA_BUILD_UID', () => undefined)
   /** Owner gid that is set on build artifacts. */
-  outputGid: string|undefined =
+  outputGid:          string|undefined =
     this.config.getString('FADROMA_BUILD_GID', () => undefined)
 
   constructor (options?: Partial<ContainerizedLocalRustCompiler>) {
     super(options as Partial<LocalRustCompiler>)
     // Set up Docker API handle
-    if (options?.dockerSocket) {
-      this.docker = new OCI.OCIConnection({ url: options.dockerSocket })
-    } else if (options?.docker) {
-      this.docker = options.docker
+    if (options?.engineSocket) {
+      this.engine = new OCI.OCIConnection({ url: options.engineSocket })
+    } else if (options?.engine) {
+      this.engine = options.engine
     } else {
-      this.docker = new OCI.OCIConnection()
+      this.engine = new OCI.OCIConnection()
     }
-    if ((options?.dockerImage as unknown) instanceof OCI.OCIImage) {
-      this.image = options?.dockerImage as unknown as OCI.OCIImage
-    } else if (options?.dockerImage) {
-      this.image = this.docker.image(options.dockerImage)
+    if ((options?.buildImageTag as unknown) instanceof OCI.OCIImage) {
+      this.buildImage = options?.buildImageTag as unknown as OCI.OCIImage
+    } else if (options?.buildImageTag) {
+      this.buildImage = this.engine.image(options.buildImageTag)
     } else {
-      this.image = this.docker.image('ghcr.io/hackbg/fadroma:master')
+      this.buildImage = this.engine.image('ghcr.io/hackbg/fadroma:master')
     }
     // Set up Docker image
-    this.dockerfile ??= options?.dockerfile!
+    this.buildImageManifest ??= options?.buildImageManifest!
     this.script ??= options?.script!
-    this.log.label = `Compiler(${bold(this.image?.name||'??')})`
-    if (this.docker?.url && (this.docker?.url !== '/var/run/docker.sock')) {
-      this.log.label += ` on ${bold(this.docker?.url)||'??'}`
+    this.log.label = `Compiler(${bold(this.buildImage?.name||'??')})`
+    if (this.engine?.url && (this.engine?.url !== DEFAULT_ENGINE_SOCKET)) {
+      this.log.label += ` on ${bold(this.engine?.url)||'??'}`
     }
     //this.docker.log.label = this.log.label
     //this.image.log.label = this.log.label
   }
 
   get [Symbol.toStringTag]() {
-    return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}`
+    return `${this.buildImage?.name??'-'} -> ${this.outputDir?.shortPath??'-'}`
   }
 
   protected async buildBatch (
@@ -417,46 +419,51 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     // Create output directory as user if it does not exist
     $(outputDir).as(Directory).make()
     // Run the build container
-    const buildContainer = await this.image.run(`fadroma-build-${randomBytes(3).toString('hex')}`, {
-      remove: true,
-      // Readonly mounts:
-      readonly: {
-        // - Script that will run in the container
-        [$(buildScript).path]: $(`/`, $(buildScript).basename).path,
+    const buildContainer = await this.buildImage.run({
+      name: `fadroma-build-${randomBytes(3).toString('hex')}`,
+      command: [ 'node', $(`/`, $(buildScript).basename).path, 'phase1', ],
+      entrypoint: '/usr/bin/env',
+      options: {
+        remove: true,
+        // Readonly mounts:
+        readonly: {
+          // - Script that will run in the container
+          [$(buildScript).path]: $(`/`, $(buildScript).basename).path,
+        },
+        // Writable mounts:
+        writable: {
+          // - Repo root, containing real .git
+          // (FIXME: need readonly only for updating lockfile)
+          [$(sourcePath).path]:  '/src',
+          // - Output path for final artifacts:
+          [outputDir]: `/output`,
+          // - Persist cache to make future rebuilds faster. May be unneccessary.
+          [`fadroma_cargo_cache_${safeRef}`]: `/usr/local/cargo`
+          //[`fadroma_build_cache_${safeRef}`]: `/tmp/target`,
+        },
+        cwd: '/src',
+        env: {
+          FADROMA_VERBOSE:     String(this.verbose),
+          FADROMA_IN_DOCKER:   'true',
+          FADROMA_SRC_REF:     sourceRef||'HEAD',
+          FADROMA_BUILD_TASKS: JSON.stringify([...tasks]),
+          FADROMA_BUILD_UID:   String(this.buildUid),
+          FADROMA_BUILD_GID:   String(this.buildGid),
+          // Used by tools invoked by the build script:
+          LOCKED:                       '',/*'--locked'*/
+          CARGO_HTTP_TIMEOUT:           '240',
+          CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+          TERM:                         process?.env?.TERM||'',
+        },
+        extra: {
+          Tty: true,
+          AttachStdin: true
+        }
       },
-      // Writable mounts:
-      writable: {
-        // - Repo root, containing real .git
-        // (FIXME: need readonly only for updating lockfile)
-        [$(sourcePath).path]:  '/src',
-        // - Output path for final artifacts:
-        [outputDir]: `/output`,
-        // - Persist cache to make future rebuilds faster. May be unneccessary.
-        [`fadroma_cargo_cache_${safeRef}`]: `/usr/local/cargo`
-        //[`fadroma_build_cache_${safeRef}`]: `/tmp/target`,
-      },
-      cwd: '/src',
-      env: {
-        FADROMA_VERBOSE:     String(this.verbose),
-        FADROMA_IN_DOCKER:   'true',
-        FADROMA_SRC_REF:     sourceRef||'HEAD',
-        FADROMA_BUILD_TASKS: JSON.stringify([...tasks]),
-        FADROMA_BUILD_UID:   String(this.buildUid),
-        FADROMA_BUILD_GID:   String(this.buildGid),
-        // Used by tools invoked by the build script:
-        LOCKED:                       '',/*'--locked'*/
-        CARGO_HTTP_TIMEOUT:           '240',
-        CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-        TERM:                         process?.env?.TERM||'',
-      },
-      extra: {
-        Tty: true,
-        AttachStdin: true
-      }
-    }, [
-      'node', $(`/`, $(buildScript).basename).path, 'phase1',
-    ], '/usr/bin/env', logs)
+      outputStream: logs
+    })
     // If this process is terminated, the build container should be killed
+    // FIXME: flaky
     process.once('beforeExit', async () => {
       if (this.verbose) this.log.log('killing build container', bold(buildContainer.id))
       try {
@@ -485,7 +492,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   }
 
   protected getLogStream (revision: string, cb: (data: string)=>void) {
-    let log = new Console(`compiling in container(${bold(this.image.name)})`)
+    let log = new Console(`compiling in container(${bold(this.buildImage.name)})`)
     if (revision && revision !== HEAD) {
       log = log.sub(`(from ${bold(revision)})`)
     }

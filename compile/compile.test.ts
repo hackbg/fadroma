@@ -7,7 +7,7 @@ import { dirname } from 'node:path'
 import { DotGit } from '@hackbg/repo'
 
 import { Compiler, ContractInstance, Deployment } from '@fadroma/agent'
-import * as Dock from '@fadroma/oci'
+import { OCIConnection, OCIImage } from '@fadroma/oci'
 
 import {
   getCompiler,
@@ -53,7 +53,7 @@ export async function testBuildContainer () {
     dockerImage: {} as any
   })
   new ContainerizedLocalRustCompiler({
-    dockerImage: new Dock.Docker.Image(null, 'test') as any
+    dockerImage: new OCIImage({ engine: null, name: 'test' }) as any
   })
 }
 
@@ -73,7 +73,6 @@ export async function testBuild () {
   }
 
   //assert.ok(getCompiler({ raw: false }) instanceof BuildContainer)
-  //assert.ok(getCompiler({ raw: false }).docker instanceof Dock.Engine)
   //getCompiler({ raw: false, dockerSocket: 'test' })
   //const rawCompiler = getCompiler({ raw: true })
   //assert.ok(rawCompiler instanceof BuildRaw)
