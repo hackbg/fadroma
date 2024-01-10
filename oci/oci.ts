@@ -116,13 +116,28 @@ export class OCIConnection extends Connection {
   declare api: DockerHandle
 
   async doGetHeight () {
+    throw new OCIError('doGetHeight: not applicable')
     return + new Date()
   }
   async doGetBlockInfo () {
+    throw new OCIError('doGetBlockInfo: not applicable')
     return {}
   }
-  async doGetCodeId (container: string): Promise<string> {
-    return "0"
+  async doGetBalance () {
+    throw new OCIError('doGetBalance: not applicable')
+    return 0
+  }
+  async doSend () {
+    throw new OCIError('doSend: not applicable')
+  }
+  async doSendMany () {
+    throw new OCIError('doSendMany: not applicable')
+  }
+
+  async doGetCodeId (containerId: string): Promise<string> {
+    const container = await this.api.getContainer(containerId)
+    const info = await container.inspect()
+    return info.Image
   }
   async doGetCodeHashOfCodeId (contract) {
     return ''
@@ -136,26 +151,26 @@ export class OCIConnection extends Connection {
       .reduce((images, image)=>Object.assign(images, { [image.Id]: image }), {})
   }
   /** Returns list of containers from a given image. */
-  async doGetContractsByCodeId (id) {
+  async doGetContractsByCodeId (imageId) {
     return (await this.api.listContainers())
-      .filter(container=>container.Image === id)
-      .map(container=>({ address: container.Id, codeId: id, container }))
+      .filter(container=>container.Image === imageId)
+      .map(container=>({ address: container.Id, codeId: imageId, container }))
   }
-  async doGetBalance () {
-    return 0
-  }
-  async doQuery (contract, message) {
+  async doUpload (data: Uint8Array) {
+    throw new OCIError('doUpload (load/import image): not implemented')
     return {}
   }
-  async doSend () {
-  }
-  async doSendMany () {
-  }
-  async doUpload () {
-  }
-  async doInstantiate () {
+  async doInstantiate (imageId: string) {
+    throw new OCIError('doInstantiate (create container): not implemented')
+    return {}
   }
   async doExecute () {
+    throw new OCIError('doExecute (exec in container): not implemented')
+    return {}
+  }
+  async doQuery (contract, message) {
+    throw new OCIError('doQuery (inspect image): not implamented')
+    return {}
   }
 
   image (
@@ -285,21 +300,26 @@ export class OCIImage extends ContractTemplate {
     })
   }
 
-  async run (
+  async run (parameters: {
     name?:         string,
     options?:      Partial<ContainerOpts>,
     command?:      ContainerCommand,
     entrypoint?:   ContainerCommand,
     outputStream?: Writable
-  ) {
-    return await OCIContainer.run(
-      this,
-      name,
-      options,
-      command,
-      entrypoint,
-      outputStream
-    )
+  } = {}) {
+    const { name, options, command, entrypoint, outputStream } = parameters
+    await this.ensure()
+    const container = new OCIContainer({ image: this, name, options, command, entrypoint })
+    await container.create()
+    if (outputStream) {
+      const stream = await container.container.attach({
+        stream: true, stdin: true, stdout: true
+      })
+      stream.setEncoding('utf8')
+      stream.pipe(outputStream, { end: true })
+    }
+    await container.start()
+    return container
   }
 
   container (
@@ -360,40 +380,6 @@ export class OCIContainer extends ContractInstance {
   command?:    ContainerCommand
   entrypoint?: ContainerCommand
   declare log: OCIConsole
-
-  static async create (
-    image:       OCIImage,
-    name?:       string,
-    options?:    Partial<ContainerOpts>,
-    command?:    ContainerCommand,
-    entrypoint?: ContainerCommand,
-  ) {
-    await image.ensure()
-    const self = new (this as any)(image, name, options, command, entrypoint)
-    await self.create()
-    return self
-  }
-
-  static async run (
-    image:         OCIImage,
-    name?:         string,
-    options?:      Partial<ContainerOpts>,
-    command?:      ContainerCommand,
-    entrypoint?:   ContainerCommand,
-    outputStream?: Writable
-  ) {
-    const self = await this.create(image, name, options, command, entrypoint)
-    if (outputStream) {
-      if (!self.container) {
-        throw new OCIError.NoContainer()
-      }
-      const stream = await self.container.attach({ stream: true, stdin: true, stdout: true })
-      stream.setEncoding('utf8')
-      stream.pipe(outputStream, { end: true })
-    }
-    await self.start()
-    return self
-  }
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
