@@ -13,13 +13,21 @@ import type { Connection, Identity } from '@fadroma/agent'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet'
 
-export function initPort (devnet: DevnetContainer) {
+type $D<T extends keyof DevnetContainer> = Pick<DevnetContainer, 'log'|T>
+
+export function initPort (
+  devnet: $D<'nodePortMode'|'nodePort'>
+) {
   if (devnet.nodePortMode) {
     devnet.nodePort ??= defaultPorts[devnet.nodePortMode]
   }
 }
 
-export function initImage (devnet: DevnetContainer) {
+export function initImage (
+  devnet: $D<
+    'containerEngine'|'containerImageTag'|'containerImage'|'containerManifest'|'initScriptMount'
+  >
+) {
   if (devnet.containerEngine && devnet.containerImageTag) {
     devnet.containerImage = devnet.containerEngine.image(
       devnet.containerImageTag,
@@ -30,17 +38,21 @@ export function initImage (devnet: DevnetContainer) {
   }
 }
 
-export function initChainId (devnet: DevnetContainer) {
-  if (!this.chainId) {
-    if (this.platform) {
-      this.chainId = `local-${this.platform}-${randomBase16(4).toLowerCase()}`
+export function initChainId (
+  devnet: $D<'chainId'|'platform'>
+) {
+  if (!devnet.chainId) {
+    if (devnet.platform) {
+      devnet.chainId = `local-${devnet.platform}-${randomBase16(4).toLowerCase()}`
     } else {
       throw new Error('no platform or chainId specified')
     }
   }
 }
 
-export function initLogger (devnet: DevnetContainer) {
+export function initLogger (
+  devnet: $D<'chainId'>
+) {
   const loggerColor = randomColor({ luminosity: 'dark', seed: devnet.chainId })
   const loggerTag   = colors.whiteBright.bgHex(loggerColor)(devnet.chainId)
   const logger      = new Console(`Devnet ${loggerTag}`)
@@ -55,7 +67,10 @@ export function initLogger (devnet: DevnetContainer) {
   })
 }
 
-export function initState (devnet: DevnetContainer, options: Partial<DevnetContainer>) {
+export function initState (
+  devnet:  $D<'stateDir'|'stateFile'|'chainId'>,
+  options: Partial<$D<'stateDir'|'stateFile'>>
+) {
   Object.assign(devnet, {
     stateDir:  $(options.stateDir ?? $('state', devnet.chainId).path),
     stateFile: $(options.stateFile ?? $(devnet.stateDir, 'devnet.json')).as(JSONFile)
@@ -74,7 +89,9 @@ export function initState (devnet: DevnetContainer, options: Partial<DevnetConta
   }
 }
 
-export function initDynamicUrl (devnet: DevnetContainer) {
+export function initDynamicUrl (
+  devnet: $D<'nodeProtocol'|'nodeHost'|'nodePort'>
+) {
   Object.defineProperties(devnet, {
     url: {
       enumerable: true, configurable: true, get () {
@@ -92,7 +109,9 @@ export function initDynamicUrl (devnet: DevnetContainer) {
   })
 }
 
-export function initCreateDelete (devnet: DevnetContainer) {
+export function initCreateDelete (
+  devnet: DevnetContainer
+) {
   let creating = null
   let deleting = null
   Object.defineProperties(devnet, {
@@ -118,7 +137,9 @@ export function initCreateDelete (devnet: DevnetContainer) {
   })
 }
 
-export function initStartPause (devnet: DevnetContainer) {
+export function initStartPause (
+  devnet: DevnetContainer
+) {
   let starting = null
   let stopping = null
   Object.defineProperties(devnet, {
@@ -143,23 +164,8 @@ export function initStartPause (devnet: DevnetContainer) {
   })
 }
 
-type IDevnetConnect = Pick<DevnetContainer,
-  'chainId'|'url'|'running'>
-type IDevnetGetIdentity  = Pick<DevnetContainer,
-  'log'|'stateDir'|'created'|'started'>
-type IDevnetForceDelete = Pick<DevnetContainer,
-  'stateDir'|'containerImage'|'log'|'chainId'>
-type IDevnetContainerOptions = Pick<DevnetContainer,
-  'initScript'|'initScriptMount'|'stateDir'|'chainId'|'nodePort'>
-type IDevnetContainerEnvironment = Pick<DevnetContainer,
-  'nodeBinary'|'gasToken'|'chainId'|'genesisAccounts'|'verbose'|'nodePortMode'|'nodePort'|'log'>
-type IDevnetSetExitHandler = Pick<DevnetContainer,
-  'exitHandler'|'log'>
-type IDevnetExitHandler = Pick<DevnetContainer,
-  'log'|'onExit'|'pause'|'delete'|'chainId'|'nodePort'|'containerId'>
-
 export async function connect <C extends Connection, I extends Identity> (
-  devnet:      IDevnetConnect & IDevnetGetIdentity,
+  devnet:      $D<'chainId'|'url'|'running'|'stateDir'|'created'|'started'>,
   $Connection: { new (...args: unknown[]): C },
   $Identity:   { new (...args: unknown[]): I },
   parameter:   string|Partial<I & { name?: string, mnemonic?: string }> = {}
@@ -179,7 +185,7 @@ export async function connect <C extends Connection, I extends Identity> (
 }
 
 export async function getIdentity (
-  devnet: IDevnetGetIdentity,
+  devnet: $D<'stateDir'|'created'|'started'>,
   name:   string|{name?: string}
 ) {
   if (typeof name === 'object') {
@@ -201,7 +207,10 @@ export async function getIdentity (
 
 /** Options for the devnet container. */
 export function containerOptions (
-  devnet: IDevnetContainerOptions & IDevnetContainerEnvironment
+  devnet: $D<
+    |'chainId'|'gasToken'|'initScript'|'initScriptMount'|'stateDir'
+    |'nodePortMode'|'nodePort'|'nodeBinary'|'genesisAccounts'|'verbose'
+  >
 ) {
   const Binds: string[] = []
   if (devnet.initScript) {
@@ -224,7 +233,9 @@ export function containerOptions (
 
 /** Environment variables in the devnet container. */
 export function containerEnvironment (
-  devnet: IDevnetContainerEnvironment
+  devnet: $D<
+    |'chainId'|'gasToken'|'nodeBinary'|'nodePortMode'|'nodePort'|'genesisAccounts'|'verbose'
+  >
 ) {
   const env: Record<string, string> = {
     DAEMON:    devnet.nodeBinary||'',
@@ -265,7 +276,7 @@ export const defaultPorts: Record<APIMode, number> = {
 // Set an exit handler on the process to let the devnet
 // stop/remove its container if configured to do so
 export function setExitHandler (
-  devnet: IDevnetSetExitHandler
+  devnet: $D<'exitHandler'>
 ) {
   if (!this.exitHandler) {
     this.log.debug('Registering exit handler')
@@ -276,11 +287,11 @@ export function setExitHandler (
 }
 
 function defineExitHandler (
-  devnet: IDevnetExitHandler
+  devnet: $D<'onExit'|'paused'|'deleted'|'chainId'|'nodePort'|'containerId'>
 ) {
   let called = false
   return function exitHandler (
-    this: IDevnetExitHandler
+    this: $D<'onExit'|'paused'|'deleted'|'chainId'|'nodePort'|'containerId'>
   ) {
     if (called) {
       this.log.trace('Exit handler called more than once')
@@ -332,7 +343,13 @@ export const FILTER = (data: string) =>
     && !data.startsWith('configuration saved to')
   )
 
-export async function createDevnetContainer (devnet: DevnetContainer): Promise<void> {
+export async function createDevnetContainer (
+  devnet: $D<
+    |'url'|'container'|'containerId'|'containerImage'|'verbose'
+    |'chainId'|'gasToken'|'initScript'|'initScriptMount'|'stateDir'
+    |'nodePortMode'|'nodePort'|'nodeBinary'|'genesisAccounts'
+  >
+): Promise<void> {
   const exists = await devnet.container?.catch(()=>null)
   if (exists) {
     devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.containerId?.slice(0, 8)))
@@ -364,38 +381,40 @@ export async function createDevnetContainer (devnet: DevnetContainer): Promise<v
   }
 }
 
-export async function deleteDevnetContainer (devnet: DevnetContainer): Promise<void> {
-  this.log('Deleting...')
+export async function deleteDevnetContainer (
+  devnet: $D<'container'|'containerId'|'stateDir'>
+): Promise<void> {
+  devnet.log('Deleting...')
   let container
   try {
-    container = await this.container
+    container = await devnet.container
   } catch (e) {
     if (e.statusCode === 404) {
-      this.log(`No container found`, bold(this.containerId?.slice(0, 8)))
+      devnet.log(`No container found`, bold(devnet.containerId?.slice(0, 8)))
     } else {
       throw e
     }
   }
   if (container && await container?.isRunning) {
     if (await container.isRunning) {
-      await this.pause()
+      await devnet.pause()
     }
     await container.remove()
-    this.containerId = undefined
+    devnet.containerId = undefined
   }
-  const state = $(this.stateDir)
+  const state = $(devnet.stateDir)
   const path = state.shortPath
   try {
     if (state.exists()) {
-      this.log(`Deleting ${path}...`)
+      devnet.log(`Deleting ${path}...`)
       state.delete()
     }
   } catch (e: any) {
     if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
-      this.log.warn(`unable to delete ${path}: ${e.code}, trying cleanup container`)
-      await forceDelete(this)
+      devnet.log.warn(`unable to delete ${path}: ${e.code}, trying cleanup container`)
+      await forceDelete(devnet)
     } else {
-      this.log.error(`failed to delete ${path}:`, e)
+      devnet.log.error(`failed to delete ${path}:`, e)
       throw e
     }
   }
@@ -403,7 +422,7 @@ export async function deleteDevnetContainer (devnet: DevnetContainer): Promise<v
 
 /** Run the cleanup container, deleting devnet state even if emitted as root. */
 export async function forceDelete (
-  devnet: IDevnetForceDelete
+  devnet: $D<'stateDir'|'containerImage'|'chainId'>
 ) {
   const path = $(devnet.stateDir).shortPath
   devnet.log('Running cleanup container for', path)
@@ -425,7 +444,12 @@ export async function forceDelete (
   $(devnet.stateDir).delete()
 }
 
-export async function startDevnetContainer (devnet: DevnetContainer) {
+export async function startDevnetContainer (
+  devnet: $D<
+    |'running'|'container'|'containerId'|'save'|'readyString'|'postLaunchWait'
+    |'nodeHost'|'nodePort'|'chainId'|'waitPort'
+  >
+) {
   if (!devnet.running) {
     const container = await devnet.container ?? await (await devnet.create()).container!
     devnet.log.debug(`Starting container:`, bold(devnet.containerId?.slice(0, 8)))
@@ -450,7 +474,9 @@ export async function startDevnetContainer (devnet: DevnetContainer) {
   }
 }
 
-export async function pauseDevnetContainer (devnet: DevnetContainer) {
+export async function pauseDevnetContainer (
+  devnet: $D<'container'|'containerId'|'running'>
+) {
   const container = await devnet.container
   if (container) {
     devnet.log.debug(`Stopping container:`, bold(devnet.containerId?.slice(0, 8)))
