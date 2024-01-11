@@ -129,7 +129,6 @@ export async function createDevnetContainer (
     devnet.container.options = containerOptions(devnet)
     devnet.container.command = devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
     devnet.container.log.label = devnet.log.label
-    await devnet.container.image.ensure()
     await devnet.container.create()
     setExitHandler(devnet)
     // set id and save
