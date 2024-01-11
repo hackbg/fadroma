@@ -36,7 +36,6 @@ export async function testDevnetPlatform <
   ok(devnet.gasToken)
   ok(devnet.gasToken instanceof Token.Fungible)
   ok(typeof devnet.gasToken.denom === 'string')
-  equal(devnet.initScriptMount, '/devnet.init.mjs')
   ok((await devnet.containerImage) instanceof OCIImage)
 
   const spawnEnv = Impl.containerEnvironment(devnet)

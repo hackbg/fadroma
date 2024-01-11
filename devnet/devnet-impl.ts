@@ -12,6 +12,8 @@ import type { Connection, Identity } from '@fadroma/agent'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet'
 
+const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
+
 type $D<T extends keyof DevnetContainer> = Pick<DevnetContainer, T>
 
 export function initPort (
@@ -25,16 +27,12 @@ export function initPort (
 
 export function initImage (
   devnet: $D<
-    |'log'
-    |'containerEngine'|'containerImageTag'|'containerImage'|'containerManifest'
-    |'initScriptMount'
+    |'log'|'containerEngine'|'containerImageTag'|'containerImage'|'containerManifest'
   >
 ) {
   if (devnet.containerEngine && devnet.containerImageTag) {
     devnet.containerImage = devnet.containerEngine.image(
-      devnet.containerImageTag,
-      devnet.containerManifest,
-      [devnet.initScriptMount]
+      devnet.containerImageTag, devnet.containerManifest, [],
     )
     devnet.containerImage.log.label = devnet.log.label
   }
@@ -114,70 +112,9 @@ export function initDynamicUrl (
   return devnet
 }
 
-type ContainerState = 'missing'|'paused'|'running'
-
-export function initContainerState (
-  devnet:
-    & Parameters<typeof createDevnetContainer>[0]
-    & Parameters<typeof deleteDevnetContainer>[0]
-    & Parameters<typeof startDevnetContainer>[0]
-    & Parameters<typeof pauseDevnetContainer>[0]
-) {
-  let stateAtom: Promise<ContainerState> = Promise.resolve('missing')
-
-  const transition = (cb: (s: ContainerState)=>Promise<ContainerState>) =>
-    () => stateAtom = stateAtom.then(cb)
-
-  const doCreate = transition(async state => {
-    if (state === 'missing') {
-      await createDevnetContainer(devnet)
-      state = 'missing'
-    }
-    return state
-  })
-
-  const doStart = transition(async state => {
-    if (state === 'missing') {
-      state = await doCreate()
-    }
-    if (state === 'paused') {
-      await startDevnetContainer(devnet)
-      state = 'running'
-    }
-    return state
-  })
-
-  const doPause = transition(async state => {
-    if (state === 'running') {
-      await pauseDevnetContainer(devnet)
-      state = 'paused'
-    }
-    return state
-  })
-
-  const doDelete = transition(async state => {
-    if (state === 'running') {
-      state = await doPause()
-    }
-    if (state === 'paused') {
-      await deleteDevnetContainer(devnet)
-      state = 'missing'
-    }
-    return state
-  })
-
-  Object.defineProperties(devnet, {
-    created: { configurable: true, get: doCreate },
-    deleted: { configurable: true, get: doDelete },
-    started: { configurable: true, get: doStart },
-    stopped: { configurable: true, get: doPause },
-  })
-  return devnet
-}
-
 export async function createDevnetContainer (
   devnet: $D<
-    'container'|'verbose'|'containerImage'|'initScript'|'initScriptMount'|'url'
+    'container'|'verbose'|'containerImage'|'initScript'|'url'
   > & Parameters<typeof setExitHandler>[0]
     & Parameters<typeof containerOptions>[0]
 ): Promise<void> {
@@ -197,9 +134,8 @@ export async function createDevnetContainer (
     devnet.nodePort = await portManager.getFreePort(devnet.nodePort)
     // create container
     devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
-    const init = devnet.initScript ? [devnet.initScriptMount] : []
     const container = devnet.containerImage!.container(
-      devnet.chainId, containerOptions(devnet), init
+      devnet.chainId, containerOptions(devnet), devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
     )
     container.log.label = devnet.log.label
     await container.create()
@@ -344,12 +280,12 @@ export async function getIdentity (
 /** Options for the devnet container. */
 export function containerOptions (
   devnet: $D<
-    'chainId'|'initScript'|'initScriptMount'|'stateDir'|'nodePort'
+    'chainId'|'initScript'|'stateDir'|'nodePort'
   > & Parameters<typeof containerEnvironment>[0]
 ) {
   const Binds: string[] = []
   if (devnet.initScript) {
-    Binds.push(`${devnet.initScript.path}:${devnet.initScriptMount}:ro`)
+    Binds.push(`${devnet.initScript.path}:${ENTRYPOINT_MOUNTPOINT}:ro`)
   }
   Binds.push(`${$(devnet.stateDir).path}:/state/${devnet.chainId}:rw`)
   const NetworkMode  = 'bridge'
@@ -501,3 +437,135 @@ export async function forceDelete (
   devnet.log(`Deleted ${path}/* via cleanup container.`)
   $(devnet.stateDir).delete()
 }
+
+//type State = 'missing'|'creating'|'paused'|'starting'|'running'|'pausing'|'deleting'
+
+//type Transition = 'create'|'start'|'pause'|'delete'
+
+//type StateMap = Record<State, Record<Transition, Array<State|Function>>>
+
+//function defineContainerStates (
+  //createContainer = createDevnetContainer,
+  //deleteContainer = deleteDevnetContainer,
+  //startContainer  = startDevnetContainer,
+  //pauseContainer  = pauseDevnetContainer,
+//) {
+  //return {
+    //missing: {
+      //create: ['creating', createContainer, 'created'],
+      //start:  ['creating', createContainer, 'starting', startContainer, 'running'],
+      //pause:  [],
+      //delete: [],
+    //},
+    //creating: {
+      //create: [],
+      //start:  [],
+      //pause:  ['pausing', pauseContainer, 'paused'],
+      //delete: ['pausing', pauseContainer, 'paused', deleteContainer, 'missing'],
+    //},
+    //paused: {
+      //create: [],
+      //start:  ['starting', startContainer, 'running'],
+      //pause:  [],
+      //delete: ['deleting', deleteContainer, 'deleted']
+    //},
+    //starting: {
+      //create: [],
+      //start:  [],
+      //pause:  ['pausing', pauseContainer, 'paused'],
+      //delete: ['pausing', pauseContainer, 'paused', deleteContainer, 'missing'],
+    //},
+    //running: {
+      //create: [],
+      //start:  [],
+      //pause:  ['pausing', pauseContainer, 'paused'],
+      //delete: ['pausing', pauseContainer, 'paused', deleteContainer, 'missing'],
+    //},
+    //pausing: {
+      //create: [],
+      //start:  ['starting', startContainer, 'started'],
+      //pause:  [],
+      //delete: ['deleting', deleteContainer, 'missing'],
+    //},
+    //deleting: {
+      //create: ['creating', createContainer, 'created'],
+      //start:  ['creating', createContainer, 'created'],
+      //pause:  [],
+      //delete: []
+    //}
+  //}
+//}
+
+//export function initContainerState (
+  //devnet:
+    //& Parameters<typeof createDevnetContainer>[0]
+    //& Parameters<typeof deleteDevnetContainer>[0]
+    //& Parameters<typeof startDevnetContainer>[0]
+    //& Parameters<typeof pauseDevnetContainer>[0]
+//): typeof devnet & {
+  //readonly created: Promise<void>
+  //readonly deleted: Promise<void>
+  //readonly started: Promise<void>
+  //readonly paused:  Promise<void>
+//} {
+  //let stateAtom: Promise<ContainerState> = Promise.resolve('missing')
+
+  //const transition = (cb: (s: ContainerState)=>Promise<ContainerState>) =>
+    //() => stateAtom = stateAtom.then(cb)
+
+  //const doCreate = transition(async state => {
+    //if (state === 'missing') {
+      ////await createDevnetContainer(devnet)
+      //state = 'paused'
+    //}
+    //return state
+  //})
+
+  //const doStart = transition(async state => {
+    //console.log('doStart 1')
+    //if (state === 'missing') {
+      //console.log('doStart 2')
+      //state = await doCreate()
+    //}
+    //if (state === 'paused') {
+      ////await startDevnetContainer(devnet)
+      //state = 'running'
+    //}
+    //return state
+  //})
+
+  //const doPause = transition(async state => {
+    //if (state === 'running') {
+      //await pauseDevnetContainer(devnet)
+      //state = 'paused'
+    //}
+    //return state
+  //})
+
+  //const doDelete = transition(async state => {
+    //if (state === 'running') {
+      //state = await doPause()
+    //}
+    //if (state === 'paused') {
+      //await deleteDevnetContainer(devnet)
+      //state = 'missing'
+    //}
+    //return state
+  //})
+
+  //console.log({doCreate,doStart,doPause,doDelete})
+
+  //Object.defineProperties(devnet, {
+    //created: { configurable: true, get () { console.log('get created'); return doCreate() } },
+    //deleted: { configurable: true, get () { console.log('get deleted'); return doDelete() } },
+    //started: { configurable: true, get () { console.log('get started'); return doStart() } },
+    //stopped: { configurable: true, get () { console.log('get stopped'); return doPause() } },
+  //})
+
+  //return devnet as typeof devnet & {
+    //readonly created: Promise<void>
+    //readonly deleted: Promise<void>
+    //readonly started: Promise<void>
+    //readonly paused:  Promise<void>
+  //}
+//}

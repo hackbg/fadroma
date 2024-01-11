@@ -17,7 +17,6 @@ export default async () => {
     containerImageTag: "foo",
     containerImage:    undefined,
     containerManifest: 'Dockerfile',
-    initScriptMount:   ''
   }).containerImage instanceof OCIImage)
 
   equal(undefined, Impl.initImage({
@@ -26,7 +25,6 @@ export default async () => {
     containerImageTag: "foo",
     containerImage:    undefined,
     containerManifest: 'Dockerfile',
-    initScriptMount:   ''
   }).containerImage)
 
   equal(undefined, Impl.initImage({
@@ -35,7 +33,6 @@ export default async () => {
     containerImageTag: undefined,
     containerImage:    undefined,
     containerManifest: 'Dockerfile',
-    initScriptMount:   ''
   }).containerImage)
 
   equal(Impl.initChainId({ chainId: 'foo', platform: 'bar' }).chainId, 'foo')
@@ -65,21 +62,35 @@ export default async () => {
     nodePort:     '1234'
   }).url, 'https://localhost:1234/')
 
-  const devnet = Impl.initContainerState({
-    container:       undefined,
-    genesisAccounts: {},
-    initScript:      $(''),
-    initScriptMount: undefined,
-    log:             new Console(),
-    nodeHost:        undefined,
-    running:         false,
-    stateDir:        undefined,
-    verbose:         true,
-    readyString:     undefined,
-    //@ts-ignore
-    waitPort:        ()=>{},
-    //@ts-ignore
-    save:            ()=>{},
+  //const devnet = Impl.initContainerState({
+    //container:       undefined,
+    //genesisAccounts: {},
+    //initScript:      $(''),
+    //log:             new Console(),
+    //nodeHost:        undefined,
+    //running:         false,
+    //stateDir:        undefined,
+    //verbose:         true,
+    //readyString:     undefined,
+    ////@ts-ignore
+    //waitPort:        ()=>{},
+    ////@ts-ignore
+    //save:            ()=>{},
+  //})
+
+  //await devnet.started
+  //await devnet.deleted
+
+  await Impl.createDevnetContainer({
+  })
+
+  await Impl.startDevnetContainer({
+  })
+
+  await Impl.pauseDevnetContainer({
+  })
+
+  await Impl.deleteDevnetContainer({
   })
 
 }

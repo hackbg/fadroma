@@ -102,7 +102,7 @@ export default abstract class DevnetContainer extends Backend {
     Impl.initLogger(this)
     Impl.initState(this, options)
     Impl.initDynamicUrl(this)
-    Impl.initContainerState(this)
+    //Impl.initContainerState(this)
   }
 
   declare readonly created: Promise<void>
@@ -145,13 +145,6 @@ export default abstract class DevnetContainer extends Backend {
       throw new Error("can't export: no container")
     }
     return container.export(repository, tag)
-  }
-
-  /** Virtual path inside the container where the init script is mounted. */
-  get initScriptMount (): string {
-    return this.initScript
-      ? $('/', $(this.initScript).basename).path
-      : '/devnet.init.mjs'
   }
 
 }
