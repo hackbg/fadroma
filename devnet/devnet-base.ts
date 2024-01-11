@@ -102,8 +102,7 @@ export default abstract class DevnetContainer extends Backend {
     Impl.initLogger(this)
     Impl.initState(this, options)
     Impl.initDynamicUrl(this)
-    Impl.initCreateDelete(this)
-    Impl.initStartPause(this)
+    Impl.initContainerState(this)
   }
 
   declare readonly created: Promise<void>
@@ -123,14 +122,13 @@ export default abstract class DevnetContainer extends Backend {
 
   /** Write the state of the devnet to a file.
     * This saves the info needed to respawn the node */
-  async save (extra = {}): Promise<this> {
+  async save (extra = {}) {
     this.stateFile.save({
       chainId:           this.chainId,
       containerImageTag: this.containerImageTag,
       containerId:       this.containerId,
       nodePort:          this.nodePort,
     })
-    return this
   }
 
   /** Get info for named genesis account, including the mnemonic */

@@ -601,14 +601,6 @@ export abstract class Backend extends Logged {
   abstract connect (parameter?: string|Partial<Identity>): Promise<Connection>
 
   abstract getIdentity (name: string): Promise<{ address?: Address, mnemonic?: string }>
-
-  abstract start (): Promise<this>
-
-  abstract pause (): Promise<this>
-
-  abstract export (...args: unknown[]): Promise<unknown>
-
-  abstract import (...args: unknown[]): Promise<unknown>
 }
 
 /** Builder object for batched transactions. */

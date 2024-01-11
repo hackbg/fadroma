@@ -2,6 +2,7 @@ import { ok, equal, throws } from 'node:assert'
 import { OCIConnection, OCIImage } from '@fadroma/oci'
 import { Console } from '@fadroma/agent'
 import * as Impl from './devnet-impl'
+import $ from '@hackbg/file'
 
 export default async () => {
 
@@ -37,20 +38,48 @@ export default async () => {
     initScriptMount:   ''
   }).containerImage)
 
-  equal(Impl.initChainId({
-    chainId:  'foo',
-    platform: 'bar',
-  }).chainId, 'foo')
-
-  ok(Impl.initChainId({
-    platform: 'bar',
-  }).chainId.startsWith('local-bar-'))
+  equal(Impl.initChainId({ chainId: 'foo', platform: 'bar' }).chainId, 'foo')
+  ok(Impl.initChainId({ platform: 'bar' }).chainId.startsWith('local-bar-'))
 
   throws(()=>Impl.initChainId({}))
 
-  ok(Impl.initLogger({
-    log:     undefined,
-    chainId: 'foo',
-  }).log instanceof Console)
+  ok(Impl.initLogger({ log: undefined, chainId: 'foo', }).log instanceof Console)
+  throws(()=>Impl.initLogger({ log: undefined, chainId: 'foo' }).log = null)
+
+  ok(Impl.initState({
+    chainId:  'foo',
+    stateDir:  undefined,
+    stateFile: undefined,
+  }, {}).stateDir.path.endsWith('foo'))
+
+  ok(Impl.initState({
+    chainId:  'foo',
+    stateDir:  undefined,
+    stateFile: undefined,
+  }, {}).stateFile.path.endsWith('foo/devnet.json'))
+
+  equal(Impl.initDynamicUrl({
+    log:          new Console(),
+    nodeProtocol: 'https',
+    nodeHost:     'localhost',
+    nodePort:     '1234'
+  }).url, 'https://localhost:1234/')
+
+  const devnet = Impl.initContainerState({
+    container:       undefined,
+    genesisAccounts: {},
+    initScript:      $(''),
+    initScriptMount: undefined,
+    log:             new Console(),
+    nodeHost:        undefined,
+    running:         false,
+    stateDir:        undefined,
+    verbose:         true,
+    readyString:     undefined,
+    //@ts-ignore
+    waitPort:        ()=>{},
+    //@ts-ignore
+    save:            ()=>{},
+  })
 
 }
