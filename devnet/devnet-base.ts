@@ -22,42 +22,34 @@ import * as Impl from './devnet-impl'
   * running in a container managed by @fadroma/oci. */
 export default abstract class DevnetContainer extends Backend {
   /** Whether more detailed output is preferred. */
-  verbose:              boolean                                = false
-  /** Containerization engine (Docker or Podman). */
-  containerEngine:      OCIConnection                          = new OCIConnection()
-  /** Name or tag of image if set */
-  containerImageTag?:   string
-  /** Container image from which devnet will be spawned. */
-  containerImage?:      OCIImage
-  /** Path to Dockerfile to build the image if missing. */
-  containerManifest?:   string
-  /** ID of container if exists */
-  containerId?:         string
-  /** Name of binary in container to start. */
-  nodeBinary?:          string
+  verbose:              boolean       = false
+  /** Container instance of devnet. */
+  container:            OCIContainer  = new OCIContainer()
+  /** The protocol of the API URL without the trailing colon. */
+  nodeProtocol:         string        = 'http'
+  /** The hostname of the API URL. */
+  nodeHost:             string        = 'localhost'
   /** Which service does the API URL port correspond to. */
   nodePortMode?:        APIMode
-  /** The protocol of the API URL without the trailing colon. */
-  nodeProtocol:         string                                 = 'http'
-  /** The hostname of the API URL. */
-  nodeHost:             string                                 = 'localhost'
   /** The port of the API URL. */
   nodePort?:            string|number
+  /** Name of binary in container to start. */
+  nodeBinary?:          string
   /** Initial accounts. */
   genesisAccounts:      Record<Address, number|bigint|Uint128> = {}
   /** Initial uploads. */
   genesisUploads:       Record<CodeId, Partial<CompiledCode>>  = {}
   /** If set, overrides the script that launches the devnet in the container. */
-  initScript:           Path                                   = $(packageRoot, 'devnet.init.mjs')
+  initScript:           Path = $(packageRoot, 'devnet.init.mjs')
   /** Function that waits for port to open after launching container.
     * Tests override this to save time. */
-  waitPort:             typeof waitPort                        = waitPort
+  waitPort:             typeof waitPort = waitPort
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
-  readyString:          string                                 = ''
+  waitString:          string = ''
   /** Seconds to wait after first block.
     * Tests override this to save time. */
-  postLaunchWait:       number                                 = 7
+  waitMore:             number = 7
   /** This directory contains the state of the devnet. */
   stateDir:             Path
   /** This file contains the id of the current devnet container,
@@ -79,10 +71,6 @@ export default abstract class DevnetContainer extends Backend {
     super(options)
     assign(this, options, [
       'chainId',
-      'containerEngine',
-      'containerId',
-      'containerImageTag',
-      'containerManifest',
       'genesisAccounts',
       'genesisUploads',
       'initScript',
@@ -93,43 +81,29 @@ export default abstract class DevnetContainer extends Backend {
       'nodeProtocol',
       'onExit',
       'platform',
-      'readyString',
+      'waitString',
       'verbose',
     ])
     Impl.initPort(this)
-    Impl.initImage(this)
     Impl.initChainId(this)
     Impl.initLogger(this)
     Impl.initState(this, options)
     Impl.initDynamicUrl(this)
+    Impl.initContainer(this)
     //Impl.initContainerState(this)
   }
 
+  /** Wait for the devnet to be created. */
   declare readonly created: Promise<void>
+
+  /** Wait for the devnet to be deleted. */
   declare readonly deleted: Promise<void>
+
+  /** Wait for the devnet to be started. */
   declare readonly started: Promise<void>
+
+  /** Wait for the devnet to be stopped. */
   declare readonly paused:  Promise<void>
-
-  /** Handle to created devnet container */
-  get container () {
-    if (this.containerEngine && this.containerId) {
-      return this.containerEngine.container(this.containerId).then(container=>{
-        container.log.label = this.log.label
-        return container
-      })
-    }
-  }
-
-  /** Write the state of the devnet to a file.
-    * This saves the info needed to respawn the node */
-  async save (extra = {}) {
-    this.stateFile.save({
-      chainId:           this.chainId,
-      containerImageTag: this.containerImageTag,
-      containerId:       this.containerId,
-      nodePort:          this.nodePort,
-    })
-  }
 
   /** Get info for named genesis account, including the mnemonic */
   async getIdentity (
@@ -138,7 +112,7 @@ export default abstract class DevnetContainer extends Backend {
     return Impl.getIdentity(this, name)
   }
 
-  /** Export the state of the devnet as a container image. */
+  /** Export the contents of the devnet as a container image. */
   async export (repository?: string, tag?: string) {
     const container = await this.container
     if (!container) {

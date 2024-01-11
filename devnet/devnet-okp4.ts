@@ -1,10 +1,11 @@
-import $ from '@hackbg/file'
+import { packageRoot } from './package'
 import type { APIMode } from './devnet'
 import DevnetContainer from './devnet-base'
 import { connect } from './devnet-impl'
-import { OKP4Connection, OKP4MnemonicIdentity } from '@fadroma/cw'
-import { packageRoot } from './package'
 import { Token } from '@fadroma/agent'
+import { OKP4Connection, OKP4MnemonicIdentity } from '@fadroma/cw'
+import { OCIContainer, OCIImage } from '@fadroma/oci'
+import $ from '@hackbg/file'
 
 type OKP4Version = '5.0'
 
@@ -42,11 +43,15 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
 export function okp4Version (v: OKP4Version): Partial<OKP4Container<typeof v>> {
   const w = v.replace(/\./g, '_')
   return {
-    containerImageTag: `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
-    containerManifest: $(packageRoot, `okp4_${w}.Dockerfile`).path,
-    nodeBinary:        'okp4d',
-    nodePortMode:      'rpc' as APIMode,
-    platform:          `okp4_${w}`,
-    readyString:       'indexed block',
+    nodeBinary: 'okp4d',
+    nodePortMode: 'rpc' as APIMode,
+    platform: `okp4_${w}`,
+    waitString: 'indexed block',
+    container: new OCIContainer({
+      image: new OCIImage({
+        name: `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
+        dockerfile: $(packageRoot, `okp4_${w}.Dockerfile`).path
+      })
+    }),
   }
 }

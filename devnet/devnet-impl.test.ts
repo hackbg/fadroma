@@ -1,5 +1,5 @@
 import { ok, equal, throws } from 'node:assert'
-import { OCIConnection, OCIImage } from '@fadroma/oci'
+import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
 import { Console } from '@fadroma/agent'
 import * as Impl from './devnet-impl'
 import $ from '@hackbg/file'
@@ -10,31 +10,6 @@ export default async () => {
   equal(Impl.initPort({ nodePortMode: 'grpc'    }).nodePort, 9090)
   equal(Impl.initPort({ nodePortMode: 'grpcWeb' }).nodePort, 9091)
   equal(Impl.initPort({ nodePortMode: 'rpc'     }).nodePort, 26657)
-
-  ok(Impl.initImage({
-    log:               new Console(),
-    containerEngine:   new OCIConnection(),
-    containerImageTag: "foo",
-    containerImage:    undefined,
-    containerManifest: 'Dockerfile',
-  }).containerImage instanceof OCIImage)
-
-  equal(undefined, Impl.initImage({
-    log:               new Console(),
-    containerEngine:   undefined,
-    containerImageTag: "foo",
-    containerImage:    undefined,
-    containerManifest: 'Dockerfile',
-  }).containerImage)
-
-  equal(undefined, Impl.initImage({
-    log:               new Console(),
-    containerEngine:   new OCIConnection(),
-    containerImageTag: undefined,
-    containerImage:    undefined,
-    containerManifest: 'Dockerfile',
-  }).containerImage)
-
   equal(Impl.initChainId({ chainId: 'foo', platform: 'bar' }).chainId, 'foo')
   ok(Impl.initChainId({ platform: 'bar' }).chainId.startsWith('local-bar-'))
 
@@ -56,7 +31,7 @@ export default async () => {
   }, {}).stateFile.path.endsWith('foo/devnet.json'))
 
   equal(Impl.initDynamicUrl({
-    log:          new Console(),
+    log:          new Console('initDynamicUrl'),
     nodeProtocol: 'https',
     nodeHost:     'localhost',
     nodePort:     '1234'
@@ -82,15 +57,52 @@ export default async () => {
   //await devnet.deleted
 
   await Impl.createDevnetContainer({
+    log:             new Console('createDevnetContainer'),
+    chainId:         'mock',
+    stateDir:        undefined,
+    verbose:         undefined,
+    initScript:      undefined,
+    onExit:          undefined,
+    paused:          undefined,
+    deleted:         undefined,
+    genesisAccounts: undefined,
+    container:       new OCIContainer({
+      image:         new OCIImage({ engine: OCIConnection.mock(), name: 'mock' }),
+    }),
   })
 
   await Impl.startDevnetContainer({
+    log:        new Console('startDevnetContainer'),
+    running:    undefined,
+    nodeHost:   undefined,
+    waitString: undefined,
+    waitMore:   undefined,
+    waitPort:   undefined,
+    created:    undefined,
+    stateFile:  undefined,
+    container:  new OCIContainer({
+      image:    new OCIImage({ engine: OCIConnection.mock(), name: 'mock' }),
+    }),
   })
 
   await Impl.pauseDevnetContainer({
+    log:        new Console('pauseDevnetContainer'),
+    running:    undefined,
+    container:  new OCIContainer({
+      image:    new OCIImage({
+        engine: OCIConnection.mock(),
+        name:   'mock' 
+      }),
+    }),
   })
 
   await Impl.deleteDevnetContainer({
+    log:       new Console('deleteDevnetContainer'),
+    stateDir:  undefined,
+    paused:    undefined,
+    container: new OCIContainer({
+      image:   new OCIImage({ engine: OCIConnection.mock(), name: 'mock' }),
+    }),
   })
 
 }

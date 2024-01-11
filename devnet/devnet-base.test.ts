@@ -36,7 +36,7 @@ export async function testDevnetPlatform <
   ok(devnet.gasToken)
   ok(devnet.gasToken instanceof Token.Fungible)
   ok(typeof devnet.gasToken.denom === 'string')
-  ok((await devnet.containerImage) instanceof OCIImage)
+  ok((await devnet.container.image) instanceof OCIImage)
 
   const spawnEnv = Impl.containerEnvironment(devnet)
   deepEqual(spawnEnv.DAEMON,    daemon)

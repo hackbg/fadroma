@@ -1,10 +1,11 @@
-import $ from '@hackbg/file'
+import { packageRoot } from './package'
 import type { APIMode } from './devnet'
 import { connect } from './devnet-impl'
 import DevnetContainer from './devnet-base'
-import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
-import { packageRoot } from './package'
 import { Token } from '@fadroma/agent'
+import { OCIContainer, OCIImage } from '@fadroma/oci'
+import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
+import $ from '@hackbg/file'
 
 type ScrtVersion = `1.${2|3|4|5|6|7|8|9}`
 
@@ -48,48 +49,52 @@ export default class ScrtContainer<V extends ScrtVersion> extends DevnetContaine
 
 function scrtVersion (v: ScrtVersion): Partial<ScrtContainer<typeof v>> {
   const w = v.replace(/\./g, '_')
-  let readyString
+  let waitString
   let nodePortMode: APIMode
   switch (v) {
     case '1.2':
-      readyString  = 'indexed block'
+      waitString   = 'indexed block'
       nodePortMode = 'http'
       break
     case '1.3':
-      readyString  = 'indexed block'
+      waitString   = 'indexed block'
       nodePortMode = 'grpcWeb'
       break
     case '1.4':
-      readyString  = 'indexed block'
+      waitString   = 'indexed block'
       nodePortMode = 'grpcWeb'
       break
     case '1.5':
-      readyString  = 'indexed block'
+      waitString   = 'indexed block'
       nodePortMode = 'http'
       break
     case '1.6':
-      readyString  = 'indexed block'
+      waitString   = 'indexed block'
       nodePortMode = 'http'
       break
     case '1.7':
-      readyString  = 'indexed block'
+      waitString   = 'indexed block'
       nodePortMode = 'http'
       break
     case '1.8':
-      readyString  = 'Done verifying block height'
+      waitString   = 'Done verifying block height'
       nodePortMode = 'http'
       break
     case '1.9':
-      readyString  = 'Validating proposal'
+      waitString   = 'Validating proposal'
       nodePortMode = 'http'
       break
   }
   return {
-    containerImageTag: `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
-    containerManifest: $(packageRoot, `scrt_${w}.Dockerfile`).path,
-    nodeBinary:        'secretd',
     nodePortMode,
-    platform:          `scrt_${w}`,
-    readyString,
+    waitString,
+    nodeBinary: 'secretd',
+    platform: `scrt_${w}`,
+    container: new OCIContainer({
+      image: new OCIImage({
+        name: `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
+        dockerfile: $(packageRoot, `scrt_${w}.Dockerfile`).path
+      })
+    }),
   }
 }

@@ -16,26 +16,16 @@ const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
 
 type $D<T extends keyof DevnetContainer> = Pick<DevnetContainer, T>
 
-export function initPort (
-  devnet: $D<'nodePortMode'|'nodePort'>
-) {
+export function initPort (devnet: $D<'nodePortMode'|'nodePort'>) {
   if (devnet.nodePortMode) {
     devnet.nodePort ??= defaultPorts[devnet.nodePortMode]
   }
   return devnet
 }
 
-export function initImage (
-  devnet: $D<
-    |'log'|'containerEngine'|'containerImageTag'|'containerImage'|'containerManifest'
-  >
-) {
-  if (devnet.containerEngine && devnet.containerImageTag) {
-    devnet.containerImage = devnet.containerEngine.image(
-      devnet.containerImageTag, devnet.containerManifest, [],
-    )
-    devnet.containerImage.log.label = devnet.log.label
-  }
+export function initContainer (devnet: $D<'log'|'container'>) {
+  devnet.container.log.label = devnet.log.label
+  devnet.container.image.log.label = devnet.log.label
   return devnet
 }
 
@@ -113,28 +103,31 @@ export function initDynamicUrl (
 }
 
 export async function createDevnetContainer (
-  devnet: $D<
-    'container'|'verbose'|'containerImage'|'initScript'|'url'
-  > & Parameters<typeof setExitHandler>[0]
+  devnet:
+    & Parameters<typeof setExitHandler>[0]
     & Parameters<typeof containerOptions>[0]
+    & $D<'container'|'verbose'|'initScript'|'url'>
 ): Promise<void> {
-  const exists = await devnet.container?.catch(()=>null)
+  const exists = await devnet.container.exists
   if (exists) {
-    devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.containerId?.slice(0, 8)))
+    devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.id.slice(0, 8)))
   } else {
     if (devnet.verbose) {
       devnet.log.debug('Creating container for', bold(devnet.chainId))
     }
     // ensure we have image and chain id
-    await devnet.containerImage.ensure()
+    if (!devnet.container.image) {
+      throw new Error("Can't create devnet without container image")
+    }
+    await devnet.container.image.ensure()
     if (!devnet.chainId) {
-      throw new Error("can't create devnet without chain ID")
+      throw new Error("Can't create devnet without chain ID")
     }
     // if port is unspecified or taken, increment
     devnet.nodePort = await portManager.getFreePort(devnet.nodePort)
     // create container
     devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
-    const container = devnet.containerImage!.container(
+    const container = devnet.container.image.container(
       devnet.chainId, containerOptions(devnet), devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
     )
     container.log.label = devnet.log.label
@@ -142,14 +135,14 @@ export async function createDevnetContainer (
     setExitHandler(devnet)
     // set id and save
     if (devnet.verbose) {
-      devnet.log.debug(`Created container:`, bold(devnet.containerId?.slice(0, 8)))
+      devnet.log.debug(`Created container:`, bold(devnet.container.id.slice(0, 8)))
     }
-    devnet.containerId = container.id
+    devnet.container.id = container.id
   }
 }
 
 export async function deleteDevnetContainer (
-  devnet: $D<'log'|'container'|'containerId'|'stateDir'>
+  devnet: $D<'log'|'container'|'stateDir'|'paused'> & Parameters<typeof forceDelete>[0]
 ): Promise<void> {
   devnet.log('Deleting...')
   let container
@@ -157,17 +150,16 @@ export async function deleteDevnetContainer (
     container = await devnet.container
   } catch (e) {
     if (e.statusCode === 404) {
-      devnet.log(`No container found`, bold(devnet.containerId?.slice(0, 8)))
+      devnet.log(`No container found`, bold(devnet.container.id.slice(0, 8)))
     } else {
       throw e
     }
   }
   if (container && await container?.isRunning) {
     if (await container.isRunning) {
-      await devnet.pause()
+      await devnet.paused
     }
     await container.remove()
-    devnet.containerId = undefined
   }
   const state = $(devnet.stateDir)
   const path = state.shortPath
@@ -187,30 +179,40 @@ export async function deleteDevnetContainer (
   }
 }
 
+/** Write the state of the devnet to a file.
+  * This saves the info needed to respawn the node */
+async function saveDevnetState (devnet: $D<'stateFile'|'chainId'|'container'|'nodePort'>) {
+  devnet.stateFile.save({
+    chainId:           devnet.chainId,
+    containerImageTag: devnet.container.image.name,
+    containerId:       devnet.container.id,
+    nodePort:          devnet.nodePort,
+  })
+}
+
 export async function startDevnetContainer (
-  devnet: $D<
-    |'log'|'running'|'container'|'containerId'|'save'|'readyString'|'postLaunchWait'
-    |'nodeHost'|'nodePort'|'chainId'|'waitPort'
+  devnet: Parameters<typeof saveDevnetState>[0] & $D<
+    |'log'|'running'|'container'|'waitString'|'waitMore'
+    |'nodeHost'|'nodePort'|'chainId'|'waitPort'|'created'
   >
 ) {
   if (!devnet.running) {
-    const container = await devnet.container ?? await (await devnet.create()).container!
-    devnet.log.debug(`Starting container:`, bold(devnet.containerId?.slice(0, 8)))
+    devnet.running = true
+    devnet.log.debug(`Starting container`)
     try {
-      await container.start()
+      await devnet.container.start()
     } catch (e) {
       devnet.log.warn(e)
       // Don't throw if container already started.
       // TODO: This must be handled in @fadroma/oci
       if (e.code !== 304) throw e
     }
-    devnet.running = true
-    await devnet.save()
-    devnet.log.debug('Waiting for container to say:', bold(devnet.readyString))
-    await container.waitLog(devnet.readyString, FILTER, true)
-    devnet.log.debug('Waiting for', bold(String(devnet.postLaunchWait)), 'seconds...')
-    await new Promise(resolve=>setTimeout(resolve, devnet.postLaunchWait))
-    //await Dock.Docker.waitSeconds(devnet.postLaunchWait)
+    await saveDevnetState(devnet)
+    devnet.log.debug('Waiting for container to say:', bold(devnet.waitString))
+    await devnet.container.waitLog(devnet.waitString, FILTER, true)
+    devnet.log.debug('Waiting for', bold(String(devnet.waitMore)), 'seconds...')
+    await new Promise(resolve=>setTimeout(resolve, devnet.waitMore))
+    //await Dock.Docker.waitSeconds(devnet.waitMore)
     await devnet.waitPort({ host: devnet.nodeHost, port: Number(devnet.nodePort) })
   } else {
     devnet.log.log('Container already started:', bold(devnet.chainId))
@@ -218,16 +220,16 @@ export async function startDevnetContainer (
 }
 
 export async function pauseDevnetContainer (
-  devnet: $D<'log'|'container'|'containerId'|'running'>
+  devnet: $D<'log'|'container'|'running'>
 ) {
   const container = await devnet.container
   if (container) {
-    devnet.log.debug(`Stopping container:`, bold(devnet.containerId?.slice(0, 8)))
+    devnet.log.debug(`Stopping container:`, bold(devnet.container.id.slice(0, 8)))
     try {
       if (await container.isRunning) await container.kill()
     } catch (e) {
       if (e.statusCode == 404) {
-        devnet.log.warn(`Container ${bold(devnet.containerId?.slice(0, 8))} not found`)
+        devnet.log.warn(`Container ${bold(devnet.container.id.slice(0, 8))} not found`)
       } else {
         throw e
       }
@@ -323,7 +325,7 @@ export function containerEnvironment (
   if (portVar) {
     env[portVar] = String(devnet.nodePort)
   } else {
-    devnet.log.warn(`Unknown port mode ${devnet.nodePortMode}, devnet may not be accessible.`)
+    devnet.log.warn(`Unknown port mode "${devnet.nodePortMode}", devnet may not be accessible.`)
   }
   if (devnet.verbose) {
     for (const [key, val] of Object.entries(env)) {
@@ -347,7 +349,7 @@ export const defaultPorts: Record<APIMode, number> = {
 // Set an exit handler on the process to let the devnet
 // stop/remove its container if configured to do so
 export function setExitHandler (
-  devnet: $D<'log'|'onExit'|'paused'|'deleted'|'chainId'|'nodePort'|'containerId'|'exitHandler'>
+  devnet: $D<'log'|'onExit'|'paused'|'deleted'|'chainId'|'nodePort'|'exitHandler'|'container'>
 ) {
   if (!devnet.exitHandler) {
     devnet.log.debug('Registering exit handler')
@@ -361,7 +363,7 @@ function defineExitHandler (
   devnet: Parameters<typeof setExitHandler>[0]
 ) {
   let called = false
-  return function exitHandler (
+  return async function exitHandler (
     this: Parameters<typeof setExitHandler>[0]
   ) {
     if (called) {
@@ -372,23 +374,23 @@ function defineExitHandler (
     this.log.debug('Running exit handler')
     if (this.onExit === 'delete') {
       this.log.log(`Exit handler: stopping and deleting ${this.chainId}`)
-      deasync(this.pause.bind(this))()
+      await this.paused
       this.log.log(`Stopped ${this.chainId}`)
-      deasync(this.delete.bind(this))()
+      await this.deleted
       this.log.log(`Deleted ${this.chainId}`)
     } else if (this.onExit === 'pause') {
       this.log.log(`Stopping ${this.chainId}`)
-      deasync(this.pause.bind(this))()
+      await this.paused
       this.log.log(`Stopped ${this.chainId}`)
     } else {
       this.log.log(
         'Devnet is running on port', bold(String(this.nodePort)),
-        `from container`, bold(this.containerId?.slice(0,8))
+        `from container`, bold(this.container.id.slice(0,8))
       ).info('To remove the devnet:'
       ).info('  $ npm run devnet reset'
       ).info('Or manually:'
-      ).info(`  $ docker kill`, this.containerId?.slice(0,8),
-      ).info(`  $ docker rm`, this.containerId?.slice(0,8),
+      ).info(`  $ docker kill`, this.container.id.slice(0,8),
+      ).info(`  $ docker rm`, this.container.id.slice(0,8),
       ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
     }
     this.log.debug('Exit handler complete')
@@ -416,11 +418,11 @@ export const FILTER = (data: string) =>
 
 /** Run the cleanup container, deleting devnet state even if emitted as root. */
 export async function forceDelete (
-  devnet: $D<'stateDir'|'containerImage'|'chainId'|'log'>
+  devnet: $D<'stateDir'|'container'|'chainId'|'log'>
 ) {
   const path = $(devnet.stateDir).shortPath
   devnet.log('Running cleanup container for', path)
-  const cleanupContainer = await devnet.containerImage.run({
+  const cleanupContainer = await devnet.container.image.run({
     name: `${devnet.chainId}-cleanup`,
     entrypoint: '/bin/rm',
     command: ['-rvf', '/state'],

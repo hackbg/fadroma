@@ -2,8 +2,9 @@
   "files": [
     "oci.ts",
     "oci.test.ts",
-    "oci-backend.ts",
-    "oci-mock.ts"
+    "oci-base.ts",
+    "oci-mock.ts",
+    "oci-impl.ts"
   ],
   "include": [],
   "exclude": [ ".ubik", "*.dist.*", "node_modules" ],

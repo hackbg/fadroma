@@ -2,93 +2,22 @@ import { hideProperties as hide } from '@hackbg/hide'
 import { Writable, Transform } from 'node:stream'
 import { basename, dirname } from 'node:path'
 import Docker from 'dockerode'
-import type { DockerHandle } from './oci-backend'
 import {
   assign,
   bold,
-  Error,
-  Console,
   Backend,
   Connection,
   ContractTemplate,
-  ContractInstance
+  ContractInstance,
+  Console,
 } from '@fadroma/agent'
+import { OCIError, OCIConsole } from './oci-base'
+import type { DockerHandle } from './oci-base'
 import * as Mock from './oci-mock'
+import { toDockerodeOptions } from './oci-impl'
 
 /** Defaults to the `DOCKER_HOST` environment variable. */
 export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
-
-export class OCIError extends Error {
-  static NoDockerode = this.define('NoDockerode',
-    ()=>'Dockerode API handle not set'
-  )
-  static NotDockerode = this.define('NotDockerode',
-    ()=>'OCIImage: pass a Dock.OCIConnection instance'
-  )
-  static NoNameNorDockerfile = this.define('NoNameNorDockerfile',
-    ()=>'OCIImage: specify at least one of: name, dockerfile'
-  )
-  static NoDockerfile = this.define('NoDockerfile',
-    ()=>'No dockerfile specified'
-  )
-  static NoImage = this.define('NoImage',
-    ()=>'No image specified'
-  )
-  static NoContainer = this.define('NoContainer',
-    ()=>'No container'
-  )
-  static ContainerAlreadyCreated = this.define('ContainerAlreadyCreated',
-    ()=>'Container already created'
-  )
-  static NoName = this.define('NoName',
-    (action: string) => `Can't ${action} image with no name`
-  )
-  static PullFailed = this.define('PullFailed',
-    (name: string) => `Pulling ${name} failed.`
-  )
-  static BuildFailed = this.define('BuildFailed',
-    (name: string, dockerfile: string, context: string) => (
-      `Building ${name} from ${dockerfile} in ${context} failed.`
-    )
-  )
-}
-
-export class OCIConsole extends Console {
-  label = '@fadroma/oci'
-
-  ensuring = () =>
-    this //this.info('Ensuring that the image exists')
-  imageExists = () =>
-    this // this.info('Image exists')
-  notCachedPulling = () =>
-    this.log('Not cached, pulling')
-  notFoundBuilding = (msg: string) =>
-    this.log(`Not found in registry, building (${msg})`)
-  buildingFromDockerfile = (file: string) =>
-    this.log(`Using dockerfile:`, bold(file))
-  creatingContainer (name?: string) {
-    return this.log(`Creating container`, bold(name))
-  }
-  boundPort (containerPort: any, hostPort: any) {
-    return this.debug(`port localhost:${bold(hostPort)} => :${bold(containerPort)}`)
-  }
-  boundVolumes (binds: any[]) {
-    return this.debug('Mount volumes:\n ', binds
-      .map(bind=>{
-        const [ host, mount, mode = 'rw' ] = bind.split(':')
-        return [ mode, bold(mount), '=\n    ', host ].join(' ')
-      })
-      .join('\n  ')
-    )
-  }
-  createdWithWarnings = (id: string, warnings?: any) => {
-    this.warn(`Warnings when creating ${bold(id)}`)
-    if (warnings) {
-      this.warn(warnings)
-    }
-    return this
-  }
-}
 
 export const console = new OCIConsole('@fadroma/oci')
 
@@ -263,7 +192,7 @@ export class OCIImage extends ContractTemplate {
       throw new OCIError.NoName('pull')
     }
     await new Promise<void>((ok, fail)=>{
-      const log = new Console(`pulling docker image ${this.name}`)
+      const log = new OCIConsole(`pulling docker image ${this.name}`)
       api.pull(name, async (err: any, stream: any) => {
         if (err) return fail(err)
         await follow(api, stream, (event) => {
@@ -295,7 +224,7 @@ export class OCIImage extends ContractTemplate {
       { context, src },
       { t: this.name, dockerfile }
     )
-    const log = new Console(`building docker image ${this.name}`)
+    const log = new OCIConsole(`building docker image ${this.name}`)
     await follow(api, build, (event) => {
       if (event.error) {
         log.error(event.error)
@@ -360,48 +289,12 @@ export class OCIContainer extends ContractInstance {
   command?:    ContainerCommand
   options:     Partial<ContainerOpts> = {}
   declare log: OCIConsole
+  container:   Docker.Container|null = null
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
-  container: Docker.Container|null = null
-
   get api (): Docker {
-    return this.image.api as unknown as Docker
-  }
-
-  get dockerodeOpts (): Docker.ContainerCreateOptions {
-    const {
-      remove   = false,
-      env      = {},
-      exposed  = [],
-      mapped   = {},
-      readonly = {},
-      writable = {},
-      extra    = {},
-      cwd
-    } = this.options
-    const config = {
-      name:         this.name,
-      Image:        this.image.name,
-      Entrypoint:   this.entrypoint,
-      Cmd:          this.command,
-      Env:          Object.entries(env).map(([key, val])=>`${key}=${val}`),
-      WorkingDir:   cwd,
-      ExposedPorts: {} as Record<string, {}>,
-      HostConfig: {
-        Binds: [] as Array<string>,
-        PortBindings: {} as Record<string, Array<{ HostPort: string }>>,
-        AutoRemove: remove
-      }
-    }
-    exposed.forEach(containerPort=>config.ExposedPorts[containerPort] = {})
-    Object.entries(mapped).forEach(([containerPort, hostPort])=>
-        config.HostConfig.PortBindings[containerPort] = [{ HostPort: hostPort }])
-    Object.entries(readonly).forEach(([hostPath, containerPath])=>
-        config.HostConfig.Binds.push(`${hostPath}:${containerPath}:ro`))
-    Object.entries(writable).forEach(([hostPath, containerPath])=>
-        config.HostConfig.Binds.push(`${hostPath}:${containerPath}:rw`))
-    return Object.assign(config, JSON.parse(JSON.stringify(extra)))
+    return (this.engine||this.image.engine).api as unknown as Docker
   }
 
   get id (): string {
@@ -433,13 +326,21 @@ export class OCIContainer extends ContractInstance {
     return this.inspect().then(state=>state.NetworkSettings.IPAddress)
   }
 
+  get exists (): Promise<boolean> {
+    if (this.container) {
+      return this.inspect().then(()=>true)
+    } else {
+      return Promise.resolve(false)
+    }
+  }
+
   /** Create a container. */
   async create (): Promise<this> {
     if (this.container) {
       throw new OCIError.ContainerAlreadyCreated()
     }
     // Specify the container
-    const opts = this.dockerodeOpts
+    const opts = toDockerodeOptions(this)
     this.image.log.creatingContainer(opts.name)
     // Log mounted volumes
     this.log.boundVolumes(opts?.HostConfig?.Binds ?? [])
