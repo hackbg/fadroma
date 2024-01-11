@@ -108,8 +108,7 @@ export async function createDevnetContainer (
     & Parameters<typeof containerOptions>[0]
     & $D<'container'|'verbose'|'initScript'|'url'>
 ): Promise<void> {
-  const exists = await devnet.container.exists
-  if (exists) {
+  if (await devnet.container.exists) {
     devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.id.slice(0, 8)))
   } else {
     if (devnet.verbose) {
@@ -119,7 +118,6 @@ export async function createDevnetContainer (
     if (!devnet.container.image) {
       throw new Error("Can't create devnet without container image")
     }
-    await devnet.container.image.ensure()
     if (!devnet.chainId) {
       throw new Error("Can't create devnet without chain ID")
     }
@@ -127,17 +125,17 @@ export async function createDevnetContainer (
     devnet.nodePort = await portManager.getFreePort(devnet.nodePort)
     // create container
     devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
-    const container = devnet.container.image.container(
-      devnet.chainId, containerOptions(devnet), devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
-    )
-    container.log.label = devnet.log.label
-    await container.create()
+    devnet.container.name    = devnet.chainId
+    devnet.container.options = containerOptions(devnet)
+    devnet.container.command = devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
+    devnet.container.log.label = devnet.log.label
+    await devnet.container.image.ensure()
+    await devnet.container.create()
     setExitHandler(devnet)
     // set id and save
     if (devnet.verbose) {
       devnet.log.debug(`Created container:`, bold(devnet.container.id.slice(0, 8)))
     }
-    devnet.container.id = container.id
   }
 }
 
