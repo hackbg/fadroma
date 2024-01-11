@@ -19,7 +19,7 @@ assert.throws(()=>new OCIConnection(123 as any))
 
   {
     const image = engine.image('test', 'Dockerfile')
-    await image.ensure()
+    await image.pullOrBuild()
     await image.check()
     await image.pull()
     await image.build()
