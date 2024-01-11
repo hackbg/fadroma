@@ -7,25 +7,11 @@ export default new Suite([
   ['compile', () => import('./compile/compile.test')],
   ['create',  () => import('./create/create.test')],
   ['devnet',  () => import('./devnet/devnet.test')],
-  ['stores',  testJSONFileStores],
-  ['scrt',   () =>
+  ['stores',  () => import('./stores.test')],
+  ['scrt',    () =>
     //@ts-ignore
     import('./scrt/scrt.test')],
-  ['cw',     () =>
+  ['cw',      () =>
     //@ts-ignore
     import('./cw/cw.test')],
 ])
-
-import { TestProjectDeployment } from './fixtures/fixtures'
-import { JSONFileUploadStore } from './fadroma'
-import { Stub } from '@fadroma/agent'
-import { withTmpDir } from '@hackbg/file'
-export async function testJSONFileStores () {
-  await withTmpDir(async dir=>{
-    const deployment = new TestProjectDeployment()
-    await deployment.upload({
-      uploader:    new Stub.Connection(),
-      uploadStore: new JSONFileUploadStore(dir)
-    })
-  })
-}

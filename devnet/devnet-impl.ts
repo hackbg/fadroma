@@ -6,14 +6,13 @@ import deasync from 'deasync'
 import { onExit } from 'gracy'
 import portManager from '@hackbg/port'
 import $, { JSONFile } from '@hackbg/file'
-import { bold } from '@fadroma/agent'
+import { Console, bold, colors, randomBase16, randomColor } from '@fadroma/agent'
 import type { Path } from '@hackbg/file'
-import { Console, colors, randomBase16, randomColor } from '@fadroma/agent'
 import type { Connection, Identity } from '@fadroma/agent'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet'
 
-type $D<T extends keyof DevnetContainer> = Pick<DevnetContainer, 'log'|T>
+type $D<T extends keyof DevnetContainer> = Pick<DevnetContainer, T>
 
 export function initPort (
   devnet: $D<'nodePortMode'|'nodePort'>
@@ -21,11 +20,12 @@ export function initPort (
   if (devnet.nodePortMode) {
     devnet.nodePort ??= defaultPorts[devnet.nodePortMode]
   }
+  return devnet
 }
 
 export function initImage (
   devnet: $D<
-    'containerEngine'|'containerImageTag'|'containerImage'|'containerManifest'|'initScriptMount'
+    'log'|'containerEngine'|'containerImageTag'|'containerImage'|'containerManifest'|'initScriptMount'
   >
 ) {
   if (devnet.containerEngine && devnet.containerImageTag) {
@@ -36,6 +36,7 @@ export function initImage (
     )
     devnet.containerImage.log.label = devnet.log.label
   }
+  return devnet
 }
 
 export function initChainId (
@@ -48,10 +49,11 @@ export function initChainId (
       throw new Error('no platform or chainId specified')
     }
   }
+  return devnet
 }
 
 export function initLogger (
-  devnet: $D<'chainId'>
+  devnet: $D<'chainId'|'log'>
 ) {
   const loggerColor = randomColor({ luminosity: 'dark', seed: devnet.chainId })
   const loggerTag   = colors.whiteBright.bgHex(loggerColor)(devnet.chainId)
@@ -65,6 +67,7 @@ export function initLogger (
       }
     }
   })
+  return devnet
 }
 
 export function initState (
@@ -87,10 +90,11 @@ export function initState (
       )
     }
   }
+  return devnet
 }
 
 export function initDynamicUrl (
-  devnet: $D<'nodeProtocol'|'nodeHost'|'nodePort'>
+  devnet: $D<'log'|'nodeProtocol'|'nodeHost'|'nodePort'>
 ) {
   Object.defineProperties(devnet, {
     url: {
@@ -107,6 +111,7 @@ export function initDynamicUrl (
       }
     },
   })
+  return devnet
 }
 
 export function initCreateDelete (
@@ -135,6 +140,7 @@ export function initCreateDelete (
       }
     }
   })
+  return devnet
 }
 
 export function initStartPause (
@@ -162,6 +168,7 @@ export function initStartPause (
       }
     }
   })
+  return devnet
 }
 
 export async function connect <C extends Connection, I extends Identity> (
@@ -185,7 +192,7 @@ export async function connect <C extends Connection, I extends Identity> (
 }
 
 export async function getIdentity (
-  devnet: $D<'stateDir'|'created'|'started'>,
+  devnet: $D<'log'|'stateDir'|'created'|'started'>,
   name:   string|{name?: string}
 ) {
   if (typeof name === 'object') {
@@ -234,7 +241,7 @@ export function containerOptions (
 /** Environment variables in the devnet container. */
 export function containerEnvironment (
   devnet: $D<
-    |'chainId'|'gasToken'|'nodeBinary'|'nodePortMode'|'nodePort'|'genesisAccounts'|'verbose'
+    'log'|'chainId'|'gasToken'|'nodeBinary'|'nodePortMode'|'nodePort'|'genesisAccounts'|'verbose'
   >
 ) {
   const env: Record<string, string> = {
@@ -273,25 +280,28 @@ export const defaultPorts: Record<APIMode, number> = {
   http: 1317, grpc: 9090, grpcWeb: 9091, rpc: 26657
 }
 
+type IDevnetExitHandler =
+  $D<'log'|'onExit'|'paused'|'deleted'|'chainId'|'nodePort'|'containerId'|'exitHandler'>
+
 // Set an exit handler on the process to let the devnet
 // stop/remove its container if configured to do so
 export function setExitHandler (
-  devnet: $D<'exitHandler'>
+  devnet: IDevnetExitHandler
 ) {
-  if (!this.exitHandler) {
-    this.log.debug('Registering exit handler')
-    onExit(this.exitHandler = defineExitHandler(this), { logger: false })
+  if (!devnet.exitHandler) {
+    devnet.log.debug('Registering exit handler')
+    onExit(devnet.exitHandler = defineExitHandler(devnet), { logger: false })
   } else {
-    this.log.warn('Exit handler already registered')
+    devnet.log.warn('Exit handler already registered')
   }
 }
 
 function defineExitHandler (
-  devnet: $D<'onExit'|'paused'|'deleted'|'chainId'|'nodePort'|'containerId'>
+  devnet: IDevnetExitHandler
 ) {
   let called = false
   return function exitHandler (
-    this: $D<'onExit'|'paused'|'deleted'|'chainId'|'nodePort'|'containerId'>
+    this: IDevnetExitHandler
   ) {
     if (called) {
       this.log.trace('Exit handler called more than once')
@@ -446,7 +456,7 @@ export async function forceDelete (
 
 export async function startDevnetContainer (
   devnet: $D<
-    |'running'|'container'|'containerId'|'save'|'readyString'|'postLaunchWait'
+    |'log'|'running'|'container'|'containerId'|'save'|'readyString'|'postLaunchWait'
     |'nodeHost'|'nodePort'|'chainId'|'waitPort'
   >
 ) {
