@@ -92,6 +92,57 @@ export function initDynamicUrl (devnet: DevnetContainer) {
   })
 }
 
+export function initCreateDelete (devnet: DevnetContainer) {
+  let creating = null
+  let deleting = null
+  Object.defineProperties(devnet, {
+    created: {
+      configurable: true,
+      get () {
+        return creating ||= Promise.resolve(deleting).then(async()=>{
+          await createDevnetContainer(devnet)
+          await devnet.save()
+          deleting = null
+        })
+      }
+    },
+    deleted: {
+      configurable: true,
+      get () {
+        return deleting ||= Promise.resolve(creating).then(async()=>{
+          await deleteDevnetContainer(devnet)
+          creating = null
+        })
+      }
+    }
+  })
+}
+
+export function initStartPause (devnet: DevnetContainer) {
+  let starting = null
+  let stopping = null
+  Object.defineProperties(devnet, {
+    created: {
+      configurable: true,
+      get () {
+        return starting ||= Promise.resolve(stopping).then(async()=>{
+          await startDevnetContainer(devnet)
+          stopping = null
+        })
+      }
+    },
+    deleted: {
+      configurable: true,
+      get () {
+        return stopping ||= Promise.resolve(starting).then(async()=>{
+          await pauseDevnetContainer(devnet)
+          starting = null
+        })
+      }
+    }
+  })
+}
+
 type IDevnetConnect = Pick<DevnetContainer,
   'chainId'|'url'|'running'>
 type IDevnetGetIdentity  = Pick<DevnetContainer,

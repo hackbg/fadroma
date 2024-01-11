@@ -102,20 +102,14 @@ export default abstract class DevnetContainer extends Backend {
     Impl.initLogger(this)
     Impl.initState(this, options)
     Impl.initDynamicUrl(this)
+    Impl.initCreateDelete(this)
+    Impl.initStartPause(this)
   }
 
-  /** Create the devnet container and save state. */
-  async create (): Promise<this> {
-    await Impl.createDevnetContainer(this)
-    return await this.save()
-  }
-
-  /** Idempotent create. */
-  get created (): Promise<this> {
-    const creating = this.create()
-    Object.defineProperty(this, 'created', { get () { return creating } })
-    return creating
-  }
+  declare readonly created: Promise<void>
+  declare readonly deleted: Promise<void>
+  declare readonly started: Promise<void>
+  declare readonly paused:  Promise<void>
 
   /** Handle to created devnet container */
   get container () {
@@ -127,7 +121,8 @@ export default abstract class DevnetContainer extends Backend {
     }
   }
 
-  /** Write the state of the devnet to a file. This saves the info needed to respawn the node */
+  /** Write the state of the devnet to a file.
+    * This saves the info needed to respawn the node */
   async save (extra = {}): Promise<this> {
     this.stateFile.save({
       chainId:           this.chainId,
@@ -138,36 +133,11 @@ export default abstract class DevnetContainer extends Backend {
     return this
   }
 
-  /** Delete the devnet container and state. */
-  async delete () {
-    await Impl.deleteDevnetContainer(this)
-    return this
-  }
-
-  /** Start the container. */
-  async start (): Promise<this> {
-    await Impl.startDevnetContainer(this)
-    return this
-  }
-
-  /** Idempotent start. */
-  get started (): Promise<this> {
-    const starting = this.start()
-    Object.defineProperty(this, 'started', { get () { return starting } })
-    return starting
-  }
-
   /** Get info for named genesis account, including the mnemonic */
   async getIdentity (
     name: string|{ name?: string }
   ): Promise<Partial<Identity> & { mnemonic: string }> {
     return Impl.getIdentity(this, name)
-  }
-
-  /** Stop the container. */
-  async pause () {
-    await Impl.pauseDevnetContainer(this)
-    return this
   }
 
   /** Export the state of the devnet as a container image. */
@@ -181,7 +151,9 @@ export default abstract class DevnetContainer extends Backend {
 
   /** Virtual path inside the container where the init script is mounted. */
   get initScriptMount (): string {
-    return this.initScript ? $('/', $(this.initScript).basename).path : '/devnet.init.mjs'
+    return this.initScript
+      ? $('/', $(this.initScript).basename).path
+      : '/devnet.init.mjs'
   }
 
 }
