@@ -38,8 +38,12 @@ export function mockDockerode (callback: Function = () => {}): DockerHandle {
 export function mockDockerodeContainer (callback: Function = () => {}) {
   return {
     id: 'mockmockmock',
-    logs (options: any, cb: Function) {
-      cb(...(callback({ createContainer: options })||[null, mockStream()]))
+    async logs (options: any, cb: Function) {
+      if (cb) {
+        cb(...(callback({ createContainer: options })||[null, mockStream()]))
+      } else {
+        return mockStream()
+      }
     },
     async start   () {},
     async attach  () { return {setEncoding(){},pipe(){}} },

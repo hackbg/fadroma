@@ -141,7 +141,7 @@ export class OCIImage extends ContractTemplate {
 
   protected _available: Promise<this>|null = null
 
-  async ensure (): Promise<this> {
+  async pullOrBuild (): Promise<this> {
     this._available ??= new Promise(async(resolve, reject)=>{
       this.log.ensuring()
       try {
@@ -243,7 +243,7 @@ export class OCIImage extends ContractTemplate {
     outputStream?: Writable
   } = {}) {
     const { name, options, command, entrypoint, outputStream } = parameters
-    await this.ensure()
+    await this.pullOrBuild()
     const container = new OCIContainer({ image: this, name, options, command, entrypoint })
     await container.create()
     if (outputStream) {
@@ -350,6 +350,8 @@ export class OCIContainer extends ContractInstance {
         this.log.boundPort(containerPort, HostPort)
       }
     }
+    // Make sure the image exists
+    await this.image.pullOrBuild()
     // Create the container
     this.container = await this.api.createContainer(opts)
     // Update the logger tag with the container id
@@ -421,7 +423,9 @@ export class OCIContainer extends ContractInstance {
       throw new OCIError.NoContainer()
     }
     const id = this.container.id.slice(0,8)
-    const stream = await this.container.logs({ stdout: true, stderr: true, follow: true, })
+    const stream = await this.container.logs({
+      stdout: true, stderr: true, follow: true
+    })
     if (!stream) {
       throw new OCIError('no stream returned from container')
     }

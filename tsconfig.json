@@ -3,8 +3,13 @@
     "fadroma.ts",
     "fadroma.browser.ts"
   ],
-  "include": [],
-  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
+  "include": [
+  ],
+  "exclude": [
+    ".ubik",
+    "*.dist.*",
+    "node_modules"
+  ],
   "compilerOptions": {
     "composite": true,
     "target": "esnext",

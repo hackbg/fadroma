@@ -33,9 +33,7 @@
     "cov": "ensuite-cov fadroma.test.ts",
     "docs:dev": "ensuite-dev",
     "docs:render": "ensuite-render",
-    "docs:typedoc": "typedoc --customCss ./typedoc.css --tsconfig ./tsconfig.json --entryPointStrategy Packages --entryPoints agent --entryPoints connect --entryPoints ensuite --entryPoints ensuite/ganesha --entryPoints ensuite/toolbox --entryPoints .",
-    "docs:typedoc2": "typedoc --customCss ./typedoc.css --name Fadroma",
-    "docs:typedoc3": "typedoc --customCss ./typedoc.css --name Fadroma fadroma.ts",
+    "docs:typedoc": "typedoc",
     "fadroma": "FADROMA_PROJECT=./examples fadroma",
     "prepare": "husky install",
     "repl": "./fadroma.cli.cjs repl",
@@ -91,11 +89,11 @@
     "@types/prompts": "^2.4.8",
     "@types/secure-random": "^1.1.3",
 
-    "express": "^4.18.2",
-    "husky": "^8.0.3",
+    "typescript":  "^5.2.2",
+    "typedoc":     "0.25.7",
+    "husky":       "^8.0.3",
     "lint-staged": "^13.3.0",
-    "typedoc": "0.25.3",
-    "typescript": "^5.2.2"
+    "express":     "^4.18.2"
   },
   "pnpm": {
     "peerDependencyRules": {

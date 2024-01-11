@@ -6,16 +6,16 @@ Here's a really simple way to achieve that with containers.
 ## Overview
 
 This library builds upon [Dockerode](https://www.npmjs.com/package/dockerode),
-and provides the `Engine`, `Image` and `Container` abstractions, which
+and provides the `OCIConnection`, `OCIImage` and `OCIContainer` abstractions, which
 make it easy and performant to package and run reproducible operations
 (such as containerized builds or ETL pipelines).
 
-* The **`Engine`** class connects to the Docker runtime at `/var/run/docker.sock`
+* The **`OCIConnection`** class connects to the Docker runtime at `/var/run/docker.sock`
   or the path specified by the `DOCKER_HOST` environment variable.
-* The **`Image`** class supports specifying both an upstream tag to pull from Docker Hub,
+* The **`OCIImage`** class supports specifying both an upstream tag to pull from Docker Hub,
   and/or a local fallback Dockerfile. This allows for fast iteration when constructing
   the Dockerized runtime environment.
-* From an `Image` instance, you can launch one or more **`Container`**s.
+* From an `OCIImage` instance, you can launch one or more **`OCIContainer`**s.
   If you like, you can run multiple parallel operations in identical contexts
   (as specified by a single local `Dockerfile`), and the `Image` will
   build itself locally, only once and without touching Docker Hub.
@@ -23,26 +23,22 @@ make it easy and performant to package and run reproducible operations
 ## Example
 
 ```typescript
-import Docker from '@fadroma/oci'
+import { OCIConnection } from '@fadroma/oci'
 
-const engine = new Docker.Engine()
+const docker = new OCIConnection()
 
-const image = engine.image(
+const image = docker.image(
   'my-org/my-build-image:v1', // This image will be pulled
   '/path/to/my/Dockerfile',   // If the pull fails, build from this Dockerfile
   [] // Any local paths referenced from the Dockerfile should be added here
 )
 
 const container = await image.run(`build_${+new Date()}`, {
- readonly: { '/my/project/sources':   '/src'  }, // -v ro
- writable: { '/my/project/artifacts': '/dist' }, // -v rw
- mapped: { 80: 8080 } // container:host
+  readonly: { '/my/project/sources':   '/src'  }, // -v ro
+  writable: { '/my/project/artifacts': '/dist' }, // -v rw
+  mapped: { 80: 8080 } // container:host
 })
 ```
-
-## Roadmap
-
-* [ ] Support Podman for fully rootless operation
 
 ---
 

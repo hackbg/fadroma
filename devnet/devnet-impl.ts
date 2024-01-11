@@ -363,14 +363,15 @@ function defineExitHandler (
 ) {
   let called = false
   return async function exitHandler (
-    this: Parameters<typeof setExitHandler>[0]
+    this: Parameters<typeof setExitHandler>[0],
+    ...args: unknown[]
   ) {
     if (called) {
       this.log.trace('Exit handler called more than once')
       return
     }
     called = true
-    this.log.debug('Running exit handler')
+    this.log.debug('Running exit handler', { args })
     if (this.onExit === 'delete') {
       this.log.log(`Exit handler: stopping and deleting ${this.chainId}`)
       await this.paused
