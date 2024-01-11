@@ -11,6 +11,7 @@
       "./devnet",
       "./cw",
       "./scrt",
-      "./oci"
+      "./oci",
+      "./toolbox"
     ]
 }
