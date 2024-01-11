@@ -16,22 +16,15 @@ import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadrom
 
 import { packageRoot } from './package'
 import type { APIMode } from './devnet'
-import {
-  containerOptions,
-  forceDelete,
-  getIdentity,
-  defaultPorts,
-  setExitHandler,
-  FILTER
-} from './devnet-impl'
+import * as Impl from './devnet-impl'
 
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
 export default abstract class DevnetContainer extends Backend {
   /** Whether more detailed output is preferred. */
-  verbose:              boolean = false
+  verbose:              boolean                                = false
   /** Containerization engine (Docker or Podman). */
-  containerEngine?:     OCIConnection
+  containerEngine:      OCIConnection                          = new OCIConnection()
   /** Name or tag of image if set */
   containerImageTag?:   string
   /** Container image from which devnet will be spawned. */
@@ -45,11 +38,20 @@ export default abstract class DevnetContainer extends Backend {
   /** Which service does the API URL port correspond to. */
   nodePortMode?:        APIMode
   /** The protocol of the API URL without the trailing colon. */
-  nodeProtocol:         string = 'http'
+  nodeProtocol:         string                                 = 'http'
   /** The hostname of the API URL. */
-  nodeHost:             string = 'localhost'
+  nodeHost:             string                                 = 'localhost'
   /** The port of the API URL. */
   nodePort?:            string|number
+  /** Initial accounts. */
+  genesisAccounts:      Record<Address, number|bigint|Uint128> = {}
+  /** Initial uploads. */
+  genesisUploads:       Record<CodeId, Partial<CompiledCode>>  = {}
+  /** If set, overrides the script that launches the devnet in the container. */
+  initScript:           Path                                   = $(packageRoot, 'devnet.init.mjs')
+  /** Once this phrase is encountered in the log output
+    * from the container, the devnet is ready to accept requests. */
+  readyString:          string                                 = ''
   /** This directory contains the state of the devnet. */
   stateDir:             Path
   /** This file contains the id of the current devnet container,
@@ -59,15 +61,6 @@ export default abstract class DevnetContainer extends Backend {
     * and is mounted into the container. Deleting it tells the script
     * running inside the container to kill the devnet. */
   runFile:              Path
-  /** Initial accounts. */
-  genesisAccounts:      Record<Address, number|bigint|Uint128> = {}
-  /** Initial uploads. */
-  genesisUploads:       Record<CodeId, Partial<CompiledCode>> = {}
-  /** If set, overrides the script that launches the devnet in the container. */
-  initScript:           Path = $(packageRoot, 'devnet.init.mjs')
-  /** Once this phrase is encountered in the log output
-    * from the container, the devnet is ready to accept requests. */
-  readyString:          string = ''
   /** What to do with the devnet once the process that has spawned it exits.
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
@@ -97,81 +90,12 @@ export default abstract class DevnetContainer extends Backend {
       'readyString',
       'verbose',
     ])
-    if (this.nodePortMode) {
-      this.nodePort ??= defaultPorts[this.nodePortMode]
-    }
-    this.containerEngine ??= new OCIConnection()
-    if (this.containerEngine && this.containerImageTag) {
-      this.containerImage = this.containerEngine.image(
-        this.containerImageTag,
-        this.containerManifest,
-        [this.initScriptMount]
-      )
-      this.containerImage.log.label = this.log.label
-    }
-    if (!this.chainId) {
-      if (this.platform) {
-        this.chainId = `local-${this.platform}-${randomBase16(4).toLowerCase()}`
-      } else {
-        throw new Error('no platform or chainId specified')
-      }
-    }
-    this.stateDir =
-      $(options.stateDir ?? $('state', this.chainId).path)
-    this.stateFile =
-      $(options.stateFile ?? $(this.stateDir, 'devnet.json')).as(JSONFile) as JSONFile<Partial<this>>
-    if ($(this.stateDir).isDirectory() && this.stateFile.isFile()) {
-      try {
-        const state = (this.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
-        // Options always override stored state
-        options = { ...state, ...options }
-      } catch (e) {
-        console.error(e)
-        throw new Error(
-          `failed to load devnet state from ${this.stateFile.path}: ${e.message}`
-        )
-      }
-    }
-    const loggerColor = randomColor({ luminosity: 'dark', seed: this.chainId })
-    const loggerTag = colors.whiteBright.bgHex(loggerColor)(this.chainId)
-    const logger = new Console(`Devnet ${loggerTag}`)
-    Object.defineProperties(this, {
-      url: {
-        enumerable: true, configurable: true, get () {
-          let url = `${this.nodeProtocol}://${this.nodeHost}:${this.nodePort}`
-          try {
-            return new URL(url).toString()
-          } catch (e) {
-            this.log.error(`Invalid URL: ${url}`)
-            throw e
-          }
-        }, set () {
-          throw new Error("can't change devnet url")
-        }
-      },
-      log: {
-        enumerable: true, configurable: true, get () {
-          return logger
-        }, set () {
-          throw new Error("can't change devnet logger")
-        }
-      }
-    })
-  }
-
-  /** Handle to created devnet container */
-  get container () {
-    if (this.containerEngine && this.containerId) {
-      return this.containerEngine.container(this.containerId).then(container=>{
-        container.log.label = this.log.label
-        return container
-      })
-    }
-  }
-
-  /** Virtual path inside the container where the init script is mounted. */
-  get initScriptMount (): string {
-    return this.initScript ? $('/', $(this.initScript).basename).path : '/devnet.init.mjs'
+    Impl.initPort(this)
+    Impl.initImage(this)
+    Impl.initChainId(this)
+    Impl.initLogger(this)
+    Impl.initState(this, options)
+    Impl.initDynamicUrl(this)
   }
 
   /** Create the devnet container and save state. */
@@ -194,11 +118,11 @@ export default abstract class DevnetContainer extends Backend {
       this.log(`Creating devnet`, bold(this.chainId), `on`, bold(String(this.url)))
       const init = this.initScript ? [this.initScriptMount] : []
       const container = this.containerImage!.container(
-        this.chainId, containerOptions(this), init
+        this.chainId, Impl.containerOptions(this), init
       )
       container.log.label = this.log.label
       await container.create()
-      setExitHandler(this)
+      Impl.setExitHandler(this)
       // set id and save
       if (this.verbose) {
         this.log.debug(`Created container:`, bold(this.containerId?.slice(0, 8)))
@@ -238,7 +162,7 @@ export default abstract class DevnetContainer extends Backend {
     } catch (e: any) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
         this.log.warn(`unable to delete ${path}: ${e.code}, trying cleanup container`)
-        await forceDelete(this)
+        await Impl.forceDelete(this)
       } else {
         this.log.error(`failed to delete ${path}:`, e)
         throw e
@@ -263,7 +187,7 @@ export default abstract class DevnetContainer extends Backend {
       this.running = true
       await this.save()
       this.log.debug('Waiting for container to say:', bold(this.readyString))
-      await container.waitLog(this.readyString, FILTER, true)
+      await container.waitLog(this.readyString, Impl.FILTER, true)
       this.log.debug('Waiting for', bold(String(this.postLaunchWait)), 'seconds...')
       await new Promise(resolve=>setTimeout(resolve, this.postLaunchWait))
       //await Dock.Docker.waitSeconds(this.postLaunchWait)
@@ -321,7 +245,7 @@ export default abstract class DevnetContainer extends Backend {
   async getIdentity (
     name: string|{ name?: string }
   ): Promise<Partial<Identity> & { mnemonic: string }> {
-    return getIdentity(this, name)
+    return Impl.getIdentity(this, name)
   }
 
   /** Function that waits for port to open after launching container.
@@ -345,6 +269,21 @@ export default abstract class DevnetContainer extends Backend {
     const starting = this.start()
     Object.defineProperty(this, 'containerStarted', { get () { return starting } })
     return starting
+  }
+
+  /** Handle to created devnet container */
+  get container () {
+    if (this.containerEngine && this.containerId) {
+      return this.containerEngine.container(this.containerId).then(container=>{
+        container.log.label = this.log.label
+        return container
+      })
+    }
+  }
+
+  /** Virtual path inside the container where the init script is mounted. */
+  get initScriptMount (): string {
+    return this.initScript ? $('/', $(this.initScript).basename).path : '/devnet.init.mjs'
   }
 
 }

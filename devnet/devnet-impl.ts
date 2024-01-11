@@ -4,13 +4,92 @@
 
 import deasync from 'deasync'
 import { onExit } from 'gracy'
-import type { Console } from '@hackbg/logs'
 import $, { JSONFile } from '@hackbg/file'
-import type { Path } from '@hackbg/file'
 import { bold } from '@fadroma/agent'
+import type { Path } from '@hackbg/file'
+import { Console, colors, randomBase16, randomColor } from '@fadroma/agent'
 import type { Connection, Identity } from '@fadroma/agent'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet'
+
+export function initPort (devnet: DevnetContainer) {
+  if (devnet.nodePortMode) {
+    devnet.nodePort ??= defaultPorts[devnet.nodePortMode]
+  }
+}
+
+export function initImage (devnet: DevnetContainer) {
+  if (devnet.containerEngine && devnet.containerImageTag) {
+    devnet.containerImage = devnet.containerEngine.image(
+      devnet.containerImageTag,
+      devnet.containerManifest,
+      [devnet.initScriptMount]
+    )
+    devnet.containerImage.log.label = devnet.log.label
+  }
+}
+
+export function initChainId (devnet: DevnetContainer) {
+  if (!this.chainId) {
+    if (this.platform) {
+      this.chainId = `local-${this.platform}-${randomBase16(4).toLowerCase()}`
+    } else {
+      throw new Error('no platform or chainId specified')
+    }
+  }
+}
+
+export function initLogger (devnet: DevnetContainer) {
+  const loggerColor = randomColor({ luminosity: 'dark', seed: devnet.chainId })
+  const loggerTag   = colors.whiteBright.bgHex(loggerColor)(devnet.chainId)
+  const logger      = new Console(`Devnet ${loggerTag}`)
+  Object.defineProperties(devnet, {
+    log: {
+      enumerable: true, configurable: true, get () {
+        return logger
+      }, set () {
+        throw new Error("can't change devnet logger")
+      }
+    }
+  })
+}
+
+export function initState (devnet: DevnetContainer, options: Partial<DevnetContainer>) {
+  Object.assign(devnet, {
+    stateDir:  $(options.stateDir ?? $('state', devnet.chainId).path),
+    stateFile: $(options.stateFile ?? $(devnet.stateDir, 'devnet.json')).as(JSONFile)
+  })
+  if ($(devnet.stateDir).isDirectory() && devnet.stateFile.isFile()) {
+    try {
+      const state = (devnet.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
+      // Options always override stored state
+      options = { ...state, ...options }
+    } catch (e) {
+      console.error(e)
+      throw new Error(
+        `failed to load devnet state from ${devnet.stateFile.path}: ${e.message}`
+      )
+    }
+  }
+}
+
+export function initDynamicUrl (devnet: DevnetContainer) {
+  Object.defineProperties(devnet, {
+    url: {
+      enumerable: true, configurable: true, get () {
+        let url = `${devnet.nodeProtocol}://${devnet.nodeHost}:${devnet.nodePort}`
+        try {
+          return new URL(url).toString()
+        } catch (e) {
+          devnet.log.error(`Invalid URL: ${url}`)
+          throw e
+        }
+      }, set () {
+        throw new Error("can't change devnet url")
+      }
+    },
+  })
+}
 
 type IDevnetConnect = Pick<DevnetContainer,
   'chainId'|'url'|'running'>
