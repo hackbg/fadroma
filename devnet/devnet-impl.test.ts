@@ -79,10 +79,15 @@ export default async () => {
     waitMore:   undefined,
     waitPort:   undefined,
     created:    undefined,
-    stateFile:  undefined,
     container:  new OCIContainer({
-      image:    new OCIImage({ engine: OCIConnection.mock(), name: 'mock' }),
+      image:    new OCIImage({
+        engine: OCIConnection.mock(),
+        name:   'mock'
+      }),
     }),
+    stateFile:  {
+      save (_) {}
+    },
   })
 
   await Impl.pauseDevnetContainer({

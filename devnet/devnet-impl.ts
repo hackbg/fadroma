@@ -125,9 +125,9 @@ export async function createDevnetContainer (
     devnet.nodePort = await portManager.getFreePort(devnet.nodePort)
     // create container
     devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
-    devnet.container.name    = devnet.chainId
-    devnet.container.options = containerOptions(devnet)
-    devnet.container.command = devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
+    devnet.container.name      = devnet.chainId
+    devnet.container.options   = containerOptions(devnet)
+    devnet.container.command   = devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
     devnet.container.log.label = devnet.log.label
     await devnet.container.create()
     setExitHandler(devnet)
@@ -178,12 +178,14 @@ export async function deleteDevnetContainer (
 
 /** Write the state of the devnet to a file.
   * This saves the info needed to respawn the node */
-async function saveDevnetState (devnet: $D<'stateFile'|'chainId'|'container'|'nodePort'>) {
+async function saveDevnetState (devnet: $D<'chainId'|'container'|'nodePort'> & {
+  stateFile: { save (data: object) }
+}) {
   devnet.stateFile.save({
-    chainId:           devnet.chainId,
-    containerImageTag: devnet.container.image.name,
-    containerId:       devnet.container.id,
-    nodePort:          devnet.nodePort,
+    chainId:   devnet.chainId,
+    image:     devnet.container.image.name,
+    container: devnet.container.id,
+    nodePort:  devnet.nodePort,
   })
 }
 
