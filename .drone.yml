@@ -31,7 +31,7 @@ steps:
 
   - corepack enable
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
-  - pnpm docs:typedoc3
+  - pnpm docs:typedoc
   - du -sh ./docs
   - mkdir -p /var/www/docs.hack.bg
   - cp -r docs /var/www/docs.hack.bg/fadroma~
