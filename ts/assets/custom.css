@@ -1,0 +1,11 @@
+body {
+  font-family: "Cantarell", sans-serif;
+  background: rgb(101, 179, 76);
+}
+
+.container-main {
+  background: var(--color-background);
+  margin: 1rem auto;
+  padding: 1.5rem;
+  border-radius: 1rem;
+}
