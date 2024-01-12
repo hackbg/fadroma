@@ -163,7 +163,7 @@ export async function deleteDevnetContainer (
   try {
     if (state.exists()) {
       devnet.log(`Deleting ${path}...`)
-      state.delete()
+      //state.delete()
     }
   } catch (e: any) {
     if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
@@ -437,7 +437,7 @@ export async function forceDelete (
   devnet.log('Waiting for cleanup container to finish...')
   await cleanupContainer.wait()
   devnet.log(`Deleted ${path}/* via cleanup container.`)
-  $(devnet.stateDir).delete()
+  //$(devnet.stateDir).delete()
 }
 
 //type State = 'missing'|'creating'|'paused'|'starting'|'running'|'pausing'|'deleting'
