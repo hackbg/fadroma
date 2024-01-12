@@ -23,4 +23,3 @@ export const {
 }
 
 export const console = new Console(`${packageName} ${packageVersion}`)
-

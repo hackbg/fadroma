@@ -127,7 +127,7 @@ export class OCIImage extends ContractTemplate {
 
   constructor (properties: Partial<OCIImage> = {}) {
     super(properties)
-    assign(this, properties, ['engine', 'dockerfile', 'extraFiles'])
+    assign(this, properties, ['name', 'engine', 'dockerfile', 'extraFiles'])
     this.log = new OCIConsole(`Image(${bold(this.name)})`)
     hide(this, 'log')
   }

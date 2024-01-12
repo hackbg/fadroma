@@ -46,7 +46,7 @@ export default abstract class DevnetContainer extends Backend {
   waitPort:             typeof waitPort = waitPort
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
-  waitString:          string = ''
+  waitString:           string = ''
   /** Seconds to wait after first block.
     * Tests override this to save time. */
   waitMore:             number = 7
@@ -71,6 +71,7 @@ export default abstract class DevnetContainer extends Backend {
     super(options)
     assign(this, options, [
       'chainId',
+      'container',
       'genesisAccounts',
       'genesisUploads',
       'initScript',

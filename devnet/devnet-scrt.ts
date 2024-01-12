@@ -5,6 +5,7 @@ import DevnetContainer from './devnet-base'
 import { Token } from '@fadroma/agent'
 import { OCIContainer, OCIImage } from '@fadroma/oci'
 import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
+import { Error } from '@fadroma/agent'
 import $ from '@hackbg/file'
 
 type ScrtVersion = `1.${2|3|4|5|6|7|8|9}`
@@ -84,6 +85,8 @@ function scrtVersion (v: ScrtVersion): Partial<ScrtContainer<typeof v>> {
       waitString   = 'Validating proposal'
       nodePortMode = 'http'
       break
+    default:
+      throw new Error(`Unsupported version: scrt ${v}`)
   }
   return {
     nodePortMode,

@@ -7,6 +7,7 @@ import { onExit } from 'gracy'
 import portManager from '@hackbg/port'
 import $, { JSONFile } from '@hackbg/file'
 import { Console, bold, colors, randomBase16, randomColor } from '@fadroma/agent'
+import { OCIImage, OCIConnection } from '@fadroma/oci'
 import type { Path } from '@hackbg/file'
 import type { Connection, Identity } from '@fadroma/agent'
 import type { default as DevnetContainer } from './devnet-base'
@@ -25,6 +26,9 @@ export function initPort (devnet: $D<'nodePortMode'|'nodePort'>) {
 
 export function initContainer (devnet: $D<'log'|'container'>) {
   devnet.container.log.label = devnet.log.label
+  if (!devnet.container.image) {
+    devnet.container.image = new OCIImage()
+  }
   devnet.container.image.log.label = devnet.log.label
   return devnet
 }

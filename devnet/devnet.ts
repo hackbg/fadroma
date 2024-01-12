@@ -4,10 +4,17 @@
 import $, { JSONFile, JSONDirectory, Directory } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/agent'
+import { bold } from '@fadroma/agent'
+import CLI from '@hackbg/cmds'
+import { packageName, packageVersion } from './package'
 import Container from './devnet-base'
-export { default as Container } from './devnet-base'
-export { default as ScrtContainer } from './devnet-scrt'
-export { default as OKP4Container } from './devnet-okp4'
+import ScrtContainer from './devnet-scrt'
+import OKP4Container from './devnet-okp4'
+
+export {
+  ScrtContainer,
+  OKP4Container,
+}
 
 /** Identifiers of supported platforms. */
 export type Platform =
@@ -23,3 +30,94 @@ export type APIMode =
   |'rpc'
   |'grpc'
   |'grpcWeb'
+
+export default class FadromaDevnetCLI extends CLI {
+
+  constructor (...args: ConstructorParameters<typeof CLI>) {
+    super(...args)
+    this.log.label = ``//${packageName} ${packageVersion}`
+  }
+
+  listPlatforms = this.command('platforms', 'list supported platforms', () => {
+    this.log
+      .info('Supported platforms:')
+      .info()
+      .info(' ', bold(`PLATFORM`), '', bold(`VERSION`), '', `Description`)
+      .info()
+    for (const v of Object.keys(ScrtContainer.v)) {
+      this.log.info(' ', bold(`scrt      ${v}    `), ` Secret Network ${v}`)
+    }
+    for (const v of Object.keys(OKP4Container.v)) {
+      this.log.info(' ', bold(`okp4      ${v}    `), ` OKP4 ${v}`)
+    }
+    this.log.info()
+  })
+
+  listDevnets = this.command2({
+    name: 'list',
+    info: 'list existing devnets',
+    args: ''
+  }, () => {
+  })
+
+  createDevnet = this.command2({
+    name: 'create',
+    info: 'create a devnet (args: PLATFORM VERSION [CHAIN-ID])',
+    args: 'PLATFORM VERSION [CHAIN-ID]'
+  }, async (platform: 'scrt'|'okp4', version: string, chainId?: string) => {
+    let Platform
+    switch (platform) {
+      case 'scrt':
+        Platform = ScrtContainer
+        break
+      case 'okp4':
+        Platform = OKP4Container
+        break
+      default:
+        this.log.error(`Unknown platform "${bold(platform)}".`)
+        this.listPlatforms()
+        process.exit(1)
+    }
+    if (!version || !Object.keys(Platform.v).includes(version)) {
+      this.log.error(`Please specify one of the following versions:`)
+      for (const v of Object.keys(OKP4Container.v)) {
+        this.log.info(' ', bold(v))
+      }
+    }
+    const devnet = new Platform({ version })
+    this.log.log(`Creating`, bold(devnet.chainId), `from`, bold(devnet.container.image.name))
+    await devnet.created
+    this.log.log(`Created container`, bold(devnet.container.id))
+    this.log.log(`State file:`, bold(devnet.stateFile.path))
+    return devnet
+  })
+
+  startDevnet = this.command2({
+    name: 'start',
+    info: 'start a devnet',
+    args: 'CHAIN-ID'
+  }, (chainId: string) => {
+  })
+
+  pauseDevnet = this.command2({
+    name: 'pause',
+    info: 'pause a devnet',
+    args: 'CHAIN-ID'
+  }, (chainId: string) => {
+  })
+
+  exportDevnet = this.command2({
+    name: 'export',
+    info: 'export a snapshot of a devnet as a container image',
+    args: 'CHAIN-ID [IMAGE-TAG]',
+  }, (chainId: string, imageTag?: string) => {
+  })
+
+  removeDevnet = this.command2({
+    name: 'remove',
+    info: 'erase a devnet',
+    args: 'CHAIN-ID'
+  }, (chainId: string) => {
+  })
+
+}
