@@ -12,6 +12,15 @@
       "./cw",
       "./scrt",
       "./oci",
-      "./toolbox"
+      "./toolbox/ganesha",
+      "./toolbox/ensuite",
+      "./toolbox/4mat",
+      "./toolbox/cmds",
+      "./toolbox/conf",
+      "./toolbox/file",
+      "./toolbox/logs",
+      "./toolbox/oops",
+      "./toolbox/port",
+      "./toolbox/repo"
     ]
 }
