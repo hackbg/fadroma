@@ -31,7 +31,6 @@ export abstract class Compiler extends Logged {
   }
 }
 
-
 /** An object representing a given source code. */
 export class SourceCode extends Logged {
   /** URL pointing to Git upstream containing the canonical source code. */

@@ -19,7 +19,7 @@
 **/
 
 export * as Core    from './core'
-export * as Chain   from './connect'
+export * as Chain   from './chain'
 export * as Tokens  from './token'
 export * as Deploy  from './deploy'
 export * as Program from './program.browser'
@@ -34,7 +34,7 @@ export type {
   Address,
   Message,
   TxHash
-} from './connect'
+} from './chain'
 export type {
   CodeId
 } from './deploy'

@@ -2,8 +2,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { assign, Console, Error, base16, sha256, randomBech32 } from './core'
-import type { ChainId, Address, Message, Label, TxHash } from './connect'
-import { Connection, Backend, Batch, Identity } from './connect'
+import type { ChainId, Address, Message, Label, TxHash } from './chain'
+import { Connection, Backend, Batch, Identity } from './chain'
 import type { CodeHash } from './program.browser'
 import { Compiler, SourceCode, CompiledCode } from './program.browser'
 import type { CodeId } from './deploy'

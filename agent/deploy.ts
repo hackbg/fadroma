@@ -3,8 +3,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Logged, Console, timestamp, bold, assign, hideProperties, base16, sha256 } from './core'
 import type { Into } from './core'
-import { Contract } from './connect'
-import type { Connection, ChainId, Label, Message, Address, TxHash } from './connect'
+import { Contract } from './chain'
+import type { Connection, ChainId, Label, Message, Address, TxHash } from './chain'
 import * as Token from './token'
 import type * as Store from './store'
 import type { CodeHash, Compiler } from './program.browser'

@@ -4,7 +4,6 @@
     "agent.browser.ts",
     "core.ts",
     "chain.ts",
-    "connect.ts",
     "program.ts",
     "program.browser.ts",
     "deploy.ts",
