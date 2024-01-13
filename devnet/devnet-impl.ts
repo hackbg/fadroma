@@ -6,12 +6,12 @@ import deasync from 'deasync'
 import { onExit } from 'gracy'
 import portManager from '@hackbg/port'
 import $, { JSONFile, XDG } from '@hackbg/file'
-import { Console, bold, colors, randomBase16, randomColor } from '@fadroma/agent'
+import { Core, Chain } from '@fadroma/agent'
 import { OCIImage, OCIConnection } from '@fadroma/oci'
 import type { Path } from '@hackbg/file'
-import type { Connection, Identity } from '@fadroma/agent'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet-base'
+const { bold } = Core
 
 const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
 
@@ -41,7 +41,7 @@ export function initChainId (
 ) {
   if (!devnet.chainId) {
     if (devnet.platform) {
-      devnet.chainId = `local-${devnet.platform}-${randomBase16(4).toLowerCase()}`
+      devnet.chainId = `local-${devnet.platform}-${Core.randomBase16(4).toLowerCase()}`
     } else {
       throw new Error('no platform or chainId specified')
     }
@@ -52,9 +52,9 @@ export function initChainId (
 export function initLogger (
   devnet: $D<'chainId'|'log'>
 ) {
-  const loggerColor = randomColor({ luminosity: 'dark', seed: devnet.chainId })
-  const loggerTag   = colors.whiteBright.bgHex(loggerColor)(devnet.chainId)
-  const logger      = new Console(`Devnet ${loggerTag}`)
+  const loggerColor = Core.randomColor({ luminosity: 'dark', seed: devnet.chainId })
+  const loggerTag   = Core.colors.whiteBright.bgHex(loggerColor)(devnet.chainId)
+  const logger      = new Core.Console(`Devnet ${loggerTag}`)
   Object.defineProperties(devnet, {
     log: {
       enumerable: true, configurable: true, get () {
@@ -256,7 +256,10 @@ export async function pauseDevnetContainer (
   devnet.running = false
 }
 
-export async function connect <C extends Connection, I extends Identity> (
+export async function connect <
+  C extends Chain.Connection, 
+  I extends Chain.Identity
+> (
   devnet:      $D<'chainId'|'started'|'url'|'running'> & Parameters<typeof getIdentity>[0],
   $Connection: { new (...args: unknown[]): C },
   $Identity:   { new (...args: unknown[]): I },
@@ -293,7 +296,7 @@ export async function getIdentity (
     await devnet.started
   }
   return $(devnet.stateDir, 'wallet', `${name}.json`)
-    .as(JSONFile<Partial<Identity> & { mnemonic: string }>)
+    .as(JSONFile<Partial<Chain.Identity> & { mnemonic: string }>)
     .load()
 }
 

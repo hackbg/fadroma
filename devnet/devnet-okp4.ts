@@ -1,5 +1,5 @@
 import { packageRoot } from './package'
-import type { APIMode } from './devnet'
+import type { APIMode } from './devnet-base'
 import DevnetContainer from './devnet-base'
 import { connect } from './devnet-impl'
 import { Token } from '@fadroma/agent'

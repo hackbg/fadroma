@@ -1,18 +1,9 @@
 import portManager, { waitPort } from '@hackbg/port'
 import $, { Path, JSONFile } from '@hackbg/file'
 import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
-
-import {
-  assign,
-  bold,
-  colors,
-  randomBase16,
-  randomColor,
-  Backend,
-  Console,
-  Identity,
-} from '@fadroma/agent'
-import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadroma/agent'
+import { Core, Program, Chain } from '@fadroma/agent'
+const { assign, bold, colors, randomBase16, randomColor, } = Core
+import type { Address, CodeId, Uint128 } from '@fadroma/agent'
 
 import { packageRoot } from './package'
 import * as Impl from './devnet-impl'
@@ -28,7 +19,7 @@ export type APIMode = 'http'|'rpc'|'grpc'|'grpcWeb'
 
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
-export default abstract class DevnetContainer extends Backend {
+export default abstract class DevnetContainer extends Chain.Backend {
   /** Whether more detailed output is preferred. */
   verbose:              boolean       = false
   /** Name of devnet platform. */
@@ -50,7 +41,7 @@ export default abstract class DevnetContainer extends Backend {
   /** Initial accounts. */
   genesisAccounts:      Record<Address, number|bigint|Uint128> = {}
   /** Initial uploads. */
-  genesisUploads:       Record<CodeId, Partial<CompiledCode>>  = {}
+  genesisUploads:       Record<CodeId, Partial<Program.CompiledCode>>  = {}
   /** If set, overrides the script that launches the devnet in the container. */
   initScript:           Path = $(packageRoot, 'devnet.init.mjs')
   /** Function that waits for port to open after launching container.
@@ -122,7 +113,7 @@ export default abstract class DevnetContainer extends Backend {
   /** Get info for named genesis account, including the mnemonic */
   async getIdentity (
     name: string|{ name?: string }
-  ): Promise<Partial<Identity> & { mnemonic: string }> {
+  ): Promise<Partial<Chain.Identity> & { mnemonic: string }> {
     return Impl.getIdentity(this, name)
   }
 

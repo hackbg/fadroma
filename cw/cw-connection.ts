@@ -1,4 +1,4 @@
-import { Core, Chain, Code, Deploy } from '@fadroma/agent'
+import { Chain, Deploy } from '@fadroma/agent'
 import type { Address, Message, CodeId, CodeHash, Token } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
 import type { Block, StdFee } from '@hackbg/cosmjs-esm'

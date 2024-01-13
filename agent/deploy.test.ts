@@ -2,20 +2,28 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { equal, deepEqual, rejects, throws } from 'node:assert'
-import { Contract } from './connect'
+import { Contract } from './chain'
 import * as Stub from './stub'
 import {
-  Deployment,
-  ContractCode,
-  ContractInstance,
   SourceCode,
   RustSourceCode,
   CompiledCode as BaseCompiledCode,
   LocalCompiledCode as CompiledCode,
+} from './program'
+import {
+  Deployment,
+  ContractCode,
+  ContractInstance,
   UploadedCode,
+} from './deploy'
+import {
   UploadStore,
   DeployStore
-} from './deploy'
+} from './stores'
+import {
+  StubConnection,
+  StubCompiler
+} from './stub'
 
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
@@ -33,7 +41,7 @@ export async function testDeploymentUnits () {
   equal(
     await contract.deploy(), contract)
   assert(
-    contract.connect(new Stub.Connection()) instanceof Contract)
+    contract.connect(new StubConnection()) instanceof Contract)
   rejects(
     ()=>new ContractInstance({
       uploaded: { codeId: 123 } as any,
@@ -54,8 +62,8 @@ export async function testDeployment () {
 
   const uploadStore = new UploadStore()
   const deployStore = new DeployStore()
-  const compiler = new Stub.Compiler()
-  const uploader = new Stub.Connection()
+  const compiler = new StubCompiler()
+  const uploader = new StubConnection()
   const deployer = uploader
 
   class MyBuildableDeployment extends Deployment {
@@ -197,15 +205,15 @@ export async function testCodeContract () {
 }
 
 export async function testCodeCompiler () {
-  assert((await new Stub.Compiler().build('')) instanceof BaseCompiledCode)
-  assert((await new Stub.Compiler().buildMany([{}]))[0] instanceof BaseCompiledCode)
+  assert((await new StubCompiler().build('')) instanceof BaseCompiledCode)
+  assert((await new StubCompiler().buildMany([{}]))[0] instanceof BaseCompiledCode)
 }
 
 export async function testCodeUnits () {
   rejects(
     ()=>new ContractCode({ }).compile())
   rejects(
-    ()=>new ContractCode({ compiler: new Stub.Compiler() }).compile())
+    ()=>new ContractCode({ compiler: new StubCompiler() }).compile())
 
   const source1 = new SourceCode()
   assert(
@@ -237,10 +245,8 @@ export async function testCodeUnits () {
     ()=>new ContractCode({ source: source1 }).compile())
 
   assert(
-    await new ContractCode({
-      source: source1,
-      compiler: new Stub.Compiler()
-    }).compile() instanceof BaseCompiledCode
+    await new ContractCode({ source: source1, compiler: new StubCompiler() })
+      .compile() instanceof BaseCompiledCode
   )
 
   const rustSource1 = new RustSourceCode()

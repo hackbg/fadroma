@@ -1,12 +1,13 @@
 import { packageRoot } from './package'
-import type { APIMode } from './devnet'
+import type { APIMode } from './devnet-base'
 import { connect } from './devnet-impl'
 import DevnetContainer from './devnet-base'
 import { Token } from '@fadroma/agent'
 import { OCIContainer, OCIImage } from '@fadroma/oci'
 import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
-import { Error } from '@fadroma/agent'
+import { Core } from '@fadroma/agent'
 import $ from '@hackbg/file'
+const { Error } = Core
 
 type ScrtVersion = `1.${2|3|4|5|6|7|8|9}`
 

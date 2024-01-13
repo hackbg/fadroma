@@ -1,8 +1,9 @@
 import { ok, equal, throws } from 'node:assert'
 import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
-import { Console } from '@fadroma/agent'
+import { Core } from '@fadroma/agent'
 import * as Impl from './devnet-impl'
 import $ from '@hackbg/file'
+const { Console } = Core
 
 export default async () => {
 

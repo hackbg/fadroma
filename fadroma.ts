@@ -20,13 +20,8 @@
 export * from './fadroma.browser'
 
 // And more!
-import type {
-  ChainId, Compiler,  CodeHash, UploadedCode, DeploymentState, Name
-} from '@fadroma/agent'
-import {
-  Connection, Console, Error, bold, timestamp, Deployment,
-  UploadStore, DeployStore, ContractInstance
-} from '@fadroma/agent'
+import type { ChainId, CodeHash } from '@fadroma/agent'
+import { Core, Chain, Program, Deploy, Store } from '@fadroma/agent'
 import { getProject, ProjectPrompter } from '@fadroma/create'
 import Commands from '@hackbg/cmds'
 import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
@@ -34,7 +29,7 @@ import type { Path } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
 import { basename } from 'node:path'
 
-const console = new Console('@hackbg/fadroma')
+const console = new Core.Console('@hackbg/fadroma')
 
 export default function main (...args: any) {
   console.debug('Running main...')
@@ -89,7 +84,7 @@ export default function main (...args: any) {
         units,
       })))
     .addCommand('select', `activate another deployment`, 
-      async (name?: string): Promise<Deployment|undefined> => selectDeployment(
+      async (name?: string): Promise<Deploy.Deployment|undefined> => selectDeployment(
         getProject().root,
         name
       ))
@@ -108,15 +103,15 @@ export default function main (...args: any) {
 
 type Project = { // FIXME
   root: any
-  getDeployment(): Promise<Deployment>
+  getDeployment(): Promise<Deploy.Deployment>
   logStatus(): unknown
 }
 
-export function getConnection (): Connection {
+export function getConnection (): Chain.Connection {
   throw new Error('not implemented')
 }
 
-export function getCompiler (pkg = "@fadroma/compile"): Promise<Compiler> {
+export function getCompiler (pkg = "@fadroma/compile"): Promise<Program.Compiler> {
   return import(pkg).catch(e=>{
     console.error(
       "Failed to import @fadroma/compile.\n ",
@@ -133,19 +128,19 @@ export function getCompiler (pkg = "@fadroma/compile"): Promise<Compiler> {
   })
 }
 
-export function getUploadStore (path?: string|Path): UploadStore {
+export function getUploadStore (path?: string|Path): Store.UploadStore {
   if (path) {
     return new JSONFileUploadStore(path)
   } else {
-    return new UploadStore()
+    return new Store.UploadStore()
   }
 }
 
-export function getDeployStore (path?: string): DeployStore {
+export function getDeployStore (path?: string): Store.DeployStore {
   if (path) {
     return new JSONFileDeployStore(path)
   } else {
-    return new DeployStore()
+    return new Store.DeployStore()
   }
 }
 
@@ -182,8 +177,8 @@ export async function runRepl (context?: { project?: Project, script?: string, a
 }
 
 export async function selectDeployment (
-  cwd: string|Path, name?: string, store: string|DeployStore = getDeployStore()
-): Promise<Deployment> {
+  cwd: string|Path, name?: string, store: string|Store.DeployStore = getDeployStore()
+): Promise<Deploy.Deployment> {
   if (typeof store === 'string') {
     store = getDeployStore(store)
   }
@@ -198,11 +193,11 @@ export async function selectDeployment (
   if (!state) {
     throw new Error(`no deployment ${name} in store`)
   }
-  return Deployment.fromSnapshot(state)
+  return Deploy.Deployment.fromSnapshot(state)
 }
 
 export function exportDeployment (
-  cwd: string|Path, deployment?: Deployment, path?: string|Path
+  cwd: string|Path, deployment?: Deploy.Deployment, path?: string|Path
 ) {
   if (!deployment) {
     throw new Error("deployment not found")
@@ -213,31 +208,31 @@ export function exportDeployment (
   // If passed a directory, generate file name
   let file = $(path)
   if (file.isDirectory()) {
-    file = file.in(`${deployment.name}_@_${timestamp()}.json`)
+    file = file.in(`${deployment.name}_@_${Core.timestamp()}.json`)
   }
   // Serialize and write the deployment.
   const state = deployment.serialize()
   file.as(JSONFile).makeParent().save(state)
   console.log(
     'saved', Object.keys(state).length,
-    'contracts to', bold(file.shortPath)
+    'contracts to', Core.bold(file.shortPath)
   )
 }
 
 /** Directory containing upload receipts, e.g. `state/$CHAIN/upload`. */
-export class JSONFileUploadStore extends UploadStore {
-  dir: JSONDirectory<Partial<UploadedCode>>
+export class JSONFileUploadStore extends Store.UploadStore {
+  dir: JSONDirectory<Partial<Deploy.UploadedCode>>
 
   constructor (dir: string|Path) {
     super()
-    this.dir = $(dir).as(JSONDirectory<Partial<UploadedCode>>)
+    this.dir = $(dir).as(JSONDirectory<Partial<Deploy.UploadedCode>>)
   }
 
   get [Symbol.toStringTag]() {
     return `${this.dir?.shortPath??'-'}`
   }
 
-  get (codeHash: CodeHash|{ codeHash: CodeHash }): UploadedCode|undefined {
+  get (codeHash: CodeHash|{ codeHash: CodeHash }): Deploy.UploadedCode|undefined {
     if (typeof codeHash === 'object') {
       codeHash = codeHash.codeHash
     }
@@ -248,16 +243,22 @@ export class JSONFileUploadStore extends UploadStore {
     if (receipt.exists()) {
       const uploaded = receipt.load()
       if (uploaded.codeId) {
-        this.log('loading code id', bold(String(uploaded.codeId)), 'from', bold(receipt.shortPath))
+        this.log(
+          'loading code id', Core.bold(String(uploaded.codeId)),
+          'from', Core.bold(receipt.shortPath)
+        )
         super.set(codeHash, uploaded)
       } else {
-        this.log.warn('no codeId field found in', bold(receipt.shortPath))
+        this.log.warn('no codeId field found in', Core.bold(receipt.shortPath))
       }
     }
     return super.get(codeHash)
   }
 
-  set (codeHash: CodeHash|{ codeHash: CodeHash }, value: Partial<UploadedCode>): this {
+  set (
+    codeHash: CodeHash|{ codeHash: CodeHash },
+    value: Partial<Deploy.UploadedCode>
+  ): this {
     if (typeof codeHash === 'object') {
       codeHash = codeHash.codeHash
     }
@@ -272,33 +273,38 @@ export class JSONFileUploadStore extends UploadStore {
 }
 
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`. */
-export class JSONFileDeployStore extends DeployStore {
+export class JSONFileDeployStore extends Store.DeployStore {
   /** Root directory of deploy store. */
-  dir: JSONDirectory<DeploymentState>
+  dir: JSONDirectory<Deploy.DeploymentState>
   /** Name of symlink pointing to active deployment, without extension. */
   KEY = '.active'
 
   constructor (dir: string|Path) {
     super()
-    this.dir = $(dir).as(JSONDirectory<DeploymentState>)
+    this.dir = $(dir).as(JSONDirectory<Deploy.DeploymentState>)
   }
 
   get [Symbol.toStringTag]() {
     return `${this.dir?.shortPath??'-'}`
   }
 
-  get (name: Name): DeploymentState|undefined {
+  get (name: Deploy.Name): Deploy.DeploymentState|undefined {
     const receipt = this.dir.at(`${name}.json`).as(JSONFile<any>)
     if (receipt.exists()) {
       const state = receipt.load()
-      this.log('loading code id', bold(name), 'from', bold(receipt.shortPath))
+      this.log(
+        'loading code id',
+        Core.bold(name),
+        'from',
+        Core.bold(receipt.shortPath)
+      )
       super.set(name, state)
     }
     return super.get(name)
   }
 
-  set (name: Name, state: Partial<Deployment>|DeploymentState): this {
-    if (state instanceof Deployment) state = state.serialize()
+  set (name: Deploy.Name, state: Partial<Deploy.Deployment>|Deploy.DeploymentState): this {
+    if (state instanceof Deploy.Deployment) state = state.serialize()
     const receipt = this.dir.at(`${name}.json`).as(JSONFile<any>)
     this.log('writing', receipt.shortPath)
     receipt.save(state)

@@ -25,4 +25,4 @@ import { _$_HACK_$_ } from './chain'
 import { LocalCompiledCode } from './program'
 _$_HACK_$_.CompiledCode = LocalCompiledCode
 
-export * as Code from './program'
+export * as Program from './program'

@@ -20,7 +20,7 @@
 
 export * as Core    from './core'
 export * as Chain   from './chain'
-export * as Tokens  from './token'
+export * as Token   from './token'
 export * as Deploy  from './deploy'
 export * as Program from './program.browser'
 export * as Store   from './store'

@@ -3,10 +3,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
 import type { ChainId } from '@fadroma/agent'
-import { Base, Deploy } from '@fadroma/agent'
-const { Error, bold, timestamp, bip39, bip39EN } = Base
+import { Core, Deploy } from '@fadroma/agent'
+const { Error, bold, timestamp, bip39, bip39EN } = Core
 const { Deployment, ContractCode } = Deploy
-'
+
 import { tmpDir, TestProjectDeployment } from '@fadroma/fixtures'
 import * as Projects from './create'
 import { withTmpDir } from '@hackbg/file'

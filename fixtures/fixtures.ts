@@ -2,17 +2,15 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFileSync } from 'node:fs'
 import ok from 'node:assert'
-
 import $, { BinaryFile, withTmpDir } from '@hackbg/file'
-
-import type { Connection, Backend } from '@fadroma/agent'
-import { Deployment, Console, bold } from '@fadroma/agent'
+import { Core, Chain, Deploy } from '@fadroma/agent'
+const { bold, Console } = Core
 
 //@ts-ignore
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = (...args: string[]) => resolve(here, ...args)
-export const log       = new Console('Fadroma Testing')
+export const log       = new Core.Console('Fadroma Testing')
 export const nullWasm = readFileSync(fixture('empty.wasm'))
 export const mnemonics = [
   'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
@@ -42,7 +40,7 @@ export const tmpDir = () => {
   return x
 }
 
-export class TestProjectDeployment extends Deployment {
+export class TestProjectDeployment extends Deploy.Deployment {
 
   t = this.template('t', {
     chainId:   'stub',
@@ -73,10 +71,15 @@ export class TestProjectDeployment extends Deployment {
 }
 
 export async function testConnectionWithBackend <
-  A extends typeof Connection,
-  D extends typeof Backend
+  A extends typeof Chain.Connection,
+  B extends typeof Chain.Backend
 > (
-  Chain: A, Backend: D, version: string, token: string, code: string, initMsg: any = null
+  Chain:   A,
+  Backend: B,
+  version: string,
+  token:   string,
+  code:    string,
+  initMsg: any = null
 ) {
   const console = new Console(`Testing ${bold(Chain.name)} + ${bold(Backend.name)}`)
   const { equal, throws, rejects } = await import('node:assert')

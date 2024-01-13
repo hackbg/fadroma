@@ -3,22 +3,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert, { deepEqual, throws } from 'node:assert'
 import { dirname } from 'node:path'
-
 import { DotGit } from '@hackbg/repo'
-
-import { Compiler, ContractInstance, Deployment } from '@fadroma/agent'
+import { Program, Deploy } from '@fadroma/agent'
 import { OCIConnection, OCIImage } from '@fadroma/oci'
-
-import {
-  getCompiler,
-  RawLocalRustCompiler,
-  ContainerizedLocalRustCompiler
-} from './compile'
+import { getCompiler, RawLocalRustCompiler, ContainerizedLocalRustCompiler } from './compile'
 import { packageRoot } from './package'
 
 const sourcePath = dirname(packageRoot)
 
-class TestBuildDeployment extends Deployment {
+class TestBuildDeployment extends Deploy.Deployment {
 
   a = this.contract('null-a', {
     language: 'rust', sourcePath, cargoToml: 'examples/contracts/cw-null/Cargo.toml'
@@ -44,15 +37,19 @@ export default new Suite([
 /** Different config options for containerized compiler. */
 export async function testBuildContainer () {
   new ContainerizedLocalRustCompiler({
+    //@ts-ignore
     dockerSocket: '/dev/null'
   })
   new ContainerizedLocalRustCompiler({
+    //@ts-ignore
     docker: { image: () => {} } as any
   })
   new ContainerizedLocalRustCompiler({
+    //@ts-ignore
     dockerImage: {} as any
   })
   new ContainerizedLocalRustCompiler({
+    //@ts-ignore
     dockerImage: new OCIImage({ engine: null, name: 'test' }) as any
   })
 }

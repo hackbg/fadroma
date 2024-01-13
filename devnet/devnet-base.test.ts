@@ -1,6 +1,7 @@
 import { packageRoot } from './package'
 import type * as Devnets from './devnet'
-import { Connection, Token } from '@hackbg/fadroma'
+import Container from './devnet-base'
+import { Chain, Token } from '@fadroma/agent'
 import { OCIContainer, OCIImage } from '@fadroma/oci'
 import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
@@ -11,7 +12,8 @@ import * as Impl from './devnet-impl'
 import { fixture } from '../fixtures/fixtures'
 
 export async function testDevnetPlatform <
-  A extends typeof Connection, D extends typeof Devnets.Container,
+  A extends typeof Chain.Connection,
+  D extends typeof Container,
 > (
   Connection: A,
   Devnet:     D,

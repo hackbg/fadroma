@@ -3,13 +3,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import $, { JSONFile, JSONDirectory, Directory, XDG } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
-import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/agent'
-import { colors, bold } from '@fadroma/agent'
+import type { CodeId, ChainId, Address, Uint128 } from '@fadroma/agent'
+import { Core, Program } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
 import { OCIConnection, OCIContainer, OCIImage } from '@fadroma/oci'
 import { packageName, packageVersion } from './package'
 import ScrtContainer from './devnet-scrt'
 import OKP4Container from './devnet-okp4'
+
+const { bold, colors } = Core
 
 export {
   ScrtContainer,
@@ -82,14 +84,14 @@ export default class DevnetCLI extends CLI {
       }
 
       const headers = {
-        chainId:   'CHAIN ID',
+        chainId:   'CHAIN ID / URL',
         port:      'PORT',
         receipt:   'RECEIPT',
         container: 'CONTAINER',
       }
 
       const longest = {
-        name:      'CHAIN ID'.length,
+        name:      'CHAIN ID / URL'.length,
         container: 'IMAGE / CONTAINER'.length
       }
 
@@ -110,7 +112,7 @@ export default class DevnetCLI extends CLI {
       this.log
         .info(' ', bold([
           headers.chainId.padEnd(longest.name),
-          headers.port.padEnd(tags.no.length),
+          //headers.port.padEnd(tags.no.length),
           headers.receipt,
           headers.container.padEnd(longest.container),
         ].join('  ')))
@@ -151,20 +153,18 @@ export default class DevnetCLI extends CLI {
             hasMissing = true
           }
           if (nodePort) {
-            port = colors.green(String(nodePort).padEnd(tags.no.length))
+            port = `http://localhost:${nodePort}`.padEnd(tags.no.length)
           }
         }
         this.log
           .info(' ', [
             bold(name.padEnd(longest.name)),
-            port,
             receiptExists,
             imageExists.padEnd(longest.container),
           ].join('  '))
           .info(' ', [
-            ''.padEnd(longest.name),
-            ''.padEnd(headers.port.length),
-            ''.padEnd(headers.receipt.length),
+            port.padEnd(longest.name),
+            ''.padEnd(receiptExists.length),
             containerExists.padEnd(longest.container)
           ].join('  '))
           .info()
