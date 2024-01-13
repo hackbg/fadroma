@@ -87,8 +87,8 @@ export default class DevnetCLI extends CLI {
       const missing = '[ ] '
       for (const name of devnets) {
         let receiptExists   = colors.red('missing'.padEnd('RECEIPT'.length))
-        let imageExists     = colors.red('missing'.padEnd(longest.container))
-        let containerExists = colors.red('missing'.padEnd(longest.container))
+        let imageExists     = colors.red('[ ] no data'.padEnd(longest.container))
+        let containerExists = colors.red('[ ] no data'.padEnd(longest.container))
         const receipt = $(devnetsDir, name, 'devnet.json').as(JSONFile) as JSONFile<any>
         if (receipt.exists()) {
           receiptExists = colors.green('present'.padEnd('RECEIPT'.length))
@@ -130,7 +130,7 @@ export default class DevnetCLI extends CLI {
       if (hasMissing) {
         this.log
           .info('Some devnets depend on missing resources.')
-          .info('Invoke', bold('fadroma-devnet prune'), 'to remove them.')
+          .info('Invoke the', bold('prune'), 'command if you want to remove all trace of them.')
       }
 
     } else {
@@ -144,9 +144,17 @@ export default class DevnetCLI extends CLI {
 
   })
 
+  launchDevnet = this.command2({
+    name: 'launch',
+    info: 'create and start a devnet',
+    args: 'PLATFORM VERSION [CHAIN-ID]'
+  }, async (platform: 'scrt'|'okp4', version: string, chainId?: string) => {
+    await (await this.createDevnet(platform, version, chainId)).started
+  })
+
   createDevnet = this.command2({
     name: 'create',
-    info: 'create a devnet (args: PLATFORM VERSION [CHAIN-ID])',
+    info: 'create a devnet',
     args: 'PLATFORM VERSION [CHAIN-ID]'
   }, async (platform: 'scrt'|'okp4', version: string, chainId?: string) => {
     let Devnet
@@ -168,7 +176,7 @@ export default class DevnetCLI extends CLI {
         this.log.info(' ', bold(v))
       }
     }
-    const devnet = new Devnet({ version })
+    const devnet = new Devnet({ version, chainId })
     this.log
       .log()
       .log('Creating devnet:')
@@ -180,8 +188,8 @@ export default class DevnetCLI extends CLI {
       .log(`  Receipt:  `, bold(devnet.stateFile.path))
       .log()
       .info(
-        `Devnet created. Invoke`,
-        `"${bold(`fadroma-devnet start ${devnet.chainId}`)}"`,
+        `Devnet created. Invoke the`,
+        `"${bold(`start ${devnet.chainId}`)}"`,
         `command to launch.`
       )
     return devnet
@@ -214,9 +222,9 @@ export default class DevnetCLI extends CLI {
       }
       this.log
         .info(
-          `Invoke`,
-          `"${bold(`fadroma-devnet PLATFORM VERSION ${chainId}`)}"`,
-          `to create this devnet.`
+          `Invoke the`,
+          `"${bold(`create PLATFORM VERSION ${chainId}`)}"`,
+          `command to create this devnet.`
         )
     }
     const {
@@ -296,20 +304,12 @@ export default class DevnetCLI extends CLI {
     const missing: Set<string> = new Set()
     for (const devnet of devnets) {
       const devnetFile    = $(devnetsDir, devnet, 'devnet.json').as(JSONFile) as JSONFile<any>
-      let receiptExists   = colors.red('missing'.padEnd('RECEIPT'.length))
-      let imageExists     = colors.red('missing'.padEnd('IMAGE'.length))
-      let containerExists = colors.red('missing'.padEnd('CONTAINER'.length))
       if (devnetFile.exists()) {
-        receiptExists = colors.green('exists'.padEnd('RECEIPT'.length))
         const { image, container } = devnetFile.load()
-        if (await engine.image(image).exists) {
-          imageExists = colors.green('exists'.padEnd('IMAGE'.length))
-        } else {
+        if (!await engine.image(image).exists) {
           missing.add(devnet)
         }
-        if (await engine.container(container).exists) {
-          containerExists = colors.green('exists'.padEnd('CONTAINER'.length))
-        } else {
+        if (!await engine.container(container).exists) {
           missing.add(devnet)
         }
       } else {
