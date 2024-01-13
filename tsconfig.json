@@ -2,7 +2,10 @@
   "exclude": [
     ".ubik",
     "*.dist.*",
-    "node_modules"
+    "node_modules",
+    "toolbox/ganesha",
+    "cw/cosmjs-esm",
+    "scrt/secretjs-esm"
   ],
   "compilerOptions": {
     "target": "esnext",
