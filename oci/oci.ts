@@ -8,6 +8,8 @@ import type { DockerHandle } from './oci-base'
 import * as Mock from './oci-mock'
 import { toDockerodeOptions, waitStream } from './oci-impl'
 
+export { Mock }
+
 /** Defaults to the `DOCKER_HOST` environment variable. */
 export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
 
@@ -169,7 +171,7 @@ export class OCIImage extends Deploy.ContractTemplate {
     return this.api.getImage(this.name).inspect()
   }
 
-  get exists (): Promise<boolean> {
+  exists (): Promise<boolean> {
     return this.inspect().then(()=>true).catch(e=>{
       if (e.statusCode === 404) return false
       throw e
@@ -277,7 +279,7 @@ export class OCIContainer extends Deploy.ContractInstance {
 
   constructor (properties: Partial<OCIContainer> = {}) {
     super(properties)
-    assign(this, properties, ['engine', 'image', 'entrypoint', 'command', 'options'])
+    assign(this, properties, ['id', 'engine', 'image', 'entrypoint', 'command', 'options'])
     this.log = new Console('OCIContainer')
     hide(this, 'log')
   }
@@ -305,18 +307,18 @@ export class OCIContainer extends Deploy.ContractInstance {
     return (await this.api).inspect()
   }
 
-  get exists (): Promise<boolean> {
+  exists (): Promise<boolean> {
     return this.inspect().then(()=>true, e=>{
       if (e.statusCode === 404) return false
       throw e
     })
   }
 
-  get isRunning (): Promise<boolean> {
+  isRunning (): Promise<boolean> {
     return this.inspect().then(state=>state.State.Running)
   }
 
-  get ip (): Promise<string> {
+  ip (): Promise<string> {
     return this.inspect().then(state=>state.NetworkSettings.IPAddress)
   }
 
@@ -401,7 +403,7 @@ export class OCIContainer extends Deploy.ContractInstance {
       }
     }
     return await waitStream(
-      stream as any,
+      stream,
       expected,
       thenDetach,
       logFiltered, 

@@ -1,5 +1,5 @@
 import { ok, equal, throws } from 'node:assert'
-import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
+import { OCIConnection, OCIImage, OCIContainer, Mock } from '@fadroma/oci'
 import { Core } from '@fadroma/agent'
 import * as Impl from './devnet-impl'
 import $ from '@hackbg/file'
@@ -61,20 +61,25 @@ export default async () => {
     log:             new Console('createDevnetContainer'),
     chainId:         'mock',
     stateDir:        undefined,
+    stateFile:       { save (_) {} },
     verbose:         undefined,
     initScript:      undefined,
     platformName:    undefined,
     platformVersion: undefined,
     genesisAccounts: undefined,
-    container:       new OCIContainer({
+    container:       Object.assign(new OCIContainer({
+      id:            'mock-create',
       image:         new OCIImage({
         engine:      OCIConnection.mock(),
         name:        'mock'
       }),
+    }), {
+      inspect: async () => {
+        throw Object.assign(new Error(), {
+          statusCode: 404
+        })
+      }
     }),
-    stateFile:       {
-      save (_) {}
-    },
   })
 
   await Impl.startDevnetContainer({
@@ -85,40 +90,74 @@ export default async () => {
     verbose:         undefined,
     running:         undefined,
     nodeHost:        undefined,
-    waitString:      undefined,
-    waitMore:        undefined,
-    waitPort:        undefined,
+    waitString:      "mock-ready",
+    waitMore:        0,
+    waitPort:        () => new Promise(resolve=>setTimeout(resolve, 1)),
     created:         undefined,
     initScript:      undefined,
     stateDir:        undefined,
-    container:       new OCIContainer({
+    stateFile:       { save (_) {} },
+    container:       Object.defineProperties(new OCIContainer({
+      id:            'mock-start',
       image:         new OCIImage({
         engine:      OCIConnection.mock(),
         name:        'mock'
       }),
+    }), {
+      api: {
+        get () {
+          return Promise.resolve({
+            start: async () => {
+            },
+            logs: async () => {
+              return {
+                off () {},
+                on (event, callback) {
+                  if (event === 'data') {
+                    setTimeout(()=>{
+                      callback('mock-ready')
+                    }, 1)
+                  }
+                }
+              }
+            }
+          })
+        }
+      }
     }),
-    stateFile:       {
-      save (_) {}
-    },
   })
 
   await Impl.pauseDevnetContainer({
     log:        new Console('pauseDevnetContainer'),
     running:    undefined,
     container:  new OCIContainer({
-      image:    new OCIImage({
+      id:       'mock-pause',
+      image:    Object.assign(new OCIImage({
         engine: OCIConnection.mock(),
         name:   'mock' 
-      }),
+      })),
     }),
   })
 
   await Impl.deleteDevnetContainer({
-    log:       new Console('deleteDevnetContainer'),
-    stateDir:  undefined,
-    paused:    undefined,
-    container: new OCIContainer({
-      image:   new OCIImage({ engine: OCIConnection.mock(), name: 'mock' }),
+    log:        new Console('deleteDevnetContainer'),
+    stateDir:   undefined,
+    paused:     undefined,
+    container:  Object.defineProperties(new OCIContainer({
+      id:       'mock-delete',
+      image:    new OCIImage({
+        engine: OCIConnection.mock(),
+        name:   'mock'
+      }),
+    }), {
+      api: {
+        get () {
+          return Promise.resolve({
+            remove: async () => {
+            }
+          })
+        }
+      }
     }),
   })
 

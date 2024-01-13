@@ -119,7 +119,7 @@ export async function createDevnetContainer (
     & Parameters<typeof containerOptions>[0]
     & $D<'container'|'verbose'|'initScript'|'url'>
 ): Promise<void> {
-  if (await devnet.container.exists) {
+  if (await devnet.container.exists()) {
     devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.shortId))
   } else {
     if (devnet.verbose) {
@@ -231,7 +231,10 @@ export async function startDevnetContainer (
     devnet.log.debug('Waiting for', bold(String(devnet.waitMore)), 'seconds...')
     await new Promise(resolve=>setTimeout(resolve, devnet.waitMore))
     //await Dock.Docker.waitSeconds(devnet.waitMore)
-    await devnet.waitPort({ host: devnet.nodeHost, port: Number(devnet.nodePort) })
+    await devnet.waitPort({
+      host: devnet.nodeHost,
+      port: Number(devnet.nodePort)
+    })
   } else {
     devnet.log.log('Container already started:', bold(devnet.chainId))
   }
@@ -240,11 +243,12 @@ export async function startDevnetContainer (
 export async function pauseDevnetContainer (
   devnet: $D<'log'|'container'|'running'>
 ) {
-  const container = await devnet.container
-  if (container) {
+  if (await devnet.container.exists()) {
     devnet.log.debug(`Stopping container:`, bold(devnet.container.shortId))
     try {
-      if (await container.isRunning) await container.kill()
+      if (await devnet.container.isRunning()) {
+        await devnet.container.kill()
+      }
     } catch (e) {
       if (e.statusCode == 404) {
         devnet.log.warn(`Container ${bold(devnet.container.shortId)} not found`)

@@ -57,7 +57,7 @@ export function toDockerodeOptions (container: OCIContainer): Docker.ContainerCr
 
 /* Is this equivalent to follow() and, if so, which implementation to keep? */
 export function waitStream (
-  stream:     { on: Function, off: Function, destroy: Function },
+  stream:     { on: Function, off: Function, destroy?: Function },
   expected:   string,
   thenDetach: boolean = true,
   trail:      (data: string) => unknown = ()=>{},
@@ -78,7 +78,9 @@ export function waitStream (
       reject(error)
       stream.off('error', waitStream_onError)
       stream.off('data', waitStream_onData)
-      //stream.destroy()
+      if (stream.destroy) {
+        stream.destroy()
+      }
     }
 
     function waitStream_onData (data: any) {
@@ -91,7 +93,7 @@ export function waitStream (
         if (dataStr.indexOf(expected) > -1) {
           console.log(`Found expected message:`, bold(expected))
           stream.off('data', waitStream_onData)
-          if (thenDetach) {
+          if (thenDetach && stream.destroy) {
             stream.destroy()
           }
           resolve()
