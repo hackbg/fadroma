@@ -115,7 +115,7 @@ export function initDynamicUrl (
 
 export async function createDevnetContainer (
   devnet:
-    & Parameters<typeof setExitHandler>[0]
+    & Parameters<typeof saveDevnetState>[0]
     & Parameters<typeof containerOptions>[0]
     & $D<'container'|'verbose'|'initScript'|'url'>
 ): Promise<void> {
@@ -123,7 +123,7 @@ export async function createDevnetContainer (
     devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.id.slice(0, 8)))
   } else {
     if (devnet.verbose) {
-      //devnet.log.debug('Creating container for', bold(devnet.chainId))
+      devnet.log.debug('Creating container for', bold(devnet.chainId))
     }
     // ensure we have image and chain id
     if (!devnet.container.image) {
@@ -135,7 +135,9 @@ export async function createDevnetContainer (
     // if port is unspecified or taken, increment
     devnet.nodePort = await portManager.getFreePort(devnet.nodePort)
     // create container
-    //devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
+    if (devnet.verbose) {
+      devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
+    }
     devnet.container.name      = devnet.chainId
     devnet.container.options   = containerOptions(devnet)
     devnet.container.command   = devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
@@ -145,6 +147,10 @@ export async function createDevnetContainer (
     // set id and save
     if (devnet.verbose) {
       devnet.log.debug(`Created container:`, bold(devnet.container.id.slice(0, 8)))
+    }
+    await saveDevnetState(devnet)
+    if (devnet.verbose) {
+      devnet.log.debug(`Saved devnet receipt.`)
     }
   }
 }
@@ -201,7 +207,7 @@ async function saveDevnetState (devnet: $D<'chainId'|'container'|'nodePort'> & {
 }
 
 export async function startDevnetContainer (
-  devnet: Parameters<typeof saveDevnetState>[0] & $D<
+  devnet: Parameters<typeof createDevnetContainer>[0] & $D<
     |'log'|'running'|'container'|'waitString'|'waitMore'
     |'nodeHost'|'nodePort'|'chainId'|'waitPort'|'created'
   >
@@ -217,7 +223,6 @@ export async function startDevnetContainer (
       // TODO: This must be handled in @fadroma/oci
       if (e.code !== 304) throw e
     }
-    await saveDevnetState(devnet)
     devnet.log.debug('Waiting for container to say:', bold(devnet.waitString))
     await devnet.container.waitLog(devnet.waitString, FILTER, true)
     devnet.log.debug('Waiting for', bold(String(devnet.waitMore)), 'seconds...')
