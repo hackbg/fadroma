@@ -2,16 +2,8 @@ import { hideProperties as hide } from '@hackbg/hide'
 import { Writable, Transform } from 'node:stream'
 import { basename, dirname } from 'node:path'
 import Docker from 'dockerode'
-import {
-  assign,
-  bold,
-  Backend,
-  Connection,
-  ContractTemplate,
-  ContractInstance,
-  Console,
-} from '@fadroma/agent'
-import { OCIError, OCIConsole } from './oci-base'
+import { Chain, Deploy } from '@fadroma/agent'
+import { OCIError as Error, OCIConsole as Console, assign, bold } from './oci-base'
 import type { DockerHandle } from './oci-base'
 import * as Mock from './oci-mock'
 import { toDockerodeOptions, waitStream } from './oci-impl'
@@ -19,9 +11,9 @@ import { toDockerodeOptions, waitStream } from './oci-impl'
 /** Defaults to the `DOCKER_HOST` environment variable. */
 export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
 
-export const console = new OCIConsole('@fadroma/oci')
+export const console = new Console('@fadroma/oci')
 
-export class OCIConnection extends Connection {
+export class OCIConnection extends Chain.Connection {
   static mock (callback?: Function) {
     return new this({ api: Mock.mockDockerode(callback) })
   }
@@ -38,30 +30,30 @@ export class OCIConnection extends Connection {
     } else if (typeof properties.api === 'string') {
       properties.api = new Docker({ socketPath: properties.api })
     } else {
-      throw new OCIError('invalid docker engine configuration')
+      throw new Error('invalid docker engine configuration')
     }
-    super(properties as Partial<Connection>)
+    super(properties as Partial<Chain.Connection>)
   }
 
   declare api: DockerHandle
 
   async doGetHeight () {
-    throw new OCIError('doGetHeight: not applicable')
+    throw new Error('doGetHeight: not applicable')
     return + new Date()
   }
   async doGetBlockInfo () {
-    throw new OCIError('doGetBlockInfo: not applicable')
+    throw new Error('doGetBlockInfo: not applicable')
     return {}
   }
   async doGetBalance () {
-    throw new OCIError('doGetBalance: not applicable')
+    throw new Error('doGetBalance: not applicable')
     return 0
   }
   async doSend () {
-    throw new OCIError('doSend: not applicable')
+    throw new Error('doSend: not applicable')
   }
   async doSendMany () {
-    throw new OCIError('doSendMany: not applicable')
+    throw new Error('doSendMany: not applicable')
   }
 
   async doGetCodeId (containerId: string): Promise<string> {
@@ -89,19 +81,19 @@ export class OCIConnection extends Connection {
       .map(container=>({ address: container.Id, codeId: imageId, container }))
   }
   async doUpload (data: Uint8Array) {
-    throw new OCIError('doUpload (load/import image): not implemented')
+    throw new Error('doUpload (load/import image): not implemented')
     return {}
   }
   async doInstantiate (imageId: string) {
-    throw new OCIError('doInstantiate (create container): not implemented')
+    throw new Error('doInstantiate (create container): not implemented')
     return {}
   }
   async doExecute () {
-    throw new OCIError('doExecute (exec in container): not implemented')
+    throw new Error('doExecute (exec in container): not implemented')
     return {}
   }
   async doQuery (contract, message) {
-    throw new OCIError('doQuery (inspect image): not implamented')
+    throw new Error('doQuery (inspect image): not implamented')
     return {}
   }
 
@@ -118,16 +110,16 @@ export class OCIConnection extends Connection {
   }
 }
 
-export class OCIImage extends ContractTemplate {
+export class OCIImage extends Deploy.ContractTemplate {
 
   constructor (properties: Partial<OCIImage> = {}) {
     super(properties)
     assign(this, properties, ['name', 'engine', 'dockerfile', 'extraFiles'])
-    this.log = new OCIConsole(`Image(${bold(this.name)})`)
+    this.log = new Console(`Image(${bold(this.name)})`)
     hide(this, 'log')
   }
 
-  declare log: OCIConsole
+  declare log: Console
   engine:      OCIConnection|null
   dockerfile:  string|null = null
   extraFiles:  string[]    = []
@@ -167,7 +159,7 @@ export class OCIImage extends ContractTemplate {
 
   get api (): Docker {
     if (!this.engine || !this.engine.api) {
-      throw new OCIError.NoDockerode()
+      throw new Error.NoDockerode()
     }
     return this.engine.api as unknown as Docker
   }
@@ -187,7 +179,7 @@ export class OCIImage extends ContractTemplate {
   /** Throws if inspected image does not exist locally. */
   async check () {
     if (!this.name) {
-      throw new OCIError.NoName('inspect')
+      throw new Error.NoName('inspect')
     }
     await this.api.getImage(this.name).inspect()
   }
@@ -196,16 +188,16 @@ export class OCIImage extends ContractTemplate {
   async pull () {
     const { name, api } = this
     if (!name) {
-      throw new OCIError.NoName('pull')
+      throw new Error.NoName('pull')
     }
     await new Promise<void>((ok, fail)=>{
-      const log = new OCIConsole(`pulling docker image ${this.name}`)
+      const log = new Console(`pulling docker image ${this.name}`)
       api.pull(name, async (err: any, stream: any) => {
         if (err) return fail(err)
         await follow(api, stream, (event) => {
           if (event.error) {
             log.error(event.error)
-            throw new OCIError.PullFailed(name)
+            throw new Error.PullFailed(name)
           }
           const data = ['id', 'status', 'progress'].map(x=>event[x]).join(' ')
           this.log.log(data)
@@ -218,10 +210,10 @@ export class OCIImage extends ContractTemplate {
   /* Throws if the build fails, and then you have to fix stuff. */
   async build () {
     if (!this.dockerfile) {
-      throw new OCIError.NoDockerfile()
+      throw new Error.NoDockerfile()
     }
     if (!this.engine?.api) {
-      throw new OCIError.NoDockerode()
+      throw new Error.NoDockerode()
     }
     const { name, engine: { api } } = this
     const dockerfile = basename(this.dockerfile)
@@ -231,11 +223,11 @@ export class OCIImage extends ContractTemplate {
       { context, src },
       { t: this.name, dockerfile }
     )
-    const log = new OCIConsole(`building docker image ${this.name}`)
+    const log = new Console(`building docker image ${this.name}`)
     await follow(api, build, (event) => {
       if (event.error) {
         log.error(event.error)
-        throw new OCIError.BuildFailed(name??'(no name)', dockerfile, context)
+        throw new Error.BuildFailed(name??'(no name)', dockerfile, context)
       }
       const data = event.progress || event.status || event.stream || JSON.stringify(event) || ''
       this.log(data.trim())
@@ -281,12 +273,12 @@ export class OCIImage extends ContractTemplate {
 }
 
 /** Interface to a Docker container. */
-export class OCIContainer extends ContractInstance {
+export class OCIContainer extends Deploy.ContractInstance {
 
   constructor (properties: Partial<OCIContainer> = {}) {
     super(properties)
     assign(this, properties, ['engine', 'image', 'entrypoint', 'command', 'options'])
-    this.log = new OCIConsole('OCIContainer')
+    this.log = new Console('OCIContainer')
     hide(this, 'log')
   }
 
@@ -296,7 +288,7 @@ export class OCIContainer extends ContractInstance {
   entrypoint?: ContainerCommand
   command?:    ContainerCommand
   options:     Partial<ContainerOpts> = {}
-  declare log: OCIConsole
+  declare log: Console
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
@@ -400,7 +392,7 @@ export class OCIContainer extends ContractInstance {
       stdout: true, stderr: true, follow: true
     })
     if (!stream) {
-      throw new OCIError('no stream returned from container')
+      throw new Error('no stream returned from container')
     }
     const filter = logFilter || (x=>true)
     const logFiltered = (data:string) => {

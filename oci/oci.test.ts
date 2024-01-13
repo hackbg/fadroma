@@ -27,7 +27,6 @@ assert.throws(()=>new OCIConnection(123 as any))
     assert.equal(container.image, image)
     await container.id
     await container.shortId
-    await container.warnings
     await container.isRunning
     await container.ip
   }

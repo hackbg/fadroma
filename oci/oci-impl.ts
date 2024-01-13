@@ -1,7 +1,6 @@
 import Docker from 'dockerode'
 import type { OCIContainer } from './oci'
-import { OCIError } from './oci-base'
-import { bold, Console } from '@fadroma/agent'
+import { OCIConsole as Console, OCIError, bold } from './oci-base'
 
 export function toDockerodeOptions (container: OCIContainer): Docker.ContainerCreateOptions {
 
