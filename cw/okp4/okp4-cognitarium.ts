@@ -1,5 +1,5 @@
 import type { CodeId, Uint128 } from '@fadroma/agent'
-import { Contract } from '@fadroma/agent'
+import { Chain } from '@fadroma/agent'
 
 export type CognitariumVersion = string
 
@@ -9,7 +9,7 @@ export const cognitariumCodeIds: Record<CognitariumVersion, CodeId> = {
 }
 
 /** OKP4 triple store. */
-export class Cognitarium extends Contract {
+export class Cognitarium extends Chain.Contract {
 
   /** Add data to this cognitarium. */
   insert = (format: CognitariumFormat, data: string) => this.execute({

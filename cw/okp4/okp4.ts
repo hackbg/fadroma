@@ -1,4 +1,4 @@
-import { Error } from '../cw-base'
+import { CWError as Error } from '../cw-base'
 import { CWConnection, CWBatch } from '../cw-connection'
 import CWIdentity, { CWMnemonicIdentity } from '../cw-identity'
 
@@ -7,7 +7,7 @@ import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
-import { Contract, Token } from '@fadroma/agent'
+import { Chain, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 export class OKP4MnemonicIdentity extends CWMnemonicIdentity {
@@ -59,22 +59,22 @@ export class OKP4Connection extends CWConnection {
   //}
 
   getContractsById (id: CodeId):
-    Promise<Contract>
-  getContractsById <C extends typeof Contract> (id: CodeId):
+    Promise<Chain.Contract>
+  getContractsById <C extends typeof Chain.Contract> (id: CodeId):
     Promise<InstanceType<C>>
   {
-    return Promise.resolve(new Contract({
+    return Promise.resolve(new Chain.Contract({
       instance: { address: '' },
       connection: this
     }) as InstanceType<C>)
   }
 
   getContractsByIds (ids: CodeId[]):
-    Promise<Map<CodeId, Contract>>
-  getContractsByIds (ids: Record<CodeId, typeof Contract>):
-    Promise<Map<CodeId, Contract>>
+    Promise<Map<CodeId, Chain.Contract>>
+  getContractsByIds (ids: Record<CodeId, typeof Chain.Contract>):
+    Promise<Map<CodeId, Chain.Contract>>
   getContractsByIds (ids: unknown):
-    Promise<Map<CodeId, Contract>>
+    Promise<Map<CodeId, Chain.Contract>>
   {
     return Promise.resolve(new Map())
   }

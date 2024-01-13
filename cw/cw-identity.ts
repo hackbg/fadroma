@@ -1,18 +1,20 @@
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
-import { Identity, bip32, bip39, bip39EN, bech32, base64 } from '@fadroma/agent'
-import { Error, bold } from './cw-base'
+import { Core, Chain } from '@fadroma/agent'
+import { CWError as Error, bold, bip32, bip39, bip39EN, bech32, base64 } from './cw-base'
 import type { OfflineSigner } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
-export class CWIdentity extends Identity {
+export class CWIdentity extends Chain.Identity {
   declare signer: OfflineSigner
 }
 
 export class CWSignerIdentity extends CWIdentity {
-  constructor ({ signer, ...properties }: Partial<Identity & { signer: OfflineSigner }>) {
+  constructor ({ signer, ...properties }: Partial<Chain.Identity & {
+    signer: OfflineSigner
+  }>) {
     super(properties)
     if (!signer) {
       throw new Error("signer not set")
@@ -35,7 +37,7 @@ export class CWMnemonicIdentity extends CWIdentity {
     mnemonic,
     generateMnemonic = true,
     ...properties
-  }: Partial<Identity & {
+  }: Partial<Chain.Identity & {
     bech32Prefix:     string
     coinType:         number
     hdAccountIndex:   number

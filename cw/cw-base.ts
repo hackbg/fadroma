@@ -1,9 +1,12 @@
-import { Console, Error, bold } from '@fadroma/agent'
-
-class CWError extends Error {}
-
-class CWConsole extends Console {
-  label = '@fadroma/cw'
-}
-
-export { CWError as Error, CWConsole as Console, bold }
+import { Core } from '@fadroma/agent'
+export class CWError extends Core.Error {}
+export class CWConsole extends Core.Console { label = '@fadroma/cw' }
+export const {
+  assign,
+  bold, 
+  bip32,
+  bip39,
+  bip39EN,
+  bech32,
+  base64,
+} = Core

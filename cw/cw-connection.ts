@@ -1,11 +1,9 @@
-import { Connection, Batch, assign, UploadedCode, bold } from '@fadroma/agent'
-import type {
-  Address, Message, CodeId, CodeHash, Label,
-  ContractInstance, Token
-} from '@fadroma/agent'
+import { Core, Chain, Code, Deploy } from '@fadroma/agent'
+import type { Address, Message, CodeId, CodeHash, Token } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
 import type { Block, StdFee } from '@hackbg/cosmjs-esm'
 import type { CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
+import { CWConsole as Console, CWError as Error, bold, assign } from './cw-base'
 
 const assertApi =
   ({ api }: { api?: CWConnection["api"] }): NonNullable<CWConnection["api"]> => {
@@ -16,7 +14,7 @@ const assertApi =
   }
 
 /** Generic agent for CosmWasm-enabled chains. */
-export class CWConnection extends Connection {
+export class CWConnection extends Chain.Connection {
   /** The bech32 prefix for the account's address  */
   bech32Prefix?: string
   /** The coin type in the HD derivation path */
@@ -74,12 +72,12 @@ export class CWConnection extends Connection {
   }
 
   doGetCodes () {
-    const codes: Record<CodeId, UploadedCode> = {}
+    const codes: Record<CodeId, Deploy.UploadedCode> = {}
     return assertApi(this)
       .then(api=>api.getCodes())
       .then(results=>{
         for (const { id, checksum, creator } of results||[]) {
-          codes[id!] = new UploadedCode({
+          codes[id!] = new Deploy.UploadedCode({
             chainId:  this.chainId,
             codeId:   String(id),
             codeHash: checksum,
@@ -128,7 +126,9 @@ export class CWConnection extends Connection {
 
   /** Stargate implementation of sending native token. */
   async doSend (
-    recipient: Address, amounts: Token.ICoin[], options?: Parameters<Connection["doSend"]>[2]
+    recipient: Address,
+    amounts:   Token.ICoin[],
+    options?:  Parameters<Chain.Connection["doSend"]>[2]
   ) {
     return assertApi(this).then(api=>{
       if (!(api as SigningCosmWasmClient)?.sendTokens) {
@@ -147,12 +147,12 @@ export class CWConnection extends Connection {
   /** Stargate implementation of batch send. */
   doSendMany (
     outputs: [Address, Token.ICoin[]][],
-    options?: Parameters<Connection["doSendMany"]>[1]
+    options?: Parameters<Chain.Connection["doSendMany"]>[1]
   ): Promise<void|unknown> {
     throw new Error('not implemented')
   }
 
-  async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
+  async doUpload (data: Uint8Array): Promise<Partial<Deploy.UploadedCode>> {
     if (!this.address) {
       throw new Error("can't upload contract without sender address")
     }
@@ -177,8 +177,8 @@ export class CWConnection extends Connection {
 
   /** Instantiate a contract via CosmJS Stargate. */
   async doInstantiate (
-    codeId: CodeId, options: Parameters<Connection["doInstantiate"]>[1]
-  ): Promise<Partial<ContractInstance>> {
+    codeId: CodeId, options: Parameters<Chain.Connection["doInstantiate"]>[1]
+  ): Promise<Partial<Deploy.ContractInstance>> {
     if (!this.address) {
       throw new Error("can't instantiate contract without sender address")
     }
@@ -213,8 +213,10 @@ export class CWConnection extends Connection {
   /** Call a transaction method of a contract. */
   async doExecute (
     contract: { address: Address }, message: Message, {
-      execSend, execMemo, execFee = this.fees?.exec || 'auto'
-    }: Omit<NonNullable<Parameters<Connection["execute"]>[2]>, 'execFee'> & {
+      execSend,
+      execMemo,
+      execFee = this.fees?.exec || 'auto'
+    }: Omit<NonNullable<Parameters<Chain.Connection["execute"]>[2]>, 'execFee'> & {
       execFee?: Token.IFee | number | 'auto'
     } = {}
   ): Promise<unknown> {
@@ -246,28 +248,28 @@ export class CWConnection extends Connection {
     })
   }
 
-  batch (): Batch<this> {
-    return new CWBatch({ connection: this }) as unknown as Batch<this>
+  batch (): Chain.Batch<this> {
+    return new CWBatch({ connection: this }) as unknown as Chain.Batch<this>
   }
 }
 
 /** Transaction batch for CosmWasm-enabled chains. */
-export class CWBatch extends Batch<CWConnection> {
+export class CWBatch extends Chain.Batch<CWConnection> {
   upload (
-    code:    Parameters<Batch<Connection>["upload"]>[0],
-    options: Parameters<Batch<Connection>["upload"]>[1]
+    code:    Parameters<Chain.Batch<Chain.Connection>["upload"]>[0],
+    options: Parameters<Chain.Batch<Chain.Connection>["upload"]>[1]
   ) {
     return this
   }
   instantiate (
-    code:    Parameters<Batch<Connection>["instantiate"]>[0],
-    options: Parameters<Batch<Connection>["instantiate"]>[1]
+    code:    Parameters<Chain.Batch<Chain.Connection>["instantiate"]>[0],
+    options: Parameters<Chain.Batch<Chain.Connection>["instantiate"]>[1]
   ) {
     return this
   }
   execute (
-    contract: Parameters<Batch<Connection>["execute"]>[0],
-    options:  Parameters<Batch<Connection>["execute"]>[1]
+    contract: Parameters<Chain.Batch<Chain.Connection>["execute"]>[0],
+    options:  Parameters<Chain.Batch<Chain.Connection>["execute"]>[1]
   ) {
     return this
   }

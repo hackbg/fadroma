@@ -1,5 +1,5 @@
 import type { CodeId, Address } from '@fadroma/agent'
-import { Contract } from '@fadroma/agent'
+import { Chain } from '@fadroma/agent'
 
 export type LawStoneVersion = string
 
@@ -9,7 +9,7 @@ export const lawStoneCodeIds: Record<LawStoneVersion, CodeId> = {
 }
 
 /** OKP4 rule engine. */
-export class LawStone extends Contract {
+export class LawStone extends Chain.Contract {
 
   /** Create an init message for a law stone. */
   static init = (storage_address: Address, program: string) => ({ storage_address, program })
