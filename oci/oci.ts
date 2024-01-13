@@ -314,7 +314,7 @@ export class OCIContainer extends ContractInstance {
   }
 
   get exists (): Promise<boolean> {
-    return this.inspect().then(()=>true).catch(e=>{
+    return this.inspect().then(()=>true, e=>{
       if (e.statusCode === 404) return false
       throw e
     })

@@ -76,11 +76,25 @@ export default class DevnetCLI extends CLI {
         .info(`Found ${bold(devnets.length)} devnet(s) in ${bold(devnetsDir.path)}:`)
         .info()
 
+      const tags = {
+        ok: '[OK]',
+        no: '[??]',
+      }
+
+      const headers = {
+        chainId:   'CHAIN ID',
+        port:      'PORT',
+        receipt:   'RECEIPT',
+        container: 'CONTAINER',
+      }
+
       const longest = {
         name:      'CHAIN ID'.length,
         container: 'IMAGE / CONTAINER'.length
       }
+
       const receipts = {}
+
       for (const name of devnets) {
         longest.name = Math.max(longest.name, name.length)
         const receipt = $(devnetsDir, name, 'devnet.json').as(JSONFile) as JSONFile<any>
@@ -90,29 +104,37 @@ export default class DevnetCLI extends CLI {
           longest.container = Math.max(longest.container, container.length + 4)
         }
       }
+
       let hasMissing = false
+
       this.log
         .info(' ', bold([
-          'CHAIN ID'.padEnd(longest.name),
-          'RECEIPT',
-          'IMAGE/CONTAINER'.padEnd(longest.container),
+          headers.chainId.padEnd(longest.name),
+          headers.port.padEnd(tags.no.length),
+          headers.receipt,
+          headers.container.padEnd(longest.container),
         ].join('  ')))
         .info()
-      const present = '[X] '
-      const missing = '[ ] '
+
       for (const name of devnets) {
-        let receiptExists   = colors.red('missing'.padEnd('RECEIPT'.length))
-        let imageExists     = colors.red('[ ] no data'.padEnd(longest.container))
-        let containerExists = colors.red('[ ] no data'.padEnd(longest.container))
-        const receipt = $(devnetsDir, name, 'devnet.json').as(JSONFile) as JSONFile<any>
+
+        let receiptExists   = colors.red('[ ] missing'.padEnd('RECEIPT'.length))
+        let port            = colors.red(tags.no)
+        let imageExists     = colors.red(tags.no.padEnd(longest.container))
+        let containerExists = colors.red(tags.no.padEnd(longest.container))
+
+        const receipt = $(
+          devnetsDir, name, 'devnet.json'
+        ).as(JSONFile) as JSONFile<any>
+
         if (receipt.exists()) {
-          receiptExists = colors.green('present'.padEnd('RECEIPT'.length))
-          const { image, container } = receipt.load()
+          receiptExists = colors.green(bold(tags.ok) + ''.padEnd('RECEIPT'.length - tags.ok.length))
+          const { image, container, nodePort } = receipt.load()
           if (image) {
             if (await engine.image(image).exists) {
-              imageExists = colors.green(present + image.padEnd(longest.container))
+              imageExists = colors.green(bold(tags.ok) + ' ' + image.padEnd(longest.container))
             } else {
-              imageExists = colors.red(missing + image.padEnd(longest.container))
+              imageExists = colors.red(bold(tags.no) + ' ' + image.padEnd(longest.container))
               hasMissing = true
             }
           } else {
@@ -120,26 +142,31 @@ export default class DevnetCLI extends CLI {
           }
           if (container) {
             if (await engine.container(container).exists) {
-              containerExists = colors.green(present + container.padEnd('CONTAINER'.length))
+              containerExists = colors.green(bold(tags.ok) + ' ' + container.padEnd('CONTAINER'.length))
             } else {
-              containerExists = colors.red(missing + container.padEnd('CONTAINER'.length))
+              containerExists = colors.red(bold(tags.no) + ' ' + container.padEnd('CONTAINER'.length))
               hasMissing = true
             }
           } else {
             hasMissing = true
           }
+          if (nodePort) {
+            port = colors.green(String(nodePort).padEnd(tags.no.length))
+          }
         }
         this.log
-          .info(' ', bold([
-            name.padEnd(longest.name),
+          .info(' ', [
+            bold(name.padEnd(longest.name)),
+            port,
             receiptExists,
             imageExists.padEnd(longest.container),
-          ].join('  ')))
-          .info(' ', bold([
+          ].join('  '))
+          .info(' ', [
             ''.padEnd(longest.name),
-            ''.padEnd('RECEIPT'.length),
+            ''.padEnd(headers.port.length),
+            ''.padEnd(headers.receipt.length),
             containerExists.padEnd(longest.container)
-          ].join('  ')))
+          ].join('  '))
           .info()
       }
       if (hasMissing) {
