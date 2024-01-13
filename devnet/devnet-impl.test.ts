@@ -63,30 +63,41 @@ export default async () => {
     stateDir:        undefined,
     verbose:         undefined,
     initScript:      undefined,
-    onExit:          undefined,
-    paused:          undefined,
-    deleted:         undefined,
+    platformName:    undefined,
+    platformVersion: undefined,
     genesisAccounts: undefined,
     container:       new OCIContainer({
-      image:         new OCIImage({ engine: OCIConnection.mock(), name: 'mock' }),
+      image:         new OCIImage({
+        engine:      OCIConnection.mock(),
+        name:        'mock'
+      }),
     }),
+    stateFile:       {
+      save (_) {}
+    },
   })
 
   await Impl.startDevnetContainer({
-    log:        new Console('startDevnetContainer'),
-    running:    undefined,
-    nodeHost:   undefined,
-    waitString: undefined,
-    waitMore:   undefined,
-    waitPort:   undefined,
-    created:    undefined,
-    container:  new OCIContainer({
-      image:    new OCIImage({
-        engine: OCIConnection.mock(),
-        name:   'mock'
+    log:             new Console('startDevnetContainer'),
+    platformName:    undefined,
+    platformVersion: undefined,
+    genesisAccounts: undefined,
+    verbose:         undefined,
+    running:         undefined,
+    nodeHost:        undefined,
+    waitString:      undefined,
+    waitMore:        undefined,
+    waitPort:        undefined,
+    created:         undefined,
+    initScript:      undefined,
+    stateDir:        undefined,
+    container:       new OCIContainer({
+      image:         new OCIImage({
+        engine:      OCIConnection.mock(),
+        name:        'mock'
       }),
     }),
-    stateFile:  {
+    stateFile:       {
       save (_) {}
     },
   })

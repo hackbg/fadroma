@@ -60,7 +60,7 @@ export async function testBuild () {
     const compiler = getCompiler({ useContainer })
     assert(compiler)
     compiler[Symbol.toStringTag as unknown as keyof typeof compiler]
-    assert(compiler instanceof Compiler)
+    assert(compiler instanceof Program.Compiler)
 
     const deployment = new TestBuildDeployment()
     await deployment.build({ compiler })

@@ -19,7 +19,7 @@ import {
 import {
   UploadStore,
   DeployStore
-} from './stores'
+} from './store'
 import {
   StubConnection,
   StubCompiler
