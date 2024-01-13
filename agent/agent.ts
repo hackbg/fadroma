@@ -22,7 +22,7 @@ export * from './agent.browser'
 
 // See note in connect.ts for what this does:
 import { _$_HACK_$_ } from './connect'
-import { LocalCompiledCode } from './code'
+import { LocalCompiledCode } from './program'
 _$_HACK_$_.CompiledCode = LocalCompiledCode
 
-export * as Code from './code'
+export * as Code from './program'

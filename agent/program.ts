@@ -1,7 +1,7 @@
-export * from './code.browser'
+export * from './program.browser'
 
 import { Console, bold } from './core'
-import { CompiledCode } from './code.browser'
+import { CompiledCode } from './program.browser'
 
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'

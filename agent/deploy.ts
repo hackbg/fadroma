@@ -7,8 +7,8 @@ import { Contract } from './connect'
 import type { Connection, ChainId, Label, Message, Address, TxHash } from './connect'
 import * as Token from './token'
 import type * as Store from './store'
-import type { CodeHash, Compiler } from './code.browser'
-import { SourceCode, RustSourceCode, CompiledCode } from './code'
+import type { CodeHash, Compiler } from './program.browser'
+import { SourceCode, RustSourceCode, CompiledCode } from './program'
 
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string

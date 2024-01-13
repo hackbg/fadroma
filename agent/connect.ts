@@ -4,7 +4,7 @@
 import { ContractInstance } from './deploy'
 import { Error, Logged, colors, bold, randomColor, into } from './core'
 import { assign, Console } from './core'
-import * as Code from './code'
+import * as Code from './program'
 import * as Deploy from './deploy'
 import * as Token from './token'
 import * as Store from './store'
@@ -16,7 +16,7 @@ import * as Store from './store'
 // version that can only fetch from URL using the global fetch method, and when
 // the library is loaded through the non-browser entrypoint, it gets substituted
 // to the version which can also load code from disk. (Ugh.)
-import { CompiledCode } from './code.browser'
+import { CompiledCode } from './program.browser'
 export const _$_HACK_$_ = { CompiledCode }
 
 export type ChainId = string

@@ -1,5 +1,5 @@
 import { Console } from './core'
-import type { CodeHash } from './code.browser'
+import type { CodeHash } from './program.browser'
 import type { Name, DeploymentState } from './deploy'
 import { Deployment, UploadedCode } from './deploy'
 
