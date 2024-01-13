@@ -14,7 +14,7 @@ import {
 import { OCIError, OCIConsole } from './oci-base'
 import type { DockerHandle } from './oci-base'
 import * as Mock from './oci-mock'
-import { toDockerodeOptions } from './oci-impl'
+import { toDockerodeOptions, waitStream } from './oci-impl'
 
 /** Defaults to the `DOCKER_HOST` environment variable. */
 export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
@@ -401,8 +401,13 @@ export class OCIContainer extends ContractInstance {
         this.log.debug(data)
       }
     }
+    console.log({stream})
     return await waitStream(
-      stream as any, expected, thenDetach, logFiltered, this.log
+      stream as any,
+      expected,
+      thenDetach,
+      logFiltered, 
+      this.log
     )
   }
 
@@ -473,33 +478,6 @@ export async function follow (
     function complete (err: any, _output: any) {
       if (err) return fail(err)
       ok()
-    }
-  })
-}
-
-/* Is this equivalent to follow() and, if so, which implementation to keep? */
-export function waitStream (
-  stream:     { on: Function, off: Function, destroy: Function },
-  expected:   string,
-  thenDetach: boolean = true,
-  trail:      (data: string) => unknown = ()=>{},
-  { log }:    Console = console
-): Promise<void> {
-  return new Promise((resolve, reject)=>{
-    stream.on('error', (error: any) => {
-      reject(error)
-      stream.off('data', waitStream_onData)
-    })
-    stream.on('data', waitStream_onData)
-    function waitStream_onData (data: any) {
-      const dataStr = String(data).trim()
-      if (trail) trail(dataStr)
-      if (dataStr.indexOf(expected)>-1) {
-        log(`Found expected message:`, bold(expected))
-        stream.off('data', waitStream_onData)
-        if (thenDetach) stream.destroy()
-        resolve()
-      }
     }
   })
 }

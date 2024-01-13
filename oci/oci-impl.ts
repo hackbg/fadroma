@@ -1,6 +1,7 @@
 import Docker from 'dockerode'
 import type { OCIContainer } from './oci'
 import { OCIError } from './oci-base'
+import { bold, Console } from '@fadroma/agent'
 
 export function toDockerodeOptions (container: OCIContainer): Docker.ContainerCreateOptions {
 
@@ -52,5 +53,51 @@ export function toDockerodeOptions (container: OCIContainer): Docker.ContainerCr
       config.HostConfig.Binds.push(`${hostPath}:${containerPath}:rw`))
 
   return Object.assign(config, JSON.parse(JSON.stringify(extra)))
+
+}
+
+/* Is this equivalent to follow() and, if so, which implementation to keep? */
+export function waitStream (
+  stream:     { on: Function, off: Function, destroy: Function },
+  expected:   string,
+  thenDetach: boolean = true,
+  trail:      (data: string) => unknown = ()=>{},
+  { log }:    Console = new Console()
+): Promise<void> {
+
+  return new Promise((resolve, reject)=>{
+
+    try {
+      stream.on('error', waitStream_onError)
+      stream.on('data', waitStream_onData)
+    } catch (e) {
+      waitStream_onError(e)
+    }
+
+    function waitStream_onError (error: any) {
+      reject(error)
+      stream.off('error', waitStream_onError)
+      stream.off('data', waitStream_onData)
+    }
+
+    function waitStream_onData (data: any) {
+      try {
+        console.log("wat")
+        const dataStr = String(data).trim()
+        if (trail) {
+          trail(dataStr)
+        }
+        if (dataStr.indexOf(expected) > -1) {
+          log(`Found expected message:`, bold(expected))
+          stream.off('data', waitStream_onData)
+          if (thenDetach) stream.destroy()
+          resolve()
+        }
+      } catch (e) {
+        waitStream_onError(e)
+      }
+    }
+
+  })
 
 }

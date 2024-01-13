@@ -227,7 +227,7 @@ export async function startDevnetContainer (
       if (e.code !== 304) throw e
     }
     devnet.log.debug('Waiting for container to say:', bold(devnet.waitString))
-    await devnet.container.waitLog(devnet.waitString, FILTER, true)
+    await devnet.container.waitLog(devnet.waitString, (_)=>true, true)
     devnet.log.debug('Waiting for', bold(String(devnet.waitMore)), 'seconds...')
     await new Promise(resolve=>setTimeout(resolve, devnet.waitMore))
     //await Dock.Docker.waitSeconds(devnet.waitMore)
