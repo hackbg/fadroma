@@ -247,7 +247,7 @@ export class OCIImage extends ContractTemplate {
     const container = new OCIContainer({ image: this, name, options, command, entrypoint })
     await container.create()
     if (outputStream) {
-      const stream = await container.container.attach({
+      const stream = await (await container.api).attach({
         stream: true, stdin: true, stdout: true
       })
       stream.setEncoding('utf8')
@@ -283,39 +283,34 @@ export class OCIContainer extends ContractInstance {
     hide(this, 'log')
   }
 
+  id?:         string
   engine:      OCIConnection|null
   image:       OCIImage
   entrypoint?: ContainerCommand
   command?:    ContainerCommand
   options:     Partial<ContainerOpts> = {}
   declare log: OCIConsole
-  container:   Docker.Container|null = null
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
-  get api (): Docker {
-    return (this.engine||this.image.engine).api as unknown as Docker
-  }
-
-  get id (): string {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
-    return this.container.id
+  get api (): Docker.Container {
+    return (this.engine||this.image.engine).api.getContainer(this.id)
   }
 
   get shortId (): string {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
-    return this.container.id.slice(0, 8)
+    return this.id.slice(0, 8)
   }
 
-  get warnings (): string[] {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
-    return (this.container as any).Warnings
+  /** Get info about a container. */
+  async inspect () {
+    return (await this.api).inspect()
+  }
+
+  get exists (): Promise<boolean> {
+    return this.inspect().then(()=>true).catch(e=>{
+      if (e.statusCode === 404) return false
+      throw e
+    })
   }
 
   get isRunning (): Promise<boolean> {
@@ -326,81 +321,55 @@ export class OCIContainer extends ContractInstance {
     return this.inspect().then(state=>state.NetworkSettings.IPAddress)
   }
 
-  get exists (): Promise<boolean> {
-    if (this.container) {
-      return this.inspect().then(()=>true)
-    } else {
-      return Promise.resolve(false)
-    }
-  }
-
   /** Create a container. */
   async create (): Promise<this> {
-    if (this.container) {
-      throw new OCIError.ContainerAlreadyCreated()
-    }
-    // Specify the container
-    const opts = toDockerodeOptions(this)
-    this.image.log.creatingContainer(opts.name)
-    // Log mounted volumes
-    //this.log.boundVolumes(opts?.HostConfig?.Binds ?? [])
-    // Log exposed ports
-    for (const [containerPort, config] of Object.entries(opts?.HostConfig?.PortBindings ?? {})) {
-      for (const { HostPort = '(unknown)' } of config as Array<{HostPort: unknown}>) {
-        //this.log.boundPort(containerPort, HostPort)
+    if (!(await this.exists)) {
+      // Specify the container
+      const opts = toDockerodeOptions(this)
+      this.image.log.creatingContainer(opts.name)
+      // Log mounted volumes
+      //this.log.boundVolumes(opts?.HostConfig?.Binds ?? [])
+      // Log exposed ports
+      for (const [containerPort, config] of Object.entries(opts?.HostConfig?.PortBindings ?? {})) {
+        for (const { HostPort = '(unknown)' } of config as Array<{HostPort: unknown}>) {
+          //this.log.boundPort(containerPort, HostPort)
+        }
       }
+      // Make sure the image exists
+      await this.image.pullOrBuild()
+      // Create the container
+      const container = await this.image.api.createContainer(opts)
+      this.id = container.id
+      // Update the logger tag with the container id
+      this.log.label = this.name
+        ? `OCIContainer(${container.id} ${this.name})`
+        : `OCIContainer(${container.id})`
+      return this
     }
-    // Make sure the image exists
-    await this.image.pullOrBuild()
-    // Create the container
-    this.container = await this.api.createContainer(opts)
-    // Update the logger tag with the container id
-    this.log.label = this.name
-      ? `OCIContainer(${this.container.id} ${this.name})`
-      : `OCIContainer(${this.container.id})`
-    // Display any warnings emitted during container creation
-    if (this.warnings) {
-      this.log.createdWithWarnings(this.shortId, this.warnings)
-    }
-    return this
   }
 
   /** Remove a stopped container. */
   async remove (): Promise<this> {
-    if (this.container) {
-      await this.container.remove()
-    }
-    this.container = null
+    ;(await this.api).remove()
     return this
   }
 
   /** Start a container. */
   async start (): Promise<this> {
-    if (!this.container) {
+    if (!await this.exists) {
       await this.create()
     }
-    await this.container!.start()
+    ;(await this.api).start()
     return this
-  }
-
-  /** Get info about a container. */
-  inspect () {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
-    return this.container.inspect()
   }
 
   /** Immediately terminate a running container. */
   async kill (): Promise<this> {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
     const id = this.shortId
     const prettyId = bold(id.slice(0,8))
     if (await this.isRunning) {
       this.log(`Stopping ${prettyId}...`)
-      await this.api.getContainer(id).kill()
+      ;(await this.api).kill()
       this.log(`Stopped ${prettyId}`)
     } else {
       this.log.warn(`Container already stopped: ${prettyId}`)
@@ -410,10 +379,7 @@ export class OCIContainer extends ContractInstance {
 
   /** Wait for the container to exit. */
   async wait () {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
-    const {Error: error, StatusCode: code} = await this.container.wait()
+    const {Error: error, StatusCode: code} = await (await this.api).wait()
     return { error, code }
   }
 
@@ -423,11 +389,7 @@ export class OCIContainer extends ContractInstance {
     logFilter?:  (data: string) => boolean,
     thenDetach?: boolean,
   ): Promise<void> {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
-    const id = this.container.id.slice(0,8)
-    const stream = await this.container.logs({
+    const stream = await (await this.api).logs({
       stdout: true, stderr: true, follow: true
     })
     if (!stream) {
@@ -447,11 +409,8 @@ export class OCIContainer extends ContractInstance {
   /** Executes a command in the container.
     * @returns [stdout, stderr] */
   async exec (...command: string[]): Promise<[string, string]> {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
     // Specify the execution
-    const exec = await this.container.exec({
+    const exec = await (await this.api).exec({
       Cmd: command, AttachStdin: true, AttachStdout: true, AttachStderr: true,
     })
     // Collect stdout
@@ -477,10 +436,7 @@ export class OCIContainer extends ContractInstance {
 
   /** Save a container as an image. */
   async export (repository?: string, tag?: string) {
-    if (!this.container) {
-      throw new OCIError.NoContainer()
-    }
-    const { Id } = await this.container.commit({ repository, tag })
+    const { Id } = await (await this.api).commit({ repository, tag })
     this.log.log(`Exported snapshot:`, bold(Id))
     return Id
   }

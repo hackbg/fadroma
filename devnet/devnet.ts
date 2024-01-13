@@ -145,6 +145,9 @@ export default class DevnetCLI extends CLI {
       chainId,
       nodePort
     })
+    devnet.container.id = container
+    devnet.container.image.name = image
+    console.log(devnet)
     await devnet.started
     this.log.log('Devnet started.')
   })
