@@ -1,10 +1,10 @@
-import { assign, Identity, bip32, bip39, bip39EN, bech32, base64, bold } from '@fadroma/agent'
+import { Chain } from '@fadroma/agent'
 import type { ChainId } from '@fadroma/agent'
 import { SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { EncryptionUtils } from '@hackbg/secretjs-esm'
-import { Error } from './scrt-base'
+import { ScrtError as Error, bold, colors, assign, bip39, bip39EN } from './scrt-base'
 
-export abstract class ScrtIdentity extends Identity {
+export abstract class ScrtIdentity extends Chain.Identity {
   abstract getApi ({chainId, url}: {chainId: ChainId, url: string|URL}): SecretNetworkClient
 
   static fromKeplr = () => {

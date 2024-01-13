@@ -3,25 +3,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Tx, ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
-import { Error, console } from './scrt-base'
+import { ScrtError as Error, console, bold, base64 } from './scrt-base'
 import { ScrtIdentity } from './scrt-identity'
 import faucets from './scrt-faucets'
 //import * as Mocknet from './scrt-mocknet'
-import type {
-  Uint128, Contract, Message, Name, Address, TxHash, ChainId, CodeId, CodeHash, Label,
-} from '@fadroma/agent'
-import {
-  assign, Connection, into, base64, bip39, bip39EN, bold,
-  Token, Batch,
-  UploadedCode, ContractInstance,
-} from '@fadroma/agent'
+import type { Uint128, Message, Address, TxHash, ChainId, CodeId, CodeHash } from '@fadroma/agent'
+import { Core, Chain, Token, Deploy } from '@fadroma/agent'
 
 const { MsgStoreCode, MsgExecuteContract, MsgInstantiateContract } = Tx
 
 export type { TxResponse }
 
 /** Represents a Secret Network API endpoint. */
-export class ScrtConnection extends Connection {
+export class ScrtConnection extends Chain.Connection {
   /** Smallest unit of native token. */
   static gasToken = new Token.Native('uscrt')
   /** Underlying API client. */
@@ -36,7 +30,7 @@ export class ScrtConnection extends Connection {
     send:   ScrtConnection.gasToken.fee(1000000),
   }
   constructor (properties?: Partial<ScrtConnection>) {
-    super(properties as Partial<Connection>)
+    super(properties as Partial<Chain.Connection>)
     this.api ??= new SecretNetworkClient({ url: this.url!, chainId: this.chainId!, })
     const {chainId, url} = this
     if (!chainId) {
@@ -62,11 +56,11 @@ export class ScrtConnection extends Connection {
   }
 
   doGetCodes () {
-    const codes: Record<CodeId, UploadedCode> = {}
+    const codes: Record<CodeId, Deploy.UploadedCode> = {}
     return withIntoError(this.api.query.compute.codes({}))
       .then(({code_infos})=>{
         for (const { code_id, code_hash, creator } of code_infos||[]) {
-          codes[code_id!] = new UploadedCode({
+          codes[code_id!] = new Deploy.UploadedCode({
             chainId:  this.chainId,
             codeId:   code_id,
             codeHash: code_hash,
@@ -116,7 +110,7 @@ export class ScrtConnection extends Connection {
       .balance!.amount!
   }
 
-  async getLabel (contract_address: Address): Promise<Label> {
+  async getLabel (contract_address: Address): Promise<Chain.Label> {
     return (await withIntoError(this.api.query.compute.contractInfo({
       contract_address
     })))
@@ -140,7 +134,7 @@ export class ScrtConnection extends Connection {
   async doSend (
     recipient: Address,
     amounts:   Token.ICoin[],
-    options?:  Parameters<Connection["doSend"]>[2]
+    options?:  Parameters<Chain.Connection["doSend"]>[2]
   ) {
     return withIntoError(this.api.tx.bank.send(
       { from_address: this.address!, to_address: recipient, amount: amounts },
@@ -159,7 +153,7 @@ export class ScrtConnection extends Connection {
   }
 
   /** Upload a WASM binary. */
-  async doUpload (data: Uint8Array): Promise<Partial<UploadedCode>> {
+  async doUpload (data: Uint8Array): Promise<Partial<Deploy.UploadedCode>> {
     const request = { sender: this.address!, wasm_byte_code: data, source: "", builder: "" }
     const gasLimit = Number(this.fees.upload?.amount[0].amount) || undefined
     const result = await withIntoError(this.api!.tx.compute.storeCode(request, { gasLimit }))
@@ -200,8 +194,8 @@ export class ScrtConnection extends Connection {
 
   async doInstantiate (
     codeId: CodeId,
-    options: Parameters<Connection["doInstantiate"]>[1]
-  ): Promise<Partial<ContractInstance>> {
+    options: Parameters<Chain.Connection["doInstantiate"]>[1]
+  ): Promise<Partial<Deploy.ContractInstance>> {
     if (!this.address) throw new Error("agent has no address")
     const parameters = {
       sender:     this.address,
@@ -239,7 +233,7 @@ export class ScrtConnection extends Connection {
   async doExecute (
     contract: { address: Address, codeHash: CodeHash },
     message:  Message,
-    options?: Parameters<Connection["doExecute"]>[2] & {
+    options?: Parameters<Chain.Connection["doExecute"]>[2] & {
       preSimulate?: boolean
     }
   ): Promise<TxResponse> {
@@ -314,8 +308,8 @@ export class ScrtConnection extends Connection {
     return base64.encode(encrypted)
   }
 
-  batch (): Batch<this> {
-    return new ScrtBatch({ connection: this }) as unknown as Batch<this>
+  batch (): Chain.Batch<this> {
+    return new ScrtBatch({ connection: this }) as unknown as Chain.Batch<this>
   }
 
 }
@@ -373,7 +367,7 @@ function removeTrailingSlash (url: string) {
   return url
 }
 
-export class ScrtBatch extends Batch<ScrtConnection> {
+export class ScrtBatch extends Chain.Batch<ScrtConnection> {
   /** Messages to encrypt. */
   messages: Array<
     |InstanceType<typeof MsgStoreCode>
@@ -383,16 +377,16 @@ export class ScrtBatch extends Batch<ScrtConnection> {
 
   /** TODO: Upload in batch. */
   upload (
-    code:    Parameters<Batch<ScrtConnection>["upload"]>[0],
-    options: Parameters<Batch<ScrtConnection>["upload"]>[1]
+    code:    Parameters<Chain.Batch<ScrtConnection>["upload"]>[0],
+    options: Parameters<Chain.Batch<ScrtConnection>["upload"]>[1]
   ) {
     throw new Error('ScrtBatch#upload: not implemented')
     return this
   }
 
   instantiate (
-    code:    Parameters<Batch<ScrtConnection>["instantiate"]>[0],
-    options: Parameters<Batch<ScrtConnection>["instantiate"]>[1]
+    code:    Parameters<Chain.Batch<ScrtConnection>["instantiate"]>[0],
+    options: Parameters<Chain.Batch<ScrtConnection>["instantiate"]>[1]
   ) {
     this.messages.push(new MsgInstantiateContract({
       //callback_code_hash: '',
@@ -407,9 +401,9 @@ export class ScrtBatch extends Batch<ScrtConnection> {
   }
 
   execute (
-    contract: Parameters<Batch<ScrtConnection>["execute"]>[0],
-    message:  Parameters<Batch<ScrtConnection>["execute"]>[1],
-    options:  Parameters<Batch<ScrtConnection>["execute"]>[2],
+    contract: Parameters<Chain.Batch<ScrtConnection>["execute"]>[0],
+    message:  Parameters<Chain.Batch<ScrtConnection>["execute"]>[1],
+    options:  Parameters<Chain.Batch<ScrtConnection>["execute"]>[2],
   ) {
     if (typeof contract === 'object') contract = contract.address!
     this.messages.push(new MsgExecuteContract({
@@ -627,7 +621,7 @@ export interface ScrtBatchResult {
   codeId?:   CodeId
   codeHash?: CodeHash
   address?:  Address
-  label?:    Label
+  label?:    Chain.Label
 }
 
 function shellescape (a: string[]) {

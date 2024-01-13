@@ -1,12 +1,12 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Token, Contract, randomBase64, bold, colors } from '@fadroma/agent'
-import type { CodeHash, Uint128, Connection, Address } from '@fadroma/agent'
-import { Console } from './scrt-base'
+import { Core, Chain, Token } from '@fadroma/agent'
+import type { CodeHash, Uint128, Address } from '@fadroma/agent'
+import { ScrtConsole as Console, bold, colors, randomBase64 } from './scrt-base'
 import type { Permit } from './snip-24'
 
-export class Snip20 extends Contract implements Token.Fungible {
+export class Snip20 extends Chain.Contract implements Token.Fungible {
   /** The full name of the token. */
   name: string|null = null
   /** The market symbol of the token. */
@@ -290,7 +290,7 @@ export interface SendFromAction {
 export type ViewingKey = string
 
 /** A contract's viewing key methods. */
-export class ViewingKeyClient extends Contract {
+export class ViewingKeyClient extends Chain.Contract {
 
   /** Create a random viewing key. */
   async create (entropy = randomBase64()) {

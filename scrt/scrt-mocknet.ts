@@ -1,18 +1,25 @@
-import { Batch } from '@fadroma/agent'
-import type {
-  UploadedCode, Into, ChainId, CodeHash, CodeId, Address, Message, Identity
-} from '@fadroma/agent'
-import {
-  Console, bold, Error, Stub, base16, sha256, into, bech32, randomBech32,
-  ContractInstance, brailleDump, Token, bip39, bip39EN
-} from '@fadroma/agent'
+import type { ChainId, CodeHash, CodeId, Address, Message } from '@fadroma/agent'
+import { Core, Chain, Stub, Token, Deploy } from '@fadroma/agent'
 import { ScrtMnemonicIdentity } from './scrt-identity'
+import {
+  ScrtConsole as Console,
+  base16,
+  base64,
+  bech32,
+  bip39,
+  bip39EN, 
+  bold,
+  brailleDump,
+  randomBech32,
+  sha256,
+  into,
+} from './scrt-base'
 import { Wallet } from '@hackbg/secretjs-esm'
 import * as secp256k1 from '@noble/secp256k1'
 import * as ed25519   from '@noble/ed25519'
 
 /** Chain instance containing a local mocknet. */
-class ScrtMocknetConnection extends Stub.Connection {
+class ScrtMocknetConnection extends Stub.StubConnection {
   static gasToken = new Token.Native('umock')
 
   declare backend: ScrtMocknetBackend
@@ -31,12 +38,12 @@ class ScrtMocknetConnection extends Stub.Connection {
   getApi () {
     return Promise.resolve({})
   }
-  doInstantiate (...args: Parameters<Stub.Connection["doInstantiate"]>) {
-    return this.backend.instantiate(this.address!, ...args) as Promise<ContractInstance & {
+  doInstantiate (...args: Parameters<Stub.StubConnection["doInstantiate"]>) {
+    return this.backend.instantiate(this.address!, ...args) as Promise<Deploy.ContractInstance & {
       address: Address
     }>
   }
-  doExecute (...args: Parameters<Stub.Connection["doExecute"]>): Promise<unknown> {
+  doExecute (...args: Parameters<Stub.StubConnection["doExecute"]>): Promise<unknown> {
     return this.backend.execute(this.address!, ...args)
   }
   doQuery <Q> (
@@ -51,7 +58,7 @@ class ScrtMocknetConnection extends Stub.Connection {
 
 export { ScrtMocknetConnection as Connection }
 
-class ScrtMocknetBatch extends Batch<ScrtMocknetConnection> {
+class ScrtMocknetBatch extends Chain.Batch<ScrtMocknetConnection> {
   messages: any[] = []
   async submit (memo = "") {
     this.log.info('Submitting mocknet batch...')
@@ -82,19 +89,19 @@ class ScrtMocknetBatch extends Batch<ScrtMocknetConnection> {
     throw new Error('MocknetBatch#save: not implemented')
   }
   upload (
-    ...args: Parameters<Batch<ScrtMocknetConnection>["upload"]>
+    ...args: Parameters<Chain.Batch<ScrtMocknetConnection>["upload"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
   }
   instantiate (
-    ...args: Parameters<Batch<ScrtMocknetConnection>["instantiate"]>
+    ...args: Parameters<Chain.Batch<ScrtMocknetConnection>["instantiate"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
   }
   execute (
-    ...args: Parameters<Batch<ScrtMocknetConnection>["execute"]>
+    ...args: Parameters<Chain.Batch<ScrtMocknetConnection>["execute"]>
   ) {
     this.log.warn('scrt mocknet batch: not implemented')
     return this
@@ -115,7 +122,7 @@ interface ScrtMocknetUpload {
   instances:       Set<Address>
 }
 
-class ScrtMocknetBackend extends Stub.Backend {
+class ScrtMocknetBackend extends Stub.StubBackend {
 
   /** Current block height. Increments when accessing nextBlock */
   height = 0
@@ -130,7 +137,7 @@ class ScrtMocknetBackend extends Stub.Backend {
     chainId  = 'scrt-mocknet',
     url      = 'http://fadroma.tech/scrt-mocknet',
     ...args
-  }: ConstructorParameters<typeof Stub.Backend>[0] = {}) {
+  }: ConstructorParameters<typeof Stub.StubBackend>[0] = {}) {
     super({ gasToken, prefix, chainId, url, ...args })
     this.accounts = new Map()
     this.balances = new Map()
@@ -163,8 +170,8 @@ class ScrtMocknetBackend extends Stub.Backend {
 
   //async instantiate (codeId: CodeId, options: unknown): Promise<Partial<ContractInstance> & {
   async instantiate (
-    creator: Address, ...args: Parameters<Stub.Connection["doInstantiate"]>
-  ): Promise<ContractInstance & {
+    creator: Address, ...args: Parameters<Stub.StubConnection["doInstantiate"]>
+  ): Promise<Deploy.ContractInstance & {
     address: Address
   }> {
     const [codeId, { codeHash, label, initSend, initMsg, initFee }] = args
@@ -195,7 +202,7 @@ class ScrtMocknetBackend extends Stub.Backend {
     await this.passCallbacks(cosmWasmVersion, address, messages)
     code.instances.add(address)
     this.instances.set(address, { address, codeId, creator })
-    return new ContractInstance({
+    return new Deploy.ContractInstance({
       chainId:  this.chainId,
       address:  address!,
       codeId,
@@ -203,7 +210,7 @@ class ScrtMocknetBackend extends Stub.Backend {
       label:    label!,
       initBy:   creator,
       initTx:   ''
-    }) as ContractInstance & { address: string }
+    }) as Deploy.ContractInstance & { address: string }
   }
 
   getContract (address?: Address|{ address: Address }) {
@@ -222,7 +229,7 @@ class ScrtMocknetBackend extends Stub.Backend {
 
   async execute (
     sender: Address,
-    { address }: Partial<ContractInstance>,
+    { address }: Partial<Deploy.ContractInstance>,
     message: Message,
     options?: {
       execSend?: unknown,
@@ -345,12 +352,15 @@ class ScrtMocknetBackend extends Stub.Backend {
     }
   }
 
-  getIdentity (name: string): Promise<Identity> {
-    return Promise.resolve(new ScrtMnemonicIdentity({ name, ...this.accounts.get(name) }))
+  getIdentity (name: string): Promise<Chain.Identity> {
+    return Promise.resolve(new ScrtMnemonicIdentity({
+      name,
+      ...this.accounts.get(name) 
+    }))
   }
 
   async connect (
-    parameter: string|Partial<Identity & { mnemonic?: string }> = {}
+    parameter: string|Partial<Chain.Identity & { mnemonic?: string }> = {}
   ): Promise<ScrtMocknetConnection> {
     if (typeof parameter === 'string') {
       parameter = await this.getIdentity(parameter)
