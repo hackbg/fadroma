@@ -1,14 +1,16 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { assign, Console, Error, base16, sha256, randomBech32 } from './base'
+import { assign, Console, Error, base16, sha256, randomBech32 } from './core'
 import type { ChainId, Address, Message, Label, TxHash } from './connect'
 import { Connection, Backend, Batch, Identity } from './connect'
-import type { CodeId, CodeHash } from './deploy'
-import { Compiler, SourceCode, CompiledCode, UploadedCode, ContractInstance } from './deploy.browser'
+import type { CodeHash } from './code.browser'
+import { Compiler, SourceCode, CompiledCode } from './code.browser'
+import type { CodeId } from './deploy'
+import { UploadedCode, ContractInstance } from './deploy'
 import * as Token from './token'
 
-class StubConnection extends Connection {
+export class StubConnection extends Connection {
   static gasToken: Token.Native = new Token.Native('ustub')
 
   backend: StubBackend
@@ -134,7 +136,7 @@ type StubInstance = {
   creator: Address
 }
 
-class StubBackend extends Backend {
+export class StubBackend extends Backend {
   gasToken   = new Token.Native('ustub')
   prefix     = 'stub1'
   chainId    = 'stub'
@@ -229,7 +231,7 @@ class StubBackend extends Backend {
   }
 }
 
-class StubBatch extends Batch<StubConnection> {
+export class StubBatch extends Batch<StubConnection> {
   messages: object[] = []
 
   upload (...args: Parameters<StubConnection["upload"]>) {
@@ -271,11 +273,4 @@ export class StubCompiler extends Compiler {
       codeHash: 'stub',
     })
   }
-}
-
-export {
-  StubConnection as Connection,
-  StubBackend    as Backend,
-  StubBatch      as Batch,
-  StubCompiler   as Compiler,
 }

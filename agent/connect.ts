@@ -2,10 +2,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program. If not, see <http://www.gnu.org/licenses/>. **/
 import { ContractInstance } from './deploy'
-import { Error, Logged, colors, bold, randomColor, into } from './base'
-import { assign, Console } from './base'
-import * as Deploy from './deploy.browser'
+import { Error, Logged, colors, bold, randomColor, into } from './core'
+import { assign, Console } from './core'
+import * as Code from './code'
+import * as Deploy from './deploy'
 import * as Token from './token'
+import * as Store from './store'
 
 // HACK: this class has an alternate implementation for non-browser environments.
 // This is because Next.js tries to parse the dynamic import('node:...') calls
@@ -14,7 +16,7 @@ import * as Token from './token'
 // version that can only fetch from URL using the global fetch method, and when
 // the library is loaded through the non-browser entrypoint, it gets substituted
 // to the version which can also load code from disk. (Ugh.)
-import { CompiledCode } from './deploy.browser'
+import { CompiledCode } from './code.browser'
 export const _$_HACK_$_ = { CompiledCode }
 
 export type ChainId = string
@@ -179,7 +181,7 @@ export abstract class Connection extends Endpoint {
   ): Promise<Deploy.CodeId>
 
   /** Get the code hash of a given code id. */
-  getCodeHashOfCodeId (contract: Deploy.CodeId|{ codeId: Deploy.CodeId }): Promise<Deploy.CodeHash> {
+  getCodeHashOfCodeId (contract: Deploy.CodeId|{ codeId: Deploy.CodeId }): Promise<Code.CodeHash> {
     const codeId = (typeof contract === 'object') ? contract.codeId : contract
     this.log.debug(`Querying code hash\n  code id ${bold(codeId)}\n  code hash = ?`)
     return timed(
@@ -192,10 +194,10 @@ export abstract class Connection extends Endpoint {
 
   abstract doGetCodeHashOfCodeId (
     codeId: Deploy.CodeId
-  ): Promise<Deploy.CodeHash>
+  ): Promise<Code.CodeHash>
 
   /** Get the code hash of a given address. */
-  getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Deploy.CodeHash> {
+  getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Code.CodeHash> {
     const address = (typeof contract === 'string') ? contract : contract.address
     this.log.debug(`Querying code hash:\n  ${bold(address)}\n  code hash = ?`)
     return timed(
@@ -208,7 +210,7 @@ export abstract class Connection extends Endpoint {
 
   abstract doGetCodeHashOfAddress (
     contract: Address
-  ): Promise<Deploy.CodeHash>
+  ): Promise<Code.CodeHash>
 
   /** Get a client handle for a specific smart contract, authenticated as as this agent. */
   getContract (
@@ -394,10 +396,10 @@ export abstract class Connection extends Endpoint {
 
   /** Upload a contract's code, generating a new code id/hash pair. */
   async upload (
-    code: string|URL|Uint8Array|Partial<Deploy.CompiledCode>,
+    code: string|URL|Uint8Array|Partial<Code.CompiledCode>,
     options: {
       reupload?:    boolean,
-      uploadStore?: Deploy.UploadStore,
+      uploadStore?: Store.UploadStore,
       uploadFee?:   Token.ICoin[]|'auto',
       uploadMemo?:  string
     } = {},
@@ -413,7 +415,7 @@ export abstract class Connection extends Endpoint {
         code = new _$_HACK_$_.CompiledCode(code)
       }
       const t0 = performance.now()
-      template = await (code as Deploy.CompiledCode).fetch()
+      template = await (code as Code.CompiledCode).fetch()
       const t1 = performance.now() - t0
       this.log.log(
         `Fetched in`, `${bold((t1/1000).toFixed(6))}s:\n `,

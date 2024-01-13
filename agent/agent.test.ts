@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['base',       ()=>import('./base.test')],
+  ['core',       ()=>import('./core.test')],
   ['connection', ()=>import('./connect.test')],
   ['deploy',     ()=>import('./deploy.test')],
   ['token',      ()=>import('./token.test')],

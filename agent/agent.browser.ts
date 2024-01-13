@@ -18,11 +18,15 @@
 
 **/
 
-export * from './base'
-export * from './connect'
-export type { ChainId, Address, Message, TxHash } from './connect'
-export * from './deploy.browser'
-export type { CodeId, CodeHash, } from './deploy.browser'
-export * as Token from './token'
-export type { Uint128, Uint256, Decimal128, Decimal256 } from './token'
+export * as Core from './core'
+export * as Chain from './connect'
+export * as Tokens from './token'
+export * as Deploy from './deploy'
+export * as Code from './code.browser'
+export * as Store from './store'
 export * as Stub from './stub'
+
+export type { ChainId, Address, Message, TxHash } from './connect'
+export type { CodeHash } from './code.browser'
+export type { CodeId } from './deploy'
+export type { Uint128, Uint256, Decimal128, Decimal256 } from './token'

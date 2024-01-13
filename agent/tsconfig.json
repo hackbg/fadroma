@@ -2,11 +2,14 @@
   "files": [
     "agent.ts",
     "agent.browser.ts",
-    "base.ts",
+    "core.ts",
+    "chain.ts",
     "connect.ts",
+    "code.ts",
+    "code.browser.ts",
     "deploy.ts",
-    "deploy.browser.ts",
     "stub.ts",
+    "store.ts",
     "token.ts"
   ],
   "include": [],

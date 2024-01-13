@@ -5,7 +5,7 @@ import assert, { equal, throws, rejects } from 'node:assert'
 import { Connection, Identity, Endpoint, Backend, Contract, Batch } from './connect'
 import { ContractInstance } from './deploy'
 import { fixture } from '@fadroma/fixtures'
-import { Error } from './base'
+import { Error } from './core'
 import * as Stub from './stub'
 
 import { Suite } from '@hackbg/ensuite'
@@ -18,7 +18,7 @@ export default new Suite([
 ])
 
 export async function testHeight () {
-  const connection = new Stub.Connection()
+  const connection = new Stub.StubConnection()
   assert(
     await connection.height)
   assert(
@@ -42,7 +42,7 @@ export async function testHeight () {
 
 export async function testCodes () {
 
-  const backend = new Stub.Backend({})
+  const backend = new Stub.StubBackend({})
   backend.uploads.set("123", { codeHash: "abc", codeData: new Uint8Array() } as any)
   backend.instances.set("stub1abc", {
     codeId:  "123",
@@ -50,7 +50,7 @@ export async function testCodes () {
     creator: 'stub1instancefoo'
   })
 
-  const connection = new Stub.Connection({ backend })
+  const connection = new Stub.StubConnection({ backend })
   assert.equal(
     await connection.getCodeId('stub1abc'), "123")
   assert.equal(
@@ -63,9 +63,9 @@ export async function testCodes () {
 export async function testAuth () {
   throws(()=>new Identity().sign(''))
   const identity = new Identity({ name: 'foo', address: 'foo1bar' })
-  const connection = new Stub.Connection({ identity })
+  const connection = new Stub.StubConnection({ identity })
   //assert.equal(connection[Symbol.toStringTag], 'stub (mocknet): testing1')
-  assert(connection instanceof Stub.Connection)
+  assert(connection instanceof Stub.StubConnection)
   assert(connection.identity?.address)
   assert(connection.identity?.name)
   connection.height
@@ -96,17 +96,17 @@ export async function testAuth () {
   await connection.execute({ address: 'stub' }, 'method', {})
   await connection.execute({ address: 'stub' }, {'method':'crystal'}, {})
 
-  throws(()=>new Stub.Connection().balance)
-  throws(()=>new Stub.Connection().getBalanceOf(null as any))
-  throws(()=>new Stub.Connection().getBalanceOf('addr', false as any))
-  assert(await new Stub.Connection().getBalanceOf('addr'))
-  throws(()=>new Stub.Connection().getBalanceIn(null as any))
-  throws(()=>new Stub.Connection().getBalanceIn('token', null as any))
-  assert(await new Stub.Connection().getBalanceIn('token', 'addr'))
+  throws(()=>new Stub.StubConnection().balance)
+  throws(()=>new Stub.StubConnection().getBalanceOf(null as any))
+  throws(()=>new Stub.StubConnection().getBalanceOf('addr', false as any))
+  assert(await new Stub.StubConnection().getBalanceOf('addr'))
+  throws(()=>new Stub.StubConnection().getBalanceIn(null as any))
+  throws(()=>new Stub.StubConnection().getBalanceIn('token', null as any))
+  assert(await new Stub.StubConnection().getBalanceIn('token', 'addr'))
 }
 
 export async function testBatch () {
-  const connection = new Stub.Connection({ identity: new Identity() })
+  const connection = new Stub.StubConnection({ identity: new Identity() })
   const batch = connection.batch()
     .upload({})
     .upload({})
@@ -120,7 +120,7 @@ export async function testBatch () {
 
 export async function testClient () {
   const instance   = { address: 'addr', codeHash: 'code-hash-stub', codeId: '100' }
-  const connection = new Stub.Connection()
+  const connection = new Stub.StubConnection()
   const client     = connection.getContract(instance)
   assert.equal(client.connection, connection)
   assert.equal(client.instance, instance)
