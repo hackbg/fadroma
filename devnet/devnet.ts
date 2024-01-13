@@ -23,9 +23,24 @@ export default class DevnetCLI extends CLI {
     this.log.label = ``//${packageName} ${packageVersion}`
   }
 
+  async printUsageNoCommand (arg0: this) {
+    await this.listDevnets()
+    this.log
+      .info()
+      .info(bold('Available commands:'))
+      .info()
+    return this.printUsage(arg0)
+  }
+
+  printUsageOnly = this.command2({
+    name: 'usage',
+    info: 'print available commands without listing devnets',
+    args: ''
+  }, () => this.printUsage(this))
+
   listPlatforms = this.command2({
     name: 'platforms',
-    info: 'list supported platforms',
+    info: 'show supported platforms',
     args: ''
   }, () => {
     this.log
@@ -138,7 +153,7 @@ export default class DevnetCLI extends CLI {
       this.log
         .info()
         .info('No devnets in', bold(devnetsDir.path))
-        .info()
+        .info('Invoke the', bold('launch'), 'command to create and start your first devnet!')
 
     }
 
