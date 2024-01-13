@@ -4,8 +4,9 @@
 import $, { JSONFile, JSONDirectory, Directory, XDG } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/agent'
-import { bold } from '@fadroma/agent'
+import { colors, bold } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
+import { OCIConnection, OCIContainer, OCIImage } from '@fadroma/oci'
 import { packageName, packageVersion } from './package'
 import ScrtContainer from './devnet-scrt'
 import OKP4Container from './devnet-okp4'
@@ -22,11 +23,16 @@ export default class DevnetCLI extends CLI {
     this.log.label = ``//${packageName} ${packageVersion}`
   }
 
-  listPlatforms = this.command('platforms', 'list supported platforms', () => {
+  listPlatforms = this.command2({
+    name: 'platforms',
+    info: 'list supported platforms',
+    args: ''
+  }, () => {
     this.log
+      .info()
       .info('Supported platforms:')
       .info()
-      .info(' ', bold(`PLATFORM`), '', bold(`VERSION`), '', `Description`)
+      .info(' ', bold(`PLATFORM`), '', bold(`VERSION`), '', bold(`DESCRIPTION`))
       .info()
     for (const v of Object.keys(ScrtContainer.v)) {
       this.log.info(' ', bold(`scrt      ${v}    `), ` Secret Network ${v}`)
@@ -41,7 +47,101 @@ export default class DevnetCLI extends CLI {
     name: 'list',
     info: 'list existing devnets',
     args: ''
-  }, () => {
+  }, async () => {
+    const engine = new OCIConnection()
+    const devnetsDir = $(
+      XDG({ expanded: true, subdir: 'fadroma' }).data.home, 'devnets'
+    ).as(Directory)
+    const devnets = devnetsDir.list()
+
+    if (devnets.length > 0) {
+
+      this.log
+        .info()
+        .info(`Found ${bold(devnets.length)} devnet(s) in ${bold(devnetsDir.path)}:`)
+        .info()
+
+      const longest = {
+        name:      'CHAIN ID'.length,
+        container: 'IMAGE / CONTAINER'.length
+      }
+      const receipts = {}
+      for (const name of devnets) {
+        longest.name = Math.max(longest.name, name.length)
+        const receipt = $(devnetsDir, name, 'devnet.json').as(JSONFile) as JSONFile<any>
+        if (receipt.exists()) {
+          const { image = '', container = '' } = receipts[name] = receipt.load()
+          longest.container = Math.max(longest.container, image.length + 4)
+          longest.container = Math.max(longest.container, container.length + 4)
+        }
+      }
+      let hasMissing = false
+      this.log
+        .info(' ', bold([
+          'CHAIN ID'.padEnd(longest.name),
+          'RECEIPT',
+          'IMAGE/CONTAINER'.padEnd(longest.container),
+        ].join('  ')))
+        .info()
+      const present = '[X] '
+      const missing = '[ ] '
+      for (const name of devnets) {
+        let receiptExists   = colors.red('missing'.padEnd('RECEIPT'.length))
+        let imageExists     = colors.red('missing'.padEnd(longest.container))
+        let containerExists = colors.red('missing'.padEnd(longest.container))
+        const receipt = $(devnetsDir, name, 'devnet.json').as(JSONFile) as JSONFile<any>
+        if (receipt.exists()) {
+          receiptExists = colors.green('present'.padEnd('RECEIPT'.length))
+          const { image, container } = receipt.load()
+          if (image) {
+            if (await engine.image(image).exists) {
+              imageExists = colors.green(present + image.padEnd(longest.container))
+            } else {
+              imageExists = colors.red(missing + image.padEnd(longest.container))
+              hasMissing = true
+            }
+          } else {
+            hasMissing = true
+          }
+          if (container) {
+            if (await engine.container(container).exists) {
+              containerExists = colors.green(present + container.padEnd('CONTAINER'.length))
+            } else {
+              containerExists = colors.red(missing + container.padEnd('CONTAINER'.length))
+              hasMissing = true
+            }
+          } else {
+            hasMissing = true
+          }
+        }
+        this.log
+          .info(' ', bold([
+            name.padEnd(longest.name),
+            receiptExists,
+            imageExists.padEnd(longest.container),
+          ].join('  ')))
+          .info(' ', bold([
+            ''.padEnd(longest.name),
+            ''.padEnd('RECEIPT'.length),
+            containerExists.padEnd(longest.container)
+          ].join('  ')))
+          .info()
+      }
+      if (hasMissing) {
+        this.log
+          .info('Some devnets depend on missing resources.')
+          .info('Invoke', bold('fadroma-devnet prune'), 'to remove them.')
+      }
+
+    } else {
+
+      this.log
+        .info()
+        .info('No devnets in', bold(devnetsDir.path))
+        .info()
+
+    }
+
   })
 
   createDevnet = this.command2({
@@ -147,9 +247,16 @@ export default class DevnetCLI extends CLI {
     })
     devnet.container.id = container
     devnet.container.image.name = image
-    console.log(devnet)
-    await devnet.started
-    this.log.log('Devnet started.')
+    try {
+      await devnet.started
+      this.log.log('Devnet started.')
+    } catch (e) {
+      if (e.statusCode === 304) {
+        this.log.info('This container is already running')
+      } else {
+        throw e
+      }
+    }
   })
 
   pauseDevnet = this.command2({
@@ -157,6 +264,7 @@ export default class DevnetCLI extends CLI {
     info: 'pause a devnet',
     args: 'CHAIN-ID'
   }, (chainId: string) => {
+    throw new Error('not implemented')
   })
 
   exportDevnet = this.command2({
@@ -164,6 +272,7 @@ export default class DevnetCLI extends CLI {
     info: 'export snapshot of devnet as container image',
     args: 'CHAIN-ID [IMAGE-TAG]',
   }, (chainId: string, imageTag?: string) => {
+    throw new Error('not implemented')
   })
 
   removeDevnet = this.command2({
@@ -171,6 +280,46 @@ export default class DevnetCLI extends CLI {
     info: 'erase a devnet',
     args: 'CHAIN-ID'
   }, (chainId: string) => {
+    throw new Error('not implemented')
+  })
+
+  pruneDevnets = this.command2({
+    name: 'prune',
+    info: 'delete broken devnets',
+    args: ''
+  }, async () => {
+    const engine = new OCIConnection()
+    const devnetsDir = $(
+      XDG({ expanded: true, subdir: 'fadroma' }).data.home, 'devnets'
+    ).as(Directory)
+    const devnets = devnetsDir.list()
+    const missing: Set<string> = new Set()
+    for (const devnet of devnets) {
+      const devnetFile    = $(devnetsDir, devnet, 'devnet.json').as(JSONFile) as JSONFile<any>
+      let receiptExists   = colors.red('missing'.padEnd('RECEIPT'.length))
+      let imageExists     = colors.red('missing'.padEnd('IMAGE'.length))
+      let containerExists = colors.red('missing'.padEnd('CONTAINER'.length))
+      if (devnetFile.exists()) {
+        receiptExists = colors.green('exists'.padEnd('RECEIPT'.length))
+        const { image, container } = devnetFile.load()
+        if (await engine.image(image).exists) {
+          imageExists = colors.green('exists'.padEnd('IMAGE'.length))
+        } else {
+          missing.add(devnet)
+        }
+        if (await engine.container(container).exists) {
+          containerExists = colors.green('exists'.padEnd('CONTAINER'.length))
+        } else {
+          missing.add(devnet)
+        }
+      } else {
+        missing.add(devnet)
+      }
+    }
+    for (const devnet of missing) {
+      this.log.log(`Removing ${bold(devnet)}...`)
+      $(devnetsDir, devnet).delete()
+    }
   })
 
 }

@@ -7,8 +7,10 @@ const { join, resolve, relative } = require('path')
 const { readFileSync } = require('fs')
 const { Console, bold, colors } = require('@hackbg/logs')
 const pkgj = JSON.parse(readFileSync(resolve(__dirname, 'package.json')), 'utf8')
-console = new Console(`${pkgj.name} ${pkgj.version}`)
+console = new Console()
 console
+  .log(
+    `Starting ${pkgj.name} ${pkgj.version}...`)
   .log(colors.green(
     '█▀▀▀▀ █▀▀▀█ █▀▀▀▄ █▀▀▀█ █▀▀▀█ █▀█▀█ █▀▀▀█'))
   .log(colors.green(

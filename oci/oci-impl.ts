@@ -84,7 +84,7 @@ export function waitStream (
 
     function waitStream_onData (data: any) {
       try {
-        console.log("wat")
+        //console.log("wat")
         const dataStr = String(data).trim()
         if (trail) {
           trail(dataStr)

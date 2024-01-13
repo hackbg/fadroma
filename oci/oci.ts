@@ -113,13 +113,8 @@ export class OCIConnection extends Connection {
     return new OCIImage({ engine: this, name, dockerfile, extraFiles })
   }
 
-  async container (id: string): Promise<OCIContainer> {
-    const container = await this.api.getContainer(id)
-    const { Image, Name: name, Args: command, Path: entrypoint } = await container.inspect()
-    const image = this.image(Image)
-    return Object.assign(new OCIContainer({
-      image, name, command, entrypoint
-    }), { container })
+  container (id: string): OCIContainer {
+    return new OCIContainer({ engine: this, id })
   }
 }
 
@@ -175,6 +170,18 @@ export class OCIImage extends ContractTemplate {
       throw new OCIError.NoDockerode()
     }
     return this.engine.api as unknown as Docker
+  }
+
+  /** Get info about a container. */
+  async inspect () {
+    return this.api.getImage(this.name).inspect()
+  }
+
+  get exists (): Promise<boolean> {
+    return this.inspect().then(()=>true).catch(e=>{
+      if (e.statusCode === 404) return false
+      throw e
+    })
   }
 
   /** Throws if inspected image does not exist locally. */
