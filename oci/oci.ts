@@ -343,11 +343,11 @@ export class OCIContainer extends ContractInstance {
     const opts = toDockerodeOptions(this)
     this.image.log.creatingContainer(opts.name)
     // Log mounted volumes
-    this.log.boundVolumes(opts?.HostConfig?.Binds ?? [])
+    //this.log.boundVolumes(opts?.HostConfig?.Binds ?? [])
     // Log exposed ports
     for (const [containerPort, config] of Object.entries(opts?.HostConfig?.PortBindings ?? {})) {
       for (const { HostPort = '(unknown)' } of config as Array<{HostPort: unknown}>) {
-        this.log.boundPort(containerPort, HostPort)
+        //this.log.boundPort(containerPort, HostPort)
       }
     }
     // Make sure the image exists
@@ -367,14 +367,18 @@ export class OCIContainer extends ContractInstance {
 
   /** Remove a stopped container. */
   async remove (): Promise<this> {
-    if (this.container) await this.container.remove()
+    if (this.container) {
+      await this.container.remove()
+    }
     this.container = null
     return this
   }
 
   /** Start a container. */
   async start (): Promise<this> {
-    if (!this.container) await this.create()
+    if (!this.container) {
+      await this.create()
+    }
     await this.container!.start()
     return this
   }

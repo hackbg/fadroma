@@ -7,7 +7,6 @@ import type { CodeId, ChainId, Address, Uint128, CompiledCode } from '@fadroma/a
 import { bold } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
 import { packageName, packageVersion } from './package'
-import Container from './devnet-base'
 import ScrtContainer from './devnet-scrt'
 import OKP4Container from './devnet-okp4'
 
@@ -85,10 +84,14 @@ export default class FadromaDevnetCLI extends CLI {
       }
     }
     const devnet = new Platform({ version })
-    this.log.log(`Creating`, bold(devnet.chainId), `from`, bold(devnet.container.image.name))
+    this.log
+      .log('Creating devnet...')
+      .log(`Chain ID: `, bold(devnet.chainId))
+      .log(`Image:    `, bold(devnet.container.image.name))
     await devnet.created
-    this.log.log(`Created container`, bold(devnet.container.id))
-    this.log.log(`State file:`, bold(devnet.stateFile.path))
+    this.log
+      .log(`Container:`, bold(devnet.container.id))
+      .log(`Receipt:  `, bold(devnet.stateFile.path))
     return devnet
   })
 

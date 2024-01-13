@@ -5,7 +5,7 @@
 import deasync from 'deasync'
 import { onExit } from 'gracy'
 import portManager from '@hackbg/port'
-import $, { JSONFile } from '@hackbg/file'
+import $, { JSONFile, XDG } from '@hackbg/file'
 import { Console, bold, colors, randomBase16, randomColor } from '@fadroma/agent'
 import { OCIImage, OCIConnection } from '@fadroma/oci'
 import type { Path } from '@hackbg/file'
@@ -30,6 +30,9 @@ export function initContainer (devnet: $D<'log'|'container'>) {
     devnet.container.image = new OCIImage()
   }
   devnet.container.image.log.label = devnet.log.label
+  if (!devnet.container.image.engine) {
+    devnet.container.image.engine = new OCIConnection()
+  }
   return devnet
 }
 
@@ -68,20 +71,24 @@ export function initState (
   devnet:  $D<'stateDir'|'stateFile'|'chainId'>,
   options: Partial<$D<'stateDir'|'stateFile'>>
 ) {
-  devnet.stateDir = $(options.stateDir ?? $('state', devnet.chainId).path)
-  devnet.stateFile = $(options.stateFile ?? $(devnet.stateDir, 'devnet.json')).as(JSONFile)
-  if ($(devnet.stateDir).isDirectory() && devnet.stateFile.isFile()) {
-    try {
-      const state = (devnet.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
-      // Options always override stored state
-      options = { ...state, ...options }
-    } catch (e) {
-      console.error(e)
-      throw new Error(
-        `failed to load devnet state from ${devnet.stateFile.path}: ${e.message}`
-      )
-    }
-  }
+  devnet.stateDir = $(options.stateDir ?? $(
+    XDG({ expanded: true, subdir: 'fadroma' }).data.home, 'devnets', devnet.chainId
+  ).path)
+  devnet.stateFile = $(options.stateFile ?? $(
+    devnet.stateDir, 'devnet.json'
+  )).as(JSONFile)
+  //if ($(devnet.stateDir).isDirectory() && devnet.stateFile.isFile()) {
+    //try {
+      //const state = (devnet.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
+      //// Options always override stored state
+      //options = { ...state, ...options }
+    //} catch (e) {
+      //console.error(e)
+      //throw new Error(
+        //`failed to load devnet state from ${devnet.stateFile.path}: ${e.message}`
+      //)
+    //}
+  //}
   return devnet
 }
 
@@ -116,7 +123,7 @@ export async function createDevnetContainer (
     devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.id.slice(0, 8)))
   } else {
     if (devnet.verbose) {
-      devnet.log.debug('Creating container for', bold(devnet.chainId))
+      //devnet.log.debug('Creating container for', bold(devnet.chainId))
     }
     // ensure we have image and chain id
     if (!devnet.container.image) {
@@ -128,13 +135,13 @@ export async function createDevnetContainer (
     // if port is unspecified or taken, increment
     devnet.nodePort = await portManager.getFreePort(devnet.nodePort)
     // create container
-    devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
+    //devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
     devnet.container.name      = devnet.chainId
     devnet.container.options   = containerOptions(devnet)
     devnet.container.command   = devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
     devnet.container.log.label = devnet.log.label
     await devnet.container.create()
-    setExitHandler(devnet)
+    //setExitHandler(devnet)
     // set id and save
     if (devnet.verbose) {
       devnet.log.debug(`Created container:`, bold(devnet.container.id.slice(0, 8)))
@@ -442,6 +449,19 @@ export async function forceDelete (
   await cleanupContainer.wait()
   devnet.log(`Deleted ${path}/* via cleanup container.`)
   //$(devnet.stateDir).delete()
+}
+
+export function initContainerState (devnet: DevnetContainer) {
+  const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
+    enumerable:   true,
+    configurable: true,
+    get
+  })
+  defineGetter('created', () => {
+    const creating = createDevnetContainer(devnet)
+    defineGetter('created', () => creating)
+    return creating
+  })
 }
 
 //type State = 'missing'|'creating'|'paused'|'starting'|'running'|'pausing'|'deleting'

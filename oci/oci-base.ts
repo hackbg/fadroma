@@ -65,7 +65,7 @@ export class OCIConsole extends Console {
   buildingFromDockerfile = (file: string) =>
     this.log(`Using dockerfile:`, bold(file))
   creatingContainer (name?: string) {
-    return this.log(`Creating container`, bold(name))
+    //return this.log(`Creating container`, bold(name))
   }
   boundPort (containerPort: any, hostPort: any) {
     return this.debug(`port localhost:${bold(hostPort)} => :${bold(containerPort)}`)

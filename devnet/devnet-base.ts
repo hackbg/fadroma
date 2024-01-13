@@ -91,7 +91,7 @@ export default abstract class DevnetContainer extends Backend {
     Impl.initState(this, options)
     Impl.initDynamicUrl(this)
     Impl.initContainer(this)
-    //Impl.initContainerState(this)
+    Impl.initContainerState(this)
   }
 
   /** Wait for the devnet to be created. */
