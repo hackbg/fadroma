@@ -394,8 +394,8 @@ importers:
         specifier: 1.4.0
         version: 1.4.0
       dockerode:
-        specifier: ^3.3.5
-        version: 3.3.5
+        specifier: ^4.0.2
+        version: 4.0.2
     devDependencies:
       '@hackbg/ensuite':
         specifier: ^1.1.1
@@ -4214,24 +4214,24 @@ packages:
       path-type: 4.0.0
     dev: true
 
-  /docker-modem@3.0.8:
-    resolution: {integrity: sha512-f0ReSURdM3pcKPNS30mxOHSbaFLcknGmQjwSfmbcdOw1XWKXVhukM3NJHhr7NpY9BIyyWQb0EBo3KQvvuU5egQ==}
+  /docker-modem@5.0.3:
+    resolution: {integrity: sha512-89zhop5YVhcPEt5FpUFGr3cDyceGhq/F9J+ZndQ4KfqNvfbJpPMfgeixFgUj5OjCYAboElqODxY5Z1EBsSa6sg==}
     engines: {node: '>= 8.0'}
     dependencies:
       debug: 4.3.4
       readable-stream: 3.6.2
       split-ca: 1.0.1
-      ssh2: 1.14.0
+      ssh2: 1.15.0
     transitivePeerDependencies:
       - supports-color
     dev: false
 
-  /dockerode@3.3.5:
-    resolution: {integrity: sha512-/0YNa3ZDNeLr/tSckmD69+Gq+qVNhvKfAHNeZJBnp7EOP6RGKV8ORrJHkUn20So5wU+xxT7+1n5u8PjHbfjbSA==}
+  /dockerode@4.0.2:
+    resolution: {integrity: sha512-9wM1BVpVMFr2Pw3eJNXrYYt6DT9k0xMcsSCjtPvyQ+xa1iPg/Mo3T/gUcwI0B2cczqCeCYRPF8yFYDwtFXT0+w==}
     engines: {node: '>= 8.0'}
     dependencies:
       '@balena/dockerignore': 1.0.2
-      docker-modem: 3.0.8
+      docker-modem: 5.0.3
       tar-fs: 2.0.1
     transitivePeerDependencies:
       - supports-color
@@ -8459,8 +8459,8 @@ packages:
   /sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
-  /ssh2@1.14.0:
-    resolution: {integrity: sha512-AqzD1UCqit8tbOKoj6ztDDi1ffJZ2rV2SwlgrVVrHPkV5vWqGJOVp5pmtj18PunkPJAuKQsnInyKV+/Nb2bUnA==}
+  /ssh2@1.15.0:
+    resolution: {integrity: sha512-C0PHgX4h6lBxYx7hcXwu3QWdh4tg6tZZsTfXcdvc5caW/EMxaB4H9dWsl7qk+F7LAW762hp8VbXOX7x4xUYvEw==}
     engines: {node: '>=10.16.0'}
     requiresBuild: true
     dependencies:

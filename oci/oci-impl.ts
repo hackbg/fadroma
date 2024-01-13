@@ -62,7 +62,7 @@ export function waitStream (
   expected:   string,
   thenDetach: boolean = true,
   trail:      (data: string) => unknown = ()=>{},
-  { log }:    Console = new Console()
+  console:    Console = new Console()
 ): Promise<void> {
 
   return new Promise((resolve, reject)=>{
@@ -75,9 +75,11 @@ export function waitStream (
     }
 
     function waitStream_onError (error: any) {
+      console.error(`Stream error:`, error)
       reject(error)
       stream.off('error', waitStream_onError)
       stream.off('data', waitStream_onData)
+      //stream.destroy()
     }
 
     function waitStream_onData (data: any) {
@@ -88,9 +90,11 @@ export function waitStream (
           trail(dataStr)
         }
         if (dataStr.indexOf(expected) > -1) {
-          log(`Found expected message:`, bold(expected))
+          console.log(`Found expected message:`, bold(expected))
           stream.off('data', waitStream_onData)
-          if (thenDetach) stream.destroy()
+          if (thenDetach) {
+            stream.destroy()
+          }
           resolve()
         }
       } catch (e) {

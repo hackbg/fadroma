@@ -11,7 +11,7 @@
   "files":        [ "README.md", "*.ts" ],
   "dependencies": {
     "colors":       "1.4.0",
-    "dockerode":    "^3.3.5",
+    "dockerode":    "^4.0.2",
     "@hackbg/logs": "workspace:^",
     "@hackbg/oops": "workspace:^",
     "@hackbg/file": "workspace:^",
