@@ -11,7 +11,7 @@ import { OCIImage, OCIConnection } from '@fadroma/oci'
 import type { Path } from '@hackbg/file'
 import type { Connection, Identity } from '@fadroma/agent'
 import type { default as DevnetContainer } from './devnet-base'
-import type { APIMode } from './devnet'
+import type { APIMode } from './devnet-base'
 
 const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
 
@@ -195,14 +195,17 @@ export async function deleteDevnetContainer (
 
 /** Write the state of the devnet to a file.
   * This saves the info needed to respawn the node */
-async function saveDevnetState (devnet: $D<'chainId'|'container'|'nodePort'> & {
+async function saveDevnetState (devnet: $D<
+  'platformName'|'platformVersion'|'chainId'|'container'|'nodePort'
+> & {
   stateFile: { save (data: object) }
 }) {
   devnet.stateFile.save({
-    chainId:   devnet.chainId,
-    image:     devnet.container.image.name,
-    container: devnet.container.id,
-    nodePort:  devnet.nodePort,
+    platformName:    devnet.platformName,
+    platformVersion: devnet.platformVersion,
+    image:           devnet.container.image.name,
+    container:       devnet.container.id,
+    nodePort:        devnet.nodePort,
   })
 }
 
@@ -466,6 +469,11 @@ export function initContainerState (devnet: DevnetContainer) {
     const creating = createDevnetContainer(devnet)
     defineGetter('created', () => creating)
     return creating
+  })
+  defineGetter('started', () => {
+    const starting = startDevnetContainer(devnet)
+    defineGetter('started', () => starting)
+    return starting
   })
 }
 

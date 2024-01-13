@@ -13,18 +13,24 @@ type ScrtVersion = `1.${2|3|4|5|6|7|8|9}`
 export default class ScrtContainer<V extends ScrtVersion> extends DevnetContainer {
 
   constructor ({
-    version = '1.9', ...properties
+    platformVersion = '1.9',
+    ...properties
   }: Partial<ScrtContainer<V> & {
-    version: keyof typeof ScrtContainer.v
+    platformVersion: ScrtVersion
   }>) {
     const supported = Object.keys(new.target.v)
-    if (!supported.includes(version)) {
+    if (!supported.includes(platformVersion)) {
       throw new Error(
-        `Unsupported version: ${version}. ` +
+        `Unsupported version: ${platformVersion}. ` +
         `Specify one of the following: ${Object.keys(ScrtContainer.v).join(', ')}`
       )
     }
-    super({ ...new.target.v[version] || {}, ...properties })
+    super({
+      ...new.target.v[platformVersion] || {}, 
+      ...properties,
+      platformVersion,
+      platformName: 'scrt',
+    })
   }
 
   async connect (parameter: string|Partial<ScrtMnemonicIdentity & {

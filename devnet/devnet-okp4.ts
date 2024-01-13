@@ -12,18 +12,24 @@ type OKP4Version = '5.0'
 export default class OKP4Container<V extends OKP4Version> extends DevnetContainer {
 
   constructor ({
-    version = '5.0', ...properties
+    platformVersion = '5.0',
+    ...properties
   }: Partial<OKP4Container<V> & {
-    version: keyof typeof OKP4Container.v
+    platformVersion: OKP4Version
   }>) {
     const supported = Object.keys(new.target.v)
-    if (!supported.includes(version)) {
+    if (!supported.includes(platformVersion)) {
       throw new Error(
-        `Unsupported version: ${version}. ` +
+        `Unsupported version: ${platformVersion}. ` +
         `Specify one of the following: ${Object.keys(OKP4Container.v).join(', ')}`
       )
     }
-    super({ ...new.target.v[version] || {}, ...properties })
+    super({
+      ...new.target.v[platformVersion] || {},
+      ...properties,
+      platformVersion,
+      platformName: 'okp4',
+    })
   }
 
   async connect (parameter: string|Partial<OKP4MnemonicIdentity & {

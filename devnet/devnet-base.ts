@@ -15,14 +15,26 @@ import {
 import type { Address, CodeId, Uint128, CompiledCode, Connection } from '@fadroma/agent'
 
 import { packageRoot } from './package'
-import type { APIMode } from './devnet'
 import * as Impl from './devnet-impl'
+
+/** Identifiers of supported platforms. */
+export type Platform = 'scrt'|'okp4'
+
+/** Identifiers of supported API endpoints.
+  * These are different APIs exposed by a node at different ports.
+  * One of these is used by default - can be a different one
+  * depending on platform version. */
+export type APIMode = 'http'|'rpc'|'grpc'|'grpcWeb'
 
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
 export default abstract class DevnetContainer extends Backend {
   /** Whether more detailed output is preferred. */
   verbose:              boolean       = false
+  /** Name of devnet platform. */
+  platformName:         Platform
+  /** Version of devnet platform. */
+  platformVersion:      string
   /** Container instance of devnet. */
   container:            OCIContainer  = new OCIContainer()
   /** The protocol of the API URL without the trailing colon. */
@@ -81,7 +93,8 @@ export default abstract class DevnetContainer extends Backend {
       'nodePortMode',
       'nodeProtocol',
       'onExit',
-      'platform',
+      'platformName',
+      'platformVersion',
       'waitString',
       'verbose',
     ])

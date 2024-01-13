@@ -15,22 +15,7 @@ export {
   OKP4Container,
 }
 
-/** Identifiers of supported platforms. */
-export type Platform =
-  | `scrt_1.${2|3|4|5|6|7|8|9}`
-  | `okp4_5.0`
-
-/** Identifiers of supported API endpoints.
-  * These are different APIs exposed by a node at different ports.
-  * One of these is used by default - can be a different one
-  * depending on platform version. */
-export type APIMode =
-  |'http'
-  |'rpc'
-  |'grpc'
-  |'grpcWeb'
-
-export default class FadromaDevnetCLI extends CLI {
+export default class DevnetCLI extends CLI {
 
   constructor (...args: ConstructorParameters<typeof CLI>) {
     super(...args)
@@ -94,7 +79,6 @@ export default class FadromaDevnetCLI extends CLI {
       .log(`  Container:`, bold(devnet.container.id))
       .log(`  Receipt:  `, bold(devnet.stateFile.path))
       .log()
-      .br()
       .info(
         `Devnet created. Invoke`,
         `"${bold(`fadroma-devnet start ${devnet.chainId}`)}"`,
@@ -114,10 +98,11 @@ export default class FadromaDevnetCLI extends CLI {
     const stateFile = $(
       stateDir, 'devnet.json'
     ).as(JSONFile) as JSONFile<{
-      platform:  string
-      version:   string
-      container: string
-      image:     string
+      platformName:    string
+      platformVersion: string
+      container:       string
+      image:           string
+      nodePort:        string
     }>
     if (!stateDir.exists||!stateFile.exists) {
       if (!stateDir.exists) {
@@ -135,13 +120,14 @@ export default class FadromaDevnetCLI extends CLI {
         )
     }
     const {
-      platform,
-      version,
-      container,
+      platformName,
+      platformVersion,
       image,
+      container,
+      nodePort,
     } = stateFile.load()
     let Devnet
-    switch (platform) {
+    switch (platformName) {
       case 'scrt':
         Devnet = ScrtContainer
         break
@@ -149,13 +135,15 @@ export default class FadromaDevnetCLI extends CLI {
         Devnet = OKP4Container
         break
       default:
-        this.log.error(`Receipt contained unsupported platform ${bold(platform)}.`)
+        this.log.error(`Receipt contained unsupported platform ${bold(platformName)}.`)
         process.exit(1)
     }
     const devnet = new Devnet({
-      version,
+      platformVersion,
       stateDir,
       stateFile,
+      chainId,
+      nodePort
     })
     await devnet.started
     this.log.log('Devnet started.')
@@ -170,7 +158,7 @@ export default class FadromaDevnetCLI extends CLI {
 
   exportDevnet = this.command2({
     name: 'export',
-    info: 'export a snapshot of a devnet as a container image',
+    info: 'export snapshot of devnet as container image',
     args: 'CHAIN-ID [IMAGE-TAG]',
   }, (chainId: string, imageTag?: string) => {
   })

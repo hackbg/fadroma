@@ -587,11 +587,11 @@ export abstract class Backend extends Logged {
   /** Denomination of base gas token for this chain. */
   gasToken?: Token.Native
   /** The chain ID that will be passed to the devnet node. */
-  chainId?: ChainId
+  chainId?:  ChainId
   /** Is this thing on? */
-  running: boolean = false
+  running:   boolean = false
   /** URL for connecting to a remote devnet. */
-  url?: string|URL
+  url?:      string|URL
 
   constructor (properties?: Partial<Backend>) {
     super(properties)
