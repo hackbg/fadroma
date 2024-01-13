@@ -400,7 +400,6 @@ export class OCIContainer extends Deploy.ContractInstance {
         this.log.debug(data)
       }
     }
-    console.log({stream})
     return await waitStream(
       stream as any,
       expected,

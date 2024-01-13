@@ -120,7 +120,7 @@ export async function createDevnetContainer (
     & $D<'container'|'verbose'|'initScript'|'url'>
 ): Promise<void> {
   if (await devnet.container.exists) {
-    devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.id.slice(0, 8)))
+    devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.shortId))
   } else {
     if (devnet.verbose) {
       devnet.log.debug('Creating container for', bold(devnet.chainId))
@@ -146,7 +146,7 @@ export async function createDevnetContainer (
     //setExitHandler(devnet)
     // set id and save
     if (devnet.verbose) {
-      devnet.log.debug(`Created container:`, bold(devnet.container.id.slice(0, 8)))
+      devnet.log.debug(`Created container:`, bold(devnet.container.shortId))
     }
     await saveDevnetState(devnet)
     if (devnet.verbose) {
@@ -164,7 +164,7 @@ export async function deleteDevnetContainer (
     container = await devnet.container
   } catch (e) {
     if (e.statusCode === 404) {
-      devnet.log(`No container found`, bold(devnet.container.id.slice(0, 8)))
+      devnet.log(`No container found`, bold(devnet.container.shortId))
     } else {
       throw e
     }
@@ -242,12 +242,12 @@ export async function pauseDevnetContainer (
 ) {
   const container = await devnet.container
   if (container) {
-    devnet.log.debug(`Stopping container:`, bold(devnet.container.id.slice(0, 8)))
+    devnet.log.debug(`Stopping container:`, bold(devnet.container.shortId))
     try {
       if (await container.isRunning) await container.kill()
     } catch (e) {
       if (e.statusCode == 404) {
-        devnet.log.warn(`Container ${bold(devnet.container.id.slice(0, 8))} not found`)
+        devnet.log.warn(`Container ${bold(devnet.container.shortId)} not found`)
       } else {
         throw e
       }
@@ -407,12 +407,12 @@ function defineExitHandler (
     } else {
       this.log.log(
         'Devnet is running on port', bold(String(this.nodePort)),
-        `from container`, bold(this.container.id.slice(0,8))
+        `from container`, bold(this.container.shortId)
       ).info('To remove the devnet:'
       ).info('  $ npm run devnet reset'
       ).info('Or manually:'
-      ).info(`  $ docker kill`, this.container.id.slice(0,8),
-      ).info(`  $ docker rm`, this.container.id.slice(0,8),
+      ).info(`  $ docker kill`, this.container.shortId,
+      ).info(`  $ docker rm`, this.container.shortId,
       ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
     }
     this.log.debug('Exit handler complete')

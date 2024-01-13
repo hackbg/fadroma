@@ -20,7 +20,10 @@ coverage:
     - "devnet/devnet.init.mjs"
 
     - "dist/**/*"
+
     - "docs"
+    - "*/docs"
+
     - "examples/**/*"
     - "fadroma.browser.ts"
     - "fadroma.cli.cjs"
