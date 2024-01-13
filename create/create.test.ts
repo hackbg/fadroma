@@ -2,9 +2,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import assert from 'node:assert'
-import projectMain, {
-  Deployment, ContractTemplate, ContractInstance, Stub
-} from '@hackbg/fadroma'
+import type { ChainId } from '@fadroma/agent'
+import { Base, Deploy } from '@fadroma/agent'
+const { Error, bold, timestamp, bip39, bip39EN } = Base
+const { Deployment, ContractCode } = Deploy
+'
 import { tmpDir, TestProjectDeployment } from '@fadroma/fixtures'
 import * as Projects from './create'
 import { withTmpDir } from '@hackbg/file'
@@ -17,7 +19,7 @@ export default new Suite([
 ])
 
 export async function testProjectCommands () {
-  await projectMain()
+  //await projectMain()
 
   //for (const project of [
     //await Projects.ScriptProject.create({

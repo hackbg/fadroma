@@ -1,8 +1,11 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Error, Deployment, bold, timestamp, bip39, bip39EN } from '@fadroma/agent'
-import type { ChainId, ContractCode } from '@fadroma/agent'
+import type { ChainId } from '@fadroma/agent'
+import { Core, Deploy } from '@fadroma/agent'
+const { Error, bold, timestamp, bip39, bip39EN } = Core
+const { Deployment, ContractCode } = Deploy
+
 import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
 import { console, packageRoot } from './package'
@@ -272,11 +275,11 @@ export class Project extends ProjectDirectory {
     }
     return console
   }
-  createDeployment (): Deployment {
+  createDeployment (): Deploy.Deployment {
     console.warn('createDeployment: not implemented')
     return new Deployment()
   }
-  async getDeployment (): Promise<Deployment> {
+  async getDeployment (): Promise<Deploy.Deployment> {
     const {default: deployment} = await import(this.path)
     return deployment()
   }
