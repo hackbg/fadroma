@@ -34,13 +34,13 @@ export default class DevnetCLI extends CLI {
     return this.printUsage(arg0)
   }
 
-  printUsageOnly = this.command2({
+  printUsageOnly = this.command({
     name: 'usage',
     info: 'print available commands without listing devnets',
     args: ''
   }, () => this.printUsage(this))
 
-  listPlatforms = this.command2({
+  listPlatforms = this.command({
     name: 'platforms',
     info: 'show supported platforms',
     args: ''
@@ -60,7 +60,7 @@ export default class DevnetCLI extends CLI {
     this.log.info()
   })
 
-  listDevnets = this.command2({
+  listDevnets = this.command({
     name: 'list',
     info: 'list existing devnets',
     args: ''
@@ -186,7 +186,7 @@ export default class DevnetCLI extends CLI {
 
   })
 
-  launchDevnet = this.command2({
+  launchDevnet = this.command({
     name: 'launch',
     info: 'create and start a devnet',
     args: 'PLATFORM VERSION [CHAIN-ID]'
@@ -194,7 +194,7 @@ export default class DevnetCLI extends CLI {
     await (await this.createDevnet(platform, version, chainId)).started
   })
 
-  createDevnet = this.command2({
+  createDevnet = this.command({
     name: 'create',
     info: 'create a devnet',
     args: 'PLATFORM VERSION [CHAIN-ID]'
@@ -237,7 +237,7 @@ export default class DevnetCLI extends CLI {
     return devnet
   })
 
-  startDevnet = this.command2({
+  startDevnet = this.command({
     name: 'start',
     info: 'start a devnet',
     args: 'CHAIN-ID'
@@ -309,7 +309,7 @@ export default class DevnetCLI extends CLI {
     }
   })
 
-  pauseDevnet = this.command2({
+  pauseDevnet = this.command({
     name: 'pause',
     info: 'pause a devnet',
     args: 'CHAIN-ID'
@@ -317,7 +317,7 @@ export default class DevnetCLI extends CLI {
     throw new Error('not implemented')
   })
 
-  exportDevnet = this.command2({
+  exportDevnet = this.command({
     name: 'export',
     info: 'export snapshot of devnet as container image',
     args: 'CHAIN-ID [IMAGE-TAG]',
@@ -325,7 +325,7 @@ export default class DevnetCLI extends CLI {
     throw new Error('not implemented')
   })
 
-  removeDevnet = this.command2({
+  removeDevnet = this.command({
     name: 'remove',
     info: 'erase a devnet',
     args: 'CHAIN-ID'
@@ -333,7 +333,7 @@ export default class DevnetCLI extends CLI {
     throw new Error('not implemented')
   })
 
-  pruneDevnets = this.command2({
+  pruneDevnets = this.command({
     name: 'prune',
     info: 'delete broken devnets',
     args: ''

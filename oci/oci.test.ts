@@ -1,40 +1,46 @@
+import { Suite } from '@hackbg/ensuite'
 import { OCIConnection, OCIImage, OCIContainer, defaultSocketPath } from './oci'
+import { Core } from '@fadroma/agent'
 import * as assert from 'node:assert'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-assert.throws(()=>new OCIConnection(123 as any))
+export default new Suite([
+  ['real', testContainerEngine],
+])
 
-{
+export async function testContainerEngine () {
   const engine = new OCIConnection()
-  const image = engine.image('tag')
-  const container = image.container('name')
+  const image = engine.image('hello-world')
   assert.ok(image instanceof OCIImage)
   assert.equal(image.engine, engine)
+  console.log('Pull or build...')
+  await image.pullOrBuild()
+  console.log('Check...')
+  await image.check()
+  console.log('Pull...')
+  await image.pull()
+  image.dockerfile = resolve(dirname(fileURLToPath(import.meta.url)), 'oci.test.Dockerfile')
+  console.log('Build...')
+  await image.build()
+  const container = image.container(`test-hello-${Core.randomBase16()}`)
   assert.ok(container instanceof OCIContainer)
   assert.equal(container.image, image)
-}
-
-{
-
-  const engine = OCIConnection.mock()
-
-  {
-    const image = engine.image('test', 'Dockerfile')
-    await image.pullOrBuild()
-    await image.check()
-    await image.pull()
-    await image.build()
-    const container = await image.run()
-    assert.equal(container.image, image)
-    await container.id
-    await container.shortId
-    await container.isRunning
-    await container.ip
-  }
-
-  {
-    const container = await engine.container('test')
-    assert.equal(container.api, engine.api)
-    assert.equal(container.image.api, engine.api)
-  }
-
+  assert.equal(await container.exists(), false)
+  console.log('Create container...')
+  await container.create()
+  assert.equal(await container.exists(), true)
+  assert.ok(container.id)
+  assert.equal(container.shortId, container.id.slice(0, 8))
+  assert.equal(await container.isRunning(), false)
+  console.log('Start container...')
+  await container.start()
+  assert.ok(await container.ip())
+  assert.equal(await container.isRunning(), true)
+  console.log('Kill container...')
+  await container.kill()
+  assert.equal(await container.isRunning(), false)
+  console.log('Remove container...')
+  //await container.remove()
+  //assert.equal(await container.exists(), false)
 }

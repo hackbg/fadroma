@@ -2,11 +2,13 @@ import { hideProperties as hide } from '@hackbg/hide'
 import { Writable, Transform } from 'node:stream'
 import { basename, dirname } from 'node:path'
 import Docker from 'dockerode'
-import { Chain, Deploy } from '@fadroma/agent'
+import { Core, Chain, Deploy } from '@fadroma/agent'
 import { OCIError as Error, OCIConsole as Console, assign, bold } from './oci-base'
 import type { DockerHandle } from './oci-base'
 import * as Mock from './oci-mock'
 import { toDockerodeOptions, waitStream } from './oci-impl'
+
+const { colors, randomColor } = Core
 
 export { Mock }
 
@@ -102,9 +104,9 @@ export class OCIConnection extends Chain.Connection {
   image (
     name:        string|null,
     dockerfile?: string|null,
-    extraFiles?: string[]
+    inputFiles?: string[]
   ): OCIImage {
-    return new OCIImage({ engine: this, name, dockerfile, extraFiles })
+    return new OCIImage({ engine: this, name, dockerfile, inputFiles })
   }
 
   container (id: string): OCIContainer {
@@ -116,20 +118,48 @@ export class OCIImage extends Deploy.ContractTemplate {
 
   constructor (properties: Partial<OCIImage> = {}) {
     super(properties)
-    assign(this, properties, ['name', 'engine', 'dockerfile', 'extraFiles'])
-    this.log = new Console(`Image(${bold(this.name)})`)
+    assign(this, properties, ['name', 'engine', 'dockerfile', 'inputFiles'])
+    this.log = new Console(this.name || '(container image)')
     hide(this, 'log')
   }
 
   declare log: Console
   engine:      OCIConnection|null
   dockerfile:  string|null = null
-  extraFiles:  string[]    = []
+  inputFiles:  string[]    = []
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
   protected _available: Promise<this>|null = null
 
+  get api (): Docker {
+    if (!this.engine || !this.engine.api) {
+      throw new Error.NoDockerode()
+    }
+    return this.engine.api as unknown as Docker
+  }
+
+  /** Get info about a container. */
+  async inspect () {
+    return (await this.api.getImage(this.name)).inspect()
+  }
+
+  exists (): Promise<boolean> {
+    return this.inspect().then(()=>true).catch(e=>{
+      if (e.statusCode === 404) return false
+      throw e
+    })
+  }
+
+  /** Throws if inspected image does not exist locally. */
+  async check () {
+    if (!this.name) {
+      throw new Error.NoName('inspect')
+    }
+    await this.api.getImage(this.name).inspect()
+  }
+
+  /** Pull the image from the registry, or build it from a local file if not available there. */
   async pullOrBuild (): Promise<this> {
     this._available ??= new Promise(async(resolve, reject)=>{
       this.log.ensuring()
@@ -159,41 +189,17 @@ export class OCIImage extends Deploy.ContractTemplate {
     return await Promise.resolve(this._available)
   }
 
-  get api (): Docker {
-    if (!this.engine || !this.engine.api) {
-      throw new Error.NoDockerode()
-    }
-    return this.engine.api as unknown as Docker
-  }
-
-  /** Get info about a container. */
-  async inspect () {
-    return this.api.getImage(this.name).inspect()
-  }
-
-  exists (): Promise<boolean> {
-    return this.inspect().then(()=>true).catch(e=>{
-      if (e.statusCode === 404) return false
-      throw e
-    })
-  }
-
-  /** Throws if inspected image does not exist locally. */
-  async check () {
-    if (!this.name) {
-      throw new Error.NoName('inspect')
-    }
-    await this.api.getImage(this.name).inspect()
-  }
-
   /** Throws if inspected image does not exist in Docker Hub. */
   async pull () {
     const { name, api } = this
     if (!name) {
       throw new Error.NoName('pull')
     }
+    const seed = this.name
+    const tagColor = randomColor({ luminosity: 'dark', seed })
+    this.log.label = colors.bgHex(tagColor).whiteBright(` ${seed} `)
+    const log = this.log
     await new Promise<void>((ok, fail)=>{
-      const log = new Console(`pulling docker image ${this.name}`)
       api.pull(name, async (err: any, stream: any) => {
         if (err) return fail(err)
         await follow(api, stream, (event) => {
@@ -202,7 +208,7 @@ export class OCIImage extends Deploy.ContractTemplate {
             throw new Error.PullFailed(name)
           }
           const data = ['id', 'status', 'progress'].map(x=>event[x]).join(' ')
-          this.log.log(data)
+          log.log(data)
         })
         ok()
       })
@@ -218,14 +224,17 @@ export class OCIImage extends Deploy.ContractTemplate {
       throw new Error.NoDockerode()
     }
     const { name, engine: { api } } = this
+    const seed = name || this.dockerfile
+    const tagColor = randomColor({ luminosity: 'dark', seed })
+    this.log.label = colors.bgHex(tagColor).whiteBright(` ${seed} `)
     const dockerfile = basename(this.dockerfile)
     const context = dirname(this.dockerfile)
-    const src = [dockerfile, ...this.extraFiles]
+    const src = [dockerfile, ...this.inputFiles||[]]
     const build = await api.buildImage(
       { context, src },
       { t: this.name, dockerfile }
     )
-    const log = new Console(`building docker image ${this.name}`)
+    const log = this.log
     await follow(api, build, (event) => {
       if (event.error) {
         log.error(event.error)
@@ -303,8 +312,14 @@ export class OCIContainer extends Deploy.ContractInstance {
   }
 
   /** Get info about a container. */
-  async inspect () {
-    return (await this.api).inspect()
+  inspect () {
+    return this.api.inspect()
+  }
+
+  ip (): Promise<string> {
+    return this.inspect().then(state=>{
+      return state.NetworkSettings.IPAddress
+    })
   }
 
   exists (): Promise<boolean> {
@@ -314,17 +329,9 @@ export class OCIContainer extends Deploy.ContractInstance {
     })
   }
 
-  isRunning (): Promise<boolean> {
-    return this.inspect().then(state=>state.State.Running)
-  }
-
-  ip (): Promise<string> {
-    return this.inspect().then(state=>state.NetworkSettings.IPAddress)
-  }
-
   /** Create a container. */
   async create (): Promise<this> {
-    if (!(await this.exists)) {
+    if (!await this.exists()) {
       // Specify the container
       const opts = toDockerodeOptions(this)
       this.image.log.creatingContainer(opts.name)
@@ -342,35 +349,54 @@ export class OCIContainer extends Deploy.ContractInstance {
       const container = await this.image.api.createContainer(opts)
       this.id = container.id
       // Update the logger tag with the container id
-      this.log.label = this.name
-        ? `OCIContainer(${container.id} ${this.name})`
-        : `OCIContainer(${container.id})`
+      const idColor = randomColor({ luminosity: 'dark', seed: this.id })
+      let idTag = ''
+      idTag += colors.bgHex(idColor).whiteBright(` ${this.shortId}`)
+      if (this.name) {
+        const tagColor = randomColor({ luminosity: 'dark', seed: this.name })
+        idTag += colors.bgHex(tagColor).hex(idColor)('▌')
+        idTag += colors.bgHex(tagColor).whiteBright(`${this.name} `)
+      } else {
+        idTag += colors.bgHex(idColor).whiteBright(` `)
+      }
+      this.log.label = `${idTag}`
       return this
     }
   }
 
   /** Remove a stopped container. */
   async remove (): Promise<this> {
-    ;(await this.api).remove()
+    const api = await this.api
+    await api.remove()
+    await api.wait({ condition: 'removed' })
     return this
+  }
+
+  isRunning (): Promise<boolean> {
+    return this.inspect().then(state=>{
+      return state.State.Running
+    })
   }
 
   /** Start a container. */
   async start (): Promise<this> {
-    if (!await this.exists) {
+    const api = await this.api
+    if (!await this.exists()) {
       await this.create()
     }
-    ;(await this.api).start()
+    await api.start()
     return this
   }
 
   /** Immediately terminate a running container. */
   async kill (): Promise<this> {
+    const api = await this.api
     const id = this.shortId
     const prettyId = bold(id.slice(0,8))
     if (await this.isRunning) {
       this.log(`Stopping ${prettyId}...`)
-      ;(await this.api).kill()
+      await api.kill()
+      await api.wait({ condition: 'not-running' })
       this.log(`Stopped ${prettyId}`)
     } else {
       this.log.warn(`Container already stopped: ${prettyId}`)
@@ -380,6 +406,7 @@ export class OCIContainer extends Deploy.ContractInstance {
 
   /** Wait for the container to exit. */
   async wait () {
+    this.log(`Waiting for exit...`)
     const {Error: error, StatusCode: code} = await (await this.api).wait()
     return { error, code }
   }

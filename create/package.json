@@ -16,7 +16,7 @@
 
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",
-    "@hackbg/cmds": "workspace:^3.2.1",
+    "@hackbg/cmds": "workspace:*",
 
     "@fadroma/agent": "workspace:*"
   },

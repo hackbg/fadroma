@@ -425,14 +425,14 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     // Run the build container
     const buildContainer = await this.buildImage.run({
       name: `fadroma-build-${randomBytes(3).toString('hex')}`,
-      command: [ 'node', $(`/`, $(buildScript).basename).path, 'phase1', ],
+      command: [ 'node', $(`/`, $(buildScript).basename()).path, 'phase1', ],
       entrypoint: '/usr/bin/env',
       options: {
         remove: true,
         // Readonly mounts:
         readonly: {
           // - Script that will run in the container
-          [$(buildScript).path]: $(`/`, $(buildScript).basename).path,
+          [$(buildScript).path]: $(`/`, $(buildScript).basename()).path,
         },
         // Writable mounts:
         writable: {

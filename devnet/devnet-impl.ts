@@ -118,7 +118,7 @@ export async function createDevnetContainer (
     & Parameters<typeof saveDevnetState>[0]
     & Parameters<typeof containerOptions>[0]
     & $D<'container'|'verbose'|'initScript'|'url'>
-): Promise<void> {
+) {
   if (await devnet.container.exists()) {
     devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.shortId))
   } else {
@@ -153,11 +153,12 @@ export async function createDevnetContainer (
       devnet.log.debug(`Saved devnet receipt.`)
     }
   }
+  return devnet
 }
 
 export async function deleteDevnetContainer (
   devnet: $D<'log'|'container'|'stateDir'|'paused'> & Parameters<typeof forceDelete>[0]
-): Promise<void> {
+) {
   devnet.log('Deleting...')
   let container
   try {
@@ -191,6 +192,7 @@ export async function deleteDevnetContainer (
       throw e
     }
   }
+  return devnet
 }
 
 /** Write the state of the devnet to a file.
@@ -238,6 +240,7 @@ export async function startDevnetContainer (
   } else {
     devnet.log.log('Container already started:', bold(devnet.chainId))
   }
+  return devnet
 }
 
 export async function pauseDevnetContainer (
@@ -258,6 +261,7 @@ export async function pauseDevnetContainer (
     }
   }
   devnet.running = false
+  return devnet
 }
 
 export async function connect <
@@ -481,6 +485,16 @@ export function initContainerState (devnet: DevnetContainer) {
     const starting = startDevnetContainer(devnet)
     defineGetter('started', () => starting)
     return starting
+  })
+  defineGetter('paused', () => {
+    const pausing = pauseDevnetContainer(devnet)
+    defineGetter('paused', () => pausing)
+    return pausing
+  })
+  defineGetter('deleted', () => {
+    const deleting = deleteDevnetContainer(devnet)
+    defineGetter('deleted', () => deleting)
+    return deleting
   })
 }
 

@@ -2,24 +2,22 @@ import Docker from 'dockerode'
 import type { OCIContainer } from './oci'
 import { OCIConsole as Console, OCIError, bold } from './oci-base'
 
-export function toDockerodeOptions (container: OCIContainer): Docker.ContainerCreateOptions {
-
-  const {
-    name,
-    image,
-    entrypoint,
-    command,
-    options: {
-      remove   = false,
-      env      = {},
-      exposed  = [],
-      mapped   = {},
-      readonly = {},
-      writable = {},
-      extra    = {},
-      cwd
-    }
-  } = container
+export function toDockerodeOptions ({
+  name,
+  image,
+  entrypoint,
+  command,
+  options: {
+    remove   = false,
+    env      = {},
+    exposed  = [],
+    mapped   = {},
+    readonly = {},
+    writable = {},
+    extra    = {},
+    cwd
+  } = {}
+}: OCIContainer): Docker.ContainerCreateOptions {
 
   if (!image) {
     throw new OCIError("Missing container image.")

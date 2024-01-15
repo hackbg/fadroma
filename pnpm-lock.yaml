@@ -136,7 +136,7 @@ importers:
         specifier: workspace:*
         version: link:../oci
       '@hackbg/cmds':
-        specifier: workspace:^3.2.1
+        specifier: workspace:*
         version: link:../toolbox/cmds
       '@hackbg/file':
         specifier: workspace:*
@@ -151,7 +151,7 @@ importers:
         specifier: workspace:*
         version: link:../agent
       '@hackbg/cmds':
-        specifier: workspace:^3.2.1
+        specifier: workspace:*
         version: link:../toolbox/cmds
       '@hackbg/file':
         specifier: workspace:*
@@ -359,7 +359,7 @@ importers:
         specifier: workspace:*
         version: link:../scrt
       '@hackbg/cmds':
-        specifier: workspace:^3.2.1
+        specifier: workspace:^
         version: link:../toolbox/cmds
       '@hackbg/file':
         specifier: workspace:^

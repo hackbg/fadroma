@@ -99,16 +99,16 @@ export default abstract class DevnetContainer extends Chain.Backend {
   }
 
   /** Wait for the devnet to be created. */
-  declare readonly created: Promise<void>
+  declare readonly created: Promise<this>
 
   /** Wait for the devnet to be deleted. */
-  declare readonly deleted: Promise<void>
+  declare readonly deleted: Promise<this>
 
   /** Wait for the devnet to be started. */
-  declare readonly started: Promise<void>
+  declare readonly started: Promise<this>
 
   /** Wait for the devnet to be stopped. */
-  declare readonly paused:  Promise<void>
+  declare readonly paused:  Promise<this>
 
   /** Get info for named genesis account, including the mnemonic */
   async getIdentity (

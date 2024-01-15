@@ -59,22 +59,22 @@ export async function testDevnetPlatform <
   deepEqual(spawnOptions.extra.HostConfig.PortBindings, {
     [`${String(devnet.nodePort)}/tcp`]: [ { HostPort: String(devnet.nodePort) } ]
   }, "devnet port binding is present")
-  equal(await devnet.container, undefined)
 
-  ok(await devnet.created)
+  equal(await devnet.created, devnet)
   equal(devnet.url.toString(), `http://${devnet.nodeHost}:${devnet.nodePort}/`)
-  ok((await devnet.container) instanceof OCIContainer)
-  equal((await devnet.container)!.name, `/${devnet.chainId}`)
+  ok(devnet.container instanceof OCIContainer)
+  equal(devnet.container.name, devnet.chainId)
 
-  ok(await devnet.started)
+  equal(await devnet.started, devnet)
   const agent = await devnet.connect({ name: 'User1' })
   ok(agent instanceof Connection)
   equal(agent.chainId, devnet.chainId)
   equal(agent.url, devnet.url)
 
-  ok(await devnet.paused)
+  equal(await devnet.paused, devnet)
+
   ok(await devnet.export())
 
-  ok(await devnet.deleted)
+  equal(await devnet.deleted, devnet)
 
 }
