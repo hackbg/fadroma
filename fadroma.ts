@@ -34,31 +34,38 @@ const console = new Core.Console('@hackbg/fadroma')
 export default function main (...args: any) {
   console.debug('Running main...')
   return new Commands()
-    .addCommand('run', 'execute a script',
+    .addCommand(
+      { name: 'run', info: 'execute a script', args: 'SCRIPT' },
       (script: string, ...args: string[]) => runScript({ project: getProject(), script, args }))
-    .addCommand('repl', 'open an interactive Fadroma shell',
+    .addCommand(
+      {name: 'repl', info: 'open an interactive Fadroma shell', args: '' },
       (script: string, ...args: string[]) => runRepl({ project: getProject(), script, args }))
-    .addCommand('status', 'show the status of the project',
+    .addCommand(
+      {name: 'status', info: 'show the status of the project', args: '' },
       () => getProject().logStatus())
-    .addCommand('build', 'build the project or specific contracts from it',
+    .addCommand(
+      {name: 'build', info: 'build the project or specific contracts from it', args: '[CONTRACT...]'},
       (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.build({
         compiler: await getCompiler(),
         units
       })))
-    .addCommand('rebuild', 'rebuild the project or specific contracts from it',
+    .addCommand(
+      {name: 'rebuild', info: 'rebuild the project or specific contracts from it', args: ''},
       (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.build({
         compiler: await getCompiler(),
         units,
         rebuild: true
       })))
-    .addCommand('upload', 'upload the project or specific contracts from it',
+    .addCommand(
+      {name: 'upload', info: 'upload the project or specific contracts from it', args: ''},
       (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.upload({
         compiler:    await getCompiler(),
         uploadStore: getUploadStore(),
         uploader:    getConnection(),
         units
       })))
-    .addCommand('reupload', 'reupload the project or specific contracts from it',
+    .addCommand(
+      {name: 'reupload', info: 'reupload the project or specific contracts from it', args: ''},
       (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.upload({
         compiler:    await getCompiler(),
         uploadStore: getUploadStore(),
@@ -66,7 +73,8 @@ export default function main (...args: any) {
         reupload:    true,
         units,
       })))
-    .addCommand('deploy', 'deploy getProject() or continue an interrupted deployment',
+    .addCommand(
+      {name: 'deploy', info: 'deploy getProject() or continue an interrupted deployment', args: ''},
       (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.deploy({
         compiler:    await getCompiler(),
         uploadStore: getUploadStore(),
@@ -74,7 +82,8 @@ export default function main (...args: any) {
         deployer:    getConnection(),
         units
       })))
-    .addCommand('redeploy', 'redeploy getProject() from scratch',
+    .addCommand(
+      {name: 'redeploy', info: 'redeploy getProject() from scratch', args: ''},
       (...units: string[]) => getProject().getDeployment().then(async deployment=>deployment.deploy({
         compiler:    await getCompiler(),
         uploadStore: getUploadStore(),
@@ -83,18 +92,20 @@ export default function main (...args: any) {
         redeploy:    true,
         units,
       })))
-    .addCommand('select', `activate another deployment`, 
+    .addCommand(
+      {name: 'select', info: `activate another deployment`, args: ''},
       async (name?: string): Promise<Deploy.Deployment|undefined> => selectDeployment(
         getProject().root,
         name
       ))
-    .addCommand('export', `export current deployment to JSON`,
+    .addCommand(
+      {name: 'export', info: `export current deployment to JSON`, args: ''},
       async (path?: string) => exportDeployment(
         getProject().root,
         await getProject().getDeployment(),
         path
       ))
-    //.addCommand('reset', 'stop and erase running devnets',
+    //.addCommand({name: 'reset', 'stop and erase running devnets',
       //(...ids: ChainId[]) => Devnets.deleteDevnets(
         //getProject().root, ids))
 }
