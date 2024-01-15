@@ -620,7 +620,7 @@ importers:
     dependencies:
       '@hackbg/file':
         specifier: ^2.0.2
-        version: link:../file
+        version: 2.0.3
       '@hackbg/ganesha':
         specifier: 4.2.0
         version: link:../ganesha
@@ -1653,6 +1653,21 @@ packages:
 
   /@hackbg/dacrypt@0.2.0:
     resolution: {integrity: sha512-ripWH+O6Zl0+E0XBaexF0vQgkY6wT3F6hhABVof+VsstIlNbkWfWcgAA3SLAx6aORM6NEK4YlE6BXfT7tG8FmQ==}
+    dev: false
+
+  /@hackbg/file@2.0.3:
+    resolution: {integrity: sha512-phKEjGOGX76OvFmL+R28YXwrNZwIPS27yYCCILLLYhg6v5q0vJngKk6qzpdBLq6XPqoZm44aO/EeMY+wC6ZucQ==}
+    dependencies:
+      '@hackbg/4mat': link:toolbox/4mat
+      '@hackbg/hide': link:toolbox/hide
+      '@hackbg/logs': link:toolbox/logs
+      js-yaml: 4.1.0
+      mkdirp: 1.0.4
+      recursive-copy: 2.0.14
+      rimraf: 3.0.2
+      symlink-dir: 5.2.0
+      tmp: 0.2.1
+      toml: 3.0.0
     dev: false
 
   /@hackbg/protobufjs-esm@6.11.4-patch.1:

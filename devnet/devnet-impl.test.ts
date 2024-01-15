@@ -106,9 +106,11 @@ export default async () => {
     }), {
       api: {
         get () {
-          return Promise.resolve({
+          return {
             start: async () => {
             },
+            inspect: async () => ({
+            }),
             logs: async () => {
               return {
                 off () {},
@@ -121,7 +123,7 @@ export default async () => {
                 }
               }
             }
-          })
+          }
         }
       }
     }),
@@ -152,10 +154,12 @@ export default async () => {
     }), {
       api: {
         get () {
-          return Promise.resolve({
+          return {
             remove: async () => {
+            },
+            wait: async () => {
             }
-          })
+          }
         }
       }
     }),
