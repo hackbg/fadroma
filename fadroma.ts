@@ -24,8 +24,9 @@ import type { ChainId, CodeHash } from '@fadroma/agent'
 import { Core, Chain, Program, Deploy, Store } from '@fadroma/agent'
 import { getProject, ProjectPrompter } from '@fadroma/create'
 import Commands from '@hackbg/cmds'
-import $, { Directory, BinaryFile, TextFile, JSONDirectory, JSONFile } from '@hackbg/file'
+import { FileFormat } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
+import { SyncFS } from '@hackbg/file'
 import { fileURLToPath } from 'node:url'
 import { basename } from 'node:path'
 
@@ -160,17 +161,17 @@ export async function runScript (context?: { project?: Project, script?: string,
   if (!script) {
     throw new Error(`Usage: fadroma run SCRIPT [...ARGS]`)
   }
-  if (!$(script).exists()) {
+  const scriptPath = new SyncFS.Path(script)
+  if (!scriptPath.exists()) {
     throw new Error(`${script} doesn't exist`)
   }
   console.log(`Running ${script}`)
-  const path = $(script).path
-  //@ts-ignore
-  const { default: main } = await import(path)
+  const { default: main } = await import(scriptPath.absolute)
   if (typeof main === 'function') {
     return main(project, ...args||[])
   } else {
-    console.error(`${$(script).shortPath}'s default export is not a function`)
+    console.error(`The default export of ${Core.bold(scriptPath.short)} is not a function`)
+    process.exit(1)
   }
 }
 
@@ -217,30 +218,30 @@ export function exportDeployment (
     path = process.cwd()
   }
   // If passed a directory, generate file name
-  let file = $(path)
-  if (file.isDirectory()) {
-    file = file.in(`${deployment.name}_@_${Core.timestamp()}.json`)
-  }
+  const exportPath = new SyncFS.Path(path)
+  const exportFile = exportPath.isDirectory()
+    ? new SyncFS.File(exportPath, `${deployment.name}_@_${Core.timestamp()}.json`)
+    : new SyncFS.File(exportPath)
   // Serialize and write the deployment.
   const state = deployment.serialize()
-  file.as(JSONFile).makeParent().save(state)
+  exportFile.setFormat(FileFormat.JSON).makeParent().save(state)
   console.log(
     'saved', Object.keys(state).length,
-    'contracts to', Core.bold(file.shortPath)
+    'contracts to', Core.bold(exportFile.short)
   )
 }
 
 /** Directory containing upload receipts, e.g. `state/$CHAIN/upload`. */
 export class JSONFileUploadStore extends Store.UploadStore {
-  dir: JSONDirectory<Partial<Deploy.UploadedCode>>
+  dir: SyncFS.Directory
 
   constructor (dir: string|Path) {
     super()
-    this.dir = $(dir).as(JSONDirectory<Partial<Deploy.UploadedCode>>)
+    this.dir = new SyncFS.Directory(dir)
   }
 
   get [Symbol.toStringTag]() {
-    return `${this.dir?.shortPath??'-'}`
+    return `${this.dir?.short??'-'}`
   }
 
   get (codeHash: CodeHash|{ codeHash: CodeHash }): Deploy.UploadedCode|undefined {
@@ -250,9 +251,9 @@ export class JSONFileUploadStore extends Store.UploadStore {
     if (!codeHash) {
       throw new Error("can't get upload info: missing code hash")
     }
-    const receipt = this.dir.at(`${codeHash!.toLowerCase()}.json`).as(JSONFile<any>)
+    const receipt = this.dir.file(`${codeHash!.toLowerCase()}.json`).setFormat(FileFormat.JSON)
     if (receipt.exists()) {
-      const uploaded = receipt.load()
+      const uploaded = receipt.load() as { codeId: string }
       if (uploaded.codeId) {
         this.log(
           'loading code id', Core.bold(String(uploaded.codeId)),
@@ -276,7 +277,7 @@ export class JSONFileUploadStore extends Store.UploadStore {
     if (!codeHash) {
       throw new Error("can't set upload info: missing code hash")
     }
-    const receipt = this.dir.at(`${codeHash.toLowerCase()}.json`).as(JSONFile<any>)
+    const receipt = this.dir.file(`${codeHash.toLowerCase()}.json`).setFormat(FileFormat.JSON)
     this.log('writing', receipt.shortPath)
     receipt.save(super.get(codeHash)!.serialize())
     return super.set(codeHash, value)
@@ -286,21 +287,21 @@ export class JSONFileUploadStore extends Store.UploadStore {
 /** Directory containing deploy receipts, e.g. `state/$CHAIN/deploy`. */
 export class JSONFileDeployStore extends Store.DeployStore {
   /** Root directory of deploy store. */
-  dir: JSONDirectory<Deploy.DeploymentState>
+  dir: SyncFS.Directory
   /** Name of symlink pointing to active deployment, without extension. */
   KEY = '.active'
 
   constructor (dir: string|Path) {
     super()
-    this.dir = $(dir).as(JSONDirectory<Deploy.DeploymentState>)
+    this.dir = new SyncFS.Directory(dir)
   }
 
   get [Symbol.toStringTag]() {
-    return `${this.dir?.shortPath??'-'}`
+    return `${this.dir?.short??'-'}`
   }
 
   get (name: Deploy.Name): Deploy.DeploymentState|undefined {
-    const receipt = this.dir.at(`${name}.json`).as(JSONFile<any>)
+    const receipt = this.dir.file(`${name}.json`).setFormat(FileFormat.JSON)
     if (receipt.exists()) {
       const state = receipt.load()
       this.log(
@@ -316,7 +317,7 @@ export class JSONFileDeployStore extends Store.DeployStore {
 
   set (name: Deploy.Name, state: Partial<Deploy.Deployment>|Deploy.DeploymentState): this {
     if (state instanceof Deploy.Deployment) state = state.serialize()
-    const receipt = this.dir.at(`${name}.json`).as(JSONFile<any>)
+    const receipt = new SyncFS.File(this.dir, `${name}.json`).setFormat(FileFormat.JSON)
     this.log('writing', receipt.shortPath)
     receipt.save(state)
     super.set(name, state)

@@ -1,8 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import $, { JSONFile, JSONDirectory, Directory, XDG } from '@hackbg/file'
-import type { Path } from '@hackbg/file'
+import { Path, FileFormat, SyncFS, XDG } from '@hackbg/file'
 import type { CodeId, ChainId, Address, Uint128 } from '@fadroma/agent'
 import { Core, Program } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
@@ -66,16 +65,17 @@ export default class DevnetCLI extends CLI {
     args: ''
   }, async () => {
     const engine = new OCIConnection()
-    const devnetsDir = $(
-      XDG({ expanded: true, subdir: 'fadroma' }).data.home, 'devnets'
-    ).as(Directory)
+    const devnetsDir = new SyncFS.Directory(
+      XDG({ expanded: true, subdir: 'fadroma' }).data.home,
+      'devnets'
+    )
     const devnets = devnetsDir.list()
 
     if (devnets.length > 0) {
 
       this.log
         .info()
-        .info(`Found ${bold(devnets.length)} devnet(s) in ${bold(devnetsDir.path)}:`)
+        .info(`Found ${bold(devnets.length)} devnet(s) in ${bold(devnetsDir.absolute)}:`)
         .info()
 
       const tags = {
@@ -99,7 +99,7 @@ export default class DevnetCLI extends CLI {
 
       for (const name of devnets) {
         longest.name = Math.max(longest.name, name.length)
-        const receipt = $(devnetsDir, name, 'devnet.json').as(JSONFile) as JSONFile<any>
+        const receipt = devnetsDir.file(name, 'devnet.json').setFormat(FileFormat.JSON)
         if (receipt.exists()) {
           const { image = '', container = '' } = receipts[name] = receipt.load()
           longest.container = Math.max(longest.container, image.length + 4)
@@ -125,28 +125,32 @@ export default class DevnetCLI extends CLI {
         let imageExists     = colors.red(tags.no.padEnd(longest.container))
         let containerExists = colors.red(tags.no.padEnd(longest.container))
 
-        const receipt = $(
-          devnetsDir, name, 'devnet.json'
-        ).as(JSONFile) as JSONFile<any>
+        const receipt = devnetsDir.file(name, 'devnet.json').setFormat(FileFormat.JSON)
 
         if (receipt.exists()) {
           receiptExists = colors.green(bold(tags.ok) + ''.padEnd('RECEIPT'.length - tags.ok.length))
-          const { image, container, nodePort } = receipt.load()
+          const { image, container, nodePort } = receipt.load() as {
+            image:     string
+            container: string
+            nodePort:  string
+          }
           if (image) {
+            const padded = image.padEnd(longest.container)
             if (await engine.image(image).exists) {
-              imageExists = colors.green(bold(tags.ok) + ' ' + image.padEnd(longest.container))
+              imageExists = colors.green(bold(tags.ok) + ' ' + padded)
             } else {
-              imageExists = colors.red(bold(tags.no) + ' ' + image.padEnd(longest.container))
+              imageExists = colors.red(bold(tags.no) + ' ' + padded)
               hasMissing = true
             }
           } else {
             hasMissing = true
           }
           if (container) {
+            const padded = container.padEnd('CONTAINER'.length)
             if (await engine.container(container).exists) {
-              containerExists = colors.green(bold(tags.ok) + ' ' + container.padEnd('CONTAINER'.length))
+              containerExists = colors.green(bold(tags.ok) + ' ' + padded)
             } else {
-              containerExists = colors.red(bold(tags.no) + ' ' + container.padEnd('CONTAINER'.length))
+              containerExists = colors.red(bold(tags.no) + ' ' + padded)
               hasMissing = true
             }
           } else {
@@ -179,7 +183,7 @@ export default class DevnetCLI extends CLI {
 
       this.log
         .info()
-        .info('No devnets in', bold(devnetsDir.path))
+        .info('No devnets in', bold(devnetsDir.absolute))
         .info('Invoke the', bold('launch'), 'command to create and start your first devnet!')
 
     }
@@ -242,25 +246,14 @@ export default class DevnetCLI extends CLI {
     info: 'start a devnet',
     args: 'CHAIN-ID'
   }, async (chainId: string) => {
-    const stateDir = $(
-      XDG({ expanded: true, subdir: 'fadroma' }).data.home, 'devnets', chainId
-    )
-    const stateFile = $(
-      stateDir, 'devnet.json'
-    ).as(JSONFile) as JSONFile<{
-      platformName:    string
-      platformVersion: string
-      container:       string
-      image:           string
-      nodePort:        string
-    }>
-    if (!stateDir.exists||!stateFile.exists) {
-      if (!stateDir.exists) {
-        this.log
-          .error(bold(stateDir.path), `does not exist.`)
+    const dataDir    = XDG({ expanded: true, subdir: 'fadroma' }).data.home
+    const stateDir   = new SyncFS.Directory(dataDir, 'devnets', chainId)
+    const stateFile  = stateDir.file('devnet.json').setFormat(FileFormat.JSON)
+    if (!stateDir.exists()||!stateFile.exists()) {
+      if (!stateDir.exists()) {
+        this.log.error(bold(stateDir.absolute), `does not exist.`)
       } else {
-        this.log
-          .error(bold(stateFile.path), `does not exist.`)
+        this.log.error(bold(stateFile.absolute), `does not exist.`)
       }
       this.log
         .info(
@@ -275,7 +268,13 @@ export default class DevnetCLI extends CLI {
       image,
       container,
       nodePort,
-    } = stateFile.load()
+    } = stateFile.load() as {
+      platformName:    string
+      platformVersion: string
+      container:       string
+      image:           string
+      nodePort:        string
+    }
     let Devnet
     switch (platformName) {
       case 'scrt':
@@ -339,15 +338,17 @@ export default class DevnetCLI extends CLI {
     args: ''
   }, async () => {
     const engine = new OCIConnection()
-    const devnetsDir = $(
-      XDG({ expanded: true, subdir: 'fadroma' }).data.home, 'devnets'
-    ).as(Directory)
+    const dataDir = XDG({ expanded: true, subdir: 'fadroma' }).data.home
+    const devnetsDir = new SyncFS.Directory(dataDir, 'devnets')
     const devnets = devnetsDir.list()
     const missing: Set<string> = new Set()
     for (const devnet of devnets) {
-      const devnetFile    = $(devnetsDir, devnet, 'devnet.json').as(JSONFile) as JSONFile<any>
+      const devnetFile = devnetsDir.file(devnet, 'devnet.json').setFormat(FileFormat.JSON)
       if (devnetFile.exists()) {
-        const { image, container } = devnetFile.load()
+        const { image, container } = devnetFile.load() as {
+          image:     string
+          container: string
+        }
         if (!await engine.image(image).exists) {
           missing.add(devnet)
         }
@@ -360,7 +361,7 @@ export default class DevnetCLI extends CLI {
     }
     for (const devnet of missing) {
       this.log.log(`Removing ${bold(devnet)}...`)
-      $(devnetsDir, devnet).delete()
+      devnetsDir.subdir(devnet).delete()
     }
   })
 

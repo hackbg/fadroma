@@ -2,7 +2,6 @@ import { ok, equal, throws } from 'node:assert'
 import { OCIConnection, OCIImage, OCIContainer, Mock } from '@fadroma/oci'
 import { Core } from '@fadroma/agent'
 import * as Impl from './devnet-impl'
-import $ from '@hackbg/file'
 const { Console } = Core
 
 export default async () => {
@@ -23,7 +22,7 @@ export default async () => {
     chainId:  'foo',
     stateDir:  undefined,
     stateFile: undefined,
-  }, {}).stateDir.path.endsWith('foo'))
+  }, {}).stateDir.absolute.endsWith('foo'))
 
   ok(Impl.initState({
     chainId:  'foo',

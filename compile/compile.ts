@@ -6,7 +6,7 @@ import * as OCI from '@fadroma/oci'
 
 import { Config } from '@hackbg/conf'
 import { DotGit } from '@hackbg/repo'
-import $, { Path, Directory, TextFile, BinaryFile, TOMLFile } from '@hackbg/file'
+import { Path, LocalFileSync, LocalDirectorySync, FileFormat } from '@hackbg/file'
 
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -107,13 +107,14 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   quiet: boolean = this.config.getFlag('FADROMA_BUILD_QUIET', ()=>false)
   /** The build script. */
   script?: string = this.config.getString('FADROMA_BUILD_SCRIPT', ()=>{
-    return $(packageRoot, 'compile.script.mjs').path
+    return new Path(packageRoot, 'compile.script.mjs').absolute
   })
   /** Whether to skip any `git fetch` calls in the build script. */
   noFetch: boolean = this.config.getFlag('FADROMA_NO_FETCH', ()=>false)
   /** Name of directory where build artifacts are collected. */
-  outputDir: Directory = new Directory(
-    this.config.getString('FADROMA_ARTIFACTS', ()=>$(process.cwd()).in('wasm').path)
+  outputDir: LocalDirectorySync = new LocalDirectorySync(
+    this.config.getString('FADROMA_ARTIFACTS',
+      ()=>new LocalDirectorySync(process.cwd(), 'wasm').absolute)
   )
   /** Version of Rust toolchain to use. */
   toolchain: string|null = this.config.getString('FADROMA_RUST', ()=>'')
@@ -185,7 +186,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     for (let buildIndex = 0; buildIndex < contracts.length; buildIndex++) {
       const contract = contracts[buildIndex]
       let { cargoToml, cargoWorkspace, cargoCrate, sourcePath = '.', sourceRef = 'HEAD', } = contract
-      sourcePath = $(sourcePath).path
+      sourcePath = new Path(sourcePath).absolute
       batches[sourcePath] ??= {}
       batches[sourcePath][sourceRef] ??= { sourcePath, sourceRef, tasks: new Set() }
       if (cargoWorkspace && cargoToml) {
@@ -211,10 +212,10 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
         if (!cargoToml) {
           throw new Error('When cargoWorkspace is not set, you must specify cargoToml')
         }
-        const cargoCrate = $(sourcePath, cargoToml)
-          .as(TOMLFile<CargoTOML>)
-          .load()!
-          .package.name
+        const cargoCrate = (new LocalFileSync(sourcePath, cargoToml)
+          .setFormat(FileFormat.TOML)
+          .load() as CargoTOML
+        ).package.name
         batches[sourcePath][sourceRef].tasks.add({
           buildIndex,
           cargoToml,
@@ -232,11 +233,12 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     { sourceRef, cargoCrate }: Partial<Program.RustSourceCode>
   ): Program.CompiledCode|null {
     if (this.caching && cargoCrate) {
-      const location = $(outputDir, codePathName(cargoCrate, sourceRef||Program.HEAD))
+      const location = new LocalFileSync(outputDir, codePathName(cargoCrate, sourceRef||Program.HEAD))
       if (location.exists()) {
-        const codePath = location.url
-        const codeHash = $(location).as(BinaryFile).sha256
-        return new Program.CompiledCode({ codePath, codeHash })
+        return new Program.CompiledCode({
+          codePath: location.url,
+          codeHash: location.sha256()
+        })
       }
     }
     return null
@@ -252,17 +254,15 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
       if ((task as CompileWorkspaceTask).cargoWorkspace) {
         for (const { buildIndex, cargoCrate } of (task as CompileWorkspaceTask).cargoCrates) {
           const wasmName = `${sanitize(cargoCrate)}@${sanitize(sourceRef)}.wasm`
-          const codePath = $(outputDir, wasmName)
           const compiled = await new Program.LocalCompiledCode({
-            codePath: codePath.path
+            codePath: new Path(outputDir, wasmName).absolute
           }).computeHash()
           results[buildIndex] = compiled
         }
       } else if ((task as CompileCrateTask).cargoCrate) {
         const wasmName = `${sanitize((task as CompileCrateTask).cargoCrate)}@${sanitize(sourceRef)}.wasm`
-        const codePath = $(outputDir, wasmName)
         const compiled = await new Program.LocalCompiledCode({
-          codePath: codePath.path
+          codePath: new Path(outputDir, wasmName).absolute
         }).computeHash()
         results[(task as CompileCrateTask).buildIndex] = compiled
       } else {
@@ -271,7 +271,7 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     }
     if (Object.keys(results).length > 0) {
       this.log.log('Compiled the following:\n ', Object.values(results)
-        .map(x=>`${x.codeHash} ${bold($(x.codePath!).shortPath)}`)
+        .map(x=>`${x.codeHash} ${bold(new Path(x.codePath!).short)}`)
         .join('\n  '))
     } else {
       this.log('Nothing to compile.')
@@ -302,7 +302,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
   ): Promise<Record<number, Program.CompiledCode>> {
     const { sourcePath, sourceRef, tasks } = batch
     const safeRef  = sanitize(sourceRef)
-    const { outputDir = this.outputDir.path, buildScript = this.script } = options
+    const { outputDir = this.outputDir.absolute, buildScript = this.script } = options
     if (!buildScript) {
       throw new Error('missing build script')
     }
@@ -313,13 +313,13 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     // - cargo build --manifest-path /path/to/workspace/Cargo.toml -p crate1 crate2 crate3
     // Create stream for collecting build logs
     // Create output directory as user if it does not exist
-    $(outputDir).as(Directory).make()
+    new LocalDirectorySync(outputDir).make()
     // Run the build container
     const buildProcess = this.spawn(this.runtime!, [ this.script!, 'phase1' ], {
-      cwd: $(sourcePath).path,
+      cwd: new Path(sourcePath).absolute,
       env: {
         ...process.env,
-        FADROMA_OUTPUT:      $(process.cwd(), 'wasm').path,
+        FADROMA_OUTPUT:      new Path(process.cwd(), 'wasm').absolute,
         FADROMA_VERBOSE:     String(this.verbose),
         FADROMA_SRC_REF:     sourceRef||'HEAD',
         FADROMA_BUILD_TASKS: JSON.stringify([...tasks]),
@@ -363,7 +363,8 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     this.config.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
   /** Path to the dockerfile for the build container if missing. */
   buildImageManifest: string =
-    this.config.getString('FADROMA_BUILD_DOCKERFILE', ()=>$(packageRoot).at('Dockerfile').path)
+    this.config.getString('FADROMA_BUILD_DOCKERFILE',
+      ()=>new Path(packageRoot, 'Dockerfile').absolute)
   /** Owner uid that is set on build artifacts. */
   outputUid:          string|undefined =
     this.config.getString('FADROMA_BUILD_UID', () => undefined)
@@ -404,11 +405,20 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   }
 
   protected async buildBatch (
-    batch: CompileBatch, options: { outputDir?: string, buildScript?: string|Path } = {}
+
+    {
+      sourcePath,
+      sourceRef,
+      tasks
+    }: CompileBatch,
+
+    {
+      outputDir   = this.outputDir.absolute,
+      buildScript = this.script
+    }: { outputDir?: string, buildScript?: string|Path } = {}
+
   ): Promise<Record<number, Program.CompiledCode>> {
-    const { sourcePath, sourceRef, tasks } = batch
     const safeRef = sanitize(sourceRef)
-    const { outputDir = this.outputDir.path, buildScript = this.script } = options
     if (!buildScript) {
       throw new Error('missing build script')
     }
@@ -421,24 +431,28 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     let buildLogs = ''
     const logs = this.getLogStream(sourceRef, (data) => {buildLogs += data})
     // Create output directory as user if it does not exist
-    $(outputDir).as(Directory).make()
+    new LocalDirectorySync(outputDir).make()
     // Run the build container
     const buildContainer = await this.buildImage.run({
       name: `fadroma-build-${randomBytes(3).toString('hex')}`,
-      command: [ 'node', $(`/`, $(buildScript).basename()).path, 'phase1', ],
+      command: [
+        'node',
+        new Path(`/`, new Path(buildScript).name).absolute,
+        'phase1',
+      ],
       entrypoint: '/usr/bin/env',
       options: {
         remove: true,
         // Readonly mounts:
         readonly: {
           // - Script that will run in the container
-          [$(buildScript).path]: $(`/`, $(buildScript).basename()).path,
+          [new Path(buildScript).absolute]: new Path(`/`, new Path(buildScript).name).absolute,
         },
         // Writable mounts:
         writable: {
           // - Repo root, containing real .git
           // (FIXME: need readonly only for updating lockfile)
-          [$(sourcePath).path]:  '/src',
+          [new Path(sourcePath).absolute]:  '/src',
           // - Output path for final artifacts:
           [outputDir]: `/output`,
           // - Persist cache to make future rebuilds faster. May be unneccessary.

@@ -6,7 +6,8 @@ import { Token } from '@fadroma/agent'
 import { OCIContainer, OCIImage } from '@fadroma/oci'
 import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
 import { Core } from '@fadroma/agent'
-import $ from '@hackbg/file'
+import { Path } from '@hackbg/file'
+
 const { Error } = Core
 
 type ScrtVersion = `1.${2|3|4|5|6|7|8|9}`
@@ -103,7 +104,7 @@ function scrtVersion (v: ScrtVersion): Partial<ScrtContainer<typeof v>> {
     container: new OCIContainer({
       image: new OCIImage({
         name: `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
-        dockerfile: $(packageRoot, `scrt_${w}.Dockerfile`).path
+        dockerfile: new Path(packageRoot, `scrt_${w}.Dockerfile`).absolute
       })
     }),
   }

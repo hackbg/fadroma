@@ -5,10 +5,9 @@
 import deasync from 'deasync'
 import { onExit } from 'gracy'
 import portManager from '@hackbg/port'
-import $, { JSONFile, XDG } from '@hackbg/file'
+import { Path, SyncFS, FileFormat, XDG } from '@hackbg/file'
 import { Core, Chain } from '@fadroma/agent'
 import { OCIImage, OCIConnection } from '@fadroma/oci'
-import type { Path } from '@hackbg/file'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet-base'
 const { bold } = Core
@@ -71,12 +70,13 @@ export function initState (
   devnet:  $D<'stateDir'|'stateFile'|'chainId'>,
   options: Partial<$D<'stateDir'|'stateFile'>>
 ) {
-  devnet.stateDir = $(options.stateDir ?? $(
-    XDG({ expanded: true, subdir: 'fadroma' }).data.home, 'devnets', devnet.chainId
-  ).path)
-  devnet.stateFile = $(options.stateFile ?? $(
+  const dataDir = XDG({ expanded: true, subdir: 'fadroma' }).data.home
+  devnet.stateDir = new SyncFS.Directory(options.stateDir ?? new Path(
+    dataDir, 'devnets', devnet.chainId
+  ).absolute)
+  devnet.stateFile = new SyncFS.File(options.stateFile ?? new Path(
     devnet.stateDir, 'devnet.json'
-  )).as(JSONFile)
+  )).setFormat(FileFormat.JSON)
   //if ($(devnet.stateDir).isDirectory() && devnet.stateFile.isFile()) {
     //try {
       //const state = (devnet.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
@@ -176,8 +176,8 @@ export async function deleteDevnetContainer (
     }
     await container.remove()
   }
-  const state = $(devnet.stateDir)
-  const path = state.shortPath
+  const state = new SyncFS.Directory(devnet.stateDir)
+  const path = state.short
   try {
     if (state.exists()) {
       devnet.log(`Deleting ${path}...`)
@@ -303,9 +303,9 @@ export async function getIdentity (
     await devnet.created
     await devnet.started
   }
-  return $(devnet.stateDir, 'wallet', `${name}.json`)
-    .as(JSONFile<Partial<Chain.Identity> & { mnemonic: string }>)
-    .load()
+  return new SyncFS.File(devnet.stateDir, 'wallet', `${name}.json`)
+    .setFormat(FileFormat.JSONFile)
+    .load() as Partial<Chain.Identity> & { mnemonic: string }
 }
 
 /** Options for the devnet container. */
@@ -316,9 +316,9 @@ export function containerOptions (
 ) {
   const Binds: string[] = []
   if (devnet.initScript) {
-    Binds.push(`${devnet.initScript.path}:${ENTRYPOINT_MOUNTPOINT}:ro`)
+    Binds.push(`${devnet.initScript.absolute}:${ENTRYPOINT_MOUNTPOINT}:ro`)
   }
-  Binds.push(`${$(devnet.stateDir).path}:/state/${devnet.chainId}:rw`)
+  Binds.push(`${new Path(devnet.stateDir).path}:/state/${devnet.chainId}:rw`)
   const NetworkMode  = 'bridge'
   const PortBindings = {[`${devnet.nodePort}/tcp`]: [{HostPort: `${devnet.nodePort}`}]}
   const HostConfig   = {Binds, NetworkMode, PortBindings}

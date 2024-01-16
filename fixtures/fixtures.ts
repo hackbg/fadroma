@@ -2,7 +2,7 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFileSync } from 'node:fs'
 import ok from 'node:assert'
-import $, { BinaryFile, withTmpDir } from '@hackbg/file'
+import { SyncFS, FileFormat, withTmpDir } from '@hackbg/file'
 import { Core, Chain, Deploy } from '@fadroma/agent'
 const { bold, Console } = Core
 
@@ -20,11 +20,12 @@ export const mnemonics = [
 export const examples: Record<string, any> = {}
 
 function example (name: string, wasm: any, hash: any) {
+  const path = new SyncFS.File(fixture(wasm))
   return examples[name] = {
     name,
     path: fixture(wasm),
-    data: $(fixture(wasm)).as(BinaryFile),
-    url:  $(fixture(wasm)).url,
+    data: path,
+    url:  path.url,
     hash
   }
 }
