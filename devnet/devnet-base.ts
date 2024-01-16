@@ -1,5 +1,5 @@
 import portManager, { waitPort } from '@hackbg/port'
-import $, { Path, JSONFile } from '@hackbg/file'
+import { Path, SyncFS, FileFormat } from '@hackbg/file'
 import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
 import { Core, Program, Chain } from '@fadroma/agent'
 const { assign, bold, colors, randomBase16, randomColor, } = Core
@@ -43,7 +43,7 @@ export default abstract class DevnetContainer extends Chain.Backend {
   /** Initial uploads. */
   genesisUploads:       Record<CodeId, Partial<Program.CompiledCode>>  = {}
   /** If set, overrides the script that launches the devnet in the container. */
-  initScript:           Path = $(packageRoot, 'devnet.init.mjs')
+  initScript:           Path = new SyncFS.File(packageRoot, 'devnet.init.mjs')
   /** Function that waits for port to open after launching container.
     * Tests override this to save time. */
   waitPort:             typeof waitPort = waitPort
@@ -57,7 +57,7 @@ export default abstract class DevnetContainer extends Chain.Backend {
   stateDir:             Path
   /** This file contains the id of the current devnet container,
     * and possibly other state. */
-  stateFile:            JSONFile<Partial<this>>
+  stateFile:            SyncFS.File
   /** This hidden file is created when the container is started,
     * and is mounted into the container. Deleting it tells the script
     * running inside the container to kill the devnet. */

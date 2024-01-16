@@ -6,8 +6,8 @@ import { Core, Deploy } from '@fadroma/agent'
 const { Error, bold, timestamp, bip39, bip39EN } = Core
 const { Deployment, ContractCode } = Deploy
 
-import $, { Directory, TextFile, TOMLFile, JSONFile } from '@hackbg/file'
 import type { Path } from '@hackbg/file'
+import { SyncFS, FileFormat } from '@hackbg/file'
 import { console, packageRoot } from './package'
 import Case from 'case'
 
@@ -15,19 +15,22 @@ import * as Tools from './tools'
 
 export { ProjectPrompter } from './tools'
 
-const { version, dependencies } = $(packageRoot, 'package.json').as(JSONFile<any>).load()
+const { version, dependencies } = new SyncFS.File(packageRoot, 'package.json')
+  .setFormat(FileFormat.JSON)
+  .load() as { version: string, dependencies: string }
 
 export function getProject (
   root: string|Path = process.env.FADROMA_PROJECT || process.cwd()
 ) {
-  root = $(root)
-  if (!root.isDirectory()) {
-    throw new Error(`${root.path} is not a directory`)
+  root = new SyncFS.Path(root)
+  if (!(root as SyncFS.Path).isDirectory()) {
+    throw new Error(`${root.absolute} is not a directory`)
   }
   const project = new Project(root)
   const { packageJson } = project
   if (project.packageJson.isFile()) {
-    project.name = project.packageJson.load().name
+    const { name } = project.packageJson.load() as { name: string }
+    project.name = name
   }
   return project
 }
@@ -52,11 +55,11 @@ export async function createProject (options?: {
   // 2nd question: project directory (defaults to subdir of current dir)
   let root = options?.root || await Promise.resolve(interactive ? prompter.projectRoot(name) : undefined)
   if (!root) {
-    root = $(tools.cwd, name as string)
+    root = new SyncFS.Directory(tools.cwd, name as string)
   }
-  root = $(await Promise.resolve(root)).as(Directory)
+  root = new SyncFS.Directory(await Promise.resolve(root))
 
-  console.log(`Creating project`, bold(name), `in`, bold(root.path))
+  console.log(`Creating project`, bold(name), `in`, bold(root.absolute))
 
   // Create generic Project instance
   let project = new Project(root.make(), name)
@@ -99,15 +102,15 @@ export async function createProject (options?: {
 }
 
 class ProjectDirectory {
-  root: Path
+  root: SyncFS.Directory
   get path (): string {
-    return this.root.path
+    return this.root.absolute
   }
   constructor (root: string|Path) {
     if (!root) {
       throw new Error('missing project root directory')
     }
-    this.root = $(root)
+    this.root = new SyncFS.Directory(root)
   }
 }
 
@@ -116,15 +119,15 @@ export class Project extends ProjectDirectory {
     super(root)
   }
 
-  readonly stateDir    = this.root.in('state')
-  readonly wasmDir     = this.root.in('wasm')
-  readonly envFile     = this.root.at('.env').as(TextFile)
-  readonly gitIgnore   = this.root.at('.gitignore').as(TextFile)
-  readonly packageJson = this.root.at('package.json').as(JSONFile<{ name?: string }>)
-  readonly readme      = this.root.at('README.md').as(TextFile)
-  readonly shellNix    = this.root.at('shell.nix').as(TextFile)
-  readonly main        = this.root.at('index.ts').as(TextFile)
-  readonly cargoToml   = this.root.at('Cargo.toml').as(TOMLFile)
+  readonly stateDir    = this.root.subdir('state')
+  readonly wasmDir     = this.root.subdir('wasm')
+  readonly envFile     = this.root.file('.env')
+  readonly gitIgnore   = this.root.file('.gitignore')
+  readonly packageJson = this.root.file('package.json').setFormat(FileFormat.JSON)
+  readonly readme      = this.root.file('README.md')
+  readonly shellNix    = this.root.file('shell.nix')
+  readonly main        = this.root.file('index.ts')
+  readonly cargoToml   = this.root.file('Cargo.toml').setFormat(FileFormat.TOML)
 
   readonly cargoCrates: Record<string, {
     name: string, dependencies?: Record<string, { version: string, features?: string[] }>
@@ -253,8 +256,8 @@ export class Project extends ProjectDirectory {
     console.br()
       .info('Project name:   ', bold(this.name||'(unnamed project)'))
       .info('Project root:   ', bold(this.path))
-      .info('Binaries:       ', bold(this.wasmDir.path))
-      .info('Deploy state:   ', bold(this.stateDir.path))
+      .info('Binaries:       ', bold(this.wasmDir.absolute))
+      .info('Deploy state:   ', bold(this.stateDir.absolute))
     let deployment
     try {
       deployment = await this.getDeployment()
@@ -292,8 +295,8 @@ export class Project extends ProjectDirectory {
 class CargoCrate extends ProjectDirectory {
   name: string
   features?: string[]
-  cargoToml = this.root.at('Cargo.toml').as(TextFile)
-  main = this.root.in('src').at('lib.rs').as(TextFile)
+  cargoToml = this.root.file('Cargo.toml')
+  main = this.root.subdir('src').file('lib.rs')
   constructor (root: string|Path, { name, features }: {
     name: string,
     features?: string[]
@@ -310,7 +313,7 @@ class CargoCrate extends ProjectDirectory {
 
 class CargoWorkspace extends ProjectDirectory {
   crates: Record<string, CargoCrate> = {}
-  cargoToml = this.root.at('Cargo.toml').as(TextFile)
+  cargoToml = this.root.file('Cargo.toml')
   constructor (root: string|Path, { name, crates = {} }: {
     name: string,
     crates?: Record<string, CargoCrate>
@@ -323,10 +326,9 @@ class CargoWorkspace extends ProjectDirectory {
 /** Project that consists of scripts plus multiple crates in a Cargo workspace. */
 export class CargoWorkspaceProject extends Project {
   /** The root file of the workspace */
-  readonly cargoToml = $(this.root, 'Cargo.toml').as(TOMLFile)
+  readonly cargoToml = new SyncFS.File(this.root, 'Cargo.toml').setFormat(FileFormat.TOML)
   /** Directory where deployable crates live. */
-  readonly contractsDir = $(this.root, 'contracts').as(Directory)
+  readonly contractsDir = new SyncFS.Directory(this.root, 'contracts')
   /** Directory where non-deployable crates live. */
-  readonly librariesDir = $(this.root, 'libraries').as(Directory)
+  readonly librariesDir = new SyncFS.Directory(this.root, 'libraries')
 }
-

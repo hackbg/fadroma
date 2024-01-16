@@ -28,7 +28,7 @@ export default async () => {
     chainId:  'foo',
     stateDir:  undefined,
     stateFile: undefined,
-  }, {}).stateFile.path.endsWith('foo/devnet.json'))
+  }, {}).stateFile.absolute.endsWith('foo/devnet.json'))
 
   equal(Impl.initDynamicUrl({
     log:          new Console('initDynamicUrl'),

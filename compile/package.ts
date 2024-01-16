@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Console } from '@hackbg/logs'
-import { LocalFileSync, FileFormat } from '@hackbg/file'
+import { SyncFS, FileFormat } from '@hackbg/file'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -17,11 +17,9 @@ export const packageRoot = dirname(fileURLToPath(
 export const {
   name:    packageName,
   version: packageVersion,
-} = new LocalFileSync(packageRoot, 'package.json')
-  .setFormat(FileFormat.JSON)
-  .load() as {
-    name:    string,
-    version: string
-  }
+} = new SyncFS.File(packageRoot, 'package.json').setFormat(FileFormat.JSON).load() as {
+  name:    string,
+  version: string
+}
 
 export const console = new Console(`${packageName} ${packageVersion}`)

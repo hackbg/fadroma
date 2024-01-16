@@ -79,7 +79,7 @@ export function initState (
   )).setFormat(FileFormat.JSON)
   //if ($(devnet.stateDir).isDirectory() && devnet.stateFile.isFile()) {
     //try {
-      //const state = (devnet.stateFile.as(JSONFile).load() || {}) as Record<any, unknown>
+      //const state = (devnet.stateFile.as(JSON).load() || {}) as Record<any, unknown>
       //// Options always override stored state
       //options = { ...state, ...options }
     //} catch (e) {
@@ -298,13 +298,13 @@ export async function getIdentity (
     throw new Error('no name')
   }
   devnet.log.debug('Authenticating to devnet as genesis account:', bold(name))
-  if (!$(devnet.stateDir).exists()) {
+  if (!new SyncFS.Directory(devnet.stateDir).exists()) {
     devnet.log.debug('Waking devnet container')
     await devnet.created
     await devnet.started
   }
   return new SyncFS.File(devnet.stateDir, 'wallet', `${name}.json`)
-    .setFormat(FileFormat.JSONFile)
+    .setFormat(FileFormat.JSON)
     .load() as Partial<Chain.Identity> & { mnemonic: string }
 }
 
@@ -318,7 +318,7 @@ export function containerOptions (
   if (devnet.initScript) {
     Binds.push(`${devnet.initScript.absolute}:${ENTRYPOINT_MOUNTPOINT}:ro`)
   }
-  Binds.push(`${new Path(devnet.stateDir).path}:/state/${devnet.chainId}:rw`)
+  Binds.push(`${new Path(devnet.stateDir).absolute}:/state/${devnet.chainId}:rw`)
   const NetworkMode  = 'bridge'
   const PortBindings = {[`${devnet.nodePort}/tcp`]: [{HostPort: `${devnet.nodePort}`}]}
   const HostConfig   = {Binds, NetworkMode, PortBindings}
@@ -450,8 +450,8 @@ export const FILTER = (data: string) =>
 export async function forceDelete (
   devnet: $D<'stateDir'|'container'|'chainId'|'log'>
 ) {
-  const path = $(devnet.stateDir).shortPath
-  devnet.log('Running cleanup container for', path)
+  const path = new SyncFS.Path(devnet.stateDir)
+  devnet.log('Running cleanup container for', path.short)
   const cleanupContainer = await devnet.container.image.run({
     name: `${devnet.chainId}-cleanup`,
     entrypoint: '/bin/rm',
@@ -459,14 +459,14 @@ export async function forceDelete (
     options: {
       extra: {
         AutoRemove: true,
-        HostConfig: { Binds: [`${$(devnet.stateDir).path}:/state:rw`] }
+        HostConfig: { Binds: [`${path.absolute}:/state:rw`] }
       }
     },
   })
   await cleanupContainer.start()
   devnet.log('Waiting for cleanup container to finish...')
   await cleanupContainer.wait()
-  devnet.log(`Deleted ${path}/* via cleanup container.`)
+  devnet.log(`Deleted ${path.short}/* via cleanup container.`)
   //$(devnet.stateDir).delete()
 }
 

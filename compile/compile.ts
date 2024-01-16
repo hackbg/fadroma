@@ -6,7 +6,7 @@ import * as OCI from '@fadroma/oci'
 
 import { Config } from '@hackbg/conf'
 import { DotGit } from '@hackbg/repo'
-import { Path, LocalFileSync, LocalDirectorySync, FileFormat } from '@hackbg/file'
+import { Path, SyncFS, FileFormat } from '@hackbg/file'
 
 import { spawn } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -112,9 +112,9 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
   /** Whether to skip any `git fetch` calls in the build script. */
   noFetch: boolean = this.config.getFlag('FADROMA_NO_FETCH', ()=>false)
   /** Name of directory where build artifacts are collected. */
-  outputDir: LocalDirectorySync = new LocalDirectorySync(
+  outputDir: SyncFS.Directory = new SyncFS.Directory(
     this.config.getString('FADROMA_ARTIFACTS',
-      ()=>new LocalDirectorySync(process.cwd(), 'wasm').absolute)
+      ()=>new Path(process.cwd(), 'wasm').absolute)
   )
   /** Version of Rust toolchain to use. */
   toolchain: string|null = this.config.getString('FADROMA_RUST', ()=>'')
@@ -212,10 +212,9 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
         if (!cargoToml) {
           throw new Error('When cargoWorkspace is not set, you must specify cargoToml')
         }
-        const cargoCrate = (new LocalFileSync(sourcePath, cargoToml)
+        const { package: { name: cargoCrate } } = new SyncFS.File(sourcePath, cargoToml)
           .setFormat(FileFormat.TOML)
           .load() as CargoTOML
-        ).package.name
         batches[sourcePath][sourceRef].tasks.add({
           buildIndex,
           cargoToml,
@@ -233,7 +232,9 @@ export abstract class LocalRustCompiler extends ConfiguredCompiler {
     { sourceRef, cargoCrate }: Partial<Program.RustSourceCode>
   ): Program.CompiledCode|null {
     if (this.caching && cargoCrate) {
-      const location = new LocalFileSync(outputDir, codePathName(cargoCrate, sourceRef||Program.HEAD))
+      const location = new SyncFS.File(
+        outputDir, codePathName(cargoCrate, sourceRef||Program.HEAD)
+      )
       if (location.exists()) {
         return new Program.CompiledCode({
           codePath: location.url,
@@ -313,7 +314,7 @@ export class RawLocalRustCompiler extends LocalRustCompiler {
     // - cargo build --manifest-path /path/to/workspace/Cargo.toml -p crate1 crate2 crate3
     // Create stream for collecting build logs
     // Create output directory as user if it does not exist
-    new LocalDirectorySync(outputDir).make()
+    new SyncFS.Directory(outputDir).make()
     // Run the build container
     const buildProcess = this.spawn(this.runtime!, [ this.script!, 'phase1' ], {
       cwd: new Path(sourcePath).absolute,
@@ -431,7 +432,7 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     let buildLogs = ''
     const logs = this.getLogStream(sourceRef, (data) => {buildLogs += data})
     // Create output directory as user if it does not exist
-    new LocalDirectorySync(outputDir).make()
+    new SyncFS.Directory(outputDir).make()
     // Run the build container
     const buildContainer = await this.buildImage.run({
       name: `fadroma-build-${randomBytes(3).toString('hex')}`,

@@ -1,12 +1,12 @@
 import assert, { equal } from 'node:assert'
-import $ from '@hackbg/file'
+import { Path } from '@hackbg/file'
 import * as Tools from './tools'
 export default async function testTools () {
 
   Tools.logInstallRust({} as any)
   Tools.logInstallSha256Sum({} as any)
   Tools.logInstallWasmOpt({} as any)
-  Tools.logProjectCreated({ root: $('.') })
+  Tools.logProjectCreated({ root: new Path('.') })
 
   let prompt: (...args: any[]) => any
   const prompter = new Tools.ProjectPrompter({ prompt: (...args: any[]) => prompt(...args) })

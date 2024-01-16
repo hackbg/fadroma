@@ -1,5 +1,6 @@
 import { Core, Deploy, Store } from '@fadroma/agent'
-import $, { Path, TextFile, JSONFile, TOMLFile, Directory } from '@hackbg/file'
+import { SyncFS, FileFormat } from '@hackbg/file'
+import type { Path } from '@hackbg/file'
 
 import { execSync } from 'node:child_process'
 import { platform } from 'node:os'
@@ -86,11 +87,11 @@ export function runNPMInstall (project: Project, tools: SystemTools): {
     }
     try {
       if (pnpm) {
-        runShellCommands(project.root.path, ['pnpm i'])
+        runShellCommands(project.root.absolute, ['pnpm i'])
       } else if (yarn) {
-        runShellCommands(project.root.path, ['yarn'])
+        runShellCommands(project.root.absolute, ['yarn'])
       } else {
-        runShellCommands(project.root.path, ['npm i'])
+        runShellCommands(project.root.absolute, ['npm i'])
       }
     } catch (e) {
       console.warn('Non-fatal: NPM install failed:', e)
@@ -245,7 +246,7 @@ export function writeCrates ({ cargoToml, wasmDir, crates }: {
   crates: Record<string, any>
 }) {
   // Populate root Cargo.toml
-  cargoToml.as(TextFile).save([
+  new SyncFS.File(cargoToml).save([
     `[workspace]`, `resolver = "2"`, `members = [`,
     Object.values(crates).map(crate=>`  "src/${crate.name}"`).sort().join(',\n'),
     `]`
@@ -255,9 +256,9 @@ export function writeCrates ({ cargoToml, wasmDir, crates }: {
   for (const crate of Object.values(crates)) {
     crate.create()
     const name = `${crate.name}@HEAD.wasm`
-    $(wasmDir, `${name}.sha256`)
-      .as(TextFile)
-      .save(`${sha256}  *${name}`)
+    new SyncFS.File(wasmDir, `${name}.sha256`).save(
+      `${sha256}  *${name}`
+    )
   }
 }
 
@@ -300,7 +301,7 @@ export function logInstallWasmOpt ({ isMac, homebrew, wasmOpt }: SystemTools) {
 }
 
 export async function logProjectCreated ({ root }: { root: Path }) {
-  console.log("Project created at", bold(root.shortPath)).info()
+  console.log("Project created at", bold(root.short)).info()
     .info(`To compile your contracts:`).info(`  $ ${bold('npm run build')}`)
     .info(`To spin up a local deployment:`).info(`  $ ${bold('npm run devnet deploy')}`)
     .info(`To deploy to testnet:`).info(`  $ ${bold('npm run testnet deploy')}`)
@@ -372,7 +373,7 @@ export class ProjectPrompter extends Prompter {
 
   deployment (store: Store.DeployStore & { root?: Path }): Promise<string|undefined> {
     const label = store.root
-      ? `Select a deployment from ${store.root.shortPath}:`
+      ? `Select a deployment from ${store.root.short}:`
       : `Select a deployment:`
     return this.select(label, [
       [...store.keys()].map(title=>({ title, value: title })),
@@ -397,15 +398,15 @@ export class ProjectPrompter extends Prompter {
     name =
       await Promise.resolve(name) as string
     const cwd =
-      $(process.cwd()).as(Directory)
+      new SyncFS.Directory(process.cwd())
     const exists =
-      cwd.in(name).exists()
+      cwd.subdir(name).exists()
     const inSub =
       `Subdirectory (${exists?'overwrite: ':''}${cwd.basename}/${name})`
     const inCwd =
       `Current directory (${cwd.basename})`
     const choices = [
-      { title: inSub, value: cwd.in(name) },
+      { title: inSub, value: cwd.subdir(name) },
       { title: inCwd, value: cwd },
     ]
     if ((cwd.list()?.length||0) === 0) {
