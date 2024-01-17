@@ -21,54 +21,54 @@ export type APIMode = 'http'|'rpc'|'grpc'|'grpcWeb'
   * running in a container managed by @fadroma/oci. */
 export default abstract class DevnetContainer extends Chain.Backend {
   /** Whether more detailed output is preferred. */
-  verbose:              boolean       = false
+  verbose:         boolean = false
   /** Name of devnet platform. */
-  platformName:         Platform
+  platformName:    Platform
   /** Version of devnet platform. */
-  platformVersion:      string
+  platformVersion: string
   /** Container instance of devnet. */
-  container:            OCIContainer  = new OCIContainer()
+  container:       OCIContainer = new OCIContainer()
   /** The protocol of the API URL without the trailing colon. */
-  nodeProtocol:         string        = 'http'
+  nodeProtocol:    string = 'http'
   /** The hostname of the API URL. */
-  nodeHost:             string        = 'localhost'
+  nodeHost:        string = 'localhost'
   /** Which service does the API URL port correspond to. */
-  nodePortMode?:        APIMode
+  nodePortMode?:   APIMode
   /** The port of the API URL. */
-  nodePort?:            string|number
+  nodePort?:       string|number
   /** Name of binary in container to start. */
-  nodeBinary?:          string
+  nodeBinary?:     string
   /** Initial accounts. */
-  genesisAccounts:      Record<Address, number|bigint|Uint128> = {}
+  genesisAccounts: Record<Address, number|bigint|Uint128> = {}
   /** Initial uploads. */
-  genesisUploads:       Record<CodeId, Partial<Program.CompiledCode>>  = {}
+  genesisUploads:  Record<CodeId, Partial<Program.CompiledCode>>  = {}
   /** If set, overrides the script that launches the devnet in the container. */
-  initScript:           Path = new SyncFS.File(packageRoot, 'devnet.init.mjs')
+  initScript:      Path = new SyncFS.File(packageRoot, 'devnet.init.mjs')
   /** Function that waits for port to open after launching container.
     * Tests override this to save time. */
-  waitPort:             typeof waitPort = waitPort
+  waitPort:        typeof waitPort = waitPort
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
-  waitString:           string = ''
+  waitString:      string = ''
   /** Seconds to wait after first block.
     * Tests override this to save time. */
-  waitMore:             number = 7
+  waitMore:        number = 7
   /** This directory contains the state of the devnet. */
-  stateDir:             Path
+  stateDir:        Path
   /** This file contains the id of the current devnet container,
     * and possibly other state. */
-  stateFile:            SyncFS.File
+  stateFile:       SyncFS.File
   /** This hidden file is created when the container is started,
     * and is mounted into the container. Deleting it tells the script
     * running inside the container to kill the devnet. */
-  runFile:              Path
+  runFile:         Path
   /** What to do with the devnet once the process that has spawned it exits.
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
     * - "delete": the devnet container is stopped and deleted, along with the state directory */
-  onExit:               'remain'|'pause'|'delete'
+  onExit:          'remain'|'pause'|'delete'
   /** The exit handler that cleans up external resources. */
-  exitHandler?:         (...args: any)=>void
+  exitHandler?:    (...args: any)=>void
 
   constructor (options: Partial<DevnetContainer> = {}) {
     super(options)
