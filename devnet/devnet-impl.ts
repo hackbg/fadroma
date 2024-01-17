@@ -119,6 +119,7 @@ export async function createDevnetContainer (
     & Parameters<typeof containerOptions>[0]
     & $D<'container'|'verbose'|'initScript'|'url'>
 ) {
+  devnet.log.label = devnet.container.log.label
   if (await devnet.container.exists()) {
     devnet.log(`Found`, bold(devnet.chainId), `in container`, bold(devnet.container.shortId))
   } else {
@@ -159,28 +160,27 @@ export async function createDevnetContainer (
 export async function deleteDevnetContainer (
   devnet: $D<'log'|'container'|'stateDir'|'paused'> & Parameters<typeof forceDelete>[0]
 ) {
-  devnet.log('Deleting...')
-  let container
+  devnet.log.label = devnet.container.log.label
   try {
-    container = await devnet.container
+    if (devnet.container && await devnet.container?.isRunning) {
+      if (await devnet.container.isRunning) {
+        await devnet.paused
+      }
+      await devnet.container.remove()
+    }
   } catch (e) {
     if (e.statusCode === 404) {
-      devnet.log(`No container found`, bold(devnet.container.shortId))
+      devnet.log(`Already deleted:`, bold(devnet.container.shortId))
     } else {
+      console.log(1)
       throw e
     }
-  }
-  if (container && await container?.isRunning) {
-    if (await container.isRunning) {
-      await devnet.paused
-    }
-    await container.remove()
   }
   const state = new SyncFS.Directory(devnet.stateDir)
   const path = state.short
   try {
     if (state.exists()) {
-      devnet.log(`Deleting ${path}...`)
+      devnet.log(`Deleting ${path} ...`)
       //state.delete()
     }
   } catch (e: any) {
@@ -217,6 +217,7 @@ export async function startDevnetContainer (
     |'nodeHost'|'nodePort'|'chainId'|'waitPort'|'created'
   >
 ) {
+  devnet.log.label = devnet.container.log.label
   if (!devnet.running) {
     devnet.running = true
     devnet.log.debug(`Starting container`)
@@ -246,6 +247,7 @@ export async function startDevnetContainer (
 export async function pauseDevnetContainer (
   devnet: $D<'log'|'container'|'running'>
 ) {
+  devnet.log.label = devnet.container.log.label
   if (await devnet.container.exists()) {
     devnet.log.debug(`Stopping container:`, bold(devnet.container.shortId))
     try {
@@ -311,26 +313,37 @@ export async function getIdentity (
 /** Options for the devnet container. */
 export function containerOptions (
   devnet: $D<
-    'chainId'|'initScript'|'stateDir'|'nodePort'
+    'chainId'|'initScript'|'stateDir'|'nodePort'|'platformName'|'platformVersion'|'chainId'
   > & Parameters<typeof containerEnvironment>[0]
 ) {
-  const Binds: string[] = []
-  if (devnet.initScript) {
-    Binds.push(`${devnet.initScript.absolute}:${ENTRYPOINT_MOUNTPOINT}:ro`)
+  return {
+    env:              containerEnvironment(devnet),
+    exposed:          [`${devnet.nodePort}/tcp`],
+    extra:            {
+      Tty:            true,
+      AttachStdin:    true,
+      AttachStdout:   true,
+      AttachStderr:   true,
+      Hostname:       devnet.chainId,
+      Domainname:     devnet.chainId,
+      HostConfig:     {
+        Binds:        [
+          `${new Path(devnet.stateDir).absolute}:/state/${devnet.chainId}:rw`,
+          devnet.initScript ? `${devnet.initScript.absolute}:${ENTRYPOINT_MOUNTPOINT}:ro` : null,
+        ].filter(Boolean),
+        NetworkMode:  'bridge',
+        PortBindings: {
+          [`${devnet.nodePort}/tcp`]: [{HostPort: `${devnet.nodePort}`}]
+        },
+        AutoRemove:   false,
+      },
+      Labels:         {
+        "tech.fadroma.devnet.platformName":    devnet.platformName,
+        "tech.fadroma.devnet.platformVersion": devnet.platformVersion,
+        "tech.fadroma.devnet.chainId":         devnet.chainId,
+      }
+    }
   }
-  Binds.push(`${new Path(devnet.stateDir).absolute}:/state/${devnet.chainId}:rw`)
-  const NetworkMode  = 'bridge'
-  const PortBindings = {[`${devnet.nodePort}/tcp`]: [{HostPort: `${devnet.nodePort}`}]}
-  const HostConfig   = {Binds, NetworkMode, PortBindings}
-  const Tty          = true
-  const AttachStdin  = true
-  const AttachStdout = true
-  const AttachStderr = true
-  const Hostname     = devnet.chainId
-  const Domainname   = devnet.chainId
-  const extra   = {Tty, AttachStdin, AttachStdout, AttachStderr, Hostname, Domainname, HostConfig}
-  const options = {env: containerEnvironment(devnet), exposed: [`${devnet.nodePort}/tcp`], extra }
-  return options
 }
 
 /** Environment variables in the devnet container. */
