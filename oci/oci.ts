@@ -384,7 +384,13 @@ class OCIContainer extends Deploy.ContractInstance {
     if (!await this.exists()) {
       await this.create()
     }
-    await api.start()
+    try {
+      await api.start()
+    } catch (e) {
+      if (e.statusCode !== 304) {
+        throw e
+      }
+    }
     return this
   }
 
