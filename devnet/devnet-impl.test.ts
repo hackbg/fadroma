@@ -1,6 +1,6 @@
 import { ok, equal, throws } from 'node:assert'
-import { OCIConnection, OCIImage, OCIContainer, Mock } from '@fadroma/oci'
 import { Core } from '@fadroma/agent'
+import * as OCI from '@fadroma/oci'
 import * as Impl from './devnet-impl'
 const { Console } = Core
 
@@ -66,10 +66,10 @@ export default async () => {
     platformName:    undefined,
     platformVersion: undefined,
     genesisAccounts: undefined,
-    container:       Object.assign(new OCIContainer({
+    container:       Object.assign(new OCI.Container({
       id:            'mock-create',
-      image:         new OCIImage({
-        engine:      OCIConnection.mock(),
+      image:         new OCI.Image({
+        engine:      OCI.Connection.mock(),
         name:        'mock'
       }),
     }), {
@@ -96,10 +96,10 @@ export default async () => {
     initScript:      undefined,
     stateDir:        undefined,
     stateFile:       { save (_) {} },
-    container:       Object.defineProperties(new OCIContainer({
+    container:       Object.defineProperties(new OCI.Container({
       id:            'mock-start',
-      image:         new OCIImage({
-        engine:      OCIConnection.mock(),
+      image:         new OCI.Image({
+        engine:      OCI.Connection.mock(),
         name:        'mock'
       }),
     }), {
@@ -131,10 +131,10 @@ export default async () => {
   await Impl.pauseDevnetContainer({
     log:        new Console('pauseDevnetContainer'),
     running:    undefined,
-    container:  new OCIContainer({
+    container:  new OCI.Container({
       id:       'mock-pause',
-      image:    Object.assign(new OCIImage({
-        engine: OCIConnection.mock(),
+      image:    Object.assign(new OCI.Image({
+        engine: OCI.Connection.mock(),
         name:   'mock' 
       })),
     }),
@@ -144,10 +144,10 @@ export default async () => {
     log:        new Console('deleteDevnetContainer'),
     stateDir:   undefined,
     paused:     undefined,
-    container:  Object.defineProperties(new OCIContainer({
+    container:  Object.defineProperties(new OCI.Container({
       id:       'mock-delete',
-      image:    new OCIImage({
-        engine: OCIConnection.mock(),
+      image:    new OCI.Image({
+        engine: OCI.Connection.mock(),
         name:   'mock'
       }),
     }), {

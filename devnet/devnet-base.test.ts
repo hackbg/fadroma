@@ -2,7 +2,7 @@ import { packageRoot } from './package'
 import type * as Devnets from './devnet'
 import Container from './devnet-base'
 import { Chain, Token } from '@fadroma/agent'
-import { OCIContainer, OCIImage } from '@fadroma/oci'
+import * as OCI from '@fadroma/oci'
 import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { resolve } from 'node:path'
@@ -38,7 +38,7 @@ export async function testDevnetPlatform <
   ok(devnet.gasToken)
   ok(devnet.gasToken instanceof Token.Fungible)
   ok(typeof devnet.gasToken.denom === 'string')
-  ok((await devnet.container.image) instanceof OCIImage)
+  ok((await devnet.container.image) instanceof OCI.Image)
 
   const spawnEnv = Impl.containerEnvironment(devnet)
   deepEqual(spawnEnv.DAEMON,    daemon)
@@ -62,7 +62,7 @@ export async function testDevnetPlatform <
 
   equal(await devnet.created, devnet)
   equal(devnet.url.toString(), `http://${devnet.nodeHost}:${devnet.nodePort}/`)
-  ok(devnet.container instanceof OCIContainer)
+  ok(devnet.container instanceof OCI.Container)
   equal(devnet.container.name, devnet.chainId)
 
   equal(await devnet.started, devnet)

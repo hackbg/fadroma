@@ -5,7 +5,7 @@ import assert, { deepEqual, throws } from 'node:assert'
 import { dirname } from 'node:path'
 import { DotGit } from '@hackbg/repo'
 import { Program, Deploy } from '@fadroma/agent'
-import { OCIConnection, OCIImage } from '@fadroma/oci'
+import * as OCI from '@fadroma/oci'
 import { getCompiler, RawLocalRustCompiler, ContainerizedLocalRustCompiler } from './compile'
 import { packageRoot } from './package'
 
@@ -50,7 +50,7 @@ export async function testBuildContainer () {
   })
   new ContainerizedLocalRustCompiler({
     //@ts-ignore
-    dockerImage: new OCIImage({ engine: null, name: 'test' }) as any
+    dockerImage: new OCI.Image({ engine: null, name: 'test' }) as any
   })
 }
 

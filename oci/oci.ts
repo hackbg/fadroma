@@ -17,7 +17,7 @@ export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.soc
 
 export const console = new Console('@fadroma/oci')
 
-export class OCIConnection extends Chain.Connection {
+class OCIConnection extends Chain.Connection {
   static mock (callback?: Function) {
     return new this({ api: Mock.mockDockerode(callback) })
   }
@@ -114,7 +114,7 @@ export class OCIConnection extends Chain.Connection {
   }
 }
 
-export class OCIImage extends Deploy.ContractTemplate {
+class OCIImage extends Deploy.ContractTemplate {
 
   constructor (properties: Partial<OCIImage> = {}) {
     super(properties)
@@ -284,7 +284,7 @@ export class OCIImage extends Deploy.ContractTemplate {
 }
 
 /** Interface to a Docker container. */
-export class OCIContainer extends Deploy.ContractInstance {
+class OCIContainer extends Deploy.ContractInstance {
 
   constructor (properties: Partial<OCIContainer> = {}) {
     super(properties)
@@ -554,4 +554,10 @@ export class LineTransformStream extends Transform {
     // push output
     callback(null, output)
   }
+}
+
+export {
+  OCIConnection as Connection,
+  OCIImage      as Image,
+  OCIContainer  as Container,
 }

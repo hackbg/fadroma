@@ -4,7 +4,7 @@ import DevnetContainer from './devnet-base'
 import { connect } from './devnet-impl'
 import { Core, Token } from '@fadroma/agent'
 import { OKP4Connection, OKP4MnemonicIdentity } from '@fadroma/cw'
-import { OCIContainer, OCIImage } from '@fadroma/oci'
+import * as OCI from '@fadroma/oci'
 import { Path } from '@hackbg/file'
 
 const { Error } = Core
@@ -55,8 +55,8 @@ export function okp4Version (v: OKP4Version): Partial<OKP4Container<typeof v>> {
     nodePortMode: 'rpc' as APIMode,
     platform: `okp4_${w}`,
     waitString: 'indexed block',
-    container: new OCIContainer({
-      image: new OCIImage({
+    container: new OCI.Container({
+      image: new OCI.Image({
         name: `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
         dockerfile: new Path(packageRoot, `okp4_${w}.Dockerfile`).absolute
       })

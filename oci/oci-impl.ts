@@ -1,5 +1,5 @@
 import Docker from 'dockerode'
-import type { OCIContainer } from './oci'
+import { Container as OCIContainer } from './oci'
 import { OCIConsole as Console, OCIError, bold } from './oci-base'
 
 export function toDockerodeOptions ({
@@ -40,7 +40,7 @@ export function toDockerodeOptions ({
 
   exposed.forEach(containerPort=>config.ExposedPorts[containerPort] = {})
 
-  Object.entries(mapped).forEach(([containerPort, hostPort])=>
+  Object.entries(mapped).forEach(([containerPort, hostPort]: [string, string])=>
       config.HostConfig.PortBindings[containerPort] = [{ HostPort: hostPort }])
 
   Object.entries(readonly).forEach(([hostPath, containerPath])=>

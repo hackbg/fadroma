@@ -1,5 +1,5 @@
 import { Suite } from '@hackbg/ensuite'
-import { OCIConnection, OCIImage, OCIContainer, defaultSocketPath } from './oci'
+import * as OCI from './oci'
 import { Core } from '@fadroma/agent'
 import * as assert from 'node:assert'
 import { resolve, dirname } from 'node:path'
@@ -10,9 +10,9 @@ export default new Suite([
 ])
 
 export async function testContainerEngine () {
-  const engine = new OCIConnection()
+  const engine = new OCI.Connection()
   const image = engine.image('hello-world')
-  assert.ok(image instanceof OCIImage)
+  assert.ok(image instanceof OCI.Image)
   assert.equal(image.engine, engine)
   console.log('Pull or build...')
   await image.pullOrBuild()
@@ -24,7 +24,7 @@ export async function testContainerEngine () {
   console.log('Build...')
   await image.build()
   const container = image.container(`test-hello-${Core.randomBase16()}`)
-  assert.ok(container instanceof OCIContainer)
+  assert.ok(container instanceof OCI.Container)
   assert.equal(container.image, image)
   assert.equal(await container.exists(), false)
   console.log('Create container...')

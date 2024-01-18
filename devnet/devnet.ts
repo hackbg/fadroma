@@ -5,7 +5,7 @@ import { Path, FileFormat, SyncFS, XDG } from '@hackbg/file'
 import type { CodeId, ChainId, Address, Uint128 } from '@fadroma/agent'
 import { Core, Program } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
-import { OCIConnection, OCIContainer, OCIImage } from '@fadroma/oci'
+import * as OCI from '@fadroma/oci'
 import { packageName, packageVersion } from './package'
 import ScrtContainer from './devnet-scrt'
 import OKP4Container from './devnet-okp4'
@@ -64,7 +64,7 @@ export default class DevnetCLI extends CLI {
     info: 'list existing devnets',
     args: ''
   }, async () => {
-    const engine = new OCIConnection()
+    const engine = new OCI.Connection()
     const devnetsDir = new SyncFS.Directory(
       XDG({ expanded: true, subdir: 'fadroma' }).data.home,
       'devnets'
@@ -337,7 +337,7 @@ export default class DevnetCLI extends CLI {
     info: 'delete broken devnets',
     args: ''
   }, async () => {
-    const engine = new OCIConnection()
+    const engine = new OCI.Connection()
     const dataDir = XDG({ expanded: true, subdir: 'fadroma' }).data.home
     const devnetsDir = new SyncFS.Directory(dataDir, 'devnets')
     const devnets = devnetsDir.list()

@@ -3,7 +3,7 @@ import type { APIMode } from './devnet-base'
 import { connect } from './devnet-impl'
 import DevnetContainer from './devnet-base'
 import { Token } from '@fadroma/agent'
-import { OCIContainer, OCIImage } from '@fadroma/oci'
+import * as OCI from '@fadroma/oci'
 import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
 import { Core } from '@fadroma/agent'
 import { Path } from '@hackbg/file'
@@ -101,8 +101,8 @@ function scrtVersion (v: ScrtVersion): Partial<ScrtContainer<typeof v>> {
     waitString,
     nodeBinary: 'secretd',
     platform: `scrt_${w}`,
-    container: new OCIContainer({
-      image: new OCIImage({
+    container: new OCI.Container({
+      image: new OCI.Image({
         name: `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
         dockerfile: new Path(packageRoot, `scrt_${w}.Dockerfile`).absolute
       })

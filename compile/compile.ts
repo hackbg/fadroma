@@ -353,12 +353,12 @@ const DEFAULT_ENGINE_SOCKET = '/var/run/docker.sock'
 /** Runs the build script in a container. */
 export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
   /** Used to launch build container. */
-  engine:             OCI.OCIConnection
+  engine:             OCI.Connection
   /** Path to Docker API endpoint. */
   engineSocket:       string =
     this.config.getString('FADROMA_DOCKER', ()=>DEFAULT_ENGINE_SOCKET)
   /** Tag of the docker image for the build container. */
-  buildImage:         OCI.OCIImage
+  buildImage:         OCI.Image
   /** Docker image to use for dockerized builds. */
   buildImageTag:      string =
     this.config.getString('FADROMA_BUILD_IMAGE', ()=>'ghcr.io/hackbg/fadroma:master')
@@ -377,14 +377,14 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     super(options as Partial<LocalRustCompiler>)
     // Set up Docker API handle
     if (options?.engineSocket) {
-      this.engine = new OCI.OCIConnection({ url: options.engineSocket })
+      this.engine = new OCI.Connection({ url: options.engineSocket })
     } else if (options?.engine) {
       this.engine = options.engine
     } else {
-      this.engine = new OCI.OCIConnection()
+      this.engine = new OCI.Connection()
     }
-    if ((options?.buildImageTag as unknown) instanceof OCI.OCIImage) {
-      this.buildImage = options?.buildImageTag as unknown as OCI.OCIImage
+    if ((options?.buildImageTag as unknown) instanceof OCI.Image) {
+      this.buildImage = options?.buildImageTag as unknown as OCI.Image
     } else if (options?.buildImageTag) {
       this.buildImage = this.engine.image(options.buildImageTag)
     } else {

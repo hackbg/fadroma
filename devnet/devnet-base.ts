@@ -1,6 +1,6 @@
 import portManager, { waitPort } from '@hackbg/port'
 import { Path, SyncFS, FileFormat } from '@hackbg/file'
-import { OCIConnection, OCIImage, OCIContainer } from '@fadroma/oci'
+import * as OCI from '@fadroma/oci'
 import { Core, Program, Chain } from '@fadroma/agent'
 const { assign, bold, colors, randomBase16, randomColor, } = Core
 import type { Address, CodeId, Uint128 } from '@fadroma/agent'
@@ -27,7 +27,7 @@ export default abstract class DevnetContainer extends Chain.Backend {
   /** Version of devnet platform. */
   platformVersion: string
   /** Container instance of devnet. */
-  container:       OCIContainer = new OCIContainer()
+  container:       OCI.Container = new OCI.Container()
   /** The protocol of the API URL without the trailing colon. */
   nodeProtocol:    string = 'http'
   /** The hostname of the API URL. */
