@@ -4,10 +4,14 @@ import { existsSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 
+const CHAIN_ID = process.argv[2]
+if (!CHAIN_ID) {
+  throw new Error('The chain ID must be passed as first argument to devnet launcher script.')
+}
+
 const {
   VERBOSE       = false,
 
-  CHAIN_ID      = `local-${DAEMON}`,
   TOKEN         = 'unspecified',
   ACCOUNTS      = '{"init":[]}',
   AMOUNT        = `1000000000000000000${TOKEN}`,

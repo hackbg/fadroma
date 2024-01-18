@@ -50,16 +50,16 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
 
 export function okp4Version (v: OKP4Version): Partial<OKP4Container<typeof v>> {
   const w = v.replace(/\./g, '_')
+  const image = new OCI.Image({
+    name: `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
+    dockerfile: new Path(packageRoot, `okp4_${w}.Dockerfile`).absolute,
+    inputFiles: [`devnet.init.mjs`]
+  })
   return {
-    nodeBinary: 'okp4d',
+    nodeBinary:   'okp4d',
     nodePortMode: 'rpc' as APIMode,
-    platform: `okp4_${w}`,
-    waitString: 'indexed block',
-    container: new OCI.Container({
-      image: new OCI.Image({
-        name: `ghcr.io/hackbg/fadroma-devnet-okp4-${v}:master`,
-        dockerfile: new Path(packageRoot, `okp4_${w}.Dockerfile`).absolute
-      })
-    }),
+    platform:     `okp4_${w}`,
+    waitString:   'indexed block',
+    container:    new OCI.Container({ image }),
   }
 }

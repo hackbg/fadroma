@@ -96,16 +96,16 @@ function scrtVersion (v: ScrtVersion): Partial<ScrtContainer<typeof v>> {
     default:
       throw new Error(`Unsupported version: scrt ${v}`)
   }
+  const image = new OCI.Image({
+    name: `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
+    dockerfile: new Path(packageRoot, `scrt_${w}.Dockerfile`).absolute,
+    inputFiles: [`devnet.init.mjs`]
+  })
   return {
     nodePortMode,
     waitString,
     nodeBinary: 'secretd',
-    platform: `scrt_${w}`,
-    container: new OCI.Container({
-      image: new OCI.Image({
-        name: `ghcr.io/hackbg/fadroma-devnet-scrt-${v}:master`,
-        dockerfile: new Path(packageRoot, `scrt_${w}.Dockerfile`).absolute
-      })
-    }),
+    platform:   `scrt_${w}`,
+    container:  new OCI.Container({ image }),
   }
 }

@@ -141,7 +141,7 @@ export async function createDevnetContainer (
     }
     devnet.container.name      = devnet.chainId
     devnet.container.options   = containerOptions(devnet)
-    devnet.container.command   = devnet.initScript ? [ENTRYPOINT_MOUNTPOINT] : []
+    devnet.container.command   = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
     devnet.container.log.label = devnet.log.label
     await devnet.container.create()
     //setExitHandler(devnet)
