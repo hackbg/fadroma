@@ -65,7 +65,7 @@ export class DevnetContainerState {
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
     * - "delete": the devnet container is stopped and deleted, along with the state directory */
-  onExit:          'remain'|'pause'|'delete'
+  onScriptExit:    'remain'|'pause'|'delete'
   /** The exit handler that cleans up external resources. */
   exitHandler?:    (...args: any)=>void
 
@@ -82,7 +82,7 @@ export class DevnetContainerState {
       'nodePort',
       'nodePortMode',
       'nodeProtocol',
-      'onExit',
+      'onScriptExit',
       'platformName',
       'platformVersion',
       'running',

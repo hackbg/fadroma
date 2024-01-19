@@ -208,44 +208,43 @@ export function containerEnvironment (
 
 // Set an exit handler on the process to let the devnet
 // stop/remove its container if configured to do so
-export function setExitHandler (
-  devnet: Parameters<typeof defineExitHandler>[0]
-) {
+export function setExitHandler (devnet: Parameters<typeof defineExitHandler>[0]) {
   if (!devnet.exitHandler) {
     devnet.log.debug('Registering exit handler')
-    onExit(devnet.exitHandler = defineExitHandler(devnet), { logger: false })
+    devnet.exitHandler = defineExitHandler(devnet), { logger: false }
+    process.on('exit', devnet.exitHandler)
+    onExit(devnet.exitHandler)
   } else {
     devnet.log.warn('Exit handler already registered')
   }
 }
 
-function defineExitHandler (
-  devnet: $D<'log'|'onExit'|'runFile'|'chainId'|'nodePort'|'exitHandler'|'container'>
-) {
+function defineExitHandler (devnet: $D<
+  'log'|'onScriptExit'|'runFile'|'chainId'|'nodePort'|'exitHandler'|'container'|'url'|'stateDir'
+>) {
   let called = false
   return function exitHandler (
     this: Parameters<typeof defineExitHandler>[0],
     ...args: unknown[]
   ) {
     if (called) {
-      this.log.trace('Exit handler called more than once')
+      this.log.warn(`Exit handler for ${bold(this.chainId)} called more than once`)
       return
     }
     called = true
-    this.log.debug('Running exit handler', { args })
-    if (this.onExit === 'delete' || this.onExit === 'pause') {
-      this.log.log(`Stopping ${this.chainId}`)
+    this.log.debug(`Running exit handler for ${bold(this.chainId)}`)
+    if (this.onScriptExit === 'delete' || this.onScriptExit === 'pause') {
+      this.log.log(`Stopping ${bold(this.chainId)}`)
       devnet.runFile.delete()
     } else {
-      this.log.log(
-        'Devnet is running on port', bold(String(this.nodePort)),
-        `from container`, bold(this.container.shortId)
-      ).info('To remove the devnet:'
-      ).info('  $ npm run devnet reset'
-      ).info('Or manually:'
-      ).info(`  $ docker kill`, this.container.shortId,
-      ).info(`  $ docker rm`, this.container.shortId,
-      ).info(`  $ sudo rm -rf state/${this.chainId??'fadroma-devnet'}`)
+      this.log.info(
+        `\n\n  Devnet remains running on ${bold(String(devnet.url))}` +
+        ` from container ${bold(this.container.shortId)}` +
+        `\n  To remove the devnet:` +
+        `\n    $ npm run devnet reset` +
+        `\n  Or manually:` +
+        `\n    $ docker kill ${this.container.shortId} && docker rm ${this.container.shortId}`,
+        `\n    $ rm -rf ${this.stateDir.absolute}\n`)
     }
     this.log.debug('Exit handler complete')
   }.bind(devnet)
