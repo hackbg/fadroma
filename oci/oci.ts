@@ -351,17 +351,16 @@ class OCIContainer extends Deploy.ContractInstance {
       // Update the logger tag with the container id
       const idColor = randomColor({ luminosity: 'dark', seed: this.id })
       let idTag = ''
-      idTag += colors.bgHex(idColor).whiteBright(` ${this.shortId}`)
+      idTag += colors.bgHex(idColor).whiteBright(` ${this.shortId} `)
       if (this.name) {
         const tagColor = randomColor({ luminosity: 'dark', seed: this.name })
-        idTag += colors.bgHex(tagColor).hex(idColor)('▌')
-        idTag += colors.bgHex(tagColor).whiteBright(`${this.name} `)
+        idTag += colors.bgHex(tagColor).whiteBright(` ${this.name} `)
       } else {
         idTag += colors.bgHex(idColor).whiteBright(` `)
       }
       this.log.label = `${idTag}`
-      return this
     }
+    return this
   }
 
   /** Remove a stopped container. */
@@ -475,7 +474,11 @@ class OCIContainer extends Deploy.ContractInstance {
   /** Save a container as an image. */
   async export (repository?: string, tag?: string) {
     const { Id } = await (await this.api).commit({ repository, tag })
-    this.log.log(`Exported snapshot:`, bold(Id))
+    if (repository && tag) {
+      this.log.log(`Exported snapshot:`, bold(`${repository}:${tag}`))
+    } else {
+      this.log.log(`Exported snapshot:`, bold(Id))
+    }
     return Id
   }
 
