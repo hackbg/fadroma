@@ -304,6 +304,7 @@ class OCIContainer extends Deploy.ContractInstance {
   constructor (properties: Partial<OCIContainer> = {}) {
     super(properties)
     assign(this, properties, ['id', 'engine', 'image', 'entrypoint', 'command', 'options'])
+    this.engine ??= this.image?.engine
     this.log = new Console('OCIContainer')
     hide(this, 'log')
   }
@@ -330,8 +331,8 @@ class OCIContainer extends Deploy.ContractInstance {
   }
 
   /** Get info about a container. */
-  inspect () {
-    return this.api.inspect()
+  async inspect () {
+    return await this.api.inspect()
   }
 
   ip (): Promise<string> {
