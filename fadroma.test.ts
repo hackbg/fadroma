@@ -14,4 +14,7 @@ export default new Suite([
   ['cw',      () =>
     //@ts-ignore
     import('./cw/cw.test')],
+  ['oci',     () =>
+    //@ts-ignore
+    import('./oci/oci.test')],
 ])
