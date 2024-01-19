@@ -1,8 +1,8 @@
 import portManager, { waitPort } from '@hackbg/port'
 import { Path, SyncFS, FileFormat } from '@hackbg/file'
 import * as OCI from '@fadroma/oci'
-import { Core, Program, Chain } from '@fadroma/agent'
-const { assign, bold, colors, randomBase16, randomColor, } = Core
+import { Core, Program, Chain, Token } from '@fadroma/agent'
+const { Error, assign, bold, colors, randomBase16, randomColor, } = Core
 import type { Address, CodeId, Uint128 } from '@fadroma/agent'
 
 import { packageRoot } from './package'
@@ -17,9 +17,13 @@ export type Platform = 'scrt'|'okp4'
   * depending on platform version. */
 export type APIMode = 'http'|'rpc'|'grpc'|'grpcWeb'
 
-/** A private local instance of a network,
-  * running in a container managed by @fadroma/oci. */
-export default abstract class DevnetContainer extends Chain.Backend {
+export class DevnetContainerState {
+  /** Whether the devnet container is started. */
+  running:         boolean = false
+  /** Chain ID of chain node running inside devnet container. */
+  chainId?:        string
+  /** Denomination of base gas token for this chain. */
+  gasToken?:       Token.Native
   /** Whether more detailed output is preferred. */
   verbose:         boolean = false
   /** Name of devnet platform. */
@@ -28,6 +32,8 @@ export default abstract class DevnetContainer extends Chain.Backend {
   platformVersion: string
   /** Container instance of devnet. */
   container:       OCI.Container = new OCI.Container()
+  /** URL for connecting to a remote devnet. */
+  url?:            string|URL
   /** The protocol of the API URL without the trailing colon. */
   nodeProtocol:    string = 'http'
   /** The hostname of the API URL. */
@@ -53,15 +59,9 @@ export default abstract class DevnetContainer extends Chain.Backend {
   /** Seconds to wait after first block.
     * Tests override this to save time. */
   waitMore:        number = 7
-  /** This directory contains the state of the devnet. */
-  stateDir:        Path
-  /** This file contains the id of the current devnet container,
-    * and possibly other state. */
-  stateFile:       SyncFS.File
-  /** This hidden file is created when the container is started,
-    * and is mounted into the container. Deleting it tells the script
-    * running inside the container to kill the devnet. */
-  runFile:         Path
+  /** This directory contains the state of all devnets, e.g. `~/.local/share/fadroma/devnets`.
+    * The devnet container will create a subdirectory named after the chain ID. */
+  stateRoot:       SyncFS.Directory
   /** What to do with the devnet once the process that has spawned it exits.
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
@@ -70,11 +70,11 @@ export default abstract class DevnetContainer extends Chain.Backend {
   /** The exit handler that cleans up external resources. */
   exitHandler?:    (...args: any)=>void
 
-  constructor (options: Partial<DevnetContainer> = {}) {
-    super(options)
+  constructor (options: Partial<DevnetContainerState> = {}) {
     assign(this, options, [
       'chainId',
       'container',
+      'gasToken',
       'genesisAccounts',
       'genesisUploads',
       'initScript',
@@ -86,9 +86,59 @@ export default abstract class DevnetContainer extends Chain.Backend {
       'onExit',
       'platformName',
       'platformVersion',
+      'running',
+      'stateRoot',
       'waitString',
       'verbose',
     ])
+  }
+
+  get platform () {
+    if (!this.platformName) {
+      throw new Error('platformName is unset')
+    }
+    if (!this.platformName) {
+      throw new Error('platformVersion is unset')
+    }
+    return `${this.platformName}_${this.platformVersion}`
+  }
+
+  /** This directory contains the state of the devnet,
+    * such as statefile, runfile, genesis accounts. */
+  get stateDir (): SyncFS.Directory {
+    if (!this.chainId) {
+      throw new Error("This devnet's chain ID is unset, hence no state directory")
+    }
+    return this.stateRoot.subdir(this.chainId)
+  }
+  /** This file contains the state of the devnet,
+    * such as container ID. */
+  get stateFile (): SyncFS.File {
+    if (!this.chainId) {
+      throw new Error("This devnet's chain ID is unset, hence no state file")
+    }
+    return this.stateDir.file('devnet.json').setFormat(FileFormat.JSON)
+  }
+  /** This file is created when the container is started.
+    * Deleting it tells the script running inside the container to kill the devnet. */
+  get runFile (): SyncFS.File {
+    if (!this.chainId) {
+      throw new Error("This devnet's chain ID is unset, hence no runfile.")
+    }
+    return this.stateDir.file('devnet.run')
+  }
+}
+
+/** A private local instance of a network,
+  * running in a container managed by @fadroma/oci. */
+export default abstract class DevnetContainer
+  extends DevnetContainerState
+  implements Chain.Backend
+{
+  /** Logger. */
+  log = new Core.Console('Devnet')
+  constructor (options: Partial<DevnetContainer> = {}) {
+    super(options)
     Impl.initPort(this)
     Impl.initChainId(this)
     Impl.initLogger(this)
@@ -97,26 +147,22 @@ export default abstract class DevnetContainer extends Chain.Backend {
     Impl.initContainer(this)
     Impl.initContainerState(this)
   }
-
   /** Wait for the devnet to be created. */
   declare readonly created: Promise<this>
-
   /** Wait for the devnet to be deleted. */
   declare readonly deleted: Promise<this>
-
   /** Wait for the devnet to be started. */
   declare readonly started: Promise<this>
-
   /** Wait for the devnet to be stopped. */
   declare readonly paused:  Promise<this>
-
+  /** Obtain a Connection object to this devnet, optionally with a specific Identity. */
+  abstract connect (parameter?: string|Partial<Chain.Identity>): Promise<Chain.Connection>
   /** Get info for named genesis account, including the mnemonic */
   async getIdentity (
     name: string|{ name?: string }
   ): Promise<Partial<Chain.Identity> & { mnemonic: string }> {
     return Impl.getIdentity(this, name)
   }
-
   /** Export the contents of the devnet as a container image. */
   async export (repository?: string, tag?: string) {
     const container = await this.container
@@ -125,5 +171,4 @@ export default abstract class DevnetContainer extends Chain.Backend {
     }
     return container.export(repository, tag)
   }
-
 }

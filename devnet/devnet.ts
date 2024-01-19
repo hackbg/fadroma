@@ -12,10 +12,8 @@ import OKP4Container from './devnet-okp4'
 
 const { bold, colors } = Core
 
-export {
-  ScrtContainer,
-  OKP4Container,
-}
+export { default as DevnetContainer } from './devnet-base'
+export { ScrtContainer, OKP4Container }
 
 export default class DevnetCLI extends CLI {
 

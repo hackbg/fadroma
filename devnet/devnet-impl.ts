@@ -35,9 +35,7 @@ export function initContainer (devnet: $D<'log'|'container'>) {
   return devnet
 }
 
-export function initChainId (
-  devnet: $D<'chainId'|'platform'>
-) {
+export function initChainId (devnet: $D<'chainId'|'platform'>) {
   if (!devnet.chainId) {
     if (devnet.platform) {
       devnet.chainId = `dev-${devnet.platform}-${Core.randomBase16(4).toLowerCase()}`
@@ -48,9 +46,7 @@ export function initChainId (
   return devnet
 }
 
-export function initLogger (
-  devnet: $D<'chainId'|'log'>
-) {
+export function initLogger (devnet: $D<'chainId'|'log'>) {
   const loggerColor = Core.randomColor({ luminosity: 'dark', seed: devnet.chainId })
   const loggerTag   = Core.colors.whiteBright.bgHex(loggerColor)(devnet.chainId)
   const logger      = new Core.Console(`Devnet ${loggerTag}`)
@@ -66,16 +62,13 @@ export function initLogger (
   return devnet
 }
 
-export function initState (devnet: $D<'stateDir'|'stateFile'|'chainId'>, {
-  stateDir, stateFile
-}: Partial<$D<'stateDir'|'stateFile'>>) {
+export function initState (
+  devnet: $D<'stateRoot'|'chainId'|'stateFile'>,
+  { stateRoot }: Partial<typeof devnet>
+) {
   const dataDir = XDG({ expanded: true, subdir: 'fadroma' }).data.home
-  devnet.stateDir = new SyncFS.Directory(stateDir ?? new Path(
-    dataDir, 'devnets', devnet.chainId
-  ).absolute)
-  devnet.stateFile = new SyncFS.File(stateFile ?? new Path(
-    devnet.stateDir, 'devnet.json'
-  )).setFormat(FileFormat.JSON)
+  const path = stateRoot ?? new Path(dataDir, 'devnets', devnet.chainId).absolute
+  devnet.stateRoot = new SyncFS.Directory(path)
   return devnet
 }
 
@@ -145,7 +138,7 @@ export async function createDevnetContainer (
 }
 
 export async function deleteDevnetContainer (
-  devnet: $D<'log'|'container'|'stateDir'|'paused'> & Parameters<typeof forceDelete>[0]
+  devnet: $D<'log'|'container'|'stateRoot'|'paused'> & Parameters<typeof forceDelete>[0]
 ) {
   devnet.log.label = devnet.container.log.label
   try {
@@ -163,7 +156,7 @@ export async function deleteDevnetContainer (
       throw e
     }
   }
-  const state = new SyncFS.Directory(devnet.stateDir)
+  const state = new SyncFS.Directory(devnet.stateRoot)
   const path = state.short
   try {
     if (state.exists()) {
@@ -216,7 +209,7 @@ export async function startDevnetContainer (
     devnet.log.debug(`Waiting for ${bold(devnet.nodeHost)}:${bold(String(devnet.nodePort))} to open...`)
     await devnet.waitPort({ host: devnet.nodeHost, port: Number(devnet.nodePort) })
   } else {
-    devnet.log.log('Container already started:', bold(devnet.chainId))
+    devnet.log.log('Container already starting:', bold(devnet.chainId))
   }
   return devnet
 }
@@ -267,7 +260,7 @@ export async function connect <
 }
 
 export async function getIdentity (
-  devnet: $D<'log'|'stateDir'|'created'|'started'>,
+  devnet: $D<'log'|'stateRoot'|'created'|'started'>,
   name:   string|{name?: string}
 ) {
   if (typeof name === 'object') {
@@ -277,12 +270,12 @@ export async function getIdentity (
     throw new Error('no name')
   }
   devnet.log.debug('Authenticating to devnet as genesis account:', bold(name))
-  if (!new SyncFS.Directory(devnet.stateDir).exists()) {
+  if (!new SyncFS.Directory(devnet.stateRoot).exists()) {
     devnet.log.debug('Waking devnet container')
     await devnet.created
     await devnet.started
   }
-  return new SyncFS.File(devnet.stateDir, 'wallet', `${name}.json`)
+  return new SyncFS.File(devnet.stateRoot, 'wallet', `${name}.json`)
     .setFormat(FileFormat.JSON)
     .load() as Partial<Chain.Identity> & { mnemonic: string }
 }
@@ -290,7 +283,7 @@ export async function getIdentity (
 /** Options for the devnet container. */
 export function containerOptions (
   devnet: $D<
-    'chainId'|'initScript'|'stateDir'|'nodePort'|'platformName'|'platformVersion'|'chainId'
+    'chainId'|'initScript'|'stateRoot'|'nodePort'|'platformName'|'platformVersion'|'chainId'
   > & Parameters<typeof containerEnvironment>[0]
 ) {
   return {
@@ -305,7 +298,7 @@ export function containerOptions (
       Domainname:     devnet.chainId,
       HostConfig:     {
         Binds:        [
-          `${new Path(devnet.stateDir).absolute}:/state/${devnet.chainId}:rw`,
+          `${new Path(devnet.stateRoot).absolute}:/state/${devnet.chainId}:rw`,
           devnet.initScript ? `${devnet.initScript.absolute}:${ENTRYPOINT_MOUNTPOINT}:ro` : null,
         ].filter(Boolean),
         NetworkMode:  'bridge',
@@ -419,9 +412,9 @@ function defineExitHandler (
 
 /** Run the cleanup container, deleting devnet state even if emitted as root. */
 export async function forceDelete (
-  devnet: $D<'stateDir'|'container'|'chainId'|'log'>
+  devnet: $D<'stateRoot'|'container'|'chainId'|'log'>
 ) {
-  const path = new SyncFS.Path(devnet.stateDir)
+  const path = new SyncFS.Path(devnet.stateRoot)
   devnet.log('Running cleanup container for', path.short)
   const cleanupContainer = await devnet.container.image.run({
     name: `${devnet.chainId}-cleanup`,
@@ -438,7 +431,7 @@ export async function forceDelete (
   devnet.log('Waiting for cleanup container to finish...')
   await cleanupContainer.wait()
   devnet.log(`Deleted ${path.short}/* via cleanup container.`)
-  //$(devnet.stateDir).delete()
+  //$(devnet.stateRoot).delete()
 }
 
 export function initContainerState (devnet: DevnetContainer) {
