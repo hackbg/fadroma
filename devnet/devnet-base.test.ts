@@ -72,6 +72,6 @@ export async function testDevnetPlatform <
   // process.exit(123) // uncomment for testing exit handler
   equal(await devnet.paused, devnet)
   const exported = await devnet.export()
-  await devnet.container.image.remove()
+  await devnet.container.engine.image(exported).remove()
   equal(await devnet.removed, devnet)
 }

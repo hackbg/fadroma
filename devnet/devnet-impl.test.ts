@@ -64,7 +64,9 @@ export default async () => {
       }
     }),
     // @ts-ignore
-    runFile:         { remove () {} },
+    runFile:         { delete () {} },
+    // @ts-ignore
+    stateDir:        {},
   })
 
   await Impl.startDevnetContainer({
@@ -115,7 +117,7 @@ export default async () => {
       }
     }),
     // @ts-ignore
-    runFile:         { remove () {} },
+    runFile:         { delete () {} },
   })
 
   await Impl.pauseDevnetContainer({
@@ -129,7 +131,7 @@ export default async () => {
       })),
     }),
     // @ts-ignore
-    runFile:         { remove () {} },
+    runFile:         { delete () {} },
   })
 
   await Impl.removeDevnetContainer({
@@ -156,4 +158,5 @@ export default async () => {
       }
     }),
   })
+
 }

@@ -125,7 +125,6 @@ export async function createDevnetContainer (
     devnet.container.options   = containerOptions(devnet)
     devnet.container.command   = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
     devnet.container.log.label = devnet.log.label
-    console.log(devnet.container)
     await devnet.container.create()
     setExitHandler(devnet)
     // set id and save
@@ -212,9 +211,9 @@ export function containerEnvironment (
 export function setExitHandler (devnet: Parameters<typeof defineExitHandler>[0]) {
   if (!devnet.exitHandler) {
     devnet.log.debug('Registering exit handler')
-    devnet.exitHandler = defineExitHandler(devnet), { logger: false }
+    devnet.exitHandler = defineExitHandler(devnet)
     process.on('exit', devnet.exitHandler)
-    onExit(devnet.exitHandler)
+    onExit(devnet.exitHandler, { logger: false })
   } else {
     devnet.log.warn('Exit handler already registered')
   }
@@ -228,26 +227,34 @@ function defineExitHandler (devnet: $D<
     this: Parameters<typeof defineExitHandler>[0],
     ...args: unknown[]
   ) {
-    if (called) {
-      this.log.warn(`Exit handler for ${bold(this.chainId)} called more than once`)
-      return
+    try {
+      if (called) {
+        this.log.warn(`Exit handler for ${bold(this.chainId)} called more than once`)
+        return
+      }
+      called = true
+      this.log.debug(`Running exit handler for ${bold(this.chainId)}`)
+      if (this.onScriptExit === 'remove' || this.onScriptExit === 'pause') {
+        this.log.log(`Stopping ${bold(this.chainId)}`)
+        devnet.runFile.delete()
+      } else {
+        this.log.info(
+          `\n\n  Devnet remains running on ${bold(String(devnet.url))}` +
+          ` from container ${bold(this.container.shortId)}` +
+          `\n  To remove the devnet:` +
+          `\n    $ npm run devnet reset` +
+          `\n  Or manually:` +
+          `\n    $ docker kill ${this.container.shortId} && docker rm ${this.container.shortId}`,
+          `\n    $ rm -rf ${this.stateDir.absolute}\n`)
+      }
+      this.log.debug('Exit handler complete.')
+    } catch (e) {
+      this.log
+        .error(e)
+        .warn('Exit handler failed. You may need to stop or remove the devnet manually.')
+        .info('See above for details. To check for running devnets, try:')
+        .info('  $ docker ps')
     }
-    called = true
-    this.log.debug(`Running exit handler for ${bold(this.chainId)}`)
-    if (this.onScriptExit === 'remove' || this.onScriptExit === 'pause') {
-      this.log.log(`Stopping ${bold(this.chainId)}`)
-      devnet.runFile.delete()
-    } else {
-      this.log.info(
-        `\n\n  Devnet remains running on ${bold(String(devnet.url))}` +
-        ` from container ${bold(this.container.shortId)}` +
-        `\n  To remove the devnet:` +
-        `\n    $ npm run devnet reset` +
-        `\n  Or manually:` +
-        `\n    $ docker kill ${this.container.shortId} && docker rm ${this.container.shortId}`,
-        `\n    $ rm -rf ${this.stateDir.absolute}\n`)
-    }
-    this.log.debug('Exit handler complete')
   }.bind(devnet)
 }
 
