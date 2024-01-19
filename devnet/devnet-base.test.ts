@@ -23,7 +23,7 @@ export async function testDevnetPlatform <
 ) {
   const codePath = resolve(packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm')
   let devnet: InstanceType<D> = new (Devnet as any)({
-    onExit: 'delete',
+    onScriptExit: 'delete',
     gasToken,
     genesisAccounts: { User1: 12345678, User2: 87654321, },
     genesisUploads: {

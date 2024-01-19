@@ -48,7 +48,7 @@ export default async () => {
     platformName:    undefined,
     platformVersion: undefined,
     genesisAccounts: undefined,
-    onExit:          undefined,
+    onScriptExit:    undefined,
     container:       Object.assign(new OCI.Container({
       id:            'mock-create',
       image:         new OCI.Image({
@@ -81,7 +81,7 @@ export default async () => {
     initScript:      undefined,
     stateRoot:        undefined,
     stateFile:       { save (_) {} },
-    onExit:          undefined,
+    onScriptExit:    undefined,
     container:       Object.defineProperties(new OCI.Container({
       id:            'mock-start',
       image:         new OCI.Image({
