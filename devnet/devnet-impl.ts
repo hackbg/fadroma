@@ -66,29 +66,16 @@ export function initLogger (
   return devnet
 }
 
-export function initState (
-  devnet:  $D<'stateDir'|'stateFile'|'chainId'>,
-  options: Partial<$D<'stateDir'|'stateFile'>>
-) {
+export function initState (devnet: $D<'stateDir'|'stateFile'|'chainId'>, {
+  stateDir, stateFile
+}: Partial<$D<'stateDir'|'stateFile'>>) {
   const dataDir = XDG({ expanded: true, subdir: 'fadroma' }).data.home
-  devnet.stateDir = new SyncFS.Directory(options.stateDir ?? new Path(
+  devnet.stateDir = new SyncFS.Directory(stateDir ?? new Path(
     dataDir, 'devnets', devnet.chainId
   ).absolute)
-  devnet.stateFile = new SyncFS.File(options.stateFile ?? new Path(
+  devnet.stateFile = new SyncFS.File(stateFile ?? new Path(
     devnet.stateDir, 'devnet.json'
   )).setFormat(FileFormat.JSON)
-  //if ($(devnet.stateDir).isDirectory() && devnet.stateFile.isFile()) {
-    //try {
-      //const state = (devnet.stateFile.as(JSON).load() || {}) as Record<any, unknown>
-      //// Options always override stored state
-      //options = { ...state, ...options }
-    //} catch (e) {
-      //console.error(e)
-      //throw new Error(
-        //`failed to load devnet state from ${devnet.stateFile.path}: ${e.message}`
-      //)
-    //}
-  //}
   return devnet
 }
 
@@ -430,25 +417,6 @@ function defineExitHandler (
   }.bind(devnet)
 }
 
-/** Regexp for filtering out non-printable characters that may be output by the containers. */
-export const RE_NON_PRINTABLE = /[\x00-\x1F]/
-
-/** Function that filters out noise from devnet output.
-  * FIXME: This should pass through the output verbatim,
-  * maybe just replacing non-printables with Braille characters
-  * a la brailledump. */
-export const FILTER = (data: string) =>
-  ((data.length > 0 && data.length <= 1024)
-    && !data.startsWith('TRACE ')
-    && !data.startsWith('DEBUG ')
-    && !data.startsWith('INFO ')
-    && !data.startsWith('I[')
-    && !data.startsWith('Storing key:')
-    && !RE_NON_PRINTABLE.test(data)
-    && !data.startsWith('{"app_message":')
-    && !data.startsWith('configuration saved to')
-  )
-
 /** Run the cleanup container, deleting devnet state even if emitted as root. */
 export async function forceDelete (
   devnet: $D<'stateDir'|'container'|'chainId'|'log'>
@@ -475,9 +443,7 @@ export async function forceDelete (
 
 export function initContainerState (devnet: DevnetContainer) {
   const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
-    enumerable:   true,
-    configurable: true,
-    get
+    enumerable: true, configurable: true, get
   })
   defineGetter('created', () => {
     const creating = createDevnetContainer(devnet)

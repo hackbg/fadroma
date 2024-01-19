@@ -46,6 +46,7 @@ export default class OKP4Container<V extends OKP4Version> extends DevnetContaine
   static v: Record<OKP4Version, Partial<OKP4Container<OKP4Version>>> = {
     '5.0': okp4Version('5.0')
   }
+
 }
 
 export function okp4Version (v: OKP4Version): Partial<OKP4Container<typeof v>> {

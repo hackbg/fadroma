@@ -5,7 +5,6 @@ import * as Impl from './devnet-impl'
 const { Console } = Core
 
 export default async () => {
-
   equal(Impl.initPort({ nodePortMode: 'http'    }).nodePort, 1317)
   equal(Impl.initPort({ nodePortMode: 'grpc'    }).nodePort, 9090)
   equal(Impl.initPort({ nodePortMode: 'grpcWeb' }).nodePort, 9091)
@@ -163,5 +162,4 @@ export default async () => {
       }
     }),
   })
-
 }
