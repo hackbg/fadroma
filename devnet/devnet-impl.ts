@@ -30,7 +30,7 @@ export function initContainer (devnet: $D<'log'|'container'>) {
   }
   devnet.container.image.log.label = devnet.log.label
   if (!devnet.container.image.engine) {
-    devnet.container.image.engine = new OCI.Connection()
+    devnet.container.engine = devnet.container.image.engine = new OCI.Connection()
   }
   return devnet
 }
@@ -125,6 +125,7 @@ export async function createDevnetContainer (
     devnet.container.options   = containerOptions(devnet)
     devnet.container.command   = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
     devnet.container.log.label = devnet.log.label
+    console.log(devnet.container)
     await devnet.container.create()
     setExitHandler(devnet)
     // set id and save
@@ -233,7 +234,7 @@ function defineExitHandler (devnet: $D<
     }
     called = true
     this.log.debug(`Running exit handler for ${bold(this.chainId)}`)
-    if (this.onScriptExit === 'delete' || this.onScriptExit === 'pause') {
+    if (this.onScriptExit === 'remove' || this.onScriptExit === 'pause') {
       this.log.log(`Stopping ${bold(this.chainId)}`)
       devnet.runFile.delete()
     } else {
@@ -250,7 +251,7 @@ function defineExitHandler (devnet: $D<
   }.bind(devnet)
 }
 
-export async function deleteDevnetContainer (
+export async function removeDevnetContainer (
   devnet: $D<'log'|'container'|'stateRoot'|'paused'> & Parameters<typeof forceDelete>[0]
 ) {
   devnet.log.label = devnet.container.log.label
@@ -444,9 +445,9 @@ export function initContainerState (devnet: DevnetContainer) {
     defineGetter('paused', () => pausing)
     return pausing
   })
-  defineGetter('deleted', () => {
-    const deleting = deleteDevnetContainer(devnet)
-    defineGetter('deleted', () => deleting)
+  defineGetter('removed', () => {
+    const deleting = removeDevnetContainer(devnet)
+    defineGetter('removed', () => deleting)
     return deleting
   })
 }

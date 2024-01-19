@@ -23,7 +23,7 @@ export async function testDevnetPlatform <
 ) {
   const codePath = resolve(packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm')
   let devnet: InstanceType<D> = new (Devnet as any)({
-    onScriptExit: 'delete',
+    onScriptExit: 'remove',
     gasToken,
     genesisAccounts: { User1: 12345678, User2: 87654321, },
     genesisUploads: {
@@ -71,6 +71,7 @@ export async function testDevnetPlatform <
   equal(agent.url, devnet.url)
   // process.exit(123) // uncomment for testing exit handler
   equal(await devnet.paused, devnet)
-  ok(await devnet.export())
-  equal(await devnet.deleted, devnet)
+  const exported = await devnet.export()
+  await devnet.container.image.remove()
+  equal(await devnet.removed, devnet)
 }

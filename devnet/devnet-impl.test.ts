@@ -51,6 +51,7 @@ export default async () => {
     onScriptExit:    undefined,
     container:       Object.assign(new OCI.Container({
       id:            'mock-create',
+      engine:        OCI.Connection.mock(),
       image:         new OCI.Image({
         engine:      OCI.Connection.mock(),
         name:        'mock'
@@ -63,7 +64,7 @@ export default async () => {
       }
     }),
     // @ts-ignore
-    runFile:         { delete () {} },
+    runFile:         { remove () {} },
   })
 
   await Impl.startDevnetContainer({
@@ -84,6 +85,7 @@ export default async () => {
     onScriptExit:    undefined,
     container:       Object.defineProperties(new OCI.Container({
       id:            'mock-start',
+      engine:        OCI.Connection.mock(),
       image:         new OCI.Image({
         engine:      OCI.Connection.mock(),
         name:        'mock'
@@ -113,7 +115,7 @@ export default async () => {
       }
     }),
     // @ts-ignore
-    runFile:         { delete () {} },
+    runFile:         { remove () {} },
   })
 
   await Impl.pauseDevnetContainer({
@@ -127,15 +129,16 @@ export default async () => {
       })),
     }),
     // @ts-ignore
-    runFile:         { delete () {} },
+    runFile:         { remove () {} },
   })
 
-  await Impl.deleteDevnetContainer({
-    log:        new Console('deleteDevnetContainer'),
+  await Impl.removeDevnetContainer({
+    log:        new Console('removeDevnetContainer'),
     stateRoot:  undefined,
     paused:     undefined,
     container:  Object.defineProperties(new OCI.Container({
-      id:       'mock-delete',
+      id:       'mock-remove',
+      engine:   OCI.Connection.mock(),
       image:    new OCI.Image({
         engine: OCI.Connection.mock(),
         name:   'mock'

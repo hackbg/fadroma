@@ -64,8 +64,8 @@ export class DevnetContainerState {
   /** What to do with the devnet once the process that has spawned it exits.
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
-    * - "delete": the devnet container is stopped and deleted, along with the state directory */
-  onScriptExit:    'remain'|'pause'|'delete'
+    * - "remove": the devnet container is stopped and removed, along with the state directory */
+  onScriptExit:    'remain'|'pause'|'remove'
   /** The exit handler that cleans up external resources. */
   exitHandler?:    (...args: any)=>void
 
@@ -148,8 +148,8 @@ export default abstract class DevnetContainer
   }
   /** Wait for the devnet to be created. */
   declare readonly created: Promise<this>
-  /** Wait for the devnet to be deleted. */
-  declare readonly deleted: Promise<this>
+  /** Wait for the devnet to be removed. */
+  declare readonly removed: Promise<this>
   /** Wait for the devnet to be started. */
   declare readonly started: Promise<this>
   /** Wait for the devnet to be stopped. */
@@ -163,10 +163,7 @@ export default abstract class DevnetContainer
     return Impl.getIdentity(this, name)
   }
   /** Export the contents of the devnet as a container image. */
-  async export (
-    repository: string = this.chainId,
-    tag: string = Core.timestamp()
-  ) {
+  async export (repository: string = this.chainId, tag: string = Core.timestamp()) {
     const container = await this.container
     if (!container) {
       throw new Core.Error("can't export: no container")
