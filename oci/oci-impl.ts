@@ -1,6 +1,6 @@
 import Docker from 'dockerode'
 import { Container as OCIContainer } from './oci'
-import { OCIConsole as Console, OCIError, bold } from './oci-base'
+import { Console, Error, bold } from './oci-base'
 
 export function toDockerodeOptions ({
   name,
@@ -20,7 +20,7 @@ export function toDockerodeOptions ({
 }: OCIContainer): Docker.ContainerCreateOptions {
 
   if (!image) {
-    throw new OCIError("Missing container image.")
+    throw new Error("Missing container image.")
   }
 
   const config = {

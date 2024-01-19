@@ -3,14 +3,14 @@ import { Writable, Transform } from 'node:stream'
 import { basename, dirname } from 'node:path'
 import Docker from 'dockerode'
 import { Core, Chain, Deploy } from '@fadroma/agent'
-import { OCIError as Error, OCIConsole as Console, assign, bold } from './oci-base'
+import { Error, Console, assign, bold } from './oci-base'
 import type { DockerHandle } from './oci-base'
 import * as Mock from './oci-mock'
 import { toDockerodeOptions, waitStream } from './oci-impl'
 
 const { colors, randomColor } = Core
 
-export { Mock }
+export { Mock, Error, Console }
 
 /** Defaults to the `DOCKER_HOST` environment variable. */
 export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
@@ -141,7 +141,7 @@ class OCIImage extends Deploy.ContractTemplate {
 
   container (
     name?:       string,
-    options?:    Partial<ContainerOpts>,
+    options?:    Partial<ContainerOptions>,
     command?:    ContainerCommand,
     entrypoint?: ContainerCommand,
   ) {
@@ -276,7 +276,7 @@ class OCIImage extends Deploy.ContractTemplate {
   /** Run a container from this image. */
   async run (parameters: {
     name?:         string,
-    options?:      Partial<ContainerOpts>,
+    options?:      Partial<ContainerOptions>,
     command?:      ContainerCommand,
     entrypoint?:   ContainerCommand,
     outputStream?: Writable
@@ -313,12 +313,15 @@ class OCIContainer extends Deploy.ContractInstance {
   image:       OCIImage
   entrypoint?: ContainerCommand
   command?:    ContainerCommand
-  options:     Partial<ContainerOpts> = {}
+  options:     Partial<ContainerOptions> = {}
   declare log: Console
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
   get api (): Docker.Container {
+    if (!this.engine || !this.engine.api) {
+      throw new Error.NoDockerode()
+    }
     return this.engine.api.getContainer(this.id)
   }
 
@@ -497,7 +500,7 @@ class OCIContainer extends Deploy.ContractInstance {
 
 }
 
-export interface ContainerOpts {
+export interface ContainerOptions {
   cwd:      string
   env:      Record<string, string>
   exposed:  string[]

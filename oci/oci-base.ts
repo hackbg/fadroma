@@ -18,7 +18,7 @@ export type DockerHandle = Pick<Dockerode,
     |'followProgress'>
 }
 
-export class OCIError extends Core.Error {
+class OCIError extends Core.Error {
   static NoDockerode = this.define('NoDockerode',
     ()=>'Dockerode API handle not set'
   )
@@ -53,7 +53,7 @@ export class OCIError extends Core.Error {
   )
 }
 
-export class OCIConsole extends Core.Console {
+class OCIConsole extends Core.Console {
   label = '@fadroma/oci'
 
   ensuring = () =>
@@ -90,3 +90,7 @@ export class OCIConsole extends Core.Console {
   }
 }
 
+export {
+  OCIConsole as Console,
+  OCIError as Error,
+}
