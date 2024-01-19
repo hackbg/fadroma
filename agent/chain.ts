@@ -94,9 +94,19 @@ export abstract class Connection extends Endpoint {
   constructor (properties: Partial<Connection> = {}) {
     super(properties)
     assign(this, properties, ['identity', 'fees'])
-    this.log.label = this[Symbol.toStringTag]
-      ? this[Symbol.toStringTag]
-      : this.constructor.name
+    this.log.label = new.target.constructor.name
+    const chainColor = randomColor({ // url takes priority in determining color
+      luminosity: 'dark', seed: this.url||this.chainId
+    })
+    this.log.label = colors.bgHex(chainColor).whiteBright(` ${this.chainId||this.url} `)
+    if ((this.identity && (this.identity.name||this.identity.address))) {
+      const identityColor = randomColor({ // address takes priority in determining color
+        luminosity: 'dark', seed: this.identity.address||this.identity.name
+      })
+      this.log.label += colors.bgHex(chainColor).whiteBright(
+        ` ${this.identity.name||this.identity.address} `
+      )
+    }
   }
 
   get [Symbol.toStringTag] () {

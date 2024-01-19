@@ -1,4 +1,4 @@
-import { Chain, Deploy } from '@fadroma/agent'
+import { Core, Chain, Deploy } from '@fadroma/agent'
 import type { Address, Message, CodeId, CodeHash, Token } from '@fadroma/agent'
 import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
 import type { Block, StdFee } from '@hackbg/cosmjs-esm'
@@ -29,13 +29,12 @@ export class CWConnection extends Chain.Connection {
   constructor (properties: Partial<CWConnection>) {
     super(properties)
     assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex' ])
-    this.log.label = [this.chainId, this.address].filter(Boolean).join(': ')
     if (this.url) {
       if (this.identity?.signer) {
-        this.log.debug('Connecting\n  to', bold(this.url), this.chainId, '\n  as', bold(this.address), this.identity?.name||'')
+        this.log.debug('Connecting via', bold(this.url))
         this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
       } else {
-        this.log.debug('Connecting anonymously\n  to', bold(this.url))
+        this.log.debug('Connecting anonymously via', bold(this.url))
         this.api = CosmWasmClient.connect(this.url)
       }
     } else {
