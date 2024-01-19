@@ -10,7 +10,7 @@ export default async () => {
   equal(Impl.initPort({ nodePortMode: 'grpcWeb' }).nodePort, 9091)
   equal(Impl.initPort({ nodePortMode: 'rpc'     }).nodePort, 26657)
   equal(Impl.initChainId({ chainId: 'foo', platform: 'bar' }).chainId, 'foo')
-  ok(Impl.initChainId({ platform: 'bar' }).chainId.startsWith('local-bar-'))
+  ok(Impl.initChainId({ platform: 'bar' }).chainId.startsWith('dev-bar-'))
 
   throws(()=>Impl.initChainId({}))
 

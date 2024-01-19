@@ -40,7 +40,7 @@ export function initChainId (
 ) {
   if (!devnet.chainId) {
     if (devnet.platform) {
-      devnet.chainId = `local-${devnet.platform}-${Core.randomBase16(4).toLowerCase()}`
+      devnet.chainId = `dev-${devnet.platform}-${Core.randomBase16(4).toLowerCase()}`
     } else {
       throw new Error('no platform or chainId specified')
     }
