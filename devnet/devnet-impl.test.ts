@@ -36,25 +36,6 @@ export default async () => {
     nodePort:     '1234'
   }).url, 'https://localhost:1234/')
 
-  //const devnet = Impl.initContainerState({
-    //container:       undefined,
-    //genesisAccounts: {},
-    //initScript:      $(''),
-    //log:             new Console(),
-    //nodeHost:        undefined,
-    //running:         false,
-    //stateDir:        undefined,
-    //verbose:         true,
-    //readyString:     undefined,
-    ////@ts-ignore
-    //waitPort:        ()=>{},
-    ////@ts-ignore
-    //save:            ()=>{},
-  //})
-
-  //await devnet.started
-  //await devnet.deleted
-
   await Impl.createDevnetContainer({
     log:             new Console('createDevnetContainer'),
     chainId:         'mock',
