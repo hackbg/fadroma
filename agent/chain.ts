@@ -103,6 +103,7 @@ export abstract class Connection extends Endpoint {
       const identityColor = randomColor({ // address takes priority in determining color
         luminosity: 'dark', seed: this.identity.address||this.identity.name
       })
+      this.log.label += ' '
       this.log.label += colors.bgHex(chainColor).whiteBright(
         ` ${this.identity.name||this.identity.address} `
       )

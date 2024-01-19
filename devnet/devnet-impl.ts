@@ -50,7 +50,7 @@ export function initLogger (devnet: $D<'chainId'|'log'>) {
   const devnetTag   = Core.colors.bgWhiteBright.black(` devnet `)
   const loggerColor = Core.randomColor({ luminosity: 'dark', seed: devnet.chainId })
   const loggerTag   = Core.colors.whiteBright.bgHex(loggerColor)(` ${devnet.chainId} `)
-  const logger      = new Core.Console(`${devnetTag}${loggerTag}`)
+  const logger      = new Core.Console(`${devnetTag} ${loggerTag}`)
   Object.defineProperties(devnet, {
     log: {
       enumerable: true, configurable: true, get () {
