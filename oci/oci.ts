@@ -132,31 +132,59 @@ class OCIImage extends Deploy.ContractTemplate {
 
   protected _available: Promise<this>|null = null
 
-  get api (): Docker {
+  get api () {
     if (!this.engine || !this.engine.api) {
       throw new Error.NoDockerode()
     }
-    return this.engine.api as unknown as Docker
+    return this.engine.api.getImage(this.name)
+  }
+
+  container (
+    name?:       string,
+    options?:    Partial<ContainerOpts>,
+    command?:    ContainerCommand,
+    entrypoint?: ContainerCommand,
+  ) {
+    return new OCIContainer({
+      image: this,
+      engine: this.engine,
+      name,
+      options,
+      command,
+      entrypoint
+    })
   }
 
   /** Get info about a container. */
   async inspect () {
-    return (await this.api.getImage(this.name)).inspect()
+    return await this.api.inspect()
   }
 
-  exists (): Promise<boolean> {
-    return this.inspect().then(()=>true).catch(e=>{
-      if (e.statusCode === 404) return false
-      throw e
-    })
+  /** Check if the image exists. */
+  async exists (): Promise<boolean> {
+    try {
+      await this.inspect()
+      return true
+    } catch (e) {
+      if (e.statusCode === 404) {
+        return false
+      } else {
+        throw e
+      }
+    }
   }
 
   /** Throws if inspected image does not exist locally. */
-  async check () {
+  async assertExists () {
     if (!this.name) {
       throw new Error.NoName('inspect')
     }
-    await this.api.getImage(this.name).inspect()
+    await this.api.inspect()
+  }
+
+  /** Remove this image. */
+  async remove () {
+    return this.api.remove()
   }
 
   /** Pull the image from the registry, or build it from a local file if not available there. */
@@ -164,7 +192,7 @@ class OCIImage extends Deploy.ContractTemplate {
     this._available ??= new Promise(async(resolve, reject)=>{
       this.log.ensuring()
       try {
-        await this.check()
+        await this.assertExists()
         this.log.imageExists()
       } catch (e1) {
         if (e1.statusCode !== 404) return reject(e1)
@@ -191,7 +219,7 @@ class OCIImage extends Deploy.ContractTemplate {
 
   /** Throws if inspected image does not exist in Docker Hub. */
   async pull () {
-    const { name, api } = this
+    const { name, engine: { api } } = this
     if (!name) {
       throw new Error.NoName('pull')
     }
@@ -245,6 +273,7 @@ class OCIImage extends Deploy.ContractTemplate {
     })
   }
 
+  /** Run a container from this image. */
   async run (parameters: {
     name?:         string,
     options?:      Partial<ContainerOpts>,
@@ -267,20 +296,6 @@ class OCIImage extends Deploy.ContractTemplate {
     return container
   }
 
-  container (
-    name?:       string,
-    options?:    Partial<ContainerOpts>,
-    command?:    ContainerCommand,
-    entrypoint?: ContainerCommand,
-  ) {
-    return new OCIContainer({
-      image: this,
-      name,
-      options,
-      command,
-      entrypoint
-    })
-  }
 }
 
 /** Interface to a Docker container. */
@@ -304,7 +319,7 @@ class OCIContainer extends Deploy.ContractInstance {
   get [Symbol.toStringTag](): string { return this.name||'' }
 
   get api (): Docker.Container {
-    return (this.engine||this.image.engine).api.getContainer(this.id)
+    return this.engine.api.getContainer(this.id)
   }
 
   get shortId (): string {
@@ -346,7 +361,7 @@ class OCIContainer extends Deploy.ContractInstance {
       // Make sure the image exists
       await this.image.pullOrBuild()
       // Create the container
-      const container = await this.image.api.createContainer(opts)
+      const container = await this.engine.api.createContainer(opts)
       this.id = container.id
       // Update the logger tag with the container id
       const idColor = randomColor({ luminosity: 'dark', seed: this.id })
@@ -371,13 +386,13 @@ class OCIContainer extends Deploy.ContractInstance {
     return this
   }
 
-  isRunning (): Promise<boolean> {
-    return this.inspect().then(state=>{
-      return state.State.Running
-    })
+  /** Is this container running? */
+  async isRunning (): Promise<boolean> {
+    const { State: { Running } } = await this.inspect()
+    return Running
   }
 
-  /** Start a container. */
+  /** Start the container. */
   async start (): Promise<this> {
     const api = await this.api
     if (!await this.exists()) {
@@ -393,18 +408,16 @@ class OCIContainer extends Deploy.ContractInstance {
     return this
   }
 
-  /** Immediately terminate a running container. */
+  /** Immediately terminate the container. */
   async kill (): Promise<this> {
     const api = await this.api
     const id = this.shortId
     const prettyId = bold(id.slice(0,8))
-    if (await this.isRunning) {
+    if (await this.isRunning()) {
       this.log(`Stopping ${prettyId}...`)
       await api.kill()
       await api.wait({ condition: 'not-running' })
       this.log(`Stopped ${prettyId}`)
-    } else {
-      this.log.warn(`Container already stopped: ${prettyId}`)
     }
     return this
   }
@@ -472,7 +485,7 @@ class OCIContainer extends Deploy.ContractInstance {
   }
 
   /** Save a container as an image. */
-  async export (repository?: string, tag?: string) {
+  async export (repository?: string, tag: string = 'latest') {
     const { Id } = await (await this.api).commit({ repository, tag })
     if (repository && tag) {
       this.log.log(`Exported snapshot:`, bold(`${repository}:${tag}`))

@@ -17,7 +17,7 @@ export async function testContainerEngine () {
   console.log('Pull or build...')
   await image.pullOrBuild()
   console.log('Check...')
-  await image.check()
+  await image.assertExists()
   console.log('Pull...')
   await image.pull()
   image.dockerfile = resolve(dirname(fileURLToPath(import.meta.url)), 'oci.test.Dockerfile')
