@@ -2,7 +2,6 @@ import portManager, { waitPort } from '@hackbg/port'
 import { Path, SyncFS, FileFormat } from '@hackbg/file'
 import * as OCI from '@fadroma/oci'
 import { Core, Program, Chain, Token } from '@fadroma/agent'
-const { Error, assign, bold, colors, randomBase16, randomColor, } = Core
 import type { Address, CodeId, Uint128 } from '@fadroma/agent'
 
 import { packageRoot } from './package'
@@ -71,7 +70,7 @@ export class DevnetContainerState {
   exitHandler?:    (...args: any)=>void
 
   constructor (options: Partial<DevnetContainerState> = {}) {
-    assign(this, options, [
+    Core.assign(this, options, [
       'chainId',
       'container',
       'gasToken',
@@ -95,10 +94,10 @@ export class DevnetContainerState {
 
   get platform () {
     if (!this.platformName) {
-      throw new Error('platformName is unset')
+      throw new Core.Error('platformName is unset')
     }
     if (!this.platformName) {
-      throw new Error('platformVersion is unset')
+      throw new Core.Error('platformVersion is unset')
     }
     return `${this.platformName}_${this.platformVersion}`
   }
@@ -107,7 +106,7 @@ export class DevnetContainerState {
     * such as statefile, runfile, genesis accounts. */
   get stateDir (): SyncFS.Directory {
     if (!this.chainId) {
-      throw new Error("This devnet's chain ID is unset, hence no state directory")
+      throw new Core.Error("This devnet's chain ID is unset, hence no state directory")
     }
     return this.stateRoot.subdir(this.chainId)
   }
@@ -115,7 +114,7 @@ export class DevnetContainerState {
     * such as container ID. */
   get stateFile (): SyncFS.File {
     if (!this.chainId) {
-      throw new Error("This devnet's chain ID is unset, hence no state file")
+      throw new Core.Error("This devnet's chain ID is unset, hence no state file")
     }
     return this.stateDir.file('devnet.json').setFormat(FileFormat.JSON)
   }
@@ -123,7 +122,7 @@ export class DevnetContainerState {
     * Deleting it tells the script running inside the container to kill the devnet. */
   get runFile (): SyncFS.File {
     if (!this.chainId) {
-      throw new Error("This devnet's chain ID is unset, hence no runfile.")
+      throw new Core.Error("This devnet's chain ID is unset, hence no runfile.")
     }
     return this.stateDir.file('devnet.run')
   }
@@ -164,10 +163,13 @@ export default abstract class DevnetContainer
     return Impl.getIdentity(this, name)
   }
   /** Export the contents of the devnet as a container image. */
-  async export (repository?: string, tag?: string) {
+  async export (
+    repository: string = this.chainId,
+    tag: string = Core.timestamp()
+  ) {
     const container = await this.container
     if (!container) {
-      throw new Error("can't export: no container")
+      throw new Core.Error("can't export: no container")
     }
     return container.export(repository, tag)
   }

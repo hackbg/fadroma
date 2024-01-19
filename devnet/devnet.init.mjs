@@ -1,6 +1,6 @@
 import { env, getuid } from 'node:process'
 import { spawn, exec, execSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, chmodSync, watch } from 'node:fs'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 
@@ -35,6 +35,15 @@ const nodeKey   = resolve(configDir, `node_key.json`)
 const stateDir  = resolve(`/state`, CHAIN_ID)
 const wallets   = resolve(stateDir, `wallet`)
 
+const run = command => {
+  console.debug('$', command)
+  const result = String(execSync(command)).trim()
+  console.debug(result)
+  return result
+}
+
+const daemon = command => run(`${DAEMON} ${command}`)
+
 start()
 
 function start () {
@@ -43,12 +52,12 @@ function start () {
   if (DAEMON === 'secretd') {
     spawnLcp()
   }
-  launchNode()
-  console.info('Server exited.')
+  const { node, watcher } = spawnNode()
+  console.log('Devnet is running.')
 }
 
 function configureNode () {
-  console.info('Configuring the node')
+  console.info('Configuring the node...')
   let appTomlData = readFileSync(appToml, 'utf8')
   // enable rest api if not enabled
   appTomlData = appTomlData.replace(
@@ -89,18 +98,18 @@ function configureNode () {
 function spawnLcp () {
   // light client proxy is a reverse proxy used by secret network
   // (presumably to bypass cors?)
+  console.info(`Spawning lcp (CORS proxy) on port ${HTTP_PORT}...`)
   const lcpArgs = [
     `--proxyUrl`, 'http://localhost:1316',
     `--port`, HTTP_PORT,
     `--proxyPartial`, ``
   ]
-  console.info(`Spawning lcp (CORS proxy) on port ${HTTP_PORT}`)
   console.debug(`$ lcp`, ...lcpArgs)
-  const lcp = spawn(`lcp`, lcpArgs, { stdio: 'inherit' })
+  return spawn(`lcp`, lcpArgs, { stdio: 'inherit' })
 }
 
-function launchNode () {
-  console.info('Launching the node')
+function spawnNode () {
+  console.info(`Spawning ${DAEMON}...`)
   let command
   if (DAEMON === 'secretd') {
     // starting the secret network daemon requires sgx env vars to be set
@@ -114,12 +123,34 @@ function launchNode () {
     + ` --grpc.address 0.0.0.0:${GRPC_PORT}`
     + ` --grpc-web.address 0.0.0.0:${GRPC_WEB_PORT}`
   console.info(`$`, command)
+  let node
   try {
-    execSync(command, { shell: '/bin/bash', stdio: 'inherit' })
+    node = exec(command, { shell: '/bin/bash', stdio: 'inherit' })
   } catch (e) {
     console.log('ERROR:', e.message)
     process.exit(1)
   }
+  node.stdout.pipe(process.stdout)
+  node.stderr.pipe(process.stderr)
+  node.on('exit', (code, signal) => {
+    console.info('Devnet exited. Goodbye!', { code, signal })
+    process.exit(0)
+  })
+  const runfile = `${STATE_DIR}/devnet.run`
+  writeFileSync(runfile,
+    "When the devnet is running, deleting this file will kill it.\n" +
+    "This is necessary because of Node's exit handlers are only reliable for synchronous operation."
+  )
+  chmodSync(runfile, 0o664)
+  let deleted = false
+  const watcher = watch(runfile, { persistent: false }, event => {
+    if (!existsSync(runfile) && !deleted) {
+      deleted = true
+      console.log(`Runfile deleted. Stopping ${DAEMON}...`)
+      node.kill()
+    }
+  })
+  return { node, watcher }
 }
 
 function performGenesis () {
@@ -132,7 +163,6 @@ function performGenesis () {
   preGenesisConfig()
   createGenesisTransaction()
   bootstrapChain()
-  console.info()
 }
 
 function preGenesisCleanup () {
@@ -167,7 +197,7 @@ function createGenesisTransaction () {
   if (Object.keys(accounts).length === 0) {
     accounts = { 'Admin': '1000000000000' }
   }
-  console.info('\nCreating genesis accounts:')
+  console.info('Creating genesis accounts:')
   for (const [name, amount] of Object.entries(accounts)) {
     const mnemonic = daemon(`keys add "${name}" 2>&1 | tail -n1`)
     const address  = daemon(`keys show -a "${name}"`)
@@ -178,7 +208,7 @@ function createGenesisTransaction () {
     fixPermissions(identity)
   }
   fixPermissions()
-  console.info('\nCreating genesis transaction')
+  console.info('\nCreating genesis transaction...')
   daemon(
     `gentx "${Object.keys(accounts)[0]}" 1000000${TOKEN} --chain-id ${CHAIN_ID} --keyring-backend test`
   )
@@ -201,15 +231,4 @@ function fixPermissions (path = stateDir) {
   if (STATE_GID) {
     run(`chgrp -R ${STATE_GID} ${stateDir}`)
   }
-}
-
-function run (command) {
-  console.debug('$', command)
-  const result = String(execSync(command)).trim()
-  console.debug(result)
-  return result
-}
-
-function daemon (command) {
-  return run(`${DAEMON} ${command}`)
 }

@@ -25,9 +25,11 @@ export default async () => {
   throws(()=>Impl.initLogger({ log: undefined, chainId: 'foo' })
      .log = null)
   ok(Impl.initState(new DevnetContainerState({ chainId: 'foo' }), {})
-     .stateRoot.absolute.endsWith('foo'))
+     .stateRoot.absolute)
   ok(Impl.initState(new DevnetContainerState({ chainId: 'foo' }), {})
      .stateFile.absolute.endsWith('/foo/devnet.json'))
+  ok(Impl.initState(new DevnetContainerState({ chainId: 'foo' }), {})
+     .runFile.absolute.endsWith('/foo/devnet.run'))
 
   equal(Impl.initDynamicUrl({
     log:          new Console('initDynamicUrl'),
@@ -46,6 +48,7 @@ export default async () => {
     platformName:    undefined,
     platformVersion: undefined,
     genesisAccounts: undefined,
+    onExit:          undefined,
     container:       Object.assign(new OCI.Container({
       id:            'mock-create',
       image:         new OCI.Image({
@@ -59,6 +62,8 @@ export default async () => {
         })
       }
     }),
+    // @ts-ignore
+    runFile:         { delete () {} },
   })
 
   await Impl.startDevnetContainer({
@@ -76,6 +81,7 @@ export default async () => {
     initScript:      undefined,
     stateRoot:        undefined,
     stateFile:       { save (_) {} },
+    onExit:          undefined,
     container:       Object.defineProperties(new OCI.Container({
       id:            'mock-start',
       image:         new OCI.Image({
@@ -106,6 +112,8 @@ export default async () => {
         }
       }
     }),
+    // @ts-ignore
+    runFile:         { delete () {} },
   })
 
   await Impl.pauseDevnetContainer({
@@ -118,6 +126,8 @@ export default async () => {
         name:   'mock' 
       })),
     }),
+    // @ts-ignore
+    runFile:         { delete () {} },
   })
 
   await Impl.deleteDevnetContainer({
