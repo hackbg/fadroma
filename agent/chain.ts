@@ -182,7 +182,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       this.doGetCodeId.bind(this, address),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}:\n  ${bold(address)}\n  is code id ${bold(result)}`
+        `Queried in ${bold(elapsed)}: ${bold(address)} is code id ${bold(result)}`
       )
     )
   }
@@ -194,11 +194,11 @@ export abstract class Connection extends Endpoint {
   /** Get the code hash of a given code id. */
   getCodeHashOfCodeId (contract: Deploy.CodeId|{ codeId: Deploy.CodeId }): Promise<Code.CodeHash> {
     const codeId = (typeof contract === 'object') ? contract.codeId : contract
-    this.log.debug(`Querying code hash\n  code id ${bold(codeId)}\n  code hash = ?`)
+    this.log.debug(`Querying code hash of code id ${bold(codeId)}`)
     return timed(
       this.doGetCodeHashOfCodeId.bind(this, codeId),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}:\n  code id ${bold(codeId)}\n  code hash = ${bold(result)}`
+        `Queried in ${bold(elapsed)}: code hash of code id ${bold(codeId)} is ${bold(result)}`
       )
     )
   }
@@ -210,11 +210,11 @@ export abstract class Connection extends Endpoint {
   /** Get the code hash of a given address. */
   getCodeHashOfAddress (contract: Address|{ address: Address }): Promise<Code.CodeHash> {
     const address = (typeof contract === 'string') ? contract : contract.address
-    this.log.debug(`Querying code hash:\n  ${bold(address)}\n  code hash = ?`)
+    this.log.debug(`Querying code hash of address ${bold(address)}`)
     return timed(
       this.doGetCodeHashOfAddress.bind( this, address),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}:\n  ${bold(address)}\n  code hash = ${bold(result)}`
+        `Queried in ${bold(elapsed)}: code hash of address ${bold(address)} is ${bold(result)}`
       )
     )
   }
@@ -253,7 +253,7 @@ export abstract class Connection extends Endpoint {
   getContractsByCodeId <C extends typeof Contract> (
     id: Deploy.CodeId, $C: C = Contract as C
   ): Promise<Record<Address, InstanceType<C>>> {
-    this.log.debug(`Querying contracts with id ${id}...`)
+    this.log.debug(`Querying contracts with code id ${id}...`)
     return this.doGetContractsByCodeId(id).then(contracts=>{
       const results: Record<Address, InstanceType<C>> = {}
       for (const instance of contracts) {
@@ -280,12 +280,12 @@ export abstract class Connection extends Endpoint {
     }
     const result: Record<Deploy.CodeId, Record<Address, Contract>> = {}
     if (args[0][Symbol.iterator]) {
-      this.log.debug(`Querying contracts with ids ${[...args[0]].join(', ')}...`)
+      this.log.debug(`Querying contracts with code ids ${[...args[0]].join(', ')}...`)
       for (const codeId of args[0]) {
         result[codeId] = await this.getContractsByCodeId(codeId, args[1])
       }
     } else {
-      this.log.debug(`Querying contracts with ids ${Object.keys(args[0]).join(', ')}...`)
+      this.log.debug(`Querying contracts with code ids ${Object.keys(args[0]).join(', ')}...`)
       for (const [codeId, $C] of Object.entries(args[0])) {
         result[codeId] = await this.getContractsByCodeId(codeId, args[1])
       }
@@ -323,7 +323,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       this.doGetBalance.bind(this, token, addr),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${elapsed}s:\n  ${bold(address)}\n  has ${bold(result)} ${token}`
+        `Queried in ${elapsed}s: ${bold(address)} has ${bold(result)} ${token}`
       )
     )
   }
@@ -348,7 +348,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       this.doGetBalance.bind(this, token, addr),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${elapsed}s:\nbalance of ${bold(address)} is ${bold(result)}`
+        `Queried in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
       )
     )
   }
@@ -363,7 +363,7 @@ export abstract class Connection extends Endpoint {
     const result = await timed(
       ()=>this.doQuery(_contract, message),
       ({ elapsed, result }) => this.log.debug(
-        `Queried in ${bold(elapsed)}s:\n `, JSON.stringify(result)
+        `Queried in ${bold(elapsed)}s: `, JSON.stringify(result)
       )
     )
     return result as Q
@@ -386,8 +386,8 @@ export abstract class Connection extends Endpoint {
       throw new Error('no recipient address')
     }
     this.log.debug(
-      `Sending\n  to ${bold(recipient)}:\n`,
-      ` ${amounts.map(x=>x.toString()).join('\n  ')}`
+      `Sending to ${bold(recipient)}:`,
+      ` ${amounts.map(x=>x.toString()).join(', ')}`
     )
     return await timed(
       ()=>this.doSend(recipient as string, amounts.map(
@@ -429,17 +429,17 @@ export abstract class Connection extends Endpoint {
       template = await (code as Code.CompiledCode).fetch()
       const t1 = performance.now() - t0
       this.log.log(
-        `Fetched in`, `${bold((t1/1000).toFixed(6))}s:\n `,
-        bold(code.codeHash), '=', bold(String(code.codeData?.length)), `bytes`
+        `Fetched in`, `${bold((t1/1000).toFixed(6))}s:code hash`,
+        bold(code.codeHash), `(${bold(String(code.codeData?.length))} bytes`
       )
     }
 
-    this.log.debug(`Uploading\n  ${bold((code as any).codeHash)}`)
+    this.log.debug(`Uploading ${bold((code as any).codeHash)}`)
     const result = await timed(
       this.doUpload.bind(this, template, options),
       ({elapsed, result}: any) => this.log.debug(
-        `Uploaded in ${bold(elapsed)}:\n`,
-        ` ${bold(result.codeHash)} = code id ${bold(String(result.codeId))}`,
+        `Uploaded in ${bold(elapsed)}: `,
+        ` code with hash ${bold(result.codeHash)} as code id ${bold(String(result.codeId))}`,
       ))
 
     return new Deploy.UploadedCode({
@@ -487,9 +487,9 @@ export abstract class Connection extends Endpoint {
         codeHash, ...options, initMsg
       })),
       ({ elapsed, result }) => this.log.debug(
-        `Instantiated in ${bold(elapsed)}:\n `,
-        `code id ${bold(String(codeId))}`,
-        `instance ${bold(options.label)}\n  ${result.address}`
+        `Instantiated in ${bold(elapsed)}: `,
+        `code id ${bold(String(codeId))} as `,
+        `${bold(options.label)} (${result.address})`
       )
     )
     return new Deploy.ContractInstance({
@@ -520,7 +520,7 @@ export abstract class Connection extends Endpoint {
     return timed(
       () => this.doExecute(contract as { address: Address }, message, options),
       ({ elapsed }) => this.log.debug(
-        `Executed in ${bold(elapsed)}:\n `,
+        `Executed in ${bold(elapsed)}: `,
         `exec ${bold(method||'(???)')} of ${bold(address)}`
       )
     )
