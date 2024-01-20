@@ -393,10 +393,8 @@ export class ContainerizedLocalRustCompiler extends LocalRustCompiler {
     // Set up Docker image
     this.buildImageManifest ??= options?.buildImageManifest!
     this.script ??= options?.script!
-    this.log.label = `Compiler(${bold(this.buildImage?.name||'??')})`
-    if (this.engine?.url && (this.engine?.url !== DEFAULT_ENGINE_SOCKET)) {
-      this.log.label += ` on ${bold(this.engine?.url)||'??'}`
-    }
+    const color = Core.randomColor({ luminosity: 'dark', seed: this.buildImage.name })
+    this.log.label = Core.colors.whiteBright.bgHex(color)(` ${this.buildImage.name} `)
     //this.docker.log.label = this.log.label
     //this.image.log.label = this.log.label
   }
