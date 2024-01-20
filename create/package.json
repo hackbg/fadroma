@@ -11,8 +11,9 @@
     "create.cli.cjs"
   ],
   "dependencies": {
-    "case":    "^1.6.3",
+    "case": "^1.6.3",
     "prompts": "^2.4.2",
+    "resolve.exports": "^2.0.2",
 
     "@hackbg/file": "workspace:*",
     "@hackbg/logs": "workspace:*",

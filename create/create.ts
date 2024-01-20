@@ -8,6 +8,7 @@ const { Deployment, ContractCode } = Deploy
 
 import type { Path } from '@hackbg/file'
 import { SyncFS, FileFormat } from '@hackbg/file'
+import { exports as resolveExports } from 'resolve.exports'
 import { console, packageRoot } from './package'
 import Case from 'case'
 
@@ -283,7 +284,18 @@ export class Project extends ProjectDirectory {
     return new Deployment()
   }
   async getDeployment (): Promise<Deploy.Deployment> {
-    const {default: deployment} = await import(this.path)
+    const packageJson = new SyncFS.File(this.path, 'package.json').setFormat(FileFormat.JSON)
+    if (!packageJson.exists()) {
+      throw new Error(`Could not find ${packageJson.short}`)
+    }
+    const packageJsonData = packageJson.load()
+    const defaultExport = resolveExports(packageJsonData, '.')[0]
+    if (!defaultExport) {
+      throw new Error(`Could not determine default export for ${packageJson.short}`)
+    }
+    const defaultExportPath = new SyncFS.File(this.path, defaultExport).absolute
+    console.log('Loading deployment from', bold(defaultExportPath))
+    const {default: deployment} = await import(defaultExportPath)
     return deployment()
   }
   cargoUpdate () {
