@@ -96,7 +96,7 @@ export abstract class Connection extends Endpoint {
     assign(this, properties, ['identity', 'fees'])
     this.log.label = new.target.constructor.name
     const chainColor = randomColor({ // url takes priority in determining color
-      luminosity: 'dark', seed: this.url||this.chainId
+      luminosity: 'dark', seed: this.chainId||this.url
     })
     this.log.label = colors.bgHex(chainColor).whiteBright(` ${this.chainId||this.url} `)
     if ((this.identity && (this.identity.name||this.identity.address))) {
@@ -104,7 +104,7 @@ export abstract class Connection extends Endpoint {
         luminosity: 'dark', seed: this.identity.address||this.identity.name
       })
       this.log.label += ' '
-      this.log.label += colors.bgHex(chainColor).whiteBright(
+      this.log.label += colors.bgHex(identityColor).whiteBright(
         ` ${this.identity.name||this.identity.address} `
       )
     }
