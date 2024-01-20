@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/devnet",
-  "version": "1.0.0-rc.5",
+  "version": "1.0.0-rc.6",
   "license": "AGPL-3.0-only",
   "main": "devnet.ts",
   "type": "module",
