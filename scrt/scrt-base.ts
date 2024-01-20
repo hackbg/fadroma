@@ -19,5 +19,4 @@ export const {
   into,
   randomBech32,
   randomBase64,
-  sha256,
 } = Core

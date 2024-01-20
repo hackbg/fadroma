@@ -19,7 +19,7 @@
     "schema": "./schema/cw-gen-types.cjs",
     "clean": "rm -rf .ubik *.dist.*",
 
-    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
     "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
     "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
   }

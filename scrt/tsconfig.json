@@ -16,7 +16,7 @@
     "snip-722.ts"
   ],
   "include": [],
-  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules", "secretjs-esm" ],
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",

@@ -11,7 +11,6 @@ import {
   bold,
   brailleDump,
   randomBech32,
-  sha256,
   into,
 } from './scrt-base'
 import { Wallet } from '@hackbg/secretjs-esm'
@@ -823,7 +822,7 @@ interface Allocator {
   deallocate? (ptr: Pointer): void
 }
 
-export const codeHashForBlob = (blob: Uint8Array) => base16.encode(sha256(blob))
+export const codeHashForBlob = (blob: Uint8Array) => base16.encode(Core.sha256(blob))
 
 const decoder = new TextDecoder()
 declare class TextDecoder { decode (data: any): string }
