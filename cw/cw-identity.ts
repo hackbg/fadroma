@@ -77,18 +77,16 @@ export class CWMnemonicIdentity extends CWIdentity {
     }
     const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
     const address = bech32.encode(this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
-    if (generatedMnemonic) {
-      this.log.warn(
-        `Generated mnemonic for:\n `,
-        `${address}\n `,
-        `${bold(mnemonic)}\n`,
-        `It will not be displayed again.`
-      )
-    }
     if (this.address && this.address !== address) {
       throw new Error(
         `address ${address} generated from mnemonic did not match ${this.address}`
       )
+    }
+    const loggerColor = Core.randomColor({ luminosity: 'dark', seed: address })
+    this.log.label = Core.colors.whiteBright.bgHex(loggerColor)(` ${this.name||address} `)
+    if (generatedMnemonic) {
+      this.log.info('Generated mnemonic:', bold(mnemonic))
+      this.log.warn('Generated mnemonic will not be displayed again.')
     }
     this.address = address
     this.pubkey = pubkey
