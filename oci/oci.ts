@@ -6,14 +6,9 @@ import { Core, Chain, Deploy } from '@fadroma/agent'
 import { Error, Console, assign, bold } from './oci-base'
 import type { DockerHandle } from './oci-base'
 import * as Mock from './oci-mock'
-import { toDockerodeOptions, waitStream } from './oci-impl'
-
-const { colors, randomColor } = Core
+import { toDockerodeOptions, waitStream, defaultSocketPath } from './oci-impl'
 
 export { Mock, Error, Console }
-
-/** Defaults to the `DOCKER_HOST` environment variable. */
-export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
 
 export const console = new Console('@fadroma/oci')
 
@@ -224,8 +219,8 @@ class OCIImage extends Deploy.ContractTemplate {
       throw new Error.NoName('pull')
     }
     const seed = this.name
-    const tagColor = randomColor({ luminosity: 'dark', seed })
-    this.log.label = colors.bgHex(tagColor).whiteBright(` ${seed} `)
+    const tagColor = Core.randomColor({ luminosity: 'dark', seed })
+    this.log.label = Core.colors.bgHex(tagColor).whiteBright(` ${seed} `)
     const log = this.log
     await new Promise<void>((ok, fail)=>{
       api.pull(name, async (err: any, stream: any) => {
@@ -253,8 +248,8 @@ class OCIImage extends Deploy.ContractTemplate {
     }
     const { name, engine: { api } } = this
     const seed = name || this.dockerfile
-    const tagColor = randomColor({ luminosity: 'dark', seed })
-    this.log.label = colors.bgHex(tagColor).whiteBright(` ${seed} `)
+    const tagColor = Core.randomColor({ luminosity: 'dark', seed })
+    this.log.label = Core.colors.bgHex(tagColor).whiteBright(` ${seed} `)
     const dockerfile = basename(this.dockerfile)
     const context = dirname(this.dockerfile)
     const src = [dockerfile, ...this.inputFiles||[]]
@@ -368,16 +363,7 @@ class OCIContainer extends Deploy.ContractInstance {
       const container = await this.engine.api.createContainer(opts)
       this.id = container.id
       // Update the logger tag with the container id
-      const idColor = randomColor({ luminosity: 'dark', seed: this.id })
-      let idTag = ''
-      idTag += colors.bgHex(idColor).whiteBright(` ${this.shortId} `)
-      if (this.name) {
-        const tagColor = randomColor({ luminosity: 'dark', seed: this.name })
-        idTag += colors.bgHex(tagColor).whiteBright(` ${this.name} `)
-      } else {
-        idTag += colors.bgHex(idColor).whiteBright(` `)
-      }
-      this.log.label = `${idTag}`
+      this.log.label = toLabel(this)
     }
     return this
   }
@@ -586,4 +572,20 @@ export {
   OCIConnection as Connection,
   OCIImage      as Image,
   OCIContainer  as Container,
+}
+
+export const toLabel = (
+  {id, shortId, name}: {id?: string, shortId?: string, name?: string}
+) => {
+  let label = ''
+  const idColor = Core.randomColor({ luminosity: 'dark', seed: id })
+  label += Core.colors.bgHex(idColor).whiteBright(` ${shortId||id} `)
+  label += ' '
+  if (name) {
+    const tagColor = Core.randomColor({ luminosity: 'dark', seed: name })
+    label += Core.colors.bgHex(tagColor).whiteBright(` ${name} `)
+  } else {
+    label += Core.colors.bgHex(idColor).whiteBright(` `)
+  }
+  return label
 }

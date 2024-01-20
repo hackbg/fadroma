@@ -1,9 +1,6 @@
 /** Actually private definitions.
   * Not part of the TS *or* JS public API,
   * i.e. not accessible at all outside the package. */
-
-import deasync from 'deasync'
-import { onExit } from 'gracy'
 import portManager from '@hackbg/port'
 import { Path, SyncFS, FileFormat, XDG } from '@hackbg/file'
 import { Core, Chain } from '@fadroma/agent'
@@ -47,7 +44,7 @@ export function initChainId (devnet: $D<'chainId'|'platform'>) {
 }
 
 export function initLogger (devnet: $D<'chainId'|'log'>) {
-  const devnetTag   = Core.colors.bgWhiteBright.black(` devnet `)
+  const devnetTag   = Core.colors.bgWhiteBright.black(` creating `)
   const loggerColor = Core.randomColor({ luminosity: 'dark', seed: devnet.chainId })
   const loggerTag   = Core.colors.whiteBright.bgHex(loggerColor)(` ${devnet.chainId} `)
   const logger      = new Core.Console(`${devnetTag} ${loggerTag}`)
@@ -124,8 +121,8 @@ export async function createDevnetContainer (
     devnet.container.name      = devnet.chainId
     devnet.container.options   = containerOptions(devnet)
     devnet.container.command   = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
-    devnet.container.log.label = devnet.log.label
     await devnet.container.create()
+    devnet.container.log.label = devnet.log.label = OCI.toLabel(devnet.container)
     setExitHandler(devnet)
     // set id and save
     if (devnet.verbose) {
@@ -212,8 +209,17 @@ export function setExitHandler (devnet: Parameters<typeof defineExitHandler>[0])
   if (!devnet.exitHandler) {
     devnet.log.debug('Registering exit handler')
     devnet.exitHandler = defineExitHandler(devnet)
-    process.on('exit', devnet.exitHandler)
-    onExit(devnet.exitHandler, { logger: false })
+    for (const event of [
+      'exit',
+      'beforeExit',
+      'uncaughtExceptionMonitor',
+      'unhandledRejection',
+      'SIGTERM',
+      'SIGINT',
+      'SIGBREAK',
+    ]) {
+      process.on(event, devnet.exitHandler)
+    }
   } else {
     devnet.log.warn('Exit handler already registered')
   }
@@ -229,7 +235,6 @@ function defineExitHandler (devnet: $D<
   ) {
     try {
       if (called) {
-        this.log.warn(`Exit handler for ${bold(this.chainId)} called more than once`)
         return
       }
       called = true
@@ -391,6 +396,7 @@ export async function connect <
   if (typeof parameter === 'string') {
     parameter = { name: parameter } as Partial<I & { name?: string, mnemonic?: string }>
   }
+  await devnet.created
   await devnet.started
   return new $Connection({
     chainId:  devnet.chainId,

@@ -166,7 +166,7 @@ function performGenesis () {
 }
 
 function preGenesisCleanup () {
-  console.info('\nEnsuring a clean slate')
+  console.info('Ensuring a clean slate..')
   run(`rm -rf ${daemonDir}`)
   if (DAEMON === 'secretd') {
     run(`rm -rf ~/.secretcli /opt/secret/.sgx-secrets`)
@@ -174,7 +174,7 @@ function preGenesisCleanup () {
 }
 
 function preGenesisConfig () {
-  console.info('\nEstablishing initial config')
+  console.info('Establishing initial config...')
   run(`mkdir -p ${wallets}`)
   fixPermissions()
   daemon(`config chain-id "${CHAIN_ID}"`)
@@ -215,7 +215,7 @@ function createGenesisTransaction () {
 }
 
 function bootstrapChain () {
-  console.info('\nBootstrapping chain')
+  console.info('Bootstrapping chain')
   daemon(`collect-gentxs`)
   daemon(`validate-genesis`)
   if (DAEMON === 'secretd') {

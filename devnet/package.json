@@ -11,10 +11,7 @@
     "@fadroma/agent": "workspace:*",
     "@fadroma/scrt":  "workspace:*",
     "@fadroma/cw":    "workspace:*",
-    "@fadroma/oci":   "workspace:*",
-
-    "deasync": "^0.1.29",
-    "gracy":   "^4.0.0"
+    "@fadroma/oci":   "workspace:*"
   },
   "scripts": {
     "check": "time tsc --noEmit",

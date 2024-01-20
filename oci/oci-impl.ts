@@ -2,6 +2,9 @@ import Docker from 'dockerode'
 import { Container as OCIContainer } from './oci'
 import { Console, Error, bold } from './oci-base'
 
+/** Defaults to the `DOCKER_HOST` environment variable. */
+export const defaultSocketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
+
 export function toDockerodeOptions ({
   name,
   image,
