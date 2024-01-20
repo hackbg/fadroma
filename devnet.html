@@ -604,94 +604,12 @@ hr {
 <li><a class="ensuite-md-link" href=/impl.html>Supporting new chains</a></li>
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
-<h2 id="fadroma-devnet-api" tabindex="-1">Fadroma Devnet API</h2>
-<h3 id="obtaining-a-devnet" tabindex="-1">Obtaining a Devnet</h3>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> <span class="hljs-title class_">Devnet</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/devnets&#x27;</span>
-<span class="hljs-keyword">const</span> devnet = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Devnet</span>.<span class="hljs-property">ScrtContainer</span>.<span class="hljs-property">version</span>[<span class="hljs-string">&quot;1.9&quot;</span>]()
+<h2 id="fadroma-devnet" tabindex="-1">Fadroma Devnet</h2>
+<p>Local development container manager for CosmWasm blockchains.</p>
+<pre><code class="hljs language-typescript">npx <span class="hljs-meta">@fadroma</span>/devnet
 </code></pre>
-<h3 id="creating-the-devnet" tabindex="-1">Creating the devnet</h3>
-<p>When scripting with the Fadroma API outside of the standard CLI/deployment
-context, you can use the <code>getDevnet</code> method to configure and obtain a <code>Devnet</code>
-instance.</p>
-<p><code>getDevnet</code> supports the following options; their default values can be
-set through environment variables.</p>
-<p>At this point you have prepared a <em>description</em> of a devnet.
-To actually launch it, use the <code>create</code> then the <code>start</code> method:</p>
-<p>At this point, you should have a devnet container running,
-its state represented by files in your project's <code>state/</code> directory.</p>
-<p>To operate on the devnet thus created, you will need to wrap it
-in a <strong>Chain</strong> object and obtain the usual <strong>Agent</strong> instance.</p>
-<p>For this, the <strong>Devnet</strong> class has the <strong>getChain</strong> method.</p>
-<p>A <code>Chain</code> object which represents a devnet has the following additional API:</p>
-<h3 id="devnet-state" tabindex="-1">Devnet state</h3>
-<p>Each <strong>devnet</strong> is a stateful local instance of a chain node
-(such as <code>secretd</code> or <code>okp4d</code>), and consists of two things:</p>
-<ol>
-<li>A container named <code>fadroma-KIND-ID</code>, where:</li>
-</ol>
-<ul>
-<li>
-<p><code>KIND</code> is what kind of devnet it is. For now, the only valid
-value is <code>devnet</code>. In future releases, this will be changed to
-contain the chain name and maybe the chain version.</p>
-</li>
-<li>
-<p><code>ID</code> is a random 8-digit hex number. This way, when you have
-multiple devnets of the same kind, you can distinguish them
-from one another.</p>
-</li>
-<li>
-<p>The name of the container corresponds to the chain ID of the
-contained devnet.</p>
-</li>
-</ul>
-<ol start="2">
-<li>State files under <code>your-project/state/fadroma-KIND-ID/</code>:</li>
-</ol>
-<ul>
-<li>
-<p><code>devnet.json</code> contains metadata about the devnet, such as
-the chain ID, container ID, connection port, and container
-image to use.</p>
-</li>
-<li>
-<p><code>wallet/</code> contains JSON files with the addresses and mnemonics
-of the <strong>genesis accounts</strong> that are created when the devnet
-is initialized. These are the initial holders of the devnet's
-native token, and you can use them to execute transactions.</p>
-</li>
-<li>
-<p><code>upload/</code> and <code>deploy/</code> contain <strong>upload and deploy receipts</strong>.
-These work the same as for remote testnets and mainnets,
-and enable reuse of uploads and deployments.</p>
-</li>
-</ul>
-<h3 id="devnet-accounts" tabindex="-1">Devnet accounts</h3>
-<p>Devnet state is independent from the state of mainnet or testnet.
-That means existing wallets and faucets don't exist. Instead, you
-have access to multiple <strong>genesis accounts</strong>, which are provided
-with initial balance to cover gas costs for your contracts.</p>
-<p>When getting an <strong>Agent</strong> on the devnet, use the <code>name</code> property
-to specify which genesis account to use. Default genesis account
-names are <code>Admin</code>, <code>Alice</code>, <code>Bob</code>, <code>Charlie</code>, and <code>Mallory</code>.</p>
-<p>This will populate the created Agent with the mnemonic for that
-genesis account.</p>
-<p>That's it! You are now set to use the standard Fadroma Agent API
-to operate on the local devnet as the specified identity.</p>
-<h4 id="custom-devnet-accounts" tabindex="-1">Custom devnet accounts</h4>
-<p>You can also specify custom genesis accounts by passing an array
-of account names to the <code>accounts</code> parameter of the <strong>getDevnet</strong>
-function.</p>
-<h3 id="cleaning-up" tabindex="-1">Cleaning up</h3>
-<p>Devnets are local-only and thus temporary.</p>
-<p>To delete an individual devnet, the <strong>Devnet</strong> class
-provides the <strong>delete</strong> method. This will stop and remove
-the devnet container, then delete all devnet state in your
-project's state directory.</p>
-<p>To delete all devnets in a project, the <strong>Project</strong> class
-provides the <strong>resetDevnets</strong> method:</p>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#fadroma-devnet-api">Fadroma Devnet API</a><ul><li><a href="#obtaining-a-devnet">Obtaining a Devnet</a></li><li><a href="#creating-the-devnet">Creating the devnet</a></li><li><a href="#devnet-state">Devnet state</a></li><li><a href="#devnet-accounts">Devnet accounts</a><ul><li><a href="#custom-devnet-accounts">Custom devnet accounts</a></li></ul></li><li><a href="#cleaning-up">Cleaning up</a></li></ul></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#fadroma-devnet">Fadroma Devnet</a></li></ul></div></p></nav>
 </div>
 </body>
 </html>
