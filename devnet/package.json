@@ -1,9 +1,12 @@
 {
   "name": "@fadroma/devnet",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "license": "AGPL-3.0-only",
   "main": "devnet.ts",
   "files": ["*.ts", "*.Dockerfile"],
+  "bin": {
+    "fadroma-devnet": "devnet.cli.cjs"
+  },
   "dependencies": {
     "@hackbg/file": "workspace:^",
     "@hackbg/logs": "workspace:^",
