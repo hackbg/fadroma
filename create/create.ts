@@ -186,7 +186,7 @@ export class Project extends ProjectDirectory {
       },
       devDependencies: {
         //"@fadroma/compile": "*",
-        //"@fadroma/devnets": "*",
+        //"@fadroma/devnet": "*",
         "@hackbg/ganesha": "^4.2.0",
         "@hackbg/ubik":    "^2.0.0",
         "typescript":      "5.2.2",

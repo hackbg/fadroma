@@ -51,7 +51,7 @@ importers:
       '@fadroma/compile':
         specifier: workspace:^
         version: link:compile
-      '@fadroma/devnets':
+      '@fadroma/devnet':
         specifier: workspace:^
         version: link:devnet
       '@fadroma/fixtures':

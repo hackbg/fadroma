@@ -74,7 +74,7 @@
     "@hackbg/fadroma":   "workspace:^",
 
     "@fadroma/compile":  "workspace:^",
-    "@fadroma/devnets":  "workspace:^",
+    "@fadroma/devnet":   "workspace:^",
     "@fadroma/fixtures": "link:fixtures",
     "@fadroma/oci":      "workspace:^",
 

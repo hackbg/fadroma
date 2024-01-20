@@ -1,8 +1,9 @@
 {
-  "name": "@fadroma/devnets",
-  "version": "1.0.0-rc.2",
+  "name": "@fadroma/devnet",
+  "version": "1.0.0-rc.1",
   "license": "AGPL-3.0-only",
   "main": "devnet.ts",
+  "files": ["*.ts", "*.Dockerfile"],
   "dependencies": {
     "@hackbg/file": "workspace:^",
     "@hackbg/logs": "workspace:^",
@@ -19,7 +20,7 @@
     "cov":   "time ensuite-cov devnet.test.ts",
     "clean": "rm -rf .ubik *.dist.*",
 
-    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
     "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
     "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
   },

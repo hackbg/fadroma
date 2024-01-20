@@ -1,6 +1,6 @@
 import { ok, throws, rejects, deepEqual, equal } from 'node:assert'
 import { Token } from '@fadroma/agent'
-import * as Devnets from '@fadroma/devnets'
+import * as Devnets from '@fadroma/devnet'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import * as CW from './cw'
 import { Suite } from '@hackbg/ensuite'

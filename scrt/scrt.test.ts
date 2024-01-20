@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import * as Devnets from '@fadroma/devnets'
+import * as Devnets from '@fadroma/devnet'
 import * as Scrt from './scrt'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import { mainnet, testnet, ScrtConnection, ScrtBatch, SecretJS } from '@fadroma/scrt'

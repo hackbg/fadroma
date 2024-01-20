@@ -3,7 +3,7 @@
 ### Obtaining a Devnet
 
 ```typescript
-import * as Devnet from '@fadroma/devnets'
+import * as Devnet from '@fadroma/devnet'
 const devnet = new Devnet.ScrtContainer.version["1.9"]()
 ```
 
