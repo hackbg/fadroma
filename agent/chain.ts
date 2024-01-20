@@ -429,7 +429,7 @@ export abstract class Connection extends Endpoint {
       template = await (code as Code.CompiledCode).fetch()
       const t1 = performance.now() - t0
       this.log.log(
-        `Fetched in`, `${bold((t1/1000).toFixed(6))}s:code hash`,
+        `Fetched in`, `${bold((t1/1000).toFixed(6))}s: code hash`,
         bold(code.codeHash), `(${bold(String(code.codeData?.length))} bytes`
       )
     }
@@ -438,8 +438,8 @@ export abstract class Connection extends Endpoint {
     const result = await timed(
       this.doUpload.bind(this, template, options),
       ({elapsed, result}: any) => this.log.debug(
-        `Uploaded in ${bold(elapsed)}: `,
-        ` code with hash ${bold(result.codeHash)} as code id ${bold(String(result.codeId))}`,
+        `Uploaded in ${bold(elapsed)}:`,
+        `code with hash ${bold(result.codeHash)} as code id ${bold(String(result.codeId))}`,
       ))
 
     return new Deploy.UploadedCode({
@@ -487,7 +487,7 @@ export abstract class Connection extends Endpoint {
         codeHash, ...options, initMsg
       })),
       ({ elapsed, result }) => this.log.debug(
-        `Instantiated in ${bold(elapsed)}: `,
+        `Instantiated in ${bold(elapsed)}:`,
         `code id ${bold(String(codeId))} as `,
         `${bold(options.label)} (${result.address})`
       )
@@ -520,8 +520,8 @@ export abstract class Connection extends Endpoint {
     return timed(
       () => this.doExecute(contract as { address: Address }, message, options),
       ({ elapsed }) => this.log.debug(
-        `Executed in ${bold(elapsed)}: `,
-        `exec ${bold(method||'(???)')} of ${bold(address)}`
+        `Executed in ${bold(elapsed)}:`,
+        `tx ${bold(method||'(???)')} of ${bold(address)}`
       )
     )
   }
