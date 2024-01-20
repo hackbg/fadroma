@@ -1,9 +1,10 @@
 {
   "name": "@fadroma/devnet",
-  "version": "1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
   "license": "AGPL-3.0-only",
   "main": "devnet.ts",
-  "files": ["*.ts", "*.Dockerfile"],
+  "type": "module",
+  "files": ["*.ts", "*.Dockerfile", "!*.test.*"],
   "bin": {
     "fadroma-devnet": "devnet.cli.cjs"
   },

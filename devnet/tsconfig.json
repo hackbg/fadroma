@@ -2,18 +2,13 @@
   "files": [
     "package.ts",
     "devnet-base.ts",
-    "devnet-base.test.ts",
     "devnet-okp4.ts",
-    "devnet-okp4.test.ts",
     "devnet-scrt.ts",
-    "devnet-scrt.test.ts",
     "devnet-impl.ts",
-    "devnet-impl.test.ts",
-    "devnet.ts",
-    "devnet.test.ts"
+    "devnet.ts"
   ],
   "include": [],
-  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
+  "exclude": [ ".ubik", "*.dist.*", "*.test.*", "node_modules" ],
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
