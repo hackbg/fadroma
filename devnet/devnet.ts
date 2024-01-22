@@ -8,8 +8,15 @@ import CLI from '@hackbg/cmds'
 import * as OCI from '@fadroma/oci'
 import { packageName, packageVersion } from './devnet-base'
 import DevnetContainer from './devnet-base'
+import * as Scrt from './platforms/scrt-devnet'
+import * as OKP4 from './platforms/okp4-devnet'
 
 const { bold, colors } = Core
+
+const platforms = {
+  'scrt': Scrt,
+  'okp4': OKP4,
+}
 
 export { DevnetContainer }
 
@@ -40,11 +47,11 @@ export default class DevnetCLI extends CLI {
       .info()
       .info(' ', bold(`PLATFORM`), '', bold(`VERSION`), '', bold(`DESCRIPTION`))
       .info()
-    for (let v of Object.keys(ScrtContainer.v)) {
+    for (let v of Object.keys(Scrt.versions)) {
       v = v.padEnd(7)
       this.log.info(' ', bold(`scrt      ${v}`), ` Secret Network ${v}`)
     }
-    for (let v of Object.keys(OKP4Container.v)) {
+    for (let v of Object.keys(OKP4.versions)) {
       v = v.padEnd(7)
       this.log.info(' ', bold(`okp4      ${v}`), ` OKP4 ${v}`)
     }
@@ -183,42 +190,46 @@ export default class DevnetCLI extends CLI {
     name: 'launch',
     info: 'create and start a devnet',
     args: 'PLATFORM VERSION [CHAIN-ID]'
-  }, async (platform: 'scrt'|'okp4', version: string, chainId?: string) => {
-    const devnet = await this.createDevnet(platform, version, chainId)
+  }, async (
+    platformName:    keyof typeof platforms,
+    platformVersion: string,
+    chainId?:        string
+  ) => {
+    const devnet = await this.createDevnet(platformName, platformVersion, chainId)
     await devnet.started
   })
 
   createDevnet = this.command({
     name: 'create',
-    info: 'create a devnet',
+    info: "create a devnet but don't start it yet",
     args: 'PLATFORM VERSION [CHAIN-ID]'
-  }, async (platform: 'scrt'|'okp4', version: string, chainId?: string) => {
+  }, async (
+    platformName:    keyof typeof platforms,
+    platformVersion: string,
+    chainId?:        string
+  ) => {
     let Devnet
-    switch (platform) {
-      case 'scrt':
-        Devnet = ScrtContainer
-        break
-      case 'okp4':
-        Devnet = OKP4Container
-        break
-      default:
-        if (platform) {
-          this.log.error(`Unknown platform "${bold(platform)}".`)
-        } else {
-          this.log.error(`Specify a platform.`)
-        }
-        this.listPlatforms()
-        process.exit(1)
+    const platform = platforms[platformName]
+    if (!platform) {
+      if (platformName) {
+        this.log.error(`Unknown platform "${bold(platform)}".`)
+      } else {
+        this.log.error(`Specify a platform.`)
+      }
+      this.listPlatforms()
+      process.exit(1)
     }
-    if (!version || !Object.keys(Devnet.v).includes(version)) {
+    const versions = Object.keys(platform.versions)
+    if (!platformVersion || !versions.includes(platformVersion)) {
       this.log.error(`Please specify one of the following versions:`)
-      for (const v of Object.keys(Devnet.v)) {
+      for (const v of versions) {
         this.log.info(' ', bold(v))
       }
       process.exit(1)
     }
     const devnet = new Devnet({
-      platformVersion: version,
+      platformName,
+      platformVersion,
       onScriptExit: 'remain',
       chainId,
     })
@@ -242,9 +253,9 @@ export default class DevnetCLI extends CLI {
     info: 'start a devnet',
     args: 'CHAIN-ID'
   }, async (chainId: string) => {
-    const dataDir    = XDG({ expanded: true, subdir: 'fadroma' }).data.home
-    const stateDir   = new SyncFS.Directory(dataDir, 'devnets', chainId)
-    const stateFile  = stateDir.file('devnet.json').setFormat(FileFormat.JSON)
+    const dataDir   = XDG({ expanded: true, subdir: 'fadroma' }).data.home
+    const stateDir  = new SyncFS.Directory(dataDir, 'devnets', chainId)
+    const stateFile = stateDir.file('devnet.json').setFormat(FileFormat.JSON)
     if (!stateDir.exists()||!stateFile.exists()) {
       if (!stateDir.exists()) {
         this.log.error(bold(stateDir.absolute), `does not exist.`)
@@ -265,25 +276,18 @@ export default class DevnetCLI extends CLI {
       container,
       nodePort,
     } = stateFile.load() as {
-      platformName:    string
+      platformName:    keyof typeof platforms
       platformVersion: string
       container:       string
       image:           string
       nodePort:        string
     }
-    let Devnet
-    switch (platformName) {
-      case 'scrt':
-        Devnet = ScrtContainer
-        break
-      case 'okp4':
-        Devnet = OKP4Container
-        break
-      default:
-        this.log.error(`Receipt contained unsupported platform ${bold(platformName)}.`)
-        process.exit(1)
+    if (!Object.keys(platforms).includes(platformName)) {
+      this.log.error(`Receipt contained unsupported platform ${bold(platformName)}.`)
+      process.exit(1)
     }
-    const devnet = new Devnet({
+    const devnet = new DevnetContainer({
+      platformName,
       platformVersion,
       stateDir,
       stateFile,

@@ -7,17 +7,37 @@ import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'
 import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
-import { Chain, Token } from '@fadroma/agent'
+import { Core, Chain, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
+export * from './okp4-cognitarium'
+export * from './okp4-objectarium'
+export * from './okp4-law-stone'
+
+export const chainIds = {
+  testnet: 'okp4-nemeton-1',
+}
+
+export const testnets = new Set([
+  'https://okp4-testnet-rpc.polkachu.com/'
+])
+
+/** Connect to OKP4 in testnet mode. */
+export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
+  return new OKP4Connection({
+    chainId: chainIds.testnet, url: Core.pickRandom(testnets), ...options||{}
+  })
+}
+
+const defaults =  {
+  coinType: 118,
+  bech32Prefix: 'okp4',
+  hdAccountIndex: 0,
+}
+
 export class OKP4MnemonicIdentity extends CWMnemonicIdentity {
-  constructor (properties?: { mnemonic?: string }) {
-    super({
-      coinType: 118,
-      bech32Prefix: 'okp4',
-      hdAccountIndex: 0,
-      ...properties||{}
-    })
+  constructor (properties?: { mnemonic?: string } & Partial<CWMnemonicIdentity>) {
+    super({ ...defaults, ...properties||{} })
   }
 }
 
@@ -34,29 +54,8 @@ export class OKP4Connection extends CWConnection {
   }
 
   constructor (options: Partial<OKP4Connection> & { mnemonic?: string }) {
-    super({
-      coinType: 118,
-      bech32Prefix: 'okp4',
-      hdAccountIndex: 0,
-      ...options
-    } as Partial<CWConnection>)
+    super({ ...defaults, ...options } as Partial<CWConnection>)
   }
-
-  /** Get clients for all Cognitarium instances, keyed by address. */
-  //async cognitaria ({ map = true } = {}) {
-    //const ids = Object.values(cognitariumCodeIds)
-    //return await this.getContractsById(Cognitarium, ids, map)
-  //}
-  //[>* Get clients for all Objectarium instances, keyed by address. <]
-  //async objectaria ({ map = true } = {}) {
-    //const ids = Object.values(objectariumCodeIds)
-    //return await this.getContractsById(Objectarium, ids, map)
-  //}
-  //[>* Get clients for all Law Stone instances, keyed by address. <]
-  //async lawStones ({ map = true } = {}) {
-    //const ids = Object.values(lawStoneCodeIds)
-    //return await this.getContractsById(LawStone, ids, map)
-  //}
 
   getContractsById (id: CodeId):
     Promise<Chain.Contract>
@@ -79,6 +78,21 @@ export class OKP4Connection extends CWConnection {
     return Promise.resolve(new Map())
   }
 
+  /** Get clients for all Cognitarium instances, keyed by address. */
+  //async cognitaria ({ map = true } = {}) {
+    //const ids = Object.values(cognitariumCodeIds)
+    //return await this.getContractsById(Cognitarium, ids, map)
+  //}
+  //[>* Get clients for all Objectarium instances, keyed by address. <]
+  //async objectaria ({ map = true } = {}) {
+    //const ids = Object.values(objectariumCodeIds)
+    //return await this.getContractsById(Objectarium, ids, map)
+  //}
+  //[>* Get clients for all Law Stone instances, keyed by address. <]
+  //async lawStones ({ map = true } = {}) {
+    //const ids = Object.values(lawStoneCodeIds)
+    //return await this.getContractsById(LawStone, ids, map)
+  //}
   //async getContractsById <C extends typeof Contract> (
     //Client: C = Contract as C,
     //ids: CodeId[],
@@ -109,24 +123,3 @@ export class OKP4Connection extends CWConnection {
     //return contracts
   //}
 }
-
-export * from './okp4-cognitarium'
-export * from './okp4-objectarium'
-export * from './okp4-law-stone'
-
-export const chainIds = {
-  testnet: 'okp4-nemeton-1',
-}
-
-export const testnets = new Set([
-  'https://okp4-testnet-rpc.polkachu.com/'
-])
-
-/** Connect to OKP4 in testnet mode. */
-export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
-  return new OKP4Connection({
-    chainId: chainIds.testnet, url: pickRandom(testnets), ...options||{}
-  })
-}
-
-const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]

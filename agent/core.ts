@@ -8,6 +8,8 @@ class FadromaError extends Error {}
 
 export { FadromaError as Error }
 
+export const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
+
 /** Helper for assigning only allowed properties of value object:
   * - safe, can't set unsupported properties 
   * - no need to state property name thrice
