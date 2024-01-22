@@ -17,7 +17,7 @@ export default async () => {
   ok(Impl.initChainId(new DevnetContainerState({
     platformName: 'scrt',
     platformVersion: '0.0'
-  })).chainId.startsWith('dev-scrt-0.0-'))
+  })).chainId.startsWith('dev-scrt_0.0-'))
   throws(()=>Impl.initChainId(new DevnetContainerState({})))
 
   ok(Impl.initLogger({ log: undefined, chainId: 'foo', })

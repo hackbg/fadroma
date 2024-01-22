@@ -325,8 +325,8 @@ export default class DevnetCLI extends CLI {
     throw new Error('not implemented')
   })
 
-  exportDevnet = this.command({
-    name: 'export',
+  exportSnapshot = this.command({
+    name: 'snapshot',
     info: 'export snapshot of devnet as container image',
     args: 'CHAIN-ID [IMAGE-TAG]',
   }, (chainId: string, imageTag?: string) => {

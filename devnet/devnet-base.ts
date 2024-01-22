@@ -63,7 +63,7 @@ export class DevnetContainerState {
   /** Initial uploads. */
   genesisUploads:  Record<CodeId, Partial<Program.CompiledCode>>  = {}
   /** If set, overrides the script that launches the devnet in the container. */
-  initScript:      Path = new SyncFS.File(packageRoot, 'devnet.init.mjs')
+  initScript:      Path = new SyncFS.File(packageRoot, 'platforms', 'devnet.init.mjs')
   /** Function that waits for port to open after launching container.
     * Tests override this to save time. */
   waitPort:        typeof waitPort = waitPort
