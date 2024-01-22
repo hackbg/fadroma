@@ -1,10 +1,13 @@
 import portManager, { waitPort } from '@hackbg/port'
 import { Path, SyncFS, FileFormat } from '@hackbg/file'
-import * as OCI from '@fadroma/oci'
 import { Core, Program, Chain, Token } from '@fadroma/agent'
 import type { Address, CodeId, Uint128 } from '@fadroma/agent'
-
+import * as OCI from '@fadroma/oci'
 import * as Impl from './devnet-impl'
+import * as Scrt from './platforms/scrt-devnet'
+import * as OKP4 from './platforms/okp4-devnet'
+import { OKP4Connection, OKP4MnemonicIdentity } from '@fadroma/cw'
+import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
@@ -21,6 +24,10 @@ export const {
 }
 
 export const console = new Core.Console(`${packageName} ${packageVersion}`)
+
+class DevnetError extends Core.Error {}
+
+export { DevnetError as Error }
 
 /** Identifiers of supported platforms. */
 export type Platform = 'scrt'|'okp4'
@@ -145,7 +152,7 @@ export class DevnetContainerState {
 
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
-export default abstract class DevnetContainer
+export default class DevnetContainer
   extends DevnetContainerState
   implements Chain.Backend
 {
@@ -170,7 +177,12 @@ export default abstract class DevnetContainer
   /** Wait for the devnet to be stopped. */
   declare readonly paused:  Promise<this>
   /** Obtain a Connection object to this devnet, optionally with a specific Identity. */
-  abstract connect (parameter?: string|Partial<Chain.Identity>): Promise<Chain.Connection>
+  connect (parameter?: string|Partial<Chain.Identity>): Promise<Chain.Connection> {
+    throw new Error(
+      'The connect method is not implemented for the base DevnetContainer class. ' +
+      'Downcast to an appropriate chain-specific devnet class.'
+    )
+  }
   /** Get info for named genesis account, including the mnemonic */
   async getIdentity (
     name: string|{ name?: string }
@@ -187,6 +199,80 @@ export default abstract class DevnetContainer
   }
 }
 
-class DevnetError extends Core.Error {}
+export class OKP4Container<V extends OKP4.Version> extends DevnetContainer {
 
-export { DevnetError as Error }
+  constructor ({
+    platformVersion = '6.0',
+    ...properties
+  }: Partial<OKP4Container<V> & {
+    platformVersion: OKP4.Version
+  }>) {
+    const supported = Object.keys(new.target.v)
+    if (!supported.includes(platformVersion)) {
+      throw new Error(
+        `Unsupported version: ${platformVersion}. ` +
+        `Specify one of the following: ${Object.keys(OKP4Container.v).join(', ')}`
+      )
+    }
+    super({
+      ...new.target.v[platformVersion] || {},
+      ...properties,
+      platformVersion,
+      platformName: 'okp4',
+    })
+  }
+
+  async connect (parameter: string|Partial<OKP4MnemonicIdentity & {
+    mnemonic?: string
+  }> = {}): Promise<OKP4Connection> {
+    return Impl.connect(this, OKP4Connection, OKP4MnemonicIdentity, parameter)
+  }
+
+  gasToken = new Token.Native('uknow')
+
+  /** Supported versions of OKP4. */
+  static v: Record<OKP4.Version, Partial<OKP4Container<OKP4.Version>>> = {
+    '5.0': OKP4.version('5.0'),
+    '6.0': OKP4.version('5.0'),
+  }
+
+}
+
+export class ScrtContainer<V extends Scrt.Version> extends DevnetContainer {
+  constructor ({
+    platformVersion = '1.9',
+    ...properties
+  }: Partial<ScrtContainer<V> & {
+    platformVersion: Scrt.Version
+  }>) {
+    const supported = Object.keys(new.target.v)
+    if (!supported.includes(platformVersion)) {
+      throw new Error(
+        `Unsupported version: ${platformVersion}. ` +
+        `Specify one of the following: ${Object.keys(ScrtContainer.v).join(', ')}`
+      )
+    }
+    super({
+      ...new.target.v[platformVersion] || {}, 
+      ...properties,
+      platformVersion,
+      platformName: 'scrt',
+    })
+  }
+
+  async connect (parameter: string|Partial<ScrtMnemonicIdentity & {
+    mnemonic?: string
+  }> = {}): Promise<ScrtConnection> {
+    return Impl.connect(this, ScrtConnection, ScrtMnemonicIdentity, parameter)
+  }
+
+  gasToken = new Token.Native('uscrt')
+
+  /** Supported versions of Secret Network. */
+  static v: Record<Scrt.Version, ReturnType<typeof Scrt.version>> = {
+    '1.9':  Scrt.version('1.9'),
+    '1.10': Scrt.version('1.10'),
+    '1.11': Scrt.version('1.11'),
+    '1.12': Scrt.version('1.12'),
+  }
+}

@@ -7,17 +7,11 @@ import { Core, Program } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
 import * as OCI from '@fadroma/oci'
 import { packageName, packageVersion } from './devnet-base'
-import ScrtContainer from './platforms/scrt-devnet'
-import OKP4Container from './platforms/okp4-devnet'
-
-export { default as DevnetContainer } from './devnet-base'
-
-export {
-  ScrtContainer,
-  OKP4Container
-}
+import DevnetContainer from './devnet-base'
 
 const { bold, colors } = Core
+
+export { DevnetContainer }
 
 export default class DevnetCLI extends CLI {
 
