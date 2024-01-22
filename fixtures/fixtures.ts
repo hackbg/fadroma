@@ -73,14 +73,16 @@ export class TestProjectDeployment extends Deploy.Deployment {
 
 export async function testConnectionWithBackend <
   A extends typeof Chain.Connection,
-  B extends typeof Chain.Backend
+  I extends typeof Chain.Identity,
+  B extends typeof Chain.Backend,
 > (
-  Chain:   A,
-  Backend: B,
-  version: string,
-  token:   string,
-  code:    string,
-  initMsg: any = null
+  Chain:    A,
+  Identity: I,
+  Backend:  B,
+  version:  string,
+  token:    string,
+  code:     string,
+  initMsg:  any = null
 ) {
   const console = new Console(`Testing ${bold(Chain.name)} + ${bold(Backend.name)}`)
   const { equal, throws, rejects } = await import('node:assert')

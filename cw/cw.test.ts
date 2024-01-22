@@ -30,7 +30,8 @@ export async function testCWChain () {
   ))
   const { backend, alice, bob, guest } = await testConnectionWithBackend(
     CW.OKP4Connection,
-    Devnets.OKP4Container,
+    CW.OKP4MnemonicIdentity,
+    Devnets.DevnetContainer,
     '5.0',
     'uknow',
     fixture('cw-null.wasm')

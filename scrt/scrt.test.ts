@@ -4,12 +4,12 @@
 import * as Devnets from '@fadroma/devnet'
 import * as Scrt from './scrt'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
-import { mainnet, testnet, ScrtConnection, ScrtBatch, SecretJS } from '@fadroma/scrt'
+import { mainnet, testnet, ScrtConnection, ScrtMnemonicIdentity, ScrtBatch, SecretJS } from '@fadroma/scrt'
 import { Token } from '@fadroma/agent'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { webcrypto } from 'node:crypto'
-import assert, { equal, rejects } from 'node:assert'
+import { ok, equal, rejects } from 'node:assert'
 
 //@ts-ignore
 globalThis.crypto ??= webcrypto
@@ -33,11 +33,12 @@ export default new Suite([
 ])
 
 export async function testScrtChain () {
-  assert(mainnet() instanceof ScrtConnection)
-  assert(testnet() instanceof ScrtConnection)
+  ok(mainnet() instanceof ScrtConnection)
+  ok(testnet() instanceof ScrtConnection)
   const { backend, alice, bob, guest } = await testConnectionWithBackend(
     ScrtConnection,
-    Devnets.ScrtContainer,
+    ScrtMnemonicIdentity,
+    Devnets.DevnetContainer,
     '1.9',
     'uscrt',
     fixture('scrt-null.wasm')

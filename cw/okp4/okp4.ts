@@ -11,7 +11,7 @@ import { Chain, Token } from '@fadroma/agent'
 import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 export class OKP4MnemonicIdentity extends CWMnemonicIdentity {
-  constructor (properties?: { mnemonic: string }) {
+  constructor (properties?: { mnemonic?: string }) {
     super({
       coinType: 118,
       bech32Prefix: 'okp4',
