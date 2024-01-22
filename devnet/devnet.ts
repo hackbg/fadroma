@@ -108,15 +108,6 @@ export default class DevnetCLI extends CLI {
 
       let hasMissing = false
 
-      this.log
-        .info(' ', bold([
-          headers.chainId.padEnd(longest.name),
-          //headers.port.padEnd(tags.no.length),
-          headers.receipt,
-          headers.container.padEnd(longest.container),
-        ].join('  ')))
-        .info()
-
       for (const name of devnets) {
 
         let receiptExists   = colors.red('[ ] missing'.padEnd('RECEIPT'.length))
@@ -160,17 +151,22 @@ export default class DevnetCLI extends CLI {
           }
         }
         this.log
-          .info(' ', [
-            bold(name.padEnd(longest.name)),
-            receiptExists,
-            imageExists.padEnd(longest.container),
-          ].join('  '))
-          .info(' ', [
-            port.padEnd(longest.name),
-            ''.padEnd(receiptExists.length),
-            containerExists.padEnd(longest.container)
-          ].join('  '))
+          .info(bold(name), port)
+          .info(imageExists)
+          .info(containerExists)
           .info()
+        //this.log
+          //.info(' ', [
+            //bold(name.padEnd(longest.name)),
+            //receiptExists,
+            //imageExists.padEnd(longest.container),
+          //].join('  '))
+          //.info(' ', [
+            //port.padEnd(longest.name),
+            //''.padEnd(receiptExists.length),
+            //containerExists.padEnd(longest.container)
+          //].join('  '))
+          //.info()
       }
       if (hasMissing) {
         this.log
@@ -233,15 +229,12 @@ export default class DevnetCLI extends CLI {
       chainId,
     })
     this.log
-      .info()
-      .info('Creating devnet:')
-      .info(`  Chain ID: `, bold(devnet.chainId))
-      .info(`  Image:    `, bold(devnet.container.image.name))
+      .info(`Chain ID: `, bold(devnet.chainId))
+      .info(`Image:    `, bold(devnet.container.image.name))
     await devnet.created
     this.log
-      .info(`  Container:`, bold(devnet.container.id))
-      .info(`  Receipt:  `, bold(devnet.stateFile.path))
-      .info()
+      .info(`Container:`, bold(devnet.container.id))
+      .info(`Receipt:  `, bold(devnet.stateFile.path))
       .info(
         `Devnet created. Invoke the`,
         `"${bold(`start ${devnet.chainId}`)}"`,
