@@ -11,7 +11,7 @@
   "browser": "fadroma.browser.ts",
   "description": "CosmWasm dApp framework.",
   "bin": {
-    "fadroma": "fadroma.cli.cjs"
+    "fadroma": "fadroma.cli.mjs"
   },
   "files": [
     "!*",
@@ -61,7 +61,7 @@
     "prompts": "^2.4.2"
   },
   "peerDependencies": {
-    "@hackbg/ganesha": "^4.2.0"
+    "@hackbg/ganesha": "*"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": {
@@ -76,9 +76,9 @@
     "@fadroma/fixtures": "link:fixtures",
     "@fadroma/oci":      "workspace:^",
 
-    "@hackbg/ensuite": "workspace:^",
-    "@hackbg/ganesha": "workspace:^",
-    "@hackbg/ubik":    "workspace:^",
+    "@hackbg/ensuite":  "workspace:^",
+    "@ganesha/esbuild": "workspace:^",
+    "@hackbg/ubik":     "workspace:^",
 
     "@types/dockerode": "^3.3.23",
     "@types/js-yaml": "^4.0.9",

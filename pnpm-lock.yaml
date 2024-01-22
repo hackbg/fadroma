@@ -60,15 +60,15 @@ importers:
       '@fadroma/oci':
         specifier: workspace:^
         version: link:oci
+      '@ganesha/esbuild':
+        specifier: workspace:^
+        version: link:toolbox/ganesha/esbuild
       '@hackbg/ensuite':
         specifier: workspace:^
         version: link:toolbox/ensuite
       '@hackbg/fadroma':
         specifier: workspace:^
         version: 'link:'
-      '@hackbg/ganesha':
-        specifier: workspace:^
-        version: link:toolbox/ganesha
       '@hackbg/ubik':
         specifier: workspace:^
         version: link:toolbox/ubik
