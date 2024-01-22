@@ -8,7 +8,7 @@
   "description": "CosmJS Stargate integration for Fadroma, incl. OKP4 support.",
   "dependencies": {
     "@fadroma/agent":     "workspace:*",
-    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.33",
+    "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.34",
     "@noble/hashes":      "^1.3.2",
     "@noble/curves":      "^1.2.0"
   },

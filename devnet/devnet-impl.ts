@@ -243,7 +243,7 @@ function defineExitHandler (devnet: $D<
         this.log.log(`Stopping ${bold(this.chainId)}`)
         devnet.runFile.delete()
       } else {
-        this.log.info(
+        this.log.br().info(
           `\n\n  Devnet remains running on ${bold(String(devnet.url))}` +
           ` from container ${bold(this.container.shortId)}` +
           `\n  To remove the devnet:` +

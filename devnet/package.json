@@ -1,10 +1,11 @@
 {
   "name": "@fadroma/devnet",
-  "version": "1.0.0-rc.6",
-  "license": "AGPL-3.0-only",
   "main": "devnet.ts",
   "type": "module",
   "files": ["*.ts", "*.Dockerfile", "!*.test.*"],
+  "version": "1.0.0-rc.7",
+  "license": "AGPL-3.0-only",
+  "description": "Manage local development nodes for Secret Network and CosmWasm.",
   "bin": {
     "fadroma-devnet": "devnet.cli.js"
   },
@@ -22,7 +23,8 @@
     "@fadroma/oci":   "workspace:*"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "5.0.0-rc.2"
+    "@ganesha/esbuild": "workspace:^",
+    "@ganesha/oxc":     "workspace:^"
   },
   "scripts": {
     "check": "time tsc --noEmit",
@@ -33,6 +35,5 @@
     "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
     "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
     "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
-  },
-  "license": "AGPL-3.0-only"
+  }
 }

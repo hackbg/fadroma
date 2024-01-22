@@ -4,6 +4,6 @@
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['impl', ()=>import('./devnet-impl.test')],
-  ['scrt', ()=>import('./devnet-scrt.test')],
-  ['okp4', ()=>import('./devnet-okp4.test')],
+  ['scrt', ()=>import('./platforms/scrt-devnet.test')],
+  ['okp4', ()=>import('./platforms/scrt-devnet.test')],
 ])

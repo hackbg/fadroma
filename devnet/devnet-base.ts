@@ -4,8 +4,23 @@ import * as OCI from '@fadroma/oci'
 import { Core, Program, Chain, Token } from '@fadroma/agent'
 import type { Address, CodeId, Uint128 } from '@fadroma/agent'
 
-import { packageRoot } from './package'
 import * as Impl from './devnet-impl'
+
+/** Path to this package. Used to find the build script, dockerfile, etc.
+  * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
+export const packageRoot = new Path(
+  //@ts-ignore
+  import.meta.url
+).dirname
+
+/** Version of Fadroma in use. */
+export const {
+  name: packageName, version: packageVersion,
+} = new SyncFS.File(packageRoot, '..', 'package.json').setFormat(FileFormat.JSON).load() as {
+  name: string, version: string
+}
+
+export const console = new Core.Console(`${packageName} ${packageVersion}`)
 
 /** Identifiers of supported platforms. */
 export type Platform = 'scrt'|'okp4'
@@ -65,7 +80,7 @@ export class DevnetContainerState {
     * - "remain": the devnet container keeps running
     * - "pause": the devnet container is stopped
     * - "remove": the devnet container is stopped and removed, along with the state directory */
-  onScriptExit:    'remain'|'pause'|'remove'
+  onScriptExit:    'remain'|'pause'|'remove' = 'remove'
   /** The exit handler that cleans up external resources. */
   exitHandler?:    (...args: any)=>void
 
@@ -171,3 +186,7 @@ export default abstract class DevnetContainer
     return container.export(repository, tag)
   }
 }
+
+class DevnetError extends Core.Error {}
+
+export { DevnetError as Error }

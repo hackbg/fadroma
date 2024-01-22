@@ -6,14 +6,18 @@ import type { CodeId, ChainId, Address, Uint128 } from '@fadroma/agent'
 import { Core, Program } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
 import * as OCI from '@fadroma/oci'
-import { packageName, packageVersion } from './package'
-import ScrtContainer from './devnet-scrt'
-import OKP4Container from './devnet-okp4'
-
-const { bold, colors } = Core
+import { packageName, packageVersion } from './devnet-base'
+import ScrtContainer from './platforms/scrt-devnet'
+import OKP4Container from './platforms/okp4-devnet'
 
 export { default as DevnetContainer } from './devnet-base'
-export { ScrtContainer, OKP4Container }
+
+export {
+  ScrtContainer,
+  OKP4Container
+}
+
+const { bold, colors } = Core
 
 export default class DevnetCLI extends CLI {
 
@@ -31,12 +35,6 @@ export default class DevnetCLI extends CLI {
     return this.printUsage(arg0)
   }
 
-  printUsageOnly = this.command({
-    name: 'usage',
-    info: 'print available commands without listing devnets',
-    args: ''
-  }, () => this.printUsage(this))
-
   listPlatforms = this.command({
     name: 'platforms',
     info: 'show supported platforms',
@@ -48,11 +46,13 @@ export default class DevnetCLI extends CLI {
       .info()
       .info(' ', bold(`PLATFORM`), '', bold(`VERSION`), '', bold(`DESCRIPTION`))
       .info()
-    for (const v of Object.keys(ScrtContainer.v)) {
-      this.log.info(' ', bold(`scrt      ${v}    `), ` Secret Network ${v}`)
+    for (let v of Object.keys(ScrtContainer.v)) {
+      v = v.padEnd(7)
+      this.log.info(' ', bold(`scrt      ${v}`), ` Secret Network ${v}`)
     }
-    for (const v of Object.keys(OKP4Container.v)) {
-      this.log.info(' ', bold(`okp4      ${v}    `), ` OKP4 ${v}`)
+    for (let v of Object.keys(OKP4Container.v)) {
+      v = v.padEnd(7)
+      this.log.info(' ', bold(`okp4      ${v}`), ` OKP4 ${v}`)
     }
     this.log.info()
   })
@@ -67,6 +67,7 @@ export default class DevnetCLI extends CLI {
       XDG({ expanded: true, subdir: 'fadroma' }).data.home,
       'devnets'
     )
+    devnetsDir.make()
     const devnets = devnetsDir.list()
 
     if (devnets.length > 0) {
@@ -182,7 +183,7 @@ export default class DevnetCLI extends CLI {
       this.log
         .info()
         .info('No devnets in', bold(devnetsDir.absolute))
-        .info('Invoke the', bold('launch'), 'command to create and start your first devnet!')
+        .info('Invoke the', bold('launch'), 'command to run your first devnet!')
 
     }
 
@@ -193,7 +194,8 @@ export default class DevnetCLI extends CLI {
     info: 'create and start a devnet',
     args: 'PLATFORM VERSION [CHAIN-ID]'
   }, async (platform: 'scrt'|'okp4', version: string, chainId?: string) => {
-    await (await this.createDevnet(platform, version, chainId)).started
+    const devnet = await this.createDevnet(platform, version, chainId)
+    await devnet.started
   })
 
   createDevnet = this.command({
@@ -210,27 +212,36 @@ export default class DevnetCLI extends CLI {
         Devnet = OKP4Container
         break
       default:
-        this.log.error(`Unknown platform "${bold(platform)}".`)
+        if (platform) {
+          this.log.error(`Unknown platform "${bold(platform)}".`)
+        } else {
+          this.log.error(`Specify a platform.`)
+        }
         this.listPlatforms()
         process.exit(1)
     }
     if (!version || !Object.keys(Devnet.v).includes(version)) {
       this.log.error(`Please specify one of the following versions:`)
-      for (const v of Object.keys(OKP4Container.v)) {
+      for (const v of Object.keys(Devnet.v)) {
         this.log.info(' ', bold(v))
       }
+      process.exit(1)
     }
-    const devnet = new Devnet({ version, chainId })
+    const devnet = new Devnet({
+      platformVersion: version,
+      onScriptExit: 'remain',
+      chainId,
+    })
     this.log
-      .log()
-      .log('Creating devnet:')
-      .log(`  Chain ID: `, bold(devnet.chainId))
-      .log(`  Image:    `, bold(devnet.container.image.name))
+      .info()
+      .info('Creating devnet:')
+      .info(`  Chain ID: `, bold(devnet.chainId))
+      .info(`  Image:    `, bold(devnet.container.image.name))
     await devnet.created
     this.log
-      .log(`  Container:`, bold(devnet.container.id))
-      .log(`  Receipt:  `, bold(devnet.stateFile.path))
-      .log()
+      .info(`  Container:`, bold(devnet.container.id))
+      .info(`  Receipt:  `, bold(devnet.stateFile.path))
+      .info()
       .info(
         `Devnet created. Invoke the`,
         `"${bold(`start ${devnet.chainId}`)}"`,
@@ -361,6 +372,15 @@ export default class DevnetCLI extends CLI {
       this.log.log(`Removing ${bold(devnet)}...`)
       devnetsDir.subdir(devnet).delete()
     }
+  })
+
+  printUsageOnly = this.command({
+    name: 'usage',
+    info: 'print available commands without listing devnets',
+    args: ''
+  }, () => {
+    this.log.info()
+    this.printUsage(this)
   })
 
 }
