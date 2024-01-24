@@ -4,28 +4,11 @@
 import { Suite } from '@hackbg/ensuite'
 import { Token } from '@fadroma/agent'
 import { testDevnetPlatform } from './devnet-base.test'
-import { ScrtContainer, OKP4Container } from './devnet-base'
+import { default as DevnetContainer } from './devnet-base'
 import { ScrtConnection } from '@fadroma/scrt'
 import { OKP4Connection } from '@fadroma/cw'
-
 export default new Suite([
-
   ['impl', () => import('./devnet-impl.test')],
-
-  ['scrt', () => testDevnetPlatform(
-    ScrtConnection,
-    ScrtContainer,
-    '1.12',
-    'secretd',
-    new Token.Native('uscrt')
-  )],
-
-  ['okp4', () => testDevnetPlatform(
-    OKP4Connection,
-    OKP4Container,
-    '6.0',
-    'okp4d',
-    new Token.Native('uknow')
-  )],
-
+  ['scrt', () => testDevnetPlatform('Scrt', '1.12')],
+  ['okp4', () => testDevnetPlatform('OKP4', '6.0')],
 ])

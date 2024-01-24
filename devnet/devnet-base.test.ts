@@ -1,30 +1,25 @@
 import { packageRoot } from './package'
 import type * as Devnets from './devnet'
-import Container from './devnet-base'
+import DevnetContainer from './devnet-base'
 import { Chain, Token } from '@fadroma/agent'
 import * as OCI from '@fadroma/oci'
 import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
 import { resolve } from 'node:path'
 import * as Impl from './devnet-impl'
+import { fixture } from '@fadroma/fixtures'
+import * as Platform from './devnet-platform'
 
-//@ts-ignore
-import { fixture } from '../fixtures/fixtures'
-
-export async function testDevnetPlatform <
-  A extends typeof Chain.Connection,
-  D extends typeof Container,
-> (
-  Connection: A,
-  Devnet:     D,
-  version:    string,
-  daemon:     string,
-  gasToken:   Token.Native
+export async function testDevnetPlatform (
+  name: keyof typeof Platform, version: string,
 ) {
-  const codePath = resolve(packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm')
-  let devnet: InstanceType<D> = new (Devnet as any)({
+  const spec = Platform[name].version(version as never)
+  const codePath = resolve(
+    packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm'
+  )
+  let devnet = new DevnetContainer({
+    ...spec,
     onScriptExit: 'remove',
-    gasToken,
     genesisAccounts: { User1: 12345678, User2: 87654321, },
     genesisUploads: {
       '7': { codePath: fixture('fadroma-example-cw-null@HEAD.wasm') },
@@ -38,8 +33,8 @@ export async function testDevnetPlatform <
   ok(typeof devnet.gasToken.denom === 'string')
   ok((await devnet.container.image) instanceof OCI.Image)
   const spawnEnv = Impl.containerEnvironment(devnet)
-  deepEqual(spawnEnv.DAEMON,    daemon)
-  deepEqual(spawnEnv.TOKEN,     gasToken.denom)
+  deepEqual(spawnEnv.DAEMON,    spec.nodeBinary)
+  deepEqual(spawnEnv.TOKEN,     spec.gasToken.denom)
   deepEqual(spawnEnv.CHAIN_ID,  devnet.chainId)
   deepEqual(spawnEnv.ACCOUNTS,  JSON.stringify(devnet.genesisAccounts))
   deepEqual(spawnEnv.STATE_UID, String(getuid!()))
@@ -66,7 +61,7 @@ export async function testDevnetPlatform <
   // to complete - otherwise the test is flaky
   await new Promise(resolve=>setTimeout(resolve, 1000))
 
-  ok(agent instanceof Connection)
+  ok(agent instanceof spec.Connection)
   equal(agent.chainId, devnet.chainId)
   equal(agent.url, devnet.url)
   // process.exit(123) // uncomment for testing exit handler

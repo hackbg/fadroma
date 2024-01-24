@@ -11,16 +11,27 @@ const { bold } = Core
 
 const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
 
-type $D<T extends keyof DevnetContainer> = Pick<DevnetContainer, T>
+type $D<
+  C extends Chain.Connection,
+  I extends Chain.Identity,
+  T extends keyof DevnetContainer<C, I>
+> = Pick<
+  DevnetContainer<C, I>,
+  T
+>
 
-export function initPort (devnet: $D<'nodePortMode'|'nodePort'>) {
+export function initPort (
+  devnet: $D<Chain.Connection, Chain.Identity, 'nodePortMode'|'nodePort'>
+) {
   if (devnet.nodePortMode) {
     devnet.nodePort ??= defaultPorts[devnet.nodePortMode]
   }
   return devnet
 }
 
-export function initContainer (devnet: $D<'log'|'container'>) {
+export function initContainer (
+  devnet: $D<Chain.Connection, Chain.Identity, 'log'|'container'>
+) {
   devnet.container.log.label = devnet.log.label
   if (!devnet.container.image) {
     devnet.container.image = new OCI.Image()
@@ -32,7 +43,9 @@ export function initContainer (devnet: $D<'log'|'container'>) {
   return devnet
 }
 
-export function initChainId (devnet: $D<'chainId'|'platform'>) {
+export function initChainId (
+  devnet: $D<Chain.Connection, Chain.Identity, 'chainId'|'platform'>
+) {
   if (!devnet.chainId) {
     if (devnet.platform) {
       devnet.chainId = `dev-${devnet.platform}-${Core.randomBase16(4).toLowerCase()}`
@@ -43,7 +56,9 @@ export function initChainId (devnet: $D<'chainId'|'platform'>) {
   return devnet
 }
 
-export function initLogger (devnet: $D<'chainId'|'log'>) {
+export function initLogger (
+  devnet: $D<Chain.Connection, Chain.Identity, 'chainId'|'log'>
+) {
   const devnetTag   = Core.colors.bgWhiteBright.black(` creating `)
   const loggerColor = Core.randomColor({ luminosity: 'dark', seed: devnet.chainId })
   const loggerTag   = Core.colors.whiteBright.bgHex(loggerColor)(` ${devnet.chainId} `)
@@ -61,7 +76,7 @@ export function initLogger (devnet: $D<'chainId'|'log'>) {
 }
 
 export function initState (
-  devnet: $D<'stateRoot'|'chainId'|'stateFile'|'runFile'>,
+  devnet: $D<Chain.Connection, Chain.Identity, 'stateRoot'|'chainId'|'stateFile'|'runFile'>,
   { stateRoot }: Partial<typeof devnet>
 ) {
   const dataDir = XDG({ expanded: true, subdir: 'fadroma' }).data.home
@@ -71,7 +86,7 @@ export function initState (
 }
 
 export function initDynamicUrl (
-  devnet: $D<'log'|'url'|'nodeProtocol'|'nodeHost'|'nodePort'>
+  devnet: $D<Chain.Connection, Chain.Identity, 'log'|'url'|'nodeProtocol'|'nodeHost'|'nodePort'>
 ) {
   Object.defineProperties(devnet, {
     url: {
@@ -96,7 +111,7 @@ export async function createDevnetContainer (
     & Parameters<typeof saveDevnetState>[0]
     & Parameters<typeof containerOptions>[0]
     & Parameters<typeof setExitHandler>[0]
-    & $D<'container'|'verbose'|'initScript'|'url'>
+    & $D<Chain.Connection, Chain.Identity, 'container'|'verbose'|'initScript'|'url'>
 ) {
   devnet.log.label = devnet.container.log.label
   if (await devnet.container.exists()) {
@@ -138,6 +153,7 @@ export async function createDevnetContainer (
 /** Options for the devnet container. */
 export function containerOptions (
   devnet: $D<
+    Chain.Connection, Chain.Identity,
     'chainId'|'initScript'|'stateRoot'|'nodePort'|'platformName'|'platformVersion'|'chainId'
   > & Parameters<typeof containerEnvironment>[0]
 ) {
@@ -174,6 +190,7 @@ export function containerOptions (
 /** Environment variables in the devnet container. */
 export function containerEnvironment (
   devnet: $D<
+    Chain.Connection, Chain.Identity,
     'log'|'chainId'|'gasToken'|'nodeBinary'|'nodePortMode'|'nodePort'|'genesisAccounts'|'verbose'
   >
 ) {
@@ -203,7 +220,9 @@ export function containerEnvironment (
 }
 
 export async function removeDevnetContainer (
-  devnet: $D<'log'|'container'|'stateRoot'|'paused'> & Parameters<typeof forceDelete>[0]
+  devnet: $D<
+    Chain.Connection, Chain.Identity, 'log'|'container'|'stateRoot'|'paused'
+  > & Parameters<typeof forceDelete>[0]
 ) {
   devnet.log.label = devnet.container.log.label
   try {
@@ -239,7 +258,7 @@ export async function removeDevnetContainer (
 
 /** Run the cleanup container, deleting devnet state even if emitted as root. */
 export async function forceDelete (
-  devnet: $D<'stateRoot'|'container'|'chainId'|'log'>
+  devnet: $D<Chain.Connection, Chain.Identity, 'stateRoot'|'container'|'chainId'|'log'>
 ) {
   const path = new SyncFS.Path(devnet.stateRoot)
   devnet.log('Running cleanup container for', path.short)
@@ -264,6 +283,7 @@ export async function forceDelete (
 /** Write the state of the devnet to a file.
   * This saves the info needed to respawn the node */
 async function saveDevnetState (devnet: $D<
+  Chain.Connection, Chain.Identity,
   'platformName'|'platformVersion'|'chainId'|'container'|'nodePort'
 > & {
   stateFile: { save (data: object) }
@@ -279,6 +299,7 @@ async function saveDevnetState (devnet: $D<
 
 export async function startDevnetContainer (
   devnet: Parameters<typeof createDevnetContainer>[0] & $D<
+    Chain.Connection, Chain.Identity,
     |'log'|'running'|'container'|'waitString'|'waitMore'
     |'nodeHost'|'nodePort'|'chainId'|'waitPort'|'created'
   >
@@ -324,6 +345,7 @@ export function setExitHandler (devnet: Parameters<typeof defineExitHandler>[0])
 }
 
 function defineExitHandler (devnet: $D<
+  Chain.Connection, Chain.Identity,
   'log'|'onScriptExit'|'runFile'|'chainId'|'nodePort'|'exitHandler'|'container'|'url'|'stateDir'
 >) {
   let called = false
@@ -355,7 +377,7 @@ function defineExitHandler (devnet: $D<
 }
 
 export async function pauseDevnetContainer (
-  devnet: $D<'log'|'container'|'running'|'runFile'>
+  devnet: $D<Chain.Connection, Chain.Identity, 'log'|'container'|'running'|'runFile'>
 ) {
   devnet.log.label = devnet.container.log.label
   if (await devnet.container.exists()) {
@@ -377,11 +399,8 @@ export async function pauseDevnetContainer (
   return devnet
 }
 
-export async function connect <
-  C extends Chain.Connection,
-  I extends Chain.Identity
-> (
-  devnet:      $D<'chainId'|'started'|'url'|'running'> & Parameters<typeof getIdentity>[0],
+export async function connect <C extends Chain.Connection, I extends Chain.Identity> (
+  devnet:      $D<C, I, 'chainId'|'started'|'url'|'running'> & Parameters<typeof getIdentity>[0],
   $Connection: { new (...args: unknown[]): C },
   $Identity:   { new (...args: unknown[]): I },
   parameter:   string|Partial<I & { name?: string, mnemonic?: string }> = {}
@@ -401,8 +420,8 @@ export async function connect <
   })
 }
 
-export async function getIdentity (
-  devnet: $D<'log'|'stateDir'|'created'|'started'>,
+export async function getIdentity <C extends Chain.Connection, I extends Chain.Identity> (
+  devnet: $D<C, I, 'log'|'stateDir'|'created'|'started'>,
   name:   string|{name?: string}
 ) {
   if (typeof name === 'object') {
@@ -418,7 +437,7 @@ export async function getIdentity (
   }
   return new SyncFS.File(devnet.stateDir, 'wallet', `${name}.json`)
     .setFormat(FileFormat.JSON)
-    .load() as Partial<Chain.Identity> & { mnemonic: string }
+    .load() as Partial<I> & { mnemonic: string }
 }
 
 /** Mapping of connection type to environment variable
@@ -432,7 +451,9 @@ export const defaultPorts: Record<APIMode, number> = {
   http: 1317, grpc: 9090, grpcWeb: 9091, rpc: 26657
 }
 
-export function initContainerState (devnet: DevnetContainer) {
+export function initContainerState (
+  devnet: DevnetContainer<Chain.Connection, Chain.Identity>
+) {
   const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
     enumerable: true, configurable: true, get
   })

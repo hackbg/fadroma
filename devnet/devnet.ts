@@ -8,14 +8,13 @@ import CLI from '@hackbg/cmds'
 import * as OCI from '@fadroma/oci'
 import { packageName, packageVersion } from './devnet-base'
 import DevnetContainer from './devnet-base'
-import * as Scrt from './platforms/scrt-devnet'
-import * as OKP4 from './platforms/okp4-devnet'
+import * as Platform from './devnet-platform'
 
 const { bold, colors } = Core
 
 const platforms = {
-  'scrt': Scrt,
-  'okp4': OKP4,
+  'scrt': Platform.Scrt,
+  'okp4': Platform.OKP4,
 }
 
 export { DevnetContainer }
@@ -47,11 +46,11 @@ export default class DevnetCLI extends CLI {
       .info()
       .info(' ', bold(`PLATFORM`), '', bold(`VERSION`), '', bold(`DESCRIPTION`))
       .info()
-    for (let v of Object.keys(Scrt.versions)) {
+    for (let v of Object.keys(Platform.Scrt.versions)) {
       v = v.padEnd(7)
       this.log.info(' ', bold(`scrt      ${v}`), ` Secret Network ${v}`)
     }
-    for (let v of Object.keys(OKP4.versions)) {
+    for (let v of Object.keys(Platform.OKP4.versions)) {
       v = v.padEnd(7)
       this.log.info(' ', bold(`okp4      ${v}`), ` OKP4 ${v}`)
     }

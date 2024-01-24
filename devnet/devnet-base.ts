@@ -6,8 +6,7 @@ import * as OCI from '@fadroma/oci'
 import * as Impl from './devnet-impl'
 import * as Scrt from './platforms/scrt-devnet'
 import * as OKP4 from './platforms/okp4-devnet'
-import { OKP4Connection, OKP4MnemonicIdentity } from '@fadroma/cw'
-import { ScrtConnection, ScrtMnemonicIdentity } from '@fadroma/scrt'
+import type * as Platform from './devnet-platform'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
@@ -29,16 +28,13 @@ class DevnetError extends Core.Error {}
 
 export { DevnetError as Error }
 
-/** Identifiers of supported platforms. */
-export type Platform = 'scrt'|'okp4'
-
 /** Identifiers of supported API endpoints.
   * These are different APIs exposed by a node at different ports.
   * One of these is used by default - can be a different one
   * depending on platform version. */
 export type APIMode = 'http'|'rpc'|'grpc'|'grpcWeb'
 
-export class DevnetContainerState {
+export class DevnetContainerConfig {
   /** Whether the devnet container is started. */
   running:         boolean = false
   /** Chain ID of chain node running inside devnet container. */
@@ -48,11 +44,11 @@ export class DevnetContainerState {
   /** Whether more detailed output is preferred. */
   verbose:         boolean = false
   /** Name of devnet platform. */
-  platformName:    Platform
+  platformName:    Lowercase<keyof typeof Platform>
   /** Version of devnet platform. */
   platformVersion: string
   /** Container instance of devnet. */
-  container:       OCI.Container = new OCI.Container()
+  container?:      Partial<Omit<OCI.Container, 'image'> & { image: Partial<OCI.Image> }>
   /** URL for connecting to a remote devnet. */
   url?:            string|URL
   /** The protocol of the API URL without the trailing colon. */
@@ -91,7 +87,7 @@ export class DevnetContainerState {
   /** The exit handler that cleans up external resources. */
   exitHandler?:    (...args: any)=>void
 
-  constructor (options: Partial<DevnetContainerState> = {}) {
+  constructor (options: Partial<DevnetContainerConfig> = {}) {
     Core.assign(this, options, [
       'chainId',
       'container',
@@ -152,13 +148,26 @@ export class DevnetContainerState {
 
 /** A private local instance of a network,
   * running in a container managed by @fadroma/oci. */
-export default class DevnetContainer
-  extends DevnetContainerState
+export default class DevnetContainer<
+  C extends Chain.Connection,
+  I extends Chain.Identity,
+> extends DevnetContainerConfig
   implements Chain.Backend
 {
   /** Logger. */
   log = new Core.Console('Devnet')
-  constructor (options: Partial<DevnetContainer> = {}) {
+  constructor (options: Partial<Omit<DevnetContainer<C, I>, 'container'> & {
+    container: Partial<Omit<OCI.Container, 'image'> & {
+      image: Partial<OCI.Image>
+    }>
+  }> = {}) {
+    //const supported = Object.keys(new.target.v)
+    //if (!supported.includes(platformVersion)) {
+      //throw new Error(
+        //`Unsupported version: ${platformVersion}. ` +
+        //`Specify one of the following: ${Object.keys(OKP4Container.v).join(', ')}`
+      //)
+    //}
     super(options)
     Impl.initPort(this)
     Impl.initChainId(this)
@@ -168,6 +177,11 @@ export default class DevnetContainer
     Impl.initContainer(this)
     Impl.initContainerState(this)
   }
+  container: OCI.Container = new OCI.Container()
+  /** Connection class for this devnet. */
+  Connection: { new (...args: unknown[]): C }
+  /** Identity class for this devnet. */
+  Identity:   { new (...args: unknown[]): I }
   /** Wait for the devnet to be created. */
   declare readonly created: Promise<this>
   /** Wait for the devnet to be removed. */
@@ -177,7 +191,8 @@ export default class DevnetContainer
   /** Wait for the devnet to be stopped. */
   declare readonly paused:  Promise<this>
   /** Obtain a Connection object to this devnet, optionally with a specific Identity. */
-  connect (parameter?: string|Partial<Chain.Identity>): Promise<Chain.Connection> {
+  connect (parameter?: string|Partial<I>): Promise<C> {
+    return Impl.connect(this, this.Connection, this.Identity, parameter)
     throw new Error(
       'The connect method is not implemented for the base DevnetContainer class. ' +
       'Downcast to an appropriate chain-specific devnet class.'
@@ -196,83 +211,5 @@ export default class DevnetContainer
       throw new Core.Error("can't export: no container")
     }
     return container.export(repository, tag)
-  }
-}
-
-export class OKP4Container<V extends OKP4.Version> extends DevnetContainer {
-
-  constructor ({
-    platformVersion = '6.0',
-    ...properties
-  }: Partial<OKP4Container<V> & {
-    platformVersion: OKP4.Version
-  }>) {
-    const supported = Object.keys(new.target.v)
-    if (!supported.includes(platformVersion)) {
-      throw new Error(
-        `Unsupported version: ${platformVersion}. ` +
-        `Specify one of the following: ${Object.keys(OKP4Container.v).join(', ')}`
-      )
-    }
-    super({
-      ...new.target.v[platformVersion] || {},
-      ...properties,
-      platformVersion,
-      platformName: 'okp4',
-    })
-  }
-
-  async connect (parameter: string|Partial<OKP4MnemonicIdentity & {
-    mnemonic?: string
-  }> = {}): Promise<OKP4Connection> {
-    return Impl.connect(this, OKP4Connection, OKP4MnemonicIdentity, parameter)
-  }
-
-  gasToken = new Token.Native('uknow')
-
-  /** Supported versions of OKP4. */
-  static v: Record<OKP4.Version, Partial<OKP4Container<OKP4.Version>>> = {
-    '5.0': OKP4.version('5.0'),
-    '6.0': OKP4.version('5.0'),
-  }
-
-}
-
-export class ScrtContainer<V extends Scrt.Version> extends DevnetContainer {
-  constructor ({
-    platformVersion = '1.9',
-    ...properties
-  }: Partial<ScrtContainer<V> & {
-    platformVersion: Scrt.Version
-  }>) {
-    const supported = Object.keys(new.target.v)
-    if (!supported.includes(platformVersion)) {
-      throw new Error(
-        `Unsupported version: ${platformVersion}. ` +
-        `Specify one of the following: ${Object.keys(ScrtContainer.v).join(', ')}`
-      )
-    }
-    super({
-      ...new.target.v[platformVersion] || {}, 
-      ...properties,
-      platformVersion,
-      platformName: 'scrt',
-    })
-  }
-
-  async connect (parameter: string|Partial<ScrtMnemonicIdentity & {
-    mnemonic?: string
-  }> = {}): Promise<ScrtConnection> {
-    return Impl.connect(this, ScrtConnection, ScrtMnemonicIdentity, parameter)
-  }
-
-  gasToken = new Token.Native('uscrt')
-
-  /** Supported versions of Secret Network. */
-  static v: Record<Scrt.Version, ReturnType<typeof Scrt.version>> = {
-    '1.9':  Scrt.version('1.9'),
-    '1.10': Scrt.version('1.10'),
-    '1.11': Scrt.version('1.11'),
-    '1.12': Scrt.version('1.12'),
   }
 }
