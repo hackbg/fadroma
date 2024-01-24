@@ -20,7 +20,7 @@ export async function testDevnetPlatform (
   let devnet = new DevnetContainer({
     ...spec,
     onScriptExit: 'remove',
-    genesisAccounts: { User1: 12345678, User2: 87654321, },
+    genesisAccounts: { user1: 12345678, user2: 87654321, },
     genesisUploads: {
       '7': { codePath: fixture('fadroma-example-cw-null@HEAD.wasm') },
       '8': { codePath: fixture('fadroma-example-cw-echo@HEAD.wasm') },

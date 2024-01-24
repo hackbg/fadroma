@@ -12,13 +12,15 @@ import * as Platform from './devnet-platform'
 
 const { bold, colors } = Core
 
+/** Identifiers for CLI. */
 const platforms = {
   'scrt': Platform.Scrt,
   'okp4': Platform.OKP4,
+  'archway': Platform.Archway,
+  'osmosis': Platform.Osmosis,
 }
 
-export { DevnetContainer }
-
+/** Commands exposed by Fadroma Devnet. */
 export default class DevnetCLI extends CLI {
 
   constructor (...args: ConstructorParameters<typeof CLI>) {
@@ -373,4 +375,8 @@ export default class DevnetCLI extends CLI {
     this.printUsage(this)
   })
 
+}
+
+export {
+  DevnetContainer
 }

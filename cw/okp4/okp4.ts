@@ -14,13 +14,9 @@ export * from './okp4-cognitarium'
 export * from './okp4-objectarium'
 export * from './okp4-law-stone'
 
-export const chainIds = {
-  testnet: 'okp4-nemeton-1',
-}
+export const chainIds = { testnet: 'okp4-nemeton-1', }
 
-export const testnets = new Set([
-  'https://okp4-testnet-rpc.polkachu.com/'
-])
+export const testnets = new Set([ 'https://okp4-testnet-rpc.polkachu.com/' ])
 
 /** Connect to OKP4 in testnet mode. */
 export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
@@ -29,11 +25,7 @@ export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection =
   })
 }
 
-const defaults =  {
-  coinType: 118,
-  bech32Prefix: 'okp4',
-  hdAccountIndex: 0,
-}
+const defaults = { coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, }
 
 export class OKP4MnemonicIdentity extends CWMnemonicIdentity {
   constructor (properties?: { mnemonic?: string } & Partial<CWMnemonicIdentity>) {
@@ -43,8 +35,10 @@ export class OKP4MnemonicIdentity extends CWMnemonicIdentity {
 
 /** Connection for OKP4. */
 export class OKP4Connection extends CWConnection {
+
   /** Default denomination of gas token. */
   static gasToken = new Token.Native('uknow')
+
   /** Transaction fees for this agent. */
   fees = {
     upload: OKP4Connection.gasToken.fee(10000000),
