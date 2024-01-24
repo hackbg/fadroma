@@ -18,6 +18,7 @@ const platforms = {
   'okp4': Platform.OKP4,
   'archway': Platform.Archway,
   'osmosis': Platform.Osmosis,
+  'injective': Platform.Injective,
 }
 
 /** Commands exposed by Fadroma Devnet. */
