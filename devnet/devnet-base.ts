@@ -175,9 +175,9 @@ export default class DevnetContainer<
     Impl.initState(this, options)
     Impl.initDynamicUrl(this)
     Impl.initContainer(this)
-    Impl.initContainerState(this)
+    Core.assign(this, options, [ 'Connection', 'Identity' ])
   }
-  container: OCI.Container = new OCI.Container()
+  declare container: OCI.Container
   /** Connection class for this devnet. */
   Connection: { new (...args: unknown[]): C }
   /** Identity class for this devnet. */

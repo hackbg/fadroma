@@ -30,16 +30,42 @@ export function initPort (
 }
 
 export function initContainer (
-  devnet: $D<Chain.Connection, Chain.Identity, 'log'|'container'>
+  devnet: DevnetContainer<Chain.Connection, Chain.Identity>
 ) {
-  devnet.container.log.label = devnet.log.label
-  if (!devnet.container.image) {
-    devnet.container.image = new OCI.Image()
+  if (!(devnet.container.image instanceof OCI.Image)) {
+    devnet.container.image = new OCI.Image(devnet.container.image)
   }
   devnet.container.image.log.label = devnet.log.label
-  if (!devnet.container.image.engine) {
+  if (!(devnet.container instanceof OCI.Container)) {
+    devnet.container = new OCI.Container(devnet.container)
+  }
+  devnet.container.log.label = devnet.log.label
+  if (!devnet.container.image.engine || !devnet.container.engine) {
     devnet.container.engine = devnet.container.image.engine = new OCI.Connection()
   }
+  const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
+    enumerable: true, configurable: true, get
+  })
+  defineGetter('created', () => {
+    const creating = createDevnetContainer(devnet)
+    defineGetter('created', () => creating)
+    return creating
+  })
+  defineGetter('started', () => {
+    const starting = startDevnetContainer(devnet)
+    defineGetter('started', () => starting)
+    return starting
+  })
+  defineGetter('paused', () => {
+    const pausing = pauseDevnetContainer(devnet)
+    defineGetter('paused', () => pausing)
+    return pausing
+  })
+  defineGetter('removed', () => {
+    const deleting = removeDevnetContainer(devnet)
+    defineGetter('removed', () => deleting)
+    return deleting
+  })
   return devnet
 }
 
@@ -449,32 +475,4 @@ const portVars: Record<APIMode, string> = {
 /** Default port numbers for each kind of port. */
 export const defaultPorts: Record<APIMode, number> = {
   http: 1317, grpc: 9090, grpcWeb: 9091, rpc: 26657
-}
-
-export function initContainerState (
-  devnet: DevnetContainer<Chain.Connection, Chain.Identity>
-) {
-  const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
-    enumerable: true, configurable: true, get
-  })
-  defineGetter('created', () => {
-    const creating = createDevnetContainer(devnet)
-    defineGetter('created', () => creating)
-    return creating
-  })
-  defineGetter('started', () => {
-    const starting = startDevnetContainer(devnet)
-    defineGetter('started', () => starting)
-    return starting
-  })
-  defineGetter('paused', () => {
-    const pausing = pauseDevnetContainer(devnet)
-    defineGetter('paused', () => pausing)
-    return pausing
-  })
-  defineGetter('removed', () => {
-    const deleting = removeDevnetContainer(devnet)
-    defineGetter('removed', () => deleting)
-    return deleting
-  })
 }
