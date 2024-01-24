@@ -10,4 +10,5 @@ export default new Suite([
   ['archway', () => testDevnetPlatform('Archway', '4.0.3')],
   ['osmosis', () => testDevnetPlatform('Osmosis', '22.0.1')],
   ['injective', () => testDevnetPlatform('Injective', '1.12.9-testnet')],
+  ['axelar', () => testDevnetPlatform('Axelar', '0.34.3')],
 ])

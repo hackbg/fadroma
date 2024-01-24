@@ -55,7 +55,7 @@ export async function testDevnetPlatform (
   ok(devnet.container instanceof OCI.Container)
   equal(devnet.container.name, devnet.chainId)
   equal(await devnet.started, devnet)
-  const agent = await devnet.connect({ name: 'User1' })
+  const agent = await devnet.connect({ name: 'user1' })
 
   // wait for internal SigningCosmWasmClient.connectWithSigner fetch
   // to complete - otherwise the test is flaky
