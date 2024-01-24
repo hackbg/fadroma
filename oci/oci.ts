@@ -295,10 +295,11 @@ class OCIImage extends Deploy.ContractTemplate {
     const filters = JSON.stringify({ancestor: [this.name]})
     const instances = await this.engine.api.listContainers({ filters, all })
     return instances.map(instance=>new OCIContainer({
-      engine: this.engine,
-      image:  this,
-      id:     instance.Id,
-      name:   instance.Names[0],
+      engine:  this.engine,
+      image:   this,
+      id:      instance.Id,
+      name:    instance.Names[0],
+      command: instance.Command,
     }))
   }
 
