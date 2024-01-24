@@ -291,6 +291,12 @@ class OCIImage extends Deploy.ContractTemplate {
     return container
   }
 
+  async getInstances ({ all = false } = {}) {
+    const filters = JSON.stringify({ancestor: [this.name]})
+    const instances = await this.engine.api.listContainers({ filters, all })
+    return instances
+  }
+
 }
 
 /** Interface to a Docker container. */

@@ -1,6 +1,6 @@
 {
   "name":         "@fadroma/oci",
-  "version":      "1.0.0-rc.2",
+  "version":      "1.0.0-rc.3",
   "main":         "oci.ts",
   "type":         "module",
   "license":      "MIT",
@@ -26,6 +26,6 @@
     "check":   "tsc --noEmit",
     "test":    "ensuite oci.test.ts",
     "cov":     "ensuite-cov oci.test.ts",
-    "release": "pnpm check && (pnpm cov || true) && ubik release --access public --otp 123123"
+    "release": "pnpm check && pnpm cov all && ubik release --access public --otp 123123"
   }
 }
