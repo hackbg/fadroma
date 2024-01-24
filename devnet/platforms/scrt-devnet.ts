@@ -23,6 +23,7 @@ export function version (v: Version) {
     Identity: Scrt.ScrtMnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
     gasToken: new Token.Native('uscrt'),
     nodePortMode: 'http' as APIMode,
+    bech32Prefix: 'scrt',
     waitString: 'Validating proposal',
     nodeBinary: 'secretd',
     container: {

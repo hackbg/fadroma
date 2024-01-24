@@ -20,6 +20,7 @@ export function version (v: Version) {
     Identity: CW.CWMnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
     gasToken: new Token.Native('uarch'),
     nodeBinary: 'axelard',
+    bech32Prefix: 'axelar',
     nodePortMode: 'rpc' as APIMode,
     waitString: 'indexed block',
     container: {

@@ -20,6 +20,7 @@ export function version (v: Version) {
     Identity: CW.CWMnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
     gasToken: new Token.Native('uarch'),
     nodeBinary: 'archwayd',
+    bech32Prefix: 'archway',
     nodePortMode: 'rpc' as APIMode,
     waitString: 'indexed block',
     container: {
@@ -31,4 +32,3 @@ export function version (v: Version) {
     },
   }
 }
-

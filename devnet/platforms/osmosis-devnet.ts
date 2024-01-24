@@ -20,6 +20,7 @@ export function version (v: Version) {
     Identity: CW.CWMnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
     gasToken: new Token.Native('uosmo'),
     nodeBinary: 'osmosisd',
+    bech32Prefix: 'osmo',
     nodePortMode: 'rpc' as APIMode,
     waitString: 'indexed block',
     container: {

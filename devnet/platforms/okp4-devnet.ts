@@ -21,6 +21,7 @@ export function version (v: Version) {
     Identity: CW.OKP4MnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
     gasToken: new Token.Native('uknow'),
     nodeBinary: 'okp4d',
+    bech32Prefix: 'okp4',
     nodePortMode: 'rpc' as APIMode,
     waitString: 'indexed block',
     container: {

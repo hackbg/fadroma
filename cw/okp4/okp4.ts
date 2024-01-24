@@ -47,7 +47,7 @@ export class OKP4Connection extends CWConnection {
     send:   OKP4Connection.gasToken.fee(1000000),
   }
 
-  constructor (options: Partial<OKP4Connection> & { mnemonic?: string }) {
+  constructor (options: Partial<OKP4Connection>) {
     super({ ...defaults, ...options } as Partial<CWConnection>)
   }
 
