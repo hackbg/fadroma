@@ -11,6 +11,7 @@ const { bold } = Core
 
 const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
 
+/** Pick only the properties of a DevnetContainer that are used in a given function. */
 type $D<
   C extends Chain.Connection,
   I extends Chain.Identity,
@@ -26,46 +27,6 @@ export function initPort (
   if (devnet.nodePortMode) {
     devnet.nodePort ??= defaultPorts[devnet.nodePortMode]
   }
-  return devnet
-}
-
-export function initContainer (
-  devnet: DevnetContainer<Chain.Connection, Chain.Identity>
-) {
-  if (!(devnet.container.image instanceof OCI.Image)) {
-    devnet.container.image = new OCI.Image(devnet.container.image)
-  }
-  devnet.container.image.log.label = devnet.log.label
-  if (!(devnet.container instanceof OCI.Container)) {
-    devnet.container = new OCI.Container(devnet.container)
-  }
-  devnet.container.log.label = devnet.log.label
-  if (!devnet.container.image.engine || !devnet.container.engine) {
-    devnet.container.engine = devnet.container.image.engine = new OCI.Connection()
-  }
-  const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
-    enumerable: true, configurable: true, get
-  })
-  defineGetter('created', () => {
-    const creating = createDevnetContainer(devnet)
-    defineGetter('created', () => creating)
-    return creating
-  })
-  defineGetter('started', () => {
-    const starting = startDevnetContainer(devnet)
-    defineGetter('started', () => starting)
-    return starting
-  })
-  defineGetter('paused', () => {
-    const pausing = pauseDevnetContainer(devnet)
-    defineGetter('paused', () => pausing)
-    return pausing
-  })
-  defineGetter('removed', () => {
-    const deleting = removeDevnetContainer(devnet)
-    defineGetter('removed', () => deleting)
-    return deleting
-  })
   return devnet
 }
 
@@ -128,6 +89,50 @@ export function initDynamicUrl (
         throw new Error("can't change devnet url")
       }
     },
+  })
+  return devnet
+}
+
+export function initContainer (
+  devnet:
+    & Parameters<typeof createDevnetContainer>[0]
+    & Parameters<typeof startDevnetContainer>[0]
+    & Parameters<typeof pauseDevnetContainer>[0]
+    & Parameters<typeof removeDevnetContainer>[0]
+) {
+  if (!(devnet.container.image instanceof OCI.Image)) {
+    devnet.container.image = new OCI.Image(devnet.container.image)
+  }
+  devnet.container.image.log.label = devnet.log.label
+  if (!(devnet.container instanceof OCI.Container)) {
+    devnet.container = new OCI.Container(devnet.container)
+  }
+  devnet.container.log.label = devnet.log.label
+  if (!devnet.container.image.engine || !devnet.container.engine) {
+    devnet.container.engine = devnet.container.image.engine = new OCI.Connection()
+  }
+  const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
+    enumerable: true, configurable: true, get
+  })
+  defineGetter('created', () => {
+    const creating = createDevnetContainer(devnet)
+    defineGetter('created', () => creating)
+    return creating
+  })
+  defineGetter('started', () => {
+    const starting = startDevnetContainer(devnet)
+    defineGetter('started', () => starting)
+    return starting
+  })
+  defineGetter('paused', () => {
+    const pausing = pauseDevnetContainer(devnet)
+    defineGetter('paused', () => pausing)
+    return pausing
+  })
+  defineGetter('removed', () => {
+    const deleting = removeDevnetContainer(devnet)
+    defineGetter('removed', () => deleting)
+    return deleting
   })
   return devnet
 }
