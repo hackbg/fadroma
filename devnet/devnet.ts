@@ -14,11 +14,12 @@ const { bold, colors } = Core
 
 /** Identifiers for CLI. */
 const platforms = {
-  'scrt': Platform.Scrt,
-  'okp4': Platform.OKP4,
-  'archway': Platform.Archway,
-  'osmosis': Platform.Osmosis,
+  'scrt':      Platform.Scrt,
+  'okp4':      Platform.OKP4,
+  'archway':   Platform.Archway,
+  'osmosis':   Platform.Osmosis,
   'injective': Platform.Injective,
+  'axelar':    Platform.Axelar,
 }
 
 /** Commands exposed by Fadroma Devnet. */
@@ -47,15 +48,14 @@ export default class DevnetCLI extends CLI {
       .info()
       .info('Supported platforms:')
       .info()
-      .info(' ', bold(`PLATFORM`), '', bold(`VERSION`), '', bold(`DESCRIPTION`))
+      .info(' ', bold(`ID`), '         ', bold(`VERSION`))
       .info()
-    for (let v of Object.keys(Platform.Scrt.versions)) {
-      v = v.padEnd(7)
-      this.log.info(' ', bold(`scrt      ${v}`), ` Secret Network ${v}`)
-    }
-    for (let v of Object.keys(Platform.OKP4.versions)) {
-      v = v.padEnd(7)
-      this.log.info(' ', bold(`okp4      ${v}`), ` OKP4 ${v}`)
+    for (let [id, platform] of Object.entries(platforms)) {
+      id = id.padEnd(12)
+      for (let v of Object.keys(platform.versions)) {
+        v = v.padEnd(10)
+        this.log.info(' ', bold(id), v)
+      }
     }
     this.log.info()
   })
@@ -66,10 +66,8 @@ export default class DevnetCLI extends CLI {
     args: ''
   }, async () => {
     const engine = new OCI.Connection()
-    const devnetsDir = new SyncFS.Directory(
-      XDG({ expanded: true, subdir: 'fadroma' }).data.home,
-      'devnets'
-    )
+    const dataDir = XDG({ expanded: true, subdir: 'fadroma' }).data.home
+    const devnetsDir = new SyncFS.Directory(dataDir, 'devnets')
     devnetsDir.make()
     const devnets = devnetsDir.list()
 
