@@ -1,6 +1,6 @@
 import * as assert from 'node:assert'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
-import { ScrtMnemonicIdentity } from './scrt'
+import { MnemonicIdentity } from './scrt'
 import * as Mocknet from './scrt-mocknet'
 
 export default async function testScrtMocknet () {
@@ -13,7 +13,7 @@ export default async function testScrtMocknet () {
 
   const { backend, alice, bob, guest } = await testConnectionWithBackend({
     Connection:      Mocknet.Connection,
-    Identity:        ScrtMnemonicIdentity,
+    Identity:        MnemonicIdentity,
     Backend:         Mocknet.Backend,
     platformName:    'mock-scrt',
     platformVersion: 'v1.9',

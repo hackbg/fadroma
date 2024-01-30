@@ -4,7 +4,6 @@
 import * as Devnets from '@fadroma/devnet'
 import * as Scrt from './scrt'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
-import { mainnet, testnet, ScrtConnection, ScrtMnemonicIdentity, ScrtBatch, SecretJS } from '@fadroma/scrt'
 import { Token } from '@fadroma/agent'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -20,7 +19,7 @@ export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
 
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 let chain: any // for mocking
-let agent: Scrt.ScrtConnection
+let agent: Scrt.Connection
 const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
 
 import { Suite } from '@hackbg/ensuite'
@@ -33,11 +32,11 @@ export default new Suite([
 ])
 
 export async function testScrtChain () {
-  ok(mainnet() instanceof ScrtConnection)
-  ok(testnet() instanceof ScrtConnection)
+  ok(Scrt.mainnet() instanceof Scrt.Connection)
+  ok(Scrt.testnet() instanceof Scrt.Connection)
   const { backend, alice, bob, guest } = await testConnectionWithBackend({
-    Connection:      ScrtConnection,
-    Identity:        ScrtMnemonicIdentity,
+    Connection:      Scrt.Connection,
+    Identity:        Scrt.MnemonicIdentity,
     Backend:         Devnets.DevnetContainer,
     platformName:    'scrt',
     platformVersion: '1.12',
