@@ -21,8 +21,8 @@ export function version (platformVersion: Version, baseImage: string, baseSha256
   return {
     platformName,
     platformVersion,
-    Connection:   CW.CWConnection as { new (...args: unknown[]): Chain.Connection },
-    Identity:     CW.CWMnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
+    Connection:   CW.Osmosis.Connection as { new (...args: unknown[]): Chain.Connection },
+    Identity:     CW.Osmosis.MnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
     gasToken:     new Token.Native('uosmo'),
     nodeBinary:   'osmosisd',
     bech32Prefix: 'osmo',

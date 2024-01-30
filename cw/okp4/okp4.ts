@@ -1,6 +1,6 @@
 import { CWError as Error } from '../cw-base'
 import { CWConnection, CWBatch } from '../cw-connection'
-import CWIdentity, { CWMnemonicIdentity } from '../cw-identity'
+import { CWMnemonicIdentity } from '../cw-identity'
 
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'

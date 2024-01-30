@@ -14,7 +14,7 @@ export async function testCWChain () {
   new CW.OKP4.Objectarium({})
   new CW.OKP4.LawStone({})
   new CW.OKP4.MnemonicIdentity()
-  new CW.CWSignerIdentity({ signer: {} as any })
+  new CW.SignerIdentity({ signer: {} as any })
 
   throws(()=>CW.encodeSecp256k1Signature(
     new Uint8Array(),

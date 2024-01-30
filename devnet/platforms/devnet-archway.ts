@@ -21,8 +21,8 @@ export function version (platformVersion: Version, baseImage: string, baseSha256
   return {
     platformName,
     platformVersion,
-    Connection:   CW.CWConnection as { new (...args: unknown[]): Chain.Connection },
-    Identity:     CW.CWMnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
+    Connection:   CW.Archway.Connection as { new (...args: unknown[]): Chain.Connection },
+    Identity:     CW.Archway.MnemonicIdentity as { new (...args: unknown[]): Chain.Identity },
     gasToken:     new Token.Native('uarch'),
     nodeBinary:   'archwayd',
     bech32Prefix: 'archway',
