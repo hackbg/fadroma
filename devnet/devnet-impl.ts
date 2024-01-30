@@ -8,6 +8,7 @@ import * as OCI from '@fadroma/oci'
 import Error from './devnet-error'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet-base'
+import platforms from './devnet-platform'
 
 const { bold } = Core
 
@@ -107,17 +108,7 @@ export function initContainer (
 ) {
 
   if (!devnet.container) {
-    devnet.container = { image: { name: 'ghcr.io/hackbg/fadroma-devnet' } } as any
-    if (devnet.platformName) {
-      devnet.container.image.name += `-${devnet.platformName}`
-    } else {
-      throw new Error('Specify either devnet.container.image.name or (devnet.platformName and devnet.platformVersion)')
-    }
-    if (devnet.platformVersion) {
-      devnet.container.image.name += `:${devnet.platformVersion}`
-    } else {
-      throw new Error('Specify either devnet.container.image.name or (devnet.platformName and devnet.platformVersion)')
-    }
+    throw new Error('At least devnet.container.image.name needs to be specified')
   }
 
   if (!(devnet.container.image instanceof OCI.Image)) {

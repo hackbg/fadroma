@@ -13,7 +13,7 @@ import * as Platform from './devnet-platform'
 export async function testDevnetPlatform (
   name: keyof typeof Platform, version: string,
 ) {
-  const spec = Platform[name].version(version as never, 'no-version', 'no-checksum')
+  const spec = (Platform[name] as any).version(version as never, 'no-version', 'no-checksum')
   const codePath = resolve(
     packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm'
   )

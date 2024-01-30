@@ -1,4 +1,4 @@
-import assert from 'node:assert'
+import * as assert from 'node:assert'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import { ScrtMnemonicIdentity } from './scrt'
 import * as Mocknet from './scrt-mocknet'
@@ -11,16 +11,15 @@ export default async function testScrtMocknet () {
     const contract = new Mocknet.Contract(backend)
   }
 
-  const { backend, alice, bob, guest } = await testConnectionWithBackend(
-    Mocknet.Connection,
-    ScrtMnemonicIdentity,
-    Mocknet.Backend,
-    'mock-scrt',
-    'v1.9',
-    'uscrt',
-    fixture('scrt-null.wasm'),
-    null
-  )
+  const { backend, alice, bob, guest } = await testConnectionWithBackend({
+    Connection:      Mocknet.Connection,
+    Identity:        ScrtMnemonicIdentity,
+    Backend:         Mocknet.Backend,
+    platformName:    'mock-scrt',
+    platformVersion: 'v1.9',
+    gasToken:        'uscrt',
+    code:            fixture('scrt-null.wasm'),
+  })
 
   // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
   // responses) are returned by the contract as Base64-encoded strings

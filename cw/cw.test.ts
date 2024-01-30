@@ -10,10 +10,10 @@ export default new Suite([
 ])
 
 export async function testCWChain () {
-  new CW.Cognitarium({})
-  new CW.Objectarium({})
-  new CW.LawStone({})
-  new CW.OKP4MnemonicIdentity()
+  new CW.OKP4.Cognitarium({})
+  new CW.OKP4.Objectarium({})
+  new CW.OKP4.LawStone({})
+  new CW.OKP4.MnemonicIdentity()
   new CW.CWSignerIdentity({ signer: {} as any })
 
   throws(()=>CW.encodeSecp256k1Signature(
@@ -28,15 +28,15 @@ export async function testCWChain () {
     Object.assign(new Uint8Array(33), [0x02, 0x03]),
     new Uint8Array(64)
   ))
-  const { backend, alice, bob, guest } = await testConnectionWithBackend(
-    CW.OKP4Connection,
-    CW.OKP4MnemonicIdentity,
-    Devnets.DevnetContainer,
-    'okp4',
-    '6.0',
-    'uknow',
-    fixture('cw-null.wasm')
-  )
+  const { backend, alice, bob, guest } = await testConnectionWithBackend({
+    Connection:      CW.OKP4.Connection,
+    Identity:        CW.OKP4.MnemonicIdentity,
+    Backend:         Devnets.DevnetContainer,
+    platformName:    'okp4',
+    platformVersion: '6.0',
+    gasToken:        'uknow',
+    code:            fixture('cw-null.wasm')
+  })
   //new CW.OKP4.Connection({ signer: {}, mnemonic: 'x' } as any)
   //throws(()=>new CW.OKP4.Connection({ address: 'foo', mnemonic: [
     //'define abandon palace resource estate elevator',

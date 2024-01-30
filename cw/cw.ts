@@ -18,4 +18,4 @@
 export * from './cw-base'
 export * from './cw-connection'
 export * from './cw-identity'
-export * from './okp4/okp4'
+export * as OKP4 from './okp4/okp4'

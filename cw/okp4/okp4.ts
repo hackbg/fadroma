@@ -27,14 +27,14 @@ export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection =
 
 const defaults = { coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, }
 
-export class OKP4MnemonicIdentity extends CWMnemonicIdentity {
+class OKP4MnemonicIdentity extends CWMnemonicIdentity {
   constructor (properties?: { mnemonic?: string } & Partial<CWMnemonicIdentity>) {
     super({ ...defaults, ...properties||{} })
   }
 }
 
 /** Connection for OKP4. */
-export class OKP4Connection extends CWConnection {
+class OKP4Connection extends CWConnection {
 
   /** Default denomination of gas token. */
   static gasToken = new Token.Native('uknow')
@@ -116,4 +116,9 @@ export class OKP4Connection extends CWConnection {
     //}
     //return contracts
   //}
+}
+
+export {
+  OKP4Connection       as Connection,
+  OKP4MnemonicIdentity as MnemonicIdentity,
 }

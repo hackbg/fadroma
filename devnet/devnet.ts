@@ -8,19 +8,9 @@ import CLI from '@hackbg/cmds'
 import * as OCI from '@fadroma/oci'
 import { packageName, packageVersion } from './devnet-base'
 import DevnetContainer from './devnet-base'
-import * as Platform from './devnet-platform'
+import platforms from './devnet-platform'
 
 const { bold, colors } = Core
-
-/** Identifiers for CLI. */
-const platforms = {
-  'scrt':      Platform.Scrt,
-  'okp4':      Platform.OKP4,
-  'archway':   Platform.Archway,
-  'osmosis':   Platform.Osmosis,
-  'injective': Platform.Injective,
-  'axelar':    Platform.Axelar,
-}
 
 /** Commands exposed by Fadroma Devnet. */
 export default class DevnetCLI extends CLI {

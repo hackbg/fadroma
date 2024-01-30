@@ -122,7 +122,9 @@ type StubAccount = {
   address: Address,
   mnemonic?: string
 }
+
 type StubBalances = Record<string, bigint>
+
 type StubUpload = {
   chainId: ChainId,
   codeId: CodeId,
@@ -130,10 +132,18 @@ type StubUpload = {
   codeData: Uint8Array,
   instances: Set<Address>
 }
+
 type StubInstance = {
   codeId: CodeId,
   address: Address,
   creator: Address
+}
+
+export type {
+  StubAccount  as Account,
+  StubBalances as Balances,
+  StubUpload   as Upload,
+  StubInstance as Instance,
 }
 
 export class StubBackend extends Backend {

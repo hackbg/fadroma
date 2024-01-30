@@ -35,15 +35,15 @@ export default new Suite([
 export async function testScrtChain () {
   ok(mainnet() instanceof ScrtConnection)
   ok(testnet() instanceof ScrtConnection)
-  const { backend, alice, bob, guest } = await testConnectionWithBackend(
-    ScrtConnection,
-    ScrtMnemonicIdentity,
-    Devnets.DevnetContainer,
-    'scrt',
-    '1.9',
-    'uscrt',
-    fixture('scrt-null.wasm')
-  )
+  const { backend, alice, bob, guest } = await testConnectionWithBackend({
+    Connection:      ScrtConnection,
+    Identity:        ScrtMnemonicIdentity,
+    Backend:         Devnets.DevnetContainer,
+    platformName:    'scrt',
+    platformVersion: '1.12',
+    gasToken:        'uscrt',
+    code:            fixture('scrt-null.wasm')
+  })
   //const batch = () => alice.batch()
     //.instantiate('id', {
       //label:    'label',
