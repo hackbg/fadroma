@@ -124,7 +124,7 @@ export class DevnetContainerConfig {
     * such as statefile, runfile, genesis accounts. */
   get stateDir (): SyncFS.Directory {
     if (!this.chainId) {
-      throw new Core.Error("This devnet's chain ID is unset, hence no state directory")
+      throw new Core.Error("devnet chainId is unset, so no state directory")
     }
     return this.stateRoot.subdir(this.chainId)
   }

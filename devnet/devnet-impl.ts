@@ -31,14 +31,17 @@ export function initPort (
 }
 
 export function initChainId (
-  devnet: $D<Chain.Connection, Chain.Identity, 'chainId'|'platform'>
+  devnet: $D<Chain.Connection, Chain.Identity, 'chainId'|'platformName'|'platformVersion'>
 ) {
   if (!devnet.chainId) {
-    if (devnet.platform) {
-      devnet.chainId = `dev-${devnet.platform}-${Core.randomBase16(4).toLowerCase()}`
-    } else {
-      throw new Error('no platform or chainId specified')
+    devnet.chainId = 'dev'
+    if (devnet.platformName) {
+      devnet.chainId += `-${devnet.platformName}`
     }
+    if (devnet.platformVersion) {
+      devnet.chainId += `-${devnet.platformVersion}`
+    }
+    devnet.chainId += `-${Core.randomBase16(4).toLowerCase()}`
   }
   return devnet
 }
