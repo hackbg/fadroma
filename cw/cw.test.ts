@@ -1,6 +1,6 @@
 import { ok, throws, rejects, deepEqual, equal } from 'node:assert'
 import { Token } from '@fadroma/agent'
-import * as Devnets from '@fadroma/devnet'
+import * as Devnet from '@fadroma/devnet'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import * as CW from './cw'
 import { Suite } from '@hackbg/ensuite'
@@ -31,7 +31,8 @@ export async function testCWChain () {
   const { backend, alice, bob, guest } = await testConnectionWithBackend({
     Connection:      CW.OKP4.Connection,
     Identity:        CW.OKP4.MnemonicIdentity,
-    Backend:         Devnets.DevnetContainer,
+    Backend:         Devnet.DevnetContainer,
+    container:       Devnet.Platform.OKP4.versions['6.0.0'].container,
     platformName:    'okp4',
     platformVersion: '6.0',
     gasToken:        'uknow',

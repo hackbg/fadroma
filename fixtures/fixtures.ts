@@ -76,7 +76,9 @@ export async function testConnectionWithBackend <
   I extends typeof Chain.Identity,
   B extends typeof Chain.Backend,
 > ({
-  Connection, Identity, Backend, platformName, platformVersion, gasToken, code, initMsg = null
+  Connection, Identity, Backend,
+  platformName, platformVersion, gasToken, container = {},
+  code, initMsg = null
 }: {
   Connection:      A,
   Identity:        I,
@@ -85,6 +87,7 @@ export async function testConnectionWithBackend <
   platformVersion: string,
   gasToken:        string,
   code:            string,
+  container?:      any,
   initMsg?:        any
 }) {
   const console = new Console(`Testing ${bold(Connection.name)} + ${bold(Backend.name)}`)
@@ -95,7 +98,7 @@ export async function testConnectionWithBackend <
   const execFee   = Connection.gas(10000000).asFee()
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
   const $B = Backend as any
-  const backend = new $B({ platformName, platformVersion, genesisAccounts })
+  const backend = new $B({ platformName, platformVersion, genesisAccounts, container })
   const [alice, bob] = await Promise.all([backend.connect('Alice'), backend.connect('Bob')])
   ok(alice.identity?.address && bob.identity?.address)
   await alice.height

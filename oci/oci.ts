@@ -256,7 +256,7 @@ class OCIImage extends Deploy.ContractTemplate {
     const src = [dockerfile, ...this.inputFiles||[]]
     const build = await api.buildImage(
       { context, src },
-      { t: this.name, dockerfile }
+      { t: this.name, dockerfile, buildargs: this.buildArgs }
     )
     const log = this.log
     await follow(api, build, (event) => {

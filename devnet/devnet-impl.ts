@@ -181,7 +181,6 @@ export async function createDevnetContainer (
     devnet.container.name    = devnet.chainId
     devnet.container.options = containerOptions(devnet)
     devnet.container.command = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
-    console.log(devnet.container)
     await devnet.container.create()
     devnet.container.log.label = devnet.log.label = OCI.toLabel(devnet.container)
     // set id and save

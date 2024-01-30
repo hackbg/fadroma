@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import * as Devnets from '@fadroma/devnet'
+import * as Devnet from '@fadroma/devnet'
 import * as Scrt from './scrt'
 import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
 import { Token } from '@fadroma/agent'
@@ -37,11 +37,12 @@ export async function testScrtChain () {
   const { backend, alice, bob, guest } = await testConnectionWithBackend({
     Connection:      Scrt.Connection,
     Identity:        Scrt.MnemonicIdentity,
-    Backend:         Devnets.DevnetContainer,
+    Backend:         Devnet.DevnetContainer,
+    container:       Devnet.Platform.Scrt.versions['1.12'].container,
     platformName:    'scrt',
     platformVersion: '1.12',
     gasToken:        'uscrt',
-    code:            fixture('scrt-null.wasm')
+    code:            fixture('scrt-null.wasm'),
   })
   //const batch = () => alice.batch()
     //.instantiate('id', {
