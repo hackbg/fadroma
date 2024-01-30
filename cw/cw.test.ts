@@ -28,7 +28,7 @@ export async function testCWChain () {
     Object.assign(new Uint8Array(33), [0x02, 0x03]),
     new Uint8Array(64)
   ))
-  const backend = new Devnet.Container(Devnet.Platform.OKP4.versions['6.0.0'])
+  const backend = new Devnet.Container(Devnet.Platform.OKP4.versions['6.0'])
   const { alice, bob, guest } = await testConnectionWithBackend(backend, {
     Connection: CW.OKP4.Connection,
     Identity:   CW.OKP4.MnemonicIdentity,

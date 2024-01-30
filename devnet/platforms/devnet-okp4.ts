@@ -21,7 +21,7 @@ export const versions: Record<Version, ReturnType<typeof version>> = {
 }
 
 export function version (platformVersion: Version, baseImage: string, baseSha256: string) {
-  const platformName: Lowercase<keyof typeof Platform> = 'axelar'
+  const platformName: Lowercase<keyof typeof Platform> = 'okp4'
   const image = PlatformBase.alpineDevnet({ platformName, platformVersion, baseImage, baseSha256 })
   return {
     platformName,

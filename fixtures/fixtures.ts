@@ -81,13 +81,15 @@ export async function testConnectionWithBackend <
   code:       string,
   initMsg?:   any
 }) {
+  if ('genesisAccounts' in backend) {
+    backend.genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
+  }
   const console = new Console(`Testing ${bold(Connection.name)} + ${bold(backend.constructor.name)}`)
   const { equal, throws, rejects } = await import('node:assert')
   const sendFee   = Connection.gas(1000000).asFee()
   const uploadFee = Connection.gas(10000000).asFee()
   const initFee   = Connection.gas(10000000).asFee()
   const execFee   = Connection.gas(10000000).asFee()
-  const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
   const [alice, bob] = await Promise.all([backend.connect('Alice'), backend.connect('Bob')])
   //ok(alice.identity.address && bob.identity?.address)
   await alice.height
