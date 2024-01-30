@@ -15,6 +15,7 @@ export default async function testScrtMocknet () {
     Mocknet.Connection,
     ScrtMnemonicIdentity,
     Mocknet.Backend,
+    'mock-scrt',
     'v1.9',
     'uscrt',
     fixture('scrt-null.wasm'),

@@ -6,8 +6,9 @@ export default async function testStubImpl () {
     Stub.StubConnection,
     Identity,
     Stub.StubBackend,
-    '',
-    '',
+    'stub',
+    '0.0',
+    'ustub',
     fixture('scrt-null.wasm')
   )
 }

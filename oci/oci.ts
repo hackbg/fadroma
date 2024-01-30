@@ -113,7 +113,7 @@ class OCIImage extends Deploy.ContractTemplate {
 
   constructor (properties: Partial<OCIImage> = {}) {
     super(properties)
-    assign(this, properties, ['name', 'engine', 'dockerfile', 'inputFiles'])
+    assign(this, properties, ['name', 'engine', 'dockerfile', 'inputFiles', 'buildArgs'])
     this.log = new Console(this.name || '(container image)')
     hide(this, 'log')
   }
@@ -121,7 +121,8 @@ class OCIImage extends Deploy.ContractTemplate {
   declare log: Console
   engine:      OCIConnection|null
   dockerfile:  string|null = null
-  inputFiles:  string[]    = []
+  inputFiles:  string[] = []
+  buildArgs:   Record<string, string> = {}
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 

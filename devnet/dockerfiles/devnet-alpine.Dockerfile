@@ -1,7 +1,5 @@
-ARG BASE_IMG
-ARG BASE_VER
-ARG BASE_SHA
-FROM ${BASE_IMG}:${BASE_VER}@${BASE_SHA}
+ARG BASE
+FROM ${BASE}
 RUN apk add nodejs bash curl jq
 ENTRYPOINT [ "/usr/bin/node" ]
 ADD devnet.init.mjs /

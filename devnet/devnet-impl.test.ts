@@ -10,12 +10,16 @@ export default async () => {
   equal(Impl.initPort({ nodePortMode: 'http'    }).nodePort, 1317)
   equal(Impl.initPort({ nodePortMode: 'grpc'    }).nodePort, 9090)
   equal(Impl.initPort({ nodePortMode: 'grpcWeb' }).nodePort, 9091)
+  console.log(Impl.initPort({ nodePortMode: 'rpc'     }).nodePort, 26657)
+  process.exit(123)
   equal(Impl.initPort({ nodePortMode: 'rpc'     }).nodePort, 26657)
 
-  equal(Impl.initChainId({ chainId: 'foo', platform: 'bar' })
-    .chainId, 'foo')
-  ok(Impl.initChainId(new DevnetContainerConfig({ platformName: 'scrt', platformVersion: '0.0' }))
-    .chainId.startsWith('dev-scrt_0.0-'))
+  equal(Impl.initChainId({
+    chainId: 'foo', platformName: 'scrt', platformVersion: 'baz'
+  }).chainId, 'foo')
+  ok(Impl.initChainId(new DevnetContainerConfig({
+    platformName: 'scrt', platformVersion: '0.0'
+  })).chainId.startsWith('dev-scrt_0.0-'))
   throws(()=>Impl.initChainId(new DevnetContainerConfig({})))
 
   ok(Impl.initLogger({ log: undefined, chainId: 'foo', })

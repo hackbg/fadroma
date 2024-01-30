@@ -39,6 +39,7 @@ export async function testScrtChain () {
     ScrtConnection,
     ScrtMnemonicIdentity,
     Devnets.DevnetContainer,
+    'scrt',
     '1.9',
     'uscrt',
     fixture('scrt-null.wasm')

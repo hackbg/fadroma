@@ -32,7 +32,8 @@ export async function testCWChain () {
     CW.OKP4Connection,
     CW.OKP4MnemonicIdentity,
     Devnets.DevnetContainer,
-    '5.0',
+    'okp4',
+    '6.0',
     'uknow',
     fixture('cw-null.wasm')
   )

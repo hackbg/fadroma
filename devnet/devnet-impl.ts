@@ -5,8 +5,10 @@ import portManager from '@hackbg/port'
 import { Path, SyncFS, FileFormat, XDG } from '@hackbg/file'
 import { Core, Chain } from '@fadroma/agent'
 import * as OCI from '@fadroma/oci'
+import Error from './devnet-error'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet-base'
+
 const { bold } = Core
 
 const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
@@ -103,17 +105,35 @@ export function initContainer (
     & Parameters<typeof pauseDevnetContainer>[0]
     & Parameters<typeof removeDevnetContainer>[0]
 ) {
+
+  if (!devnet.container) {
+    devnet.container = { image: { name: 'ghcr.io/hackbg/fadroma-devnet' } } as any
+    if (devnet.platformName) {
+      devnet.container.image.name += `-${devnet.platformName}`
+    } else {
+      throw new Error('Specify either devnet.container.image.name or (devnet.platformName and devnet.platformVersion)')
+    }
+    if (devnet.platformVersion) {
+      devnet.container.image.name += `:${devnet.platformVersion}`
+    } else {
+      throw new Error('Specify either devnet.container.image.name or (devnet.platformName and devnet.platformVersion)')
+    }
+  }
+
   if (!(devnet.container.image instanceof OCI.Image)) {
     devnet.container.image = new OCI.Image(devnet.container.image)
   }
   devnet.container.image.log.label = devnet.log.label
+
   if (!(devnet.container instanceof OCI.Container)) {
     devnet.container = new OCI.Container(devnet.container)
   }
   devnet.container.log.label = devnet.log.label
+
   if (!devnet.container.image.engine || !devnet.container.engine) {
     devnet.container.engine = devnet.container.image.engine = new OCI.Connection()
   }
+
   const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
     enumerable: true, configurable: true, get
   })
@@ -167,9 +187,10 @@ export async function createDevnetContainer (
     if (devnet.verbose) {
       devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
     }
-    devnet.container.name      = devnet.chainId
-    devnet.container.options   = containerOptions(devnet)
-    devnet.container.command   = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
+    devnet.container.name    = devnet.chainId
+    devnet.container.options = containerOptions(devnet)
+    devnet.container.command = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
+    console.log(devnet.container)
     await devnet.container.create()
     devnet.container.log.label = devnet.log.label = OCI.toLabel(devnet.container)
     // set id and save
