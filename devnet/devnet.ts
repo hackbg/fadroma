@@ -12,8 +12,10 @@ import platforms from './devnet-platform'
 
 const { bold, colors } = Core
 
-export { DevnetContainer }
 export * as Platform from './devnet-platform'
+export {
+  DevnetContainer as Container
+}
 
 /** Commands exposed by Fadroma Devnet. */
 export default class DevnetCLI extends CLI {

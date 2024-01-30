@@ -4,21 +4,17 @@ import { MnemonicIdentity } from './scrt'
 import * as Mocknet from './scrt-mocknet'
 
 export default async function testScrtMocknet () {
-
   {
     const backend  = new Mocknet.Backend()
     const agent    = new Mocknet.Connection({ backend })
     const contract = new Mocknet.Contract(backend)
   }
 
-  const { backend, alice, bob, guest } = await testConnectionWithBackend({
-    Connection:      Mocknet.Connection,
-    Identity:        MnemonicIdentity,
-    Backend:         Mocknet.Backend,
-    platformName:    'mock-scrt',
-    platformVersion: 'v1.9',
-    gasToken:        'uscrt',
-    code:            fixture('scrt-null.wasm'),
+  const backend = new Mocknet.Backend()
+  const { alice, bob, guest } = await testConnectionWithBackend(backend, {
+    Connection: Mocknet.Connection,
+    Identity:   MnemonicIdentity,
+    code:       fixture('scrt-null.wasm'),
   })
 
   // **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle

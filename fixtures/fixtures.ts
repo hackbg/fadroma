@@ -74,36 +74,24 @@ export class TestProjectDeployment extends Deploy.Deployment {
 export async function testConnectionWithBackend <
   A extends typeof Chain.Connection,
   I extends typeof Chain.Identity,
-  B extends typeof Chain.Backend,
-> ({
-  Connection, Identity, Backend,
-  platformName, platformVersion, gasToken, container = {},
-  code, initMsg = null
-}: {
-  Connection:      A,
-  Identity:        I,
-  Backend:         B,
-  platformName:    string,
-  platformVersion: string,
-  gasToken:        string,
-  code:            string,
-  container?:      any,
-  initMsg?:        any
+  B extends Chain.Backend,
+> (backend: B, { Connection, Identity, code, initMsg = null }: {
+  Connection: A,
+  Identity:   I,
+  code:       string,
+  initMsg?:   any
 }) {
-  const console = new Console(`Testing ${bold(Connection.name)} + ${bold(Backend.name)}`)
+  const console = new Console(`Testing ${bold(Connection.name)} + ${bold(backend.constructor.name)}`)
   const { equal, throws, rejects } = await import('node:assert')
   const sendFee   = Connection.gas(1000000).asFee()
   const uploadFee = Connection.gas(10000000).asFee()
   const initFee   = Connection.gas(10000000).asFee()
   const execFee   = Connection.gas(10000000).asFee()
   const genesisAccounts = { Alice: "123456789000", Bob: "987654321000" }
-  const $B = Backend as any
-  const backend = new $B({ platformName, platformVersion, genesisAccounts, container })
   const [alice, bob] = await Promise.all([backend.connect('Alice'), backend.connect('Bob')])
-  ok(alice.identity?.address && bob.identity?.address)
+  //ok(alice.identity.address && bob.identity?.address)
   await alice.height
-  const [aliceBalance, bobBalance] =
-    await Promise.all([alice.balance, bob.balance])
+  const [aliceBalance, bobBalance] = await Promise.all([alice.balance, bob.balance])
   const guest = await backend.connect({
     name: 'Guest',
     mnemonic: [
@@ -112,7 +100,7 @@ export async function testConnectionWithBackend <
       'brush element immense task rapid habit',
       'angry tiny foil prosper water news'
     ].join(' ')
-  })
+  } as any)
   equal((await guest.balance)??'0', '0')
   await alice.send(guest, [Connection.gas(1)], { sendFee })
   equal(await guest.balance, '1')

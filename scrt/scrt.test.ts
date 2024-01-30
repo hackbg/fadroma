@@ -34,15 +34,11 @@ export default new Suite([
 export async function testScrtChain () {
   ok(Scrt.mainnet() instanceof Scrt.Connection)
   ok(Scrt.testnet() instanceof Scrt.Connection)
-  const { backend, alice, bob, guest } = await testConnectionWithBackend({
-    Connection:      Scrt.Connection,
-    Identity:        Scrt.MnemonicIdentity,
-    Backend:         Devnet.DevnetContainer,
-    container:       Devnet.Platform.Scrt.versions['1.12'].container,
-    platformName:    'scrt',
-    platformVersion: '1.12',
-    gasToken:        'uscrt',
-    code:            fixture('scrt-null.wasm'),
+  const backend = new Devnet.Container(Devnet.Platform.Scrt.versions['1.12'])
+  const { alice, bob, guest } = await testConnectionWithBackend(backend, {
+    Connection: Scrt.Connection,
+    Identity:   Scrt.MnemonicIdentity,
+    code:       fixture('scrt-null.wasm'),
   })
   //const batch = () => alice.batch()
     //.instantiate('id', {

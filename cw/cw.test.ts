@@ -28,15 +28,11 @@ export async function testCWChain () {
     Object.assign(new Uint8Array(33), [0x02, 0x03]),
     new Uint8Array(64)
   ))
-  const { backend, alice, bob, guest } = await testConnectionWithBackend({
-    Connection:      CW.OKP4.Connection,
-    Identity:        CW.OKP4.MnemonicIdentity,
-    Backend:         Devnet.DevnetContainer,
-    container:       Devnet.Platform.OKP4.versions['6.0.0'].container,
-    platformName:    'okp4',
-    platformVersion: '6.0',
-    gasToken:        'uknow',
-    code:            fixture('cw-null.wasm')
+  const backend = new Devnet.Container(Devnet.Platform.OKP4.versions['6.0.0'])
+  const { alice, bob, guest } = await testConnectionWithBackend(backend, {
+    Connection: CW.OKP4.Connection,
+    Identity:   CW.OKP4.MnemonicIdentity,
+    code:       fixture('cw-null.wasm')
   })
   //new CW.OKP4.Connection({ signer: {}, mnemonic: 'x' } as any)
   //throws(()=>new CW.OKP4.Connection({ address: 'foo', mnemonic: [
