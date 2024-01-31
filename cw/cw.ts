@@ -15,7 +15,26 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-export * from './cw-base'
-export * from './cw-connection'
-export * from './cw-identity'
-export * from './okp4/okp4'
+
+export {
+  CWError            as Error,
+  CWConsole          as Console,
+} from './cw-base'
+
+export {
+  CWConnection       as Connection,
+  CWBatch            as Batch,
+} from './cw-connection'
+
+export {
+  CWIdentity         as Identity,
+  CWSignerIdentity   as SignerIdentity,
+  CWMnemonicIdentity as MnemonicIdentity,
+  encodeSecp256k1Signature
+} from './cw-identity'
+
+export * as Archway   from './archway/archway'
+export * as Axelar    from './axelar/axelar'
+export * as Injective from './injective/injective'
+export * as OKP4      from './okp4/okp4'
+export * as Osmosis   from './osmosis/osmosis'

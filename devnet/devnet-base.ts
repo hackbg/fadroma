@@ -4,9 +4,8 @@ import { Core, Program, Chain, Token } from '@fadroma/agent'
 import type { Address, CodeId, Uint128 } from '@fadroma/agent'
 import * as OCI from '@fadroma/oci'
 import * as Impl from './devnet-impl'
-import * as Scrt from './platforms/scrt-devnet'
-import * as OKP4 from './platforms/okp4-devnet'
 import type * as Platform from './devnet-platform'
+import Error from './devnet-error'
 
 /** Path to this package. Used to find the build script, dockerfile, etc.
   * WARNING: Keep the ts-ignore otherwise it might break at publishing the package. */
@@ -23,10 +22,6 @@ export const {
 }
 
 export const console = new Core.Console(`${packageName} ${packageVersion}`)
-
-class DevnetError extends Core.Error {}
-
-export { DevnetError as Error }
 
 /** Identifiers of supported API endpoints.
   * These are different APIs exposed by a node at different ports.
@@ -66,7 +61,7 @@ export class DevnetContainerConfig {
   /** Initial uploads. */
   genesisUploads:  Record<CodeId, Partial<Program.CompiledCode>>  = {}
   /** If set, overrides the script that launches the devnet in the container. */
-  initScript:      Path = new SyncFS.File(packageRoot, 'platforms', 'devnet.init.mjs')
+  initScript:      Path = new SyncFS.File(packageRoot, 'dockerfiles', 'devnet.init.mjs')
   /** Function that waits for port to open after launching container.
     * Tests override this to save time. */
   waitPort:        typeof waitPort = waitPort
@@ -112,10 +107,10 @@ export class DevnetContainerConfig {
 
   get platform () {
     if (!this.platformName) {
-      throw new Core.Error('platformName is unset')
+      throw new Error('platformName is unset')
     }
     if (!this.platformName) {
-      throw new Core.Error('platformVersion is unset')
+      throw new Error('platformVersion is unset')
     }
     return `${this.platformName}_${this.platformVersion}`
   }
@@ -124,7 +119,7 @@ export class DevnetContainerConfig {
     * such as statefile, runfile, genesis accounts. */
   get stateDir (): SyncFS.Directory {
     if (!this.chainId) {
-      throw new Core.Error("This devnet's chain ID is unset, hence no state directory")
+      throw new Error("devnet chainId is unset, so no state directory")
     }
     return this.stateRoot.subdir(this.chainId)
   }
@@ -132,7 +127,7 @@ export class DevnetContainerConfig {
     * such as container ID. */
   get stateFile (): SyncFS.File {
     if (!this.chainId) {
-      throw new Core.Error("This devnet's chain ID is unset, hence no state file")
+      throw new Error("This devnet's chain ID is unset, hence no state file")
     }
     return this.stateDir.file('devnet.json').setFormat(FileFormat.JSON)
   }
@@ -140,7 +135,7 @@ export class DevnetContainerConfig {
     * Deleting it tells the script running inside the container to kill the devnet. */
   get runFile (): SyncFS.File {
     if (!this.chainId) {
-      throw new Core.Error("This devnet's chain ID is unset, hence no runfile.")
+      throw new Error("This devnet's chain ID is unset, hence no runfile.")
     }
     return this.stateDir.file('devnet.run')
   }
@@ -175,9 +170,9 @@ export default class DevnetContainer<
     Impl.initState(this, options)
     Impl.initDynamicUrl(this)
     Impl.initContainer(this)
-    Impl.initContainerState(this)
+    Core.assign(this, options, [ 'Connection', 'Identity' ])
   }
-  container: OCI.Container = new OCI.Container()
+  declare container: OCI.Container
   /** Connection class for this devnet. */
   Connection: { new (...args: unknown[]): C }
   /** Identity class for this devnet. */
@@ -208,7 +203,7 @@ export default class DevnetContainer<
   async export (repository: string = this.chainId, tag: string = Core.timestamp()) {
     const container = await this.container
     if (!container) {
-      throw new Core.Error("can't export: no container")
+      throw new Error("can't export: no container")
     }
     return container.export(repository, tag)
   }

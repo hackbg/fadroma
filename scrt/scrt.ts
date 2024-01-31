@@ -21,9 +21,19 @@ import { ScrtConnection, ScrtBatch } from './scrt-connection'
 import { ScrtIdentity } from './scrt-identity'
 import faucets from './scrt-faucets'
 
-export * from './scrt-base'
-export * from './scrt-connection'
-export * from './scrt-identity'
+export {
+  ScrtError   as Error,
+  ScrtConsole as Console,
+} from './scrt-base'
+export {
+  ScrtConnection as Connection,
+  ScrtBatch      as Batch,
+} from './scrt-connection'
+export {
+  ScrtIdentity         as Identity,
+  ScrtSignerIdentity   as SignerIdentity,
+  ScrtMnemonicIdentity as MnemonicIdentity,
+} from './scrt-identity'
 export { default as faucets } from './scrt-faucets'
 export * as Mocknet from './scrt-mocknet'
 export * as Snip20 from './snip-20'

@@ -3,8 +3,12 @@
     "devnet.ts",
     "devnet-base.ts",
     "devnet-impl.ts",
-    "platforms/scrt-devnet.ts",
-    "platforms/okp4-devnet.ts"
+    "platforms/devnet-archway.ts",
+    "platforms/devnet-axelar.ts",
+    "platforms/devnet-injective.ts",
+    "platforms/devnet-okp4.ts",
+    "platforms/devnet-osmosis.ts",
+    "platforms/devnet-scrt.ts"
   ],
   "include": [],
   "exclude": [ ".ubik", "*.dist.*", "*.test.*", "node_modules" ],

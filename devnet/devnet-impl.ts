@@ -5,12 +5,16 @@ import portManager from '@hackbg/port'
 import { Path, SyncFS, FileFormat, XDG } from '@hackbg/file'
 import { Core, Chain } from '@fadroma/agent'
 import * as OCI from '@fadroma/oci'
+import Error from './devnet-error'
 import type { default as DevnetContainer } from './devnet-base'
 import type { APIMode } from './devnet-base'
+import platforms from './devnet-platform'
+
 const { bold } = Core
 
 const ENTRYPOINT_MOUNTPOINT = '/devnet.init.mjs'
 
+/** Pick only the properties of a DevnetContainer that are used in a given function. */
 type $D<
   C extends Chain.Connection,
   I extends Chain.Identity,
@@ -29,29 +33,18 @@ export function initPort (
   return devnet
 }
 
-export function initContainer (
-  devnet: $D<Chain.Connection, Chain.Identity, 'log'|'container'>
-) {
-  devnet.container.log.label = devnet.log.label
-  if (!devnet.container.image) {
-    devnet.container.image = new OCI.Image()
-  }
-  devnet.container.image.log.label = devnet.log.label
-  if (!devnet.container.image.engine) {
-    devnet.container.engine = devnet.container.image.engine = new OCI.Connection()
-  }
-  return devnet
-}
-
 export function initChainId (
-  devnet: $D<Chain.Connection, Chain.Identity, 'chainId'|'platform'>
+  devnet: $D<Chain.Connection, Chain.Identity, 'chainId'|'platformName'|'platformVersion'>
 ) {
   if (!devnet.chainId) {
-    if (devnet.platform) {
-      devnet.chainId = `dev-${devnet.platform}-${Core.randomBase16(4).toLowerCase()}`
-    } else {
-      throw new Error('no platform or chainId specified')
+    devnet.chainId = 'dev'
+    if (devnet.platformName) {
+      devnet.chainId += `-${devnet.platformName}`
     }
+    if (devnet.platformVersion) {
+      devnet.chainId += `-${devnet.platformVersion}`
+    }
+    devnet.chainId += `-${Core.randomBase16(4).toLowerCase()}`
   }
   return devnet
 }
@@ -106,6 +99,58 @@ export function initDynamicUrl (
   return devnet
 }
 
+export function initContainer (
+  devnet:
+    & Parameters<typeof createDevnetContainer>[0]
+    & Parameters<typeof startDevnetContainer>[0]
+    & Parameters<typeof pauseDevnetContainer>[0]
+    & Parameters<typeof removeDevnetContainer>[0]
+) {
+
+  if (!devnet.container) {
+    throw new Error('At least devnet.container.image.name needs to be specified')
+  }
+
+  if (!(devnet.container.image instanceof OCI.Image)) {
+    devnet.container.image = new OCI.Image(devnet.container.image)
+  }
+  devnet.container.image.log.label = devnet.log.label
+
+  if (!(devnet.container instanceof OCI.Container)) {
+    devnet.container = new OCI.Container(devnet.container)
+  }
+  devnet.container.log.label = devnet.log.label
+
+  if (!devnet.container.image.engine || !devnet.container.engine) {
+    devnet.container.engine = devnet.container.image.engine = new OCI.Connection()
+  }
+
+  const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
+    enumerable: true, configurable: true, get
+  })
+  defineGetter('created', () => {
+    const creating = createDevnetContainer(devnet)
+    defineGetter('created', () => creating)
+    return creating
+  })
+  defineGetter('started', () => {
+    const starting = startDevnetContainer(devnet)
+    defineGetter('started', () => starting)
+    return starting
+  })
+  defineGetter('paused', () => {
+    const pausing = pauseDevnetContainer(devnet)
+    defineGetter('paused', () => pausing)
+    return pausing
+  })
+  defineGetter('removed', () => {
+    const deleting = removeDevnetContainer(devnet)
+    defineGetter('removed', () => deleting)
+    return deleting
+  })
+  return devnet
+}
+
 export async function createDevnetContainer (
   devnet:
     & Parameters<typeof saveDevnetState>[0]
@@ -133,9 +178,9 @@ export async function createDevnetContainer (
     if (devnet.verbose) {
       devnet.log(`Creating devnet`, bold(devnet.chainId), `on`, bold(String(devnet.url)))
     }
-    devnet.container.name      = devnet.chainId
-    devnet.container.options   = containerOptions(devnet)
-    devnet.container.command   = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
+    devnet.container.name    = devnet.chainId
+    devnet.container.options = containerOptions(devnet)
+    devnet.container.command = [ENTRYPOINT_MOUNTPOINT, devnet.chainId]
     await devnet.container.create()
     devnet.container.log.label = devnet.log.label = OCI.toLabel(devnet.container)
     // set id and save
@@ -449,32 +494,4 @@ const portVars: Record<APIMode, string> = {
 /** Default port numbers for each kind of port. */
 export const defaultPorts: Record<APIMode, number> = {
   http: 1317, grpc: 9090, grpcWeb: 9091, rpc: 26657
-}
-
-export function initContainerState (
-  devnet: DevnetContainer<Chain.Connection, Chain.Identity>
-) {
-  const defineGetter = (name, get) => Object.defineProperty(devnet, name, {
-    enumerable: true, configurable: true, get
-  })
-  defineGetter('created', () => {
-    const creating = createDevnetContainer(devnet)
-    defineGetter('created', () => creating)
-    return creating
-  })
-  defineGetter('started', () => {
-    const starting = startDevnetContainer(devnet)
-    defineGetter('started', () => starting)
-    return starting
-  })
-  defineGetter('paused', () => {
-    const pausing = pauseDevnetContainer(devnet)
-    defineGetter('paused', () => pausing)
-    return pausing
-  })
-  defineGetter('removed', () => {
-    const deleting = removeDevnetContainer(devnet)
-    defineGetter('removed', () => deleting)
-    return deleting
-  })
 }

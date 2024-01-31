@@ -113,7 +113,7 @@ class OCIImage extends Deploy.ContractTemplate {
 
   constructor (properties: Partial<OCIImage> = {}) {
     super(properties)
-    assign(this, properties, ['name', 'engine', 'dockerfile', 'inputFiles'])
+    assign(this, properties, ['name', 'engine', 'dockerfile', 'inputFiles', 'buildArgs'])
     this.log = new Console(this.name || '(container image)')
     hide(this, 'log')
   }
@@ -121,7 +121,8 @@ class OCIImage extends Deploy.ContractTemplate {
   declare log: Console
   engine:      OCIConnection|null
   dockerfile:  string|null = null
-  inputFiles:  string[]    = []
+  inputFiles:  string[] = []
+  buildArgs:   Record<string, string> = {}
 
   get [Symbol.toStringTag](): string { return this.name||'' }
 
@@ -255,7 +256,7 @@ class OCIImage extends Deploy.ContractTemplate {
     const src = [dockerfile, ...this.inputFiles||[]]
     const build = await api.buildImage(
       { context, src },
-      { t: this.name, dockerfile }
+      { t: this.name, dockerfile, buildargs: this.buildArgs }
     )
     const log = this.log
     await follow(api, build, (event) => {
@@ -289,6 +290,18 @@ class OCIImage extends Deploy.ContractTemplate {
     }
     await container.start()
     return container
+  }
+
+  async getInstances ({ all = false } = {}) {
+    const filters = JSON.stringify({ancestor: [this.name]})
+    const instances = await this.engine.api.listContainers({ filters, all })
+    return instances.map(instance=>new OCIContainer({
+      engine:  this.engine,
+      image:   this,
+      id:      instance.Id,
+      name:    instance.Names[0],
+      command: instance.Command,
+    }))
   }
 
 }

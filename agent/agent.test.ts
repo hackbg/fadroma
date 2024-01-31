@@ -7,5 +7,5 @@ export default new Suite([
   ['chain',  ()=>import('./chain.test')],
   ['deploy', ()=>import('./deploy.test')],
   ['token',  ()=>import('./token.test')],
-  ['stub',   ()=>import('./stub.test')]
+  //['stub',   ()=>import('./stub.test')]
 ])

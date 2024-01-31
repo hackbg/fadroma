@@ -1,7 +1,7 @@
 import { packageRoot } from './package'
 import type * as Devnets from './devnet'
 import DevnetContainer from './devnet-base'
-import { Chain, Token } from '@fadroma/agent'
+import { Core, Chain, Token } from '@fadroma/agent'
 import * as OCI from '@fadroma/oci'
 import { ok, equal, deepEqual, throws, rejects } from 'node:assert'
 import { getuid, getgid } from 'node:process'
@@ -13,14 +13,19 @@ import * as Platform from './devnet-platform'
 export async function testDevnetPlatform (
   name: keyof typeof Platform, version: string,
 ) {
-  const spec = Platform[name].version(version as never)
+  const spec = (Platform[name] as any).version(version as never, 'no-version', 'no-checksum')
   const codePath = resolve(
     packageRoot, 'fixtures', 'fadroma-example-cw-null@HEAD.wasm'
   )
+  const user1 = Core.randomBech32(spec.bech32Prefix)
+  const user2 = Core.randomBech32(spec.bech32Prefix)
   let devnet = new DevnetContainer({
     ...spec,
     onScriptExit: 'remove',
-    genesisAccounts: { User1: 12345678, User2: 87654321, },
+    genesisAccounts: {
+      [user1]: 12345678,
+      [user2]: 87654321,
+    },
     genesisUploads: {
       '7': { codePath: fixture('fadroma-example-cw-null@HEAD.wasm') },
       '8': { codePath: fixture('fadroma-example-cw-echo@HEAD.wasm') },
@@ -55,7 +60,7 @@ export async function testDevnetPlatform (
   ok(devnet.container instanceof OCI.Container)
   equal(devnet.container.name, devnet.chainId)
   equal(await devnet.started, devnet)
-  const agent = await devnet.connect({ name: 'User1' })
+  const agent = await devnet.connect({ name: user1 })
 
   // wait for internal SigningCosmWasmClient.connectWithSigner fetch
   // to complete - otherwise the test is flaky

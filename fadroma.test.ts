@@ -4,9 +4,6 @@
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['agent',   () => import('./agent/agent.test')],
-  ['compile', () => import('./compile/compile.test')],
-  ['create',  () => import('./create/create.test')],
-  ['devnet',  () => import('./devnet/devnet.test')],
   ['stores',  () => import('./stores.test')],
   ['scrt',    () =>
     //@ts-ignore
@@ -17,4 +14,9 @@ export default new Suite([
   //['oci',     () =>
     //@ts-ignore
     //import('./oci/oci.test')],
+
+  // When running sequentially, these should go last, as they are the slowest.
+  ['devnet',  () => import('./devnet/devnet.test')],
+  ['compile', () => import('./compile/compile.test')],
+  ['create',  () => import('./create/create.test')],
 ])

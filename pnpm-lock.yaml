@@ -388,6 +388,9 @@ importers:
 
   oci:
     dependencies:
+      '@fadroma/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@hackbg/file':
         specifier: workspace:^
         version: link:../toolbox/file
@@ -629,8 +632,8 @@ importers:
   toolbox/ensuite:
     dependencies:
       '@ganesha/esbuild':
-        specifier: 1.0.0-rc.1
-        version: 1.0.0-rc.1
+        specifier: workspace:^
+        version: link:../ganesha/esbuild
       '@hackbg/file':
         specifier: ^2.0.2
         version: 2.0.3
@@ -1833,13 +1836,6 @@ packages:
     dependencies:
       marked: 4.3.0
     dev: true
-
-  /@ganesha/esbuild@1.0.0-rc.1:
-    resolution: {integrity: sha512-H7vhq2TZG9U9gxd9F6TPtcfkmnHF7M5hxnMlEvj44NsNpSz/V3Sm8R1CPap2aaykoET+VXdjcWmYgGHfgIWpiQ==}
-    dependencies:
-      esbuild-wasm: 0.19.11
-      get-tsconfig: 4.7.2
-    dev: false
 
   /@ganesha/node-legacy@4.0.2(typescript@5.1.6):
     resolution: {integrity: sha512-2KWL9kq1/rmtCQ/Yv+ecKEA65hSRSTfLartTx4Td6KsHarvk09CiFewOcWhNEWUZ3+RBIJ5Xg17P3+dtZGaX2A==}

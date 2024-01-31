@@ -131,8 +131,3 @@ export function encodeSecp256k1Signature (pubkey: Uint8Array, signature: Uint8Ar
     signature: base64.encode(signature)
   }
 }
-
-export default {
-  Mnemonic: CWMnemonicIdentity,
-  Signer:   CWSignerIdentity
-}

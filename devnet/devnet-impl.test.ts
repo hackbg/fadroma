@@ -10,26 +10,28 @@ export default async () => {
   equal(Impl.initPort({ nodePortMode: 'http'    }).nodePort, 1317)
   equal(Impl.initPort({ nodePortMode: 'grpc'    }).nodePort, 9090)
   equal(Impl.initPort({ nodePortMode: 'grpcWeb' }).nodePort, 9091)
+  console.log(Impl.initPort({ nodePortMode: 'rpc'     }).nodePort, 26657)
+  process.exit(123)
   equal(Impl.initPort({ nodePortMode: 'rpc'     }).nodePort, 26657)
 
-  equal(Impl.initChainId({ chainId: 'foo', platform: 'bar' })
-    .chainId, 'foo')
+  equal(Impl.initChainId({
+    chainId: 'foo', platformName: 'scrt', platformVersion: 'baz'
+  }).chainId, 'foo')
   ok(Impl.initChainId(new DevnetContainerConfig({
-    platformName: 'scrt',
-    platformVersion: '0.0'
+    platformName: 'scrt', platformVersion: '0.0'
   })).chainId.startsWith('dev-scrt_0.0-'))
   throws(()=>Impl.initChainId(new DevnetContainerConfig({})))
 
   ok(Impl.initLogger({ log: undefined, chainId: 'foo', })
-     .log instanceof Console)
+    .log instanceof Console)
   throws(()=>Impl.initLogger({ log: undefined, chainId: 'foo' })
-     .log = null)
+    .log = null)
   ok(Impl.initState(new DevnetContainerConfig({ chainId: 'foo' }), {})
-     .stateRoot.absolute)
+    .stateRoot.absolute)
   ok(Impl.initState(new DevnetContainerConfig({ chainId: 'foo' }), {})
-     .stateFile.absolute.endsWith('/foo/devnet.json'))
+    .stateFile.absolute.endsWith('/foo/devnet.json'))
   ok(Impl.initState(new DevnetContainerConfig({ chainId: 'foo' }), {})
-     .runFile.absolute.endsWith('/foo/devnet.run'))
+    .runFile.absolute.endsWith('/foo/devnet.run'))
 
   equal(Impl.initDynamicUrl({
     log:          new Console('initDynamicUrl'),
