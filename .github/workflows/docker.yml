@@ -5,7 +5,7 @@ jobs:
 
   build-builder:
     if: "!startsWith(github.ref, 'refs/tags/v')"
-    name: build the build container image
+    name: build image
     runs-on: ubuntu-latest
     steps:
       - { uses: actions/checkout@v4, with: { submodules: recursive } }
@@ -24,16 +24,22 @@ jobs:
           push: true
       - run: echo ${{ steps.docker_build.outputs.digest }}
 
-  build-devnet-scrt:
+  build-devnets:
     if: "!startsWith(github.ref, 'refs/tags/v')"
-    name: build the devnet container images
+    name: devnet image
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version:
+          - [alpine, archway-4.0.3,            "archwaynetwork/archwayd:4.0.3",                          "738f0d04be3a60bd5014706a516bc8c6bbb29c128c4b073eb773544ef382a337"]
+          - [alpine, axelar-0.34.3,            "axelarnetwork/axelar-core:v0.34.3",                      "6e99f8913054bbd81b8fe248c8c6ade736bc751f822ae6f9556cc0b8fe3a998d"]
+          - [debian, injective-1.12.9-testnet, "public.ecr.aws/l9h3g6c6/injective-core:v1.12.9-testnet", "6af75fe970423dfa5b3df9a2023181dba95a86bc3d718eb7abab09d8ed8ff417"]
+          - [alpine, okp4-6.0,                 "okp4/okp4d:6.0.0",                                       "50f7404014863445d7d83b794ecd91b9a5337e5709a9d1dc19215e519c1acc4a"]
+          - [alpine, osmosis-22.0.1,           "osmolabs/osmosis:22.0.1-alpine",                         "71511ed82fecfc6b9d72ea5a2f07ca4373e4222e1ffaa96c891013306af9e570"]
+          - [ubuntu, scrt-1.12,                "ghcr.io/scrtlabs/localsecret:v1.12.1",                   "5f0e1bfe10066deb6c86e1965c9b09b13cecc36a007ca50eb87630eebd2b294c"]
     steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
-      - name: Set up Docker Buildx
-        id:   buildx
-        uses: docker/setup-buildx-action@v1
+      - { uses: actions/checkout@v4, with: { submodules: recursive } }
+      - { name: Set up Docker Buildx, id: buildx, uses: docker/setup-buildx-action@v1 }
       - name: Login to Github Packages
         uses: docker/login-action@v1
         with:
@@ -43,49 +49,8 @@ jobs:
       - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }} | tr '@' '_')" >> $GITHUB_ENV
       - uses: docker/build-push-action@v4
         with:
-          context: ./devnets
-          file:    devnets/scrt_1_9.Dockerfile
-          tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.9:${{ env.IMAGE_TAG }}
-          push:    true
-
-  build-devnet-okp4:
-    if: "!startsWith(github.ref, 'refs/tags/v')"
-    name: build the devnet container images
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
-      - name: Set up Docker Buildx
-        id:   buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Login to Github Packages
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - run: echo "IMAGE_TAG=$(tr '/' '_' <<< ${{ github.ref_name }} | tr '@' '_')" >> $GITHUB_ENV
-      - uses: docker/build-push-action@v4
-        with:
-          context: ./devnets
-          file:    devnets/okp4_5_0.Dockerfile
-          tags:    ghcr.io/hackbg/fadroma-devnet-okp4-5.0:${{ env.IMAGE_TAG }}
-          push:    true
-      #- uses: docker/build-push-action@v4
-        #with:
-          #context: ./devnets
-          #file:    devnets/scrt_1_8.Dockerfile
-          #tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.8:${{ env.IMAGE_TAG }}
-          #push:    true
-      #- uses: docker/build-push-action@v4
-        #with:
-          #context: ./devnets
-          #file:    devnets/scrt_1_7.Dockerfile
-          #tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.7:${{ env.IMAGE_TAG }}
-          #push:    true
-      #- uses: docker/build-push-action@v4
-        #with:
-          #context: ./devnets
-          #file:    devnets/scrt_1_6.Dockerfile
-          #tags:    ghcr.io/hackbg/fadroma-devnet-scrt-1.6:${{ env.IMAGE_TAG }}
-          #push:    true
+          context: ./devnet/dockerfiles
+          file: devnet/dockerfiles/devnet-${{ matrix.version[0] }}.Dockerfile
+          tags: ghcr.io/hackbg/fadroma-devnet:${{ matrix.version[1] }}
+          push: true
+          build-args: BASE=${{ matrix.version[2] }}@sha256:${{ matrix.version[3] }}
