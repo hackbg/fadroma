@@ -1,11 +1,12 @@
 {
   "name": "@fadroma/cw",
-  "version": "1.0.0-rc.15",
-  "license": "AGPL-3.0-only",
   "type": "module",
   "main": "cw.ts",
   "files": [ "*.ts", "okp4/*.ts" ],
-  "description": "CosmJS Stargate integration for Fadroma, incl. OKP4 support.",
+  "version": "1.0.0-rc.16",
+  "license": "AGPL-3.0-only",
+  "keywords": [ "cosmwasm", "interchain", "okp4" ],
+  "description": "CosmJS Stargate integration for Fadroma.",
   "dependencies": {
     "@fadroma/agent":     "workspace:*",
     "@hackbg/cosmjs-esm": "workspace:1.0.0-rc.34",

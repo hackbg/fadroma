@@ -1,18 +1,14 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "2.0.0-rc.23",
-  "license": "AGPL-3.0-only",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/hackbg/fadroma"
-  },
   "type": "module",
   "main": "fadroma.ts",
   "browser": "fadroma.browser.ts",
+  "version": "2.0.0-rc.24",
+  "license": "AGPL-3.0-only",
+  "keywords": [ "cosmwasm", "scrt", "secret network", "interchain" ],
   "description": "CosmWasm dApp framework.",
-  "bin": {
-    "fadroma": "fadroma.cli.mjs"
-  },
+  "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
+  "bin": { "fadroma": "fadroma.cli.mjs" },
   "files": [
     "!*",
     "LICENSE",

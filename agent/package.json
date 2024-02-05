@@ -1,14 +1,12 @@
 {
   "name": "@fadroma/agent",
-  "version": "2.0.0-rc.19",
-  "license": "AGPL-3.0-only",
   "type": "module",
   "main": "agent.ts",
   "browser": "agent.browser.ts",
-  "files": [
-    "*.ts",
-    "!*.test.*"
-  ],
+  "version": "2.0.0-rc.20",
+  "license": "AGPL-3.0-only",
+  "files": [ "*.ts", "!*.test.*" ],
+  "keywords": [ "cosmwasm", "scrt", "secret network", "interchain" ],
   "description": "Isomorphic base layer for implementing dAPI clients. See @fadroma/scrt for Secret Network support.",
   "scripts": {
     "check": "tsc --noEmit",
