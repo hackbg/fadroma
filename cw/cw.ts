@@ -39,3 +39,33 @@ export * as Injective from './injective/injective'
 export * as OKP4      from './okp4/okp4'
 export * as Osmosis   from './osmosis/osmosis'
 export * as Namada    from './namada/namada'
+
+import CLI from '@hackbg/cmds'
+import { CWConsole } from './cw-base'
+import { CWConnection } from './cw-connection'
+const console = new CWConsole()
+export default class CWCLI extends CLI {
+  constructor (...args: ConstructorParameters<typeof CLI>) {
+    super(...args)
+    this.log.label = ``
+  }
+  connect = this.command({
+    name: 'check',
+    info: 'try connecting to a RPC endpoint',
+    args: 'RPC_URL [TIMEOUT_SEC]'
+  }, async (url: string, timeout: number = 5) => {
+    if (!url) {
+      console.error('Required argument: RPC_URL')
+      process.exit(1)
+    }
+    const connection = new CWConnection({ url })
+    console.log(`Will exit if not connected in ${timeout}s.`)
+    const timer = setTimeout(()=>{
+      console.info(`Failed to connect in ${timeout}s.`)
+      process.exit(1)
+    }, timeout * 1000)
+    await connection.api
+    clearTimeout(timer)
+    console.log(connection.api)
+  })
+}
