@@ -7,7 +7,7 @@
   "license": "AGPL-3.0-only",
   "description": "Manage local development nodes for Secret Network and CosmWasm.",
   "bin": {
-    "fadroma-devnet": "devnet.cli.js"
+    "fadroma-devnet": "devnet.cli.mjs"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
