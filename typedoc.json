@@ -20,6 +20,8 @@
       "./toolbox/logs",
       "./toolbox/oops",
       "./toolbox/port",
-      "./toolbox/repo"
+      "./toolbox/repo",
+      "./cw/cosmjs-esm",
+      "./scrt/secretjs-esm"
     ]
 }
