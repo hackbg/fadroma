@@ -4,7 +4,7 @@
 import { Tx, ReadonlySigner, SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { CreateClientOptions, EncryptionUtils, TxResponse } from '@hackbg/secretjs-esm'
 import { ScrtError as Error, console, bold, base64 } from './scrt-base'
-import { ScrtIdentity } from './scrt-identity'
+import { ScrtIdentity, ScrtSignerIdentity, ScrtMnemonicIdentity } from './scrt-identity'
 import faucets from './scrt-faucets'
 //import * as Mocknet from './scrt-mocknet'
 import type { Uint128, Message, Address, TxHash, ChainId, CodeId, CodeHash } from '@fadroma/agent'
@@ -40,6 +40,19 @@ export class ScrtConnection extends Chain.Connection {
       throw new Error("can't connect without url")
     }
     if (this.identity) {
+      if (!(this.identity instanceof ScrtIdentity)) {
+        if (!(typeof this.identity === 'object')) {
+          throw new Error('identity must be ScrtIdentity instance, { mnemonic }, or { encryptionUtils }')
+        } else if ((this.identity as { mnemonic: string }).mnemonic) {
+          this.log.debug('Identifying with mnemonic')
+          this.identity = new ScrtMnemonicIdentity(this.identity)
+        } else if ((this.identity as { encryptionUtils: unknown }).encryptionUtils) {
+          this.log.debug('Identifying with signer (encryptionUtils)')
+          this.identity = new ScrtSignerIdentity(this.identity)
+        } else {
+          throw new Error('identity must be ScrtIdentity instance, { mnemonic }, or { encryptionUtils }')
+        }
+      }
       this.api = this.identity.getApi({ chainId, url }) 
     } else {
       this.api = new SecretNetworkClient({ chainId, url })
