@@ -605,52 +605,22 @@ hr {
 </ul></nav>
 <content class="ensuite-md-content"><div><p></div></p>
 <p>&lt;div align=&quot;center&quot;&gt;</p>
-<h1 id="fadroma-agent-for-generic-cosmwasm" tabindex="-1">Fadroma Agent for generic CosmWasm</h1>
+<h1 id="fadroma-agent-for-cosmwasm" tabindex="-1">Fadroma Agent for CosmWasm</h1>
 <p><a href="https://www.npmjs.com/package/@fadroma/scrt"><img src="https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&amp;label=%40fadroma%2Fscrt&amp;style=for-the-badge" alt=""></a></p>
-<p>This package lets you use Fadroma Agent on CosmWasm-enabled networks.</p>
+<p>This package lets you use Fadroma Agent on most CosmWasm-enabled networks.
+For Secret Network, see <code>@fadroma/cw</code> instead.</p>
 <p>See https://fadroma.tech for more info.</p>
 <p>&lt;/div&gt;</p>
 <h2 id="supported-networks" tabindex="-1">Supported networks</h2>
-<h3 id="others" tabindex="-1">Others</h3>
-<p>There is basic support for all chains accessible via <code>@cosmjs/stargate</code>.
-However, chain-specific features may not be directly available.</p>
+<p>There is basic support for all CosmWasm chains that are accessible via <code>@cosmjs/stargate</code>.
+For this, we currently use our own fork of the <code>@cosmjs/*</code> packages,
+unified into a single package, <a href="https://www.npmjs.com/package/@hackbg/cosmjs-esm"><code>@hackbg/cosmjs-esm</code></a>.</p>
+<p>However, availability of chain-specific features is subject to implementation
+within <code>@fadroma/cw</code>. For now, we have basic support for OKP4's chain-specific features.</p>
 <pre><code class="hljs language-typescript"><span class="hljs-comment">// TODO add example for connecting to generic CW-enabled chain</span>
 </code></pre>
-<hr>
-<h1 id="generic-cosmwasm-enabled-chains" tabindex="-1">Generic CosmWasm-enabled chains</h1>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> assert <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:assert&#x27;</span>
-</code></pre>
-<p>Fadroma supports connecting to any chain that supports CosmWasm.</p>
-<p>For this, we currently use our own fork of the <code>@cosmjs/*</code> packages,
-unified into a single package, <a href="https://www.npmjs.com/package/@hackbg/cosmjs-esm"><code>@hackbg/cosmjs-esm</code></a>.</p>
-<h2 id="okp4-support" tabindex="-1">OKP4 support</h2>
-<p>In these tests, we'll connect to a local OKP4 devnet
-managed by Fadroma on your local Docker installation.
-(Make sure you can call <code>docker</code> without <code>sudo</code>!)</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;@hackbg/fadroma&#x27;</span> <span class="hljs-comment">// installs devnet support</span>
-<span class="hljs-keyword">import</span> { <span class="hljs-title class_">OKP4</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@fadroma/connect&#x27;</span>
-
-<span class="hljs-keyword">const</span> okp4 = <span class="hljs-keyword">await</span> <span class="hljs-title class_">OKP4</span>.<span class="hljs-title function_">devnet</span>().<span class="hljs-property">ready</span>
-<span class="hljs-title function_">assert</span>(okp4 <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">OKP4</span>.<span class="hljs-property">Chain</span>)
-</code></pre>
-<p>You can use the <code>cognitaria</code>, <code>objectaria</code> and <code>lawStones</code> methods
-to get lists of the corresponding contracts.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-keyword">await</span> okp4.<span class="hljs-title function_">cognitaria</span>())
-<span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-keyword">await</span> okp4.<span class="hljs-title function_">objectaria</span>())
-<span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-keyword">await</span> okp4.<span class="hljs-title function_">lawStones</span>())
-</code></pre>
-<p>To interact with them, you need to authenticate. This is done with
-the <code>authenticate</code> method. The returned <code>OKP4Agent</code> has the same listing
-methods - only this time the contracts are returned ready to use.</p>
-<pre><code class="hljs language-typescript"><span class="hljs-keyword">const</span> signer = { <span class="hljs-comment">/* get this from keplr */</span> }
-<span class="hljs-keyword">const</span> agent = <span class="hljs-keyword">await</span> okp4.<span class="hljs-title function_">authenticate</span>({ signer }).<span class="hljs-property">ready</span>
-
-<span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">cognitaria</span>())
-<span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">objectaria</span>())
-<span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-keyword">await</span> agent.<span class="hljs-title function_">lawStones</span>())
-</code></pre>
 </content>
-<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#supported-networks">Supported networks</a><ul><li><a href="#others">Others</a></li></ul></li><li><a href="#okp4-support">OKP4 support</a></li></ul></div></p></nav>
+<nav class="ensuite-md-toc"><p><div class="table-of-contents"><ul><li><a href="#supported-networks">Supported networks</a></li></ul></div></p></nav>
 </div>
 </body>
 </html>
