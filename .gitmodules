@@ -7,11 +7,11 @@
   url    = https://github.com/hackbg/ganesha.git
   branch = develop
 [submodule "connect/cw/cosmjs-esm"]
-  path   = cw/cosmjs-esm
+	path = packages/cosmjs-esm
   url    = https://github.com/hackbg/cosmjs-esm.git
   branch = unified
 [submodule "connect/scrt/secret.js"]
-  path   = scrt/secretjs-esm
+	path = packages/secretjs-esm
   url    = https://github.com/hackbg/secret.js.git
   branch = fix/esm-nonflat
 [submodule "assets/cantarell"]
