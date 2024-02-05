@@ -19,7 +19,7 @@
     "cov": "time ensuite-cov -r text -r lcov -- scrt.test.ts",
 
     "clean": "rm -rf .ubik *.dist.*",
-    "release": "pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123",
+    "release": "pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123",
     "release:fast": "pnpm clean && pnpm i && pnpm check && ubik release --otp 123123",
     "release:faster": "pnpm clean && pnpm i && ubik release --otp 123123 --no-git-checks"
   }
