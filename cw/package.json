@@ -2,8 +2,16 @@
   "name": "@fadroma/cw",
   "type": "module",
   "main": "cw.ts",
-  "files": [ "*.ts", "okp4/*.ts" ],
-  "version": "1.0.0-rc.16",
+  "files": [
+    "*.ts",
+    "archway/*.ts",
+    "axelar/*.ts",
+    "injective/*.ts",
+    "namada/*.ts",
+    "okp4/*.ts",
+    "osmosis/*.ts"
+  ],
+  "version": "1.0.0-rc.17",
   "license": "AGPL-3.0-only",
   "keywords": [ "cosmwasm", "interchain", "okp4" ],
   "description": "CosmJS Stargate integration for Fadroma.",

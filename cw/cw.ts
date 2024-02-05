@@ -59,13 +59,21 @@ export default class CWCLI extends CLI {
       process.exit(1)
     }
     const connection = new CWConnection({ url })
-    console.log(`Will exit if not connected in ${timeout}s.`)
+    console.info(`Will exit with error code if not connected in ${timeout}s.`)
     const timer = setTimeout(()=>{
-      console.info(`Failed to connect in ${timeout}s.`)
+      console.error(`Failed to connect in ${timeout}s.`)
       process.exit(1)
     }, timeout * 1000)
-    await connection.api
+    let api
+    try {
+      api = await connection.api
+    } catch (e) {
+      console.error(e.stack)
+      console.error(`Failed to connect because of the above error.`)
+      process.exit(1)
+    }
     clearTimeout(timer)
-    console.log(connection.api)
+    console.log(api)
+    console.log('Connected successfully.')
   })
 }

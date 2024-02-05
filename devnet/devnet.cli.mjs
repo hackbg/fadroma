@@ -10,16 +10,11 @@ import { readFileSync } from 'node:fs'
 const { name, version } = JSON.parse(
   readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'package.json'))
 )
+console.log(`Starting ${bold(name)} ${version}...`)
+console.log(colors.green('█▀▀▀▀ █▀▀▀█ █▀▀▀▄ █▀▀▀█ █▀▀▀█ █▀█▀█ █▀▀▀█'))
+console.log(colors.green('█▀▀   █▀▀▀█ █▄▄▄▀ █▀▀▀▄ █▄▄▄█ █ ▀ █ █▀▀▀█'))
+console.log(colors.green('l e v e l t h e l a n d s c a p e  2021-∞'))
 const console = new Console()
-console
-  .log(
-    `Starting ${bold(name)} ${version}...`)
-  .log(colors.green(
-    '█▀▀▀▀ █▀▀▀█ █▀▀▀▄ █▀▀▀█ █▀▀▀█ █▀█▀█ █▀▀▀█'))
-  .log(colors.green(
-    '█▀▀   █▀▀▀█ █▄▄▄▀ █▀▀▀▄ █▄▄▄█ █ ▀ █ █▀▀▀█'))
-  .log(colors.green(
-    'l e v e l t h e l a n d s c a p e  2021-∞'))
 
 import * as Dotenv from 'dotenv'
 Dotenv.config()
